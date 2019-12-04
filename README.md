@@ -34,9 +34,7 @@ We recommend that you work with a virtual environment like [Virtualenv](https://
 Updating to the latest and greatest:
 
 ```bash
-export PIP_EXTRA_INDEX_URL=https://<YOUR_PYPI_USER>:<YOUR_PYPI_PASSWORD>@pypi.databand.ai/simple
-pip install -U databand
-dbnd initdb
+pip install dbnd
 ```
 
 If you would like access to our latest features, or have any questions, feedback, or contributions we would love to here from you! Get in touch through contact@databand.ai
