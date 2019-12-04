@@ -1,0 +1,133 @@
+import logging
+
+import six
+
+from marshmallow import Schema, fields
+from six.moves.urllib_parse import urljoin
+
+import requests
+
+from dbnd._core.errors.base import DatabandApiError
+from dbnd._core.errors.friendly_error.api import api_connection_refused
+
+
+logger = logging.getLogger(__name__)
+
+# uncomment for requests trace
+# import http.client
+# http.client.HTTPConnection.debuglevel = 1
+
+
+class AlwaysString(fields.Field):
+    def _serialize(self, value, attr, obj):
+        if value is not None:
+            return str(value.value)
+
+
+class ApiClient(object):
+    """Json API client implementation."""
+
+    api_prefix = "/api/v1/"
+
+    def __init__(self, api_base_url, auth=None, user="databand", password="databand"):
+        self._api_base_url = api_base_url
+        self.auth = auth
+        self.user = user
+        self.password = password
+        self.session = None
+
+    def _request(self, endpoint, method="GET", data=None, headers={}, query=None):
+        if not self.session:
+            self._init_session()
+
+        try:
+            resp = self.session.request(
+                method=method,
+                url=urljoin(self._api_base_url, endpoint),
+                json=data,
+                headers=headers,
+                params=query,
+            )
+        except requests.exceptions.ConnectionError:
+            self.session = None
+            raise
+
+        if not resp.ok:
+            raise DatabandApiError(
+                method, endpoint, resp.status_code, resp.content.decode("utf-8")
+            )
+
+        return resp.json() if resp.content else None
+
+    def _init_session(self):
+        try:
+            self.session = requests.session()
+
+            # get the csrf token cookie (if enabled on the server)
+            self.session.get(urljoin(self._api_base_url, "/app"))
+            csrf_token = self.session.cookies.get("csrftoken")
+            if csrf_token:
+                self.session.headers["X-CSRFToken"] = csrf_token
+
+            if self.auth:
+                self.api_request(
+                    "auth/login",
+                    method="POST",
+                    data={"username": self.user, "password": self.password},
+                )  # TODO ...you know what to do
+        except Exception:
+            self.session = None
+            raise
+
+    def api_request(
+        self, endpoint, data, method="POST", headers=None, query=None, no_prefix=False
+    ):
+        try:
+            resp = self._request(
+                endpoint if no_prefix else urljoin(self.api_prefix, endpoint),
+                method=method,
+                data=data,
+                headers=headers,
+                query=query,
+            )
+        except requests.ConnectionError as ex:
+            raise api_connection_refused(self._api_base_url + self.api_prefix, ex)
+        return resp
+
+
+if six.PY2:
+
+    class dotdict(dict):
+        """dot.notation access to dictionary attributes"""
+
+        __getattr__ = dict.get
+        __setattr__ = dict.__setitem__
+        __delattr__ = dict.__delitem__
+
+
+else:
+    from types import SimpleNamespace as dotdict
+
+
+def _as_dotted_dict(**dict_obj):
+    return dotdict(**dict_obj)
+
+
+def dict_dump(obj_dict, value_schema):
+    """
+    Workaround around marshmallow 2.0 not supporting Dict with types
+    :return:
+    """
+    return {
+        key: value_schema.dump(value).data for key, value in six.iteritems(obj_dict)
+    }
+
+
+class ApiObjectSchema(Schema):
+    class Meta:
+        strict = True
+
+
+class _ApiCallSchema(Schema):
+    class Meta:
+        strict = True

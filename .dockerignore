@@ -1,0 +1,122 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Python template
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+**/*.pyc
+**/__pycache__
+.git
+
+.dbnd/data/
+.dbnd/logs/
+.dbnd/dbnd.db
+.dbnd/dbnd*db.gz
+.dbnd/dbnd*
+.dbnd/unittests.db
+.dbnd/airflow-webserver.pid
+.dbnd/archive
+.dbnd/shell_completion_cache
+
+logs/*
+.dbnd/airflow-webserver.pid
+.dbnd/last_pipeline.pickle
+modules/*/dist
+modules/*/build
+modules/*/.coverage*
+plugins/*/build
+plugins/*/dist
+plugins/*/.coverage*
+
+.tox
+.pytest_cache
+tests/test_dbnd_airflow/targets_tests/performance
+tests/test_dbnd/targets_tests/performance
+# C extensions
+*.so
+airflow/logs
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache
+pip-wheel-metadata
+Pipfile.lock
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+pip-wheel-metadata
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+.python-version
+
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+#idea
+.idea
+venv
+venv36
+.venv
+
+# Sphinx documentation
+docs/_build/
+docs/api
+
+# PyBuilder
+target/
+
+
+#airflow
+airflow.db
+unittests.db
+.dbnd/airflow/airflow-webserver.pid
+.dbnd/airflow/logs
+
+.dbnd/logs/*
+.dbnd/dbnd-*.db
+
+
+data/
+.ipynb_checkpoints
+# VSCode settings
+.vscode/*
+
+
+#jar files
+
+tests/scenarios/jvm_spark_project/target
+dbnd_examples/src/dbnd_examples/dbnd_spark/spark_jvm/target
+.dbnd/*.db

@@ -1,0 +1,60 @@
+from dbnd._core.parameter.parameter_builder import parameter
+from dbnd._core.task import config
+
+
+class SchedulerConfig(config.Config):
+    """(Advanced) Databand's scheduler"""
+
+    _conf__task_family = "scheduler"
+
+    config_file = parameter(
+        default=None, description="path to a file defining scheduled jobs to execute"
+    )[str]
+
+    # by default the scheduler drop-in will decide whether to sync or not based on if it's running inside the scheduler or not (and not the websrver)
+    # the next two params can be used to force it one way or the other
+    never_file_sync = parameter(
+        default=False, description="disable syncing the scheduler config_file to the db"
+    )[bool]
+
+    always_file_sync = parameter(
+        default=False, description="force syncing the scheduler config_file to the db"
+    )[bool]
+
+    no_ui_cli_edit = parameter(
+        default=False,
+        description="disables creating, editing and deleting scheduled jobs from the cli and ui. Scheduled job definitions will"
+        "only be taken from the scheduler config file",
+    )
+
+    refresh_interval = parameter(
+        default=1,
+        description="interval to refresh the scheduled job list (from both the db and/or config file)",
+    )[int]
+
+    active_by_default = parameter(
+        default=True, description="whether new scheduled jobs will be active by default"
+    )[bool]
+
+    file_dags_provider_enabled = parameter(
+        default=True,
+        description="default Airflow dags provider that scans a folder for dags",
+    )
+
+    db_dags_provider_enabled = parameter(
+        default=True,
+        description="Databand provider that uses scheduled jobs stored in the databand db",
+    )
+
+    file_dags_folder = parameter(
+        default=None,
+        description="if the file dags provider is enabled this is the folder it would look for dags in. "
+        "An empty value is the same as disabling the file provider"
+        " "
+        ""
+        "",
+    )[str]
+
+    default_retries = parameter(
+        description="number of times to retry a failed run, unless set to a different value on the scheduled job"
+    )[int]

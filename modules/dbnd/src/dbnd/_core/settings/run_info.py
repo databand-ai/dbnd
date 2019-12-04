@@ -1,0 +1,39 @@
+import subprocess
+import sys
+
+from dbnd._core.parameter.parameter_builder import parameter
+from dbnd._core.task import config
+from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
+from dbnd._core.utils.basics.text_banner import safe_string
+from dbnd._core.utils.platform.windows_compatible.getuser import dbnd_getuser
+from dbnd._core.utils.project.project_fs import project_path
+from dbnd._core.utils.timezone import utcnow
+from dbnd._core.utils.uid_utils import get_uuid
+from targets.values.version_value import VersionStr
+
+
+class RunInfoConfig(config.Config):
+    """(Advanced) Databand's run information gatherer"""
+
+    _conf__task_family = "run_info"
+    source_version = parameter(
+        default="git", description="gather version control via git/None"
+    )[VersionStr]
+    user_data = parameter(default=None, description="UserData")[str]
+
+    def build_task_run_info(self):
+
+        import dbnd
+
+        return TaskRunEnvInfo(
+            uid=get_uuid(),
+            databand_version=dbnd.__version__,
+            user_code_version=self.source_version,
+            user_code_committed=True,
+            cmd_line=subprocess.list2cmdline(sys.argv),
+            user=dbnd_getuser(),
+            machine="",
+            project_root=project_path(),
+            user_data=safe_string(self.user_data, max_value_len=500),
+            heartbeat=utcnow(),
+        )

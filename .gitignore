@@ -1,0 +1,109 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Python template
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+.dbnd/airflow/data/
+.dbnd/airflow/logs/
+.dbnd/dbnd.db
+.dbnd/unittests.db
+.dbnd/airflow-webserver.pid
+.dbnd/last_pipeline.pickle
+.dbnd/archive
+.dbnd/shell_completion_cache
+
+logs/*
+.tox
+.pytest_cache
+tests/test_dbnd_airflow/targets_tests/performance
+tests/test_dbnd/targets_tests/performance
+example_raw_data
+# C extensions
+*.so
+airflow/logs
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache
+pip-wheel-metadata
+Pipfile.lock
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+.dbnd/airflow/dags/dbnd_dropin_scheduler.py
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+pip-wheel-metadata
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+junit-py*.xml
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+.python-version
+
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+#idea
+.idea
+venv
+.venv
+*.iml
+*.ipr
+*.iws
+
+# Sphinx documentation
+docs/_build/
+docs/api
+
+# PyBuilder
+target/
+
+#airflow
+airflow.db
+unittests.db
+/data
+.ipynb_checkpoints
+
+# VSCode settings
+.vscode/*
+
+.dbnd/dbnd-*.db
+.dbnd/airflow/logs
+.dbnd/logs
+
+databand-0.*/**
+_databand_project.py
+.quasar-ide-helper/
