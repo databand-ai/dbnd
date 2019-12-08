@@ -83,7 +83,7 @@ def scheduled_job_not_exists(name):
 
 
 def scheduled_job_invalid_interval(schedule_interval):
-    from databand.api.shared_schemas.scheduled_job_schema import (
+    from dbnd.api.shared_schemas.scheduled_job_schema import (
         SCHEDULE_INTERVAL_PRESETS,
     )
 
@@ -130,6 +130,6 @@ def missing_module(module):
         "'{module}' module is not found. ".format(module=module),
         help_msg="Please, `pip install '{module}=={version}'`,"
         " current execution is not supported without it".format(
-            module=module, version=databand.__version__
+            module=module, version=dbnd.__version__
         ),
     )
