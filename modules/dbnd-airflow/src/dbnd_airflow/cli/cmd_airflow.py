@@ -50,7 +50,9 @@ def run_task_airflow(dbnd_run, **run_args):
     from dbnd._core.run.databand_run import DatabandRun
     from targets import target
 
-    databand_run = DatabandRun.load_run(dump_file=target(dbnd_run))
+    databand_run = DatabandRun.load_run(
+        dump_file=target(dbnd_run), disable_tracking_api=False
+    )
 
     with databand_run.run_context() as dr:
         # not really works

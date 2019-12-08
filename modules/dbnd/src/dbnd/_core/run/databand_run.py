@@ -396,10 +396,13 @@ class DatabandRun(SingletonContext):
                 yield dr  # type: DatabandRun
 
     @classmethod
-    def load_run(self, dump_file):
+    def load_run(self, dump_file, disable_tracking_api):
         # type: (FileTarget) -> DatabandRun
         with dump_file.open("rb") as fp:
             databand_run = cloudpickle.load(file=fp)
+            if disable_tracking_api:
+                databand_run.context.tracking_store.disable_tracking_api()
+                logger.info("Tracking has been disabled")
         try:
             if databand_run.context.settings.core.pickle_handler:
                 pickle_handler = load_python_callable(

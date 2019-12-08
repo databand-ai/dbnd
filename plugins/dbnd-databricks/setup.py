@@ -12,7 +12,7 @@ config = read_configuration(CFG_PATH)
 version = config["metadata"]["version"]
 
 setuptools.setup(
-    name="dbnd-databrics",
+    name="dbnd-databricks",
     package_dir={"": "src"},
     install_requires=["dbnd==" + version],
     extras_require=dict(tests=[]),

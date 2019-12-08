@@ -42,7 +42,9 @@ class TestDagrunDump(object):
             r.save_run()
             dump_file = r.driver_dump
 
-        databand_run = DatabandRun.load_run(dump_file=dump_file)
+        databand_run = DatabandRun.load_run(
+            dump_file=dump_file, disable_tracking_api=False
+        )
         assert databand_run
 
     def test_dump_dagrun_simple(self, af_session):

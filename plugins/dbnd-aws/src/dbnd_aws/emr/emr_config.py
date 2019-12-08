@@ -38,7 +38,7 @@ class EmrConfig(Config):
         super(EmrConfig, self)._validate()
         if not self.cluster:
             raise DatabandConfigError(
-                "Spark cluster name is not defined! Use --emr-cluster CLUSTERNAME "
+                "Spark cluster name is not defined! Use --set emr.cluster <CLUSTERNAME> "
             )
 
     def get_spark_ctrl(self, task_run):

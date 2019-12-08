@@ -82,6 +82,17 @@ class CompositeTrackingStore(TrackingStore):
                 )
                 raise
 
+    # this is a function that used for disabling Tracking api on spark inline tasks.
+    def disable_tracking_api(self):
+        filtered_stores = []
+        from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
+
+        for store in self._stores:
+            if isinstance(store, TrackingStoreApi):
+                continue
+            filtered_stores.append(store)
+        self._stores = filtered_stores
+
     def init_run(self, **kwargs):
         return self._invoke(CompositeTrackingStore.init_run.__name__, kwargs)
 

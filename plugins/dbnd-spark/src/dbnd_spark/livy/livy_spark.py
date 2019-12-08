@@ -16,7 +16,7 @@ from dbnd_spark.spark import SparkCtrl, SparkTask
 logger = logging.getLogger(__name__)
 
 
-class _LivySparkCtrl(SparkCtrl, TaskSyncCtrl):
+class _LivySparkCtrl(TaskSyncCtrl, SparkCtrl):
     def get_livy_endpoint(self):
         raise NotImplementedError("This engine should implement get_livy_endpoint")
 
