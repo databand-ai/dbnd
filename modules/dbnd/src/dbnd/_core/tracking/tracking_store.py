@@ -65,6 +65,9 @@ class TrackingStore(object):
     def setup_and_validation(self, databand_version):
         pass
 
+    def heartbeat(self, run_uid):
+        pass
+
 
 class CompositeTrackingStore(TrackingStore):
     def __init__(self, stores):
@@ -122,3 +125,6 @@ class CompositeTrackingStore(TrackingStore):
         return self._invoke(
             CompositeTrackingStore.setup_and_validation.__name__, kwargs
         )
+
+    def heartbeat(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.heartbeat.__name__, kwargs)
