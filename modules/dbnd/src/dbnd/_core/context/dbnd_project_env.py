@@ -127,18 +127,22 @@ def _has_marker_file(folder):
         if os.path.exists(file_path):
             return folder, file_path
 
-    return False
+    return False, None
 
 
 def _get_dbnd_home(folder):
     dbnd_home, config_file = _process_cfg(folder)
     if dbnd_home:
-        _debug_print("Found dbnd home by at %s, by config file: %s" % (dbnd_home, config_file))
+        _debug_print(
+            "Found dbnd home by at %s, by config file: %s" % (dbnd_home, config_file)
+        )
         return dbnd_home
 
     dbnd_home, marker_file = _has_marker_file(folder)
     if dbnd_home:
-        _debug_print("Found dbnd home by at %s, by marker file: %s" % (dbnd_home, marker_file))
+        _debug_print(
+            "Found dbnd home by at %s, by marker file: %s" % (dbnd_home, marker_file)
+        )
         return dbnd_home
 
     _debug_print("dbnd home was not found at %s" % folder)
@@ -173,7 +177,7 @@ def _set_project_root():
 
     for idx, cur_folder in cur_dir_split_reversed:
         cur_path = os.path.join("/", *cur_dir_split[1 : (idx + 1)])
-        dbnd_folder = os.path.join(cur_path, '.dbnd')
+        dbnd_folder = os.path.join(cur_path, ".dbnd")
         if os.path.exists(dbnd_folder):
             _set_env_dir(ENV_DBND_HOME, cur_path)
             return True
@@ -220,7 +224,8 @@ def init_databand_env():
             "\t 1. Explicitly set current directory to DBND HOME via: `export DBND_HOME=ROOT_OF_YOUR_PROJECT`.\n"
             "\t 2. `cd` into your project directory.\n"
             "\t 3. Create one of the following files inside current directory: [%s].\n"
-            "\t 4. Run 'dbnd init_project' in current directory?" % (os.getcwd(), ", ".join(_MARKER_FILES))
+            "\t 4. Run 'dbnd init_project' in current directory?"
+            % (os.getcwd(), ", ".join(_MARKER_FILES))
         )
 
     _dbnd_home = os.environ[ENV_DBND_HOME]

@@ -6,6 +6,7 @@ import threading
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import set_dbnd_unit_test_mode
+from dbnd._core.context.dbnd_project_env import ENV_DBND_HOME, init_databand_env
 from dbnd._core.plugin.dbnd_plugins import (
     is_airflow_enabled,
     register_dbnd_plugins,
@@ -52,6 +53,9 @@ _dbnd_bootstrap = False
 
 
 def dbnd_bootstrap(unittest=False):
+    if ENV_DBND_HOME not in os.environ:
+        init_databand_env()
+
     global _dbnd_bootstrap
     if _dbnd_bootstrap:
         return
