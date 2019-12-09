@@ -133,7 +133,7 @@ class TestTaskRun(object):
         target = new_project_dir
 
         assert exists(target)
-        assert exists(os.path.join(target, ".dbnd"))
+        assert exists(os.path.join(target, "example_pipeline.py"))
         assert exists(os.path.join(target, "project.cfg"))
 
     def test_double_init_fail(self, tmpdir_factory):

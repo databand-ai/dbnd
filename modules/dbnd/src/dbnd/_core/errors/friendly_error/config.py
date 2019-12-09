@@ -83,9 +83,7 @@ def scheduled_job_not_exists(name):
 
 
 def scheduled_job_invalid_interval(schedule_interval):
-    from dbnd.api.shared_schemas.scheduled_job_schema import (
-        SCHEDULE_INTERVAL_PRESETS,
-    )
+    from dbnd.api.shared_schemas.scheduled_job_schema import SCHEDULE_INTERVAL_PRESETS
 
     return DatabandConfigError(
         "The schedule_interval '%s' is not valid" % schedule_interval,
