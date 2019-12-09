@@ -1,10 +1,11 @@
 import contextlib
+import logging
 import typing
 
 from typing import List
 
 from dbnd._core.run.run_ctrl import RunCtrl
-
+from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 
 if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
@@ -12,10 +13,14 @@ if typing.TYPE_CHECKING:
     from dbnd._core.settings import EngineConfig
 
 
+logger = logging.getLogger(__name__)
+
+
 class TaskExecutor(RunCtrl):
     def __init__(self, run, host_engine, target_engine, task_runs):
         # type: (DatabandRun, EngineConfig,  List[TaskRun])->None
         super(TaskExecutor, self).__init__(run=run)
+        self.run = run
         self.host_engine = host_engine
         self.target_engine = target_engine
         self.task_runs = task_runs
@@ -23,7 +28,11 @@ class TaskExecutor(RunCtrl):
 
     @contextlib.contextmanager
     def prepare_run(self):
-        yield
+        with start_heartbeat_sender(self.run):
+            yield
 
     def do_run(self):
         raise NotImplementedError()
+
+
+

@@ -608,19 +608,6 @@ class _DbndDriverTask(Task):
             task_runs=task_runs,
         )
 
-        heartbeat_interval_s = config.getint("task", "heartbeat_interval_s")
-        if heartbeat_interval_s > 0:
-            p = Process(
-                target=send_heartbeat,
-                args=(run.run_uid, run.context.tracking_store, heartbeat_interval_s),
-                daemon=True,
-            )
-            p.start()
-        else:
-            logger.info(
-                "run heartbeat sender disabled (set task.heartbeat_interval_s to value > 0 to enable)"
-            )
-
         # for validation only
         run.root_task.task_dag.topological_sort()
         target_engine.prepare_for_run(run)
@@ -654,28 +641,3 @@ def new_databand_run(context, task_or_task_name, run_uid=None, **kwargs):
     return DatabandRun.new_context(
         context=context, task_or_task_name=task_or_task_name, run_uid=run_uid, **kwargs
     )
-
-
-def send_heartbeat(run_uid, tracking_store, heartbeat_interval_s):
-    logger.info(
-        "starting heartbeat sender process with a send interval of %s seconds"
-        % heartbeat_interval_s
-    )
-    try:
-        while True:
-            loop_start = utcnow()
-            try:
-                tracking_store.heartbeat(run_uid=run_uid)
-            except KeyboardInterrupt:
-                logger.info("stopping heartbeat sender process due to interrupt")
-                return
-            except Exception:
-                logger.error("failed to send heartbeat: %s", format_exception_as_str())
-
-            time_to_sleep_s = max(
-                0, utcnow().timestamp() + heartbeat_interval_s - loop_start.timestamp()
-            )
-            if time_to_sleep_s > 0:
-                sleep(time_to_sleep_s)
-    except KeyboardInterrupt:
-        return
