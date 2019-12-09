@@ -10,6 +10,7 @@ from dbnd._core.current import try_get_databand_context, try_get_databand_run
 logger = logging.getLogger(__name__)
 
 _CONFIG_PARSER = None
+_DEFAULT_VALUE_PREVIEW_MAX_LEN = 10000
 
 
 class TargetConfigProvider(object):
@@ -60,9 +61,7 @@ def is_in_memory_cache_target_value():
 
 def get_value_preview_max_len():
     dc = try_get_databand_context()
-    from dbnd_web.models import VALUE_PREVIEW_MAX_LEN
 
     if dc:
-        return min(VALUE_PREVIEW_MAX_LEN, dc.settings.core.value_preview_max_len)
-
-    return VALUE_PREVIEW_MAX_LEN
+        return dc.settings.core.value_preview_max_len
+    return _DEFAULT_VALUE_PREVIEW_MAX_LEN

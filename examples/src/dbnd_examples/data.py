@@ -1,18 +1,29 @@
 import datetime
 import os
 
-from dbnd import project_path
+from dbnd._core.utils.project.project_fs import abs_join
 from dbnd.utils import timezone
 
 
-def dbnd_examples_data_path(*path):
-    non_link_path = os.path.realpath(os.path.dirname(__file__))
+def _dbnd_examples_project_root():
     # if env var exists - use it as the examples dir, otherwise, calculate relative from here.
-    non_link_path = os.getenv(
-        "DBND_EXAMPLES_PATH", os.path.join(non_link_path, "..", "..", "data")
-    )
-    examples_path = os.path.join(non_link_path, *path)
-    return examples_path
+    dbnd_examples_project = os.getenv("DBND_EXAMPLES_PATH", None)
+    if dbnd_examples_project:
+        return dbnd_examples_project
+
+    return abs_join(__file__, "..", "..", "..")
+
+
+def dbnd_examples_project_path(*path):
+    return os.path.join(_dbnd_examples_project_root(), *path)
+
+
+def dbnd_examples_src_path(*path):
+    return dbnd_examples_project_path("src", "dbnd_examples", *path)
+
+
+def dbnd_examples_data_path(*path):
+    return dbnd_examples_project_path("data", *path)
 
 
 class ExamplesData(object):
@@ -32,7 +43,7 @@ data_repo = ExamplesData()
 
 
 def partner_data_file(*path):
-    return project_path("data", "example_raw_data", *path)
+    return dbnd_examples_data_path("example_raw_data", *path)
 
 
 class PartnerData(object):

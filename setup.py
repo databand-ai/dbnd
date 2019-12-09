@@ -37,6 +37,7 @@ EXTRAS_REQUIRE = {
     "databricks": dbnd_package("dbnd-databricks"),
     "gcp": dbnd_package("dbnd-gcp"),
     "docker": dbnd_package("dbnd-docker"),
+    "k8s": dbnd_package("dbnd-docker"),
     "spark": dbnd_package("dbnd-spark"),
     "hdfs": dbnd_package("dbnd-hdfs"),
 }

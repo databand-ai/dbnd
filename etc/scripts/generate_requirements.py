@@ -32,6 +32,9 @@ def generate_requirements(
         parts = [req.name]
         if req.extras:
             parts.append("[{0}]".format(",".join(sorted(req.extras))))
+
+        if req.specifier:
+            parts.append(str(req.specifier))
         req_str = "".join(parts)
         if req.marker:
             requirements_extras[str(req.marker)].append(req_str)
@@ -43,7 +46,10 @@ def generate_requirements(
             if p not in requirements:
                 requirements.append(p)
 
-    print("Requirements:\n\t%s" % "\n\t".join(requirements))
+    print(
+        "Saving requirements to %s:\n\t%s"
+        % (requirements_file, "\n\t".join(requirements))
+    )
     with open(requirements_file, "w") as rg:
         rg.write("\n".join(requirements))
 
@@ -56,7 +62,7 @@ def main():
         "--wheel", dest="wheel", required=True, help="Path to wheel file"
     )
     parser.add_argument(
-        "--output", dest="output", required=True, help="Path to output requires.txt"
+        "--output", dest="output", required=False, help="Path to output requires.txt"
     )
     parser.add_argument(
         "--extras", dest="extras", default="", help="Extras (comma separated)"
@@ -72,7 +78,8 @@ def main():
 
     generate_requirements(
         wheel_file=args.wheel,
-        requirements_file=args.output,
+        requirements_file=args.output
+        or args.wheel.replace(".whl", ".requirements.txt"),
         extra_packages=args.extras.split(","),
         third_party_only=args.third_party_only,
     )

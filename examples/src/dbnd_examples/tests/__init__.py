@@ -1,6 +1,6 @@
 import sys
 
-from dbnd import project_path
-
 # make test_dbnd available
-sys.path.append(project_path("modules", "dbnd"))
+from dbnd.testing.helpers import dbnd_module_path
+
+sys.path.append(dbnd_module_path())

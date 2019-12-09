@@ -182,11 +182,9 @@ build_pypi_whl:
   script:
     - python setup.py sdist bdist_wheel
     - make dist-modules
-    - ls dist/databand-*.whl | xargs -n 1 basename > dbnd-wheel-name
   artifacts:
     paths:
       - dist/*
-      - dbnd-wheel-name
   only: *on_significant_branch
 
 #downstream:

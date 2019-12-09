@@ -1,5 +1,5 @@
-from dbnd import project_path
+from dbnd_examples.data import dbnd_examples_src_path
 
 
 def spark_folder(*path):
-    return project_path("dbnd_examples/dbnd_spark", *path)
+    return dbnd_examples_src_path("dbnd_spark", *path)
