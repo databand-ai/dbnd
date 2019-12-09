@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from airflow.contrib.hooks.databricks_hook import RunState
 from mock import patch
 
+from dbnd_examples.dbnd_spark.word_count import WordCountPySparkTask, WordCountTask
 from dbnd_spark.spark_config import SparkConfig
-from dbnd_test_scenarios.spark.spark_tasks import WordCountPySparkTask, WordCountTask
 
 
 EXAMPLE_JVM_DEFAULTS = {

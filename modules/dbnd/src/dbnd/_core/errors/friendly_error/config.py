@@ -130,6 +130,6 @@ def missing_module(module):
         "'{module}' module is not found. ".format(module=module),
         help_msg="Please, `pip install '{module}=={version}'`,"
         " current execution is not supported without it".format(
-            module=module, version=databand.__version__
+            module=module, version=dbnd.__version__
         ),
     )
