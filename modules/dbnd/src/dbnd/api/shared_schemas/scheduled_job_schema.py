@@ -20,9 +20,11 @@ class ScheduledJobSchemaV2(Schema):
         attribute="DbndScheduledJob.schedule_interval", required=True
     )
     start_date = fields.DateTime(
-        allow_none=True, attribute="DbndScheduledJob.start_date"
+        allow_none=True, attribute="DbndScheduledJob.start_date", format="iso"
     )
-    end_date = fields.DateTime(allow_none=True, attribute="DbndScheduledJob.end_date")
+    end_date = fields.DateTime(
+        allow_none=True, attribute="DbndScheduledJob.end_date", format="iso"
+    )
     readable_schedule_interval = fields.Str(
         attribute="DbndScheduledJob.readable_schedule_interval", allow_none=True
     )

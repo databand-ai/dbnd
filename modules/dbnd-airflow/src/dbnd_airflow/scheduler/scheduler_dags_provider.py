@@ -55,7 +55,8 @@ class DbndSchedulerDBDagsProvider(object):
             set_is_paused(
                 not job["active"]
                 or (
-                    "validation_errors" in job and job["validation_errors"] is not None
+                    job.get("validation_errors", None) is not None
+                    and len(job.get("validation_errors", None)) > 0
                 ),
                 None,
                 dag,
