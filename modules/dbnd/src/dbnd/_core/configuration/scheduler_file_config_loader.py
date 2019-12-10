@@ -1,7 +1,7 @@
 import logging
 import os
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from datetime import datetime
 
 import yaml
@@ -23,6 +23,9 @@ class InvalidConfigException(Exception):
     pass
 
 
+DeltaResult = namedtuple('DeltaResult', 'to_create to_update to_enable to_disable')
+
+
 class SchedulerFileConfigLoader(object):
     def __init__(self, config_file=None):
         config.load_system_configs()
@@ -34,21 +37,7 @@ class SchedulerFileConfigLoader(object):
         if not self.config_file:
             return
 
-        from_file = self.read_config(self.config_file)
-        file_modified_time = make_aware(
-            datetime.utcfromtimestamp(os.path.getmtime(self.config_file))
-        )
-        if not from_file:
-            from_file = []
-
-        self.validate(from_file)
-
-        from_db = scheduler_api_client.get_scheduled_jobs(
-            from_file_only=True, include_deleted=True
-        )
-        to_create, to_update, to_enable, to_disable = self.delta(
-            from_db, from_file, file_modified_time
-        )
+        to_create, to_update, to_enable, to_disable = self.build_delta()
 
         for s in to_create:
             scheduler_api_client.post_scheduled_job(s)
@@ -63,6 +52,24 @@ class SchedulerFileConfigLoader(object):
                 "disabled (deleted from file)": len(to_disable),
             }
 
+    def build_delta(self):
+        from_file = self.read_config(self.config_file)
+
+        file_modified_time = make_aware(
+            datetime.utcfromtimestamp(os.path.getmtime(self.config_file))
+        )
+        if not from_file:
+            from_file = []
+
+        self.validate(from_file)
+
+        from_db = scheduler_api_client.get_scheduled_jobs(
+            from_file_only=True, include_deleted=True
+        )
+        return self.delta(
+            from_db, from_file, file_modified_time
+        )
+
     def read_config(self, config_file):
         if not config_file:
             return []
@@ -70,6 +77,14 @@ class SchedulerFileConfigLoader(object):
         with open(config_file, "r") as stream:
             try:
                 config_entries = yaml.safe_load(stream)
+                if not config_entries:
+                    return []
+
+                if not isinstance(config_entries, list):
+                    raise InvalidConfigException(
+                        "failed to load scheduler config at %s: invalid yaml format. Expecting a list of objects. Parsed type: %s" % (config_file, config_entries.__class__.__name__)
+                    )
+
                 for i, s in enumerate(config_entries):
                     s["list_order"] = i
                 return config_entries
@@ -106,7 +121,8 @@ class SchedulerFileConfigLoader(object):
         # check for duplicates
         group_by_name = defaultdict(lambda: [])
         for s in config_entries:
-            group_by_name[s["name"]].append(s)
+            if "name" in s:
+                group_by_name[s["name"]].append(s)
         duplicates = [entries for entries in group_by_name.values() if len(entries) > 1]
         for duplicate_set in duplicates:
             for entry in duplicate_set:
@@ -137,6 +153,11 @@ class SchedulerFileConfigLoader(object):
         if log_message:
             logger.error("scheduler config file validation errors:%s" % log_message)
 
+        # name is the key, so we can't save to the db without the key
+        for entry in config_entries:
+            if "name" not in entry:
+                config_entries.remove(entry)
+
     def delta(self, from_db, from_file, file_modified_time):
         from_db_by_name = {s["name"]: s for s in from_db}
         from_file_by_name = {s["name"]: s for s in from_file}
@@ -149,16 +170,14 @@ class SchedulerFileConfigLoader(object):
         for s in from_file:
             if s["name"] in from_db_by_name:
                 db_s = from_db_by_name[s["name"]]
-                if db_s["deleted_from_file"]:
+                if db_s.get("deleted_from_file", False):
                     s["deleted_from_file"] = False
-                    s["active"] = (
-                        s["active"] if "active" in s else self.active_by_default
-                    )
+                    s["active"] = s.get("active", self.active_by_default)
                     to_enable.append(s)
                 elif self._key_diff(s, db_s):
                     # if we don't do this then if the user changes the active state from the ui
                     # it will constantly be overriden by the active state from the file
-                    if db_s["update_time"] and db_s["update_time"] > file_modified_time:
+                    if db_s.get("update_time", None) and db_s["update_time"] > file_modified_time:
                         del s["active"]
 
                     if self._key_diff(s, db_s):
@@ -169,12 +188,12 @@ class SchedulerFileConfigLoader(object):
                 to_create.append(s)
 
         for db_s in from_db:
-            if db_s["name"] not in from_file_by_name and not db_s["deleted_from_file"]:
+            if db_s["name"] not in from_file_by_name and not db_s.get("deleted_from_file", False):
                 to_disable.append(
                     {"name": db_s["name"], "deleted_from_file": True, "active": False}
                 )
 
-        return to_create, to_update, to_enable, to_disable
+        return DeltaResult(to_create, to_update, to_enable, to_disable)
 
     def _key_diff(self, a, b):
         return any((key for key in a if key not in b or a[key] != b[key]))
