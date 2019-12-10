@@ -76,7 +76,11 @@ def main():
             sys.exit(code)
 
     except SystemExit as ex:
-        sys.exit(ex.code)
+        if ex.code == 0:
+            # databricks can't handle for a reason exit with an exit code.
+            exit()
+        else:
+            sys.exit(ex.code)
 
 
 if __name__ == "__main__":
