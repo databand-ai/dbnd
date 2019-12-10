@@ -102,10 +102,10 @@ def init_airflow_test_config():
         configuration.conf.read(TEST_CONFIG_FILE)
 
 
-def run_dbnd_test_project(project_dir, args_str):
+def run_dbnd_test_project(project_dir, args_str, clean_env=True):
     args = shlex.split(args_str, posix=not windows_compatible_mode)
 
-    output = run_dbnd_subprocess__dbnd(args=args, clean_env=True, cwd=project_dir)
+    output = run_dbnd_subprocess__dbnd(args=args, clean_env=clean_env, cwd=project_dir)
     logger.warning("Test project at %s: '%s'", project_dir, args_str)
     return output
 

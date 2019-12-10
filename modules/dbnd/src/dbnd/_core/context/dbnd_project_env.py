@@ -219,12 +219,12 @@ def init_databand_env():
 
     if ENV_DBND_HOME not in os.environ:
         raise DatabandHomeError(
-            "DBND_HOME could not be found when searching from current directory '%s' to root folder!\n "
-            "Trying fixing that issue by:"
+            "\nDBND_HOME could not be found when searching from current directory '%s' to root folder!\n "
+            "Trying fixing that issue by:\n"
             "\t 1. Explicitly set current directory to DBND HOME via: `export DBND_HOME=ROOT_OF_YOUR_PROJECT`.\n"
             "\t 2. `cd` into your project directory.\n"
             "\t 3. Create one of the following files inside current directory: [%s].\n"
-            "\t 4. Run 'dbnd init_project' in current directory?"
+            "\t 4. Run 'dbnd init_project' in current directory."
             % (os.getcwd(), ", ".join(_MARKER_FILES))
         )
 
