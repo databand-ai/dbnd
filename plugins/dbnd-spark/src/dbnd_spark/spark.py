@@ -16,6 +16,7 @@ from dbnd._core.task.task import Task
 from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
+from dbnd._core.commands import get_spark_session as core_get_spark_session
 from dbnd_spark.spark_config import SparkConfig
 
 
@@ -160,10 +161,13 @@ class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
 
     def _task_run(self):
         super(_InlineSparkTask, self)._task_run()
-
+        from dbnd_databricks.databricks import DatabricksCtrl
+        # sc.stop on databrciks will cause an un-expected behaviour
+        # as the 'warning!' here suggests:
+        # https://docs.databricks.com/jobs.html
+        if isinstance(self._get_spark_ctrl(), DatabricksCtrl):
+            return
         try:
-            from dbnd._core.commands import get_spark_session
-
             sc = get_spark_session()
             sc.stop()
         except Exception as ex:
@@ -181,6 +185,4 @@ def spark_task(*args, **kwargs):
 
 
 def get_spark_session():
-    from pyspark.sql import SparkSession
-
-    return SparkSession.builder.getOrCreate()
+    return core_get_spark_session()
