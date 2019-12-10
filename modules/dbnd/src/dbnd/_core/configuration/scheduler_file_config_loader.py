@@ -23,14 +23,24 @@ class InvalidConfigException(Exception):
     pass
 
 
-DeltaResult = namedtuple('DeltaResult', 'to_create to_update to_enable to_disable')
+DeltaResult = namedtuple("DeltaResult", "to_create to_update to_enable to_disable")
+
+
+# this horrible hack is because otherwise the yaml loader will decide to be "helpful" and convert anything that looks like a datetime
+# to a datetime object. This later collides with marshmallow trying to parse and validate what it expects to be a datetime strings
+NoDatesSafeLoader = yaml.SafeLoader
+NoDatesSafeLoader.yaml_implicit_resolvers = {
+    k: [r for r in v if r[0] != "tag:yaml.org,2002:timestamp"]
+    for k, v in NoDatesSafeLoader.yaml_implicit_resolvers.items()
+}
 
 
 class SchedulerFileConfigLoader(object):
     def __init__(self, config_file=None):
         config.load_system_configs()
-        if not config_file:
-            self.config_file = config.get("scheduler", "config_file")
+        self.config_file = (
+            config_file if config_file else config.get("scheduler", "config_file")
+        )
         self.active_by_default = config.get("scheduler", "active_by_default")
 
     def sync(self):
@@ -61,14 +71,12 @@ class SchedulerFileConfigLoader(object):
         if not from_file:
             from_file = []
 
-        self.validate(from_file)
+        from_file = self.load_and_validate(from_file)
 
         from_db = scheduler_api_client.get_scheduled_jobs(
             from_file_only=True, include_deleted=True
         )
-        return self.delta(
-            from_db, from_file, file_modified_time
-        )
+        return self.delta(from_db, from_file, file_modified_time)
 
     def read_config(self, config_file):
         if not config_file:
@@ -76,13 +84,14 @@ class SchedulerFileConfigLoader(object):
 
         with open(config_file, "r") as stream:
             try:
-                config_entries = yaml.safe_load(stream)
+                config_entries = yaml.load(stream, Loader=NoDatesSafeLoader)
                 if not config_entries:
                     return []
 
                 if not isinstance(config_entries, list):
                     raise InvalidConfigException(
-                        "failed to load scheduler config at %s: invalid yaml format. Expecting a list of objects. Parsed type: %s" % (config_file, config_entries.__class__.__name__)
+                        "failed to load scheduler config at %s: invalid yaml format. Expecting a list of objects. Parsed type: %s"
+                        % (config_file, config_entries.__class__.__name__)
                     )
 
                 for i, s in enumerate(config_entries):
@@ -93,34 +102,37 @@ class SchedulerFileConfigLoader(object):
                     "failed to load scheduler config at %s: %s" % (config_file, exc)
                 )
 
-    def validate(self, config_entries):
+    def load_and_validate(self, file_entries):
         schema = ScheduledJobSchemaV2(strict=False)
 
         # validate entries against the schema and check the schedule_interval
-        for config_entry in config_entries:
-            _, errors = schema.load(config_entry)
+        loaded_entries = []
+        for file_entry in file_entries:
+            loaded_entry, errors = schema.load(file_entry)
+            loaded_entry = loaded_entry["DbndScheduledJob"]
+            loaded_entries.append(loaded_entry)
             if errors:
                 clean_errors = []
                 for field, field_errors in errors.items():
                     clean_errors.append("%s: %s" % (field, ", ".join(field_errors)))
-                config_entry["validation_errors"] = clean_errors
+                loaded_entry["validation_errors"] = clean_errors
 
-            config_entry["validation_errors"] = (
-                config_entry["validation_errors"]
-                if "validation_errors" in config_entry
+            loaded_entry["validation_errors"] = (
+                loaded_entry["validation_errors"]
+                if "validation_errors" in loaded_entry
                 else []
             )
 
-            if "schedule_interval" in config_entry:
-                validation_error = validate_cron(config_entry["schedule_interval"])
+            if "schedule_interval" in loaded_entry:
+                validation_error = validate_cron(loaded_entry["schedule_interval"])
                 if validation_error:
-                    config_entry["validation_errors"].append(
+                    loaded_entry["validation_errors"].append(
                         "Invalid schedule_interval: %s" % validation_error
                     )
 
         # check for duplicates
         group_by_name = defaultdict(lambda: [])
-        for s in config_entries:
+        for s in loaded_entries:
             if "name" in s:
                 group_by_name[s["name"]].append(s)
         duplicates = [entries for entries in group_by_name.values() if len(entries) > 1]
@@ -136,7 +148,7 @@ class SchedulerFileConfigLoader(object):
 
         # format and log validation errors
         log_message = ""
-        for i, config_entry in enumerate(config_entries):
+        for i, config_entry in enumerate(loaded_entries):
             if config_entry["validation_errors"]:
                 config_entry["validation_errors"] = "\t" + "\n\t".join(
                     config_entry["validation_errors"]
@@ -154,9 +166,11 @@ class SchedulerFileConfigLoader(object):
             logger.error("scheduler config file validation errors:%s" % log_message)
 
         # name is the key, so we can't save to the db without the key
-        for entry in config_entries:
+        for entry in loaded_entries:
             if "name" not in entry:
-                config_entries.remove(entry)
+                loaded_entries.remove(entry)
+
+        return loaded_entries
 
     def delta(self, from_db, from_file, file_modified_time):
         from_db_by_name = {s["name"]: s for s in from_db}
@@ -177,7 +191,11 @@ class SchedulerFileConfigLoader(object):
                 elif self._key_diff(s, db_s):
                     # if we don't do this then if the user changes the active state from the ui
                     # it will constantly be overriden by the active state from the file
-                    if db_s.get("update_time", None) and db_s["update_time"] > file_modified_time:
+                    if (
+                        db_s.get("update_time", None)
+                        and db_s["update_time"] > file_modified_time
+                        and "active" in s
+                    ):
                         del s["active"]
 
                     if self._key_diff(s, db_s):
@@ -188,7 +206,9 @@ class SchedulerFileConfigLoader(object):
                 to_create.append(s)
 
         for db_s in from_db:
-            if db_s["name"] not in from_file_by_name and not db_s.get("deleted_from_file", False):
+            if db_s["name"] not in from_file_by_name and not db_s.get(
+                "deleted_from_file", False
+            ):
                 to_disable.append(
                     {"name": db_s["name"], "deleted_from_file": True, "active": False}
                 )

@@ -1,10 +1,16 @@
 import contextlib
+import os
 
 import pytest
 import six
-from mock import patch, mock_open
 
-from dbnd._core.configuration.scheduler_file_config_loader import SchedulerFileConfigLoader, InvalidConfigException
+from mock import mock_open, patch
+
+from dbnd._core.configuration.scheduler_file_config_loader import (
+    InvalidConfigException,
+    SchedulerFileConfigLoader,
+)
+from dbnd._core.utils.timezone import utcnow
 from dbnd.api import scheduler_api_client
 
 
@@ -13,10 +19,12 @@ class TestSchedulerFileConfigLoader(object):
     def existing_jobs(self, monkeypatch):
         existing_jobs = []
 
-        def get_scheduled_jobs(*args, **kwargs):
-            return existing_jobs
-
-        monkeypatch.setattr(scheduler_api_client, "get_scheduled_jobs", get_scheduled_jobs)
+        monkeypatch.setattr(
+            scheduler_api_client,
+            "get_scheduled_jobs",
+            lambda *args, **kwargs: existing_jobs,
+        )
+        monkeypatch.setattr(os.path, "getmtime", lambda _: utcnow().timestamp())
         return existing_jobs
 
     @contextlib.contextmanager
@@ -27,7 +35,9 @@ class TestSchedulerFileConfigLoader(object):
             open_name = "builtins.open"
 
         with patch(open_name, mock_open(read_data=file)):
-            loader = SchedulerFileConfigLoader()
+            loader = SchedulerFileConfigLoader(
+                config_file="/somewhere/over/the/rainbow"
+            )
             yield loader.build_delta()
 
     def test_simple_file(self, existing_jobs):
@@ -46,7 +56,10 @@ class TestSchedulerFileConfigLoader(object):
         with self.build_delta(file) as delta_result:
             assert len(delta_result.to_create) == 2
             assert delta_result.to_create[0]["name"] == "dbnd_sanity_check"
-            assert delta_result.to_create[0]["cmd"] == "dbnd run dbnd_sanity_check --task-version now"
+            assert (
+                delta_result.to_create[0]["cmd"]
+                == "dbnd run dbnd_sanity_check --task-version now"
+            )
             assert delta_result.to_create[0]["schedule_interval"] == "* * * * *"
             assert delta_result.to_create[0]["retries"] == 2
             assert delta_result.to_create[0]["active"] == True
@@ -91,30 +104,33 @@ class TestSchedulerFileConfigLoader(object):
             assert "cmd: Missing data for required field" in first
             assert "retries: Not a valid integer" in first
             assert "Invalid schedule_interval: [@ * * * *] is not acceptable" in first
-            assert "1 other entry exist in the configuration file with the same name" in first
+            assert (
+                "1 other entry exist in the configuration file with the same name"
+                in first
+            )
 
             second = delta_results.to_create[1]["validation_errors"]
             assert "schedule_interval: Missing data for required field" in second
             assert "cmd: Missing data for required field" in second
-            assert "1 other entry exist in the configuration file with the same name" in second
+            assert (
+                "1 other entry exist in the configuration file with the same name"
+                in second
+            )
 
             # nameless entry is not synced, only a log error is printed about it
             assert len(delta_results.to_create) == 2
 
     def test_update(self, existing_jobs):
-        existing_jobs.append({
-            "name": "to be updated",
-            "cmd": "before",
-            "schedule_interval": "before",
-            "validation_errors": "before"
-        })
-        existing_jobs.append({
-            "name": "to be disabled",
-        })
-        existing_jobs.append({
-            "name": "to be enabled",
-            "deleted_from_file": True
-        })
+        existing_jobs.append(
+            {
+                "name": "to be updated",
+                "cmd": "before",
+                "schedule_interval": "before",
+                "validation_errors": "before",
+            }
+        )
+        existing_jobs.append({"name": "to be disabled"})
+        existing_jobs.append({"name": "to be enabled", "deleted_from_file": True})
 
         file = """
         - name: to be updated
