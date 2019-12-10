@@ -4,9 +4,14 @@ import typing
 
 import dbnd
 
+from dbnd_airflow.utils import AIRFLOW_LEGACY_URL_KEY
+
 
 if typing.TYPE_CHECKING:
+    from typing import Optional
+
     from dbnd._core.context.databand_context import DatabandContext
+    from dbnd._core.task_run.task_run import TaskRun
 
 
 @dbnd.hookimpl
@@ -97,3 +102,16 @@ def dbnd_setup_unittest():
     # we want to keep it as base
     logging.info("Reading Airflow test config at %s" % TEST_CONFIG_FILE)
     airflow_configuration.conf.read(TEST_CONFIG_FILE)
+
+
+@dbnd.hookimpl
+def dbnd_task_run_context(task_run):
+    # type: (TaskRun)-> Optional[Context]
+    """ Using this context when running task_run  """
+    if hasattr(task_run.task.ctrl, "airflow_op") and task_run.is_root:
+        links_dict = {
+            AIRFLOW_LEGACY_URL_KEY: "{{airflow_base_url}}/task?dag_id={}&execution_date={}&task_id={}".format(
+                task_run.run.job_name, task_run.run.execution_date, task_run.task_af_id
+            )
+        }
+        task_run.set_external_resource_urls(links_dict)

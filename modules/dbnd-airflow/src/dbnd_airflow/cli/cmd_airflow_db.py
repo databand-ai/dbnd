@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import getpass
 import logging
-import os
 import random
 import string
 
