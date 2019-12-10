@@ -112,8 +112,9 @@ class TaskRunLogManager(TaskRunCtrl):
 
     @contextmanager
     def capture_stderr_stdout(self, logging_target=None):
-        logging_target = logging_target or logging.root
-        with redirect_stdout(logging_target, logging.INFO), redirect_stderr(
-            logging_target, logging.WARN
+        logging_target_stdout = logging_target or logging.getLogger("dbnd.stdout")
+        logging_target_stderr = logging_target or logging.getLogger("dbnd.stderr")
+        with redirect_stdout(logging_target_stderr, logging.INFO), redirect_stderr(
+            logging_target_stdout, logging.WARN
         ):
             yield
