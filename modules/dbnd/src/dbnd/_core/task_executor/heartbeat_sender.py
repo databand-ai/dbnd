@@ -4,7 +4,7 @@ import os
 from multiprocessing import Process
 from time import sleep
 
-import psutil
+import six
 
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._core.utils.timezone import utcnow
@@ -18,11 +18,14 @@ def start_heartbeat_sender(run):
     from dbnd import config
     heartbeat_interval_s = config.getint("task", "heartbeat_interval_s")
     if heartbeat_interval_s > 0:
-        p = Process(
-            target=send_heartbeat,
-            args=(run.run_uid, run.context.tracking_store, heartbeat_interval_s),
-            daemon=True,
-        )
+        process_kwargs = {
+            "target": send_heartbeat,
+            "args": (run.run_uid, run.context.tracking_store, heartbeat_interval_s)
+        }
+        if not six.PY2:
+            process_kwargs["daemon"] = True
+
+        p = Process(**process_kwargs)
         try:
             p.start()
             yield
@@ -46,7 +49,9 @@ def send_heartbeat(run_uid, tracking_store, heartbeat_interval_s):
         while True:
             loop_start = utcnow()
             try:
-                if not psutil.pid_exists(parent_pid):  # failsafe, normally multiprocessing would close this process when the parent is exiting
+                try:  # failsafe, normally multiprocessing would close this process when the parent is exiting
+                    os.getpgid(parent_pid)
+                except ProcessLookupError:
                     return
 
                 tracking_store.heartbeat(run_uid=run_uid)
