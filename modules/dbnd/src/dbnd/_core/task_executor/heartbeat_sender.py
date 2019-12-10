@@ -1,6 +1,7 @@
 import contextlib
 import logging
 import os
+
 from multiprocessing import Process
 from time import sleep
 
@@ -16,11 +17,12 @@ logger = logging.getLogger(__name__)
 @contextlib.contextmanager
 def start_heartbeat_sender(run):
     from dbnd import config
+
     heartbeat_interval_s = config.getint("task", "heartbeat_interval_s")
     if heartbeat_interval_s > 0:
         process_kwargs = {
             "target": send_heartbeat,
-            "args": (run.run_uid, run.context.tracking_store, heartbeat_interval_s)
+            "args": (run.run_uid, run.context.tracking_store, heartbeat_interval_s),
         }
         if not six.PY2:
             process_kwargs["daemon"] = True

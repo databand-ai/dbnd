@@ -7,6 +7,7 @@ from typing import List
 from dbnd._core.run.run_ctrl import RunCtrl
 from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 
+
 if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
@@ -33,6 +34,3 @@ class TaskExecutor(RunCtrl):
 
     def do_run(self):
         raise NotImplementedError()
-
-
-
