@@ -3,7 +3,9 @@ from typing import Dict, List
 from dbnd import parameter
 from dbnd._core.constants import SparkClusters
 from dbnd._core.task.config import Config
+import logging
 
+logger = logging.getLogger(__name__)
 
 class DatabricksConfig(Config):
     """Databricks cloud for Apache Spark """
@@ -22,9 +24,9 @@ class DatabricksConfig(Config):
     conn_id = parameter.value(default="databricks_default").help(
         "databricks connection settings"
     )[str]
-    num_workers = parameter.help("number of workers as in databricks api.")[int]
-    cluster_id = parameter.help("existing cluster id")[str]
+    cluster_id = parameter(default='None').help("existing cluster id")[str]
     # new cluster config
+    num_workers = parameter.help("number of workers as in databricks api.")[int]
     spark_version = parameter.help("spark version")[str]
     spark_conf = parameter(default={}).help("spark config")[Dict]
     node_type_id = parameter.help("nodes for spark machines")[str]
@@ -47,3 +49,9 @@ class DatabricksConfig(Config):
         from dbnd_databricks.databricks import DatabricksCtrl
 
         return DatabricksCtrl(task_run=task_run)
+
+    def _validate(self):
+        super(DatabricksConfig, self)._validate()
+        if self.cluster_id is "None":
+            logger.warning("no databricks.cluster_id is set, will create a new databricks cluster - please remember"
+                           " to configure your cluster parameters.")
