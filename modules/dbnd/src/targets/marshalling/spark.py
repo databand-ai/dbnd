@@ -80,7 +80,7 @@ def _convert_http_to_wasb_for_azure(address):
     scheme, netloc, path, _, _, _ = urlparse(address)
 
     if scheme not in ["http", "https"]:
-        return path
+        return address
 
     scheme = scheme.replace("http", "wasb")
     path = path.split("/")

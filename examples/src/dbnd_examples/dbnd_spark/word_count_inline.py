@@ -1,6 +1,6 @@
 import pyspark.sql as spark
 
-from dbnd import output, parameter
+from databand import output, parameter
 from dbnd_spark.spark import spark_task
 from targets import Target
 from targets.target_config import FileFormat

@@ -10,10 +10,14 @@ logger = logging.getLogger(__name__)
 
 @click.group()
 @click.option("--dbnd-run", required=True, type=click.Path())
+# option that disables the tracking store access.
+@click.option("--disable-tracking-api", is_flag=True, default=False)
 @click.pass_context
-def execute(ctx, dbnd_run):
+def execute(ctx, dbnd_run, disable_tracking_api):
     """Execute databand primitives"""
-    run = DatabandRun.load_run(dump_file=target(dbnd_run))
+    run = DatabandRun.load_run(
+        dump_file=target(dbnd_run), disable_tracking_api=disable_tracking_api
+    )
     ctx.obj = {"run": run}
 
 

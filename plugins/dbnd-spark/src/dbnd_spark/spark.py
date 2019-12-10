@@ -133,11 +133,13 @@ class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
     def application_args(self):
         # TODO: move it to _task_submit, provide application_args from _task_submit
         return [
-            "run-task",
+            "execute",
+            "--disable-tracking-api",
             "--dbnd-run",
             self._get_spark_ctrl().sync(
                 self._get_spark_ctrl().spark_driver_dump_file()
             ),
+            "task",
             "--task-id",
             self.task_id,
         ]
@@ -153,7 +155,7 @@ class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
             self._get_spark_ctrl().download_to_local()
 
         return self._get_spark_ctrl().run_pyspark(
-            pyspark_script=databand_lib_path("core", "cli", "main.py")
+            pyspark_script=databand_lib_path("_core", "cli", "main.py")
         )
 
     def _task_run(self):

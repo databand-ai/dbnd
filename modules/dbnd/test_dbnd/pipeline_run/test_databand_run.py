@@ -53,7 +53,7 @@ class TestDatabandRun(object):
         s = TTask()
         r = self._save_graph(s)
 
-        actual = DatabandRun.load_run(r.driver_dump)
+        actual = DatabandRun.load_run(r.driver_dump, False)
         assert actual
 
     def test_save_huge_graph(self):
@@ -62,7 +62,7 @@ class TestDatabandRun(object):
 
         # dill._dill._trace(True)
         r = self._save_graph(task)
-        actual = DatabandRun.load_run(r.driver_dump)
+        actual = DatabandRun.load_run(r.driver_dump, False)
         assert actual
 
     def _benchmark_pipeline_save(

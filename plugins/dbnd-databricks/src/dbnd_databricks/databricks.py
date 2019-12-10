@@ -2,12 +2,12 @@ import logging
 import time
 
 from dbnd._core.current import current_task_run
-from dbnd._core.errors import DatabandError
+from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_aws.aws_sync_ctrl import AwsSyncCtrl
-from dbnd_spark.spark import SparkCtrl, SparkTask
+from dbnd_spark.spark import PySparkTask, SparkCtrl, SparkTask
 
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
         url = hook.get_run_page_url(run_id)
         self.task_run.set_external_resource_urls({"databricks url": url})
         b.column("databricks URL", url)
-        logger.info("/n" + b.get_banner_str())
+        logger.info(b.get_banner_str())
         while True:
             b.column("databricks URL", url)
             run_state = hook.get_run_state(run_id)
@@ -47,17 +47,14 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
                     error_message = "{t} failed with terminal state: {s}, please try visit databricks site {w} for more info".format(
                         t=task_id, s=run_state, w=url
                     )
-                    raise DatabandError(error_message)
+                    raise DatabandRuntimeError(error_message)
             else:
                 b.column("State:", run_state.life_cycle_state)
                 b.column("Message:", run_state.state_message)
                 time.sleep(self.databricks_config.status_polling_interval_seconds)
             logger.info("/n" + b.get_banner_str())
 
-    def _run_spark_submit(self, spark_submit_parameters):
-        task = self.task  # type: SparkTask
-
-        _config = task.spark_engine
+    def _create_spark_submit_json(self, spark_submit_parameters):
         new_cluster = {
             "num_workers": self.databricks_config.num_workers,
             "spark_version": self.databricks_config.spark_version,
@@ -78,15 +75,32 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
             pass
 
         # since airflow connector for now() does not support spark_submit_task, it is implemented this way.
-        databricks_json = {
+        return {
             "spark_submit_task": {"parameters": spark_submit_parameters},
             "new_cluster": new_cluster,
-            "run_name": task.task_id,
+            "run_name": self.task.task_id,
         }
+
+    def _create_pyspark_submit_json(self, python_file, parameters):
+        spark_python_task_json = {"python_file": python_file, "parameters": parameters}
+        # since airflow connector for now() does not support spark_submit_task, it is implemented this way.
+        return {
+            "spark_python_task": spark_python_task_json,
+            "existing_cluster_id": self.databricks_config.cluster_id,
+            "run_name": self.task.task_id,
+        }
+
+    def _run_spark_submit(self, databricks_json):
+        task = self.task  # type: SparkTask
+        _config = task.spark_engine
 
         from airflow.contrib.hooks.databricks_hook import DatabricksHook
 
-        hook = DatabricksHook(_config.conn_id, retry_limit=3, retry_delay=1)
+        hook = DatabricksHook(
+            _config.conn_id,
+            _config.connection_retry_limit,
+            retry_delay=_config.connection_retry_delay,
+        )
         run_id = hook.submit_run(databricks_json)
         hook.log.setLevel(logging.WARNING)
         self._handle_databricks_operator_execution(run_id, hook, _config.task_id)
@@ -95,10 +109,19 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
     def run_pyspark(self, pyspark_script):
         # should be reimplemented using SparkSubmitHook (maybe from airflow)
         # note that config jars are not supported.
-        spark_submit_parameters = [self.sync(pyspark_script)] + (
-            list_of_strings(self.task.application_args())
-        )
-        return self._run_spark_submit(spark_submit_parameters)
+        if not self.databricks_config.cluster_id:
+            spark_submit_parameters = [self.sync(pyspark_script)] + (
+                list_of_strings(self.task.application_args())
+            )
+            databricks_json = self._create_spark_submit_json(spark_submit_parameters)
+        else:
+            pyspark_script = self.sync(pyspark_script)
+            parameters = list_of_strings(self.task.application_args())
+            databricks_json = self._create_pyspark_submit_json(
+                python_file=pyspark_script, parameters=parameters
+            )
+
+        return self._run_spark_submit(databricks_json)
 
     def run_spark(self, main_class):
         jars_list = []
@@ -111,7 +134,7 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
             main_class,
             self.sync(self.config.main_jar),
         ] + (list_of_strings(self.task.application_args()) + jars_list)
-        return self._run_spark_submit(spark_submit_parameters)
+        return self._run_spark_submit(spark_submit_parameters, type=SparkTask)
 
     def _report_step_status(self, step):
         logger.info(self._get_step_banner(step))

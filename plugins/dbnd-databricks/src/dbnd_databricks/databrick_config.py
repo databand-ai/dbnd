@@ -13,7 +13,17 @@ class DatabricksConfig(Config):
     conn_id = parameter.value(default="databricks_default").help(
         "databricks connection settings"
     )[str]
+    connection_retry_limit = parameter.value(default=3).help(
+        "databricks connection - retry limit"
+    )[int]
+    connection_retry_delay = parameter.value(default=1).help(
+        "databricks connection - delay in between retries"
+    )[int]
+    conn_id = parameter.value(default="databricks_default").help(
+        "databricks connection settings"
+    )[str]
     num_workers = parameter.help("number of workers as in databricks api.")[int]
+    cluster_id = parameter.help("existing cluster id")[str]
     # new cluster config
     spark_version = parameter.help("spark version")[str]
     spark_conf = parameter(default={}).help("spark config")[Dict]

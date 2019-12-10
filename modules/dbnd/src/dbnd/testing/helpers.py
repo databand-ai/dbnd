@@ -15,6 +15,7 @@ from dbnd._core.tools.jupyter.notebook import notebook_run
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics import fast_subprocess
 from dbnd._core.utils.platform import windows_compatible_mode
+from dbnd._core.utils.project.project_fs import abs_join
 
 
 logger = logging.getLogger(__name__)
@@ -117,3 +118,7 @@ def initialized_run(task_or_task_name):
     ) as r:
         r._init_without_run()
         yield r
+
+
+def dbnd_module_path():
+    return abs_join(__file__, "..", "..", "..", "..")

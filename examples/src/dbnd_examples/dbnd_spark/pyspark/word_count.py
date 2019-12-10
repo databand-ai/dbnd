@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-from __future__ import print_function
-
 import sys
 
 from operator import add
@@ -36,9 +34,8 @@ if __name__ == "__main__":
         lines.flatMap(lambda x: x.split(" ")).map(lambda x: (x, 1)).reduceByKey(add)
     )
     counts.saveAsTextFile(sys.argv[2])
-
     output = counts.collect()
     for (word, count) in output:
         print("%s: %i" % (word, count))
-
-    spark.stop()
+    # this makes trouble on job submit on databricks!
+    # spark.close()

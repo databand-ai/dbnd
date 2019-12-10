@@ -20,6 +20,7 @@ setuptools.setup(
         "configparser",
         "tabulate",
         "marshmallow==2.18.0",
+        "jinja2==2.10.0",
         "gitpython",
         "pandas",
         "numpy",

@@ -23,8 +23,6 @@ def say_hello(name: str = "databand.ai") -> str:
     log_metric("r2", r2)
 ```
  
-  
-
 
 ### Getting Started
 See our [Quickstart guide](https://databand.readme.io/docs/quickstart-1) to get up and running with DBND. Our [documentation](https://databand.readme.io/) is available for more examples and guides
