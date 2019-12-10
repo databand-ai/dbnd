@@ -122,3 +122,7 @@ def initialized_run(task_or_task_name):
 
 def dbnd_module_path():
     return abs_join(__file__, "..", "..", "..", "..")
+
+
+def dbnd_examples_path():
+    return abs_join(dbnd_module_path(), "..", "..", "examples", "src")

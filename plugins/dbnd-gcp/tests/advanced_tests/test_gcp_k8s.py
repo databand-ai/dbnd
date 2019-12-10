@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.gcp
 @pytest.mark.gcp_k8s
+@pytest.mark.skip(reason="Waiting for kubernetes integration")
 class TestGcpK8sFlow(object):
     def test_simple_driver(self):
         with new_dbnd_context(
