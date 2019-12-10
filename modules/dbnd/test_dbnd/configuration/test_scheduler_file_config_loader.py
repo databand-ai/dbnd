@@ -1,5 +1,6 @@
 import contextlib
 import os
+import time
 
 import pytest
 import six
@@ -24,7 +25,7 @@ class TestSchedulerFileConfigLoader(object):
             "get_scheduled_jobs",
             lambda *args, **kwargs: existing_jobs,
         )
-        monkeypatch.setattr(os.path, "getmtime", lambda _: utcnow().timestamp())
+        monkeypatch.setattr(os.path, "getmtime", lambda _: time.time())
         return existing_jobs
 
     @contextlib.contextmanager
