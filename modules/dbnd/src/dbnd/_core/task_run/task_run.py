@@ -154,21 +154,21 @@ class TaskRun(object):
         self._task_run_state = TaskRunState.SUCCESS
         self.tracking_store.set_task_reused(task_run=self)
 
-    def set_external_resource_urls(self, logs_dict):
+    def set_external_resource_urls(self, links_dict):
         # if value is None skip
-        if logs_dict is None:
+        if links_dict is None:
             # TODO: Throw exception?
             return
 
-        for link in logs_dict:
-            if not logs_dict[link]:
+        for link in links_dict:
+            if not links_dict[link]:
                 # Dict has empty fields
                 # TODO: Throw exception?
                 return
 
-        self.external_resource_urls.update(logs_dict)
+        self.external_resource_urls.update(links_dict)
         self.tracking_store.save_external_links(
-            task_run=self, external_links_dict=logs_dict
+            task_run=self, external_links_dict=links_dict
         )
 
     def __repr__(self):
