@@ -95,18 +95,12 @@ class ApiClient(object):
         return resp
 
 
-if six.PY2:
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
 
-    class dotdict(dict):
-        """dot.notation access to dictionary attributes"""
-
-        __getattr__ = dict.get
-        __setattr__ = dict.__setitem__
-        __delattr__ = dict.__delitem__
-
-
-else:
-    from types import SimpleNamespace as dotdict
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
 
 def _as_dotted_dict(**dict_obj):

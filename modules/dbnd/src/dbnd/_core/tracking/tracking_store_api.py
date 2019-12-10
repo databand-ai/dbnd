@@ -7,6 +7,7 @@ from dbnd._core.utils.timezone import utcnow
 from dbnd.api.tracking_api import (
     TaskRunAttemptUpdateArgs,
     add_task_runs_schema,
+    heartbeat_schema,
     init_run_schema,
     log_artifact_schema,
     log_metric_schema,
@@ -165,6 +166,9 @@ class TrackingStoreApi(TrackingStore):
             setup_and_validation_schema,
             databand_version=databand_version,
         )
+
+    def heartbeat(self, run_uid):
+        return self._m(self.channel.heartbeat, heartbeat_schema, run_uid=run_uid)
 
     def _m(self, _channel_call, _req_schema, **req_kwargs):
         """
