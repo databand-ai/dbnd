@@ -3,6 +3,7 @@
 import logging
 import sys
 
+from dbnd._core.cli.cmd_airflow_monitor import airflow_monitor
 from dbnd._core.cli.cmd_execute import execute
 from dbnd._core.cli.cmd_heartbeat import send_heartbeat
 from dbnd._core.cli.cmd_project import project_init
@@ -54,6 +55,8 @@ cli.add_command(schedule)
 
 # heartbeat sender
 cli.add_command(send_heartbeat)
+
+cli.add_command(airflow_monitor)
 
 
 def main():
