@@ -24,6 +24,7 @@ def dbnd_setup_plugin():
 
     register_config_cls(AirflowFeaturesConfig)
 
+
 @dbnd.hookimpl
 def dbnd_get_commands():
     from dbnd_airflow.cli.cmd_airflow import run_task_airflow, airflow

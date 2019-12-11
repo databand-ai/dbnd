@@ -2,6 +2,7 @@ import copy
 import logging
 import sys
 import typing
+
 from typing import Type
 
 import six
@@ -13,6 +14,7 @@ from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.seven import contextlib
 from dbnd._vendor.snippets.luigi_registry import get_best_candidate, module_parents
+
 
 logger = logging.getLogger(__name__)
 

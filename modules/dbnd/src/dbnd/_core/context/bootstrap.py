@@ -5,6 +5,7 @@ import sys
 import threading
 
 import dbnd
+
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import set_dbnd_unit_test_mode
 from dbnd._core.context.dbnd_project_env import _env_banner
@@ -15,7 +16,9 @@ from dbnd._core.plugin.dbnd_plugins import (
 )
 from dbnd._core.utils.platform import windows_compatible_mode
 
+
 logger = logging.getLogger(__name__)
+
 
 def _surpress_loggers():
     logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
