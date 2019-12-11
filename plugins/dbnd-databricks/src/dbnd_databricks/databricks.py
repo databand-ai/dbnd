@@ -1,12 +1,17 @@
 import logging
 import time
 
+from airflow import AirflowException
+
 from dbnd._core.current import current_task_run
-from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_aws.aws_sync_ctrl import AwsSyncCtrl
+from dbnd_databricks.errors import (
+    failed_to_run_databricks_job,
+    failed_to_submit_databricks_job,
+)
 from dbnd_spark.spark import PySparkTask, SparkCtrl, SparkTask
 
 
@@ -32,10 +37,10 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
         )
         url = hook.get_run_page_url(run_id)
         self.task_run.set_external_resource_urls({"databricks url": url})
-        b.column("databricks URL", url)
+        b.column("URL", url)
         logger.info(b.get_banner_str())
         while True:
-            b.column("databricks URL", url)
+            b.column("URL", url)
             run_state = hook.get_run_state(run_id)
             if run_state.is_terminal:
                 if run_state.is_successful:
@@ -44,15 +49,17 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
                     b.column("Message:", run_state.state_message)
                     break
                 else:
-                    error_message = "{t} failed with terminal state: {s}, please try visit databricks site {w} for more info".format(
-                        t=task_id, s=run_state, w=url
+                    b.column("State", run_state.result_state)
+                    b.column("Error Message:", run_state.state_message)
+                    logger.info(b.get_banner_str())
+                    raise failed_to_run_databricks_job(
+                        run_state.result_state, run_state.state_message, url
                     )
-                    raise DatabandRuntimeError(error_message)
             else:
                 b.column("State:", run_state.life_cycle_state)
                 b.column("Message:", run_state.state_message)
                 time.sleep(self.databricks_config.status_polling_interval_seconds)
-            logger.info("/n" + b.get_banner_str())
+            logger.info(b.get_banner_str())
 
     def _create_spark_submit_json(self, spark_submit_parameters):
         new_cluster = {
@@ -101,10 +108,13 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
             _config.connection_retry_limit,
             retry_delay=_config.connection_retry_delay,
         )
-        run_id = hook.submit_run(databricks_json)
-        hook.log.setLevel(logging.WARNING)
-        self._handle_databricks_operator_execution(run_id, hook, _config.task_id)
-        hook.log.setLevel(logging.INFO)
+        try:
+            run_id = hook.submit_run(databricks_json)
+            hook.log.setLevel(logging.WARNING)
+            self._handle_databricks_operator_execution(run_id, hook, _config.task_id)
+            hook.log.setLevel(logging.INFO)
+        except AirflowException as e:
+            raise failed_to_submit_databricks_job(e)
 
     def run_pyspark(self, pyspark_script):
         # should be reimplemented using SparkSubmitHook (maybe from airflow)
