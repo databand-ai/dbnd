@@ -7,6 +7,7 @@ from dbnd_examples.dbnd_gcp.tool_dataflow.dataflow_word_count import BeamWordCou
 
 @pytest.mark.gcp
 @pytest.mark.beam
+@pytest.mark.skip(reason="Waiting for dataflow integration")
 class TestGcpDataFlow(object):
     def test_beam_wordcount_cls_task(self):
         t = BeamWordCount(
