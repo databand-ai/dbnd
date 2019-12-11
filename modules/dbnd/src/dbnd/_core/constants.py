@@ -1,8 +1,9 @@
+import datetime
 import enum
 
 import attr
 
-from dbnd._core.utils.timezone import utcnow
+from dbnd._core.utils.timezone import make_aware, utcnow
 
 
 RESULT_PARAM = "result"
@@ -141,3 +142,6 @@ class AlertStatus(enum.Enum):
 class _DbndDataClass(object):
     def asdict(self, filter=None):
         return attr.asdict(self, recurse=False, filter=filter)
+
+
+HEARTBEAT_DISABLED = make_aware(datetime.datetime.fromtimestamp(-1))
