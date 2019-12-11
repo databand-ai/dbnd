@@ -3,7 +3,7 @@ import logging
 import os
 
 from multiprocessing import Process
-from time import sleep
+from time import sleep, time
 
 import six
 
@@ -49,7 +49,7 @@ def send_heartbeat(run_uid, tracking_store, heartbeat_interval_s):
     parent_pid = os.getppid()
     try:
         while True:
-            loop_start = utcnow()
+            loop_start = time()
             try:
                 try:  # failsafe, normally multiprocessing would close this process when the parent is exiting
                     os.getpgid(parent_pid)
@@ -63,9 +63,7 @@ def send_heartbeat(run_uid, tracking_store, heartbeat_interval_s):
             except Exception:
                 logger.error("failed to send heartbeat: %s", format_exception_as_str())
 
-            time_to_sleep_s = max(
-                0, utcnow().timestamp() + heartbeat_interval_s - loop_start.timestamp()
-            )
+            time_to_sleep_s = max(0, time() + heartbeat_interval_s - loop_start)
             if time_to_sleep_s > 0:
                 sleep(time_to_sleep_s)
     except KeyboardInterrupt:

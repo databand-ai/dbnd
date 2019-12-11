@@ -57,6 +57,8 @@ class RunInfo(_DbndDataClass):
     root_run = attr.ib()  # type: RootRunInfo
     scheduled_run = attr.ib()  # type: Optional[ScheduledRunInfo]
 
+    sends_heartbeat = attr.ib()  # type: bool
+
 
 @attr.s
 class ScheduledRunInfo(_DbndDataClass):

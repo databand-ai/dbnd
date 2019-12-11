@@ -196,6 +196,8 @@ class DatabandRun(SingletonContext):
         else:
             self.task_engine = self.driver_engine.clone(require_submit=False)
 
+        self.sends_heartbeat = True  # to support client backwards compatability
+
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
         return build_task_from_config(name, EngineConfig)

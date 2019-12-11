@@ -58,6 +58,8 @@ class RunInfoSchema(ApiObjectSchema):
     root_run = fields.Nested(RootRunInfoSchema)
     scheduled_run = fields.Nested(ScheduledRunInfoSchema, allow_none=True)
 
+    sends_heartbeat = fields.Boolean(default=False, allow_none=True)
+
     @post_load
     def make_run_info(self, data, **kwargs):
         return _as_dotted_dict(**data)
