@@ -5,9 +5,6 @@ from dbnd._core.commands import log_metric
 from dbnd._core.current import current_task_run
 
 
-# dbnd run plugins.dbnd-test-scenarios.src.dbnd_test_scenarios.test_all_UI_functionality.test_all_ui_function --task-version now --set input=some_input
-
-
 @task
 def error_task():
     raise Exception("An explicit error for UI functionality validation.")
@@ -24,7 +21,7 @@ def child_has_error():
 @task
 def external_links_task():
     tr = current_task_run()
-    tr.set_external_resource_urls({"test_url": "http://localhost:8080"})
+    tr.set_external_resource_urls({"test_url": "https://databand.ai/"})
     return None
 
 
@@ -72,7 +69,7 @@ def yet_another_pipeline():
 
 
 @pipeline
-def test_all_ui_function(input="some_input"):
+def all_ui_function(input="some_input"):
     # type: ()-> Figure
 
     """
