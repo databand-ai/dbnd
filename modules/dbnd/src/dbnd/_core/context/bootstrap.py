@@ -53,13 +53,14 @@ _dbnd_bootstrap = False
 
 
 def dbnd_bootstrap(unittest=False):
-    if ENV_DBND_HOME not in os.environ:
-        init_databand_env()
 
     global _dbnd_bootstrap
     if _dbnd_bootstrap:
         return
     _dbnd_bootstrap = True
+
+    if ENV_DBND_HOME not in os.environ:
+        init_databand_env()
 
     _dbnd_exception_handling()
 
