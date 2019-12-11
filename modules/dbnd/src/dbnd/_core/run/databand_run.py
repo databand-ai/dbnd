@@ -6,6 +6,8 @@ import threading
 import typing
 
 from datetime import datetime
+from multiprocessing import Process
+from time import sleep
 from typing import Any, ContextManager, Iterator, Optional, Union
 from uuid import UUID
 
@@ -40,9 +42,11 @@ from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.tracking.tracking_info_run import RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils import console_utils
+from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.date_utils import unique_execution_date
+from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import flatten
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
@@ -573,6 +577,8 @@ class _DbndDriverTask(Task):
         called by .run and inline
         :return:
         """
+        from dbnd import config
+
         ctx = run.context
 
         if self.is_submitter:

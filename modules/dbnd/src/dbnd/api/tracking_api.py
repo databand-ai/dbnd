@@ -206,6 +206,14 @@ class SetupAndValidationSchema(_ApiCallSchema):
 
 setup_and_validation_schema = SetupAndValidationSchema()
 
+
+class HeartbeatSchema(_ApiCallSchema):
+    run_uid = fields.UUID()
+
+
+heartbeat_schema = HeartbeatSchema()
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -249,6 +257,9 @@ class TrackingAPI(object):
 
     def setup_and_validation(self, data):
         return self._handle(TrackingAPI.setup_and_validation.__name__, data)
+
+    def heartbeat(self, data):
+        return self._handle(TrackingAPI.heartbeat.__name__, data)
 
 
 class TrackingApiClient(TrackingAPI):

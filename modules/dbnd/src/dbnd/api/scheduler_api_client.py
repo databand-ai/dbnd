@@ -14,16 +14,21 @@ api_client = ApiClient(
 )
 
 
+schema = ScheduledJobSchemaV2(strict=False)
+
+
 def post_scheduled_job(scheduled_job_dict):
+    data, _ = schema.dump({"DbndScheduledJob": scheduled_job_dict})
     api_client.api_request(
-        "/api/v1/scheduled_jobs", scheduled_job_dict, method="POST", no_prefix=True
+        "/api/v1/scheduled_jobs", data, method="POST", no_prefix=True
     )
 
 
 def patch_scheduled_job(scheduled_job_dict):
+    data, _ = schema.dump({"DbndScheduledJob": scheduled_job_dict})
     api_client.api_request(
         "/api/v1/scheduled_jobs?name=%s" % scheduled_job_dict["name"],
-        scheduled_job_dict,
+        data,
         method="PATCH",
         no_prefix=True,
     )
@@ -51,6 +56,5 @@ def get_scheduled_jobs(from_file_only=False, include_deleted=False):
         "/api/v1/scheduled_jobs", None, method="GET", query=query, no_prefix=True
     )
     return [
-        s["DbndScheduledJob"]
-        for s in ScheduledJobSchemaV2().load(data=res["data"], many=True).data
+        s["DbndScheduledJob"] for s in schema.load(data=res["data"], many=True).data
     ]
