@@ -67,3 +67,41 @@ class TestDirTarget(TargetTestBase):
         with open(flag, "w") as fp:
             fp.write("exists")
         assert t_flag_custom.exists()
+
+    def test_meta_files(self, tmpdir):
+        meta_files = [".a1", "a2", "a3"]
+        dir_path = str(tmpdir.join("dir.csv/"))
+        os.makedirs(dir_path)
+        dir_path = dir_path + os.path.sep
+
+        t_no_meta_files = target(dir_path, config=folder.without_flag())
+        t_with_meta_files = target(
+            dir_path, config=folder.with_meta_files(meta_files).without_flag()
+        )
+        t_with_meta_files_and_flag = target(
+            dir_path, config=folder.with_meta_files(meta_files).with_flag(True)
+        )
+
+        assert t_no_meta_files.exists()
+        assert t_with_meta_files.exists()
+        assert not t_with_meta_files_and_flag.exists()
+
+        for m in meta_files:
+            meta_file = os.path.join(dir_path, m)
+            with open(meta_file, "w") as fp:
+                fp.write("exists")
+
+        partition = t_no_meta_files.partition("some_partition")
+        with open(partition.path, "w") as fp:
+            fp.write("exists")
+
+        assert len(t_no_meta_files.list_partitions()) == 3
+        assert len(t_with_meta_files.list_partitions()) == 1
+
+        flag = os.path.join(dir_path, DEFAULT_FLAG_FILE_NAME)
+        with open(flag, "w") as fp:
+            fp.write("exists")
+
+        assert len(t_no_meta_files.list_partitions()) == 4
+        assert len(t_with_meta_files.list_partitions()) == 2
+        assert len(t_with_meta_files_and_flag.list_partitions()) == 1

@@ -13,15 +13,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_FLAG_FILE_NAME = "_SUCCESS"
 
 
-def is_meta_file(path):
-    base_name = os.path.basename(path)
-    if base_name.startswith("."):
-        return True
-    if base_name == DEFAULT_FLAG_FILE_NAME:
-        return True
-    return False
-
-
 class DirTarget(FileTarget):
     def __init__(self, path, fs, config=None, io_pipe=None, source=None):
         """
@@ -62,6 +53,8 @@ class DirTarget(FileTarget):
         self._auto_partition_count = 0
         self._write_target = self.partition("part-0000")
 
+        self.meta_files = config.meta_files
+
     def exists(self):
         path = self.path
         if "*" in path or "?" in path or "[" in path or "{" in path:
@@ -79,10 +72,18 @@ class DirTarget(FileTarget):
     def folder_exists(self):
         return self.fs.exists(self.path)
 
+    def is_meta_file(self, path):
+        base_name = os.path.basename(path)
+        if base_name.startswith("."):
+            return True
+        if base_name in self.meta_files:
+            return True
+        return False
+
     def list_partitions(self):
         all_files = self.fs.listdir(self.path)
         all_files = sorted(all_files)
-        all_files = filter(lambda x: not is_meta_file(x), all_files)
+        all_files = filter(lambda x: not self.is_meta_file(x), all_files)
         if self.flag_target:
             all_files = filter(lambda x: x != str(self.flag_target), all_files)
         return [
