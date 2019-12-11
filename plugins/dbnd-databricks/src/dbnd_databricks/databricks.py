@@ -160,3 +160,9 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
         b.column("EMR STEP ID", step["Step"]["Id"])
         b.new_section()
         return b.getvalue()
+
+    def stop_spark_session(self, session):
+        # sc.stop on databrciks will cause an un-expected behaviour
+        # as the 'warning!' here suggests:
+        # https://docs.databricks.com/jobs.html
+        pass
