@@ -9,6 +9,7 @@ class ScheduledRunInfoSchema(ApiObjectSchema):
     scheduled_job_uid = fields.UUID(allow_none=True)
     scheduled_date = fields.DateTime(allow_none=True)
     scheduled_job_dag_run_id = fields.String(allow_none=True)
+    scheduled_job_name = fields.String(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -59,6 +60,9 @@ class RunInfoSchema(ApiObjectSchema):
     scheduled_run = fields.Nested(ScheduledRunInfoSchema, allow_none=True)
 
     sends_heartbeat = fields.Boolean(default=False, allow_none=True)
+
+    scheduled_job_name = fields.String(allow_none=True)
+    scheduled_date = fields.DateTime(allow_none=True)
 
     @post_load
     def make_run_info(self, data, **kwargs):

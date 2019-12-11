@@ -18,6 +18,7 @@ from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
+from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
 from dbnd._vendor import click
 
 
@@ -101,6 +102,17 @@ def build_dynamic_task(original_cls, new_cls_name):
 )
 @click.option("--run-driver", "run_driver", help="Running in remote mode")
 @click.option("--task-name", "alternative_task_name", help="Name of this task")
+@click.option(
+    "--scheduled-job-name",
+    "-sjn",
+    help="Associate this run with this scheduled job (will be created if needed)",
+)
+@click.option(
+    "--scheduled-date",
+    "-sd",
+    help="For use when setting scheduled-job-name",
+    type=click.DateTime(),
+)
 @click.pass_context
 def run(
     ctx,
@@ -122,6 +134,8 @@ def run(
     description,
     run_driver,
     alternative_task_name,
+    scheduled_job_name,
+    scheduled_date,
 ):
     """
     Run a task or a DAG
@@ -190,6 +204,12 @@ def run(
     if not config.getboolean("log", "disabled"):
         configure_basic_logging(None)
 
+    scheduled_run_info = None
+    if scheduled_job_name:
+        scheduled_run_info = ScheduledRunInfo(
+            scheduled_job_name=scheduled_job_name, scheduled_date=scheduled_date
+        )
+
     with new_dbnd_context(
         name="run", module=module
     ) as context:  # type: DatabandContext
@@ -223,7 +243,9 @@ def run(
             return
 
         return context.dbnd_run_cmd_line(
-            task_or_task_name=task_name, run_uid=run_driver
+            task_or_task_name=task_name,
+            run_uid=run_driver,
+            scheduled_run_info=scheduled_run_info,
         )
 
 
