@@ -1,6 +1,7 @@
 import contextlib
 import logging
 import os
+import sys
 
 from multiprocessing import Process
 from time import sleep, time
@@ -8,7 +9,6 @@ from time import sleep, time
 import six
 
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
-from dbnd._core.utils.timezone import utcnow
 
 
 logger = logging.getLogger(__name__)
@@ -70,3 +70,4 @@ def send_heartbeat(run_uid, tracking_store, heartbeat_interval_s):
         return
     finally:
         logger.info("stopping heartbeat sender")
+        sys.exit(0)
