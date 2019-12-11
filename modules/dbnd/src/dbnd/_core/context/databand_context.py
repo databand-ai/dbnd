@@ -55,7 +55,7 @@ class DatabandContext(SingletonContext):
     # controls load of orm dags by versioned airflow
     # we will set it to true when we run airflow original commands
     def __init__(
-        self, module=None, name="global", autoload_modules=True, validate_api=False
+        self, module=None, name="global", autoload_modules=True
     ):
         """
         Initialize cmd line args
@@ -68,8 +68,6 @@ class DatabandContext(SingletonContext):
         dbnd_bootstrap()
 
         self.name = name
-
-        self.validate_api = validate_api
 
         self.current_context_uid = "%s_%s" % (
             utcnow().strftime("%Y%m%d_%H%M%S"),
@@ -153,8 +151,6 @@ class DatabandContext(SingletonContext):
 
         self.task_run_env = RunInfoConfig().build_task_run_info()
         self.tracking_store = self.settings.core.get_tracking_store()
-        if self.validate_api:
-            self.tracking_store.setup_and_validation(databand_version=dbnd.__version__)
 
         self.configure_targets()
         self.configure_dbnd_logging()

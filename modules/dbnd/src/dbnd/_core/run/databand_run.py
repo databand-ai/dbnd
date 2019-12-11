@@ -408,7 +408,6 @@ class DatabandRun(SingletonContext):
             databand_run = cloudpickle.load(file=fp)
             if disable_tracking_api:
                 databand_run.context.tracking_store.disable_tracking_api()
-                databand_run.context.validate_api = False
                 logger.info("Tracking has been disabled")
         try:
             if databand_run.context.settings.core.pickle_handler:

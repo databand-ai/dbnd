@@ -102,7 +102,7 @@ def with_fast_dbnd_context(f):
 
         config.set_parameter(CoreConfig.tracker, "", source="fast_dbnd_context")
         with new_dbnd_context(
-            name="fast_dbnd_context", autoload_modules=False, validate_api=False
+            name="fast_dbnd_context", autoload_modules=False
         ):
             f(*args, **kwargs)
 

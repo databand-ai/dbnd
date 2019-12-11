@@ -191,7 +191,7 @@ def run(
         configure_basic_logging(None)
 
     with new_dbnd_context(
-        name="run", module=module, validate_api=True
+        name="run", module=module
     ) as context:  # type: DatabandContext
         task_registry = get_task_registry()
 

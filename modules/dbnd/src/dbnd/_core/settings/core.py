@@ -84,10 +84,6 @@ class CoreConfig(Config):
 
     pickle_handler = parameter(default=None)[str]
 
-    supported_alembic_revisions = parameter(
-        description="Supported versions of alembic db configuration"
-    )[List[str]]
-
     tracker = parameter(
         default=["file", "console", "api"], description="Tracking Stores to be used"
     )[List[str]]

@@ -13,7 +13,6 @@ from dbnd.api.tracking_api import (
     log_metric_schema,
     scheduled_job_info_schema,
     set_run_state_schema,
-    setup_and_validation_schema,
     update_task_run_attempts_schema,
 )
 

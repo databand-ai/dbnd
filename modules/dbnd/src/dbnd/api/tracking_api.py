@@ -200,13 +200,6 @@ class LogTargetMetricsSchema(_ApiCallSchema):
 log_target_metrics_schema = LogTargetMetricsSchema()
 
 
-class SetupAndValidationSchema(_ApiCallSchema):
-    databand_version = fields.String()
-
-
-setup_and_validation_schema = SetupAndValidationSchema()
-
-
 class HeartbeatSchema(_ApiCallSchema):
     run_uid = fields.UUID()
 
@@ -254,9 +247,6 @@ class TrackingAPI(object):
 
     def log_artifact(self, data):
         return self._handle(TrackingAPI.log_artifact.__name__, data)
-
-    def setup_and_validation(self, data):
-        return self._handle(TrackingAPI.setup_and_validation.__name__, data)
 
     def heartbeat(self, data):
         return self._handle(TrackingAPI.heartbeat.__name__, data)

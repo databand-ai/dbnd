@@ -53,3 +53,21 @@ def db_no_dbnd_schema(ex, connection_string):
         nested_exceptions=ex,
         show_exc_info=False,
     )
+
+
+def db_multiple_alembic_head_revision(revisions):
+    return DatabandConfigError(
+        "You need to have only one HEAD alembic revision:  found revisions= %s."
+        % revisions,
+        help_msg="Please check your alembic migration folder.",
+        show_exc_info=False,
+    )
+
+
+def db_cant_calculate_alembic_head_revisions(ex):
+    return DatabandConfigError(
+        "Can't calculate latest migration revision" % ex,
+        help_msg="Please check your alembic migration folder .",
+        nested_exceptions=ex,
+        show_exc_info=False,
+    )
