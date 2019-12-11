@@ -54,9 +54,7 @@ class DatabandContext(SingletonContext):
 
     # controls load of orm dags by versioned airflow
     # we will set it to true when we run airflow original commands
-    def __init__(
-        self, module=None, name="global", autoload_modules=True
-    ):
+    def __init__(self, module=None, name="global", autoload_modules=True):
         """
         Initialize cmd line args
         """

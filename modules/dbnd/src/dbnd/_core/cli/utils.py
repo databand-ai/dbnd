@@ -101,9 +101,7 @@ def with_fast_dbnd_context(f):
         from dbnd._core.settings import CoreConfig
 
         config.set_parameter(CoreConfig.tracker, "", source="fast_dbnd_context")
-        with new_dbnd_context(
-            name="fast_dbnd_context", autoload_modules=False
-        ):
+        with new_dbnd_context(name="fast_dbnd_context", autoload_modules=False):
             f(*args, **kwargs)
 
     return wrapper
