@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @dbnd.hookimpl
-def dbnd_on_pre_init_context(ctx):
+def dbnd_setup_plugin():
     from dbnd_docker.docker.docker_engine_config import DockerEngineConfig
     from dbnd_docker.docker.docker_task import DockerRunTask
 

@@ -2,7 +2,6 @@ import copy
 import logging
 import sys
 import typing
-
 from typing import Type
 
 import six
@@ -14,7 +13,6 @@ from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.seven import contextlib
 from dbnd._vendor.snippets.luigi_registry import get_best_candidate, module_parents
-
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +120,6 @@ class DbndTaskRegistry(SingletonContext):
             raise friendly_error.ambiguous_task(task_name)
         if task_cls:
             return task_cls
-
         raise friendly_error.task_not_exist(
             task_name=task_name,
             alternative_tasks=get_best_candidate(
