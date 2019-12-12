@@ -29,9 +29,9 @@ class _AzureBlobBaseTestCase(object):
     @pytest.fixture(autouse=True)
     def set_azure_client(self):
         config.load_system_configs()
-        self.credentials_filename = config.get("azure_tests", "credentials_file").value
-        self.storage_account = config.get("azure_tests", "storage_account").value
-        self.container_name = config.get("azure_tests", "container_name").value
+        self.credentials_filename = config.get("azure_tests", "credentials_file")
+        self.storage_account = config.get("azure_tests", "storage_account")
+        self.container_name = config.get("azure_tests", "container_name")
         self.client = AzureBlobStorageClient(**self._get_credentials_dict())
         global ATTEMPTED_CONTAINER_CREATE
         if not ATTEMPTED_CONTAINER_CREATE:
