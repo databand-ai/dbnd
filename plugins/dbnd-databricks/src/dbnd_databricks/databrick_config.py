@@ -29,11 +29,15 @@ class DatabricksConfig(Config):
     )[str]
     cluster_id = parameter(default="None").help("existing cluster id")[str]
     # new cluster config
-    num_workers = parameter.help("number of workers as in databricks api.")[int]
-    spark_version = parameter.help("spark version")[str]
+    num_workers = parameter(default=0).help("number of workers as in databricks api.")[
+        int
+    ]
+    spark_version = parameter(default="5.3.x-scala2.11").help("spark version")[str]
     spark_conf = parameter(default={}).help("spark config")[Dict]
-    node_type_id = parameter.help("nodes for spark machines")[str]
-    aws_instance_profile_arn = parameter.help("IAM profile for spark machines")[str]
+    node_type_id = parameter(default="m4.large").help("nodes for spark machines")[str]
+    aws_instance_profile_arn = parameter(default="<>").help(
+        "IAM profile for spark machines"
+    )[str]
     spark_env_vars = parameter.c.help("spark env vars")[Dict]
     ebs_count = parameter(default=1).help("nodes for spark machines")
     # aws machine related.
@@ -41,7 +45,7 @@ class DatabricksConfig(Config):
     aws_ebs_volume_count = parameter(default=1).help("num of EBS volumes")[int]
     aws_ebs_volume_size = parameter(default=100).help("size of EBS volume")[int]
 
-    # SHOULDDO: replace this init script with native databricks library support.
+    # # SHOULDDO: replace this init script with native databricks library support.
     init_script = parameter.c.help("List of init scripts to run.")[List]
     status_polling_interval_seconds = parameter(default=10.0).help(
         "seconds to sleep between polling databricks for job status."
