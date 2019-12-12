@@ -59,8 +59,6 @@ class DatabandContext(SingletonContext):
         Initialize cmd line args
         """
         super(DatabandContext, self).__init__()
-
-        logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
         # double checking on bootstrap, as we can run from all kind of locations
         # usually we should be bootstraped already as we run from cli.
         dbnd_bootstrap()
