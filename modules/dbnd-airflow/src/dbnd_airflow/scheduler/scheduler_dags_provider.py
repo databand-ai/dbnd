@@ -50,6 +50,9 @@ class DbndSchedulerDBDagsProvider(object):
         self.refresh_scheduled_jobs(always_refresh=True)
         dags = []
         for job in self.scheduled_jobs:
+            if "schedule_interval" not in job:
+                continue
+
             dag = self.job_to_dag(job)
             dag.sync_to_db()
             set_is_paused(
