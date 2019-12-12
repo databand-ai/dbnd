@@ -159,13 +159,6 @@ class TrackingStoreApi(TrackingStore):
             path=artifact_target.path,
         )
 
-    def setup_and_validation(self, databand_version):
-        return self._m(
-            self.channel.setup_and_validation,
-            setup_and_validation_schema,
-            databand_version=databand_version,
-        )
-
     def heartbeat(self, run_uid):
         return self._m(self.channel.heartbeat, heartbeat_schema, run_uid=run_uid)
 
