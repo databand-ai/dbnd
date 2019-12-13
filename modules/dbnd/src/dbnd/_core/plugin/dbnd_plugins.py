@@ -48,9 +48,9 @@ def is_plugin_enabled(module):
     return pm.has_plugin(module)
 
 
-def assert_plugin_enabled(module):
+def assert_plugin_enabled(module, reason):
     if not is_plugin_enabled(module):
-        raise friendly_error.config.missing_module(module)
+        raise friendly_error.config.missing_module(module, reason)
     return True
 
 
@@ -58,8 +58,8 @@ def is_web_enabled():
     return is_plugin_enabled("dbnd-web")
 
 
-def assert_web_enabled():
-    return assert_plugin_enabled("dbnd-web")
+def assert_web_enabled(reason=""):
+    return assert_plugin_enabled("dbnd-web", reason)
 
 
 def register_dbnd_plugins():

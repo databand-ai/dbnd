@@ -156,7 +156,7 @@ class CoreConfig(Config):
             # TODO Add auth actually
             channel = TrackingApiClient(api_base_url=tracker_url, auth=None)
         elif tracker_api in ("db", "local_db"):
-            assert_web_enabled()
+            assert_web_enabled("It is required because of tracker_api=%s" % tracker_api)
 
             from dbnd_web.api.v1.tracking_api import (
                 TrackingApiHandler as DirectDbChannel,
