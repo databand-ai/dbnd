@@ -3,7 +3,7 @@ import logging
 import os
 import types
 
-from dbnd._core.errors import friendly_error
+from dbnd._core.errors import friendly_error, DatabandError
 from dbnd._core.plugin import dbnd_plugin_spec
 from dbnd._core.utils.basics.load_python_module import _load_module, import_errors
 from dbnd._vendor import pluggy
@@ -123,7 +123,7 @@ def _register_from_config(specs):
         if isinstance(specs, str):
             specs = specs.split(",") if specs else []
         if not isinstance(specs, (list, tuple)):
-            raise UsageError(
+            raise DatabandError(
                 "Plugin specs must be a ','-separated string or a "
                 "list/tuple of strings for plugin names. Given: %r" % specs
             )
