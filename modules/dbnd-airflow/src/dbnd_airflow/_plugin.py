@@ -28,7 +28,6 @@ def dbnd_setup_plugin():
 @dbnd.hookimpl
 def dbnd_get_commands():
     from dbnd_airflow.cli.cmd_airflow import run_task_airflow, airflow
-    from dbnd_airflow.cli.cmd_airflow_webserver import airflow_webserver
     from dbnd_airflow.cli.cmd_airflow_db import (
         airflow_db_init,
         airflow_db_reset,
@@ -38,7 +37,6 @@ def dbnd_get_commands():
 
     return [
         airflow,
-        airflow_webserver,
         airflow_db_init,
         airflow_db_reset,
         airflow_db_upgrade,
