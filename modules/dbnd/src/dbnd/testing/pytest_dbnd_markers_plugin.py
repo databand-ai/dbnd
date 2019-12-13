@@ -15,6 +15,8 @@ ON_REQUEST_TEST_TYPES = [
     OnRequestMarker("gcp", "--run-gcp", "require configured gcp"),
     OnRequestMarker("gcp_k8s", "--run-k8s-gcp", "require configured gcp k8s cluster"),
     OnRequestMarker("aws", "--run-aws", "require configured aws"),
+    OnRequestMarker("emr", "--run-emr", "require configured emr"),
+    OnRequestMarker("livy", "--run-livy", "require configured livy"),
     OnRequestMarker("awsbatch", "--run-awsbatch", "require configured aws batch"),
     OnRequestMarker("azure", "--run-azure", "require configured azure"),
     # tools
