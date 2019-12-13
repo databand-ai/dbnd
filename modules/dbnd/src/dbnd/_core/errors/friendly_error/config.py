@@ -1,11 +1,8 @@
 import typing
-
 from typing import Any, Set
 
 import dbnd
-
 from dbnd._core.errors import DatabandConfigError, ParseParameterError
-
 
 if typing.TYPE_CHECKING:
     from dbnd._core.parameter.parameter_definition import ParameterDefinition
@@ -125,9 +122,11 @@ def empty_string_validator(param):
     )
 
 
-def missing_module(module, reason=""):
+def missing_module(module, reason=None):
     return DatabandConfigError(
-        "'{module}' module is not found. {reason}".format(module=module, reason=reason),
+        "'{module}' module is not found. {reason}".format(
+            module=module, reason=reason or ""
+        ),
         help_msg="Please, `pip install '{module}=={version}'`,".format(
             module=module, version=dbnd.__version__
         ),

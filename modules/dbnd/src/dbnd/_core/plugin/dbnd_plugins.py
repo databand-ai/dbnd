@@ -1,6 +1,7 @@
 import importlib
 import logging
 import os
+import types
 
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
@@ -48,7 +49,7 @@ def is_plugin_enabled(module):
     return pm.has_plugin(module)
 
 
-def assert_plugin_enabled(module, reason):
+def assert_plugin_enabled(module, reason=None):
     if not is_plugin_enabled(module):
         raise friendly_error.config.missing_module(module, reason)
     return True
@@ -58,7 +59,7 @@ def is_web_enabled():
     return is_plugin_enabled("dbnd-web")
 
 
-def assert_web_enabled(reason=""):
+def assert_web_enabled(reason=None):
     return assert_plugin_enabled("dbnd-web", reason)
 
 
@@ -117,7 +118,7 @@ def _register_manually():
 
 
 # TODO Seems like not used
-def _register_from_config():
+def _register_from_config(specs):
     if specs is not None and not isinstance(specs, types.ModuleType):
         if isinstance(specs, str):
             specs = specs.split(",") if specs else []
