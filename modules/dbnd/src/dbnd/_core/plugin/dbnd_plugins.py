@@ -3,7 +3,7 @@ import logging
 import os
 import types
 
-from dbnd._core.errors import friendly_error, DatabandError
+from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
 from dbnd._core.utils.basics.load_python_module import _load_module, import_errors
 from dbnd._vendor import pluggy
