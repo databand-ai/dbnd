@@ -23,6 +23,8 @@ def start_heartbeat_sender(run):
         try:
             sp = subprocess.Popen(
                 [
+                    sys.executable,
+                    "-m",
                     "dbnd",
                     "send_heartbeat",
                     "--run-uid",
@@ -30,7 +32,7 @@ def start_heartbeat_sender(run):
                     "--tracking-url",
                     config.get("core", "tracker_url"),
                     "--heartbeat-interval",
-                    heartbeat_interval_s,
+                    str(heartbeat_interval_s),
                 ]
             )
             yield
