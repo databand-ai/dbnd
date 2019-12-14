@@ -5,7 +5,7 @@ from dbnd_spark.livy.livy_spark_config import LivySparkConfig
 
 
 @dbnd.hookimpl
-def dbnd_on_pre_init_context(ctx):
+def dbnd_setup_plugin():
     from dbnd_spark.local.local_spark_config import SparkLocalConfig
 
     register_config_cls(SparkLocalConfig)

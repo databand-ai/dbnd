@@ -19,6 +19,7 @@ setuptools.setup(
         # otherwise airflow dependencies are broken
         "httplib2>=0.9.2",
         "boto3",
+        "botocore",
         "s3fs",
     ],
     extras_require=dict(tests=[]),

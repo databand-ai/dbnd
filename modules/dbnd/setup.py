@@ -17,7 +17,7 @@ setuptools.setup(
         "cloudpickle",  # serializing pipelines
         "requests>=2.18.0",  # API TRACKING
         "pendulum==1.4.4",
-        "configparser",
+        "configparser<3.6.0,>=3.5.0",  # same versions as Airflow
         "tabulate",
         "marshmallow==2.18.0",
         "jinja2==2.10.0",

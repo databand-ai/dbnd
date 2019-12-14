@@ -125,11 +125,12 @@ def empty_string_validator(param):
     )
 
 
-def missing_module(module):
+def missing_module(module, reason=None):
     return DatabandConfigError(
-        "'{module}' module is not found. ".format(module=module),
-        help_msg="Please, `pip install '{module}=={version}'`,"
-        " current execution is not supported without it".format(
+        "'{module}' module is not found. {reason}".format(
+            module=module, reason=reason or ""
+        ),
+        help_msg="Please, `pip install '{module}=={version}'`,".format(
             module=module, version=dbnd.__version__
         ),
     )

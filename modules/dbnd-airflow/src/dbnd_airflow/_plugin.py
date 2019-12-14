@@ -19,11 +19,15 @@ def dbnd_setup_plugin():
     # Set additional airflow configuration
     configure_sql_alchemy_conn()
 
+    from dbnd import register_config_cls
+    from dbnd_airflow.config import AirflowFeaturesConfig
+
+    register_config_cls(AirflowFeaturesConfig)
+
 
 @dbnd.hookimpl
 def dbnd_get_commands():
     from dbnd_airflow.cli.cmd_airflow import run_task_airflow, airflow
-    from dbnd_airflow.cli.cmd_airflow_webserver import airflow_webserver
     from dbnd_airflow.cli.cmd_airflow_db import (
         airflow_db_init,
         airflow_db_reset,
@@ -33,21 +37,12 @@ def dbnd_get_commands():
 
     return [
         airflow,
-        airflow_webserver,
         airflow_db_init,
         airflow_db_reset,
         airflow_db_upgrade,
         run_task_airflow,
         scheduler,
     ]
-
-
-@dbnd.hookimpl
-def dbnd_on_pre_init_context(ctx):
-    from dbnd import register_config_cls
-    from dbnd_airflow.config import AirflowFeaturesConfig
-
-    register_config_cls(AirflowFeaturesConfig)
 
 
 @dbnd.hookimpl

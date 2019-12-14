@@ -7,7 +7,8 @@ prj_plugins = 	plugins/dbnd-aws  \
 			plugins/dbnd-docker \
 			plugins/dbnd-hdfs \
           	plugins/dbnd-gcp \
-          	plugins/dbnd-spark
+          	plugins/dbnd-spark \
+          	plugins/dbnd-test-scenarios
 
 prj_dist = $(prj_modules) $(prj_plugins)
 

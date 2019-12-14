@@ -48,5 +48,10 @@ setuptools.setup(
             "cryptography>=2.0.0",
         ]
     ),
-    entry_points={"dbnd": ["dbnd-airflow = dbnd_airflow._plugin"]},
+    entry_points={
+        "airflow.plugins": [
+            "dbnd_webserver_plugin = dbnd_airflow.airflow_plugin:DatabandAirflowWebserverPlugin"
+        ],
+        "dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],
+    },
 )

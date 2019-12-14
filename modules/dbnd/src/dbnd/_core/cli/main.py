@@ -4,11 +4,13 @@ import logging
 import sys
 
 from dbnd._core.cli.cmd_execute import execute
+from dbnd._core.cli.cmd_heartbeat import send_heartbeat
 from dbnd._core.cli.cmd_project import project_init
 from dbnd._core.cli.cmd_run import run
 from dbnd._core.cli.cmd_scheduler_management import schedule
 from dbnd._core.cli.cmd_show import show_configs, show_tasks
 from dbnd._core.cli.cmd_utils import ipython
+from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
@@ -50,10 +52,14 @@ cli.add_command(show_tasks)
 # scheduler management
 cli.add_command(schedule)
 
+# heartbeat sender
+cli.add_command(send_heartbeat)
+
 
 def main():
     from dbnd._core.context.bootstrap import dbnd_bootstrap
 
+    configure_basic_logging(None)
     dbnd_bootstrap()
 
     # adding all plugins cli commands

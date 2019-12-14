@@ -38,6 +38,7 @@ from dbnd._core.task_build.task_registry import (
     build_task_from_config,
     get_task_registry,
 )
+from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.tracking.tracking_info_run import RootRunInfo, ScheduledRunInfo
@@ -408,7 +409,6 @@ class DatabandRun(SingletonContext):
             databand_run = cloudpickle.load(file=fp)
             if disable_tracking_api:
                 databand_run.context.tracking_store.disable_tracking_api()
-                databand_run.context.validate_api = False
                 logger.info("Tracking has been disabled")
         try:
             if databand_run.context.settings.core.pickle_handler:
@@ -629,7 +629,8 @@ class _DbndDriverTask(Task):
             if run.is_save_pipeline():
                 run.save_run()
 
-            run.task_executor.do_run()
+            with start_heartbeat_sender(run):
+                run.task_executor.do_run()
 
         if self.is_driver:
             # This is great success!

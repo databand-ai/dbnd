@@ -52,10 +52,7 @@ def schedule(ctx, verbose):
     )
 
     context = new_dbnd_context(
-        cmd="airflow",
-        autoload_modules=False,
-        validate_api=False,
-        conf={"core": {"tracker": ""}},
+        cmd="airflow", autoload_modules=False, conf={"core": {"tracker": ""}}
     ).__enter__()
 
     assert_web_enabled()

@@ -27,6 +27,7 @@ def task_test_logging():
 
 
 @pytest.mark.aws
+@pytest.mark.skip
 def test_remote_s3_log():
     run = task_test_logging.dbnd_run(task_env="aws", task_version="now")
 
