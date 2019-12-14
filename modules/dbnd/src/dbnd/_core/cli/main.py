@@ -4,6 +4,7 @@ import logging
 import sys
 
 from dbnd._core.cli.cmd_execute import execute
+from dbnd._core.cli.cmd_heartbeat import send_heartbeat
 from dbnd._core.cli.cmd_project import project_init
 from dbnd._core.cli.cmd_run import run
 from dbnd._core.cli.cmd_scheduler_management import schedule
@@ -50,6 +51,9 @@ cli.add_command(show_tasks)
 
 # scheduler management
 cli.add_command(schedule)
+
+# heartbeat sender
+cli.add_command(send_heartbeat)
 
 
 def main():

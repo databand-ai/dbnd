@@ -1,14 +1,13 @@
 import contextlib
 import logging
 import os
+import subprocess
 import sys
 
-from multiprocessing import Process
 from time import sleep, time
 
-import six
-
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
+from dbnd.api.api_utils import ApiClient
 
 
 logger = logging.getLogger(__name__)
@@ -19,34 +18,41 @@ def start_heartbeat_sender(run):
     from dbnd import config
 
     heartbeat_interval_s = config.getint("task", "heartbeat_interval_s")
-    if heartbeat_interval_s > 0:
-        process_kwargs = {
-            "target": send_heartbeat,
-            "args": (run.run_uid, run.context.tracking_store, heartbeat_interval_s),
-        }
-        if not six.PY2:
-            process_kwargs["daemon"] = True
-
-        p = Process(**process_kwargs)
+    if heartbeat_interval_s > 0 and config.get("core", "tracker_api") == "web":
+        sp = None
         try:
-            p.start()
+            sp = subprocess.Popen(
+                [
+                    "dbnd",
+                    "send_heartbeat",
+                    "--run-uid",
+                    str(run.run_uid),
+                    "--tracking-url",
+                    config.get("core", "tracker_url"),
+                    "--heartbeat-interval",
+                    heartbeat_interval_s,
+                ]
+            )
             yield
         finally:
-            p.terminate()
+            if sp:
+                sp.terminate()
     else:
         logger.info(
-            "run heartbeat sender disabled (set task.heartbeat_interval_s to value > 0 to enable)"
+            "run heartbeat sender disabled (set task.heartbeat_interval_s to value > 0 and core.tracker_api to web)"
         )
         yield
 
 
-def send_heartbeat(run_uid, tracking_store, heartbeat_interval_s):
+def send_heartbeat_continuously(run_uid, tracking_url, heartbeat_interval_s):
     logger.info(
         "starting heartbeat sender process (pid %s) with a send interval of %s seconds"
         % (os.getpid(), heartbeat_interval_s)
     )
 
     parent_pid = os.getppid()
+    api_client = ApiClient(tracking_url)
+    payload = {"run_uid": run_uid}
     try:
         while True:
             loop_start = time()
@@ -56,7 +62,7 @@ def send_heartbeat(run_uid, tracking_store, heartbeat_interval_s):
                 except ProcessLookupError:
                     return
 
-                tracking_store.heartbeat(run_uid=run_uid)
+                api_client.api_request("heartbeat", payload)
             except KeyboardInterrupt:
                 logger.info("stopping heartbeat sender process due to interrupt")
                 return
