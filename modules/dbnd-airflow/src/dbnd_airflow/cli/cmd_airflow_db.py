@@ -7,7 +7,6 @@ import string
 
 from argparse import Namespace
 
-from databand import config as dbnd_config
 from dbnd._core.cli.utils import with_fast_dbnd_context
 from dbnd._core.context.dbnd_project_env import _SHELL_COMPLETION
 from dbnd._core.utils.cli import NotRequiredIf
@@ -23,7 +22,6 @@ if not _SHELL_COMPLETION:
     from dbnd_airflow.web.airflow_app import cached_appbuilder
 
 
-dbnd_config.load_system_configs(force=True)
 logger = logging.getLogger(__name__)
 
 
