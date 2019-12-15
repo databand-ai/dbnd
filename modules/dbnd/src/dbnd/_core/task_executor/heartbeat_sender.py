@@ -73,9 +73,10 @@ def send_heartbeat_continuously(
             try:
                 try:  # failsafe, in case the driver process died violently
                     os.getpgid(driver_pid)
-                except ProcessLookupError:
+                except Exception:
                     logger.info(
-                        "Process %s has finished, stopping heart beat", driver_pid
+                        "driver process %s stopped, stopping heartbeat sender",
+                        driver_pid,
                     )
                     return
 
