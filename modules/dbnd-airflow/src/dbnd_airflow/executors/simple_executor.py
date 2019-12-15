@@ -26,7 +26,7 @@ from airflow.utils.state import State
 
 from dbnd._core import current
 from dbnd._core.current import get_databand_context, try_get_databand_run
-from dbnd._core.errors import DatabandError
+from dbnd._core.errors import DatabandError, show_error_once
 
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,9 @@ class InProcessExecutor(BaseExecutor):
             except Exception as e:
                 task_failed = True
                 self.change_state(key, State.FAILED)
-                self.log.exception("Failed to execute task: %s.", str(e))
+                show_error_once.log_error(
+                    self.log, e, "Failed to execute task %s: %s.", ti.task_id, str(e)
+                )
 
         self.tasks_to_run = []
 

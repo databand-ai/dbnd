@@ -60,3 +60,7 @@ class RunConfig(config.Config):
     heartbeat_timeout_s = parameter(
         description="How old can a run's last heartbeat be before we consider it failed. Set -1 to disable"
     )[int]
+
+    enable_concurent_sqlite = parameter(
+        description="Enable concurrent execution with sqlite db (use only for debug!)"
+    ).value(False)

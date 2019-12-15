@@ -138,6 +138,13 @@ class AlertStatus(enum.Enum):
     ACKNOWLEDGED = "ACKNOWLEDGED"
 
 
+class SystemTaskName(object):
+    driver_submit = "dbnd_driver_submit"
+    driver = "dbnd_driver"
+
+    driver_and_submitter = {driver_submit, driver}
+
+
 @attr.s
 class _DbndDataClass(object):
     def asdict(self, filter=None):

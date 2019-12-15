@@ -10,6 +10,7 @@ from dbnd_airflow_windows.airflow_windows_support import enable_airflow_windows_
 
 __patches = (
     (airflow.models, "TaskInstance", DbndAirflowTaskInstance),
+    (airflow.models.taskinstance, "TaskInstance", DbndAirflowTaskInstance),
     (
         airflow.utils.operator_helpers,
         "context_to_airflow_vars",
@@ -19,6 +20,7 @@ __patches = (
 
 __dbnd_dag_tracking = (
     (airflow.models, "DAG", DatabandDAG),
+    (airflow.models.dag, "DAG", DatabandDAG),
     (airflow, "DAG", DatabandDAG),
 )
 

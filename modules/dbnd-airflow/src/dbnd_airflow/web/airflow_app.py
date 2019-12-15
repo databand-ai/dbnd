@@ -30,6 +30,7 @@ def use_databand_airflow_dagbag():
 
     # dag_details invoke DagBag directly
     patch_module_attr(airflow.models, "DagBag", DbndAirflowDagBag)
+    patch_module_attr(airflow.models.dag, "DagBag", DbndAirflowDagBag)
 
 
 def create_app(config=None, testing=False):
