@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class DockerRunTask(Task):
     # _conf__task_family = "docker_cmd"
+
     image = parameter(
         description="Docker image from which to create the container."
         "If image tag is omitted, 'latest' will be used."
@@ -45,6 +46,12 @@ class DockerRunTask(Task):
             self.docker_ctrl.docker_run()
         finally:
             self.docker_ctrl = None
+
+    def _should_resubmit(self, task_run):
+        """
+        We don't want to resubmit if it's dockerized run
+        """
+        return False
 
     def on_kill(self):
         if self.docker_ctrl is not None:

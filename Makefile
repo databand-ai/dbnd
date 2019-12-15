@@ -3,6 +3,7 @@
 prj_modules = modules/dbnd modules/dbnd-airflow
 prj_plugins = 	plugins/dbnd-aws  \
           	plugins/dbnd-azure \
+          	plugins/dbnd-airflow-versioned-dag \
 			plugins/dbnd-databricks \
 			plugins/dbnd-docker \
 			plugins/dbnd-hdfs \

@@ -4,8 +4,12 @@ import typing
 
 import dbnd
 
+from dbnd import dbnd_config
+from dbnd_airflow.cli.cmd_airflow_db import airflow_db_init
 from dbnd_airflow.utils import AIRFLOW_LEGACY_URL_KEY
 
+
+logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
     from typing import Optional
@@ -17,7 +21,7 @@ if typing.TYPE_CHECKING:
 @dbnd.hookimpl
 def dbnd_setup_plugin():
     # Set additional airflow configuration
-    configure_sql_alchemy_conn()
+    configure_airflow_sql_alchemy_conn()
 
     from dbnd import register_config_cls
     from dbnd_airflow.config import AirflowFeaturesConfig
@@ -79,7 +83,7 @@ def dbnd_post_enter_context(ctx):  # type: (DatabandContext) -> None
     ctx._airflow_op_catcher_dag.__enter__()
 
 
-def configure_sql_alchemy_conn():
+def configure_airflow_sql_alchemy_conn():
     from dbnd_airflow.airflow_extensions.airflow_config import (
         set_airflow_sql_conn_from_dbnd_config,
     )
@@ -95,8 +99,21 @@ def dbnd_setup_unittest():
 
     # we can't call load_test_config, as it override airflow.cfg
     # we want to keep it as base
-    logging.info("Reading Airflow test config at %s" % TEST_CONFIG_FILE)
+    logger.info("Reading Airflow test config at %s" % TEST_CONFIG_FILE)
     airflow_configuration.conf.read(TEST_CONFIG_FILE)
+
+    sql_alchemy_conn = dbnd_config.get("core", "sql_alchemy_conn")
+    if sql_alchemy_conn.find("unittests.db") == -1:
+        logger.warning(
+            "You should set SQL_ALCHEMY_CONN to sqlite:///.../unittests.db for tests! %s"
+            % sql_alchemy_conn
+        )
+    from dbnd_airflow.airflow_extensions.airflow_config import (
+        set_airflow_sql_conn_from_dbnd_config,
+    )
+
+    set_airflow_sql_conn_from_dbnd_config()
+    airflow_db_init(args=[], standalone_mode=False)
 
 
 @dbnd.hookimpl

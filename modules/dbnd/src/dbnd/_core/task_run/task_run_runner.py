@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import TaskRunState
-from dbnd._core.errors import DatabandConfigError, friendly_error
+from dbnd._core.errors import DatabandConfigError, friendly_error, show_error_once
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.task_build.task_context import TaskContextPhase, task_context
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
@@ -77,9 +77,8 @@ class TaskRunRunner(TaskRunCtrl):
                     )
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 try:
-                    tec = task_run.task_engine
-                    if tec.require_submit:
-                        args = tec.dbnd_executable + [
+                    if task._should_resubmit(task_run):
+                        args = task_run.task_engine.dbnd_executable + [
                             "execute",
                             "--dbnd-run",
                             str(task_run.run.driver_dump),
@@ -121,6 +120,7 @@ class TaskRunRunner(TaskRunCtrl):
             except Exception as ex:
                 error = TaskRunError.buid_from_ex(ex, task_run)
                 task_run.set_task_run_state(TaskRunState.FAILED, error=error)
+                show_error_once.set_shown(ex)
                 raise
             finally:
                 task_run.airflow_context = None

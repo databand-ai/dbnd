@@ -7,7 +7,6 @@ import string
 
 from argparse import Namespace
 
-from databand import config as dbnd_config
 from dbnd._core.cli.utils import with_fast_dbnd_context
 from dbnd._core.context.dbnd_project_env import _SHELL_COMPLETION
 from dbnd._core.utils.cli import NotRequiredIf
@@ -23,20 +22,15 @@ if not _SHELL_COMPLETION:
     from dbnd_airflow.web.airflow_app import cached_appbuilder
 
 
-dbnd_config.load_system_configs(force=True)
 logger = logging.getLogger(__name__)
 
 
 @click.command()
 @click.option("--no-default-user", is_flag=True, help="Do not create default user")
+@with_fast_dbnd_context
 def airflow_db_init(no_default_user):
     """Initialize Airflow database"""
-    _db_init(no_default_user)
 
-
-# extracted so it can be called by pytest
-@with_fast_dbnd_context
-def _db_init(no_default_user, no_airflow_user=False):
     from airflow import settings
 
     unpatch_models()
@@ -47,8 +41,8 @@ def _db_init(no_default_user, no_airflow_user=False):
 
     patch_models()
 
-    if not no_airflow_user:
-        create_default_user(no_default_user)
+    if not no_default_user:
+        create_default_user()
 
 
 @click.command()
@@ -71,17 +65,13 @@ def airflow_db_upgrade():
 @with_fast_dbnd_context
 def airflow_db_reset(no_default_user):
     """Destroy and rebuild Airflow database"""
-    _airflow_db_reset(no_default_user)
-
-
-def _airflow_db_reset(no_default_user, no_airflow_user):
     unpatch_models()
 
     af_cli.resetdb(Namespace(yes=True))
 
     patch_models()
-    if not no_airflow_user:
-        create_default_user(no_default_user)
+    if not no_default_user:
+        create_default_user()
 
 
 def validate_username(ctx, param, string):
@@ -158,14 +148,7 @@ def _db_user_create(
     print("{} user {} with password {} created.".format(role, username, password))
 
 
-def create_default_user(no_default_user):
-    if no_default_user:
-        logger.warning(
-            "No user is created: Don't forget to run "
-            "`dbnd db user-create -r Admin -u USER -e EMAIL -f FIRST_NAME -l LAST_NAME -p PASSWORD`"
-        )
-        return
-
+def create_default_user():
     appbuilder = cached_appbuilder()
     if not appbuilder.sm.count_users():
         _db_user_create(

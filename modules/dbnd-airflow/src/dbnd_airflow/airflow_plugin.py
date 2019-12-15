@@ -2,10 +2,9 @@ import logging
 
 from airflow.plugins_manager import AirflowPlugin
 
-from dbnd_airflow.web.airflow_app import use_databand_airflow_dagbag
-
 
 logger = logging.getLogger()
+# WE SHOULD NOT HAVE ANY dbnd imports here -- circle import:  dbnd_airflow -> airflow -> load .. -> import dbnd_airflow
 
 
 class DatabandAirflowWebserverPlugin(AirflowPlugin):
@@ -19,15 +18,16 @@ class DatabandAirflowWebserverPlugin(AirflowPlugin):
     def patch_airflow_create_app():
         logger.info("Monkey patching Airflow to use DBND DagBag")
         from airflow.www_rbac import app as airflow_app
-        from dbnd_airflow._plugin import configure_sql_alchemy_conn
 
         def patch_create_app(create_app_func):
             def patched_create_app(*args, **kwargs):
                 from dbnd._core.configuration.dbnd_config import config
+                from dbnd_airflow._plugin import configure_airflow_sql_alchemy_conn
+                from dbnd_airflow.web.airflow_app import use_databand_airflow_dagbag
 
                 logger.info("Setting SQL connection")
                 config.load_system_configs()
-                configure_sql_alchemy_conn()
+                configure_airflow_sql_alchemy_conn()
 
                 res = create_app_func(*args, **kwargs)
                 use_databand_airflow_dagbag()
