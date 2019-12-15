@@ -188,10 +188,11 @@ class ContainerEngineConfig(EngineConfig):
 
         from dbnd_docker.docker.docker_task import DockerRunTask
 
-        return DockerRunTask(
+        submit_task = DockerRunTask(
             task_name=task_name,
             command=subprocess.list2cmdline(args),
             image=self.full_image,
             docker_engine=self,
             task_is_system=True,
         )
+        return submit_task

@@ -17,8 +17,8 @@ from airflow.utils.state import State
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd_airflow.airflow_extensions.request_factory import DbndPodRequestFactory
+from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
-from kubernetes import client
 from kubernetes.client.rest import ApiException
 
 
@@ -131,6 +131,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             self.watcher_queue,
             self.current_resource_version,
             self.worker_uuid,
+            self.kube_config,
         )
         watcher.start()
         return watcher
@@ -140,44 +141,15 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         task_run = try_get_databand_run().get_task_run(task_id)
         return task_run.job_id__dns1123
 
-    def sync(self):
-        """
-        The sync function checks the status of all currently running kubernetes jobs.
-        If a job is completed, it's status is placed in the result queue to
-        be sent back to the scheduler.
-
-        :return:
-
-        """
-        self._health_check_kube_watcher()
-        while True:
-            try:
-                task = self.watcher_queue.get_nowait()
-                try:
-                    self.process_watcher_task(task)
-                finally:
-                    self.watcher_queue.task_done()
-            except Empty:
-                break
-
-    def process_watcher_task(self, task):
-        pod_id, state, labels, resource_version = task
-        self.log.info(
-            "Attempting to finish pod; pod_id: %s; state: %s; labels: %s",
-            pod_id,
-            state,
-            labels,
-        )
-        key = self._labels_to_key(labels=labels)
-        if key:
-            self.log.debug("finishing job %s - %s (%s)", key, state, pod_id)
-            self.result_queue.put((key, state, pod_id, resource_version))
-
-    def terminate(self):
-        self.kube_watcher.terminate()
-        self.watcher_queue.join()
-        self.kube_watcher.join()
-        self._manager.shutdown()
+    def _health_check_kube_watcher(self):
+        if self.kube_watcher.is_alive():
+            pass
+        else:
+            self.log.error(
+                "Error while health checking kube watcher process. "
+                "Process died for unknown reasons"
+            )
+            self.kube_watcher = self._make_kube_watcher_dbnd()
 
     def run_next(self, next_job):
         """
@@ -218,34 +190,17 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         self.kube_dbnd.run_pod(pod, task_run=task_run)
 
-    def _health_check_kube_watcher(self):
-        if self.kube_watcher.is_alive():
-            pass
-        else:
-            self.log.error(
-                "Error while health checking kube watcher process. "
-                "Process died for unknown reasons"
-            )
-            self.kube_watcher = self._make_kube_watcher_dbnd()
-
     def delete_pod(self, pod_id):
         if self.kube_config.delete_worker_pods and not (
             self.kube_dbnd.engine_config.keep_failed_pods
             and self.kube_dbnd.get_pod_state(pod_id, self.namespace) == State.FAILED
         ):
-            try:
-                self.kube_client.delete_namespaced_pod(
-                    pod_id, self.namespace, body=client.V1DeleteOptions()
-                )
-            except ApiException as e:
-                # If the pod is already deleted
-                if e.status != 404:
-                    raise
+            super(DbndKubernetesScheduler, self).delete_pod(pod_id=pod_id)
 
 
 class DbndKubernetesExecutor(KubernetesExecutor):
     def __init__(self, kube_dbnd=None):
-        # type: (KubeDbndClient) -> None
+        # type: (DbndKubernetesExecutor, DbndKubernetesClient) -> None
         super(DbndKubernetesExecutor, self).__init__()
         self._manager = multiprocessing.Manager()
 
@@ -300,96 +255,22 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     def clear_not_launched_queued_tasks(self, *args, **kwargs):
         pass
 
-    # Taken from airflow master on 5/6/2019 (f153bf536783188bf1db210d30ae44e93a290611)
-    # main difference - calls to result_queue.task_done()
-    def sync(self):
-        if self.running:
-            self.log.debug("self.running: %s", self.running)
-        if self.queued_tasks:
-            self.log.debug("self.queued: %s", self.queued_tasks)
-        self.kube_scheduler.sync()
-
-        last_resource_version = None
-        while True:
-            try:
-                results = self.result_queue.get_nowait()
-                try:
-                    key, state, pod_id, resource_version = results
-                    last_resource_version = resource_version
-                    self.log.info("Changing state of %s to %s", results, state)
-                    try:
-                        self._change_state(key, state, pod_id)
-                    except Exception as e:
-                        self.log.exception(
-                            "Exception: %s when attempting "
-                            + "to change state of %s to %s, re-queueing.",
-                            e,
-                            results,
-                            state,
-                        )
-                        self.result_queue.put(results)
-                finally:
-                    self.result_queue.task_done()
-                    try:
-                        # get pod logs for failed pods
-                        if state == State.FAILED:
-                            # use direct client of airflow
-                            # NOTE: we're assuming pod_id is the pod name!
-                            # this code is the same as
-                            self.log.info("---printing failed pod logs----:")
-                            self.kube_dbnd.stream_pod_logs_helper(
-                                pod_id,
-                                self.kube_config.kube_namespace,
-                                self.log,
-                                from_now=False,
-                            )
-                            # logs = self.kube_client.read_namespaced_pod_log(
-                            #     name=pod_id, namespace=self.kube_config.kube_namespace
-                            # )
-
-                    except Exception as err:
-                        self.log.error(
-                            "error on reading failed pod logs %s on pod %s", err, pod_id
-                        )
-            except Empty:
-                break
-
-        if last_resource_version:
-            self.kube_scheduler.current_resource_version = last_resource_version
-
-        for _ in range(self.kube_dbnd.engine_config.pods_creation_batch_size):
-            try:
-                task = self.task_queue.get_nowait()
-                try:
-                    self.kube_scheduler.run_next(task)
-                except ApiException:
-                    self.log.exception(
-                        "ApiException when attempting to run task, re-queueing."
-                    )
-                    self.task_queue.put(task)
-                finally:
-                    self.task_queue.task_done()
-            except Empty:
-                break
-
     def end(self):
-        self.log.info("Shutting down Kubernetes executor")
-        queues = [self.task_queue, self.result_queue]
-        if self.kube_scheduler:
-            queues.append(self.kube_scheduler.watcher_queue)
-
         self.kube_dbnd.end()
-
-        while not all([q.empty() for q in queues]):
-            self.sync()
-
-        self.task_queue.join()
-        self.result_queue.join()
-        if self.kube_scheduler:
-            self.kube_scheduler.terminate()
-        self._manager.shutdown()
+        super(DbndKubernetesExecutor, self).end()
 
     def _change_state(self, key, state, pod_id):
+        if state == State.FAILED:
+            try:
+                self.log.info("---printing failed pod logs----:")
+                self.kube_dbnd.stream_pod_logs_helper(
+                    pod_id, self.kube_config.kube_namespace, self.log, from_now=False
+                )
+            except Exception as err:
+                self.log.error(
+                    "error on reading failed pod logs %s on pod %s", err, pod_id
+                )
+
         super(DbndKubernetesExecutor, self)._change_state(key, state, pod_id)
 
         if state != State.RUNNING:

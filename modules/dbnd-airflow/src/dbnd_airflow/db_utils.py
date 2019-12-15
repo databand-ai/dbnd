@@ -1,54 +1,9 @@
 import logging
-import os
-import subprocess
 import time
 import traceback
 
-from sqlalchemy.engine.url import make_url
-
-from dbnd._core.current import get_databand_context
-from dbnd._core.errors import DatabandError
-
 
 logger = logging.getLogger(__name__)
-
-
-def get_sqlite_db_location():
-    dbnd_context = get_databand_context()
-    conn_string = dbnd_context.settings.core.get_sql_alchemy_conn()
-    if not conn_string.startswith("sqlite:///"):
-        raise DatabandError(
-            "We can parse db file name only from sqlite:///..  DBs, got %s"
-            % conn_string
-        )
-
-    db_location = conn_string.replace("sqlite:///", "")
-    return db_location
-
-
-def dump_postgres(conn_string, dump_file):
-    logger.info("backing up postgres DB to %s", dump_file)
-
-    url = make_url(conn_string)
-
-    cmd = [
-        "pg_dump",
-        "-h",
-        url.host,
-        "-p",
-        str(url.port),
-        "-U",
-        url.username,
-        "-Fc",
-        "-f",
-        dump_file,
-        "-d",
-        url.database,
-    ]
-    logger.info("Running command: %s", subprocess.list2cmdline(cmd))
-    env = os.environ.copy()
-    env["PGPASSWORD"] = url.password
-    subprocess.check_call(args=cmd, env=env)
 
 
 def remove_listener_by_name(target, identifier, name):

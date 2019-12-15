@@ -6,7 +6,7 @@ import tempfile
 from dbnd import output, parameter, task
 from dbnd._core.constants import CloudType
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
+from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
 from dbnd._core.task import config
 from dbnd._core.utils.timezone import utcnow
 from targets import Target
@@ -39,18 +39,20 @@ def export_db(
     with tarfile.open(str(archive), "w:gz") as tar:
 
         if include_db:
-            assert_airflow_enabled()
 
-            from dbnd_airflow.db_utils import dump_postgres, get_sqlite_db_location
-
+            assert_web_enabled(reason="dbnd_web is required for export db")
             dbnd_context = get_databand_context()
             conn_string = dbnd_context.settings.core.get_sql_alchemy_conn()
             if conn_string.startswith("sqlite:"):
-                db_file = get_sqlite_db_location()
+                from dbnd_web.utils.dbnd_db import get_sqlite_db_location
+
+                db_file = get_sqlite_db_location(conn_string)
                 logger.info("Exporting DB=%s", db_file)
                 tar.add(db_file, arcname="dbnd.db")
             elif conn_string.startswith("postgresql"):
                 with tempfile.NamedTemporaryFile(prefix="dbdump.", suffix=".sql") as tf:
+                    from dbnd_web.utils.dbnd_db import dump_postgres
+
                     dump_postgres(conn_string, tf.name)
                     tar.add(tf.name, arcname="postgres-dbnd.sql")
             else:

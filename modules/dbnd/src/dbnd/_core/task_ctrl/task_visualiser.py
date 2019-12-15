@@ -6,6 +6,7 @@ import six
 
 from termcolor import colored
 
+from dbnd._core.constants import SystemTaskName
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
@@ -94,6 +95,10 @@ class _TaskBannerBuilder(TaskSubCtrl):
         self.task_run = task_run
 
         self.verbosity = verbosity
+
+        self.is_driver_or_submitter = (
+            self.task.task_name in SystemTaskName.driver_and_submitter
+        )
 
     def build_banner(self, task_run=None, exc_info=None):
         # type: (_TaskBannerBuilder, TaskRun, ...) -> TextBanner
@@ -299,7 +304,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
     def _task_create_stack(self):
         task_call_source = task_call_source_to_str(self.task.task_meta.task_call_source)
-        if task_call_source:
+        if task_call_source and not self.is_driver_or_submitter:
             self.banner.column("CREATED BY", value=task_call_source)
 
     def _add_last_error_info(self, exc_info=None):

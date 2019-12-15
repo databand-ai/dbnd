@@ -276,3 +276,12 @@ def airflow_bad_user_configuration(ex, file_path):
         nested_exceptions=ex,
         show_exc_info=False,
     )
+
+
+def airflow_versioned_dag_missing(command):
+    return DatabandError(
+        "Could not run '%s', dbnd airflow-versioned-dag is not installed." % command,
+        help_msg="Please run 'pip install dbnd[airflow-versioned-dag]' in order to run '%s'."
+        % command,
+        show_exc_info=False,
+    )

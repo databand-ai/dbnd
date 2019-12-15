@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, make_transient
 
 from dbnd import new_dbnd_context
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
+from dbnd_airflow.airflow_override import DbndAirflowTaskInstance
 from dbnd_airflow.web.databand_versioned_dagbag import DAG_UNPICKABLE_PROPERTIES
 
 
@@ -112,7 +113,7 @@ def create_task_instances_from_dbnd_run(
     # we can find a source of the completion, but also,
     # sometimes we don't know the source of the "complete"
     # completed_by_run_id = find_task_run_instances(databand_run.tasks_completed)
-    TI = TaskInstance
+    TI = DbndAirflowTaskInstance
     tis = (
         session.query(TI)
         .filter(TI.dag_id == dag.dag_id, TI.execution_date == execution_date)
@@ -123,7 +124,7 @@ def create_task_instances_from_dbnd_run(
     for af_task in dag.tasks:
         ti = tis.get(af_task.task_id)
         if ti is None:
-            ti = TaskInstance(af_task, execution_date=execution_date)
+            ti = DbndAirflowTaskInstance(af_task, execution_date=execution_date)
             ti.start_date = timezone.utcnow()
             ti.end_date = timezone.utcnow()
             session.add(ti)

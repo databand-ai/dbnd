@@ -6,7 +6,7 @@ import logging
 from airflow import AirflowException, executors, models
 from airflow.jobs import BackfillJob, BaseJob
 from airflow.models import DagRun, TaskInstance
-from airflow.ti_deps.dep_context import RUN_DEPS, DepContext
+from airflow.ti_deps.dep_context import RUNNABLE_STATES, RUNNING_DEPS, DepContext
 from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy
 from airflow.utils.db import provide_session
@@ -15,12 +15,8 @@ from sqlalchemy.orm.session import make_transient
 
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState
-from dbnd._core.current import (
-    get_databand_context,
-    get_databand_run,
-    try_get_databand_run,
-)
-from dbnd._core.errors import DatabandSystemError, friendly_error
+from dbnd._core.current import get_databand_run
+from dbnd._core.errors import DatabandExecutorError, DatabandSystemError, friendly_error
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd_airflow.config import AirflowFeaturesConfig
@@ -31,6 +27,7 @@ from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
 
 logger = logging.getLogger(__name__)
 
+SCHEDUALED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
 
 # based on airflow BackfillJob
 class SingleDagRunJob(BaseJob, SingletonContext):
@@ -412,10 +409,24 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
                     runtime_deps = []
 
-                    if not self.airflow_features.disable_dag_concurrency_rules:
+                    if self.airflow_features.disable_dag_concurrency_rules:
                         # RUN Deps validate dag and task concurrency
                         # It's less relevant when we run in stand along mode with SingleDagRunJob
-                        runtime_deps = RUN_DEPS
+                        # from airflow.ti_deps.deps.runnable_exec_date_dep import RunnableExecDateDep
+                        from airflow.ti_deps.deps.valid_state_dep import ValidStateDep
+
+                        # from airflow.ti_deps.deps.dag_ti_slots_available_dep import DagTISlotsAvailableDep
+                        # from airflow.ti_deps.deps.task_concurrency_dep import TaskConcurrencyDep
+                        # from airflow.ti_deps.deps.pool_slots_available_dep import PoolSlotsAvailableDep
+                        runtime_deps = {
+                            # RunnableExecDateDep(),
+                            ValidStateDep(SCHEDUALED_OR_RUNNABLE),
+                            # DagTISlotsAvailableDep(),
+                            # TaskConcurrencyDep(),
+                            # PoolSlotsAvailableDep(),
+                        }
+                    else:
+                        runtime_deps = RUNNING_DEPS
 
                     dagrun_dep_context = DepContext(
                         deps=runtime_deps,
@@ -659,7 +670,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
             err = self._collect_errors(ti_status=ti_status, session=session)
             if err:
-                raise AirflowException(err)
+                raise DatabandExecutorError(err)
 
             if run_date not in ti_status.executed_dag_run_dates:
                 self.log.warning(

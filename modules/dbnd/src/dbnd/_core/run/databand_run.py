@@ -22,7 +22,12 @@ from dbnd._core.configuration.environ_config import (
     DBND_RUN_UID,
     ENV_DBND__USER_PRE_INIT,
 )
-from dbnd._core.constants import RunState, TaskExecutorType, TaskRunState
+from dbnd._core.constants import (
+    RunState,
+    SystemTaskName,
+    TaskExecutorType,
+    TaskRunState,
+)
 from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import DatabandRunError
@@ -275,7 +280,7 @@ class DatabandRun(SingletonContext):
     def _build_driver_task(self):
         if self.submit_engine and not self.existing_run:
             logger.info("Submitting job to remote execution")
-            task_name = "dbnd_driver_submit"
+            task_name = SystemTaskName.driver_submit
             is_submitter = True
             is_driver = False
             host_engine = self.submit_engine.clone(
@@ -283,7 +288,7 @@ class DatabandRun(SingletonContext):
             )
             target_engine = self.driver_engine
         else:
-            task_name = "dbnd_driver"
+            task_name = SystemTaskName.driver
             is_submitter = not self.existing_run or self.resubmit_run
             is_driver = True
             host_engine = self.driver_engine.clone(require_submit=False)

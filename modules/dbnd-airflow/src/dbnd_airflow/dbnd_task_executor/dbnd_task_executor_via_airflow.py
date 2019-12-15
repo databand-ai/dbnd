@@ -58,7 +58,9 @@ class AirflowTaskExecutor(TaskExecutor):
         """
         called by executors, interprocess communication:  databand run_task ...
         """
-        # sleep(1000)
+        import time
+
+        # time.sleep(1000)
         log = LoggingMixin().log
         # Load custom airflow config
         if args.cfg_path:
@@ -256,7 +258,11 @@ class AirflowTaskExecutor(TaskExecutor):
 
         # we need localDagJob to be available from "internal" functions
         # because of ti_state_manager use
-        with SingleDagRunJob.new_context(_context=job, allow_override=True):
+        from dbnd._core.current import is_verbose
+
+        with SingleDagRunJob.new_context(
+            _context=job, allow_override=True, verbose=is_verbose()
+        ):
             job.run()
 
     @contextlib.contextmanager
@@ -280,8 +286,15 @@ class AirflowTaskExecutor(TaskExecutor):
                     af_task._dag = original_dag
 
     def validate_parallel_run_constrains(self):
-        using_sqlite = "sqlite" in self.run.context.settings.core.sql_alchemy_conn
+        settings = self.run.context.settings
+        using_sqlite = "sqlite" in settings.core.sql_alchemy_conn
         if not using_sqlite:
+            return
+
+        if settings.run.enable_concurent_sqlite:
+            logger.warning(
+                "You are running parallel execution on top of sqlite database! (see run.enable_concurent_sqlite)"
+            )
             return
 
         # in theory sqlite can support a decent amount of parallelism, but in practice

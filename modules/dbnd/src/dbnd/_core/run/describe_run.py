@@ -2,7 +2,7 @@ import typing
 
 from collections import Counter
 
-from dbnd._core.constants import RunState, TaskRunState
+from dbnd._core.constants import RunState, SystemTaskName, TaskRunState
 from dbnd._core.run.run_ctrl import RunCtrl
 from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.utils.basics.text_banner import TextBanner
@@ -148,15 +148,28 @@ class DescribeRun(RunCtrl):
         err_banners = []
         run = self.run
         err_banners.append(self.run_banner_for_finished())
+
+        failed_task_runs = []
         for task_run in run.task_runs:
             if (
                 task_run.last_error
                 or task_run.task_run_state in TaskRunState.direct_fail_states()
             ):
-                msg = task_run.task.ctrl.banner(
-                    msg="Task has failed!", color="red", task_run=task_run
-                )
-                err_banners.append(msg)
+                failed_task_runs.append(task_run)
+
+        if len(failed_task_runs) > 1:
+            # clear out driver task, we don't want to print it twice
+            failed_task_runs = [
+                tr
+                for tr in failed_task_runs
+                if tr.task.task_name not in SystemTaskName.driver_and_submitter
+            ]
+
+        for task_run in failed_task_runs:
+            msg = task_run.task.ctrl.banner(
+                msg="Task has failed!", color="red", task_run=task_run
+            )
+            err_banners.append(msg)
 
         err_banners.append(
             self.run_banner(
