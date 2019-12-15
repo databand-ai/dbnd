@@ -1,7 +1,6 @@
 import datetime
 import logging
 import random
-import time
 
 from dbnd._core.commands import log_metric
 from dbnd._core.decorator.func_task_decorator import task
@@ -16,7 +15,6 @@ def dbnd_sanity_check(check_time=datetime.datetime.now()):
     logger.info("Running Sanity Check!")
     log_metric("Happiness Level", "High")
     logger.info("Your system is good to go! Enjoy Databand!")
-    time.sleep(30)
     return "Databand checked at %s" % check_time
 
 
