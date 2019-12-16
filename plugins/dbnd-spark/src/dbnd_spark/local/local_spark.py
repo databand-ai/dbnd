@@ -69,7 +69,7 @@ class LocalSparkExecutionCtrl(SparkCtrl, TaskSyncCtrl):
 
         log_buffer = StringIO()
         with log_buffer as lb:
-            self._capture_submit_log(spark, lb)
+            dbnd_log_handler = self._capture_submit_log(spark, lb)
             try:
                 spark.submit(application=application)
             except AirflowException as ex:
@@ -87,10 +87,15 @@ class LocalSparkExecutionCtrl(SparkCtrl, TaskSyncCtrl):
                     )
                 else:
                     raise failed_spark_status(ex)
+            finally:
+                spark.log.handlers = [
+                    h for h in spark.log.handlers if not dbnd_log_handler
+                ]
 
     def _capture_submit_log(self, spark, log_buffer):
         ch = StreamHandler(log_buffer)
         spark.log.addHandler(ch)
+        return ch
 
     def _get_spark_return_code_from_exception(self, exception):
         match = re.search("Error code is: ([0-9+]).", str(exception))

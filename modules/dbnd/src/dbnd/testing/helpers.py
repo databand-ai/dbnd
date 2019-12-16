@@ -81,6 +81,15 @@ def run_dbnd_subprocess__dbnd(args, retcode=255, **kwargs):
     )
 
 
+def run_dbnd_subprocess__with_home(args, retcode=255, **kwargs):
+    return run_dbnd_subprocess(
+        args=[sys.executable] + args,
+        cwd=kwargs.pop("cwd", os.environ[ENV_DBND_HOME]),
+        retcode=retcode,
+        **kwargs
+    )
+
+
 def run_dbnd_subprocess__dbnd_run(args, module=None, retcode=255, **kwargs):
     if module:
         args = ["--module", str(module.__name__)] + args

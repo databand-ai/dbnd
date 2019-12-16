@@ -20,8 +20,8 @@ def wrong_func_attr_format(attr_path):
 
 def task_family_not_found(section):
     return DatabandConfigError(
-        "Can not find `_type` for config '%s'." % section,
-        help_msg="Please validate the value first! Otherwise add [%s]_type=EXPECTEDTYPE"
+        "Can not use `_type` for config '%s'." % section,
+        help_msg="Please make sure the correct module installed, validate the value or add [%s]_type=EXPECTEDTYPE to configuration"
         % section,
     )
 

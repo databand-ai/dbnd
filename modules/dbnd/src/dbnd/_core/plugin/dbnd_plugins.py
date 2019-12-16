@@ -107,8 +107,9 @@ def _register_manually():
         plugin_module = "%s._plugin" % plugin.replace("-", "_")
         try:
             plugin_module = importlib.import_module(plugin_module)
+            logger.info("Imported %s", plugin_module)
         except import_errors:
-            logger.info("Failed to import %s", plugin_module)
+            logger.debug("Didn't import %s", plugin_module)
             continue
 
         try:
