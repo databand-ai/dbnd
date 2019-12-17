@@ -1,7 +1,5 @@
 import logging
 
-from sqlalchemy.exc import IntegrityError
-
 from dbnd._core.constants import RunState
 from dbnd._core.tracking.airflow_sync.schemas import (
     ExportData,
@@ -10,6 +8,10 @@ from dbnd._core.tracking.airflow_sync.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _is_unique_constr_error(ex):
+    return "IntegrityError" in str(type(ex)) and "UNIQUE" in str(ex)
 
 
 def do_import_data(result):
@@ -21,20 +23,14 @@ def do_import_data(result):
         try:
             tracking_service.init_scheduled_job(scheduled_job)
         except Exception as e:
-            log_f = logger.exception
-            if isinstance(e, IntegrityError) and "UNIQUE" in str(e):
-                # assuming already exists
-                log_f = logger.warning
+            log_f = logger.warning if _is_unique_constr_error(e) else logger.exception
             log_f("Failed init_scheduled_job for {}".format(scheduled_job.name))
 
     for init_args in result.init_args:
         try:
             tracking_service.init_run(init_args)
         except Exception as e:
-            log_f = logger.exception
-            if isinstance(e, IntegrityError) and "UNIQUE" in str(e):
-                # assuming already exists
-                log_f = logger.warning
+            log_f = logger.warning if _is_unique_constr_error(e) else logger.exception
             log_f("Failed init_run for {}".format(init_args.new_run_info))
 
     # for task_run_attempt_updates in all_updates:
