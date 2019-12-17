@@ -21,7 +21,7 @@ from dbnd._core.utils.project.project_fs import abs_join
 logger = logging.getLogger(__name__)
 
 
-def run_dbnd_subprocess(args, retcode=255, clean_env=False, **kwargs):
+def run_dbnd_subprocess(args, retcode=255, clean_env=False, blocking=True, **kwargs):
     # implement runner with https://docs.pytest.org/en/latest/capture.html
     # do not run in subprocess
     # main.main(['run', '--module', str(factories.__name__), ] + args)
@@ -49,23 +49,27 @@ def run_dbnd_subprocess(args, retcode=255, clean_env=False, **kwargs):
     logger.info(
         "Running at %s: %s", kwargs.get("cwd", "current dir"), cmd_line
     )  # To simplify rerunning failing tests
-    try:
-        output = fast_subprocess.check_output(
-            cmd_args, stderr=subprocess.STDOUT, env=env, **kwargs
-        )
-        # we don't decode ascii //.decode("ascii")
-        output = output.decode("utf-8")
-        logger.info("Cmd line %s output:\n %s", cmd_line, output)
-        return output
-    except subprocess.CalledProcessError as ex:
-        logger.error(
-            "Failed to run %s :\n\n\n -= Output =-\n%s\n\n\n -= See output above =-",
-            cmd_line,
-            ex.output.decode("utf-8", errors="ignore"),
-        )
-        if ex.returncode == retcode:
-            return ex.output.decode("utf-8")
-        raise ex
+
+    if blocking:
+        try:
+            output = fast_subprocess.check_output(
+                cmd_args, stderr=subprocess.STDOUT, env=env, **kwargs
+            )
+            # we don't decode ascii //.decode("ascii")
+            output = output.decode("utf-8")
+            logger.info("Cmd line %s output:\n %s", cmd_line, output)
+            return output
+        except subprocess.CalledProcessError as ex:
+            logger.error(
+                "Failed to run %s :\n\n\n -= Output =-\n%s\n\n\n -= See output above =-",
+                cmd_line,
+                ex.output.decode("utf-8", errors="ignore"),
+            )
+            if ex.returncode == retcode:
+                return ex.output.decode("utf-8")
+            raise ex
+    else:
+        return subprocess.Popen(cmd_args, stderr=subprocess.STDOUT, env=env, **kwargs)
 
 
 def run_test_notebook(notebook):
