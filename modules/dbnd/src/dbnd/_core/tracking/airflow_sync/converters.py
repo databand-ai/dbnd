@@ -1,31 +1,45 @@
 import uuid
+
 from collections import defaultdict
 
-from airflow.utils.state import State
-
-from dbnd._core.constants import TaskRunState, RunState
+from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.tracking.airflow_sync import ExportData, SaveTaskRunLog, SetRunStateArgs
 from dbnd._core.tracking.tracking_info_convertor import source_md5
 from dbnd._core.tracking.tracking_info_objects import (
+    TaskDefinitionInfo,
     TaskRunEnvInfo,
     TaskRunInfo,
-    TaskDefinitionInfo,
 )
-from dbnd._core.tracking.tracking_info_run import RunInfo, RootRunInfo, ScheduledRunInfo
+from dbnd._core.tracking.tracking_info_run import RootRunInfo, RunInfo, ScheduledRunInfo
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
 from dbnd.api.tracking_api import (
-    ScheduledJobInfo,
-    TaskRunsInfo,
     InitRunArgs,
+    ScheduledJobInfo,
     TaskRunAttemptUpdateArgs,
+    TaskRunsInfo,
 )
 
 NAMESPACE_DBND = uuid.uuid5(uuid.NAMESPACE_DNS, "databand.ai")
 NAMESPACE_DBND_JOB = uuid.uuid5(NAMESPACE_DBND, "job")
 NAMESPACE_DBND_RUN = uuid.uuid5(NAMESPACE_DBND, "run")
 NAMESPACE_DBND_TASK_DEF = uuid.uuid5(NAMESPACE_DBND, "task_definition")
+
+
+class AFState(object):
+    NONE = None
+    REMOVED = "removed"
+    SCHEDULED = "scheduled"
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCESS = "success"
+    SHUTDOWN = "shutdown"
+    FAILED = "failed"
+    UP_FOR_RETRY = "up_for_retry"
+    UP_FOR_RESCHEDULE = "up_for_reschedule"
+    UPSTREAM_FAILED = "upstream_failed"
+    SKIPPED = "skipped"
 
 
 def to_export_data(export_data, since):  # type: (EData, Optional[str]) -> ExportData
@@ -115,7 +129,7 @@ def to_export_data(export_data, since):  # type: (EData, Optional[str]) -> Expor
                 result.init_args.append(init_args)
             #
             if (
-                dagrun.state != State.RUNNING
+                dagrun.state != AFState.RUNNING
                 and dagrun.end_date
                 and (not since or dagrun.end_date > since)
             ):
@@ -171,7 +185,7 @@ def get_init_run_args(
         heartbeat=max(all_times)
         if all_times
         else utcnow()
-        if dagrun.state == State.RUNNING
+        if dagrun.state == AFState.RUNNING
         else None,
     )
     task_runs_info = TaskRunsInfo(
@@ -201,7 +215,7 @@ def _update_task_run_info(tr, ti):
 
     tr.state = TaskRunState(ti.state)
     tr.is_skipped = tr.state == TaskRunState.SKIPPED
-    if ti.state in (State.SCHEDULED, State.QUEUED, State.NONE, State.UP_FOR_RESCHEDULE):
+    if ti.state in (AFState.SCHEDULED, AFState.QUEUED, AFState.NONE, AFState.UP_FOR_RESCHEDULE):
         try_number = ti.try_number + 1
     else:
         try_number = ti.try_number
