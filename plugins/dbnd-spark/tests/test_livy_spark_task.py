@@ -18,6 +18,7 @@ from targets import target
 
 conf_override = {
     "task": {"spark_engine": "livy"},
+    "livy": {"url": "http://localhost:8998"},
     SparkConfig.jars: "",
     SparkConfig.main_jar: "",
 }
