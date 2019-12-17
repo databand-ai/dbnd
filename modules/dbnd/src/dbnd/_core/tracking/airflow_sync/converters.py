@@ -1,31 +1,17 @@
-import logging
 import uuid
 from collections import defaultdict
-from typing import Dict
 
 from airflow.utils.state import State
-from marshmallow import fields, post_load
-from sqlalchemy.exc import IntegrityError
 
-import attr
-
-from dbnd._core.constants import RunState, TaskRunState
+from dbnd._core.constants import TaskRunState, RunState
+from dbnd._core.tracking.airflow_sync import ExportData, SaveTaskRunLog, SetRunStateArgs, logger
 from dbnd._core.tracking.tracking_info_convertor import source_md5
-from dbnd._core.tracking.tracking_info_objects import TaskDefinitionInfo, TaskRunEnvInfo, TaskRunInfo
+from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo, TaskRunInfo, TaskDefinitionInfo
 from dbnd._core.tracking.tracking_info_run import RunInfo, RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
-from dbnd.api.api_utils import ApiObjectSchema
-from dbnd.api.tracking_api import (
-    InitRunArgsSchema,
-    SaveTaskRunLogSchema,
-    ScheduledJobInfoSchema,
-    SetDatabandRunStateSchema,
-    TaskRunAttemptUpdateArgsSchema,
-    ScheduledJobInfo, TaskRunsInfo, InitRunArgs, TaskRunAttemptUpdateArgs)
-
-logger = logging.getLogger(__name__)
+from dbnd.api.tracking_api import ScheduledJobInfo, TaskRunsInfo, InitRunArgs, TaskRunAttemptUpdateArgs
 
 NAMESPACE_DBND = uuid.uuid5(uuid.NAMESPACE_DNS, "databand.ai")
 NAMESPACE_DBND_JOB = uuid.uuid5(NAMESPACE_DBND, "job")
@@ -33,106 +19,21 @@ NAMESPACE_DBND_RUN = uuid.uuid5(NAMESPACE_DBND, "run")
 NAMESPACE_DBND_TASK_DEF = uuid.uuid5(NAMESPACE_DBND, "task_definition")
 
 
-@attr.s
-class ExportDataV1(object):
-    init_args = attr.ib(factory=list)
-    task_run_attempt_updates = attr.ib(factory=list)
-    scheduled_job_infos = attr.ib(factory=list)
-    updated_runs = attr.ib(factory=list)
-    logs = attr.ib(factory=list)  # type: List[SaveTaskRunLog]
-    run_states = attr.ib(factory=list)  # type: List[SetRunStateArgs]
-    timestamp = attr.ib(factory=utcnow)
-
-
-class ExportDataSchema(ApiObjectSchema):
-    init_args = fields.Nested(InitRunArgsSchema, many=True)
-    task_run_attempt_updates = fields.Nested(TaskRunAttemptUpdateArgsSchema, many=True)
-    scheduled_job_infos = fields.Nested(ScheduledJobInfoSchema, many=True)
-    logs = fields.Nested(SaveTaskRunLogSchema, many=True)
-    run_states = fields.Nested(SetDatabandRunStateSchema, many=True)
-    updated_runs = fields.List(fields.List(fields.String()))
-    timestamp = fields.DateTime()
-
-    short_response_fields = ("updated_runs", "timestamp")
-
-    @post_load
-    def make_init_run_args(self, data, **kwargs):
-        # we need this while SaveTaskRunLog is not created automatically from SaveTaskRunLogSchema
-        if data.get("logs"):
-            data["logs"] = [SaveTaskRunLog(**i) for i in data["logs"]]
-        # we need those while SetRunStateArgs is not created automatically from SetDatabandRunStateSchema
-        if data.get("run_states"):
-            data["run_states"] = [SetRunStateArgs(**i) for i in data["run_states"]]
-        return ExportDataV1(**data)
-
-
-@attr.s
-class SaveTaskRunLog(object):
-    task_run_attempt_uid = attr.ib()
-    log_body = attr.ib()
-
-
-@attr.s
-class SetRunStateArgs(object):
-    run_uid = attr.ib()
-    state = attr.ib()
-    timestamp = attr.ib()
-
-
-def do_import_data(result):
-    # type: (ExportDataV1) -> None
-    from dbnd_web.services.tracking_db_service import TrackingDbService
-
-    tracking_service = TrackingDbService()
-    for scheduled_job in result.scheduled_job_infos:
-        try:
-            tracking_service.init_scheduled_job(scheduled_job)
-        except Exception as e:
-            log_f = logger.exception
-            if isinstance(e, IntegrityError) and "UNIQUE" in str(e):
-                # assuming already exists
-                log_f = logger.warning
-            log_f("Failed init_scheduled_job for {}".format(scheduled_job.name))
-
-    for init_args in result.init_args:
-        try:
-            tracking_service.init_run(init_args)
-        except Exception as e:
-            log_f = logger.exception
-            if isinstance(e, IntegrityError) and "UNIQUE" in str(e):
-                # assuming already exists
-                log_f = logger.warning
-            log_f("Failed init_run for {}".format(init_args.new_run_info))
-
-    # for task_run_attempt_updates in all_updates:
-    tracking_service.update_task_run_attempts(result.task_run_attempt_updates)
-
-    for log in result.logs:  # type: SaveTaskRunLog
-        tracking_service.save_task_run_log(
-            task_run_attempt_uid=log.task_run_attempt_uid, log_body=log.log_body
-        )
-
-    for run_state in result.run_states:  # type: SetRunStateArgs
-        tracking_service.set_run_state(
-            run_uid=run_state.run_uid,
-            state=RunState(run_state.state),
-            timestamp=run_state.timestamp,
-        )
-
-
-def to_export_data_v1(
+def to_export_data(
     export_data, since
-):  # type: (ExportData, Optional[str]) -> ExportDataV1
-    dags = export_data.dags
+):  # type: (EData, Optional[str]) -> ExportData
+    if not export_data:
+        return
+    dags = export_data.dags or []
     dagruns = defaultdict(list)
-    for dr in export_data.dag_runs:
+    for dr in export_data.dag_runs or []:
         dagruns[dr.dag_id].append(dr)
 
     task_instances = defaultdict(dict)
-    for ti in export_data.task_instances:
+    for ti in export_data.task_instances or []:
         task_instances[(ti.dag_id, ti.execution_date)][ti.task_id] = ti
 
-    result = ExportDataV1()
+    result = ExportData()
     for dag in dags:  # type: EDag
         dag_id = dag.dag_id
 
