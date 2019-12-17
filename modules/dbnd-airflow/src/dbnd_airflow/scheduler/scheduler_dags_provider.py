@@ -7,7 +7,7 @@ from typing import List, Union
 
 from airflow import DAG
 from airflow.bin.cli import set_is_paused
-from airflow.models import BaseOperator
+from airflow.models import BaseOperator, DagModel
 
 from dbnd import new_dbnd_context, override, task
 from dbnd._core.configuration.dbnd_config import config
@@ -55,14 +55,13 @@ class DbndSchedulerDBDagsProvider(object):
 
             dag = self.job_to_dag(job)
             dag.sync_to_db()
-            set_is_paused(
-                not job["active"]
+            DagModel.get_dagmodel(dag.dag_id).set_is_paused(
+                is_paused=not job["active"]
                 or (
                     job.get("validation_errors", None) is not None
                     and len(job.get("validation_errors", None)) > 0
                 ),
-                None,
-                dag,
+                including_subdags=False,
             )
             dags.append(dag)
         return dags
@@ -91,12 +90,12 @@ class DbndSchedulerDBDagsProvider(object):
         ]
 
     def job_to_dag(self, job):  # type: (dict) -> Union[DAG, None]
-        start_day = convert_to_utc(job["start_date"])
-        end_date = convert_to_utc(job["end_date"])
+        start_day = convert_to_utc(job.get("start_date", None))
+        end_date = convert_to_utc(job.get("end_date", None))
 
         default_args = {
-            "owner": job["create_user"] or "",
-            "depends_on_past": job["depends_on_past"],
+            "owner": job.get("create_user", None),
+            "depends_on_past": job.get("depends_on_past", False),
             "start_date": job["start_date"],
             # "email": ["airflow@example.com"],
             # "email_on_failure": False,
@@ -110,8 +109,8 @@ class DbndSchedulerDBDagsProvider(object):
             "%s__launcher" % job_name,
             start_date=start_day,
             default_args=default_args,
-            schedule_interval=job["schedule_interval"],
-            catchup=job["catchup"],
+            schedule_interval=job.get("schedule_interval", None),
+            catchup=job.get("catchup", False),
         )
         # when running in dbnd scheduler mode (not drop-in into a vanilla Airflow instance)
         # this DAG is actually a DatabandDAG
@@ -124,8 +123,8 @@ class DbndSchedulerDBDagsProvider(object):
             scheduled_cmd=job["cmd"],
             dag=dag,
             scheduled_job_name=job_name,
-            scheduled_job_uid=job["uid"],
-            retries=job["retries"] or self.default_retries,
+            scheduled_job_uid=job.get("uid", None),
+            retries=job.get("retries", self.default_retries) or self.default_retries,
         )
 
         return dag

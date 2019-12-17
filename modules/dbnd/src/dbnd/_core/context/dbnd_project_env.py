@@ -22,6 +22,7 @@ ENV_DBND__DISABLED_INIT = "DBND__DISABLED_INIT"
 _DBND_DEBUG_INIT = bool(os.environ.get(ENV_DBND__DEBUG_INIT))
 _SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ
 
+_MARKER_FILES = ["databand.cfg", "project.cfg", "databand-system.cfg"]
 
 if _DBND_DEBUG_INIT:
     print("dbnd debug init process mode is on due to '%s'" % ENV_DBND__DEBUG_INIT)
@@ -70,31 +71,7 @@ def _set_env_dir(key, value, source="code"):
     return False
 
 
-def _process_cfg(config_path):
-    found_dbnd_config = False
-    try:
-        parser = ConfigParser()
-        parser.read(config_path)
-
-        config_root, config_name = os.path.split(config_path)
-        source = os.path.basename(config_path)
-        if not parser.has_section("databand"):
-            return False
-
-        for config_key in ["dbnd_home", "dbnd_system", "dbnd_config"]:
-            if not parser.has_option("databand", config_key):
-                continue
-            found_dbnd_config = True
-            config_value = parser.get("databand", config_key)
-            config_value = os.path.abspath(os.path.join(config_root, config_value))
-
-            _set_env_dir(config_key, config_value, source=source)
-    except Exception as ex:
-        print("Failed to process %s: %s" % (config_path, ex))
-    return found_dbnd_config
-
-
-def _find_project_folder_marker():
+def _find_project_by_import():
     """
     check if we can have project marker file by import it
     """
@@ -107,29 +84,68 @@ def _find_project_folder_marker():
     return None
 
 
-def _check_folder_for_config(folder):
-    for config_name, marker in [
-        ("setup.cfg", False),
-        ("tox.ini", False),
-        ("databand.cfg", True),
-        ("project.cfg", True),
-    ]:
-        config_path = os.path.abspath(os.path.join(folder, config_name))
-        # print ("%s %s" % (cur_dir_split, config_path))
-        if os.path.exists(config_path):
-            _debug_print("Found %s" % config_path)
-            if _process_cfg(config_path):
-                _debug_print("Found config at %s" % config_path)
-                return True
-            if marker:
-                _debug_print("Found marker file %s" % config_path)
-                # if we have config file without any databand home --> let's assume that it's our root!
-                _set_env_dir(
-                    ENV_DBND_HOME, os.path.abspath(folder), "marker_" + config_name
-                )
-                return True
-        else:
-            _debug_print("Not found %s" % config_path)
+def _process_cfg(folder):
+    # dbnd home is being pointed inside [databand] in 'config' files
+    found_dbnd_home = False
+    config_file = None
+
+    config_files = ["tox.ini", "setup.cfg"]
+    for file in config_files:
+        config_path = os.path.join(folder, file)
+        try:
+            parser = ConfigParser()
+            parser.read(config_path)
+
+            config_root, config_name = os.path.split(config_path)
+            source = os.path.basename(config_path)
+            if not parser.has_section("databand"):
+                continue
+
+            if parser.has_option("databand", "dbnd_home"):
+                dbnd_home = parser.get("databand", "dbnd_home")
+                found_dbnd_home = os.path.abspath(os.path.join(config_root, dbnd_home))
+                config_file = config_root
+
+            for config_key in ["dbnd_system", "dbnd_config"]:
+                # TODO: hidden magic, do we need these setters?
+                if not parser.has_option("databand", config_key):
+                    continue
+                config_value = parser.get("databand", config_key)
+                config_value = os.path.abspath(os.path.join(config_root, config_value))
+                _set_env_dir(config_key, config_value, source=source)
+
+        except Exception as ex:
+            print("Failed to process %s: %s" % (config_path, ex))
+
+    return found_dbnd_home, config_file
+
+
+def _has_marker_file(folder):
+    # dbnd home is where 'marker' files are located in
+    for file in _MARKER_FILES:
+        file_path = os.path.join(folder, file)
+        if os.path.exists(file_path):
+            return folder, file_path
+
+    return False, None
+
+
+def _get_dbnd_home(folder):
+    dbnd_home, config_file = _process_cfg(folder)
+    if dbnd_home:
+        _debug_print(
+            "Found dbnd home by at %s, by config file: %s" % (dbnd_home, config_file)
+        )
+        return dbnd_home
+
+    dbnd_home, marker_file = _has_marker_file(folder)
+    if dbnd_home:
+        _debug_print(
+            "Found dbnd home by at %s, by marker file: %s" % (dbnd_home, marker_file)
+        )
+        return dbnd_home
+
+    _debug_print("dbnd home was not found at %s" % folder)
     return False
 
 
@@ -142,23 +158,33 @@ def _set_project_root():
         _set_env_dir(ENV_DBND_HOME, os.path.abspath("."))
         return True
 
-    project_folder = _find_project_folder_marker()
+    project_folder = _find_project_by_import()
     if project_folder:
-        _debug_print("Found project folder from marker %s" % project_folder)
+        _debug_print("Found project folder by import from marker %s" % project_folder)
         # we know about project folder, let try to find "custom" configs in it
-        if not _check_folder_for_config(project_folder):
-            _debug_print("No custom config! setting to marker")
-            _set_env_dir(ENV_DBND_HOME, project_folder)
+        dbnd_home = _get_dbnd_home(project_folder)
+        if not dbnd_home:
+            _debug_print("No custom config! setting current folder")
+            dbnd_home = project_folder
+
+        _set_env_dir(ENV_DBND_HOME, dbnd_home)
         return True
 
-    # Let try to find databand.cfg by traversing current folder up to the root
-    # any place that has databand.cfg - is the project!
+    _debug_print("Trying to find dbnd_home by traversing up to the root folder")
     cur_dir = os.path.normpath(os.getcwd())
     cur_dir_split = cur_dir.split(os.sep)
     cur_dir_split_reversed = reversed(list(enumerate(cur_dir_split)))
+
     for idx, cur_folder in cur_dir_split_reversed:
         cur_path = os.path.join("/", *cur_dir_split[1 : (idx + 1)])
-        if _check_folder_for_config(cur_path):
+        dbnd_folder = os.path.join(cur_path, ".dbnd")
+        if os.path.exists(dbnd_folder):
+            _set_env_dir(ENV_DBND_HOME, cur_path)
+            return True
+
+        dbnd_home = _get_dbnd_home(cur_path)
+        if dbnd_home or os.path.exists(dbnd_folder):
+            _set_env_dir(ENV_DBND_HOME, dbnd_home)
             return True
 
     return False
@@ -193,11 +219,13 @@ def init_databand_env():
 
     if ENV_DBND_HOME not in os.environ:
         raise DatabandHomeError(
-            "Can't identify DBND_HOME! Current directory is '%s'\n "
-            "Fix that by:"
-            "\t 1. Explicitly specifying that via `export DBND_HOME=ROOT_OF_YOUR_PROJECT`\n"
-            "\t 2. cd into your project directory\n"
-            "\t 3. (very unlikely) have you run init on your project?" % (os.getcwd())
+            "\nDBND_HOME could not be found when searching from current directory '%s' to root folder!\n "
+            "Trying fixing that issue by:\n"
+            "\t 1. Explicitly set current directory to DBND HOME via: `export DBND_HOME=ROOT_OF_YOUR_PROJECT`.\n"
+            "\t 2. `cd` into your project directory.\n"
+            "\t 3. Create one of the following files inside current directory: [%s].\n"
+            "\t 4. Run 'dbnd init_project' in current directory."
+            % (os.getcwd(), ", ".join(_MARKER_FILES))
         )
 
     _dbnd_home = os.environ[ENV_DBND_HOME]

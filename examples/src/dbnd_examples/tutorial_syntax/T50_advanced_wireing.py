@@ -1,3 +1,5 @@
+import logging
+
 from typing import List
 
 import pandas as pd
@@ -30,6 +32,23 @@ def experiment_pipeline():
     ]
     report = build_experiment_report(experiments)
     return report
+
+
+@task
+def gen_token(t):
+    return t
+
+
+@task
+def concat_tokens(tokens_list: List[str]):
+    logging.warning("TOKENS: %s", tokens_list)
+
+
+@pipeline
+def experiment_concat():
+    # if type is specified, we can mix between strings and task outputs
+    l = ["aa", gen_token("bbb")]
+    return concat_tokens(l)
 
 
 if __name__ == "__main__":
