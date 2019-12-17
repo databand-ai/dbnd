@@ -4,14 +4,23 @@ from collections import defaultdict
 from airflow.utils.state import State
 
 from dbnd._core.constants import TaskRunState, RunState
-from dbnd._core.tracking.airflow_sync import ExportData, SaveTaskRunLog, SetRunStateArgs, logger
+from dbnd._core.tracking.airflow_sync import ExportData, SaveTaskRunLog, SetRunStateArgs
 from dbnd._core.tracking.tracking_info_convertor import source_md5
-from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo, TaskRunInfo, TaskDefinitionInfo
+from dbnd._core.tracking.tracking_info_objects import (
+    TaskRunEnvInfo,
+    TaskRunInfo,
+    TaskDefinitionInfo,
+)
 from dbnd._core.tracking.tracking_info_run import RunInfo, RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
-from dbnd.api.tracking_api import ScheduledJobInfo, TaskRunsInfo, InitRunArgs, TaskRunAttemptUpdateArgs
+from dbnd.api.tracking_api import (
+    ScheduledJobInfo,
+    TaskRunsInfo,
+    InitRunArgs,
+    TaskRunAttemptUpdateArgs,
+)
 
 NAMESPACE_DBND = uuid.uuid5(uuid.NAMESPACE_DNS, "databand.ai")
 NAMESPACE_DBND_JOB = uuid.uuid5(NAMESPACE_DBND, "job")
@@ -19,9 +28,7 @@ NAMESPACE_DBND_RUN = uuid.uuid5(NAMESPACE_DBND, "run")
 NAMESPACE_DBND_TASK_DEF = uuid.uuid5(NAMESPACE_DBND, "task_definition")
 
 
-def to_export_data(
-    export_data, since
-):  # type: (EData, Optional[str]) -> ExportData
+def to_export_data(export_data, since):  # type: (EData, Optional[str]) -> ExportData
     if not export_data:
         return
     dags = export_data.dags or []
@@ -121,11 +128,6 @@ def to_export_data(
                 )
 
             result.task_run_attempt_updates.extend(task_run_attempt_updates)
-            logger.info(
-                "Exported DagRun {} {} with name {}".format(
-                    dag_id, execution_date, run_info.name
-                )
-            )
             result.updated_runs.append((dag_id, execution_date, run_info.name))
     return result
 

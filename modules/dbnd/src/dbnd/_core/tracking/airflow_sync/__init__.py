@@ -3,7 +3,11 @@ import logging
 from sqlalchemy.exc import IntegrityError
 
 from dbnd._core.constants import RunState
-from dbnd._core.tracking.airflow_sync.schemas import ExportData, SaveTaskRunLog, SetRunStateArgs
+from dbnd._core.tracking.airflow_sync.schemas import (
+    ExportData,
+    SaveTaskRunLog,
+    SetRunStateArgs,
+)
 
 logger = logging.getLogger(__name__)
 
