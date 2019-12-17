@@ -66,3 +66,22 @@ def profile_after_cursor_execute(
 ):
     total = time.time() - conn.info["query_start_time"].pop(-1)
     logger.info("Query Complete! %s  --> %f", statement, total)
+
+
+def airflow_tables_to_dump():
+    from airflow import jobs as af_jobs, models as af_models
+
+    return (
+        # dbnd_dag -> dag_id
+        # dbnd_airflow_models.DbndAirflowDagModel,
+        # dbnd_dag_run -> user, [cmd_line]
+        # dag_run -> dag_id,
+        af_models.DagRun,
+        # dbnd_task_run -> created_by_task_id (__XXX), created_by_dag_id, task_name
+        # dbnd_web.models.dbnd_airflow.dbnd_airflow_databand_task_run.DbndAirflowDatabandTaskRun,
+        # dbnd_task_run_metrics -> name,
+        # dag -> dag_id, [fileloc]
+        af_models.DagModel,
+        # job -> dag_id, hostname, unixname
+        af_jobs.BaseJob,
+    )
