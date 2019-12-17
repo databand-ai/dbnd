@@ -62,9 +62,6 @@ class TrackingStore(object):
     def add_task_runs(self, run, task_runs):
         pass
 
-    def setup_and_validation(self, databand_version):
-        pass
-
     def heartbeat(self, run_uid):
         pass
 
@@ -131,11 +128,6 @@ class CompositeTrackingStore(TrackingStore):
 
     def add_task_runs(self, **kwargs):
         return self._invoke(CompositeTrackingStore.add_task_runs.__name__, kwargs)
-
-    def setup_and_validation(self, **kwargs):
-        return self._invoke(
-            CompositeTrackingStore.setup_and_validation.__name__, kwargs
-        )
 
     def heartbeat(self, **kwargs):
         return self._invoke(CompositeTrackingStore.heartbeat.__name__, kwargs)

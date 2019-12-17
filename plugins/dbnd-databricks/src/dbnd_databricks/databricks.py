@@ -1,23 +1,59 @@
 import logging
 import time
 
+from airflow import AirflowException
+
 from dbnd._core.current import current_task_run
-from dbnd._core.errors import DatabandRuntimeError
+from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
-from dbnd_aws.aws_sync_ctrl import AwsSyncCtrl
-from dbnd_spark.spark import PySparkTask, SparkCtrl, SparkTask
+from dbnd_databricks.databrick_config import (
+    DatabricksAwsConfig,
+    DatabricksAzureConfig,
+    DatabricksCloud,
+)
+from dbnd_databricks.errors import (
+    failed_to_run_databricks_job,
+    failed_to_submit_databricks_job,
+)
+from dbnd_spark.spark import SparkCtrl, SparkTask
 
 
 logger = logging.getLogger(__name__)
 
 
+def get_cloud_sync(config, task, job):
+    if config.cloud_type == DatabricksCloud.aws:
+        assert_plugin_enabled("dbnd-aws", "Databricks on aws requires dbnd-aws module.")
+
+        from dbnd_aws.aws_sync_ctrl import AwsSyncCtrl
+
+        return AwsSyncCtrl(task, job)
+
+    elif config.cloud_type == DatabricksCloud.azure:
+        assert_plugin_enabled(
+            "dbnd-azure", "Databricks on azure requires dbnd-azure module."
+        )
+
+        from dbnd_azure.azure_sync_ctrl import AzureDbfsSyncControl
+
+        return AzureDbfsSyncControl(DatabricksAzureConfig().local_dbfs_mount, task, job)
+
+    raise NotImplementedError(
+        "DatabricksCloud does not support %s value. Support values are aws/azure."
+        % config.cloud_type
+    )
+
+
 # to do - add on kill handling (this is not urgent, as anyway it will shutdown the machines at the end of execution)
-class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
+class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
     def __init__(self, task_run):
         super(DatabricksCtrl, self).__init__(task=task_run.task, job=task_run)
-        self.databricks_config = task_run.task.spark_engine
+        self.databricks_config = task_run.task.spark_engine  # type: DatabricksConfig
+        self.cloud_sync = get_cloud_sync(
+            self.databricks_config, task_run.task, task_run
+        )  # type: TaskSyncCtrl
 
     def _handle_databricks_operator_execution(self, run_id, hook, task_id):
         """
@@ -32,10 +68,10 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
         )
         url = hook.get_run_page_url(run_id)
         self.task_run.set_external_resource_urls({"databricks url": url})
-        b.column("databricks URL", url)
+        b.column("URL", url)
         logger.info(b.get_banner_str())
         while True:
-            b.column("databricks URL", url)
+            b.column("URL", url)
             run_state = hook.get_run_state(run_id)
             if run_state.is_terminal:
                 if run_state.is_successful:
@@ -44,15 +80,17 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
                     b.column("Message:", run_state.state_message)
                     break
                 else:
-                    error_message = "{t} failed with terminal state: {s}, please try visit databricks site {w} for more info".format(
-                        t=task_id, s=run_state, w=url
+                    b.column("State", run_state.result_state)
+                    b.column("Error Message:", run_state.state_message)
+                    logger.info(b.get_banner_str())
+                    raise failed_to_run_databricks_job(
+                        run_state.result_state, run_state.state_message, url
                     )
-                    raise DatabandRuntimeError(error_message)
             else:
                 b.column("State:", run_state.life_cycle_state)
                 b.column("Message:", run_state.state_message)
                 time.sleep(self.databricks_config.status_polling_interval_seconds)
-            logger.info("/n" + b.get_banner_str())
+            logger.info(b.get_banner_str())
 
     def _create_spark_submit_json(self, spark_submit_parameters):
         new_cluster = {
@@ -63,12 +101,13 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
             "init_scripts": self.databricks_config.init_script,
             "spark_env_vars": self.databricks_config.spark_env_vars,
         }
-        if self.task_env.cloud_type == "aws":
+        if self.databricks_config.cloud_type == DatabricksCloud.aws:
+            attributes = DatabricksAwsConfig()
             new_cluster["aws_attributes"] = {
-                "instance_profile_arn": self.databricks_config.aws_instance_profile_arn,
-                "ebs_volume_type": self.databricks_config.aws_ebs_volume_type,
-                "ebs_volume_count": self.databricks_config.aws_ebs_volume_count,
-                "ebs_volume_size": self.databricks_config.aws_ebs_volume_size,
+                "instance_profile_arn": attributes.aws_instance_profile_arn,
+                "ebs_volume_type": attributes.aws_ebs_volume_type,
+                "ebs_volume_count": attributes.aws_ebs_volume_count,
+                "ebs_volume_size": attributes.aws_ebs_volume_size,
             }
         else:
             # need to see if there are any relevant setting for azure or other databricks envs.
@@ -101,10 +140,13 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
             _config.connection_retry_limit,
             retry_delay=_config.connection_retry_delay,
         )
-        run_id = hook.submit_run(databricks_json)
-        hook.log.setLevel(logging.WARNING)
-        self._handle_databricks_operator_execution(run_id, hook, _config.task_id)
-        hook.log.setLevel(logging.INFO)
+        try:
+            run_id = hook.submit_run(databricks_json)
+            hook.log.setLevel(logging.WARNING)
+            self._handle_databricks_operator_execution(run_id, hook, _config.task_id)
+            hook.log.setLevel(logging.INFO)
+        except AirflowException as e:
+            raise failed_to_submit_databricks_job(e)
 
     def run_pyspark(self, pyspark_script):
         # should be reimplemented using SparkSubmitHook (maybe from airflow)
@@ -132,9 +174,9 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
         spark_submit_parameters = [
             "--class",
             main_class,
-            self.sync(self.config.main_jar),
+            self.cloud_sync.sync(self.config.main_jar),
         ] + (list_of_strings(self.task.application_args()) + jars_list)
-        return self._run_spark_submit(spark_submit_parameters, type=SparkTask)
+        return self._run_spark_submit(spark_submit_parameters)
 
     def _report_step_status(self, step):
         logger.info(self._get_step_banner(step))
@@ -160,3 +202,12 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
         b.column("EMR STEP ID", step["Step"]["Id"])
         b.new_section()
         return b.getvalue()
+
+    def stop_spark_session(self, session):
+        # sc.stop on databrciks will cause an un-expected behaviour
+        # as the 'warning!' here suggests:
+        # https://docs.databricks.com/jobs.html
+        pass
+
+    def sync(self, local_file):
+        return self.cloud_sync.sync(local_file)

@@ -4,7 +4,7 @@ from dbnd import register_config_cls
 
 
 @dbnd.hookimpl
-def dbnd_on_pre_init_context(ctx):
+def dbnd_setup_plugin():
     from dbnd_hdfs.fs.hdfs_hdfscli import HdfsCli
     from dbnd_hdfs.fs.hdfs_pyox import HdfsPyox
 

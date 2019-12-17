@@ -229,7 +229,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         return kube_dbnd
 
     def build_pod(self, task_run, cmds, args=None, labels=None):
-        # type: (TaskRun, List[str], Optional[List[str]], Optional[List[str]]) ->Pod
+        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]]) ->Pod
         pod_name = task_run.job_id__dns1123
 
         labels = combine_mappings(labels, self.labels)

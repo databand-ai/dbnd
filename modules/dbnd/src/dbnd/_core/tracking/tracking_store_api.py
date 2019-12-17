@@ -13,7 +13,6 @@ from dbnd.api.tracking_api import (
     log_metric_schema,
     scheduled_job_info_schema,
     set_run_state_schema,
-    setup_and_validation_schema,
     update_task_run_attempts_schema,
 )
 
@@ -158,13 +157,6 @@ class TrackingStoreApi(TrackingStore):
             task_run_attempt_uid=task_run.task_run_attempt_uid,
             name=name,
             path=artifact_target.path,
-        )
-
-    def setup_and_validation(self, databand_version):
-        return self._m(
-            self.channel.setup_and_validation,
-            setup_and_validation_schema,
-            databand_version=databand_version,
         )
 
     def heartbeat(self, run_uid):

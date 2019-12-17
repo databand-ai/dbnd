@@ -5,7 +5,6 @@ import typing
 from typing import List
 
 from dbnd._core.run.run_ctrl import RunCtrl
-from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 
 
 if typing.TYPE_CHECKING:
@@ -29,8 +28,7 @@ class TaskExecutor(RunCtrl):
 
     @contextlib.contextmanager
     def prepare_run(self):
-        with start_heartbeat_sender(self.run):
-            yield
+        yield
 
     def do_run(self):
         raise NotImplementedError()

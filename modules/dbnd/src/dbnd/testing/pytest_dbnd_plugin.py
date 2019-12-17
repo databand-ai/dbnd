@@ -14,6 +14,7 @@ from _pytest.fixtures import fixture
 from dbnd import config
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
+from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.task_build.task_registry import tmp_dbnd_registry
 from dbnd._core.task_build.task_signature import TASK_ID_INVALID_CHAR_REGEX
 
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def pytest_configure(config):
-
+    configure_basic_logging(None)
     dbnd_bootstrap(unittest=True)
 
 
@@ -79,9 +80,11 @@ def databand_test_context(
 ):  # type: (...) -> DatabandContext
 
     test_config = {
-        "run": {"name": _run_name_for_test_request(request)},
+        "run": {
+            "name": _run_name_for_test_request(request),
+            "heartbeat_interval_s": -1,
+        },
         "local": {"root": str(tmpdir.join("local_root"))},
-        "task": {"heartbeat_interval_s": -1},
     }
     with config(test_config, source="databand_test_context"), new_dbnd_context(
         **databand_context_kwargs

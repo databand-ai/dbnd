@@ -12,6 +12,7 @@ from targets.types import PathStr
 
 
 @pytest.mark.beam
+@pytest.mark.skip(reason="Waiting for apache beam integration")
 class TestLocalApacheBeam(object):
     def test_beam_wordcount_cls_task(self):
         t = BeamWordCount(input=__file__)

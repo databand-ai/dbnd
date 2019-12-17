@@ -26,7 +26,9 @@ class TriggerRuleDepOptimizied(TriggerRuleDep):
                 yield d
             return
 
-        TR = airflow.models.TriggerRule
+        from airflow.utils.trigger_rule import TriggerRule
+
+        TR = TriggerRule
 
         # Checking that all upstream dependencies have succeeded
         if not ti.task.upstream_list:

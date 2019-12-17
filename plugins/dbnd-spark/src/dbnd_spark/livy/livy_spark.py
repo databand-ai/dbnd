@@ -127,7 +127,7 @@ class LivySparkCtrl(_LivySparkCtrl):
         """
         we don;'t sync for now
         """
-        return local_file
+        return local_file.path
 
     def run_pyspark(self, pyspark_script):
         jars = list(self.config.jars)

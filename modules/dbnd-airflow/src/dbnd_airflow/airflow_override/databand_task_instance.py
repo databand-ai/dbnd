@@ -12,7 +12,7 @@ from airflow.exceptions import (
     AirflowSkipException,
     AirflowTaskTimeout,
 )
-from airflow.models import XCOM_RETURN_KEY, Log, Stats, TaskInstance
+from airflow.models.taskinstance  import XCOM_RETURN_KEY, Log, TaskInstance, Stats
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname

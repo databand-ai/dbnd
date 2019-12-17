@@ -57,12 +57,16 @@ class RunInfo(_DbndDataClass):
     root_run = attr.ib()  # type: RootRunInfo
     scheduled_run = attr.ib()  # type: Optional[ScheduledRunInfo]
 
+    sends_heartbeat = attr.ib()  # type: bool
+
 
 @attr.s
 class ScheduledRunInfo(_DbndDataClass):
     scheduled_job_uid = attr.ib(default=None)  # type: Optional[UUID]
     scheduled_date = attr.ib(default=None)  # type: datetime
     scheduled_job_dag_run_id = attr.ib(default=None)  # type: int
+    # for manual association with scheduled job from dbnd run cli
+    scheduled_job_name = attr.ib(default=None)  # type: Optional[str]
 
     @classmethod
     def from_env(cls, run_uid):

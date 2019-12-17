@@ -2,6 +2,7 @@ import logging
 
 from argparse import Namespace
 
+from dbnd._core.errors import friendly_error
 from dbnd._vendor import click
 
 
@@ -19,6 +20,17 @@ def parsedate(string):
 def airflow(airflow_args):
     """Forward arguments to airflow command line"""
     from dbnd import new_dbnd_context
+
+    if airflow_args[0] == "webserver":
+        from dbnd_airflow.airflow_plugin import DatabandAirflowWebserverPlugin
+
+        # Check modules
+        # Print relevant error
+
+        from airflow.plugins_manager import plugins
+
+        if DatabandAirflowWebserverPlugin not in plugins:
+            raise friendly_error.airflow_versioned_dag_missing("airflow webserver")
 
     with new_dbnd_context(name="airflow", autoload_modules=False):
         from airflow.bin.cli import get_parser

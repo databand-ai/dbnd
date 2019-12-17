@@ -16,12 +16,8 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=[
         "dbnd==" + version,
-        "apache-airflow==1.10.3",
-        # otherwise airflow dependencies are broken
-        "flask==1.0.3",
+        "apache-airflow==1.10.6",
         "future>=0.16.0, <0.17",
-        "jinja2==2.10.0",
-        "werkzeug<0.15.0,>=0.14.1",
         "sqlalchemy_utc",
         "sqlalchemy_utils",
     ],

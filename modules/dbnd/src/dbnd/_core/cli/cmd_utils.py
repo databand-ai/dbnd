@@ -11,7 +11,7 @@ def ipython():
     import IPython
 
     with new_dbnd_context(
-        name="ipython", autoload_modules=False, validate_api=False
+        name="ipython", autoload_modules=False
     ) as ctx, create_session() as session:
         header = "\n\t".join(
             [

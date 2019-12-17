@@ -15,6 +15,6 @@ setuptools.setup(
     name="dbnd-spark",
     package_dir={"": "src"},
     install_requires=["dbnd==" + version],
-    extras_require=dict(tests=[]),
+    extras_require=dict(tests=["pyspark==2.4.4"]),
     entry_points={"dbnd": ["dbnd-spark = dbnd_spark._plugin"]},
 )

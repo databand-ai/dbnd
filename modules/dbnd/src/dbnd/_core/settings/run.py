@@ -53,3 +53,14 @@ class RunConfig(config.Config):
     ).value(True)
     enable_prod = parameter(description="Enable production tasks").value(False)
     is_archived = parameter(description="Save this run in the archive").value(False)
+
+    heartbeat_interval_s = parameter(
+        description="How often a run should send a heartbeat to the server. Set -1 to disable"
+    )[int]
+    heartbeat_timeout_s = parameter(
+        description="How old can a run's last heartbeat be before we consider it failed. Set -1 to disable"
+    )[int]
+
+    enable_concurent_sqlite = parameter(
+        description="Enable concurrent execution with sqlite db (use only for debug!)"
+    ).value(False)

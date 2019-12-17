@@ -2,7 +2,6 @@ import logging
 import os
 
 from dbnd import new_dbnd_context
-from dbnd_airflow.airflow_override import patch_module_attr
 
 
 def databand_context():
@@ -19,6 +18,7 @@ def use_databand_airflow_dagbag():
     import airflow
     from airflow import settings
     from airflow.www_rbac import views
+    from dbnd_airflow.airflow_override import patch_module_attr
 
     logging.info("Using dbnd dagbag (supporting versioned dags).")
     from dbnd_airflow.web.databand_versioned_dagbag import DbndAirflowDagBag
@@ -30,6 +30,7 @@ def use_databand_airflow_dagbag():
 
     # dag_details invoke DagBag directly
     patch_module_attr(airflow.models, "DagBag", DbndAirflowDagBag)
+    patch_module_attr(airflow.models.dag, "DagBag", DbndAirflowDagBag)
 
 
 def create_app(config=None, testing=False):

@@ -1,8 +1,9 @@
 import importlib
 import logging
 import os
+import types
 
-from dbnd._core.errors import friendly_error
+from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
 from dbnd._core.utils.basics.load_python_module import _load_module, import_errors
 from dbnd._vendor import pluggy
@@ -48,9 +49,9 @@ def is_plugin_enabled(module):
     return pm.has_plugin(module)
 
 
-def assert_plugin_enabled(module):
+def assert_plugin_enabled(module, reason=None):
     if not is_plugin_enabled(module):
-        raise friendly_error.config.missing_module(module)
+        raise friendly_error.config.missing_module(module, reason)
     return True
 
 
@@ -58,8 +59,8 @@ def is_web_enabled():
     return is_plugin_enabled("dbnd-web")
 
 
-def assert_web_enabled():
-    return assert_plugin_enabled("dbnd-web")
+def assert_web_enabled(reason=None):
+    return assert_plugin_enabled("dbnd-web", reason)
 
 
 def register_dbnd_plugins():
@@ -106,8 +107,9 @@ def _register_manually():
         plugin_module = "%s._plugin" % plugin.replace("-", "_")
         try:
             plugin_module = importlib.import_module(plugin_module)
+            logger.info("Imported %s", plugin_module)
         except import_errors:
-            logger.info("Failed to import %s", plugin_module)
+            logger.debug("Didn't import %s", plugin_module)
             continue
 
         try:
@@ -117,12 +119,12 @@ def _register_manually():
 
 
 # TODO Seems like not used
-def _register_from_config():
+def _register_from_config(specs):
     if specs is not None and not isinstance(specs, types.ModuleType):
         if isinstance(specs, str):
             specs = specs.split(",") if specs else []
         if not isinstance(specs, (list, tuple)):
-            raise UsageError(
+            raise DatabandError(
                 "Plugin specs must be a ','-separated string or a "
                 "list/tuple of strings for plugin names. Given: %r" % specs
             )

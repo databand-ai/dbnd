@@ -22,7 +22,12 @@ from dbnd._core.configuration.environ_config import (
     DBND_RUN_UID,
     ENV_DBND__USER_PRE_INIT,
 )
-from dbnd._core.constants import RunState, TaskExecutorType, TaskRunState
+from dbnd._core.constants import (
+    RunState,
+    SystemTaskName,
+    TaskExecutorType,
+    TaskRunState,
+)
 from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import DatabandRunError
@@ -38,6 +43,7 @@ from dbnd._core.task_build.task_registry import (
     build_task_from_config,
     get_task_registry,
 )
+from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.tracking.tracking_info_run import RootRunInfo, ScheduledRunInfo
@@ -196,6 +202,8 @@ class DatabandRun(SingletonContext):
         else:
             self.task_engine = self.driver_engine.clone(require_submit=False)
 
+        self.sends_heartbeat = True  # to support client backwards compatability
+
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
         return build_task_from_config(name, EngineConfig)
@@ -272,7 +280,7 @@ class DatabandRun(SingletonContext):
     def _build_driver_task(self):
         if self.submit_engine and not self.existing_run:
             logger.info("Submitting job to remote execution")
-            task_name = "dbnd_driver_submit"
+            task_name = SystemTaskName.driver_submit
             is_submitter = True
             is_driver = False
             host_engine = self.submit_engine.clone(
@@ -280,7 +288,7 @@ class DatabandRun(SingletonContext):
             )
             target_engine = self.driver_engine
         else:
-            task_name = "dbnd_driver"
+            task_name = SystemTaskName.driver
             is_submitter = not self.existing_run or self.resubmit_run
             is_driver = True
             host_engine = self.driver_engine.clone(require_submit=False)
@@ -626,7 +634,8 @@ class _DbndDriverTask(Task):
             if run.is_save_pipeline():
                 run.save_run()
 
-            run.task_executor.do_run()
+            with start_heartbeat_sender(run):
+                run.task_executor.do_run()
 
         if self.is_driver:
             # This is great success!

@@ -5,12 +5,13 @@ import typing
 from typing import Union
 
 from dbnd import parameter
+from dbnd._core.commands import get_spark_session
 from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
 from dbnd._core.current import get_databand_run
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.func_task_decorator import _task_decorator
-from dbnd._core.errors import DatabandBuildError, DatabandConfigError, friendly_error
+from dbnd._core.errors import DatabandBuildError, DatabandConfigError
 from dbnd._core.task.config import Config
 from dbnd._core.task.task import Task
 from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl
@@ -60,6 +61,9 @@ class SparkCtrl(TaskJobCtrl):
         "Spark HistoryServer": ["http://", "<master>", ":18080"],
         "Ganglia": ["http://", "<master>", "/ganglia"],
     }
+
+    def stop_spark_session(self, session):
+        session.stop()
 
 
 class _BaseSparkTask(Task):
@@ -160,14 +164,7 @@ class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
 
     def _task_run(self):
         super(_InlineSparkTask, self)._task_run()
-
-        try:
-            from dbnd._core.commands import get_spark_session
-
-            sc = get_spark_session()
-            sc.stop()
-        except Exception as ex:
-            raise friendly_error.task_build.failed_to_import_pyspark(self.task, ex)
+        self._get_spark_ctrl().stop_spark_session(get_spark_session())
 
     def run(self):
         # we actually are going to run run function via our python script
@@ -178,9 +175,3 @@ def spark_task(*args, **kwargs):
     kwargs.setdefault("_task_type", _InlineSparkTask)
     kwargs.setdefault("_task_default_result", parameter.output.pickle[object])
     return _task_decorator(*args, **kwargs)
-
-
-def get_spark_session():
-    from pyspark.sql import SparkSession
-
-    return SparkSession.builder.getOrCreate()

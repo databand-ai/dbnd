@@ -5,7 +5,7 @@ from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 
 
 @dbnd.hookimpl
-def dbnd_on_pre_init_context(ctx):
+def dbnd_setup_plugin():
     from dbnd_gcp.dataflow.dataflow_config import DataflowConfig
     from dbnd_gcp.env import GcpEnvConfig
 

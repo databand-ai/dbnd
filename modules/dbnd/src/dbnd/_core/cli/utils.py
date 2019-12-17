@@ -1,6 +1,5 @@
 import functools
 import json
-import logging
 
 from functools import wraps
 
@@ -100,10 +99,8 @@ def with_fast_dbnd_context(f):
         from dbnd import new_dbnd_context, config
         from dbnd._core.settings import CoreConfig
 
-        config.set_parameter(CoreConfig.tracker, "", source="fast_dbnd_context")
-        with new_dbnd_context(
-            name="fast_dbnd_context", autoload_modules=False, validate_api=False
-        ):
-            f(*args, **kwargs)
+        with config({CoreConfig.tracker: ""}, source="fast_dbnd_context"):
+            with new_dbnd_context(name="fast_dbnd_context", autoload_modules=False):
+                f(*args, **kwargs)
 
     return wrapper

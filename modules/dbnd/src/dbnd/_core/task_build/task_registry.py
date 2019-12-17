@@ -9,7 +9,7 @@ import six
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.current import get_databand_context
-from dbnd._core.errors import friendly_error
+from dbnd._core.errors import TaskClassNotFoundException, friendly_error
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.seven import contextlib
@@ -65,6 +65,7 @@ class DbndTaskRegistry(SingletonContext):
 
         return self._task_family_to_task_cls.get(name)
 
+    # used for both tasks and configurations
     def _get_task_cls(self, task_name):
         from dbnd._core.utils.basics.load_python_module import load_python_module
 
@@ -122,7 +123,6 @@ class DbndTaskRegistry(SingletonContext):
             raise friendly_error.ambiguous_task(task_name)
         if task_cls:
             return task_cls
-
         raise friendly_error.task_not_exist(
             task_name=task_name,
             alternative_tasks=get_best_candidate(
@@ -190,8 +190,10 @@ class DbndTaskRegistry(SingletonContext):
                     task_family = task_name
                 else:
                     raise friendly_error.config.task_family_not_found(task_name)
-
-        task_cls = self.get_task_cls(task_family)
+        try:
+            task_cls = self.get_task_cls(task_family)
+        except TaskClassNotFoundException:
+            raise friendly_error.config.task_family_not_found(task_name)
         if not task_cls:
             raise friendly_error.config.task_family_not_found(task_name)
         if expected_type and not issubclass(task_cls, expected_type):

@@ -20,8 +20,8 @@ def wrong_func_attr_format(attr_path):
 
 def task_family_not_found(section):
     return DatabandConfigError(
-        "Can not find `_type` for config '%s'." % section,
-        help_msg="Please validate the value first! Otherwise add [%s]_type=EXPECTEDTYPE"
+        "Can not use `_type` for config '%s'." % section,
+        help_msg="Please make sure the correct module installed, validate the value or add [%s]_type=EXPECTEDTYPE to configuration"
         % section,
     )
 
@@ -123,11 +123,12 @@ def empty_string_validator(param):
     )
 
 
-def missing_module(module):
+def missing_module(module, reason=None):
     return DatabandConfigError(
-        "'{module}' module is not found. ".format(module=module),
-        help_msg="Please, `pip install '{module}=={version}'`,"
-        " current execution is not supported without it".format(
+        "'{module}' module is not found. {reason}".format(
+            module=module, reason=reason or ""
+        ),
+        help_msg="Please, `pip install '{module}=={version}'`,".format(
             module=module, version=dbnd.__version__
         ),
     )

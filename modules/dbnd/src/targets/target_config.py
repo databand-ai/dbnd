@@ -110,6 +110,7 @@ class TargetConfig(object):
     format = attr.ib(default=None)
     compression = attr.ib(default=None)
     folder = attr.ib(default=False)
+    meta_files = attr.ib(default=tuple())
 
     flag = attr.ib(default=True)
     target_factory = attr.ib(default=None)
@@ -119,6 +120,9 @@ class TargetConfig(object):
 
     def with_format(self, format):
         return attr.evolve(self, format=format)
+
+    def with_meta_files(self, list_of_meta_files):
+        return attr.evolve(self, meta_files=list_of_meta_files, folder=True)
 
     def with_flag(self, flag):
         return attr.evolve(self, flag=flag)
