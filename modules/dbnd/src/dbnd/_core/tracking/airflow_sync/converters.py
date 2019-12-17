@@ -21,6 +21,7 @@ from dbnd.api.tracking_api import (
     TaskRunsInfo,
 )
 
+
 NAMESPACE_DBND = uuid.uuid5(uuid.NAMESPACE_DNS, "databand.ai")
 NAMESPACE_DBND_JOB = uuid.uuid5(NAMESPACE_DBND, "job")
 NAMESPACE_DBND_RUN = uuid.uuid5(NAMESPACE_DBND, "run")
@@ -215,7 +216,12 @@ def _update_task_run_info(tr, ti):
 
     tr.state = TaskRunState(ti.state)
     tr.is_skipped = tr.state == TaskRunState.SKIPPED
-    if ti.state in (AFState.SCHEDULED, AFState.QUEUED, AFState.NONE, AFState.UP_FOR_RESCHEDULE):
+    if ti.state in (
+        AFState.SCHEDULED,
+        AFState.QUEUED,
+        AFState.NONE,
+        AFState.UP_FOR_RESCHEDULE,
+    ):
         try_number = ti.try_number + 1
     else:
         try_number = ti.try_number
