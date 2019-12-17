@@ -324,6 +324,7 @@ def _to_dbnd_run(dag, dagrun):  # type: (EDag, EDagRun) -> RunInfo
             scheduled_date=dagrun.execution_date,
             scheduled_job_dag_run_id=dagrun.dagrun_id,
         ),
+        sends_heartbeat=False,
     )
     return run
 
