@@ -141,6 +141,7 @@ class AlertStatus(enum.Enum):
 class SystemTaskName(object):
     driver_submit = "dbnd_driver_submit"
     driver = "dbnd_driver"
+    task_submit = "dbnd_task_submit"
 
     driver_and_submitter = {driver_submit, driver}
 

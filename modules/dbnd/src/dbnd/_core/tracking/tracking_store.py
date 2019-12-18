@@ -1,6 +1,8 @@
 import logging
 import typing
 
+from dbnd._core.errors.base import DatabandConnectionException
+
 
 if typing.TYPE_CHECKING:
     from typing import List
@@ -75,6 +77,12 @@ class CompositeTrackingStore(TrackingStore):
             try:
                 handler = getattr(store, name)
                 handler(**kwargs)
+            except DatabandConnectionException as ex:
+                logger.error(
+                    "Failed to store tracking information from %s at %s : %s"
+                    % (name, store.__class__.__name__, ex)
+                )
+                raise
             except Exception as ex:
                 logger.exception(
                     "Failed to store tracking information from %s at %s"

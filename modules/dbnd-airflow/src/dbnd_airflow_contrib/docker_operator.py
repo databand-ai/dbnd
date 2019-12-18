@@ -24,7 +24,6 @@ from airflow.exceptions import AirflowException
 from airflow.hooks.docker_hook import DockerHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from airflow.utils.file import TemporaryDirectory
 
 from dbnd._core.commands import log_metric
 from docker import APIClient, tls
@@ -201,12 +200,13 @@ class DockerOperator(BaseOperator):
             )
 
         if self.force_pull or len(self.cli.images(name=self.image)) == 0:
-            self.log.info("Pulling docker image %s", self.image)
             for l in self.cli.pull(self.image, stream=True):
-                for part in l.decode("utf-8").split("\n"):
-                    output = json.loads(part.strip())
+                try:
+                    output = json.loads(l.decode("utf-8").strip())
                     if "status" in output:
                         self.log.info("%s", output["status"])
+                except Exception:
+                    self.log.info("Failed to parse docker pull status")
 
         # with TemporaryDirectory(prefix='airflowtmp') as host_tmp_dir:
         #     self.environment['AIRFLOW_TMP_DIR'] = self.tmp_dir
