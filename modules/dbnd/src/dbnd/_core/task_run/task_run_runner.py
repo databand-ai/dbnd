@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.constants import TaskRunState
+from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.errors import DatabandConfigError, friendly_error, show_error_once
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.task_build.task_context import TaskContextPhase, task_context
@@ -87,7 +87,9 @@ class TaskRunRunner(TaskRunCtrl):
                             task_run.task.task_id,
                         ]
                         submit_task = self.task_run.task_engine.submit_to_engine_task(
-                            env=task.task_env, task_name="dbnd_submit_task", args=args
+                            env=task.task_env,
+                            task_name=SystemTaskName.task_submit,
+                            args=args,
                         )
                         task_run.run.run_dynamic_task(submit_task)
                         result = None
