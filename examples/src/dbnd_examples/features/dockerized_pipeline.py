@@ -36,7 +36,7 @@ def task_with_custom_k8s_yml_gpu(
 
 class ExampleDockerNativeTask(DockerRunTask):
     command = "echo hi"
-    image = "bash"
+    image = "bash:4.4.23"
 
 
 @task(

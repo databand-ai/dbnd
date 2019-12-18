@@ -35,7 +35,7 @@ class DockerRunTask(Task):
         if hasattr(self.ctrl, "airflow_op"):
             airflow_context = self.current_task_run.airflow_context
             self.command = self.ctrl.airflow_op.render_template(
-                "command", self.command, airflow_context
+                self.command, airflow_context
             )
 
         self.log_metric("docker command", self.command)
@@ -49,9 +49,11 @@ class DockerRunTask(Task):
 
     def _should_resubmit(self, task_run):
         """
-        We don't want to resubmit if it's dockerized run
+        We don't want to resubmit if it's dockerized run and we running with the same engine
         """
-        return False
+        if self.docker_engine.task_name == task_run.task_engine.task_name:
+            return False
+        super(DockerRunTask, self)._should_resubmit(task_run)
 
     def on_kill(self):
         if self.docker_ctrl is not None:

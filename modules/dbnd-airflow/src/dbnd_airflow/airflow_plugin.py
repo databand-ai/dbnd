@@ -16,7 +16,7 @@ class DatabandAirflowWebserverPlugin(AirflowPlugin):
 
     @staticmethod
     def patch_airflow_create_app():
-        logger.info("Monkey patching Airflow to use DBND DagBag")
+        logger.info("Adding support for versioned DBND DagBag")
         from airflow.www_rbac import app as airflow_app
 
         def patch_create_app(create_app_func):
