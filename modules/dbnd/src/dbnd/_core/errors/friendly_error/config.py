@@ -18,11 +18,10 @@ def wrong_func_attr_format(attr_path):
     )
 
 
-def task_family_not_found(section):
+def task_name_and_from_are_the_same(section):
     return DatabandConfigError(
-        "Can not use `_type` for config '%s'." % section,
-        help_msg="Please make sure the correct module installed, validate the value or add [%s]_type=EXPECTEDTYPE to configuration"
-        % section,
+        "Can not have task_name and  _from being equal to '%s'." % section,
+        help_msg="Please check your configuration section [%s]" % section,
     )
 
 
@@ -42,17 +41,6 @@ def dbnd_root_local_not_defined(env):
         ),
         help_msg="Please define it at [{env}]. This path is used for all local internal dbdn system outputs".format(
             env=env
-        ),
-    )
-
-
-def wrong_type_for_config(section, task_cls, expected_type):
-    return DatabandConfigError(
-        "You config '{section}' should be derived from '{expected_type}. Got {task_cls}".format(
-            section=section, expected_type=expected_type, task_cls=task_cls
-        ),
-        help_msg="Please check your [{section}] _type = value. ".format(
-            section=section
         ),
     )
 
