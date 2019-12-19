@@ -22,7 +22,7 @@ def airflow(airflow_args):
     """Forward arguments to airflow command line"""
     from dbnd import new_dbnd_context
 
-    if airflow_args[0] == "webserver":
+    if airflow_args and airflow_args[0] == "webserver":
 
         # Check modules
         # Print relevant error
