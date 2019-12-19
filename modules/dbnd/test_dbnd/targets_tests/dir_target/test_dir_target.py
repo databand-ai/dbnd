@@ -102,6 +102,6 @@ class TestDirTarget(TargetTestBase):
         with open(flag, "w") as fp:
             fp.write("exists")
 
-        assert len(t_no_meta_files.list_partitions()) == 4
-        assert len(t_with_meta_files.list_partitions()) == 2
+        assert len(t_no_meta_files.list_partitions()) == 3
+        assert len(t_with_meta_files.list_partitions()) == 1
         assert len(t_with_meta_files_and_flag.list_partitions()) == 1

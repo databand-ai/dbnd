@@ -74,7 +74,7 @@ class DirTarget(FileTarget):
 
     def is_meta_file(self, path):
         base_name = os.path.basename(path)
-        if base_name.startswith("."):
+        if base_name.startswith(".") or base_name.startswith("_"):
             return True
         if base_name in self.meta_files:
             return True
