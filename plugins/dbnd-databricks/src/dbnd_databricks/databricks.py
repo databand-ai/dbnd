@@ -1,6 +1,8 @@
 import logging
 import time
 
+from functools import partial
+
 from airflow import AirflowException
 
 from dbnd._core.current import current_task_run
@@ -44,6 +46,13 @@ def get_cloud_sync(config, task, job):
         "DatabricksCloud does not support %s value. Support values are aws/azure."
         % config.cloud_type
     )
+
+
+def _dbfs_scheme_to_local(config, path):
+    if config.cloud_type == DatabricksCloud.aws:
+        return path
+    elif config.cloud_type == DatabricksCloud.azure:
+        return path.replace("dbfs://", "/dbfs")
 
 
 # to do - add on kill handling (this is not urgent, as anyway it will shutdown the machines at the end of execution)
@@ -158,7 +167,10 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             databricks_json = self._create_spark_submit_json(spark_submit_parameters)
         else:
             pyspark_script = self.sync(pyspark_script)
-            parameters = list_of_strings(self.task.application_args())
+            parameters = [
+                _dbfs_scheme_to_local(self.databricks_config, e)
+                for e in list_of_strings(self.task.application_args())
+            ]
             databricks_json = self._create_pyspark_submit_json(
                 python_file=pyspark_script, parameters=parameters
             )

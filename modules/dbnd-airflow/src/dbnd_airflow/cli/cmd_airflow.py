@@ -1,9 +1,10 @@
 import logging
+import os
 
 from argparse import Namespace
 
-from dbnd._core.errors import friendly_error
 from dbnd._vendor import click
+from dbnd_airflow.utils import dbnd_airflow_path, link_dropin_file
 
 
 logger = logging.getLogger(__name__)
@@ -22,15 +23,40 @@ def airflow(airflow_args):
     from dbnd import new_dbnd_context
 
     if airflow_args[0] == "webserver":
-        from dbnd_airflow.airflow_plugin import DatabandAirflowWebserverPlugin
 
         # Check modules
         # Print relevant error
-
         from airflow.plugins_manager import plugins
 
-        if DatabandAirflowWebserverPlugin not in plugins:
-            raise friendly_error.airflow_versioned_dag_missing("airflow webserver")
+        plugin_found = False
+        for p in plugins:
+            # the class instance can come from different location ( plugins folder for example)
+            from dbnd_airflow.plugins.dbnd_airflow_webserver_plugin import (
+                DatabandAirflowWebserverPlugin,
+            )
+
+            if DatabandAirflowWebserverPlugin.__name__ == p.__name__:
+                plugin_found = True
+
+        if not plugin_found:
+            command = "airflow webserver"
+            logger.warning(
+                "dbnd airflow-versioned-dag is not installed. "
+                "Please run 'pip install dbnd[airflow-versioned-dag]' in order to run '{command}'.".format(
+                    command=command
+                )
+            )
+            from airflow import settings
+
+            plugin = dbnd_airflow_path(
+                "plugins", "dbnd_airflow_webserver_plugin_linkable.py"
+            )
+            plugin_target = os.path.join(
+                settings.PLUGINS_FOLDER, "dbnd_airflow_webserver_plugin.py"
+            )
+            link_dropin_file(
+                plugin, plugin_target, unlink_first=False, name="web plugin"
+            )
 
     with new_dbnd_context(name="airflow", autoload_modules=False):
         from airflow.bin.cli import get_parser
