@@ -2,7 +2,6 @@ from __future__ import print_function
 
 from functools import update_wrapper
 
-from dbnd._core.cli.click_utils import DbndCommand
 from dbnd._vendor import click
 from dbnd._vendor.click import get_current_context
 
@@ -67,7 +66,7 @@ def schedule(ctx):
     ctx.obj["scheduled_job_service"] = scheduled_job_service
 
 
-@schedule.command(cls=DbndCommand)
+@schedule.command()
 @click.option("--all", is_flag=True, help="Lists all deleted scheduled jobs")
 @click.option("--verbose", "-v", is_flag=True, help="Print extra job details")
 @pass_service
@@ -82,7 +81,7 @@ def list(ctx, scheduled_job_service, all, verbose):
     _click_echo_jobs(scheduled_jobs)
 
 
-@schedule.command(cls=DbndCommand)
+@schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job to enable)")
 @pass_service
 def enable(scheduled_job_service, name):
@@ -92,7 +91,7 @@ def enable(scheduled_job_service, name):
     click.echo('Scheduled job "%s" is enabled' % name)
 
 
-@schedule.command(cls=DbndCommand)
+@schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job to pause)")
 @pass_service
 def pause(scheduled_job_service, name):
@@ -102,7 +101,7 @@ def pause(scheduled_job_service, name):
     click.echo('Scheduled job "%s" paused' % name)
 
 
-@schedule.command(cls=DbndCommand)
+@schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job to undelete)")
 @pass_service
 def undelete(scheduled_job_service, name):
@@ -110,7 +109,7 @@ def undelete(scheduled_job_service, name):
     scheduled_job_service.undelete(name)
 
 
-@schedule.command(cls=DbndCommand)
+@schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job to delete)")
 @click.option("--force", "-f", is_flag=True, help="Delete without confirmation")
 @pass_service
@@ -130,7 +129,7 @@ def delete(scheduled_job_service, name, force):
     scheduled_job_service.delete(name)
 
 
-@schedule.command(cls=DbndCommand)
+@schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job (must be unique)")
 @click.option("--cmd", "-c", help="Shell command to run")
 @click.option(
