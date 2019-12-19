@@ -1,7 +1,7 @@
 import pytest
 
 from dbnd import Config, config, parameter, task
-from dbnd._core.errors import TaskClassNotFoundException, DatabandBuildError
+from dbnd._core.errors import DatabandBuildError, TaskClassNotFoundException
 from dbnd._core.task_build.task_registry import get_task_registry
 
 
