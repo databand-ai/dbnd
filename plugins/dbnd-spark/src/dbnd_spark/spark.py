@@ -4,7 +4,7 @@ import typing
 
 from typing import Union
 
-from dbnd import parameter
+from dbnd import output, parameter
 from dbnd._core.commands import get_spark_session
 from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
@@ -59,6 +59,9 @@ class _BaseSparkTask(Task):
             b.column("SPARK CMD LINE", spark_command_line)
         except Exception:
             logger.exception("Failed to get spark command line from %s" % self)
+
+
+spark_output = output.folder
 
 
 class SparkTask(_BaseSparkTask):
