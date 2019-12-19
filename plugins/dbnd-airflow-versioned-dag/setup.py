@@ -17,7 +17,7 @@ setuptools.setup(
     install_requires=["dbnd==" + version, "dbnd-airflow==" + version],
     entry_points={
         "airflow.plugins": [
-            "dbnd_webserver_plugin = dbnd_airflow.airflow_plugin:DatabandAirflowWebserverPlugin"
+            "dbnd_webserver_plugin = dbnd_airflow.plugins.dbnd_airflow_webserver_plugin:DatabandAirflowWebserverPlugin"
         ]
     },
 )
