@@ -20,7 +20,6 @@ variables:
   # only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
 
-  PYPI_PUBLIC_URL: https://pypi.databand.ai/simple/
 
 ### TESTS BASIC
 .template__except_defaults:
