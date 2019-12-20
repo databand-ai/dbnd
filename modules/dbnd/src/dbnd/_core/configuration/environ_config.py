@@ -1,9 +1,13 @@
 import os
 
-from dbnd._core.utils.basics.helpers import parse_bool
-
 
 PARAM_ENV_TEMPLATE = "DBND__{S}__{K}"
+
+ENV_DBND_HOME = "DBND_HOME"
+ENV_AIRFLOW_CONFIG = "AIRFLOW_CONFIG"
+ENV_DBND_SYSTEM = "DBND_SYSTEM"
+ENV_DBND_LIB = "DBND_LIB"
+
 
 ENV_DBND__ENABLED = "DBND__ENABLED"
 ENV_DBND__UNITTEST_MODE = "DBND__UNITTEST_MODE"
@@ -26,11 +30,21 @@ DBND_RESUBMIT_RUN = "DBND_RESUBMIT_RUN"
 # IF FALSE  - we will not modify decorated @task code
 DBND_ENABLED = None
 
+ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
+_SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ
+
+
+def is_shell_cmd_complete_mode():
+    return _SHELL_COMPLETION
+
 
 def environ_enabled(variable_name, default=False):
     env_value = os.environ.get(variable_name, None)
     if env_value is None:
         return default
+
+    from dbnd._core.utils.basics.helpers import parse_bool
+
     return parse_bool(env_value)
 
 

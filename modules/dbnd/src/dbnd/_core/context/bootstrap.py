@@ -7,7 +7,10 @@ import threading
 import dbnd
 
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import set_dbnd_unit_test_mode
+from dbnd._core.configuration.environ_config import (
+    is_shell_cmd_complete_mode,
+    set_dbnd_unit_test_mode,
+)
 from dbnd._core.context.dbnd_project_env import (
     ENV_DBND_HOME,
     _env_banner,
@@ -71,7 +74,8 @@ def dbnd_bootstrap(unittest=False):
     if ENV_DBND_HOME not in os.environ:
         init_databand_env()
 
-    logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
+    if not is_shell_cmd_complete_mode():
+        logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
     _dbnd_exception_handling()
 
     if unittest:

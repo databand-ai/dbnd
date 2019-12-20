@@ -7,20 +7,21 @@ import sys
 
 from configparser import ConfigParser
 
+from dbnd._core.configuration.environ_config import (
+    ENV_AIRFLOW_CONFIG,
+    ENV_DBND_LIB,
+    is_shell_cmd_complete_mode,
+)
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 
 
 ENV_DBND_HOME = "DBND_HOME"
-ENV_AIRFLOW_CONFIG = "AIRFLOW_CONFIG"
 ENV_DBND_SYSTEM = "DBND_SYSTEM"
-ENV_DBND_LIB = "DBND_LIB"
-ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
 
 ENV_DBND__DEBUG_INIT = "DBND__DEBUG_INIT"
 ENV_DBND__DISABLED_INIT = "DBND__DISABLED_INIT"
 
 _DBND_DEBUG_INIT = bool(os.environ.get(ENV_DBND__DEBUG_INIT))
-_SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ
 
 _MARKER_FILES = ["databand.cfg", "project.cfg", "databand-system.cfg"]
 
@@ -38,9 +39,6 @@ def _abs_path_dirname(file, *path):
 
 
 _databand_package = _abs_path_dirname(__file__, "..", "..")
-_databand_config_location = _abs_path_dirname(
-    __file__, "..", "..", "..", "dbnd"
-)  # Temporary until full migration
 
 
 class DatabandHomeError(Exception):
@@ -177,13 +175,14 @@ def _set_project_root():
 
     for idx, cur_folder in cur_dir_split_reversed:
         cur_path = os.path.join("/", *cur_dir_split[1 : (idx + 1)])
-        dbnd_folder = os.path.join(cur_path, ".dbnd")
-        if os.path.exists(dbnd_folder):
+
+        dbnd_system_file = os.path.join(cur_path, ".dbnd", "databand-system.cfg")
+        if os.path.exists(dbnd_system_file):
             _set_env_dir(ENV_DBND_HOME, cur_path)
             return True
 
         dbnd_home = _get_dbnd_home(cur_path)
-        if dbnd_home or os.path.exists(dbnd_folder):
+        if dbnd_home:
             _set_env_dir(ENV_DBND_HOME, dbnd_home)
             return True
 
@@ -206,7 +205,7 @@ def _init_windows_python_path():
 
 
 def init_databand_env():
-    if _SHELL_COMPLETION:
+    if is_shell_cmd_complete_mode():
         # we should not print anything if we are in shell completion!
         import logging
 
@@ -239,7 +238,7 @@ def init_databand_env():
         os.environ[ENV_DBND_SYSTEM] = dbnd_system
 
     if ENV_DBND_LIB not in os.environ:
-        os.environ[ENV_DBND_LIB] = _databand_config_location
+        os.environ[ENV_DBND_LIB] = _databand_package
 
     if "AIRFLOW_HOME" not in os.environ:
         os.environ["AIRFLOW_HOME"] = airflow_home = os.path.join(
@@ -254,7 +253,7 @@ def init_databand_env():
         # User did not define his own airflow configuration
         # Use dbnd core lib configuration
         os.environ[ENV_AIRFLOW_CONFIG] = os.path.join(
-            _databand_config_location, "conf", "airflow.cfg"
+            _databand_package, "conf", "airflow.cfg"
         )
 
     if _DBND_DEBUG_INIT:

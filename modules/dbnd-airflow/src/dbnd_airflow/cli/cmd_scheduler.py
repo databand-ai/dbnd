@@ -4,32 +4,21 @@ import logging
 import os
 import signal
 
-import airflow
-
-from airflow.executors import LocalExecutor, SequentialExecutor
-from airflow.jobs import SchedulerJob
-from airflow.settings import SQL_ALCHEMY_CONN
-
-from dbnd._core.context.dbnd_project_env import _SHELL_COMPLETION
+from dbnd._core.configuration.environ_config import is_shell_cmd_complete_mode
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._vendor import click
 from dbnd_airflow.utils import dbnd_airflow_path
 
 
 logger = logging.getLogger(__name__)
-if not _SHELL_COMPLETION:
-    from airflow.bin.cli import (
-        DAGS_FOLDER,
-        process_subdir,
-        setup_locations,
-        setup_logging,
-        sigint_handler,
-        sigquit_handler,
-    )
-    from daemon.pidfile import TimeoutPIDLockFile
-else:
-    # avoid importing airflow (takes approximately 1s)
-    DAGS_FOLDER = ""
+
+# avoid importing airflow on autocomplete (takes approximately 1s)
+if is_shell_cmd_complete_mode():
+    from airflow.bin.cli import DAGS_FOLDER
+    import airflow
+    from airflow.executors import LocalExecutor, SequentialExecutor
+    from airflow.jobs import SchedulerJob
+    from airflow.settings import SQL_ALCHEMY_CONN
 
 
 def configure_airflow_scheduler_logging():
@@ -99,7 +88,7 @@ def link_dropin_dbnd_scheduled_dags(sub_dir, unlink_first=True):
 @click.option(
     "--subdir",
     "-sd",
-    default=DAGS_FOLDER,
+    default=None,
     help="File location or directory from which to look for the dag. "
     "Defaults to '[AIRFLOW_HOME]/dags' where [AIRFLOW_HOME] is the "
     "value you set for 'AIRFLOW_HOME' config you set in 'airflow.cfg' ",
@@ -111,7 +100,7 @@ def link_dropin_dbnd_scheduled_dags(sub_dir, unlink_first=True):
     help="Set number of seconds to execute before exiting",
 )
 @click.option(
-    "--num_runs",
+    "--num-runs",
     "-n",
     type=int,
     default=-1,
@@ -149,7 +138,17 @@ def scheduler(
     """Start Databand's scheduler"""
     # We are going to show all scheduler tasks in UI for now!
     # config.set_parameter(CoreConfig.tracker, "", source="fast_dbnd_context")
-    from dbnd import new_dbnd_context
+    from airflow.bin.cli import (
+        process_subdir,
+        setup_locations,
+        setup_logging,
+        sigint_handler,
+        sigquit_handler,
+    )
+
+    subdir = subdir or DAGS_FOLDER
+
+    from daemon.pidfile import TimeoutPIDLockFile
 
     configure_airflow_scheduler_logging()
     configure_airflow_executor()
