@@ -3,6 +3,7 @@
 import logging
 import sys
 
+from dbnd import dbnd_bootstrap
 from dbnd._core.cli.cmd_execute import execute
 from dbnd._core.cli.cmd_heartbeat import send_heartbeat
 from dbnd._core.cli.cmd_project import project_init
@@ -11,7 +12,7 @@ from dbnd._core.cli.cmd_scheduler_management import schedule
 from dbnd._core.cli.cmd_show import show_configs, show_tasks
 from dbnd._core.cli.cmd_utils import ipython
 from dbnd._core.log.config import configure_basic_logging
-from dbnd._core.plugin.dbnd_plugins import pm
+from dbnd._core.plugin.dbnd_plugins import pm, register_dbnd_plugins
 from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
 
@@ -34,6 +35,7 @@ class AliasedGroup(DYMGroup):
 
 @click.group(cls=AliasedGroup)
 def cli():
+    dbnd_bootstrap()
     pass
 
 
@@ -60,7 +62,7 @@ def main():
     from dbnd._core.context.bootstrap import dbnd_bootstrap
 
     configure_basic_logging(None)
-    dbnd_bootstrap()
+    register_dbnd_plugins()
 
     # adding all plugins cli commands
     for commands in pm.hook.dbnd_get_commands():

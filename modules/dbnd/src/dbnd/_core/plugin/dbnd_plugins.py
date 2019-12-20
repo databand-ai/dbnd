@@ -63,9 +63,17 @@ def assert_web_enabled(reason=None):
     return assert_plugin_enabled("dbnd-web", reason)
 
 
+_dbnd_plugins_registered = False
+
+
 def register_dbnd_plugins():
     if "DBND_NO_MODULES" in os.environ:
         return
+
+    global _dbnd_plugins_registered
+    if _dbnd_plugins_registered:
+        return
+    _dbnd_plugins_registered = True
 
     pm.load_setuptools_entrypoints("dbnd")
 

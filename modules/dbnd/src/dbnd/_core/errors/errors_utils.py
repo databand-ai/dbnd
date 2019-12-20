@@ -4,7 +4,6 @@ import re
 import sys
 
 from dbnd._core.current import try_get_databand_context
-from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.basics.text_banner import safe_string
 from dbnd._core.utils.project.project_fs import databand_lib_path, project_path
 

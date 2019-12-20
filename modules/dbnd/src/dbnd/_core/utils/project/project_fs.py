@@ -4,7 +4,7 @@ All code related to "getting" file from project based on databand library
 
 import os
 
-from dbnd._core.context.dbnd_project_env import ENV_DBND_HOME, ENV_DBND_SYSTEM
+from dbnd._core.configuration.environ_config import ENV_DBND_HOME, ENV_DBND_SYSTEM
 
 
 def abs_join(*path):
