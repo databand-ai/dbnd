@@ -181,11 +181,6 @@ class CoreConfig(Config):
         return CompositeTrackingStore(stores=stores)
 
 
-class WebserverConfig(Config):
-    _conf__task_family = "webserver"
-    working_dir = parameter(default="${DBND_SYSTEM}")[str]
-
-
 class DynamicTaskConfig(Config):
     _conf__task_family = "dynamic_task"
 
