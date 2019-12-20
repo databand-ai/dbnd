@@ -13,7 +13,7 @@ from dbnd_airflow.utils import dbnd_airflow_path
 logger = logging.getLogger(__name__)
 
 # avoid importing airflow on autocomplete (takes approximately 1s)
-if is_shell_cmd_complete_mode():
+if not is_shell_cmd_complete_mode():
     from airflow.bin.cli import DAGS_FOLDER
     import airflow
     from airflow.executors import LocalExecutor, SequentialExecutor
