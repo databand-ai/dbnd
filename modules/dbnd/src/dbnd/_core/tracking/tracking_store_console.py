@@ -91,8 +91,10 @@ class ConsoleStore(tracking_store.TrackingStore):
         attempt_uid = task_run.task_run_attempt_uid
 
         logger.info(
-            "%s %s Found external resources URLs: %s ",
+            "%s %s has URLs to external resources: \n\t%s",
             task,
             attempt_uid,
-            ", ".join("%s=%s" % (k, v) for k, v in six.iteritems(external_links_dict)),
+            "\t\n".join(
+                "%s: %s" % (k, v) for k, v in six.iteritems(external_links_dict)
+            ),
         )
