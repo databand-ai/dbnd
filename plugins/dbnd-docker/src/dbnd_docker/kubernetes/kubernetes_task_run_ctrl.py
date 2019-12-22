@@ -27,18 +27,14 @@ class KubernetesTaskRunCtrl(DockerRunCtrl):
         # dont' describe in local run, do it in remote run
         self.context.settings.system.describe = False
         kc = self.kubernetes_config
-        self.kube_dbnd = kc.build_kube_dbnd()
+        task_run_async = self.kubernetes_config.task_run_async
+        self.kube_dbnd = kc.build_kube_dbnd(run_async=task_run_async)
 
         cmds = shlex.split(self.task.command)
         self.pod = self.kubernetes_config.build_pod(cmds=cmds, task_run=self.task_run)
-
-        task_run_async = self.kubernetes_config.task_run_async
-
         pod_ctrl = None
         try:
-            pod_ctrl = self.kube_dbnd.run_pod(
-                pod=self.pod, run_async=task_run_async, task_run=self.task_run
-            )
+            pod_ctrl = self.kube_dbnd.run_pod(pod=self.pod, task_run=self.task_run)
             final_state = pod_ctrl.get_airflow_state()
         except KeyboardInterrupt as ex:
             logger.info(
@@ -63,5 +59,5 @@ class KubernetesTaskRunCtrl(DockerRunCtrl):
     def on_kill(self):
 
         if self.kube_dbnd and self.pod:
-            self.kube_dbnd.get_pod_ctrl(self.pod.name, self.pod.namespace).delete_pod()
+            self.kube_dbnd.delete_pod(self.pod.name, self.pod.namespace)
             self.kube_dbnd = None

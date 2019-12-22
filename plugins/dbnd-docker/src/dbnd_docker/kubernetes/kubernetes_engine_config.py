@@ -150,19 +150,15 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         return KubernetesTaskRunCtrl(task_run=task_run)
 
     def cleanup_after_run(self):
-        if not self.task_run_async or not self.delete_pods:
+        if not self.task_run_async:
             return
-
-        from kubernetes.client import V1DeleteOptions
-
-        # we know where we run, we can kill ourself
+        # this run was submitted by task_run_async - we need to cleanup ourself
         if ENV_DBND_POD_NAME in environ and ENV_DBND_POD_NAMESPACE in environ:
             try:
-                client = self.get_kube_client(in_cluster=True)
-                client.delete_namespaced_pod(
-                    environ[ENV_DBND_POD_NAME],
-                    environ[ENV_DBND_POD_NAMESPACE],
-                    body=V1DeleteOptions(),
+                kube_dbnd = self.build_kube_dbnd()
+                kube_dbnd.delete_pod(
+                    name=environ[ENV_DBND_POD_NAME],
+                    namespace=environ[ENV_DBND_POD_NAMESPACE],
                 )
             except Exception as e:
                 logger.warning("Tried to delete this pod but failed: %s" % e)
@@ -212,11 +208,13 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             Configuration.set_default(configuration)
         return client.CoreV1Api()
 
-    def build_kube_dbnd(self, in_cluster=None):
+    def build_kube_dbnd(self, in_cluster=None, run_async=True):
         from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 
         kube_client = self.get_kube_client(in_cluster=in_cluster)
-        kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
+        kube_dbnd = DbndKubernetesClient(
+            kube_client=kube_client, engine_config=self, run_async=run_async
+        )
         return kube_dbnd
 
     def build_pod(self, task_run, cmds, args=None, labels=None):

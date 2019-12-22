@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 class DbndKubernetesClient(object):
-    def __init__(self, kube_client, engine_config):
-        # type:(DbndKubernetesClient, CoreV1Api,KubernetesEngineConfig)->None
+    def __init__(self, kube_client, engine_config, run_async=True):
+        # type:(DbndKubernetesClient, CoreV1Api,KubernetesEngineConfig, bool)->None
         super(DbndKubernetesClient, self).__init__()
 
         self.kube_client = kube_client
@@ -38,6 +38,9 @@ class DbndKubernetesClient(object):
 
         # will be used to low level pod interactions
         self.running_pods = {}
+        self.run_async = (
+            run_async and not engine_config.debug and not engine_config.show_pod_log
+        )
 
     def end(self):
         if self.engine_config.delete_pods:
@@ -45,13 +48,12 @@ class DbndKubernetesClient(object):
             for pod_id, pod_namespace in six.iteritems(self.running_pods):
                 self.delete_pod(pod_id, pod_namespace)
 
-    def run_pod(self, task_run, pod, run_async=True):
-        # type: (TaskRun, Pod, bool) -> DbndPodCtrl
+    def run_pod(self, task_run, pod):
+        # type: (TaskRun, Pod) -> DbndPodCtrl
         # we add to running first, so we can prevent racing condition
         self.running_pods[pod.name] = pod.namespace
 
         ec = self.engine_config
-        run_async = run_async and not ec.debug and not ec.show_pod_log
 
         req = self.engine_config.build_kube_pod_req(pod)
         readable_req_str = readable_pod_request(req)
@@ -81,7 +83,7 @@ class DbndKubernetesClient(object):
         except ApiException as ex:
             task_run_error = TaskRunError.buid_from_ex(ex, task_run)
             task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
-            logger.exception(
+            logger.error(
                 "Exception when attempting to create Namespaced Pod using: %s",
                 readable_req_str,
             )
@@ -91,20 +93,26 @@ class DbndKubernetesClient(object):
         # TODO this is pretty dirty.
         #  Better to extract the deploy error checking logic out of the pod launcher and have the watcher
         #   pass an exception through the watcher queue if needed. Current airflow implementation doesn't implement that, so we will stick with the current flow
-        pod_ctrl.wait_for_pod_started()
 
-        if not run_async:
-            pod_ctrl.stream_pod_logs()
-
+        if self.run_async:
+            pass
+        else:
+            pod_ctrl.wait_for_pod_started()
+            logger.info("Pod '%s' is running, reading logs..", pod_ctrl.name)
+            pod_ctrl.stream_pod_logs(follow=True)
+            logger.info("Successfully read %s pod logs", pod_ctrl.name)
         return pod_ctrl
 
-    def get_pod_ctrl(self, name, namespace):
+    def get_pod_ctrl(self, name, namespace=None):
         return DbndPodCtrl(
             pod_name=name,
-            pod_namespace=namespace,
+            pod_namespace=namespace or self.engine_config.namespace,
             kube_client=self.kube_client,
             kube_config=self.engine_config,
         )
+
+    def delete_pod(self, name, namespace):
+        self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()
 
 
 class DbndPodCtrl(object):
@@ -140,13 +148,6 @@ class DbndPodCtrl(object):
             # If the pod is already deleted
             if e.status != 404:
                 raise
-
-        if self.kube_config.show_pod_log:
-            # noinspection PyBroadException
-            try:
-                self.stream_pod_logs(log_logger=logger, from_now=True)
-            except Exception:
-                pass
 
     def get_pod_status_v1(self):
         from requests import HTTPError
@@ -189,18 +190,15 @@ class DbndPodCtrl(object):
             time.sleep(1)
             _logger.debug("Pod not yet started: %s", pod_status.status)
 
-    def stream_pod_logs(self, log_logger=logger, from_now=False):
+    def stream_pod_logs(self, print_func=logger.info, follow=False, tail_lines=10):
         kwargs = {
             "name": self.name,
             "namespace": self.namespace,
             "container": "base",
-            "follow": True,
-            "tail_lines": 10,
+            "follow": follow,
+            "tail_lines": tail_lines,
             "_preload_content": False,
         }
-        if from_now:
-            kwargs["since_seconds"] = 1
-        logger.info("driver logs (from Kubernetes):")
 
         logs = self.kube_client.read_namespaced_pod_log(**kwargs)
         try:
@@ -209,11 +207,10 @@ class DbndPodCtrl(object):
                 prefix = "[%s]" % self.name
                 with override_log_formatting(prefix + "%(message)s"):
                     for line in logs:
-                        logger.info(line[:-1].decode("utf-8"))
+                        print_func(line[:-1].decode("utf-8"))
             else:
                 for line in logs:
-                    logger.info(line[:-1].decode("utf-8"))
-            logger.info("end of driver logs")
+                    print_func(line[:-1].decode("utf-8"))
         except Exception as ex:
             logger.error("Failed to stream logs for %s:  %s", self.name, ex)
 
@@ -249,8 +246,15 @@ class DbndPodCtrl(object):
             container_waiting_state = pod_status.container_statuses[0].state.waiting
             if pod_status.phase == "Pending" and container_waiting_state:
                 if container_waiting_state.reason == "ErrImagePull":
+                    logger.info(
+                        "Found problematic condition at %s :%s %s",
+                        self.name,
+                        container_waiting_state.reason,
+                        container_waiting_state.message,
+                    )
                     raise friendly_error.executor_k8s.kubernetes_image_not_found(
-                        pod_status.container_statuses[0].image
+                        pod_status.container_statuses[0].image,
+                        container_waiting_state.message,
                     )
 
                 if container_waiting_state.reason == "CreateContainerConfigError":

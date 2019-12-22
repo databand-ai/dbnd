@@ -337,7 +337,7 @@ class AirflowTaskExecutor(TaskExecutor):
                 raise friendly_error.executor_k8s.kubernetes_with_non_compatible_engine(
                     task_engine
                 )
-            kube_dbnd = task_engine.build_kube_dbnd()
+            kube_dbnd = task_engine.build_kube_dbnd(run_async=True)
             kube_executor = DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
             if kube_dbnd.engine_config.debug:
                 logging.getLogger("airflow.contrib.kubernetes").setLevel(logging.DEBUG)

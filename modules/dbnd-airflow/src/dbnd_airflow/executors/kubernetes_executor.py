@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 import logging
 import multiprocessing
 
@@ -7,11 +24,13 @@ from airflow.contrib.executors.kubernetes_executor import (
     KubernetesExecutor,
     KubernetesJobWatcher,
 )
-from airflow.models import KubeWorkerIdentifier
+from airflow.models import KubeWorkerIdentifier, TaskInstance
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
+from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
+from dbnd._core.errors import DatabandError
 from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
@@ -99,14 +118,13 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         super(DbndKubernetesScheduler, self).__init__(
             kube_config, task_queue, result_queue, kube_client, worker_uuid
         )
+        self.kube_dbnd = kube_dbnd
 
         # PATCH manage watcher
         self._manager = multiprocessing.Manager()
         self.watcher_queue = self._manager.Queue()
         self.current_resource_version = 0
         self.kube_watcher = self._make_kube_watcher_dbnd()
-
-        self.kube_dbnd = kube_dbnd
 
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
@@ -120,11 +138,12 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
     def _make_kube_watcher_dbnd(self):
         watcher = DbndKubernetesJobWatcher(
-            self.namespace,
-            self.watcher_queue,
-            self.current_resource_version,
-            self.worker_uuid,
-            self.kube_config,
+            namespace=self.namespace,
+            watcher_queue=self.watcher_queue,
+            resource_version=self.current_resource_version,
+            worker_uuid=self.worker_uuid,
+            kube_config=self.kube_config,
+            kube_dbnd=self.kube_dbnd,
         )
         watcher.start()
         return watcher
@@ -181,10 +200,10 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             },
         )
 
-        self.kube_dbnd.run_pod(pod=pod, task_run=task_run, run_async=True)
+        self.kube_dbnd.run_pod(pod=pod, task_run=task_run)
 
     def delete_pod(self, pod_id):
-        return self.kube_dbnd.get_pod_ctrl(pod_id, self.namespace).delete_pod()
+        return self.kube_dbnd.delete_pod(pod_id, self.namespace)
 
 
 class DbndKubernetesExecutor(KubernetesExecutor):
@@ -248,26 +267,12 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         self.kube_dbnd.end()
         super(DbndKubernetesExecutor, self).end()
 
-    def _change_state(self, key, state, pod_id):
-        if state == State.FAILED:
-            try:
-                self.log.info("---printing failed pod logs----:")
-                pod_ctrl = self.kube_dbnd.get_pod_ctrl(
-                    pod_id, self.kube_scheduler.namespace
-                )
-                pod_ctrl.stream_pod_logs(self.log, from_now=False)
-            except Exception as err:
-                self.log.error(
-                    "error on reading failed pod logs %s on pod %s", err, pod_id
-                )
-
-        super(DbndKubernetesExecutor, self)._change_state(key, state, pod_id)
-
-        if state != State.RUNNING:
-            self.kube_dbnd.running_pods.pop(pod_id, None)
-
 
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
+    def __init__(self, kube_dbnd, **kwargs):
+        super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
+        self.kube_dbnd = kube_dbnd
+
     def run(self):
         try:
             super(DbndKubernetesJobWatcher, self).run()
@@ -275,3 +280,135 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             # because we convert SIGTERM to SIGINT without this you get an ugly exception in the log when
             # the executor terminates the watcher
             pass
+
+    def _run(self, kube_client, resource_version, worker_uuid, kube_config):
+        self.log.info(
+            "Event: and now my watch begins starting at resource_version: %s",
+            resource_version,
+        )
+
+        from kubernetes import watch
+
+        watcher = watch.Watch()
+
+        kwargs = {"label_selector": "airflow-worker={}".format(worker_uuid)}
+        if resource_version:
+            kwargs["resource_version"] = resource_version
+        if kube_config.kube_client_request_args:
+            for key, value in kube_config.kube_client_request_args.items():
+                kwargs[key] = value
+
+        last_resource_version = None
+        for event in watcher.stream(
+            kube_client.list_namespaced_pod, self.namespace, **kwargs
+        ):
+            task = event["object"]
+            self.log.info(
+                "Event: %s had an event of type %s", task.metadata.name, event["type"]
+            )
+            if event["type"] == "ERROR":
+                return self.process_error(event)
+
+            # DBND PATCH
+            # we want to process
+            self.dbnd_process(task)
+            last_resource_version = task.metadata.resource_version
+
+        return last_resource_version
+
+    def dbnd_process(self, pod_data):
+        pod_name = pod_data.metadata.name
+        phase = pod_data.status.phase
+        if phase == "Pending":
+            self.log.info("Event: %s Pending", pod_name)
+            pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
+            try:
+                pod_ctrl.check_deploy_errors(pod_data)
+            except Exception as ex:
+                self.dbnd_set_task_pending_fail(pod_data, ex)
+                phase = "Failed"
+        elif phase == "Failed":
+            self.dbnd_set_task_failed(pod_data)
+
+        self.process_status(
+            pod_data.metadata.name,
+            phase,
+            pod_data.metadata.labels,
+            pod_data.metadata.resource_version,
+        )
+
+    def _get_task_run(self, pod_data):
+        labels = pod_data.metadata.labels
+        if "task_id" not in labels:
+            return None
+        task_id = labels["task_id"]
+
+        dr = try_get_databand_run()
+        if not dr:
+            return None
+
+        return dr.get_task_run_by_af_id(task_id)
+
+    def dbnd_set_task_pending_fail(self, pod_data, ex):
+        task_run = self._get_task_run(pod_data)
+        from dbnd._core.task_run.task_run_error import TaskRunError
+
+        task_run_error = TaskRunError.buid_from_ex(ex, task_run)
+        task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
+
+    def dbnd_set_task_failed(self, pod_data):
+        metadata = pod_data.metadata
+        logger.debug("getting failure info")
+        # noinspection PyBroadException
+        pod_ctrl = self.kube_dbnd.get_pod_ctrl(metadata.name, metadata.namespace)
+        logs = []
+        try:
+            log_printer = lambda x: logs.append(x)
+            pod_ctrl.stream_pod_logs(
+                print_func=log_printer, tail_lines=40, follow=False
+            )
+        except Exception:
+            logger.exception("failed to get log")
+
+        logger.debug("Getting task run")
+        task_run = self._get_task_run(pod_data)
+        if not task_run:
+            logger.info("no task run")
+            return
+
+        from dbnd._core.task_run.task_run_error import TaskRunError
+
+        # work around to build an error object
+        try:
+            raise DatabandError(
+                "Pod %s at %s has failed with: \n%s"
+                % (metadata.name, metadata.namespace, "\n".join(logs)),
+                show_exc_info=False,
+                help_msg="Please see full pod log for more details",
+            )
+        except DatabandError as ex:
+            error = TaskRunError.buid_from_ex(ex, task_run)
+
+        task_state = self._get_airflow_task_instance_state(task_run=task_run)
+
+        logger.info("task airflow state: %s ", task_state)
+        if task_state == State.FAILED:
+            # let just notify the error, so we can show it in summary it
+            # we will not send it to databand tracking store
+            task_run.set_task_run_state(TaskRunState.FAILED, track=False, error=error)
+        else:
+            task_run.set_task_run_state(TaskRunState.FAILED, track=True, error=error)
+            task_run.tracker.save_task_run_log("\n".join(logs))
+
+    @provide_session
+    def _get_airflow_task_instance_state(self, task_run, session=None):
+        TI = TaskInstance
+        return (
+            session.query(TI.state)
+            .filter(
+                TI.dag_id == task_run.task.ctrl.airflow_op.dag.dag_id,
+                TI.task_id == task_run.task_af_id,
+                TI.execution_date == task_run.run.execution_date,
+            )
+            .scalar()
+        )
