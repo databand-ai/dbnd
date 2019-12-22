@@ -1,4 +1,5 @@
 import os
+import sys
 
 
 PARAM_ENV_TEMPLATE = "DBND__{S}__{K}"
@@ -31,7 +32,7 @@ DBND_RESUBMIT_RUN = "DBND_RESUBMIT_RUN"
 DBND_ENABLED = None
 
 ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
-_SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ
+_SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ or "--help" in sys.argv
 
 
 def is_shell_cmd_complete_mode():
