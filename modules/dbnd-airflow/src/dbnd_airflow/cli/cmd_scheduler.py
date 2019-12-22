@@ -41,17 +41,6 @@ def configure_airflow_scheduler_logging():
     logging.root.addHandler(airflow_console_handler)
 
 
-def configure_airflow_executor():
-    if (
-        not SQL_ALCHEMY_CONN.startswith("sqlite")
-        and airflow.executors.DEFAULT_EXECUTOR.__class__ == SequentialExecutor
-    ):
-        logger.info(
-            "Upgraded airflow executor to LocalExecutor (parallel execution) because a non-sqlite db is used"
-        )
-        airflow.executors.DEFAULT_EXECUTOR = LocalExecutor()
-
-
 def link_dropin_dbnd_scheduled_dags(sub_dir, unlink_first=True):
     if not sub_dir:
         raise Exception("Can't link scheduler: airflow's dag folder is undefined")
@@ -151,7 +140,6 @@ def scheduler(
     from daemon.pidfile import TimeoutPIDLockFile
 
     configure_airflow_scheduler_logging()
-    configure_airflow_executor()
 
     if not airflow_dags_only:
         from airflow import settings
