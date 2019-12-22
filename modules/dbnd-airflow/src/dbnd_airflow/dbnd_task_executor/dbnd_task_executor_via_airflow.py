@@ -326,12 +326,14 @@ class AirflowTaskExecutor(TaskExecutor):
                 DbndKubernetesExecutor,
             )
 
-            assert_plugin_enabled("dbnd-docker")
             self.validate_parallel_run_constrains()
-            if (
-                task_engine.task_executor_type
-                != AirflowTaskExecutorType.airflow_kubernetes
-            ):
+
+            assert_plugin_enabled("dbnd-docker")
+            from dbnd_docker.kubernetes.kubernetes_engine_config import (
+                KubernetesEngineConfig,
+            )
+
+            if not isinstance(task_engine, KubernetesEngineConfig):
                 raise friendly_error.executor_k8s.kubernetes_with_non_compatible_engine(
                     task_engine
                 )

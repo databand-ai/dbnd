@@ -133,9 +133,6 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     trap_exit_file_flag = parameter(default=None).help("trap exit file")[str]
 
-    def will_submit_by_executor(self):
-        return self.task_executor_type == AirflowTaskExecutorType.airflow_kubernetes
-
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
 

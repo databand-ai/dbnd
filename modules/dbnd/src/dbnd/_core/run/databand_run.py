@@ -30,6 +30,7 @@ from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.parameter.parameter_builder import output, parameter
+from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled, is_plugin_enabled
 from dbnd._core.run.describe_run import DescribeRun
 from dbnd._core.run.run_tracker import RunTracker
 from dbnd._core.run.target_identity_source_map import TargetIdentitySourceMap
@@ -289,6 +290,27 @@ class DatabandRun(SingletonContext):
             is_driver = True
             host_engine = self.driver_engine.clone(require_submit=False)
             target_engine = self.task_engine
+
+            if is_airflow_enabled() and is_plugin_enabled("dbnd-docker"):
+
+                from dbnd_docker.kubernetes.kubernetes_engine_config import (
+                    KubernetesEngineConfig,
+                )
+                from dbnd_airflow.executors import AirflowTaskExecutorType
+
+                if (
+                    isinstance(target_engine, KubernetesEngineConfig)
+                    and host_engine.use_airflow_kubernetes
+                ):
+                    if (
+                        host_engine.task_executor_type
+                        != AirflowTaskExecutorType.airflow_kubernetes
+                    ):
+                        logger.info("Using dedicated kubernetes executor for this run")
+                        host_engine = host_engine.clone(
+                            task_executor_type=AirflowTaskExecutorType.airflow_kubernetes
+                        )
+
             if host_engine.will_submit_by_executor():
                 target_engine = target_engine.clone(require_submit=False)
 
