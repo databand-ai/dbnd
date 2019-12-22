@@ -1,6 +1,5 @@
 import datetime
 import logging
-import math
 import subprocess
 import textwrap
 
@@ -8,6 +7,7 @@ from os import environ
 from typing import Dict, List, Optional
 
 import airflow.contrib.kubernetes.pod
+import yaml
 
 from six import PY2
 
@@ -15,24 +15,17 @@ import dbnd_docker
 
 from dbnd import parameter
 from dbnd._core.configuration.environ_config import ENV_DBND_USER
-from dbnd._core.errors import DatabandConfigError
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.settings.engine import ContainerEngineConfig
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.git import GIT_ENV
+from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.string_utils import clean_job_name_dns1123
 from dbnd._core.utils.structures import combine_mappings
 from dbnd_airflow.executors import AirflowTaskExecutorType
 from targets import target
 from targets.values.version_value import get_project_git
 
-
-SI_MEMORY_SUFFIXES = ["K", "M", "G", "T", "P", "E"]
-ISO_MEMORY_SUFFIXES = ["%si" % s for s in SI_MEMORY_SUFFIXES]
-MEMORY_SUFFIXES_WITH_BASE_AND_POWER = [
-    (ISO_MEMORY_SUFFIXES, 2, 10),
-    (SI_MEMORY_SUFFIXES, 10, 3),
-]
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +110,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     check_cluster_resource_capacity = parameter(default=True).help(
         "When a pod can't be scheduled due to cpu or memory constraints, check if the constraints are possible to satisfy in the cluster"
     )
+
+    startup_timeout = parameter(default="10m").help(
+        "Time to wait for pod getting into Running state"
+    )[datetime.timedelta]
 
     task_run_async = parameter(default=False).help(
         "When using this engine to run the task driver - exit the local dbnd process when the driver is launched instead of waiting for completion"
@@ -222,10 +219,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 
         kube_client = self.get_kube_client(in_cluster=in_cluster)
-
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
-        if self.debug:
-            kube_dbnd.launcher.log.setLevel(logging.DEBUG)
         return kube_dbnd
 
     def build_pod(self, task_run, cmds, args=None, labels=None):
@@ -338,26 +332,27 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         return result
 
+    def build_kube_pod_req(self, pod):
+        from dbnd_airflow.airflow_extensions.request_factory import (
+            DbndPodRequestFactory,
+        )
 
-def parse_kub_memory_string(memory_string):
-    """
-    https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-memory
-    :return: float value of requested bytes or None
-    """
-    if not memory_string:
-        return None
+        kube_req_factory = DbndPodRequestFactory()
+        if hasattr(pod, "pod_yaml"):
+            kube_req_factory._yaml = pod.pod_yaml
 
+        req = kube_req_factory.create(pod)
+        return req
+
+
+def readable_pod_request(pod_req):
     try:
-        for suffixes, base, power in MEMORY_SUFFIXES_WITH_BASE_AND_POWER:
-            for i, s in enumerate(suffixes, start=1):
-                if memory_string.endswith(s) or memory_string.endswith(s.lower()):
-                    return float(memory_string[: -len(s)]) * math.pow(base, power * i)
-    except ValueError as e:
-        raise DatabandConfigError("memory parse failed for %s: %s" % (memory_string, e))
-
-    raise DatabandConfigError(
-        "memory parse failed for %s: suffix not recognized" % memory_string
-    )
+        return yaml.safe_dump(pod_req, encoding="utf-8", allow_unicode=True).decode(
+            "ascii", errors="ignore"
+        )
+    except Exception as ex:
+        logger.exception("Failed to create readable pod request representation: %s", ex)
+        return dumps_safe(pod_req)
 
 
 class DbndExtendedResources(airflow.contrib.kubernetes.pod.Resources):

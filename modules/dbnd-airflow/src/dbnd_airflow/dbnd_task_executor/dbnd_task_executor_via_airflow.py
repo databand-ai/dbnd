@@ -58,7 +58,6 @@ class AirflowTaskExecutor(TaskExecutor):
         """
         called by executors, interprocess communication:  databand run_task ...
         """
-        import time
 
         # time.sleep(1000)
         log = LoggingMixin().log
@@ -337,7 +336,10 @@ class AirflowTaskExecutor(TaskExecutor):
                     task_engine
                 )
             kube_dbnd = task_engine.build_kube_dbnd()
-            return DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
+            kube_executor = DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
+            if kube_dbnd.engine_config.debug:
+                logging.getLogger("airflow.contrib.kubernetes").setLevel(logging.DEBUG)
+            return kube_executor
 
         from airflow.executors import _get_executor as _airflow_executor
 

@@ -128,6 +128,8 @@ class EngineConfig(config.Config):
         return
 
     def will_submit_by_executor(self):
+        if self.task_executor_type == "airflow_kubernetes":
+            return True
         return False
 
 

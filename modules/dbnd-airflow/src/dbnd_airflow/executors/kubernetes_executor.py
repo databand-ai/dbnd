@@ -1,25 +1,20 @@
 import logging
 import multiprocessing
 
-from queue import Empty
-
 from airflow.contrib.executors.kubernetes_executor import (
     AirflowKubernetesScheduler,
     KubeConfig,
     KubernetesExecutor,
     KubernetesJobWatcher,
 )
-from airflow.contrib.kubernetes.pod_launcher import PodLauncher
 from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.task_build.task_registry import build_task_from_config
-from dbnd_airflow.airflow_extensions.request_factory import DbndPodRequestFactory
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
-from kubernetes.client.rest import ApiException
 
 
 MAX_POD_ID_LEN = 253
@@ -111,9 +106,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.current_resource_version = 0
         self.kube_watcher = self._make_kube_watcher_dbnd()
 
-        # PATCH use dbnd client
         self.kube_dbnd = kube_dbnd
-        self.launcher = self.kube_dbnd.launcher
 
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
@@ -188,14 +181,10 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             },
         )
 
-        self.kube_dbnd.run_pod(pod, task_run=task_run)
+        self.kube_dbnd.run_pod(pod=pod, task_run=task_run, run_async=True)
 
     def delete_pod(self, pod_id):
-        if self.kube_config.delete_worker_pods and not (
-            self.kube_dbnd.engine_config.keep_failed_pods
-            and self.kube_dbnd.get_pod_state(pod_id, self.namespace) == State.FAILED
-        ):
-            super(DbndKubernetesScheduler, self).delete_pod(pod_id=pod_id)
+        return self.kube_dbnd.get_pod_ctrl(pod_id, self.namespace).delete_pod()
 
 
 class DbndKubernetesExecutor(KubernetesExecutor):
@@ -263,9 +252,10 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         if state == State.FAILED:
             try:
                 self.log.info("---printing failed pod logs----:")
-                self.kube_dbnd.stream_pod_logs_helper(
-                    pod_id, self.kube_config.kube_namespace, self.log, from_now=False
+                pod_ctrl = self.kube_dbnd.get_pod_ctrl(
+                    pod_id, self.kube_scheduler.namespace
                 )
+                pod_ctrl.stream_pod_logs(self.log, from_now=False)
             except Exception as err:
                 self.log.error(
                     "error on reading failed pod logs %s on pod %s", err, pod_id
@@ -285,30 +275,3 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             # because we convert SIGTERM to SIGINT without this you get an ugly exception in the log when
             # the executor terminates the watcher
             pass
-
-
-class DbndPodLauncher(PodLauncher):
-    def __init__(self, *args, **kwargs):
-        kube_dbnd = kwargs.pop("kube_dbnd")
-        super(DbndPodLauncher, self).__init__(*args, **kwargs)
-
-        self.kube_dbnd = kube_dbnd
-        self.resource_request_above_max_capacity_checked = False
-        self.kube_req_factory = DbndPodRequestFactory()
-
-    def _task_status(self, event):
-        # PATCH: info -> debug
-        self.log.debug(
-            "Event: %s had an event of type %s", event.metadata.name, event.status.phase
-        )
-        status = self.process_status(event.metadata.name, event.status.phase)
-        return status
-
-    def pod_not_started(self, pod):
-        v1_pod = self.read_pod(pod)
-
-        # PATCH:  validate deploy errors
-        self.kube_dbnd.check_deploy_errors(v1_pod)
-
-        state = self._task_status(v1_pod)
-        return state == State.QUEUED
