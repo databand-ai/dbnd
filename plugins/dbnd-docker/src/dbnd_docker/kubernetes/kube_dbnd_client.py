@@ -260,7 +260,7 @@ class DbndPodCtrl(object):
 
     def _phase_to_airflow_state(self, pod_phase):
         """Process phase infomration for the JOB"""
-        phase = pod_phase
+        phase = pod_phase.lower()
         from airflow.utils.state import State
 
         if phase == PodStatus.PENDING:
