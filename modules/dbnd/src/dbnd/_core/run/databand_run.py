@@ -657,7 +657,7 @@ class _DbndDriverTask(Task):
             if run.is_save_pipeline():
                 run.save_run()
 
-            with start_heartbeat_sender(run):
+            with start_heartbeat_sender(driver_task_run):
                 run.task_executor.do_run()
 
         if self.is_driver:
