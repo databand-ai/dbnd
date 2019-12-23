@@ -1,4 +1,5 @@
 import logging
+import pprint
 import time
 import typing
 
@@ -139,7 +140,7 @@ class DbndKubernetesClient(object):
         elif phase == "Succeeded":
             logger.info("Event: %s Succeeded", pod_name)
         elif phase == "Running":
-            logger.info("Event: %s is Running at %s", pod_name, pod_data.spec.nodename)
+            logger.info("Event: %s is Running", pod_name)
         else:
             logger.info(
                 "Event: Invalid state: %s on pod: %s with labels: %s with "
@@ -153,11 +154,27 @@ class DbndKubernetesClient(object):
         return phase
 
     def dbnd_set_task_pending_fail(self, pod_data, ex):
+        metadata = pod_data.metadata
+        logs = None
+
         task_run = _get_task_run_from_pod_data(pod_data)
+        if not task_run:
+            return
         from dbnd._core.task_run.task_run_error import TaskRunError
 
         task_run_error = TaskRunError.buid_from_ex(ex, task_run)
+
+        try:
+            pp = pprint.PrettyPrinter(indent=4)
+            logs = pp.pformat(pod_data.status)
+            logger.info()
+        except Exception as ex:
+            logger.error("failed to get pod status log for %s: %s", metadata.name, ex)
+        logger.info(
+            "Pod is Pending with exception, marking it as failed. Pod Status:\n%s", logs
+        )
         task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
+        task_run.tracker.save_task_run_log(logs)
 
     def dbnd_set_task_failed(self, pod_data):
         metadata = pod_data.metadata
@@ -170,13 +187,13 @@ class DbndKubernetesClient(object):
             pod_ctrl.stream_pod_logs(
                 print_func=log_printer, tail_lines=40, follow=False
             )
-        except Exception:
-            logger.exception("failed to get log")
+        except Exception as ex:
+            logger.error("failed to get log for %s: %s", metadata.name, ex)
 
         logger.debug("Getting task run")
         task_run = _get_task_run_from_pod_data(pod_data)
         if not task_run:
-            logger.info("no task run")
+            logger.info("Can't find a task run for %s", metadata.name)
             return
 
         from dbnd._core.task_run.task_run_error import TaskRunError
@@ -203,7 +220,8 @@ class DbndKubernetesClient(object):
             task_run.set_task_run_state(TaskRunState.FAILED, track=False, error=error)
         else:
             task_run.set_task_run_state(TaskRunState.FAILED, track=True, error=error)
-            task_run.tracker.save_task_run_log("\n".join(logs))
+            if logs:
+                task_run.tracker.save_task_run_log("\n".join(logs))
 
 
 class DbndPodCtrl(object):
