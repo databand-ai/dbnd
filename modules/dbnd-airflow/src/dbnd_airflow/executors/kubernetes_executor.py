@@ -24,13 +24,11 @@ from airflow.contrib.executors.kubernetes_executor import (
     KubernetesExecutor,
     KubernetesJobWatcher,
 )
-from airflow.models import KubeWorkerIdentifier, TaskInstance
+from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
-from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.errors import DatabandError
 from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
@@ -302,113 +300,45 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         for event in watcher.stream(
             kube_client.list_namespaced_pod, self.namespace, **kwargs
         ):
+            # DBND PATCH
+            # we want to process the message
             task = event["object"]
-            self.log.info(
+            self.log.debug(
                 "Event: %s had an event of type %s", task.metadata.name, event["type"]
             )
+
             if event["type"] == "ERROR":
                 return self.process_error(event)
+            status = self.kube_dbnd.process_pod_event(event)
 
-            # DBND PATCH
-            # we want to process
-            self.dbnd_process(task)
+            self.process_status_quite(
+                task.metadata.name,
+                status,
+                task.metadata.labels,
+                task.metadata.resource_version,
+            )
             last_resource_version = task.metadata.resource_version
 
         return last_resource_version
 
-    def dbnd_process(self, pod_data):
-        pod_name = pod_data.metadata.name
-        phase = pod_data.status.phase
-        if phase == "Pending":
-            self.log.info("Event: %s Pending", pod_name)
-            pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
-            try:
-                pod_ctrl.check_deploy_errors(pod_data)
-            except Exception as ex:
-                self.dbnd_set_task_pending_fail(pod_data, ex)
-                phase = "Failed"
-        elif phase == "Failed":
-            self.dbnd_set_task_failed(pod_data)
-
-        self.process_status(
-            pod_data.metadata.name,
-            phase,
-            pod_data.metadata.labels,
-            pod_data.metadata.resource_version,
-        )
-
-    def _get_task_run(self, pod_data):
-        labels = pod_data.metadata.labels
-        if "task_id" not in labels:
-            return None
-        task_id = labels["task_id"]
-
-        dr = try_get_databand_run()
-        if not dr:
-            return None
-
-        return dr.get_task_run_by_af_id(task_id)
-
-    def dbnd_set_task_pending_fail(self, pod_data, ex):
-        task_run = self._get_task_run(pod_data)
-        from dbnd._core.task_run.task_run_error import TaskRunError
-
-        task_run_error = TaskRunError.buid_from_ex(ex, task_run)
-        task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
-
-    def dbnd_set_task_failed(self, pod_data):
-        metadata = pod_data.metadata
-        logger.debug("getting failure info")
-        # noinspection PyBroadException
-        pod_ctrl = self.kube_dbnd.get_pod_ctrl(metadata.name, metadata.namespace)
-        logs = []
-        try:
-            log_printer = lambda x: logs.append(x)
-            pod_ctrl.stream_pod_logs(
-                print_func=log_printer, tail_lines=40, follow=False
-            )
-        except Exception:
-            logger.exception("failed to get log")
-
-        logger.debug("Getting task run")
-        task_run = self._get_task_run(pod_data)
-        if not task_run:
-            logger.info("no task run")
-            return
-
-        from dbnd._core.task_run.task_run_error import TaskRunError
-
-        # work around to build an error object
-        try:
-            raise DatabandError(
-                "Pod %s at %s has failed with: \n%s"
-                % (metadata.name, metadata.namespace, "\n".join(logs)),
-                show_exc_info=False,
-                help_msg="Please see full pod log for more details",
-            )
-        except DatabandError as ex:
-            error = TaskRunError.buid_from_ex(ex, task_run)
-
-        task_state = self._get_airflow_task_instance_state(task_run=task_run)
-
-        logger.info("task airflow state: %s ", task_state)
-        if task_state == State.FAILED:
-            # let just notify the error, so we can show it in summary it
-            # we will not send it to databand tracking store
-            task_run.set_task_run_state(TaskRunState.FAILED, track=False, error=error)
+    def process_status_quite(self, pod_id, status, labels, resource_version):
+        """Process status response"""
+        if status == "Pending":
+            self.log.debug("Event: %s Pending", pod_id)
+        elif status == "Failed":
+            self.log.debug("Event: %s Failed", pod_id)
+            self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))
+        elif status == "Succeeded":
+            self.log.debug("Event: %s Succeeded", pod_id)
+            self.watcher_queue.put((pod_id, None, labels, resource_version))
+        elif status == "Running":
+            self.log.debug("Event: %s is Running", pod_id)
         else:
-            task_run.set_task_run_state(TaskRunState.FAILED, track=True, error=error)
-            task_run.tracker.save_task_run_log("\n".join(logs))
-
-    @provide_session
-    def _get_airflow_task_instance_state(self, task_run, session=None):
-        TI = TaskInstance
-        return (
-            session.query(TI.state)
-            .filter(
-                TI.dag_id == task_run.task.ctrl.airflow_op.dag.dag_id,
-                TI.task_id == task_run.task_af_id,
-                TI.execution_date == task_run.run.execution_date,
+            self.log.warning(
+                "Event: Invalid state: %s on pod: %s with labels: %s with "
+                "resource_version: %s",
+                status,
+                pod_id,
+                labels,
+                resource_version,
             )
-            .scalar()
-        )

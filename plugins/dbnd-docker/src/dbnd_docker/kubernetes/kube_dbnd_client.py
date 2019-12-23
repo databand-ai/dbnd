@@ -9,9 +9,11 @@ import six
 from airflow.contrib.kubernetes.pod_launcher import PodStatus
 
 from dbnd._core.constants import TaskRunState
+from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_error
 from dbnd._core.log.logging_utils import override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
+from dbnd_airflow.airflow_extensions.dal import get_airflow_task_instance_state
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
     KubernetesEngineConfig,
@@ -113,6 +115,95 @@ class DbndKubernetesClient(object):
 
     def delete_pod(self, name, namespace):
         self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()
+
+    def process_pod_event(self, event):
+        pod_data = event["object"]
+
+        if event["type"] == "ERROR":
+            return None
+
+        pod_name = pod_data.metadata.name
+        phase = pod_data.status.phase
+        if phase == "Pending":
+            logger.info("Event: %s is Pending", pod_name)
+            pod_ctrl = self.get_pod_ctrl(name=pod_name)
+            try:
+                pod_ctrl.check_deploy_errors(pod_data)
+            except Exception as ex:
+                self.dbnd_set_task_pending_fail(pod_data, ex)
+                return "Failed"
+        elif phase == "Failed":
+            self.dbnd_set_task_failed(pod_data)
+
+            logger.info("Event: %s Failed", pod_name)
+        elif phase == "Succeeded":
+            logger.info("Event: %s Succeeded", pod_name)
+        elif phase == "Running":
+            logger.info("Event: %s is Running at %s", pod_name, pod_data.spec.nodename)
+        else:
+            logger.info(
+                "Event: Invalid state: %s on pod: %s with labels: %s with "
+                "resource_version: %s",
+                phase,
+                pod_name,
+                pod_data.metadata.labels,
+                pod_data.metadata.resource_version,
+            )
+
+        return phase
+
+    def dbnd_set_task_pending_fail(self, pod_data, ex):
+        task_run = _get_task_run_from_pod_data(pod_data)
+        from dbnd._core.task_run.task_run_error import TaskRunError
+
+        task_run_error = TaskRunError.buid_from_ex(ex, task_run)
+        task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
+
+    def dbnd_set_task_failed(self, pod_data):
+        metadata = pod_data.metadata
+        logger.debug("getting failure info")
+        # noinspection PyBroadException
+        pod_ctrl = self.get_pod_ctrl(metadata.name, metadata.namespace)
+        logs = []
+        try:
+            log_printer = lambda x: logs.append(x)
+            pod_ctrl.stream_pod_logs(
+                print_func=log_printer, tail_lines=40, follow=False
+            )
+        except Exception:
+            logger.exception("failed to get log")
+
+        logger.debug("Getting task run")
+        task_run = _get_task_run_from_pod_data(pod_data)
+        if not task_run:
+            logger.info("no task run")
+            return
+
+        from dbnd._core.task_run.task_run_error import TaskRunError
+
+        # work around to build an error object
+        try:
+            raise DatabandError(
+                "Pod %s at %s has failed with: \n%s"
+                % (metadata.name, metadata.namespace, "\n".join(logs)),
+                show_exc_info=False,
+                help_msg="Please see full pod log for more details",
+            )
+        except DatabandError as ex:
+            error = TaskRunError.buid_from_ex(ex, task_run)
+
+        task_state = get_airflow_task_instance_state(task_run=task_run)
+
+        logger.info("task airflow state: %s ", task_state)
+        from airflow.utils.state import State
+
+        if task_state == State.FAILED:
+            # let just notify the error, so we can show it in summary it
+            # we will not send it to databand tracking store
+            task_run.set_task_run_state(TaskRunState.FAILED, track=False, error=error)
+        else:
+            task_run.set_task_run_state(TaskRunState.FAILED, track=True, error=error)
+            task_run.tracker.save_task_run_log("\n".join(logs))
 
 
 class DbndPodCtrl(object):
@@ -280,3 +371,16 @@ class DbndPodCtrl(object):
         else:
             logger.info("Event: Invalid state %s on job %s", phase, self.name)
             return State.FAILED
+
+
+def _get_task_run_from_pod_data(pod_data):
+    labels = pod_data.metadata.labels
+    if "task_id" not in labels:
+        return None
+    task_id = labels["task_id"]
+
+    dr = try_get_databand_run()
+    if not dr:
+        return None
+
+    return dr.get_task_run_by_af_id(task_id)
