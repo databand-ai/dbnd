@@ -167,7 +167,7 @@ class DbndKubernetesClient(object):
         try:
             pp = pprint.PrettyPrinter(indent=4)
             logs = pp.pformat(pod_data.status)
-            logger.info()
+            logger.info(logs)
         except Exception as ex:
             logger.error("failed to get pod status log for %s: %s", metadata.name, ex)
         logger.info(
