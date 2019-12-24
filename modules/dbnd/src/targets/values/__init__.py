@@ -71,14 +71,6 @@ try:
 except ImportError:
     pass
 
-try:
-    import pyspark
-    from targets.values.spark_values import SparkDataFrameValueType
-
-    known_values.append(SparkDataFrameValueType())
-except ImportError:
-    pass
-
 # OBJECT VALUE is always the last
 known_values.append(ObjectValueType())
 
