@@ -78,15 +78,39 @@ def str_or_none(value):
     return str(value)
 
 
-def safe_short_string(value, max_value_len=1000):
-    try:
-        if value is None:
-            return value
+def safe_short_string(value, max_value_len=1000, tail=False):
+    """Returns the string limited by max_value_len parameter.
 
-        if value and len(value) > max_value_len:
-            suffix_tmp = "... (%s of %s)".format(max_value_len, len(value))
-            actual_len = max_value_len - len(suffix_tmp) - 2
-            value = "%s... (%s of %s)" % (value[:actual_len], actual_len, len(value))
+    Parameters:
+        value (str): the string to be shortened
+        max_value_len (int): max len of output
+        tail (bool): 
+    Returns:
+        str: the string limited by max_value_len parameter
+
+    >>> safe_short_string('abcdefghijklmnopqrstuvwxyz', max_value_len=20)
+    'abcdef... (6 of 26)'
+    >>> safe_short_string('abcdefghijklmnopqrstuvwxyz', max_value_len=20, tail=True)
+    '(6 of 26) ...uvwxyz'
+    >>> (safe_short_string(''), safe_short_string(None))
+    ('', None)
+    >>> safe_short_string('qwerty', max_value_len=4)
+    '... (-10 of 6)'
+    >>> safe_short_string('qwerty', max_value_len=-4)
+    '... (-18 of 6)'
+    >>> safe_short_string('qwerty', max_value_len='exception')
+    "ERROR: Failed to shorten string: '>' not supported between instances of 'int' and 'str'"
+    """
+    try:
+        if not value:
+            return value
+        if len(value) > max_value_len:
+            placeholder = "... (%s of %s)".format(max_value_len, len(value))
+            actual_len = max_value_len - len(placeholder)
+            if tail:
+                value = "(%s of %s) ...%s" % (actual_len, len(value), value[len(value)-actual_len:])
+            else:
+                value = "%s... (%s of %s)" % (value[:actual_len], actual_len, len(value))
         return value
     except Exception as ex:
         # we don't want to fail here
