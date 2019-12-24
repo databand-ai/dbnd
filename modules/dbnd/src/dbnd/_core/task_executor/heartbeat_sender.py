@@ -67,7 +67,7 @@ def start_heartbeat_sender(task_run):
 
                 try:
                     sp.wait(timeout=TERMINATE_WAIT_TIMEOUT)
-                except subprocess.TimeoutExpired:
+                except Exception:
                     logger.warning(
                         "waited %s seconds for the heartbeat sender to exit but it still hasn't exited"
                     )
