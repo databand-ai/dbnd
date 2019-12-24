@@ -34,6 +34,10 @@ class EngineConfig(config.Config):
     )[str]
 
     parallel = parameter.value(False)
+    use_airflow_kubernetes = parameter(
+        default=True,
+        description="Enable use of kubernetes executor for kubebernetes engine submission",
+    )[bool]
 
     sql_alchemy_conn = parameter(
         default=None,
@@ -128,6 +132,8 @@ class EngineConfig(config.Config):
         return
 
     def will_submit_by_executor(self):
+        if self.task_executor_type == "airflow_kubernetes":
+            return True
         return False
 
 

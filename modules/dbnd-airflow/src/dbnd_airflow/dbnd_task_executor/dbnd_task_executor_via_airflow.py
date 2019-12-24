@@ -58,7 +58,6 @@ class AirflowTaskExecutor(TaskExecutor):
         """
         called by executors, interprocess communication:  databand run_task ...
         """
-        import time
 
         # time.sleep(1000)
         log = LoggingMixin().log
@@ -327,17 +326,22 @@ class AirflowTaskExecutor(TaskExecutor):
                 DbndKubernetesExecutor,
             )
 
-            assert_plugin_enabled("dbnd-docker")
             self.validate_parallel_run_constrains()
-            if (
-                task_engine.task_executor_type
-                != AirflowTaskExecutorType.airflow_kubernetes
-            ):
+
+            assert_plugin_enabled("dbnd-docker")
+            from dbnd_docker.kubernetes.kubernetes_engine_config import (
+                KubernetesEngineConfig,
+            )
+
+            if not isinstance(task_engine, KubernetesEngineConfig):
                 raise friendly_error.executor_k8s.kubernetes_with_non_compatible_engine(
                     task_engine
                 )
-            kube_dbnd = task_engine.build_kube_dbnd()
-            return DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
+            kube_dbnd = task_engine.build_kube_dbnd(run_async=True)
+            kube_executor = DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
+            if kube_dbnd.engine_config.debug:
+                logging.getLogger("airflow.contrib.kubernetes").setLevel(logging.DEBUG)
+            return kube_executor
 
         from airflow.executors import _get_executor as _airflow_executor
 

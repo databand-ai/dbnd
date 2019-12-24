@@ -27,29 +27,25 @@ class KubernetesTaskRunCtrl(DockerRunCtrl):
         # dont' describe in local run, do it in remote run
         self.context.settings.system.describe = False
         kc = self.kubernetes_config
-        self.kube_dbnd = kc.build_kube_dbnd()
+        task_run_async = self.kubernetes_config.task_run_async
+        self.kube_dbnd = kc.build_kube_dbnd(run_async=task_run_async)
 
         cmds = shlex.split(self.task.command)
         self.pod = self.kubernetes_config.build_pod(cmds=cmds, task_run=self.task_run)
-
-        task_run_async = self.kubernetes_config.task_run_async
-
+        pod_ctrl = None
         try:
-            self.kube_dbnd.run_pod(
-                self.pod, run_async=task_run_async, task_run=self.task_run
-            )
-            final_state = self.kube_dbnd.get_pod_state(
-                self.pod.name, self.pod.namespace
-            )
+            pod_ctrl = self.kube_dbnd.run_pod(pod=self.pod, task_run=self.task_run)
+            final_state = pod_ctrl.get_airflow_state()
         except KeyboardInterrupt as ex:
             logger.info(
                 "Keyboard interrupt: stopping execution and deleting Kubernetes driver pod"
             )
-            self.on_kill()
+            if pod_ctrl:
+                pod_ctrl.delete_pod()
             raise ex
         finally:
-            if not task_run_async:
-                self.on_kill()
+            if not task_run_async and pod_ctrl:
+                pod_ctrl.delete_pod()
             self.kube_dbnd = None
 
         if task_run_async:
@@ -61,15 +57,7 @@ class KubernetesTaskRunCtrl(DockerRunCtrl):
             )
 
     def on_kill(self):
-        from airflow.utils.state import State
 
         if self.kube_dbnd and self.pod:
-            if self.kubernetes_config.delete_pods and not (
-                self.kubernetes_config.keep_failed_pods
-                and self.kube_dbnd.get_pod_state(self.pod.name, self.pod.namespace)
-                == State.FAILED
-            ):
-                logger.error("Deleting pod %s", self.pod.name)
-                self.kube_dbnd.delete_pod(self.pod)
-
+            self.kube_dbnd.delete_pod(self.pod.name, self.pod.namespace)
             self.kube_dbnd = None

@@ -172,4 +172,4 @@ class TaskRun(object):
         )
 
     def __repr__(self):
-        return "TaskRun(%s, %s)" % self.task.task_name, self.task_run_state
+        return "TaskRun(%s, %s)" % (self.task.task_name, self.task_run_state)

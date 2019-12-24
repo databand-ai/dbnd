@@ -112,6 +112,14 @@ class CoreConfig(Config):
         default=True,
     )
 
+    def _validate(self):
+        if self.tracker_url and self.tracker_url.endswith("/"):
+            logger.warning(
+                "Please fix your core.tracker_url value, "
+                "it should not containe / at the end, auto-fix has been applied."
+            )
+            self.tracker_url = self.tracker_url[:-1]
+
     def get_sql_alchemy_conn(self):
         if "api" in self.tracker and self.tracker_api == "local_db":
             return "sqlite:///" + databand_system_path("dbnd.db")
