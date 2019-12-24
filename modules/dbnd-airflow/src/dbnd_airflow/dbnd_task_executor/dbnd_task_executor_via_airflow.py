@@ -156,7 +156,12 @@ class AirflowTaskExecutor(TaskExecutor):
                 set_af_operator_doc_md(task_run, af_task)
             return root_task.dag
 
-        dag = DAG(self.run.dag_id, default_args=get_dbnd_default_args())
+        # paused is just for better clarity in the airflow ui
+        dag = DAG(
+            self.run.dag_id,
+            default_args=get_dbnd_default_args(),
+            is_paused_upon_creation=True,
+        )
         with dag:
             airflow_ops = {}
             for task_run in task_runs:
