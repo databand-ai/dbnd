@@ -31,13 +31,16 @@ def use_databand_airflow_dagbag():
 
 
 def patch_airflow_create_app():
-    logger.error("Adding support for versioned DBND DagBag")
+    logger.info("Adding support for versioned DBND DagBag")
     from airflow.www_rbac import app as airflow_app
 
     def patch_create_app(create_app_func):
         def patched_create_app(*args, **kwargs):
             from dbnd._core.configuration.dbnd_config import config
             from dbnd_airflow._plugin import configure_airflow_sql_alchemy_conn
+            from dbnd_airflow.bootstrap import _register_sqlachemy_local_dag_job
+
+            _register_sqlachemy_local_dag_job()
 
             logger.info("Setting SQL connection")
             config.load_system_configs()

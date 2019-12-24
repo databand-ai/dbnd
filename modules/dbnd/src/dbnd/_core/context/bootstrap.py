@@ -1,3 +1,4 @@
+import collections
 import logging
 import os
 import signal
@@ -89,6 +90,10 @@ def dbnd_bootstrap(unittest=False):
         from dbnd_airflow.bootstrap import airflow_bootstrap
 
         airflow_bootstrap()
+
+    if len(sys.argv) > 1 and sys.argv[1] == "scheduler":
+        # prevent pyspark from patching namedtuples - tell it that it already patched
+        collections.namedtuple.__hijack = 1
 
     register_dbnd_plugins()
 

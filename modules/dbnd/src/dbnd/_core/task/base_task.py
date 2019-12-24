@@ -201,6 +201,7 @@ class _BaseTask(object):
             elif hasattr(self, param_name):
                 new_k[param_name] = getattr(self, param_name)
 
+        new_k["task_name"] = self.task_name
         return cls(**new_k)
 
     @property
