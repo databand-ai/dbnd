@@ -16,7 +16,7 @@
 # under the License.
 
 import logging
-import multiprocessing
+import signal
 
 from airflow.contrib.executors.kubernetes_executor import (
     AirflowKubernetesScheduler,
@@ -119,7 +119,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.kube_dbnd = kube_dbnd
 
         # PATCH manage watcher
-        self._manager = multiprocessing.Manager()
+        from multiprocessing.managers import SyncManager
+
+        self._manager = SyncManager()
+        self._manager.start(mgr_init)
+
         self.watcher_queue = self._manager.Queue()
         self.current_resource_version = 0
         self.kube_watcher = self._make_kube_watcher_dbnd()
@@ -204,11 +208,22 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         return self.kube_dbnd.delete_pod(pod_id, self.namespace)
 
 
+def mgr_sig_handler(signal, frame):
+    logger.error("Kubernetes python SyncManager got SIGINT (waiting for .stop command)")
+
+
+def mgr_init():
+    signal.signal(signal.SIGINT, mgr_sig_handler)
+
+
 class DbndKubernetesExecutor(KubernetesExecutor):
     def __init__(self, kube_dbnd=None):
         # type: (DbndKubernetesExecutor, DbndKubernetesClient) -> None
         super(DbndKubernetesExecutor, self).__init__()
-        self._manager = multiprocessing.Manager()
+
+        from multiprocessing.managers import SyncManager
+
+        self._manager = SyncManager()
 
         self.kube_dbnd = kube_dbnd
         _update_airflow_kube_config(
@@ -217,6 +232,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
 
     def start(self):
         logger.info("Starting Kubernetes executor..")
+        self._manager.start(mgr_init)
 
         dbnd_run = try_get_databand_run()
         if dbnd_run:
@@ -250,8 +266,8 @@ class DbndKubernetesExecutor(KubernetesExecutor):
             self.kube_scheduler.log.setLevel(logging.DEBUG)
 
         self._inject_secrets()
-        # we don't clear kubernetes tasks from previous run
-        # self.clear_not_launched_queued_tasks()
+        self.clear_not_launched_queued_tasks()
+        self._flush_result_queue()
 
     # override - by default UpdateQuery not working failing with
     # sqlalchemy.exc.CompileError: Unconsumed column names: state
@@ -259,6 +275,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     # + we don't want to change tasks statuses - maybe they are managed by other executors
     @provide_session
     def clear_not_launched_queued_tasks(self, *args, **kwargs):
+        # we don't clear kubernetes tasks from previous run
         pass
 
     def end(self):
