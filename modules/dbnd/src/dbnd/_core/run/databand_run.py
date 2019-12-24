@@ -316,6 +316,7 @@ class DatabandRun(SingletonContext):
             local_driver_dump=local_driver_dump,
             remote_driver_root=remote_driver_root,
             driver_dump=driver_dump,
+            send_heartbeat=not self.existing_run,
         )
 
         tr = TaskRun(task=driver_task, run=self, task_engine=driver_task.host_engine)
@@ -528,6 +529,7 @@ class _DbndDriverTask(Task):
     is_driver = parameter[bool]
     is_submitter = parameter[bool]
     execution_date = parameter[datetime]
+    send_heartbeat = parameter[bool]
 
     host_engine = parameter[EngineConfig]
     target_engine = parameter[EngineConfig]
@@ -635,7 +637,10 @@ class _DbndDriverTask(Task):
             if run.is_save_pipeline():
                 run.save_run()
 
-            with start_heartbeat_sender(run):
+            if self.send_heartbeat:
+                with start_heartbeat_sender(run):
+                    run.task_executor.do_run()
+            else:
                 run.task_executor.do_run()
 
         if self.is_driver:
