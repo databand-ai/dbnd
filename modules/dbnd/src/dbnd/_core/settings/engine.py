@@ -1,5 +1,4 @@
 import logging
-import subprocess
 import sys
 import typing
 
@@ -9,7 +8,6 @@ from dbnd._core.errors.friendly_error.executor_k8s import (
     local_engine_not_accept_remote_jobs,
 )
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.parameter.validators import NonEmptyString
 from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled, is_airflow_enabled
 from dbnd._core.task import config
 from dbnd._core.task_executor.local_task_executor import LocalTaskExecutor
@@ -124,7 +122,7 @@ class EngineConfig(config.Config):
             ]
         return True
 
-    def submit_to_engine_task(self, env, task_name, args):
+    def submit_to_engine_task(self, env, task_name, args, interactive=True):
         raise local_engine_not_accept_remote_jobs(self.env, self)
 
     def prepare_for_run(self, run):
@@ -140,7 +138,7 @@ class EngineConfig(config.Config):
 class LocalMachineEngineConfig(EngineConfig):
     _conf__task_family = "local_machine"
 
-    def submit_to_engine_task(self, env, task_name, args):
+    def submit_to_engine_task(self, env, task_name, args, interactive=True):
         from dbnd.tasks.basics.shell import bash_cmd
 
         return bash_cmd.task(
@@ -150,55 +148,3 @@ class LocalMachineEngineConfig(EngineConfig):
             task_name=task_name,
             task_is_system=True,
         )
-
-
-class ContainerEngineConfig(EngineConfig):
-    require_submit = True
-    dbnd_executable = ["dbnd"]  # we should have 'dbnd' command installed in container
-    container_repository = parameter(validator=NonEmptyString()).help(
-        "Docker container registry"
-    )[str]
-    container_tag = parameter.none().help("Docker container tag")[str]
-
-    docker_build_tag = parameter.help("Auto build docker container tag").value(
-        "dbnd_build"
-    )
-    docker_build = parameter(default=True).help(
-        "Automatically build docker image. "
-        "If container_repository is unset it will be taken (along with the tag) from the docker build settings"
-    )[bool]
-    docker_build_push = parameter(default=True).help(
-        "If docker_build is enabled, controls whether the image is automatically pushed or not"
-    )
-
-    def get_docker_ctrl(self, task_run):
-        pass
-
-    @property
-    def full_image(self):
-        return "{}:{}".format(self.container_repository, self.container_tag)
-
-    def prepare_for_run(self, run):
-        # type: (DatabandRun) -> None
-        super(ContainerEngineConfig, self).prepare_for_run(run)
-
-        from dbnd_docker.submit_ctrl import prepare_docker_for_executor
-
-        # when we run at submitter - we need to update driver_engine - this one will be used to send job
-        # when we run at driver - we update task config, it will be used by task
-        # inside pod submission the fallback is always on task_engine
-
-        prepare_docker_for_executor(run, self)
-
-    def submit_to_engine_task(self, env, task_name, args):
-
-        from dbnd_docker.docker.docker_task import DockerRunTask
-
-        submit_task = DockerRunTask(
-            task_name=task_name,
-            command=subprocess.list2cmdline(args),
-            image=self.full_image,
-            docker_engine=self,
-            task_is_system=True,
-        )
-        return submit_task

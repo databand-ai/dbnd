@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 class DbndKubernetesClient(object):
-    def __init__(self, kube_client, engine_config, run_async=True):
-        # type:(DbndKubernetesClient, CoreV1Api,KubernetesEngineConfig, bool)->None
+    def __init__(self, kube_client, engine_config):
+        # type:(DbndKubernetesClient, CoreV1Api,KubernetesEngineConfig)->None
         super(DbndKubernetesClient, self).__init__()
 
         self.kube_client = kube_client
@@ -41,22 +41,34 @@ class DbndKubernetesClient(object):
 
         # will be used to low level pod interactions
         self.running_pods = {}
-        self.run_async = (
-            run_async and not engine_config.debug and not engine_config.show_pod_log
-        )
 
     def end(self):
-        if self.engine_config.delete_pods:
-            logger.info("Deleting submitted pods: %s" % self.running_pods)
-            for pod_id, pod_namespace in six.iteritems(self.running_pods):
-                self.delete_pod(pod_id, pod_namespace)
+        logger.info("Deleting submitted pods: %s" % self.running_pods)
+        for pod_id, pod_namespace in six.iteritems(self.running_pods):
+            self.delete_pod(pod_id, pod_namespace)
 
-    def run_pod(self, task_run, pod):
-        # type: (TaskRun, Pod) -> DbndPodCtrl
+    def run_pod(self, task_run, pod, detach_run=False):
+        # type: (TaskRun, Pod, bool) -> DbndPodCtrl
         # we add to running first, so we can prevent racing condition
         self.running_pods[pod.name] = pod.namespace
 
         ec = self.engine_config
+
+        detach_run = detach_run or ec.detach_run
+        if ec.show_pod_log:
+            logger.info(
+                "%s is True,  will send every docker in blocking mode",
+                ec.task_name,
+                "show_pod_logs",
+            )
+            detach_run = False
+        if ec.debug:
+            logger.info(
+                "%s is True,  will send every docker in blocking mode",
+                ec.task_name,
+                "debug",
+            )
+            detach_run = False
 
         req = self.engine_config.build_kube_pod_req(pod)
         readable_req_str = readable_pod_request(req)
@@ -97,13 +109,10 @@ class DbndKubernetesClient(object):
         #  Better to extract the deploy error checking logic out of the pod launcher and have the watcher
         #   pass an exception through the watcher queue if needed. Current airflow implementation doesn't implement that, so we will stick with the current flow
 
-        if self.run_async:
-            pass
-        else:
-            pod_ctrl.wait_for_pod_started()
-            logger.info("Pod '%s' is running, reading logs..", pod_ctrl.name)
-            pod_ctrl.stream_pod_logs(follow=True)
-            logger.info("Successfully read %s pod logs", pod_ctrl.name)
+        if detach_run:
+            return pod_ctrl
+
+        pod_ctrl.wait()
         return pod_ctrl
 
     def get_pod_ctrl(self, name, namespace=None):
@@ -185,7 +194,7 @@ class DbndKubernetesClient(object):
         try:
             log_printer = lambda x: logs.append(x)
             pod_ctrl.stream_pod_logs(
-                print_func=log_printer, tail_lines=40, follow=False
+                print_func=log_printer, tail_lines=100, follow=False
             )
         except Exception as ex:
             logger.error("failed to get log for %s: %s", metadata.name, ex)
@@ -201,8 +210,8 @@ class DbndKubernetesClient(object):
         # work around to build an error object
         try:
             raise DatabandError(
-                "Pod %s at %s has failed with: \n%s"
-                % (metadata.name, metadata.namespace, "\n".join(logs)),
+                "Pod %s at %s has failed! (15 lines of log, see more details in UI):\n%s"
+                % (metadata.name, metadata.namespace, "\n".join(logs[:15])),
                 show_exc_info=False,
                 help_msg="Please see full pod log for more details",
             )
@@ -211,13 +220,22 @@ class DbndKubernetesClient(object):
 
         task_state = get_airflow_task_instance_state(task_run=task_run)
 
-        logger.info("task airflow state: %s ", task_state)
+        logger.debug("task airflow state: %s ", task_state)
         from airflow.utils.state import State
 
         if task_state == State.FAILED:
             # let just notify the error, so we can show it in summary it
             # we will not send it to databand tracking store
             task_run.set_task_run_state(TaskRunState.FAILED, track=False, error=error)
+            logger.info(
+                "%s",
+                task_run.task.ctrl.banner(
+                    "Task %s has failed at pod %s!"
+                    % (metadata.name, task_run.task.task_name),
+                    color="red",
+                    task_run=task_run,
+                ),
+            )
         else:
             task_run.set_task_run_state(TaskRunState.FAILED, track=True, error=error)
             if logs:
@@ -232,8 +250,10 @@ class DbndPodCtrl(object):
         self.kube_client = kube_client
 
     def delete_pod(self):
-        if not self.kube_config.delete_pods:
-            logger.info("Will not delete pod '%s' due to delete_pods=False.", self.name)
+        if not self.kube_config.keep_finished_pods:
+            logger.warning(
+                "Will not delete pod '%s' due to keep_finished_pods=True.", self.name
+            )
             return
 
         from airflow.utils.state import State
@@ -242,7 +262,7 @@ class DbndPodCtrl(object):
             self.kube_config.keep_failed_pod
             and self.get_airflow_state() == State.FAILED
         ):
-            logger.info(
+            logger.warning(
                 "Keeping failed pod '%s' due to keep_failed_pods=True.", self.name
             )
             return
@@ -279,7 +299,7 @@ class DbndPodCtrl(object):
             logger.warning("failed to read pod state for %s: %s", self.name, e)
             return None
 
-    def wait_for_pod_started(self, _logger=logger):
+    def _wait_for_pod_started(self, _logger=logger):
         """
         will try to raise an exception if the pod fails to start (see DbndPodLauncher.check_deploy_errors)
         """
@@ -389,6 +409,24 @@ class DbndPodCtrl(object):
         else:
             logger.info("Event: Invalid state %s on job %s", phase, self.name)
             return State.FAILED
+
+    def wait(self):
+        """
+        Waits for pod completion
+        :return:
+        """
+        self._wait_for_pod_started()
+        logger.info("Pod '%s' is running, reading logs..", self.name)
+        self.stream_pod_logs(follow=True)
+        logger.info("Successfully read %s pod logs", self.name)
+        final_state = self.get_airflow_state()
+        from airflow.utils.state import State
+
+        if final_state != State.SUCCESS:
+            raise DatabandRuntimeError(
+                "Pod returned a failure: {state}".format(state=final_state)
+            )
+        return self
 
 
 def _get_task_run_from_pod_data(pod_data):

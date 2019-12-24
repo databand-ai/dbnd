@@ -579,8 +579,12 @@ class _DbndDriverTask(Task):
             )
 
             args = run.driver_engine.dbnd_executable + cmd_line_args
+
             root_task = run.driver_engine.submit_to_engine_task(
-                env=run.env, args=args, task_name="dbnd_submit_to_remote"
+                env=run.env,
+                args=args,
+                task_name="dbnd_submit_to_remote",
+                interactive=run.env.interactive,
             )
             return root_task
         else:

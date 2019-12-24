@@ -4,8 +4,8 @@ import logging
 
 from dbnd import parameter
 from dbnd._core.configuration.config_path import from_task_env
-from dbnd._core.settings.engine import ContainerEngineConfig
 from dbnd.tasks import Task
+from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker_ctrl import DockerRunCtrl
 
 
@@ -28,8 +28,6 @@ class DockerRunTask(Task):
     ]
 
     docker_ctrl = None  # type: DockerRunCtrl
-
-    show_logs = parameter.value(True, system=True)
 
     def _task_submit(self):
         if hasattr(self.ctrl, "airflow_op"):
