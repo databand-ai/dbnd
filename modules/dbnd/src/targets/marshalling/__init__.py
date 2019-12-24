@@ -103,20 +103,6 @@ except ImportError:
     pass
 
 
-try:
-    from pyspark import sql
-    from targets.marshalling.spark import SparkMarshaller, SparkDataFrameToCsv
-
-    MARSHALERS[sql.DataFrame] = {
-        FileFormat.txt: SparkMarshaller(fmt=FileFormat.txt),
-        FileFormat.csv: SparkDataFrameToCsv(),
-        FileFormat.json: SparkMarshaller(fmt=FileFormat.json),
-        FileFormat.parquet: SparkMarshaller(fmt=FileFormat.parquet),
-    }
-except ImportError:
-    pass
-
-
 def _marshaller_options_message(value_type, value_options, object_options):
     value_options = set(value_options.keys())
     object_options = set(object_options.keys())

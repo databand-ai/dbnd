@@ -10,3 +10,10 @@ def dbnd_setup_plugin():
 
     register_config_cls(SparkLocalConfig)
     register_config_cls(LivySparkConfig)
+
+    try:
+        from dbnd_spark.targets import register_targets
+
+        register_targets()
+    except ImportError:
+        pass
