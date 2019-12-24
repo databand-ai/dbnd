@@ -36,6 +36,7 @@ EXTRAS_REQUIRE = {
     "aws": [dbnd_package("dbnd-aws")],
     "azure": [dbnd_package("dbnd-azure")],
     "databricks": [dbnd_package("dbnd-databricks")],
+    "qubole": [dbnd_package("dbnd-qubole")],
     "gcp": [dbnd_package("dbnd-gcp")],
     "docker": [dbnd_package("dbnd-docker")],
     "k8s": [dbnd_package("dbnd-docker")],
