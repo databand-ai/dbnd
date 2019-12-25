@@ -570,7 +570,8 @@ class _DbndDriverTask(Task):
                 )
 
             # dont' describe in local run, do it in remote run
-            self.settings.system.describe = False
+            settings = self.settings
+            settings.system.describe = False
 
             cmd_line_args = (
                 ["run"]
@@ -584,7 +585,7 @@ class _DbndDriverTask(Task):
                 env=run.env,
                 args=args,
                 task_name="dbnd_submit_to_remote",
-                interactive=run.env.interactive,
+                interactive=settings.run.interactive,
             )
             return root_task
         else:
@@ -620,8 +621,11 @@ class _DbndDriverTask(Task):
             run.set_run_state(RunState.RUNNING)
         ctx.settings.git.validate_git_policy()
 
-        run.root_task = self._build_root_task(run)
+        # this is the engine we are going to send us
+        target_engine = run.task_engine if self.is_driver else run.driver_engine
+        target_engine.prepare_for_run(run)
 
+        run.root_task = self._build_root_task(run)
         # right now we run describe in local controller only, but we should do that for more
         if ctx.settings.system.describe and self.is_driver:
             run.describe_dag.describe_dag()
@@ -633,10 +637,7 @@ class _DbndDriverTask(Task):
         )
         # we need it before to mark root task
         run.add_task_runs(task_runs)
-
         run.root_task_run = run.get_task_run(run.root_task.task_id)
-
-        target_engine = run.task_engine if self.is_driver else run.driver_engine
 
         # without driver task!
         run.task_executor = self.host_engine.get_task_executor(
@@ -648,7 +649,6 @@ class _DbndDriverTask(Task):
 
         # for validation only
         run.root_task.task_dag.topological_sort()
-        target_engine.prepare_for_run(run)
         return True
 
     def run(self):

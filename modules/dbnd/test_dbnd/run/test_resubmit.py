@@ -8,3 +8,6 @@ class TestResubmit(object):
 
     def test_external_task_inmemory(self):
         dbnd_run_cmd(["dbnd_sanity_check", "--env", "local_resubmit"])
+
+    def test_external_task_interactive(self):
+        dbnd_run_cmd(["dbnd_sanity_check", "--env", "local_resubmit", "--interactive"])
