@@ -10,7 +10,7 @@ from configparser import ConfigParser
 from dbnd._core.configuration.environ_config import (
     ENV_AIRFLOW_CONFIG,
     ENV_DBND_LIB,
-    is_shell_cmd_complete_mode,
+    in_quiet_mode,
 )
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 
@@ -205,7 +205,7 @@ def _init_windows_python_path():
 
 
 def init_databand_env():
-    if is_shell_cmd_complete_mode():
+    if in_quiet_mode():
         # we should not print anything if we are in shell completion!
         import logging
 

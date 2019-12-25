@@ -3,13 +3,13 @@ import typing
 
 from typing import List
 
-from dbnd._core.settings import RunConfig
+from dbnd._core.settings import EngineConfig, RunConfig
 from dbnd._core.task_ctrl.task_dag import _TaskDagNode, all_subdags
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.task_utils import (
     calculate_friendly_task_ids,
-    set_task_ids,
     tasks_summary,
+    tasks_to_ids_set,
 )
 
 
@@ -64,10 +64,8 @@ class TaskRunsBuilder(object):
         return runnable_tasks, tasks_disabled
 
     def build_task_runs(self, run, root_task, task_engine):
-        # type: (DatabandRun, Task) -> List[TaskRun]
-        databand_context = run.context
-        s = databand_context.settings
-        s_run = s.run  # type: RunConfig
+        # type: (DatabandRun, Task, EngineConfig) -> List[TaskRun]
+        run_config = run.context.settings.run  # type: RunConfig
 
         # first, let remove all tasks explicitly marked as disabled by user
         tasks_to_run, tasks_disabled = self.get_tasks_without_disabled(root_task)
@@ -79,20 +77,23 @@ class TaskRunsBuilder(object):
 
         roots = [root_task]
         tasks_skipped = set()
-        # in case we need to run only part of the graph
-        # we mark all other tasks as skipped
-        if s_run.task or s_run.id:
-            td = root_task.ctrl.task_dag  # type: _TaskDagNode
-            if s_run.task:
-                roots = td.select_by_task_names(s_run.task, tasks=tasks_to_run)
-            elif s_run.id:
-                roots = td.select_by_task_ids(s_run.id, tasks=tasks_to_run)
+        # in case we need to run only part of the graph we mark all other tasks as skipped
+        if run_config.task or run_config.id:
+            task_dag = root_task.ctrl.task_dag  # type: _TaskDagNode
+            if run_config.task:
+                roots = task_dag.select_by_task_names(
+                    run_config.task, tasks=tasks_to_run
+                )
+            elif run_config.id:
+                roots = task_dag.select_by_task_ids(run_config.id, tasks=tasks_to_run)
+
             tasks_skipped = tasks_to_run.difference(all_subdags(roots))
+
         enabled_tasks = tasks_to_run.difference(tasks_skipped)
 
         tasks_completed = set()
         task_skipped_as_not_required = set()
-        if s_run.skip_completed:
+        if run_config.skip_completed:
             tasks_completed, task_skipped_as_not_required = find_tasks_to_skip_complete(
                 roots, enabled_tasks
             )
@@ -104,14 +105,16 @@ class TaskRunsBuilder(object):
         #         t.spark.apply_spark_cluster_policy(t)
         # bash_op = BashOperator(task_id="echo", bash_command="echo hi")
         # self.root_task.set_upstream(bash_op.task)
+
         friendly_ids = calculate_friendly_task_ids(tasks_to_run)
 
+        completed_ids = tasks_to_ids_set(tasks_completed)
+        task_skipped_as_not_required_ids = tasks_to_ids_set(
+            task_skipped_as_not_required
+        )
+        skipped_ids = tasks_to_ids_set(tasks_skipped)
+
         task_runs = []
-
-        completed_ids = set_task_ids(tasks_completed)
-        task_skipped_as_not_required_ids = set_task_ids(task_skipped_as_not_required)
-        skipped_ids = set_task_ids(tasks_skipped)
-
         for task in tasks_to_run:
             task_run = TaskRun(
                 run=run,
@@ -128,7 +131,10 @@ class TaskRunsBuilder(object):
 
             if task.task_id in skipped_ids:
                 task_run.is_skipped = True
+
             if task.task_id == root_task.task_id:
                 task_run.is_root = True
+
             task_runs.append(task_run)
+
         return task_runs

@@ -112,7 +112,7 @@ def tasks_summary(tasks):
     )
 
 
-def set_task_ids(tasks):
+def tasks_to_ids_set(tasks):
     return set(t.task_id for t in tasks)
 
 
