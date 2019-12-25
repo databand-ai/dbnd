@@ -1,5 +1,6 @@
 import logging
 import pprint
+import sys
 import time
 import typing
 
@@ -14,6 +15,7 @@ from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_error
 from dbnd._core.log.logging_utils import override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
+from dbnd._vendor.click._unicodefun import click
 from dbnd_airflow.airflow_extensions.dal import get_airflow_task_instance_state
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
@@ -43,6 +45,14 @@ class DbndKubernetesClient(object):
         self.running_pods = {}
 
     def end(self):
+        current_exception = sys.exc_info()
+        if current_exception[0] == KeyboardInterrupt:
+            confirm_delete = click.confirm(
+                "Ctrl-C Do you want to kill and delete all your job?", default=True
+            )
+            if not confirm_delete:
+                return
+
         logger.info("Deleting submitted pods: %s" % self.running_pods)
         for pod_id, pod_namespace in six.iteritems(self.running_pods):
             self.delete_pod(pod_id, pod_namespace)

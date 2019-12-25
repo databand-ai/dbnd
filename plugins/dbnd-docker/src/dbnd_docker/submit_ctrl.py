@@ -25,6 +25,7 @@ def prepare_docker_for_executor(run, docker_engine):
             "Omitting docker build due to existing container_tag=%s",
             docker_engine.container_tag,
         )
+        log_metric("container_tag", docker_engine.container_tag)
         return None
 
     config_cls = docker_engine.__class__  # type: Type[ContainerEngineConfig]
@@ -46,6 +47,7 @@ def prepare_docker_for_executor(run, docker_engine):
         ):
             _set_config(config_cls.image_pull_policy, "Never")
 
+        log_metric("docker build tag", auto_tag)
         log_metric("container_tag", auto_tag)
         docker_build = DockerBuild(
             task_name="dbnd_image_build",
