@@ -82,7 +82,7 @@ class TaskRunLogManager(TaskRunCtrl):
                 "Failed to read log (%s) for %s: %s",
                 self.local_log_file.path,
                 self.task,
-                ex
+                ex,
             )
             return None
 
@@ -100,15 +100,19 @@ class TaskRunLogManager(TaskRunCtrl):
         max_size = self.task.settings.log.send_body_to_server_max_size
         if max_size == 0:  # use 0 for unlimited
             log_preview = log_body
-        elif max_size == -1: # use -1 to disable
+        elif max_size == -1:  # use -1 to disable
             log_preview = None
         else:
-            log_preview = self._extract_log_preivew(log_body=log_body, max_size=max_size)
+            log_preview = self._extract_log_preivew(
+                log_body=log_body, max_size=max_size
+            )
         if log_preview:
             self.task_run.tracker.save_task_run_log(log_preview)
 
     def _extract_log_preivew(self, log_body=None, max_size=1000):
-        is_tail_preview = max_size > 0  # pass negative to get log's 'head' instead of 'tail'
+        is_tail_preview = (
+            max_size > 0
+        )  # pass negative to get log's 'head' instead of 'tail'
         return safe_short_string(log_body, abs(max_size), tail=is_tail_preview)
 
     @contextmanager

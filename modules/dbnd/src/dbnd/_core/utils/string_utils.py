@@ -95,9 +95,17 @@ def safe_short_string(value, max_value_len=1000, tail=False):
     >>> (safe_short_string(''), safe_short_string(None))
     ('', None)
     >>> safe_short_string('qwerty', max_value_len=4)
-    '... (-10 of 6)'
+    '... (0 of 6)'
     >>> safe_short_string('qwerty', max_value_len=-4)
-    '... (-18 of 6)'
+    '... (0 of 6)'
+    >>> safe_short_string('qwerty'*123, max_value_len=0)
+    '... (0 of 738)'
+    >>> safe_short_string('qwerty', max_value_len=4, tail=True)
+    '(0 of 6) ...'
+    >>> safe_short_string('qwerty', max_value_len=-4, tail=True)
+    '(0 of 6) ...'
+    >>> safe_short_string('qwerty'*123, max_value_len=0, tail=True)
+    '(0 of 738) ...'
     >>> safe_short_string('qwerty', max_value_len='exception')
     "ERROR: Failed to shorten string: '>' not supported between instances of 'int' and 'str'"
     """
@@ -107,10 +115,19 @@ def safe_short_string(value, max_value_len=1000, tail=False):
         if len(value) > max_value_len:
             placeholder = "... (%s of %s)".format(max_value_len, len(value))
             actual_len = max_value_len - len(placeholder)
+            actual_len = 0 if actual_len < 0 else actual_len
             if tail:
-                value = "(%s of %s) ...%s" % (actual_len, len(value), value[len(value)-actual_len:])
+                value = "(%s of %s) ...%s" % (
+                    actual_len,
+                    len(value),
+                    value[len(value) - actual_len :],
+                )
             else:
-                value = "%s... (%s of %s)" % (value[:actual_len], actual_len, len(value))
+                value = "%s... (%s of %s)" % (
+                    value[:actual_len],
+                    actual_len,
+                    len(value),
+                )
         return value
     except Exception as ex:
         # we don't want to fail here
