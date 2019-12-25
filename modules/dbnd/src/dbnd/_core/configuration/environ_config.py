@@ -34,9 +34,17 @@ DBND_ENABLED = None
 ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
 _SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ or "--help" in sys.argv
 
+# quiet mode was made for the scheduler to silence the launcher runners. Don't want this flag to propagate into the actual scheduled cmd
+ENV_DBND_QUIET = "DBND_QUIET"
+_QUIET_MODE = os.environ.pop(ENV_DBND_QUIET, None) is not None or _SHELL_COMPLETION
 
-def is_shell_cmd_complete_mode():
+
+def in_shell_cmd_complete_mode():
     return _SHELL_COMPLETION
+
+
+def in_quiet_mode():
+    return _QUIET_MODE
 
 
 def environ_enabled(variable_name, default=False):

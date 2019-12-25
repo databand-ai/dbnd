@@ -11,7 +11,11 @@ from airflow.models import BaseOperator, DagModel
 
 from dbnd import new_dbnd_context, override, task
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import DBND_RESUBMIT_RUN, DBND_RUN_UID
+from dbnd._core.configuration.environ_config import (
+    DBND_RESUBMIT_RUN,
+    DBND_RUN_UID,
+    in_quiet_mode,
+)
 from dbnd._core.configuration.scheduler_file_config_loader import (
     SchedulerFileConfigLoader,
 )
@@ -37,10 +41,10 @@ class DbndSchedulerDBDagsProvider(object):
             config.get("scheduler", "always_file_sync") or ("scheduler" in sys.argv)
         ) and not config.get("scheduler", "never_file_sync"):
             self.file_config_loader = SchedulerFileConfigLoader()
-            logger.info("scheduler file syncing active")
+            logger.debug("scheduler file syncing active")
         else:
             self.file_config_loader = None
-            logger.info("scheduler file syncing disabled")
+            logger.debug("scheduler file syncing disabled")
 
         self.refresh_interval = config.get("scheduler", "refresh_interval")
         self.default_retries = config.get("scheduler", "default_retries")
@@ -154,8 +158,12 @@ class DbndSchedulerOperator(BaseOperator):
                 LocalMachineEngineConfig.parallel: override(False),
             },
         ) as dc:
+            # disable heartbeat at this level, otherwise scheduled jobs that will run on Kubernetes will always have a heartbeat even if the actual driver
+            # sent to Kubernetes is lost down the line, which is the main purpose of the heartbeat
             dc.dbnd_run_task(
-                task_or_task_name=launcher_task, scheduled_run_info=scheduled_run_info
+                task_or_task_name=launcher_task,
+                scheduled_run_info=scheduled_run_info,
+                send_heartbeat=False,
             )
 
 
@@ -175,7 +183,8 @@ def get_dags():
         config.load_system_configs()
         dags = DbndSchedulerDBDagsProvider().get_dags()
 
-        logger.info("providing %s dags from scheduled jobs" % len(dags))
+        if not in_quiet_mode():
+            logger.info("providing %s dags from scheduled jobs" % len(dags))
         return dags
     except (DatabandConnectionException, DatabandApiError) as e:
         logger.error(str(e))

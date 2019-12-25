@@ -4,12 +4,13 @@ import os
 import signal
 import sys
 import threading
+import warnings
 
 import dbnd
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
-    is_shell_cmd_complete_mode,
+    in_quiet_mode,
     set_dbnd_unit_test_mode,
 )
 from dbnd._core.context.dbnd_project_env import (
@@ -31,6 +32,10 @@ logger = logging.getLogger(__name__)
 def _surpress_loggers():
     logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
     logging.getLogger("googleapiclient").setLevel(logging.WARN)
+
+
+def _suppress_warnings():
+    warnings.simplefilter("ignore", FutureWarning)
 
 
 # override exception hooks
@@ -75,7 +80,7 @@ def dbnd_bootstrap(unittest=False):
     if ENV_DBND_HOME not in os.environ:
         init_databand_env()
 
-    if not is_shell_cmd_complete_mode():
+    if not in_quiet_mode():
         logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
     _dbnd_exception_handling()
 
@@ -83,6 +88,7 @@ def dbnd_bootstrap(unittest=False):
         set_dbnd_unit_test_mode()
 
     _surpress_loggers()
+    _suppress_warnings()
 
     config.load_system_configs()
 

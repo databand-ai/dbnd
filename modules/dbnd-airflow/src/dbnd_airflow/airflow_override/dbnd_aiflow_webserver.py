@@ -1,6 +1,8 @@
 import logging
 import os
 
+from dbnd._core.configuration.environ_config import in_quiet_mode
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +33,8 @@ def use_databand_airflow_dagbag():
 
 
 def patch_airflow_create_app():
-    logger.info("Adding support for versioned DBND DagBag")
+    if not in_quiet_mode():
+        logger.info("Adding support for versioned DBND DagBag")
     from airflow.www_rbac import app as airflow_app
 
     def patch_create_app(create_app_func):

@@ -87,7 +87,12 @@ _is_killed = threading.Event()
 
 class DatabandRun(SingletonContext):
     def __init__(
-        self, context, task_or_task_name, run_uid=None, scheduled_run_info=None
+        self,
+        context,
+        task_or_task_name,
+        run_uid=None,
+        scheduled_run_info=None,
+        send_heartbeat=True,
     ):
         # type:(DatabandContext, Union[Task, str] , Optional[UUID], Optional[ScheduledRunInfo]) -> None
         self.context = context
@@ -199,7 +204,7 @@ class DatabandRun(SingletonContext):
         else:
             self.task_engine = self.driver_engine.clone(require_submit=False)
 
-        self.sends_heartbeat = True  # to support client backwards compatability
+        self.sends_heartbeat = send_heartbeat
 
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
@@ -314,8 +319,7 @@ class DatabandRun(SingletonContext):
             if host_engine.will_submit_by_executor():
                 target_engine = target_engine.clone(require_submit=False)
 
-        current_engine = host_engine
-        dbnd_local_root = current_engine.dbnd_local_root or self.env.dbnd_local_root
+        dbnd_local_root = host_engine.dbnd_local_root or self.env.dbnd_local_root
         run_folder_prefix = self.run_folder_prefix
 
         local_driver_root = dbnd_local_root.folder(run_folder_prefix)
@@ -338,7 +342,7 @@ class DatabandRun(SingletonContext):
             local_driver_dump=local_driver_dump,
             remote_driver_root=remote_driver_root,
             driver_dump=driver_dump,
-            send_heartbeat=not self.existing_run,
+            send_heartbeat=is_driver and self.sends_heartbeat,
         )
 
         tr = TaskRun(task=driver_task, run=self, task_engine=driver_task.host_engine)
