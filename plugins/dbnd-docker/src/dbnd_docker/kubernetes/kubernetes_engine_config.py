@@ -14,15 +14,21 @@ from six import PY2
 import dbnd_docker
 
 from dbnd import parameter
-from dbnd._core.configuration.environ_config import ENV_DBND_USER
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND__ENV_IMAGE,
+    ENV_DBND__ENV_MACHINE,
+    ENV_DBND_USER,
+    environ_enabled,
+)
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
-from dbnd._core.settings.engine import ContainerEngineConfig
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.git import GIT_ENV
 from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.string_utils import clean_job_name_dns1123
 from dbnd._core.utils.structures import combine_mappings
 from dbnd_airflow.executors import AirflowTaskExecutorType
+from dbnd_docker.container_engine_config import ContainerEngineConfig
+from dbnd_docker.docker.docker_task import DockerRunTask
 from targets import target
 from targets.values.version_value import get_project_git
 
@@ -31,6 +37,8 @@ logger = logging.getLogger(__name__)
 
 ENV_DBND_POD_NAME = "DBND__POD_NAME"
 ENV_DBND_POD_NAMESPACE = "DBND__POD_NAMESPACE"
+ENV_DBND_DOCKER_IMAGE = "DBND__DOCKER_IMAGE"
+ENV_DBND_AUTO_REMOVE_POD = "DBND__AUTO_REMOVE_POD"
 
 
 class KubernetesEngineConfig(ContainerEngineConfig):
@@ -53,10 +61,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     )
 
     image_pull_secrets = parameter.none().help("Secret to use for image pull")[str]
-    delete_pods = parameter.none().help("Delete pods once completion")[bool]
-    keep_failed_pods = parameter(default=True).help(
-        "Don't delete failed pods, even if the delete_pods flag is true"
+    keep_finished_pods = parameter(default=False).help(
+        "Don't delete pods on completion"
     )[bool]
+    keep_failed_pods = parameter(default=False).help("Don't delete failed pods")[bool]
 
     namespace = parameter(default="default")[str]
     secrets = parameter(empty_default=True).help(
@@ -115,10 +123,6 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         "Time to wait for pod getting into Running state"
     )[datetime.timedelta]
 
-    task_run_async = parameter(default=False).help(
-        "When using this engine to run the task driver - exit the local dbnd process when the driver is launched instead of waiting for completion"
-    )
-
     dashboard_url = parameter(default=None).help(
         "skeleton url to display as kubernetes dashboard"
     )[str]
@@ -132,15 +136,36 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     )[str]
 
     trap_exit_file_flag = parameter(default=None).help("trap exit file")[str]
+    auto_remove = parameter(
+        default=False,
+        description="Auto-removal of the pod when container has finished.",
+    )[bool]
+    detach_run = parameter(
+        default=False, description="Submit run only, do not wait for it completion."
+    )[bool]
 
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
 
         if self.debug:
-            logger.info("Running in debug mode, setting all k8s loggers to debug")
+            logger.warning(
+                "Running in debug mode, setting all k8s loggers to debug, waiting for every pod completion!"
+            )
             import airflow.contrib.kubernetes
 
             set_module_logging_to_debug([dbnd_docker, airflow.contrib.kubernetes])
+            self.detach_run = False
+        if self.show_pod_log:
+            logger.warning(
+                "Showing pod logs at runtime, waiting for every pod completion!"
+            )
+            self.detach_run = False
+        if self.auto_remove and not self.detach_run:
+            logger.warning(
+                "Can't auto remove pod if not running from detach_run=True mode, "
+                "switching to auto_remove=False"
+            )
+            self.auto_remove = False
 
     def get_docker_ctrl(self, task_run):
         from dbnd_docker.kubernetes.kubernetes_task_run_ctrl import (
@@ -149,12 +174,28 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         return KubernetesTaskRunCtrl(task_run=task_run)
 
+    def submit_to_engine_task(self, env, task_name, args, interactive=True):
+        docker_engine = self
+        if not interactive:
+            docker_engine = docker_engine.clone(auto_remove=True, detach_run=True)
+        return DockerRunTask(
+            task_name=task_name,
+            command=subprocess.list2cmdline(args),
+            image=self.full_image,
+            docker_engine=docker_engine,
+            task_is_system=True,
+        )
+
     def cleanup_after_run(self):
-        if not self.task_run_async:
-            return
         # this run was submitted by task_run_async - we need to cleanup ourself
+        if not environ_enabled(ENV_DBND_AUTO_REMOVE_POD):
+            return
         if ENV_DBND_POD_NAME in environ and ENV_DBND_POD_NAMESPACE in environ:
             try:
+                logger.warning(
+                    "Auto deleteing pod as accordingly to '%s' env variable"
+                    % ENV_DBND_AUTO_REMOVE_POD
+                )
                 kube_dbnd = self.build_kube_dbnd()
                 kube_dbnd.delete_pod(
                     name=environ[ENV_DBND_POD_NAME],
@@ -162,6 +203,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                 )
             except Exception as e:
                 logger.warning("Tried to delete this pod but failed: %s" % e)
+        else:
+            logger.warning(
+                "Auto deleting pod as set, but pod name and pod namespace is not defined"
+            )
 
     def get_dashboard_link(self, pod):
         if not self.dashboard_url:
@@ -208,13 +253,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             Configuration.set_default(configuration)
         return client.CoreV1Api()
 
-    def build_kube_dbnd(self, in_cluster=None, run_async=True):
+    def build_kube_dbnd(self, in_cluster=None):
         from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 
         kube_client = self.get_kube_client(in_cluster=in_cluster)
-        kube_dbnd = DbndKubernetesClient(
-            kube_client=kube_client, engine_config=self, run_async=run_async
-        )
+        kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 
     def build_pod(self, task_run, cmds, args=None, labels=None):
@@ -240,20 +283,23 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             limit_memory=self.limit_memory,
             limit_cpu=self.limit_cpu,
         )
-        env_vars = combine_mappings(
-            {
-                ENV_DBND_POD_NAME: pod_name,
-                ENV_DBND_POD_NAMESPACE: self.namespace,
-                ENV_DBND_USER: task_run.task_run_env.user,
-            },
-            self.env_vars,
-        )
-        env_vars.update(
-            self._params.to_env_map("container_repository", "container_tag")
-        )
+        env_vars = {
+            ENV_DBND_POD_NAME: pod_name,
+            ENV_DBND_POD_NAMESPACE: self.namespace,
+            ENV_DBND_USER: task_run.task_run_env.user,
+            ENV_DBND__ENV_IMAGE: self.full_image,
+            ENV_DBND__ENV_MACHINE: "%s at %s" % (pod_name, self.namespace),
+        }
+        if self.auto_remove:
+            env_vars[ENV_DBND_AUTO_REMOVE_POD] = "True"
         env_vars[self._params.get_param_env_key("in_cluster")] = "True"
         env_vars["AIRFLOW__KUBERNETES__IN_CLUSTER"] = "True"
         env_vars[GIT_ENV] = get_project_git()  # git repo not packaged in docker image
+        env_vars.update(
+            self._params.to_env_map("container_repository", "container_tag")
+        )
+
+        env_vars.update(self.env_vars)
         env_vars.update(task_run.run.get_context_spawn_env())
 
         secrets = self.get_secrets()

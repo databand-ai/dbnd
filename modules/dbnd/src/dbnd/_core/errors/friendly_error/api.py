@@ -8,7 +8,7 @@ def api_connection_refused(connection_details, ex):
         nested_exceptions=[ex],
         help_msg="1. Please check that databand server is up and accessible from client side.\n"
         "2. If you want to use databand in local mode with no server, "
-        "please uncomment 'trackr_api = db' on configuration.",
+        "please set core.tracker_api=db at configuration file or cli ( '--set core.tracker.api=db' )",
     )
 
 

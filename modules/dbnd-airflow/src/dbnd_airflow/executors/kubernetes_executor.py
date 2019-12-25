@@ -85,8 +85,6 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
     if ec.annotations is not None:
         airflow_kube_config.kube_annotations.update(ec.annotations)
 
-    if ec.delete_pods is not None:
-        airflow_kube_config.delete_worker_pods = ec.delete_pods
     if ec.pods_creation_batch_size is not None:
         airflow_kube_config.worker_pods_creation_batch_size = (
             ec.pods_creation_batch_size
@@ -202,7 +200,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             },
         )
 
-        self.kube_dbnd.run_pod(pod=pod, task_run=task_run)
+        self.kube_dbnd.run_pod(pod=pod, task_run=task_run, detach_run=True)
 
     def delete_pod(self, pod_id):
         return self.kube_dbnd.delete_pod(pod_id, self.namespace)

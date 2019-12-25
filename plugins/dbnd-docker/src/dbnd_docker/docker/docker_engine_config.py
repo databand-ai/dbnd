@@ -3,7 +3,7 @@ import logging
 from typing import Dict, List
 
 from dbnd import parameter
-from dbnd._core.settings.engine import ContainerEngineConfig
+from dbnd_docker.container_engine_config import ContainerEngineConfig
 
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class DockerEngineConfig(ContainerEngineConfig):
     ).value("unix://var/run/docker.sock")
 
     auto_remove = parameter(
-        description=" Auto-removal of the container on daemon side when the container's process exits."
+        description="Auto-removal of the container on daemon side when the container's process exits."
     ).value(False)
     force_pull = parameter(
         description="Pull the docker image on every run. Default is False."
