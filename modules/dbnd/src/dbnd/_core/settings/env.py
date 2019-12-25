@@ -63,11 +63,6 @@ class EnvConfig(Config):
         "docker"
     )
 
-    interactive = parameter(
-        default=False,
-        description="When submitting driver to remote execution keep tracking of submitted process and wait for completion",
-    )[bool]
-
     def _initialize(self):
         super(EnvConfig, self)._initialize()
         self.dbnd_root = self.dbnd_root or self.root.folder("dbnd")

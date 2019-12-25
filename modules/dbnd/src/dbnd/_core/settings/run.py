@@ -64,3 +64,8 @@ class RunConfig(config.Config):
     enable_concurent_sqlite = parameter(
         description="Enable concurrent execution with sqlite db (use only for debug!)"
     ).value(False)
+
+    interactive = parameter(
+        default=False,
+        description="When submitting driver to remote execution keep tracking of submitted process and wait for completion",
+    )[bool]

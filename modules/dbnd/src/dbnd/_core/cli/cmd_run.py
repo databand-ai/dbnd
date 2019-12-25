@@ -75,7 +75,7 @@ def build_dynamic_task(original_cls, new_cls_name):
     multiple=True,
     autocompletion=completer.root_param(),
 )
-@click.option("--verbose", "-v", is_flag=True, help="Make logging output more verbose")
+@click.option("--verbose", "-v", count=True, help="Make logging output more verbose")
 @click.option("--describe", is_flag=True, help="Describe current run")
 @click.option(
     "--env",
@@ -113,6 +113,7 @@ def build_dynamic_task(original_cls, new_cls_name):
     help="For use when setting scheduled-job-name",
     type=click.DateTime(),
 )
+@click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.pass_context
 def run(
     ctx,
@@ -136,6 +137,7 @@ def run(
     alternative_task_name,
     scheduled_job_name,
     scheduled_date,
+    interactive,
 ):
     """
     Run a task or a DAG
@@ -151,7 +153,7 @@ def run(
     # --verbose, --describe, --env, --parallel, --conf-file and --project-name
     main_switches = dict(
         databand=dict(
-            verbose=verbose,
+            verbose=verbose > 0,
             describe=describe,
             env=env,
             parallel=parallel,
@@ -193,10 +195,19 @@ def run(
         cmd_line_config.update(
             _parse_cli(_overrides, source="--set-override", override=True)
         )
+    if interactive:
+        cmd_line_config.update(
+            _parse_cli([{"run.interactive": True}], source="--interactive")
+        )
+    if verbose > 1:
+        cmd_line_config.update(
+            _parse_cli([{"task_build.verbose": True}], source="-v -v")
+        )
 
     if cmd_line_config:
-        logger.debug("CLI config: \n%s", pformat_config_store_as_table(cmd_line_config))
         config.set_values(cmd_line_config, source="cmdline")
+    if verbose:
+        logger.info("CLI config: \n%s", pformat_config_store_as_table(cmd_line_config))
 
     # double checking on bootstrap, as we can run from all kind of locations
     # usually we should be bootstraped already as we run from cli.
@@ -269,6 +280,9 @@ def print_help(ctx, task_cls):
 
 
 def _parse_cli(configs, source, override=False):
+    """
+    Parse every item in configs , joining them into one big ConfigStore
+    """
     config_values_list = [
         parse_and_build_config_store(
             config_values=c, source=source, override=override, auto_section_parse=True

@@ -23,12 +23,13 @@ logger = logging.getLogger(__name__)
 # backward compatibility where code is old and docker image is new
 class AliasedGroup(DYMGroup):
     def get_command(self, ctx, cmd_name):
-        cmd_name = {
+        known_aliases = {
             "init_project": "project-init",
             "initdb": "db init",
             "create_user": "db user-create",
             "run_remote": "run",
-        }.get(cmd_name, cmd_name)
+        }
+        cmd_name = known_aliases.get(cmd_name, cmd_name)
 
         return super(AliasedGroup, self).get_command(ctx, cmd_name)
 
@@ -59,8 +60,6 @@ cli.add_command(send_heartbeat)
 
 
 def main():
-    from dbnd._core.context.bootstrap import dbnd_bootstrap
-
     configure_basic_logging(None)
     register_dbnd_plugins()
 

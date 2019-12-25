@@ -20,6 +20,7 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND_USER,
     environ_enabled,
 )
+from dbnd._core.errors import DatabandConfigError
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.git import GIT_ENV
@@ -322,8 +323,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             cmds = ["/bin/bash", "-c"]
 
         if not self.container_tag:
-            raise Exception(
-                "Your container tag is None, please check your configuration"
+            raise DatabandConfigError(
+                "Your container tag is None, please check your configuration",
+                help_msg="Container tag should be assigned",
             )
 
         pod = Pod(
