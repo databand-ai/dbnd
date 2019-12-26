@@ -33,7 +33,6 @@ from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
-
 MAX_POD_ID_LEN = 253
 
 logger = logging.getLogger(__name__)
@@ -125,6 +124,9 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.watcher_queue = self._manager.Queue()
         self.current_resource_version = 0
         self.kube_watcher = self._make_kube_watcher_dbnd()
+        # will be used to low level pod interactions
+        self.running_pods = {}
+
 
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
@@ -200,11 +202,23 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             },
         )
 
-        self.kube_dbnd.run_pod(pod=pod, task_run=task_run, detach_run=True)
+        pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
+        self.running_pods[pod.name] = self.namespace
+        pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
 
     def delete_pod(self, pod_id):
+        self.running_pods.pop(pod_id, None)
         return self.kube_dbnd.delete_pod(pod_id, self.namespace)
 
+    def terminate(self):
+
+        logger.info("Deleting submitted pods: %s" % self.running_pods)
+        for pod_name in list(self.running_pods.keys()):
+            try:
+                self.delete_pod(pod_name)
+            except Exception:
+                logger.exception("Failed to terminate pod %s", pod_name)
+        super(DbndKubernetesScheduler, self).terminate()
 
 def mgr_sig_handler(signal, frame):
     logger.error("Kubernetes python SyncManager got SIGINT (waiting for .stop command)")
@@ -275,10 +289,6 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     def clear_not_launched_queued_tasks(self, *args, **kwargs):
         # we don't clear kubernetes tasks from previous run
         pass
-
-    def end(self):
-        self.kube_dbnd.end()
-        super(DbndKubernetesExecutor, self).end()
 
 
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
