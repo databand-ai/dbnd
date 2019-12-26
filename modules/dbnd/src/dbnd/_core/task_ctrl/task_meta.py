@@ -15,7 +15,6 @@ from dbnd._core.task_build.task_signature import (
 )
 from dbnd._core.utils.platform.windows_compatible.getuser import dbnd_getuser
 
-from dbnd._core.configuration.dbnd_config import config
 
 if TYPE_CHECKING:
     from dbnd import Task

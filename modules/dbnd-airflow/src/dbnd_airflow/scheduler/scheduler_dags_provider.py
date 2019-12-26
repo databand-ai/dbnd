@@ -21,7 +21,7 @@ from dbnd._core.configuration.scheduler_file_config_loader import (
 )
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
-from dbnd._core.settings.engine import LocalMachineEngineConfig
+from dbnd._core.settings import RunConfig
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import convert_to_utc
@@ -152,10 +152,8 @@ class DbndSchedulerOperator(BaseOperator):
         with new_dbnd_context(
             name="airflow",
             conf={
-                LocalMachineEngineConfig.task_executor_type: override(
-                    TaskExecutorType.local
-                ),
-                LocalMachineEngineConfig.parallel: override(False),
+                RunConfig.task_executor_type: override(TaskExecutorType.local),
+                RunConfig.parallel: override(False),
             },
         ) as dc:
             # disable heartbeat at this level, otherwise scheduled jobs that will run on Kubernetes will always have a heartbeat even if the actual driver

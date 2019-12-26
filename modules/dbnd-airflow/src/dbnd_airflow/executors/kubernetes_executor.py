@@ -33,6 +33,7 @@ from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
+
 MAX_POD_ID_LEN = 253
 
 logger = logging.getLogger(__name__)
@@ -127,7 +128,6 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         # will be used to low level pod interactions
         self.running_pods = {}
 
-
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
         # of the resource version while we need to store a sperate value for every kubernetes executor (because even in a basic flow
@@ -219,6 +219,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             except Exception:
                 logger.exception("Failed to terminate pod %s", pod_name)
         super(DbndKubernetesScheduler, self).terminate()
+
 
 def mgr_sig_handler(signal, frame):
     logger.error("Kubernetes python SyncManager got SIGINT (waiting for .stop command)")

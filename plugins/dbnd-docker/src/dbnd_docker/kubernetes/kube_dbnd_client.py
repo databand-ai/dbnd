@@ -2,12 +2,11 @@ import logging
 import pprint
 import time
 import typing
+
 from datetime import datetime
 from typing import Optional
 
 from airflow.contrib.kubernetes.pod_launcher import PodStatus
-from kubernetes import client
-from kubernetes.client.rest import ApiException
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
@@ -20,6 +19,9 @@ from dbnd_docker.kubernetes.kubernetes_engine_config import (
     KubernetesEngineConfig,
     readable_pod_request,
 )
+from kubernetes import client
+from kubernetes.client.rest import ApiException
+
 
 if typing.TYPE_CHECKING:
     from airflow.contrib.kubernetes.pod import Pod

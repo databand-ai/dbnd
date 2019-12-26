@@ -21,8 +21,8 @@ class TestGcpK8sFlow(object):
         with new_dbnd_context(
             conf={
                 DatabandSystemConfig.env: "gcp_k8s",
-                EnvConfig.driver_engine: "local_engine",
-                EnvConfig.task_engine: "gcp_k8s_engine",
+                EnvConfig.local_engine: "local_engine",
+                EnvConfig.remote_engine: "gcp_k8s_engine",
                 KubernetesEngineConfig.debug: True,
             }
         ):

@@ -309,9 +309,9 @@ class AirflowTaskExecutor(TaskExecutor):
     def _get_airflow_executor(self):
         """Creates a new instance of the configured executor if none exists and returns it"""
 
-        task_executor_type = self.task_executor_type
+        task_executor_type = self.run.task_executor_type
+        parallel = self.run.parallel
         task_engine = self.target_engine
-        parallel = self.host_engine.parallel
 
         if task_executor_type == AirflowTaskExecutorType.airflow_inprocess:
             if parallel:

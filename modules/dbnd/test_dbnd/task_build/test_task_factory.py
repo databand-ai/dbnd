@@ -3,6 +3,7 @@ import logging
 from dbnd import new_dbnd_context
 from test_dbnd.factories import TTask, ttask_simple
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -13,7 +14,9 @@ class TestTaskMetaBuild(object):
             assert task.t_param == "test_driver"
 
     def test_sign_by_task_code_build(self):
-        with new_dbnd_context(conf={"task_build": {"sign_with_full_qualified_name": "True"}}):
+        with new_dbnd_context(
+            conf={"task_build": {"sign_with_full_qualified_name": "True"}}
+        ):
             task = TTask()
             assert str(TTask.__module__) in task.task_meta.task_signature_source
 

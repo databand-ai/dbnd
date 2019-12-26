@@ -24,7 +24,6 @@ class TaskExecutor(RunCtrl):
         self.host_engine = host_engine
         self.target_engine = target_engine
         self.task_runs = task_runs
-        self.task_executor_type = host_engine.task_executor_type
 
     @contextlib.contextmanager
     def prepare_run(self):

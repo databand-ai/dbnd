@@ -1,6 +1,7 @@
 import logging
 import typing
 import uuid
+
 from typing import Optional
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from dbnd._core.utils.basics.load_python_module import load_python_module, run_u
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.timezone import utcnow
 from targets.target_config import FileFormat
+
 
 if typing.TYPE_CHECKING:
     from typing import ContextManager
@@ -85,6 +87,7 @@ class DatabandContext(SingletonContext):
         # we can't initialize settings without having self defined as context
         # we assign real object only in _on_enter, however it's great for auto completion
         from dbnd._core.settings import DatabandSettings
+
         self.settings = None  # type: DatabandSettings
 
         # we are going to catch all airflow native operators via this Dag if airflow is enabled

@@ -56,7 +56,7 @@ class TrackingInfoBuilder(object):
             cmd_name=context.name,
             env_name=env.name,
             cloud_type=env.cloud_type,
-            driver_name=env.driver_engine,
+            driver_name=run.remote_engine.task_name,
             # move to task
             target_date=task.task_target_date,
             version=task.task_version,

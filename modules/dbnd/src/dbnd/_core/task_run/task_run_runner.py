@@ -1,6 +1,7 @@
 import logging
 import time
 import typing
+
 from collections import defaultdict
 
 from dbnd._core.configuration.dbnd_config import config
@@ -14,6 +15,7 @@ from dbnd._core.utils import json_utils
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import flatten, traverse_to_str
+
 
 if typing.TYPE_CHECKING:
     from dbnd import Task
@@ -114,10 +116,13 @@ class TaskRunRunner(TaskRunCtrl):
                 try:
                     if task._conf_confirm_on_kill_msg:
                         from dbnd._vendor import click
+
                         if click.confirm(task._conf_confirm_on_kill_msg, default=True):
                             task.on_kill()
                         else:
-                            logger.warning("Task is not killed accordingly to user input!")
+                            logger.warning(
+                                "Task is not killed accordingly to user input!"
+                            )
                     else:
                         task.on_kill()
                 except Exception:

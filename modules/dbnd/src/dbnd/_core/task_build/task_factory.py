@@ -1,5 +1,6 @@
 import logging
 import typing
+
 from typing import Any, List, Type
 
 from more_itertools import unique_everseen
@@ -36,6 +37,7 @@ from dbnd._core.utils.basics.text_banner import safe_string
 from targets import target
 from targets.target_config import parse_target_config
 
+
 if typing.TYPE_CHECKING:
     from dbnd._core.task.base_task import _BaseTask
     from dbnd._core.settings import EnvConfig
@@ -47,6 +49,7 @@ logger = logging.getLogger(__name__)
 
 class TaskFactoryConfig(object):
     """(Advanced) Databand's core task builder"""
+
     _conf__task_family = "task_build"
 
     def __init__(self, verbose, sign_with_full_qualified_name, sign_with_task_code):
@@ -62,8 +65,9 @@ class TaskFactoryConfig(object):
         return cls(
             verbose=_b("verbose"),
             sign_with_full_qualified_name=_b("sign_with_full_qualified_name"),
-            sign_with_task_code=_b("sign_with_task_code")
+            sign_with_task_code=_b("sign_with_task_code"),
         )
+
 
 class TaskFactory(object):
     """
