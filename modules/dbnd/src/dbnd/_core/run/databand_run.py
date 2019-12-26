@@ -4,14 +4,13 @@ import os
 import sys
 import threading
 import typing
-
 from datetime import datetime
 from typing import Any, ContextManager, Iterator, Optional, Union
 from uuid import UUID
 
 import six
-
 from cloudpickle import cloudpickle
+
 from dbnd._core.configuration.environ_config import (
     DBND_PARENT_TASK_RUN_UID,
     DBND_RESUBMIT_RUN,
@@ -55,7 +54,6 @@ from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
 from targets import FileTarget, Target
 from targets.caching import TARGET_CACHE
-
 
 if typing.TYPE_CHECKING:
     from uuid import UUID
@@ -593,6 +591,8 @@ class _DbndDriverTask(Task):
                 task_name="dbnd_submit_to_remote",
                 interactive=settings.run.interactive,
             )
+            root_task._conf_confirm_on_kill_msg = "Ctrl-C Do you want to kill your submitted pipeline?" \
+                                                  "If selection is 'no', this process will detach from the run."
             return root_task
         else:
             if run.root_task:

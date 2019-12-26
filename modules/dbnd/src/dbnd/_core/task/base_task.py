@@ -22,7 +22,6 @@ See :doc:`/tasks` for an overview.
 """
 import logging
 import typing
-
 from typing import Dict, Optional
 
 import six
@@ -37,7 +36,6 @@ from dbnd._core.task_ctrl.task_auto_values import TaskAutoParamsReadWrite
 from dbnd._core.task_ctrl.task_meta import TaskMeta
 from dbnd._core.task_ctrl.task_parameters import TaskParameters
 from dbnd._core.utils.basics.nothing import NOTHING
-
 
 logger = logging.getLogger(__name__)
 
@@ -60,13 +58,13 @@ class _BaseTask(object):
     # stores call spec for the @task definition
     _conf__decorator_spec = None  # type: Optional[_TaskDecoratorSpec]
 
-    _conf__tracked = True
-    _conf__no_child_params = False
+    _conf__tracked = True  # track task changes with TrackingStore
+    _conf__no_child_params = False  # disable child scope params
+    _conf_auto_read_params = True  # enables autoread of params.
+    _conf_confirm_on_kill_msg = None  # get user confirmation on task kill if not empty
 
     _conf__require_run_dump_file = False
 
-    # this one enables the autoread.
-    _conf_auto_read_params = True
     # this is the state of autoread
     _task_auto_read_original = None
     _task_auto_read = None

@@ -40,10 +40,7 @@ class DockerRunTask(Task):
         self.docker_ctrl = self.docker_engine.get_docker_ctrl(
             self.current_task_run
         )  # type: DockerRunCtrl
-        try:
-            self.docker_ctrl.docker_run()
-        finally:
-            self.docker_ctrl = None
+        self.docker_ctrl.docker_run()
 
     def _should_resubmit(self, task_run):
         """

@@ -45,14 +45,6 @@ class DbndKubernetesClient(object):
         self.running_pods = {}
 
     def end(self):
-        current_exception = sys.exc_info()
-        if current_exception[0] == KeyboardInterrupt:
-            confirm_delete = click.confirm(
-                "Ctrl-C Do you want to kill and delete all your job?", default=True
-            )
-            if not confirm_delete:
-                return
-
         logger.info("Deleting submitted pods: %s" % self.running_pods)
         for pod_id, pod_namespace in six.iteritems(self.running_pods):
             self.delete_pod(pod_id, pod_namespace)
