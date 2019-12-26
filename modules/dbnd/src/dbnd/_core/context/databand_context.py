@@ -1,18 +1,14 @@
 import logging
 import typing
 import uuid
-
 from typing import Optional
 from uuid import UUID
-
-import dbnd
 
 from dbnd._core.configuration.config_readers import read_from_config_files
 from dbnd._core.configuration.config_store import ConfigMergeSettings
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import in_quiet_mode, is_unit_test_mode
 from dbnd._core.context.bootstrap import dbnd_bootstrap
-from dbnd._core.context.dbnd_project_env import _env_banner
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.log.config import configure_logging_dictConfig, get_dbnd_logging_config
 from dbnd._core.plugin.dbnd_plugins import pm
@@ -20,14 +16,12 @@ from dbnd._core.run.databand_run import DatabandRun, new_databand_run
 from dbnd._core.settings import DatabandSystemConfig, OutputConfig, RunInfoConfig
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_instance_cache import TaskInstanceCache
-from dbnd._core.task_build.task_registry import DbndTaskRegistry, get_task_registry
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.load_python_module import load_python_module, run_user_func
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.timezone import utcnow
 from targets.target_config import FileFormat
-
 
 if typing.TYPE_CHECKING:
     from typing import ContextManager
@@ -91,7 +85,6 @@ class DatabandContext(SingletonContext):
         # we can't initialize settings without having self defined as context
         # we assign real object only in _on_enter, however it's great for auto completion
         from dbnd._core.settings import DatabandSettings
-
         self.settings = None  # type: DatabandSettings
 
         # we are going to catch all airflow native operators via this Dag if airflow is enabled

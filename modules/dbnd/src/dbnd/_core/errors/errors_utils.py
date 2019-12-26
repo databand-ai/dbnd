@@ -13,16 +13,12 @@ logger = logging.getLogger(__name__)
 _inner_call_functions_regexp = re.compile(
     "|".join(
         [
-            r"databand/errors/errors_utils",
-            r"databand/core/task_build/task_metaclass",
-            r"databand/core/decorator/func_task_decorator",
-            r"databand/core/failures",
+            r"errors/errors_utils",
+            r"_core/task_build",
+            r"_core/decorator",
+            r"_core/failures",
         ]
     )
-)
-
-_inner_call_task_build_regexp = re.compile(
-    r"databand/core/task_build/root_task_builder"
 )
 
 

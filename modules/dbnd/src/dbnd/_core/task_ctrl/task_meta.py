@@ -15,6 +15,7 @@ from dbnd._core.task_build.task_signature import (
 )
 from dbnd._core.utils.platform.windows_compatible.getuser import dbnd_getuser
 
+from dbnd._core.configuration.dbnd_config import config
 
 if TYPE_CHECKING:
     from dbnd import Task
@@ -138,7 +139,6 @@ class TaskMeta(object):
     def initialize_task_id(self, params=None):
         name = self.task_name
         extra = {}
-        dc = self.dbnd_context
         if config.getboolean("task_build", "sign_with_full_qualified_name"):
             extra["full_task_family"] = self.task_definition.full_task_family
         if config.getboolean("task_build", "sign_with_task_code"):

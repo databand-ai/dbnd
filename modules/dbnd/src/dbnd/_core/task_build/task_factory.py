@@ -1,6 +1,5 @@
 import logging
 import typing
-
 from typing import Any, List, Type
 
 from more_itertools import unique_everseen
@@ -10,9 +9,9 @@ from dbnd._core.configuration.config_path import (
     CONF_TASK_ENV_SECTION,
     CONF_TASK_SECTION,
 )
-from dbnd._core.configuration.config_store import ConfigMergeSettings, _ConfigStore
+from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue
-from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.configuration.dbnd_config import DbndConfig
 from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd._core.constants import _TaskParamContainer
 from dbnd._core.current import get_databand_context
@@ -37,7 +36,6 @@ from dbnd._core.utils.basics.text_banner import safe_string
 from targets import target
 from targets.target_config import parse_target_config
 
-
 if typing.TYPE_CHECKING:
     from dbnd._core.task.base_task import _BaseTask
     from dbnd._core.settings import EnvConfig
@@ -46,6 +44,26 @@ TASK_BAND_PARAMETER_NAME = "task_band"
 
 logger = logging.getLogger(__name__)
 
+
+class TaskFactoryConfig(object):
+    """(Advanced) Databand's core task builder"""
+    _conf__task_family = "task_build"
+
+    def __init__(self, verbose, sign_with_full_qualified_name, sign_with_task_code):
+        self.verbose = verbose
+        self.sign_with_full_qualified_name = sign_with_full_qualified_name
+        self.sign_with_task_code = sign_with_task_code
+
+    @classmethod
+    def from_dbnd_config(cls, conf):
+        def _b(param_name):
+            return conf.getboolean(cls._conf__task_family, param_name)
+
+        return cls(
+            verbose=_b("verbose"),
+            sign_with_full_qualified_name=_b("sign_with_full_qualified_name"),
+            sign_with_task_code=_b("sign_with_task_code")
+        )
 
 class TaskFactory(object):
     """
@@ -70,8 +88,8 @@ class TaskFactory(object):
 
     """
 
-    def __init__(self, new_task_factory, task_cls, task_args, task_kwargs):
-        # type:(Any, Type[_BaseTask], Any, Any)->None
+    def __init__(self, config, new_task_factory, task_cls, task_args, task_kwargs):
+        # type:(DbndConfig, Any, Type[_BaseTask], Any, Any)->None
         self.task_cls = task_cls
         self.task_definition = task_cls.task_definition  # type: TaskDefinition
         self.new_task_factory = new_task_factory
@@ -81,6 +99,10 @@ class TaskFactory(object):
         self.task_args__ctor = list(task_args)
 
         self.parent_task = try_get_current_task()
+
+        self.config = config
+        self.task_factory_config = TaskFactoryConfig.from_dbnd_config(config)
+        self.verbose_build = self.task_factory_config.verbose
 
         # let find if we are running this constructor withing another Databand Task
         self.dbnd_context = get_databand_context()
@@ -129,7 +151,6 @@ class TaskFactory(object):
         self.ctor_kwargs = None
         # utilities section
         self.build_warnings = []
-        self.verbose_build = config.getboolean("task_build", "verbose")
         self._exc_desc = "%s(%s)" % (
             self.task_family,
             ", ".join(
@@ -141,25 +162,14 @@ class TaskFactory(object):
         )
 
     def create_dbnd_task(self):
-
         # create task meta
-        # update config with current class defaults
-        # we apply them to config only if there are no values (this is defaults)
-        with config(
-            config_values=self.task_definition.task_defaults_config_store,
-            source=self._source_name("meta"),
-            merge_settings=ConfigMergeSettings.on_non_exists_only,
-        ):
-            return self._create_dbnd_task()
-
-    def _create_dbnd_task(self):
         self._log_build_step(
             "Resolving task params with %s" % self.task_config_sections
         )
 
         # let apply all "override" values in Task(override={})
         if self.task_config_override:
-            config.set_values(
+            self.config.set_values(
                 source=self._source_name("override"),
                 config_values=self.task_config_override,
                 override=True,
@@ -192,7 +202,7 @@ class TaskFactory(object):
             with task_context(task, TaskContextPhase.BUILD):
                 task._initialize()
                 task._validate()
-                task.task_meta.config_layer = config.config_layer
+                task.task_meta.config_layer = self.config.config_layer
             tic.register_task_object(task)
 
         if self.parent_task and hasattr(task, "task_id"):
@@ -219,7 +229,7 @@ class TaskFactory(object):
                 params=[param_task_config]
             )[0]
             if param_task_config_value.value:
-                config.set_values(
+                self.config.set_values(
                     param_task_config_value.value,
                     source=self._source_name("task_config"),
                 )
@@ -256,7 +266,7 @@ class TaskFactory(object):
             task_name=self.task_name,
             task_params=task_param_values,
             task_config_override=self.task_config_override,
-            config_layer=config.config_layer,
+            config_layer=self.config.config_layer,
             task_enabled=task_enabled,
             build_warnings=self.build_warnings,
             dbnd_context=self.dbnd_context,
@@ -335,7 +345,7 @@ class TaskFactory(object):
                 return cf_value
 
             if param_def.config_path:
-                return config.get_config_value(
+                return self.config.get_config_value(
                     section=param_def.config_path.section, key=param_def.config_path.key
                 )
             return None
@@ -351,7 +361,7 @@ class TaskFactory(object):
         """
         best_config_value = None
         for section in self.task_config_sections:
-            config_value = config.get_config_value(section, key)
+            config_value = self.config.get_config_value(section, key)
             # first override win!
             if config_value:
                 if config_value.override:
@@ -420,7 +430,7 @@ class TaskFactory(object):
         # we take values using names only
         defaults_store = _ConfigStore()
         for key, value in param_values:
-            previous_value = config.get(section, key)
+            previous_value = self.config.get(section, key)
             if previous_value != value:
                 cf = ConfigValue(value=value, source=source)
                 defaults_store.set_config_value(section, key, cf)
@@ -429,7 +439,7 @@ class TaskFactory(object):
         if not defaults_store:
             return
 
-        config.set_values(config_values=defaults_store, source=source)
+        self.config.set_values(config_values=defaults_store, source=source)
 
     def _build_task_ctor_kwargs(self, task_args, task_kwargs):
         param_names = {p.name for p in self.task_params}
@@ -512,7 +522,7 @@ class TaskFactory(object):
     def _log_config(self, force_log=False):
         msg = "config for sections({config_sections}): {config}".format(
             config=pformat_current_config(
-                config, sections=self.task_config_sections, as_table=True
+                self.config, sections=self.task_config_sections, as_table=True
             ),
             config_sections=self.task_config_sections,
         )

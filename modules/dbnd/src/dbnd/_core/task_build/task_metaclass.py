@@ -3,10 +3,11 @@ import logging
 
 import six
 
+from dbnd._core.configuration.config_store import ConfigMergeSettings
+from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_factory import TaskFactory
 from dbnd._core.task_build.task_registry import get_task_registry
-
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +54,22 @@ class TaskMetaclass(abc.ABCMeta):
         """
         Custom class instantiation utilizing instance cache.
         """
-        tmb = TaskFactory(
-            new_task_factory=cls._build_task_obj,
-            task_cls=cls,
-            task_args=args,
-            task_kwargs=kwargs,
-        )
-        return tmb.create_dbnd_task()
+        task_definition = cls.task_definition
+        with config(
+            config_values=task_definition.task_defaults_config_store,
+            source="%s[defaults]" % task_definition.full_task_family_short,
+            merge_settings=ConfigMergeSettings.on_non_exists_only,
+        ) as task_config:
+            # update config with current class defaults
+            # we apply them to config only if there are no values (this is defaults)
+            tmb = TaskFactory(
+                config=config,
+                new_task_factory=cls._build_task_obj,
+                task_cls=cls,
+                task_args=args,
+                task_kwargs=kwargs,
+            )
+            return tmb.create_dbnd_task()
 
     @classmethod
     def disable_instance_cache(cls):
