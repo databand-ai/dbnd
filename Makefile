@@ -64,7 +64,7 @@ clean-test:
 	rm -fr htmlcov/
 
 lint:
-	tox -e flake8
+	tox -e pre-commit,lint
 
 test:
 	py.test modules/dbnd/test_dbnd
