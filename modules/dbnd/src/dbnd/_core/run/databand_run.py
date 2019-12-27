@@ -293,7 +293,7 @@ class DatabandRun(SingletonContext):
             is_submitter = True
             is_driver = False
             host_engine = self.local_engine.clone(require_submit=False)
-            target_engine = self.remote_engine.clone(require_submit=True)
+            target_engine = self.local_engine.clone(require_submit=False)
             task_executor_type = TaskExecutorType.local
         else:
             task_name = SystemTaskName.driver
@@ -426,7 +426,7 @@ class DatabandRun(SingletonContext):
 
     @classmethod
     def load_run(self, dump_file, disable_tracking_api):
-        # type: (FileTarget) -> DatabandRun
+        # type: (FileTarget, bool) -> DatabandRun
         with dump_file.open("rb") as fp:
             databand_run = cloudpickle.load(file=fp)
             if disable_tracking_api:
@@ -564,45 +564,43 @@ class _DbndDriverTask(Task):
     remote_driver_root = output(system=True)[Target]
     driver_dump = output(system=True)[Target]
 
+    def _build_submit_task(self, run):
+        if run.root_task:
+            raise DatabandRuntimeError(
+                "Can't send to remote execution task created via code, only command line is supported"
+            )
+
+        # dont' describe in local run, do it in remote run
+        settings = self.settings
+        settings.system.describe = False
+
+        cmd_line_args = (
+            ["run"] + _get_dbnd_run_relative_cmd() + ["--run-driver", str(run.run_uid)]
+        )
+
+        args = run.remote_engine.dbnd_executable + cmd_line_args
+
+        root_task = run.remote_engine.submit_to_engine_task(
+            env=run.env,
+            args=args,
+            task_name="dbnd_submit_to_remote",
+            interactive=settings.run.interactive,
+        )
+        root_task._conf_confirm_on_kill_msg = (
+            "Ctrl-C Do you want to kill your submitted pipeline?"
+            "If selection is 'no', this process will detach from the run."
+        )
+        return root_task
+
     def _build_root_task(self, run):
         # type: (DatabandRun) -> Task
         if self.is_submitter and not self.is_driver:
-            if run.root_task:
-                raise DatabandRuntimeError(
-                    "Can't send to remote execution task created via code, only command line is supported"
-                )
-
-            # dont' describe in local run, do it in remote run
-            settings = self.settings
-            settings.system.describe = False
-
-            cmd_line_args = (
-                ["run"]
-                + _get_dbnd_run_relative_cmd()
-                + ["--run-driver", str(run.run_uid)]
-            )
-
-            args = run.remote_engine.dbnd_executable + cmd_line_args
-
-            root_task = run.remote_engine.submit_to_engine_task(
-                env=run.env,
-                args=args,
-                task_name="dbnd_submit_to_remote",
-                interactive=settings.run.interactive,
-            )
-            root_task._conf_confirm_on_kill_msg = (
-                "Ctrl-C Do you want to kill your submitted pipeline?"
-                "If selection is 'no', this process will detach from the run."
-            )
-            return root_task
+            return self._build_submit_task(run)
         else:
             if run.root_task:
                 # user has created DatabandRun with existing task
                 self.task_meta.add_child(run.root_task.task_id)
                 return run.root_task
-
-            # we are going to build the task
-            # we are called from command line
 
             logger.info("Building main task '%s'", run.root_task_name)
             root_task = get_task_registry().build_dbnd_task(run.root_task_name)

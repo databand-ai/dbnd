@@ -327,7 +327,7 @@ def dbnd_run_cmd(args):
     logger.info("Running dbnd run: %s", subprocess.list2cmdline(args))
     try:
         sys.argv = [sys.executable, "-m", "databand", "run"] + args
-
+        dbnd_bootstrap()
         return run(args=args, standalone_mode=False)
     finally:
         sys.argv = current_argv

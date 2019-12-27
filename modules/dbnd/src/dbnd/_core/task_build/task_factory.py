@@ -15,7 +15,6 @@ from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.dbnd_config import DbndConfig
 from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd._core.constants import _TaskParamContainer
-from dbnd._core.current import get_databand_context
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
 from dbnd._core.parameter.parameter_definition import (
@@ -41,6 +40,7 @@ from targets.target_config import parse_target_config
 if typing.TYPE_CHECKING:
     from dbnd._core.task.base_task import _BaseTask
     from dbnd._core.settings import EnvConfig
+    from dbnd import DatabandContext
 
 TASK_BAND_PARAMETER_NAME = "task_band"
 
@@ -92,8 +92,10 @@ class TaskFactory(object):
 
     """
 
-    def __init__(self, config, new_task_factory, task_cls, task_args, task_kwargs):
-        # type:(DbndConfig, Any, Type[_BaseTask], Any, Any)->None
+    def __init__(
+        self, dbnd_context, config, new_task_factory, task_cls, task_args, task_kwargs
+    ):
+        # type:(DatabandContext, DbndConfig, Any, Type[_BaseTask], Any, Any)->None
         self.task_cls = task_cls
         self.task_definition = task_cls.task_definition  # type: TaskDefinition
         self.new_task_factory = new_task_factory
@@ -109,7 +111,7 @@ class TaskFactory(object):
         self.verbose_build = self.task_factory_config.verbose
 
         # let find if we are running this constructor withing another Databand Task
-        self.dbnd_context = get_databand_context()
+        self.dbnd_context = dbnd_context
         self.task_call_source = [
             self.dbnd_context.user_code_detector.find_user_side_frame(2)
         ]
