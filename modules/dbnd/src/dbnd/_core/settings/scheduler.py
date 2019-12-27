@@ -36,25 +36,6 @@ class SchedulerConfig(config.Config):
         default=True, description="whether new scheduled jobs will be active by default"
     )[bool]
 
-    file_dags_provider_enabled = parameter(
-        default=True,
-        description="default Airflow dags provider that scans a folder for dags",
-    )
-
-    db_dags_provider_enabled = parameter(
-        default=True,
-        description="Databand provider that uses scheduled jobs stored in the databand db",
-    )
-
-    file_dags_folder = parameter(
-        default=None,
-        description="if the file dags provider is enabled this is the folder it would look for dags in. "
-        "An empty value is the same as disabling the file provider"
-        " "
-        ""
-        "",
-    )[str]
-
     default_retries = parameter(
         description="number of times to retry a failed run, unless set to a different value on the scheduled job"
     )[int]

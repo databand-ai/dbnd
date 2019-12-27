@@ -12,7 +12,6 @@ __pycache__/
 .dbnd/airflow-webserver.pid
 .dbnd/last_pipeline.pickle
 .dbnd/archive
-.dbnd/shell_completion_cache
 
 logs/*
 .tox

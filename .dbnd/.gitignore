@@ -1,5 +1,6 @@
 data/
 logs/
+autocompletion/
 dbnd.db
 dbnd*.db
 dump_csv
@@ -7,4 +8,3 @@ dump_csv
 airflow-webserver.pid
 azure_storage_credentials.json
 
-.shell*
