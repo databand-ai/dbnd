@@ -44,9 +44,10 @@ logger = logging.getLogger(__name__)
 
 
 class AirflowTaskExecutor(TaskExecutor):
-    def __init__(self, run, host_engine, target_engine, task_runs):
+    def __init__(self, run, task_executor_type, host_engine, target_engine, task_runs):
         super(AirflowTaskExecutor, self).__init__(
             run=run,
+            task_executor_type=task_executor_type,
             host_engine=host_engine,
             target_engine=target_engine,
             task_runs=task_runs,
@@ -309,7 +310,7 @@ class AirflowTaskExecutor(TaskExecutor):
     def _get_airflow_executor(self):
         """Creates a new instance of the configured executor if none exists and returns it"""
 
-        task_executor_type = self.run.task_executor_type
+        task_executor_type = self.task_executor_type
         parallel = self.run.parallel
         task_engine = self.target_engine
 

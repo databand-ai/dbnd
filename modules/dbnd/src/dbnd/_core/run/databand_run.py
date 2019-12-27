@@ -662,6 +662,7 @@ class _DbndDriverTask(Task):
         # without driver task!
         run.task_executor = run.run_config.get_task_executor(
             run,
+            self.task_executor_type,
             host_engine=self.host_engine,
             target_engine=run.root_task_run.task_engine,
             task_runs=task_runs,

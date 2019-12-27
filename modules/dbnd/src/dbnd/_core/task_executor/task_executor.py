@@ -1,11 +1,9 @@
 import contextlib
 import logging
 import typing
-
 from typing import List
 
 from dbnd._core.run.run_ctrl import RunCtrl
-
 
 if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
@@ -17,10 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class TaskExecutor(RunCtrl):
-    def __init__(self, run, host_engine, target_engine, task_runs):
-        # type: (DatabandRun, EngineConfig,  List[TaskRun])->None
+    def __init__(self, run, task_executor_type, host_engine, target_engine, task_runs):
+        # type: (DatabandRun, str, EngineConfig, EngineConfig,  List[TaskRun])->None
         super(TaskExecutor, self).__init__(run=run)
-        self.run = run
+
+        self.task_executor_type = task_executor_type
         self.host_engine = host_engine
         self.target_engine = target_engine
         self.task_runs = task_runs
