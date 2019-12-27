@@ -1,12 +1,10 @@
 import logging
 import pprint
-import sys
 import time
 import typing
 
 from datetime import datetime
-
-import six
+from typing import Optional
 
 from airflow.contrib.kubernetes.pod_launcher import PodStatus
 
@@ -15,7 +13,6 @@ from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_error
 from dbnd._core.log.logging_utils import override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd._vendor.click._unicodefun import click
 from dbnd_airflow.airflow_extensions.dal import get_airflow_task_instance_state
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
@@ -41,97 +38,18 @@ class DbndKubernetesClient(object):
         self.kube_client = kube_client
         self.engine_config = engine_config
 
-        # will be used to low level pod interactions
-        self.running_pods = {}
-
-    def end(self):
-        current_exception = sys.exc_info()
-        if current_exception[0] == KeyboardInterrupt:
-            confirm_delete = click.confirm(
-                "Ctrl-C Do you want to kill and delete all your job?", default=True
-            )
-            if not confirm_delete:
-                return
-
-        logger.info("Deleting submitted pods: %s" % self.running_pods)
-        for pod_id, pod_namespace in six.iteritems(self.running_pods):
-            self.delete_pod(pod_id, pod_namespace)
-
-    def run_pod(self, task_run, pod, detach_run=False):
-        # type: (TaskRun, Pod, bool) -> DbndPodCtrl
-        # we add to running first, so we can prevent racing condition
-        self.running_pods[pod.name] = pod.namespace
-
-        ec = self.engine_config
-
-        detach_run = detach_run or ec.detach_run
-        if ec.show_pod_log:
-            logger.info(
-                "%s is True,  will send every docker in blocking mode",
-                ec.task_name,
-                "show_pod_logs",
-            )
-            detach_run = False
-        if ec.debug:
-            logger.info(
-                "%s is True,  will send every docker in blocking mode",
-                ec.task_name,
-                "debug",
-            )
-            detach_run = False
-
-        req = self.engine_config.build_kube_pod_req(pod)
-        readable_req_str = readable_pod_request(req)
-
-        if ec.debug:
-            logger.info("Pod Creation Request: \n%s", readable_req_str)
-            pod_file = task_run.task_run_attempt_file("pod.yaml")
-            pod_file.write(readable_req_str)
-            logger.debug("Pod Request has been saved to %s", pod_file)
-
-        dashboard_url = ec.get_dashboard_link(pod)
-        pod_log = ec.get_pod_log_link(pod)
-        external_link_dict = dict()
-        if dashboard_url:
-            external_link_dict["k8s_dashboard"] = dashboard_url
-        if pod_log:
-            external_link_dict["pod_log"] = pod_log
-        if external_link_dict:
-            task_run.set_external_resource_urls(external_link_dict)
-        task_run.set_task_run_state(TaskRunState.QUEUED)
-        pod_ctrl = self.get_pod_ctrl(pod.name, pod.namespace)
-        try:
-            resp = self.kube_client.create_namespaced_pod(
-                body=req, namespace=pod.namespace
-            )
-            logger.debug("Pod Creation Response: %s", resp)
-        except ApiException as ex:
-            task_run_error = TaskRunError.buid_from_ex(ex, task_run)
-            task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
-            logger.error(
-                "Exception when attempting to create Namespaced Pod using: %s",
-                readable_req_str,
-            )
-            raise
-        logging.debug("Kubernetes Job created!")
-
-        # TODO this is pretty dirty.
-        #  Better to extract the deploy error checking logic out of the pod launcher and have the watcher
-        #   pass an exception through the watcher queue if needed. Current airflow implementation doesn't implement that, so we will stick with the current flow
-
-        if detach_run:
-            return pod_ctrl
-
-        pod_ctrl.wait()
-        return pod_ctrl
-
     def get_pod_ctrl(self, name, namespace=None):
+        # type: (str, Optional[str])-> DbndPodCtrl
         return DbndPodCtrl(
             pod_name=name,
             pod_namespace=namespace or self.engine_config.namespace,
             kube_client=self.kube_client,
             kube_config=self.engine_config,
         )
+
+    def get_pod_ctrl_for_pod(self, pod):
+        # type: (Pod)-> DbndPodCtrl
+        return self.get_pod_ctrl(pod.name, pod.namespace)
 
     def delete_pod(self, name, namespace):
         self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()
@@ -260,7 +178,7 @@ class DbndPodCtrl(object):
         self.kube_client = kube_client
 
     def delete_pod(self):
-        if not self.kube_config.keep_finished_pods:
+        if self.kube_config.keep_finished_pods:
             logger.warning(
                 "Will not delete pod '%s' due to keep_finished_pods=True.", self.name
             )
@@ -269,7 +187,7 @@ class DbndPodCtrl(object):
         from airflow.utils.state import State
 
         if (
-            self.kube_config.keep_failed_pod
+            self.kube_config.keep_failed_pods
             and self.get_airflow_state() == State.FAILED
         ):
             logger.warning(
@@ -283,7 +201,9 @@ class DbndPodCtrl(object):
             self.kube_client.delete_namespaced_pod(
                 self.name, self.namespace, body=client.V1DeleteOptions()
             )
+            logger.info("Pod '%s' has been deleted", self.name)
         except ApiException as e:
+            logger.info("Failed to delete pod '%s':%s", e)
             # If the pod is already deleted
             if e.status != 404:
                 raise
@@ -436,6 +356,71 @@ class DbndPodCtrl(object):
             raise DatabandRuntimeError(
                 "Pod returned a failure: {state}".format(state=final_state)
             )
+        return self
+
+    def run_pod(self, task_run, pod, detach_run=False):
+        # type: (TaskRun, Pod, bool) -> DbndPodCtrl
+        kc = self.kube_config
+
+        detach_run = detach_run or kc.detach_run
+        if kc.show_pod_log:
+            logger.info(
+                "%s is True,  will send every docker in blocking mode",
+                kc.task_name,
+                "show_pod_logs",
+            )
+            detach_run = False
+        if kc.debug:
+            logger.info(
+                "%s is True,  will send every docker in blocking mode",
+                kc.task_name,
+                "debug",
+            )
+            detach_run = False
+
+        req = kc.build_kube_pod_req(pod)
+        readable_req_str = readable_pod_request(req)
+
+        if kc.debug:
+            logger.info("Pod Creation Request: \n%s", readable_req_str)
+            pod_file = task_run.task_run_attempt_file("pod.yaml")
+            pod_file.write(readable_req_str)
+            logger.debug("Pod Request has been saved to %s", pod_file)
+
+        dashboard_url = kc.get_dashboard_link(pod)
+        pod_log = kc.get_pod_log_link(pod)
+        external_link_dict = dict()
+        if dashboard_url:
+            external_link_dict["k8s_dashboard"] = dashboard_url
+        if pod_log:
+            external_link_dict["pod_log"] = pod_log
+        if external_link_dict:
+            task_run.set_external_resource_urls(external_link_dict)
+        task_run.set_task_run_state(TaskRunState.QUEUED)
+
+        try:
+            resp = self.kube_client.create_namespaced_pod(
+                body=req, namespace=pod.namespace
+            )
+            logger.debug("Pod Creation Response: %s", resp)
+        except ApiException as ex:
+            task_run_error = TaskRunError.buid_from_ex(ex, task_run)
+            task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
+            logger.error(
+                "Exception when attempting to create Namespaced Pod using: %s",
+                readable_req_str,
+            )
+            raise
+        logging.debug("Kubernetes Job created!")
+
+        # TODO this is pretty dirty.
+        #  Better to extract the deploy error checking logic out of the pod launcher and have the watcher
+        #   pass an exception through the watcher queue if needed. Current airflow implementation doesn't implement that, so we will stick with the current flow
+
+        if detach_run:
+            return self
+
+        self.wait()
         return self
 
 

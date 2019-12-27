@@ -35,7 +35,7 @@ from dbnd._core.run.describe_run import DescribeRun
 from dbnd._core.run.run_tracker import RunTracker
 from dbnd._core.run.target_identity_source_map import TargetIdentitySourceMap
 from dbnd._core.run.task_runs_builder import TaskRunsBuilder
-from dbnd._core.settings import DatabandSettings, EngineConfig
+from dbnd._core.settings import DatabandSettings, EngineConfig, RunConfig
 from dbnd._core.task import Task
 from dbnd._core.task_build.task_context import current_task, has_current_task
 from dbnd._core.task_build.task_registry import (
@@ -180,31 +180,38 @@ class DatabandRun(SingletonContext):
             ),
         )
 
-        system_settings = self.context.system_settings
-        self.env = self.context.env
+        self.run_config = self.context.settings.run  # type: RunConfig
+        self.env = env = self.context.env
 
-        if self.env.submit_engine:
-            self.submit_engine = self._get_engine_config(
-                self.env.submit_engine
-            )  # type: EngineConfig
-        else:
-            self.submit_engine = None
+        self.local_engine = self._get_engine_config(env.local_engine)
+        self.remote_engine = self._get_engine_config(
+            env.remote_engine or env.local_engine
+        )
 
-        self.driver_engine = self._get_engine_config(self.env.driver_engine)
-        # override with global value ( easy to turn on parallel)
-        if system_settings.parallel is not None:
-            self.driver_engine = self.driver_engine.clone(
-                parallel=system_settings.parallel
-            )
-
-        if self.env.task_engine:
-            self.task_engine = self._get_engine_config(self.env.task_engine).clone(
-                require_submit=True
-            )
-        else:
-            self.task_engine = self.driver_engine.clone(require_submit=False)
+        self.parallel = self.run_config.parallel
+        self.submit_driver = env.submit_driver
+        self.submit_tasks = env.submit_tasks
+        self.task_executor_type = self._calculate_task_executor_type()
 
         self.sends_heartbeat = send_heartbeat
+
+    def _calculate_task_executor_type(self):
+        task_executor_type = self.run_config.task_executor_type
+        if is_airflow_enabled() and is_plugin_enabled("dbnd-docker"):
+            from dbnd_docker.kubernetes.kubernetes_engine_config import (
+                KubernetesEngineConfig,
+            )
+            from dbnd_airflow.executors import AirflowTaskExecutorType
+
+            if (
+                self.submit_tasks
+                and isinstance(self.remote_engine, KubernetesEngineConfig)
+                and self.run_config.enable_airflow_kubernetes
+            ):
+                if task_executor_type != AirflowTaskExecutorType.airflow_kubernetes:
+                    logger.info("Using dedicated kubernetes executor for this run")
+                    task_executor_type = AirflowTaskExecutorType.airflow_kubernetes
+        return task_executor_type
 
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
@@ -280,44 +287,31 @@ class DatabandRun(SingletonContext):
         return task_run
 
     def _build_driver_task(self):
-        if self.submit_engine and not self.existing_run:
+        if self.submit_driver and not self.existing_run:
             logger.info("Submitting job to remote execution")
             task_name = SystemTaskName.driver_submit
             is_submitter = True
             is_driver = False
-            host_engine = self.submit_engine.clone(
-                require_submit=False, task_executor_type=TaskExecutorType.local
-            )
-            target_engine = self.driver_engine
+            host_engine = self.local_engine.clone(require_submit=False)
+            target_engine = self.local_engine.clone(require_submit=False)
+            task_executor_type = TaskExecutorType.local
         else:
             task_name = SystemTaskName.driver
             is_submitter = not self.existing_run or self.resubmit_run
             is_driver = True
-            host_engine = self.driver_engine.clone(require_submit=False)
-            target_engine = self.task_engine
+            task_executor_type = self.task_executor_type
 
-            if is_airflow_enabled() and is_plugin_enabled("dbnd-docker"):
+            if self.submit_driver:
+                # we are after the jump
+                host_engine = self.remote_engine.clone(require_submit=False)
+            else:
+                host_engine = self.local_engine.clone(
+                    require_submit=False
+                )  # we are running at this engine already
 
-                from dbnd_docker.kubernetes.kubernetes_engine_config import (
-                    KubernetesEngineConfig,
-                )
-                from dbnd_airflow.executors import AirflowTaskExecutorType
-
-                if (
-                    isinstance(target_engine, KubernetesEngineConfig)
-                    and host_engine.use_airflow_kubernetes
-                ):
-                    if (
-                        host_engine.task_executor_type
-                        != AirflowTaskExecutorType.airflow_kubernetes
-                    ):
-                        logger.info("Using dedicated kubernetes executor for this run")
-                        host_engine = host_engine.clone(
-                            task_executor_type=AirflowTaskExecutorType.airflow_kubernetes
-                        )
-
-            if host_engine.will_submit_by_executor():
-                target_engine = target_engine.clone(require_submit=False)
+            target_engine = self.remote_engine
+            if not self.submit_tasks or task_executor_type == "airflow_kubernetes":
+                target_engine.clone(require_submit=False)
 
         dbnd_local_root = host_engine.dbnd_local_root or self.env.dbnd_local_root
         run_folder_prefix = self.run_folder_prefix
@@ -337,6 +331,7 @@ class DatabandRun(SingletonContext):
             is_driver=is_driver,
             host_engine=host_engine,
             target_engine=target_engine,
+            task_executor_type=task_executor_type,
             local_driver_root=local_driver_root,
             local_driver_log=local_driver_log,
             local_driver_dump=local_driver_dump,
@@ -357,7 +352,9 @@ class DatabandRun(SingletonContext):
             self.tracker.init_run()
         else:
             # we are in task run ( after the jump)
-            self.current_engine_config = self.task_engine.clone(require_submit=False)
+            self.current_engine_config = self.driver_task_run.task.target_engine.clone(
+                require_submit=False
+            )
 
     def _dbnd_run_error(self, ex):
         if "airflow" not in ex.__class__.__name__.lower() and "Failed tasks are:" not in str(
@@ -416,10 +413,7 @@ class DatabandRun(SingletonContext):
         if core_settings.disable_save_pipeline:
             return False
 
-        return (
-            self.driver_task.host_engine.is_save_pipeline()
-            or self.driver_task.target_engine.is_save_pipeline()
-        )
+        return self.driver_task.is_save_pipeline()
 
     @contextlib.contextmanager
     def run_context(self):
@@ -432,7 +426,7 @@ class DatabandRun(SingletonContext):
 
     @classmethod
     def load_run(self, dump_file, disable_tracking_api):
-        # type: (FileTarget) -> DatabandRun
+        # type: (FileTarget, bool) -> DatabandRun
         with dump_file.open("rb") as fp:
             databand_run = cloudpickle.load(file=fp)
             if disable_tracking_api:
@@ -559,6 +553,9 @@ class _DbndDriverTask(Task):
 
     host_engine = parameter[EngineConfig]
     target_engine = parameter[EngineConfig]
+
+    task_executor_type = parameter[str]
+
     # all paths, we make them system, we don't want to check if they are exists
     local_driver_root = output(system=True)[Target]
     local_driver_log = output(system=True)[Target]
@@ -567,41 +564,43 @@ class _DbndDriverTask(Task):
     remote_driver_root = output(system=True)[Target]
     driver_dump = output(system=True)[Target]
 
+    def _build_submit_task(self, run):
+        if run.root_task:
+            raise DatabandRuntimeError(
+                "Can't send to remote execution task created via code, only command line is supported"
+            )
+
+        # dont' describe in local run, do it in remote run
+        settings = self.settings
+        settings.system.describe = False
+
+        cmd_line_args = (
+            ["run"] + _get_dbnd_run_relative_cmd() + ["--run-driver", str(run.run_uid)]
+        )
+
+        args = run.remote_engine.dbnd_executable + cmd_line_args
+
+        root_task = run.remote_engine.submit_to_engine_task(
+            env=run.env,
+            args=args,
+            task_name="dbnd_submit_to_remote",
+            interactive=settings.run.interactive,
+        )
+        root_task._conf_confirm_on_kill_msg = (
+            "Ctrl-C Do you want to kill your submitted pipeline?"
+            "If selection is 'no', this process will detach from the run."
+        )
+        return root_task
+
     def _build_root_task(self, run):
         # type: (DatabandRun) -> Task
         if self.is_submitter and not self.is_driver:
-            if run.root_task:
-                raise DatabandRuntimeError(
-                    "Can't send to remote execution task created via code, only command line is supported"
-                )
-
-            # dont' describe in local run, do it in remote run
-            settings = self.settings
-            settings.system.describe = False
-
-            cmd_line_args = (
-                ["run"]
-                + _get_dbnd_run_relative_cmd()
-                + ["--run-driver", str(run.run_uid)]
-            )
-
-            args = run.driver_engine.dbnd_executable + cmd_line_args
-
-            root_task = run.driver_engine.submit_to_engine_task(
-                env=run.env,
-                args=args,
-                task_name="dbnd_submit_to_remote",
-                interactive=settings.run.interactive,
-            )
-            return root_task
+            return self._build_submit_task(run)
         else:
             if run.root_task:
                 # user has created DatabandRun with existing task
                 self.task_meta.add_child(run.root_task.task_id)
                 return run.root_task
-
-            # we are going to build the task
-            # we are called from command line
 
             logger.info("Building main task '%s'", run.root_task_name)
             root_task = get_task_registry().build_dbnd_task(run.root_task_name)
@@ -611,6 +610,22 @@ class _DbndDriverTask(Task):
                 len(root_task.ctrl.task_dag.subdag_tasks()),
             )
             return root_task
+
+    def is_save_pipeline(self):
+        if self.target_engine.require_submit:
+            return True
+
+        if self.task_executor_type == TaskExecutorType.local:
+            return False
+
+        if is_airflow_enabled():
+            from dbnd_airflow.executors import AirflowTaskExecutorType
+
+            return self.task_executor_type not in [
+                AirflowTaskExecutorType.airflow_inprocess,
+                TaskExecutorType.local,
+            ]
+        return True
 
     def build_task_from_cmd_line(self, task_name):
         return
@@ -627,9 +642,8 @@ class _DbndDriverTask(Task):
             run.set_run_state(RunState.RUNNING)
         ctx.settings.git.validate_git_policy()
 
-        # this is the engine we are going to send us
-        target_engine = run.task_engine if self.is_driver else run.driver_engine
-        target_engine.prepare_for_run(run)
+        # let prepare for remote execution
+        run.remote_engine.prepare_for_run(run)
 
         run.root_task = self._build_root_task(run)
         # right now we run describe in local controller only, but we should do that for more
@@ -646,8 +660,9 @@ class _DbndDriverTask(Task):
         run.root_task_run = run.get_task_run(run.root_task.task_id)
 
         # without driver task!
-        run.task_executor = self.host_engine.get_task_executor(
+        run.task_executor = run.run_config.get_task_executor(
             run,
+            self.task_executor_type,
             host_engine=self.host_engine,
             target_engine=run.root_task_run.task_engine,
             task_runs=task_runs,
@@ -679,7 +694,11 @@ class _DbndDriverTask(Task):
             logger.info(run.describe.run_banner_for_finished())
             return run
         else:
-            logger.info(run.describe.run_banner_for_submitted())
+            logger.info(
+                run.describe.run_banner_for_submitted() + "\n "
+                "Please use --interactive to have blocking run, \n"
+                "or --local-driver (env.submit_driver=False) to run your driver locally"
+            )
 
 
 def new_databand_run(context, task_or_task_name, run_uid=None, **kwargs):

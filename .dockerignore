@@ -10,13 +10,13 @@ __pycache__/
 
 .dbnd/data/
 .dbnd/logs/
+.dbnd/autocompletion/
 .dbnd/dbnd.db
 .dbnd/dbnd*db.gz
 .dbnd/dbnd*
 .dbnd/unittests.db
 .dbnd/airflow-webserver.pid
 .dbnd/archive
-.dbnd/shell_completion_cache
 
 logs/*
 .dbnd/airflow-webserver.pid

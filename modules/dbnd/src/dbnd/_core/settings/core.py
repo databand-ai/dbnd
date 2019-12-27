@@ -28,8 +28,6 @@ class DatabandSystemConfig(Config):
         description="task environment: local/aws/aws_prod/gcp/prod",
     )[str]
 
-    parallel = parameter(default=None)[bool]
-
     conf_file = parameter(default=None, description="List of files to read from")[
         List[str]
     ]

@@ -162,7 +162,7 @@ dbnd_examples_py27:
     - tox -e py27
   artifacts:
     reports:
-      junit: .tox/dbnd_examples/junit/junit-py27.xml
+      junit: .tox/dbnd-examples/junit/junit-py27.xml
 
 dbnd_examples_py36:
   <<: *template__python_test_job
@@ -172,7 +172,7 @@ dbnd_examples_py36:
     - tox -e py36
   artifacts:
     reports:
-      junit: .tox/dbnd_examples/junit/junit-py36.xml
+      junit: .tox/dbnd-examples/junit/junit-py36.xml
 
 build_pypi_whl:
   stage: build-base

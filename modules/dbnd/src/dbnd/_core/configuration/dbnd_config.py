@@ -117,7 +117,7 @@ class DbndConfig(object):
             config_values, source=source, merge_settings=merge_settings
         )
         with self.config_layer_context(config_layer=new_layer):
-            yield
+            yield self
 
     @contextlib.contextmanager
     def config_layer_context(self, config_layer):

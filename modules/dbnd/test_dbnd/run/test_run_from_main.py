@@ -16,4 +16,4 @@ class TestTaskInplaceRun(object):
 
 
 if __name__ == "__main__":
-    SimplestTask().dbnd_run()
+    SimplestTask(task_env="local").dbnd_run()

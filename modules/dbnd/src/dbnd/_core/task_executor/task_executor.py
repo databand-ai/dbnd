@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 class TaskExecutor(RunCtrl):
-    def __init__(self, run, host_engine, target_engine, task_runs):
-        # type: (DatabandRun, EngineConfig,  List[TaskRun])->None
+    def __init__(self, run, task_executor_type, host_engine, target_engine, task_runs):
+        # type: (DatabandRun, str, EngineConfig, EngineConfig,  List[TaskRun])->None
         super(TaskExecutor, self).__init__(run=run)
-        self.run = run
+
+        self.task_executor_type = task_executor_type
         self.host_engine = host_engine
         self.target_engine = target_engine
         self.task_runs = task_runs
-        self.task_executor_type = host_engine.task_executor_type
 
     @contextlib.contextmanager
     def prepare_run(self):

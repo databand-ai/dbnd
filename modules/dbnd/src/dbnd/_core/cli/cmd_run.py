@@ -114,6 +114,25 @@ def build_dynamic_task(original_cls, new_cls_name):
     type=click.DateTime(),
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
+@click.option(
+    "--submit-driver", "submit_driver", flag_value=1, help="Run driver at remote engine"
+)
+@click.option(
+    "--local-driver", "submit_driver", flag_value=0, help="Run driver locally"
+)
+@click.option(
+    "--submit-tasks",
+    "submit_tasks",
+    flag_value=1,
+    help="Run submission in blocking mode",
+)
+@click.option(
+    "--no-submit-tasks",
+    "submit_tasks",
+    flag_value=0,
+    help="Run submission in blocking mode",
+)
+@click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.pass_context
 def run(
     ctx,
@@ -138,6 +157,8 @@ def run(
     scheduled_job_name,
     scheduled_date,
     interactive,
+    submit_driver,
+    submit_tasks,
 ):
     """
     Run a task or a DAG
@@ -151,16 +172,24 @@ def run(
 
     task_name = task
     # --verbose, --describe, --env, --parallel, --conf-file and --project-name
+    if submit_driver is not None:
+        submit_driver = bool(submit_driver)
+    if submit_tasks is not None:
+        submit_tasks = bool(submit_tasks)
+
     main_switches = dict(
         databand=dict(
             verbose=verbose > 0,
             describe=describe,
             env=env,
-            parallel=parallel,
             conf_file=conf_file,
             project_name=project_name,
+            submit_driver=submit_driver,
+            submit_tasks=submit_tasks,
         ),
-        run=dict(name=name, description=description, is_archived=describe),
+        run=dict(
+            name=name, parallel=parallel, description=description, is_archived=describe
+        ),
     )
     if task_version is not None:
         main_switches["task"] = {"task_version": task_version}
@@ -298,7 +327,7 @@ def dbnd_run_cmd(args):
     logger.info("Running dbnd run: %s", subprocess.list2cmdline(args))
     try:
         sys.argv = [sys.executable, "-m", "databand", "run"] + args
-
+        dbnd_bootstrap()
         return run(args=args, standalone_mode=False)
     finally:
         sys.argv = current_argv

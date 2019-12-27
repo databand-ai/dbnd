@@ -1,5 +1,6 @@
 import logging
 import time
+import typing
 
 from collections import defaultdict
 
@@ -15,6 +16,9 @@ from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import flatten, traverse_to_str
 
+
+if typing.TYPE_CHECKING:
+    from dbnd import Task
 
 # Time to sleep while waiting for eventual consistency to finish.
 EVENTUAL_CONSISTENCY_SLEEP_INTERVAL = 1
@@ -53,7 +57,7 @@ class TaskRunRunner(TaskRunCtrl):
 
     def execute(self, airflow_context=None):
         task_run = self.task_run
-        task = self.task
+        task = self.task  # type: Task
         task_run.airflow_context = airflow_context
 
         with self.task_run_execution_context():
@@ -110,7 +114,17 @@ class TaskRunRunner(TaskRunCtrl):
                 )
                 error = TaskRunError.buid_from_ex(ex, task_run)
                 try:
-                    task.on_kill()
+                    if task._conf_confirm_on_kill_msg:
+                        from dbnd._vendor import click
+
+                        if click.confirm(task._conf_confirm_on_kill_msg, default=True):
+                            task.on_kill()
+                        else:
+                            logger.warning(
+                                "Task is not killed accordingly to user input!"
+                            )
+                    else:
+                        task.on_kill()
                 except Exception:
                     logger.exception("Failed to kill task on user keyboard interrupt")
                 task_run.set_task_run_state(TaskRunState.SHUTDOWN, error=error)
