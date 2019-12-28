@@ -1,6 +1,11 @@
 .PHONY: clean-pyc clean-build docs clean docs-open coverage coverage-open install-dev clean-egg pre-commit
 
 prj_modules = modules/dbnd modules/dbnd-airflow
+
+prj_plugins_spark  = plugins/dbnd-spark \
+				plugins/dbnd-databricks \
+				plugins/dbnd-qubole \
+
 prj_plugins = 	plugins/dbnd-aws  \
           	plugins/dbnd-azure \
           	plugins/dbnd-airflow-versioned-dag \
@@ -8,16 +13,16 @@ prj_plugins = 	plugins/dbnd-aws  \
 			plugins/dbnd-docker \
 			plugins/dbnd-hdfs \
           	plugins/dbnd-gcp \
-          	plugins/dbnd-spark \
           	plugins/dbnd-test-scenarios
+
 
 prj_dist = $(prj_modules) $(prj_plugins)
 
 prj_examples = examples
 prj_test = plugins/dbnd-test-scenarios
 
-prj_dev_testable =$(prj_modules) $(prj_plugins) $(prj_examples)
-prj_dev = $(prj_dev_testable) $(prj_test)
+prj_dev_modules_plugins =$(prj_modules) $(prj_plugins) $(prj_examples)
+prj_dev = $(prj_dev_modules_plugins) $(prj_test)
 
 
 help:
@@ -71,7 +76,7 @@ test:
 	tox -e pre-commit,lint
 
 test-all-py36:
-	for m in $(prj_dev_testable) ; do \
+	for m in $(prj_dev_modules_plugins) ; do \
 		echo "Testing '$$m'..." ;\
 		(cd $$m && tox -e py36) ;\
 	done
@@ -127,7 +132,13 @@ dist-modules: clean dist-modules-dirty
 
 
 install-dev:
-	for m in $(prj_dev_testable) ; do \
+	for m in $(prj_dev) ; do \
+		echo "Installing '$$m'..." ;\
+		(cd $$m && pip install -e .) ;\
+	done
+
+install-dev-spark: install-dev
+	for m in $(prj_plugins_spark) ; do \
 		echo "Installing '$$m'..." ;\
 		(cd $$m && pip install -e .) ;\
 	done
