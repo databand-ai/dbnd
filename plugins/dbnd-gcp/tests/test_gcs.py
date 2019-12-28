@@ -22,19 +22,17 @@ This test requires credentials that can access GCS & access to a bucket below.
 Follow the directions in the gcloud tools to set up local credentials.
 """
 import base64
-import json
 import os
 import tempfile
 import uuid
 
 import google.auth
 import google.oauth2.service_account
-import googleapiclient.errors
 import pytest
 
 from dbnd import config
 from targets import target
-from targets.fs import gcs
+from dbnd_gcp.fs import gcs
 from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 

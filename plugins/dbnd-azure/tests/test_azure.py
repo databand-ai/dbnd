@@ -5,7 +5,7 @@ import pytest
 
 from dbnd import config
 from targets import target
-from targets.fs.azure_blob import AzureBlobStorageClient
+from dbnd_azure.fs.azure_blob import AzureBlobStorageClient
 from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 

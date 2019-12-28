@@ -1,6 +1,13 @@
 import dbnd
 
 from dbnd import register_config_cls
+from dbnd_aws.fs import build_s3_fs_client
+from targets.fs import register_file_system, FileSystems
+
+
+@dbnd.hookimpl
+def dbnd_setup_plugin():
+    register_file_system(FileSystems.s3, build_s3_fs_client)
 
 
 @dbnd.hookimpl

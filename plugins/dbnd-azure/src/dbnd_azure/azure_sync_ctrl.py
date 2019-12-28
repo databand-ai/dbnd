@@ -2,15 +2,16 @@ import logging
 import os
 
 from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
+from dbnd_azure.fs import AZURE_BLOB_FS_NAME
 from targets.fs import FileSystems
-from targets.fs.azure_blob import AzureBlobStorageClient
+from dbnd_azure.fs.azure_blob import AzureBlobStorageClient
 
 
 logger = logging.getLogger(__name__)
 
 
 class AzureSyncCtrl(TaskSyncCtrl):
-    remote_fs_name = FileSystems.azure_blob
+    remote_fs_name = AZURE_BLOB_FS_NAME
 
     def _upload(self, local_file, remote_file):
         storage_account, container_name, blob_name = remote_file.fs._path_to_account_container_and_blob(

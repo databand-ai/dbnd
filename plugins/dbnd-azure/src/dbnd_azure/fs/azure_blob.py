@@ -1,13 +1,12 @@
 """databand bindings for Azure Blob Storage"""
 
-import io
 import logging
 import os
 import time
 
-from six.moves import xrange
-
 from azure.storage.blob import BlockBlobService
+from dbnd_azure.fs import AZURE_BLOB_FS_NAME
+from six.moves import xrange
 from targets import AtomicLocalFile
 from targets.config import get_local_tempfile
 from targets.errors import (
@@ -15,10 +14,8 @@ from targets.errors import (
     InvalidDeleteException,
     MissingParentDirectory,
 )
-from targets.fs import FileSystems
 from targets.fs.file_system import FileSystem
 from targets.utils.atomic import _DeleteOnCloseFile
-
 
 try:
     from urlparse import urlsplit
@@ -58,7 +55,7 @@ class AzureBlobStorageClient(FileSystem):
 
     """
 
-    name = FileSystems.azure_blob
+    name = AZURE_BLOB_FS_NAME
 
     def __init__(self, account_name=None, account_key=None, **kwargs):
         # options = get_config("azure")
