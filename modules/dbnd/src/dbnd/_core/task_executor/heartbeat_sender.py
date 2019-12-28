@@ -12,17 +12,23 @@ from dbnd._core.utils.basics.format_exception import format_exception_as_str
 
 logger = logging.getLogger(__name__)
 
+TERMINATE_WAIT_TIMEOUT = 5
+
 
 @contextlib.contextmanager
-def start_heartbeat_sender(run):
-    from dbnd import config
+def start_heartbeat_sender(task_run):
+    run = task_run.run
+    settings = run.context.settings
+    core = settings.core
+    heartbeat_interval_s = settings.run.heartbeat_interval_s
 
-    heartbeat_interval_s = config.getint("run", "heartbeat_interval_s")
     if heartbeat_interval_s > 0:
         sp = None
+        heartbeat_log_fp = None
         try:
-            core = run.context.settings.core
             try:
+                heartbeat_log_file = task_run.log.local_heartbeat_log_file
+                heartbeat_log_fp = heartbeat_log_file.open("w")
                 cmd = [
                     sys.executable,
                     "-m",
@@ -41,8 +47,14 @@ def start_heartbeat_sender(run):
                     "--tracker-api",
                     core.tracker_api,
                 ]
-                logger.info("heartbeat sender cmd: %s", subprocess.list2cmdline(cmd))
-                sp = subprocess.Popen(cmd)
+                logger.info(
+                    "Starting heartbeat with log at %s using  cmd: %s",
+                    heartbeat_log_file,
+                    subprocess.list2cmdline(cmd),
+                )
+                sp = subprocess.Popen(
+                    cmd, stdout=heartbeat_log_fp, stderr=subprocess.STDOUT
+                )
             except Exception as ex:
                 logger.info(
                     "Failed to spawn heartbeat process, you can disable it via [task]heartbeat_interval_s=0  .\n %s",
@@ -52,6 +64,16 @@ def start_heartbeat_sender(run):
         finally:
             if sp:
                 sp.terminate()
+
+                try:
+                    sp.wait(timeout=TERMINATE_WAIT_TIMEOUT)
+                except Exception:
+                    logger.warning(
+                        "waited %s seconds for the heartbeat sender to exit but it still hasn't exited"
+                    )
+
+            if heartbeat_log_fp:
+                heartbeat_log_fp.close()
     else:
         logger.info(
             "run heartbeat sender disabled (set task.heartbeat_interval_s to value > 0)"

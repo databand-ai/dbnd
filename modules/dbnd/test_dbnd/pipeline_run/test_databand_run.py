@@ -7,7 +7,7 @@ from cloudpickle import cloudpickle
 from dbnd import new_dbnd_context, override, task
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
-from dbnd._core.settings import CoreConfig
+from dbnd._core.settings import CoreConfig, RunConfig
 from dbnd._core.settings.engine import LocalMachineEngineConfig
 from dbnd.testing.helpers import initialized_run
 from test_dbnd.factories import TTask
@@ -39,9 +39,7 @@ class TestDatabandRun(object):
     def _save_graph(self, task):
         with new_dbnd_context(
             conf={
-                LocalMachineEngineConfig.task_executor_type: override(
-                    TaskExecutorType.local
-                ),
+                RunConfig.task_executor_type: override(TaskExecutorType.local),
                 CoreConfig.tracker: override(["console"]),
             }
         ) as dc:

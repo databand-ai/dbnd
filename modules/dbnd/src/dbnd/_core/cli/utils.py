@@ -1,5 +1,7 @@
 import functools
 import json
+import logging
+import os
 
 from functools import wraps
 
@@ -76,7 +78,15 @@ class PrefixStore(object):
 
         cache["objs"] = self._objs
 
-        json.dump(cache, open(self._path, "w"))
+        try:
+            cache_dir = os.path.dirname(self._path)
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+            json.dump(cache, open(self._path, "w"))
+        except Exception as ex:
+            logging.error(
+                "Failed to save autocompletion store at %s: %s", self._path, ex
+            )
 
 
 def no_errors(ret=None):

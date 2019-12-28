@@ -8,7 +8,7 @@ from dbnd._core.commands import log_metric
 from dbnd._core.constants import CURRENT_TIME_STR
 from dbnd._core.errors.friendly_error.executor_k8s import no_tag_on_no_build
 from dbnd._core.plugin.dbnd_plugins import pm
-from dbnd._core.settings.engine import ContainerEngineConfig
+from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_build import DockerBuild
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
@@ -25,6 +25,7 @@ def prepare_docker_for_executor(run, docker_engine):
             "Omitting docker build due to existing container_tag=%s",
             docker_engine.container_tag,
         )
+        log_metric("container_tag", docker_engine.container_tag)
         return None
 
     config_cls = docker_engine.__class__  # type: Type[ContainerEngineConfig]
@@ -46,6 +47,7 @@ def prepare_docker_for_executor(run, docker_engine):
         ):
             _set_config(config_cls.image_pull_policy, "Never")
 
+        log_metric("docker build tag", auto_tag)
         log_metric("container_tag", auto_tag)
         docker_build = DockerBuild(
             task_name="dbnd_image_build",

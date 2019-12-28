@@ -1,9 +1,14 @@
 import os
-
-from dbnd._core.utils.basics.helpers import parse_bool
+import sys
 
 
 PARAM_ENV_TEMPLATE = "DBND__{S}__{K}"
+
+ENV_DBND_HOME = "DBND_HOME"
+ENV_AIRFLOW_CONFIG = "AIRFLOW_CONFIG"
+ENV_DBND_SYSTEM = "DBND_SYSTEM"
+ENV_DBND_LIB = "DBND_LIB"
+
 
 ENV_DBND__ENABLED = "DBND__ENABLED"
 ENV_DBND__UNITTEST_MODE = "DBND__UNITTEST_MODE"
@@ -23,14 +28,35 @@ DBND_RUN_SUBMIT_UID = "DBND_SUBMIT_UID"
 DBND_RUN_UID = "DBND_RUN_UID"
 DBND_RESUBMIT_RUN = "DBND_RESUBMIT_RUN"
 
+ENV_DBND__ENV_MACHINE = "DBND__ENV_MACHINE"
+ENV_DBND__ENV_IMAGE = "DBND__ENV_IMAGE"
+
 # IF FALSE  - we will not modify decorated @task code
 DBND_ENABLED = None
+
+ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
+_SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ or "--help" in sys.argv
+
+# quiet mode was made for the scheduler to silence the launcher runners. Don't want this flag to propagate into the actual scheduled cmd
+ENV_DBND_QUIET = "DBND_QUIET"
+_QUIET_MODE = os.environ.pop(ENV_DBND_QUIET, None) is not None or _SHELL_COMPLETION
+
+
+def in_shell_cmd_complete_mode():
+    return _SHELL_COMPLETION
+
+
+def in_quiet_mode():
+    return _QUIET_MODE
 
 
 def environ_enabled(variable_name, default=False):
     env_value = os.environ.get(variable_name, None)
     if env_value is None:
         return default
+
+    from dbnd._core.utils.basics.helpers import parse_bool
+
     return parse_bool(env_value)
 
 

@@ -30,6 +30,9 @@ class TaskRunLogManager(TaskRunCtrl):
         self.local_log_file = self.task_run.local_task_run_root.partition(
             name="task.log"
         )
+        self.local_heartbeat_log_file = self.task_run.local_task_run_root.partition(
+            name="task.heartbeat.log"
+        )
         self.remote_log_file = None
         if not isinstance(self.task.task_env, LocalEnvConfig):
             self.remote_log_file = self.task_run.attempt_folder.partition("task.log")
@@ -78,8 +81,12 @@ class TaskRunLogManager(TaskRunCtrl):
                 log_body = log_body.decode("utf-8")
             return log_body
         except Exception as ex:
-            # todo add log path
-            logger.error("Failed to read log for %s: %s", self.task, ex)
+            logger.error(
+                "Failed to read log (%s) for %s: %s",
+                self.local_log_file.path,
+                self.task,
+                ex,
+            )
             return None
 
     def write_remote_log(self, log_body):
@@ -94,21 +101,22 @@ class TaskRunLogManager(TaskRunCtrl):
 
     def save_log_preview(self, log_body):
         max_size = self.task.settings.log.send_body_to_server_max_size
-        if max_size <= 0:
-            return None
-
-        log_preview = self._extract_log_preivew(log_body=log_body, max_size=max_size)
+        if max_size == 0:  # use 0 for unlimited
+            log_preview = log_body
+        elif max_size == -1:  # use -1 to disable
+            log_preview = None
+        else:
+            log_preview = self._extract_log_preivew(
+                log_body=log_body, max_size=max_size
+            )
         if log_preview:
             self.task_run.tracker.save_task_run_log(log_preview)
 
     def _extract_log_preivew(self, log_body=None, max_size=1000):
-        if not log_body:
-            return None
-
-        if len(log_body) > max_size > 0:
-            log_body = safe_short_string(log_body, max_size)
-
-        return log_body
+        is_tail_preview = (
+            max_size > 0
+        )  # pass negative to get log's 'head' instead of 'tail'
+        return safe_short_string(log_body, abs(max_size), tail=is_tail_preview)
 
     @contextmanager
     def capture_stderr_stdout(self, logging_target=None):

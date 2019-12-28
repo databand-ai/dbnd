@@ -1,7 +1,22 @@
-import logging
-import multiprocessing
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
-from queue import Empty
+import logging
+import signal
 
 from airflow.contrib.executors.kubernetes_executor import (
     AirflowKubernetesScheduler,
@@ -9,17 +24,14 @@ from airflow.contrib.executors.kubernetes_executor import (
     KubernetesExecutor,
     KubernetesJobWatcher,
 )
-from airflow.contrib.kubernetes.pod_launcher import PodLauncher
 from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.task_build.task_registry import build_task_from_config
-from dbnd_airflow.airflow_extensions.request_factory import DbndPodRequestFactory
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
-from kubernetes.client.rest import ApiException
 
 
 MAX_POD_ID_LEN = 253
@@ -73,8 +85,6 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
     if ec.annotations is not None:
         airflow_kube_config.kube_annotations.update(ec.annotations)
 
-    if ec.delete_pods is not None:
-        airflow_kube_config.delete_worker_pods = ec.delete_pods
     if ec.pods_creation_batch_size is not None:
         airflow_kube_config.worker_pods_creation_batch_size = (
             ec.pods_creation_batch_size
@@ -104,16 +114,19 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         super(DbndKubernetesScheduler, self).__init__(
             kube_config, task_queue, result_queue, kube_client, worker_uuid
         )
+        self.kube_dbnd = kube_dbnd
 
         # PATCH manage watcher
-        self._manager = multiprocessing.Manager()
+        from multiprocessing.managers import SyncManager
+
+        self._manager = SyncManager()
+        self._manager.start(mgr_init)
+
         self.watcher_queue = self._manager.Queue()
         self.current_resource_version = 0
         self.kube_watcher = self._make_kube_watcher_dbnd()
-
-        # PATCH use dbnd client
-        self.kube_dbnd = kube_dbnd
-        self.launcher = self.kube_dbnd.launcher
+        # will be used to low level pod interactions
+        self.running_pods = {}
 
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
@@ -127,11 +140,12 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
     def _make_kube_watcher_dbnd(self):
         watcher = DbndKubernetesJobWatcher(
-            self.namespace,
-            self.watcher_queue,
-            self.current_resource_version,
-            self.worker_uuid,
-            self.kube_config,
+            namespace=self.namespace,
+            watcher_queue=self.watcher_queue,
+            resource_version=self.current_resource_version,
+            worker_uuid=self.worker_uuid,
+            kube_config=self.kube_config,
+            kube_dbnd=self.kube_dbnd,
         )
         watcher.start()
         return watcher
@@ -188,21 +202,41 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             },
         )
 
-        self.kube_dbnd.run_pod(pod, task_run=task_run)
+        pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
+        self.running_pods[pod.name] = self.namespace
+        pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
 
     def delete_pod(self, pod_id):
-        if self.kube_config.delete_worker_pods and not (
-            self.kube_dbnd.engine_config.keep_failed_pods
-            and self.kube_dbnd.get_pod_state(pod_id, self.namespace) == State.FAILED
-        ):
-            super(DbndKubernetesScheduler, self).delete_pod(pod_id=pod_id)
+        self.running_pods.pop(pod_id, None)
+        return self.kube_dbnd.delete_pod(pod_id, self.namespace)
+
+    def terminate(self):
+
+        logger.info("Deleting submitted pods: %s" % self.running_pods)
+        for pod_name in list(self.running_pods.keys()):
+            try:
+                self.delete_pod(pod_name)
+            except Exception:
+                logger.exception("Failed to terminate pod %s", pod_name)
+        super(DbndKubernetesScheduler, self).terminate()
+
+
+def mgr_sig_handler(signal, frame):
+    logger.error("Kubernetes python SyncManager got SIGINT (waiting for .stop command)")
+
+
+def mgr_init():
+    signal.signal(signal.SIGINT, mgr_sig_handler)
 
 
 class DbndKubernetesExecutor(KubernetesExecutor):
     def __init__(self, kube_dbnd=None):
         # type: (DbndKubernetesExecutor, DbndKubernetesClient) -> None
         super(DbndKubernetesExecutor, self).__init__()
-        self._manager = multiprocessing.Manager()
+
+        from multiprocessing.managers import SyncManager
+
+        self._manager = SyncManager()
 
         self.kube_dbnd = kube_dbnd
         _update_airflow_kube_config(
@@ -211,6 +245,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
 
     def start(self):
         logger.info("Starting Kubernetes executor..")
+        self._manager.start(mgr_init)
 
         dbnd_run = try_get_databand_run()
         if dbnd_run:
@@ -244,8 +279,8 @@ class DbndKubernetesExecutor(KubernetesExecutor):
             self.kube_scheduler.log.setLevel(logging.DEBUG)
 
         self._inject_secrets()
-        # we don't clear kubernetes tasks from previous run
-        # self.clear_not_launched_queued_tasks()
+        self.clear_not_launched_queued_tasks()
+        self._flush_result_queue()
 
     # override - by default UpdateQuery not working failing with
     # sqlalchemy.exc.CompileError: Unconsumed column names: state
@@ -253,31 +288,15 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     # + we don't want to change tasks statuses - maybe they are managed by other executors
     @provide_session
     def clear_not_launched_queued_tasks(self, *args, **kwargs):
+        # we don't clear kubernetes tasks from previous run
         pass
-
-    def end(self):
-        self.kube_dbnd.end()
-        super(DbndKubernetesExecutor, self).end()
-
-    def _change_state(self, key, state, pod_id):
-        if state == State.FAILED:
-            try:
-                self.log.info("---printing failed pod logs----:")
-                self.kube_dbnd.stream_pod_logs_helper(
-                    pod_id, self.kube_config.kube_namespace, self.log, from_now=False
-                )
-            except Exception as err:
-                self.log.error(
-                    "error on reading failed pod logs %s on pod %s", err, pod_id
-                )
-
-        super(DbndKubernetesExecutor, self)._change_state(key, state, pod_id)
-
-        if state != State.RUNNING:
-            self.kube_dbnd.running_pods.pop(pod_id, None)
 
 
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
+    def __init__(self, kube_dbnd, **kwargs):
+        super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
+        self.kube_dbnd = kube_dbnd
+
     def run(self):
         try:
             super(DbndKubernetesJobWatcher, self).run()
@@ -286,29 +305,66 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             # the executor terminates the watcher
             pass
 
-
-class DbndPodLauncher(PodLauncher):
-    def __init__(self, *args, **kwargs):
-        kube_dbnd = kwargs.pop("kube_dbnd")
-        super(DbndPodLauncher, self).__init__(*args, **kwargs)
-
-        self.kube_dbnd = kube_dbnd
-        self.resource_request_above_max_capacity_checked = False
-        self.kube_req_factory = DbndPodRequestFactory()
-
-    def _task_status(self, event):
-        # PATCH: info -> debug
-        self.log.debug(
-            "Event: %s had an event of type %s", event.metadata.name, event.status.phase
+    def _run(self, kube_client, resource_version, worker_uuid, kube_config):
+        self.log.info(
+            "Event: and now my watch begins starting at resource_version: %s",
+            resource_version,
         )
-        status = self.process_status(event.metadata.name, event.status.phase)
-        return status
 
-    def pod_not_started(self, pod):
-        v1_pod = self.read_pod(pod)
+        from kubernetes import watch
 
-        # PATCH:  validate deploy errors
-        self.kube_dbnd.check_deploy_errors(v1_pod)
+        watcher = watch.Watch()
 
-        state = self._task_status(v1_pod)
-        return state == State.QUEUED
+        kwargs = {"label_selector": "airflow-worker={}".format(worker_uuid)}
+        if resource_version:
+            kwargs["resource_version"] = resource_version
+        if kube_config.kube_client_request_args:
+            for key, value in kube_config.kube_client_request_args.items():
+                kwargs[key] = value
+
+        last_resource_version = None
+        for event in watcher.stream(
+            kube_client.list_namespaced_pod, self.namespace, **kwargs
+        ):
+            # DBND PATCH
+            # we want to process the message
+            task = event["object"]
+            self.log.debug(
+                "Event: %s had an event of type %s", task.metadata.name, event["type"]
+            )
+
+            if event["type"] == "ERROR":
+                return self.process_error(event)
+            status = self.kube_dbnd.process_pod_event(event)
+
+            self.process_status_quite(
+                task.metadata.name,
+                status,
+                task.metadata.labels,
+                task.metadata.resource_version,
+            )
+            last_resource_version = task.metadata.resource_version
+
+        return last_resource_version
+
+    def process_status_quite(self, pod_id, status, labels, resource_version):
+        """Process status response"""
+        if status == "Pending":
+            self.log.debug("Event: %s Pending", pod_id)
+        elif status == "Failed":
+            self.log.debug("Event: %s Failed", pod_id)
+            self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))
+        elif status == "Succeeded":
+            self.log.debug("Event: %s Succeeded", pod_id)
+            self.watcher_queue.put((pod_id, None, labels, resource_version))
+        elif status == "Running":
+            self.log.debug("Event: %s is Running", pod_id)
+        else:
+            self.log.warning(
+                "Event: Invalid state: %s on pod: %s with labels: %s with "
+                "resource_version: %s",
+                status,
+                pod_id,
+                labels,
+                resource_version,
+            )

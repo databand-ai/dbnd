@@ -2,10 +2,6 @@ from __future__ import print_function
 
 from functools import update_wrapper
 
-from dbnd._core.context.databand_context import new_dbnd_context
-from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
-from dbnd._core.utils.object_utils import tabulate_objects
-from dbnd._core.utils.platform.windows_compatible.getuser import dbnd_getuser
 from dbnd._vendor import click
 from dbnd._vendor.click import get_current_context
 
@@ -33,6 +29,15 @@ SCHEDULED_JOB_VERBOSE_HEADERS = SCHEDULED_JOB_HEADERS + [
 ]
 
 
+datetime_formats = [
+    "%Y-%m-%d",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M:%SZ%z",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M:%SZ%z",
+]
+
+
 def pass_service(f):
     @click.pass_context
     def new_func(ctx, *args, **kwargs):
@@ -42,14 +47,14 @@ def pass_service(f):
 
 
 @click.group()
-@click.option("--verbose", "-v", is_flag=True, help="Print extra job details")
 @click.pass_context
-def schedule(ctx, verbose):
+def schedule(ctx):
     """Manage scheduled jobs"""
+    from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
+
     ctx.obj = {}
-    ctx.obj["headers"] = (
-        SCHEDULED_JOB_VERBOSE_HEADERS if verbose else SCHEDULED_JOB_HEADERS
-    )
+    ctx.obj["headers"] = SCHEDULED_JOB_HEADERS
+    from dbnd import new_dbnd_context
 
     context = new_dbnd_context(
         autoload_modules=False, conf={"core": {"tracker": ""}}
@@ -63,10 +68,16 @@ def schedule(ctx, verbose):
 
 @schedule.command()
 @click.option("--all", is_flag=True, help="Lists all deleted scheduled jobs")
+@click.option("--verbose", "-v", is_flag=True, help="Print extra job details")
 @pass_service
-def list(scheduled_job_service, all):
+@click.pass_context
+def list(ctx, scheduled_job_service, all, verbose):
     """List scheduled jobs"""
     scheduled_jobs = scheduled_job_service.list_all(filter_deleted=not all)
+
+    ctx.obj["headers"] = (
+        SCHEDULED_JOB_VERBOSE_HEADERS if verbose else SCHEDULED_JOB_HEADERS
+    )
     _click_echo_jobs(scheduled_jobs)
 
 
@@ -128,8 +139,8 @@ def delete(scheduled_job_service, name, force):
     "@once, @hourly, @daily, @weekly, @monthly or @yearly. "
     + "See documentation for precise definitions of the presets",
 )
-@click.option("--start-date", "-s", type=click.DateTime())
-@click.option("--end-date", "-ed", type=click.DateTime())
+@click.option("--start-date", "-s", type=click.DateTime(formats=datetime_formats))
+@click.option("--end-date", "-ed", type=click.DateTime(formats=datetime_formats))
 @click.option(
     "--catchup",
     "-cu",
@@ -172,8 +183,14 @@ def job(
 ):
     """Manage scheduled jobs"""
     from dbnd_web.models.dbnd_scheduled_job import DbndScheduledJob
+    from dbnd._core.utils.platform.windows_compatible.getuser import dbnd_getuser
+    from dbnd._core.utils.timezone import make_aware, is_localized
 
     username = dbnd_getuser()
+    if start_date and not is_localized(start_date):
+        start_date = make_aware(start_date)
+    if end_date and not is_localized(end_date):
+        end_date = make_aware(end_date)
     scheduled_job = DbndScheduledJob(
         name=name,
         cmd=cmd,
@@ -194,5 +211,7 @@ def job(
 
 
 def _click_echo_jobs(jobs):
+    from dbnd._core.utils.object_utils import tabulate_objects
+
     headers = get_current_context().obj["headers"]
     click.echo(tabulate_objects(jobs, headers=headers))

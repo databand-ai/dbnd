@@ -5,14 +5,11 @@ import uuid
 from typing import Optional
 from uuid import UUID
 
-import dbnd
-
 from dbnd._core.configuration.config_readers import read_from_config_files
 from dbnd._core.configuration.config_store import ConfigMergeSettings
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import is_unit_test_mode
+from dbnd._core.configuration.environ_config import in_quiet_mode, is_unit_test_mode
 from dbnd._core.context.bootstrap import dbnd_bootstrap
-from dbnd._core.context.dbnd_project_env import _env_banner
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.log.config import configure_logging_dictConfig, get_dbnd_logging_config
 from dbnd._core.plugin.dbnd_plugins import pm
@@ -20,7 +17,6 @@ from dbnd._core.run.databand_run import DatabandRun, new_databand_run
 from dbnd._core.settings import DatabandSystemConfig, OutputConfig, RunInfoConfig
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_instance_cache import TaskInstanceCache
-from dbnd._core.task_build.task_registry import DbndTaskRegistry, get_task_registry
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.load_python_module import load_python_module, run_user_func
@@ -167,7 +163,8 @@ class DatabandContext(SingletonContext):
             dict_config = self.get_default_log_settings()
 
         configure_logging_dictConfig(dict_config=dict_config)
-        logger.info("Databand logging is up!")
+        if not in_quiet_mode():
+            logger.info("Databand logging is up!")
 
     def configure_targets(self):
         output_config = self.settings.output  # type: OutputConfig
@@ -191,13 +188,20 @@ class DatabandContext(SingletonContext):
     def __repr__(self):
         return "%s(name='%s')" % (self.__class__.__name__, self.name)
 
-    def dbnd_run_task(self, task_or_task_name, run_uid=None, scheduled_run_info=None):
-        # type: (Optional[Task,str], Optional[UUID], ScheduledRunInfo) -> DatabandRun
+    def dbnd_run_task(
+        self,
+        task_or_task_name,
+        run_uid=None,
+        scheduled_run_info=None,
+        send_heartbeat=True,
+    ):
+        # type: (Optional[Task,str], Optional[UUID], ScheduledRunInfo, bool) -> DatabandRun
         with new_databand_run(
             context=self,
             task_or_task_name=task_or_task_name,
             run_uid=run_uid,
             scheduled_run_info=scheduled_run_info,
+            send_heartbeat=send_heartbeat,
         ) as run:  # type: DatabandRun
             run.run_driver()
             return run

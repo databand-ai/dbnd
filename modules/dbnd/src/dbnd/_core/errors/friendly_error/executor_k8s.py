@@ -12,16 +12,16 @@ def local_engine_not_accept_remote_jobs(env, to_cluster):
 
 def kubernetes_with_non_compatible_engine(task_engine):
     return DatabandConfigError(
-        "Config task_executor_type expected to be airflow_kubernetes for {}".format(
+        "Config env.task_executor_type expected to be airflow_kubernetes for {}".format(
             task_engine.task_name
         )
     )
 
 
-def kubernetes_image_not_found(image_name):
+def kubernetes_image_not_found(image_name, message):
     return DatabandConfigError(
-        "Failed to start Kubernetes pod because the configured image (%s) could not be pulled by Kubernetes."
-        % image_name,
+        "Failed to start Kubernetes pod because the configured image (%s) could not be pulled by Kubernetes: %s"
+        % (image_name, message),
         help_msg="Make sure you built and pushed your image. If the image is in a private repository make sure you "
         "configured image pull secrets for it in the Kubernetes cluster and configured image_pull_secrets in the Kubernetes engine config.",
     )

@@ -44,9 +44,10 @@ logger = logging.getLogger(__name__)
 
 
 class AirflowTaskExecutor(TaskExecutor):
-    def __init__(self, run, host_engine, target_engine, task_runs):
+    def __init__(self, run, task_executor_type, host_engine, target_engine, task_runs):
         super(AirflowTaskExecutor, self).__init__(
             run=run,
+            task_executor_type=task_executor_type,
             host_engine=host_engine,
             target_engine=target_engine,
             task_runs=task_runs,
@@ -58,7 +59,6 @@ class AirflowTaskExecutor(TaskExecutor):
         """
         called by executors, interprocess communication:  databand run_task ...
         """
-        import time
 
         # time.sleep(1000)
         log = LoggingMixin().log
@@ -156,7 +156,12 @@ class AirflowTaskExecutor(TaskExecutor):
                 set_af_operator_doc_md(task_run, af_task)
             return root_task.dag
 
-        dag = DAG(self.run.dag_id, default_args=get_dbnd_default_args())
+        # paused is just for better clarity in the airflow ui
+        dag = DAG(
+            self.run.dag_id,
+            default_args=get_dbnd_default_args(),
+            is_paused_upon_creation=True,
+        )
         with dag:
             airflow_ops = {}
             for task_run in task_runs:
@@ -306,8 +311,8 @@ class AirflowTaskExecutor(TaskExecutor):
         """Creates a new instance of the configured executor if none exists and returns it"""
 
         task_executor_type = self.task_executor_type
+        parallel = self.run.parallel
         task_engine = self.target_engine
-        parallel = self.host_engine.parallel
 
         if task_executor_type == AirflowTaskExecutorType.airflow_inprocess:
             if parallel:
@@ -327,17 +332,22 @@ class AirflowTaskExecutor(TaskExecutor):
                 DbndKubernetesExecutor,
             )
 
-            assert_plugin_enabled("dbnd-docker")
             self.validate_parallel_run_constrains()
-            if (
-                task_engine.task_executor_type
-                != AirflowTaskExecutorType.airflow_kubernetes
-            ):
+
+            assert_plugin_enabled("dbnd-docker")
+            from dbnd_docker.kubernetes.kubernetes_engine_config import (
+                KubernetesEngineConfig,
+            )
+
+            if not isinstance(task_engine, KubernetesEngineConfig):
                 raise friendly_error.executor_k8s.kubernetes_with_non_compatible_engine(
                     task_engine
                 )
             kube_dbnd = task_engine.build_kube_dbnd()
-            return DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
+            kube_executor = DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
+            if kube_dbnd.engine_config.debug:
+                logging.getLogger("airflow.contrib.kubernetes").setLevel(logging.DEBUG)
+            return kube_executor
 
         from airflow.executors import _get_executor as _airflow_executor
 

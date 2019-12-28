@@ -1,6 +1,5 @@
 import datetime
 import logging
-import math
 import subprocess
 import textwrap
 
@@ -8,47 +7,42 @@ from os import environ
 from typing import Dict, List, Optional
 
 import airflow.contrib.kubernetes.pod
+import yaml
 
 from six import PY2
 
 import dbnd_docker
 
 from dbnd import parameter
-from dbnd._core.configuration.environ_config import ENV_DBND_USER
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND__ENV_IMAGE,
+    ENV_DBND__ENV_MACHINE,
+    ENV_DBND_USER,
+    environ_enabled,
+)
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
-from dbnd._core.settings.engine import ContainerEngineConfig
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.git import GIT_ENV
+from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.string_utils import clean_job_name_dns1123
 from dbnd._core.utils.structures import combine_mappings
-from dbnd_airflow.executors import AirflowTaskExecutorType
+from dbnd_docker.container_engine_config import ContainerEngineConfig
+from dbnd_docker.docker.docker_task import DockerRunTask
 from targets import target
 from targets.values.version_value import get_project_git
 
-
-SI_MEMORY_SUFFIXES = ["K", "M", "G", "T", "P", "E"]
-ISO_MEMORY_SUFFIXES = ["%si" % s for s in SI_MEMORY_SUFFIXES]
-MEMORY_SUFFIXES_WITH_BASE_AND_POWER = [
-    (ISO_MEMORY_SUFFIXES, 2, 10),
-    (SI_MEMORY_SUFFIXES, 10, 3),
-]
 
 logger = logging.getLogger(__name__)
 
 ENV_DBND_POD_NAME = "DBND__POD_NAME"
 ENV_DBND_POD_NAMESPACE = "DBND__POD_NAMESPACE"
+ENV_DBND_DOCKER_IMAGE = "DBND__DOCKER_IMAGE"
+ENV_DBND_AUTO_REMOVE_POD = "DBND__AUTO_REMOVE_POD"
 
 
 class KubernetesEngineConfig(ContainerEngineConfig):
     _conf__task_family = "kubernetes"
-
-    parallel = True
-    task_executor_type = AirflowTaskExecutorType.airflow_kubernetes
-
-    use_airflow_executor = parameter.help("Submit Pod via Airflow Executor").value(
-        False
-    )
 
     cluster_context = parameter.none().help("Kubernetes cluster context")[str]
     config_file = parameter.none().help("Custom Kubernetes config file")[str]
@@ -60,10 +54,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     )
 
     image_pull_secrets = parameter.none().help("Secret to use for image pull")[str]
-    delete_pods = parameter.none().help("Delete pods once completion")[bool]
-    keep_failed_pods = parameter(default=True).help(
-        "Don't delete failed pods, even if the delete_pods flag is true"
+    keep_finished_pods = parameter(default=False).help(
+        "Don't delete pods on completion"
     )[bool]
+    keep_failed_pods = parameter(default=False).help("Don't delete failed pods")[bool]
 
     namespace = parameter(default="default")[str]
     secrets = parameter(empty_default=True).help(
@@ -118,9 +112,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         "When a pod can't be scheduled due to cpu or memory constraints, check if the constraints are possible to satisfy in the cluster"
     )
 
-    task_run_async = parameter(default=False).help(
-        "When using this engine to run the task driver - exit the local dbnd process when the driver is launched instead of waiting for completion"
-    )
+    startup_timeout = parameter(default="10m").help(
+        "Time to wait for pod getting into Running state"
+    )[datetime.timedelta]
 
     dashboard_url = parameter(default=None).help(
         "skeleton url to display as kubernetes dashboard"
@@ -135,18 +129,36 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     )[str]
 
     trap_exit_file_flag = parameter(default=None).help("trap exit file")[str]
-
-    def will_submit_by_executor(self):
-        return self.task_executor_type == AirflowTaskExecutorType.airflow_kubernetes
+    auto_remove = parameter(
+        default=False,
+        description="Auto-removal of the pod when container has finished.",
+    )[bool]
+    detach_run = parameter(
+        default=False, description="Submit run only, do not wait for it completion."
+    )[bool]
 
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
 
         if self.debug:
-            logger.info("Running in debug mode, setting all k8s loggers to debug")
+            logger.warning(
+                "Running in debug mode, setting all k8s loggers to debug, waiting for every pod completion!"
+            )
             import airflow.contrib.kubernetes
 
             set_module_logging_to_debug([dbnd_docker, airflow.contrib.kubernetes])
+            self.detach_run = False
+        if self.show_pod_log:
+            logger.warning(
+                "Showing pod logs at runtime, waiting for every pod completion!"
+            )
+            self.detach_run = False
+        if self.auto_remove and not self.detach_run:
+            logger.warning(
+                "Can't auto remove pod if not running from detach_run=True mode, "
+                "switching to auto_remove=False"
+            )
+            self.auto_remove = False
 
     def get_docker_ctrl(self, task_run):
         from dbnd_docker.kubernetes.kubernetes_task_run_ctrl import (
@@ -155,23 +167,39 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         return KubernetesTaskRunCtrl(task_run=task_run)
 
+    def submit_to_engine_task(self, env, task_name, args, interactive=True):
+        docker_engine = self
+        if not interactive:
+            docker_engine = docker_engine.clone(auto_remove=True, detach_run=True)
+        return DockerRunTask(
+            task_name=task_name,
+            command=subprocess.list2cmdline(args),
+            image=self.full_image,
+            docker_engine=docker_engine,
+            task_is_system=True,
+        )
+
     def cleanup_after_run(self):
-        if not self.task_run_async or not self.delete_pods:
+        # this run was submitted by task_run_async - we need to cleanup ourself
+        if not environ_enabled(ENV_DBND_AUTO_REMOVE_POD):
             return
-
-        from kubernetes.client import V1DeleteOptions
-
-        # we know where we run, we can kill ourself
         if ENV_DBND_POD_NAME in environ and ENV_DBND_POD_NAMESPACE in environ:
             try:
-                client = self.get_kube_client(in_cluster=True)
-                client.delete_namespaced_pod(
-                    environ[ENV_DBND_POD_NAME],
-                    environ[ENV_DBND_POD_NAMESPACE],
-                    body=V1DeleteOptions(),
+                logger.warning(
+                    "Auto deleteing pod as accordingly to '%s' env variable"
+                    % ENV_DBND_AUTO_REMOVE_POD
+                )
+                kube_dbnd = self.build_kube_dbnd()
+                kube_dbnd.delete_pod(
+                    name=environ[ENV_DBND_POD_NAME],
+                    namespace=environ[ENV_DBND_POD_NAMESPACE],
                 )
             except Exception as e:
                 logger.warning("Tried to delete this pod but failed: %s" % e)
+        else:
+            logger.warning(
+                "Auto deleting pod as set, but pod name and pod namespace is not defined"
+            )
 
     def get_dashboard_link(self, pod):
         if not self.dashboard_url:
@@ -222,10 +250,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 
         kube_client = self.get_kube_client(in_cluster=in_cluster)
-
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
-        if self.debug:
-            kube_dbnd.launcher.log.setLevel(logging.DEBUG)
         return kube_dbnd
 
     def build_pod(self, task_run, cmds, args=None, labels=None):
@@ -251,20 +276,23 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             limit_memory=self.limit_memory,
             limit_cpu=self.limit_cpu,
         )
-        env_vars = combine_mappings(
-            {
-                ENV_DBND_POD_NAME: pod_name,
-                ENV_DBND_POD_NAMESPACE: self.namespace,
-                ENV_DBND_USER: task_run.task_run_env.user,
-            },
-            self.env_vars,
-        )
-        env_vars.update(
-            self._params.to_env_map("container_repository", "container_tag")
-        )
+        env_vars = {
+            ENV_DBND_POD_NAME: pod_name,
+            ENV_DBND_POD_NAMESPACE: self.namespace,
+            ENV_DBND_USER: task_run.task_run_env.user,
+            ENV_DBND__ENV_IMAGE: self.full_image,
+            ENV_DBND__ENV_MACHINE: "%s at %s" % (pod_name, self.namespace),
+        }
+        if self.auto_remove:
+            env_vars[ENV_DBND_AUTO_REMOVE_POD] = "True"
         env_vars[self._params.get_param_env_key("in_cluster")] = "True"
         env_vars["AIRFLOW__KUBERNETES__IN_CLUSTER"] = "True"
         env_vars[GIT_ENV] = get_project_git()  # git repo not packaged in docker image
+        env_vars.update(
+            self._params.to_env_map("container_repository", "container_tag")
+        )
+
+        env_vars.update(self.env_vars)
         env_vars.update(task_run.run.get_context_spawn_env())
 
         secrets = self.get_secrets()
@@ -287,8 +315,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             cmds = ["/bin/bash", "-c"]
 
         if not self.container_tag:
-            raise Exception(
-                "Your container tag is None, please check your configuration"
+            raise DatabandConfigError(
+                "Your container tag is None, please check your configuration",
+                help_msg="Container tag should be assigned",
             )
 
         pod = Pod(
@@ -338,26 +367,27 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         return result
 
+    def build_kube_pod_req(self, pod):
+        from dbnd_airflow.airflow_extensions.request_factory import (
+            DbndPodRequestFactory,
+        )
 
-def parse_kub_memory_string(memory_string):
-    """
-    https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-memory
-    :return: float value of requested bytes or None
-    """
-    if not memory_string:
-        return None
+        kube_req_factory = DbndPodRequestFactory()
+        if hasattr(pod, "pod_yaml"):
+            kube_req_factory._yaml = pod.pod_yaml
 
+        req = kube_req_factory.create(pod)
+        return req
+
+
+def readable_pod_request(pod_req):
     try:
-        for suffixes, base, power in MEMORY_SUFFIXES_WITH_BASE_AND_POWER:
-            for i, s in enumerate(suffixes, start=1):
-                if memory_string.endswith(s) or memory_string.endswith(s.lower()):
-                    return float(memory_string[: -len(s)]) * math.pow(base, power * i)
-    except ValueError as e:
-        raise DatabandConfigError("memory parse failed for %s: %s" % (memory_string, e))
-
-    raise DatabandConfigError(
-        "memory parse failed for %s: suffix not recognized" % memory_string
-    )
+        return yaml.safe_dump(pod_req, encoding="utf-8", allow_unicode=True).decode(
+            "ascii", errors="ignore"
+        )
+    except Exception as ex:
+        logger.exception("Failed to create readable pod request representation: %s", ex)
+        return dumps_safe(pod_req)
 
 
 class DbndExtendedResources(airflow.contrib.kubernetes.pod.Resources):

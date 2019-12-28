@@ -39,11 +39,16 @@ class EnvConfig(Config):
     dbnd_local_root = parameter.output.folder()[DirTarget]
     dbnd_data_sync_root = parameter.output.folder()[DirTarget]
 
-    submit_engine = parameter(description="Submit engine configuration name").none[str]
-    driver_engine = parameter(
-        default="local_machine_engine", description="Driver engine config name"
+    # execution
+    local_engine = parameter(
+        default="local_machine_engine", description="Engine for local execution"
     )[str]
-    task_engine = parameter(description="Task engine configuration name").none[str]
+    remote_engine = parameter(
+        description="Remote engine for driver/tasks execution"
+    ).none[str]
+
+    submit_driver = parameter(description="").none[bool]
+    submit_tasks = parameter(description="").none[bool]
 
     # properties that will affect "task-env" section
     spark_config = task_env_param.help("Spark Configuration").value("spark")
@@ -74,6 +79,12 @@ class EnvConfig(Config):
 
         if not self.dbnd_data_sync_root:
             self.dbnd_data_sync_root = self.dbnd_root.folder("sync")
+
+        if self.submit_driver is None:
+            self.submit_driver = bool(self.remote_engine)
+
+        if self.submit_tasks is None:
+            self.submit_tasks = bool(self.remote_engine)
 
     @property
     def name(self):

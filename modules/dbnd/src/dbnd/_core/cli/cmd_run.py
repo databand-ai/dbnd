@@ -75,7 +75,7 @@ def build_dynamic_task(original_cls, new_cls_name):
     multiple=True,
     autocompletion=completer.root_param(),
 )
-@click.option("--verbose", "-v", is_flag=True, help="Make logging output more verbose")
+@click.option("--verbose", "-v", count=True, help="Make logging output more verbose")
 @click.option("--describe", is_flag=True, help="Describe current run")
 @click.option(
     "--env",
@@ -113,6 +113,26 @@ def build_dynamic_task(original_cls, new_cls_name):
     help="For use when setting scheduled-job-name",
     type=click.DateTime(),
 )
+@click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
+@click.option(
+    "--submit-driver", "submit_driver", flag_value=1, help="Run driver at remote engine"
+)
+@click.option(
+    "--local-driver", "submit_driver", flag_value=0, help="Run driver locally"
+)
+@click.option(
+    "--submit-tasks",
+    "submit_tasks",
+    flag_value=1,
+    help="Run submission in blocking mode",
+)
+@click.option(
+    "--no-submit-tasks",
+    "submit_tasks",
+    flag_value=0,
+    help="Run submission in blocking mode",
+)
+@click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.pass_context
 def run(
     ctx,
@@ -136,6 +156,9 @@ def run(
     alternative_task_name,
     scheduled_job_name,
     scheduled_date,
+    interactive,
+    submit_driver,
+    submit_tasks,
 ):
     """
     Run a task or a DAG
@@ -149,16 +172,24 @@ def run(
 
     task_name = task
     # --verbose, --describe, --env, --parallel, --conf-file and --project-name
+    if submit_driver is not None:
+        submit_driver = bool(submit_driver)
+    if submit_tasks is not None:
+        submit_tasks = bool(submit_tasks)
+
     main_switches = dict(
         databand=dict(
-            verbose=verbose,
+            verbose=verbose > 0,
             describe=describe,
             env=env,
-            parallel=parallel,
             conf_file=conf_file,
             project_name=project_name,
+            submit_driver=submit_driver,
+            submit_tasks=submit_tasks,
         ),
-        run=dict(name=name, description=description, is_archived=describe),
+        run=dict(
+            name=name, parallel=parallel, description=description, is_archived=describe
+        ),
     )
     if task_version is not None:
         main_switches["task"] = {"task_version": task_version}
@@ -193,10 +224,19 @@ def run(
         cmd_line_config.update(
             _parse_cli(_overrides, source="--set-override", override=True)
         )
+    if interactive:
+        cmd_line_config.update(
+            _parse_cli([{"run.interactive": True}], source="--interactive")
+        )
+    if verbose > 1:
+        cmd_line_config.update(
+            _parse_cli([{"task_build.verbose": True}], source="-v -v")
+        )
 
     if cmd_line_config:
-        logger.debug("CLI config: \n%s", pformat_config_store_as_table(cmd_line_config))
         config.set_values(cmd_line_config, source="cmdline")
+    if verbose:
+        logger.info("CLI config: \n%s", pformat_config_store_as_table(cmd_line_config))
 
     # double checking on bootstrap, as we can run from all kind of locations
     # usually we should be bootstraped already as we run from cli.
@@ -269,6 +309,9 @@ def print_help(ctx, task_cls):
 
 
 def _parse_cli(configs, source, override=False):
+    """
+    Parse every item in configs , joining them into one big ConfigStore
+    """
     config_values_list = [
         parse_and_build_config_store(
             config_values=c, source=source, override=override, auto_section_parse=True
@@ -284,7 +327,7 @@ def dbnd_run_cmd(args):
     logger.info("Running dbnd run: %s", subprocess.list2cmdline(args))
     try:
         sys.argv = [sys.executable, "-m", "databand", "run"] + args
-
+        dbnd_bootstrap()
         return run(args=args, standalone_mode=False)
     finally:
         sys.argv = current_argv

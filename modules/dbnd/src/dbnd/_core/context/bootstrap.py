@@ -1,13 +1,18 @@
+import collections
 import logging
 import os
 import signal
 import sys
 import threading
+import warnings
 
 import dbnd
 
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import set_dbnd_unit_test_mode
+from dbnd._core.configuration.environ_config import (
+    in_quiet_mode,
+    set_dbnd_unit_test_mode,
+)
 from dbnd._core.context.dbnd_project_env import (
     ENV_DBND_HOME,
     _env_banner,
@@ -27,6 +32,10 @@ logger = logging.getLogger(__name__)
 def _surpress_loggers():
     logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
     logging.getLogger("googleapiclient").setLevel(logging.WARN)
+
+
+def _suppress_warnings():
+    warnings.simplefilter("ignore", FutureWarning)
 
 
 # override exception hooks
@@ -71,13 +80,15 @@ def dbnd_bootstrap(unittest=False):
     if ENV_DBND_HOME not in os.environ:
         init_databand_env()
 
-    logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
+    if not in_quiet_mode():
+        logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
     _dbnd_exception_handling()
 
     if unittest:
         set_dbnd_unit_test_mode()
 
     _surpress_loggers()
+    _suppress_warnings()
 
     config.load_system_configs()
 
@@ -85,6 +96,10 @@ def dbnd_bootstrap(unittest=False):
         from dbnd_airflow.bootstrap import airflow_bootstrap
 
         airflow_bootstrap()
+
+    if len(sys.argv) > 1 and sys.argv[1] == "scheduler":
+        # prevent pyspark from patching namedtuples - tell it that it already patched
+        collections.namedtuple.__hijack = 1
 
     register_dbnd_plugins()
 

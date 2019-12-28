@@ -49,11 +49,6 @@ class DbndTaskRegistry(SingletonContext):
             task_cls = self.AMBIGUOUS_CLASS
         self._task_family_to_task_cls[td.task_family] = task_cls
 
-    def has_task_cls(self, name):
-        return bool(
-            self._task_family_to_task_cls.get(name) or self._fqn_to_task_cls.get(name)
-        )
-
     def _get_registered_task_cls(self, name):  # type: (str) -> Type[Task]
         """
         Returns an task class based on task_family, or full task class name
@@ -149,59 +144,52 @@ class DbndTaskRegistry(SingletonContext):
         )
         return task_classes
 
-    def build_dbnd_task(self, task_name):
-        task_cls = self.get_task_cls(task_name)  # type: Type[Task]
+    def build_dbnd_task(self, task_name, task_kwargs=None, expected_type=None):
+        task_kwargs = task_kwargs or dict()
+        task_kwargs.setdefault("task_name", task_name)
+
+        task_from = config.get(task_name, "_from", None)
+        if task_from:
+            task_kwargs.setdefault("task_config_sections", [task_from])
+
+        task_family = config.get(task_name, "_type", None)
+        if not task_family:
+            if task_from:
+                if task_name == task_from:
+                    raise friendly_error.config.task_name_and_from_are_the_same(
+                        task_name
+                    )
+                task_family = task_from
+            else:
+                task_family = task_name
+
+        task_cls = self.get_task_cls(task_family)  # type: Type[Task]
         if is_airflow_enabled():
             from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
                 AirflowDagAsDbndTask,
             )
 
-            # we are running old style dag
             if issubclass(task_cls, AirflowDagAsDbndTask):
+                # we are running old style dag
                 dag = self._get_aiflow_dag(task_name)
                 airflow_task = AirflowDagAsDbndTask.build_dbnd_task_from_dag(dag=dag)
                 return airflow_task
 
         try:
-            logger.info("Building %s task", task_cls.task_definition.full_task_family)
-            obj = task_cls()
-            logger.info(
-                "Task %s has been created (%s children)",
-                obj.task_id,
-                len(obj.ctrl.task_dag.subdag_tasks()),
-            )
-            return obj
+            logger.debug("Building %s task", task_cls.task_definition.full_task_family)
+            obj = task_cls(**task_kwargs)
+
         except Exception:
             exc = get_databand_context().settings.log.format_exception_as_str(
                 sys.exc_info(), isolate=True
             )
             logger.error("Failed to build %s: \n\n%s", task_cls.get_task_family(), exc)
             raise
-
-    def build_task_from_config(self, task_name, expected_type=None):
-        task_from = config.get(task_name, "_from", None)
-        task_family = config.get(task_name, "_type", None)
-
-        if not task_family:
-            if task_from:
-                task_family = config.get(task_from, "_type", None)
-            else:
-                if self.has_task_cls(task_name):
-                    task_family = task_name
-                else:
-                    raise friendly_error.config.task_family_not_found(task_name)
-        try:
-            task_cls = self.get_task_cls(task_family)
-        except TaskClassNotFoundException:
-            raise friendly_error.config.task_family_not_found(task_name)
-        if not task_cls:
-            raise friendly_error.config.task_family_not_found(task_name)
         if expected_type and not issubclass(task_cls, expected_type):
-            raise friendly_error.config.wrong_type_for_config(
+            raise friendly_error.task_registry.wrong_type_for_task(
                 task_name, task_cls, expected_type
             )
-
-        return task_cls(task_name=task_name, task_config_sections=[task_from])
+        return obj
 
     def _get_aiflow_dag(self, dag_id):
         if not self._dag_bag:
@@ -232,7 +220,7 @@ _REGISTRY = DbndTaskRegistry.try_instance()
 
 def build_task_from_config(task_name, expected_type=None):
     tr = get_task_registry()
-    return tr.build_task_from_config(task_name=task_name, expected_type=expected_type)
+    return tr.build_dbnd_task(task_name=task_name, expected_type=expected_type)
 
 
 def register_config_cls(config_cls):

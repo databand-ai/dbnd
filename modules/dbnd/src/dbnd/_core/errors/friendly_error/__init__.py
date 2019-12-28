@@ -21,6 +21,7 @@ from dbnd._core.errors.friendly_error import (
     task_build,
     task_execution,
     task_parameters,
+    task_registry,
     tools,
 )
 from dbnd._core.errors.friendly_error.helpers import (
@@ -120,7 +121,10 @@ def task_not_exist(task_name, alternative_tasks=None, module=None):
             alternative_tasks
         )
 
-    err_msg += "\nPlease check the requested name and try again."
+    err_msg += (
+        "\nPlease check the requested name, make sure the correct module installed, validate the value or add [%s]_type=EXPECTEDTYPE to configuration"
+        % task_name
+    )
 
     return TaskClassNotFoundException(
         err_msg,

@@ -1,6 +1,8 @@
 import logging
 
-from dbnd import Task
+import pytest
+
+from dbnd import Task, config, task
 from dbnd._core.task_build.task_registry import DbndTaskRegistry, get_task_registry
 
 
@@ -25,3 +27,12 @@ class TestDbndTaskRegistry(object):
             "test_dbnd.task_build.test_task_registry.RAmbiguousClass"
         )
         assert actual == RAmbiguousClass
+
+    def test_error_on_same_from(self):
+        @task
+        def task_with_from():
+            return
+
+        with pytest.raises(Exception):
+            with config({"task_with_from": {"_from": "task_with_from"}}):
+                get_task_registry().build_dbnd_task("task_with_from")

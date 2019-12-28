@@ -60,13 +60,13 @@ class _BaseTask(object):
     # stores call spec for the @task definition
     _conf__decorator_spec = None  # type: Optional[_TaskDecoratorSpec]
 
-    _conf__tracked = True
-    _conf__no_child_params = False
+    _conf__tracked = True  # track task changes with TrackingStore
+    _conf__no_child_params = False  # disable child scope params
+    _conf_auto_read_params = True  # enables autoread of params.
+    _conf_confirm_on_kill_msg = None  # get user confirmation on task kill if not empty
 
     _conf__require_run_dump_file = False
 
-    # this one enables the autoread.
-    _conf_auto_read_params = True
     # this is the state of autoread
     _task_auto_read_original = None
     _task_auto_read = None
@@ -201,6 +201,7 @@ class _BaseTask(object):
             elif hasattr(self, param_name):
                 new_k[param_name] = getattr(self, param_name)
 
+        new_k["task_name"] = self.task_name
         return cls(**new_k)
 
     @property

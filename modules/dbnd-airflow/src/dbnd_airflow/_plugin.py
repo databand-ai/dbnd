@@ -5,7 +5,6 @@ import typing
 import dbnd
 
 from dbnd import dbnd_config
-from dbnd_airflow.cli.cmd_airflow_db import airflow_db_init
 from dbnd_airflow.utils import AIRFLOW_LEGACY_URL_KEY
 
 
@@ -32,21 +31,10 @@ def dbnd_setup_plugin():
 @dbnd.hookimpl
 def dbnd_get_commands():
     from dbnd_airflow.cli.cmd_airflow import run_task_airflow, airflow
-    from dbnd_airflow.cli.cmd_airflow_db import (
-        airflow_db_init,
-        airflow_db_reset,
-        airflow_db_upgrade,
-    )
+
     from dbnd_airflow.cli.cmd_scheduler import scheduler
 
-    return [
-        airflow,
-        airflow_db_init,
-        airflow_db_reset,
-        airflow_db_upgrade,
-        run_task_airflow,
-        scheduler,
-    ]
+    return [airflow, run_task_airflow, scheduler]
 
 
 @dbnd.hookimpl
@@ -113,7 +101,10 @@ def dbnd_setup_unittest():
     )
 
     set_airflow_sql_conn_from_dbnd_config()
-    airflow_db_init(args=[], standalone_mode=False)
+
+    from dbnd_airflow.cli import cmd_airflow
+
+    cmd_airflow.airflow(args=["initdb"], standalone_mode=False)
 
 
 @dbnd.hookimpl

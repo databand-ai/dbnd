@@ -13,13 +13,13 @@ from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.environ_config import (
     get_dbnd_environ_config_file,
+    in_quiet_mode,
     is_unit_test_mode,
 )
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.utils.project.project_fs import (
     databand_config_path,
-    databand_lib_path,
     databand_system_path,
     get_project_home,
 )
@@ -90,9 +90,10 @@ def read_from_config_files(config_files):
     files_to_load = [target(f) for f in config_files]
     configs = []
 
-    logger.info(
-        "Reading configuration from: \n\t%s\n", "\n\t".join(map(str, files_to_load))
-    )
+    if not in_quiet_mode():
+        logger.info(
+            "Reading configuration from: \n\t%s\n", "\n\t".join(map(str, files_to_load))
+        )
 
     for f in files_to_load:
         if not f.exists():

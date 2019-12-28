@@ -1,6 +1,12 @@
 import subprocess
 import sys
 
+from os import environ
+
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND__ENV_IMAGE,
+    ENV_DBND__ENV_MACHINE,
+)
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
 from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
@@ -25,6 +31,9 @@ class RunInfoConfig(config.Config):
 
         import dbnd
 
+        machine = environ.get(ENV_DBND__ENV_MACHINE, "")
+        if environ.get(ENV_DBND__ENV_IMAGE, None):
+            machine += " image=%s" % environ.get(ENV_DBND__ENV_IMAGE)
         return TaskRunEnvInfo(
             uid=get_uuid(),
             databand_version=dbnd.__version__,
@@ -32,7 +41,7 @@ class RunInfoConfig(config.Config):
             user_code_committed=True,
             cmd_line=subprocess.list2cmdline(sys.argv),
             user=dbnd_getuser(),
-            machine="",
+            machine=machine,
             project_root=project_path(),
             user_data=safe_string(self.user_data, max_value_len=500),
             heartbeat=utcnow(),
