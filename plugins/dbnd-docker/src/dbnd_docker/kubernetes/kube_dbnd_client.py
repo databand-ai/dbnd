@@ -231,7 +231,7 @@ class DbndPodCtrl(object):
             )
             logger.info("Pod '%s' has been deleted", self.name)
         except ApiException as e:
-            logger.info("Failed to delete pod '%s':%s", e)
+            logger.info("Failed to delete pod '%s':%s", self.name, e)
             # If the pod is already deleted
             if e.status != 404:
                 raise
