@@ -47,8 +47,10 @@ class EnvConfig(Config):
         description="Remote engine for driver/tasks execution"
     ).none[str]
 
-    submit_driver = parameter(description="").none[bool]
-    submit_tasks = parameter(description="").none[bool]
+    submit_driver = parameter(description="Submit driver to remote_engine").none[bool]
+    submit_tasks = parameter(
+        description="Submit tasks to remote engine one by one"
+    ).none[bool]
 
     # properties that will affect "task-env" section
     spark_config = task_env_param.help("Spark Configuration").value("spark")

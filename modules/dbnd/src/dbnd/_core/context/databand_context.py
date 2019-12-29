@@ -136,12 +136,12 @@ class DatabandContext(SingletonContext):
                 self.settings.core.user_driver_init,
             )
 
+            self.task_run_env = RunInfoConfig().build_task_run_info()
             self.initialized_context = True
         else:
             # we get here if we are running at sub process that recreates the Context
             pm.hook.dbnd_on_existing_context(ctx=self)
 
-        self.task_run_env = RunInfoConfig().build_task_run_info()
         self.tracking_store = self.settings.core.get_tracking_store()
 
         self.configure_targets()
