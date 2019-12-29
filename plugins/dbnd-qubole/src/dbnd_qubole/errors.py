@@ -3,7 +3,7 @@ from dbnd._core.errors import DatabandRuntimeError
 
 def failed_to_submit_qubole_job(nested_exception):
     return DatabandRuntimeError(
-        "Databricks submit request failed with code %s." % nested_exception.status_code,
+        "Qubole submit request failed with code %s." % nested_exception.status_code,
         show_exc_info=False,
         nested_exceptions=nested_exception,
         help_msg="Check your databricks connection id, cluster url and access token",
