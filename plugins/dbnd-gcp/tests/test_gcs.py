@@ -31,8 +31,8 @@ import google.oauth2.service_account
 import pytest
 
 from dbnd import config
-from targets import target
 from dbnd_gcp.fs import gcs
+from targets import target
 from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 

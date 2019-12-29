@@ -6,6 +6,7 @@ from dbnd._core.task_run.task_run_logging import TaskRunLogManager
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.task_run.task_run_runner import TaskRunRunner
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
+from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
 from dbnd._core.tracking.tracking_store_console import ConsoleStore
 from dbnd._core.utils.string_utils import clean_job_name, clean_job_name_dns1123
 from dbnd._core.utils.uid_utils import get_uuid
@@ -86,6 +87,7 @@ class TaskRun(object):
 
         self.runner = TaskRunRunner(task_run=self)
         self.log = TaskRunLogManager(task_run=self)
+        self.deploy = TaskSyncCtrl(task_run=self)
         self.task_tracker_url = self.tracker.task_run_url()
         self.external_resource_urls = dict()
         self.errors = []

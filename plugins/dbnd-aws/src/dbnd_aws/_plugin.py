@@ -2,7 +2,7 @@ import dbnd
 
 from dbnd import register_config_cls
 from dbnd_aws.fs import build_s3_fs_client
-from targets.fs import register_file_system, FileSystems
+from targets.fs import FileSystems, register_file_system
 
 
 @dbnd.hookimpl

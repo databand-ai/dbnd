@@ -14,7 +14,7 @@ from dbnd._core.decorator.func_task_decorator import _task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
 from dbnd._core.task.config import Config
 from dbnd._core.task.task import Task
-from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl
+from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl, TaskRunCtrl
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark.spark_config import SparkConfig
@@ -26,7 +26,7 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class SparkCtrl(TaskJobCtrl):
+class SparkCtrl(TaskRunCtrl):
     def should_keep_local_pickle(self):
         return False
 

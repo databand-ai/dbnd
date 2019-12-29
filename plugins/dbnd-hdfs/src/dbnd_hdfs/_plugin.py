@@ -13,4 +13,5 @@ def dbnd_setup_plugin():
     register_config_cls(HdfsPyox)
 
     from dbnd_hdfs.fs.hdfs import create_hdfs_client
+
     register_file_system("hdfs", create_hdfs_client)

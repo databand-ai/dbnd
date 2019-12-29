@@ -5,10 +5,8 @@ from airflow.contrib.hooks.gcs_hook import GoogleCloudStorageHook
 
 from dbnd._core.constants import CloudType
 from dbnd._core.current import get_settings
-from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_gcp.dataproc.dataproc_config import DataprocConfig
-from dbnd_gcp.gs_sync_ctrl import GsSyncCtrl
 from dbnd_spark.spark import SparkCtrl
 from targets import target
 
@@ -16,9 +14,9 @@ from targets import target
 logger = logging.getLogger(__name__)
 
 
-class DataProcCtrl(TaskEnginePolicyCtrl, GsSyncCtrl, SparkCtrl):
-    def __init__(self, task, job):
-        super(DataProcCtrl, self).__init__(task=task, job=job)
+class DataProcCtrl(SparkCtrl):
+    def __init__(self, task_run):
+        super(DataProcCtrl, self).__init__(task_run=task_run)
 
         self.dataproc = self.task.dataproc
 
@@ -45,7 +43,7 @@ class DataProcCtrl(TaskEnginePolicyCtrl, GsSyncCtrl, SparkCtrl):
         # we will have "unique" job name by set_job_name
         job_builder.set_job_name(self.job.job_name)
         job_builder.add_args(list_of_strings(self.task.application_args()))
-        job_builder.add_file_uris(self.sync_files(self.config.files))
+        job_builder.add_file_uris(self.deploy.sync_files(self.config.files))
         return job_builder
 
     def _run_job_builder(self, job_builder):
@@ -64,9 +62,9 @@ class DataProcCtrl(TaskEnginePolicyCtrl, GsSyncCtrl, SparkCtrl):
             jars.append(self.config.main_jar)
             job_builder.set_main(None, self.task.main_class)
         else:
-            job_builder.set_main(self.sync(self.config.main_jar), None)
+            job_builder.set_main(self.deploy.sync(self.config.main_jar), None)
 
-        job_builder.add_jar_file_uris(self.sync_files(jars))
+        job_builder.add_jar_file_uris(self.deploy.sync_files(jars))
 
         return self._run_job_builder(job_builder)
 
@@ -77,8 +75,8 @@ class DataProcCtrl(TaskEnginePolicyCtrl, GsSyncCtrl, SparkCtrl):
         if self.config.main_jar:
             jars.append(self.config.main_jar)
 
-        job_builder.add_jar_file_uris(self.sync_files(jars))
-        job_builder.set_python_main(self.sync(pyspark_script))
+        job_builder.add_jar_file_uris(self.deploy.sync_files(jars))
+        job_builder.set_python_main(self.deploy.sync(pyspark_script))
 
         return self._run_job_builder(job_builder)
 
@@ -124,7 +122,7 @@ class DataProcCtrl(TaskEnginePolicyCtrl, GsSyncCtrl, SparkCtrl):
             idle_delete_ttl=dataproc_config.idle_delete_ttl,
             auto_delete_time=dataproc_config.auto_delete_time,
             auto_delete_ttl=dataproc_config.auto_delete_ttl,
-        ).task
+        )
 
     @classmethod
     def terminate_engine(cls):
@@ -144,7 +142,7 @@ class DataProcCtrl(TaskEnginePolicyCtrl, GsSyncCtrl, SparkCtrl):
             region=dataproc_config.region,
         )
 
-        return delete_cluster.task
+        return delete_cluster
 
     @classmethod
     def get_engine_policy(cls):

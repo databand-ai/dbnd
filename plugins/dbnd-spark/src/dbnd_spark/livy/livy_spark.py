@@ -16,7 +16,7 @@ from dbnd_spark.spark import SparkCtrl, SparkTask
 logger = logging.getLogger(__name__)
 
 
-class _LivySparkCtrl(TaskSyncCtrl, SparkCtrl):
+class _LivySparkCtrl(SparkCtrl):
     def get_livy_endpoint(self):
         raise NotImplementedError("This engine should implement get_livy_endpoint")
 
@@ -45,15 +45,16 @@ class _LivySparkCtrl(TaskSyncCtrl, SparkCtrl):
         task = self.task  # type: SparkTask
         _config = task.spark_config  #
 
+        deploy = self.deploy
         data = dict(
             conf=_config.conf,
-            file=self.sync(file),
+            file=deploy.sync(file),
             className=task.main_class,
             name=self.job.job_id,
             args=list_of_strings(task.application_args()),
-            files=self.sync_files(_config.files),
-            pyFiles=self.sync_files(_config.py_files),
-            jars=self.sync_files(jars),
+            files=deploy.sync_files(_config.files),
+            pyFiles=deploy.sync_files(_config.py_files),
+            jars=deploy.sync_files(jars),
             executorCores=_config.executor_cores,
             executorMemory=_config.executor_memory,
             driverMemory=_config.driver_memory,

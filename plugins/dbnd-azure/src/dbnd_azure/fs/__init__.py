@@ -22,5 +22,5 @@ def build_azure_blob_fs_client():
 
 
 def match_azure_blob_path(path):
-    if  path.startswith("https:") and "blob.core.windows" in path:
+    if path.startswith("https:") and "blob.core.windows" in path:
         return AZURE_BLOB_FS_NAME

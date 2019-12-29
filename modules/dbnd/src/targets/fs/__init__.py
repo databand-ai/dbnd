@@ -6,6 +6,7 @@ from targets.fs.local import LocalFileSystem
 if typing.TYPE_CHECKING:
     from targets import FileSystem
 
+
 class FileSystems(object):
     local = "local"
     s3 = "s3"

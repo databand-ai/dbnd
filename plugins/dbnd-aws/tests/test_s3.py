@@ -25,8 +25,8 @@ import tempfile
 
 import pytest
 
-from targets import target
 from dbnd_aws.fs import s3
+from targets import target
 from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 

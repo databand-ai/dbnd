@@ -29,7 +29,7 @@ class AtomicLocalFile(io.BufferedWriter):
         return get_local_tempfile(os.path.basename(path))
 
     def move_to_final_destination(self):
-        self.fs.move_from_local(self.tmp_path, self.path)
+        self.fs.copy_from_local(self.tmp_path, self.path)
 
     def __del__(self):
         # this is required on Windows, otherwise os.remove fails

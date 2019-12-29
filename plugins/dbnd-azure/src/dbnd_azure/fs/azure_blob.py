@@ -4,9 +4,10 @@ import logging
 import os
 import time
 
+from six.moves import xrange
+
 from azure.storage.blob import BlockBlobService
 from dbnd_azure.fs import AZURE_BLOB_FS_NAME
-from six.moves import xrange
 from targets import AtomicLocalFile
 from targets.config import get_local_tempfile
 from targets.errors import (
@@ -16,6 +17,7 @@ from targets.errors import (
 )
 from targets.fs.file_system import FileSystem
 from targets.utils.atomic import _DeleteOnCloseFile
+
 
 try:
     from urlparse import urlsplit
@@ -264,8 +266,12 @@ class AzureBlobStorageClient(FileSystem):
     def mkdir_parent(self, path):
         pass
 
-    def move_from_local(self, local_path, dest):
-        self.put(local_path, dest)
+    def copy_from_local(self, local_path, dest):
+        account, container_name, blob_name = self._path_to_account_container_and_blob(
+            dest
+        )
+
+        self.put(path=local_path, container=container_name, blob=blob_name)
 
     def open_read(self, path, mode="r"):
         account, container, blob = self._path_to_account_container_and_blob(path)

@@ -102,8 +102,8 @@ class LocalFileSystem(FileSystem):
             else:
                 raise err
 
-    def move_from_local(self, local_path, dest):
-        self.move(local_path, dest)
+    def copy_from_local(self, local_path, dest):
+        self.copy(local_path, dest)
 
     def rename_dont_move(self, path, dest):
         """
@@ -118,6 +118,3 @@ class LocalFileSystem(FileSystem):
 
     def open_write(self, path, mode="w"):
         return AtomicLocalFile(path, fs=self, mode=mode)
-
-    def put_multipart(self, local_path, destination):
-        self.copy(local_path, destination)

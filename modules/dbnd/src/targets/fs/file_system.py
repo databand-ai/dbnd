@@ -136,7 +136,7 @@ class FileSystem(object):
             "copy() not implemented on {0}".format(self.__class__.__name__)
         )
 
-    def move_from_local(self, local_path, dest):
+    def copy_from_local(self, local_path, dest):
         raise NotImplementedError(
             "move_from_local() not implemented on {0}".format(self.__class__.__name__)
         )

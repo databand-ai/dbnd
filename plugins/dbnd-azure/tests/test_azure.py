@@ -4,8 +4,8 @@ import tempfile
 import pytest
 
 from dbnd import config
-from targets import target
 from dbnd_azure.fs.azure_blob import AzureBlobStorageClient
+from targets import target
 from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 
