@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import List
 
 from dbnd import pipeline, task
+from dbnd_test_scenarios.pipelines import bad_pipeline
 
 
 logger = logging.getLogger(__name__)
@@ -28,8 +29,11 @@ def combine_all_inputs(p_input_list):
 
 
 @pipeline
-def pipe_of_long_tasks(num_per_iteration=3, iterations=1):
+def pipe_of_long_tasks(num_per_iteration=3, iterations=1, with_failure=False):
     p_input = ""
+    if with_failure:
+        bad_pipeline.bad_task()
+
     for iter_id in range(iterations):
         iter_task_results = []
         for t_id in range(num_per_iteration):

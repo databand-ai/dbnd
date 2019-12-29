@@ -132,6 +132,9 @@ class DbndKubernetesClient(object):
         if not task_run:
             logger.info("Can't find a task run for %s", metadata.name)
             return
+        if task_run.task_run_state == TaskRunState.FAILED:
+            logger.info("Skipping 'failure' event from %s", metadata.name)
+            return
 
         from dbnd._core.task_run.task_run_error import TaskRunError
 
