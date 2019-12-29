@@ -303,27 +303,26 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     def run(self):
         """Performs watching"""
         kube_client = self.kube_dbnd.kube_client
-        while True:
-            try:
-                self.resource_version = self._run(
-                    kube_client,
-                    self.resource_version,
-                    self.worker_uuid,
-                    self.kube_config,
-                )
-            except Exception:
-                self.log.exception("Unknown error in KubernetesJobWatcher. Failing")
-                raise
-            except KeyboardInterrupt:
-                # because we convert SIGTERM to SIGINT without this you get an ugly exception in the log when
-                # the executor terminates the watcher
-                pass
-            else:
-                self.log.warning(
-                    "Watch died gracefully, starting back up with: "
-                    "last resource_version: %s",
-                    self.resource_version,
-                )
+        try:
+            while True:
+                try:
+                    self.resource_version = self._run(
+                        kube_client,
+                        self.resource_version,
+                        self.worker_uuid,
+                        self.kube_config,
+                    )
+                except Exception:
+                    self.log.exception("Unknown error in KubernetesJobWatcher. Failing")
+                    raise
+                else:
+                    self.log.warning(
+                        "Watch died gracefully, starting back up with: "
+                        "last resource_version: %s",
+                        self.resource_version,
+                    )
+        except KeyboardInterrupt:
+            pass
 
     def _run(self, kube_client, resource_version, worker_uuid, kube_config):
         self.log.info(

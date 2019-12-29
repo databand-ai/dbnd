@@ -71,11 +71,12 @@ class DbndKubernetesClient(object):
                 self.dbnd_set_task_pending_fail(pod_data, ex)
                 return "Failed"
         elif phase == "Failed":
+            logger.info("Event: %s Failed", pod_name)
             self.dbnd_set_task_failed(pod_data)
 
-            logger.info("Event: %s Failed", pod_name)
         elif phase == "Succeeded":
             logger.info("Event: %s Succeeded", pod_name)
+            self.dbnd_set_task_success(pod_data)
         elif phase == "Running":
             logger.info("Event: %s is Running", pod_name)
         else:
@@ -112,6 +113,30 @@ class DbndKubernetesClient(object):
         )
         task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
         task_run.tracker.save_task_run_log(logs)
+
+    def dbnd_set_task_success(self, pod_data):
+        metadata = pod_data.metadata
+        logger.debug("Getting task run")
+        task_run = _get_task_run_from_pod_data(pod_data)
+        if not task_run:
+            logger.info("Can't find a task run for %s", metadata.name)
+            return
+        if task_run.task_run_state == TaskRunState.SUCCESS:
+            logger.info("Skipping 'success' event from %s", metadata.name)
+            return
+
+        # let just notify the success, so we can show it in summary it
+        # we will not send it to databand tracking store
+        task_run.set_task_run_state(TaskRunState.SUCCESS, track=False)
+        logger.info(
+            "%s",
+            task_run.task.ctrl.banner(
+                "Task %s has been completed at pod '%s'!"
+                % (task_run.task.task_name, metadata.name),
+                color="green",
+                task_run=task_run,
+            ),
+        )
 
     def dbnd_set_task_failed(self, pod_data):
         metadata = pod_data.metadata
