@@ -158,8 +158,8 @@ class DbndKubernetesClient(object):
             logger.info(
                 "%s",
                 task_run.task.ctrl.banner(
-                    "Task %s has failed at pod %s!"
-                    % (metadata.name, task_run.task.task_name),
+                    "Task %s has failed at pod '%s'!"
+                    % (task_run.task.task_name, metadata.name),
                     color="red",
                     task_run=task_run,
                 ),

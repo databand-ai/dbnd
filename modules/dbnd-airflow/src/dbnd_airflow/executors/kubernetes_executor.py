@@ -211,13 +211,16 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         return self.kube_dbnd.delete_pod(pod_id, self.namespace)
 
     def terminate(self):
-
-        logger.info("Deleting submitted pods: %s" % self.running_pods)
-        for pod_name in list(self.running_pods.keys()):
-            try:
-                self.delete_pod(pod_name)
-            except Exception:
-                logger.exception("Failed to terminate pod %s", pod_name)
+        pods_to_delete = sorted(self.running_pods.keys())
+        if pods_to_delete:
+            logger.info(
+                "Deleting %d submitted pods: %s", len(pods_to_delete), pods_to_delete
+            )
+            for pod_name in pods_to_delete:
+                try:
+                    self.delete_pod(pod_name)
+                except Exception:
+                    logger.exception("Failed to terminate pod %s", pod_name)
         super(DbndKubernetesScheduler, self).terminate()
 
 

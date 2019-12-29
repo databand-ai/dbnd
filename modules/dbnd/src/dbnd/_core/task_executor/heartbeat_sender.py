@@ -69,7 +69,8 @@ def start_heartbeat_sender(task_run):
                     sp.wait(timeout=TERMINATE_WAIT_TIMEOUT)
                 except Exception:
                     logger.warning(
-                        "waited %s seconds for the heartbeat sender to exit but it still hasn't exited"
+                        "waited %s seconds for the heartbeat sender to exit but it still hasn't exited",
+                        TERMINATE_WAIT_TIMEOUT,
                     )
 
             if heartbeat_log_fp:
