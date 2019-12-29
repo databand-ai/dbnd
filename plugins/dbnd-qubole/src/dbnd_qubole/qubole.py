@@ -134,7 +134,22 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
 
     # runs Java apps
     def run_spark(self, main_class):
-        pass
+        jars_list = []
+        jars = self.config.jars
+        if jars:
+            jars_list = ["--jars"] + jars
+        spark_submit_parameters = [
+            "/usr/lib/spark/bin/spark-submit",
+            "--class",
+            main_class,
+            self.sync(self.config.main_jar),
+        ] + (list_of_strings(self.task.application_args()) + jars_list)
+        self.qubole_cmd_id = SparkCommand.create(
+            cmdline=spark_submit_parameters,
+            language="command_line",
+            label=self.qubole_config.cluster_label,
+            name=self.task.task_id,
+        ).id
 
     def on_kill(self):
         self.stop_spark_session(None)
