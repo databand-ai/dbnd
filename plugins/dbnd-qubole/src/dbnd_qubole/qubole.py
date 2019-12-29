@@ -34,7 +34,7 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
 
     def _print_partial_log(self, cmd, err_ptr, log_ptr):
         log, err_len, log_len = cmd.get_log_partial(err_ptr, log_ptr)
-        print(log, err_len, log_len)
+        logger.debug(log, err_len, log_len)
         new_log_bytes = int(err_len) + int(log_len) - log_ptr
         if int(err_len) > 0:
             err_ptr += int(err_len)
@@ -75,6 +75,12 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         while True:
             cmd = SparkCommand.find(cmd_id)
             status = cmd.status
+            b = TextBanner(
+                "Spark task {} is submitted to Qubole cluster labeled: {}".format(
+                    task_id, self.qubole_config.cluster_label
+                ),
+                color="blue",
+            )
             b.column("Status", status)
             b.column("URL", url)
             logger.info(b.get_banner_str())
