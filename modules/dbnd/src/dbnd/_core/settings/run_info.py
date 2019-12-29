@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import sys
 
@@ -26,21 +27,24 @@ class RunInfoConfig(config.Config):
         default="git", description="gather version control via git/None"
     )[VersionStr]
     user_data = parameter(default=None, description="UserData")[str]
+    user = parameter(default=None, description="override user name with the value")[str]
 
     def build_task_run_info(self):
-
+        task_run_env_uid = get_uuid()
         import dbnd
+
+        logging.debug("Created new task run env with uid '%s'", task_run_env_uid)
 
         machine = environ.get(ENV_DBND__ENV_MACHINE, "")
         if environ.get(ENV_DBND__ENV_IMAGE, None):
             machine += " image=%s" % environ.get(ENV_DBND__ENV_IMAGE)
         return TaskRunEnvInfo(
-            uid=get_uuid(),
+            uid=task_run_env_uid,
             databand_version=dbnd.__version__,
             user_code_version=self.source_version,
             user_code_committed=True,
             cmd_line=subprocess.list2cmdline(sys.argv),
-            user=dbnd_getuser(),
+            user=self.user or dbnd_getuser(),
             machine=machine,
             project_root=project_path(),
             user_data=safe_string(self.user_data, max_value_len=500),
