@@ -34,6 +34,13 @@ class RunConfig(config.Config):
         "  see docs for more options",
     )[str]
 
+    submit_driver = parameter(
+        description="override env.submit_driver for specific environment"
+    ).none[bool]
+    submit_tasks = parameter(
+        description="override env.submit_tasks for specific environment"
+    ).none[bool]
+
     enable_airflow_kubernetes = parameter(
         default=True,
         description="Enable use of kubernetes executor for kubebernetes engine submission",

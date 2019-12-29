@@ -184,11 +184,14 @@ def run(
             env=env,
             conf_file=conf_file,
             project_name=project_name,
-            submit_driver=submit_driver,
-            submit_tasks=submit_tasks,
         ),
         run=dict(
-            name=name, parallel=parallel, description=description, is_archived=describe
+            name=name,
+            parallel=parallel,
+            description=description,
+            is_archived=describe,
+            submit_driver=submit_driver,
+            submit_tasks=submit_tasks,
         ),
     )
     if task_version is not None:

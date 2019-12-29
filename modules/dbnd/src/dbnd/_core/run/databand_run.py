@@ -189,13 +189,22 @@ class DatabandRun(SingletonContext):
         )
 
         self.parallel = self.run_config.parallel
-        self.submit_driver = env.submit_driver
-        self.submit_tasks = env.submit_tasks
-        self.task_executor_type = self._calculate_task_executor_type()
+        self.submit_driver = (
+            self.run_config.submit_driver
+            if env.submit_driver is not None
+            else env.submit_driver
+        )
+        self.submit_tasks = (
+            self.run_config.submit_tasks
+            if self.run_config.submit_tasks is not None
+            else env.submit_tasks
+        )
+        self.task_executor_type, self.parallel = self._calculate_task_executor_type()
 
         self.sends_heartbeat = send_heartbeat
 
     def _calculate_task_executor_type(self):
+        parallel = self.run_config.parallel
         task_executor_type = self.run_config.task_executor_type
         if is_airflow_enabled() and is_plugin_enabled("dbnd-docker"):
             from dbnd_docker.kubernetes.kubernetes_engine_config import (
@@ -211,7 +220,8 @@ class DatabandRun(SingletonContext):
                 if task_executor_type != AirflowTaskExecutorType.airflow_kubernetes:
                     logger.info("Using dedicated kubernetes executor for this run")
                     task_executor_type = AirflowTaskExecutorType.airflow_kubernetes
-        return task_executor_type
+                    parallel = True
+        return task_executor_type, parallel
 
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
@@ -311,7 +321,7 @@ class DatabandRun(SingletonContext):
 
             target_engine = self.remote_engine
             if not self.submit_tasks or task_executor_type == "airflow_kubernetes":
-                target_engine.clone(require_submit=False)
+                target_engine = target_engine.clone(require_submit=False)
 
         dbnd_local_root = host_engine.dbnd_local_root or self.env.dbnd_local_root
         run_folder_prefix = self.run_folder_prefix
@@ -696,8 +706,7 @@ class _DbndDriverTask(Task):
         else:
             logger.info(
                 run.describe.run_banner_for_submitted() + "\n "
-                "Please use --interactive to have blocking run, \n"
-                "or --local-driver (env.submit_driver=False) to run your driver locally"
+                "Please use --interactive to have blocking run, or --local-driver (env.submit_driver=False) to run your driver locally"
             )
 
 
