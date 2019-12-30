@@ -155,12 +155,12 @@ class DatabricksCtrl(SparkCtrl):
         # should be reimplemented using SparkSubmitHook (maybe from airflow)
         # note that config jars are not supported.
         if not self.databricks_config.cluster_id:
-            spark_submit_parameters = [self.dbfs_sync(pyspark_script)] + (
+            spark_submit_parameters = [self.sync(pyspark_script)] + (
                 list_of_strings(self.task.application_args())
             )
             databricks_json = self._create_spark_submit_json(spark_submit_parameters)
         else:
-            pyspark_script = self.dbfs_sync(pyspark_script)
+            pyspark_script = self.sync(pyspark_script)
             parameters = [
                 self._dbfs_scheme_to_local(e)
                 for e in list_of_strings(self.task.application_args())
@@ -180,7 +180,7 @@ class DatabricksCtrl(SparkCtrl):
         spark_submit_parameters = [
             "--class",
             main_class,
-            self.dbfs_sync(self.config.main_jar),
+            self.sync(self.config.main_jar),
         ] + (list_of_strings(self.task.application_args()) + jars_list)
         return self._run_spark_submit(spark_submit_parameters)
 
@@ -215,8 +215,8 @@ class DatabricksCtrl(SparkCtrl):
         # https://docs.databricks.com/jobs.html
         pass
 
-    def dbfs_sync(self, local_file):
-        return self._dbfs_scheme_to_mount(self.deploy.sync(local_file))
-
     def sync(self, local_file):
-        return self.dbfs_sync(local_file)
+        synced = self.deploy.sync(local_file)
+        if self.databricks_config.cloud_type == DatabricksCloud.azure:
+            return self._dbfs_scheme_to_mount(synced)
+        return synced
