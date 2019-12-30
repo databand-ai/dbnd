@@ -6,6 +6,8 @@ import sys
 
 from time import sleep, time
 
+from _signal import SIGTERM
+from dbnd._core.constants import RunState
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 
@@ -92,7 +94,10 @@ def send_heartbeat_continuously(
                     )
                     return
 
-                tracking_store.heartbeat(run_uid=run_uid)
+                run_state = tracking_store.heartbeat(run_uid=run_uid)
+                if run_state == RunState.SHUTDOWN.value:
+                    logger.info("received run state SHUTDOWN: killing driver process")
+                    os.kill(driver_pid, SIGTERM)
             except KeyboardInterrupt:
                 logger.info("stopping heartbeat sender process due to interrupt")
                 return
