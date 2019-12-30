@@ -1,16 +1,21 @@
 import logging
 import subprocess
 import time
+import typing
 
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
-from dbnd_qubole.errors import failed_to_run_qubole_job, failed_to_submit_qubole_job
-from dbnd_spark.spark import SparkCtrl, SparkTask
-from qds_sdk.commands import Command, SparkCommand
+from dbnd_qubole import QuboleConfig
+from dbnd_qubole.errors import failed_to_run_qubole_job
+from dbnd_spark.spark import SparkCtrl
+from qds_sdk.commands import SparkCommand
 from qds_sdk.qubole import Qubole
 
+
+if typing.TYPE_CHECKING:
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +28,22 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
     def __init__(self, task_run):
         super(QuboleCtrl, self).__init__(task=task_run.task, job=task_run)
         self.qubole_config = task_run.task.spark_engine  # type: QuboleConfig
+
+        self.qubole_cmd_id = None
+        self.qubole_job_url = None
+
         Qubole.configure(
             api_token=self.qubole_config.api_token,
             api_url=self.qubole_config.api_url,
             cloud_name=self.qubole_config.cloud,
         )
-        from dbnd_aws.aws_sync_ctrl import AwsSyncCtrl
 
-        self.cloud_sync = AwsSyncCtrl(task_run.task, task_run)
+    def _setup_qubole_loggers(self):
+        # CAN BREAK if QDS change their name of logger.
+        qds_log_lvl = self.qubole_config.qds_sdk_logging_level
+        logger.info("setting QDS logger level to: {}".format(qds_log_lvl))
+        logger_qds = logging.getLogger("qds_connection")
+        logger_qds.setLevel(qds_log_lvl)
 
     def _print_partial_log(self, cmd, err_ptr, log_ptr):
         log, err_len, log_len = cmd.get_log_partial(err_ptr, log_ptr)
@@ -45,6 +58,11 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             err_ptr += int(err_len)
         return log, err_ptr, log_ptr, new_log_bytes
 
+    def _get_url(self):
+        cmd_id = self.qubole_cmd_id
+        host = self.qubole_config.api_url.replace("/api", "")
+        return "{host}/v2/analyze?command_id={id}".format(host=host, id=cmd_id)
+
     def _handle_qubole_operator_execution(self, task_id):
         """
         Handles the Airflow + Databricks lifecycle logic for a Databricks operator
@@ -53,37 +71,20 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         :param task_id: Databand Task Id.
 
         """
-        b = TextBanner(
-            "Spark task {} is submitted to Qubole cluster labeled: {}".format(
-                task_id, self.qubole_config.cluster_label
-            ),
-            color="blue",
-        )
+
+        self.qubole_job_url = self._get_url()
+        self.task_run.set_external_resource_urls({"qubole url": self.qubole_job_url})
+
+        self._qubole_banner("submitted")
+
         cmd_id = self.qubole_cmd_id
-        host = self.qubole_config.api_url.replace("/api", "")
-        url = "{host}/v2/analyze?command_id={id}".format(host=host, id=cmd_id)
-        self.task_run.set_external_resource_urls({"qubole url": url})
-        b.column("URL", url)
-        logger.info(b.get_banner_str())
+
         log_ptr, err_ptr = 0, 0
 
-        # CAN BREAK if QDS change their name of logger.
-        qds_log_lvl = self.qubole_config.qds_sdk_logging_level
-        logger.info("setting QDS logger level to: {}".format(qds_log_lvl))
-        logger_qds = logging.getLogger("qds_connection")
-        logger_qds.setLevel(qds_log_lvl)
         while True:
             cmd = SparkCommand.find(cmd_id)
             status = cmd.status
-            b = TextBanner(
-                "Spark task {} is submitted to Qubole cluster labeled: {}".format(
-                    task_id, self.qubole_config.cluster_label
-                ),
-                color="blue",
-            )
-            b.column("Status", status)
-            b.column("URL", url)
-            logger.info(b.get_banner_str())
+            self._qubole_banner(status)
 
             log, err_ptr, log_ptr, received_log = self._print_partial_log(
                 cmd, err_ptr, log_ptr
@@ -93,27 +94,36 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
                 logger.info(log)
             if SparkCommand.is_done(status):
                 if SparkCommand.is_success(status):
-                    b.column("Task completed successfully", task_id)
-                    logger.info(b.get_banner_str())
                     return
                 else:  # failed
-                    cmd.get_results(fp=logger.error)
-                    logger.info(b.get_banner_str())
-                    raise failed_to_run_qubole_job(status, url, self.get_result())
+                    cmd.get_results(fp=logger.error, fetch=False)
+                    raise failed_to_run_qubole_job(
+                        status, self.qubole_job_url, log[:, -15]
+                    )
             else:
                 time.sleep(self.qubole_config.status_polling_interval_seconds)
+
+    def _qubole_banner(self, status):
+        b = TextBanner(
+            "Spark task {} is submitted to Qubole cluster labeled: {}".format(
+                self.task.task_id, self.qubole_config.cluster_label
+            ),
+            color="magenta",
+        )
+        b.column("Status", status)
+        b.column("URL", self.qubole_job_url)
+        logger.info(b.get_banner_str())
 
     def run_pyspark(self, pyspark_script):
         # should be reimplemented using SparkSubmitHook (maybe from airflow)
         # note that config jars are not supported.
 
-        pyspark_script = self.sync(pyspark_script)
         arguments = subprocess.list2cmdline(
             list_of_strings(self.task.application_args())
         )
 
         self.qubole_cmd_id = SparkCommand.create(
-            script_location=pyspark_script,
+            script_location=self.deploy.sync(pyspark_script),
             language="python",
             user_program_arguments=arguments,
             label=self.qubole_config.cluster_label,
@@ -128,10 +138,6 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             return SparkCommand.get_log_id(self.qubole_cmd_id)
         return None
 
-    def get_result(self):
-        if self.qubole_cmd_id:
-            return SparkCommand.find(self.qubole_cmd_id).get_results()
-
     # runs Java apps
     def run_spark(self, main_class):
         jars_list = []
@@ -142,7 +148,7 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             "/usr/lib/spark/bin/spark-submit",
             "--class",
             main_class,
-            self.sync(self.config.main_jar),
+            self.deploy.sync(self.config.main_jar),
         ] + (list_of_strings(self.task.application_args()) + jars_list)
         self.qubole_cmd_id = SparkCommand.create(
             cmdline=spark_submit_parameters,
@@ -155,10 +161,9 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         self.stop_spark_session(None)
 
     def stop_spark_session(self, session):
+        if not self.qubole_cmd_id:
+            return
         try:
             SparkCommand.cancel(self.qubole_cmd_id)
         except Exception as e:
             logger.error("Failed to stop qubole", e)
-
-    def sync(self, local_file):
-        return self.cloud_sync.sync(local_file)

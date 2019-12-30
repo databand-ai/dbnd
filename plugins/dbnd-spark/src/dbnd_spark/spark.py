@@ -14,7 +14,7 @@ from dbnd._core.decorator.func_task_decorator import _task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
 from dbnd._core.task.config import Config
 from dbnd._core.task.task import Task
-from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl, TaskRunCtrl
+from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark.spark_config import SparkConfig
@@ -64,6 +64,9 @@ class SparkCtrl(TaskRunCtrl):
 
     def stop_spark_session(self, session):
         session.stop()
+
+    def sync(self, local_file):
+        return self.deploy.sync(local_file)
 
 
 class _BaseSparkTask(Task):

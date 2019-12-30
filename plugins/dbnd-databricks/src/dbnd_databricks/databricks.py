@@ -217,3 +217,6 @@ class DatabricksCtrl(SparkCtrl):
 
     def dbfs_sync(self, local_file):
         return self._dbfs_scheme_to_mount(self.deploy.sync(local_file))
+
+    def sync(self, local_file):
+        return self.dbfs_sync(local_file)
