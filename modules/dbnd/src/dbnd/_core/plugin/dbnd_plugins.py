@@ -1,13 +1,11 @@
-import importlib
+import logging
 import logging
 import os
-import types
 
-from dbnd._core.errors import DatabandError, friendly_error
+from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
-from dbnd._core.utils.basics.load_python_module import _load_module, import_errors
+from dbnd._core.utils.basics.load_python_module import _load_module
 from dbnd._vendor import pluggy
-
 
 logger = logging.getLogger(__name__)
 
@@ -76,66 +74,9 @@ def register_dbnd_plugins():
     _dbnd_plugins_registered = True
 
     pm.load_setuptools_entrypoints("dbnd")
-
-    # we want to support old "databand" module install that doesn't use plugins
-    # so if we don't have plugins registered --> probably we in the  Fat Wheel mode
-    # we need to register them manually
-    dbnd_plugins = [
-        name
-        for name, p in pm.list_name_plugin()
-        if name.startswith("dbnd-") and name != "dbnd-examples"
-    ]
-    if not dbnd_plugins:
-        _register_manually()
-
     pm.check_pending()
 
 
 def register_dbnd_user_plugins(user_plugin_modules):
     for plugin_module in user_plugin_modules:
         pm.register(_load_module(plugin_module, "plugin:%s" % plugin_module))
-
-
-def _register_manually():
-    # should be used when modules are installed not via setup.py
-    # ( old packaging system)
-    for plugin in [
-        "dbnd-airflow",
-        "dbnd-web",
-        "dbnd-aws",
-        "dbnd-azure",
-        "dbnd-databricks",
-        "dbnd-qubole",
-        "dbnd-docker",
-        "dbnd-hdfs",
-        "dbnd-gcp",
-        "dbnd-spark",
-        "dbnd-examples",
-    ]:
-
-        plugin_module = "%s._plugin" % plugin.replace("-", "_")
-        try:
-            plugin_module = importlib.import_module(plugin_module)
-            logger.info("Imported %s", plugin_module)
-        except import_errors:
-            logger.debug("Didn't import %s", plugin_module)
-            continue
-
-        try:
-            pm.register(plugin_module, plugin)
-        except Exception as ex:
-            logger.error("failed to register %s:%s", plugin, ex)
-
-
-# TODO Seems like not used
-def _register_from_config(specs):
-    if specs is not None and not isinstance(specs, types.ModuleType):
-        if isinstance(specs, str):
-            specs = specs.split(",") if specs else []
-        if not isinstance(specs, (list, tuple)):
-            raise DatabandError(
-                "Plugin specs must be a ','-separated string or a "
-                "list/tuple of strings for plugin names. Given: %r" % specs
-            )
-        return list(specs)
-    return []
