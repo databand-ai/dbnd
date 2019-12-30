@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
 class FileSystems(object):
     local = "local"
     s3 = "s3"
-    gcs = "gcs"
+    gcs = "gs"
 
 
 KNOWN_FILE_SYSTEMS = {}

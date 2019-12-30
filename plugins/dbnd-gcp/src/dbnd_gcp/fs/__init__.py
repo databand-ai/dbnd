@@ -14,4 +14,4 @@ def _cached_gc_credentials():
 def build_gcs_client():
     from dbnd_gcp.fs.gcs import GCSClient
 
-    fs = GCSClient(oauth_credentials=_cached_gc_credentials(), cache_discovery=False)
+    return GCSClient(oauth_credentials=_cached_gc_credentials(), cache_discovery=False)
