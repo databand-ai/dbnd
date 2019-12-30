@@ -105,6 +105,9 @@ class LocalFileSystem(FileSystem):
     def copy_from_local(self, local_path, dest):
         self.copy(local_path, dest)
 
+    def move_from_local(self, local_path, dest):
+        self.move(local_path, dest)
+
     def rename_dont_move(self, path, dest):
         """
         Rename ``path`` to ``dest``, but don't move it into the ``dest``
