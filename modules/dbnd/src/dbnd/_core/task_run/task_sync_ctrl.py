@@ -12,11 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class TaskSyncCtrl(TaskRunCtrl):
-    remote_fs_name = FileSystems.local
-
     def __init__(self, task_run):
         super(TaskSyncCtrl, self).__init__(task_run=task_run)
-        self._remote_sync_root = None
 
         self.remote_sync_root = self.task_env.dbnd_data_sync_root.folder("deploy")
 
@@ -47,7 +44,7 @@ class TaskSyncCtrl(TaskRunCtrl):
     def is_remote(self, file):
         if not file:
             return None
-        return file.fs.name == self.remote_fs_name
+        return file.fs.name != FileSystems.local
 
     def remote_file(self, local_file):
         if self.is_remote(local_file):

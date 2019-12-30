@@ -38,6 +38,8 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             cloud_name=self.qubole_config.cloud,
         )
 
+        self._setup_qubole_loggers()
+
     def _setup_qubole_loggers(self):
         # CAN BREAK if QDS change their name of logger.
         qds_log_lvl = self.qubole_config.qds_sdk_logging_level
@@ -58,12 +60,12 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             err_ptr += int(err_len)
         return log, err_ptr, log_ptr, new_log_bytes
 
-    def _get_url(self):
-        cmd_id = self.qubole_cmd_id
+    def _get_url(self, qubole_cmd_id):
+        cmd_id = qubole_cmd_id
         host = self.qubole_config.api_url.replace("/api", "")
         return "{host}/v2/analyze?command_id={id}".format(host=host, id=cmd_id)
 
-    def _handle_qubole_operator_execution(self, task_id):
+    def _handle_qubole_operator_execution(self, cmd):
         """
         Handles the Airflow + Databricks lifecycle logic for a Databricks operator
         :param run_id: Databricks run_id
@@ -71,13 +73,12 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         :param task_id: Databand Task Id.
 
         """
-
-        self.qubole_job_url = self._get_url()
+        self.qubole_cmd_id = cmd_id = cmd.id
+        self.qubole_job_url = self._get_url(cmd.id)
         self.task_run.set_external_resource_urls({"qubole url": self.qubole_job_url})
+        self.task_run.tracker.log_metric("qubole_cmd_id", cmd_id)
 
-        self._qubole_banner("submitted")
-
-        cmd_id = self.qubole_cmd_id
+        self._qubole_banner(cmd.status)
 
         log_ptr, err_ptr = 0, 0
 
@@ -94,7 +95,7 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
                 logger.info(log)
             if SparkCommand.is_done(status):
                 if SparkCommand.is_success(status):
-                    return
+                    return True
                 else:  # failed
                     cmd.get_results(fp=logger.error, fetch=False)
                     raise failed_to_run_qubole_job(
@@ -122,14 +123,14 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             list_of_strings(self.task.application_args())
         )
 
-        self.qubole_cmd_id = SparkCommand.create(
+        cmd = SparkCommand.create(
             script_location=self.deploy.sync(pyspark_script),
             language="python",
             user_program_arguments=arguments,
             label=self.qubole_config.cluster_label,
             name=self.task.task_id,
-        ).id
-        self._handle_qubole_operator_execution(self.task.spark_engine.task_id)
+        )
+        self._handle_qubole_operator_execution(cmd)
 
         return True
 
@@ -150,12 +151,13 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             main_class,
             self.deploy.sync(self.config.main_jar),
         ] + (list_of_strings(self.task.application_args()) + jars_list)
-        self.qubole_cmd_id = SparkCommand.create(
+        cmd = SparkCommand.create(
             cmdline=spark_submit_parameters,
             language="command_line",
             label=self.qubole_config.cluster_label,
             name=self.task.task_id,
-        ).id
+        )
+        self._handle_qubole_operator_execution(cmd)
 
     def on_kill(self):
         self.stop_spark_session(None)
