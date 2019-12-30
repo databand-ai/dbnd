@@ -99,7 +99,7 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
                 else:  # failed
                     cmd.get_results(fp=logger.error, fetch=False)
                     raise failed_to_run_qubole_job(
-                        status, self.qubole_job_url, log[:, -15]
+                        status, self.qubole_job_url, log[-15:]
                     )
             else:
                 time.sleep(self.qubole_config.status_polling_interval_seconds)
