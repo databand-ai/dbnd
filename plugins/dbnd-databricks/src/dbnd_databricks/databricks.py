@@ -18,7 +18,8 @@ from dbnd_databricks.errors import (
     failed_to_run_databricks_job,
     failed_to_submit_databricks_job,
 )
-from dbnd_spark.spark import SparkCtrl, SparkTask
+from dbnd_spark.spark import SparkTask
+from dbnd_spark.spark_ctrl import SparkCtrl
 
 
 logger = logging.getLogger(__name__)

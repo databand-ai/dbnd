@@ -74,3 +74,8 @@ class TaskSyncCtrl(TaskRunCtrl):
 
     def _exists(self, remote_file):
         return remote_file.exists()
+
+
+class DisabledTaskSyncCtrl(TaskSyncCtrl):
+    def _sync(self, local_file):
+        return local_file

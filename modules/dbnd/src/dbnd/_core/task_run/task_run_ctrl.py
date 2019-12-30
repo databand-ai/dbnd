@@ -22,11 +22,6 @@ class TaskRunCtrl(TaskSubCtrl):
         return self.run.context
 
     @property
-    def deploy(self):
-        # type: () -> TaskSyncCtrl
-        return self.task_run.deploy
-
-    @property
     def task_run_uid(self):
         return self.task_run.task_run_uid
 

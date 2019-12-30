@@ -12,7 +12,7 @@ from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark._core.spark_error_parser import parse_spark_log
 from dbnd_spark.local.local_spark_config import SparkLocalConfig
-from dbnd_spark.spark import SparkCtrl
+from dbnd_spark.spark_ctrl import SparkCtrl
 from targets.fs import FileSystems
 
 

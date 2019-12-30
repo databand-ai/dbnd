@@ -3,7 +3,7 @@ import logging
 from dbnd._core.utils.http.endpoint import Endpoint
 from dbnd_aws.emr.emr_cluster import EmrClustersCtrl
 from dbnd_spark.livy.livy_spark import _LivySparkCtrl
-from dbnd_spark.spark import SparkCtrl
+from dbnd_spark.spark_ctrl import SparkCtrl
 
 
 logger = logging.getLogger(__name__)

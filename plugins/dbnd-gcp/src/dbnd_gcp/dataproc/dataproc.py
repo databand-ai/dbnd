@@ -7,7 +7,7 @@ from dbnd._core.constants import CloudType
 from dbnd._core.current import get_settings
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_gcp.dataproc.dataproc_config import DataprocConfig
-from dbnd_spark.spark import SparkCtrl
+from dbnd_spark.spark_ctrl import SparkCtrl
 from targets import target
 
 

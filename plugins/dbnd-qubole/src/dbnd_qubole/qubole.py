@@ -5,11 +5,12 @@ import typing
 
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
+from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_qubole import QuboleConfig
 from dbnd_qubole.errors import failed_to_run_qubole_job
-from dbnd_spark.spark import SparkCtrl
+from dbnd_spark.spark_ctrl import SparkCtrl
 from qds_sdk.commands import SparkCommand
 from qds_sdk.qubole import Qubole
 
@@ -24,9 +25,9 @@ def get_cloud_sync(config, task, job):
     assert_plugin_enabled("dbnd-aws", "qubole on aws requires dbnd-aws module.")
 
 
-class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
+class QuboleCtrl(SparkCtrl):
     def __init__(self, task_run):
-        super(QuboleCtrl, self).__init__(task=task_run.task, job=task_run)
+        super(QuboleCtrl, self).__init__(task_run=task_run)
         self.qubole_config = task_run.task.spark_engine  # type: QuboleConfig
 
         self.qubole_cmd_id = None
@@ -97,7 +98,6 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
                 if SparkCommand.is_success(status):
                     return True
                 else:  # failed
-                    cmd.get_results(fp=logger.error, fetch=False)
                     raise failed_to_run_qubole_job(
                         status, self.qubole_job_url, log[-15:]
                     )
@@ -127,7 +127,7 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             script_location=self.deploy.sync(pyspark_script),
             language="python",
             user_program_arguments=arguments,
-            arguments=self.qubole_config.spark_submit_arguments,
+            arguments=subprocess.list2cmdline(self.config_to_command_line()),
             label=self.qubole_config.cluster_label,
             name=self.task.task_id,
         )
@@ -142,18 +142,17 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
 
     # runs Java apps
     def run_spark(self, main_class):
-        jars_list = []
-        jars = self.config.jars
-        if jars:
-            jars_list = ["--jars"] + jars
-        spark_submit_parameters = [
-            "/usr/lib/spark/bin/spark-submit",
-            "--class",
-            main_class,
-            self.deploy.sync(self.config.main_jar),
-        ] + (list_of_strings(self.task.application_args()) + jars_list)
+        spark_cmd_line = CmdLineBuilder()
+        spark_cmd_line.add("/usr/lib/spark/bin/spark-submit", "--class", main_class)
+        spark_cmd_line.extend(self.config_to_command_line())
+
+        # application jar
+        spark_cmd_line.add(self.deploy.sync(self.config.main_jar))
+        # add user side args
+        spark_cmd_line.extend(list_of_strings(self.task.application_args()))
+
         cmd = SparkCommand.create(
-            cmdline=spark_submit_parameters,
+            cmdline=spark_cmd_line.get_cmd_line(),
             language="command_line",
             label=self.qubole_config.cluster_label,
             name=self.task.task_id,
