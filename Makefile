@@ -16,7 +16,7 @@ prj_plugins = 	plugins/dbnd-aws  \
           	plugins/dbnd-test-scenarios
 
 
-prj_dist = $(prj_modules) $(prj_plugins)
+prj_dist = $(prj_modules) $(prj_plugins) $(prj_plugins_spark)
 
 prj_examples = examples
 prj_test = plugins/dbnd-test-scenarios
