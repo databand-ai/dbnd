@@ -65,6 +65,7 @@ class TrackingInfoBuilder(object):
             scheduled_run=run.scheduled_run_info,
             trigger="unknown",
             sends_heartbeat=run.sends_heartbeat,
+            task_executor=run.task_executor.__class__.__name__,
         )
 
     def build_init_args(self):
