@@ -191,7 +191,7 @@ class DatabandRun(SingletonContext):
         self.parallel = self.run_config.parallel
         self.submit_driver = (
             self.run_config.submit_driver
-            if env.submit_driver is not None
+            if self.run_config.submit_driver is not None
             else env.submit_driver
         )
         self.submit_tasks = (
