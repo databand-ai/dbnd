@@ -36,6 +36,10 @@ class QuboleConfig(Config):
         "qubole sdk log level."
     )
 
+    spark_submit_arguments = parameter(default="").help(
+        "spark arguments as a string, like: --num-executors 10 --max-executors 10 --executor-memory 5G --executor-cores 2"
+    )[str]
+
     def get_spark_ctrl(self, task_run):
         from dbnd_qubole.qubole import QuboleCtrl
 

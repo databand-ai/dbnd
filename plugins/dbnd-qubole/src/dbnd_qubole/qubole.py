@@ -127,6 +127,7 @@ class QuboleCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             script_location=self.deploy.sync(pyspark_script),
             language="python",
             user_program_arguments=arguments,
+            arguments=self.qubole_config.spark_submit_arguments,
             label=self.qubole_config.cluster_label,
             name=self.task.task_id,
         )
