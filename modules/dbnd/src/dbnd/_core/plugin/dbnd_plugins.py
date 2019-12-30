@@ -1,11 +1,11 @@
 import logging
-import logging
 import os
 
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
 from dbnd._core.utils.basics.load_python_module import _load_module
 from dbnd._vendor import pluggy
+
 
 logger = logging.getLogger(__name__)
 

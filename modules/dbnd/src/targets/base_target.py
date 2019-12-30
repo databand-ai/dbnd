@@ -90,6 +90,7 @@ class Target(object):
         # type: ()->Optional[Task]
         if self.source:
             from dbnd._core.current import get_task_by_task_id
+
             return get_task_by_task_id(self.source.task_id)
         return None
 
