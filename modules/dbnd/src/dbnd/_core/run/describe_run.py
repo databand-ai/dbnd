@@ -91,18 +91,22 @@ class DescribeRun(RunCtrl):
             b.column("CMD", task_run_env.cmd_line)
             b.column("RUN UID", "%s" % run.run_uid)
             b.column("DB", self.context.settings.core.sql_conn_repr)
+            b.column("ENV", run.env.name)
             b.column(
-                "PARAMS",
+                "RUN",
                 b.f_simple_dict(
                     [
-                        ("TASK_EXECUTOR", run.driver_engine.task_executor_type),
-                        ("ENV", run.env.name),
+                        ("TASK_EXECUTOR", run.task_executor_type),
+                        ("PARALLEL", run.parallel),
+                        ("SUBMIT_DRIVER", run.submit_driver),
+                        ("SUBMIT_TASKS", run.submit_tasks),
                     ],
                     skip_if_empty=True,
                 ),
                 skip_if_empty=True,
             )
-            b.column("USER DATA", task_run_env.user_data, skip_if_empty=True)
+            if task_run_env.user_data:
+                b.column("USER DATA", task_run_env.user_data, skip_if_empty=True)
             b.new_line()
 
         failed_task_runs = [

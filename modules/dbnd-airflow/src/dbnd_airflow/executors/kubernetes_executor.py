@@ -125,6 +125,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.watcher_queue = self._manager.Queue()
         self.current_resource_version = 0
         self.kube_watcher = self._make_kube_watcher_dbnd()
+        # will be used to low level pod interactions
+        self.running_pods = {}
 
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
@@ -200,10 +202,26 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             },
         )
 
-        self.kube_dbnd.run_pod(pod=pod, task_run=task_run, detach_run=True)
+        pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
+        self.running_pods[pod.name] = self.namespace
+        pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
 
     def delete_pod(self, pod_id):
+        self.running_pods.pop(pod_id, None)
         return self.kube_dbnd.delete_pod(pod_id, self.namespace)
+
+    def terminate(self):
+        pods_to_delete = sorted(self.running_pods.keys())
+        if pods_to_delete:
+            logger.info(
+                "Deleting %d submitted pods: %s", len(pods_to_delete), pods_to_delete
+            )
+            for pod_name in pods_to_delete:
+                try:
+                    self.delete_pod(pod_name)
+                except Exception:
+                    logger.exception("Failed to terminate pod %s", pod_name)
+        super(DbndKubernetesScheduler, self).terminate()
 
 
 def mgr_sig_handler(signal, frame):
@@ -276,22 +294,34 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         # we don't clear kubernetes tasks from previous run
         pass
 
-    def end(self):
-        self.kube_dbnd.end()
-        super(DbndKubernetesExecutor, self).end()
-
 
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     def __init__(self, kube_dbnd, **kwargs):
         super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
-        self.kube_dbnd = kube_dbnd
+        self.kube_dbnd = kube_dbnd  # type: DbndKubernetesClient
 
     def run(self):
+        """Performs watching"""
+        kube_client = self.kube_dbnd.kube_client
         try:
-            super(DbndKubernetesJobWatcher, self).run()
+            while True:
+                try:
+                    self.resource_version = self._run(
+                        kube_client,
+                        self.resource_version,
+                        self.worker_uuid,
+                        self.kube_config,
+                    )
+                except Exception:
+                    self.log.exception("Unknown error in KubernetesJobWatcher. Failing")
+                    raise
+                else:
+                    self.log.warning(
+                        "Watch died gracefully, starting back up with: "
+                        "last resource_version: %s",
+                        self.resource_version,
+                    )
         except KeyboardInterrupt:
-            # because we convert SIGTERM to SIGINT without this you get an ugly exception in the log when
-            # the executor terminates the watcher
             pass
 
     def _run(self, kube_client, resource_version, worker_uuid, kube_config):

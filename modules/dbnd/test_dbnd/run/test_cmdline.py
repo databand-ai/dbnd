@@ -59,6 +59,17 @@ class TestCmdline(object):
         args = ["FooBaseTask", "-r", "t_param=hello", "--verbose", "--describe"]
         assert run_cmd_locally(args)
 
+    def test_describe_double_verbose(self):
+        args = [
+            "FooBaseTask",
+            "-r",
+            "t_param=hello",
+            "--verbose",
+            "--verbose",
+            "--describe",
+        ]
+        assert run_cmd_locally(args)
+
     def test_misspelled_task_suggestion(self):
         with pytest.raises(
             TaskClassNotFoundException, match="dbnd_sanity_check"

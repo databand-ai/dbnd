@@ -80,6 +80,10 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         b.column("URL", url)
         logger.info(b.get_banner_str())
         while True:
+            b = TextBanner(
+                "Spark task %s is submitted to Databricks cluster:" % task_id,
+                color="cyan",
+            )
             b.column("URL", url)
             run_state = hook.get_run_state(run_id)
             if run_state.is_terminal:

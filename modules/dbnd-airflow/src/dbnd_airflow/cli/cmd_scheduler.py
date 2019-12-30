@@ -4,7 +4,10 @@ import logging
 import os
 import signal
 
-from dbnd._core.configuration.environ_config import is_shell_cmd_complete_mode
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND_QUIET,
+    in_shell_cmd_complete_mode,
+)
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._vendor import click
 from dbnd_airflow.utils import dbnd_airflow_path
@@ -13,7 +16,7 @@ from dbnd_airflow.utils import dbnd_airflow_path
 logger = logging.getLogger(__name__)
 
 # avoid importing airflow on autocomplete (takes approximately 1s)
-if not is_shell_cmd_complete_mode():
+if not in_shell_cmd_complete_mode():
     from airflow.bin.cli import DAGS_FOLDER
     import airflow
     from airflow.executors import LocalExecutor, SequentialExecutor
@@ -39,6 +42,9 @@ def configure_airflow_scheduler_logging():
 
     logging.root.removeHandler(dbnd_console)
     logging.root.addHandler(airflow_console_handler)
+
+    # disables bootstrap prints of the launchers starting (since we still force all airflow tasks to go through dbnd airflow run ...)
+    os.environ[ENV_DBND_QUIET] = "don't spam the log"
 
 
 def link_dropin_dbnd_scheduled_dags(sub_dir, unlink_first=True):

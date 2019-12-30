@@ -105,6 +105,7 @@ def _register_manually():
         "dbnd-aws",
         "dbnd-azure",
         "dbnd-databricks",
+        "dbnd-qubole",
         "dbnd-docker",
         "dbnd-hdfs",
         "dbnd-gcp",

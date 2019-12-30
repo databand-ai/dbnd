@@ -162,7 +162,9 @@ class AutoCompleter(FastSingletonContext):
             autocompletion_cache_filename = (
                 ".shell.unittest" if is_unit_test_mode() else ".shell"
             )
-            store_path = databand_system_path(autocompletion_cache_filename)
+            store_path = databand_system_path(
+                "autocompletion", autocompletion_cache_filename
+            )
 
             self._store_ins = PrefixStore(store_path)
 

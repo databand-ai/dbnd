@@ -20,13 +20,13 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND_USER,
     environ_enabled,
 )
+from dbnd._core.errors import DatabandConfigError
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.git import GIT_ENV
 from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.string_utils import clean_job_name_dns1123
 from dbnd._core.utils.structures import combine_mappings
-from dbnd_airflow.executors import AirflowTaskExecutorType
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_task import DockerRunTask
 from targets import target
@@ -43,13 +43,6 @@ ENV_DBND_AUTO_REMOVE_POD = "DBND__AUTO_REMOVE_POD"
 
 class KubernetesEngineConfig(ContainerEngineConfig):
     _conf__task_family = "kubernetes"
-
-    parallel = True
-    task_executor_type = AirflowTaskExecutorType.airflow_kubernetes
-
-    use_airflow_executor = parameter.help("Submit Pod via Airflow Executor").value(
-        False
-    )
 
     cluster_context = parameter.none().help("Kubernetes cluster context")[str]
     config_file = parameter.none().help("Custom Kubernetes config file")[str]
@@ -322,8 +315,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             cmds = ["/bin/bash", "-c"]
 
         if not self.container_tag:
-            raise Exception(
-                "Your container tag is None, please check your configuration"
+            raise DatabandConfigError(
+                "Your container tag is None, please check your configuration",
+                help_msg="Container tag should be assigned",
             )
 
         pod = Pod(

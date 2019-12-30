@@ -39,11 +39,18 @@ class EnvConfig(Config):
     dbnd_local_root = parameter.output.folder()[DirTarget]
     dbnd_data_sync_root = parameter.output.folder()[DirTarget]
 
-    submit_engine = parameter(description="Submit engine configuration name").none[str]
-    driver_engine = parameter(
-        default="local_machine_engine", description="Driver engine config name"
+    # execution
+    local_engine = parameter(
+        default="local_machine_engine", description="Engine for local execution"
     )[str]
-    task_engine = parameter(description="Task engine configuration name").none[str]
+    remote_engine = parameter(
+        description="Remote engine for driver/tasks execution"
+    ).none[str]
+
+    submit_driver = parameter(description="Submit driver to remote_engine").none[bool]
+    submit_tasks = parameter(
+        description="Submit tasks to remote engine one by one"
+    ).none[bool]
 
     # properties that will affect "task-env" section
     spark_config = task_env_param.help("Spark Configuration").value("spark")
@@ -63,11 +70,6 @@ class EnvConfig(Config):
         "docker"
     )
 
-    interactive = parameter(
-        default=False,
-        description="When submitting driver to remote execution keep tracking of submitted process and wait for completion",
-    )[bool]
-
     def _initialize(self):
         super(EnvConfig, self)._initialize()
         self.dbnd_root = self.dbnd_root or self.root.folder("dbnd")
@@ -79,6 +81,12 @@ class EnvConfig(Config):
 
         if not self.dbnd_data_sync_root:
             self.dbnd_data_sync_root = self.dbnd_root.folder("sync")
+
+        if self.submit_driver is None:
+            self.submit_driver = bool(self.remote_engine)
+
+        if self.submit_tasks is None:
+            self.submit_tasks = bool(self.remote_engine)
 
     @property
     def name(self):

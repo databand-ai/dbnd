@@ -64,6 +64,7 @@ class SparkClusters(enum.Enum):
     dataproc = "dataproc"
     databricks = "databricks"
     emr = "emr"
+    qubole = "qubole"
 
 
 class ApacheBeamClusterType(object):

@@ -14,6 +14,8 @@ from dbnd._core.utils.basics.format_exception import format_exception_as_str
 
 logger = logging.getLogger(__name__)
 
+TERMINATE_WAIT_TIMEOUT = 5
+
 
 @contextlib.contextmanager
 def start_heartbeat_sender(task_run):
@@ -64,6 +66,15 @@ def start_heartbeat_sender(task_run):
         finally:
             if sp:
                 sp.terminate()
+
+                try:
+                    sp.wait(timeout=TERMINATE_WAIT_TIMEOUT)
+                except Exception:
+                    logger.warning(
+                        "waited %s seconds for the heartbeat sender to exit but it still hasn't exited",
+                        TERMINATE_WAIT_TIMEOUT,
+                    )
+
             if heartbeat_log_fp:
                 heartbeat_log_fp.close()
     else:

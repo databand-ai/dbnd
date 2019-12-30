@@ -12,7 +12,7 @@ def local_engine_not_accept_remote_jobs(env, to_cluster):
 
 def kubernetes_with_non_compatible_engine(task_engine):
     return DatabandConfigError(
-        "Config task_executor_type expected to be airflow_kubernetes for {}".format(
+        "Config env.task_executor_type expected to be airflow_kubernetes for {}".format(
             task_engine.task_name
         )
     )

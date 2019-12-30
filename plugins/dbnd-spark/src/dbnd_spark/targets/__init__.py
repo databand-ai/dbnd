@@ -8,7 +8,7 @@ from targets.values import register_value_type
 
 
 def register_targets():
-    register_value_type(SparkDataFrameValueType)
+    register_value_type(SparkDataFrameValueType())
 
     for file_format, marshaller in (
         (FileFormat.txt, SparkMarshaller(fmt=FileFormat.txt)),
