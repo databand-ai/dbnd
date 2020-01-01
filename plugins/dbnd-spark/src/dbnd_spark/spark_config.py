@@ -95,3 +95,14 @@ class SparkConfig(Config):
         description="Whether to pass the verbose flag "
         "to spark-submit process for debugging",
     )
+
+    deploy_mode = parameter.c(description="Driver mode of the spark submission")[str]
+
+    # databand specific
+    submit_args = parameter.none.help(
+        "spark arguments as a string, like: --num-executors 10"
+    )[str]
+
+    disable_sync = parameter.value(
+        False, description="Disable databand auto sync mode for spark files"
+    )

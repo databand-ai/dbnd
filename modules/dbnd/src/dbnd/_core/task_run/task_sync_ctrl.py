@@ -2,7 +2,7 @@ import logging
 
 from os import path
 
-from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl
+from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.task_utils import targets_to_str
 from targets import Target, target
 from targets.fs import FileSystems
@@ -11,12 +11,9 @@ from targets.fs import FileSystems
 logger = logging.getLogger(__name__)
 
 
-class TaskSyncCtrl(TaskJobCtrl):
-    remote_fs_name = FileSystems.local
-
-    def __init__(self, task, job):
-        super(TaskSyncCtrl, self).__init__(task, job)
-        self._remote_sync_root = None
+class TaskSyncCtrl(TaskRunCtrl):
+    def __init__(self, task_run):
+        super(TaskSyncCtrl, self).__init__(task_run=task_run)
 
         self.remote_sync_root = self.task_env.dbnd_data_sync_root.folder("deploy")
 
@@ -47,7 +44,7 @@ class TaskSyncCtrl(TaskJobCtrl):
     def is_remote(self, file):
         if not file:
             return None
-        return file.fs.name == self.remote_fs_name
+        return file.fs.name != FileSystems.local
 
     def remote_file(self, local_file):
         if self.is_remote(local_file):
@@ -73,7 +70,12 @@ class TaskSyncCtrl(TaskJobCtrl):
         return remote_file
 
     def _upload(self, local_file, remote_file):
-        raise NotImplementedError()
+        remote_file.copy_from_local(local_file)
 
     def _exists(self, remote_file):
         return remote_file.exists()
+
+
+class DisabledTaskSyncCtrl(TaskSyncCtrl):
+    def _sync(self, local_file):
+        return local_file

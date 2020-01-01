@@ -2,7 +2,7 @@ import logging
 import re
 
 from dbnd._core.utils.better_subprocess import run_cmd
-from dbnd_gcp.apache_beam import ApacheBeamJobCtrl
+from dbnd_gcp.apache_beam.apache_beam_ctrl import ApacheBeamJobCtrl
 from dbnd_gcp.dataflow.dataflow_config import DataflowConfig
 from dbnd_gcp.gs_sync_ctrl import GsSyncCtrl
 
@@ -14,9 +14,9 @@ _DATAFLOW_ID_REGEXP = re.compile(
 )
 
 
-class DataFlowJobCtrl(GsSyncCtrl, ApacheBeamJobCtrl):
+class DataFlowJobCtrl(ApacheBeamJobCtrl):
     def __init__(self, task_run):
-        super(DataFlowJobCtrl, self).__init__(task=task_run.task, job=task_run)
+        super(DataFlowJobCtrl, self).__init__(task_run=task_run)
         self.dataflow_config = task_run.task.beam_engine  # type: DataflowConfig
 
         gcp_conn_id = self.task_env.conn_id
@@ -61,14 +61,14 @@ class DataFlowJobCtrl(GsSyncCtrl, ApacheBeamJobCtrl):
 
         run_cmd(
             cmd,
-            name="dataflow %s" % self.job.job_name,
+            name="dataflow %s" % self.task_run.job_name,
             stdout_handler=self._process_dataflow_log,
         )
 
         _DataflowJob(
             self._gcp_dataflow_hook.get_conn(),
             dfc.project,
-            self.job.job_id,
+            self.task_run.job_id,
             dfc.region,
             dfc.poll_sleep,
             self.current_dataflow_job_id,

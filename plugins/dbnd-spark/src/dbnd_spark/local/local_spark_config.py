@@ -16,4 +16,4 @@ class SparkLocalConfig(Config):
     def get_spark_ctrl(self, task_run):
         from dbnd_spark.local.local_spark import LocalSparkExecutionCtrl
 
-        return LocalSparkExecutionCtrl(self, job=task_run)
+        return LocalSparkExecutionCtrl(task_run=task_run)

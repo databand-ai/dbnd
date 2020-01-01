@@ -14,7 +14,6 @@ from dbnd._core.decorator.func_task_decorator import _task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
 from dbnd._core.task.config import Config
 from dbnd._core.task.task import Task
-from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark.spark_config import SparkConfig
@@ -24,46 +23,6 @@ if typing.TYPE_CHECKING:
     from dbnd_aws.emr.emr_config import EmrConfig
 
 logger = logging.getLogger(__name__)
-
-
-class SparkCtrl(TaskJobCtrl):
-    def should_keep_local_pickle(self):
-        return False
-
-    def download_to_local(self):
-        run = self.job.run
-        run.driver_dump.fs.download(
-            run.driver_dump.path, run.driver_task.local_driver_dump
-        )
-
-    def spark_driver_dump_file(self):
-        dr = self.job.run.driver_task
-        return (
-            dr.local_driver_dump if self.should_keep_local_pickle() else dr.driver_dump
-        )
-
-    @property
-    def config(self):
-        # type: (SparkCtrl) -> SparkConfig
-        return self.task.spark_config
-
-    def run_pyspark(self, pyspark_script):
-        raise NotImplementedError("This engine doesn't support pyspark jobs")
-
-    def run_spark(self, main_class):
-        raise NotImplementedError("This engine doesn't support spark jobs")
-
-    # note that second variable should be changed on subclasses.
-    spark_application_logs = {
-        "YARN ResourceManager": ["http://", "<master>", ":8088"],
-        "YARN NodeManager": ["http://", "<core>", ":8088"],
-        "Hadoop HDFS NameNode": ["http://", "<master>", ":50070"],
-        "Spark HistoryServer": ["http://", "<master>", ":18080"],
-        "Ganglia": ["http://", "<master>", "/ganglia"],
-    }
-
-    def stop_spark_session(self, session):
-        session.stop()
 
 
 class _BaseSparkTask(Task):

@@ -1,19 +1,17 @@
 import logging
 
-from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
 from dbnd._core.utils.http.endpoint import Endpoint
-from dbnd_aws.aws_sync_ctrl import AwsSyncCtrl
 from dbnd_aws.emr.emr_cluster import EmrClustersCtrl
 from dbnd_spark.livy.livy_spark import _LivySparkCtrl
-from dbnd_spark.spark import SparkCtrl
+from dbnd_spark.spark_ctrl import SparkCtrl
 
 
 logger = logging.getLogger(__name__)
 
 
-class EmrCtrl(TaskEnginePolicyCtrl, AwsSyncCtrl, SparkCtrl):
+class EmrCtrl(SparkCtrl):
     def __init__(self, task_run):
-        super(EmrCtrl, self).__init__(task=task_run.task, job=task_run)
+        super(EmrCtrl, self).__init__(task_run=task_run)
 
         self.emr_config = task_run.task.spark_engine
 

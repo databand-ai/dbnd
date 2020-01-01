@@ -333,7 +333,7 @@ class S3Client(FileSystem):
             ExtraArgs=kwargs,
         )
 
-    def move_from_local(self, local_path, dest):
+    def copy_from_local(self, local_path, dest):
         return self.put_multipart(local_path=local_path, destination_s3_path=dest)
 
     def copy(

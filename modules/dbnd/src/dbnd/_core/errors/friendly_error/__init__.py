@@ -113,7 +113,7 @@ def task_data_source_not_exists(task, missing):
 
 
 def task_not_exist(task_name, alternative_tasks=None, module=None):
-    err_msg = "Could not find the requested task/function %s" % task_name
+    err_msg = "Could not find the requested task/function '%s'" % task_name
     if module:
         err_msg += " in the current module %s." % module
     if alternative_tasks:

@@ -1,68 +1,59 @@
 import logging
+import os
 import time
-
-from functools import partial
 
 from airflow import AirflowException
 
 from dbnd._core.current import current_task_run
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
-from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_databricks.databrick_config import (
     DatabricksAwsConfig,
     DatabricksAzureConfig,
     DatabricksCloud,
+    DatabricksConfig,
 )
 from dbnd_databricks.errors import (
     failed_to_run_databricks_job,
     failed_to_submit_databricks_job,
 )
-from dbnd_spark.spark import SparkCtrl, SparkTask
+from dbnd_spark.spark import SparkTask
+from dbnd_spark.spark_ctrl import SparkCtrl
 
 
 logger = logging.getLogger(__name__)
 
-
-def get_cloud_sync(config, task, job):
-    if config.cloud_type == DatabricksCloud.aws:
-        assert_plugin_enabled("dbnd-aws", "Databricks on aws requires dbnd-aws module.")
-
-        from dbnd_aws.aws_sync_ctrl import AwsSyncCtrl
-
-        return AwsSyncCtrl(task, job)
-
-    elif config.cloud_type == DatabricksCloud.azure:
-        assert_plugin_enabled(
-            "dbnd-azure", "Databricks on azure requires dbnd-azure module."
-        )
-
-        from dbnd_azure.azure_sync_ctrl import AzureDbfsSyncControl
-
-        return AzureDbfsSyncControl(DatabricksAzureConfig().local_dbfs_mount, task, job)
-
-    raise NotImplementedError(
-        "DatabricksCloud does not support %s value. Support values are aws/azure."
-        % config.cloud_type
-    )
-
-
-def _dbfs_scheme_to_local(config, path):
-    if config.cloud_type == DatabricksCloud.aws:
-        return path
-    elif config.cloud_type == DatabricksCloud.azure:
-        return path.replace("dbfs://", "/dbfs")
-
-
 # to do - add on kill handling (this is not urgent, as anyway it will shutdown the machines at the end of execution)
-class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
+class DatabricksCtrl(SparkCtrl):
     def __init__(self, task_run):
-        super(DatabricksCtrl, self).__init__(task=task_run.task, job=task_run)
+        super(DatabricksCtrl, self).__init__(task_run=task_run)
         self.databricks_config = task_run.task.spark_engine  # type: DatabricksConfig
-        self.cloud_sync = get_cloud_sync(
-            self.databricks_config, task_run.task, task_run
-        )  # type: TaskSyncCtrl
+
+        self.local_dbfs_mount = None
+        if self.databricks_config.cloud_type == DatabricksCloud.azure:
+            assert_plugin_enabled(
+                "dbnd-azure", "Databricks on azure requires dbnd-azure module."
+            )
+
+            self.local_dbfs_mount = DatabricksAzureConfig().local_dbfs_mount
+
+    def _dbfs_scheme_to_local(self, path):
+        if self.databricks_config.cloud_type == DatabricksCloud.aws:
+            return path
+        elif self.databricks_config.cloud_type == DatabricksCloud.azure:
+            return path.replace("dbfs://", "/dbfs")
+
+    def _dbfs_scheme_to_mount(self, path):
+        if self.databricks_config.cloud_type != DatabricksCloud.azure:
+            return path
+
+        from dbnd_azure.fs.azure_blob import AzureBlobStorageClient
+
+        storage_account, container_name, blob_name = AzureBlobStorageClient._path_to_account_container_and_blob(
+            path
+        )
+        return "dbfs://%s" % (os.path.join(self.local_dbfs_mount, blob_name))
 
     def _handle_databricks_operator_execution(self, run_id, hook, task_id):
         """
@@ -172,7 +163,7 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         else:
             pyspark_script = self.sync(pyspark_script)
             parameters = [
-                _dbfs_scheme_to_local(self.databricks_config, e)
+                self._dbfs_scheme_to_local(e)
                 for e in list_of_strings(self.task.application_args())
             ]
             databricks_json = self._create_pyspark_submit_json(
@@ -190,7 +181,7 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         spark_submit_parameters = [
             "--class",
             main_class,
-            self.cloud_sync.sync(self.config.main_jar),
+            self.sync(self.config.main_jar),
         ] + (list_of_strings(self.task.application_args()) + jars_list)
         return self._run_spark_submit(spark_submit_parameters)
 
@@ -226,4 +217,7 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         pass
 
     def sync(self, local_file):
-        return self.cloud_sync.sync(local_file)
+        synced = self.deploy.sync(local_file)
+        if self.databricks_config.cloud_type == DatabricksCloud.azure:
+            return self._dbfs_scheme_to_mount(synced)
+        return synced
