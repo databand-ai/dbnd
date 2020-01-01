@@ -13,6 +13,7 @@ class Marshaller(object):
     # if true on folder read we use load funcition
     support_directory_direct_read = False
     support_multi_target_direct_read = False
+    support_directory_direct_write = False
 
     clears_types_to_str = False
 

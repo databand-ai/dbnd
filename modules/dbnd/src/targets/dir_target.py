@@ -43,7 +43,7 @@ class DirTarget(FileTarget):
                 "%s requires the path to be to a "
                 "directory.  It must end with a slash ( / )." % self.__class__.__name__
             )
-
+        self.path = path
         flag = config.flag
         if flag is True:
             flag = DEFAULT_FLAG_FILE_NAME  # default value, otherwise override it
