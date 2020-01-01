@@ -83,19 +83,12 @@ class MarshallerCtrl(object):
 
             target.mark_success()
             return
-
+        selected_target = target
         if isinstance(target, DirTarget):
-            # WRITE TO DIRECTORY.
-            if m.support_directory_direct_write:
-                m.value_to_target(target=target, value=value, **kwargs)
-                target.mark_success()
-                return
-            # WRITE TO FILE INSIDE DIRTARGET.
-            m.value_to_target(target=target._write_target, value=value, **kwargs)
-            target.mark_success()
-            return
-
-        m.value_to_target(target=target, value=value, **kwargs)
+            # WRITE TO FILE INSIDE DIR.
+            if not m.support_directory_direct_write:
+                selected_target = target._write_target
+        m.value_to_target(target=selected_target, value=value, **kwargs)
         target.mark_success()
 
     def load_partitioned(self, **kwargs):
