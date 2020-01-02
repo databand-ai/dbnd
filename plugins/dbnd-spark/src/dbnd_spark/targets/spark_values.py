@@ -20,9 +20,13 @@ class SparkDataFrameValueType(DataValueType):
         return str(x.rdd.id())
 
     def to_preview(self, df):  # type: (spark.DataFrame) -> str
-        return df.toPandas().to_string(index=False, max_rows=20, max_cols=1000)[
-            : get_value_preview_max_len()
-        ]
+        return (
+            df.limit(1000)
+            .toPandas()
+            .to_string(index=False, max_rows=20, max_cols=1000)[
+                : get_value_preview_max_len()
+            ]
+        )
 
     def get_data_dimensions(self, value):  # type: (spark.DataFrame) -> Tuple[int]
         return value.count(), len(value.columns)
