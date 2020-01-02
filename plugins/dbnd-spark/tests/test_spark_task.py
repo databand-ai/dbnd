@@ -25,7 +25,7 @@ def spark_config(databand_test_context):
     config = LocalSparkTestConfig()
 
     set_connection(
-        conn_id="spark_local",
+        conn_id="spark_default",
         host="local",
         conn_type="docker",
         extra='{"master":"local","spark-home": "%s"}' % config.spark_home,

@@ -24,7 +24,7 @@ from dbnd_spark.spark_ctrl import SparkCtrl
 
 logger = logging.getLogger(__name__)
 
-# to do - add on kill handling (this is not urgent, as anyway it will shutdown the machines at the end of execution)
+
 class DatabricksCtrl(SparkCtrl):
     def __init__(self, task_run):
         super(DatabricksCtrl, self).__init__(task_run=task_run)
@@ -37,6 +37,9 @@ class DatabricksCtrl(SparkCtrl):
             )
 
             self.local_dbfs_mount = DatabricksAzureConfig().local_dbfs_mount
+
+        self.current_run_id = None
+        self.hook = None
 
     def _dbfs_scheme_to_local(self, path):
         if self.databricks_config.cloud_type == DatabricksCloud.aws:
@@ -139,16 +142,18 @@ class DatabricksCtrl(SparkCtrl):
 
         from airflow.contrib.hooks.databricks_hook import DatabricksHook
 
-        hook = DatabricksHook(
+        self.hook = DatabricksHook(
             _config.conn_id,
             _config.connection_retry_limit,
             retry_delay=_config.connection_retry_delay,
         )
         try:
-            run_id = hook.submit_run(databricks_json)
-            hook.log.setLevel(logging.WARNING)
-            self._handle_databricks_operator_execution(run_id, hook, _config.task_id)
-            hook.log.setLevel(logging.INFO)
+            self.current_run_id = self.hook.submit_run(databricks_json)
+            self.hook.log.setLevel(logging.WARNING)
+            self._handle_databricks_operator_execution(
+                self.current_run_id, self.hook, _config.task_id
+            )
+            self.hook.log.setLevel(logging.INFO)
         except AirflowException as e:
             raise failed_to_submit_databricks_job(e)
 
@@ -221,3 +226,7 @@ class DatabricksCtrl(SparkCtrl):
         if self.databricks_config.cloud_type == DatabricksCloud.azure:
             return self._dbfs_scheme_to_mount(synced)
         return synced
+
+    def on_kill(self):
+        if self.hook and self.current_run_id:
+            self.hook.cancel_run(self.current_run_id)
