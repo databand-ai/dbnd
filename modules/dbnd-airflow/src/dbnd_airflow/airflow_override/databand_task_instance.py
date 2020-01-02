@@ -12,7 +12,7 @@ from airflow.exceptions import (
     AirflowSkipException,
     AirflowTaskTimeout,
 )
-from airflow.models.taskinstance  import XCOM_RETURN_KEY, Log, TaskInstance, Stats
+from airflow.models.taskinstance import XCOM_RETURN_KEY, Log, TaskInstance, Stats
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
@@ -69,6 +69,8 @@ class DbndAirflowTaskInstance(TaskInstance):
             cfg_path=cfg_path,
         )
 
+        if raw:
+            return cmd
         # we need to get into Task Instance Configuration
         # there can be DatabandExecutor configuration
         TI = TaskInstance
