@@ -211,6 +211,11 @@ class CoreConfig(Config):
 
         return CompositeTrackingStore(stores=stores)
 
+    def get_scheduler_service(self):
+        from dbnd.api import scheduler_api_client
+
+        return scheduler_api_client
+
 
 class DynamicTaskConfig(Config):
     _conf__task_family = "dynamic_task"

@@ -34,21 +34,25 @@ def patch_scheduled_job(scheduled_job_dict):
     )
 
 
-def delete_scheduled_job(scheduled_job_dict):
+def delete_scheduled_job(scheduled_job_name, revert=False):
     api_client.api_request(
-        "/api/v1/scheduled_jobs?name=%s" % scheduled_job_dict["name"],
+        "/api/v1/scheduled_jobs?name=%s&revert=%s"
+        % (scheduled_job_name, str(revert).lower()),
         method="DELETE",
         no_prefix=True,
     )
 
 
-def get_scheduled_jobs(from_file_only=False, include_deleted=False):
+def get_scheduled_jobs(name_pattern=None, from_file_only=False, include_deleted=False):
     query_filter = []
     if from_file_only:
         query_filter.append({"name": "from_file", "op": "eq", "val": True})
 
     if not include_deleted:
         query_filter.append({"name": "deleted_from_file", "op": "eq", "val": False})
+
+    if name_pattern:
+        query_filter.append({"name": "name", "op": "like", "val": name_pattern})
 
     query = {"filter": json.dumps(query_filter)}
 
@@ -58,3 +62,12 @@ def get_scheduled_jobs(from_file_only=False, include_deleted=False):
     return [
         s["DbndScheduledJob"] for s in schema.load(data=res["data"], many=True).data
     ]
+
+
+def set_active(name, value):
+    api_client.api_request(
+        "/api/v1/scheduled_jobs/set_active?name=%s&value=%s"
+        % (name, str(value).lower()),
+        method="PUT",
+        no_prefix=True,
+    )
