@@ -71,7 +71,7 @@ class TestEmrSparkTasks(object):
             )
         )
 
-    # @pytest.mark.skip
+    @pytest.mark.skip
     def test_io(self):
         from dbnd_test_scenarios.spark.test_spark_io import dataframes_io_pandas_spark
 
