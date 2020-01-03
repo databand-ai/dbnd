@@ -7,7 +7,7 @@ from pandas.util.testing import assert_frame_equal
 from pytest import fixture
 
 from dbnd import output, task
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from targets import target
 from targets.types import DataList, Path, PathStr
 from test_dbnd.targets_tests import TargetTestBase

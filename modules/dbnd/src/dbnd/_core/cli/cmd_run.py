@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import functools
 import logging
-import subprocess
 import sys
 
 import six
@@ -14,7 +13,6 @@ from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
-from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
@@ -322,15 +320,3 @@ def _parse_cli(configs, source, override=False):
         for c in configs
     ]
     return functools.reduce((lambda x, y: x.update(y)), config_values_list)
-
-
-@dbnd_handle_errors(exit_on_error=False)
-def dbnd_run_cmd(args):
-    current_argv = sys.argv
-    logger.info("Running dbnd run: %s", subprocess.list2cmdline(args))
-    try:
-        sys.argv = [sys.executable, "-m", "databand", "run"] + args
-        dbnd_bootstrap()
-        return run(args=args, standalone_mode=False)
-    finally:
-        sys.argv = current_argv

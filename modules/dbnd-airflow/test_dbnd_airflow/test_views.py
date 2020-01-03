@@ -22,7 +22,6 @@ import logging
 from airflow.utils import timezone
 from pytest import fixture
 
-from dbnd._core.inline import run_task
 from dbnd._core.utils.date_utils import airflow_datetime_str
 from test_dbnd.factories import TTask
 from test_dbnd_airflow.utils import WebAppTest, assert_content_in_response, assert_ok
@@ -37,7 +36,7 @@ class TestAirflowBaseViews(WebAppTest):
     @fixture(autouse=True)
     def _test_run(self, databand_test_context):
         task = TTask()
-        run = run_task(task)
+        run = task.dbnd_run()
 
         self.task = task
         self.task_af_id = run.get_task_run_by_id(task.task_id).task_af_id

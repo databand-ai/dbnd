@@ -4,8 +4,7 @@ from functools import partial
 
 from dbnd import output, parameter, task
 from dbnd._core.decorator.decorated_task import DecoratedPythonTask
-from dbnd._core.inline import run_task
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from test_dbnd.targets_tests import TargetTestBase
 
 
@@ -41,7 +40,7 @@ class TestCustomkDecorators(TargetTestBase):
             logging.warning(" Running some splits")
 
             t = run_splits.t()
-            run_task(t)
+            t.dbnd_run()
 
             logging.warning(" Done some splits")
 

@@ -1,5 +1,4 @@
-from dbnd import parameter
-from dbnd._core.inline import run_cmd_locally
+from dbnd import dbnd_run_cmd, parameter
 from test_dbnd.factories import TTask
 
 
@@ -17,19 +16,19 @@ class TBoolWithDefault(TTask):
 
 class TestTaskBoolParameters(object):
     def test_bool_false_default(self):
-        result = run_cmd_locally(["Baz"])
+        result = dbnd_run_cmd(["Baz"])
         assert result.task.bool is False
 
     def test_bool_true(self):
-        result = run_cmd_locally(["Baz", "-r", "bool=True"])
+        result = dbnd_run_cmd(["Baz", "-r", "bool=True"])
         assert result.task.bool is True
 
     def test_bool_false_cmdline(self):
-        result = run_cmd_locally(["BazTrue", "-r", "bool=False"])
+        result = dbnd_run_cmd(["BazTrue", "-r", "bool=False"])
         assert result.task.bool is False
 
     def test_bool_true_default(self):
-        result = run_cmd_locally(["BazTrue"])
+        result = dbnd_run_cmd(["BazTrue"])
         assert result.task.bool is True
 
     def test_bool_default_true(self):

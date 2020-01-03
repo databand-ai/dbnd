@@ -5,8 +5,7 @@ import pytest
 
 from dbnd import config
 from dbnd._core.errors import DatabandExecutorError
-from dbnd._core.inline import run_task
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_spark.spark_config import SparkConfig
 from dbnd_test_scenarios.spark.spark_tasks import (
     WordCountPySparkTask,
@@ -35,7 +34,7 @@ class TestEmrSparkTasks(object):
             task_version=str(random.random()),
             override=conf_override,
         )
-        run_task(actual)
+        actual.dbnd_run()
         print(target(actual.counters.path, "part-00000").read())
 
     def test_word_count_pyspark(self):
@@ -45,7 +44,7 @@ class TestEmrSparkTasks(object):
             task_version=str(random.random()),
             override=conf_override,
         )
-        run_task(actual)
+        actual.dbnd_run()
         print(target(actual.counters.path, "part-00000").read())
 
     def test_word_spark_with_error(self):
@@ -55,7 +54,7 @@ class TestEmrSparkTasks(object):
             override=conf_override,
         )
         with pytest.raises(DatabandExecutorError):
-            run_task(actual)
+            actual.dbnd_run()
 
     @pytest.mark.skip
     def test_word_count_inline(self):

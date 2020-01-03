@@ -7,7 +7,6 @@ import dbnd
 import matplotlib
 
 from dbnd import PipelineTask, data, output
-from dbnd._core.inline import run_task
 from test_dbnd.scenarios import scenario_path
 
 
@@ -49,7 +48,7 @@ class WordCountPipeline(PipelineTask):
 
 def test_word_count():
     t = WordCount(text=__file__)
-    run_task(t)
+    t.dbnd_run()
 
     meta_path = t.ctrl.last_task_run.attempt_folder
     chars_read = os.path.join(meta_path.path, "metrics", "chars_read")

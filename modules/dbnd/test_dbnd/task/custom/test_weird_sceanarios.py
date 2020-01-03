@@ -1,7 +1,7 @@
 import logging
 
 from dbnd import PipelineTask, data, output, parameter
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from test_dbnd.factories import TTask
 
 

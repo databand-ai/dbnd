@@ -1,6 +1,6 @@
 import logging
 
-from dbnd import PipelineTask, config, parameter, pipeline, run_task, task
+from dbnd import PipelineTask, config, parameter, pipeline, task
 from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd.tasks.basics.simplest import SimplestTask
 from test_dbnd.factories import FooConfig, TTask
@@ -163,7 +163,7 @@ class TestTaskOverrideAndContextConfig(object):
 
     def test__regression__word_count_override(self):
         t = WordCountPipeline(override={WordCount.text: __file__})
-        run_task(t)
+        t.dbnd_run()
 
         assert len(t.task_outputs["counter"].read()) > 50
 

@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from dbnd import dbnd_config, get_databand_context
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.feature_data.partitioned_by_day import (
     ByDayExamplePipeline,
     FetchData,
