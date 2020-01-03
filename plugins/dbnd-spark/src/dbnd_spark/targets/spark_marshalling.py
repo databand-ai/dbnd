@@ -19,6 +19,7 @@ class SparkMarshaller(Marshaller):
     type = spark.DataFrame
     support_directory_direct_read = True
     support_multi_target_direct_read = True
+    support_directory_direct_write = True
 
     def __init__(self, fmt=FileFormat.csv):
         self.file_format = fmt

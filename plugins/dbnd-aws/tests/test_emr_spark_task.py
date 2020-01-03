@@ -70,3 +70,15 @@ class TestEmrSparkTasks(object):
                 override=conf_override,
             )
         )
+
+    # @pytest.mark.skip
+    def test_io(self):
+        from dbnd_test_scenarios.spark.test_spark_io import dataframes_io_pandas_spark
+
+        assert_run_task(
+            dataframes_io_pandas_spark.t(
+                text=TEXT_FILE,
+                task_version=str(random.random()),
+                override=conf_override,
+            )
+        )
