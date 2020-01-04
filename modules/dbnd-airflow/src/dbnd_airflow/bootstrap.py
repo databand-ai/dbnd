@@ -4,14 +4,6 @@ import sys
 from dbnd_airflow.airflow_override import monkeypatch_airflow
 
 
-def _set_kerberos_env():
-    from airflow import configuration as airflow_configuration
-
-    if airflow_configuration.conf.get("core", "security") == "kerberos":
-        os.environ["KRB5CCNAME"] = airflow_configuration.conf.get("kerberos", "ccache")
-        os.environ["KRB5_KTNAME"] = airflow_configuration.conf.get("kerberos", "keytab")
-
-
 def _register_sqlachemy_local_dag_job():
     from dbnd_airflow.scheduler.single_dag_run_job import SingleDagRunJob
 
@@ -28,13 +20,11 @@ def _fix_sys_path():
 
 def airflow_bootstrap():
     monkeypatch_airflow()
+    from dbnd_airflow_windows.airflow_windows_support import (
+        enable_airflow_windows_support,
+    )
+
+    if os.name == "nt":
+        enable_airflow_windows_support()
     _fix_sys_path()
-    _set_kerberos_env()
     _register_sqlachemy_local_dag_job()
-
-    from dbnd import dbnd_config
-
-    if dbnd_config.getboolean("airflow", "track_airflow_dag"):
-        from dbnd_airflow.airflow_override import enable_airflow_tracking
-
-        enable_airflow_tracking()
