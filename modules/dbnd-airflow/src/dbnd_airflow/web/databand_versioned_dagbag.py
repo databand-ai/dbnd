@@ -81,7 +81,9 @@ class DbndAirflowDagBag(DagBag):
     def _get_pickled_dag_from_dagrun(self, dag_id, execution_date, session=None):
 
         ti = (
-            session.query(DbndAirflowTaskInstance.executor_config)
+            session.query(
+                DbndAirflowTaskInstance.task_id, DbndAirflowTaskInstance.executor_config
+            )
             .filter(
                 DbndAirflowTaskInstance.dag_id == dag_id,
                 DbndAirflowTaskInstance.execution_date == execution_date,
@@ -89,11 +91,21 @@ class DbndAirflowDagBag(DagBag):
             .first()
         )
         if not ti:
+            logger.debug("Failed to find task instance %s %s", dag_id, execution_date)
             return None
 
         pickled_dag_id = ti.executor_config.get("DatabandExecutor", {}).get(
             "dag_pickle_id", None
         )
+        if not pickled_dag_id:
+            logger.debug(
+                "No dbnd config at %s %s %s, no pickle_id",
+                dag_id,
+                execution_date,
+                ti.task_id,
+            )
+            return None
+
         try:
             pickled_dag = (
                 session.query(DagPickle)
@@ -112,5 +124,8 @@ class DbndAirflowDagBag(DagBag):
             self.dags[dag_id] = dag
             return dag
         else:
+            logger.debug(
+                "Failed to find pickled dag in DB for pickle_id=%s", pickled_dag_id
+            )
             # failed to parse dag?
             return None
