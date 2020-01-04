@@ -30,11 +30,11 @@ def dbnd_setup_plugin():
 
 @dbnd.hookimpl
 def dbnd_get_commands():
-    from dbnd_airflow.cli.cmd_airflow import run_task_airflow, airflow
+    from dbnd_airflow.cli.cmd_airflow import airflow
 
     from dbnd_airflow.cli.cmd_scheduler import scheduler
 
-    return [airflow, run_task_airflow, scheduler]
+    return [airflow, scheduler]
 
 
 @dbnd.hookimpl

@@ -437,6 +437,7 @@ class DatabandRun(SingletonContext):
     @classmethod
     def load_run(self, dump_file, disable_tracking_api):
         # type: (FileTarget, bool) -> DatabandRun
+        logger.info("Loading dbnd run from %s", dump_file)
         with dump_file.open("rb") as fp:
             databand_run = cloudpickle.load(file=fp)
             if disable_tracking_api:
@@ -640,7 +641,7 @@ class _DbndDriverTask(Task):
     def build_task_from_cmd_line(self, task_name):
         return
 
-    def prepare_for_databand_run(self, run):
+    def build_root_task_runs(self, run):
         """
         called by .run and inline
         :return:
@@ -654,49 +655,48 @@ class _DbndDriverTask(Task):
 
         # let prepare for remote execution
         run.remote_engine.prepare_for_run(run)
-
         run.root_task = self._build_root_task(run)
-        # right now we run describe in local controller only, but we should do that for more
-        if ctx.settings.system.describe and self.is_driver:
-            run.describe_dag.describe_dag()
-            logger.info(run.describe.run_banner("Described!", color="blue"))
-            return False
+
+        # for validation only
+        run.root_task.task_dag.topological_sort()
 
         task_runs = TaskRunsBuilder().build_task_runs(
             run, run.root_task, self.target_engine
         )
         # we need it before to mark root task
         run.add_task_runs(task_runs)
+        # for faster access
         run.root_task_run = run.get_task_run(run.root_task.task_id)
+        return task_runs
 
-        # without driver task!
-        run.task_executor = run.run_config.get_task_executor(
+    def run(self):
+        driver_task_run = current_task_run()
+        run = driver_task_run.run  # type: DatabandRun
+        task_runs = self.build_root_task_runs(run)
+
+        # right now we run describe in local controller only, but we should do that for more
+        if run.context.settings.system.describe and self.is_driver:
+            run.describe_dag.describe_dag()
+            logger.info(run.describe.run_banner("Described!", color="blue"))
+            return
+
+            # without driver task!
+        task_executor = run.run_config.get_task_executor(
             run,
             self.task_executor_type,
             host_engine=self.host_engine,
             target_engine=run.root_task_run.task_engine,
             task_runs=task_runs,
         )
-
-        # for validation only
-        run.root_task.task_dag.topological_sort()
-        return True
-
-    def run(self):
-        driver_task_run = current_task_run()
-        run = driver_task_run.run  # type: DatabandRun
-        if not self.prepare_for_databand_run(run):
-            return
-
-        with run.task_executor.prepare_run():
+        with task_executor.prepare_run():
             if run.is_save_pipeline():
                 run.save_run()
 
             if self.send_heartbeat:
                 with start_heartbeat_sender(driver_task_run):
-                    run.task_executor.do_run()
+                    task_executor.do_run()
             else:
-                run.task_executor.do_run()
+                task_executor.do_run()
 
         if self.is_driver:
             # This is great success!

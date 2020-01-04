@@ -1,10 +1,9 @@
 import logging
 import os
 
-from argparse import Namespace
-
 from dbnd._vendor import click
-from dbnd_airflow.utils import dbnd_airflow_path, link_dropin_file
+from dbnd_airflow.airflow_override.dbnd_aiflow_webserver import patch_airflow_create_app
+from dbnd_airflow.utils import dbnd_airflow_path
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +19,6 @@ def parsedate(string):
 @click.argument("airflow_args", nargs=-1, type=click.UNPROCESSED)
 def airflow(airflow_args):
     """Forward arguments to airflow command line"""
-    from dbnd import new_dbnd_context
 
     if airflow_args and airflow_args[0] == "webserver":
 
@@ -46,60 +44,25 @@ def airflow(airflow_args):
                     command=command
                 )
             )
-            from airflow import settings
-
-            plugin = dbnd_airflow_path(
-                "plugins", "dbnd_airflow_webserver_plugin_linkable.py"
-            )
-            plugin_target = os.path.join(
-                settings.PLUGINS_FOLDER, "dbnd_airflow_webserver_plugin.py"
-            )
-            link_dropin_file(
-                plugin, plugin_target, unlink_first=False, name="web plugin"
+            # we need it right now, plugins mechanism already scanned current folder
+            patch_airflow_create_app()
+            os.environ["AIRFLOW__CORE__PLUGINS_FOLDER"] = dbnd_airflow_path(
+                "plugins", "loadable_plugins", "patched_versioned_bag"
             )
 
-    with new_dbnd_context(name="airflow", autoload_modules=False):
-        from airflow.bin.cli import get_parser
+            # ANOTHER OPTION WOULD BE TO ADD PERMAMENT LINK, however it will affect all other commands
+            # plugin = dbnd_airflow_path(
+            #     "plugins", "dbnd_airflow_webserver_plugin_linkable.py"
+            # )
+            # plugin_target = os.path.join(
+            #     settings.PLUGINS_FOLDER, "dbnd_airflow_webserver_plugin.py"
+            # )
+            # link_dropin_file(
+            #     plugin, plugin_target, unlink_first=False, name="web plugin"
+            # )
 
-        af_parser = get_parser()
-        known_args = af_parser.parse_args(airflow_args)
-        known_args.func(known_args)
+    from airflow.bin.cli import get_parser
 
-
-@click.command()
-@click.argument("dag_id")
-@click.argument("task_id")
-@click.argument("execution_date", type=parsedate)
-@click.option("--dbnd-run", type=click.Path())
-@click.option("--subdir", "-sd")
-@click.option("--mark_success", is_flag=True)
-@click.option("--force", is_flag=True)
-@click.option("--pool")
-@click.option("--cfg_path")
-@click.option("--local", "-l", is_flag=True)
-@click.option("--ignore_all_dependencies", "-A", is_flag=True)
-@click.option("--ignore_depends_on_past", "-I", is_flag=True)
-@click.option("--ship_dag", is_flag=True)
-@click.option("--pickle", "-p")
-@click.option("--job_id", "-j")
-@click.option("--interactive", "-int", is_flag=True)
-def run_task_airflow(dbnd_run, **run_args):
-    """(Internal) Run a single task instance"""
-    from dbnd._core.run.databand_run import DatabandRun
-    from targets import target
-
-    databand_run = DatabandRun.load_run(
-        dump_file=target(dbnd_run), disable_tracking_api=False
-    )
-
-    with databand_run.run_context() as dr:
-        # not really works
-        args = Namespace(**run_args)
-
-        task_run = dr.get_task_run(args.task_id)
-        with task_run.log.capture_task_log():
-            try:
-                return dr.task_executor.run_airflow_task(args)
-            except Exception:
-                logger.exception("Failed to run %s", args.task_id)
-                raise
+    af_parser = get_parser()
+    known_args = af_parser.parse_args(airflow_args)
+    known_args.func(known_args)

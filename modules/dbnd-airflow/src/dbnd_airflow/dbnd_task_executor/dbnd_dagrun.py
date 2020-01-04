@@ -68,6 +68,8 @@ def create_dagrun_from_dbnd_run(
             conf=conf,
         )
         session.add(dagrun)
+    else:
+        logger.warning("Running with existing airflow dag run %s", dagrun)
 
     # DagStat.set_dirty(dag_id=dag.dag_id, session=session)
     # set required transient field
@@ -129,62 +131,9 @@ def create_task_instances_from_dbnd_run(
             ti.end_date = timezone.utcnow()
             session.add(ti)
         task_run = databand_run.get_task_run_by_af_id(af_task.task_id)
-
-        executor_config = ti.executor_config
-        executor_config["DatabandExecutor"] = {
-            "dbnd_driver_dump": str(databand_run.driver_dump)
-        }
-        if dag.pickle_id:
-            executor_config["DatabandExecutor"]["dag_pickle_id"] = dag.pickle_id
-
         # all tasks part of the backfill are scheduled to dagrun
         if task_run.is_reused:
             # this task is completed and we don't need to run it anymore
             ti.state = State.SUCCESS
 
     session.commit()
-
-
-def create_trackable_dagrun_from_af_dag(
-    run_id,
-    state,
-    af_dag,
-    execution_date=None,
-    external_trigger=False,
-    conf=None,
-    session=None,
-):
-    # let create a run that wraps this dag
-    # we are in scheduling mode:
-    with new_dbnd_context(name="scheduler") as dc:
-        from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
-            AirflowDagAsDbndTask,
-        )
-
-        root_task = AirflowDagAsDbndTask.build_dbnd_task_from_dag(af_dag)
-
-        from dbnd._core.run.databand_run import new_databand_run
-
-        # if we run in scheduler - we don't have DatabandRun ( as we in multi run context)
-        with new_databand_run(context=dc, task_or_task_name=root_task) as current_dr:
-            # workaround for now - no constructor params
-            # we actually can't run driver - airflow runs are all run by scheduler
-            current_dr.run_id = run_id
-            current_dr.execution_date = execution_date
-            current_dr._init_without_run()
-
-            # TODO: ensure AirflowTaskExecutor?
-            task_executor = current_dr.task_executor
-            with task_executor.prepare_run():
-                ready_af_dag = task_executor.airflow_dag
-                current_dr.save_run()
-
-                return create_dagrun_from_dbnd_run(
-                    databand_run=current_dr,
-                    af_dag=ready_af_dag,
-                    execution_date=execution_date,
-                    session=session,
-                    state=state,
-                    external_trigger=external_trigger,
-                    conf=conf,
-                )

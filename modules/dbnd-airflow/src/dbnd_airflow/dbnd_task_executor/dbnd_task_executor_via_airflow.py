@@ -1,19 +1,12 @@
 import contextlib
-import json
 import logging
-import os
 import typing
 
-from airflow import DAG, configuration as conf, jobs, settings
+from airflow import DAG
 from airflow.configuration import conf as airflow_conf
 from airflow.executors import LocalExecutor, SequentialExecutor
-from airflow.models import TaskInstance
 from airflow.utils.db import provide_session
-from airflow.utils.log import logging_mixin
-from airflow.utils.log.logging_mixin import LoggingMixin
-from airflow.utils.net import get_hostname
 from airflow.utils.state import State
-from backports.configparser import NoSectionError
 from sqlalchemy.orm import Session
 
 from dbnd._core.errors import friendly_error
@@ -53,96 +46,6 @@ class AirflowTaskExecutor(TaskExecutor):
             task_runs=task_runs,
         )
         self.airflow_features = AirflowFeaturesConfig()
-        self.airflow_dag = None  # type: DAG
-
-    def run_airflow_task(self, args):
-        """
-        called by executors, interprocess communication:  databand run_task ...
-        """
-
-        # time.sleep(1000)
-        log = LoggingMixin().log
-        # Load custom airflow config
-        if args.cfg_path:
-            with open(args.cfg_path, "r") as conf_file:
-                conf_dict = json.load(conf_file)
-
-            if os.path.exists(args.cfg_path):
-                os.remove(args.cfg_path)
-
-            # Do not log these properties since some may contain passwords.
-            # This may also set default values for database properties like
-            # core.sql_alchemy_pool_size
-            # core.sql_alchemy_pool_recycle
-            for section, config in conf_dict.items():
-                for option, value in config.items():
-                    try:
-                        conf.set(section, option, value)
-                    except NoSectionError:
-                        log.error(
-                            "Section {section} Option {option} "
-                            "does not exist in the config!".format(
-                                section=section, option=option
-                            )
-                        )
-
-            settings.configure_vars()
-
-        # IMPORTANT, have to use the NullPool, otherwise, each "run" command may leave
-        # behind multiple open sleeping connections while heartbeating, which could
-        # easily exceed the database connection limit when
-        # processing hundreds of simultaneous tasks.
-        settings.configure_orm(disable_connection_pool=True)
-        try:
-            af_task = self.airflow_dag.get_task(task_id=args.task_id)
-        except Exception:
-            logger.exception(
-                "Failed to get af_task %s from dag! See below for all known tasks:\n",
-                args.task_id,
-            )
-            for t in self.airflow_dag.tasks:
-                from dbnd._core.constants import DescribeFormat
-
-                logger.warning(
-                    self.run.root_task.ctrl.describe_dag._describe_task(
-                        t, describe_format=DescribeFormat.verbose
-                    )
-                )
-
-            raise
-
-        ti = TaskInstance(af_task, args.execution_date)
-        ti.refresh_from_db()
-
-        logging_mixin.set_context(logging.root, ti)
-
-        hostname = get_hostname()
-        log.info("Running %s on host %s", ti, hostname)
-
-        # we are in the dbnd simple mode
-        if hasattr(af_task, "dbnd_task_id"):
-            if self.airflow_features.task_run_simple:
-                ti.run(
-                    mark_success=args.mark_success, job_id=args.job_id, pool=args.pool
-                )
-                return
-
-        if args.local:
-            run_job = jobs.LocalTaskJob(
-                task_instance=ti,
-                mark_success=args.mark_success,
-                pickle_id=args.pickle,
-                ignore_all_deps=args.ignore_all_dependencies,
-                ignore_depends_on_past=args.ignore_depends_on_past,
-                ignore_task_deps=args.ignore_dependencies,
-                ignore_ti_state=args.force,
-                pool=args.pool,
-            )
-            run_job.run()
-        elif args.raw:
-            ti._run_raw_task(
-                mark_success=args.mark_success, job_id=args.job_id, pool=args.pool
-            )
 
     def build_airflow_dag(self, task_runs):
         # create new dag from current tasks and tasks selected to run
@@ -178,6 +81,11 @@ class AirflowTaskExecutor(TaskExecutor):
                 else:
                     # we will create DatabandOperator for databand tasks
                     op = build_dbnd_operator_from_taskrun(task_run)
+                if not op.executor_config:
+                    op.executor_config = {}
+                op.executor_config["DatabandExecutor"] = {
+                    "dbnd_driver_dump": str(self.run.driver_dump)
+                }
 
                 airflow_ops[task.task_id] = op
 
@@ -197,10 +105,16 @@ class AirflowTaskExecutor(TaskExecutor):
         set_af_doc_md(self.run, dag)
         return dag
 
+    def do_run(self):
+        dag = self.build_airflow_dag(task_runs=self.task_runs)
+
+        with set_dag_as_current(dag):
+            self.run_airflow_dag(dag)
+
     @provide_session
-    def do_run(self, session=None):
-        # type:  (Session) -> None
-        af_dag = self.airflow_dag
+    def run_airflow_dag(self, dag, session=None):
+        # type:  (DAG, Session) -> None
+        af_dag = dag
         databand_run = self.run
         databand_context = databand_run.context
         execution_date = databand_run.execution_date
@@ -269,26 +183,6 @@ class AirflowTaskExecutor(TaskExecutor):
             _context=job, allow_override=True, verbose=is_verbose()
         ):
             job.run()
-
-    @contextlib.contextmanager
-    def prepare_run(self):
-        self.airflow_dag = dag = self.build_airflow_dag(task_runs=self.task_runs)
-
-        task_original_dag = {}
-        try:
-            # money time  : we are running dag. let fix all tasks dags
-            # in case tasks didn't have a proper dag
-            for af_task in dag.tasks:
-                task_original_dag[af_task.task_id] = af_task.dag
-                af_task._dag = dag
-
-            with super(AirflowTaskExecutor, self).prepare_run():
-                yield dag
-        finally:
-            for af_task in dag.tasks:
-                original_dag = task_original_dag.get(af_task.task_id)
-                if original_dag:
-                    af_task._dag = original_dag
 
     def validate_parallel_run_constrains(self):
         settings = self.run.context.settings
@@ -363,3 +257,26 @@ def set_af_doc_md(run, dag):
         "* **Run Name**: {1}\n"
         "* **Run UID**: {2}\n".format(run.run_url, run.name, run.run_uid)
     )
+
+
+@contextlib.contextmanager
+def set_dag_as_current(dag):
+    """
+    replace current dag of the task with the current one
+    operator can have different dag if we rerun task
+    :param dag:
+    :return:
+    """
+    task_original_dag = {}
+    try:
+        # money time  : we are running dag. let fix all tasks dags
+        # in case tasks didn't have a proper dag
+        for af_task in dag.tasks:
+            task_original_dag[af_task.task_id] = af_task.dag
+            af_task._dag = dag
+        yield dag
+    finally:
+        for af_task in dag.tasks:
+            original_dag = task_original_dag.get(af_task.task_id)
+            if original_dag:
+                af_task._dag = original_dag
