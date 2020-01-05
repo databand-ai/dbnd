@@ -55,7 +55,7 @@ class RunInfoSchema(ApiObjectSchema):
     env_name = fields.String()
     cloud_type = fields.String()
     trigger = fields.String()
-    task_executor = fields.String()
+    task_executor = fields.String(allow_none=True)
 
     root_run = fields.Nested(RootRunInfoSchema)
     scheduled_run = fields.Nested(ScheduledRunInfoSchema, allow_none=True)
