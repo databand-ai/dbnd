@@ -1,6 +1,6 @@
 from typing import List
 
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.pipelines.report import dump_db, partners_report
 from dbnd_examples.pipelines.top_artists import (
     top_artists_big_report,

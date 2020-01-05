@@ -6,7 +6,7 @@ import threading
 import typing
 
 from datetime import datetime
-from typing import Any, ContextManager, Iterator, Optional, Union
+from typing import Any, ContextManager, Iterator, List, Optional, Union
 from uuid import UUID
 
 import six
@@ -150,7 +150,7 @@ class DatabandRun(SingletonContext):
 
         self.runtime_errors = []
         self._run_state = None
-        self.task_runs = []
+        self.task_runs = []  # type: List[TaskRun]
         self.task_runs_by_id = {}
         self.task_runs_by_af_id = {}
 
@@ -373,6 +373,17 @@ class DatabandRun(SingletonContext):
             logger.exception(ex)
 
         self.set_run_state(RunState.FAILED)
+
+        non_finished_task_state = (
+            TaskRunState.SHUTDOWN
+            if isinstance(ex, KeyboardInterrupt)
+            else TaskRunState.FAILED
+        )
+        for task_run in self.task_runs:
+            if task_run.task_run_state not in TaskRunState.final_states():
+                task_run.set_task_run_state(non_finished_task_state, track=False)
+        self.tracker.set_task_run_states(self.task_runs)
+
         err_banner_msg = self.describe.get_error_banner()
         logger.error(
             u"\n\n{sep}\n{banner}\n{sep}".format(
@@ -390,7 +401,7 @@ class DatabandRun(SingletonContext):
         # with captures_log_into_file_as_task_file(log_file=self.local_driver_log.path):
         try:
             self.driver_task_run.runner.execute()
-        except Exception as ex:
+        except (Exception, KeyboardInterrupt, SystemExit) as ex:
             raise self._dbnd_run_error(ex)
         finally:
             self.driver_task.host_engine.cleanup_after_run()

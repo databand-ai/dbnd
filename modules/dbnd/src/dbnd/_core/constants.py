@@ -131,6 +131,7 @@ class RunState(enum.Enum):
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
+    SHUTDOWN = "shutdown"
 
 
 class AlertStatus(enum.Enum):

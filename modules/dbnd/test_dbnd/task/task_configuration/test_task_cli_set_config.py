@@ -3,8 +3,7 @@ import logging
 
 import dbnd
 
-from dbnd import config, output, parameter
-from dbnd._core.inline import run_cmd_locally, run_cmd_locally_split
+from dbnd import config, dbnd_run_cmd, output, parameter
 from dbnd.testing.helpers_pytest import skip_on_windows
 from test_dbnd.factories import TTask
 from test_dbnd.scenarios import scenario_path
@@ -39,7 +38,7 @@ class TestTaskCliSetConfig(object):
                 super(MyTaskWithConfg, self).run()
                 assert self.parameter_with_config == "value_from_config"
 
-        assert run_cmd_locally_split(
+        assert dbnd_run_cmd(
             "MyTaskWithConfg --conf-file %s"
             % scenario_path("config_files/test_cfg_switch.cfg")
         )
@@ -59,22 +58,20 @@ class TestTaskCliSetConfig(object):
         json_value = json.dumps(
             {"MyTaskWithConfgInline": {"parameter_with_config": "value_from_inline"}}
         )
-        assert run_cmd_locally_split("MyTaskWithConfgInline -s '%s'" % json_value)
+        assert dbnd_run_cmd("MyTaskWithConfgInline -s '%s'" % json_value)
 
     def test_use_config_class_1(self):
-        result = run_cmd_locally(["MyConfigTester", "-s", "MyConfig.mc_p=99"])
+        result = dbnd_run_cmd(["MyConfigTester", "-s", "MyConfig.mc_p=99"])
         actual = result.task.t_output.load(object)
         assert actual == [99, 73]
 
     def test_use_config_class_more_args(self):
-        result = run_cmd_locally_split(
-            "MyConfigTester -s MyConfig.mc_p=99 -s MyConfig.mc_q=42"
-        )
+        result = dbnd_run_cmd("MyConfigTester -s MyConfig.mc_p=99 -s MyConfig.mc_q=42")
         actual = result.task.t_output.load(object)
         assert actual == [99, 42]
 
     def test_use_config_class_with_configuration(self):
-        result = run_cmd_locally(
+        result = dbnd_run_cmd(
             [
                 "MyConfigTester",
                 "--set",
@@ -85,7 +82,7 @@ class TestTaskCliSetConfig(object):
         assert actual == [123, 345]
 
     def test_param_override(self):
-        result = run_cmd_locally(
+        result = dbnd_run_cmd(
             [
                 "MyConfigTester",
                 "-o",
@@ -99,7 +96,7 @@ class TestTaskCliSetConfig(object):
         assert actual == [222, 223]
 
     def test_param_override_2(self):
-        result = run_cmd_locally(
+        result = dbnd_run_cmd(
             [
                 "MyConfigTester",
                 "-s",

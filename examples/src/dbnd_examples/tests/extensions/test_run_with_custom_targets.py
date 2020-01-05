@@ -1,6 +1,6 @@
 import logging
 
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.extensions.custom_target import CustomIOPipeline
 
 

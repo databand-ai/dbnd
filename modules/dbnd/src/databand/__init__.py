@@ -13,8 +13,6 @@ from dbnd import (
     pipeline,
     task,
     dbnd_handle_errors,
-    run_task,
-    set_current,
     hookimpl,
     dbnd_run_start,
     dbnd_run_stop,
@@ -41,8 +39,6 @@ __all__ = [
     "pipeline",
     "task",
     "dbnd_handle_errors",
-    "run_task",
-    "set_current",
     "hookimpl",
     "dbnd_run_start",
     "dbnd_run_stop",
@@ -69,7 +65,7 @@ dbnd_config = config
 # shortcuts for useful objects
 str(_set_patches)  # NOQA
 
-__version__ = "0.24.11"
+__version__ = "0.24.12"
 
 __title__ = "databand"
 __description__ = "Machine Learning Orchestration"

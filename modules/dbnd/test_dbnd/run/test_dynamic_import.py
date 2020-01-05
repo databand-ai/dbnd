@@ -18,12 +18,12 @@
 
 import dbnd
 
-from dbnd._core.inline import run_cmd_locally
+from dbnd import dbnd_run_cmd
 
 
 class TestDynamicImport(object):
     def test_dynamic_loading(self):
-        run_cmd_locally(
+        dbnd_run_cmd(
             [
                 "--module",
                 "test_dbnd.scenarios.do_not_import",

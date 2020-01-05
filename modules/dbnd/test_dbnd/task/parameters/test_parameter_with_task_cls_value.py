@@ -1,9 +1,8 @@
 import pytest
 
 from databand.parameters import TaskParameter
-from dbnd import PipelineTask, output
+from dbnd import PipelineTask, dbnd_run_cmd, output
 from dbnd._core.errors import DatabandError
-from dbnd._core.inline import run_cmd_locally, run_cmd_locally_split
 from test_dbnd.factories import TTask
 
 
@@ -32,14 +31,12 @@ class TestTaskParameter(object):
     def test_failed_to_find_task(self):
         # But is should be able to parse command line arguments
         with pytest.raises(DatabandError):
-            run_cmd_locally_split("mynamespace.MNTask2 -r t_param=blah")
+            dbnd_run_cmd("mynamespace.MNTask2 -r t_param=blah")
         with pytest.raises(DatabandError):
-            run_cmd_locally_split("mynamespace.MNTask2 -r t_param=Taskk")
+            dbnd_run_cmd("mynamespace.MNTask2 -r t_param=Taskk")
 
     def test_simple_cmd_line(self):
-        result = run_cmd_locally_split(
-            "mynamespace.MNTask2 -r t_param=mynamespace.MNTask1"
-        )
+        result = dbnd_run_cmd("mynamespace.MNTask2 -r t_param=mynamespace.MNTask1")
         assert isinstance(result.task.t_param, MNTask1)
 
     def test_serialize(self):
@@ -58,4 +55,4 @@ class TestTaskParameter(object):
                 self.some_other_output = DepTask(task_param=TTask)
 
         # OtherTask is serialized because it is used as an argument for DepTask.
-        assert run_cmd_locally(["MainTask"])
+        assert dbnd_run_cmd(["MainTask"])

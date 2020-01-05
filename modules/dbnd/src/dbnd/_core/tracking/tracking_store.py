@@ -73,10 +73,13 @@ class CompositeTrackingStore(TrackingStore):
         self._stores = stores
 
     def _invoke(self, name, kwargs):
+        res = None
         for store in self._stores:
             try:
                 handler = getattr(store, name)
-                handler(**kwargs)
+                handler_res = handler(**kwargs)
+                if handler_res:
+                    res = handler_res
             except DatabandConnectionException as ex:
                 logger.error(
                     "Failed to store tracking information from %s at %s : %s"
@@ -89,6 +92,7 @@ class CompositeTrackingStore(TrackingStore):
                     % (name, store.__class__.__name__)
                 )
                 raise
+        return res
 
     # this is a function that used for disabling Tracking api on spark inline tasks.
     def disable_tracking_api(self):

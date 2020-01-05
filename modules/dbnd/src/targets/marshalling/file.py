@@ -32,7 +32,7 @@ class StrLinesMarshaller(Marshaller):
 
     support_directory_direct_read = True
     support_multi_target_direct_read = True
-
+    support_directory_direct_write = False
     clears_types_to_str = True
 
     def target_to_value(self, target, mode="r"):

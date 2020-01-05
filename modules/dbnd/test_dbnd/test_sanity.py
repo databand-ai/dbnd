@@ -1,8 +1,8 @@
 import logging
 
-from dbnd._core.inline import run_cmd_locally
+from dbnd import dbnd_run_cmd
 from dbnd.tasks.basics import dbnd_sanity_check
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 
 
 logger = logging.getLogger(__name__)
@@ -14,4 +14,4 @@ class TestSanityTasks(object):
         assert_run_task(check_task)
 
     def test_sanity_check_cmd(self):
-        run_cmd_locally(["dbnd_sanity_check"])
+        dbnd_run_cmd(["dbnd_sanity_check"])

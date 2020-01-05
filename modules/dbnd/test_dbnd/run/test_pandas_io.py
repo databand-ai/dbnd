@@ -1,7 +1,6 @@
 import logging
 
 from dbnd import PythonTask, data, output, parameter
-from dbnd._core.inline import run_task
 from targets import target
 
 
@@ -30,7 +29,7 @@ class TestPandasTask(object):
             p_input=task.p_output, some_param=2, task_name="second"
         )
 
-        run_task(task_second)
+        task_second.dbnd_run()
 
         assert task_second.p_output
         print(task_second.p_output.read_df())
