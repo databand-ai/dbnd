@@ -29,7 +29,7 @@ def set_airflow_sql_conn_from_dbnd_config():
         airflow_conf.set("core", "fernet_key", fernet_key)
 
         # we need to all spawned airflow processes
-        os.environ["AIRFLOW__CORE__FERNET_KEY"] = sql_alchemy_conn
+        os.environ["AIRFLOW__CORE__FERNET_KEY"] = fernet_key
 
     configure_vars()
     # The webservers import this file from models.py with the default settings.

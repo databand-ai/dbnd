@@ -8,10 +8,9 @@ from uuid import UUID
 from dbnd._core.configuration.config_readers import read_from_config_files
 from dbnd._core.configuration.config_store import ConfigMergeSettings
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import in_quiet_mode, is_unit_test_mode
+from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.errors.errors_utils import UserCodeDetector
-from dbnd._core.log.config import configure_logging_dictConfig, get_dbnd_logging_config
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.run.databand_run import DatabandRun, new_databand_run
 from dbnd._core.settings import DatabandSystemConfig, OutputConfig, RunInfoConfig
@@ -144,27 +143,14 @@ class DatabandContext(SingletonContext):
 
         self.tracking_store = self.settings.core.get_tracking_store()
 
+        # we do it every time we go into databand_config
         self.configure_targets()
-        self.configure_dbnd_logging()
+        self.settings.log.configure_dbnd_logging()
 
         _run_user_func(
             self.settings.core.__class__.user_init, self.settings.core.user_init
         )
         pm.hook.dbnd_post_enter_context(ctx=self)
-
-    def configure_dbnd_logging(self):
-        if self.settings.log.disabled:
-            return
-
-        if self.settings.log.custom_dict_config:
-            dict_config = self.settings.log.custom_dict_config()
-            logger.warning("%s", dict_config)
-        else:
-            dict_config = self.get_default_log_settings()
-
-        configure_logging_dictConfig(dict_config=dict_config)
-        if not in_quiet_mode():
-            logger.info("Databand logging is up!")
 
     def configure_targets(self):
         output_config = self.settings.output  # type: OutputConfig
@@ -174,10 +160,6 @@ class DatabandContext(SingletonContext):
             from targets.marshalling.pandas import DataFrameToHdf5Table
 
             MARSHALERS[pd.DataFrame][FileFormat.hdf5] = DataFrameToHdf5Table()
-
-    def get_default_log_settings(self):
-        log_settings = self.settings.log
-        return get_dbnd_logging_config(log_settings=log_settings, filename=None)
 
     def _on_exit(self):
         pm.hook.dbnd_on_exit_context(ctx=self)

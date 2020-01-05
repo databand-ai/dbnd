@@ -25,7 +25,7 @@ from copy import deepcopy
 
 from airflow import configuration as conf
 from airflow.config_templates.airflow_local_settings import (
-    DEFAULT_LOGGING_CONFIG as logging_config,
+    DEFAULT_LOGGING_CONFIG as airflow_default_log_config,
 )
 from airflow.utils.log.file_processor_handler import FileProcessorHandler
 
@@ -77,7 +77,7 @@ PROCESSOR_LOG_FOLDER = conf.get("scheduler", "CHILD_PROCESS_LOG_DIRECTORY")
 
 # this config will be used automatically by airflow,
 # but we will override it the first time we can (right after import)
-DEFAULT_LOGGING_CONFIG = deepcopy(logging_config)
+DEFAULT_LOGGING_CONFIG = deepcopy(airflow_default_log_config)
 # we need to replace the original with this one for windows support
 wp = "%s.%s" % (__name__, FileProcessorHandlerWinCompatible.__name__)
 error_handler = "%s.%s" % (__name__, FileProcessorErrorHandler.__name__)
