@@ -1,6 +1,9 @@
 import logging
 
-from dbnd import new_dbnd_context
+import pytest
+
+from dbnd import config, new_dbnd_context
+from dbnd._core.errors import UnknownParameterError
 from test_dbnd.factories import TTask, ttask_simple
 
 
@@ -30,3 +33,10 @@ class TestTaskMetaBuild(object):
         task = ttask_simple.task()
         logger.info("SOURCE:%s", task.task_meta.task_call_source)
         assert task.task_meta.task_call_source[0].filename in __file__
+
+    def test_wrong_config_validation(self):
+        with pytest.raises(UnknownParameterError) as e:
+            with config({"TTask": {"t_parammm": 2}}):
+                TTask()
+
+        assert e.value.help_msg == "Did you mean: t_param"

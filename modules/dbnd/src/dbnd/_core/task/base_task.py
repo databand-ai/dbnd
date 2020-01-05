@@ -64,8 +64,8 @@ class _BaseTask(object):
     _conf__no_child_params = False  # disable child scope params
     _conf_auto_read_params = True  # enables autoread of params.
     _conf_confirm_on_kill_msg = None  # get user confirmation on task kill if not empty
-
     _conf__require_run_dump_file = False
+    _conf__validate_no_extra_params = True
 
     # this is the state of autoread
     _task_auto_read_original = None

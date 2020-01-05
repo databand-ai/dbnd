@@ -166,6 +166,7 @@ class TaskFactory(object):
                 )
             ),
         )
+        self.task_errors = []
 
     def create_dbnd_task(self):
         # create task meta
@@ -217,6 +218,9 @@ class TaskFactory(object):
         return task
 
     def build_task_meta(self):  # build list of all possible values
+        if self.task_cls._conf__validate_no_extra_params:
+            self.validate_no_extra_config_params()
+
         param_task_env = None
         param_task_config = None
         param_def_regular = []
@@ -251,6 +255,8 @@ class TaskFactory(object):
         regular_params = self.build_parameter_values(param_def_regular)
         task_param_values.extend(regular_params)
 
+        self._assert_no_task_build_error()
+
         task_enabled = True
         if self.parent_task:
             task_enabled = self.parent_task.ctrl.should_run()
@@ -280,17 +286,36 @@ class TaskFactory(object):
             task_call_source=self.task_call_source,
         )
 
+    def validate_no_extra_config_params(self):
+        """
+        check that the user did not set any config values that don't have a matching param definition (protects against typos)
+        """
+        task_param_names = [tp.name for tp in self.task_params]
+        for section_name in self.task_config_sections:
+            section = self.config.config_layer.config.get(section_name)
+            if not section:
+                continue
+
+            for key, value in section.items():
+                if key not in task_param_names:
+                    self.task_errors.append(
+                        friendly_error.task_build.unknown_parameter_in_config(
+                            task_name=self.task_name,
+                            param_name=key,
+                            source=value.source,
+                            task_param_names=task_param_names,
+                        )
+                    )
+
     def build_parameter_values(self, params):
         # type: (List[ParameterDefinition]) -> List[ParameterValue]
         result = []
-        task_errors = []
         for param_def in params:
             try:
                 p_value = self.build_parameter_value(param_def)
                 result.append(p_value)
             except MissingParameterError as ex:
-                task_errors.append(ex)
-        self._assert_no_task_build_error(task_errors)
+                self.task_errors.append(ex)
         return result
 
     def build_parameter_value(self, param_def):
@@ -534,11 +559,11 @@ class TaskFactory(object):
         )
         self._log_build_step(msg, force_log=force_log)
 
-    def _assert_no_task_build_error(self, errors):
-        if not errors:
+    def _assert_no_task_build_error(self):
+        if not self.task_errors:
             return
-        if len(errors) == 1:
-            raise errors[0]
+        if len(self.task_errors) == 1:
+            raise self.task_errors[0]
         raise friendly_error.failed_to_create_task(
-            self._exc_desc, nested_exceptions=errors
+            self._exc_desc, nested_exceptions=self.task_errors
         )
