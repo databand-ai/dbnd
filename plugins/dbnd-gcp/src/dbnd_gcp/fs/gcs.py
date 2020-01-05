@@ -305,6 +305,13 @@ class GCSClient(FileSystem):
 
         self._do_put(media, dest_path)
 
+        # Implementation B
+        # bucket, key = path_to_bucket_and_key(str(dest_path))
+        # bucket = self.client.bucket(bucket)
+        # blob = bucket.blob(blob_name=key)
+        # blob.upload_from_filename(filename=filename,
+        #                           content_type=mimetype)
+
     def _forward_args_to_put(self, kwargs):
         return self.put(**kwargs)
 
@@ -495,7 +502,7 @@ class GCSClient(FileSystem):
     def mkdir_parent(self, path):
         pass
 
-    def move_from_local(self, local_path, dest):
+    def copy_from_local(self, local_path, dest):
         self.put(local_path, dest)
 
     def open_read(self, path, mode="r"):

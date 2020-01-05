@@ -6,12 +6,12 @@ from typing import Any
 
 import six
 
-from dbnd._core.current import get_databand_context
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.traversing import traverse
-from targets import Target, target
+from targets.base_target import Target
 from targets.multi_target import MultiTarget
+from targets.target_factory import target
 from targets.types import Path
 
 

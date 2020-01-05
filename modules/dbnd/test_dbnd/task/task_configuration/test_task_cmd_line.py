@@ -1,9 +1,8 @@
 import json
 import logging
 
-from dbnd import PythonTask, parameter
+from dbnd import PythonTask, dbnd_run_cmd, parameter
 from dbnd._core.errors import DatabandExecutorError
-from dbnd._core.inline import run_cmd_locally, run_cmd_locally_split
 from dbnd.testing.helpers_pytest import run_locally__raises
 from test_dbnd.factories import TTask
 
@@ -37,12 +36,12 @@ class TConfigNoDefault(TTask):
 
 class TestTaskCmdLine(object):
     def test_cmd_line(self):
-        result = run_cmd_locally(["TCmdPipe", "-r x=foo", "-r y=bar"])
+        result = dbnd_run_cmd(["TCmdPipe", "-r x=foo", "-r y=bar"])
         assert result.task.x == "foo"
         assert result.task.y == "bar"
 
     def test_sub_task(self):
-        task = run_cmd_locally(
+        task = dbnd_run_cmd(
             ["TCmdPipe", "-r", "x=foo", "-r", "y=bar", "-s", "TCmdTask.y=xyz"]
         ).task  # type: TCmdPipe
         assert task.x == "foo"
@@ -59,7 +58,7 @@ class TestTaskCmdLine(object):
                 super(MyTask, self).run()
                 assert self.param1 == 1 and self.param2
 
-        assert run_cmd_locally_split("MyTask -r param1=1 -r param2=True")
+        assert dbnd_run_cmd("MyTask -r param1=1 -r param2=True")
 
     # def test_set_root_and_task(self):
     # WE SHOULD RAISE IN THIS CASE (conflict)
@@ -72,7 +71,7 @@ class TestTaskCmdLine(object):
     #             assert self.param1 == 1 and self.param2
     #
     #     # set_root is higher priority
-    #     assert run_cmd_locally_split(
+    #     assert dbnd_run_cmd(
     #         "MyTask -r param1=2 -s param1=1 -s 'MyTask.param2=False param2=True'"
     #     )
 
@@ -84,7 +83,7 @@ class TestTaskCmdLine(object):
                 super(MyTask, self).run()
                 assert self.param == 6
 
-        assert run_cmd_locally_split("MyTask -r param=5 -o MyTask.param=6")
+        assert dbnd_run_cmd("MyTask -r param=5 -o MyTask.param=6")
 
     def test_cli_with_defaults(self):
         """
@@ -92,7 +91,7 @@ class TestTaskCmdLine(object):
         command line parsers.
         """
 
-        run_cmd_locally(["TConfigTask", "--set", "TConfigTask.t_param=123"])
+        dbnd_run_cmd(["TConfigTask", "--set", "TConfigTask.t_param=123"])
 
     def test_cli_no_default(self):
         """
@@ -101,7 +100,7 @@ class TestTaskCmdLine(object):
         """
 
         set_conf = json.dumps({"TConfigNoDefault": {"t_param_no_default": "123"}})
-        run_cmd_locally(["TConfigNoDefault", "--set", set_conf])
+        dbnd_run_cmd(["TConfigNoDefault", "--set", set_conf])
 
     def test_cli_raises1(self):
         """
@@ -109,7 +108,7 @@ class TestTaskCmdLine(object):
         command line parsers.
         """
 
-        run_cmd_locally(
+        dbnd_run_cmd(
             [
                 "TConfigTask",
                 "-s",

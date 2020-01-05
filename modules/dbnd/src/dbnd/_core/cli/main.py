@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import logging
+import shlex
+import subprocess
 import sys
+
+from functools import partial
+
+import six
 
 from dbnd import dbnd_bootstrap
 from dbnd._core.cli.cmd_execute import execute
@@ -11,8 +17,10 @@ from dbnd._core.cli.cmd_run import run
 from dbnd._core.cli.cmd_scheduler_management import schedule
 from dbnd._core.cli.cmd_show import show_configs, show_tasks
 from dbnd._core.cli.cmd_utils import ipython
+from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.plugin.dbnd_plugins import pm, register_dbnd_plugins
+from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
 
@@ -57,6 +65,33 @@ cli.add_command(schedule)
 
 # heartbeat sender
 cli.add_command(send_heartbeat)
+
+
+@dbnd_handle_errors(exit_on_error=False)
+def dbnd_cmd(command, args):
+    """ 
+    Invokes the passed dbnd command with CLI args emulation.
+
+    Parameters:
+        command (str): the command to be invoked
+        args (Union[list, str]): list with CLI args to be emulated (if str is passed, it will be splitted)
+    Returns:
+        str: result of command execution
+    """
+    assert command in cli.commands
+    if isinstance(args, six.string_types) or isinstance(args, six.text_type):
+        args = shlex.split(args, posix=not windows_compatible_mode)
+    current_argv = sys.argv
+    logger.info("Running dbnd run: %s", subprocess.list2cmdline(args))
+    try:
+        sys.argv = [sys.executable, "-m", "databand", "run"] + args
+        dbnd_bootstrap()
+        return cli.commands[command](args=args, standalone_mode=False)
+    finally:
+        sys.argv = current_argv
+
+
+dbnd_run_cmd = partial(dbnd_cmd, "run")
 
 
 def main():

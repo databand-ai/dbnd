@@ -9,17 +9,17 @@ class EmrStepCtrl(EmrCtrl):
         from airflow.contrib.hooks.spark_submit_hook import SparkSubmitHook
 
         _config = self.config
-
+        deploy = self.deploy
         spark = SparkSubmitHook(
             conf=_config.conf,
             conn_id=self.emr_config.conn_id,
             name=self.job.job_id,
             application_args=list_of_strings(self.task.application_args()),
             java_class=self.task.main_class,
-            files=self.arg_files(_config.files),
-            py_files=self.arg_files(_config.py_files),
+            files=deploy.arg_files(_config.files),
+            py_files=deploy.arg_files(_config.py_files),
             driver_class_path=_config.driver_class_path,
-            jars=self.arg_files(jars),
+            jars=deploy.arg_files(jars),
             packages=_config.packages,
             exclude_packages=_config.exclude_packages,
             repositories=_config.repositories,
@@ -37,7 +37,7 @@ class EmrStepCtrl(EmrCtrl):
         step_id = self.emr_cluster.run_spark_submit_step(
             name=self.job.job_id,
             spark_submit_command=spark._build_spark_submit_command(
-                application=self.sync(file)
+                application=deploy.sync(file)
             ),
         )
         self.task_run.set_external_resource_urls(

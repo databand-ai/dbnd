@@ -47,6 +47,8 @@ class TestLocalTarget(FileTargetTestMixin):
         return targets.target(self.path, io_pipe=io_pipe)
 
     def assertCleanUp(self, tmp_path=""):
+        if not tmp_path:
+            return
         assert not os.path.exists(tmp_path)
 
     def test_exists(self):

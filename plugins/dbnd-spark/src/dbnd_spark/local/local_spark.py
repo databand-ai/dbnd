@@ -9,19 +9,16 @@ from dbnd._core.errors.friendly_error.task_execution import (
     failed_to_run_spark_script,
 )
 from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
-from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark._core.spark_error_parser import parse_spark_log
 from dbnd_spark.local.local_spark_config import SparkLocalConfig
-from dbnd_spark.spark import SparkCtrl
+from dbnd_spark.spark_ctrl import SparkCtrl
 from targets.fs import FileSystems
 
 
-class LocalSparkExecutionCtrl(SparkCtrl, TaskSyncCtrl):
+class LocalSparkExecutionCtrl(SparkCtrl):
     def should_keep_local_pickle(self):
-        from targets import target
-
-        return target(self.remote_sync_root).fs.name != FileSystems.local
+        return self.deploy.remote_sync_root.fs.name != FileSystems.local
 
     def run_pyspark(self, pyspark_script):
         jars = list(self.config.jars)
@@ -43,16 +40,17 @@ class LocalSparkExecutionCtrl(SparkCtrl, TaskSyncCtrl):
         # task_env = get_cloud_config(Clouds.local)
         spark_local_config = SparkLocalConfig()
         _config = self.config
+        deploy = self.deploy
         spark = SparkSubmitHook(
             conf=_config.conf,
             conn_id=spark_local_config.conn_id,
             name=self.job.job_id,
             application_args=list_of_strings(self.task.application_args()),
             java_class=self.task.main_class,
-            files=self.arg_files(_config.files),
-            py_files=self.arg_files(_config.py_files),
+            files=deploy.arg_files(_config.files),
+            py_files=deploy.arg_files(_config.py_files),
             driver_class_path=_config.driver_class_path,
-            jars=self.arg_files(jars),
+            jars=deploy.arg_files(jars),
             packages=_config.packages,
             exclude_packages=_config.exclude_packages,
             repositories=_config.repositories,
@@ -103,19 +101,3 @@ class LocalSparkExecutionCtrl(SparkCtrl, TaskSyncCtrl):
             return match.groups()[0]
         # assume spark_submit success otherwise
         return "0"
-
-    # def _sync(self, local_file):
-    #     from os import path
-    #     from targets import target
-    #
-    #     file_name = path.basename(local_file.path)
-    #     result_file = target(self.task_env.dbnd_local_root.folder("deploy").file(file_name))
-    #
-    #     if self.is_remote(local_file):
-    #         with local_file.fs.open_read() as f:
-    #             result_file.write(f.read())
-    #
-    #         return result_file
-    #
-    #     return local_file
-    #

@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.extensions.custom_output_factory import DataSplitIntoMultipleOutputs
 from dbnd_examples.extensions.custom_output_location import (
     GenerateReportToCustomLocation,

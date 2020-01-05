@@ -13,6 +13,7 @@ from dbnd._core.errors.friendly_error.api import api_connection_refused
 
 logger = logging.getLogger(__name__)
 
+
 # uncomment for requests trace
 # import http.client
 # http.client.HTTPConnection.debuglevel = 1
@@ -36,7 +37,9 @@ class ApiClient(object):
         self.password = password
         self.session = None
 
-    def _request(self, endpoint, method="GET", data=None, headers={}, query=None):
+    def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
+        if headers is None:
+            headers = {}
         if not self.session:
             self._init_session()
 

@@ -8,7 +8,7 @@ import six
 from dbnd import PipelineTask, output, parameter
 from dbnd._core.errors import DatabandExecutorError
 from dbnd.tasks import PythonTask
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from targets import Target
 from test_dbnd.factories import TTask, TTaskWithInput
 

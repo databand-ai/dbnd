@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from airflow.operators.bash_operator import BashOperator
 
-from dbnd import Task, dbnd_run_cmd, run_task
+from dbnd import Task, dbnd_run_cmd
 from dbnd.testing.helpers import (
     run_dbnd_subprocess__dbnd,
     run_dbnd_subprocess__dbnd_run,
@@ -24,7 +24,7 @@ class TestLegacyAirflowInplace(object):
                 t2 = BashOperator(task_id="sleep", bash_command="sleep 0.1", retries=3)
                 self.set_upstream(t2)
 
-        run_task(TInlineAirflowOpsPipeline())
+        TInlineAirflowOpsPipeline().dbnd_run()
 
 
 @skip_on_windows

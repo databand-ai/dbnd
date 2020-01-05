@@ -3,7 +3,7 @@ import typing
 
 import six
 
-from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl
+from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl, TaskRunCtrl
 from dbnd._core.utils.json_utils import dumps_canonical
 from dbnd._core.utils.string_utils import camel_to_snake
 
@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
     from dbnd_gcp.apache_beam.apache_beam_task import ApacheBeamConfig
 
 
-class ApacheBeamJobCtrl(TaskJobCtrl):
+class ApacheBeamJobCtrl(TaskRunCtrl):
     @property
     def config(self):
         # type: (ApacheBeamJobCtrl) -> ApacheBeamConfig

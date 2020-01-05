@@ -2,7 +2,7 @@ import logging
 
 from datetime import timedelta
 
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.data import data_repo
 from dbnd_examples.feature_data.partitioned_calculations_pipeline import (
     ExamplePartitionedCalculations,

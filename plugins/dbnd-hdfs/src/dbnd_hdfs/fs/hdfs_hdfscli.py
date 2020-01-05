@@ -214,7 +214,7 @@ class HdfsCli(FileSystem, Config):
 
         return _DeleteOnCloseFile(local_tmp_file, mode)
 
-    def move_from_local(self, local_path, dest):
+    def copy_from_local(self, local_path, dest):
         self.put(local_path, dest)
 
     def put(self, local_path, destination):

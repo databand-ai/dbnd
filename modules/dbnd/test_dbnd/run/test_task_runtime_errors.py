@@ -2,7 +2,7 @@ import pytest
 
 from pandas import DataFrame
 
-from dbnd import PythonTask, data, output, run_task
+from dbnd import PythonTask, data, output
 from dbnd._core.errors import DatabandExecutorError
 from test_dbnd.targets_tests import TargetTestBase
 
@@ -18,7 +18,7 @@ class TMissingOutputs(PythonTask):
 class TestTaskErrors(TargetTestBase):
     def test_no_outputs(self, capsys):
         with pytest.raises(DatabandExecutorError, match="Failed tasks are"):
-            run_task(TMissingOutputs())
+            TMissingOutputs().dbnd_run()
 
     def test_to_read_input(self, capsys):
         class TCorruptedInput(PythonTask):
@@ -31,4 +31,4 @@ class TestTaskErrors(TargetTestBase):
         t = self.target("some_input.json").write("corrupted dataframe")
 
         with pytest.raises(DatabandExecutorError, match="Failed tasks are"):
-            run_task(TCorruptedInput(some_input=t))
+            TCorruptedInput(some_input=t).dbnd_run()
