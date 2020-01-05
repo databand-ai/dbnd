@@ -39,7 +39,9 @@ def web_app_ctrl(web_app, web_client):
 @pytest.fixture(scope="class", autouse=True)
 def unpatched_airflow_security_manager():
     if not is_web_enabled():
+        yield
         return
+
     from dbnd_web.models.security import patch_manager, unpatch_manager
 
     try:
