@@ -1,14 +1,19 @@
+from __future__ import absolute_import
+
 import logging
 import zlib
 
+from typing import List
+
+import pandas as pd
 import pytest
 
 from cloudpickle import cloudpickle
-from dbnd import new_dbnd_context, override, task
+from dbnd import new_dbnd_context, output, override, parameter, pipeline, task
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.settings import CoreConfig, RunConfig
-from dbnd._core.settings.engine import LocalMachineEngineConfig
+from dbnd.tasks import PythonTask
 from dbnd.testing.helpers import initialized_run
 from test_dbnd.factories import TTask
 
@@ -35,7 +40,31 @@ def generate_huge_task(num_of_tasks):
     return cur_t
 
 
-class TestDatabandRun(object):
+class TClassTask(PythonTask):
+    t_param = parameter.value("1")
+    t_output = output.data
+
+    def run(self):
+        self.t_output.write("%s" % self.t_param)
+
+
+@task
+def ttask_dataframe_generic(tparam=1, t_list=None):
+    # type:(int, List[str])->pd.DataFrame
+    return pd.DataFrame(data=[[tparam, tparam]], columns=["c1", "c2"])
+
+
+@pipeline
+def pipeline_with_generics(selected_partners):
+    # type: (List[int])-> List[pd.DataFrame]
+    partner_data = [
+        ttask_dataframe_generic(tparam=partner, t_list=["a", "b"])
+        for partner in selected_partners
+    ]
+    return partner_data
+
+
+class TestRunPickle(object):
     def _save_graph(self, task):
         with new_dbnd_context(
             conf={
@@ -43,9 +72,14 @@ class TestDatabandRun(object):
                 CoreConfig.tracker: override(["console"]),
             }
         ) as dc:
-            task_run = dc.dbnd_run_task(task_or_task_name=task)
-            task_run.save_run()
-        return task_run
+            run = dc.dbnd_run_task(task_or_task_name=task)
+            run.save_run()
+
+        loaded_run = DatabandRun.load_run(
+            dump_file=run.driver_dump, disable_tracking_api=False
+        )
+        assert loaded_run
+        return run
 
     def test_save_databand_run(self):
         s = TTask()
@@ -67,15 +101,22 @@ class TestDatabandRun(object):
         self, benchmark, pipeline, pickle_func=cloudpickle.dumps
     ):
         with initialized_run(task_or_task_name=pipeline) as r:  # type: DatabandRun
-            with r.task_executor.prepare_run():
-                logger.warning("starting benchmark")
-                result = benchmark(pickle_func, r)
+            logger.warning("starting benchmark")
+            result = benchmark(pickle_func, r)
         logger.warning("Pickeled result size %s", len(result))
         logger.warning("zlib result size %s", len(zlib.compress(result, 9)))
 
     def test_save_time_1(self, benchmark):
         s = TTask()
         self._benchmark_pipeline_save(benchmark=benchmark, pipeline=s)
+
+    def test_dump_dagrun_simple(self):
+        s = TClassTask()
+        self._save_graph(s)
+
+    def test_dump_dagrun_generics1(self):
+        s = pipeline_with_generics.task([1, 2])
+        self._save_graph(s)
 
     #
     # def test_save_time_2(self, benchmark):

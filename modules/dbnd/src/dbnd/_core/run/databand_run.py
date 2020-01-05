@@ -514,7 +514,7 @@ class DatabandRun(SingletonContext):
         return env
 
     def _init_without_run(self):
-        self.driver_task_run.task.prepare_for_databand_run(self)
+        self.driver_task_run.task.build_root_task_runs(self)
 
     def is_killed(self):
         return _is_killed.is_set()
