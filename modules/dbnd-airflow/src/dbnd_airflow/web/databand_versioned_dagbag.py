@@ -4,7 +4,7 @@ import logging
 
 import pendulum
 
-from airflow.models import DagBag, DagPickle
+from airflow.models import DagBag, DagModel, DagPickle
 from airflow.utils.db import provide_session
 
 from dbnd_airflow.airflow_override import DbndAirflowTaskInstance
@@ -21,9 +21,30 @@ DAG_UNPICKABLE_PROPERTIES = (
 )
 
 
+class DbndDagModel(DagModel):
+    def get_dag(self, store_serialized_dags=False):
+        # DBND PATCH
+        # unwrap all old logic, as we have recursion call there that makes it not easy to patch
+
+        dag = DagBag(
+            dag_folder=self.fileloc, store_serialized_dags=store_serialized_dags
+        ).get_dag(self.dag_id)
+
+        if store_serialized_dags and dag is None:
+            dag = DagBag(dag_folder=self.fileloc, store_serialized_dags=False).get_dag(
+                self.dag_id
+            )
+        if dag:
+            return dag
+
+        from airflow.www_rbac.views import dagbag
+
+        return dagbag.get_dag(dag_id=self.dag_id)
+
+
 class DbndAirflowDagBag(DagBag):
     @provide_session
-    def get_dag(self, dag_id, execution_date=None, session=None):
+    def get_dag(self, dag_id, from_file_only=True, execution_date=None, session=None):
         """
         :param dag_id:
         :param execution_date: if provided, we'll try to find specifc version of dag (using pickle)
@@ -56,7 +77,9 @@ class DbndAirflowDagBag(DagBag):
                     return dag
 
         # we don't have specific dag/execution date, we are trying to get in-memory version
-        dag = super(DbndAirflowDagBag, self).get_dag(dag_id)
+        dag = super(DbndAirflowDagBag, self).get_dag(
+            dag_id, from_file_only=from_file_only
+        )
         if dag:
             return dag
 

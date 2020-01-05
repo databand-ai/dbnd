@@ -85,6 +85,8 @@ error_handler = "%s.%s" % (__name__, FileProcessorErrorHandler.__name__)
 DEFAULT_LOGGING_CONFIG["handlers"]["processor"]["class"] = wp
 
 # the default airflow "console" handler somehow ends up redirecting back to processor logger, getting stuck in an infinite loop
+# sys.stdout at this point is Raw stdout without redirection, as this code runs at airflow boot time
+# ( no airflow task actually is running, so there is no stdout_redirect applied )
 DEFAULT_LOGGING_CONFIG["handlers"]["stdout"] = {
     "class": error_handler,
     "formatter": "airflow",

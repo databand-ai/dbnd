@@ -1,7 +1,8 @@
 from airflow.operators.bash_operator import BashOperator
 
-from dbnd import Task, dbnd_run_cmd, run_task
+from dbnd import Task, dbnd_run_cmd, pipeline, run_task
 from dbnd.testing.helpers_pytest import skip_on_windows
+from test_dbnd.factories import TTask
 
 
 @skip_on_windows
@@ -19,3 +20,13 @@ class TestLegacyAirflowInplace(object):
                 self.set_upstream(t2)
 
         run_task(TInlineAirflowOpsPipeline())
+
+    def test_inline_airflow_operators(self):
+        @pipeline
+        def pipline_that_has_airflow():
+            t1 = TTask()
+            t2 = BashOperator(task_id="sleep", bash_command="sleep 0.1", retries=3)
+            t1.set_upstream(t2)
+            return t1
+
+        run_task(pipline_that_has_airflow())

@@ -5,6 +5,8 @@ import typing
 from airflow import DAG
 from airflow.configuration import conf as airflow_conf
 from airflow.executors import LocalExecutor, SequentialExecutor
+from airflow.models import DagPickle
+from airflow.utils import timezone
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from sqlalchemy.orm import Session
@@ -34,6 +36,32 @@ if typing.TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def pickle_dag_and_save_pickle_id_for_versioned(dag, driver_dump, session):
+    dp = DagPickle(dag=dag)
+    session.add(dp)
+
+    # First step: we need pickle id, so we save none and "reserve" pickle id
+    dp.pickle = None
+    dag.last_pickled = timezone.utcnow()
+    dp.pickle = None
+    session.commit()
+
+    # Second step: now we have pickle_id , we can add it to serialization
+    # dag_pickle_id used for Versioned Dag
+    dag.pickle_id = dp.id
+    for op in dag.tasks:
+        if op.executor_config is None:
+            op.executor_config = {}
+        op.executor_config["DatabandExecutor"] = {
+            "dbnd_driver_dump": str(driver_dump),
+            "dag_pickle_id": dag.pickle_id,
+        }
+
+    dp.pickle = dag
+    session.add(dp)
+    session.commit()
 
 
 class AirflowTaskExecutor(TaskExecutor):
@@ -81,12 +109,6 @@ class AirflowTaskExecutor(TaskExecutor):
                 else:
                     # we will create DatabandOperator for databand tasks
                     op = build_dbnd_operator_from_taskrun(task_run)
-                if not op.executor_config:
-                    op.executor_config = {}
-                op.executor_config["DatabandExecutor"] = {
-                    "dbnd_driver_dump": str(self.run.driver_dump)
-                }
-
                 airflow_ops[task.task_id] = op
 
             for task_run in task_runs:
@@ -107,7 +129,6 @@ class AirflowTaskExecutor(TaskExecutor):
 
     def do_run(self):
         dag = self.build_airflow_dag(task_runs=self.task_runs)
-
         with set_dag_as_current(dag):
             self.run_airflow_dag(dag)
 
@@ -145,7 +166,11 @@ class AirflowTaskExecutor(TaskExecutor):
         # "again.
         delay_on_limit = 1.0
 
+        pickle_dag_and_save_pickle_id_for_versioned(
+            af_dag, databand_run.driver_dump, session=session
+        )
         af_dag.sync_to_db(session=session)
+
         # let create relevant TaskInstance, so SingleDagRunJob will run them
         dag_run = create_dagrun_from_dbnd_run(
             databand_run=databand_run,
