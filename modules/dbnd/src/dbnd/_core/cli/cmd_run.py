@@ -14,6 +14,7 @@ from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
+from dbnd._core.plugin.dbnd_plugins import is_web_enabled
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
@@ -282,6 +283,13 @@ def run(
         if is_help or not task_name:
             print_help(ctx, task_cls)
             return
+
+        if context.settings.core.auto_create_local_db and is_web_enabled():
+            sql_alchemy_conn = context.settings.core.get_sql_alchemy_conn()
+            if sql_alchemy_conn and sql_alchemy_conn.startswith("sqlite:///"):
+                from dbnd_web.utils.dbnd_db import init_local_db
+
+                init_local_db(sql_alchemy_conn)
 
         return context.dbnd_run_cmd_line(
             task_or_task_name=task_name,

@@ -77,6 +77,7 @@ def airflow_tables_to_dump():
         # dbnd_dag_run -> user, [cmd_line]
         # dag_run -> dag_id,
         af_models.DagRun,
+        af_models.TaskInstance,
         # dbnd_task_run -> created_by_task_id (__XXX), created_by_dag_id, task_name
         # dbnd_web.models.dbnd_airflow.dbnd_airflow_databand_task_run.DbndAirflowDatabandTaskRun,
         # dbnd_task_run_metrics -> name,

@@ -1,7 +1,12 @@
 # PLEASE DO NOT MOVE/RENAME THIS FILE, IT'S SERIALIZED INTO AIRFLOW DB
 
+import logging
+
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
+
+
+logger = logging.getLogger(__name__)
 
 
 class DbndOperator(BaseOperator):
@@ -26,6 +31,7 @@ class DbndOperator(BaseOperator):
         return BaseOperator.task_type.fget(self)
 
     def execute(self, context):
+        logger.debug("Running dbnd task from airflow operator %s", self.task_id)
         from dbnd_airflow.dbnd_task_executor.dbnd_execute import dbnd_operator__execute
 
         return dbnd_operator__execute(self, context)

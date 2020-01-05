@@ -16,7 +16,7 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=[
         "dbnd==" + version,
-        "apache-airflow==1.10.6",
+        "apache-airflow==1.10.7",
         "future>=0.16.0, <0.17",
         "sqlalchemy_utc",
         "sqlalchemy_utils",

@@ -1,4 +1,5 @@
 import logging
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -18,11 +19,17 @@ def set_airflow_sql_conn_from_dbnd_config():
         sql_alchemy_conn = dbnd_config.get("core", "sql_alchemy_conn")
         airflow_conf.set("core", "sql_alchemy_conn", sql_alchemy_conn)
 
+        # we need to all spawned airflow processes
+        os.environ["AIRFLOW__CORE__SQL_ALCHEMY_CONN"] = sql_alchemy_conn
+
     fernet_key = airflow_conf.get("core", "fernet_key", fallback=None)
     if not fernet_key:
         logger.debug("Could not find fernet key, set from dbnd configuration")
         fernet_key = dbnd_config.get("airflow", "fernet_key")
         airflow_conf.set("core", "fernet_key", fernet_key)
+
+        # we need to all spawned airflow processes
+        os.environ["AIRFLOW__CORE__FERNET_KEY"] = fernet_key
 
     configure_vars()
     # The webservers import this file from models.py with the default settings.

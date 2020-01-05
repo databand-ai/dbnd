@@ -139,3 +139,37 @@ def dbnd_module_path():
 
 def dbnd_examples_path():
     return abs_join(dbnd_module_path(), "..", "..", "examples", "src")
+
+
+def import_all_modules(src_dir, package, excluded=None):
+    packagedir = os.path.join(src_dir, package)
+    errors = []
+    imported_modules = []
+
+    def import_module(p):
+        try:
+            logger.info("Importing %s", p)
+            __import__(p)
+            imported_modules.append(p)
+        except Exception as ex:
+            errors.append(ex)
+            logger.exception("Failed to import %s", p)
+
+    excluded = excluded or set()
+
+    for root, subdirs, files in os.walk(packagedir):
+        package = os.path.relpath(root, start=src_dir).replace(os.path.sep, ".")
+
+        if any([p in root for p in excluded]):
+            continue
+
+        if "__init__.py" not in files:
+            continue
+
+        import_module(package)
+
+        for f in files:
+            if f.endswith(".py") and not f.startswith("_"):
+                import_module(package + "." + f[:-3])
+
+    return imported_modules

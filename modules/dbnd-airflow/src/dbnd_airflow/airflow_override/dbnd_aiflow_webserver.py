@@ -20,16 +20,21 @@ def use_databand_airflow_dagbag():
     from dbnd_airflow.airflow_override import patch_module_attr
 
     logging.info("Using dbnd dagbag (supporting versioned dags).")
-    from dbnd_airflow.web.databand_versioned_dagbag import DbndAirflowDagBag
+    from dbnd_airflow.web.databand_versioned_dagbag import DbndAirflowDagBag, DbndDagModel
 
     if os.environ.get("SKIP_DAGS_PARSING") != "True":
         views.dagbag = DbndAirflowDagBag(settings.DAGS_FOLDER)
     else:
         views.dagbag = DbndAirflowDagBag(os.devnull, include_examples=False)
 
+    # some views takes dag from dag model
+    patch_module_attr(views, "DagModel", DbndDagModel)
+
     # dag_details invoke DagBag directly
     patch_module_attr(airflow.models, "DagBag", DbndAirflowDagBag)
     patch_module_attr(airflow.models.dag, "DagBag", DbndAirflowDagBag)
+    patch_module_attr(airflow.models.dag, "DagModel", DbndDagModel)
+
 
 
 def patch_airflow_create_app():

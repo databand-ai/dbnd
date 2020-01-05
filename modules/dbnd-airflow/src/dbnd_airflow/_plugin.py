@@ -30,11 +30,11 @@ def dbnd_setup_plugin():
 
 @dbnd.hookimpl
 def dbnd_get_commands():
-    from dbnd_airflow.cli.cmd_airflow import run_task_airflow, airflow
+    from dbnd_airflow.cli.cmd_airflow import airflow
 
     from dbnd_airflow.cli.cmd_scheduler import scheduler
 
-    return [airflow, run_task_airflow, scheduler]
+    return [airflow, scheduler]
 
 
 @dbnd.hookimpl
@@ -45,23 +45,9 @@ def dbnd_on_exit_context(ctx):
 
 @dbnd.hookimpl
 def dbnd_post_enter_context(ctx):  # type: (DatabandContext) -> None
-    from dbnd._core.utils.platform import windows_compatible_mode
     from dbnd_airflow.dbnd_task_executor.airflow_operators_catcher import (
         DatabandOpCatcherDag,
     )
-
-    # doing this causes infinite loops when trying to log from inside an airflow task
-    if ctx.name != "airflow":
-        airflow_task_log = logging.getLogger("airflow.task")
-        # we will move airflow.task file handler to upper level
-        # on task run all stdout/stderr will be redirected to root logger
-        # all other messages will get to it automatically.
-        if airflow_task_log.handlers and not windows_compatible_mode:
-            airflow_task_log_handler = airflow_task_log.handlers[0]
-            logging.root.handlers.append(airflow_task_log_handler)
-
-        airflow_task_log.propagate = True
-        airflow_task_log.handlers = []
 
     from dbnd_airflow.config import get_dbnd_default_args
 

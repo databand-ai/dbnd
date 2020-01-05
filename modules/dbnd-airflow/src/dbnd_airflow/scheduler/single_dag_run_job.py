@@ -634,7 +634,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         ti_status = BackfillJob._DagRunTaskStatus()
 
         # picklin'
-        pickle_id = None
+        pickle_id = self.dag.pickle_id
         # We don't need to pickle our dag again as it already pickled on job creattion
         # also this will save it into databand table, that have no use for the airflow
         # if not self.donot_pickle and self.executor.__class__ not in (
