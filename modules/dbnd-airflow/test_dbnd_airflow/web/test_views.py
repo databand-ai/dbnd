@@ -24,6 +24,7 @@ from pytest import fixture
 
 from dbnd._core.inline import run_task
 from dbnd._core.utils.date_utils import airflow_datetime_str
+from dbnd_airflow.airflow_override.dbnd_aiflow_webserver import patch_airflow_create_app
 from test_dbnd.factories import TTask
 from test_dbnd_airflow.utils import WebAppTest, assert_content_in_response, assert_ok
 
@@ -33,6 +34,10 @@ logger = logging.getLogger(__name__)
 
 class TestAirflowBaseViews(WebAppTest):
     task_execution_date_str = timezone.datetime(2018, 3, 1)
+
+    @fixture(autouse=True)
+    def _test_run(self, databand_test_context):
+        patch_airflow_create_app()
 
     @fixture(autouse=True)
     def _test_run(self, databand_test_context):
