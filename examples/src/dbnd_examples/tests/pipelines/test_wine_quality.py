@@ -2,8 +2,8 @@ import pytest
 import six
 
 from dbnd import relative_path
-from dbnd.testing import assert_run_task
 from dbnd.testing.helpers import run_test_notebook
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.data import data_repo, dbnd_examples_data_path
 from dbnd_examples.pipelines.wine_quality import (
     wine_quality_decorators,

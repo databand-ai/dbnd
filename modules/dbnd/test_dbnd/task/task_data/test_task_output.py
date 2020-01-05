@@ -8,12 +8,10 @@ from typing import List
 
 import six
 
-from dbnd import PythonTask, config, output, parameter, task
+from dbnd import PythonTask, config, dbnd_run_cmd, output, parameter, task
 from dbnd._core.constants import OutputMode
 from dbnd._core.current import get_databand_context
-from dbnd._core.inline import run_cmd_locally
-from dbnd.testing import assert_run_task
-from dbnd.testing.helpers_pytest import skip_on_windows
+from dbnd.testing.helpers_pytest import assert_run_task, skip_on_windows
 from targets import Target
 from targets.target_config import file, folder
 from test_dbnd.factories import TTask
@@ -78,7 +76,7 @@ class TestTaskDataOutputs(object):
             def run(self):
                 self.simple_output = "test"
 
-        result = run_cmd_locally(
+        result = dbnd_run_cmd(
             [
                 "TTaskOutputOverride",
                 "--set",

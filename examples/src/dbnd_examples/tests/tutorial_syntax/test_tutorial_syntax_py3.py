@@ -3,7 +3,7 @@ import logging
 import pytest
 import six
 
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 
 
 if six.PY2:

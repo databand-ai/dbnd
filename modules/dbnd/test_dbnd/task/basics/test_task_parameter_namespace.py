@@ -1,7 +1,6 @@
 from typing import List, Tuple
 
-from dbnd import config, parameter
-from dbnd._core.inline import run_cmd_locally_split
+from dbnd import config, dbnd_run_cmd, parameter
 from test_dbnd.factories import TTask
 
 
@@ -25,8 +24,8 @@ class TestParameterNamespaceTask(object):
                     raise ValueError
                 return True
 
-        assert run_cmd_locally_split("mynamespace.A -r expected=100")
-        assert run_cmd_locally_split("mynamespace.A -r p1=200 -r expected=200")
+        assert dbnd_run_cmd("mynamespace.A -r expected=100")
+        assert dbnd_run_cmd("mynamespace.A -r p1=200 -r expected=200")
 
     def testListWithNamespaceCli(self):
         class A(TTask):
@@ -39,10 +38,8 @@ class TestParameterNamespaceTask(object):
                     raise ValueError
                 return True
 
-        assert run_cmd_locally_split("mynamespace.A -r expected=[1,2,3]")
-        assert run_cmd_locally_split(
-            "mynamespace.A -r l_param=[1,2,3] -r expected=[1,2,3]"
-        )
+        assert dbnd_run_cmd("mynamespace.A -r expected=[1,2,3]")
+        assert dbnd_run_cmd("mynamespace.A -r l_param=[1,2,3] -r expected=[1,2,3]")
 
     def testTupleWithNamespaceCli(self):
         class A(TTask):
@@ -55,7 +52,7 @@ class TestParameterNamespaceTask(object):
                     raise ValueError
                 return True
 
-        assert run_cmd_locally_split("mynamespace.A -r expected=((1,2),(3,4))")
-        assert run_cmd_locally_split(
+        assert dbnd_run_cmd("mynamespace.A -r expected=((1,2),(3,4))")
+        assert dbnd_run_cmd(
             "mynamespace.A -r t=((1,2),(3,4)) -r expected=((1,2),(3,4))"
         )

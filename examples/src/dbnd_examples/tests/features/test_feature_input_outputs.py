@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.feature_data import (
     example_dict_of_data_frames,
     example_folder,

@@ -1,5 +1,5 @@
-from dbnd import data, output, parameter, run_task, task
-from dbnd.testing import assert_run_task
+from dbnd import data, output, parameter, task
+from dbnd.testing.helpers_pytest import assert_run_task
 
 
 @task
