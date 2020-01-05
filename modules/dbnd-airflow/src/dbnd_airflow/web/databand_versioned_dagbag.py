@@ -4,21 +4,11 @@ import logging
 
 import pendulum
 
-from airflow.models import DagBag, DagModel, DagPickle
+from airflow.models import DagBag, DagModel, DagPickle, TaskInstance
 from airflow.utils.db import provide_session
-
-from dbnd_airflow.airflow_override import DbndAirflowTaskInstance
 
 
 logger = logging.getLogger(__name__)
-
-
-DAG_UNPICKABLE_PROPERTIES = (
-    "_log",
-    ("user_defined_macros", {}),
-    ("user_defined_filters", {}),
-    ("params", {}),
-)
 
 
 class DbndDagModel(DagModel):
@@ -85,9 +75,9 @@ class DbndAirflowDagBag(DagBag):
 
         # let try to find it latest version in DB
         latest_execution = (
-            session.query(DbndAirflowTaskInstance.execution_date)
-            .filter(DbndAirflowTaskInstance.task_id == dag_id)
-            .order_by(DbndAirflowTaskInstance.execution_date.desc())
+            session.query(TaskInstance.execution_date)
+            .filter(TaskInstance.task_id == dag_id)
+            .order_by(TaskInstance.execution_date.desc())
             .first()
         )
 
@@ -104,12 +94,10 @@ class DbndAirflowDagBag(DagBag):
     def _get_pickled_dag_from_dagrun(self, dag_id, execution_date, session=None):
 
         ti = (
-            session.query(
-                DbndAirflowTaskInstance.task_id, DbndAirflowTaskInstance.executor_config
-            )
+            session.query(TaskInstance.task_id, TaskInstance.executor_config)
             .filter(
-                DbndAirflowTaskInstance.dag_id == dag_id,
-                DbndAirflowTaskInstance.execution_date == execution_date,
+                TaskInstance.dag_id == dag_id,
+                TaskInstance.execution_date == execution_date,
             )
             .first()
         )

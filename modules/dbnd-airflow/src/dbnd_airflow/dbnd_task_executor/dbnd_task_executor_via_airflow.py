@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import contextlib
 import logging
 import typing
@@ -5,7 +7,7 @@ import typing
 from airflow import DAG
 from airflow.configuration import conf as airflow_conf
 from airflow.executors import LocalExecutor, SequentialExecutor
-from airflow.models import DagPickle
+from airflow.models import DagPickle, DagRun, TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
@@ -15,6 +17,7 @@ from dbnd._core.errors import friendly_error
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
 from dbnd._core.task_executor.task_executor import TaskExecutor
+from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
 from dbnd_airflow.config import AirflowFeaturesConfig, get_dbnd_default_args
 from dbnd_airflow.db_utils import remove_listener_by_name
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
@@ -22,7 +25,6 @@ from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
     AirflowOperatorAsDbndTask,
 )
 from dbnd_airflow.dbnd_task_executor.converters import operator_to_to_dbnd_task_id
-from dbnd_airflow.dbnd_task_executor.dbnd_dagrun import create_dagrun_from_dbnd_run
 from dbnd_airflow.dbnd_task_executor.dbnd_task_to_airflow_operator import (
     build_dbnd_operator_from_taskrun,
     set_af_operator_doc_md,
@@ -37,19 +39,25 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DAG_UNPICKABLE_PROPERTIES = (
+    "_log",
+    ("user_defined_macros", {}),
+    ("user_defined_filters", {}),
+    ("params", {}),
+)
+
 
 def pickle_dag_and_save_pickle_id_for_versioned(dag, driver_dump, session):
     dp = DagPickle(dag=dag)
-    session.add(dp)
 
     # First step: we need pickle id, so we save none and "reserve" pickle id
-    dp.pickle = None
     dag.last_pickled = timezone.utcnow()
     dp.pickle = None
+    session.add(dp)
     session.commit()
 
-    # Second step: now we have pickle_id , we can add it to serialization
-    # dag_pickle_id used for Versioned Dag
+    # Second step: now we have pickle_id , we can add it to Operator config
+    # dag_pickle_id used for Versioned Dag via TaskInstance.task_executor <- Operator.task_executor
     dag.pickle_id = dp.id
     for op in dag.tasks:
         if op.executor_config is None:
@@ -59,9 +67,85 @@ def pickle_dag_and_save_pickle_id_for_versioned(dag, driver_dump, session):
             "dag_pickle_id": dag.pickle_id,
         }
 
-    dp.pickle = dag
-    session.add(dp)
+    # now we are ready to create real pickle for the dag
+    with ready_for_pickle(dag, DAG_UNPICKABLE_PROPERTIES) as pickable_dag:
+        dp.pickle = pickable_dag
+        session.add(dp)
+        session.commit()
+
+    dag.pickle_id = dp.id
+    dag.last_pickled = timezone.utcnow()
+
+
+@provide_session
+def create_dagrun_from_dbnd_run(
+    databand_run,
+    dag,
+    execution_date,
+    state=State.RUNNING,
+    external_trigger=False,
+    conf=None,
+    session=None,
+):
+    """
+    Create new DagRun and all relevant TaskInstances
+    """
+    dagrun = (
+        session.query(DagRun)
+        .filter(DagRun.dag_id == dag.dag_id, DagRun.execution_date == execution_date)
+        .first()
+    )
+    if dagrun is None:
+        dagrun = DagRun(
+            run_id=databand_run.run_id,
+            execution_date=execution_date,
+            start_date=dag.start_date,
+            _state=state,
+            external_trigger=external_trigger,
+            dag_id=dag.dag_id,
+            conf=conf,
+        )
+        session.add(dagrun)
+    else:
+        logger.warning("Running with existing airflow dag run %s", dagrun)
+
+    dagrun.dag = dag
+    dagrun.run_id = databand_run.run_id
     session.commit()
+
+    # create the associated task instances
+    # state is None at the moment of creation
+
+    # dagrun.verify_integrity(session=session)
+    # fetches [TaskInstance] again
+    # tasks_skipped = databand_run.tasks_skipped
+
+    # we can find a source of the completion, but also,
+    # sometimes we don't know the source of the "complete"
+    TI = TaskInstance
+    tis = (
+        session.query(TI)
+        .filter(TI.dag_id == dag.dag_id, TI.execution_date == execution_date)
+        .all()
+    )
+    tis = {ti.task_id: ti for ti in tis}
+
+    for af_task in dag.tasks:
+        ti = tis.get(af_task.task_id)
+        if ti is None:
+            ti = TaskInstance(af_task, execution_date=execution_date)
+            ti.start_date = timezone.utcnow()
+            ti.end_date = timezone.utcnow()
+            session.add(ti)
+        task_run = databand_run.get_task_run_by_af_id(af_task.task_id)
+        # all tasks part of the backfill are scheduled to dagrun
+        if task_run.is_reused:
+            # this task is completed and we don't need to run it anymore
+            ti.state = State.SUCCESS
+
+    session.commit()
+
+    return dagrun
 
 
 class AirflowTaskExecutor(TaskExecutor):
@@ -172,9 +256,9 @@ class AirflowTaskExecutor(TaskExecutor):
         af_dag.sync_to_db(session=session)
 
         # let create relevant TaskInstance, so SingleDagRunJob will run them
-        dag_run = create_dagrun_from_dbnd_run(
+        create_dagrun_from_dbnd_run(
             databand_run=databand_run,
-            af_dag=af_dag,
+            dag=af_dag,
             execution_date=execution_date,
             session=session,
             state=State.RUNNING,
@@ -183,7 +267,7 @@ class AirflowTaskExecutor(TaskExecutor):
 
         airflow_task_executor.fail_fast = s_run.fail_fast
         job = SingleDagRunJob(
-            dag=dag_run.dag,
+            dag=af_dag,
             execution_date=databand_run.execution_date,
             mark_success=s_run.mark_success,
             executor=airflow_task_executor,
