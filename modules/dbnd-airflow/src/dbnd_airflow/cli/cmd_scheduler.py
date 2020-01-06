@@ -18,10 +18,7 @@ logger = logging.getLogger(__name__)
 # avoid importing airflow on autocomplete (takes approximately 1s)
 if not in_shell_cmd_complete_mode():
     from airflow.bin.cli import DAGS_FOLDER
-    import airflow
-    from airflow.executors import LocalExecutor, SequentialExecutor
     from airflow.jobs import SchedulerJob
-    from airflow.settings import SQL_ALCHEMY_CONN
 
 
 def configure_airflow_scheduler_logging():
