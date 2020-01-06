@@ -31,6 +31,7 @@ def bash_cmd(
     dbnd_env=True,
     output_encoding="utf-8",
     popen_kwargs=None,
+    wait_for_termination_s=5,
 ):
     # type:( str, List[str], Optional[int], str, Dict[str,str], bool, str, Dict[str,Any]) -> int
     if popen_kwargs is None:
@@ -77,41 +78,42 @@ def bash_cmd(
         cwd=cwd,
         **popen_kwargs
     )
-    task_run = try_get_current_task_run()
-    if task_run:
-        task_run.task.process = process
 
-    def on_kill(task):
-        if hasattr(task, "process"):
-            logger.info("Sending SIGTERM signal to bash process group")
-            os.killpg(os.getpgid(task.process.pid), signal.SIGTERM)
+    try:
+        task_run = try_get_current_task_run()
+        if task_run:
+            task_run.task.process = process
 
-    logger.info("Process is running, output:")
-    # While command is running let read it's output
-    output = []
-    end_symbol = ""  # "b''" should be better
-    while True:
-        line = process.stdout.readline()
-        if line == "" or line == b"":
-            break
-        line = safe_decode(line, output_encoding).rstrip()
+        logger.info("Process is running, output:")
+        # While command is running let read it's output
+        output = []
+        while True:
+            line = process.stdout.readline()
+            if line == "" or line == b"":
+                break
+            line = safe_decode(line, output_encoding).rstrip()
 
-        print(line)
-        # keep last 1000 lines only
-        output.append(line)
-        if len(output) > 1500:
-            output = output[-1000:]
+            print(line)
+            # keep last 1000 lines only
+            output.append(line)
+            if len(output) > 1500:
+                output = output[-1000:]
 
-    returncode = process.wait()
-    logger.info("Command exited with return code %s", process.returncode)
-    if check_retcode is not None and returncode != check_retcode:
-        raise failed_to_run_cmd(
-            "Bash command failed", cmd_str=cmd, return_code=returncode
-        )
-        # raise subprocess.CalledProcessError(
-        #     returncode, cmd, output="\n".join(output)
-        # )
-    return returncode
+        returncode = process.wait()
+        logger.info("Command exited with return code %s", process.returncode)
+        if check_retcode is not None and returncode != check_retcode:
+            raise failed_to_run_cmd(
+                "Bash command failed", cmd_str=cmd, return_code=returncode
+            )
+        return returncode
+    except Exception:
+        logger.info("Received interrupt. Terminating subprocess and waiting")
+        try:
+            process.terminate()
+            process.wait(wait_for_termination_s)
+        except Exception:
+            pass
+        raise
 
 
 def safe_decode(line, output_encoding):

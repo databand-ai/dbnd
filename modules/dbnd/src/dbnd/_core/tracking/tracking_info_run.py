@@ -52,6 +52,7 @@ class RunInfo(_DbndDataClass):
     env_name = attr.ib()  # type: str
     cloud_type = attr.ib()  # type: str
     trigger = attr.ib()  # type: str
+    task_executor = attr.ib()  # type: str
 
     # runs from same run group will have same root_run_uid
     root_run = attr.ib()  # type: RootRunInfo

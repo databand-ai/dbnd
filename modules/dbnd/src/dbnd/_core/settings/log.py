@@ -1,7 +1,11 @@
 import logging
+import sys
 
-from typing import Callable, List
+from typing import Callable, List, Optional
 
+from dbnd._core.configuration.environ_config import in_quiet_mode
+from dbnd._core.log.config import configure_logging_dictConfig
+from dbnd._core.log.logging_utils import get_sentry_logging_config, setup_log_file
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
@@ -94,3 +98,108 @@ class LoggingConfig(config.Config):
         except Exception as ex:
             logger.info("Failed to format exception: %s", ex)
             return format_exception_as_str(exc_info)
+
+    def get_dbnd_logging_config(self, filename=None):
+        if self.custom_dict_config:
+            dict_config = self.settings.log.custom_dict_config()
+            if not in_quiet_mode():
+                logger.info("Using user provided logging config")
+        else:
+            dict_config = self.get_dbnd_logging_config_base(filename=filename)
+        return dict_config
+
+    def get_dbnd_logging_config_base(self, filename=None):
+        # type: (LoggingConfig, Optional[str]) -> Optional[dict]
+        log_settings = self
+        if log_settings.disabled:
+            return
+
+        log_level = log_settings.level
+        console_stream = sys.stdout if log_settings.stream_stdout else sys.stderr
+
+        # dummy path, we will not write to this file
+        task_file_handler_file = databand_system_path("logs", "task.log")
+        setup_log_file(task_file_handler_file)
+
+        config = {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "filters": {
+                "task_context_filter": {
+                    "()": "dbnd._core.log.logging_utils.TaskContextFilter"
+                }
+            },
+            "formatters": {
+                "formatter": {"format": log_settings.formatter},
+                "formatter_simple": {"format": log_settings.formatter_simple},
+                "formatter_colorlog": {
+                    "()": "colorlog.ColoredFormatter",
+                    "format": log_settings.formatter_colorlog,
+                    "reset": True,
+                },
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "stream": console_stream,
+                    "formatter": log_settings.console_formatter,
+                    "filters": ["task_context_filter"],
+                },
+                "task_file": {
+                    "class": "logging.FileHandler",
+                    "formatter": log_settings.file_formatter,
+                    "filename": task_file_handler_file,
+                    "encoding": "utf-8",
+                },
+            },
+            "loggers": {
+                "databand.task_logger": {
+                    "handlers": ["task_file"],
+                    "level": log_level,
+                    "propagate": False,
+                }
+                # "airflow.task": {
+                #     # same as root, we keep it as, there is validation that airflow.task log exists
+                #     "handlers": ["console", "file", "exception"],
+                #     "level": log_level,
+                #     "propagate": False,
+                # }
+            },
+            "root": {"handlers": ["console"], "level": log_level},
+        }
+        if filename:
+            setup_log_file(filename)
+            config["handlers"]["file"] = {
+                "class": "logging.FileHandler",
+                "formatter": log_settings.file_formatter,
+                "filename": filename,
+                "encoding": "utf-8",
+            }
+            config["root"]["handlers"].append("file")
+
+        loggers = config.setdefault("loggers", {})
+        for logger_warn in log_settings.at_warn:
+            loggers[logger_warn] = {"level": logging.WARNING, "propagate": True}
+
+        for logger_debug in log_settings.at_debug:
+            loggers[logger_debug] = {"level": logging.DEBUG, "propagate": True}
+
+        if log_settings.sqlalchemy_print:
+            loggers["sqlalchemy.engine"] = {"level": logging.INFO, "propagate": True}
+
+        if log_settings.sentry_url:
+            config["handlers"]["sentry"] = get_sentry_logging_config(
+                sentry_url=log_settings.sentry_url, sentry_env=log_settings.sentry_env
+            )
+            config["root"]["handlers"].append("sentry")
+
+        return config
+
+    def configure_dbnd_logging(self):
+        if self.disabled:
+            return
+
+        dict_config = self.get_dbnd_logging_config(filename=None)
+        configure_logging_dictConfig(dict_config=dict_config)
+        if not in_quiet_mode():
+            logger.info("Databand logging is up!")
