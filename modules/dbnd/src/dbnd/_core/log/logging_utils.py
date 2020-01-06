@@ -74,25 +74,6 @@ def setup_log_file(log_file):
 
 
 @contextmanager
-def capture_log_into_file(log_file, formatter, level):
-    setup_log_file(log_file)
-
-    handler = logging.FileHandler(filename=log_file, encoding="utf-8")
-    handler.setFormatter(formatter)
-    handler.setLevel(level)
-
-    try:
-        logging.root.addHandler(handler)
-        yield handler
-    finally:
-        try:
-            logging.root.removeHandler(handler)
-            handler.close()
-        except Exception:
-            logger.error("Failed to close file handler for  log %s", log_file)
-
-
-@contextmanager
 def override_log_formatting(log_format):
     original_formatters = [handler.formatter for handler in logger.root.handlers]
     try:
@@ -183,7 +164,7 @@ def set_module_logging_to_debug(modules):
 
 class TaskContextFilter(logging.Filter):
     """
-    adding task task variable to every record
+    adding 'task' variable to every record
     """
 
     task = "main"
@@ -200,3 +181,10 @@ class TaskContextFilter(logging.Filter):
         cls.task = task_id
         yield cls
         cls.task = original_task
+
+
+def find_handler(logger, handler_name):
+    for h in logger.handlers:
+        if h.name == handler_name:
+            return h
+    return None

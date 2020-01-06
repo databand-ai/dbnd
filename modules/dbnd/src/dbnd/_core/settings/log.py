@@ -5,7 +5,11 @@ from typing import Callable, List, Optional
 
 from dbnd._core.configuration.environ_config import in_quiet_mode
 from dbnd._core.log.config import configure_logging_dictConfig
-from dbnd._core.log.logging_utils import get_sentry_logging_config, setup_log_file
+from dbnd._core.log.logging_utils import (
+    find_handler,
+    get_sentry_logging_config,
+    setup_log_file,
+)
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
@@ -22,6 +26,8 @@ class LoggingConfig(config.Config):
 
     _conf__task_family = "log"
     disabled = parameter.value(False)
+    capture_stdout_stderr = parameter.value(True)
+    override_airflow_logging_on_task_run = parameter.value(True)
 
     level = parameter.value("INFO")
     formatter = parameter[str]
@@ -115,7 +121,11 @@ class LoggingConfig(config.Config):
             return
 
         log_level = log_settings.level
-        console_stream = sys.stdout if log_settings.stream_stdout else sys.stderr
+        # we want to have "real" output, so nothing can catch our handler
+        # in opposite to what airflow is doing
+        console_stream = (
+            sys.__stdout__ if log_settings.stream_stdout else sys.__stderr__
+        )
 
         # dummy path, we will not write to this file
         task_file_handler_file = databand_system_path("logs", "task.log")
@@ -200,6 +210,45 @@ class LoggingConfig(config.Config):
             return
 
         dict_config = self.get_dbnd_logging_config(filename=None)
+
+        airflow_task_log_handler = None
+        if self.override_airflow_logging_on_task_run:
+            airflow_task_log_handler = self.dbnd_override_airflow_logging_on_task_run()
+
         configure_logging_dictConfig(dict_config=dict_config)
+
+        if airflow_task_log_handler:
+            logging.root.handlers.append(airflow_task_log_handler)
         if not in_quiet_mode():
             logger.info("Databand logging is up!")
+
+    def dbnd_override_airflow_logging_on_task_run(self):
+        # EXISTING STATE:
+        # root logger use Console handler -> prints to current sys.stdout
+        # on `airflow run` without interactive -> we have `redirect_stderr` applied that will redirect sys.stdout
+        # into logger `airflow.task`, that will save everything into file.
+        #  EVERY output of root logger will go through CONSOLE handler into AIRFLOW.TASK without being printed to screen
+
+        # NEW STATE
+        # we will move airflow.task file handler to root level
+        # we will set propogate
+        # we will stop redirect of airflow logging
+        from airflow.utils.log.logging_mixin import StreamLogWriter
+
+        if not sys.stderr or not isinstance(sys.stderr, StreamLogWriter):
+            logger.debug("Airflow logging is already patched!")
+            return
+
+        # this will disable stdout ,stderr redirection
+        sys.stderr = sys.__stderr__
+        sys.stdout = sys.__stdout__
+
+        airflow_task_logger = logging.getLogger("airflow.task")
+        airflow_task_log_handler = find_handler(airflow_task_logger, "task")
+        if airflow_task_log_handler:
+            logging.root.handlers.append(airflow_task_log_handler)
+            airflow_task_logger.propagate = True
+            airflow_task_logger.handlers = []
+
+        # root_console_handler = find_handler(logging.root, "console")
+        return airflow_task_log_handler

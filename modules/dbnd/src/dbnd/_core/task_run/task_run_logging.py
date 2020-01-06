@@ -5,11 +5,11 @@ from contextlib import contextmanager
 
 import six
 
-from dbnd._core.log.config import captures_log_into_file_as_task_file
 from dbnd._core.log.logging_utils import (
-    TaskContextFilter,
+    find_handler,
     redirect_stderr,
     redirect_stdout,
+    setup_log_file,
 )
 from dbnd._core.settings import LocalEnvConfig
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
@@ -39,40 +39,82 @@ class TaskRunLogManager(TaskRunCtrl):
 
         # file handler for task log
         # if set -> we are in the context of capturing
-        self.local_log_handler_enabled = False
+        self.log_task_run_into_file_active = False
+
+    @contextmanager
+    def capture_stderr_stdout(self, logging_target=None):
+        #  redirecting all messages from sys.stderr/sys.stdout into logging_target
+        # WARNING: this can create stdout/stderr loop if :
+        #     we redirect into logger, and logger is writing to current sys.stdout that is current redirect
+        #     ( not the original one before the wrapping)
+        #    -> LOOP:   some print ->  redirect_stdout() -> logger -> print -> redirect_stdout() ...
+        if not self.task.settings.log.capture_stdout_stderr:
+            yield None
+            return
+
+        logging_target_stdout = logging_target or logging.getLogger("dbnd.stdout")
+        logging_target_stderr = logging_target or logging.getLogger("dbnd.stderr")
+        with redirect_stdout(logging_target_stderr, logging.INFO), redirect_stderr(
+            logging_target_stdout, logging.WARN
+        ):
+            yield
+
+    def _get_task_log_file_handler(self, log_file):
+        task_file_handler = find_handler(
+            logger=logging.getLogger("databand.task_logger"), handler_name="task_file"
+        )
+        if not task_file_handler:
+            return None
+
+        log_file = str(log_file)
+        setup_log_file(log_file)
+        handler = logging.FileHandler(filename=log_file, encoding="utf-8")
+        handler.setFormatter(task_file_handler.formatter)
+        handler.setLevel(task_file_handler.level)
+        return handler
 
     @contextmanager
     def capture_task_log(self):
         global CURRENT_TASK_HANDLER_LOG
-        if self.local_log_handler_enabled or not self.task.settings.log.task_file_log:
+        log_file = self.local_log_file
+        if (
+            self.log_task_run_into_file_active
+            or not self.task.settings.log.task_file_log
+            or not log_file
+        ):
             yield None
             return
 
-        error_happened = False
+        handler = self._get_task_log_file_handler(log_file)
+        if not handler:
+            yield None
+            return
+        target_logger = logging.root
+        logger.debug("Capturing task log into '%s'", log_file)
         try:
-            with self.capture_stderr_stdout(), TaskContextFilter.task_context(
-                self.task.task_id
-            ), captures_log_into_file_as_task_file(self.local_log_file.path) as handler:
-                self.local_log_handler_enabled = True
-                CURRENT_TASK_HANDLER_LOG = handler
-                yield handler
+            target_logger.addHandler(handler)
+            self.log_task_run_into_file_active = True
+            CURRENT_TASK_HANDLER_LOG = handler
+            yield handler
         except Exception as task_ex:
             CURRENT_TASK_HANDLER_LOG = None
-            error_happened = True
             raise task_ex
         finally:
-            self.local_log_handler_enabled = False
             try:
-                log_body = self.read_log_body()
-                self.write_remote_log(log_body)
-                self.save_log_preview(log_body)
-            except Exception as save_log_ex:
-                if error_happened:
-                    logger.error(
-                        "failed to save log after task failure: %s", save_log_ex
-                    )
-                else:
-                    raise save_log_ex
+                target_logger.removeHandler(handler)
+                handler.close()
+            except Exception:
+                logger.error("Failed to close file handler for log %s", log_file)
+            self.log_task_run_into_file_active = False
+            self._upload_task_log_preview()
+
+    def _upload_task_log_preview(self):
+        try:
+            log_body = self.read_log_body()
+            self.write_remote_log(log_body)
+            self.save_log_preview(log_body)
+        except Exception as save_log_ex:
+            logger.error("failed to save log preview for %s:%s", self, save_log_ex)
 
     def read_log_body(self):
         try:
@@ -117,12 +159,3 @@ class TaskRunLogManager(TaskRunCtrl):
             max_size > 0
         )  # pass negative to get log's 'head' instead of 'tail'
         return safe_short_string(log_body, abs(max_size), tail=is_tail_preview)
-
-    @contextmanager
-    def capture_stderr_stdout(self, logging_target=None):
-        logging_target_stdout = logging_target or logging.getLogger("dbnd.stdout")
-        logging_target_stderr = logging_target or logging.getLogger("dbnd.stderr")
-        with redirect_stdout(logging_target_stderr, logging.INFO), redirect_stderr(
-            logging_target_stdout, logging.WARN
-        ):
-            yield
