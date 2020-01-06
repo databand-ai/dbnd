@@ -211,7 +211,7 @@ class CoreConfig(Config):
 
         return CompositeTrackingStore(stores=stores)
 
-    def get_scheduler_service(self):
+    def get_scheduled_job_service(self):
         from dbnd.api import scheduler_api_client
 
         return scheduler_api_client

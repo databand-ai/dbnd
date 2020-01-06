@@ -39,12 +39,18 @@ datetime_formats = [
 ]
 
 
+def pass_service(f):
+    @click.pass_context
+    def new_func(ctx, *args, **kwargs):
+        return ctx.invoke(f, ctx.obj["scheduled_job_service"], *args, **kwargs)
+
+    return update_wrapper(new_func, f)
+
+
 @click.group()
 @click.pass_context
 def schedule(ctx):
     """Manage scheduled jobs"""
-    from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
-
     ctx.obj = {}
     ctx.obj["headers"] = SCHEDULED_JOB_HEADERS
     from dbnd import new_dbnd_context
@@ -53,73 +59,70 @@ def schedule(ctx):
         autoload_modules=False, conf={"core": {"tracker": ""}}
     ).__enter__()
 
-    ctx.obj["scheduler_service"] = context.scheduler_service
-
-    assert_web_enabled()
+    ctx.obj["scheduled_job_service"] = context.scheduled_job_service
 
 
 @schedule.command()
 @click.option("--all", is_flag=True, help="Lists all deleted scheduled jobs")
 @click.option("--verbose", "-v", is_flag=True, help="Print extra job details")
+@pass_service
 @click.pass_context
-def list(ctx, all, verbose):
+def list(ctx, scheduled_job_service, all, verbose):
     """List scheduled jobs"""
-    scheduled_jobs = ctx.obj["scheduler_service"].get_scheduled_jobs(
-        include_deleted=all
-    )
+    scheduled_jobs = scheduled_job_service.get_scheduled_jobs(include_deleted=all)
 
     ctx.obj["headers"] = (
         SCHEDULED_JOB_VERBOSE_HEADERS if verbose else SCHEDULED_JOB_HEADERS
     )
-    _click_echo_jobs(scheduled_jobs)
+    _click_echo_jobs(scheduled_jobs, scheduled_job_service)
 
 
 @schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job to enable)")
-@click.pass_context
-def enable(ctx, name):
+@pass_service
+def enable(scheduled_job_service, name):
     """Enable scheduled job"""
-    ctx.obj["scheduler_service"].set_active(name, True)
+    scheduled_job_service.set_active(name, True)
 
     click.echo('Scheduled job "%s" is enabled' % name)
 
 
 @schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job to pause)")
-@click.pass_context
-def pause(ctx, name):
+@pass_service
+def pause(scheduled_job_service, name):
     """Pause scheduled job"""
-    ctx.obj["scheduler_service"].set_active(name, False)
+    scheduled_job_service.set_active(name, False)
 
     click.echo('Scheduled job "%s" paused' % name)
 
 
 @schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job to undelete)")
-@click.pass_context
-def undelete(ctx, name):
+@pass_service
+def undelete(scheduled_job_service, name):
     """Un-Delete deleted scheduled job"""
-    ctx.obj["scheduler_service"].delete_scheduled_job(name, revert=True)
+    scheduled_job_service.delete_scheduled_job(name, revert=True)
 
 
 @schedule.command()
 @click.option("--name", "-n", help="Name of the scheduled job to delete)")
 @click.option("--force", "-f", is_flag=True, help="Delete without confirmation")
-@click.pass_context
-def delete(ctx, name, force):
+@pass_service
+def delete(scheduled_job_service, name, force):
     """Delete scheduled job"""
     if not force:
-        to_delete = ctx.obj["scheduler_service"].get_scheduled_jobs(name_pattern=name)
+        to_delete = scheduled_job_service.get_scheduled_jobs(name_pattern=name)
         if not to_delete:
             click.echo("no jobs found matching the given name pattern")
             return
 
         click.echo("the following jobs will be deleted:")
-        _click_echo_jobs(to_delete)
+        _click_echo_jobs(to_delete, scheduled_job_service)
 
         click.confirm("are you sure?", abort=True)
 
-    ctx.obj["scheduler_service"].delete_scheduled_job(name)
+    scheduled_job_service.delete_scheduled_job(name)
 
 
 @schedule.command()
@@ -161,9 +164,9 @@ def delete(ctx, name, force):
     help="If a job with the given name already exists partially update it with the given params "
     "(unspecified params will be left as is)",
 )
-@click.pass_context
+@pass_service
 def job(
-    ctx,
+    scheduled_job_service,
     name,
     cmd,
     schedule_interval,
@@ -193,15 +196,23 @@ def job(
     }
 
     if update:
-        res = ctx.obj["scheduler_service"].patch_scheduled_job(scheduled_job)
+        res = scheduled_job_service.patch_scheduled_job(scheduled_job)
     else:
-        res = ctx.obj["scheduler_service"].post_scheduled_job(scheduled_job)
+        res = scheduled_job_service.post_scheduled_job(scheduled_job)
 
-    _click_echo_jobs([res])
+    _click_echo_jobs([res], scheduled_job_service)
 
 
-def _click_echo_jobs(jobs):
+def _click_echo_jobs(jobs, scheduled_job_service):
     from dbnd._core.utils.object_utils import tabulate_objects
 
     headers = get_current_context().obj["headers"]
-    click.echo(tabulate_objects(jobs, headers=headers))
+
+    job_objects = [
+        scheduled_job_service.ScheduledJobNamedTuple(
+            **dict(j.pop("DbndScheduledJob"), **j)
+        )
+        for j in jobs
+    ]
+
+    click.echo(tabulate_objects(job_objects, headers=headers))
