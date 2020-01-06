@@ -56,7 +56,6 @@ def _is_init_mode():
         # backward compatibility
         or "dbnd init_project" in cmdline
         or cmdline == "-c init_project"
-        or " init_project" in cmdline
     )
 
 
@@ -223,7 +222,7 @@ def init_databand_env():
             "\t 1. Explicitly set current directory to DBND HOME via: `export DBND_HOME=ROOT_OF_YOUR_PROJECT`.\n"
             "\t 2. `cd` into your project directory.\n"
             "\t 3. Create one of the following files inside current directory: [%s].\n"
-            "\t 4. Run 'dbnd init_project' in current directory."
+            "\t 4. Run 'dbnd project-init' in current directory."
             % (os.getcwd(), ", ".join(_MARKER_FILES))
         )
 
