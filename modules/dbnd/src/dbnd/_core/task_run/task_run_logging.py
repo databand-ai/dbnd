@@ -5,6 +5,8 @@ from contextlib import contextmanager
 
 import six
 
+from airflow.utils.log.logging_mixin import RedirectStdHandler
+
 from dbnd._core.log.logging_utils import (
     find_handler,
     redirect_stderr,
@@ -39,7 +41,7 @@ class TaskRunLogManager(TaskRunCtrl):
 
         # file handler for task log
         # if set -> we are in the context of capturing
-        self.log_task_run_into_file_active = False
+        self._log_task_run_into_file_active = False
 
     @contextmanager
     def capture_stderr_stdout(self, logging_target=None):
@@ -52,6 +54,13 @@ class TaskRunLogManager(TaskRunCtrl):
             yield None
             return
 
+        airflow_root_console_handler = find_handler(logging.root, "console")
+        if airflow_root_console_handler and isinstance(
+            airflow_root_console_handler, RedirectStdHandler
+        ):
+            yield None
+            return
+
         logging_target_stdout = logging_target or logging.getLogger("dbnd.stdout")
         logging_target_stderr = logging_target or logging.getLogger("dbnd.stderr")
         with redirect_stdout(logging_target_stderr, logging.INFO), redirect_stderr(
@@ -59,33 +68,21 @@ class TaskRunLogManager(TaskRunCtrl):
         ):
             yield
 
-    def _get_task_log_file_handler(self, log_file):
-        task_file_handler = find_handler(
-            logger=logging.getLogger("databand.task_logger"), handler_name="task_file"
-        )
-        if not task_file_handler:
-            return None
-
-        log_file = str(log_file)
-        setup_log_file(log_file)
-        handler = logging.FileHandler(filename=log_file, encoding="utf-8")
-        handler.setFormatter(task_file_handler.formatter)
-        handler.setLevel(task_file_handler.level)
-        return handler
-
     @contextmanager
     def capture_task_log(self):
         global CURRENT_TASK_HANDLER_LOG
         log_file = self.local_log_file
+
+        log_settings = self.task.settings.log
         if (
-            self.log_task_run_into_file_active
-            or not self.task.settings.log.task_file_log
+            self._log_task_run_into_file_active
+            or not log_settings.capture_task_run_log
             or not log_file
         ):
             yield None
             return
 
-        handler = self._get_task_log_file_handler(log_file)
+        handler = log_settings.get_task_log_file_handler(log_file)
         if not handler:
             yield None
             return
@@ -93,7 +90,7 @@ class TaskRunLogManager(TaskRunCtrl):
         logger.debug("Capturing task log into '%s'", log_file)
         try:
             target_logger.addHandler(handler)
-            self.log_task_run_into_file_active = True
+            self._log_task_run_into_file_active = True
             CURRENT_TASK_HANDLER_LOG = handler
             yield handler
         except Exception as task_ex:
@@ -105,7 +102,7 @@ class TaskRunLogManager(TaskRunCtrl):
                 handler.close()
             except Exception:
                 logger.error("Failed to close file handler for log %s", log_file)
-            self.log_task_run_into_file_active = False
+            self._log_task_run_into_file_active = False
             self._upload_task_log_preview()
 
     def _upload_task_log_preview(self):

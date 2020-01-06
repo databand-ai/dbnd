@@ -25,8 +25,8 @@ def basic_logging_config(
     filename=None,
     log_level=logging.INFO,
     console_stream=sys.stderr,
-    console_formatter="formatter_colorlog",
-    file_formatter="formatter_full",
+    console_formatter_name="formatter_colorlog",
+    file_formatter_name="formatter_full",
 ):
     # type: (...) -> Optional[dict]
 
@@ -46,7 +46,7 @@ def basic_logging_config(
             "console": {
                 "class": "logging.StreamHandler",
                 "stream": console_stream,
-                "formatter": console_formatter,
+                "formatter": console_formatter_name,
             }
         },
         "root": {"handlers": ["console"], "level": log_level},
@@ -55,7 +55,7 @@ def basic_logging_config(
         setup_log_file(filename)
         config["handlers"]["file"] = {
             "class": "logging.FileHandler",
-            "formatter": file_formatter,
+            "formatter": file_formatter_name,
             "filename": filename,
             "encoding": "utf-8",
         }
