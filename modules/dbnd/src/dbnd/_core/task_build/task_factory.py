@@ -297,7 +297,9 @@ class TaskFactory(object):
                 continue
 
             for key, value in section.items():
-                if key not in task_param_names:
+                if key not in task_param_names and not value.source.endswith(
+                    self._source_suffix(ParameterScope.children.value)
+                ):
                     self.task_errors.append(
                         friendly_error.task_build.unknown_parameter_in_config(
                             task_name=self.task_name,
@@ -433,7 +435,7 @@ class TaskFactory(object):
         self._update_shared_config_section(
             CONF_TASK_SECTION,
             param_values=param_values,
-            source=self._source_name("children"),
+            source=self._source_name(ParameterScope.children.value),
         )
 
     def _apply_task_env_config(self, task_env):
@@ -544,7 +546,13 @@ class TaskFactory(object):
         return new_params
 
     def _source_name(self, name):
-        return "%s[%s]" % (self.task_definition.full_task_family_short, name)
+        return "%s%s" % (
+            self.task_definition.full_task_family_short,
+            self._source_suffix(name),
+        )
+
+    def _source_suffix(self, name):
+        return "[%s]" % name
 
     def _log_build_step(self, msg, force_log=False):
         if self.verbose_build or force_log:

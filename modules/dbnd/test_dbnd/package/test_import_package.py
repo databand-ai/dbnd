@@ -31,7 +31,7 @@ class TestImportPackage(object):
         """Test that all module can be imported
         """
 
-        project_dir = project_path("modules", "dbnd", "src")
+        project_dir = os.path.join(os.path.dirname(__file__), "..", "..", "src")
         packagedir = os.path.join(project_dir, "dbnd")
 
         errors = []

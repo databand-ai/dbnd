@@ -62,10 +62,8 @@ class TestTaskDecoratorDefaults(TargetTestBase):
                 "b_datetime=2018-01-01T101010.1",
                 "-r",
                 "c_timedelta=5d",
-                "-r",
-                "d_int=1",
                 "--set",
-                json.dumps({"t_f_defaults_cmdline": {"a": "1"}}),
+                json.dumps({"t_f_defaults_cmdline": {"d_int": 1}}),
             ]
         )
 

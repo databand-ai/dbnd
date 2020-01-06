@@ -128,8 +128,6 @@ class TestTaskDecorators(TargetTestBase):
                 "c_timedelta=5d",
                 "-r",
                 "d_int=1",
-                "--set-root",
-                "a=1",
             ]
         )
 
@@ -161,8 +159,6 @@ class TestTaskDecorators(TargetTestBase):
                 "c_timedelta=5d",
                 "-r",
                 "d_int=1",
-                "--set",
-                json.dumps({"t_f_defaults_cmdline": {"a": "1"}}),
             ]
         )
 
