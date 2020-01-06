@@ -20,6 +20,9 @@ from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
 
 
+if typing.TYPE_CHECKING:
+    from dbnd._core.run.databand_run import DatabandRun
+
 logger = logging.getLogger(__name__)
 T = typing.TypeVar("T")
 
@@ -54,6 +57,7 @@ class _decorated_user_func(object):
         )
 
     def dbnd_run(self, *args, **kwargs):
+        # type: (...)-> DatabandRun
         """
         Run task via Databand execution system
         """
