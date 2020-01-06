@@ -12,6 +12,7 @@ import pytest
 
 from _pytest.fixtures import fixture
 from dbnd import config
+from dbnd._core.configuration.environ_config import set_dbnd_unit_test_mode
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.log.config import configure_basic_logging
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 def pytest_configure(config):
     configure_basic_logging(None)
-    dbnd_bootstrap(unittest=True)
+    set_dbnd_unit_test_mode()
+    dbnd_bootstrap()
 
 
 def pytest_addoption(parser):

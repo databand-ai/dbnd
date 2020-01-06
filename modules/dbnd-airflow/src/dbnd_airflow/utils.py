@@ -6,7 +6,6 @@ from dbnd._core.utils.project.project_fs import abs_join, relative_path
 
 
 logger = logging.getLogger(__name__)
-AIRFLOW_LEGACY_URL_KEY = "airflow"
 _airflow_lib_home_default = relative_path(__file__)
 
 

@@ -4,8 +4,6 @@ import sys
 from logging.config import DictConfigurator
 from typing import Callable, List, Optional
 
-from airflow.utils.log.logging_mixin import RedirectStdHandler
-
 from dbnd._core.configuration.environ_config import in_quiet_mode
 from dbnd._core.log.config import configure_logging_dictConfig
 from dbnd._core.log.logging_utils import (
@@ -202,9 +200,7 @@ class LoggingConfig(config.Config):
         # we will move airflow.task file handler to root level
         # we will set propogate
         # we will stop redirect of airflow logging
-        from airflow.utils.log.logging_mixin import StreamLogWriter
-
-        if not sys.stderr or not isinstance(sys.stderr, StreamLogWriter):
+        if not sys.stderr or not _safe_is_typeof(sys.stderr, "StreamLogWriter"):
             logger.debug("Airflow logging is already patched!")
             return
 
@@ -213,7 +209,8 @@ class LoggingConfig(config.Config):
         sys.stdout = sys.__stdout__
 
         airflow_root_console_handler = find_handler(logging.root, "console")
-        if isinstance(airflow_root_console_handler, RedirectStdHandler):
+
+        if _safe_is_typeof(airflow_root_console_handler, "RedirectStdHandler"):
             # we are removing this console logger
             # this is the logger that capable to create self loop
             # as it writes to "latest" sys.stdout,
@@ -248,3 +245,9 @@ class LoggingConfig(config.Config):
         handler.setFormatter(self.task_log_file_formatter)
         handler.setLevel(self.level)
         return handler
+
+
+def _safe_is_typeof(value, name):
+    if not value:
+        return
+    return isinstance(value, object) and value.__class__.__name__.endswith(name)

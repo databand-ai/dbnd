@@ -9,10 +9,7 @@ import warnings
 import dbnd
 
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import (
-    in_quiet_mode,
-    set_dbnd_unit_test_mode,
-)
+from dbnd._core.configuration.environ_config import in_quiet_mode, is_unit_test_mode
 from dbnd._core.context.dbnd_project_env import (
     ENV_DBND_HOME,
     _env_banner,
@@ -70,7 +67,7 @@ def _dbnd_exception_handling():
 _dbnd_bootstrap = False
 
 
-def dbnd_bootstrap(unittest=False):
+def dbnd_bootstrap():
 
     global _dbnd_bootstrap
     if _dbnd_bootstrap:
@@ -83,9 +80,6 @@ def dbnd_bootstrap(unittest=False):
     if not in_quiet_mode():
         logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
     _dbnd_exception_handling()
-
-    if unittest:
-        set_dbnd_unit_test_mode()
 
     _surpress_loggers()
     _suppress_warnings()
@@ -111,7 +105,7 @@ def dbnd_bootstrap(unittest=False):
     if user_plugins:
         register_dbnd_user_plugins(user_plugins.split(","))
 
-    if unittest:
+    if is_unit_test_mode():
         pm.hook.dbnd_setup_unittest()
 
     pm.hook.dbnd_setup_plugin()

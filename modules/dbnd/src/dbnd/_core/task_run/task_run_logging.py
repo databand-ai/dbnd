@@ -5,15 +5,9 @@ from contextlib import contextmanager
 
 import six
 
-from airflow.utils.log.logging_mixin import RedirectStdHandler
-
-from dbnd._core.log.logging_utils import (
-    find_handler,
-    redirect_stderr,
-    redirect_stdout,
-    setup_log_file,
-)
+from dbnd._core.log.logging_utils import find_handler, redirect_stderr, redirect_stdout
 from dbnd._core.settings import LocalEnvConfig
+from dbnd._core.settings.log import _safe_is_typeof
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.string_utils import safe_short_string
 
@@ -55,9 +49,7 @@ class TaskRunLogManager(TaskRunCtrl):
             return
 
         airflow_root_console_handler = find_handler(logging.root, "console")
-        if airflow_root_console_handler and isinstance(
-            airflow_root_console_handler, RedirectStdHandler
-        ):
+        if _safe_is_typeof(airflow_root_console_handler, "RedirectStdHandler"):
             yield None
             return
 

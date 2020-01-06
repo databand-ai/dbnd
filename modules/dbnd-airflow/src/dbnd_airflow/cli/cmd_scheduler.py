@@ -4,10 +4,7 @@ import logging
 import os
 import signal
 
-from dbnd._core.configuration.environ_config import (
-    ENV_DBND_QUIET,
-    in_shell_cmd_complete_mode,
-)
+from dbnd._core.configuration.environ_config import ENV_DBND_QUIET
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._vendor import click
 from dbnd_airflow.utils import dbnd_airflow_path
@@ -16,9 +13,6 @@ from dbnd_airflow.utils import dbnd_airflow_path
 logger = logging.getLogger(__name__)
 
 # avoid importing airflow on autocomplete (takes approximately 1s)
-if not in_shell_cmd_complete_mode():
-    from airflow.bin.cli import DAGS_FOLDER
-    from airflow.jobs import SchedulerJob
 
 
 def configure_airflow_scheduler_logging():
@@ -136,7 +130,9 @@ def scheduler(
         setup_logging,
         sigint_handler,
         sigquit_handler,
+        DAGS_FOLDER,
     )
+    from airflow.jobs import SchedulerJob
 
     subdir = subdir or DAGS_FOLDER
 
