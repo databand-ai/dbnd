@@ -30,6 +30,7 @@ import six
 from dbnd._core.constants import TaskType
 from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
 from dbnd._core.errors import friendly_error
+from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
@@ -65,7 +66,6 @@ class _BaseTask(object):
     _conf_auto_read_params = True  # enables autoread of params.
     _conf_confirm_on_kill_msg = None  # get user confirmation on task kill if not empty
     _conf__require_run_dump_file = False
-    _conf__validate_no_extra_params = True
 
     # this is the state of autoread
     _task_auto_read_original = None
@@ -77,6 +77,10 @@ class _BaseTask(object):
 
     # user can override this with his configuration
     defaults = None  # type: Dict[ParameterDefinition, any()]
+
+    validate_no_extra_params = parameter.system(
+        description="validate that all configured keys for a task have a matching parameter definition"
+    )[bool]
 
     @classmethod
     def get_task_family(cls):

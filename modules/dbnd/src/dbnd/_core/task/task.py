@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_run.task_run import TaskRun
 
-TASK_PARAMS_COUNT = 12
+TASK_PARAMS_COUNT = 13
 DEFAULT_CLASS_VERSION = ""
 
 

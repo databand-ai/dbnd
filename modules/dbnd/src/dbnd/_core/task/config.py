@@ -11,8 +11,6 @@ class Config(_BaseTask, SingletonContext, _ConfigParamContainer):
     This is arguably a bit of a hack.
     """
 
-    _conf__validate_no_extra_params = False
-
     def __str__(self):
         return self.task_name
 

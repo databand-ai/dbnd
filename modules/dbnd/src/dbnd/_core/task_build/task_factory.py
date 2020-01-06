@@ -7,6 +7,7 @@ from more_itertools import unique_everseen
 from six import iteritems
 
 from dbnd._core.configuration.config_path import (
+    CONF_CONFIG_SECTION,
     CONF_TASK_ENV_SECTION,
     CONF_TASK_SECTION,
 )
@@ -144,6 +145,11 @@ class TaskFactory(object):
         if issubclass(self.task_definition.task_class, _TaskParamContainer):
             sections += [CONF_TASK_SECTION]
 
+        from dbnd._core.task.config import Config
+
+        if issubclass(self.task_definition.task_class, Config):
+            sections += [CONF_CONFIG_SECTION]
+
         sections += task_config_sections
         sections = list(unique_everseen(filter(None, sections)))
 
@@ -218,9 +224,6 @@ class TaskFactory(object):
         return task
 
     def build_task_meta(self):  # build list of all possible values
-        if self.task_cls._conf__validate_no_extra_params:
-            self.validate_no_extra_config_params()
-
         param_task_env = None
         param_task_config = None
         param_def_regular = []
@@ -254,6 +257,17 @@ class TaskFactory(object):
         # calculate configuration per parameter, and calculate parameter value
         regular_params = self.build_parameter_values(param_def_regular)
         task_param_values.extend(regular_params)
+
+        validate_no_extra_params = next(
+            (
+                pv.value
+                for pv in task_param_values
+                if pv.name == "validate_no_extra_params"
+            ),
+            True,
+        )
+        if validate_no_extra_params:
+            self.validate_no_extra_config_params()
 
         self._assert_no_task_build_error()
 
