@@ -7,6 +7,7 @@ from more_itertools import unique_everseen
 from six import iteritems
 
 from dbnd._core.configuration.config_path import (
+    CONF_CONFIG_SECTION,
     CONF_TASK_ENV_SECTION,
     CONF_TASK_SECTION,
 )
@@ -144,6 +145,11 @@ class TaskFactory(object):
         if issubclass(self.task_definition.task_class, _TaskParamContainer):
             sections += [CONF_TASK_SECTION]
 
+        from dbnd._core.task.config import Config
+
+        if issubclass(self.task_definition.task_class, Config):
+            sections += [CONF_CONFIG_SECTION]
+
         sections += task_config_sections
         sections = list(unique_everseen(filter(None, sections)))
 
@@ -166,6 +172,7 @@ class TaskFactory(object):
                 )
             ),
         )
+        self.task_errors = []
 
     def create_dbnd_task(self):
         # create task meta
@@ -251,6 +258,19 @@ class TaskFactory(object):
         regular_params = self.build_parameter_values(param_def_regular)
         task_param_values.extend(regular_params)
 
+        validate_no_extra_params = next(
+            (
+                pv.value
+                for pv in task_param_values
+                if pv.name == "validate_no_extra_params"
+            ),
+            True,
+        )
+        if validate_no_extra_params:
+            self.validate_no_extra_config_params()
+
+        self._assert_no_task_build_error()
+
         task_enabled = True
         if self.parent_task:
             task_enabled = self.parent_task.ctrl.should_run()
@@ -280,17 +300,38 @@ class TaskFactory(object):
             task_call_source=self.task_call_source,
         )
 
+    def validate_no_extra_config_params(self):
+        """
+        check that the user did not set any config values that don't have a matching param definition (protects against typos)
+        """
+        task_param_names = [tp.name for tp in self.task_params]
+        for section_name in self.task_config_sections:
+            section = self.config.config_layer.config.get(section_name)
+            if not section:
+                continue
+
+            for key, value in section.items():
+                if key not in task_param_names and not value.source.endswith(
+                    self._source_suffix(ParameterScope.children.value)
+                ):
+                    self.task_errors.append(
+                        friendly_error.task_build.unknown_parameter_in_config(
+                            task_name=self.task_name,
+                            param_name=key,
+                            source=value.source,
+                            task_param_names=task_param_names,
+                        )
+                    )
+
     def build_parameter_values(self, params):
         # type: (List[ParameterDefinition]) -> List[ParameterValue]
         result = []
-        task_errors = []
         for param_def in params:
             try:
                 p_value = self.build_parameter_value(param_def)
                 result.append(p_value)
             except MissingParameterError as ex:
-                task_errors.append(ex)
-        self._assert_no_task_build_error(task_errors)
+                self.task_errors.append(ex)
         return result
 
     def build_parameter_value(self, param_def):
@@ -408,7 +449,7 @@ class TaskFactory(object):
         self._update_shared_config_section(
             CONF_TASK_SECTION,
             param_values=param_values,
-            source=self._source_name("children"),
+            source=self._source_name(ParameterScope.children.value),
         )
 
     def _apply_task_env_config(self, task_env):
@@ -519,7 +560,13 @@ class TaskFactory(object):
         return new_params
 
     def _source_name(self, name):
-        return "%s[%s]" % (self.task_definition.full_task_family_short, name)
+        return "%s%s" % (
+            self.task_definition.full_task_family_short,
+            self._source_suffix(name),
+        )
+
+    def _source_suffix(self, name):
+        return "[%s]" % name
 
     def _log_build_step(self, msg, force_log=False):
         if self.verbose_build or force_log:
@@ -534,11 +581,11 @@ class TaskFactory(object):
         )
         self._log_build_step(msg, force_log=force_log)
 
-    def _assert_no_task_build_error(self, errors):
-        if not errors:
+    def _assert_no_task_build_error(self):
+        if not self.task_errors:
             return
-        if len(errors) == 1:
-            raise errors[0]
+        if len(self.task_errors) == 1:
+            raise self.task_errors[0]
         raise friendly_error.failed_to_create_task(
-            self._exc_desc, nested_exceptions=errors
+            self._exc_desc, nested_exceptions=self.task_errors
         )

@@ -118,7 +118,7 @@ class DbndTaskRegistry(SingletonContext):
             raise friendly_error.ambiguous_task(task_name)
         if task_cls:
             return task_cls
-        raise friendly_error.task_not_exist(
+        raise friendly_error.task_registry.task_not_exist(
             task_name=task_name,
             alternative_tasks=get_best_candidate(
                 task_name, self._task_family_to_task_cls.keys()

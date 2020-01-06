@@ -1,4 +1,5 @@
 import logging
+import os
 
 import dbnd._core.task_build.task_namespace
 
@@ -14,7 +15,7 @@ class TestImportPackage(object):
         """Test that all module can be imported
         """
 
-        project_dir = project_path("modules", "dbnd", "src")
+        project_dir = os.path.join(os.path.dirname(__file__), "..", "..", "src")
         good_modules = import_all_modules(
             src_dir=project_dir, package="dbnd", excluded=["airflow_operators"]
         )
