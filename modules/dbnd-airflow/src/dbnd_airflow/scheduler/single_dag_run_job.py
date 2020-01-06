@@ -21,7 +21,7 @@ from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics import format_exception
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._core.utils.basics.singleton_context import SingletonContext
-from dbnd_airflow.config import AirflowFeaturesConfig
+from dbnd_airflow.config import AirflowConfig
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
 )
@@ -59,7 +59,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         pool=None,
         delay_on_limit_secs=1.0,
         verbose=False,
-        airflow_features=None,
+        airflow_config=None,
         *args,
         **kwargs
     ):
@@ -81,12 +81,12 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         self._logged_status = ""  # last printed status
 
         self.ti_state_manager = AirflowTaskInstanceStateManager()
-        self.airflow_features = airflow_features  # type: AirflowFeaturesConfig
+        self.airflow_config = airflow_config  # type: AirflowConfig
         super(SingleDagRunJob, self).__init__(*args, **kwargs)
 
     @property
     def _optimize(self):
-        return self.airflow_features.optimize_airflow_db_access
+        return self.airflow_config.optimize_airflow_db_access
 
     def _update_counters(self, ti_status):
         """
@@ -411,7 +411,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
                     runtime_deps = []
 
-                    if self.airflow_features.disable_dag_concurrency_rules:
+                    if self.airflow_config.disable_dag_concurrency_rules:
                         # RUN Deps validate dag and task concurrency
                         # It's less relevant when we run in stand along mode with SingleDagRunJob
                         # from airflow.ti_deps.deps.runnable_exec_date_dep import RunnableExecDateDep

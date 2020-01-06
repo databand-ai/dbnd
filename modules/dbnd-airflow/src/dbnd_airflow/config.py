@@ -5,18 +5,10 @@ from dbnd._core.task import Config
 from dbnd._core.utils.platform.windows_compatible.getuser import dbnd_getuser
 
 
-class AirflowFeaturesConfig(Config):
+class AirflowConfig(Config):
     """Apache Airflow (currently a part of Databand)"""
 
-    _conf__task_family = "airflow_features"
-    task_run_simple = parameter(
-        default=True,
-        description="Wrap worker call with TaskJob (heartbeat and signals management)",
-    )[bool]
-
-    track_airflow_dag = parameter(
-        description="Track Airflow native dags running via airflow (using airflow monkey patching)"
-    )[bool]
+    _conf__task_family = "airflow"
 
     optimize_airflow_db_access = parameter(
         description="Enable all Airflow DB access optimizations"
@@ -34,7 +26,7 @@ class AirflowFeaturesConfig(Config):
     )[bool]
 
     def __init__(self, *args, **kwargs):
-        super(AirflowFeaturesConfig, self).__init__(*args, **kwargs)
+        super(AirflowConfig, self).__init__(*args, **kwargs)
         if not self.optimize_airflow_db_access:
             self.disable_db_ping_on_connect = False
             self.disable_dag_concurrency_rules = False

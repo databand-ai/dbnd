@@ -23,9 +23,9 @@ def dbnd_setup_plugin():
     configure_airflow_sql_alchemy_conn()
 
     from dbnd import register_config_cls
-    from dbnd_airflow.config import AirflowFeaturesConfig
+    from dbnd_airflow.config import AirflowConfig
 
-    register_config_cls(AirflowFeaturesConfig)
+    register_config_cls(AirflowConfig)
 
 
 @dbnd.hookimpl
