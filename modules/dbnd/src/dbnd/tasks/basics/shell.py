@@ -93,7 +93,7 @@ def bash_cmd(
                 break
             line = safe_decode(line, output_encoding).rstrip()
 
-            print(line)
+            logger.info("out: %s", line)
             # keep last 1000 lines only
             output.append(line)
             if len(output) > 1500:

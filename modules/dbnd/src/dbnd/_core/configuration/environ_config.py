@@ -42,6 +42,11 @@ ENV_DBND_QUIET = "DBND_QUIET"
 _QUIET_MODE = os.environ.pop(ENV_DBND_QUIET, None) is not None or _SHELL_COMPLETION
 
 
+def set_quiet_mode(msg="no extra logs"):
+    global _QUIET_MODE
+    _QUIET_MODE = msg
+
+
 def in_shell_cmd_complete_mode():
     return _SHELL_COMPLETION
 
