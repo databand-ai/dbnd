@@ -21,10 +21,8 @@ class DatabricksConfig(Config):
     _conf__task_family = "databricks"
     cluster_type = SparkClusters.databricks
 
-    cluster_id = parameter(default="None").help("existing cluster id")[str]
-    cloud_type = parameter(
-        default=DatabricksCloud.azure, description="cloud type: aws/azure"
-    )
+    cluster_id = parameter(default=None).help("existing cluster id")[str]
+    cloud_type = parameter().help("cloud type: aws/azure")[str]
 
     conn_id = parameter.value(default="databricks_default").help(
         "databricks connection settings"
@@ -38,19 +36,25 @@ class DatabricksConfig(Config):
         "databricks connection - delay in between retries"
     )[int]
 
-    status_polling_interval_seconds = parameter(default=10.0).help(
+    status_polling_interval_seconds = parameter(default=10).help(
         "seconds to sleep between polling databricks for job status."
     )[int]
+
+    cluster_log_conf = parameter(default={}).help(
+        'location for logs, like: {"s3": {"destination": "s3://<BUCKET>/<KEY>", "region": "us-ease-1"}}"'
+    )
 
     # new cluster config
     num_workers = parameter(default=0).help("number of workers as in databricks api.")[
         int
     ]
-    spark_version = parameter(default="5.3.x-scala2.11").help("spark version")[str]
+    init_scripts = parameter(default=[]).help(
+        "init script list, default:{ 's3': { 'destination' : 's3://init_script_bucket/prefix', 'region' : 'us-west-2' } }'"
+    )[List]
+    spark_version = parameter().help("spark version")[str]
     spark_conf = parameter(default={}).help("spark config")[Dict]
-    node_type_id = parameter(default="m4.large").help("nodes for spark machines")[str]
-    init_script = parameter.c.help("List of init scripts to run.")[List]
-    spark_env_vars = parameter.c.help("spark env vars")[Dict]
+    node_type_id = parameter(default="").help("nodes for spark machines")[str]
+    spark_env_vars = parameter(default={}).help("spark env vars")[Dict]
 
     def get_spark_ctrl(self, task_run):
         from dbnd_databricks.databricks import DatabricksCtrl
@@ -59,7 +63,7 @@ class DatabricksConfig(Config):
 
     def _validate(self):
         super(DatabricksConfig, self)._validate()
-        if self.cluster_id is "None":
+        if not self.cluster_id:
             logger.warning(
                 "no databricks.cluster_id is set, will create a new databricks cluster - please remember"
                 " to configure your cluster parameters."
