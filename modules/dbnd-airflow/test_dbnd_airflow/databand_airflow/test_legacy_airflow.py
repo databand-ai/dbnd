@@ -1,9 +1,6 @@
 from datetime import datetime, timedelta
 
-from dbnd.testing.helpers import (
-    run_dbnd_subprocess__dbnd,
-    run_dbnd_subprocess__dbnd_run,
-)
+from dbnd.testing.helpers import run_dbnd_subprocess__dbnd_run, run_subprocess__airflow
 from dbnd.testing.helpers_pytest import skip_on_windows
 
 
@@ -19,9 +16,8 @@ class TestLegacyAirflowIntegration(object):
         """
         Test that `databand --help` fits on one screen
         """
-        run_dbnd_subprocess__dbnd(
+        run_subprocess__airflow(
             [
-                "airflow",
                 "backfill",
                 "bash_dag",
                 "-s",
@@ -33,9 +29,8 @@ class TestLegacyAirflowIntegration(object):
         """
         Test that `databand --help` fits on one screen
         """
-        run_dbnd_subprocess__dbnd(
+        run_subprocess__airflow(
             [
-                "airflow",
                 "run",
                 "bash_dag",
                 "print_date",

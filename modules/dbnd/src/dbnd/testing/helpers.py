@@ -76,6 +76,15 @@ def run_test_notebook(notebook):
     return notebook_run(notebook)
 
 
+def run_subprocess__airflow(args, retcode=255, **kwargs):
+    return run_dbnd_subprocess(
+        args=["dbnd-airflow"] + args,
+        cwd=kwargs.pop("cwd", os.environ[ENV_DBND_HOME]),
+        retcode=retcode,
+        **kwargs
+    )
+
+
 def run_dbnd_subprocess__dbnd(args, retcode=255, **kwargs):
     return run_dbnd_subprocess(
         args=[sys.executable, "-m", "dbnd"] + args,

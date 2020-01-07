@@ -13,6 +13,8 @@ from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
     DBND_RESUBMIT_RUN,
     DBND_RUN_UID,
+    ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD,
+    environ_enabled,
     in_quiet_mode,
 )
 from dbnd._core.configuration.scheduler_file_config_loader import (
@@ -177,6 +179,8 @@ def launcher(scheduled_cmd):
 
 
 def get_dags():
+    if environ_enabled(ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD):
+        return None
     from dbnd._core.errors.base import DatabandConnectionException, DatabandApiError
 
     try:
