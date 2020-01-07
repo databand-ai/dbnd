@@ -33,8 +33,8 @@ def setup_versioned_dags():
 
     command = "airflow webserver"
     logger.warning(
-        "dbnd airflow-versioned-dag is not installed. "
-        "Please run 'pip install dbnd[airflow-versioned-dag]' in order to run '{command}'.".format(
+        "dbnd-airflow-versioned-dag is not installed. "
+        "Please run 'pip install dbnd-airflow-versioned-dag' in order to run '{command}'.".format(
             command=command
         )
     )
