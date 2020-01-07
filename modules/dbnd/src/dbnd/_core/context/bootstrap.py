@@ -21,6 +21,9 @@ from dbnd._core.plugin.dbnd_plugins import (
     register_dbnd_user_plugins,
 )
 from dbnd._core.utils.platform import windows_compatible_mode
+from dbnd._core.utils.platform.osx_compatible.requests_in_forked_process import (
+    enable_osx_forked_request_calls,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -94,6 +97,7 @@ def dbnd_bootstrap():
     if len(sys.argv) > 1 and sys.argv[1] == "scheduler":
         # prevent pyspark from patching namedtuples - tell it that it already patched
         collections.namedtuple.__hijack = 1
+    enable_osx_forked_request_calls()
 
     register_dbnd_plugins()
 

@@ -266,6 +266,10 @@ class AirflowTaskExecutor(TaskExecutor):
         )
 
         airflow_task_executor.fail_fast = s_run.fail_fast
+        # we don't want to be stopped by zombie jobs/tasks
+        airflow_conf.set("core", "dag_concurrency", str(10000))
+        airflow_conf.set("core", "max_active_runs_per_dag", str(10000))
+
         job = SingleDagRunJob(
             dag=af_dag,
             execution_date=databand_run.execution_date,
