@@ -32,7 +32,13 @@ def set_airflow_sql_conn_from_dbnd_config():
         os.environ["AIRFLOW__CORE__FERNET_KEY"] = fernet_key
 
 
+_airflow_bootstrap_applied = False
+
+
 def airflow_bootstrap():
+    global _airflow_bootstrap_applied
+    if _airflow_bootstrap_applied:
+        return
     set_airflow_sql_conn_from_dbnd_config()
 
     from dbnd_airflow.airflow_override import monkeypatch_airflow
@@ -46,3 +52,4 @@ def airflow_bootstrap():
         enable_airflow_windows_support()
     _fix_sys_path()
     _register_sqlachemy_local_dag_job()
+    _airflow_bootstrap_applied = True

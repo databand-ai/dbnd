@@ -1,13 +1,19 @@
+from __future__ import print_function
+
 import logging
 import os
 
-from dbnd._vendor import click
+from dbnd._core.utils.basics.format_exception import format_exception_as_str
+from dbnd_airflow.utils import dbnd_airflow_path
 
 
 logger = logging.getLogger(__name__)
 
 
-def _setup_versioned_dags():
+# avoid importing airflow on autocomplete (takes approximately 1s)
+
+
+def setup_versioned_dags():
     # Check modules
     # Print relevant error
     from airflow.plugins_manager import plugins
@@ -50,23 +56,36 @@ def _setup_versioned_dags():
     # )
 
 
-def _setup_scheduled_dags():
+def setup_scheduled_dags(sub_dir=None, unlink_first=True):
     from airflow import settings
-    from dbnd_airflow.cli.cmd_scheduler import link_dropin_dbnd_scheduled_dags
 
-    link_dropin_dbnd_scheduled_dags(settings.DAGS_FOLDER, unlink_first=True)
+    sub_dir = sub_dir or settings.DAGS_FOLDER
 
+    if not sub_dir:
+        raise Exception("Can't link scheduler: airflow's dag folder is undefined")
 
-@click.command(context_settings=dict(ignore_unknown_options=True))
-@click.argument("airflow_args", nargs=-1, type=click.UNPROCESSED)
-def airflow(airflow_args):
-    """Forward arguments to airflow command line"""
+    source_path = dbnd_airflow_path("scheduler", "dags", "dbnd_dropin_scheduler.py")
+    target_path = os.path.join(sub_dir, "dbnd_dropin_scheduler.py")
 
-    if airflow_args and airflow_args[0] == "webserver":
-        _setup_versioned_dags()
-        _setup_scheduled_dags()
-    from airflow.bin.cli import get_parser
+    if unlink_first and os.path.islink(target_path):
+        try:
+            logger.info("unlinking existing drop-in scheduler file at %s", target_path)
+            os.unlink(target_path)
+        except Exception:
+            logger.error(
+                "failed to unlink drop-in scheduler file at %s: %s",
+                (target_path, format_exception_as_str()),
+            )
+            return
 
-    af_parser = get_parser()
-    known_args = af_parser.parse_args(airflow_args)
-    known_args.func(known_args)
+    if not os.path.exists(target_path):
+        try:
+            logger.info("Linking %s to %s.", source_path, target_path)
+            if not os.path.exists(sub_dir):
+                os.makedirs(sub_dir)
+            os.symlink(source_path, target_path)
+        except Exception:
+            logger.error(
+                "failed to link drop-in scheduler in the airflow dags_folder: %s"
+                % format_exception_as_str()
+            )

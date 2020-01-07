@@ -1,4 +1,3 @@
-import collections
 import logging
 import os
 import signal
@@ -67,6 +66,26 @@ def _dbnd_exception_handling():
         pass
 
 
+_dbnd_system_bootstrap = False
+
+
+def dbnd_system_bootstrap():
+    global _dbnd_system_bootstrap
+    if _dbnd_system_bootstrap:
+        return
+
+    if ENV_DBND_HOME not in os.environ:
+        init_databand_env()
+
+    if not in_quiet_mode():
+        logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
+    from databand import dbnd_config
+
+    dbnd_config.load_system_configs()
+
+    _dbnd_system_bootstrap = True
+
+
 _dbnd_bootstrap = False
 
 
@@ -75,29 +94,21 @@ def dbnd_bootstrap():
     global _dbnd_bootstrap
     if _dbnd_bootstrap:
         return
-    _dbnd_bootstrap = True
 
-    if ENV_DBND_HOME not in os.environ:
-        init_databand_env()
+    dbnd_system_bootstrap()
+    from targets.marshalling import register_basic_data_marshallers
 
-    if not in_quiet_mode():
-        logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
+    register_basic_data_marshallers()
     _dbnd_exception_handling()
 
     _surpress_loggers()
     _suppress_warnings()
-
-    config.load_system_configs()
+    enable_osx_forked_request_calls()
 
     if is_airflow_enabled():
         from dbnd_airflow.bootstrap import airflow_bootstrap
 
         airflow_bootstrap()
-
-    if len(sys.argv) > 1 and sys.argv[1] == "scheduler":
-        # prevent pyspark from patching namedtuples - tell it that it already patched
-        collections.namedtuple.__hijack = 1
-    enable_osx_forked_request_calls()
 
     register_dbnd_plugins()
 
@@ -118,3 +129,5 @@ def dbnd_bootstrap():
     user_preinit = environ_config.get_user_preinit()
     if user_preinit:
         run_user_func(user_preinit)
+
+    _dbnd_bootstrap = True

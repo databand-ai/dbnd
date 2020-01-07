@@ -4,8 +4,6 @@ import typing
 
 import dbnd
 
-from dbnd import dbnd_config
-
 
 AIRFLOW_LEGACY_URL_KEY = "airflow"
 logger = logging.getLogger(__name__)
@@ -26,15 +24,6 @@ def dbnd_setup_plugin():
     from dbnd_airflow.config import AirflowConfig
 
     register_config_cls(AirflowConfig)
-
-
-@dbnd.hookimpl
-def dbnd_get_commands():
-    from dbnd_airflow.cli.cmd_airflow import airflow
-
-    from dbnd_airflow.cli.cmd_scheduler import scheduler
-
-    return [airflow, scheduler]
 
 
 @dbnd.hookimpl
@@ -84,9 +73,9 @@ def dbnd_setup_unittest():
 
     reinit_airflow_sql_conn()
 
-    from dbnd_airflow.cli import cmd_airflow
+    from dbnd_airflow.dbnd_airflow_main import subprocess_airflow
 
-    cmd_airflow.airflow(args=["initdb"], standalone_mode=False)
+    subprocess_airflow(args=["initdb"])
 
 
 @dbnd.hookimpl

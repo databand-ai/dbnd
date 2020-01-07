@@ -44,5 +44,8 @@ setuptools.setup(
             "cryptography>=2.0.0",
         ]
     ),
-    entry_points={"dbnd": ["dbnd-airflow = dbnd_airflow._plugin"]},
+    entry_points={
+        "console_scripts": ["dbnd-airflow = dbnd_airflow.dbnd_airflow_main:main"],
+        "dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],
+    },
 )
