@@ -39,7 +39,7 @@ def start_heartbeat_sender(task_run):
                     "--run-uid",
                     str(run.run_uid),
                     "--tracking-url",
-                    core.tracker_url,
+                    core.databand_url,
                     "--driver-pid",
                     str(os.getpid()),
                     "--heartbeat-interval",

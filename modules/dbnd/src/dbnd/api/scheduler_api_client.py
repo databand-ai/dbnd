@@ -7,7 +7,7 @@ from dbnd.api.shared_schemas.scheduled_job_schema import ScheduledJobSchemaV2
 
 config.load_system_configs()
 api_client = ApiClient(
-    config.get("core", "tracker_url"),
+    config.get("core", "databand_url"),
     auth=True,
     user=config.get("scheduler", "dbnd_user"),
     password=config.get("scheduler", "dbnd_password"),
