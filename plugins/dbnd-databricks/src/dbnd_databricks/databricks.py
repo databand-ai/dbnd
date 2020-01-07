@@ -8,7 +8,7 @@ from dbnd._core.current import current_task_run
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
-from dbnd_databricks.databrick_config import (
+from dbnd_databricks.databricks_config import (
     DatabricksAwsConfig,
     DatabricksAzureConfig,
     DatabricksCloud,
@@ -105,7 +105,8 @@ class DatabricksCtrl(SparkCtrl):
             "spark_version": self.databricks_config.spark_version,
             "spark_conf": self.databricks_config.spark_conf,
             "node_type_id": self.databricks_config.node_type_id,
-            "init_scripts": self.databricks_config.init_script,
+            "init_scripts": self.databricks_config.init_scripts,
+            "cluster_log_conf": self.databricks_config.cluster_log_conf,
             "spark_env_vars": self.databricks_config.spark_env_vars,
         }
         if self.databricks_config.cloud_type == DatabricksCloud.aws:
