@@ -1,4 +1,4 @@
-from termcolor import colored
+from dbnd._vendor.termcolor import colored
 
 
 ERROR_SEPARATOR = colored("--------------------------------------", color="red")

@@ -37,7 +37,7 @@ def basic_logging_config(
             "formatter_full": {"format": FORMAT_FULL},
             "formatter_simple": {"format": FORMAT_SIMPLE},
             "formatter_colorlog": {
-                "()": "colorlog.ColoredFormatter",
+                "()": "dbnd._vendor.colorlog.ColoredFormatter",
                 "format": FORMAT_COLORLOG,
                 "reset": True,
             },

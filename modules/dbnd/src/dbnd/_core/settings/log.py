@@ -129,7 +129,7 @@ class LoggingConfig(config.Config):
                 "formatter": {"format": log_settings.formatter},
                 "formatter_simple": {"format": log_settings.formatter_simple},
                 "formatter_colorlog": {
-                    "()": "colorlog.ColoredFormatter",
+                    "()": "dbnd._vendor.colorlog.ColoredFormatter",
                     "format": log_settings.formatter_colorlog,
                     "reset": True,
                 },
