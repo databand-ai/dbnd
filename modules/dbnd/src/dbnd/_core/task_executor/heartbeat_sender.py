@@ -38,8 +38,6 @@ def start_heartbeat_sender(task_run):
                     "send-heartbeat",
                     "--run-uid",
                     str(run.run_uid),
-                    "--tracking-url",
-                    core.databand_url,
                     "--driver-pid",
                     str(os.getpid()),
                     "--heartbeat-interval",
@@ -49,6 +47,8 @@ def start_heartbeat_sender(task_run):
                     "--tracker-api",
                     core.tracker_api,
                 ]
+                if core.databand_url:
+                    cmd += ["--databand-url", core.databand_url]
                 logger.info(
                     "Starting heartbeat with log at %s using  cmd: %s",
                     heartbeat_log_file,

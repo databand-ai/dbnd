@@ -4,13 +4,13 @@ from dbnd._vendor.click import command
 
 @command()
 @click.option("--run-uid", required=True)
-@click.option("--tracking-url", required=True)
+@click.option("--databand-url", required=False)
 @click.option("--heartbeat-interval", required=True, type=int)
 @click.option("--driver-pid", required=True, type=int)
 @click.option("--tracker", required=True)
 @click.option("--tracker-api", required=True)
 def send_heartbeat(
-    run_uid, tracking_url, heartbeat_interval, driver_pid, tracker, tracker_api
+    run_uid, databand_url, heartbeat_interval, driver_pid, tracker, tracker_api
 ):
     from dbnd import config
     from dbnd._core.settings import CoreConfig
@@ -21,7 +21,7 @@ def send_heartbeat(
             "core": {
                 "tracker": tracker.split(","),
                 "tracker_api": tracker_api,
-                "tracking_url": tracking_url,
+                "databand_url": databand_url,
             }
         }
     ):
