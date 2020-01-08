@@ -24,6 +24,7 @@ from dbnd._core.configuration.pprint_config import (
     pformat_all_layers,
     pformat_current_config,
 )
+from dbnd._core.context.bootstrap import dbnd_system_bootstrap
 from dbnd._core.utils.basics.helpers import parse_bool
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 from targets import target
@@ -113,6 +114,10 @@ class DbndConfig(object):
 
     @contextlib.contextmanager
     def __call__(self, config_values=None, source=None, merge_settings=None):
+        # let validate that we are initialized
+        # user can call this function out of no-where, so we will create a layer, and will override it
+        # the moment we create more layers on config.system_load
+        dbnd_system_bootstrap()
         new_layer = self._new_config_layer(
             config_values, source=source, merge_settings=merge_settings
         )

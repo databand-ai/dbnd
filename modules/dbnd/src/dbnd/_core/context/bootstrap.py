@@ -7,7 +7,6 @@ import warnings
 
 import dbnd
 
-from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import in_quiet_mode, is_unit_test_mode
 from dbnd._core.context.dbnd_project_env import (
     ENV_DBND_HOME,
@@ -73,17 +72,21 @@ def dbnd_system_bootstrap():
     global _dbnd_system_bootstrap
     if _dbnd_system_bootstrap:
         return
+    try:
+        _dbnd_system_bootstrap = True
+        # prevent recursive call, problematic on exception
 
-    if ENV_DBND_HOME not in os.environ:
-        init_databand_env()
+        if ENV_DBND_HOME not in os.environ:
+            init_databand_env()
 
-    if not in_quiet_mode():
-        logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
-    from databand import dbnd_config
+        if not in_quiet_mode():
+            logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
+        from databand import dbnd_config
 
-    dbnd_config.load_system_configs()
-
-    _dbnd_system_bootstrap = True
+        dbnd_config.load_system_configs()
+    except Exception:
+        _dbnd_system_bootstrap = False
+        raise
 
 
 _dbnd_bootstrap = False
@@ -118,6 +121,8 @@ def dbnd_bootstrap():
     from dbnd._core.configuration import environ_config
     from dbnd._core.utils.basics.load_python_module import run_user_func
     from dbnd._core.plugin.dbnd_plugins import pm
+
+    from dbnd._core.configuration.dbnd_config import config
 
     user_plugins = config.get("core", "plugins", None)
     if user_plugins:
