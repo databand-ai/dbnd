@@ -1,4 +1,5 @@
 import logging
+import textwrap
 
 import pytest
 
@@ -9,8 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def assert_cmd_output(cmd, output, capsys):
-    # fix multiline indent:
-    expected_output = output.replace("\n" + " " * 12, "\n").strip()
+    expected_output = textwrap.dedent(output).strip()
     dbnd_schedule_cmd(cmd)
     captured = capsys.readouterr()
     assert expected_output == captured.out.strip()
