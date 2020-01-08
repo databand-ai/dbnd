@@ -188,8 +188,6 @@ class DatabandContext(SingletonContext):
             run.run_driver()
             return run
 
-    dbnd_run_cmd_line = dbnd_run_task
-
     def __deepcopy__(self, memo):
         # create a copy with self.linked_to *not copied*, just referenced.
         return self
