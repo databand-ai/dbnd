@@ -122,16 +122,25 @@ class TestSchedulerFileConfigLoader(object):
             assert len(delta_results.to_create) == 2
 
     def test_update(self, existing_jobs):
-        existing_jobs.append(
-            {
-                "name": "to be updated",
-                "cmd": "before",
-                "schedule_interval": "before",
-                "validation_errors": "before",
-            }
+        existing_jobs.extend(
+            [
+                {
+                    "DbndScheduledJob": {
+                        "name": "to be updated",
+                        "cmd": "before",
+                        "schedule_interval": "before",
+                        "validation_errors": "before",
+                    }
+                },
+                {"DbndScheduledJob": {"name": "to be disabled"}},
+                {
+                    "DbndScheduledJob": {
+                        "name": "to be enabled",
+                        "deleted_from_file": True,
+                    }
+                },
+            ]
         )
-        existing_jobs.append({"name": "to be disabled"})
-        existing_jobs.append({"name": "to be enabled", "deleted_from_file": True})
 
         file = """
         - name: to be updated

@@ -86,6 +86,7 @@ def dbnd_cmd(command, args):
 
 
 dbnd_run_cmd = partial(dbnd_cmd, "run")
+dbnd_schedule_cmd = partial(dbnd_cmd, "schedule")
 
 
 def main():

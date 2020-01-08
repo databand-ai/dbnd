@@ -89,9 +89,9 @@ class DbndSchedulerDBDagsProvider(object):
 
     def get_scheduled_jobs(self):  # type: () -> List[dict]
         return [
-            s
+            s["DbndScheduledJob"]
             for s in scheduler_api_client.get_scheduled_jobs()
-            if "validation_errors" not in s or not s["validation_errors"]
+            if not s["DbndScheduledJob"].get("validation_errors")
         ]
 
     def job_to_dag(self, job):  # type: (dict) -> Union[DAG, None]

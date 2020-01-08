@@ -73,9 +73,12 @@ class SchedulerFileConfigLoader(object):
 
         from_file = self.load_and_validate(from_file)
 
-        from_db = scheduler_api_client.get_scheduled_jobs(
-            from_file_only=True, include_deleted=True
-        )
+        from_db = [
+            s["DbndScheduledJob"]
+            for s in scheduler_api_client.get_scheduled_jobs(
+                from_file_only=True, include_deleted=True
+            )
+        ]
         return self.delta(from_db, from_file, file_modified_time)
 
     def read_config(self, config_file):

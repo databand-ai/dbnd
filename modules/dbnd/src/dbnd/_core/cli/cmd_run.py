@@ -19,6 +19,7 @@ from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
 from dbnd._vendor import click
+from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
 
 logger = logging.getLogger(__name__)
@@ -110,7 +111,7 @@ def build_dynamic_task(original_cls, new_cls_name):
     "--scheduled-date",
     "-sd",
     help="For use when setting scheduled-job-name",
-    type=click.DateTime(),
+    type=TZAwareDateTime(),
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.option(
@@ -291,7 +292,7 @@ def run(
 
                 init_local_db(sql_alchemy_conn)
 
-        return context.dbnd_run_cmd_line(
+        return context.dbnd_run_task(
             task_or_task_name=task_name,
             run_uid=run_driver,
             scheduled_run_info=scheduled_run_info,

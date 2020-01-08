@@ -142,6 +142,7 @@ class DatabandContext(SingletonContext):
             pm.hook.dbnd_on_existing_context(ctx=self)
 
         self.tracking_store = self.settings.core.get_tracking_store()
+        self.scheduled_job_service = self.settings.core.get_scheduled_job_service()
 
         # we do it every time we go into databand_config
         self.configure_targets()
@@ -187,8 +188,6 @@ class DatabandContext(SingletonContext):
         ) as run:  # type: DatabandRun
             run.run_driver()
             return run
-
-    dbnd_run_cmd_line = dbnd_run_task
 
     def __deepcopy__(self, memo):
         # create a copy with self.linked_to *not copied*, just referenced.
