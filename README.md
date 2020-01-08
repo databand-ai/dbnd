@@ -3,7 +3,7 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/dbnd) ![PyPI](https://img.shields.io/pypi/v/dbnd) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dbnd) ![PyPI - License](https://img.shields.io/pypi/l/dbnd) 
 ![Code style: ](https://img.shields.io/badge/code%20style-black-000000.svg)
 
-# DBND Core [0.23.0]
+# DBND Core 
 
 DBND is an agile pipeline framework that helps date engineering teams track and orchestrate their data processes. Used for processes ranging from data prep, machine learning model training, experimentation, testing, and production, DBND is easy to use and natively provides teams visibility, reproducibility, and dynamic orchestration for your projects.
 

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import difflib
+
 from dbnd._core.errors import DatabandBuildError, UnknownParameterError
 from dbnd._core.errors.friendly_error.helpers import _band_call_str
 from dbnd._core.utils.basics.text_banner import safe_string
@@ -24,6 +26,23 @@ def unknown_parameter_in_constructor(constructor, param_name, task_parent):
     return UnknownParameterError(
         "Unknown parameter '{param_name}' at {constructor}".format(
             constructor=constructor, param_name=param_name
+        ),
+        help_msg=help_msg,
+    )
+
+
+def unknown_parameter_in_config(task_name, param_name, source, task_param_names):
+    close_matches = difflib.get_close_matches(param_name, task_param_names)
+    if close_matches:
+        help_msg = "Did you mean: %s" % (", ".join(close_matches))
+    else:
+        help_msg = "Remove {param_name} from the configuration".format(
+            param_name=param_name
+        )
+
+    return UnknownParameterError(
+        "Unknown parameter '{param_name}' (source: {source}) in config for task '{task_name}'".format(
+            task_name=task_name, param_name=param_name, source=source
         ),
         help_msg=help_msg,
     )

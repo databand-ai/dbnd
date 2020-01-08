@@ -23,7 +23,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
 
-TASK_PARAMS_COUNT = 12
+TASK_PARAMS_COUNT = 13
 DEFAULT_CLASS_VERSION = ""
 
 

@@ -64,10 +64,8 @@ class TestTaskDecoratorsPY3(TargetTestBase):
                 "b_datetime=2018-01-01T101010.1",
                 "-r",
                 " c_timedelta=5d",
-                "-r",
-                "d_int=1",
                 "--set",
-                json.dumps({"t_d_1": {"a": "1"}}),
+                json.dumps({"t_d_1": {"d_int": 1}}),
             ]
         )
 

@@ -124,10 +124,12 @@ class DbndConfig(object):
         current_layer = self.config_layer
         current_initialized_with_env = self.initialized_with_env
         # this will create new layer
-        self.config_layer = config_layer
-        yield self
-        self.config_layer = current_layer
-        self.initialized_with_env = current_initialized_with_env
+        try:
+            self.config_layer = config_layer
+            yield self
+        finally:
+            self.config_layer = current_layer
+            self.initialized_with_env = current_initialized_with_env
 
     def set_values(
         self, config_values, source=None, override=False, merge_settings=None

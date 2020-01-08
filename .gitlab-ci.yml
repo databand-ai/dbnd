@@ -174,6 +174,27 @@ dbnd_examples_py36:
     reports:
       junit: .tox/dbnd-examples/junit/junit-py36.xml
 
+dbnd_databricks_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd plugins/dbnd-databricks
+    - tox -e py36
+  artifacts:
+    reports:
+      junit: plugins/dbnd-databricks/build/junit-py36.xml
+
+dbnd_databricks_py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd plugins/dbnd-databricks
+    - tox -e py27
+  artifacts:
+    reports:
+      junit: plugins/dbnd-databricks/build/junit-py27.xml
+
+
 build_pypi_whl:
   stage: build-base
   image: python:3.6

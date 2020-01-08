@@ -14,9 +14,6 @@ def dbnd_setup_plugin():
     register_file_system(AZURE_BLOB_FS_NAME, build_azure_blob_fs_client)
     register_file_system_name_custom_resolver(match_azure_blob_path)
 
-
-@dbnd.hookimpl
-def dbnd_setup_plugin():
     from dbnd_azure.env import AzureCloudConfig
 
     register_config_cls(AzureCloudConfig)

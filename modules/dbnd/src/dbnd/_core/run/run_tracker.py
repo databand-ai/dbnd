@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 class RunTracker(RunCtrl):
     def __init__(self, run, tracking_store):
         super(RunTracker, self).__init__(run)
-        self.tracker_url = self.settings.core.tracker_url
+        self.databand_url = self.settings.core.databand_url
         self.tracking_store = tracking_store  # type: TrackingStore
 
-        if self.tracker_url:
-            self.run_url = "{tracker_url}/app/jobs/{job_name}/{run_uid}".format(
-                tracker_url=self.tracker_url,
+        if self.databand_url:
+            self.run_url = "{databand_url}/app/jobs/{job_name}/{run_uid}".format(
+                databand_url=self.databand_url,
                 job_name=self.run.job_name,
                 run_uid=self.run.run_uid,
             )

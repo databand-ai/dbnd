@@ -558,18 +558,16 @@ class S3Client(FileSystem):
         return exists
 
     def _exists(self, bucket, key):
-        s3_key = False
         try:
             self.s3.Object(bucket, key).load()
+            return True
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] in ["NoSuchKey", "404"]:
-                s3_key = False
+                return False
+            elif e.response["Error"]["Code"] in ["Forbidden", "403"]:
+                return False
             else:
                 raise
-        else:
-            s3_key = True
-        if s3_key:
-            return True
 
     def open_read(self, path, mode="r"):
         s3_key = self.get_key(path)

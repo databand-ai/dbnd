@@ -70,7 +70,7 @@ class TaskSyncCtrl(TaskRunCtrl):
         return remote_file
 
     def _upload(self, local_file, remote_file):
-        remote_file.copy_from_local(local_file)
+        remote_file.copy_from_local(local_file.path)
 
     def _exists(self, remote_file):
         return remote_file.exists()
