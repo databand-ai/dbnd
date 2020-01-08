@@ -4,6 +4,7 @@ from functools import update_wrapper
 
 from dbnd._vendor import click
 from dbnd._vendor.click import get_current_context
+from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
 
 SCHEDULED_JOB_HEADERS = [
@@ -139,8 +140,8 @@ def delete(scheduled_job_service, name, force):
     "@once, @hourly, @daily, @weekly, @monthly or @yearly. "
     + "See documentation for precise definitions of the presets",
 )
-@click.option("--start-date", "-s", type=click.DateTime(formats=datetime_formats))
-@click.option("--end-date", "-ed", type=click.DateTime(formats=datetime_formats))
+@click.option("--start-date", "-s", type=TZAwareDateTime(formats=datetime_formats))
+@click.option("--end-date", "-ed", type=TZAwareDateTime(formats=datetime_formats))
 @click.option(
     "--catchup",
     "-cu",
