@@ -142,6 +142,7 @@ class DatabandContext(SingletonContext):
             pm.hook.dbnd_on_existing_context(ctx=self)
 
         self.tracking_store = self.settings.core.get_tracking_store()
+        self.scheduled_job_service = self.settings.core.get_scheduled_job_service()
 
         # we do it every time we go into databand_config
         self.configure_targets()
