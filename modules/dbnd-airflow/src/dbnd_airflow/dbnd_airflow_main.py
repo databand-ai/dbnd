@@ -61,8 +61,6 @@ def main(args=None):
         setup_versioned_dags,
     )
 
-    logging.getLogger("airflow").setLevel(logging.DEBUG)
-
     # ORIGINAL CODE from  airflow/bin/airflow
     if conf.get("core", "security") == "kerberos":
         os.environ["KRB5CCNAME"] = conf.get("kerberos", "ccache")
