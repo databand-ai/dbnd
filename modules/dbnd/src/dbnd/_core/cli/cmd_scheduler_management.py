@@ -63,13 +63,17 @@ def schedule(ctx):
 
 
 @schedule.command()
-@click.option("--all", is_flag=True, help="Lists all deleted scheduled jobs")
+@click.option(
+    "--all", "-a", "include_all", is_flag=True, help="Lists all deleted scheduled jobs"
+)
 @click.option("--verbose", "-v", is_flag=True, help="Print extra job details")
 @pass_service
 @click.pass_context
-def list(ctx, scheduled_job_service, all, verbose):
+def list(ctx, scheduled_job_service, include_all, verbose):
     """List scheduled jobs"""
-    scheduled_jobs = scheduled_job_service.get_scheduled_jobs(include_deleted=all)
+    scheduled_jobs = scheduled_job_service.get_scheduled_jobs(
+        include_deleted=include_all
+    )
 
     ctx.obj["headers"] = (
         SCHEDULED_JOB_VERBOSE_HEADERS if verbose else SCHEDULED_JOB_HEADERS
