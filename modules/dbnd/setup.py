@@ -7,8 +7,6 @@ setuptools.setup(
     install_requires=[
         "tzlocal>=1.0.0,<2.0.0",
         "six",
-        "colorlog",
-        "termcolor",
         "more_itertools",
         "cachetools",
         "attrs",
@@ -33,8 +31,9 @@ setuptools.setup(
         'contextlib2; python_version < "3"',
         "croniter>=0.3.30,<0.4",
     ],
-    extras_require=dict(
-        tests=[
+    extras_require={
+        ':sys_platform=="win32"': ["colorama"],
+        "tests": [
             "coverage",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov",
@@ -56,7 +55,7 @@ setuptools.setup(
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
             "openpyxl==2.6.4",
             "sklearn",
-        ]
-    ),
+        ],
+    },
     entry_points={"console_scripts": ["dbnd = dbnd:dbnd_main"]},
 )

@@ -82,7 +82,7 @@ def wrong_return_value_len(task, names, result):
 
 def failed_to_run_spark_script(task, cmd, application, return_code, error_snippets):
     return DatabandRuntimeError(
-        "spark_submit failed with return code %s. Failed to run: %s. "
+        "spark_submit failed with return code %s. Failed to run: %s"
         % (return_code, cmd),
         show_exc_info=False,
         nested_exceptions=error_snippets,
@@ -93,7 +93,7 @@ def failed_to_run_spark_script(task, cmd, application, return_code, error_snippe
 
 def failed_to_run_cmd(name, cmd_str, return_code):
     return DatabandRuntimeError(
-        "{name} has failed, returncode='{return_code}'. Failed to run: {cmd}. ".format(
+        "{name} has failed, returncode='{return_code}'. Failed to run: {cmd}".format(
             name=name, return_code=return_code, cmd=cmd_str
         ),
         show_exc_info=False,

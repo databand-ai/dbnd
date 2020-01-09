@@ -6,18 +6,11 @@ from contextlib import contextmanager
 from logging.config import dictConfig
 from typing import Optional
 
-from dbnd._core.log.logging_utils import capture_log_into_file, setup_log_file
+from dbnd._core.log.logging_utils import setup_log_file
 
 
 END_OF_LOG_MARK = "end_of_log"
 logger = logging.getLogger(__name__)
-
-
-def get_task_logger():
-    for h in logging.getLogger("databand.task_logger").handlers:
-        if h.name == "task_file":
-            return h
-    return None
 
 
 FORMAT_FULL = "[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s"
@@ -32,8 +25,8 @@ def basic_logging_config(
     filename=None,
     log_level=logging.INFO,
     console_stream=sys.stderr,
-    console_formatter="formatter_colorlog",
-    file_formatter="formatter_full",
+    console_formatter_name="formatter_colorlog",
+    file_formatter_name="formatter_full",
 ):
     # type: (...) -> Optional[dict]
 
@@ -44,7 +37,7 @@ def basic_logging_config(
             "formatter_full": {"format": FORMAT_FULL},
             "formatter_simple": {"format": FORMAT_SIMPLE},
             "formatter_colorlog": {
-                "()": "colorlog.ColoredFormatter",
+                "()": "dbnd._vendor.colorlog.ColoredFormatter",
                 "format": FORMAT_COLORLOG,
                 "reset": True,
             },
@@ -53,7 +46,7 @@ def basic_logging_config(
             "console": {
                 "class": "logging.StreamHandler",
                 "stream": console_stream,
-                "formatter": console_formatter,
+                "formatter": console_formatter_name,
             }
         },
         "root": {"handlers": ["console"], "level": log_level},
@@ -62,7 +55,7 @@ def basic_logging_config(
         setup_log_file(filename)
         config["handlers"]["file"] = {
             "class": "logging.FileHandler",
-            "formatter": file_formatter,
+            "formatter": file_formatter_name,
             "filename": filename,
             "encoding": "utf-8",
         }
@@ -106,19 +99,6 @@ def configure_logging_dictConfig(dict_config):
     except Exception:
         logging.exception("Unable to configure logging using %s!", dict_config)
         raise
-
-
-@contextmanager
-def captures_log_into_file_as_task_file(log_file):
-    task_file = get_task_logger()
-    if not task_file:
-        yield None
-        return
-
-    with capture_log_into_file(
-        log_file=log_file, formatter=task_file.formatter, level=task_file.level
-    ) as handler:
-        yield handler
 
 
 def configure_basic_logging(log_file):

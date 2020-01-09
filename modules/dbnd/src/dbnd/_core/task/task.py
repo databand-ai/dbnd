@@ -21,6 +21,7 @@ from targets.values.version_value import VersionStr
 if typing.TYPE_CHECKING:
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_run.task_run import TaskRun
+    from dbnd._core.run.databand_run import DatabandRun
 
 TASK_PARAMS_COUNT = 13
 DEFAULT_CLASS_VERSION = ""
@@ -283,6 +284,7 @@ class Task(_BaseTask, _TaskParamContainer):
 
     @dbnd_handle_errors(exit_on_error=False)
     def dbnd_run(self):
+        # type: (...)-> DatabandRun
         """
         Run task via Databand execution system
         """

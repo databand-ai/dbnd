@@ -18,7 +18,7 @@ from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
 from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
-from dbnd_airflow.config import AirflowFeaturesConfig, get_dbnd_default_args
+from dbnd_airflow.config import AirflowConfig, get_dbnd_default_args
 from dbnd_airflow.db_utils import remove_listener_by_name
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
     AirflowDagAsDbndTask,
@@ -157,7 +157,7 @@ class AirflowTaskExecutor(TaskExecutor):
             target_engine=target_engine,
             task_runs=task_runs,
         )
-        self.airflow_features = AirflowFeaturesConfig()
+        self.airflow_config = AirflowConfig()
 
     def build_airflow_dag(self, task_runs):
         # create new dag from current tasks and tasks selected to run
@@ -228,7 +228,7 @@ class AirflowTaskExecutor(TaskExecutor):
 
         airflow_task_executor = self._get_airflow_executor()
 
-        if self.airflow_features.disable_db_ping_on_connect:
+        if self.airflow_config.disable_db_ping_on_connect:
             from airflow import settings as airflow_settings
 
             try:
@@ -266,6 +266,10 @@ class AirflowTaskExecutor(TaskExecutor):
         )
 
         airflow_task_executor.fail_fast = s_run.fail_fast
+        # we don't want to be stopped by zombie jobs/tasks
+        airflow_conf.set("core", "dag_concurrency", str(10000))
+        airflow_conf.set("core", "max_active_runs_per_dag", str(10000))
+
         job = SingleDagRunJob(
             dag=af_dag,
             execution_date=databand_run.execution_date,
@@ -281,7 +285,7 @@ class AirflowTaskExecutor(TaskExecutor):
             delay_on_limit_secs=delay_on_limit,
             verbose=s.system.verbose,
             heartrate=heartrate,
-            airflow_features=self.airflow_features,
+            airflow_config=self.airflow_config,
         )
 
         # we need localDagJob to be available from "internal" functions

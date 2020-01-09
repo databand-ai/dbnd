@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import logging
+import os
 import shlex
 import subprocess
 import sys
@@ -28,23 +29,16 @@ from dbnd._vendor.click_didyoumean import DYMGroup
 logger = logging.getLogger(__name__)
 
 
-# backward compatibility where code is old and docker image is new
-class AliasedGroup(DYMGroup):
-    def get_command(self, ctx, cmd_name):
-        known_aliases = {
-            "init_project": "project-init",
-            "initdb": "db init",
-            "create_user": "db user-create",
-            "run_remote": "run",
-        }
-        cmd_name = known_aliases.get(cmd_name, cmd_name)
-
-        return super(AliasedGroup, self).get_command(ctx, cmd_name)
-
-
-@click.group(cls=AliasedGroup)
+@click.group(cls=DYMGroup)
 def cli():
     dbnd_bootstrap()
+
+    from dbnd import config
+
+    # if we are running from "dbnd" entrypoint, we probably do not need to load Scheduled DAG
+    # this will prevent from every airflow command to access dbnd web api
+    if config.getboolean("airflow", "auto_disable_scheduled_dags_load"):
+        os.environ["ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD"] = "True"
     pass
 
 
@@ -69,7 +63,7 @@ cli.add_command(send_heartbeat)
 
 @dbnd_handle_errors(exit_on_error=False)
 def dbnd_cmd(command, args):
-    """ 
+    """
     Invokes the passed dbnd command with CLI args emulation.
 
     Parameters:

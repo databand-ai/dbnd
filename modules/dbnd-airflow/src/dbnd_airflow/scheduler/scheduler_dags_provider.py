@@ -6,7 +6,6 @@ import time
 from typing import List, Union
 
 from airflow import DAG
-from airflow.bin.cli import set_is_paused
 from airflow.models import BaseOperator, DagModel
 
 from dbnd import new_dbnd_context, override, task
@@ -14,6 +13,8 @@ from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
     DBND_RESUBMIT_RUN,
     DBND_RUN_UID,
+    ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD,
+    environ_enabled,
     in_quiet_mode,
 )
 from dbnd._core.configuration.scheduler_file_config_loader import (
@@ -21,7 +22,7 @@ from dbnd._core.configuration.scheduler_file_config_loader import (
 )
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
-from dbnd._core.settings import RunConfig
+from dbnd._core.settings import LoggingConfig, RunConfig
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import convert_to_utc
@@ -143,21 +144,25 @@ class DbndSchedulerOperator(BaseOperator):
             scheduled_date=context.get("task_instance").execution_date,
         )
 
-        launcher_task = launcher.task(
-            scheduled_cmd=self.scheduled_cmd,
-            task_name=context.get("dag").dag_id,
-            task_version="now",
-        )
-
+        # disable heartbeat at this level,
+        # otherwise scheduled jobs that will run on Kubernetes
+        # will always have a heartbeat even if the actual driver
+        # sent to Kubernetes is lost down the line,
+        # which is the main purpose of the heartbeat
         with new_dbnd_context(
             name="airflow",
             conf={
                 RunConfig.task_executor_type: override(TaskExecutorType.local),
                 RunConfig.parallel: override(False),
+                LoggingConfig.disabled: override(True),
             },
         ) as dc:
-            # disable heartbeat at this level, otherwise scheduled jobs that will run on Kubernetes will always have a heartbeat even if the actual driver
-            # sent to Kubernetes is lost down the line, which is the main purpose of the heartbeat
+            launcher_task = launcher.task(
+                scheduled_cmd=self.scheduled_cmd,
+                task_name=context.get("dag").dag_id,
+                task_version="now",
+            )
+
             dc.dbnd_run_task(
                 task_or_task_name=launcher_task,
                 scheduled_run_info=scheduled_run_info,
@@ -174,6 +179,8 @@ def launcher(scheduled_cmd):
 
 
 def get_dags():
+    if environ_enabled(ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD):
+        return None
     from dbnd._core.errors.base import DatabandConnectionException, DatabandApiError
 
     try:

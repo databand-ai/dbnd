@@ -4,8 +4,6 @@ import typing
 
 import six
 
-from termcolor import colored
-
 from dbnd._core.constants import SystemTaskName
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import get_help_msg, show_exc_info
@@ -15,6 +13,7 @@ from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.task_run.task_run_error import task_call_source_to_str
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_string, safe_tabulate
 from dbnd._core.utils.structures import list_of_strings
+from dbnd._vendor.termcolor import colored
 from targets import DataTarget, Target
 
 

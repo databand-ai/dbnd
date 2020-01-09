@@ -7,6 +7,7 @@ from collections import defaultdict
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.errors import DatabandConfigError, friendly_error, show_error_once
+from dbnd._core.log.logging_utils import TaskContextFilter
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.task_build.task_context import TaskContextPhase, task_context
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
@@ -33,10 +34,14 @@ class TaskRunRunner(TaskRunCtrl):
     @contextlib.contextmanager
     def task_run_execution_context(self):
         ctx_managers = [
-            self.task_run.log.capture_task_log(),
             task_context(self.task_run.task, TaskContextPhase.RUN),
+            TaskContextFilter.task_context(self.task.task_id),
+            self.task_run.log.capture_task_log(),
             config.config_layer_context(self.task.task_meta.config_layer),
         ]
+
+        ctx_managers.append(self.task_run.log.capture_stderr_stdout())
+
         ctx_managers += pm.hook.dbnd_task_run_context(task_run=self.task_run)
         with contextlib.ExitStack() as stack:
             for mgr in ctx_managers:

@@ -4,10 +4,8 @@ import typing
 
 import dbnd
 
-from dbnd import dbnd_config
-from dbnd_airflow.utils import AIRFLOW_LEGACY_URL_KEY
 
-
+AIRFLOW_LEGACY_URL_KEY = "airflow"
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
@@ -23,18 +21,9 @@ def dbnd_setup_plugin():
     configure_airflow_sql_alchemy_conn()
 
     from dbnd import register_config_cls
-    from dbnd_airflow.config import AirflowFeaturesConfig
+    from dbnd_airflow.config import AirflowConfig
 
-    register_config_cls(AirflowFeaturesConfig)
-
-
-@dbnd.hookimpl
-def dbnd_get_commands():
-    from dbnd_airflow.cli.cmd_airflow import airflow
-
-    from dbnd_airflow.cli.cmd_scheduler import scheduler
-
-    return [airflow, scheduler]
+    register_config_cls(AirflowConfig)
 
 
 @dbnd.hookimpl
@@ -58,11 +47,9 @@ def dbnd_post_enter_context(ctx):  # type: (DatabandContext) -> None
 
 
 def configure_airflow_sql_alchemy_conn():
-    from dbnd_airflow.airflow_extensions.airflow_config import (
-        set_airflow_sql_conn_from_dbnd_config,
-    )
+    from dbnd_airflow.airflow_extensions.airflow_config import reinit_airflow_sql_conn
 
-    set_airflow_sql_conn_from_dbnd_config()
+    reinit_airflow_sql_conn()
 
 
 @dbnd.hookimpl
@@ -76,21 +63,19 @@ def dbnd_setup_unittest():
     logger.info("Reading Airflow test config at %s" % TEST_CONFIG_FILE)
     airflow_configuration.conf.read(TEST_CONFIG_FILE)
 
-    sql_alchemy_conn = dbnd_config.get("core", "sql_alchemy_conn")
+    sql_alchemy_conn = airflow_configuration.get("core", "sql_alchemy_conn")
     if sql_alchemy_conn.find("unittests.db") == -1:
         logger.warning(
             "You should set SQL_ALCHEMY_CONN to sqlite:///.../unittests.db for tests! %s"
             % sql_alchemy_conn
         )
-    from dbnd_airflow.airflow_extensions.airflow_config import (
-        set_airflow_sql_conn_from_dbnd_config,
-    )
+    from dbnd_airflow.airflow_extensions.airflow_config import reinit_airflow_sql_conn
 
-    set_airflow_sql_conn_from_dbnd_config()
+    reinit_airflow_sql_conn()
 
-    from dbnd_airflow.cli import cmd_airflow
+    from dbnd_airflow.dbnd_airflow_main import subprocess_airflow
 
-    cmd_airflow.airflow(args=["initdb"], standalone_mode=False)
+    subprocess_airflow(args=["initdb"])
 
 
 @dbnd.hookimpl

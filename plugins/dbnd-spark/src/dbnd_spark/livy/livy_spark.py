@@ -2,12 +2,11 @@ import logging
 
 import six
 
-from termcolor import colored
-
 from dbnd._core.current import current_task_run
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.http.endpoint import Endpoint
 from dbnd._core.utils.structures import list_of_strings
+from dbnd._vendor.termcolor import colored
 from dbnd_spark.livy.livy_batch import LivyBatchClient
 from dbnd_spark.spark import SparkTask
 from dbnd_spark.spark_ctrl import SparkCtrl
