@@ -1,6 +1,7 @@
-[![pipeline status](https://gitlab.com/databand/dbnd/badges/master/pipeline.svg)](https://gitlab.com/databand/dbnd/commits/master) [![coverage report](https://gitlab.com/databand/dbnd/badges/master/coverage.svg)](https://gitlab.com/databand/dbnd/commits/master) 
+[![pipeline status](https://gitlab.com/databand-ai/dbnd/badges/master/pipeline.svg)](https://gitlab.com/databand-ai/dbnd/pipelines) [![coverage report](https://gitlab.com/databand-ai/dbnd/badges/master/coverage.svg)](https://gitlab.com/databand-ai/dbnd/commits/master) 
 
-![PyPI - Downloads](https://img.shields.io/pypi/dm/dbnd) ![PyPI](https://img.shields.io/pypi/v/dbnd) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dbnd) ![PyPI - License](https://img.shields.io/pypi/l/dbnd) 
+![PyPI - Downloads](https://img.shields.io/pypi/dm/dbnd) ![PyPI](https://img.shields.io/pypi/v/dbnd) 
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dbnd) ![PyPI - License](https://img.shields.io/pypi/l/dbnd) 
 ![Code style: ](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 # DBND Core 
