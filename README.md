@@ -11,6 +11,8 @@ DBND is an agile pipeline framework that helps date engineering teams track and 
 **DBND simplifies the process of building, running, and tracking data pipelines**
  
 ```python
+from dbnd import task
+
 @task
 def say_hello(name: str = "databand.ai") -> str:
     value = "Hello %s!" % name
@@ -20,6 +22,8 @@ def say_hello(name: str = "databand.ai") -> str:
 **And provides way for tracking your critical pipeline metadata**
 
 ```python
+    from dbnd import log_metric, log_dataframe
+    
     log_dataframe("my_dataset", my_dataset) 
     log_metric("r2", r2)
 ```
