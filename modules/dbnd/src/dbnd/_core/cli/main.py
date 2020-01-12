@@ -10,7 +10,6 @@ from functools import partial
 
 import six
 
-from dbnd import dbnd_bootstrap
 from dbnd._core.cli.cmd_execute import execute
 from dbnd._core.cli.cmd_heartbeat import send_heartbeat
 from dbnd._core.cli.cmd_project import project_init
@@ -18,6 +17,7 @@ from dbnd._core.cli.cmd_run import run
 from dbnd._core.cli.cmd_scheduler_management import schedule
 from dbnd._core.cli.cmd_show import show_configs, show_tasks
 from dbnd._core.cli.cmd_utils import ipython
+from dbnd._core.context.bootstrap import _dbnd_exception_handling, dbnd_bootstrap
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.plugin.dbnd_plugins import pm, register_dbnd_plugins
@@ -90,6 +90,7 @@ dbnd_schedule_cmd = partial(dbnd_cmd, "schedule")
 
 
 def main():
+    _dbnd_exception_handling()
     configure_basic_logging(None)
     register_dbnd_plugins()
 

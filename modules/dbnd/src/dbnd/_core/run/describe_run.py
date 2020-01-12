@@ -170,8 +170,12 @@ class DescribeRun(RunCtrl):
             ]
 
         for task_run in failed_task_runs:
+            if task_run.task_run_state == TaskRunState.SHUTDOWN:
+                msg_header = "Task has been terminated!"
+            else:
+                msg_header = "Task has failed!"
             msg = task_run.task.ctrl.banner(
-                msg="Task has failed!", color="red", task_run=task_run
+                msg=msg_header, color="red", task_run=task_run
             )
             err_banners.append(msg)
 
