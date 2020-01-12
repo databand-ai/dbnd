@@ -66,6 +66,14 @@ class DatabandRuntimeError(DatabandError):
     _default_show_exc_info = False
 
 
+class DatabandSigTermError(DatabandError):
+    """
+    SIGTERM received by the process
+    """
+
+    _default_show_exc_info = False
+
+
 class DatabandSystemError(Exception):
     """
     Databand error that should not happen!
