@@ -76,7 +76,7 @@ class TaskRunRunner(TaskRunCtrl):
             try:
 
                 def signal_handler(signum, frame):
-                    logger.error(
+                    logger.warning(
                         "Received SIGTERM. Raising  DatabandSigTermError() exception!"
                     )
                     raise DatabandSigTermError(
