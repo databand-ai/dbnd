@@ -715,9 +715,14 @@ class _DbndDriverTask(Task):
             logger.info(run.describe.run_banner_for_finished())
             return run
         else:
+            submitter_help_message = (
+                " * Use '--interactive' to have blocking run (wait for driver completion)\n"
+                " * Use '--local-driver' (env.submit_driver=False) to run your driver locally\n"
+            )
+            if run.run_url:
+                submitter_help_message += " * manage your run at %s" % run.run_url
             logger.info(
-                run.describe.run_banner_for_submitted() + "\n "
-                "Please use --interactive to have blocking run, or --local-driver (env.submit_driver=False) to run your driver locally"
+                run.describe.run_banner_for_submitted() + "\n " + submitter_help_message
             )
 
 
