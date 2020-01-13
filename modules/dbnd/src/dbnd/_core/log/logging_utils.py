@@ -73,6 +73,19 @@ def setup_log_file(log_file):
     setup_logs_dir(os.path.dirname(log_file))
 
 
+def create_file_handler(log_file, fmt=None):
+    fmt = fmt or "%(asctime)s %(levelname)s - %(message)s"
+    formatter = logging.Formatter(fmt=fmt)
+
+    # "formatter": log_settings.file_formatter,
+    log_file = str(log_file)
+    setup_log_file(log_file)
+    handler = logging.FileHandler(filename=log_file, encoding="utf-8")
+    handler.setFormatter(formatter)
+    handler.setLevel(logging.INFO)
+    return handler
+
+
 @contextmanager
 def override_log_formatting(log_format):
     original_formatters = [handler.formatter for handler in logger.root.handlers]

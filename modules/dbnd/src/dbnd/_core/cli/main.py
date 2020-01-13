@@ -38,7 +38,7 @@ def cli():
     # if we are running from "dbnd" entrypoint, we probably do not need to load Scheduled DAG
     # this will prevent from every airflow command to access dbnd web api
     if config.getboolean("airflow", "auto_disable_scheduled_dags_load"):
-        os.environ["ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD"] = "True"
+        os.environ["DBND_DISABLE_SCHEDULED_DAGS_LOAD"] = "True"
     pass
 
 
