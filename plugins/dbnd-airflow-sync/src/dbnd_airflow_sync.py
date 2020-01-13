@@ -1,6 +1,3 @@
-from airflow.plugins_manager import AirflowPlugin
-from .views import ExportDataViewAdmin, ExportDataViewAppBuilder
-
 import datetime
 import logging
 import os
@@ -12,20 +9,13 @@ import pendulum
 from airflow.configuration import conf
 from airflow.jobs import BaseJob
 from airflow.models import BaseOperator, DagModel, DagRun
+from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
 from sqlalchemy import or_
 
 import flask_admin
-
-
-class DataExportAirflowPlugin(AirflowPlugin):
-    name = "airflow_data_export_plugin"
-    admin_views = [ExportDataViewAdmin(category="Admin", name="Export Data")]
-    appbuilder_views = [
-        {"category": "Admin", "name": "Export Data", "view": ExportDataViewAppBuilder()}
-    ]
 
 
 try:
@@ -42,7 +32,9 @@ def do_export_data(dagbag, since, session=None):
     if not task_instances and not dagruns:
         return ExportData([], [], [])
 
-    dag_models = _get_dag_models(dagruns.keys() if since else None, session)
+    dag_models = _get_dag_models(
+        dagruns.keys() if since and isinstance(dagruns, dict) else None, session
+    )
 
     ed = ExportData(
         task_instances=[
@@ -171,7 +163,7 @@ class ETaskInstance(object):
             try_number=ti._try_number,
             task_id=ti.task_id,
             start_date=ti.start_date,
-            end_date=ti.end_date or job.latest_heartbeat,
+            end_date=ti.end_date or job.latest_heartbeat if job else None,
             log_body=_get_log(ti, task),
         )
 
@@ -424,3 +416,14 @@ def handle_export_data(dagbag):
         result = result.as_dict()
 
     return result
+
+
+### Plugin ###
+
+
+class DataExportAirflowPlugin(AirflowPlugin):
+    name = "airflow_data_export_plugin"
+    admin_views = [ExportDataViewAdmin(category="Admin", name="Export Data")]
+    appbuilder_views = [
+        {"category": "Admin", "name": "Export Data", "view": ExportDataViewAppBuilder()}
+    ]

@@ -125,8 +125,6 @@ class CoreConfig(Config):
             self.databand_url = self.databand_url[:-1]
 
     def get_sql_alchemy_conn(self):
-        if "api" in self.tracker and self.tracker_api == "local_db":
-            return "sqlite:///" + databand_system_path("dbnd.db")
         return self.sql_alchemy_conn
 
     @property
@@ -174,15 +172,17 @@ class CoreConfig(Config):
 
             if not databand_url:
                 logger.info(
-                    "Although 'wapi' was set in 'core.tracker', and 'web' was set in 'core.tracker_api'"
+                    "Although 'api' was set in 'core.tracker', and 'web' was set in 'core.tracker_api'"
                     "dbnd will not use it since 'core.databand_url' was not set."
                 )
                 return
 
             # TODO Add auth actually
             channel = TrackingApiClient(api_base_url=databand_url, auth=None)
-        elif tracker_api in ("db", "local_db"):
-            assert_web_enabled("It is required because of tracker_api=%s" % tracker_api)
+        elif tracker_api == "db":
+            assert_web_enabled(
+                "It is required when trying to use local db connection (tracker_api=db)."
+            )
 
             from dbnd_web.api.v1.tracking_api import (
                 TrackingApiHandler as DirectDbChannel,

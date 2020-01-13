@@ -89,7 +89,7 @@ def wrong_store_name(name):
 
 def wrong_tracking_api_name(name):
     return DatabandConfigError(
-        "Unsupported tracking api: '{}', use one of web/db/local_db".format(name),
+        "Unsupported tracking api: '{}', use one of web/db".format(name),
         help_msg="Please check you configuration at [core] tracker_api.",
     )
 

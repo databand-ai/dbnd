@@ -11,6 +11,7 @@ import attr
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
@@ -132,6 +133,11 @@ def build_dynamic_task(original_cls, new_cls_name):
     flag_value=0,
     help="Run submission in blocking mode",
 )
+@click.option(
+    "--direct-db",
+    help="Use local db with direct connection instead of communication through web api.",
+    is_flag=True,
+)
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.pass_context
 def run(
@@ -159,6 +165,7 @@ def run(
     interactive,
     submit_driver,
     submit_tasks,
+    direct_db,
 ):
     """
     Run a task or a DAG
@@ -235,6 +242,22 @@ def run(
         cmd_line_config.update(
             _parse_cli([{"task_build.verbose": True}], source="-v -v")
         )
+    if direct_db:
+        from dbnd import databand_system_path
+
+        direct_db_configuration = {"core": {"tracker_api": "db"}}
+        local_db_path = "sqlite:///" + databand_system_path("dbnd.db")
+
+        if not is_unit_test_mode():
+            direct_db_configuration["core"]["sql_alchemy_conn"] = local_db_path
+
+        logger.info(
+            "You are now using --direct-db mode. "
+            "Please make sure 'dbnd_web' module is installed and db exist on: %s",
+            local_db_path,
+        )
+
+        config.set_values(direct_db_configuration, source="--direct-db", override=True)
 
     if cmd_line_config:
         config.set_values(cmd_line_config, source="cmdline")

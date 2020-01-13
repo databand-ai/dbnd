@@ -47,12 +47,12 @@ class RunInfoSchema(ApiObjectSchema):
     execution_date = fields.DateTime()
 
     # move to task
-    target_date = fields.Date()
-    version = fields.String()
+    target_date = fields.Date(allow_none=True)
+    version = fields.String(allow_none=True)
 
     driver_name = fields.String()
     is_archived = fields.Boolean()
-    env_name = fields.String()
+    env_name = fields.String(allow_none=True)
     cloud_type = fields.String()
     trigger = fields.String()
     task_executor = fields.String(allow_none=True)

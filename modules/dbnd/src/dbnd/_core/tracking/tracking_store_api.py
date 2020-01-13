@@ -35,7 +35,7 @@ class TrackingStoreApi(TrackingStore):
         return self._m(
             self.channel.init_scheduled_job,
             scheduled_job_info_schema,
-            init_args=scheduled_job,
+            **scheduled_job.__dict__
         )
 
     def init_run(self, run):
@@ -43,6 +43,9 @@ class TrackingStoreApi(TrackingStore):
 
         init_args = TrackingInfoBuilder(run).build_init_args()
 
+        return self.init_run_from_args(init_args=init_args)
+
+    def init_run_from_args(self, init_args):
         return self._m(self.channel.init_run, init_run_schema, init_args=init_args)
 
     def add_task_runs(self, run, task_runs):
