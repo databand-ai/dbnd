@@ -300,6 +300,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     def __init__(self, kube_dbnd, **kwargs):
         super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
         self.kube_dbnd = kube_dbnd  # type: DbndKubernetesClient
+        self.processed_events = {}
 
     def run(self):
         """Performs watching"""
@@ -375,8 +376,16 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.log.debug("Event: %s Pending", pod_id)
         elif status == "Failed":
             self.log.debug("Event: %s Failed", pod_id)
+            if self.processed_events.get(pod_id) == State.FAILED:
+                self.log.debug("Event: %s Failed - skipping as seen", pod_id)
+                return
+            self.processed_events[pod_id] = State.FAILED
             self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))
         elif status == "Succeeded":
+            if self.processed_events.get(pod_id) == State.SUCCESS:
+                self.log.debug("Event: %s Success - skipping as seen", pod_id)
+                return
+            self.processed_events[pod_id] = State.SUCCESS
             self.log.debug("Event: %s Succeeded", pod_id)
             self.watcher_queue.put((pod_id, None, labels, resource_version))
         elif status == "Running":
