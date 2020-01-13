@@ -33,6 +33,10 @@ class TrackingStore(object):
         # type: (DatabandRun) -> List[int]
         pass
 
+    def init_run_from_args(self, init_args):
+        # type: (InitRunArgs) -> List[int]
+        pass
+
     def set_run_state(self, run, state, timestamp=None):
         pass
 
@@ -65,6 +69,9 @@ class TrackingStore(object):
         pass
 
     def heartbeat(self, run_uid):
+        pass
+
+    def update_task_run_attempts(self, task_run_attempt_updates):
         pass
 
 
@@ -108,6 +115,9 @@ class CompositeTrackingStore(TrackingStore):
     def init_run(self, **kwargs):
         return self._invoke(CompositeTrackingStore.init_run.__name__, kwargs)
 
+    def init_run_from_args(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.init_run_from_args.__name__, kwargs)
+
     def set_run_state(self, **kwargs):
         return self._invoke(CompositeTrackingStore.set_run_state.__name__, kwargs)
 
@@ -143,3 +153,8 @@ class CompositeTrackingStore(TrackingStore):
 
     def heartbeat(self, **kwargs):
         return self._invoke(CompositeTrackingStore.heartbeat.__name__, kwargs)
+
+    def update_task_run_attempts(self, **kwargs):
+        return self._invoke(
+            CompositeTrackingStore.update_task_run_attempts.__name__, kwargs
+        )

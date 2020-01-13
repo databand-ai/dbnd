@@ -79,7 +79,7 @@ class InitRunArgsSchema(ApiObjectSchema):
     run_uid = fields.UUID()
     root_run_uid = fields.UUID()
 
-    driver_task_uid = fields.UUID()
+    driver_task_uid = fields.UUID(allow_none=True)
 
     task_run_env = fields.Nested(TaskRunEnvInfoSchema)
     task_runs_info = fields.Nested(TaskRunsInfoSchema)
@@ -298,6 +298,15 @@ class ScheduledJobInfo(object):
     deleted_from_file = attr.ib(default=False)  # type: bool
     list_order = attr.ib(default=None)  # type: List[int]
     job_name = attr.ib(default=None)  # type: Optional[str]
+
+    def asdict(self):
+        return attr.asdict(self, recurse=False)
+
+    def keys(self):
+        return list(self.__dict__.keys())
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
 
 
 class ScheduledJobInfoSchema(ApiObjectSchema):

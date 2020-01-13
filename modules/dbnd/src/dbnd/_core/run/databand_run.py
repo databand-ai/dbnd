@@ -715,10 +715,7 @@ class _DbndDriverTask(Task):
             logger.info(run.describe.run_banner_for_finished())
             return run
         else:
-            logger.info(
-                run.describe.run_banner_for_submitted() + "\n "
-                "Please use --interactive to have blocking run, or --local-driver (env.submit_driver=False) to run your driver locally"
-            )
+            logger.info(run.describe.run_banner_for_submitted())
 
 
 def new_databand_run(context, task_or_task_name, run_uid=None, **kwargs):

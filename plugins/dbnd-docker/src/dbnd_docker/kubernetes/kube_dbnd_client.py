@@ -57,9 +57,6 @@ class DbndKubernetesClient(object):
     def process_pod_event(self, event):
         pod_data = event["object"]
 
-        if event["type"] == "ERROR":
-            return None
-
         pod_name = pod_data.metadata.name
         phase = pod_data.status.phase
         if phase == "Pending":
@@ -93,7 +90,6 @@ class DbndKubernetesClient(object):
 
     def dbnd_set_task_pending_fail(self, pod_data, ex):
         metadata = pod_data.metadata
-        logs = None
 
         task_run = _get_task_run_from_pod_data(pod_data)
         if not task_run:
@@ -102,17 +98,14 @@ class DbndKubernetesClient(object):
 
         task_run_error = TaskRunError.buid_from_ex(ex, task_run)
 
-        try:
-            pp = pprint.PrettyPrinter(indent=4)
-            logs = pp.pformat(pod_data.status)
-            logger.info(logs)
-        except Exception as ex:
-            logger.error("failed to get pod status log for %s: %s", metadata.name, ex)
+        status_log = _get_status_log_safe(pod_data)
         logger.info(
-            "Pod is Pending with exception, marking it as failed. Pod Status:\n%s", logs
+            "Pod '%s' is Pending with exception, marking it as failed. Pod Status:\n%s",
+            metadata.name,
+            status_log,
         )
         task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
-        task_run.tracker.save_task_run_log(logs)
+        task_run.tracker.save_task_run_log(status_log)
 
     def dbnd_set_task_success(self, pod_data):
         metadata = pod_data.metadata
@@ -140,8 +133,16 @@ class DbndKubernetesClient(object):
 
     def dbnd_set_task_failed(self, pod_data):
         metadata = pod_data.metadata
-        logger.debug("getting failure info")
         # noinspection PyBroadException
+        logger.debug("Getting task run")
+        task_run = _get_task_run_from_pod_data(pod_data)
+        if not task_run:
+            logger.info("Can't find a task run for %s", metadata.name)
+            return
+        if task_run.task_run_state == TaskRunState.FAILED:
+            logger.info("Skipping 'failure' event from %s", metadata.name)
+            return
+
         pod_ctrl = self.get_pod_ctrl(metadata.name, metadata.namespace)
         logs = []
         try:
@@ -152,22 +153,27 @@ class DbndKubernetesClient(object):
         except Exception as ex:
             logger.error("failed to get log for %s: %s", metadata.name, ex)
 
-        logger.debug("Getting task run")
-        task_run = _get_task_run_from_pod_data(pod_data)
-        if not task_run:
-            logger.info("Can't find a task run for %s", metadata.name)
-            return
-        if task_run.task_run_state == TaskRunState.FAILED:
-            logger.info("Skipping 'failure' event from %s", metadata.name)
-            return
+        try:
+            short_log = "\n".join(["out:%s" % l for l in logs[:15]])
+        except Exception as ex:
+            logger.error(
+                "failed to build short log message for %s: %s", metadata.name, ex
+            )
+            short_log = None
+
+        status_log = _get_status_log_safe(pod_data)
 
         from dbnd._core.task_run.task_run_error import TaskRunError
 
         # work around to build an error object
         try:
+            err_msg = "Pod %s at %s has failed!" % (metadata.name, metadata.namespace)
+            if short_log:
+                err_msg += "\nLog:%s" % short_log
+            if status_log:
+                err_msg += "\nPod Status:%s" % status_log
             raise DatabandError(
-                "Pod %s at %s has failed! (15 lines of log, see more details in UI):\n%s"
-                % (metadata.name, metadata.namespace, "\n".join(logs[:15])),
+                err_msg,
                 show_exc_info=False,
                 help_msg="Please see full pod log for more details",
             )
@@ -450,6 +456,15 @@ class DbndPodCtrl(object):
 
         self.wait()
         return self
+
+
+def _get_status_log_safe(pod_data):
+    try:
+        pp = pprint.PrettyPrinter(indent=4)
+        logs = pp.pformat(pod_data.status)
+        return logs
+    except Exception as ex:
+        return "failed to get pod status log for %s: %s" % (pod_data.metadata.name, ex)
 
 
 def _get_task_run_from_pod_data(pod_data):

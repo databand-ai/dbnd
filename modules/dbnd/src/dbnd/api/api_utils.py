@@ -68,7 +68,7 @@ class ApiClient(object):
 
             # get the csrf token cookie (if enabled on the server)
             self.session.get(urljoin(self._api_base_url, "/app"))
-            csrf_token = self.session.cookies.get("csrftoken")
+            csrf_token = self.session.cookies.get("dbnd_csrftoken")
             if csrf_token:
                 self.session.headers["X-CSRFToken"] = csrf_token
 

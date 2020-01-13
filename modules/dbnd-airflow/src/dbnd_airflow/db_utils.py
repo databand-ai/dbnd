@@ -42,7 +42,11 @@ def trace_sqlalchemy_query(connection, cursor, query, *_):
     for (file_path, val1, val2, line_contents) in traceback.extract_stack():
         if "airflow" not in file_path:
             continue
-        if "utils/sqlalchemy.py" in file_path or "utils/db.py" in file_path:
+        if (
+            "utils/sqlalchemy.py" in file_path
+            or "utils/db.py" in file_path
+            or "db_utils" in file_path
+        ):
             continue
         code = str((file_path, val1, val2, line_contents))
 

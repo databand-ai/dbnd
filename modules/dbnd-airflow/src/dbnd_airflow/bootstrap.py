@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -17,11 +18,14 @@ def _fix_sys_path():
 
 
 def set_airflow_sql_conn_from_dbnd_config():
+    logging.debug("updating airflow config from dbnd config")
     from dbnd._core.configuration.dbnd_config import config as dbnd_config
 
     sql_alchemy_conn = dbnd_config.get("airflow", "sql_alchemy_conn")
     if sql_alchemy_conn == "dbnd":
+        logging.debug("updating airflow sql from dbnd core.sql_alchemy_conn")
         sql_alchemy_conn = dbnd_config.get("core", "sql_alchemy_conn")
+
     if sql_alchemy_conn and "AIRFLOW__CORE__SQL_ALCHEMY_CONN" not in os.environ:
         os.environ["AIRFLOW__CORE__SQL_ALCHEMY_CONN"] = sql_alchemy_conn
 

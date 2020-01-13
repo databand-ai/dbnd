@@ -140,11 +140,13 @@ class DescribeRun(RunCtrl):
         return self.run_banner("Your run has failed!", color="red", show_run_info=True)
 
     def run_banner_for_submitted(self):
+        msg = (
+            "Your run has been submitted! Please check submitted job in UI\n"
+            " * Use '--interactive' to have blocking run (wait for driver completion)\n"
+            " * Use '--local-driver' (env.submit_driver=False) to run your driver locally\n"
+        )
         return self.run_banner(
-            "Your run has been submitted! Please check submitted job in UI",
-            color="green",
-            show_run_info=False,
-            show_tasks_info=False,
+            msg, color="green", show_run_info=False, show_tasks_info=False
         )
 
     def get_error_banner(self):
@@ -170,8 +172,12 @@ class DescribeRun(RunCtrl):
             ]
 
         for task_run in failed_task_runs:
+            if task_run.task_run_state == TaskRunState.SHUTDOWN:
+                msg_header = "Task has been terminated!"
+            else:
+                msg_header = "Task has failed!"
             msg = task_run.task.ctrl.banner(
-                msg="Task has failed!", color="red", task_run=task_run
+                msg=msg_header, color="red", task_run=task_run
             )
             err_banners.append(msg)
 

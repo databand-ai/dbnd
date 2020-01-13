@@ -41,11 +41,11 @@ class TaskDefinitionInfoSchema(ApiObjectSchema):
     class_version = fields.String()
     family = fields.String()
 
-    module_source = fields.String()
-    module_source_hash = fields.String()
+    module_source = fields.String(allow_none=True)
+    module_source_hash = fields.String(allow_none=True)
 
-    source = fields.String()
-    source_hash = fields.String()
+    source = fields.String(allow_none=True)
+    source_hash = fields.String(allow_none=True)
 
     type = fields.String()
 

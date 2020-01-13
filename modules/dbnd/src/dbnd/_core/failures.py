@@ -33,7 +33,7 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
     if isinstance(ex, DatabandRunError):
         # we already printed all information!
         return (
-            "Boom! There is an error! Your run has failed!",
+            "There is an error! Your run has failed!",
             DatabandExitCodes.execution_failed,
         )
 
@@ -81,7 +81,7 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
             " Please report it to support@databand.ai or appropriate slack channel!"
         )
     msg = (
-        "Boom! There is an error! Your run has failed with {exc_type}\n"
+        "There is an error! Your run has failed with {exc_type}\n"
         "{sep}\n"
         " Command line: {command_line}\n"
         " Failure:\n{msg}\n\n"

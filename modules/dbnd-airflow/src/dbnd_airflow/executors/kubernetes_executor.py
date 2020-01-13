@@ -29,6 +29,7 @@ from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
 from dbnd._core.current import try_get_databand_run
+from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
@@ -299,6 +300,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     def __init__(self, kube_dbnd, **kwargs):
         super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
         self.kube_dbnd = kube_dbnd  # type: DbndKubernetesClient
+        self.processed_events = {}
 
     def run(self):
         """Performs watching"""
@@ -312,6 +314,8 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                         self.worker_uuid,
                         self.kube_config,
                     )
+                except DatabandSigTermError:
+                    break
                 except Exception:
                     self.log.exception("Unknown error in KubernetesJobWatcher. Failing")
                     raise
@@ -321,7 +325,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                         "last resource_version: %s",
                         self.resource_version,
                     )
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, DatabandSigTermError):
             pass
 
     def _run(self, kube_client, resource_version, worker_uuid, kube_config):
@@ -354,7 +358,18 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
             if event["type"] == "ERROR":
                 return self.process_error(event)
+
+            pod_data = event["object"]
+            pod_name = pod_data.metadata.name
+            phase = pod_data.status.phase
+
+            if self.processed_events.get(pod_name):
+                self.log.debug("Event: %s at %s - skipping as seen", phase, pod_name)
+                return
             status = self.kube_dbnd.process_pod_event(event)
+
+            if status in ["Succeeded", "Failed"]:
+                self.processed_events[pod_name] = status
 
             self.process_status_quite(
                 task.metadata.name,

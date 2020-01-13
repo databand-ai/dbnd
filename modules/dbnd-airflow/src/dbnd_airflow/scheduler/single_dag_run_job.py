@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import datetime
 import logging
 
-from airflow import AirflowException, executors, models
+from airflow import executors, models
 from airflow.jobs import BackfillJob, BaseJob
 from airflow.models import DagRun, TaskInstance
 from airflow.ti_deps.dep_context import RUNNABLE_STATES, RUNNING_DEPS, DepContext
@@ -18,8 +18,6 @@ from dbnd._core.constants import TaskRunState
 from dbnd._core.current import get_databand_run
 from dbnd._core.errors import DatabandExecutorError, DatabandSystemError, friendly_error
 from dbnd._core.task_run.task_run import TaskRun
-from dbnd._core.utils.basics import format_exception
-from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd_airflow.config import AirflowConfig
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
@@ -686,7 +684,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             # to be run again before exiting
             if hasattr(executor, "commands_to_run"):
                 executor.commands_to_run = []
-            executor.end()
+            try:
+                executor.end()
+            except Exception:
+                logger.exception("Failed to terminate executor")
             session.commit()
 
         self.log.info("Run is completed. Exiting.")
