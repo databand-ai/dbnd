@@ -21,11 +21,11 @@ import logging
 import subprocess
 
 from airflow.executors.base_executor import BaseExecutor
+from airflow.utils.dag_processing import SimpleTaskInstance
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
 from dbnd._core import current
-from dbnd._core.current import get_databand_context, try_get_databand_run
 from dbnd._core.errors import DatabandError, show_error_once
 
 
@@ -41,20 +41,18 @@ class InProcessExecutor(BaseExecutor):
     Does'nt start new process!
     """
 
-    def __init__(self, fail_fast=False):
+    def __init__(self, fail_fast=False, dag_bag=None):
         super(InProcessExecutor, self).__init__()
         self.tasks_to_run = []
         self.fail_fast = fail_fast
+        self.dag_bag = dag_bag
 
     def execute_async(self, key, command, queue=None, executor_config=None):
-        self.tasks_to_run.append((key, command))
+        self.tasks_to_run.append((key, command, queue))
 
     def sync(self):
-        context = get_databand_context()
-        run = try_get_databand_run()
         task_failed = False
-        for key, command in self.tasks_to_run:
-            ti = command[0]
+        for key, ti, pool in self.tasks_to_run:
             if self.fail_fast and task_failed:
                 logger.info("Setting %s to %s", key, State.UPSTREAM_FAILED)
                 ti.set_state(State.UPSTREAM_FAILED)
@@ -69,11 +67,10 @@ class InProcessExecutor(BaseExecutor):
                 self.change_state(key, State.FAILED)
                 continue
 
-            self.log.debug("Executing task: %s", command[0])
+            self.log.debug("Executing task: %s", ti)
 
             try:
-                self._run_task_instance(ti, **command[1])
-
+                self._run_task_instance(ti, mark_success=False, pool=pool)
                 self.change_state(key, State.SUCCESS)
             except subprocess.CalledProcessError as e:
                 task_failed = True
@@ -97,6 +94,16 @@ class InProcessExecutor(BaseExecutor):
 
         self.tasks_to_run = []
 
+    def queue_command(self, simple_task_instance, command, priority=1, queue=None):
+        key = simple_task_instance.key
+        if key not in self.queued_tasks and key not in self.running:
+            self.log.info("Adding to queue: %s", command)
+            # we replace command with just task_instance
+            command = simple_task_instance
+            self.queued_tasks[key] = (command, priority, queue, simple_task_instance)
+        else:
+            self.log.info("could not queue task %s", key)
+
     def queue_task_instance(
         self,
         task_instance,
@@ -112,18 +119,7 @@ class InProcessExecutor(BaseExecutor):
 
         self.queue_command(
             task_instance,
-            (
-                task_instance,
-                dict(
-                    mark_success=mark_success,
-                    # ignore_all_deps =ignore_all_deps,
-                    # ignore_depends_on_past=ignore_depends_on_past,
-                    # ignore_task_deps=ignore_task_deps,
-                    # ignore_ti_state=ignore_ti_state,
-                    pool=pool,
-                    # pickle_id=pickle_id,
-                ),
-            ),
+            None,
             priority=task_instance.task.priority_weight_total,
             queue=task_instance.task.queue,
         )
@@ -131,8 +127,7 @@ class InProcessExecutor(BaseExecutor):
     def end(self):
         # we are not async executor
         # so we can just return from the execution here
-        for key, command in self.tasks_to_run:
-            ti = command[0]
+        for key, ti, pool in self.tasks_to_run:
             logger.info("Setting %s to %s", key, State.UPSTREAM_FAILED)
             ti.set_state(State.UPSTREAM_FAILED)
             self.change_state(key, State.UPSTREAM_FAILED)
@@ -145,19 +140,15 @@ class InProcessExecutor(BaseExecutor):
         self.running.pop(key)
         self.event_buffer[key] = state
 
-    def queue_command(self, task_instance, command, priority=1, queue=None):
-        key = task_instance.key
-        if key not in self.queued_tasks and key not in self.running:
-            self.log.debug("Adding to queue: %s", command)
-            self.queued_tasks[key] = (command, priority, queue, task_instance)
-        else:
-            self.log.info("could not queue task {}".format(key))
-
-    # EOF override
-
     @provide_session
     def _run_task_instance(self, ti, mark_success, pool, session=None):
         # set proper state and try number to keep logger in sync
+        if isinstance(ti, SimpleTaskInstance):
+            from airflow.models import TaskInstance
+
+            dag = self.dag_bag.get_dag(ti.dag_id)
+            task = dag.get_task(ti.task_id)
+            ti = TaskInstance(task, ti.execution_date)
         ti.state = State.RUNNING
         ti._try_number += 1
         # let save state
