@@ -1,8 +1,6 @@
 import logging
 import os
 import signal
-import sys
-import threading
 import warnings
 
 import dbnd
@@ -36,31 +34,18 @@ def _suppress_warnings():
     warnings.simplefilter("ignore", FutureWarning)
 
 
-# override exception hooks
-def excepthook(exctype, value, traceback):
-    if exctype == KeyboardInterrupt:
-        sys.exit(1)
-    else:
-        sys.__excepthook__(exctype, value, traceback)
-
-
 def _dbnd_exception_handling():
-    import six
-
-    if six.PY3:
-        sys.excepthook = excepthook
-
     if windows_compatible_mode:
         return
 
     # Enables graceful shutdown when running inside docker/kubernetes and subprocess shutdown
-    # (used by Airflow for watchers).
     # By default the kill signal is SIGTERM while our code mostly expects SIGINT (KeyboardInterrupt)
     try:
-        if isinstance(threading.current_thread(), threading._MainThread):
-            signal.signal(
-                signal.SIGTERM, lambda sig, frame: os.kill(os.getpid(), signal.SIGINT)
-            )
+
+        def sigterm_handler(sig, frame):
+            os.kill(os.getpid(), signal.SIGINT)
+
+        signal.signal(signal.SIGTERM, sigterm_handler)
     except Exception as ex:
         pass
 
@@ -105,7 +90,6 @@ def dbnd_bootstrap():
     from targets.marshalling import register_basic_data_marshallers
 
     register_basic_data_marshallers()
-    _dbnd_exception_handling()
 
     _surpress_loggers()
     _suppress_warnings()
