@@ -287,7 +287,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             env_vars[ENV_DBND_AUTO_REMOVE_POD] = "True"
         env_vars[self._params.get_param_env_key("in_cluster")] = "True"
         env_vars["AIRFLOW__KUBERNETES__IN_CLUSTER"] = "True"
-        env_vars[GIT_ENV] = get_project_git()  # git repo not packaged in docker image
+        env_vars[
+            "DBND__RUN_INFO__SOURCE_VERSION"
+        ] = task_run.run.context.settings.run_info.source_version
         env_vars.update(
             self._params.to_env_map("container_repository", "container_tag")
         )

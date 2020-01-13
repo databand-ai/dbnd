@@ -57,9 +57,6 @@ class DbndKubernetesClient(object):
     def process_pod_event(self, event):
         pod_data = event["object"]
 
-        if event["type"] == "ERROR":
-            return None
-
         pod_name = pod_data.metadata.name
         phase = pod_data.status.phase
         if phase == "Pending":

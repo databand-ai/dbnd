@@ -358,7 +358,18 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
             if event["type"] == "ERROR":
                 return self.process_error(event)
+
+            pod_data = event["object"]
+            pod_name = pod_data.metadata.name
+            phase = pod_data.status.phase
+
+            if self.processed_events.get(pod_name):
+                self.log.debug("Event: %s at %s - skipping as seen", phase, pod_name)
+                return
             status = self.kube_dbnd.process_pod_event(event)
+
+            if status in ["Succeeded", "Failed"]:
+                self.processed_events[pod_name] = status
 
             self.process_status_quite(
                 task.metadata.name,
@@ -376,16 +387,8 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.log.debug("Event: %s Pending", pod_id)
         elif status == "Failed":
             self.log.debug("Event: %s Failed", pod_id)
-            if self.processed_events.get(pod_id) == State.FAILED:
-                self.log.debug("Event: %s Failed - skipping as seen", pod_id)
-                return
-            self.processed_events[pod_id] = State.FAILED
             self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))
         elif status == "Succeeded":
-            if self.processed_events.get(pod_id) == State.SUCCESS:
-                self.log.debug("Event: %s Success - skipping as seen", pod_id)
-                return
-            self.processed_events[pod_id] = State.SUCCESS
             self.log.debug("Event: %s Succeeded", pod_id)
             self.watcher_queue.put((pod_id, None, labels, resource_version))
         elif status == "Running":
