@@ -33,5 +33,3 @@ def _patch_windows_compatible():
 def enable_airflow_windows_support():
     if os.name == "nt":
         _patch_windows_compatible()
-
-
