@@ -75,12 +75,15 @@ def dbnd_system_bootstrap():
 
 
 _dbnd_bootstrap = False
+_dbnd_bootstrap_started = False
 
 
 def dbnd_bootstrap():
     global _dbnd_bootstrap
-    if _dbnd_bootstrap:
+    global _dbnd_bootstrap_started
+    if _dbnd_bootstrap_started:
         return
+    _dbnd_bootstrap_started = True
 
     dbnd_system_bootstrap()
     from targets.marshalling import register_basic_data_marshallers
