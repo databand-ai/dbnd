@@ -1,4 +1,6 @@
 import logging
+import os
+import string
 import typing
 from collections import Callable
 
@@ -58,6 +60,8 @@ def get_file_system_name(path):
         fs_prefix = path.split(":")[0]
         if fs_prefix in KNOWN_FILE_SYSTEMS:
             return fs_prefix
+        if os.name == "nt" and fs_prefix.lower() in get_windows_drives():
+            return FileSystems.local
 
     for cfs in CUSTOM_FILE_SYSTEM_MATCHERS:
         found_fs_name = cfs(path)
@@ -67,9 +71,23 @@ def get_file_system_name(path):
     if path.startswith("/"):
         return FileSystems.local
 
-    if fs_prefix:
+    if fs_prefix and not os.name == 'nt':  #
         raise DatabandRuntimeError(
             "Can't find file system '%s'" % fs_prefix,
             help_msg="Please check that you have registered required schema with `register_file_system` or relevant plugin is installed",
         )
     return FileSystems.local
+
+
+def get_windows_drives():
+    import string
+    from ctypes import windll
+
+    drives = []
+    bitmask = windll.kernel32.GetLogicalDrives()
+    for letter in string.ascii_lowercase:
+        if bitmask & 1:
+            drives.append(letter)
+        bitmask >>= 1
+
+    return drives

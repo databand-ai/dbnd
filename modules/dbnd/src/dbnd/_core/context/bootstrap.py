@@ -78,13 +78,9 @@ _dbnd_bootstrap = False
 
 
 def dbnd_bootstrap():
-
     global _dbnd_bootstrap
     if _dbnd_bootstrap:
         return
-
-    # if for any reason there will be code that calls dbnd_bootstrap, this will prevent endless recursion
-    _dbnd_bootstrap = True
 
     dbnd_system_bootstrap()
     from targets.marshalling import register_basic_data_marshallers
@@ -121,3 +117,6 @@ def dbnd_bootstrap():
     user_preinit = environ_config.get_user_preinit()
     if user_preinit:
         run_user_func(user_preinit)
+
+    # if for any reason there will be code that calls dbnd_bootstrap, this will prevent endless recursion
+    _dbnd_bootstrap = True
