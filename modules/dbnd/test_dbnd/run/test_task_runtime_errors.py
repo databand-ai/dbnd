@@ -3,7 +3,7 @@ import pytest
 from pandas import DataFrame
 
 from dbnd import PythonTask, data, output
-from dbnd._core.errors import DatabandExecutorError
+from dbnd._core.errors import DatabandRunError
 from test_dbnd.targets_tests import TargetTestBase
 
 
@@ -17,7 +17,7 @@ class TMissingOutputs(PythonTask):
 
 class TestTaskErrors(TargetTestBase):
     def test_no_outputs(self, capsys):
-        with pytest.raises(DatabandExecutorError, match="Failed tasks are"):
+        with pytest.raises(DatabandRunError, match="Airflow executor has failed"):
             TMissingOutputs().dbnd_run()
 
     def test_to_read_input(self, capsys):
@@ -30,5 +30,5 @@ class TestTaskErrors(TargetTestBase):
 
         t = self.target("some_input.json").write("corrupted dataframe")
 
-        with pytest.raises(DatabandExecutorError, match="Failed tasks are"):
+        with pytest.raises(DatabandRunError, match="Airflow executor has failed"):
             TCorruptedInput(some_input=t).dbnd_run()

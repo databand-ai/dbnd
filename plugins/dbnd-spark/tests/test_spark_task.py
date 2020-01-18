@@ -3,7 +3,7 @@ import pytest
 from pytest import mark
 
 from dbnd import parameter
-from dbnd._core.errors import DatabandExecutorError
+from dbnd._core.errors import DatabandRunError
 from dbnd.tasks import Config
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_airflow_contrib.mng_connections import set_connection
@@ -50,7 +50,7 @@ class TestSparkTasksLocally(object):
 
     def test_word_spark_with_error(self):
         actual = WordCountThatFails(text=__file__)
-        with pytest.raises(DatabandExecutorError):
+        with pytest.raises(DatabandRunError):
             actual.dbnd_run()
 
     def test_spark_inline(self):

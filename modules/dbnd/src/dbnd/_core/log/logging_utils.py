@@ -192,8 +192,10 @@ class TaskContextFilter(logging.Filter):
     def task_context(cls, task_id):
         original_task = cls.task
         cls.task = task_id
-        yield cls
-        cls.task = original_task
+        try:
+            yield cls
+        finally:
+            cls.task = original_task
 
 
 def find_handler(logger, handler_name):

@@ -56,6 +56,7 @@ class _decorated_user_func(object):
             call_user_code=self.task_func, call_args=args, call_kwargs=kwargs
         )
 
+    @dbnd_handle_errors(exit_on_error=False)
     def dbnd_run(self, *args, **kwargs):
         # type: (...)-> DatabandRun
         """

@@ -7,7 +7,7 @@ from dbnd._core.context import bootstrap
 from dbnd._core.errors import (
     DatabandConfigError,
     DatabandError,
-    DatabandExecutorError,
+    DatabandRunError,
     DatabandRuntimeError,
     DatabandSystemError,
     friendly_error,
@@ -43,7 +43,7 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
         code = DatabandExitCodes.execution_failed
     elif isinstance(ex, DatabandConfigError):
         code = DatabandExitCodes.configuration_error
-    elif isinstance(ex, DatabandExecutorError):
+    elif isinstance(ex, DatabandRunError):
         code = DatabandExitCodes.execution_failed
     elif isinstance(ex, DatabandSystemError):
         code = DatabandExitCodes.error
@@ -103,7 +103,6 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
             extra_msg="\n ".join(extra_msg_lines),
         )
     )
-
     return msg, code
 
 

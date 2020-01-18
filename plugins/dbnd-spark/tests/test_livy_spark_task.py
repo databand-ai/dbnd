@@ -4,7 +4,7 @@ import random
 import pytest
 
 from dbnd import config
-from dbnd._core.errors import DatabandExecutorError
+from dbnd._core.errors import DatabandRunError
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_spark.spark_config import SparkConfig
 from dbnd_test_scenarios.spark.spark_tasks import (
@@ -53,7 +53,7 @@ class TestEmrSparkTasks(object):
             task_version=str(random.random()),
             override=conf_override,
         )
-        with pytest.raises(DatabandExecutorError):
+        with pytest.raises(DatabandRunError):
             actual.dbnd_run()
 
     @pytest.mark.skip

@@ -16,7 +16,8 @@ from sqlalchemy.orm.session import make_transient
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import get_databand_run
-from dbnd._core.errors import DatabandExecutorError, DatabandSystemError, friendly_error
+from dbnd._core.errors import DatabandSystemError, friendly_error
+from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd_airflow.config import AirflowConfig
@@ -670,7 +671,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
             err = self._collect_errors(ti_status=ti_status, session=session)
             if err:
-                raise DatabandExecutorError(err)
+                raise DatabandRunError("Airflow executor has failed to run the run")
 
             if run_date not in ti_status.executed_dag_run_dates:
                 self.log.warning(

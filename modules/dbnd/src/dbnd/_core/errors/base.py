@@ -86,15 +86,7 @@ class DatabandConfigError(DatabandError):
     _default_show_exc_info = False
 
 
-class DatabandExecutorError(DatabandError):
-    """
-    Databand executor(airflow) failed to run some tasks
-    """
-
-    _default_show_exc_info = False
-
-
-class DatabandRunError(DatabandExecutorError):
+class DatabandRunError(DatabandError):
     """
     Databand executor(airflow) failed to run some tasks
     """
@@ -105,6 +97,11 @@ class DatabandRunError(DatabandExecutorError):
         run = kwargs.pop("run", None)
 
         super(DatabandRunError, self).__init__(*args, **kwargs)
+        if run is None:
+            from dbnd import get_databand_run
+
+            run = get_databand_run()
+
         self.run = run
 
 

@@ -367,8 +367,10 @@ class DatabandRun(SingletonContext):
             )
 
     def _dbnd_run_error(self, ex):
-        if "airflow" not in ex.__class__.__name__.lower() and "Failed tasks are:" not in str(
-            ex
+        if (
+            "airflow" not in ex.__class__.__name__.lower()
+            and "Failed tasks are:" not in str(ex)
+            and not isinstance(ex, DatabandRunError)
         ):
             logger.exception(ex)
 
@@ -401,6 +403,9 @@ class DatabandRun(SingletonContext):
         # with captures_log_into_file_as_task_file(log_file=self.local_driver_log.path):
         try:
             self.driver_task_run.runner.execute()
+        except DatabandRunError as ex:
+            self._dbnd_run_error(ex)
+            raise
         except (Exception, KeyboardInterrupt, SystemExit) as ex:
             raise self._dbnd_run_error(ex)
         finally:

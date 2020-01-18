@@ -1,9 +1,8 @@
 import logging
 
-from dbnd._core import current
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandError
-from dbnd._core.errors.base import DatabandExecutorError
+from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.task_ctrl.task_dag import topological_sort
 from dbnd._core.task_executor.task_executor import TaskExecutor
 
@@ -61,7 +60,7 @@ class LocalTaskExecutor(TaskExecutor):
             err = _collect_errors(self.run.task_runs)
 
             if err:
-                raise DatabandExecutorError(err)
+                raise DatabandRunError(err)
 
 
 def _collect_errors(task_runs):

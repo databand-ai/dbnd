@@ -2,7 +2,7 @@ import json
 import logging
 
 from dbnd import PythonTask, dbnd_run_cmd, parameter
-from dbnd._core.errors import DatabandExecutorError
+from dbnd._core.errors import DatabandRunError
 from dbnd.testing.helpers_pytest import run_locally__raises
 from test_dbnd.factories import TTask
 
@@ -118,7 +118,7 @@ class TestTaskCmdLine(object):
             ]
         )
         run_locally__raises(
-            DatabandExecutorError,
+            DatabandRunError,
             [
                 "TConfigTask",
                 "-s",
@@ -135,7 +135,7 @@ class TestTaskCmdLine(object):
         """
 
         run_locally__raises(
-            DatabandExecutorError,
+            DatabandRunError,
             [
                 "TConfigTask",
                 "-r",

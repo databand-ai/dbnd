@@ -2,7 +2,6 @@ import pytest
 import six
 
 from dbnd import data
-from dbnd._core.errors import DatabandExecutorError, DatabandRuntimeError
 from dbnd.testing.helpers_pytest import assert_run_task
 from targets import target
 from targets.target_config import file
