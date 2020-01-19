@@ -186,8 +186,7 @@ class LoggingConfig(config.Config):
 
         if airflow_task_log_handler:
             logging.root.handlers.append(airflow_task_log_handler)
-        if not in_quiet_mode():
-            logger.info("Databand logging is up!")
+        logger.debug("Databand logging is up!")
 
     def dbnd_override_airflow_logging_on_task_run(self):
         # EXISTING STATE:

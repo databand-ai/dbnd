@@ -39,7 +39,7 @@ def use_databand_airflow_dagbag():
 
 def patch_airflow_create_app():
     if not in_quiet_mode():
-        logger.info("Adding support for versioned DBND DagBag")
+        logger.debug("Adding support for versioned DBND DagBag")
     from airflow.www_rbac import app as airflow_app
 
     def patch_create_app(create_app_func):
