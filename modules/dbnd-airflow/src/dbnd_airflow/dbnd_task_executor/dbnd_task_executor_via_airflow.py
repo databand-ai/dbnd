@@ -214,7 +214,29 @@ class AirflowTaskExecutor(TaskExecutor):
     def do_run(self):
         dag = self.build_airflow_dag(task_runs=self.task_runs)
         with set_dag_as_current(dag):
+            from dbnd.api.tracking_api import AirflowTaskInfo
+
             self.run_airflow_dag(dag)
+            af_instances = []
+            for task_run in self.task_runs:
+                if not task_run.is_reused:
+                    # we build airflow infos only for not reused tasks
+                    af_instance = AirflowTaskInfo(
+                        execution_date=self.run.execution_date,
+                        dag_id=dag.dag_id,
+                        task_id=task_run.task_af_id,
+                        task_run_attempt_uid=task_run.task_run_attempt_uid,
+                    )
+                    af_instances.append(af_instance)
+            if af_instances:
+                self.run.tracker.tracking_store.save_airflow_task_infos(
+                    airflow_task_infos=af_instances,
+                    is_airflow_synced=False,
+                    base_url="http://{}:{}".format(
+                        self.context.config.get("airflow", "host"),
+                        self.context.config.get("airflow", "port"),
+                    ),
+                )
 
     @provide_session
     def run_airflow_dag(self, dag, session=None):
