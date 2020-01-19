@@ -55,22 +55,24 @@ class ConsoleStore(tracking_store.TrackingStore):
         )
         level = logging.INFO
         color = "cyan"
+        task_friendly_id = task_run.task_af_id
         if state in [TaskRunState.RUNNING, TaskRunState.QUEUED]:
-            task_msg = "Running task %s" % task.task_id
+            task_msg = "Running task %s" % task_friendly_id
         elif state == TaskRunState.SUCCESS:
-            task_msg = "Task %s has been completed!" % (task.task_id)
+            task_msg = "Task %s has been completed!" % (task_friendly_id)
             color = "green"
         elif state == TaskRunState.FAILED:
-            task_msg = "Task %s has failed!" % (task.task_id)
+            task_msg = "Task %s has failed!" % (task_friendly_id)
             color = "red"
             level = logging.ERROR
-            show_simple_log = False
+            if task_run.task.get_task_family() != "_DbndDriverTask":
+                show_simple_log = False
         elif state == TaskRunState.SHUTDOWN:
-            task_msg = "Task %s has been canceled!" % (task.task_id)
+            task_msg = "Task %s has been canceled!" % (task_friendly_id)
             color = "red"
             level = logging.ERROR
         else:
-            task_msg = "Task %s at %s state" % (task.task_id, state)
+            task_msg = "Task %s at %s state" % (task_friendly_id, state)
 
         if show_simple_log:
             logger.log(level, task_msg)

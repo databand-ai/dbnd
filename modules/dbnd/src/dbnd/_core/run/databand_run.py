@@ -21,6 +21,7 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND__USER_PRE_INIT,
 )
 from dbnd._core.constants import (
+    DescribeFormat,
     RunState,
     SystemTaskName,
     TaskExecutorType,
@@ -691,12 +692,26 @@ class _DbndDriverTask(Task):
         task_runs = self.build_root_task_runs(run)
 
         # right now we run describe in local controller only, but we should do that for more
-        if run.context.settings.system.describe and self.is_driver:
-            run.describe_dag.describe_dag()
-            logger.info(run.describe.run_banner("Described!", color="blue"))
-            return
+        if self.is_driver:
+            if run.context.settings.system.describe:
+                run.describe_dag.describe_dag()
+                logger.info(run.describe.run_banner("Described!", color="blue"))
+                return
 
-            # without driver task!
+            root_task_run = run.root_task_run
+            run.root_task.ctrl.banner(
+                "Main task '%s' has been created!" % root_task_run.task_af_id,
+                color="cyan",
+                task_run=root_task_run,
+            )
+            from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
+
+            completed = {tr.task.task_id: tr.is_reused for tr in task_runs}
+            run_describe_dag = DescribeDagCtrl(
+                root_task_run.task, DescribeFormat.short, complete_status=completed
+            )
+            run_describe_dag.tree_view(describe_format=DescribeFormat.short)
+
         task_executor = run.run_config.get_task_executor(
             run,
             self.task_executor_type,

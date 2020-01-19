@@ -19,6 +19,8 @@ class LocalTaskExecutor(TaskExecutor):
         task_runs_to_update_state = []
         for task in topological_tasks:
             tr = self.run.get_task_run_by_id(task.task_id)
+            if tr.is_reused:
+                continue
 
             if fail_fast and task_failed:
                 logger.info(
