@@ -5,7 +5,7 @@ from typing import Dict
 import pytest
 import six
 
-from dbnd import PipelineTask, output, parameter
+from dbnd import PipelineTask, new_dbnd_context, output, parameter
 from dbnd._core.errors import DatabandRunError
 from dbnd.tasks import PythonTask
 from dbnd.testing.helpers_pytest import assert_run_task
@@ -55,9 +55,10 @@ class TestTaskInputs(object):
     #     assert_run_task(t)
 
     def test_input_is_missing_file(self):
-        with pytest.raises(DatabandRunError, match="Airflow executor has failed"):
-            t = TTaskWithInput(t_input="file_that_not_exists")
-            assert_run_task(t)
+        with new_dbnd_context(conf={"run": {"task_executor_type": "local"}}):
+            with pytest.raises(DatabandRunError, match="Failed tasks are:"):
+                t = TTaskWithInput(t_input="file_that_not_exists")
+                assert_run_task(t)
 
     def test_inject_dict(self):
         class TTaskCombineInputs(PythonTask):
