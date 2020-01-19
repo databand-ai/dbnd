@@ -74,6 +74,10 @@ class TrackingStore(object):
     def update_task_run_attempts(self, task_run_attempt_updates):
         pass
 
+    def save_airflow_task_infos(self, airflow_task_infos, is_airflow_synced, base_url):
+        # type: (List[AirflowTaskInfo], bool, str) -> None
+        pass
+
 
 class CompositeTrackingStore(TrackingStore):
     def __init__(self, stores):
@@ -153,6 +157,11 @@ class CompositeTrackingStore(TrackingStore):
 
     def heartbeat(self, **kwargs):
         return self._invoke(CompositeTrackingStore.heartbeat.__name__, kwargs)
+
+    def save_airflow_task_infos(self, **kwargs):
+        return self._invoke(
+            CompositeTrackingStore.save_airflow_task_infos.__name__, kwargs
+        )
 
     def update_task_run_attempts(self, **kwargs):
         return self._invoke(
