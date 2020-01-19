@@ -30,6 +30,7 @@ class LoggingConfig(config.Config):
     capture_task_run_log = parameter.help("Capture task output into log").value(True)
 
     override_airflow_logging_on_task_run = parameter.value(True)
+    support_jupiter = parameter.value(True)
 
     level = parameter.value("INFO")
     formatter = parameter[str]
@@ -112,6 +113,12 @@ class LoggingConfig(config.Config):
         console_stream = (
             sys.__stdout__ if log_settings.stream_stdout else sys.__stderr__
         )
+
+        if "ipykernel" in sys.modules and self.support_jupiter:
+            # we can not use __stdout__ or __stderr__ as it will not be printed into jupyter web UI
+            # at the same time  using sys.stdout when airflow is active is very dangerous
+            # as it can create dangerous loop from airflow redirection into root logger
+            console_stream = sys.stdout if log_settings.stream_stdout else sys.stderr
 
         # dummy path, we will not write to this file
         task_file_handler_file = databand_system_path("logs", "task.log")
