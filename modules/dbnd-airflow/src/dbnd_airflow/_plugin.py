@@ -76,16 +76,3 @@ def dbnd_setup_unittest():
     from dbnd_airflow.dbnd_airflow_main import subprocess_airflow
 
     subprocess_airflow(args=["initdb"])
-
-
-@dbnd.hookimpl
-def dbnd_task_run_context(task_run):
-    # type: (TaskRun)-> Optional[Context]
-    """ Using this context when running task_run  """
-    if hasattr(task_run.task.ctrl, "airflow_op") and task_run.is_root:
-        links_dict = {
-            AIRFLOW_LEGACY_URL_KEY: "{{airflow_base_url}}/task?dag_id={}&execution_date={}&task_id={}".format(
-                task_run.run.job_name, task_run.run.execution_date, task_run.task_af_id
-            )
-        }
-        task_run.set_external_resource_urls(links_dict)

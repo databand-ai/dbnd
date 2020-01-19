@@ -17,6 +17,7 @@
 
 import logging
 import signal
+import typing
 
 from airflow.contrib.executors.kubernetes_executor import (
     AirflowKubernetesScheduler,
@@ -31,8 +32,11 @@ from airflow.utils.state import State
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.task_build.task_registry import build_task_from_config
-from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
-from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
+
+
+if typing.TYPE_CHECKING:
+    from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
+    from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
 
 MAX_POD_ID_LEN = 253
@@ -201,6 +205,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 ),
                 "try_number": str(try_number),
             },
+            try_number=try_number,
         )
 
         pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
@@ -390,7 +395,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))
         elif status == "Succeeded":
             self.log.debug("Event: %s Succeeded", pod_id)
-            self.watcher_queue.put((pod_id, None, labels, resource_version))
+            self.watcher_queue.put((pod_id, State.SUCCESS, labels, resource_version))
         elif status == "Running":
             self.log.debug("Event: %s is Running", pod_id)
         else:

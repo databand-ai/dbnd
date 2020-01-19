@@ -30,6 +30,7 @@ from dbnd_airflow.dbnd_task_executor.dbnd_task_to_airflow_operator import (
     set_af_operator_doc_md,
 )
 from dbnd_airflow.executors import AirflowTaskExecutorType
+from dbnd_airflow.executors.kubernetes_executor import DbndKubernetesExecutor
 from dbnd_airflow.executors.simple_executor import InProcessExecutor
 from dbnd_airflow.scheduler.single_dag_run_job import SingleDagRunJob
 
@@ -158,6 +159,10 @@ class AirflowTaskExecutor(TaskExecutor):
             task_runs=task_runs,
         )
         self.airflow_config = AirflowConfig()
+        self.airflow_task_executor = self._get_airflow_executor()
+        logger.info(
+            "Using airflow executor: %s" % self.airflow_task_executor.__class__.__name__
+        )
 
     def build_airflow_dag(self, task_runs):
         # create new dag from current tasks and tasks selected to run
@@ -193,6 +198,7 @@ class AirflowTaskExecutor(TaskExecutor):
                 else:
                     # we will create DatabandOperator for databand tasks
                     op = build_dbnd_operator_from_taskrun(task_run)
+
                 airflow_ops[task.task_id] = op
 
             for task_run in task_runs:
@@ -214,7 +220,29 @@ class AirflowTaskExecutor(TaskExecutor):
     def do_run(self):
         dag = self.build_airflow_dag(task_runs=self.task_runs)
         with set_dag_as_current(dag):
+            from dbnd.api.tracking_api import AirflowTaskInfo
+
             self.run_airflow_dag(dag)
+            af_instances = []
+            for task_run in self.task_runs:
+                if not task_run.is_reused:
+                    # we build airflow infos only for not reused tasks
+                    af_instance = AirflowTaskInfo(
+                        execution_date=self.run.execution_date,
+                        dag_id=dag.dag_id,
+                        task_id=task_run.task_af_id,
+                        task_run_attempt_uid=task_run.task_run_attempt_uid,
+                    )
+                    af_instances.append(af_instance)
+            if af_instances:
+                self.run.tracker.tracking_store.save_airflow_task_infos(
+                    airflow_task_infos=af_instances,
+                    is_airflow_synced=False,
+                    base_url="http://{}:{}".format(
+                        self.context.config.get("airflow", "host"),
+                        self.context.config.get("airflow", "port"),
+                    ),
+                )
 
     @provide_session
     def run_airflow_dag(self, dag, session=None):
@@ -226,8 +254,6 @@ class AirflowTaskExecutor(TaskExecutor):
         s = databand_context.settings  # type: DatabandSettings
         s_run = s.run  # type: RunConfig
 
-        airflow_task_executor = self._get_airflow_executor()
-
         if self.airflow_config.disable_db_ping_on_connect:
             from airflow import settings as airflow_settings
 
@@ -238,7 +264,7 @@ class AirflowTaskExecutor(TaskExecutor):
             except Exception as ex:
                 logger.warning("Failed to optimize DB access: %s" % ex)
 
-        if isinstance(airflow_task_executor, InProcessExecutor):
+        if isinstance(self.airflow_task_executor, InProcessExecutor):
             heartrate = 0
         else:
             # we are in parallel mode
@@ -265,7 +291,7 @@ class AirflowTaskExecutor(TaskExecutor):
             external_trigger=False,
         )
 
-        airflow_task_executor.fail_fast = s_run.fail_fast
+        self.airflow_task_executor.fail_fast = s_run.fail_fast
         # we don't want to be stopped by zombie jobs/tasks
         airflow_conf.set("core", "dag_concurrency", str(10000))
         airflow_conf.set("core", "max_active_runs_per_dag", str(10000))
@@ -274,7 +300,7 @@ class AirflowTaskExecutor(TaskExecutor):
             dag=af_dag,
             execution_date=databand_run.execution_date,
             mark_success=s_run.mark_success,
-            executor=airflow_task_executor,
+            executor=self.airflow_task_executor,
             donot_pickle=(
                 s_run.donot_pickle or airflow_conf.getboolean("core", "donot_pickle")
             ),
@@ -297,70 +323,35 @@ class AirflowTaskExecutor(TaskExecutor):
         ):
             job.run()
 
-    def validate_parallel_run_constrains(self):
-        settings = self.run.context.settings
-        using_sqlite = "sqlite" in settings.core.sql_alchemy_conn
-        if not using_sqlite:
-            return
-
-        if settings.run.enable_concurent_sqlite:
-            logger.warning(
-                "You are running parallel execution on top of sqlite database! (see run.enable_concurent_sqlite)"
-            )
-            return
-
-        # in theory sqlite can support a decent amount of parallelism, but in practice
-        # the way airflow works each process holds the db exlusively locked which leads
-        # to sqlite DB is locked exceptions
-        raise friendly_error.execute_engine.parallel_or_remote_sqlite("parallel")
-
     def _get_airflow_executor(self):
         """Creates a new instance of the configured executor if none exists and returns it"""
+        if self.task_executor_type == AirflowTaskExecutorType.airflow_inprocess:
+            return InProcessExecutor()
 
-        task_executor_type = self.task_executor_type
-        parallel = self.run.parallel
-        task_engine = self.target_engine
-
-        if task_executor_type == AirflowTaskExecutorType.airflow_inprocess:
-            if parallel:
-                raise friendly_error.execute_engine.parallel_with_inprocess(
-                    task_executor_type
-                )
-            fail_fast = self.context.settings.run.fail_fast
-            return InProcessExecutor(fail_fast=fail_fast)
-        elif task_executor_type == AirflowTaskExecutorType.airflow_multiprocess_local:
-            if parallel:
-                self.validate_parallel_run_constrains()
+        if (
+            self.task_executor_type
+            == AirflowTaskExecutorType.airflow_multiprocess_local
+        ):
+            if self.run.context.settings.run.parallel:
                 return LocalExecutor()
-            return SequentialExecutor()
+            else:
+                return SequentialExecutor()
 
-        elif task_executor_type == AirflowTaskExecutorType.airflow_kubernetes:
-            from dbnd_airflow.executors.kubernetes_executor import (
-                DbndKubernetesExecutor,
-            )
-
-            self.validate_parallel_run_constrains()
-
+        if self.task_executor_type == AirflowTaskExecutorType.airflow_kubernetes:
             assert_plugin_enabled("dbnd-docker")
             from dbnd_docker.kubernetes.kubernetes_engine_config import (
                 KubernetesEngineConfig,
             )
 
-            if not isinstance(task_engine, KubernetesEngineConfig):
+            if not isinstance(self.target_engine, KubernetesEngineConfig):
                 raise friendly_error.executor_k8s.kubernetes_with_non_compatible_engine(
-                    task_engine
+                    self.target_engine
                 )
-            kube_dbnd = task_engine.build_kube_dbnd()
-            kube_executor = DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
+            kube_dbnd = self.target_engine.build_kube_dbnd()
             if kube_dbnd.engine_config.debug:
                 logging.getLogger("airflow.contrib.kubernetes").setLevel(logging.DEBUG)
-            return kube_executor
 
-        from airflow.executors import _get_executor as _airflow_executor
-
-        # do we need to make executor singleton? if we share it between multiple runs?
-        logger.warning("Using default airflow executor %s", task_executor_type)
-        return _airflow_executor(task_executor_type)
+            return DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
 
 
 def set_af_doc_md(run, dag):

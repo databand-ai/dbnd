@@ -87,7 +87,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
     def _optimize(self):
         return self.airflow_config.optimize_airflow_db_access
 
-    def _update_counters(self, ti_status):
+    def _update_counters(self, ti_status, waiting_for_executor_result):
         """
         Updates the counters per state of the tasks that were running. Can re-add
         to tasks to run in case required.
@@ -114,8 +114,18 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti_status.failed.add(key)
                 ti_status.running.pop(key)
                 continue
-            # special case: if the task needs to run again put it back
-            elif ti.state == State.UP_FOR_RETRY:
+            # special case: if the task needs to run again put it back.
+            #
+            # if we don't wait for the executor response then there's a race condition where the task gets rerun
+            # before we process the response for the failure. The response handler then fails the task because it thinks
+            # there's a mismatch between the task's state and the executor's result (which it gives priority).
+            # This causes the task to be put in the to_run map again but if the task (which is already running) just
+            # changes it's state to running it will cause the scheduler to put into the not_ready map by default
+            # and then we can get a false positive deadlock error
+            elif (
+                ti.state == State.UP_FOR_RETRY
+                and key not in waiting_for_executor_result
+            ):
                 self.log.warning("Task instance %s is up for retry", ti)
                 ti_status.running.pop(key)
                 ti_status.to_run[key] = ti
@@ -134,7 +144,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti_status.running.pop(key)
                 ti_status.to_run[key] = ti
 
-    def _manage_executor_state(self, running):
+    def _manage_executor_state(self, running, waiting_for_executor_result):
         """
         Checks if the executor agrees with the state of task instances
         that are running
@@ -143,11 +153,33 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         executor = self.executor
 
         for key, state in list(executor.get_event_buffer().items()):
+            # the fourth slot in the key is the try number (defined in TaskInstance.key). The keys in the scheduler maps are
+            # determined at the start of the run and never updated - so the try number is stuck on 1. The executor however
+            # returns the status for the current retry number so after the first try we ignore events from the executor unless
+            # we fix the key
+            key_as_list = list(key)
+            key_as_list[3] = 1
+            key = tuple(list(key_as_list))
+
             if key not in running:
                 self.log.debug(
-                    "Task %s state %s not in running=%s", key, state, running.values()
+                    "Received executor state '%s' for Task %s not in running=%s",
+                    state,
+                    key,
+                    running.values(),
                 )
                 continue
+
+            if key not in waiting_for_executor_result:
+                self.log.debug(
+                    "Received executor state '%s' for Task %s not in waiting_for_executor_result=%s",
+                    state,
+                    key,
+                    waiting_for_executor_result.values(),
+                )
+                continue
+
+            waiting_for_executor_result.pop(key)
 
             ti = running[key]
             # updated by StateManager
@@ -320,7 +352,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         executed_run_dates = []
 
-        all_ti = ti_status.to_run.values()
+        # values() returns a view so we copy to maintain a full list of the TIs to run
+        all_ti = list(ti_status.to_run.values())
+        waiting_for_executor_result = {}
+
         while (len(ti_status.to_run) > 0 or len(ti_status.running) > 0) and len(
             ti_status.deadlocked
         ) == 0:
@@ -331,14 +366,14 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             self.log.debug("*** Clearing out not_ready list ***")
             ti_status.not_ready.clear()
 
+            self.ti_state_manager.refresh_task_instances_state(
+                all_ti, self.dag.dag_id, self.execution_date, session=session
+            )
+
             # we need to execute the tasks bottom to top
             # or leaf to root, as otherwise tasks might be
             # determined deadlocked while they are actually
             # waiting for their upstream to finish
-            self.ti_state_manager.refresh_from_db(
-                self.dag.dag_id, self.execution_date, session=session
-            )
-
             for task in self.dag.topological_sort():
 
                 # TODO: too complicated mechanism,
@@ -476,8 +511,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                                     pool=self.pool,
                                     cfg_path=cfg_path,
                                 )
-                                ti_status.running[key] = ti
+
                                 ti_status.to_run.pop(key)
+                                ti_status.running[key] = ti
+                                waiting_for_executor_result[key] = ti
                         session.commit()
                         continue
 
@@ -521,15 +558,15 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti_status.deadlocked.update(ti_status.to_run.values())
                 ti_status.to_run.clear()
 
-            self.ti_state_manager.refresh_from_db(
-                self.dag.dag_id, self.execution_date, session=session
+            self.ti_state_manager.refresh_task_instances_state(
+                all_ti, self.dag.dag_id, self.execution_date, session=session
             )
-            self.ti_state_manager.sync_to_object(all_ti)
+
             # check executor state
-            self._manage_executor_state(ti_status.running)
+            self._manage_executor_state(ti_status.running, waiting_for_executor_result)
 
             # update the task counters
-            self._update_counters(ti_status=ti_status)
+            self._update_counters(ti_status, waiting_for_executor_result)
 
             # update dag run state
             _dag_runs = ti_status.active_runs[:]

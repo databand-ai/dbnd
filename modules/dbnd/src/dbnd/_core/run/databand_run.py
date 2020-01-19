@@ -31,7 +31,7 @@ from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.parameter.parameter_builder import output, parameter
-from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled, is_plugin_enabled
+from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.run.describe_run import DescribeRun
 from dbnd._core.run.run_tracker import RunTracker
 from dbnd._core.run.target_identity_source_map import TargetIdentitySourceMap
@@ -42,6 +42,10 @@ from dbnd._core.task_build.task_context import current_task, has_current_task
 from dbnd._core.task_build.task_registry import (
     build_task_from_config,
     get_task_registry,
+)
+from dbnd._core.task_executor.factory import (
+    calculate_task_executor_type,
+    get_task_executor,
 )
 from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 from dbnd._core.task_executor.task_executor import TaskExecutor
@@ -189,7 +193,6 @@ class DatabandRun(SingletonContext):
             env.remote_engine or env.local_engine
         )
 
-        self.parallel = self.run_config.parallel
         self.submit_driver = (
             self.run_config.submit_driver
             if self.run_config.submit_driver is not None
@@ -200,29 +203,11 @@ class DatabandRun(SingletonContext):
             if self.run_config.submit_tasks is not None
             else env.submit_tasks
         )
-        self.task_executor_type, self.parallel = self._calculate_task_executor_type()
+        self.task_executor_type, self.parallel = calculate_task_executor_type(
+            self.submit_tasks, self.remote_engine, self.context.settings
+        )
 
         self.sends_heartbeat = send_heartbeat
-
-    def _calculate_task_executor_type(self):
-        parallel = self.run_config.parallel
-        task_executor_type = self.run_config.task_executor_type
-        if is_airflow_enabled() and is_plugin_enabled("dbnd-docker"):
-            from dbnd_docker.kubernetes.kubernetes_engine_config import (
-                KubernetesEngineConfig,
-            )
-            from dbnd_airflow.executors import AirflowTaskExecutorType
-
-            if (
-                self.submit_tasks
-                and isinstance(self.remote_engine, KubernetesEngineConfig)
-                and self.run_config.enable_airflow_kubernetes
-            ):
-                if task_executor_type != AirflowTaskExecutorType.airflow_kubernetes:
-                    logger.info("Using dedicated kubernetes executor for this run")
-                    task_executor_type = AirflowTaskExecutorType.airflow_kubernetes
-                    parallel = True
-        return task_executor_type, parallel
 
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
@@ -712,9 +697,10 @@ class _DbndDriverTask(Task):
             )
             run_describe_dag.tree_view(describe_format=DescribeFormat.short)
 
-        task_executor = run.run_config.get_task_executor(
+        # without driver task!
+        task_executor = get_task_executor(
             run,
-            self.task_executor_type,
+            task_executor_type=self.task_executor_type,
             host_engine=self.host_engine,
             target_engine=run.root_task_run.task_engine,
             task_runs=task_runs,
