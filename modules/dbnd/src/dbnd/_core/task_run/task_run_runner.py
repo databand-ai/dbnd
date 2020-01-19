@@ -91,13 +91,25 @@ class TaskRunRunner(TaskRunCtrl):
                 if task._complete():
                     task_run.set_task_reused()
                     return
+
                 if not self.ctrl.should_run():
                     missing = find_non_completed(self.relations.task_outputs_user)
                     missing_str = non_completed_outputs_to_str(missing)
                     raise DatabandConfigError(
-                        "You are missing some inputs to the pipeline! \n\t%s\n"
-                        "The task execution was disabled." % (missing_str)
+                        "You are missing some input tasks in your pipeline! \n\t%s\n"
+                        "The task execution was disabled for '%s'."
+                        % (missing_str, self.task_id)
                     )
+
+                missing = []
+                for partial_output in flatten(self.relations.task_inputs_user):
+                    if not partial_output.exists():
+                        missing.append(partial_output)
+                if missing:
+                    raise friendly_error.task_data_source_not_exists(
+                        self, missing, downstream=[self.task]
+                    )
+
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 try:
                     if task._should_resubmit(task_run):

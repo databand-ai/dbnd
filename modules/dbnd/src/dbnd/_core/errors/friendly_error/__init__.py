@@ -65,10 +65,12 @@ def task_has_missing_outputs_after_execution(task, missing_str):
     )
 
 
-def task_data_source_not_exists(task, missing):
-    downstream = task.task_dag.downstream
-    tasks = ",".join(map(str, downstream))
-    dependent = "Tasks that depend on this input are: %s\n" % tasks
+def task_data_source_not_exists(task, missing, downstream=None):
+    if downstream:
+        tasks = ",".join(map(str, downstream))
+        dependent = "Tasks that depend on this input are: %s\n" % tasks
+    else:
+        dependent = ""
     if len(missing) == 1:
         missing_target = missing[0]
 
