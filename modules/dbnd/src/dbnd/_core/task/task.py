@@ -8,7 +8,10 @@ from dbnd._core.constants import OutputMode, _TaskParamContainer
 from dbnd._core.current import get_databand_run
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.parameter.parameter_builder import output, parameter
-from dbnd._core.parameter.parameter_definition import ParameterScope
+from dbnd._core.parameter.parameter_definition import (
+    ParameterDefinition,
+    ParameterScope,
+)
 from dbnd._core.settings.env import EnvConfig
 from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
@@ -23,7 +26,6 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
 
-TASK_PARAMS_COUNT = 13
 DEFAULT_CLASS_VERSION = ""
 
 
@@ -117,6 +119,14 @@ class Task(_BaseTask, _TaskParamContainer):
     task_supports_dynamic_tasks = parameter.system(
         default=True, description="indicates if task can run dynamic databand tasks"
     )[bool]
+
+    task_retries = parameter.system(
+        description="Total number of attempts to run the task. So task_retries=3 -> task can fail 3 times before we give up"
+    )[int]
+
+    task_retry_delay = parameter.system(
+        description="timedelta to wait before retrying a task. Example: 5s"
+    )[datetime.timedelta]
 
     def __init__(self, **kwargs):
         super(Task, self).__init__(**kwargs)
@@ -330,3 +340,11 @@ class Task(_BaseTask, _TaskParamContainer):
 
 
 Task.task_definition.hidden = True
+
+TASK_PARAMS_COUNT = len(
+    [
+        v
+        for k, v in Task.__dict__.items()
+        if isinstance(v, ParameterDefinition) and v.value_type_str is not "Target"
+    ]
+)

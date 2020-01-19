@@ -19,6 +19,7 @@ from dbnd._core.plugin.dbnd_plugins import is_web_enabled
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
+from dbnd._core.utils.basics.dict_utils import filter_dict_remove_false_values
 from dbnd._vendor import click
 from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
@@ -179,28 +180,32 @@ def run(
 
     task_name = task
     # --verbose, --describe, --env, --parallel, --conf-file and --project-name
-    if submit_driver is not None:
-        submit_driver = bool(submit_driver)
-    if submit_tasks is not None:
-        submit_tasks = bool(submit_tasks)
-
+    # we filter out false flags since otherwise they will always override the config with their falseness
     main_switches = dict(
-        databand=dict(
-            verbose=verbose > 0,
-            describe=describe,
-            env=env,
-            conf_file=conf_file,
-            project_name=project_name,
+        databand=filter_dict_remove_false_values(
+            dict(
+                verbose=verbose > 0,
+                describe=describe,
+                env=env,
+                conf_file=conf_file,
+                project_name=project_name,
+            )
         ),
-        run=dict(
-            name=name,
-            parallel=parallel,
-            description=description,
-            is_archived=describe,
-            submit_driver=submit_driver,
-            submit_tasks=submit_tasks,
+        run=filter_dict_remove_false_values(
+            dict(
+                name=name,
+                parallel=parallel,
+                description=description,
+                is_archived=describe,
+            )
         ),
     )
+
+    if submit_driver is not None:
+        main_switches["run"]["submit_driver"] = bool(submit_driver)
+    if submit_tasks is not None:
+        main_switches["run"]["submit_tasks"] = bool(submit_tasks)
+
     if task_version is not None:
         main_switches["task"] = {"task_version": task_version}
 
