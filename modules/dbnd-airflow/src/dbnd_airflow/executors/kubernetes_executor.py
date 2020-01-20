@@ -32,6 +32,7 @@ from airflow.utils.state import State
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.task_build.task_registry import build_task_from_config
+from dbnd._core.utils.basics.safe_signal import safe_signal
 
 
 if typing.TYPE_CHECKING:
@@ -235,7 +236,7 @@ def mgr_sig_handler(signal, frame):
 
 
 def mgr_init():
-    signal.signal(signal.SIGINT, mgr_sig_handler)
+    safe_signal(signal.SIGINT, mgr_sig_handler)
 
 
 class DbndKubernetesExecutor(KubernetesExecutor):

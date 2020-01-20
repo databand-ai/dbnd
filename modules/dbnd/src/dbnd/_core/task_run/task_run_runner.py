@@ -15,6 +15,7 @@ from dbnd._core.task_build.task_context import TaskContextPhase, task_context
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils import json_utils
+from dbnd._core.utils.basics.safe_signal import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import flatten, traverse_to_str
@@ -84,7 +85,7 @@ class TaskRunRunner(TaskRunCtrl):
                         help_msg="Probably the job was canceled",
                     )
 
-                original_sigterm_signal = signal.signal(signal.SIGTERM, signal_handler)
+                original_sigterm_signal = safe_signal(signal.SIGTERM, signal_handler)
 
                 task_run.start_time = utcnow()
                 self.task_env.prepare_env()
@@ -184,7 +185,7 @@ class TaskRunRunner(TaskRunCtrl):
             finally:
                 task_run.airflow_context = None
                 if original_sigterm_signal:
-                    signal.signal(signal.SIGTERM, original_sigterm_signal)
+                    safe_signal(signal.SIGTERM, original_sigterm_signal)
 
     def _save_task_band(self):
         if self.task.task_band:

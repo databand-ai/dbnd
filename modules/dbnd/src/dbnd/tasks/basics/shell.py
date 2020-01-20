@@ -15,6 +15,7 @@ from dbnd._core.current import try_get_current_task_run
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.friendly_error.task_execution import failed_to_run_cmd
 from dbnd._core.run.databand_run import DatabandRun
+from dbnd._core.utils.basics.safe_signal import safe_signal
 from dbnd._core.utils.platform import windows_compatible_mode
 
 
@@ -64,7 +65,7 @@ def bash_cmd(
         # Restore default signal disposition and invoke setsid
         for sig in ("SIGPIPE", "SIGXFZ", "SIGXFSZ"):
             if hasattr(signal, sig):
-                signal.signal(getattr(signal, sig), signal.SIG_DFL)
+                safe_signal(getattr(signal, sig), signal.SIG_DFL)
         os.setsid()
 
     process = subprocess.Popen(
