@@ -2,10 +2,12 @@ import logging
 import subprocess
 import sys
 
+from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.context import bootstrap
 from dbnd._core.errors import (
     DatabandConfigError,
     DatabandError,
-    DatabandExecutorError,
+    DatabandRunError,
     DatabandRuntimeError,
     DatabandSystemError,
     friendly_error,
@@ -41,7 +43,7 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
         code = DatabandExitCodes.execution_failed
     elif isinstance(ex, DatabandConfigError):
         code = DatabandExitCodes.configuration_error
-    elif isinstance(ex, DatabandExecutorError):
+    elif isinstance(ex, DatabandRunError):
         code = DatabandExitCodes.execution_failed
     elif isinstance(ex, DatabandSystemError):
         code = DatabandExitCodes.error
@@ -72,7 +74,12 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
     if user_frame_info_str and print_source:
         extra_msg_lines.append("Source: \n%s\n" % indent(user_frame_info_str, "\t"))
 
-    if show_exc_info(ex):
+    # if we crashed before finishing bootstrap we probably want to see the full trace, and we could have failed during config init so the verbose flag does nothing
+    if (
+        show_exc_info(ex)
+        or config.getboolean("databand", "verbose")
+        or not bootstrap._dbnd_bootstrap
+    ):
         error_info = sys.exc_info()
         extra_msg_lines.append(format_exception_as_str(error_info))
 
@@ -96,7 +103,6 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
             extra_msg="\n ".join(extra_msg_lines),
         )
     )
-
     return msg, code
 
 

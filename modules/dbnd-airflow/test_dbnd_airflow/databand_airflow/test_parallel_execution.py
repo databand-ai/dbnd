@@ -50,7 +50,7 @@ class TestTasksParallelExample(object):
         ]
 
         if "sqlite" in settings.SQL_ALCHEMY_CONN:
-            with pytest.raises(DatabandRunError):  # not supported on sqlite
+            with pytest.raises(DatabandConfigError):  # not supported on sqlite
                 dbnd_run_cmd(cmd)
         else:
             dbnd_run_cmd(cmd)

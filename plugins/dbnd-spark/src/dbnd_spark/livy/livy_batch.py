@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from dbnd._core.errors import DatabandExecutorError
+from dbnd._core.errors import DatabandError
 from dbnd._core.utils.http.reliable_http_client import ReliableHttpClient
 from dbnd._core.utils.http.retry_policy import get_retry_policy
 
@@ -99,5 +99,5 @@ class LivyBatchClient(object):
         status_reporter(batch_response)
         if batch_status.lower() in BATCH_ERROR_STATES:
             logger.info("Batch exception: see logs")
-            raise DatabandExecutorError("Batch Status: " + batch_status)
+            raise DatabandError("Batch Status: " + batch_status)
         logger.info("Batch Status: " + batch_status)

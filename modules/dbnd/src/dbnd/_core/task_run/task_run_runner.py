@@ -15,6 +15,7 @@ from dbnd._core.task_build.task_context import TaskContextPhase, task_context
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils import json_utils
+from dbnd._core.utils.basics.safe_signal import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import flatten, traverse_to_str
@@ -84,20 +85,32 @@ class TaskRunRunner(TaskRunCtrl):
                         help_msg="Probably the job was canceled",
                     )
 
-                original_sigterm_signal = signal.signal(signal.SIGTERM, signal_handler)
+                original_sigterm_signal = safe_signal(signal.SIGTERM, signal_handler)
 
                 task_run.start_time = utcnow()
                 self.task_env.prepare_env()
                 if task._complete():
                     task_run.set_task_reused()
                     return
+
                 if not self.ctrl.should_run():
                     missing = find_non_completed(self.relations.task_outputs_user)
                     missing_str = non_completed_outputs_to_str(missing)
                     raise DatabandConfigError(
-                        "You are missing some inputs to the pipeline! \n\t%s\n"
-                        "The task execution was disabled." % (missing_str)
+                        "You are missing some input tasks in your pipeline! \n\t%s\n"
+                        "The task execution was disabled for '%s'."
+                        % (missing_str, self.task_id)
                     )
+
+                missing = []
+                for partial_output in flatten(self.relations.task_inputs_user):
+                    if not partial_output.exists():
+                        missing.append(partial_output)
+                if missing:
+                    raise friendly_error.task_data_source_not_exists(
+                        self, missing, downstream=[self.task]
+                    )
+
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 try:
                     if task._should_resubmit(task_run):
@@ -172,7 +185,7 @@ class TaskRunRunner(TaskRunCtrl):
             finally:
                 task_run.airflow_context = None
                 if original_sigterm_signal:
-                    signal.signal(signal.SIGTERM, original_sigterm_signal)
+                    safe_signal(signal.SIGTERM, original_sigterm_signal)
 
     def _save_task_band(self):
         if self.task.task_band:

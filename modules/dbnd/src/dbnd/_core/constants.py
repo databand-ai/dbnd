@@ -154,4 +154,4 @@ class _DbndDataClass(object):
         return attr.asdict(self, recurse=False, filter=filter)
 
 
-HEARTBEAT_DISABLED = make_aware(datetime.datetime.fromtimestamp(-1))
+HEARTBEAT_DISABLED = make_aware(datetime.datetime.fromtimestamp(0))

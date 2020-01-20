@@ -151,7 +151,13 @@ class DbndKubernetesClient(object):
                 print_func=log_printer, tail_lines=100, follow=False
             )
         except Exception as ex:
-            logger.error("failed to get log for %s: %s", metadata.name, ex)
+            # when deleting pods we get extra failure events so we will have lots of this in the log
+            if isinstance(ex, ApiException) and ex.status == 404:
+                logger.info(
+                    "failed to get log for pod %s: pod not found", metadata.name
+                )
+            else:
+                logger.error("failed to get log for %s: %s", metadata.name, ex)
 
         try:
             short_log = "\n".join(["out:%s" % l for l in logs[:15]])
@@ -237,7 +243,11 @@ class DbndPodCtrl(object):
             )
             logger.info("Pod '%s' has been deleted", self.name)
         except ApiException as e:
-            logger.info("Failed to delete pod '%s':%s", self.name, e)
+            logger.info(
+                "Failed to delete pod '%s': %s",
+                self.name,
+                e if e.status != 404 else "pod not found",
+            )
             # If the pod is already deleted
             if e.status != 404:
                 raise
@@ -435,6 +445,9 @@ class DbndPodCtrl(object):
         try:
             resp = self.kube_client.create_namespaced_pod(
                 body=req, namespace=pod.namespace
+            )
+            logger.info(
+                "Started pod '%s' in namespace '%s'" % (pod.name, pod.namespace)
             )
             logger.debug("Pod Creation Response: %s", resp)
         except ApiException as ex:

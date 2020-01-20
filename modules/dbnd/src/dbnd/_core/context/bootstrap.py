@@ -16,6 +16,7 @@ from dbnd._core.plugin.dbnd_plugins import (
     register_dbnd_plugins,
     register_dbnd_user_plugins,
 )
+from dbnd._core.utils.basics.safe_signal import safe_signal
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.platform.osx_compatible.requests_in_forked_process import (
     enable_osx_forked_request_calls,
@@ -40,14 +41,10 @@ def _dbnd_exception_handling():
 
     # Enables graceful shutdown when running inside docker/kubernetes and subprocess shutdown
     # By default the kill signal is SIGTERM while our code mostly expects SIGINT (KeyboardInterrupt)
-    try:
+    def sigterm_handler(sig, frame):
+        os.kill(os.getpid(), signal.SIGINT)
 
-        def sigterm_handler(sig, frame):
-            os.kill(os.getpid(), signal.SIGINT)
-
-        signal.signal(signal.SIGTERM, sigterm_handler)
-    except Exception as ex:
-        pass
+    safe_signal(signal.SIGTERM, sigterm_handler)
 
 
 _dbnd_system_bootstrap = False
@@ -75,16 +72,15 @@ def dbnd_system_bootstrap():
 
 
 _dbnd_bootstrap = False
+_dbnd_bootstrap_started = False
 
 
 def dbnd_bootstrap():
-
     global _dbnd_bootstrap
-    if _dbnd_bootstrap:
+    global _dbnd_bootstrap_started
+    if _dbnd_bootstrap_started:
         return
-
-    # if for any reason there will be code that calls dbnd_bootstrap, this will prevent endless recursion
-    _dbnd_bootstrap = True
+    _dbnd_bootstrap_started = True
 
     dbnd_system_bootstrap()
     from targets.marshalling import register_basic_data_marshallers
@@ -121,3 +117,6 @@ def dbnd_bootstrap():
     user_preinit = environ_config.get_user_preinit()
     if user_preinit:
         run_user_func(user_preinit)
+
+    # if for any reason there will be code that calls dbnd_bootstrap, this will prevent endless recursion
+    _dbnd_bootstrap = True

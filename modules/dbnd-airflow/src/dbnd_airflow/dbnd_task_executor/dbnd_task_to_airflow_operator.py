@@ -26,6 +26,11 @@ def build_dbnd_operator_from_taskrun(task_run):
         params=params,
         **op_kwargs
     )
+
+    if task.task_retries is not None:
+        op.retries = task.task_retries
+        op.retry_delay = task.task_retry_delay
+
     task.ctrl.airflow_op = op
     set_af_operator_doc_md(task_run, op)
     return op

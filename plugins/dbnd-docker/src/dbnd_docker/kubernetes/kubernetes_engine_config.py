@@ -251,13 +251,20 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 
-    def build_pod(self, task_run, cmds, args=None, labels=None):
-        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]]) ->Pod
+    def build_pod(self, task_run, cmds, args=None, labels=None, try_number=None):
+        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int]) ->Pod
         pod_name = task_run.job_id__dns1123
+        if try_number is not None:
+            pod_name = "%s-%s" % (pod_name, try_number)
 
         labels = combine_mappings(labels, self.labels)
         labels["dbnd_run_uid"] = clean_job_name_dns1123(str(task_run.run.run_uid))
         labels["dbnd_task_run_uid"] = clean_job_name_dns1123(str(task_run.task_run_uid))
+        labels[
+            "dbnd"
+        ] = (
+            "task_run"
+        )  # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
 
         annotations = self.annotations.copy()
         if self.gcp_service_account_keys:

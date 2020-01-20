@@ -40,6 +40,7 @@ class TestCmdScheduling(object):
         )
 
     @pytest.mark.dbnd_integration
+    @pytest.mark.xfail
     def test_cmd_scheduling_list(self, capsys):
         assert_cmd_output(
             "list",
@@ -52,6 +53,7 @@ class TestCmdScheduling(object):
         )
 
     @pytest.mark.dbnd_integration
+    @pytest.mark.xfail
     def test_cmd_scheduling_enable_and_pause(self, capsys):
         assert_cmd_output(
             "pause --name touchy", 'Scheduled job "touchy" paused', capsys
@@ -80,6 +82,7 @@ class TestCmdScheduling(object):
         )
 
     @pytest.mark.dbnd_integration
+    @pytest.mark.xfail
     def test_cmd_scheduling_delete_undelete(self, capsys):
         assert_cmd_output("delete --name touchy --force", "", capsys)
 
@@ -117,6 +120,7 @@ class TestCmdScheduling(object):
         )
 
     @pytest.mark.dbnd_integration
+    @pytest.mark.xfail
     def test_cmd_schedulingdelete_create(self, capsys):
         assert_cmd_output(
             'job --name hotjob --cmd "touch /tmp/scheduler_test/{{ ts_nodash }}" --start-date 1994-01-04 --schedule-interval "* * * * *" --catchup True',

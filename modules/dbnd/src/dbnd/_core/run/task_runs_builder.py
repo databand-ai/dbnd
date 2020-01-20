@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def find_tasks_to_skip_complete(root_tasks, all_tasks):
     completed_status = {}  # if True = should run, if False or None - should not
 
-    logger.info("Checking if tasks can be reused..")
+    logger.info("Looking for completed tasks..")
 
     def check_if_completed(task):
         task_id = task.task_id
@@ -47,6 +47,11 @@ def find_tasks_to_skip_complete(root_tasks, all_tasks):
     completed_tasks = {
         task for task in all_tasks if completed_status.get(task.task_id) is True
     }
+    logger.info(
+        "Found %s completed and %s skipped tasks",
+        len(completed_tasks),
+        len(skipped_tasks),
+    )
     return completed_tasks, skipped_tasks
 
 

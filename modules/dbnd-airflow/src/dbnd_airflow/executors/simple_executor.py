@@ -26,6 +26,7 @@ from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
 from dbnd._core import current
+from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.errors import DatabandError, show_error_once
 
 
@@ -41,10 +42,10 @@ class InProcessExecutor(BaseExecutor):
     Does'nt start new process!
     """
 
-    def __init__(self, fail_fast=False, dag_bag=None):
+    def __init__(self, dag_bag=None):
         super(InProcessExecutor, self).__init__()
         self.tasks_to_run = []
-        self.fail_fast = fail_fast
+        self.fail_fast = config.getboolean("run", "fail_fast")
         self.dag_bag = dag_bag
 
     def execute_async(self, key, command, queue=None, executor_config=None):
