@@ -6,6 +6,10 @@ def _tc(key, value):
     return {"test_section": {key: value}}
 
 
+def _a():
+    return "from_a"
+
+
 class TestDbndConfig(object):
     def test_log_current_config(self):
         with config(
@@ -48,3 +52,13 @@ class TestDbndConfig(object):
 
             config.log_current_config()
             config.log_layers()
+
+    def test_str_interpolation(self):
+        with config(
+            {
+                "b": dict(
+                    a="@python://%s" % "test_dbnd.configuration.test_config_layers._a"
+                )
+            }
+        ):
+            assert config.get("b", "a") == "from_a"
