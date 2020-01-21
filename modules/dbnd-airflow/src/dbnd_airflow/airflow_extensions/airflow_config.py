@@ -1,6 +1,8 @@
 import logging
 import os
 
+from sqlalchemy.event import Events
+
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ def reinit_airflow_sql_conn():
             airflow_settings.engine, "before_cursor_execute", trace_sqlalchemy_query
         )
 
-    # this will print query, code line and stack trace
+    # this will print query execution time
     if dbnd_config.getboolean("log", "sqlalchemy_profile"):
         from sqlalchemy import event
         from airflow import settings as airflow_settings

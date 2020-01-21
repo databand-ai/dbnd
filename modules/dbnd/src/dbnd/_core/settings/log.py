@@ -75,6 +75,7 @@ class LoggingConfig(config.Config):
     sqlalchemy_profile = parameter(description="profile sqlalchemy queries").value(
         False
     )
+    api_profile = parameter(description="profile api calls").value(False)
 
     def _initialize(self):
         super(LoggingConfig, self)._initialize()
