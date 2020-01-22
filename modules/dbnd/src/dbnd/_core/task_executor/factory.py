@@ -48,22 +48,22 @@ def calculate_task_executor_type(submit_tasks, remote_engine, settings):
                 )
                 task_executor_type = AirflowTaskExecutorType.airflow_multiprocess_local
 
-        if (
-            task_executor_type == AirflowTaskExecutorType.airflow_multiprocess_local
-            or task_executor_type == AirflowTaskExecutorType.airflow_kubernetes
-        ):
-            if "sqlite" in settings.core.sql_alchemy_conn:
-                if settings.run.enable_concurent_sqlite:
-                    logger.warning(
-                        "You are running parallel execution on top of sqlite database! (see run.enable_concurent_sqlite)"
-                    )
-                else:
-                    # in theory sqlite can support a decent amount of parallelism, but in practice
-                    # the way airflow works each process holds the db exlusively locked which leads
-                    # to sqlite DB is locked exceptions
-                    raise friendly_error.execute_engine.parallel_or_remote_sqlite(
-                        "parallel"
-                    )
+            if (
+                task_executor_type == AirflowTaskExecutorType.airflow_multiprocess_local
+                or task_executor_type == AirflowTaskExecutorType.airflow_kubernetes
+            ):
+                if "sqlite" in settings.core.sql_alchemy_conn:
+                    if settings.run.enable_concurent_sqlite:
+                        logger.warning(
+                            "You are running parallel execution on top of sqlite database! (see run.enable_concurent_sqlite)"
+                        )
+                    else:
+                        # in theory sqlite can support a decent amount of parallelism, but in practice
+                        # the way airflow works each process holds the db exlusively locked which leads
+                        # to sqlite DB is locked exceptions
+                        raise friendly_error.execute_engine.parallel_or_remote_sqlite(
+                            "parallel"
+                        )
 
         if is_plugin_enabled("dbnd-docker"):
             from dbnd_docker.kubernetes.kubernetes_engine_config import (
