@@ -4,6 +4,7 @@ import textwrap
 import pytest
 
 from dbnd._core.cli.main import dbnd_schedule_cmd
+from dbnd.testing.helpers_pytest import skip_on_windows
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ def assert_cmd_output(cmd, output, capsys):
 
 
 class TestCmdScheduling(object):
+    @skip_on_windows
     def test_cmd_scheduling_help(self, capsys):
         assert_cmd_output(
             "--help",
