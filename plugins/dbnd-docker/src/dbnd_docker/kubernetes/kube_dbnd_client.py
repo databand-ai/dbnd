@@ -3,7 +3,7 @@ import pprint
 import time
 import typing
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from airflow.contrib.kubernetes.pod_launcher import PodStatus
@@ -393,8 +393,19 @@ class DbndPodCtrl(object):
         logger.info("Pod '%s' is running, reading logs..", self.name)
         self.stream_pod_logs(follow=True)
         logger.info("Successfully read %s pod logs", self.name)
-        final_state = self.get_airflow_state()
+
         from airflow.utils.state import State
+
+        final_state = None
+        wait_start = time.time()
+        while (
+            timedelta(seconds=time.time() - wait_start)
+            < self.kube_config.submit_termination_grace_period
+        ):
+            final_state = self.get_airflow_state()
+            if final_state != State.SUCCESS and final_state != State.FAILED:
+                time.sleep(1)
+                continue
 
         if final_state != State.SUCCESS:
             raise DatabandRuntimeError(
