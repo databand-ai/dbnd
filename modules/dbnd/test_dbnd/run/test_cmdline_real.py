@@ -37,6 +37,7 @@ class TLocalTaskDef(TTask):
     pass
 
 
+@skip_on_windows
 class TestSanityInvokeOverCmdline(object):
     def test_dbnd_run(self, tmpdir):
         t = targets.target(tmpdir.join("task_output"))
@@ -44,12 +45,12 @@ class TestSanityInvokeOverCmdline(object):
         run_dbnd_subprocess_test(args)
         assert t.exists()
 
-    @skip_on_windows
     def test_dbnd_help(self):
         stdout = run_dbnd_subprocess_test([TTask.get_task_family(), "--help"])
         assert "-r", "t_param" in stdout
 
 
+@skip_on_windows
 class TestInvokeOverCmdline(object):
     def test_task_name_with_package(self):
         # this is real command line , so the Task will not be found
