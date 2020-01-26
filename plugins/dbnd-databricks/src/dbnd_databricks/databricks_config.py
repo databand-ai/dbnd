@@ -41,7 +41,7 @@ class DatabricksConfig(Config):
     )[int]
 
     cluster_log_conf = parameter(default={}).help(
-        'location for logs, like: {"s3": {"destination": "s3://<BUCKET>/<KEY>", "region": "us-ease-1"}}"'
+        'location for logs, like: {"s3": {"destination": "s3://<BUCKET>/<KEY>", "region": "us-east-1"}}"'
     )
 
     # new cluster config
