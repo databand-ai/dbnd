@@ -135,6 +135,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         default=False, description="Submit run only, do not wait for it completion."
     )[bool]
 
+    submit_termination_grace_period = parameter(
+        description="timedelta to let the submitted pod enter a final state"
+    )[datetime.timedelta]
+
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
 
