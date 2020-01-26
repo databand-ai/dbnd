@@ -371,7 +371,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
             if self.processed_events.get(pod_name):
                 self.log.debug("Event: %s at %s - skipping as seen", phase, pod_name)
-                return
+                continue
             status = self.kube_dbnd.process_pod_event(event)
 
             if status in ["Succeeded", "Failed"]:
@@ -383,9 +383,9 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 task.metadata.labels,
                 task.metadata.resource_version,
             )
-            last_resource_version = task.metadata.resource_version
+            self.resource_version = task.metadata.resource_version
 
-        return last_resource_version
+        return self.resource_version
 
     def process_status_quite(self, pod_id, status, labels, resource_version):
         """Process status response"""
