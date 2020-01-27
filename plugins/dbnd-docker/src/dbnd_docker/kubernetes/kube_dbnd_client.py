@@ -13,6 +13,7 @@ from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_error
 from dbnd._core.log.logging_utils import override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
+from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow.airflow_extensions.dal import get_airflow_task_instance_state
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
@@ -393,8 +394,28 @@ class DbndPodCtrl(object):
         logger.info("Pod '%s' is running, reading logs..", self.name)
         self.stream_pod_logs(follow=True)
         logger.info("Successfully read %s pod logs", self.name)
-        final_state = self.get_airflow_state()
+
         from airflow.utils.state import State
+
+        final_state = self.get_airflow_state()
+        wait_start = utcnow()
+        while final_state not in {State.SUCCESS, State.FAILED}:
+            logger.debug(
+                "Pod '%s' is not completed with state %s, waiting..",
+                self.name,
+                final_state,
+            )
+            if (
+                utcnow() - wait_start
+            ) > self.kube_config.submit_termination_grace_period:
+                raise DatabandRuntimeError(
+                    "Pod is not in a final state after {grace_period}: {state}".format(
+                        grace_period=self.kube_config.submit_termination_grace_period,
+                        state=final_state,
+                    )
+                )
+            time.sleep(5)
+            final_state = self.get_airflow_state()
 
         if final_state != State.SUCCESS:
             raise DatabandRuntimeError(

@@ -25,6 +25,10 @@ class AirflowConfig(Config):
         " dag and task concurrency checks"
     )[bool]
 
+    dbnd_dag_concurrency = parameter(description="Concurrency for dbnd ad-hoc dags")[
+        int
+    ]
+
     def __init__(self, *args, **kwargs):
         super(AirflowConfig, self).__init__(*args, **kwargs)
         if not self.optimize_airflow_db_access:

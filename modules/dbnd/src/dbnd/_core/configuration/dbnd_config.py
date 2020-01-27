@@ -179,14 +179,14 @@ class DbndConfig(object):
         # type: (str, str)->Optional[ConfigValue]
         """
         Gets the value of the section/option using method.
-
+        This is the function used by
         Returns default if value is not found.
-
         Raises an exception if the default value is not None and doesn't match the expected_type.
         """
         return self.config_layer.config.get_config_value(section, key)
 
     def get(self, section, key, default=None, expand_env=True):
+
         config_value = self.get_config_value(section=section, key=key)
         if config_value:
             value = config_value.value

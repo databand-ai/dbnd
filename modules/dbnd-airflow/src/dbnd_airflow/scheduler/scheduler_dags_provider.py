@@ -51,6 +51,9 @@ class DbndSchedulerDBDagsProvider(object):
         self.default_retries = config.get("scheduler", "default_retries")
 
     def get_dags(self):  # type: () -> List[DAG]
+        if not config.get("core", "databand_url"):
+            self.scheduled_jobs = []
+            return []
         logger.debug("about to get scheduler job dags from dbnd db")
         self.refresh_scheduled_jobs(always_refresh=True)
         dags = []
