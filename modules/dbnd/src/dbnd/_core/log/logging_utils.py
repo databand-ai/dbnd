@@ -119,6 +119,7 @@ class StreamLogWriter(object):
         self.logger = logger
         self.level = level
         self._buffer = str()
+        self.skip_next_msg = 0
 
     def write(self, message):
         """
@@ -127,10 +128,25 @@ class StreamLogWriter(object):
         """
         if not message.endswith("\n"):
             self._buffer += message
-        else:
-            self._buffer += message
+            return
+
+        self._buffer += message
+        log_msg = self._buffer.rstrip()
+
+        # we want to prevent  stderr -> logger -> FAILURE with stderr print (inside logging.py) -> stderr -> recursion
+        # so the moment we understand that there is and logger error -> we stop redirecting for the next 10 messages
+        if log_msg == "--- Logging error ---":
+            self.skip_next_msg = 100
+            sys.__stderr__.write(
+                "Logger have an error, disable stream redirect for next 100 lines\n"
+            )
+
+        if not self.skip_next_msg:
             self.logger.log(self.level, self._buffer.rstrip())
-            self._buffer = str()
+        else:
+            self.skip_next_msg -= 1
+            sys.__stderr__.write("%s\n" % log_msg)
+        self._buffer = str()
 
     def flush(self):
         """
