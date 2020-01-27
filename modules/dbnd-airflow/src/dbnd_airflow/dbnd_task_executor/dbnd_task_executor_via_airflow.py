@@ -181,6 +181,7 @@ class AirflowTaskExecutor(TaskExecutor):
             self.run.dag_id,
             default_args=get_dbnd_default_args(),
             is_paused_upon_creation=True,
+            concurrency=self.airflow_config.dbnd_dag_concurrency,
         )
         with dag:
             airflow_ops = {}
