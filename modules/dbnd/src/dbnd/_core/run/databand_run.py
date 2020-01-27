@@ -395,7 +395,11 @@ class DatabandRun(SingletonContext):
         except (Exception, KeyboardInterrupt, SystemExit) as ex:
             raise self._dbnd_run_error(ex)
         finally:
-            self.driver_task.host_engine.cleanup_after_run()
+            try:
+                self.driver_task.host_engine.cleanup_after_run()
+            except Exception:
+                logger.exception("Failed to shutdown the current run, continuing")
+
         return self
 
     def _get_task_by_id(self, task_id):
