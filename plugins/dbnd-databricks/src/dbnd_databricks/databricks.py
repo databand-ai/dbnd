@@ -149,6 +149,7 @@ class DatabricksCtrl(SparkCtrl):
             retry_delay=_config.connection_retry_delay,
         )
         try:
+            logging.debug("posted JSON:" + str(databricks_json))
             self.current_run_id = self.hook.submit_run(databricks_json)
             self.hook.log.setLevel(logging.WARNING)
             self._handle_databricks_operator_execution(
@@ -189,7 +190,8 @@ class DatabricksCtrl(SparkCtrl):
             main_class,
             self.sync(self.config.main_jar),
         ] + (list_of_strings(self.task.application_args()) + jars_list)
-        return self._run_spark_submit(spark_submit_parameters)
+        databricks_json = self._create_spark_submit_json(spark_submit_parameters)
+        return self._run_spark_submit(databricks_json)
 
     def _report_step_status(self, step):
         logger.info(self._get_step_banner(step))
