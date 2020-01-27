@@ -405,7 +405,6 @@ class DbndPodCtrl(object):
                 self.name,
                 final_state,
             )
-            time.sleep(5)
             if (
                 utcnow() - wait_start
             ) > self.kube_config.submit_termination_grace_period:
@@ -415,6 +414,8 @@ class DbndPodCtrl(object):
                         state=final_state,
                     )
                 )
+            time.sleep(5)
+            final_state = self.get_airflow_state()
 
         if final_state != State.SUCCESS:
             raise DatabandRuntimeError(
