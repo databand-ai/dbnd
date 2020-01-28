@@ -155,3 +155,9 @@ class _DbndDataClass(object):
 
 
 HEARTBEAT_DISABLED = make_aware(datetime.datetime.fromtimestamp(0))
+
+
+class ParamValidation(enum.Enum):
+    warn = "warn"
+    error = "error"
+    disabled = "disabled"

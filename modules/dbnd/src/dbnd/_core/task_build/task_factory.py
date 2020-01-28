@@ -15,7 +15,7 @@ from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.dbnd_config import DbndConfig
 from dbnd._core.configuration.pprint_config import pformat_current_config
-from dbnd._core.constants import _TaskParamContainer
+from dbnd._core.constants import ParamValidation, _TaskParamContainer
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
 from dbnd._core.parameter.parameter_definition import (
@@ -266,10 +266,14 @@ class TaskFactory(object):
             ),
             True,
         )
-        if validate_no_extra_params:
-            self.validate_no_extra_config_params()
+        if (
+            validate_no_extra_params
+            and validate_no_extra_params != ParamValidation.disabled
+        ):
+            self.validate_no_extra_config_params(validate_no_extra_params)
 
         self._assert_no_task_build_error()
+        self._log_task_build_warnings()
 
         task_enabled = True
         if self.parent_task:
@@ -300,7 +304,7 @@ class TaskFactory(object):
             task_call_source=self.task_call_source,
         )
 
-    def validate_no_extra_config_params(self):
+    def validate_no_extra_config_params(self, validation_setting):
         """
         check that the user did not set any config values that don't have a matching param definition (protects against typos)
         """
@@ -311,17 +315,24 @@ class TaskFactory(object):
                 continue
 
             for key, value in section.items():
-                if key not in task_param_names and not value.source.endswith(
-                    self._source_suffix(ParameterScope.children.value)
-                ):
-                    self.task_errors.append(
-                        friendly_error.task_build.unknown_parameter_in_config(
-                            task_name=self.task_name,
-                            param_name=key,
-                            source=value.source,
-                            task_param_names=task_param_names,
-                        )
+                if (
+                    key not in task_param_names
+                    and not value.source.endswith(
+                        self._source_suffix(ParameterScope.children.value)
                     )
+                    and not key == "_type"
+                ):
+                    exc = friendly_error.task_build.unknown_parameter_in_config(
+                        task_name=self.task_name,
+                        param_name=key,
+                        source=value.source,
+                        task_param_names=task_param_names,
+                        config_type=self._get_task_or_config_string(),
+                    )
+                    if validation_setting == ParamValidation.warn:
+                        self.build_warnings.append(exc)
+                    elif validation_setting == ParamValidation.error:
+                        self.task_errors.append(exc)
 
     def build_parameter_values(self, params):
         # type: (List[ParameterDefinition]) -> List[ParameterValue]
@@ -589,3 +600,24 @@ class TaskFactory(object):
         raise friendly_error.failed_to_create_task(
             self._exc_desc, nested_exceptions=self.task_errors
         )
+
+    def _get_task_or_config_string(self):
+        from dbnd._core.task.config import Config
+
+        if issubclass(self.task_definition.task_class, Config):
+            return "config"
+        else:
+            return "task"
+
+    def _log_task_build_warnings(self):
+        if not self.build_warnings:
+            return
+        w = "Build warnings for %s '%s': " % (
+            self._get_task_or_config_string(),
+            self.task_name,
+        )
+        for warning in self.build_warnings:
+            w += "\n\t" + str(warning)
+            if hasattr(warning, "did_you_mean") and warning.did_you_mean:
+                w += "\n\t\t - " + warning.did_you_mean
+        logger.warning(w)

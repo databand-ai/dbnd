@@ -3,6 +3,7 @@ import logging
 import pytest
 
 from dbnd import Task, config, new_dbnd_context
+from dbnd._core.constants import ParamValidation
 from dbnd._core.errors import DatabandBuildError, DatabandError, UnknownParameterError
 from dbnd._core.settings import CoreConfig
 from test_dbnd.factories import TTask, ttask_simple
@@ -36,21 +37,50 @@ class TestTaskMetaBuild(object):
         assert task.task_meta.task_call_source[0].filename in __file__
 
     def test_wrong_config_validation(self):
+        # raise exception
         with pytest.raises(UnknownParameterError) as e:
-            with config({"TTask": {"t_parammm": 2}}):
+            with config(
+                {
+                    "TTask": {
+                        "t_parammm": 2,
+                        "validate_no_extra_params": ParamValidation.error,
+                    }
+                }
+            ):
                 TTask()
 
-        assert e.value.help_msg == "Did you mean: t_param"
+        assert "Did you mean: t_param" in e.value.help_msg
 
-        with config({"TTask": {"t_parammm": 2, "validate_no_extra_params": False}}):
+        # log warning to log
+        with config(
+            {
+                "TTask": {
+                    "t_parammm": 2,
+                    "validate_no_extra_params": ParamValidation.warn,
+                }
+            }
+        ):
+            TTask()
+        # tried to add a capsys assert here but couldn't get it to work
+
+        # do nothing
+        with config(
+            {
+                "TTask": {
+                    "t_parammm": 2,
+                    "validate_no_extra_params": ParamValidation.disabled,
+                }
+            }
+        ):
             TTask()
 
+        # handle core config sections too
         with pytest.raises(
             DatabandError
         ):  # might be other extra params in the config in which case a DatabandBuildError will be raised
             with config(
                 {
-                    "config": {"validate_no_extra_params": True},
+                    "config": {"validate_no_extra_params": ParamValidation.error},
                     "core": {"blabla": "bla"},
                 }
             ):
