@@ -116,6 +116,15 @@ class CoreConfig(Config):
         default=True,
     )
 
+    fix_requests_on_osx = parameter(
+        description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
+    )[bool]
+
+    fernet_key = parameter(
+        description="key used by airflow to encrypt connections credentials",
+        default=None,
+    )[str]
+
     def _validate(self):
         if self.databand_url and self.databand_url.endswith("/"):
             logger.warning(

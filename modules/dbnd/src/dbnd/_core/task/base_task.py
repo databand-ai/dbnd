@@ -27,7 +27,7 @@ from typing import Dict, Optional
 
 import six
 
-from dbnd._core.constants import TaskType
+from dbnd._core.constants import ParamValidation, TaskType
 from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter.parameter_builder import parameter
@@ -78,9 +78,9 @@ class _BaseTask(object):
     # user can override this with his configuration
     defaults = None  # type: Dict[ParameterDefinition, any()]
 
-    validate_no_extra_params = parameter.system(
+    validate_no_extra_params = parameter.enum(ParamValidation).system(
         description="validate that all configured keys for a task have a matching parameter definition"
-    )[bool]
+    )
 
     @classmethod
     def get_task_family(cls):
