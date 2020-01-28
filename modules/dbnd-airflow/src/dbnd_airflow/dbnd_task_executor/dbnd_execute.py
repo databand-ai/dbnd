@@ -1,4 +1,5 @@
 import logging
+import sys
 import typing
 
 from dbnd import dbnd_bootstrap
@@ -69,6 +70,16 @@ def dbnd_operator__execute(dbnd_operator, context):
         logger.info("task.executor_config: %s", dbnd_operator.executor_config)
         logger.info("ti.executor_config: %s", context["ti"].executor_config)
         driver_dump = executor_config["DatabandExecutor"].get("dbnd_driver_dump")
+        print(
+            "Running dbnd task %s %s" % (dbnd_operator.dbnd_task_id, driver_dump),
+            file=sys.__stderr__,
+        )
+
+        if executor_config["DatabandExecutor"].get(
+            "remove_airflow_std_redirect", False
+        ):
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
 
         dbnd_bootstrap()
         run = DatabandRun.load_run(

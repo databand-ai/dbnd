@@ -29,6 +29,12 @@ class AirflowConfig(Config):
         int
     ]
 
+    remove_airflow_std_redirect = parameter(
+        default=False,
+        description="Remove airflow stdout/stderr redirection into logger on DBND operator run "
+        "(redirect can cause crash due to loopback between streams",
+    )[bool]
+
     def __init__(self, *args, **kwargs):
         super(AirflowConfig, self).__init__(*args, **kwargs)
         if not self.optimize_airflow_db_access:
