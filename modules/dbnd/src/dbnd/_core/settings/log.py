@@ -203,13 +203,16 @@ class LoggingConfig(config.Config):
         # into logger `airflow.task`, that will save everything into file.
         #  EVERY output of root logger will go through CONSOLE handler into AIRFLOW.TASK without being printed to screen
 
+        if not sys.stderr or not _safe_is_typeof(sys.stderr, "StreamLogWriter"):
+            logger.debug(
+                "Airflow logging is already replaced by dbnd stream log writer!"
+            )
+            return
+
         # NEW STATE
         # we will move airflow.task file handler to root level
         # we will set propogate
         # we will stop redirect of airflow logging
-        if not sys.stderr or not _safe_is_typeof(sys.stderr, "StreamLogWriter"):
-            logger.debug("Airflow logging is already patched!")
-            return
 
         # this will disable stdout ,stderr redirection
         sys.stderr = sys.__stderr__

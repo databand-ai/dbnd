@@ -48,36 +48,6 @@ DAG_UNPICKABLE_PROPERTIES = (
 )
 
 
-def pickle_dag_and_save_pickle_id_for_versioned(dag, driver_dump, session):
-    dp = DagPickle(dag=dag)
-
-    # First step: we need pickle id, so we save none and "reserve" pickle id
-    dag.last_pickled = timezone.utcnow()
-    dp.pickle = None
-    session.add(dp)
-    session.commit()
-
-    # Second step: now we have pickle_id , we can add it to Operator config
-    # dag_pickle_id used for Versioned Dag via TaskInstance.task_executor <- Operator.task_executor
-    dag.pickle_id = dp.id
-    for op in dag.tasks:
-        if op.executor_config is None:
-            op.executor_config = {}
-        op.executor_config["DatabandExecutor"] = {
-            "dbnd_driver_dump": str(driver_dump),
-            "dag_pickle_id": dag.pickle_id,
-        }
-
-    # now we are ready to create real pickle for the dag
-    with ready_for_pickle(dag, DAG_UNPICKABLE_PROPERTIES) as pickable_dag:
-        dp.pickle = pickable_dag
-        session.add(dp)
-        session.commit()
-
-    dag.pickle_id = dp.id
-    dag.last_pickled = timezone.utcnow()
-
-
 @provide_session
 def create_dagrun_from_dbnd_run(
     databand_run,
@@ -245,6 +215,36 @@ class AirflowTaskExecutor(TaskExecutor):
                     ),
                 )
 
+    def _pickle_dag_and_save_pickle_id_for_versioned(self, dag, session):
+        dp = DagPickle(dag=dag)
+
+        # First step: we need pickle id, so we save none and "reserve" pickle id
+        dag.last_pickled = timezone.utcnow()
+        dp.pickle = None
+        session.add(dp)
+        session.commit()
+
+        # Second step: now we have pickle_id , we can add it to Operator config
+        # dag_pickle_id used for Versioned Dag via TaskInstance.task_executor <- Operator.task_executor
+        dag.pickle_id = dp.id
+        for op in dag.tasks:
+            if op.executor_config is None:
+                op.executor_config = {}
+            op.executor_config["DatabandExecutor"] = {
+                "dbnd_driver_dump": str(self.run.driver_dump),
+                "dag_pickle_id": dag.pickle_id,
+                "remove_airflow_std_redirect": self.airflow_config.remove_airflow_std_redirect,
+            }
+
+        # now we are ready to create real pickle for the dag
+        with ready_for_pickle(dag, DAG_UNPICKABLE_PROPERTIES) as pickable_dag:
+            dp.pickle = pickable_dag
+            session.add(dp)
+            session.commit()
+
+        dag.pickle_id = dp.id
+        dag.last_pickled = timezone.utcnow()
+
     @provide_session
     def run_airflow_dag(self, dag, session=None):
         # type:  (DAG, Session) -> None
@@ -277,9 +277,7 @@ class AirflowTaskExecutor(TaskExecutor):
         # "again.
         delay_on_limit = 1.0
 
-        pickle_dag_and_save_pickle_id_for_versioned(
-            af_dag, databand_run.driver_dump, session=session
-        )
+        self._pickle_dag_and_save_pickle_id_for_versioned(af_dag, session=session)
         af_dag.sync_to_db(session=session)
 
         # let create relevant TaskInstance, so SingleDagRunJob will run them
