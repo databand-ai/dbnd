@@ -260,9 +260,20 @@ def init_databand_env():
     _init_windows_python_path()
 
 
+def _is_running_airflow_webserver():
+    # TODO: ...
+    if sys.argv[0].endswith("airflow") and sys.argv[1] == "webserver":
+        return True
+
+    if sys.argv[0].endswith("gunicorn") and "airflow-webserver" in sys.argv:
+        return True
+
+    return False
+
+
 # we run it automatically
 # as we only affect environ variables
-if ENV_DBND__DISABLED_INIT not in os.environ:
+if ENV_DBND__DISABLED_INIT not in os.environ and not _is_running_airflow_webserver():
     DBND_IS_INITIALIZED = init_databand_env()
 else:
     DBND_IS_INITIALIZED = False

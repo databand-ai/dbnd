@@ -55,9 +55,13 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
     ed = ExportData(
         task_instances=[
             ETaskInstance.from_task_instance(
-                ti, job, include_logs, dagbag.get_dag(ti.dag_id).get_task(ti.task_id)
+                ti,
+                job,
+                include_logs,
+                dag.get_task(ti.task_id) if dag.has_task(ti.task_id) else None,
             )
             for ti, job in task_instances
+            for dag in [dagbag.get_dag(ti.dag_id)]
         ],
         dag_runs=[EDagRun.from_dagrun(dr) for dr in dagruns],
         dags=[

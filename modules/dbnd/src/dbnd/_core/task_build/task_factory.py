@@ -503,25 +503,30 @@ class TaskFactory(object):
         param_names = {p.name for p in self.task_params}
 
         args_orig, kwargs_orig = list(task_args), task_kwargs.copy()
+        has_varargs = False
+        has_varkwargs = False
         if self.task_cls._conf__decorator_spec is not None:
             # only in functions we can have args as we know exact "call" signature
             task_args, task_kwargs = args_to_kwargs(
                 self.task_cls._conf__decorator_spec.args, task_args, task_kwargs
             )
+            has_varargs = self.task_cls._conf__decorator_spec.varargs
+            has_varkwargs = self.task_cls._conf__decorator_spec.varkw
 
         # now we should not have any args, we don't know how to assign them
-        if task_args:
+        if task_args and not has_varargs:
             raise friendly_error.unknown_args_in_task_call(
                 self.parent_task, self.task_cls, func_params=(args_orig, kwargs_orig)
             )
 
-        for param_name, _ in iteritems(task_kwargs):
-            if param_name not in param_names:
-                raise friendly_error.task_build.unknown_parameter_in_constructor(
-                    constructor=self._exc_desc,
-                    param_name=param_name,
-                    task_parent=self.parent_task,
-                )
+        if not has_varkwargs:
+            for param_name, _ in iteritems(task_kwargs):
+                if param_name not in param_names:
+                    raise friendly_error.task_build.unknown_parameter_in_constructor(
+                        constructor=self._exc_desc,
+                        param_name=param_name,
+                        task_parent=self.parent_task,
+                    )
         return task_kwargs
 
     def __str__(self):

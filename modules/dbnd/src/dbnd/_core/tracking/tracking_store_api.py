@@ -111,6 +111,13 @@ class TrackingStoreApi(TrackingStore):
             ],
         )
 
+    def update_task_run_attempts(self, task_run_attempt_updates):
+        return self._m(
+            self.channel.update_task_run_attempts,
+            update_task_run_attempts_schema,
+            task_run_attempt_updates=task_run_attempt_updates,
+        )
+
     def save_task_run_log(self, task_run, log_body):
         from dbnd.api.tracking_api import save_task_run_log_schema
 
