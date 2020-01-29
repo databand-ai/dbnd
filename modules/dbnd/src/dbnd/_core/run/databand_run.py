@@ -98,6 +98,8 @@ class DatabandRun(SingletonContext):
         run_uid=None,
         scheduled_run_info=None,
         send_heartbeat=True,
+        existing_run=None,
+        job_name=None,
     ):
         # type:(DatabandContext, Union[Task, str] , Optional[UUID], Optional[ScheduledRunInfo]) -> None
         self.context = context
@@ -112,7 +114,7 @@ class DatabandRun(SingletonContext):
         else:
             raise
 
-        self.job_name = self.root_task_name
+        self.job_name = job_name or self.root_task_name
 
         self.name = s.run.name or get_random_name()
         self.description = s.run.description
@@ -129,6 +131,9 @@ class DatabandRun(SingletonContext):
         else:
             self.run_uid = get_uuid()
             self.existing_run = False
+
+        if existing_run is not None:
+            self.existing_run = existing_run
 
         # this is so the scheduler can create a run with partial information and then have the subprocess running the actual cmd fill in the details
         self.resubmit_run = (
@@ -464,8 +469,10 @@ class DatabandRun(SingletonContext):
     def get_template_vars(self):
         return self._template_vars
 
-    def create_dynamic_task_run(self, task, task_engine):
-        tr = TaskRun(task=task, run=self, is_dynamic=True, task_engine=task_engine)
+    def create_dynamic_task_run(self, task, task_engine, _uuid=None):
+        tr = TaskRun(
+            task=task, run=self, is_dynamic=True, task_engine=task_engine, _uuid=_uuid
+        )
         self.add_task_runs([tr])
         return tr
 
@@ -519,8 +526,10 @@ class DatabandRun(SingletonContext):
             env[ENV_DBND__USER_PRE_INIT] = self.context.settings.core.user_code_on_fork
         return env
 
-    def _init_without_run(self):
-        self.driver_task_run.task.build_root_task_runs(self)
+    def _init_without_run(self, root_task_run_uid=None):
+        self.driver_task_run.task.build_root_task_runs(
+            self, root_task_run_uid=root_task_run_uid
+        )
 
     def is_killed(self):
         return _is_killed.is_set()
@@ -647,7 +656,7 @@ class _DbndDriverTask(Task):
     def build_task_from_cmd_line(self, task_name):
         return
 
-    def build_root_task_runs(self, run):
+    def build_root_task_runs(self, run, root_task_run_uid=None):
         """
         called by .run and inline
         :return:
@@ -667,7 +676,7 @@ class _DbndDriverTask(Task):
         run.root_task.task_dag.topological_sort()
 
         task_runs = TaskRunsBuilder().build_task_runs(
-            run, run.root_task, self.target_engine
+            run, run.root_task, self.target_engine, root_task_run_uid=root_task_run_uid
         )
         # we need it before to mark root task
         run.add_task_runs(task_runs)

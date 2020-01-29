@@ -1,4 +1,5 @@
 import logging
+import os
 
 from dbnd._core.constants import TaskType
 from dbnd._core.current import current_task_run
@@ -34,6 +35,13 @@ class _DecoratedTask(Task):
         """
         #
         force_invoke = call_kwargs.pop("__force_invoke", False)
+        # [('AIRFLOW_CTX_DAG_ID', 'embed_dbnd'), ('AIRFLOW_CTX_TASK_ID', 'print_the_context'), ('AIRFLOW_CTX_EXECUTION_DATE', '2019-12-17T00:00:00+00:00')]
+        if not has_current_task() and "AIRFLOW_CTX_DAG_ID" in os.environ:
+            # TODO: check if not disabled
+            from dbnd import dbnd_run_start_airflow
+
+            dbnd_run_start_airflow()
+
         if not has_current_task() or force_invoke:
             # 1. Databand is not enabled
             # 2. we have this call coming from Task.run / Task.band direct invocation
