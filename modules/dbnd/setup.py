@@ -30,6 +30,7 @@ setuptools.setup(
         "enum34;python_version<='2.7'",
         'contextlib2; python_version < "3"',
         "croniter>=0.3.30,<0.4",
+        "psutil>=5.6.7,<6.0.0",
     ],
     extras_require={
         ':sys_platform=="win32"': ["colorama"],

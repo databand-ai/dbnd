@@ -7,6 +7,8 @@ import sys
 
 from time import sleep, time
 
+import psutil
+
 from dbnd._core.constants import RunState
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
@@ -29,8 +31,6 @@ def start_heartbeat_sender(task_run):
         heartbeat_log_fp = None
         try:
             try:
-                heartbeat_log_file = task_run.log.local_heartbeat_log_file
-                heartbeat_log_fp = heartbeat_log_file.open("w")
                 cmd = [
                     sys.executable,
                     "-m",
@@ -49,19 +49,29 @@ def start_heartbeat_sender(task_run):
                 ]
                 if core.databand_url:
                     cmd += ["--databand-url", core.databand_url]
-                logger.info(
-                    "Starting heartbeat with log at %s using  cmd: %s",
-                    heartbeat_log_file,
-                    subprocess.list2cmdline(cmd),
-                )
-                sp = subprocess.Popen(
-                    cmd, stdout=heartbeat_log_fp, stderr=subprocess.STDOUT
-                )
+
+                if settings.run.heartbeat_sender_log_to_file:
+                    heartbeat_log_file = task_run.log.local_heartbeat_log_file
+                    heartbeat_log_fp = heartbeat_log_file.open("w")
+                    stdout = heartbeat_log_fp
+                    logger.info(
+                        "Starting heartbeat with log at %s using cmd: %s",
+                        heartbeat_log_file,
+                        subprocess.list2cmdline(cmd),
+                    )
+                else:
+                    stdout = None
+                    logger.info(
+                        "Starting heartbeat using cmd: %s", subprocess.list2cmdline(cmd)
+                    )
+
+                sp = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.STDOUT)
             except Exception as ex:
                 logger.info(
                     "Failed to spawn heartbeat process, you can disable it via [task]heartbeat_interval_s=0  .\n %s",
                     ex,
                 )
+                raise ex
             yield
         finally:
             if sp:
@@ -88,7 +98,7 @@ def send_heartbeat_continuously(
     run_uid, tracking_store, heartbeat_interval_s, driver_pid
 ):  # type: (str, TrackingStore, int, int) -> None
     logger.info(
-        "starting heartbeat sender process (pid %s) with a send interval of %s seconds"
+        "[heartbeat sender] starting heartbeat sender process (pid %s) with a send interval of %s seconds"
         % (os.getpid(), heartbeat_interval_s)
     )
 
@@ -96,24 +106,32 @@ def send_heartbeat_continuously(
         while True:
             loop_start = time()
             try:
-                try:  # failsafe, in case the driver process died violently
-                    os.getpgid(driver_pid)
-                except Exception:
+                if not psutil.pid_exists(
+                    driver_pid
+                ):  # failsafe, in case the driver process died violently
                     logger.info(
-                        "driver process %s stopped, stopping heartbeat sender",
+                        "[heartbeat sender] driver process %s stopped, stopping heartbeat sender",
                         driver_pid,
                     )
                     return
 
                 run_state = tracking_store.heartbeat(run_uid=run_uid)
+                logger.debug("[heartbeat sender] sent heartbeat")
                 if run_state == RunState.SHUTDOWN.value:
-                    logger.info("received run state SHUTDOWN: killing driver process")
+                    logger.info(
+                        "[heartbeat sender] received run state SHUTDOWN: killing driver process"
+                    )
                     os.kill(driver_pid, signal.SIGTERM)
             except KeyboardInterrupt:
-                logger.info("stopping heartbeat sender process due to interrupt")
+                logger.info(
+                    "[heartbeat sender] stopping heartbeat sender process due to interrupt"
+                )
                 return
             except Exception:
-                logger.error("failed to send heartbeat: %s", format_exception_as_str())
+                logger.error(
+                    "[heartbeat sender] failed to send heartbeat: %s",
+                    format_exception_as_str(),
+                )
 
             time_to_sleep_s = max(0, time() + heartbeat_interval_s - loop_start)
             if time_to_sleep_s > 0:
@@ -121,7 +139,7 @@ def send_heartbeat_continuously(
     except KeyboardInterrupt:
         return
     except Exception:
-        logger.exception("Failed to run heartbeat")
+        logger.exception("[heartbeat sender] Failed to run heartbeat")
     finally:
-        logger.info("stopping heartbeat sender")
+        logger.info("[heartbeat sender] stopping heartbeat sender")
         sys.exit(0)
