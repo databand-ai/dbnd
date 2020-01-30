@@ -166,6 +166,7 @@ class DbndSchedulerOperator(BaseOperator):
                 scheduled_cmd=self.scheduled_cmd,
                 task_name=context.get("dag").dag_id,
                 task_version="now",
+                task_is_system=True,
             )
 
             dc.dbnd_run_task(
