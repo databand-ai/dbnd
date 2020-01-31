@@ -218,12 +218,6 @@ class DatabricksCtrl(SparkCtrl):
         b.new_section()
         return b.getvalue()
 
-    def stop_spark_session(self, session):
-        # sc.stop on databrciks will cause an un-expected behaviour
-        # as the 'warning!' here suggests:
-        # https://docs.databricks.com/jobs.html
-        pass
-
     def sync(self, local_file):
         synced = self.deploy.sync(local_file)
         if self.databricks_config.cloud_type == DatabricksCloud.azure:
