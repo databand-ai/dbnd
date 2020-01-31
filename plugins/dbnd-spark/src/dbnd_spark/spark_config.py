@@ -106,3 +106,7 @@ class SparkConfig(Config):
     disable_sync = parameter.value(
         False, description="Disable databand auto sync mode for spark files"
     )
+
+
+class SparkEngineConfig(Config):
+    pass

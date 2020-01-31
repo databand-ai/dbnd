@@ -2,11 +2,12 @@ import pytest
 
 from pytest import mark
 
-from dbnd import parameter
+from dbnd import config, parameter
 from dbnd._core.errors import DatabandRunError
 from dbnd.tasks import Config
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_airflow_contrib.mng_connections import set_connection
+from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_test_scenarios.spark.spark_tasks import (
     WordCountPySparkTask,
     WordCountTask,
@@ -57,6 +58,14 @@ class TestSparkTasksLocally(object):
         from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
 
         assert_run_task(word_count_inline.t(text=__file__))
+
+    def test_spark_inline_same_context(self):
+        from pyspark.sql import SparkSession
+        from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
+
+        with SparkSession.builder.getOrCreate() as sc:
+            with config({SparkLocalEngineConfig.enable_spark_context_inplace: True}):
+                assert_run_task(word_count_inline.t(text=__file__))
 
     def test_spark_io(self):
         from dbnd_test_scenarios.spark.test_spark_io import dataframes_io_pandas_spark

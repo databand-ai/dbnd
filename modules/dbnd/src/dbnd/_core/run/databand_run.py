@@ -319,7 +319,6 @@ class DatabandRun(SingletonContext):
 
         local_driver_root = dbnd_local_root.folder(run_folder_prefix)
         local_driver_log = local_driver_root.partition("%s.log" % task_name)
-        local_driver_dump = local_driver_root.file("%s.pickle" % task_name)
 
         remote_driver_root = self.env.dbnd_root.folder(run_folder_prefix)
         driver_dump = remote_driver_root.file("%s.pickle" % task_name)
@@ -335,7 +334,6 @@ class DatabandRun(SingletonContext):
             task_executor_type=task_executor_type,
             local_driver_root=local_driver_root,
             local_driver_log=local_driver_log,
-            local_driver_dump=local_driver_dump,
             remote_driver_root=remote_driver_root,
             driver_dump=driver_dump,
             send_heartbeat=is_driver and self.sends_heartbeat,
@@ -585,7 +583,6 @@ class _DbndDriverTask(Task):
     # all paths, we make them system, we don't want to check if they are exists
     local_driver_root = output(system=True)[Target]
     local_driver_log = output(system=True)[Target]
-    local_driver_dump = output(system=True)[Target]
 
     remote_driver_root = output(system=True)[Target]
     driver_dump = output(system=True)[Target]

@@ -11,6 +11,8 @@ from dbnd_spark import SparkConfig
 
 
 class SparkCtrl(TaskRunCtrl):
+    stop_spark_session_on_finish = False
+
     def __init__(self, task_run):
         super(SparkCtrl, self).__init__(task_run=task_run)
 
@@ -21,21 +23,6 @@ class SparkCtrl(TaskRunCtrl):
 
     def _get_deploy_ctrl(self):
         return self.task_run.deploy  # type: TaskSyncCtrl
-
-    def should_keep_local_pickle(self):
-        return False
-
-    def download_to_local(self):
-        run = self.job.run
-        run.driver_dump.fs.download(
-            run.driver_dump.path, run.driver_task.local_driver_dump
-        )
-
-    def spark_driver_dump_file(self):
-        dr = self.job.run.driver_task
-        return (
-            dr.local_driver_dump if self.should_keep_local_pickle() else dr.driver_dump
-        )
 
     @property
     def config(self):
@@ -56,9 +43,6 @@ class SparkCtrl(TaskRunCtrl):
         "Spark HistoryServer": ["http://", "<master>", ":18080"],
         "Ganglia": ["http://", "<master>", "/ganglia"],
     }
-
-    def stop_spark_session(self, session):
-        session.stop()
 
     def config_to_command_line(self):
         # type: ()-> List[str]
