@@ -23,6 +23,8 @@ setuptools.setup(
     ],
     extras_require=dict(
         tests=[
+            # airflow support
+            "pandas<1.0.0,>=0.17.1",
             # azure
             "azure-storage-blob",
             # aws
