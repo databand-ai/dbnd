@@ -72,8 +72,8 @@ class DatabandContext(SingletonContext):
         if self.name == "interactive" or is_unit_test_mode():
             self.config.set(
                 "log",
-                "console_stream",
-                "sys.stdout",
+                "stream_stdout",
+                "True",
                 source="log",
                 merge_settings=ConfigMergeSettings.on_change_only,
             )

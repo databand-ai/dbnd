@@ -53,6 +53,10 @@ class AirflowConfig(Config):
         default=True,
         description="Auto add dbnd scheduled dags to airflow dags on dbnd-airflow command ",
     )
+    auto_disable_scheduled_dags_load = parameter(
+        default=True,
+        description="Auto disable dbnd scheduled dags load in databand clie",
+    )
     airflow_webserver_url = parameter(
         default=None, description="URL of airflow webserver used by local runs"
     )[str]
