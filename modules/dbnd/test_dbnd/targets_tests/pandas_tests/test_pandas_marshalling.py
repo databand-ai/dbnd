@@ -47,10 +47,11 @@ class TestPandasMarshalling(TargetTestBase):
         p_series = pd.Series([1, 3, 5, 6, 8])
 
         df_to_csv = DataFrameToCsv(series=True)
-        df_to_csv.value_to_target(p_series, t)
+        df_to_csv.value_to_target(p_series, t, header=None)
         assert t.exists()
 
         actual = df_to_csv.target_to_value(t)
+        logger.info("Value: %s", actual)
         assert_series_equal(actual, p_series, check_names=False)
 
     @pytest.mark.parametrize("marshaller_cls", [DataFrameToHdf5, DataFrameToPickle])
