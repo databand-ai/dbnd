@@ -13,6 +13,7 @@ prj_plugins = 	plugins/dbnd-aws  \
 			plugins/dbnd-docker \
 			plugins/dbnd-hdfs \
           	plugins/dbnd-gcp \
+          	plugins/dbnd-mlflow \
           	plugins/dbnd-test-scenarios
 
 

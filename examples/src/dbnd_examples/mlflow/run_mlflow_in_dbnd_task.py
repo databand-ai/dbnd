@@ -12,7 +12,6 @@ from mlflow import (
     log_artifacts,
     log_metric,
     log_param,
-    set_tracking_uri,
     start_run,
 )
 from mlflow.tracking import MlflowClient
@@ -26,8 +25,6 @@ def mlflow_tracking_integration_check(check_time=datetime.datetime.now()):
     # type: ( datetime.datetime)-> str
     logger.info("Running MLFlow tracking integration check!")
     logger.info("MLFlow tracking URI: {}".format(get_tracking_uri()))
-    # set_tracking_uri("dbnd://host:port/mlflow-api-handler/?redirect=urlencode('databricks://host:port/')")
-    logger.info("MLFlow tracking URI: {}".format(get_tracking_uri()))
 
     start_run()
 
@@ -36,9 +33,10 @@ def mlflow_tracking_integration_check(check_time=datetime.datetime.now()):
     log_param("param2", randint(0, 100))
 
     # metrics
-    log_metric("foo", random())
-    log_metric("foo", random() + 1)
-    log_metric("foo", random() + 2)
+    log_metric("foo1", random())
+    log_metric("foo1", random() + 1)
+    log_metric("foo2", random())
+    log_metric("foo2", random() + 1)
 
     # artifacts
     if not os.path.exists("outputs"):
