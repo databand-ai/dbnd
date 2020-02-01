@@ -8,7 +8,6 @@ from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.plugin.dbnd_plugins import assert_web_enabled, is_airflow_enabled
 from dbnd._core.task import Config
 from dbnd._core.tracking.tracking_store import TrackingStore
-from dbnd._core.utils.project.project_fs import databand_system_path
 
 
 logger = logging.getLogger()
@@ -23,6 +22,9 @@ class DatabandSystemConfig(Config):
 
     describe = parameter.help("Describe current run").value(False)
 
+    module = parameter(
+        default=None, description="Auto load this module before resolving user classes"
+    )[str]
     env = parameter(
         default=CloudType.local,
         description="task environment: local/aws/aws_prod/gcp/prod",

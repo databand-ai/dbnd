@@ -37,10 +37,9 @@ class MyDataToHdf5(DataFrameToHdf5):
         return MyData(features=features, targets=targets)
 
     def _pd_to(self, data, file_or_path, *args, **kwargs):
-        kwargs = combine_mappings(
-            {"format": "fixed", "mode": "w", "compression": "zlib"}, kwargs
-        )
+        kwargs = combine_mappings({"format": "fixed"}, kwargs)
         with pd.HDFStore(file_or_path, "w") as store:
+            kwargs.pop("mode", None)
             store.put("features", data.features, data_columns=True, **kwargs)
             store.put("targets", data.targets, data_columns=True, **kwargs)
 

@@ -35,6 +35,32 @@ class AirflowConfig(Config):
         "(redirect can cause crash due to loopback between streams",
     )[bool]
 
+    sql_alchemy_conn = parameter(
+        description="key used by airflow to encrypt connections credentials "
+        "(use 'dbnd' for using value from `core.fernet_key`)",
+        default=None,
+    )[str]
+    fernet_key = parameter(
+        description="key used by airflow to encrypt connections credentials "
+        "(use 'dbnd' for using value from `core.fernet_key`)",
+        default=None,
+    )[str]
+    auto_add_versioned_dags = parameter(
+        default=True,
+        description="Auto add versioned dag support to dbnd-airflow command",
+    )
+    auto_add_scheduled_dags = parameter(
+        default=True,
+        description="Auto add dbnd scheduled dags to airflow dags on dbnd-airflow command ",
+    )
+    auto_disable_scheduled_dags_load = parameter(
+        default=True,
+        description="Auto disable dbnd scheduled dags load in databand clie",
+    )
+    airflow_webserver_url = parameter(
+        default=None, description="URL of airflow webserver used by local runs"
+    )[str]
+
     def __init__(self, *args, **kwargs):
         super(AirflowConfig, self).__init__(*args, **kwargs)
         if not self.optimize_airflow_db_access:
