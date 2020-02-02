@@ -40,10 +40,11 @@ def setup_versioned_dags():
     )
     # we need it right now, plugins mechanism already scanned current folder
     patch_airflow_create_app()
-    os.environ["AIRFLOW__CORE__PLUGINS_FOLDER"] = dbnd_airflow_path(
+    versioned_plugin_dir = dbnd_airflow_path(
         "plugins", "loadable_plugins", "patched_versioned_bag"
     )
-
+    logger.info("Linking dag versions plugins via AIRFLOW__CORE__PLUGINS_FOLDER to %s ")
+    os.environ["AIRFLOW__CORE__PLUGINS_FOLDER"] = versioned_plugin_dir
     # ANOTHER OPTION WOULD BE TO ADD PERMAMENT LINK, however it will affect all other commands
     # plugin = dbnd_airflow_path(
     #     "plugins", "dbnd_airflow_webserver_plugin_linkable.py"
