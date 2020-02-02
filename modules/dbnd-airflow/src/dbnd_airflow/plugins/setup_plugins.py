@@ -31,7 +31,7 @@ def setup_versioned_dags():
         if DatabandAirflowWebserverPlugin.__name__ == p.__name__:
             return True
 
-    command = "airflow webserver"
+    command = "dbnd-airflow webserver"
     logger.warning(
         "dbnd-airflow-versioned-dag is not installed. "
         "Please run 'pip install dbnd-airflow-versioned-dag' in order to run '{command}'.".format(
