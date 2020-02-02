@@ -22,7 +22,7 @@ from dbnd._core.configuration.scheduler_file_config_loader import (
 )
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
-from dbnd._core.settings import LoggingConfig, RunConfig, SchedulerConfig
+from dbnd._core.settings import LoggingConfig, RunConfig
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import convert_to_utc
@@ -38,19 +38,19 @@ class DbndSchedulerDBDagsProvider(object):
     def __init__(self):
         self.last_refresh = 0
         self.scheduled_jobs = []
-        self.scheduler_config = SchedulerConfig()
 
         if (
-            self.scheduler_config.always_file_sync or ("scheduler" in sys.argv)
-        ) and not self.scheduler_config.never_file_sync:
+            config.getboolean("scheduler", "always_file_sync")
+            or ("scheduler" in sys.argv)
+        ) and not config.getboolean("scheduler", "never_file_sync"):
             self.file_config_loader = SchedulerFileConfigLoader()
             logger.debug("scheduler file syncing active")
         else:
             self.file_config_loader = None
             logger.debug("scheduler file syncing disabled")
 
-        self.refresh_interval = self.scheduler_config.refresh_interval
-        self.default_retries = self.scheduler_config.default_retries
+        self.refresh_interval = config.getint("scheduler", "refresh_interval")
+        self.default_retries = config.getint("scheduler", "default_retries")
 
     def get_dags(self):  # type: () -> List[DAG]
         if not config.get("core", "databand_url"):
