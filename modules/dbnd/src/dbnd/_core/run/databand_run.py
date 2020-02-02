@@ -359,19 +359,27 @@ class DatabandRun(SingletonContext):
 
     def _dbnd_run_error(self, ex):
         if (
-            "airflow" not in ex.__class__.__name__.lower()
+            # what scenario is this aiflow filtering supposed to help with?
+            # I had airflow put a default airflow.cfg in .dbnd causing validation error in k8sExecutor which was invisible in the console (only in task log)
+            (
+                "airflow" not in ex.__class__.__name__.lower()
+                or ex.__class__.__name__ == "AirflowConfigException"
+            )
             and "Failed tasks are:" not in str(ex)
             and not isinstance(ex, DatabandRunError)
+            and not isinstance(ex, KeyboardInterrupt)
         ):
             logger.exception(ex)
 
-        self.set_run_state(RunState.FAILED)
+        if isinstance(ex, KeyboardInterrupt):
+            run_state = RunState.CANCELLED
+            non_finished_task_state = TaskRunState.CANCELLED
+        else:
+            run_state = RunState.FAILED
+            non_finished_task_state = TaskRunState.FAILED
 
-        non_finished_task_state = (
-            TaskRunState.SHUTDOWN
-            if isinstance(ex, KeyboardInterrupt)
-            else TaskRunState.FAILED
-        )
+        self.set_run_state(run_state)
+
         for task_run in self.task_runs:
             if task_run.task_run_state not in TaskRunState.final_states():
                 task_run.set_task_run_state(non_finished_task_state, track=False)

@@ -150,7 +150,7 @@ class TaskRunRunner(TaskRunCtrl):
                     task.on_kill()
                 except Exception:
                     logger.exception("Failed to kill task on user keyboard interrupt")
-                task_run.set_task_run_state(TaskRunState.SHUTDOWN, error=error)
+                task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
                 raise
             except KeyboardInterrupt as ex:
                 logger.error(
@@ -171,11 +171,11 @@ class TaskRunRunner(TaskRunCtrl):
                         task.on_kill()
                 except Exception:
                     logger.exception("Failed to kill task on user keyboard interrupt")
-                task_run.set_task_run_state(TaskRunState.SHUTDOWN, error=error)
+                task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
                 raise
             except SystemExit as ex:
                 error = TaskRunError.buid_from_ex(ex, task_run)
-                task_run.set_task_run_state(TaskRunState.SHUTDOWN, error=error)
+                task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
                 raise friendly_error.task_execution.system_exit_at_task_run(task, ex)
             except Exception as ex:
                 error = TaskRunError.buid_from_ex(ex, task_run)

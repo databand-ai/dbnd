@@ -102,7 +102,7 @@ class TaskRunState(enum.Enum):
     SUCCESS = "success"
     FAILED = "failed"
 
-    SHUTDOWN = "shutdown"
+    CANCELLED = "cancelled"
 
     UPSTREAM_FAILED = "upstream_failed"
     SKIPPED = "skipped"
@@ -116,11 +116,11 @@ class TaskRunState(enum.Enum):
 
     @staticmethod
     def finished_states():
-        return {TaskRunState.SUCCESS, TaskRunState.FAILED, TaskRunState.SHUTDOWN}
+        return {TaskRunState.SUCCESS, TaskRunState.FAILED, TaskRunState.CANCELLED}
 
     @staticmethod
     def direct_fail_states():
-        return {TaskRunState.FAILED, TaskRunState.SHUTDOWN}
+        return {TaskRunState.FAILED, TaskRunState.CANCELLED}
 
     @staticmethod
     def states_lower_case():
@@ -132,6 +132,7 @@ class RunState(enum.Enum):
     SUCCESS = "success"
     FAILED = "failed"
     SHUTDOWN = "shutdown"
+    CANCELLED = "cancelled"
 
 
 class AlertStatus(enum.Enum):

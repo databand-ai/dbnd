@@ -44,16 +44,9 @@ class LocalTaskExecutor(TaskExecutor):
 
             try:
                 tr.runner.execute()
-            except DatabandError as e:
-                task_failed = True
-                logger.error("Failed to execute task: %s.", str(e))
-            except KeyboardInterrupt as e:
-                task_failed = True
-                fail_fast = True
-                logger.exception("Interrupted to execute task: %s.", str(e))
             except Exception as e:
                 task_failed = True
-                logger.exception("Failed to execute task: %s.", str(e))
+                logger.error("Failed to execute task '%s': %s" % (task.task_id, str(e)))
 
         if task_runs_to_update_state:
             self.run.tracker.set_task_run_states(task_runs_to_update_state)
