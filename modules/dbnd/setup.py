@@ -20,7 +20,7 @@ setuptools.setup(
         "marshmallow==2.18.0",
         "jinja2>=2.10.1, <2.11.0",  # same versions as Airflow
         "gitpython",
-        "pandas",
+        "pandas<1.0.0,>=0.17.1",
         "numpy",
         "pygments",
         # backward compatible python
