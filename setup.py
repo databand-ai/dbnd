@@ -38,6 +38,7 @@ EXTRAS_REQUIRE = {
     "databricks": [dbnd_package("dbnd-databricks")],
     "qubole": [dbnd_package("dbnd-qubole")],
     "gcp": [dbnd_package("dbnd-gcp")],
+    "mlflow": [dbnd_package("dbnd-mlflow")],
     "docker": [dbnd_package("dbnd-docker")],
     "k8s": [dbnd_package("dbnd-docker")],
     "spark": [dbnd_package("dbnd-spark")],

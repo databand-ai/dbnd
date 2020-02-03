@@ -43,13 +43,10 @@ class ApiClient(object):
         if not self.session:
             self._init_session()
 
+        url = urljoin(self._api_base_url, endpoint)
         try:
             resp = self.session.request(
-                method=method,
-                url=urljoin(self._api_base_url, endpoint),
-                json=data,
-                headers=headers,
-                params=query,
+                method=method, url=url, json=data, headers=headers, params=query
             )
         except requests.exceptions.ConnectionError:
             self.session = None
@@ -57,7 +54,7 @@ class ApiClient(object):
 
         if not resp.ok:
             raise DatabandApiError(
-                method, endpoint, resp.status_code, resp.content.decode("utf-8")
+                method, url, resp.status_code, resp.content.decode("utf-8")
             )
 
         return resp.json() if resp.content else None
