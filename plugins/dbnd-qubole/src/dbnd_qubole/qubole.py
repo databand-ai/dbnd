@@ -160,9 +160,6 @@ class QuboleCtrl(SparkCtrl):
         self._handle_qubole_operator_execution(cmd)
 
     def on_kill(self):
-        self.stop_spark_session(None)
-
-    def stop_spark_session(self, session):
         if not self.qubole_cmd_id:
             return
         try:

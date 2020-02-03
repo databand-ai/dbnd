@@ -2,15 +2,19 @@ from dbnd import parameter
 from dbnd._core.task.config import Config
 
 
-class SparkLocalConfig(Config):
+class SparkLocalEngineConfig(Config):
     """Apache Spark local deployment"""
 
     # we don't want spark class to inherit from this one, as it should has Config behaviour
     _conf__task_family = "spark_local"
 
     conn_id = parameter.value(
-        default="spark_local",
+        default="spark_default",
         description="local spark connection settings (SPARK_HOME)",
+    )
+
+    enable_spark_context_inplace = parameter(
+        default=False, description="Do not spawn new spark, use in memory"
     )
 
     def get_spark_ctrl(self, task_run):
