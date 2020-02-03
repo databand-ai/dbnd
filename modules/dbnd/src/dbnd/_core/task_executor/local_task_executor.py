@@ -2,7 +2,7 @@ import logging
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandError
-from dbnd._core.errors.base import DatabandRunError
+from dbnd._core.errors.base import DatabandRunError, DatabandSigTermError
 from dbnd._core.task_ctrl.task_dag import topological_sort
 from dbnd._core.task_executor.task_executor import TaskExecutor
 
@@ -44,6 +44,8 @@ class LocalTaskExecutor(TaskExecutor):
 
             try:
                 tr.runner.execute()
+            except DatabandSigTermError as e:
+                raise e
             except Exception as e:
                 task_failed = True
                 logger.error("Failed to execute task '%s': %s" % (task.task_id, str(e)))

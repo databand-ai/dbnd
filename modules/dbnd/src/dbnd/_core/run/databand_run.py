@@ -29,7 +29,7 @@ from dbnd._core.constants import (
 )
 from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd._core.errors.base import DatabandRunError
+from dbnd._core.errors.base import DatabandRunError, DatabandSigTermError
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.run.describe_run import DescribeRun
@@ -368,10 +368,11 @@ class DatabandRun(SingletonContext):
             and "Failed tasks are:" not in str(ex)
             and not isinstance(ex, DatabandRunError)
             and not isinstance(ex, KeyboardInterrupt)
+            and not isinstance(ex, DatabandSigTermError)
         ):
             logger.exception(ex)
 
-        if isinstance(ex, KeyboardInterrupt):
+        if isinstance(ex, KeyboardInterrupt) or isinstance(ex, DatabandSigTermError):
             run_state = RunState.CANCELLED
             non_finished_task_state = TaskRunState.CANCELLED
         else:
