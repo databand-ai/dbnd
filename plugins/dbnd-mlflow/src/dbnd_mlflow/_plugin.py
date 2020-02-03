@@ -16,11 +16,6 @@ def dbnd_setup_plugin():
 
     register_config_cls(MLFlowTrackingConfig)
 
-    # load an example task
-    from dbnd_examples.mlflow.run_mlflow_in_dbnd_task import (
-        mlflow_tracking_integration_check,
-    )
-
 
 _original_mlflow_tracking_uri = None
 
