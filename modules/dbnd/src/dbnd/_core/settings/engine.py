@@ -59,5 +59,4 @@ class LocalMachineEngineConfig(EngineConfig):
             task_env=env,
             task_name=task_name,
             task_is_system=True,
-            shell=True,
         )
