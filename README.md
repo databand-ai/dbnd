@@ -6,7 +6,7 @@
 
 # DBND Core 
 
-DBND is an agile pipeline framework that helps date engineering teams track and orchestrate their data processes. Used for processes ranging from data prep, machine learning model training, experimentation, testing, and production, DBND is easy to use and natively provides teams visibility, reproducibility, and dynamic orchestration for your projects.
+DBND is an agile pipeline framework that helps data engineering teams track and orchestrate their data processes. Used for processes ranging from data prep, machine learning model training, experimentation, testing, and production, DBND is easy to use and natively provides teams visibility, reproducibility, and dynamic orchestration for your projects.
 
 **DBND simplifies the process of building, running, and tracking data pipelines**
  
