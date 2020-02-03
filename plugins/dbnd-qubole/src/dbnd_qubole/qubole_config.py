@@ -2,7 +2,7 @@ import logging
 
 from dbnd import parameter
 from dbnd._core.constants import SparkClusters
-from dbnd._core.task.config import Config
+from dbnd_spark.spark_config import SparkEngineConfig
 
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ class Qubole(object):
     aws = "aws"
 
 
-class QuboleConfig(Config):
+class QuboleConfig(SparkEngineConfig):
     """Databricks cloud for Apache Spark """
 
     _conf__task_family = "qubole"

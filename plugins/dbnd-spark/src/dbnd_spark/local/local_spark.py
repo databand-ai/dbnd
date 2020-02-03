@@ -11,15 +11,12 @@ from dbnd._core.errors.friendly_error.task_execution import (
 from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark._core.spark_error_parser import parse_spark_log
-from dbnd_spark.local.local_spark_config import SparkLocalConfig
+from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_ctrl import SparkCtrl
 from targets.fs import FileSystems
 
 
 class LocalSparkExecutionCtrl(SparkCtrl):
-    def should_keep_local_pickle(self):
-        return self.deploy.remote_sync_root.fs.name != FileSystems.local
-
     def run_pyspark(self, pyspark_script):
         jars = list(self.config.jars)
         application = pyspark_script
@@ -38,7 +35,7 @@ class LocalSparkExecutionCtrl(SparkCtrl):
         from airflow.exceptions import AirflowException
 
         # task_env = get_cloud_config(Clouds.local)
-        spark_local_config = SparkLocalConfig()
+        spark_local_config = SparkLocalEngineConfig()
         _config = self.config
         deploy = self.deploy
         spark = SparkSubmitHook(

@@ -5,6 +5,7 @@ from typing import Dict, List
 from dbnd import parameter
 from dbnd._core.constants import SparkClusters
 from dbnd._core.task.config import Config
+from dbnd_spark.spark_config import SparkEngineConfig
 
 
 logger = logging.getLogger(__name__)
@@ -15,11 +16,13 @@ class DatabricksCloud(object):
     azure = "azure"
 
 
-class DatabricksConfig(Config):
+class DatabricksConfig(SparkEngineConfig):
     """Databricks cloud for Apache Spark """
 
     _conf__task_family = "databricks"
     cluster_type = SparkClusters.databricks
+
+    stop_session_on_finish = False
 
     cluster_id = parameter(default=None).help("existing cluster id")[str]
     cloud_type = parameter().help("cloud type: aws/azure")[str]
