@@ -18,6 +18,7 @@ def setup_versioned_dags():
     # Print relevant error
     from airflow.plugins_manager import plugins
 
+    logging.info("Running setup for versioned dags!")
     from dbnd_airflow.airflow_override.dbnd_aiflow_webserver import (
         patch_airflow_create_app,
     )
@@ -32,7 +33,7 @@ def setup_versioned_dags():
             return True
 
     command = "dbnd-airflow webserver"
-    logger.warning(
+    logger.info(
         "dbnd-airflow-versioned-dag is not installed. "
         "Please run 'pip install dbnd-airflow-versioned-dag' in order to run '{command}'.".format(
             command=command
@@ -43,7 +44,10 @@ def setup_versioned_dags():
     versioned_plugin_dir = dbnd_airflow_path(
         "plugins", "loadable_plugins", "patched_versioned_bag"
     )
-    logger.info("Linking dag versions plugins via AIRFLOW__CORE__PLUGINS_FOLDER to %s ")
+    logger.info(
+        "Linking dag versions plugins via AIRFLOW__CORE__PLUGINS_FOLDER to %s ",
+        versioned_plugin_dir,
+    )
     os.environ["AIRFLOW__CORE__PLUGINS_FOLDER"] = versioned_plugin_dir
     # ANOTHER OPTION WOULD BE TO ADD PERMAMENT LINK, however it will affect all other commands
     # plugin = dbnd_airflow_path(

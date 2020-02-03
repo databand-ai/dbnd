@@ -16,7 +16,10 @@ def use_databand_airflow_dagbag():
 
     import airflow
     from airflow import settings
-    from airflow.www_rbac import views
+    if settings.RBAC:
+        from airflow.www_rbac import views
+    else:
+        from airflow.www import views
     from dbnd_airflow.airflow_override import patch_module_attr
 
     logging.info("Using dbnd dagbag (supporting versioned dags).")
@@ -28,7 +31,8 @@ def use_databand_airflow_dagbag():
         views.dagbag = DbndAirflowDagBag(os.devnull, include_examples=False)
 
     # some views takes dag from dag model
-    patch_module_attr(views, "DagModel", DbndDagModel)
+    if hasattr(views, "DagModel"):
+        patch_module_attr(views, "DagModel", DbndDagModel)
 
     # dag_details invoke DagBag directly
     patch_module_attr(airflow.models, "DagBag", DbndAirflowDagBag)
@@ -36,11 +40,9 @@ def use_databand_airflow_dagbag():
     patch_module_attr(airflow.models.dag, "DagModel", DbndDagModel)
 
 
-
 def patch_airflow_create_app():
     if not in_quiet_mode():
         logger.debug("Adding support for versioned DBND DagBag")
-    from airflow.www_rbac import app as airflow_app
 
     def patch_create_app(create_app_func):
         def patched_create_app(*args, **kwargs):
@@ -50,7 +52,7 @@ def patch_airflow_create_app():
 
             _register_sqlachemy_local_dag_job()
 
-            logger.info("Setting SQL connection")
+            logger.info("Setting SQL from databand configuration.")
             config.load_system_configs()
             configure_airflow_sql_alchemy_conn()
 
@@ -60,4 +62,8 @@ def patch_airflow_create_app():
 
         return patched_create_app
 
-    airflow_app.create_app = patch_create_app(airflow_app.create_app)
+    from airflow.www_rbac import app as airflow_app_rbac
+    airflow_app_rbac.create_app = patch_create_app(airflow_app_rbac.create_app)
+
+    from airflow.www import app as airflow_app_no_rbac
+    airflow_app_no_rbac.create_app = patch_create_app(airflow_app_no_rbac.create_app)
