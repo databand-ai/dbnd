@@ -67,7 +67,7 @@ class ConsoleStore(tracking_store.TrackingStore):
             level = logging.ERROR
             if task_run.task.get_task_family() != "_DbndDriverTask":
                 show_simple_log = False
-        elif state == TaskRunState.SHUTDOWN:
+        elif state == TaskRunState.CANCELLED:
             task_msg = "Task %s has been canceled!" % (task_friendly_id)
             color = "red"
             level = logging.ERROR

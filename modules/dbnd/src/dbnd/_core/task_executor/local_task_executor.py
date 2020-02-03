@@ -2,7 +2,7 @@ import logging
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandError
-from dbnd._core.errors.base import DatabandRunError
+from dbnd._core.errors.base import DatabandRunError, DatabandSigTermError
 from dbnd._core.task_ctrl.task_dag import topological_sort
 from dbnd._core.task_executor.task_executor import TaskExecutor
 
@@ -44,16 +44,11 @@ class LocalTaskExecutor(TaskExecutor):
 
             try:
                 tr.runner.execute()
-            except DatabandError as e:
-                task_failed = True
-                logger.error("Failed to execute task: %s.", str(e))
-            except KeyboardInterrupt as e:
-                task_failed = True
-                fail_fast = True
-                logger.exception("Interrupted to execute task: %s.", str(e))
+            except DatabandSigTermError as e:
+                raise e
             except Exception as e:
                 task_failed = True
-                logger.exception("Failed to execute task: %s.", str(e))
+                logger.error("Failed to execute task '%s': %s" % (task.task_id, str(e)))
 
         if task_runs_to_update_state:
             self.run.tracker.set_task_run_states(task_runs_to_update_state)
