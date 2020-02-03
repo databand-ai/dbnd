@@ -33,7 +33,6 @@ def bash_cmd(
     output_encoding="utf-8",
     popen_kwargs=None,
     wait_for_termination_s=5,
-    shell=False,
 ):
     # type:( str, List[str], Optional[int], str, Dict[str,str], bool, str, Dict[str,Any]) -> int
     if popen_kwargs is None:
@@ -44,15 +43,10 @@ def bash_cmd(
         raise DatabandConfigError("You should not provide cmd and args ")
 
     if cmd:
-        if shell:
-            args = cmd
-        else:
-            args = shlex.split(cmd)
+        args = shlex.split(cmd)
     elif args:
         args = list(map(str, args))
         cmd = list2cmdline(args)
-        if shell:
-            args = cmd
 
     logger.info("Running: " + cmd)  # To simplify rerunning failing tests
 
@@ -83,7 +77,6 @@ def bash_cmd(
         env=env,
         preexec_fn=preexec_fn,
         cwd=cwd,
-        shell=True,
         **popen_kwargs
     )
 

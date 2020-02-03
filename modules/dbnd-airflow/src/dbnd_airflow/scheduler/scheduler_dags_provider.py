@@ -181,7 +181,7 @@ def launcher(scheduled_cmd):
     env = os.environ.copy()
     env[DBND_RUN_UID] = str(DatabandRun.get_instance().run_uid)
     env[DBND_RESUBMIT_RUN] = "true"
-    return bash_cmd.func(cmd=scheduled_cmd, env=env, dbnd_env=False, shell=True)
+    return bash_cmd.func(cmd=scheduled_cmd, env=env, dbnd_env=False)
 
 
 def get_dags():
