@@ -262,6 +262,9 @@ def init_databand_env():
 
 def _is_running_airflow_webserver():
     # TODO: ...
+    if not sys.argv or len(sys.argv) < 2:
+        return False
+
     if sys.argv[0].endswith("airflow") and sys.argv[1] == "webserver":
         return True
 
@@ -273,7 +276,7 @@ def _is_running_airflow_webserver():
 
 # we run it automatically
 # as we only affect environ variables
-if ENV_DBND__DISABLED_INIT not in os.environ and not _is_running_airflow_webserver():
+if ENV_DBND__DISABLED_INIT not in os.environ:
     DBND_IS_INITIALIZED = init_databand_env()
 else:
     DBND_IS_INITIALIZED = False
