@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import time
 
 from typing import List, Union
 
@@ -36,7 +35,6 @@ logger = logging.getLogger(__name__)
 class DbndSchedulerDBDagsProvider(object):
     # by default only run the file sync if we are in the scheduler (and not the webserver)
     def __init__(self):
-        self.last_refresh = 0
         self.scheduled_jobs = []
 
         if (
@@ -49,7 +47,6 @@ class DbndSchedulerDBDagsProvider(object):
             self.file_config_loader = None
             logger.debug("scheduler file syncing disabled")
 
-        self.refresh_interval = config.getint("scheduler", "refresh_interval")
         self.default_retries = config.getint("scheduler", "default_retries")
 
     def get_dags(self):  # type: () -> List[DAG]
@@ -57,7 +54,7 @@ class DbndSchedulerDBDagsProvider(object):
             self.scheduled_jobs = []
             return []
         logger.debug("about to get scheduler job dags from dbnd db")
-        self.refresh_scheduled_jobs(always_refresh=True)
+        self.refresh_scheduled_jobs()
         dags = []
         for job in self.scheduled_jobs:
             if "schedule_interval" not in job:
@@ -76,13 +73,7 @@ class DbndSchedulerDBDagsProvider(object):
             dags.append(dag)
         return dags
 
-    def refresh_scheduled_jobs(self, always_refresh=False):
-        now = time.time()
-        if always_refresh or now - self.refresh_interval > self.last_refresh:
-            self.last_refresh = now
-        else:
-            return
-
+    def refresh_scheduled_jobs(self):
         changes = self.file_config_loader.sync() if self.file_config_loader else None
         if changes:
             logger.info(
@@ -120,11 +111,12 @@ class DbndSchedulerDBDagsProvider(object):
         )
 
         DbndSchedulerOperator(
-            task_id="launcher",
             scheduled_cmd=job["cmd"],
-            dag=dag,
             scheduled_job_name=job_name,
             scheduled_job_uid=job.get("uid", None),
+            shell=config.getboolean("scheduler", "shell_cmd"),
+            task_id="launcher",
+            dag=dag,
             retries=job.get("retries", self.default_retries) or self.default_retries,
         )
 
@@ -136,11 +128,14 @@ class DbndSchedulerOperator(BaseOperator):
     template_ext = (".sh", ".bash")
     ui_color = "#f0ede4"
 
-    def __init__(self, scheduled_cmd, scheduled_job_name, scheduled_job_uid, **kwargs):
+    def __init__(
+        self, scheduled_cmd, scheduled_job_name, scheduled_job_uid, shell, **kwargs
+    ):
         super(DbndSchedulerOperator, self).__init__(**kwargs)
         self.scheduled_job_name = scheduled_job_name
         self.scheduled_job_uid = scheduled_job_uid
         self.scheduled_cmd = scheduled_cmd
+        self.shell = shell
 
     def execute(self, context):
         scheduled_run_info = ScheduledRunInfo(
@@ -167,6 +162,7 @@ class DbndSchedulerOperator(BaseOperator):
                 task_name=context.get("dag").dag_id,
                 task_version="now",
                 task_is_system=True,
+                shell=self.shell,
             )
 
             dc.dbnd_run_task(
@@ -177,11 +173,11 @@ class DbndSchedulerOperator(BaseOperator):
 
 
 @task
-def launcher(scheduled_cmd):
+def launcher(scheduled_cmd, shell):
     env = os.environ.copy()
     env[DBND_RUN_UID] = str(DatabandRun.get_instance().run_uid)
     env[DBND_RESUBMIT_RUN] = "true"
-    return bash_cmd.func(cmd=scheduled_cmd, env=env, dbnd_env=False, shell=True)
+    return bash_cmd.func(cmd=scheduled_cmd, env=env, dbnd_env=False, shell=shell)
 
 
 def get_dags():

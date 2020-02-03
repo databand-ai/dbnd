@@ -83,7 +83,7 @@ def bash_cmd(
         env=env,
         preexec_fn=preexec_fn,
         cwd=cwd,
-        shell=True,
+        shell=shell,
         **popen_kwargs
     )
 
