@@ -12,12 +12,12 @@ config = read_configuration(CFG_PATH)
 version = config["metadata"]["version"]
 
 setuptools.setup(
-    name="dbnd-airflow-sync",
+    name="dbnd-airflow-export",
     package_dir={"": "src"},
     install_requires=["apache-airflow>=1.10.3"],
     entry_points={
         "airflow.plugins": [
-            "dbnd_airflow_sync = dbnd_airflow_sync:DataExportAirflowPlugin"
+            "dbnd_airflow_export = dbnd_airflow_export:DataExportAirflowPlugin"
         ]
     },
 )

@@ -525,7 +525,7 @@ def export_data_api(dagbag):
 
 
 class DataExportAirflowPlugin(AirflowPlugin):
-    name = "airflow_data_export_plugin"
+    name = "dbnd_airflow_export"
     admin_views = [ExportDataViewAdmin(category="Admin", name="Export Data")]
     appbuilder_views = [
         {"category": "Admin", "name": "Export Data", "view": ExportDataViewAppBuilder()}
