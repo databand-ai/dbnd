@@ -142,18 +142,23 @@ def _get_time_bounderies(since, period, session):
             session.query(DagRun.end_date)
             .filter(DagRun.end_date.isnot(None))
             .order_by(DagRun.end_date)
-            .first()[0]
+            .first()
         )
+        if basic_dag_query:
+            basic_dag_query = basic_dag_query[0]
         basic_task_query = (
             session.query(TaskInstance.end_date)
             .filter(TaskInstance.end_date.isnot(None))
             .order_by(TaskInstance.end_date)
-            .first()[0]
+            .first()
         )
+        if basic_task_query:
+            basic_task_query = basic_task_query[0]
 
-        since = min(
-            basic_dag_query or basic_task_query, basic_task_query or basic_dag_query
-        )
+        if basic_dag_query or basic_task_query:
+            since = min(
+                basic_dag_query or basic_task_query, basic_task_query or basic_dag_query
+            )
 
     if not since:
         raise Exception(
