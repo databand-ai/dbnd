@@ -16,7 +16,7 @@ In order to install `dbnd-airflow-sync` we are using Airflow plugin system.
 Copy the plugin file into airflow plugins folder in you project (Airflow will automatically look for your plugins in this folder when startup)
 ```bash
 mkdir $AIRFLOW_HOME/plugins
-cp dbnd-airflow-sync/src/dbnd_airflow_export.py $AIRFLOW_HOME/plugins/
+cp dbnd-airflow-sync/src/dbnd_airflow_export/dbnd_airflow_export_plugin.py $AIRFLOW_HOME/plugins/
 ```
 
 #### Setup tools:
