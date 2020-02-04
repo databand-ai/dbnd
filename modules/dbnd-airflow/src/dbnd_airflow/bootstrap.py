@@ -1,15 +1,6 @@
+import logging
 import os
 import sys
-
-from dbnd_airflow.airflow_override import monkeypatch_airflow
-
-
-def _set_kerberos_env():
-    from airflow import configuration as airflow_configuration
-
-    if airflow_configuration.conf.get("core", "security") == "kerberos":
-        os.environ["KRB5CCNAME"] = airflow_configuration.conf.get("kerberos", "ccache")
-        os.environ["KRB5_KTNAME"] = airflow_configuration.conf.get("kerberos", "keytab")
 
 
 def _register_sqlachemy_local_dag_job():
@@ -26,15 +17,43 @@ def _fix_sys_path():
     sys.path = [str(p) if type(p) != str else p for p in sys.path]
 
 
+def set_airflow_sql_conn_from_dbnd_config():
+    logging.debug("updating airflow config from dbnd config")
+    from dbnd._core.configuration.dbnd_config import config as dbnd_config
+
+    sql_alchemy_conn = dbnd_config.get("airflow", "sql_alchemy_conn")
+    if sql_alchemy_conn == "dbnd":
+        logging.debug("updating airflow sql from dbnd core.sql_alchemy_conn")
+        sql_alchemy_conn = dbnd_config.get("core", "sql_alchemy_conn")
+
+    if sql_alchemy_conn and "AIRFLOW__CORE__SQL_ALCHEMY_CONN" not in os.environ:
+        os.environ["AIRFLOW__CORE__SQL_ALCHEMY_CONN"] = sql_alchemy_conn
+
+    fernet_key = dbnd_config.get("airflow", "fernet_key")
+    if fernet_key == "dbnd":
+        fernet_key = dbnd_config.get("core", "fernet_key")
+    if fernet_key and "AIRFLOW__CORE__FERNET_KEY" not in os.environ:
+        os.environ["AIRFLOW__CORE__FERNET_KEY"] = fernet_key
+
+
+_airflow_bootstrap_applied = False
+
+
 def airflow_bootstrap():
+    global _airflow_bootstrap_applied
+    if _airflow_bootstrap_applied:
+        return
+    set_airflow_sql_conn_from_dbnd_config()
+
+    from dbnd_airflow.airflow_override import monkeypatch_airflow
+
     monkeypatch_airflow()
+    from dbnd_airflow_windows.airflow_windows_support import (
+        enable_airflow_windows_support,
+    )
+
+    if os.name == "nt":
+        enable_airflow_windows_support()
     _fix_sys_path()
-    _set_kerberos_env()
     _register_sqlachemy_local_dag_job()
-
-    from dbnd import dbnd_config
-
-    if dbnd_config.getboolean("airflow", "track_airflow_dag"):
-        from dbnd_airflow.airflow_override import enable_airflow_tracking
-
-        enable_airflow_tracking()
+    _airflow_bootstrap_applied = True

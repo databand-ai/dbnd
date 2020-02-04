@@ -10,11 +10,10 @@ from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 from pytest import fixture
 
-from dbnd import band, data, output, task
+from dbnd import band, data, dbnd_run_cmd, output, task
 from dbnd._core.commands import log_metric
-from dbnd._core.inline import run_cmd_locally
 from dbnd._core.task_build.task_context import current_task, try_get_current_task
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from targets.types import DataList
 from targets.values import DictValueType, ListValueType
 from targets.values.pandas_values import DataFrameValueType
@@ -118,7 +117,7 @@ class TestTaskDecorators(TargetTestBase):
             assert d_int == 1
             return pandas_data_frame
 
-        run_cmd_locally(
+        dbnd_run_cmd(
             [
                 "t_f_cmd_hints",
                 "-r",
@@ -129,8 +128,6 @@ class TestTaskDecorators(TargetTestBase):
                 "c_timedelta=5d",
                 "-r",
                 "d_int=1",
-                "--set-root",
-                "a=1",
             ]
         )
 
@@ -151,7 +148,7 @@ class TestTaskDecorators(TargetTestBase):
             assert d_int == 1
             return pandas_data_frame
 
-        run_cmd_locally(
+        dbnd_run_cmd(
             [
                 "t_f_defaults_cmdline",
                 "-r",
@@ -162,8 +159,6 @@ class TestTaskDecorators(TargetTestBase):
                 "c_timedelta=5d",
                 "-r",
                 "d_int=1",
-                "--set",
-                json.dumps({"t_f_defaults_cmdline": {"a": "1"}}),
             ]
         )
 

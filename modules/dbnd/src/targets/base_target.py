@@ -28,7 +28,6 @@ from typing import Any, Dict, Optional
 
 import six
 
-from dbnd._core.current import get_task_by_task_id
 from dbnd._core.utils.basics.nothing import NOTHING
 
 
@@ -90,6 +89,8 @@ class Target(object):
     def source_task(self):
         # type: ()->Optional[Task]
         if self.source:
+            from dbnd._core.current import get_task_by_task_id
+
             return get_task_by_task_id(self.source.task_id)
         return None
 

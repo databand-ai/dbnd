@@ -16,7 +16,15 @@ from sklearn.linear_model import ElasticNet
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
-from dbnd import log_dataframe, log_metric, output, pipeline, task
+from dbnd import (
+    dbnd_config,
+    dbnd_handle_errors,
+    log_dataframe,
+    log_metric,
+    output,
+    pipeline,
+    task,
+)
 from dbnd.utils import data_combine, period_dates
 from dbnd_examples.data import data_repo
 from dbnd_examples.pipelines.wine_quality.serving.docker import package_as_docker
@@ -198,6 +206,17 @@ def fetch_data(task_target_date, period=datetime.timedelta(days=7)):
     return data_combine(all_data, sort=True)
 
 
+def main():
+    # NATIVE EXECUTION
+    print(predict_wine_quality(pd.read_csv(data_repo.wines)))
+
+
+@dbnd_handle_errors()
+def main_dbnd():
+    # DBND EXECUTION
+    with dbnd_config({fetch_data.task.period: "2d"}):
+        predict_wine_quality.dbnd_run()
+
+
 if __name__ == "__main__":
-    predict_wine_quality(pd.DataFrame.from_csv(data_repo.wines))
-    # predict_wine_quality.dbnd_run(override={"fetch_data.period": "2d"})
+    main()

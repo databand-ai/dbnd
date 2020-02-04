@@ -19,6 +19,7 @@ class SparkMarshaller(Marshaller):
     type = spark.DataFrame
     support_directory_direct_read = True
     support_multi_target_direct_read = True
+    support_directory_direct_write = True
 
     def __init__(self, fmt=FileFormat.csv):
         self.file_format = fmt
@@ -28,11 +29,12 @@ class SparkMarshaller(Marshaller):
     @target_timeit
     def target_to_value(self, target, **kwargs):
         path = _target_to_path(target)
+        schema = kwargs["schema"] if "schema" in kwargs else None
         return (
             get_spark_session()
             .read.format(self.file_format)
             .options(**kwargs)
-            .load(path)
+            .load(path, schema=schema)
         )
 
     def value_to_target(self, value, target, **kwargs):

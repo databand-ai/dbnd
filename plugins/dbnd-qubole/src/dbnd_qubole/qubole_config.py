@@ -1,10 +1,8 @@
 import logging
 
-from typing import Dict, List
-
 from dbnd import parameter
 from dbnd._core.constants import SparkClusters
-from dbnd._core.task.config import Config
+from dbnd_spark.spark_config import SparkEngineConfig
 
 
 logger = logging.getLogger(__name__)
@@ -14,17 +12,22 @@ class Qubole(object):
     aws = "aws"
 
 
-class QuboleConfig(Config):
+class QuboleConfig(SparkEngineConfig):
     """Databricks cloud for Apache Spark """
 
     _conf__task_family = "qubole"
     cluster_type = SparkClusters.qubole
     cloud = parameter(default="AWS", description="cloud")
-    api_token = parameter(default="").help("API key of qubole account")[str]
+
     api_url = parameter(default="https://us.qubole.com/api").help(
         "API URL without version. like:'https://<ENV>.qubole.com/api'"
     )[str]
-    cluster_label = parameter(default="None").help("existing cluster label")[str]
+
+    api_token = parameter.help("API key of qubole account")[str]
+    cluster_label = parameter().help("the label of the cluster to run the command on")[
+        str
+    ]
+
     status_polling_interval_seconds = parameter(default=10).help(
         "seconds to sleep between polling databricks for job status."
     )[int]

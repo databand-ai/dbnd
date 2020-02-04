@@ -8,7 +8,7 @@ from pandas.util.testing import assert_frame_equal
 from pytest import fixture
 
 from dbnd import band, output, task
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from targets import FileTarget
 from targets.types import DataList
 from test_dbnd.targets_tests import TargetTestBase

@@ -65,10 +65,12 @@ def task_has_missing_outputs_after_execution(task, missing_str):
     )
 
 
-def task_data_source_not_exists(task, missing):
-    downstream = task.task_dag.downstream
-    tasks = ",".join(map(str, downstream))
-    dependent = "Tasks that depend on this input are: %s\n" % tasks
+def task_data_source_not_exists(task, missing, downstream=None):
+    if downstream:
+        tasks = ",".join(map(str, downstream))
+        dependent = "Tasks that depend on this input are: %s\n" % tasks
+    else:
+        dependent = ""
     if len(missing) == 1:
         missing_target = missing[0]
 
@@ -108,28 +110,6 @@ def task_data_source_not_exists(task, missing):
         help_msg="Check that file exists and your configurations is ok. "
         "If it's directory, validate that you have _SUCCESS flag, "
         "or override that via target config ('noflag')",
-        show_exc_info=False,
-    )
-
-
-def task_not_exist(task_name, alternative_tasks=None, module=None):
-    err_msg = "Could not find the requested task/function %s" % task_name
-    if module:
-        err_msg += " in the current module %s." % module
-    if alternative_tasks:
-        err_msg += "\nDid you mean to call one of the following:\n %s" % "\n ".join(
-            alternative_tasks
-        )
-
-    err_msg += (
-        "\nPlease check the requested name, make sure the correct module installed, validate the value or add [%s]_type=EXPECTEDTYPE to configuration"
-        % task_name
-    )
-
-    return TaskClassNotFoundException(
-        err_msg,
-        help_msg="Validate that this method exist in the requested module. "
-        "Make sure you typed the function name correctly.",
         show_exc_info=False,
     )
 
@@ -284,8 +264,8 @@ def airflow_bad_user_configuration(ex, file_path):
 
 def airflow_versioned_dag_missing(command):
     return DatabandError(
-        "Could not run '%s', dbnd airflow-versioned-dag is not installed." % command,
-        help_msg="Please run 'pip install dbnd[airflow-versioned-dag]' in order to run '%s'."
+        "Could not run '%s', dbnd-airflow-versioned-dag is not installed." % command,
+        help_msg="Please run 'pip install dbnd-airflow-versioned-dag' in order to run '%s'."
         % command,
         show_exc_info=False,
     )

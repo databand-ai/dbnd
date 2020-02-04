@@ -1,4 +1,5 @@
 import logging
+import signal
 import time
 import typing
 
@@ -7,11 +8,14 @@ from collections import defaultdict
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.errors import DatabandConfigError, friendly_error, show_error_once
+from dbnd._core.errors.base import DatabandSigTermError
+from dbnd._core.log.logging_utils import TaskContextFilter
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.task_build.task_context import TaskContextPhase, task_context
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils import json_utils
+from dbnd._core.utils.basics.safe_signal import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import flatten, traverse_to_str
@@ -33,10 +37,14 @@ class TaskRunRunner(TaskRunCtrl):
     @contextlib.contextmanager
     def task_run_execution_context(self):
         ctx_managers = [
-            self.task_run.log.capture_task_log(),
             task_context(self.task_run.task, TaskContextPhase.RUN),
+            TaskContextFilter.task_context(self.task.task_id),
+            self.task_run.log.capture_task_log(),
             config.config_layer_context(self.task.task_meta.config_layer),
         ]
+
+        ctx_managers.append(self.task_run.log.capture_stderr_stdout())
+
         ctx_managers += pm.hook.dbnd_task_run_context(task_run=self.task_run)
         with contextlib.ExitStack() as stack:
             for mgr in ctx_managers:
@@ -65,20 +73,44 @@ class TaskRunRunner(TaskRunCtrl):
                 raise friendly_error.task_execution.databand_context_killed(
                     "task.execute_start of %s" % task
                 )
-
+            original_sigterm_signal = None
             try:
+
+                def signal_handler(signum, frame):
+                    logger.warning(
+                        "Received SIGTERM. Raising  DatabandSigTermError() exception!"
+                    )
+                    raise DatabandSigTermError(
+                        "Task received SIGTERM signal",
+                        help_msg="Probably the job was canceled",
+                    )
+
+                original_sigterm_signal = safe_signal(signal.SIGTERM, signal_handler)
+
                 task_run.start_time = utcnow()
                 self.task_env.prepare_env()
                 if task._complete():
                     task_run.set_task_reused()
                     return
+
                 if not self.ctrl.should_run():
                     missing = find_non_completed(self.relations.task_outputs_user)
                     missing_str = non_completed_outputs_to_str(missing)
                     raise DatabandConfigError(
-                        "You are missing some inputs to the pipeline! \n\t%s\n"
-                        "The task execution was disabled." % (missing_str)
+                        "You are missing some input tasks in your pipeline! \n\t%s\n"
+                        "The task execution was disabled for '%s'."
+                        % (missing_str, self.task_id)
                     )
+
+                missing = []
+                for partial_output in flatten(self.relations.task_inputs_user):
+                    if not partial_output.exists():
+                        missing.append(partial_output)
+                if missing:
+                    raise friendly_error.task_data_source_not_exists(
+                        self, missing, downstream=[self.task]
+                    )
+
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 try:
                     if task._should_resubmit(task_run):
@@ -108,6 +140,18 @@ class TaskRunRunner(TaskRunCtrl):
                 task_run.run.cleanup_after_task_run(task)
 
                 return result
+            except DatabandSigTermError as ex:
+                logger.error(
+                    "Sig TERM! Killing the task '%s' via task.on_kill()",
+                    task_run.task.task_id,
+                )
+                error = TaskRunError.buid_from_ex(ex, task_run)
+                try:
+                    task.on_kill()
+                except Exception:
+                    logger.exception("Failed to kill task on user keyboard interrupt")
+                task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
+                raise
             except KeyboardInterrupt as ex:
                 logger.error(
                     "User Interrupt! Killing the task %s", task_run.task.task_id
@@ -127,11 +171,11 @@ class TaskRunRunner(TaskRunCtrl):
                         task.on_kill()
                 except Exception:
                     logger.exception("Failed to kill task on user keyboard interrupt")
-                task_run.set_task_run_state(TaskRunState.SHUTDOWN, error=error)
+                task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
                 raise
             except SystemExit as ex:
                 error = TaskRunError.buid_from_ex(ex, task_run)
-                task_run.set_task_run_state(TaskRunState.SHUTDOWN, error=error)
+                task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
                 raise friendly_error.task_execution.system_exit_at_task_run(task, ex)
             except Exception as ex:
                 error = TaskRunError.buid_from_ex(ex, task_run)
@@ -140,6 +184,8 @@ class TaskRunRunner(TaskRunCtrl):
                 raise
             finally:
                 task_run.airflow_context = None
+                if original_sigterm_signal:
+                    safe_signal(signal.SIGTERM, original_sigterm_signal)
 
     def _save_task_band(self):
         if self.task.task_band:

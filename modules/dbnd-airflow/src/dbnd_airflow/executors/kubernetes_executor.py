@@ -17,6 +17,7 @@
 
 import logging
 import signal
+import typing
 
 from airflow.contrib.executors.kubernetes_executor import (
     AirflowKubernetesScheduler,
@@ -29,9 +30,14 @@ from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
 from dbnd._core.current import try_get_databand_run
+from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.task_build.task_registry import build_task_from_config
-from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
-from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
+from dbnd._core.utils.basics.safe_signal import safe_signal
+
+
+if typing.TYPE_CHECKING:
+    from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
+    from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
 
 MAX_POD_ID_LEN = 253
@@ -200,6 +206,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 ),
                 "try_number": str(try_number),
             },
+            try_number=try_number,
         )
 
         pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
@@ -229,7 +236,7 @@ def mgr_sig_handler(signal, frame):
 
 
 def mgr_init():
-    signal.signal(signal.SIGINT, mgr_sig_handler)
+    safe_signal(signal.SIGINT, mgr_sig_handler)
 
 
 class DbndKubernetesExecutor(KubernetesExecutor):
@@ -299,6 +306,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     def __init__(self, kube_dbnd, **kwargs):
         super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
         self.kube_dbnd = kube_dbnd  # type: DbndKubernetesClient
+        self.processed_events = {}
 
     def run(self):
         """Performs watching"""
@@ -312,6 +320,8 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                         self.worker_uuid,
                         self.kube_config,
                     )
+                except DatabandSigTermError:
+                    break
                 except Exception:
                     self.log.exception("Unknown error in KubernetesJobWatcher. Failing")
                     raise
@@ -321,7 +331,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                         "last resource_version: %s",
                         self.resource_version,
                     )
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, DatabandSigTermError):
             pass
 
     def _run(self, kube_client, resource_version, worker_uuid, kube_config):
@@ -354,7 +364,18 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
             if event["type"] == "ERROR":
                 return self.process_error(event)
+
+            pod_data = event["object"]
+            pod_name = pod_data.metadata.name
+            phase = pod_data.status.phase
+
+            if self.processed_events.get(pod_name):
+                self.log.debug("Event: %s at %s - skipping as seen", phase, pod_name)
+                continue
             status = self.kube_dbnd.process_pod_event(event)
+
+            if status in ["Succeeded", "Failed"]:
+                self.processed_events[pod_name] = status
 
             self.process_status_quite(
                 task.metadata.name,
@@ -362,9 +383,9 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 task.metadata.labels,
                 task.metadata.resource_version,
             )
-            last_resource_version = task.metadata.resource_version
+            self.resource_version = task.metadata.resource_version
 
-        return last_resource_version
+        return self.resource_version
 
     def process_status_quite(self, pod_id, status, labels, resource_version):
         """Process status response"""
@@ -375,7 +396,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))
         elif status == "Succeeded":
             self.log.debug("Event: %s Succeeded", pod_id)
-            self.watcher_queue.put((pod_id, None, labels, resource_version))
+            self.watcher_queue.put((pod_id, State.SUCCESS, labels, resource_version))
         elif status == "Running":
             self.log.debug("Event: %s is Running", pod_id)
         else:

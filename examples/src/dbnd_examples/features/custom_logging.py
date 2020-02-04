@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def custom_logging_mod():
-    base_config = get_databand_context().get_default_log_settings()
+    base_config = get_databand_context().settings.log.get_dbnd_logging_config_base()
 
     base_config["handlers"]["my_file"] = {
         "class": "logging.FileHandler",

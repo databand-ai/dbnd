@@ -1,6 +1,6 @@
 from dbnd import PipelineTask, PythonTask, data, output
 from dbnd.tasks import DataSourceTask
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from targets import target
 from test_dbnd.scenarios import scenario_path
 

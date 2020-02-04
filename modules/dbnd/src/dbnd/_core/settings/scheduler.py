@@ -39,3 +39,11 @@ class SchedulerConfig(config.Config):
     default_retries = parameter(
         description="number of times to retry a failed run, unless set to a different value on the scheduled job"
     )[int]
+
+    dbnd_user = parameter(description="user used to connect to the dbnd web server")[
+        str
+    ]
+
+    dbnd_password = parameter(
+        description="password used to connect to the dbnd web server"
+    )[str]

@@ -8,15 +8,17 @@ prj_plugins_spark  = plugins/dbnd-spark \
 
 prj_plugins = 	plugins/dbnd-aws  \
           	plugins/dbnd-azure \
+          	plugins/dbnd-airflow-export \
           	plugins/dbnd-airflow-versioned-dag \
 			plugins/dbnd-databricks \
 			plugins/dbnd-docker \
 			plugins/dbnd-hdfs \
           	plugins/dbnd-gcp \
+          	plugins/dbnd-mlflow \
           	plugins/dbnd-test-scenarios
 
 
-prj_dist = $(prj_modules) $(prj_plugins)
+prj_dist = $(prj_modules) $(prj_plugins) $(prj_plugins_spark)
 
 prj_examples = examples
 prj_test = plugins/dbnd-test-scenarios

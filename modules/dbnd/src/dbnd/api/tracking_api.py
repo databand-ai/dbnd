@@ -79,7 +79,7 @@ class InitRunArgsSchema(ApiObjectSchema):
     run_uid = fields.UUID()
     root_run_uid = fields.UUID()
 
-    driver_task_uid = fields.UUID()
+    driver_task_uid = fields.UUID(allow_none=True)
 
     task_run_env = fields.Nested(TaskRunEnvInfoSchema)
     task_runs_info = fields.Nested(TaskRunsInfoSchema)
@@ -207,6 +207,27 @@ class HeartbeatSchema(_ApiCallSchema):
 heartbeat_schema = HeartbeatSchema()
 
 
+class AirflowTaskInfoSchema(_ApiCallSchema):
+    execution_date = fields.DateTime()
+    dag_id = fields.String()
+    task_id = fields.String()
+    task_run_attempt_uid = fields.UUID()
+    retry_number = fields.Integer(required=False, allow_none=True)
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return AirflowTaskInfo(**data)
+
+
+class AirflowTaskInfosSchema(_ApiCallSchema):
+    airflow_task_infos = fields.Nested(AirflowTaskInfoSchema, many=True)
+    is_airflow_synced = fields.Boolean()
+    base_url = fields.String()
+
+
+airflow_task_infos_schema = AirflowTaskInfosSchema()
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -250,6 +271,9 @@ class TrackingAPI(object):
 
     def heartbeat(self, data):
         return self._handle(TrackingAPI.heartbeat.__name__, data)
+
+    def save_airflow_task_infos(self, data):
+        return self._handle(TrackingAPI.save_airflow_task_infos.__name__, data)
 
 
 class TrackingApiClient(TrackingAPI):
@@ -325,4 +349,26 @@ class ScheduledJobInfoSchema(ApiObjectSchema):
         return ScheduledJobInfo(**data)
 
 
-scheduled_job_info_schema = ScheduledJobInfoSchema()
+class ScheduledJobArgsSchema(_ApiCallSchema):
+    scheduled_job_args = fields.Nested(ScheduledJobInfoSchema)
+
+
+scheduled_job_args_schema = ScheduledJobArgsSchema()
+
+
+@attr.s
+class AirflowTaskInfo(object):
+    execution_date = attr.ib()  # type: datetime.datetime
+    dag_id = attr.ib()  # type: str
+    task_id = attr.ib()  # type: str
+    task_run_attempt_uid = attr.ib()  # type: UUID
+    retry_number = attr.ib(default=None)  # type: Optional[int]
+
+    def asdict(self):
+        return dict(
+            execution_date=self.execution_date,
+            dag_id=self.dag_id,
+            task_id=self.task_id,
+            task_run_attempt_uid=self.task_run_attempt_uid,
+            retry_number=self.retry_number,
+        )

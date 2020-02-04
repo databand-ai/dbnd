@@ -2,8 +2,6 @@ import hashlib
 import logging
 import os
 
-import dbnd
-
 from dbnd import output
 from dbnd._core.errors import friendly_error
 from dbnd._core.task.task import Task
@@ -31,9 +29,10 @@ class _DataSource(DataSourceTask):
         for partial_output in flatten(self.data):
             if not partial_output.exists():
                 missing.append(partial_output)
-
         if missing:
-            raise friendly_error.task_data_source_not_exists(self, missing)
+            raise friendly_error.task_data_source_not_exists(
+                self, missing, downstream=self.task_dag.downstream
+            )
 
 
 def data_source(data):

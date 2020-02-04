@@ -47,7 +47,7 @@ class ScheduledJobSchemaV2(Schema):
     deleted_from_file = fields.Boolean(
         allow_none=True, attribute="DbndScheduledJob.deleted_from_file"
     )
-    next_job = fields.DateTime(
+    next_job_date = fields.DateTime(
         attribute="DbndScheduledJob.next_job_date", allow_none=True
     )
     alerts = fields.List(

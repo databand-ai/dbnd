@@ -6,12 +6,12 @@ from typing import Any
 
 import six
 
-from dbnd._core.current import get_databand_context
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.traversing import traverse
-from targets import Target, target
+from targets.base_target import Target
 from targets.multi_target import MultiTarget
+from targets.target_factory import target
 from targets.types import Path
 
 
@@ -35,10 +35,12 @@ def _to_task(value):
         if value.source_task:
             return value.source_task
         if isinstance(value, MultiTarget):
-            return [_to_task(t) for t in value.targets]
-        from dbnd._core.task.data_source_task import data_source
+            tasks = [_to_task(t) for t in value.targets]
+            return [t for t in tasks if t is not None]
 
-        return data_source(data=value)
+        # we are not going to create "task" for the target,
+        # if it doesn't have an source
+        return None
 
     airflow_op_task = _try_get_task_from_airflow_op(value)
     if airflow_op_task:

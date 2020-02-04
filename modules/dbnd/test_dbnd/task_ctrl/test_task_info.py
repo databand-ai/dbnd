@@ -4,8 +4,7 @@ import shlex
 
 from typing import List
 
-from dbnd import parameter
-from dbnd._core.inline import run_cmd_locally
+from dbnd import dbnd_run_cmd, parameter
 from targets.values import DateValueType
 from test_dbnd.factories import TTask
 
@@ -43,7 +42,7 @@ class TestTaskInfo(object):
         # check that defaults are filtered out
         assert "date-param" not in cmd_line_as_str
 
-        assert run_cmd_locally(cmd_line[2:])
+        assert dbnd_run_cmd(cmd_line[2:])
 
     def test_generated_function_call(self):
         t = TaskInfoParamsTask(str_param=15, num_param=12, list_param=[1, 2, 3])

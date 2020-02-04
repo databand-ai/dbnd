@@ -247,6 +247,7 @@ class DataFrameToParquet(_PandasMarshaller):
     support_cache = True
     support_index_save = True
     support_directory_direct_read = True
+    support_directory_direct_write = False
 
     _compression_write_arg = "compression"
 

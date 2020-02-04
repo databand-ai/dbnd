@@ -31,6 +31,8 @@ DBND_RESUBMIT_RUN = "DBND_RESUBMIT_RUN"
 ENV_DBND__ENV_MACHINE = "DBND__ENV_MACHINE"
 ENV_DBND__ENV_IMAGE = "DBND__ENV_IMAGE"
 
+ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD = "DBND_DISABLE_SCHEDULED_DAGS_LOAD"
+
 # IF FALSE  - we will not modify decorated @task code
 DBND_ENABLED = None
 
@@ -40,6 +42,11 @@ _SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ or "--help" in sys.argv
 # quiet mode was made for the scheduler to silence the launcher runners. Don't want this flag to propagate into the actual scheduled cmd
 ENV_DBND_QUIET = "DBND_QUIET"
 _QUIET_MODE = os.environ.pop(ENV_DBND_QUIET, None) is not None or _SHELL_COMPLETION
+
+
+def set_quiet_mode(msg="no extra logs"):
+    global _QUIET_MODE
+    _QUIET_MODE = msg
 
 
 def in_shell_cmd_complete_mode():

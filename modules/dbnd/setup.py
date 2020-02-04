@@ -7,8 +7,6 @@ setuptools.setup(
     install_requires=[
         "tzlocal>=1.0.0,<2.0.0",
         "six",
-        "colorlog",
-        "termcolor",
         "more_itertools",
         "cachetools",
         "attrs",
@@ -32,15 +30,18 @@ setuptools.setup(
         "enum34;python_version<='2.7'",
         'contextlib2; python_version < "3"',
         "croniter>=0.3.30,<0.4",
+        "psutil>=5.6.7,<6.0.0",
     ],
-    extras_require=dict(
-        tests=[
+    extras_require={
+        ':sys_platform=="win32"': ["colorama"],
+        "tests": [
             "coverage",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov",
             "pluggy==0.11.0",  # 0.12 has import_metadata, fails on py2
             "zope.interface",
             "mock",
+            "pandas<1.0.0,>=0.17.1",  # airflow supports only this version
             "urllib3==1.23",  # otherwise we have 1.24 - conflict with 'requests'
             "tox==3.12.1",
             "matplotlib",
@@ -56,7 +57,7 @@ setuptools.setup(
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
             "openpyxl==2.6.4",
             "sklearn",
-        ]
-    ),
+        ],
+    },
     entry_points={"console_scripts": ["dbnd = dbnd:dbnd_main"]},
 )

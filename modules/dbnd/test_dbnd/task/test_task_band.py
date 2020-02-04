@@ -8,7 +8,7 @@ import pytest
 from dbnd import PipelineTask, band, current_task, output, parameter, pipeline, task
 from dbnd._core.errors import DatabandBuildError
 from dbnd.tasks.basics.publish import publish_results
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from targets import Target, target
 from targets.target_config import TargetConfig
 from targets.types import Path, PathStr

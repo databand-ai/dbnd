@@ -16,13 +16,15 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=[
         "dbnd==" + version,
-        "apache-airflow==1.10.6",
+        "apache-airflow==1.10.7",
         "future>=0.16.0, <0.17",
         "sqlalchemy_utc",
         "sqlalchemy_utils",
     ],
     extras_require=dict(
         tests=[
+            # airflow support
+            "pandas<1.0.0,>=0.17.1",
             # azure
             "azure-storage-blob",
             # aws
@@ -44,5 +46,8 @@ setuptools.setup(
             "cryptography>=2.0.0",
         ]
     ),
-    entry_points={"dbnd": ["dbnd-airflow = dbnd_airflow._plugin"]},
+    entry_points={
+        "console_scripts": ["dbnd-airflow = dbnd_airflow.dbnd_airflow_main:main"],
+        "dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],
+    },
 )

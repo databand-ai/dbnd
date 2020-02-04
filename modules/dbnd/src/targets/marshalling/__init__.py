@@ -5,6 +5,7 @@ import typing
 
 import numpy as np
 import pandas as pd
+import six
 
 from dbnd._core.errors import friendly_error
 from targets.marshalling.file import (
@@ -33,74 +34,102 @@ from targets.types import DataList
 from targets.values import get_value_type_of_type
 from targets.values.version_value import VersionStr
 
-
 logger = logging.getLogger(__name__)
 
-MARSHALERS = {
-    object: {
-        FileFormat.txt: StrMarshaller(),
-        FileFormat.pickle: ObjPickleMarshaller(),
-        FileFormat.json: ObjJsonMarshaller(),
-        FileFormat.yaml: ObjYamlMarshaller(),
-    },
-    typing.List: {
-        FileFormat.txt: StrLinesMarshaller(),
-        FileFormat.csv: StrLinesMarshaller(),
-        FileFormat.json: ObjJsonMarshaller(),
-        FileFormat.yaml: ObjYamlMarshaller(),
-        FileFormat.pickle: ObjPickleMarshaller(),
-    },
-    str: {
-        FileFormat.txt: StrMarshaller(),
-        FileFormat.csv: StrMarshaller(),
-        FileFormat.pickle: ObjPickleMarshaller(),
-        FileFormat.json: ObjJsonMarshaller(),
-    },
-    pd.DataFrame: {
-        FileFormat.txt: DataFrameToCsv(),
-        FileFormat.csv: DataFrameToCsv(),
-        FileFormat.table: DataFrameToTable(),
-        FileFormat.parquet: DataFrameToParquet(),
-        FileFormat.feather: DataFrameToFeather(),
-        FileFormat.hdf5: DataFrameToHdf5(),
-        FileFormat.pickle: DataFrameToPickle(),
-        FileFormat.json: DataFrameToJson(),
-        FileFormat.tsv: DataFrameToTsv(),
-        FileFormat.excel: DataFrameToExcel(),
-    },
-    pd.Series: {
-        FileFormat.csv: DataFrameToCsv(series=True),
-        FileFormat.table: DataFrameToTable(),
-        FileFormat.parquet: DataFrameToParquet(),
-        FileFormat.feather: DataFrameToFeather(),
-        FileFormat.hdf5: DataFrameToHdf5(),
-        FileFormat.pickle: DataFrameToPickle(),
-        FileFormat.json: DataFrameToJson(),
-    },
-    np.ndarray: {
-        FileFormat.numpy: NumpyArrayMarshaller(),
-        FileFormat.pickle: NumpyArrayPickleMarshaler(),
-    },
-    typing.Dict[str, pd.DataFrame]: {FileFormat.hdf5: DataFrameDictToHdf5()},
-}
+MARSHALERS = {}
 
-MARSHALERS[VersionStr] = MARSHALERS[str]
 
-list_marshalers = MARSHALERS[typing.List]
-for t in [typing.List[object], typing.List[str], DataList, DataList[str]]:
-    MARSHALERS[t] = list_marshalers
+def register_basic_data_marshallers():
+    register_marshallers(
+        object,
+        {
+            FileFormat.txt: StrMarshaller(),
+            FileFormat.pickle: ObjPickleMarshaller(),
+            FileFormat.json: ObjJsonMarshaller(),
+            FileFormat.yaml: ObjYamlMarshaller(),
+        },
+    )
+    register_marshallers(
+        typing.List,
+        {
+            FileFormat.txt: StrLinesMarshaller(),
+            FileFormat.csv: StrLinesMarshaller(),
+            FileFormat.json: ObjJsonMarshaller(),
+            FileFormat.yaml: ObjYamlMarshaller(),
+            FileFormat.pickle: ObjPickleMarshaller(),
+        },
+    )
+    register_marshallers(
+        str,
+        {
+            FileFormat.txt: StrMarshaller(),
+            FileFormat.csv: StrMarshaller(),
+            FileFormat.pickle: ObjPickleMarshaller(),
+            FileFormat.json: ObjJsonMarshaller(),
+        },
+    )
 
-try:
-    from matplotlib import figure
-    from targets.marshalling.matplotlib import MatplotlibFigureMarshaller
+    MARSHALERS[VersionStr] = MARSHALERS[str]
 
-    MARSHALERS[figure.Figure] = {
-        FileFormat.png: MatplotlibFigureMarshaller(),
-        FileFormat.pdf: MatplotlibFigureMarshaller(),
-        FileFormat.pickle: ObjPickleMarshaller(),
-    }
-except ImportError:
-    pass
+    list_marshalers = MARSHALERS[typing.List]
+    for t in [typing.List[object], typing.List[str], DataList, DataList[str]]:
+        MARSHALERS[t] = list_marshalers
+
+    try:
+        register_marshallers(
+            pd.DataFrame,
+            {
+                FileFormat.txt: DataFrameToCsv(),
+                FileFormat.csv: DataFrameToCsv(),
+                FileFormat.table: DataFrameToTable(),
+                FileFormat.parquet: DataFrameToParquet(),
+                FileFormat.feather: DataFrameToFeather(),
+                FileFormat.hdf5: DataFrameToHdf5(),
+                FileFormat.pickle: DataFrameToPickle(),
+                FileFormat.json: DataFrameToJson(),
+                FileFormat.tsv: DataFrameToTsv(),
+                FileFormat.excel: DataFrameToExcel(),
+            },
+        )
+        register_marshallers(
+            pd.Series,
+            {
+                FileFormat.csv: DataFrameToCsv(series=True),
+                FileFormat.table: DataFrameToTable(),
+                FileFormat.parquet: DataFrameToParquet(),
+                FileFormat.feather: DataFrameToFeather(),
+                FileFormat.hdf5: DataFrameToHdf5(),
+                FileFormat.pickle: DataFrameToPickle(),
+                FileFormat.json: DataFrameToJson(),
+            },
+        )
+        register_marshallers(
+            np.ndarray,
+            {
+                FileFormat.numpy: NumpyArrayMarshaller(),
+                FileFormat.pickle: NumpyArrayPickleMarshaler(),
+            },
+        )
+        register_marshallers(
+            typing.Dict[str, pd.DataFrame], {FileFormat.hdf5: DataFrameDictToHdf5()}
+        )
+    except ImportError:
+        pass
+
+    try:
+        from matplotlib import figure
+        from targets.marshalling.matplotlib import MatplotlibFigureMarshaller
+
+        register_marshallers(
+            figure.Figure,
+            {
+                FileFormat.png: MatplotlibFigureMarshaller(),
+                FileFormat.pdf: MatplotlibFigureMarshaller(),
+                FileFormat.pickle: ObjPickleMarshaller(),
+            },
+        )
+    except ImportError:
+        pass
 
 
 def _marshaller_options_message(value_type, value_options, object_options):
@@ -163,3 +192,9 @@ def get_marshaller_ctrl(target, value_type, config=None):
 
 def register_marshaller(value_type, file_format, marshaller_cls):
     MARSHALERS.setdefault(value_type, {})[file_format] = marshaller_cls
+
+
+def register_marshallers(value_type, marshaller_dict):
+    marshaller_value_type = MARSHALERS.setdefault(value_type, {})
+    for file_format, marshaller_cls in six.iteritems(marshaller_dict):
+        marshaller_value_type[file_format] = marshaller_cls

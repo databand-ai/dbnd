@@ -11,7 +11,7 @@ from dbnd.api.tracking_api import (
     init_run_schema,
     log_artifact_schema,
     log_metric_schema,
-    scheduled_job_info_schema,
+    scheduled_job_args_schema,
     set_run_state_schema,
     update_task_run_attempts_schema,
 )
@@ -34,8 +34,8 @@ class TrackingStoreApi(TrackingStore):
     def init_scheduled_job(self, scheduled_job):
         return self._m(
             self.channel.init_scheduled_job,
-            scheduled_job_info_schema,
-            init_args=scheduled_job,
+            scheduled_job_args_schema,
+            scheduled_job_args=scheduled_job,
         )
 
     def init_run(self, run):
@@ -43,6 +43,9 @@ class TrackingStoreApi(TrackingStore):
 
         init_args = TrackingInfoBuilder(run).build_init_args()
 
+        return self.init_run_from_args(init_args=init_args)
+
+    def init_run_from_args(self, init_args):
         return self._m(self.channel.init_run, init_run_schema, init_args=init_args)
 
     def add_task_runs(self, run, task_runs):
@@ -108,6 +111,13 @@ class TrackingStoreApi(TrackingStore):
             ],
         )
 
+    def update_task_run_attempts(self, task_run_attempt_updates):
+        return self._m(
+            self.channel.update_task_run_attempts,
+            update_task_run_attempts_schema,
+            task_run_attempt_updates=task_run_attempt_updates,
+        )
+
     def save_task_run_log(self, task_run, log_body):
         from dbnd.api.tracking_api import save_task_run_log_schema
 
@@ -161,6 +171,17 @@ class TrackingStoreApi(TrackingStore):
 
     def heartbeat(self, run_uid):
         return self._m(self.channel.heartbeat, heartbeat_schema, run_uid=run_uid)
+
+    def save_airflow_task_infos(self, airflow_task_infos, is_airflow_synced, base_url):
+        from dbnd.api.tracking_api import airflow_task_infos_schema
+
+        return self._m(
+            self.channel.save_airflow_task_infos,
+            airflow_task_infos_schema,
+            airflow_task_infos=airflow_task_infos,
+            is_airflow_synced=is_airflow_synced,
+            base_url=base_url,
+        )
 
     def _m(self, _channel_call, _req_schema, **req_kwargs):
         """

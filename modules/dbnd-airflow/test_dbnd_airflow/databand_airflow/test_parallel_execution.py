@@ -4,13 +4,11 @@ import pytest
 
 from airflow import settings
 
-from dbnd import PipelineTask, parameter
+from dbnd import PipelineTask, dbnd_run_cmd, parameter
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.base import DatabandRunError
-from dbnd._core.inline import run_cmd_locally, run_task
 from dbnd.tasks.basics import SimplestTask
-from dbnd.testing import assert_run_task
-from dbnd.testing.helpers_pytest import skip_on_windows
+from dbnd.testing.helpers_pytest import assert_run_task, skip_on_windows
 
 
 class SleepyTask(SimplestTask):
@@ -35,7 +33,7 @@ class ParallelTasksPipeline(PipelineTask):
 class TestTasksParallelExample(object):
     def test_parallel_simple_executor(self):
         target = ParallelTasksPipeline(num_of_tasks=2)
-        run_task(target)
+        target.dbnd_run()
         assert target._complete()
 
     # @with_context(conf={'executor': {'local': 'true'},
@@ -52,13 +50,13 @@ class TestTasksParallelExample(object):
         ]
 
         if "sqlite" in settings.SQL_ALCHEMY_CONN:
-            with pytest.raises(DatabandRunError):  # not supported on sqlite
-                run_cmd_locally(cmd)
+            with pytest.raises(DatabandConfigError):  # not supported on sqlite
+                dbnd_run_cmd(cmd)
         else:
-            run_cmd_locally(cmd)
+            dbnd_run_cmd(cmd)
 
     def test_parallel_dag_locally(self):
         task = ParallelTasksPipeline(override={SleepyTask.sleep_time: 0})
         assert_run_task(task)
         # target = ParallelTasksPipeline(num_of_tasks=2)
-        # run_task(target)
+        # target.dbnd_run()

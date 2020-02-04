@@ -13,6 +13,7 @@ from dbnd._core.errors.friendly_error.api import api_connection_refused
 
 logger = logging.getLogger(__name__)
 
+
 # uncomment for requests trace
 # import http.client
 # http.client.HTTPConnection.debuglevel = 1
@@ -36,17 +37,16 @@ class ApiClient(object):
         self.password = password
         self.session = None
 
-    def _request(self, endpoint, method="GET", data=None, headers={}, query=None):
+    def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
+        if headers is None:
+            headers = {}
         if not self.session:
             self._init_session()
 
+        url = urljoin(self._api_base_url, endpoint)
         try:
             resp = self.session.request(
-                method=method,
-                url=urljoin(self._api_base_url, endpoint),
-                json=data,
-                headers=headers,
-                params=query,
+                method=method, url=url, json=data, headers=headers, params=query
             )
         except requests.exceptions.ConnectionError:
             self.session = None
@@ -54,7 +54,7 @@ class ApiClient(object):
 
         if not resp.ok:
             raise DatabandApiError(
-                method, endpoint, resp.status_code, resp.content.decode("utf-8")
+                method, url, resp.status_code, resp.content.decode("utf-8")
             )
 
         return resp.json() if resp.content else None
@@ -65,7 +65,7 @@ class ApiClient(object):
 
             # get the csrf token cookie (if enabled on the server)
             self.session.get(urljoin(self._api_base_url, "/app"))
-            csrf_token = self.session.cookies.get("csrftoken")
+            csrf_token = self.session.cookies.get("dbnd_csrftoken")
             if csrf_token:
                 self.session.headers["X-CSRFToken"] = csrf_token
 

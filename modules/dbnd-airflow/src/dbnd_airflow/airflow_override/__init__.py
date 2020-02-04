@@ -1,27 +1,17 @@
 import os
 
 import airflow
-from airflow.utils import configuration, operator_helpers
-
-from dbnd_airflow.airflow_override.databand_dag import DatabandDAG
-from dbnd_airflow.airflow_override.databand_task_instance import DbndAirflowTaskInstance
+from airflow.utils import operator_helpers
 from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars
-from dbnd_airflow_windows.airflow_windows_support import enable_airflow_windows_support
 
 __patches = (
-    (airflow.models, "TaskInstance", DbndAirflowTaskInstance),
-    (airflow.models.taskinstance, "TaskInstance", DbndAirflowTaskInstance),
+  #   (airflow.models, "TaskInstance", DbndAirflowTaskInstance),
+  #   (airflow.models.taskinstance, "TaskInstance", DbndAirflowTaskInstance),
     (
         airflow.utils.operator_helpers,
         "context_to_airflow_vars",
         context_to_airflow_vars,
     ),
-)
-
-__dbnd_dag_tracking = (
-    (airflow.models, "DAG", DatabandDAG),
-    (airflow.models.dag, "DAG", DatabandDAG),
-    (airflow, "DAG", DatabandDAG),
 )
 
 
@@ -47,12 +37,5 @@ def unpatch_models():
         unpatch_module_attr(module, name, value)
 
 
-def enable_airflow_tracking():
-    for module, name, value in __dbnd_dag_tracking:
-        patch_module_attr(module, name, value)
-
-
 def monkeypatch_airflow():
     patch_models()
-    if os.name == "nt":
-        enable_airflow_windows_support()

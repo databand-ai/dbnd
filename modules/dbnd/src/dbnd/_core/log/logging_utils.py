@@ -73,23 +73,17 @@ def setup_log_file(log_file):
     setup_logs_dir(os.path.dirname(log_file))
 
 
-@contextmanager
-def capture_log_into_file(log_file, formatter, level):
-    setup_log_file(log_file)
+def create_file_handler(log_file, fmt=None):
+    fmt = fmt or "%(asctime)s %(levelname)s - %(message)s"
+    formatter = logging.Formatter(fmt=fmt)
 
+    # "formatter": log_settings.file_formatter,
+    log_file = str(log_file)
+    setup_log_file(log_file)
     handler = logging.FileHandler(filename=log_file, encoding="utf-8")
     handler.setFormatter(formatter)
-    handler.setLevel(level)
-
-    try:
-        logging.root.addHandler(handler)
-        yield handler
-    finally:
-        try:
-            logging.root.removeHandler(handler)
-            handler.close()
-        except Exception:
-            logger.error("Failed to close file handler for  log %s", log_file)
+    handler.setLevel(logging.INFO)
+    return handler
 
 
 @contextmanager
@@ -125,6 +119,7 @@ class StreamLogWriter(object):
         self.logger = logger
         self.level = level
         self._buffer = str()
+        self.skip_next_msg = 0
 
     def write(self, message):
         """
@@ -133,10 +128,25 @@ class StreamLogWriter(object):
         """
         if not message.endswith("\n"):
             self._buffer += message
-        else:
-            self._buffer += message
+            return
+
+        self._buffer += message
+        log_msg = self._buffer.rstrip()
+
+        # we want to prevent  stderr -> logger -> FAILURE with stderr print (inside logging.py) -> stderr -> recursion
+        # so the moment we understand that there is and logger error -> we stop redirecting for the next 10 messages
+        if log_msg == "--- Logging error ---":
+            self.skip_next_msg = 100
+            sys.__stderr__.write(
+                "Logger have an error, disable stream redirect for next 100 lines\n"
+            )
+
+        if not self.skip_next_msg:
             self.logger.log(self.level, self._buffer.rstrip())
-            self._buffer = str()
+        else:
+            self.skip_next_msg -= 1
+            sys.__stderr__.write("%s\n" % log_msg)
+        self._buffer = str()
 
     def flush(self):
         """
@@ -183,7 +193,7 @@ def set_module_logging_to_debug(modules):
 
 class TaskContextFilter(logging.Filter):
     """
-    adding task task variable to every record
+    adding 'task' variable to every record
     """
 
     task = "main"
@@ -198,5 +208,14 @@ class TaskContextFilter(logging.Filter):
     def task_context(cls, task_id):
         original_task = cls.task
         cls.task = task_id
-        yield cls
-        cls.task = original_task
+        try:
+            yield cls
+        finally:
+            cls.task = original_task
+
+
+def find_handler(logger, handler_name):
+    for h in logger.handlers:
+        if h.name == handler_name:
+            return h
+    return None

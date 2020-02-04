@@ -6,9 +6,9 @@ from dbnd_spark.livy.livy_spark_config import LivySparkConfig
 
 @dbnd.hookimpl
 def dbnd_setup_plugin():
-    from dbnd_spark.local.local_spark_config import SparkLocalConfig
+    from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 
-    register_config_cls(SparkLocalConfig)
+    register_config_cls(SparkLocalEngineConfig)
     register_config_cls(LivySparkConfig)
 
     try:

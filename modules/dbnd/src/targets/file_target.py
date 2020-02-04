@@ -4,7 +4,7 @@ from targets import pipes
 from targets.base_target import logger
 from targets.data_target import DataTarget
 from targets.errors import TargetError
-from targets.fs.fs_builder import get_fs_cached, get_fs_client_name
+from targets.fs import get_file_system, get_file_system_name
 from targets.pipes import Nop, Text
 from targets.target_config import FileCompressions, TargetConfig
 
@@ -34,7 +34,7 @@ class FileTarget(DataTarget):
 
         self.path = path
         self._fs = fs
-        self.fs_name = self._fs.name if self._fs else get_fs_client_name(path)
+        self.fs_name = self._fs.name if self._fs else get_file_system_name(path)
         self.io_pipe = io_pipe
         self.config = config  # type: TargetConfig
         if not path:
@@ -43,7 +43,7 @@ class FileTarget(DataTarget):
     @property
     def fs(self):
         if self._fs is None:
-            return get_fs_cached(self.fs_name)
+            return get_file_system(self.fs_name)
         return self._fs
 
     def __eq__(self, other):
@@ -132,6 +132,9 @@ class FileTarget(DataTarget):
     def move_from(self, from_path, raise_if_exists=False):
         self.fs.move(from_path, self.path, raise_if_exists=raise_if_exists)
         self.mark_success()
+
+    def copy_from_local(self, local_path):
+        self.fs.copy_from_local(local_path, self.path)
 
     def copy(self, new_path, raise_if_exists=False):
         self.fs.copy(self.path, str(new_path), raise_if_exists)

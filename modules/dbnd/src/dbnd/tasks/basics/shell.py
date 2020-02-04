@@ -15,6 +15,7 @@ from dbnd._core.current import try_get_current_task_run
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.friendly_error.task_execution import failed_to_run_cmd
 from dbnd._core.run.databand_run import DatabandRun
+from dbnd._core.utils.basics.safe_signal import safe_signal
 from dbnd._core.utils.platform import windows_compatible_mode
 
 
@@ -31,6 +32,8 @@ def bash_cmd(
     dbnd_env=True,
     output_encoding="utf-8",
     popen_kwargs=None,
+    wait_for_termination_s=5,
+    shell=False,
 ):
     # type:( str, List[str], Optional[int], str, Dict[str,str], bool, str, Dict[str,Any]) -> int
     if popen_kwargs is None:
@@ -41,10 +44,15 @@ def bash_cmd(
         raise DatabandConfigError("You should not provide cmd and args ")
 
     if cmd:
-        args = shlex.split(cmd)
+        if shell:
+            args = cmd
+        else:
+            args = shlex.split(cmd)
     elif args:
         args = list(map(str, args))
         cmd = list2cmdline(args)
+        if shell:
+            args = cmd
 
     logger.info("Running: " + cmd)  # To simplify rerunning failing tests
 
@@ -63,7 +71,7 @@ def bash_cmd(
         # Restore default signal disposition and invoke setsid
         for sig in ("SIGPIPE", "SIGXFZ", "SIGXFSZ"):
             if hasattr(signal, sig):
-                signal.signal(getattr(signal, sig), signal.SIG_DFL)
+                safe_signal(getattr(signal, sig), signal.SIG_DFL)
         os.setsid()
 
     process = subprocess.Popen(
@@ -75,43 +83,45 @@ def bash_cmd(
         env=env,
         preexec_fn=preexec_fn,
         cwd=cwd,
+        shell=shell,
         **popen_kwargs
     )
-    task_run = try_get_current_task_run()
-    if task_run:
-        task_run.task.process = process
 
-    def on_kill(task):
-        if hasattr(task, "process"):
-            logger.info("Sending SIGTERM signal to bash process group")
-            os.killpg(os.getpgid(task.process.pid), signal.SIGTERM)
+    try:
+        task_run = try_get_current_task_run()
+        if task_run:
+            task_run.task.process = process
 
-    logger.info("Process is running, output:")
-    # While command is running let read it's output
-    output = []
-    end_symbol = ""  # "b''" should be better
-    while True:
-        line = process.stdout.readline()
-        if line == "" or line == b"":
-            break
-        line = safe_decode(line, output_encoding).rstrip()
+        logger.info("Process is running, output:")
+        # While command is running let read it's output
+        output = []
+        while True:
+            line = process.stdout.readline()
+            if line == "" or line == b"":
+                break
+            line = safe_decode(line, output_encoding).rstrip()
 
-        print(line)
-        # keep last 1000 lines only
-        output.append(line)
-        if len(output) > 1500:
-            output = output[-1000:]
+            logger.info("out: %s", line)
+            # keep last 1000 lines only
+            output.append(line)
+            if len(output) > 1500:
+                output = output[-1000:]
 
-    returncode = process.wait()
-    logger.info("Command exited with return code %s", process.returncode)
-    if check_retcode is not None and returncode != check_retcode:
-        raise failed_to_run_cmd(
-            "Bash command failed", cmd_str=cmd, return_code=returncode
-        )
-        # raise subprocess.CalledProcessError(
-        #     returncode, cmd, output="\n".join(output)
-        # )
-    return returncode
+        returncode = process.wait()
+        logger.info("Command exited with return code %s", process.returncode)
+        if check_retcode is not None and returncode != check_retcode:
+            raise failed_to_run_cmd(
+                "Bash command failed", cmd_str=cmd, return_code=returncode
+            )
+        return returncode
+    except Exception:
+        logger.info("Received interrupt. Terminating subprocess and waiting")
+        try:
+            process.terminate()
+            process.wait(wait_for_termination_s)
+        except Exception:
+            pass
+        raise
 
 
 def safe_decode(line, output_encoding):

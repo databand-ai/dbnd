@@ -33,6 +33,10 @@ class TrackingStore(object):
         # type: (DatabandRun) -> List[int]
         pass
 
+    def init_run_from_args(self, init_args):
+        # type: (InitRunArgs) -> List[int]
+        pass
+
     def set_run_state(self, run, state, timestamp=None):
         pass
 
@@ -67,16 +71,26 @@ class TrackingStore(object):
     def heartbeat(self, run_uid):
         pass
 
+    def update_task_run_attempts(self, task_run_attempt_updates):
+        pass
+
+    def save_airflow_task_infos(self, airflow_task_infos, is_airflow_synced, base_url):
+        # type: (List[AirflowTaskInfo], bool, str) -> None
+        pass
+
 
 class CompositeTrackingStore(TrackingStore):
     def __init__(self, stores):
         self._stores = stores
 
     def _invoke(self, name, kwargs):
+        res = None
         for store in self._stores:
             try:
                 handler = getattr(store, name)
-                handler(**kwargs)
+                handler_res = handler(**kwargs)
+                if handler_res:
+                    res = handler_res
             except DatabandConnectionException as ex:
                 logger.error(
                     "Failed to store tracking information from %s at %s : %s"
@@ -89,6 +103,7 @@ class CompositeTrackingStore(TrackingStore):
                     % (name, store.__class__.__name__)
                 )
                 raise
+        return res
 
     # this is a function that used for disabling Tracking api on spark inline tasks.
     def disable_tracking_api(self):
@@ -103,6 +118,9 @@ class CompositeTrackingStore(TrackingStore):
 
     def init_run(self, **kwargs):
         return self._invoke(CompositeTrackingStore.init_run.__name__, kwargs)
+
+    def init_run_from_args(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.init_run_from_args.__name__, kwargs)
 
     def set_run_state(self, **kwargs):
         return self._invoke(CompositeTrackingStore.set_run_state.__name__, kwargs)
@@ -139,3 +157,13 @@ class CompositeTrackingStore(TrackingStore):
 
     def heartbeat(self, **kwargs):
         return self._invoke(CompositeTrackingStore.heartbeat.__name__, kwargs)
+
+    def save_airflow_task_infos(self, **kwargs):
+        return self._invoke(
+            CompositeTrackingStore.save_airflow_task_infos.__name__, kwargs
+        )
+
+    def update_task_run_attempts(self, **kwargs):
+        return self._invoke(
+            CompositeTrackingStore.update_task_run_attempts.__name__, kwargs
+        )

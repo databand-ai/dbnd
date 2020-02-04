@@ -24,6 +24,7 @@ from dbnd._core.configuration.pprint_config import (
     pformat_all_layers,
     pformat_current_config,
 )
+from dbnd._core.context.bootstrap import dbnd_system_bootstrap
 from dbnd._core.utils.basics.helpers import parse_bool
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 from targets import target
@@ -113,6 +114,10 @@ class DbndConfig(object):
 
     @contextlib.contextmanager
     def __call__(self, config_values=None, source=None, merge_settings=None):
+        # let validate that we are initialized
+        # user can call this function out of no-where, so we will create a layer, and will override it
+        # the moment we create more layers on config.system_load
+        dbnd_system_bootstrap()
         new_layer = self._new_config_layer(
             config_values, source=source, merge_settings=merge_settings
         )
@@ -124,10 +129,12 @@ class DbndConfig(object):
         current_layer = self.config_layer
         current_initialized_with_env = self.initialized_with_env
         # this will create new layer
-        self.config_layer = config_layer
-        yield self
-        self.config_layer = current_layer
-        self.initialized_with_env = current_initialized_with_env
+        try:
+            self.config_layer = config_layer
+            yield self
+        finally:
+            self.config_layer = current_layer
+            self.initialized_with_env = current_initialized_with_env
 
     def set_values(
         self, config_values, source=None, override=False, merge_settings=None
@@ -172,14 +179,14 @@ class DbndConfig(object):
         # type: (str, str)->Optional[ConfigValue]
         """
         Gets the value of the section/option using method.
-
+        This is the function used by
         Returns default if value is not found.
-
         Raises an exception if the default value is not None and doesn't match the expected_type.
         """
         return self.config_layer.config.get_config_value(section, key)
 
     def get(self, section, key, default=None, expand_env=True):
+
         config_value = self.get_config_value(section=section, key=key)
         if config_value:
             value = config_value.value

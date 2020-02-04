@@ -9,9 +9,8 @@ import pandas as pd
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
-from dbnd import task
-from dbnd._core.inline import run_cmd_locally
-from dbnd.testing import assert_run_task
+from dbnd import dbnd_run_cmd, task
+from dbnd.testing.helpers_pytest import assert_run_task
 from targets.types import LazyLoad
 from test_dbnd.targets_tests import TargetTestBase
 
@@ -56,7 +55,7 @@ class TestTaskDecoratorsPY3(TargetTestBase):
         )
 
     def test_simple_cli(self):
-        run_cmd_locally(
+        dbnd_run_cmd(
             [
                 "t_d_1",
                 "-r",
@@ -65,16 +64,14 @@ class TestTaskDecoratorsPY3(TargetTestBase):
                 "b_datetime=2018-01-01T101010.1",
                 "-r",
                 " c_timedelta=5d",
-                "-r",
-                "d_int=1",
                 "--set",
-                json.dumps({"t_d_1": {"a": "1"}}),
+                json.dumps({"t_d_1": {"d_int": 1}}),
             ]
         )
 
     def test_df_cli(self, pandas_data_frame_on_disk):
         my_target = pandas_data_frame_on_disk[1]
-        run_cmd_locally(["t_d_df", "-r", "some_df=" + my_target.path])
+        dbnd_run_cmd(["t_d_df", "-r", "some_df=" + my_target.path])
 
     def test_df_func(self, pandas_data_frame_on_disk):
         df, df_target = pandas_data_frame_on_disk

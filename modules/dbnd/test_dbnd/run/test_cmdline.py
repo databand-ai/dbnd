@@ -4,9 +4,8 @@ import logging
 
 import pytest
 
-from dbnd import Task
+from dbnd import Task, dbnd_run_cmd
 from dbnd._core.errors import TaskClassAmbigiousException, TaskClassNotFoundException
-from dbnd._core.inline import run_cmd_locally
 from dbnd._vendor.snippets.edit_distance import get_editdistance
 from test_dbnd.factories import TTask
 
@@ -31,33 +30,31 @@ NotAClass = None
 
 class TestCmdline(object):
     def test_cmdline_main_task_cls(self):
-        run_cmd_locally([TTask.get_task_family(), "-r", "t_param=100"])
+        dbnd_run_cmd([TTask.get_task_family(), "-r", "t_param=100"])
 
     def test_cmdline_ambiguous_class(self):
-        pytest.raises(
-            TaskClassAmbigiousException, run_cmd_locally, ["MyAmbiguousClass"]
-        )
+        pytest.raises(TaskClassAmbigiousException, dbnd_run_cmd, ["MyAmbiguousClass"])
 
     def test_non_existent_class(self):
         with pytest.raises(TaskClassNotFoundException):
-            run_cmd_locally(["XYZ"])
+            dbnd_run_cmd(["XYZ"])
 
     def test_non_decorated_class(self):
-        run_cmd_locally(["test_dbnd.run.test_cmdline.non_decorated_func"])
+        dbnd_run_cmd(["test_dbnd.run.test_cmdline.non_decorated_func"])
 
     def test_not_a_class(self):
         with pytest.raises(TaskClassNotFoundException):
-            run_cmd_locally(["NotAClass"])
+            dbnd_run_cmd(["NotAClass"])
 
     def test_no_task(self):
-        assert run_cmd_locally([]) is None
+        assert dbnd_run_cmd([]) is None
 
     def test_help(self):
-        assert run_cmd_locally(["--help"]) is None
+        assert dbnd_run_cmd(["--help"]) is None
 
     def test_describe_verbose(self):
         args = ["FooBaseTask", "-r", "t_param=hello", "--verbose", "--describe"]
-        assert run_cmd_locally(args)
+        assert dbnd_run_cmd(args)
 
     def test_describe_double_verbose(self):
         args = [
@@ -68,13 +65,13 @@ class TestCmdline(object):
             "--verbose",
             "--describe",
         ]
-        assert run_cmd_locally(args)
+        assert dbnd_run_cmd(args)
 
     def test_misspelled_task_suggestion(self):
         with pytest.raises(
             TaskClassNotFoundException, match="dbnd_sanity_check"
         ) as exc_info:
-            run_cmd_locally(["dbnd_sanity_che", "-r", "x=5"])
+            dbnd_run_cmd(["dbnd_sanity_che", "-r", "x=5"])
 
         logger.info("exc_info: %s", exc_info)
 

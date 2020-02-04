@@ -58,6 +58,7 @@ class RunInfo(_DbndDataClass):
     scheduled_run = attr.ib()  # type: Optional[ScheduledRunInfo]
 
     sends_heartbeat = attr.ib()  # type: bool
+    task_executor = attr.ib(default=None)  # type: str
 
 
 @attr.s

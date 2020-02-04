@@ -1,5 +1,4 @@
 import contextlib
-import logging
 import typing
 
 from typing import List
@@ -11,9 +10,6 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.settings import EngineConfig
-
-
-logger = logging.getLogger(__name__)
 
 
 class TaskExecutor(RunCtrl):

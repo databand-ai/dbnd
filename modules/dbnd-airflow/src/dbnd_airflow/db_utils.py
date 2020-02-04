@@ -2,6 +2,8 @@ import logging
 import time
 import traceback
 
+from databand import dbnd_config
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,35 +39,38 @@ def remove_listener_by_name(target, identifier, name):
         event.remove(target, identifier, fn)
 
 
-def trace_sqlalchemy_query(connection, cursor, query, *_):
+def trace_sqlalchemy_query(connection, cursor, query, parameters, *_):
     code = "unknown"
     for (file_path, val1, val2, line_contents) in traceback.extract_stack():
         if "airflow" not in file_path:
             continue
-        if "utils/sqlalchemy.py" in file_path or "utils/db.py" in file_path:
+        if (
+            "utils/sqlalchemy.py" in file_path
+            or "utils/db.py" in file_path
+            or "db_utils" in file_path
+        ):
             continue
         code = str((file_path, val1, val2, line_contents))
 
     logger.info(
-        "\nDBNDSQL QUERY: %s\nDBNDSQL CODE: %s\nDBNDSQL STACK: %s",
+        "\nDBNDSQL QUERY: %s\nPARAMS: %s\nDBNDSQL CODE: %s\nDBNDSQL STACK: %s",
         query.replace("\n", "    "),
+        parameters,
         code,
         "   ".join(map(str, traceback.extract_stack())),
     )
 
 
-def profile_before_cursor_execute(
-    conn, cursor, statement, parameters, context, executemany
-):
+def profile_before_cursor_execute(conn, cursor, statement, *_):
     conn.info.setdefault("query_start_time", []).append(time.time())
     logger.debug("Start Query: %s", statement)
 
 
-def profile_after_cursor_execute(
-    conn, cursor, statement, parameters, context, executemany
-):
+def profile_after_cursor_execute(conn, cursor, statement, parameters, *_):
     total = time.time() - conn.info["query_start_time"].pop(-1)
-    logger.info("Query Complete! %s  --> %f", statement, total)
+    logger.info(
+        "Query Complete! %s  \n--> %f seconds\nPARAMS: %s", statement, total, parameters
+    )
 
 
 def airflow_tables_to_dump():
@@ -77,6 +82,7 @@ def airflow_tables_to_dump():
         # dbnd_dag_run -> user, [cmd_line]
         # dag_run -> dag_id,
         af_models.DagRun,
+        af_models.TaskInstance,
         # dbnd_task_run -> created_by_task_id (__XXX), created_by_dag_id, task_name
         # dbnd_web.models.dbnd_airflow.dbnd_airflow_databand_task_run.DbndAirflowDatabandTaskRun,
         # dbnd_task_run_metrics -> name,

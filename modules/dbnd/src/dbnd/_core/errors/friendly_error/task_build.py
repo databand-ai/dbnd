@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import difflib
+
 from dbnd._core.errors import DatabandBuildError, UnknownParameterError
 from dbnd._core.errors.friendly_error.helpers import _band_call_str
 from dbnd._core.utils.basics.text_banner import safe_string
@@ -27,6 +29,40 @@ def unknown_parameter_in_constructor(constructor, param_name, task_parent):
         ),
         help_msg=help_msg,
     )
+
+
+def unknown_parameter_in_config(
+    task_name, param_name, source, task_param_names, config_type
+):
+    close_matches = difflib.get_close_matches(param_name, task_param_names)
+    did_you_mean = None
+    if close_matches:
+        did_you_mean = "Did you mean: %s" % (", ".join(close_matches))
+        help_msg = did_you_mean
+    else:
+        help_msg = "Remove '{param_name}' from the configuration.".format(
+            param_name=param_name
+        )
+    help_msg = (
+        help_msg
+        + "\nAlternatively you can disabled this validation or set it to warning: validate_no_extra_params = warn/disabled under [{config_type}] in your config".format(
+            config_type=config_type
+        )
+    )
+
+    e = UnknownParameterError(
+        "Unknown parameter '{param_name}' (source: {source}) in config for {task_or_section}".format(
+            task_name=task_name,
+            param_name=param_name,
+            source=source,
+            task_or_section="section [%s]" % task_name
+            if config_type == "config"
+            else "task '%s'" % task_name,
+        ),
+        help_msg=help_msg,
+    )
+    e.did_you_mean = did_you_mean
+    return e
 
 
 def pipeline_task_has_unassigned_outputs(task, param):

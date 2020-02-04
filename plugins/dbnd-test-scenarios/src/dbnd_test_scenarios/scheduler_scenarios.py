@@ -1,5 +1,3 @@
-import sys
-
 from random import random
 from time import sleep
 

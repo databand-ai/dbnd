@@ -29,7 +29,18 @@ __all__ = ["dbnd"]
 matplotlib.use("Agg")
 
 
-def pytest_configure():
+# by default exclude tests marked with following marks from execution:
+markers_to_exlude_by_default = ["dbnd_integration"]
+
+
+def pytest_configure(config):
+    markexpr = getattr(config.option, "markexpr", "")
+    marks = [markexpr] if markexpr else []
+    for mark in markers_to_exlude_by_default:
+        if mark not in markexpr:
+            marks.append("not %s" % mark)
+    new_markexpr = " and ".join(marks)
+    setattr(config.option, "markexpr", new_markexpr)
     register_task(TConfig)
     register_config_cls(FooConfig)
 

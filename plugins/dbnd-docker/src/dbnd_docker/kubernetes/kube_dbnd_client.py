@@ -13,6 +13,7 @@ from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_error
 from dbnd._core.log.logging_utils import override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
+from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow.airflow_extensions.dal import get_airflow_task_instance_state
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
@@ -57,9 +58,6 @@ class DbndKubernetesClient(object):
     def process_pod_event(self, event):
         pod_data = event["object"]
 
-        if event["type"] == "ERROR":
-            return None
-
         pod_name = pod_data.metadata.name
         phase = pod_data.status.phase
         if phase == "Pending":
@@ -93,7 +91,6 @@ class DbndKubernetesClient(object):
 
     def dbnd_set_task_pending_fail(self, pod_data, ex):
         metadata = pod_data.metadata
-        logs = None
 
         task_run = _get_task_run_from_pod_data(pod_data)
         if not task_run:
@@ -102,17 +99,14 @@ class DbndKubernetesClient(object):
 
         task_run_error = TaskRunError.buid_from_ex(ex, task_run)
 
-        try:
-            pp = pprint.PrettyPrinter(indent=4)
-            logs = pp.pformat(pod_data.status)
-            logger.info(logs)
-        except Exception as ex:
-            logger.error("failed to get pod status log for %s: %s", metadata.name, ex)
+        status_log = _get_status_log_safe(pod_data)
         logger.info(
-            "Pod is Pending with exception, marking it as failed. Pod Status:\n%s", logs
+            "Pod '%s' is Pending with exception, marking it as failed. Pod Status:\n%s",
+            metadata.name,
+            status_log,
         )
         task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
-        task_run.tracker.save_task_run_log(logs)
+        task_run.tracker.save_task_run_log(status_log)
 
     def dbnd_set_task_success(self, pod_data):
         metadata = pod_data.metadata
@@ -140,18 +134,7 @@ class DbndKubernetesClient(object):
 
     def dbnd_set_task_failed(self, pod_data):
         metadata = pod_data.metadata
-        logger.debug("getting failure info")
         # noinspection PyBroadException
-        pod_ctrl = self.get_pod_ctrl(metadata.name, metadata.namespace)
-        logs = []
-        try:
-            log_printer = lambda x: logs.append(x)
-            pod_ctrl.stream_pod_logs(
-                print_func=log_printer, tail_lines=100, follow=False
-            )
-        except Exception as ex:
-            logger.error("failed to get log for %s: %s", metadata.name, ex)
-
         logger.debug("Getting task run")
         task_run = _get_task_run_from_pod_data(pod_data)
         if not task_run:
@@ -161,13 +144,43 @@ class DbndKubernetesClient(object):
             logger.info("Skipping 'failure' event from %s", metadata.name)
             return
 
+        pod_ctrl = self.get_pod_ctrl(metadata.name, metadata.namespace)
+        logs = []
+        try:
+            log_printer = lambda x: logs.append(x)
+            pod_ctrl.stream_pod_logs(
+                print_func=log_printer, tail_lines=100, follow=False
+            )
+        except Exception as ex:
+            # when deleting pods we get extra failure events so we will have lots of this in the log
+            if isinstance(ex, ApiException) and ex.status == 404:
+                logger.info(
+                    "failed to get log for pod %s: pod not found", metadata.name
+                )
+            else:
+                logger.error("failed to get log for %s: %s", metadata.name, ex)
+
+        try:
+            short_log = "\n".join(["out:%s" % l for l in logs[:15]])
+        except Exception as ex:
+            logger.error(
+                "failed to build short log message for %s: %s", metadata.name, ex
+            )
+            short_log = None
+
+        status_log = _get_status_log_safe(pod_data)
+
         from dbnd._core.task_run.task_run_error import TaskRunError
 
         # work around to build an error object
         try:
+            err_msg = "Pod %s at %s has failed!" % (metadata.name, metadata.namespace)
+            if short_log:
+                err_msg += "\nLog:%s" % short_log
+            if status_log:
+                err_msg += "\nPod Status:%s" % status_log
             raise DatabandError(
-                "Pod %s at %s has failed! (15 lines of log, see more details in UI):\n%s"
-                % (metadata.name, metadata.namespace, "\n".join(logs[:15])),
+                err_msg,
                 show_exc_info=False,
                 help_msg="Please see full pod log for more details",
             )
@@ -231,7 +244,11 @@ class DbndPodCtrl(object):
             )
             logger.info("Pod '%s' has been deleted", self.name)
         except ApiException as e:
-            logger.info("Failed to delete pod '%s':%s", self.name, e)
+            logger.info(
+                "Failed to delete pod '%s': %s",
+                self.name,
+                e if e.status != 404 else "pod not found",
+            )
             # If the pod is already deleted
             if e.status != 404:
                 raise
@@ -377,8 +394,28 @@ class DbndPodCtrl(object):
         logger.info("Pod '%s' is running, reading logs..", self.name)
         self.stream_pod_logs(follow=True)
         logger.info("Successfully read %s pod logs", self.name)
-        final_state = self.get_airflow_state()
+
         from airflow.utils.state import State
+
+        final_state = self.get_airflow_state()
+        wait_start = utcnow()
+        while final_state not in {State.SUCCESS, State.FAILED}:
+            logger.debug(
+                "Pod '%s' is not completed with state %s, waiting..",
+                self.name,
+                final_state,
+            )
+            if (
+                utcnow() - wait_start
+            ) > self.kube_config.submit_termination_grace_period:
+                raise DatabandRuntimeError(
+                    "Pod is not in a final state after {grace_period}: {state}".format(
+                        grace_period=self.kube_config.submit_termination_grace_period,
+                        state=final_state,
+                    )
+                )
+            time.sleep(5)
+            final_state = self.get_airflow_state()
 
         if final_state != State.SUCCESS:
             raise DatabandRuntimeError(
@@ -430,6 +467,9 @@ class DbndPodCtrl(object):
             resp = self.kube_client.create_namespaced_pod(
                 body=req, namespace=pod.namespace
             )
+            logger.info(
+                "Started pod '%s' in namespace '%s'" % (pod.name, pod.namespace)
+            )
             logger.debug("Pod Creation Response: %s", resp)
         except ApiException as ex:
             task_run_error = TaskRunError.buid_from_ex(ex, task_run)
@@ -450,6 +490,15 @@ class DbndPodCtrl(object):
 
         self.wait()
         return self
+
+
+def _get_status_log_safe(pod_data):
+    try:
+        pp = pprint.PrettyPrinter(indent=4)
+        logs = pp.pformat(pod_data.status)
+        return logs
+    except Exception as ex:
+        return "failed to get pod status log for %s: %s" % (pod_data.metadata.name, ex)
 
 
 def _get_task_run_from_pod_data(pod_data):

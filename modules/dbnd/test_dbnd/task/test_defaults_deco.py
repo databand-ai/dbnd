@@ -2,9 +2,8 @@ import datetime
 import json
 import logging
 
-from dbnd import output, parameter, task
-from dbnd._core.inline import run_cmd_locally
-from dbnd.testing import assert_run_task
+from dbnd import dbnd_run_cmd, output, parameter, task
+from dbnd.testing.helpers_pytest import assert_run_task
 from targets import Target
 from test_dbnd.targets_tests import TargetTestBase
 
@@ -54,7 +53,7 @@ class TestTaskDecoratorDefaults(TargetTestBase):
             assert d_int == 1
             return pandas_data_frame
 
-        run_cmd_locally(
+        dbnd_run_cmd(
             [
                 "t_f_defaults_cmdline",
                 "-r",
@@ -63,10 +62,8 @@ class TestTaskDecoratorDefaults(TargetTestBase):
                 "b_datetime=2018-01-01T101010.1",
                 "-r",
                 "c_timedelta=5d",
-                "-r",
-                "d_int=1",
                 "--set",
-                json.dumps({"t_f_defaults_cmdline": {"a": "1"}}),
+                json.dumps({"t_f_defaults_cmdline": {"d_int": 1}}),
             ]
         )
 

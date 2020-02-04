@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import datetime
 import logging
 
-from airflow import AirflowException, executors, models
+from airflow import executors, models
 from airflow.jobs import BackfillJob, BaseJob
 from airflow.models import DagRun, TaskInstance
 from airflow.ti_deps.dep_context import RUNNABLE_STATES, RUNNING_DEPS, DepContext
@@ -16,10 +16,11 @@ from sqlalchemy.orm.session import make_transient
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import get_databand_run
-from dbnd._core.errors import DatabandExecutorError, DatabandSystemError, friendly_error
+from dbnd._core.errors import DatabandSystemError, friendly_error
+from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
-from dbnd_airflow.config import AirflowFeaturesConfig
+from dbnd_airflow.config import AirflowConfig
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
 )
@@ -57,7 +58,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         pool=None,
         delay_on_limit_secs=1.0,
         verbose=False,
-        airflow_features=None,
+        airflow_config=None,
         *args,
         **kwargs
     ):
@@ -79,14 +80,14 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         self._logged_status = ""  # last printed status
 
         self.ti_state_manager = AirflowTaskInstanceStateManager()
-        self.airflow_features = airflow_features  # type: AirflowFeaturesConfig
+        self.airflow_config = airflow_config  # type: AirflowConfig
         super(SingleDagRunJob, self).__init__(*args, **kwargs)
 
     @property
     def _optimize(self):
-        return self.airflow_features.optimize_airflow_db_access
+        return self.airflow_config.optimize_airflow_db_access
 
-    def _update_counters(self, ti_status):
+    def _update_counters(self, ti_status, waiting_for_executor_result):
         """
         Updates the counters per state of the tasks that were running. Can re-add
         to tasks to run in case required.
@@ -113,8 +114,18 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti_status.failed.add(key)
                 ti_status.running.pop(key)
                 continue
-            # special case: if the task needs to run again put it back
-            elif ti.state == State.UP_FOR_RETRY:
+            # special case: if the task needs to run again put it back.
+            #
+            # if we don't wait for the executor response then there's a race condition where the task gets rerun
+            # before we process the response for the failure. The response handler then fails the task because it thinks
+            # there's a mismatch between the task's state and the executor's result (which it gives priority).
+            # This causes the task to be put in the to_run map again but if the task (which is already running) just
+            # changes it's state to running it will cause the scheduler to put into the not_ready map by default
+            # and then we can get a false positive deadlock error
+            elif (
+                ti.state == State.UP_FOR_RETRY
+                and key not in waiting_for_executor_result
+            ):
                 self.log.warning("Task instance %s is up for retry", ti)
                 ti_status.running.pop(key)
                 ti_status.to_run[key] = ti
@@ -133,7 +144,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti_status.running.pop(key)
                 ti_status.to_run[key] = ti
 
-    def _manage_executor_state(self, running):
+    def _manage_executor_state(self, running, waiting_for_executor_result):
         """
         Checks if the executor agrees with the state of task instances
         that are running
@@ -142,11 +153,33 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         executor = self.executor
 
         for key, state in list(executor.get_event_buffer().items()):
+            # the fourth slot in the key is the try number (defined in TaskInstance.key). The keys in the scheduler maps are
+            # determined at the start of the run and never updated - so the try number is stuck on 1. The executor however
+            # returns the status for the current retry number so after the first try we ignore events from the executor unless
+            # we fix the key
+            key_as_list = list(key)
+            key_as_list[3] = 1
+            key = tuple(list(key_as_list))
+
             if key not in running:
                 self.log.debug(
-                    "Task %s state %s not in running=%s", key, state, running.values()
+                    "Received executor state '%s' for Task %s not in running=%s",
+                    state,
+                    key,
+                    running.values(),
                 )
                 continue
+
+            if key not in waiting_for_executor_result:
+                self.log.debug(
+                    "Received executor state '%s' for Task %s not in waiting_for_executor_result=%s",
+                    state,
+                    key,
+                    waiting_for_executor_result.values(),
+                )
+                continue
+
+            waiting_for_executor_result.pop(key)
 
             ti = running[key]
             # updated by StateManager
@@ -319,7 +352,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         executed_run_dates = []
 
-        all_ti = ti_status.to_run.values()
+        # values() returns a view so we copy to maintain a full list of the TIs to run
+        all_ti = list(ti_status.to_run.values())
+        waiting_for_executor_result = {}
+
         while (len(ti_status.to_run) > 0 or len(ti_status.running) > 0) and len(
             ti_status.deadlocked
         ) == 0:
@@ -330,14 +366,14 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             self.log.debug("*** Clearing out not_ready list ***")
             ti_status.not_ready.clear()
 
+            self.ti_state_manager.refresh_task_instances_state(
+                all_ti, self.dag.dag_id, self.execution_date, session=session
+            )
+
             # we need to execute the tasks bottom to top
             # or leaf to root, as otherwise tasks might be
             # determined deadlocked while they are actually
             # waiting for their upstream to finish
-            self.ti_state_manager.refresh_from_db(
-                self.dag.dag_id, self.execution_date, session=session
-            )
-
             for task in self.dag.topological_sort():
 
                 # TODO: too complicated mechanism,
@@ -409,7 +445,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
                     runtime_deps = []
 
-                    if self.airflow_features.disable_dag_concurrency_rules:
+                    if self.airflow_config.disable_dag_concurrency_rules:
                         # RUN Deps validate dag and task concurrency
                         # It's less relevant when we run in stand along mode with SingleDagRunJob
                         # from airflow.ti_deps.deps.runnable_exec_date_dep import RunnableExecDateDep
@@ -475,8 +511,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                                     pool=self.pool,
                                     cfg_path=cfg_path,
                                 )
-                                ti_status.running[key] = ti
+
                                 ti_status.to_run.pop(key)
+                                ti_status.running[key] = ti
+                                waiting_for_executor_result[key] = ti
                         session.commit()
                         continue
 
@@ -520,15 +558,15 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti_status.deadlocked.update(ti_status.to_run.values())
                 ti_status.to_run.clear()
 
-            self.ti_state_manager.refresh_from_db(
-                self.dag.dag_id, self.execution_date, session=session
+            self.ti_state_manager.refresh_task_instances_state(
+                all_ti, self.dag.dag_id, self.execution_date, session=session
             )
-            self.ti_state_manager.sync_to_object(all_ti)
+
             # check executor state
-            self._manage_executor_state(ti_status.running)
+            self._manage_executor_state(ti_status.running, waiting_for_executor_result)
 
             # update the task counters
-            self._update_counters(ti_status=ti_status)
+            self._update_counters(ti_status, waiting_for_executor_result)
 
             # update dag run state
             _dag_runs = ti_status.active_runs[:]
@@ -632,7 +670,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         ti_status = BackfillJob._DagRunTaskStatus()
 
         # picklin'
-        pickle_id = None
+        pickle_id = self.dag.pickle_id
         # We don't need to pickle our dag again as it already pickled on job creattion
         # also this will save it into databand table, that have no use for the airflow
         # if not self.donot_pickle and self.executor.__class__ not in (
@@ -670,7 +708,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
             err = self._collect_errors(ti_status=ti_status, session=session)
             if err:
-                raise DatabandExecutorError(err)
+                raise DatabandRunError("Airflow executor has failed to run the run")
 
             if run_date not in ti_status.executed_dag_run_dates:
                 self.log.warning(
@@ -680,7 +718,14 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                     ti_status.executed_dag_run_dates,
                 )
         finally:
-            executor.end()
+            # in sequential executor a keyboard interrupt would reach here and then executor.end() -> heartbeat() -> sync() will cause the queued commands
+            # to be run again before exiting
+            if hasattr(executor, "commands_to_run"):
+                executor.commands_to_run = []
+            try:
+                executor.end()
+            except Exception:
+                logger.exception("Failed to terminate executor")
             session.commit()
 
         self.log.info("Run is completed. Exiting.")

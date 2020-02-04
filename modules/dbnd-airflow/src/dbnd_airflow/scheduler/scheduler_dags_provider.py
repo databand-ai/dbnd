@@ -1,12 +1,10 @@
 import logging
 import os
 import sys
-import time
 
 from typing import List, Union
 
 from airflow import DAG
-from airflow.bin.cli import set_is_paused
 from airflow.models import BaseOperator, DagModel
 
 from dbnd import new_dbnd_context, override, task
@@ -14,6 +12,8 @@ from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
     DBND_RESUBMIT_RUN,
     DBND_RUN_UID,
+    ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD,
+    environ_enabled,
     in_quiet_mode,
 )
 from dbnd._core.configuration.scheduler_file_config_loader import (
@@ -21,7 +21,7 @@ from dbnd._core.configuration.scheduler_file_config_loader import (
 )
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
-from dbnd._core.settings import RunConfig
+from dbnd._core.settings import LoggingConfig, RunConfig
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import convert_to_utc
@@ -35,23 +35,26 @@ logger = logging.getLogger(__name__)
 class DbndSchedulerDBDagsProvider(object):
     # by default only run the file sync if we are in the scheduler (and not the webserver)
     def __init__(self):
-        self.last_refresh = 0
         self.scheduled_jobs = []
+
         if (
-            config.get("scheduler", "always_file_sync") or ("scheduler" in sys.argv)
-        ) and not config.get("scheduler", "never_file_sync"):
+            config.getboolean("scheduler", "always_file_sync")
+            or ("scheduler" in sys.argv)
+        ) and not config.getboolean("scheduler", "never_file_sync"):
             self.file_config_loader = SchedulerFileConfigLoader()
             logger.debug("scheduler file syncing active")
         else:
             self.file_config_loader = None
             logger.debug("scheduler file syncing disabled")
 
-        self.refresh_interval = config.get("scheduler", "refresh_interval")
-        self.default_retries = config.get("scheduler", "default_retries")
+        self.default_retries = config.getint("scheduler", "default_retries")
 
     def get_dags(self):  # type: () -> List[DAG]
+        if not config.get("core", "databand_url"):
+            self.scheduled_jobs = []
+            return []
         logger.debug("about to get scheduler job dags from dbnd db")
-        self.refresh_scheduled_jobs(always_refresh=True)
+        self.refresh_scheduled_jobs()
         dags = []
         for job in self.scheduled_jobs:
             if "schedule_interval" not in job:
@@ -70,13 +73,7 @@ class DbndSchedulerDBDagsProvider(object):
             dags.append(dag)
         return dags
 
-    def refresh_scheduled_jobs(self, always_refresh=False):
-        now = time.time()
-        if always_refresh or now - self.refresh_interval > self.last_refresh:
-            self.last_refresh = now
-        else:
-            return
-
+    def refresh_scheduled_jobs(self):
         changes = self.file_config_loader.sync() if self.file_config_loader else None
         if changes:
             logger.info(
@@ -88,9 +85,9 @@ class DbndSchedulerDBDagsProvider(object):
 
     def get_scheduled_jobs(self):  # type: () -> List[dict]
         return [
-            s
+            s["DbndScheduledJob"]
             for s in scheduler_api_client.get_scheduled_jobs()
-            if "validation_errors" not in s or not s["validation_errors"]
+            if not s["DbndScheduledJob"].get("validation_errors")
         ]
 
     def job_to_dag(self, job):  # type: (dict) -> Union[DAG, None]
@@ -114,11 +111,12 @@ class DbndSchedulerDBDagsProvider(object):
         )
 
         DbndSchedulerOperator(
-            task_id="launcher",
             scheduled_cmd=job["cmd"],
-            dag=dag,
             scheduled_job_name=job_name,
             scheduled_job_uid=job.get("uid", None),
+            shell=config.getboolean("scheduler", "shell_cmd"),
+            task_id="launcher",
+            dag=dag,
             retries=job.get("retries", self.default_retries) or self.default_retries,
         )
 
@@ -130,11 +128,14 @@ class DbndSchedulerOperator(BaseOperator):
     template_ext = (".sh", ".bash")
     ui_color = "#f0ede4"
 
-    def __init__(self, scheduled_cmd, scheduled_job_name, scheduled_job_uid, **kwargs):
+    def __init__(
+        self, scheduled_cmd, scheduled_job_name, scheduled_job_uid, shell, **kwargs
+    ):
         super(DbndSchedulerOperator, self).__init__(**kwargs)
         self.scheduled_job_name = scheduled_job_name
         self.scheduled_job_uid = scheduled_job_uid
         self.scheduled_cmd = scheduled_cmd
+        self.shell = shell
 
     def execute(self, context):
         scheduled_run_info = ScheduledRunInfo(
@@ -143,21 +144,27 @@ class DbndSchedulerOperator(BaseOperator):
             scheduled_date=context.get("task_instance").execution_date,
         )
 
-        launcher_task = launcher.task(
-            scheduled_cmd=self.scheduled_cmd,
-            task_name=context.get("dag").dag_id,
-            task_version="now",
-        )
-
+        # disable heartbeat at this level,
+        # otherwise scheduled jobs that will run on Kubernetes
+        # will always have a heartbeat even if the actual driver
+        # sent to Kubernetes is lost down the line,
+        # which is the main purpose of the heartbeat
         with new_dbnd_context(
             name="airflow",
             conf={
                 RunConfig.task_executor_type: override(TaskExecutorType.local),
                 RunConfig.parallel: override(False),
+                LoggingConfig.disabled: override(True),
             },
         ) as dc:
-            # disable heartbeat at this level, otherwise scheduled jobs that will run on Kubernetes will always have a heartbeat even if the actual driver
-            # sent to Kubernetes is lost down the line, which is the main purpose of the heartbeat
+            launcher_task = launcher.task(
+                scheduled_cmd=self.scheduled_cmd,
+                task_name=context.get("dag").dag_id,
+                task_version="now",
+                task_is_system=True,
+                shell=self.shell,
+            )
+
             dc.dbnd_run_task(
                 task_or_task_name=launcher_task,
                 scheduled_run_info=scheduled_run_info,
@@ -166,14 +173,16 @@ class DbndSchedulerOperator(BaseOperator):
 
 
 @task
-def launcher(scheduled_cmd):
+def launcher(scheduled_cmd, shell):
     env = os.environ.copy()
     env[DBND_RUN_UID] = str(DatabandRun.get_instance().run_uid)
     env[DBND_RESUBMIT_RUN] = "true"
-    return bash_cmd.func(cmd=scheduled_cmd, env=env, dbnd_env=False)
+    return bash_cmd.func(cmd=scheduled_cmd, env=env, dbnd_env=False, shell=shell)
 
 
 def get_dags():
+    if environ_enabled(ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD):
+        return None
     from dbnd._core.errors.base import DatabandConnectionException, DatabandApiError
 
     try:

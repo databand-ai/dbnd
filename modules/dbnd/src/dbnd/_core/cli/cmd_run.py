@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import functools
 import logging
-import subprocess
 import sys
 
 import six
@@ -12,14 +11,17 @@ import attr
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
-from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
+from dbnd._core.plugin.dbnd_plugins import is_web_enabled
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
+from dbnd._core.utils.basics.dict_utils import filter_dict_remove_false_values
 from dbnd._vendor import click
+from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
 
 logger = logging.getLogger(__name__)
@@ -111,7 +113,7 @@ def build_dynamic_task(original_cls, new_cls_name):
     "--scheduled-date",
     "-sd",
     help="For use when setting scheduled-job-name",
-    type=click.DateTime(),
+    type=TZAwareDateTime(),
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.option(
@@ -131,6 +133,11 @@ def build_dynamic_task(original_cls, new_cls_name):
     "submit_tasks",
     flag_value=0,
     help="Run submission in blocking mode",
+)
+@click.option(
+    "--direct-db",
+    help="Use local db with direct connection instead of communication through web api.",
+    is_flag=True,
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.pass_context
@@ -159,6 +166,7 @@ def run(
     interactive,
     submit_driver,
     submit_tasks,
+    direct_db,
 ):
     """
     Run a task or a DAG
@@ -172,28 +180,32 @@ def run(
 
     task_name = task
     # --verbose, --describe, --env, --parallel, --conf-file and --project-name
-    if submit_driver is not None:
-        submit_driver = bool(submit_driver)
-    if submit_tasks is not None:
-        submit_tasks = bool(submit_tasks)
-
+    # we filter out false flags since otherwise they will always override the config with their falseness
     main_switches = dict(
-        databand=dict(
-            verbose=verbose > 0,
-            describe=describe,
-            env=env,
-            conf_file=conf_file,
-            project_name=project_name,
+        databand=filter_dict_remove_false_values(
+            dict(
+                verbose=verbose > 0,
+                describe=describe,
+                env=env,
+                conf_file=conf_file,
+                project_name=project_name,
+            )
         ),
-        run=dict(
-            name=name,
-            parallel=parallel,
-            description=description,
-            is_archived=describe,
-            submit_driver=submit_driver,
-            submit_tasks=submit_tasks,
+        run=filter_dict_remove_false_values(
+            dict(
+                name=name,
+                parallel=parallel,
+                description=description,
+                is_archived=describe,
+            )
         ),
     )
+
+    if submit_driver is not None:
+        main_switches["run"]["submit_driver"] = bool(submit_driver)
+    if submit_tasks is not None:
+        main_switches["run"]["submit_tasks"] = bool(submit_tasks)
+
     if task_version is not None:
         main_switches["task"] = {"task_version": task_version}
 
@@ -235,6 +247,22 @@ def run(
         cmd_line_config.update(
             _parse_cli([{"task_build.verbose": True}], source="-v -v")
         )
+    if direct_db:
+        from dbnd import databand_system_path
+
+        direct_db_configuration = {"core": {"tracker_api": "db"}}
+        local_db_path = "sqlite:///" + databand_system_path("dbnd.db")
+
+        if not is_unit_test_mode():
+            direct_db_configuration["core"]["sql_alchemy_conn"] = local_db_path
+
+        logger.info(
+            "You are now using --direct-db mode. "
+            "Please make sure 'dbnd_web' module is installed and db exist on: %s",
+            local_db_path,
+        )
+
+        config.set_values(direct_db_configuration, source="--direct-db", override=True)
 
     if cmd_line_config:
         config.set_values(cmd_line_config, source="cmdline")
@@ -285,7 +313,14 @@ def run(
             print_help(ctx, task_cls)
             return
 
-        return context.dbnd_run_cmd_line(
+        if context.settings.core.auto_create_local_db and is_web_enabled():
+            sql_alchemy_conn = context.settings.core.get_sql_alchemy_conn()
+            if sql_alchemy_conn and sql_alchemy_conn.startswith("sqlite:///"):
+                from dbnd_web.utils.dbnd_db import init_local_db
+
+                init_local_db(sql_alchemy_conn)
+
+        return context.dbnd_run_task(
             task_or_task_name=task_name,
             run_uid=run_driver,
             scheduled_run_info=scheduled_run_info,
@@ -322,15 +357,3 @@ def _parse_cli(configs, source, override=False):
         for c in configs
     ]
     return functools.reduce((lambda x, y: x.update(y)), config_values_list)
-
-
-@dbnd_handle_errors(exit_on_error=False)
-def dbnd_run_cmd(args):
-    current_argv = sys.argv
-    logger.info("Running dbnd run: %s", subprocess.list2cmdline(args))
-    try:
-        sys.argv = [sys.executable, "-m", "databand", "run"] + args
-        dbnd_bootstrap()
-        return run(args=args, standalone_mode=False)
-    finally:
-        sys.argv = current_argv

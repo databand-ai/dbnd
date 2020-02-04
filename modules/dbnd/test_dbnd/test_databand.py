@@ -1,10 +1,9 @@
 from datetime import date
 
-from dbnd import data, output, parameter
-from dbnd._core.inline import run_cmd_locally, run_task
+from dbnd import data, dbnd_run_cmd, output, parameter
 from dbnd.tasks import Task
 from dbnd.tasks.basics.sanity import dbnd_sanity_check
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from test_dbnd.scenarios.pipelines.advance_pipeline import TComplicatedPipeline
 from test_dbnd.scenarios.pipelines.pipe_4tasks import MainPipeline
 
@@ -24,11 +23,11 @@ class TestDatabandSanity(object):
 
         actual = TestTask(test_input=__file__, p="333", d=date(2018, 3, 4))
         assert actual.p == "333"
-        run_task(actual)
+        actual.dbnd_run()
         assert actual.a_output.read() == "ss"
 
     def test_scenario_4_simple(self, tmpdir_factory):
-        run_cmd_locally([MainPipeline.get_task_family()])
+        dbnd_run_cmd([MainPipeline.get_task_family()])
 
     def test_complicated_pipeline(self):
         assert_run_task(TComplicatedPipeline())

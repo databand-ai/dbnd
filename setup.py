@@ -33,11 +33,13 @@ def dbnd_package(name):
 EXTRAS_REQUIRE = {
     "airflow": [dbnd_package("dbnd-airflow"), "psycopg2>=2.7.4,<2.8"],
     "airflow-versioned-dag": [dbnd_package("dbnd-airflow-versioned-dag")],
+    "airflow-export": [dbnd_package("dbnd-airflow-export")],
     "aws": [dbnd_package("dbnd-aws")],
     "azure": [dbnd_package("dbnd-azure")],
     "databricks": [dbnd_package("dbnd-databricks")],
     "qubole": [dbnd_package("dbnd-qubole")],
     "gcp": [dbnd_package("dbnd-gcp")],
+    "mlflow": [dbnd_package("dbnd-mlflow")],
     "docker": [dbnd_package("dbnd-docker")],
     "k8s": [dbnd_package("dbnd-docker")],
     "spark": [dbnd_package("dbnd-spark")],

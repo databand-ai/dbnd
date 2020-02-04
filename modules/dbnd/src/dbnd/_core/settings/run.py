@@ -3,12 +3,8 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-from dbnd._core.constants import TaskExecutorType
-from dbnd._core.errors import DatabandConfigError
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled, is_airflow_enabled
 from dbnd._core.task import config
-from dbnd._core.task_executor.local_task_executor import LocalTaskExecutor
 
 
 logger = logging.getLogger(__name__)
@@ -89,6 +85,9 @@ class RunConfig(config.Config):
     heartbeat_timeout_s = parameter(
         description="How old can a run's last heartbeat be before we consider it failed. Set -1 to disable"
     )[int]
+    heartbeat_sender_log_to_file = parameter(
+        description="create a separate log file for the heartbeat sender and don't log the run process stdout"
+    )[bool]
 
     enable_concurent_sqlite = parameter(
         description="Enable concurrent execution with sqlite db (use only for debug!)"
@@ -98,63 +97,3 @@ class RunConfig(config.Config):
         default=False,
         description="When submitting driver to remote execution keep tracking of submitted process and wait for completion",
     )[bool]
-
-    def _validate(self):
-        super(RunConfig, self)._validate()
-        if self.task_executor_type is None:
-            if is_airflow_enabled():
-                from dbnd_airflow.executors import AirflowTaskExecutorType
-
-                self.task_executor_type = AirflowTaskExecutorType.airflow_inprocess
-            else:
-                self.task_executor_type = TaskExecutorType.local
-
-        if self.parallel:
-            if is_airflow_enabled():
-                from dbnd_airflow.executors import AirflowTaskExecutorType
-
-                if self.task_executor_type == TaskExecutorType.local:
-                    logger.warning(
-                        "Auto switching to engine type '%s' due to parallel mode.",
-                        AirflowTaskExecutorType.airflow_multiprocess_local,
-                    )
-                    self.task_executor_type = (
-                        AirflowTaskExecutorType.airflow_multiprocess_local
-                    )
-                if self.task_executor_type == AirflowTaskExecutorType.airflow_inprocess:
-                    logger.warning(
-                        "Auto switching to engine type '%s' due to parallel mode.",
-                        AirflowTaskExecutorType.airflow_multiprocess_local,
-                    )
-                    self.task_executor_type = (
-                        AirflowTaskExecutorType.airflow_multiprocess_local
-                    )
-            else:
-                logger.warning(
-                    "Airflow is not installed, parallel mode is not supported"
-                )
-
-    def get_task_executor(
-        self, run, task_executor_type, host_engine, target_engine, task_runs
-    ):
-        if task_executor_type == TaskExecutorType.local:
-            executor_cls = LocalTaskExecutor
-        elif task_executor_type.startswith("airflow"):
-            assert_airflow_enabled()
-            from dbnd_airflow.dbnd_task_executor.dbnd_task_executor_via_airflow import (
-                AirflowTaskExecutor,
-            )
-
-            executor_cls = AirflowTaskExecutor
-        else:
-            raise DatabandConfigError(
-                "Unsupported engine type %s" % self.task_executor_type
-            )
-
-        return executor_cls(
-            run,
-            task_executor_type=task_executor_type,
-            host_engine=host_engine,
-            target_engine=target_engine,
-            task_runs=task_runs,
-        )

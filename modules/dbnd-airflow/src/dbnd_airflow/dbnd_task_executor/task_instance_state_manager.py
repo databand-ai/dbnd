@@ -24,7 +24,6 @@ class AirflowTaskInstanceStateManager(object):
         )
 
         self.status[(dag_id, execution_date)] = dict(updated_status)
-        session.query()
 
     def get_state(self, dag_id, execution_date, task_id):
         return self._get_dag_run(dag_id, execution_date).get(task_id)
@@ -38,3 +37,9 @@ class AirflowTaskInstanceStateManager(object):
 
         for ti in task_instances:
             ti.state = self.get_state(ti.dag_id, ti.execution_date, ti.task_id)
+
+    def refresh_task_instances_state(
+        self, task_instances, dag_id, execution_date, session
+    ):
+        self.refresh_from_db(dag_id, execution_date, session)
+        self.sync_to_object(task_instances)

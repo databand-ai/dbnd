@@ -1,4 +1,5 @@
 import abc
+import os
 import warnings
 
 import six
@@ -137,6 +138,10 @@ class FileSystem(object):
         )
 
     def move_from_local(self, local_path, dest):
+        self.copy_from_local(local_path, dest)
+        os.remove(local_path)
+
+    def copy_from_local(self, local_path, dest):
         raise NotImplementedError(
             "move_from_local() not implemented on {0}".format(self.__class__.__name__)
         )

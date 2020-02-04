@@ -7,8 +7,7 @@ from dbnd._core.configuration.config_store import ConfigMergeSettings
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.task_build import task_namespace
 from dbnd._core.task_build.task_registry import register_config_cls, register_task
-from dbnd._core.cli.cmd_run import dbnd_run_cmd
-from dbnd._core.cli.main import main as dbnd_main
+from dbnd._core.cli.main import main as dbnd_main, dbnd_cmd, dbnd_run_cmd
 from dbnd._core.commands import log_metric, log_dataframe
 from dbnd._core.configuration.config_readers import override
 from dbnd._core.configuration.dbnd_config import config, config_deco
@@ -22,14 +21,17 @@ from dbnd._core.current import (
 )
 from dbnd._core.decorator.func_task_decorator import band, pipeline, task
 from dbnd._core.failures import dbnd_handle_errors
-from dbnd._core.inline import run_task, set_current
 from dbnd._core.parameter.parameter_builder import data, output, parameter
 from dbnd._core.parameter.parameter_definition import (
     ParameterScope,
     ParameterDefinition,
 )
 from dbnd._core.plugin.dbnd_plugins import hookimpl
-from dbnd._core.run.dbnd_run_inplace import dbnd_run_start, dbnd_run_stop
+from dbnd._core.run.dbnd_run_inplace import (
+    dbnd_run_start,
+    dbnd_run_start_airflow,
+    dbnd_run_stop,
+)
 from dbnd._core.task.config import Config
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.task.data_source_task import DataSourceTask
@@ -52,7 +54,6 @@ dbnd_config = config
 __all__ = [
     "hookimpl",
     # context management
-    "set_current",
     "new_dbnd_context",
     "current",
     "dbnd_context",
@@ -92,10 +93,9 @@ __all__ = [
     "ParameterDefinition",
     # dbnd run
     "dbnd_main",
+    "dbnd_cmd",
     "dbnd_run_cmd",
     "dbnd_handle_errors",
-    # task run
-    "run_task",
     # metrics
     "log_dataframe",
     "log_metric",
@@ -116,7 +116,7 @@ __all__ = [
 
 # shortcuts for useful objects
 str(_set_patches)  # NOQA
-__version__ = "0.24.11"
+__version__ = "0.24.24"
 
 __title__ = "databand"
 __description__ = "Machine Learning Orchestration"

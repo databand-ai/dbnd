@@ -1,6 +1,7 @@
 import dbnd
 
 from dbnd import register_config_cls
+from targets.fs import FileSystems, register_file_system
 
 
 @dbnd.hookimpl
@@ -13,3 +14,7 @@ def dbnd_setup_plugin():
     register_config_cls(EmrConfig)
     register_config_cls(AwsBatchConfig)
     register_config_cls(AwsEnvConfig)
+
+    from dbnd_aws.fs import build_s3_fs_client
+
+    register_file_system(FileSystems.s3, build_s3_fs_client)

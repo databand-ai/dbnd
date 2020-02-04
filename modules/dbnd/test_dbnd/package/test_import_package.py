@@ -1,26 +1,10 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright 2012-2015 Spotify AB
-# Modifications copyright (C) 2018 databand.ai
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 import logging
 import os
 
 import dbnd._core.task_build.task_namespace
 
 from dbnd._core.utils.project.project_fs import project_path
+from dbnd.testing.helpers import import_all_modules
 
 
 logger = logging.getLogger(__name__)
@@ -31,39 +15,11 @@ class TestImportPackage(object):
         """Test that all module can be imported
         """
 
-        project_dir = project_path("modules", "dbnd", "src")
-        packagedir = os.path.join(project_dir, "dbnd")
+        project_dir = os.path.join(os.path.dirname(__file__), "..", "..", "src")
+        good_modules = import_all_modules(
+            src_dir=project_dir, package="dbnd", excluded=["airflow_operators"]
+        )
 
-        errors = []
-        good_modules = []
-
-        def import_module(p):
-            try:
-                logger.info("Importing %s", p)
-                __import__(p)
-                good_modules.append(p)
-            except Exception as ex:
-                errors.append(ex)
-                logger.exception("Failed to import %s", p)
-
-        excluded = ["airflow_operators"]
-
-        for root, subdirs, files in os.walk(packagedir):
-            package = os.path.relpath(root, start=project_dir).replace(os.path.sep, ".")
-
-            if any([p in root for p in excluded]):
-                continue
-
-            if "__init__.py" not in files:
-                continue
-
-            import_module(package)
-
-            for f in files:
-                if f.endswith(".py") and not f.startswith("_"):
-                    import_module(package + "." + f[:-3])
-
-        assert not errors
         assert len(good_modules) > 20
 
     def test_import_databand(self):

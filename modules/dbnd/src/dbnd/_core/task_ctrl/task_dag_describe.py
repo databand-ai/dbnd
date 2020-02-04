@@ -2,13 +2,12 @@ from __future__ import print_function
 
 import logging
 
-from termcolor import colored
-
 from dbnd._core.constants import DescribeFormat
 from dbnd._core.errors import DatabandSystemError
 from dbnd._core.settings import DescribeConfig
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.utils.basics.helpers import indent
+from dbnd._vendor.termcolor import colored
 from dbnd.tasks import DataSourceTask
 
 
@@ -21,13 +20,13 @@ def tasks_trail(tasks):
 
 
 class DescribeDagCtrl(TaskSubCtrl):
-    def __init__(self, task, describe_format=DescribeFormat.long):
+    def __init__(self, task, describe_format=DescribeFormat.long, complete_status=None):
         super(DescribeDagCtrl, self).__init__(task)
 
         self.describe_format = describe_format
 
         # dummy implementation of complete cache
-        self._complete_status = {}
+        self._complete_status = complete_status or {}
 
     @property
     def config(self):
@@ -66,7 +65,10 @@ class DescribeDagCtrl(TaskSubCtrl):
         result = get_downstream(self.task)
 
         messages = [indent(msg, "\t" * level) for level, msg in result]
-        logger.info("Tree View of the DAG:\n%s", "\n".join(messages))
+        logger.info(
+            "Tasks Graph - (*) represent existing node in the graph, green is completed:\n%s",
+            "\n".join(messages),
+        )
 
     def list_view(self):
         logger.info("List View of the DAG:\n")
@@ -94,7 +96,7 @@ class DescribeDagCtrl(TaskSubCtrl):
         if color is None:
             color = "white"
             if not describe_config.no_checks:
-                color = "green" if self._get_task_complete(task) else "yellow"
+                color = "green" if self._get_task_complete(task) else "cyan"
 
         if describe_format == DescribeFormat.short:
             return colored(str(task.task_id), color)

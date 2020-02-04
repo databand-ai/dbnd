@@ -228,7 +228,7 @@ def _get_task_source_code(task):
     except (TypeError, OSError):
         logger.debug("Failed to task source for %s", task)
     except Exception:
-        logger.exception("Error while getting task source")
+        logger.debug("Error while getting task source")
     return "Error while getting task source"
 
 

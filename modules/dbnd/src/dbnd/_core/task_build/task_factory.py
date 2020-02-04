@@ -7,6 +7,7 @@ from more_itertools import unique_everseen
 from six import iteritems
 
 from dbnd._core.configuration.config_path import (
+    CONF_CONFIG_SECTION,
     CONF_TASK_ENV_SECTION,
     CONF_TASK_SECTION,
 )
@@ -14,7 +15,7 @@ from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.dbnd_config import DbndConfig
 from dbnd._core.configuration.pprint_config import pformat_current_config
-from dbnd._core.constants import _TaskParamContainer
+from dbnd._core.constants import ParamValidation, _TaskParamContainer
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
 from dbnd._core.parameter.parameter_definition import (
@@ -144,6 +145,11 @@ class TaskFactory(object):
         if issubclass(self.task_definition.task_class, _TaskParamContainer):
             sections += [CONF_TASK_SECTION]
 
+        from dbnd._core.task.config import Config
+
+        if issubclass(self.task_definition.task_class, Config):
+            sections += [CONF_CONFIG_SECTION]
+
         sections += task_config_sections
         sections = list(unique_everseen(filter(None, sections)))
 
@@ -166,6 +172,7 @@ class TaskFactory(object):
                 )
             ),
         )
+        self.task_errors = []
 
     def create_dbnd_task(self):
         # create task meta
@@ -251,6 +258,23 @@ class TaskFactory(object):
         regular_params = self.build_parameter_values(param_def_regular)
         task_param_values.extend(regular_params)
 
+        validate_no_extra_params = next(
+            (
+                pv.value
+                for pv in task_param_values
+                if pv.name == "validate_no_extra_params"
+            ),
+            True,
+        )
+        if (
+            validate_no_extra_params
+            and validate_no_extra_params != ParamValidation.disabled
+        ):
+            self.validate_no_extra_config_params(validate_no_extra_params)
+
+        self._assert_no_task_build_error()
+        self._log_task_build_warnings()
+
         task_enabled = True
         if self.parent_task:
             task_enabled = self.parent_task.ctrl.should_run()
@@ -280,17 +304,45 @@ class TaskFactory(object):
             task_call_source=self.task_call_source,
         )
 
+    def validate_no_extra_config_params(self, validation_setting):
+        """
+        check that the user did not set any config values that don't have a matching param definition (protects against typos)
+        """
+        task_param_names = [tp.name for tp in self.task_params]
+        for section_name in self.task_config_sections:
+            section = self.config.config_layer.config.get(section_name)
+            if not section:
+                continue
+
+            for key, value in section.items():
+                if (
+                    key not in task_param_names
+                    and not value.source.endswith(
+                        self._source_suffix(ParameterScope.children.value)
+                    )
+                    and not key == "_type"
+                ):
+                    exc = friendly_error.task_build.unknown_parameter_in_config(
+                        task_name=self.task_name,
+                        param_name=key,
+                        source=value.source,
+                        task_param_names=task_param_names,
+                        config_type=self._get_task_or_config_string(),
+                    )
+                    if validation_setting == ParamValidation.warn:
+                        self.build_warnings.append(exc)
+                    elif validation_setting == ParamValidation.error:
+                        self.task_errors.append(exc)
+
     def build_parameter_values(self, params):
         # type: (List[ParameterDefinition]) -> List[ParameterValue]
         result = []
-        task_errors = []
         for param_def in params:
             try:
                 p_value = self.build_parameter_value(param_def)
                 result.append(p_value)
             except MissingParameterError as ex:
-                task_errors.append(ex)
-        self._assert_no_task_build_error(task_errors)
+                self.task_errors.append(ex)
         return result
 
     def build_parameter_value(self, param_def):
@@ -408,7 +460,7 @@ class TaskFactory(object):
         self._update_shared_config_section(
             CONF_TASK_SECTION,
             param_values=param_values,
-            source=self._source_name("children"),
+            source=self._source_name(ParameterScope.children.value),
         )
 
     def _apply_task_env_config(self, task_env):
@@ -451,25 +503,30 @@ class TaskFactory(object):
         param_names = {p.name for p in self.task_params}
 
         args_orig, kwargs_orig = list(task_args), task_kwargs.copy()
+        has_varargs = False
+        has_varkwargs = False
         if self.task_cls._conf__decorator_spec is not None:
             # only in functions we can have args as we know exact "call" signature
             task_args, task_kwargs = args_to_kwargs(
                 self.task_cls._conf__decorator_spec.args, task_args, task_kwargs
             )
+            has_varargs = self.task_cls._conf__decorator_spec.varargs
+            has_varkwargs = self.task_cls._conf__decorator_spec.varkw
 
         # now we should not have any args, we don't know how to assign them
-        if task_args:
+        if task_args and not has_varargs:
             raise friendly_error.unknown_args_in_task_call(
                 self.parent_task, self.task_cls, func_params=(args_orig, kwargs_orig)
             )
 
-        for param_name, _ in iteritems(task_kwargs):
-            if param_name not in param_names:
-                raise friendly_error.task_build.unknown_parameter_in_constructor(
-                    constructor=self._exc_desc,
-                    param_name=param_name,
-                    task_parent=self.parent_task,
-                )
+        if not has_varkwargs:
+            for param_name, _ in iteritems(task_kwargs):
+                if param_name not in param_names:
+                    raise friendly_error.task_build.unknown_parameter_in_constructor(
+                        constructor=self._exc_desc,
+                        param_name=param_name,
+                        task_parent=self.parent_task,
+                    )
         return task_kwargs
 
     def __str__(self):
@@ -519,7 +576,13 @@ class TaskFactory(object):
         return new_params
 
     def _source_name(self, name):
-        return "%s[%s]" % (self.task_definition.full_task_family_short, name)
+        return "%s%s" % (
+            self.task_definition.full_task_family_short,
+            self._source_suffix(name),
+        )
+
+    def _source_suffix(self, name):
+        return "[%s]" % name
 
     def _log_build_step(self, msg, force_log=False):
         if self.verbose_build or force_log:
@@ -534,11 +597,32 @@ class TaskFactory(object):
         )
         self._log_build_step(msg, force_log=force_log)
 
-    def _assert_no_task_build_error(self, errors):
-        if not errors:
+    def _assert_no_task_build_error(self):
+        if not self.task_errors:
             return
-        if len(errors) == 1:
-            raise errors[0]
+        if len(self.task_errors) == 1:
+            raise self.task_errors[0]
         raise friendly_error.failed_to_create_task(
-            self._exc_desc, nested_exceptions=errors
+            self._exc_desc, nested_exceptions=self.task_errors
         )
+
+    def _get_task_or_config_string(self):
+        from dbnd._core.task.config import Config
+
+        if issubclass(self.task_definition.task_class, Config):
+            return "config"
+        else:
+            return "task"
+
+    def _log_task_build_warnings(self):
+        if not self.build_warnings:
+            return
+        w = "Build warnings for %s '%s': " % (
+            self._get_task_or_config_string(),
+            self.task_name,
+        )
+        for warning in self.build_warnings:
+            w += "\n\t" + str(warning)
+            if hasattr(warning, "did_you_mean") and warning.did_you_mean:
+                w += "\n\t\t - " + warning.did_you_mean
+        logger.warning(w)

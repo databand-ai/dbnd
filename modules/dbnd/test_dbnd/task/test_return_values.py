@@ -8,8 +8,8 @@ from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
 from dbnd import output, task
-from dbnd._core.errors import DatabandBuildError, DatabandExecutorError
-from dbnd.testing import assert_run_task
+from dbnd._core.errors import DatabandBuildError, DatabandRunError
+from dbnd.testing.helpers_pytest import assert_run_task
 from test_dbnd.targets_tests import TargetTestBase
 
 
@@ -136,9 +136,7 @@ class TestTaskDecoReturnValues(TargetTestBase):
             # type: ()->(str, str)
             return ""
 
-        with pytest.raises(
-            DatabandExecutorError, message="have same keys in result schema"
-        ):
+        with pytest.raises(DatabandRunError, message="have same keys in result schema"):
             t_f.dbnd_run()
 
     def test_fails_on_wrong_ret_len(self):
@@ -147,9 +145,7 @@ class TestTaskDecoReturnValues(TargetTestBase):
             # type: ()->(str, str)
             return ("",)
 
-        with pytest.raises(
-            DatabandExecutorError, message="have same keys in result schema"
-        ):
+        with pytest.raises(DatabandRunError, message="have same keys in result schema"):
             t_f.dbnd_run()
 
     def test_one_result(self):

@@ -23,14 +23,12 @@ from dbnd._core.configuration.environ_config import (
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.task_run.task_run import TaskRun
-from dbnd._core.utils.git import GIT_ENV
 from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.string_utils import clean_job_name_dns1123
 from dbnd._core.utils.structures import combine_mappings
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_task import DockerRunTask
 from targets import target
-from targets.values.version_value import get_project_git
 
 
 logger = logging.getLogger(__name__)
@@ -136,6 +134,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     detach_run = parameter(
         default=False, description="Submit run only, do not wait for it completion."
     )[bool]
+
+    submit_termination_grace_period = parameter(
+        description="timedelta to let the submitted pod enter a final state"
+    )[datetime.timedelta]
 
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
@@ -253,13 +255,20 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 
-    def build_pod(self, task_run, cmds, args=None, labels=None):
-        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]]) ->Pod
+    def build_pod(self, task_run, cmds, args=None, labels=None, try_number=None):
+        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int]) ->Pod
         pod_name = task_run.job_id__dns1123
+        if try_number is not None:
+            pod_name = "%s-%s" % (pod_name, try_number)
 
         labels = combine_mappings(labels, self.labels)
         labels["dbnd_run_uid"] = clean_job_name_dns1123(str(task_run.run.run_uid))
         labels["dbnd_task_run_uid"] = clean_job_name_dns1123(str(task_run.task_run_uid))
+        labels[
+            "dbnd"
+        ] = (
+            "task_run"
+        )  # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
 
         annotations = self.annotations.copy()
         if self.gcp_service_account_keys:
@@ -287,7 +296,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             env_vars[ENV_DBND_AUTO_REMOVE_POD] = "True"
         env_vars[self._params.get_param_env_key("in_cluster")] = "True"
         env_vars["AIRFLOW__KUBERNETES__IN_CLUSTER"] = "True"
-        env_vars[GIT_ENV] = get_project_git()  # git repo not packaged in docker image
+        env_vars[
+            "DBND__RUN_INFO__SOURCE_VERSION"
+        ] = task_run.run.context.task_run_env.user_code_version
         env_vars.update(
             self._params.to_env_map("container_repository", "container_tag")
         )

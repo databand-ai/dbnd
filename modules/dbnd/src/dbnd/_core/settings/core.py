@@ -8,7 +8,6 @@ from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.plugin.dbnd_plugins import assert_web_enabled, is_airflow_enabled
 from dbnd._core.task import Config
 from dbnd._core.tracking.tracking_store import TrackingStore
-from dbnd._core.utils.project.project_fs import databand_system_path
 
 
 logger = logging.getLogger()
@@ -23,6 +22,9 @@ class DatabandSystemConfig(Config):
 
     describe = parameter.help("Describe current run").value(False)
 
+    module = parameter(
+        default=None, description="Auto load this module before resolving user classes"
+    )[str]
     env = parameter(
         default=CloudType.local,
         description="task environment: local/aws/aws_prod/gcp/prod",
@@ -55,9 +57,15 @@ class CoreConfig(Config):
 
     environments = parameter(description="List of enabled environments")[List[str]]
 
-    tracker_url = parameter(
+    databand_url = parameter(
         default=None,
         description="Tracker URL to be used for creating links in console logs",
+    )[str]
+
+    # Backward compatibility
+    tracker_url = parameter(
+        default=None,
+        description="OLD: Tracker URL to be used for creating links in console logs",
     )[str]
 
     tracker_version = parameter[str]
@@ -110,17 +118,24 @@ class CoreConfig(Config):
         default=True,
     )
 
+    fix_requests_on_osx = parameter(
+        description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
+    )[bool]
+
+    fernet_key = parameter(
+        description="key used by airflow to encrypt connections credentials",
+        default=None,
+    )[str]
+
     def _validate(self):
-        if self.tracker_url and self.tracker_url.endswith("/"):
+        if self.databand_url and self.databand_url.endswith("/"):
             logger.warning(
-                "Please fix your core.tracker_url value, "
+                "Please fix your core.databand_url value, "
                 "it should not containe / at the end, auto-fix has been applied."
             )
-            self.tracker_url = self.tracker_url[:-1]
+            self.databand_url = self.databand_url[:-1]
 
     def get_sql_alchemy_conn(self):
-        if "api" in self.tracker and self.tracker_api == "local_db":
-            return "sqlite:///" + databand_system_path("dbnd.db")
         return self.sql_alchemy_conn
 
     @property
@@ -147,22 +162,38 @@ class CoreConfig(Config):
 
             return TrackingStoreApi(channel=ConsoleDebugTrackingChannel())
         elif name == "api":
+            if not self.databand_url:
+                # TODO: Backward compatibility, remove this when tracker_url is officially deprecated
+                logger.warning(
+                    "core.databand_url was not set, trying to use deprecated 'core.tracker_url' instead."
+                )
+                self.databand_url = self.tracker_url
+
             return self._build_tracking_api_store(
-                tracker_api=self.tracker_api, tracker_url=self.tracker_url
+                tracker_api=self.tracker_api, databand_url=self.databand_url
             )
 
         raise friendly_error.config.wrong_store_name(name)
 
-    def _build_tracking_api_store(self, tracker_api, tracker_url):
+    def _build_tracking_api_store(self, tracker_api, databand_url):
         from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
 
         if tracker_api == "web":
             from dbnd.api.tracking_api import TrackingApiClient
 
+            if not databand_url:
+                logger.info(
+                    "Although 'api' was set in 'core.tracker', and 'web' was set in 'core.tracker_api'"
+                    "dbnd will not use it since 'core.databand_url' was not set."
+                )
+                return
+
             # TODO Add auth actually
-            channel = TrackingApiClient(api_base_url=tracker_url, auth=None)
-        elif tracker_api in ("db", "local_db"):
-            assert_web_enabled("It is required because of tracker_api=%s" % tracker_api)
+            channel = TrackingApiClient(api_base_url=databand_url, auth=None)
+        elif tracker_api == "db":
+            assert_web_enabled(
+                "It is required when trying to use local db connection (tracker_api=db)."
+            )
 
             from dbnd_web.api.v1.tracking_api import (
                 TrackingApiHandler as DirectDbChannel,
@@ -183,8 +214,18 @@ class CoreConfig(Config):
         if not store_names:
             logger.warning("You are running without any tracking store configured.")
 
-        stores = [self._build_store(name) for name in store_names]
+        stores = []
+        for name in store_names:
+            store = self._build_store(name)
+            if store:
+                stores.append(store)
+
         return CompositeTrackingStore(stores=stores)
+
+    def get_scheduled_job_service(self):
+        from dbnd.api import scheduler_api_client
+
+        return scheduler_api_client
 
 
 class DynamicTaskConfig(Config):

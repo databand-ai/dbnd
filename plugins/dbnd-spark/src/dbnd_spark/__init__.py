@@ -1,1 +1,2 @@
 from dbnd_spark.spark_config import SparkConfig
+from dbnd_spark.spark_session import get_spark_session

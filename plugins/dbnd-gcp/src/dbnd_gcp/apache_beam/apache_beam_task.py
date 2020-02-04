@@ -120,7 +120,12 @@ class _ApacheBeamInlineTask(_BeamTask, _DecoratedTask):
         class TaskOptions(PipelineOptions):
             @classmethod
             def _add_argparse_args(cls, parser):
-                for dbnd_key in ["tracker_url", "task_id", "task_function", "task_vcs"]:
+                for dbnd_key in [
+                    "databand_url",
+                    "task_id",
+                    "task_function",
+                    "task_vcs",
+                ]:
                     parser.add_argument(
                         "--dbnd-%s" % (dbnd_key.replace("_", "-")),
                         help="Databand %s" % dbnd_key,

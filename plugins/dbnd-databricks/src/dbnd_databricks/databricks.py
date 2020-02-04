@@ -1,68 +1,62 @@
 import logging
+import os
 import time
-
-from functools import partial
 
 from airflow import AirflowException
 
 from dbnd._core.current import current_task_run
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
-from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
-from dbnd_databricks.databrick_config import (
+from dbnd_databricks.databricks_config import (
     DatabricksAwsConfig,
     DatabricksAzureConfig,
     DatabricksCloud,
+    DatabricksConfig,
 )
 from dbnd_databricks.errors import (
     failed_to_run_databricks_job,
     failed_to_submit_databricks_job,
 )
-from dbnd_spark.spark import SparkCtrl, SparkTask
+from dbnd_spark.spark import SparkTask
+from dbnd_spark.spark_ctrl import SparkCtrl
 
 
 logger = logging.getLogger(__name__)
 
 
-def get_cloud_sync(config, task, job):
-    if config.cloud_type == DatabricksCloud.aws:
-        assert_plugin_enabled("dbnd-aws", "Databricks on aws requires dbnd-aws module.")
-
-        from dbnd_aws.aws_sync_ctrl import AwsSyncCtrl
-
-        return AwsSyncCtrl(task, job)
-
-    elif config.cloud_type == DatabricksCloud.azure:
-        assert_plugin_enabled(
-            "dbnd-azure", "Databricks on azure requires dbnd-azure module."
-        )
-
-        from dbnd_azure.azure_sync_ctrl import AzureDbfsSyncControl
-
-        return AzureDbfsSyncControl(DatabricksAzureConfig().local_dbfs_mount, task, job)
-
-    raise NotImplementedError(
-        "DatabricksCloud does not support %s value. Support values are aws/azure."
-        % config.cloud_type
-    )
-
-
-def _dbfs_scheme_to_local(config, path):
-    if config.cloud_type == DatabricksCloud.aws:
-        return path
-    elif config.cloud_type == DatabricksCloud.azure:
-        return path.replace("dbfs://", "/dbfs")
-
-
-# to do - add on kill handling (this is not urgent, as anyway it will shutdown the machines at the end of execution)
-class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
+class DatabricksCtrl(SparkCtrl):
     def __init__(self, task_run):
-        super(DatabricksCtrl, self).__init__(task=task_run.task, job=task_run)
+        super(DatabricksCtrl, self).__init__(task_run=task_run)
         self.databricks_config = task_run.task.spark_engine  # type: DatabricksConfig
-        self.cloud_sync = get_cloud_sync(
-            self.databricks_config, task_run.task, task_run
-        )  # type: TaskSyncCtrl
+
+        self.local_dbfs_mount = None
+        if self.databricks_config.cloud_type == DatabricksCloud.azure:
+            assert_plugin_enabled(
+                "dbnd-azure", "Databricks on azure requires dbnd-azure module."
+            )
+
+            self.local_dbfs_mount = DatabricksAzureConfig().local_dbfs_mount
+
+        self.current_run_id = None
+        self.hook = None
+
+    def _dbfs_scheme_to_local(self, path):
+        if self.databricks_config.cloud_type == DatabricksCloud.aws:
+            return path
+        elif self.databricks_config.cloud_type == DatabricksCloud.azure:
+            return path.replace("dbfs://", "/dbfs")
+
+    def _dbfs_scheme_to_mount(self, path):
+        if self.databricks_config.cloud_type != DatabricksCloud.azure:
+            return path
+
+        from dbnd_azure.fs.azure_blob import AzureBlobStorageClient
+
+        storage_account, container_name, blob_name = AzureBlobStorageClient._path_to_account_container_and_blob(
+            path
+        )
+        return "dbfs://%s" % (os.path.join(self.local_dbfs_mount, blob_name))
 
     def _handle_databricks_operator_execution(self, run_id, hook, task_id):
         """
@@ -111,7 +105,8 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
             "spark_version": self.databricks_config.spark_version,
             "spark_conf": self.databricks_config.spark_conf,
             "node_type_id": self.databricks_config.node_type_id,
-            "init_scripts": self.databricks_config.init_script,
+            "init_scripts": self.databricks_config.init_scripts,
+            "cluster_log_conf": self.databricks_config.cluster_log_conf,
             "spark_env_vars": self.databricks_config.spark_env_vars,
         }
         if self.databricks_config.cloud_type == DatabricksCloud.aws:
@@ -148,16 +143,19 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
 
         from airflow.contrib.hooks.databricks_hook import DatabricksHook
 
-        hook = DatabricksHook(
+        self.hook = DatabricksHook(
             _config.conn_id,
             _config.connection_retry_limit,
             retry_delay=_config.connection_retry_delay,
         )
         try:
-            run_id = hook.submit_run(databricks_json)
-            hook.log.setLevel(logging.WARNING)
-            self._handle_databricks_operator_execution(run_id, hook, _config.task_id)
-            hook.log.setLevel(logging.INFO)
+            logging.debug("posted JSON:" + str(databricks_json))
+            self.current_run_id = self.hook.submit_run(databricks_json)
+            self.hook.log.setLevel(logging.WARNING)
+            self._handle_databricks_operator_execution(
+                self.current_run_id, self.hook, _config.task_id
+            )
+            self.hook.log.setLevel(logging.INFO)
         except AirflowException as e:
             raise failed_to_submit_databricks_job(e)
 
@@ -172,7 +170,7 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         else:
             pyspark_script = self.sync(pyspark_script)
             parameters = [
-                _dbfs_scheme_to_local(self.databricks_config, e)
+                self._dbfs_scheme_to_local(e)
                 for e in list_of_strings(self.task.application_args())
             ]
             databricks_json = self._create_pyspark_submit_json(
@@ -190,9 +188,10 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         spark_submit_parameters = [
             "--class",
             main_class,
-            self.cloud_sync.sync(self.config.main_jar),
+            self.sync(self.config.main_jar),
         ] + (list_of_strings(self.task.application_args()) + jars_list)
-        return self._run_spark_submit(spark_submit_parameters)
+        databricks_json = self._create_spark_submit_json(spark_submit_parameters)
+        return self._run_spark_submit(databricks_json)
 
     def _report_step_status(self, step):
         logger.info(self._get_step_banner(step))
@@ -219,11 +218,12 @@ class DatabricksCtrl(TaskEnginePolicyCtrl, SparkCtrl):
         b.new_section()
         return b.getvalue()
 
-    def stop_spark_session(self, session):
-        # sc.stop on databrciks will cause an un-expected behaviour
-        # as the 'warning!' here suggests:
-        # https://docs.databricks.com/jobs.html
-        pass
-
     def sync(self, local_file):
-        return self.cloud_sync.sync(local_file)
+        synced = self.deploy.sync(local_file)
+        if self.databricks_config.cloud_type == DatabricksCloud.azure:
+            return self._dbfs_scheme_to_mount(synced)
+        return synced
+
+    def on_kill(self):
+        if self.hook and self.current_run_id:
+            self.hook.cancel_run(self.current_run_id)

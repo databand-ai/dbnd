@@ -102,7 +102,7 @@ class TaskRunState(enum.Enum):
     SUCCESS = "success"
     FAILED = "failed"
 
-    SHUTDOWN = "shutdown"
+    CANCELLED = "cancelled"
 
     UPSTREAM_FAILED = "upstream_failed"
     SKIPPED = "skipped"
@@ -116,11 +116,11 @@ class TaskRunState(enum.Enum):
 
     @staticmethod
     def finished_states():
-        return {TaskRunState.SUCCESS, TaskRunState.FAILED, TaskRunState.SHUTDOWN}
+        return {TaskRunState.SUCCESS, TaskRunState.FAILED, TaskRunState.CANCELLED}
 
     @staticmethod
     def direct_fail_states():
-        return {TaskRunState.FAILED, TaskRunState.SHUTDOWN}
+        return {TaskRunState.FAILED, TaskRunState.CANCELLED}
 
     @staticmethod
     def states_lower_case():
@@ -131,6 +131,8 @@ class RunState(enum.Enum):
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
+    SHUTDOWN = "shutdown"
+    CANCELLED = "cancelled"
 
 
 class AlertStatus(enum.Enum):
@@ -153,4 +155,10 @@ class _DbndDataClass(object):
         return attr.asdict(self, recurse=False, filter=filter)
 
 
-HEARTBEAT_DISABLED = make_aware(datetime.datetime.fromtimestamp(-1))
+HEARTBEAT_DISABLED = make_aware(datetime.datetime.fromtimestamp(0))
+
+
+class ParamValidation(enum.Enum):
+    warn = "warn"
+    error = "error"
+    disabled = "disabled"

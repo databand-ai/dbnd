@@ -5,12 +5,11 @@ from os.path import exists
 
 import pytest
 
-from dbnd import ParameterScope, PipelineTask, data, output, parameter
+from dbnd import ParameterScope, PipelineTask, data, dbnd_run_cmd, output, parameter
 from dbnd._core.context.databand_context import new_dbnd_context
-from dbnd._core.inline import run_cmd_locally, run_task
 from dbnd.tasks.basics import SimplestTask
-from dbnd.testing import assert_run_task
 from dbnd.testing.helpers import run_dbnd_test_project
+from dbnd.testing.helpers_pytest import assert_run_task
 from test_dbnd.factories import TTask, TTaskWithInput
 from test_dbnd.scenarios.pipelines.pipe_4tasks import (
     MainPipeline as Scenario4_MainPipeline,
@@ -40,7 +39,7 @@ class TestTaskRun(object):
 
         task_A = A(task_name="A_wired_B")
         task_B = B(task_name="B_task_B", tt=task_A, x="d")
-        run_task(task_B)
+        task_B.dbnd_run()
         assert task_B._complete()
         assert task_B.tt["t_output"].task._complete()
         assert task_A._complete()
@@ -76,7 +75,7 @@ class TestTaskRun(object):
                 self.b_output = b_main.o_second
 
         c_pipeline = CPipeline(x="some_x_values")
-        run_task(c_pipeline)
+        c_pipeline.dbnd_run()
         assert c_pipeline
         assert c_pipeline.a_output["t_output"].source_task._complete()
         assert c_pipeline.b_main["o_second"].source_task._complete()
@@ -107,7 +106,7 @@ class TestTaskRun(object):
                 self.some_a = BPipeline(task_name="B_x20", x=20).some_a
 
         c_pipeline = CPipeline(tt=__file__)
-        run_task(c_pipeline)
+        c_pipeline.dbnd_run()
         assert c_pipeline
         assert c_pipeline.task_p1["some_a"]["t_output"].source_task._complete()
         assert c_pipeline.some_a["t_output"].source_task._complete()
@@ -118,12 +117,10 @@ class TestTaskRun(object):
             t = SimplestTask()
             t.dbnd_run()
 
-        run_task(TTaskWithInput(t_input=t))
+        TTaskWithInput(t_input=t).dbnd_run()
 
     def test_scenario_4_select_task(self, tmpdir_factory):
-        run_cmd_locally(
-            [Scenario4_MainPipeline.get_task_family(), "-c run.task=B_F4Task"]
-        )
+        dbnd_run_cmd([Scenario4_MainPipeline.get_task_family(), "-c run.task=B_F4Task"])
 
     def test_databand_files(self, tmpdir_factory):
         # create a file "myfile" in "mydir" in temp folder

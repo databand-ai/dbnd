@@ -7,10 +7,9 @@ from pytest import fixture, mark
 
 from dbnd import config
 from dbnd._core.constants import CloudType, SparkClusters
-from dbnd._core.errors import DatabandExecutorError
-from dbnd._core.inline import run_task
+from dbnd._core.errors import DatabandRunError
 from dbnd._core.settings import EnvConfig
-from dbnd.testing import assert_run_task
+from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_aws.emr.emr_config import EmrConfig
 from dbnd_spark.spark_config import SparkConfig
 from dbnd_test_scenarios.spark.spark_tasks import (
@@ -41,7 +40,7 @@ class TestEmrSparkTasks(object):
         actual = WordCountTask(
             text=TEXT_FILE, task_version=str(random.random()), override=conf_override
         )
-        run_task(actual)
+        actual.dbnd_run()
         print(target(actual.counters.path, "part-00000").read())
 
     def test_word_count_pyspark(self):
@@ -49,15 +48,15 @@ class TestEmrSparkTasks(object):
         actual = WordCountPySparkTask(
             text=TEXT_FILE, task_version=str(random.random()), override=conf_override
         )
-        run_task(actual)
+        actual.dbnd_run()
         print(target(actual.counters.path, "part-00000").read())
 
     def test_word_spark_with_error(self):
         actual = WordCountThatFails(
             text=TEXT_FILE, task_version=str(random.random()), override=conf_override
         )
-        with pytest.raises(DatabandExecutorError):
-            run_task(actual)
+        with pytest.raises(DatabandRunError):
+            actual.dbnd_run()
 
     # @pytest.mark.skip
     def test_word_count_inline(self):
@@ -65,6 +64,18 @@ class TestEmrSparkTasks(object):
 
         assert_run_task(
             word_count_inline.t(
+                text=TEXT_FILE,
+                task_version=str(random.random()),
+                override=conf_override,
+            )
+        )
+
+    @pytest.mark.skip
+    def test_io(self):
+        from dbnd_test_scenarios.spark.test_spark_io import dataframes_io_pandas_spark
+
+        assert_run_task(
+            dataframes_io_pandas_spark.t(
                 text=TEXT_FILE,
                 task_version=str(random.random()),
                 override=conf_override,
