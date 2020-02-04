@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @task
-def mlflow_tracking_integration_check(check_time=datetime.datetime.now()):
+def mlflow_tracking_in_task_example(check_time=datetime.datetime.now()):
     # type: ( datetime.datetime)-> str
     logger.info("Running MLFlow tracking integration check!")
     logger.info("MLFlow tracking URI: {}".format(get_tracking_uri()))
