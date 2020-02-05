@@ -205,11 +205,11 @@ class AirflowTaskExecutor(TaskExecutor):
                         task_run_attempt_uid=task_run.task_run_attempt_uid,
                     )
                     af_instances.append(af_instance)
-            if af_instances and self.airflow_config.airflow_webserver_url:
+            if af_instances and self.airflow_config.webserver_url:
                 self.run.tracker.tracking_store.save_airflow_task_infos(
                     airflow_task_infos=af_instances,
                     is_airflow_synced=False,
-                    base_url=self.airflow_config.airflow_webserver_url,
+                    base_url=self.airflow_config.webserver_url,
                 )
 
     def _pickle_dag_and_save_pickle_id_for_versioned(self, dag, session):
