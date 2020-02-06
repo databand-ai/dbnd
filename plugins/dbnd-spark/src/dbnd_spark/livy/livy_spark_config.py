@@ -14,4 +14,4 @@ class LivySparkConfig(Config):
     def get_spark_ctrl(self, task_run):
         from dbnd_spark.livy.livy_spark import LivySparkCtrl
 
-        return LivySparkCtrl(self, job=task_run)
+        return LivySparkCtrl(task_run)
