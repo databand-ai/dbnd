@@ -54,5 +54,5 @@ class SchedulerConfig(config.Config):
         "for the enhanced control flow it offers "
         "over most system shells and still want convenient access to other shell features "
         "such as shell pipes, filename wildcards, environment variable expansion, "
-        "and expansion of ~ to a user’s home directory."
+        "and expansion of ~ to a user's home directory."
     )[bool]
