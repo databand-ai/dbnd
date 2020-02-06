@@ -21,6 +21,7 @@
 This test requires credentials that can access GCS & access to a bucket below.
 Follow the directions in the gcloud tools to set up local credentials.
 """
+import sys
 import tempfile
 
 import pytest
@@ -139,6 +140,7 @@ class TestS3Target(_S3BaseTestCase, FileTargetTestMixin):
     def create_target(self, io_pipe=None):
         return target(self.bucket_url(self._id), io_pipe=io_pipe, fs=self.client)
 
+    @pytest.mark.skipif(sys.version_info <= (3, 6), reason="requires python36")
     def test_close_twice(self):
         tgt = self.create_target()
 
