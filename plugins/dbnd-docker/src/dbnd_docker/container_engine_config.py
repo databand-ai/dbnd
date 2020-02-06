@@ -4,6 +4,7 @@ from dbnd import parameter
 from dbnd._core.parameter.validators import NonEmptyString
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.settings import EngineConfig
+from targets.values.version_value import VersionStr
 
 
 class ContainerEngineConfig(EngineConfig):
@@ -12,7 +13,7 @@ class ContainerEngineConfig(EngineConfig):
     container_repository = parameter(validator=NonEmptyString()).help(
         "Docker container registry"
     )[str]
-    container_tag = parameter.none().help("Docker container tag")[str]
+    container_tag = parameter.none().help("Docker container tag")[VersionStr]
 
     docker_build_tag = parameter.help("Auto build docker container tag").value(
         "dbnd_build"
