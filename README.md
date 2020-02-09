@@ -31,7 +31,7 @@ log_metric("r2", r2)
 ```
 
 ##  Getting Started
-    See our [documentation](https://dbnd.readme.io/) with examples and quickstart guides to get up and running with DBND.
+See our [documentation](https://dbnd.readme.io/) with examples and quickstart guides to get up and running with DBND.
 ##  The Latest and Greatest
 For using DBND, we recommend that you work with a virtual environment like [Virtualenv](https://virtualenv.pypa.io/en/latest/) or [Conda](https://docs.conda.io/en/latest/). Update to the latest and greatest:
 
