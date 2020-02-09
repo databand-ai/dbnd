@@ -1,6 +1,6 @@
 from databand import output, parameter, pipeline
 from databand.tasks import PipelineTask, PySparkTask, SparkTask
-from dbnd_examples.dbnd_spark import spark_folder
+from dbnd_examples.dbnd_spark import spark_folder, spark_script
 from dbnd_spark.spark_config import SparkConfig
 
 
@@ -28,7 +28,7 @@ class WordCountPySparkTask(PySparkTask):
     text = parameter.data
     counters = output
 
-    python_script = spark_folder("pyspark/word_count.py")
+    python_script = spark_script("word_count.py")
 
     def application_args(self):
         return [self.text, self.counters]
