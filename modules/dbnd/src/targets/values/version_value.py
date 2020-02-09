@@ -32,6 +32,8 @@ class VersionValueType(StrValueType):
 
     def parse_from_str(self, s):
         s = super(VersionValueType, self).parse_from_str(s)
+        if not s:
+            return s
 
         if s.lower() == VersionAlias.now:
             return utcnow().strftime("%Y%m%d_%H%M%S")

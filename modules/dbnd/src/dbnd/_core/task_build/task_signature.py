@@ -26,12 +26,6 @@ def task_params_short(params):
     return param_summary
 
 
-def user_friendly_signature(str_value):
-    hash_md5 = hashlib.md5(str_value.encode("utf-8")).hexdigest()
-
-    return hash_md5[:SIGNATURE_ID_TRUNCATE_HASH]
-
-
 def build_signature(name, params, extra=None):
     """
     Returns a canonical string used to identify a particular task
@@ -65,3 +59,15 @@ def build_signature_from_values(name, struct):
     signature_str = "|".join(sorted(values))
     signature = hashlib.md5(signature_str.encode("utf-8")).hexdigest()
     return Signature(id=name, signature=signature, signature_source=signature_str)
+
+
+def user_friendly_signature(str_value):
+    hash_md5 = hashlib.md5(str_value.encode("utf-8")).hexdigest()
+
+    return hash_md5[:SIGNATURE_ID_TRUNCATE_HASH]
+
+
+def build_user_friendly_signature_from_values(name, struct):
+    sig = build_signature_from_values(name, struct)
+
+    return sig.signature[:SIGNATURE_ID_TRUNCATE_HASH]

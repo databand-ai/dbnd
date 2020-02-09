@@ -47,3 +47,12 @@ class SchedulerConfig(config.Config):
     dbnd_password = parameter(
         description="password used to connect to the dbnd web server"
     )[str]
+
+    shell_cmd = parameter(
+        description="If shell_cmd is True, the specified command will be executed through the shell. "
+        "This can be useful if you are using Python primarily "
+        "for the enhanced control flow it offers "
+        "over most system shells and still want convenient access to other shell features "
+        "such as shell pipes, filename wildcards, environment variable expansion, "
+        "and expansion of ~ to a user's home directory."
+    )[bool]
