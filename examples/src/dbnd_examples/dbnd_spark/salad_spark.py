@@ -5,6 +5,7 @@ from dbnd.tasks import PipelineTask, PySparkTask
 from dbnd_examples.data import data_repo
 from dbnd_examples.dbnd_spark import spark_folder, spark_script
 
+
 logger = logging.getLogger(__name__)
 
 
