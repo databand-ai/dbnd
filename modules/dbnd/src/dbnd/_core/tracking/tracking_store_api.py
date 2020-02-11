@@ -185,12 +185,13 @@ class TrackingStoreApi(TrackingStore):
             self.channel.log_targets, log_targets_schema, targets_info=targets_info
         )
 
-    def log_metric(self, task_run, metric):
+    def log_metric(self, task_run, metric, source=None):
         return self._m(
             self.channel.log_metric,
             log_metric_schema,
             task_run_attempt_uid=task_run.task_run_attempt_uid,
             metric=metric,
+            source=source,
         )
 
     def log_artifact(self, task_run, name, artifact, artifact_target):

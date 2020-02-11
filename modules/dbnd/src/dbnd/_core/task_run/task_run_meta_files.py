@@ -9,16 +9,19 @@ class TaskRunMetaFiles(object):
     _ARTIFACTS = "artifacts"
     _METRICS = "metrics"
     _META_DATA_FILE_NAME = "meta.yaml"
+    _DEFAULT_METRIC_SOURCE = "user"
 
     def _output(self, *path):
         return target(self.root, *path)
 
-    def get_metric_folder(self):
-        return self._output(TaskRunMetaFiles._METRICS + "/")  # type: DirTarget
+    def get_metric_folder(self, source=None):
+        source = source or TaskRunMetaFiles._DEFAULT_METRIC_SOURCE
+        return self._output(TaskRunMetaFiles._METRICS, source, "")  # type: DirTarget
 
-    def get_metric_target(self, metric_key):
+    def get_metric_target(self, metric_key, source=None):
         metric_key = TASK_ID_INVALID_CHAR_REGEX.sub("_", metric_key)
-        return self._output(TaskRunMetaFiles._METRICS, metric_key)
+        source = source or TaskRunMetaFiles._DEFAULT_METRIC_SOURCE
+        return self._output(TaskRunMetaFiles._METRICS, source, metric_key)
 
     def get_artifact_target(self, name):
         return self._output(TaskRunMetaFiles._ARTIFACTS, name)

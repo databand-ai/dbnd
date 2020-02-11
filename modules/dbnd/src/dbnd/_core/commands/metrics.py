@@ -13,11 +13,11 @@ def log_dataframe(key, value):
     return current().log_dataframe(key, value)
 
 
-def log_metric(key, value):
+def log_metric(key, value, source="user"):
     if not has_current_task():
-        logger.info("Metric '{}'='{}'".format(key, value))
+        logger.info("{} Metric '{}'='{}'".format(source.capitalize(), key, value))
         return
-    return current().log_metric(key, value)
+    return current().log_metric(key, value, source=source)
 
 
 def log_artifact(key, artifact):

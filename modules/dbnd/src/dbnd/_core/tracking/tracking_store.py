@@ -61,7 +61,7 @@ class TrackingStore(object):
     def save_external_links(self, task_run, external_links_dict):
         pass
 
-    def log_metric(self, task_run, metric):
+    def log_metric(self, task_run, metric, source=None):
         pass
 
     def log_artifact(self, task_run, name, artifact, artifact_target):
