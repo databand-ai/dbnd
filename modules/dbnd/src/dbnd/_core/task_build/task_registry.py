@@ -72,13 +72,11 @@ class DbndTaskRegistry(SingletonContext):
             parts = task_name.split(".")
             possible_root_task = parts.pop()
             possible_module = ".".join(parts)
-            task_cls = self._get_registered_task_cls(possible_root_task)
-            if task_cls:
-                return task_cls
 
             # Try to load module and check again for existance
             load_python_module(possible_module, "task name '%s'" % task_name)
-            task_cls = self._get_registered_task_cls(possible_root_task)
+
+            task_cls = self._get_registered_task_cls(task_name)
             if task_cls:
                 return task_cls
 
