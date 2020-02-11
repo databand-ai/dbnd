@@ -379,10 +379,16 @@ class DatabandRun(SingletonContext):
 
         self.set_run_state(run_state)
 
+        task_runs_to_update = []
         for task_run in self.task_runs:
-            if task_run.task_run_state not in TaskRunState.final_states():
+            if (
+                task_run.task_run_state
+                and task_run.task_run_state not in TaskRunState.final_states()
+            ):
                 task_run.set_task_run_state(non_finished_task_state, track=False)
-        self.tracker.set_task_run_states(self.task_runs)
+                task_runs_to_update.append(task_run)
+        if task_runs_to_update:
+            self.tracker.set_task_run_states(task_runs_to_update)
 
         err_banner_msg = self.describe.get_error_banner()
         logger.error(
