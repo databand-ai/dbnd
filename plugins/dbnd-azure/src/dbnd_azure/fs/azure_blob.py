@@ -59,14 +59,9 @@ class AzureBlobStorageClient(FileSystem):
 
     name = AZURE_BLOB_FS_NAME
 
-    def __init__(self, account_name=None, account_key=None, **kwargs):
-        # options = get_config("azure")
-        options = {"account_name": account_name, "account_key": account_key}
-
-        options.update(kwargs)
-        self._options = options
-
-        self.account = account_name
+    def __init__(self, **kwargs):
+        self._options = kwargs
+        self.account = self._options.get("account_name")
         self.conn = self._create_connection()
 
     def _create_connection(self):
@@ -78,6 +73,7 @@ class AzureBlobStorageClient(FileSystem):
             connection_string=self._options.get("connection_string"),
             endpoint_suffix=self._options.get("endpoint_suffix"),
             custom_domain=self._options.get("custom_domain"),
+            token_credential=self._options.get("token_credential"),
         )
 
     @staticmethod

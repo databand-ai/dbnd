@@ -1,7 +1,7 @@
 from dbnd import parameter
 from dbnd._core.constants import ClusterPolicy, EmrClient, SparkClusters
-from dbnd._core.errors import DatabandConfigError, DatabandSystemError
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled, is_airflow_enabled
+from dbnd._core.errors import DatabandConfigError
+from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
 from dbnd._core.task.config import Config
 
 
