@@ -151,6 +151,15 @@ class UpdateTaskRunAttemptsSchema(_ApiCallSchema):
 update_task_run_attempts_schema = UpdateTaskRunAttemptsSchema()
 
 
+class SetUnfinishedTasksStateShcmea(_ApiCallSchema):
+    run_uid = fields.UUID()
+    state = EnumField(TaskRunState)
+    timestamp = fields.DateTime()
+
+
+set_unfinished_tasks_state_schema = SetUnfinishedTasksStateShcmea()
+
+
 class SaveTaskRunLogSchema(_ApiCallSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     log_body = fields.String(allow_none=True)
@@ -253,6 +262,9 @@ class TrackingAPI(object):
 
     def update_task_run_attempts(self, data):
         return self._handle(TrackingAPI.update_task_run_attempts.__name__, data)
+
+    def set_unfinished_tasks_state(self, data):
+        return self._handle(TrackingAPI.set_unfinished_tasks_state.__name__, data)
 
     def save_task_run_log(self, data):
         return self._handle(TrackingAPI.save_task_run_log.__name__, data)

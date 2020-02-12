@@ -13,6 +13,7 @@ from dbnd.api.tracking_api import (
     log_metric_schema,
     scheduled_job_args_schema,
     set_run_state_schema,
+    set_unfinished_tasks_state_schema,
     update_task_run_attempts_schema,
 )
 
@@ -109,6 +110,15 @@ class TrackingStoreApi(TrackingStore):
                 )
                 for task_run in task_runs
             ],
+        )
+
+    def set_unfinished_tasks_state(self, run_uid, state):
+        return self._m(
+            self.channel.set_unfinished_tasks_state,
+            set_unfinished_tasks_state_schema,
+            run_uid=run_uid,
+            state=state,
+            timestamp=utcnow(),
         )
 
     def update_task_run_attempts(self, task_run_attempt_updates):

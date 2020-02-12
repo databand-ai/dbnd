@@ -105,6 +105,12 @@ class DatabandRunError(DatabandError):
         self.run = run
 
 
+class DatabandFailFastError(DatabandRunError):
+    """
+    Databand executor has terminated because a task failed
+    """
+
+
 class ParameterError(DatabandConfigError):
     """
     Base exception.

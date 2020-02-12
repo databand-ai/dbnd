@@ -17,7 +17,7 @@ from dbnd._core import current
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import get_databand_run
 from dbnd._core.errors import DatabandSystemError, friendly_error
-from dbnd._core.errors.base import DatabandRunError
+from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd_airflow.config import AirflowConfig
@@ -435,16 +435,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                             ti_status.running.pop(key)
                         continue
 
-                    if self.fail_fast and ti_status.failed:
-                        # task will not be queued
-                        ti.set_state(State.UPSTREAM_FAILED, session=session)
-                        # we have failed - > let remove all other tasks!
-                        if key in ti_status.running:
-                            ti_status.running.pop(key)
-                        continue
-
                     runtime_deps = []
-
                     if self.airflow_config.disable_dag_concurrency_rules:
                         # RUN Deps validate dag and task concurrency
                         # It's less relevant when we run in stand along mode with SingleDagRunJob
@@ -581,6 +572,12 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                     executed_run_dates.append(run.execution_date)
 
             self._log_progress(ti_status)
+
+            if self.fail_fast and ti_status.failed:
+                logger.error(
+                    "terminating executor because a task failed and fail_fast mode is enabled"
+                )
+                raise DatabandFailFastError("failing fast")
 
         # return updated status
         return executed_run_dates
