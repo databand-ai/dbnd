@@ -127,6 +127,9 @@ class TaskRunState(enum.Enum):
         return [state.name.lower() for state in TaskRunState]
 
 
+REUSED = "reused"
+
+
 class RunState(enum.Enum):
     RUNNING = "running"
     SUCCESS = "success"
