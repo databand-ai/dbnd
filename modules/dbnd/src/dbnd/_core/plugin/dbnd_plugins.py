@@ -36,6 +36,12 @@ def is_airflow_enabled():
     return _AIRFLOW_ENABLED
 
 
+def use_airflow_connections():
+    from dbnd._core.configuration.dbnd_config import config
+
+    return is_airflow_enabled() and config.getboolean("airflow", "use_connections")
+
+
 def assert_airflow_enabled():
     if not is_airflow_enabled():
         raise friendly_error.config.missing_module("dbnd-airflow")

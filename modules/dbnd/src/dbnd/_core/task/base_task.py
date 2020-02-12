@@ -232,3 +232,6 @@ class _BaseTask(object):
         :return:
         """
         return
+
+    def simple_params_dict(self):
+        return {k: p.value for k, p in self._params._param_meta_map.items()}

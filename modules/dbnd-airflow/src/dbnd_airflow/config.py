@@ -61,6 +61,11 @@ class AirflowConfig(Config):
         default=None, description="URL of airflow webserver used by local runs"
     )[str]
 
+    use_connections = parameter(
+        description="use the airflow connection to connect to a cloud environment",
+        default=True,
+    )[bool]
+
     def __init__(self, *args, **kwargs):
         super(AirflowConfig, self).__init__(*args, **kwargs)
         if not self.optimize_airflow_db_access:
