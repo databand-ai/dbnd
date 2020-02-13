@@ -46,7 +46,7 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
     logging.info("%d dag runs were found." % len(dagruns))
 
     if not task_instances and not dagruns:
-        return ExportData([], [], [])
+        return ExportData([], [], [], since=start_date)
 
     dag_models = _get_dag_models(
         dagruns.keys() if since and isinstance(dagruns, dict) else None, session
