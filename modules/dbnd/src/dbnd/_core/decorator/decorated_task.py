@@ -1,6 +1,8 @@
+import contextlib
 import logging
 import os
 
+from dbnd._core.configuration.environ_config import is_databand_enabled
 from dbnd._core.constants import TaskType
 from dbnd._core.current import current_task_run
 from dbnd._core.decorator.dynamic_tasks import run_dynamic_task
@@ -23,6 +25,30 @@ from dbnd._core.task_build.task_context import (
 logger = logging.getLogger(__name__)
 
 
+@contextlib.contextmanager
+def try_auto_start_dbnd_run():
+    if has_current_task() or not _should_auto_start_dbnd_run():
+        yield
+        return
+
+    from dbnd import dbnd_run_start_airflow, dbnd_run_stop
+
+    dbnd_run_start_airflow()
+
+    try:
+        yield
+    finally:
+        dbnd_run_stop(at_exit=False)
+
+
+def _should_auto_start_dbnd_run():
+    if is_databand_enabled():
+        if "AIRFLOW_CTX_DAG_ID" in os.environ:
+            return True
+
+    return False
+
+
 class _DecoratedTask(Task):
     result = None
 
@@ -33,66 +59,59 @@ class _DecoratedTask(Task):
 
         decorated object call/creation  ( my_func(), MyDecoratedTask()
         """
-        #
         force_invoke = call_kwargs.pop("__force_invoke", False)
-        # [('AIRFLOW_CTX_DAG_ID', 'embed_dbnd'), ('AIRFLOW_CTX_TASK_ID', 'print_the_context'), ('AIRFLOW_CTX_EXECUTION_DATE', '2019-12-17T00:00:00+00:00')]
-        if not has_current_task() and "AIRFLOW_CTX_DAG_ID" in os.environ:
-            # TODO: check if not disabled
-            from dbnd import dbnd_run_start_airflow
-
-            dbnd_run_start_airflow()
-
-        if not has_current_task() or force_invoke:
+        if not (has_current_task() or _should_auto_start_dbnd_run()) or force_invoke:
             # 1. Databand is not enabled
             # 2. we have this call coming from Task.run / Task.band direct invocation
-            # We are going too call user function/class
+            # We are going to call user function/class
 
             return call_user_code(*call_args, **call_kwargs)
 
-        # now we can make some decisions what we do with the call
-        # it's not coming from _invoke_func
-        # but from   user code ...   some_func()  or SomeTask()
-        current = current_task()
-        phase = current_phase()
-        if phase is TaskContextPhase.BUILD:
-            # we are in the @pipeline context, we are building execution plan
-            t = cls(*call_args, **call_kwargs)
+        with try_auto_start_dbnd_run():
+            # now we can make some decisions what we do with the call
+            # it's not coming from _invoke_func
+            # but from   user code ...   some_func()  or SomeTask()
+            current = current_task()
+            phase = current_phase()
+            if phase is TaskContextPhase.BUILD:
+                # we are in the @pipeline context, we are building execution plan
+                t = cls(*call_args, **call_kwargs)
 
-            # we are in inline debug mode -> we are going to execute the task
-            # we are in the band
-            # and want to return result of the object
-            if t.task_definition.single_result_output:
-                return t.result
-
-            # we have multiple outputs ( result, another output.. ) -> just return task object
-            return t
-
-        if phase is TaskContextPhase.RUN:
-            # we are in the run function!
-            if (
-                current.settings.dynamic_task.enabled
-                and current.task_supports_dynamic_tasks
-            ):
-                # isinstance() check required to prevent infinite recursion when @task is on
-                # class and not on func (example: see test_task_decorated_class.py)
-                # and the current task supports inline calls
-                # that's extra mechanism in addition to __force_invoke
-                # on pickle/unpickle isinstance fails to run.
-                task_run = run_dynamic_task(
-                    parent_task_run=current_task_run(),
-                    task_cls=cls,
-                    call_args=call_args,
-                    call_kwargs=call_kwargs,
-                )
-                t = task_run.task
-                # if we are inside run, we want to have real values, not deferred!
+                # we are in inline debug mode -> we are going to execute the task
+                # we are in the band
+                # and want to return result of the object
                 if t.task_definition.single_result_output:
-                    return t.__class__.result.load_from_target(t.result)
-                    # we have func without result, just fallback to None
+                    return t.result
+
+                # we have multiple outputs ( result, another output.. ) -> just return task object
                 return t
 
-        # we can not call it in"databand" way, fallback to normal execution
-        return call_user_code(*call_args, **call_kwargs)
+            if phase is TaskContextPhase.RUN:
+                # we are in the run function!
+                if (
+                    current.settings.dynamic_task.enabled
+                    and current.task_supports_dynamic_tasks
+                ):
+                    # isinstance() check required to prevent infinite recursion when @task is on
+                    # class and not on func (example: see test_task_decorated_class.py)
+                    # and the current task supports inline calls
+                    # that's extra mechanism in addition to __force_invoke
+                    # on pickle/unpickle isinstance fails to run.
+                    task_run = run_dynamic_task(
+                        parent_task_run=current_task_run(),
+                        task_cls=cls,
+                        call_args=call_args,
+                        call_kwargs=call_kwargs,
+                    )
+                    t = task_run.task
+                    # if we are inside run, we want to have real values, not deferred!
+                    if t.task_definition.single_result_output:
+                        return t.__class__.result.load_from_target(t.result)
+                        # we have func without result, just fallback to None
+                    return t
+
+            # we can not call it in"databand" way, fallback to normal execution
+            return call_user_code(*call_args, **call_kwargs)
 
     def _invoke_func(self, extra_kwargs=None, force_invoke=False):
         # this function is called from run/banc

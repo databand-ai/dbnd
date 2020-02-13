@@ -1,7 +1,7 @@
 import logging
 import os
 
-from dbnd._core.cli.click_utils import _help
+from dbnd._core.cli.click_utils import _help, _help_short
 from dbnd._core.cli.utils import FastSingletonContext, PrefixStore, no_errors
 from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.utils.project.project_fs import databand_system_path
@@ -149,7 +149,7 @@ class AutoCompleter(FastSingletonContext):
                 return res
 
             for task_name, task_desc in tasks.items():
-                short_desc = _help(task_desc)
+                short_desc = _help_short(task_desc)
                 res.append((task_name + ".", short_desc))
 
             return res

@@ -89,9 +89,6 @@ class DatabandContext(SingletonContext):
 
         self.settings = None  # type: DatabandSettings
 
-        # we are going to catch all airflow native operators via this Dag if airflow is enabled
-        self._airflow_op_catcher_dag = None  # DatabandOpCatcherDag
-
         self.initialized_context = False
 
     def _on_enter(self):

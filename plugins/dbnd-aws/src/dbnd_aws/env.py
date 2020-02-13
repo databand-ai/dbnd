@@ -2,8 +2,8 @@ from os import environ
 
 from dbnd import parameter
 from dbnd._core.constants import CloudType
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
 from dbnd._core.settings import EnvConfig
+from dbnd_aws.credentials import get_boto_session
 
 
 class AwsEnvConfig(EnvConfig):
@@ -27,11 +27,7 @@ class AwsEnvConfig(EnvConfig):
         This allows us to use pandas to load remote dataframes directly
         """
 
-        assert_airflow_enabled()
-
-        from dbnd_aws.credentials_helper_aws import AwsCredentials
-
-        boto_session = AwsCredentials(self.conn_id).get_credentials(self.region_name)[0]
+        boto_session = get_boto_session()
         creds = boto_session.get_credentials()
 
         access_key_env = "AWS_ACCESS_KEY_ID"
