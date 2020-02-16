@@ -139,3 +139,7 @@ def pluralize(s, n, plural_form=None):
         return s
     else:
         return plural_form or s + "s"
+
+
+def strip_whitespace(string):
+    return re.sub(r"\s+", " ", string.strip(), flags=re.UNICODE)

@@ -1,5 +1,6 @@
 import logging
 
+from dbnd._core.utils.string_utils import strip_whitespace
 from dbnd._vendor import click
 from dbnd._vendor.click.utils import make_default_short_help
 
@@ -25,4 +26,10 @@ class ConfigValueType(click.ParamType):
 
 
 def _help(string):
+    if not string:
+        return "-"
+    return strip_whitespace(string)
+
+
+def _help_short(string):
     return make_default_short_help(string or "-")

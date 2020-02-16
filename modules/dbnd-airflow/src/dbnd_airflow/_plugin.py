@@ -9,10 +9,10 @@ AIRFLOW_LEGACY_URL_KEY = "airflow"
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
-    from typing import Optional
-
     from dbnd._core.context.databand_context import DatabandContext
-    from dbnd._core.task_run.task_run import TaskRun
+
+
+_airflow_op_catcher_dag = None
 
 
 @dbnd.hookimpl
@@ -28,8 +28,10 @@ def dbnd_setup_plugin():
 
 @dbnd.hookimpl
 def dbnd_on_exit_context(ctx):
-    if ctx._airflow_op_catcher_dag:
-        ctx._airflow_op_catcher_dag.__exit__(None, None, None)
+    global _airflow_op_catcher_dag
+    if _airflow_op_catcher_dag:
+        _airflow_op_catcher_dag.__exit__(None, None, None)
+        _airflow_op_catcher_dag = None
 
 
 @dbnd.hookimpl
@@ -37,13 +39,14 @@ def dbnd_post_enter_context(ctx):  # type: (DatabandContext) -> None
     from dbnd_airflow.dbnd_task_executor.airflow_operators_catcher import (
         DatabandOpCatcherDag,
     )
-
     from dbnd_airflow.config import get_dbnd_default_args
 
-    ctx._airflow_op_catcher_dag = DatabandOpCatcherDag(
+    global _airflow_op_catcher_dag
+
+    _airflow_op_catcher_dag = DatabandOpCatcherDag(
         dag_id="inline_airflow_ops", default_args=get_dbnd_default_args()
     )
-    ctx._airflow_op_catcher_dag.__enter__()
+    _airflow_op_catcher_dag.__enter__()
 
 
 def configure_airflow_sql_alchemy_conn():

@@ -66,7 +66,7 @@ class EnvConfig(Config):
         "Apache Beam cluster engine (local/dataflow)"
     ).value(ApacheBeamClusterType.local)
 
-    docker_engine = task_env_param.help("Docker job engine (docker/aws_batch").value(
+    docker_engine = task_env_param.help("Docker job engine (docker/aws_batch)").value(
         "docker"
     )
 

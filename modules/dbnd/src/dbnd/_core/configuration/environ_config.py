@@ -37,7 +37,11 @@ ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD = "DBND_DISABLE_SCHEDULED_DAGS_LOAD"
 DBND_ENABLED = None
 
 ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
-_SHELL_COMPLETION = ENV_SHELL_COMPLETION in os.environ or "--help" in sys.argv
+_SHELL_COMPLETION = (
+    ENV_SHELL_COMPLETION in os.environ
+    or "--help" in sys.argv
+    or "show-configs" in sys.argv
+)
 
 # quiet mode was made for the scheduler to silence the launcher runners. Don't want this flag to propagate into the actual scheduled cmd
 ENV_DBND_QUIET = "DBND_QUIET"

@@ -46,7 +46,7 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
     logging.info("%d dag runs were found." % len(dagruns))
 
     if not task_instances and not dagruns:
-        return ExportData([], [], [])
+        return ExportData([], [], [], since=start_date)
 
     dag_models = _get_dag_models(
         dagruns.keys() if since and isinstance(dagruns, dict) else None, session
@@ -68,6 +68,7 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
             EDag.from_dag(dagbag.get_dag(dm.dag_id), dagbag.dag_folder)
             for dm in dag_models
         ],
+        since=start_date,
     )
 
     return ed
@@ -371,18 +372,18 @@ class EDag(object):
 
 
 class ExportData(object):
-    def __init__(self, dags, dag_runs, task_instances):
+    def __init__(self, dags, dag_runs, task_instances, since):
         self.dags = dags  # type: List[EDag]
         self.dag_runs = dag_runs  # type: List[EDagRun]
         self.task_instances = task_instances  # type: List[ETaskInstance]
-        self.timestamp = utcnow()
+        self.since = since  # type: Datetime
 
     def as_dict(self):
         return dict(
             dags=[x.as_dict() for x in self.dags],
             dag_runs=[x.as_dict() for x in self.dag_runs],
             task_instances=[x.as_dict() for x in self.task_instances],
-            timestamp=self.timestamp,
+            since=self.since,
         )
 
 
