@@ -80,6 +80,7 @@ class TaskRunRunner(TaskRunCtrl):
                     logger.warning(
                         "Received SIGTERM. Raising  DatabandSigTermError() exception!"
                     )
+                    task_run.run._internal_kill()
                     raise DatabandSigTermError(
                         "Task received SIGTERM signal",
                         help_msg="Probably the job was canceled",
@@ -172,6 +173,7 @@ class TaskRunRunner(TaskRunCtrl):
                 except Exception:
                     logger.exception("Failed to kill task on user keyboard interrupt")
                 task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
+                task_run.run._internal_kill()
                 raise
             except SystemExit as ex:
                 error = TaskRunError.buid_from_ex(ex, task_run)

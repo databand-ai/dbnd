@@ -577,7 +577,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 logger.error(
                     "terminating executor because a task failed and fail_fast mode is enabled"
                 )
-                raise DatabandFailFastError("failing fast")
+                raise DatabandFailFastError(
+                    "Failing whole pipeline as it has failed/canceled tasks %s",
+                    [t[2] for t in ti_status.failed],
+                )
 
         # return updated status
         return executed_run_dates

@@ -374,9 +374,13 @@ class DatabandRun(SingletonContext):
         ):
             logger.exception(ex)
 
-        if isinstance(ex, KeyboardInterrupt) or isinstance(ex, DatabandSigTermError):
+        if (
+            isinstance(ex, KeyboardInterrupt)
+            or isinstance(ex, DatabandSigTermError)
+            or self.is_killed()
+        ):
             run_state = RunState.CANCELLED
-            unfinished_task_state = TaskRunState.CANCELLED
+            unfinished_task_state = TaskRunState.UPSTREAM_FAILED
         elif isinstance(ex, DatabandFailFastError):
             run_state = RunState.FAILED
             unfinished_task_state = TaskRunState.UPSTREAM_FAILED
@@ -546,7 +550,18 @@ class DatabandRun(SingletonContext):
     def is_killed(self):
         return _is_killed.is_set()
 
+    def _internal_kill(self):
+        """
+        called by TaskRun handler, so we know that run is "canceled"
+        otherwise we will get regular exception
+        """
+        _is_killed.set()
+
     def kill(self):
+        """
+        called from user space
+        :return:
+        """
         # this is very naive stop implementation
         # in case of simple executor, we'll run task.on_kill code
         _is_killed.set()
