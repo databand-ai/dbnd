@@ -3,14 +3,14 @@ import logging
 from dbnd import data, output, parameter
 from dbnd.tasks import PipelineTask, PySparkTask
 from dbnd_examples.data import data_repo
-from dbnd_examples.dbnd_spark import spark_folder
+from dbnd_examples.dbnd_spark import spark_folder, spark_script
 
 
 logger = logging.getLogger(__name__)
 
 
 class CutAtSpark(PySparkTask):
-    python_script = spark_folder("pyspark/cut_salad.py")
+    python_script = spark_script("cut_salad.py")
 
     vegetables = parameter.data
     chopped_vegetables = output
@@ -20,7 +20,7 @@ class CutAtSpark(PySparkTask):
 
 
 class AddDressingAtSpark(PySparkTask):
-    python_script = spark_folder("pyspark/add_dressing.py")
+    python_script = spark_script("add_dressing.py")
 
     dressing = parameter[str]
     chopped_vegetables = parameter.data
