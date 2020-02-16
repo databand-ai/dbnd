@@ -28,9 +28,23 @@ try:
 except Exception:
     from airflow.models import TaskInstance
 
+### Exceptions ###
+
+
+class EmptyAirflowDatabase(Exception):
+    pass
+
+
+### Plugin Business Logic ###
+
 
 def do_export_data(dagbag, since, period, include_logs=False, session=None):
-    start_date, end_date = _get_time_bounderies(since, period, session)
+    try:
+        start_date, end_date = _get_time_bounderies(since, period, session)
+    except EmptyAirflowDatabase as ex:
+        logging.warning("Could not find any dag runs or task instances.", exc_info=ex)
+        return ExportData([], [], [], since=utcnow())
+
     _load_dags_models(session)
     logging.info(
         "Collected %d dags. Trying to query instances and dagruns from %s to %s",
@@ -162,7 +176,7 @@ def _get_time_bounderies(since, period, session):
             )
 
     if not since:
-        raise Exception(
+        raise EmptyAirflowDatabase(
             "Could not find any tasks instances or dag runs in the requested airflow database."
         )
 
