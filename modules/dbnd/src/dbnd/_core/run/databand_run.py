@@ -29,7 +29,11 @@ from dbnd._core.constants import (
 )
 from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd._core.errors.base import DatabandRunError, DatabandSigTermError
+from dbnd._core.errors.base import (
+    DatabandFailFastError,
+    DatabandRunError,
+    DatabandSigTermError,
+)
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.run.describe_run import DescribeRun
@@ -372,17 +376,18 @@ class DatabandRun(SingletonContext):
 
         if isinstance(ex, KeyboardInterrupt) or isinstance(ex, DatabandSigTermError):
             run_state = RunState.CANCELLED
-            non_finished_task_state = TaskRunState.CANCELLED
+            unfinished_task_state = TaskRunState.CANCELLED
+        elif isinstance(ex, DatabandFailFastError):
+            run_state = RunState.FAILED
+            unfinished_task_state = TaskRunState.UPSTREAM_FAILED
         else:
             run_state = RunState.FAILED
-            non_finished_task_state = TaskRunState.FAILED
+            unfinished_task_state = TaskRunState.FAILED
 
         self.set_run_state(run_state)
-
-        for task_run in self.task_runs:
-            if task_run.task_run_state not in TaskRunState.final_states():
-                task_run.set_task_run_state(non_finished_task_state, track=False)
-        self.tracker.set_task_run_states(self.task_runs)
+        self.tracker.tracking_store.set_unfinished_tasks_state(
+            run_uid=self.run_uid, state=unfinished_task_state
+        )
 
         err_banner_msg = self.describe.get_error_banner()
         logger.error(

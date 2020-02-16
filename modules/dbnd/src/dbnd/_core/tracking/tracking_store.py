@@ -49,6 +49,9 @@ class TrackingStore(object):
     def set_task_run_states(self, task_runs):
         pass
 
+    def set_unfinished_tasks_state(self, run_uid, state):
+        pass
+
     def save_task_run_log(self, task_run, log_body):
         pass
 
@@ -133,6 +136,11 @@ class CompositeTrackingStore(TrackingStore):
 
     def set_task_run_states(self, **kwargs):
         return self._invoke(CompositeTrackingStore.set_task_run_states.__name__, kwargs)
+
+    def set_unfinished_tasks_state(self, **kwargs):
+        return self._invoke(
+            CompositeTrackingStore.set_unfinished_tasks_state.__name__, kwargs
+        )
 
     def save_task_run_log(self, **kwargs):
         return self._invoke(CompositeTrackingStore.save_task_run_log.__name__, kwargs)
