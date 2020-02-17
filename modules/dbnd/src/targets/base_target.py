@@ -33,8 +33,7 @@ from dbnd._core.utils.basics.nothing import NOTHING
 
 if typing.TYPE_CHECKING:
     from dbnd._core.task.task import Task
-    from targets.metrics.target_value_metrics import ValueMetrics
-
+    from targets.target_meta import TargetMeta
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +65,7 @@ class Target(object):
         self.source = source
 
         # caching and value preview
-        self.value_metrics = NOTHING  # type: ValueMetrics
+        self.target_meta = NOTHING  # type: TargetMeta
         self._cache = {}
 
     @abc.abstractmethod

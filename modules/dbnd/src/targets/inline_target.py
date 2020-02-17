@@ -5,7 +5,7 @@ class InlineTarget(InMemoryTarget):
     def __init__(self, root_target, obj, value_type, **kwargs):
         super(InlineTarget, self).__init__(obj=obj, value_type=value_type, **kwargs)
         self.root_target = root_target
-        self.value_metrics = root_target.value_metrics
+        self.target_meta = root_target.target_meta
 
     def __repr__(self):
         if self.root_target:

@@ -5,12 +5,14 @@ import typing
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.timezone import utcnow
 from dbnd.api.tracking_api import (
+    LogTargetArgs,
     TaskRunAttemptUpdateArgs,
     add_task_runs_schema,
     heartbeat_schema,
     init_run_schema,
     log_artifact_schema,
     log_metric_schema,
+    log_targets_schema,
     scheduled_job_args_schema,
     set_run_state_schema,
     set_unfinished_tasks_state_schema,
@@ -19,6 +21,8 @@ from dbnd.api.tracking_api import (
 
 
 if typing.TYPE_CHECKING:
+    from typing import List
+
     from dbnd._core.constants import TaskRunState
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.task_run.task_run_error import TaskRunError
@@ -148,18 +152,37 @@ class TrackingStoreApi(TrackingStore):
             external_links_dict=external_links_dict,
         )
 
-    def log_target_metrics(self, task_run, target, value_metrics):
-        from dbnd.api.tracking_api import log_target_metrics_schema
+    def log_target(
+        self,
+        task_run,
+        target,
+        target_meta,
+        operation_type,
+        operation_status,
+        param_name,
+        task_def_uid,
+    ):
+        target_info = LogTargetArgs(
+            run_uid=task_run.run.run_uid,
+            task_run_uid=task_run.task_run_uid,
+            task_run_name=task_run.job_name,
+            task_run_attempt_uid=task_run.task_run_attempt_uid,
+            task_def_uid=task_def_uid,
+            param_name=param_name,
+            target_path=str(target),
+            operation_type=operation_type.value,
+            operation_status=operation_status.value,
+            value_preview=target_meta.value_preview,
+            data_dimensions=target_meta.data_dimensions,
+            data_schema=target_meta.data_schema,
+            data_hash=target_meta.data_hash,
+        )
+        return self.log_targets(targets_info=[target_info])
+
+    def log_targets(self, targets_info):  # type: (List[LogTargetArgs]) -> None
 
         return self._m(
-            self.channel.log_target_metrics,
-            log_target_metrics_schema,
-            task_run_uid=task_run.task_run_uid,
-            task_run_attempt_uid=task_run.task_run_attempt_uid,
-            target_path=str(target),
-            value_preview=value_metrics.value_preview,
-            data_dimensions=value_metrics.data_dimensions,
-            data_schema=value_metrics.data_schema,
+            self.channel.log_targets, log_targets_schema, targets_info=targets_info
         )
 
     def log_metric(self, task_run, metric):
