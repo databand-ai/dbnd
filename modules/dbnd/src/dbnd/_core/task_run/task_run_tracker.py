@@ -59,9 +59,11 @@ class TaskRunTracker(TaskRunCtrl):
                 "Error occurred during target metrics save for %s: %s" % (target, ex)
             )
 
-    def _log_metric(self, key, value, timestamp=None):
+    def _log_metric(self, key, value, timestamp=None, source=None):
         metric = Metric(key=key, value=value, timestamp=timestamp or utcnow())
-        self.tracking_store.log_metric(task_run=self.task_run, metric=metric)
+        self.tracking_store.log_metric(
+            task_run=self.task_run, metric=metric, source=source
+        )
 
     def log_artifact(self, name, artifact):
         # file storage will save file
@@ -74,9 +76,13 @@ class TaskRunTracker(TaskRunCtrl):
             artifact_target=artifact_target,
         )
 
-    def log_metric(self, key, value, timestamp=None):
-        logger.info("Metric '{}'='{}'".format(key, value))
-        self._log_metric(key, value, timestamp=timestamp)
+    def log_metric(self, key, value, timestamp=None, source=None):
+        logger.info(
+            "{}{}Metric '{}'='{}'".format(
+                (source or "").capitalize(), " " * bool(source), key, value
+            )
+        )
+        self._log_metric(key, value, timestamp=timestamp, source=source)
 
     def log_dataframe(self, key, df):
         logger.info("Dataframe '{}'='{}".format(key, df.shape))

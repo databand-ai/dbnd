@@ -235,13 +235,17 @@ class Task(_BaseTask, _TaskParamContainer):
     def log_dataframe(self, key, df):
         self.metrics.log_dataframe(key, df)
 
-    def log_metric(self, key, value):
+    def log_metric(self, key, value, source=None):
         """
         Logs the passed-in parameter under the current run, creating a run if necessary.
         :param key: Parameter name (string)
         :param value: Parameter value (string)
         """
-        return self.metrics.log_metric(key, value)
+        return self.metrics.log_metric(key, value, source=source)
+
+    def log_system_metric(self, key, value):
+        """Shortcut for log_metric(..., source="system") """
+        return self.log_metric(key, value, source="system")
 
     def log_artifact(self, name, artifact):
         """Log a local file or directory as an artifact of the currently active run."""

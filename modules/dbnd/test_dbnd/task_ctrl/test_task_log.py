@@ -51,7 +51,7 @@ def test_word_count():
     t.dbnd_run()
 
     meta_path = t.ctrl.last_task_run.attempt_folder
-    chars_read = os.path.join(meta_path.path, "metrics", "chars_read")
+    chars_read = os.path.join(meta_path.path, "metrics", "user", "chars_read")
     artifact = os.path.join(meta_path.path, "artifacts", "figure.png")
 
     assert os.path.exists(chars_read)

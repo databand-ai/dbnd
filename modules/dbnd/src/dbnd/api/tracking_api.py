@@ -186,6 +186,7 @@ save_external_links_schema = SaveExternalLinksSchema()
 class LogMetricSchema(_ApiCallSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     metric = fields.Nested(MetricSchema, allow_none=True)
+    source = fields.String(allow_none=True)
 
 
 log_metric_schema = LogMetricSchema()

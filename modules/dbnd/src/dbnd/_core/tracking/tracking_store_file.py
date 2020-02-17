@@ -68,8 +68,8 @@ class FileTrackingStore(TrackingStore):
         with meta_data_file.open("w") as yaml_file:
             yaml.dump(info, yaml_file, default_flow_style=False)
 
-    def log_metric(self, task_run, metric):
-        metric_path = task_run.meta_files.get_metric_target(metric.key)
+    def log_metric(self, task_run, metric, source=None):
+        metric_path = task_run.meta_files.get_metric_target(metric.key, source=source)
         timestamp = int(time.mktime(metric.timestamp.timetuple()))
         value = "%s %s\n" % (timestamp, metric.value)
 
@@ -111,13 +111,13 @@ class TaskRunMetricsFileStoreReader(object):
         super(TaskRunMetricsFileStoreReader, self).__init__(**kwargs)
         self.meta = TaskRunMetaFiles(attempt_folder)
 
-    def _get_all_metrics_names(self):
-        metrics_root = self.meta.get_metric_folder()
+    def _get_all_metrics_names(self, source=None):
+        metrics_root = self.meta.get_metric_folder(source=source)
         all_files = [os.path.basename(str(p)) for p in metrics_root.list_partitions()]
         return all_files
 
-    def get_metric_history(self, key):
-        metric_target = self.meta.get_metric_target(key)
+    def get_metric_history(self, key, source=None):
+        metric_target = self.meta.get_metric_target(key, source=source)
         if not metric_target.exists():
             raise DatabandError("Metric '%s' not found" % key)
         metric_data = metric_target.readlines()
@@ -127,11 +127,11 @@ class TaskRunMetricsFileStoreReader(object):
             rsl.append(Metric(key, float(val), datetime.fromtimestamp(int(ts))))
         return rsl
 
-    def get_all_metrics_values(self):
+    def get_all_metrics_values(self, source=None):
         metrics = []
-        for key in self._get_all_metrics_names():
+        for key in self._get_all_metrics_names(source=source):
             try:
-                metrics.append(self.get_metric(key))
+                metrics.append(self.get_metric(key, source=source))
             except Exception as ex:
                 raise DatabandError(
                     "Failed to read metrics for %s at %s" % (key, self.meta.root),
@@ -146,8 +146,8 @@ class TaskRunMetricsFileStoreReader(object):
         with self.meta.get_meta_data_file().open("r") as yaml_file:
             return RunInfoSchema().load(**yaml.load(yaml_file))
 
-    def get_metric(self, key):
-        metric_target = self.meta.get_metric_target(key)
+    def get_metric(self, key, source=None):
+        metric_target = self.meta.get_metric_target(key, source=source)
         if not metric_target.exists():
             raise DatabandRuntimeError("Metric '%s' not found" % key)
         metric_data = metric_target.readlines()
@@ -177,7 +177,7 @@ class TaskRunMetricsFileStoreReader(object):
         return Artifact(artifact_target.path)
 
 
-def read_task_metrics(attempt_folder):
+def read_task_metrics(attempt_folder, source=None):
     return TaskRunMetricsFileStoreReader(
         attempt_folder=target(attempt_folder)
-    ).get_all_metrics_values()
+    ).get_all_metrics_values(source=source)
