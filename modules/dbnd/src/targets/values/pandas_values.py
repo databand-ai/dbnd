@@ -7,6 +7,8 @@ from typing import Dict, Tuple
 import pandas as pd
 import six
 
+from pandas.core.util.hashing import hash_pandas_object
+
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
@@ -45,6 +47,9 @@ class DataFrameValueType(DataValueType):
             "dtypes": {col: str(type_) for col, type_ in df.dtypes.items()},
         }
         return json_utils.dumps(schema)
+
+    def get_data_hash(self, value):
+        return fast_hasher.hash(hash_pandas_object(value, index=True).values)
 
     def merge_values(self, *values, **kwargs):
         # Concatenate all data into one DataFrame

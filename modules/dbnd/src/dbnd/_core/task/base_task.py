@@ -27,7 +27,12 @@ from typing import Dict, Optional
 
 import six
 
-from dbnd._core.constants import ParamValidation, TaskType
+from dbnd._core.constants import (
+    DbndTargetOperationStatus,
+    DbndTargetOperationType,
+    ParamValidation,
+    TaskType,
+)
 from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter.parameter_builder import parameter
@@ -38,6 +43,7 @@ from dbnd._core.task_ctrl.task_auto_values import TaskAutoParamsReadWrite
 from dbnd._core.task_ctrl.task_meta import TaskMeta
 from dbnd._core.task_ctrl.task_parameters import TaskParameters
 from dbnd._core.utils.basics.nothing import NOTHING
+from targets import Target
 
 
 logger = logging.getLogger(__name__)
@@ -166,6 +172,17 @@ class _BaseTask(object):
             # if it's outpus, we should not "cache" it
             # otherwise we will try to save it on autosave ( as it was changed)
             return runtime_value
+        elif isinstance(value, Target):
+            task_run = self.current_task_run
+            if task_run:
+                task_run.tracker.log_target(
+                    parameter=parameter,
+                    target=value,
+                    value=runtime_value,
+                    operation_type=DbndTargetOperationType.read,
+                    operation_status=DbndTargetOperationStatus.OK,
+                )
+
         # for the cache, so next time we don't need to calculate it
         setattr(self, name, runtime_value)
         _task_auto_read.add(name)

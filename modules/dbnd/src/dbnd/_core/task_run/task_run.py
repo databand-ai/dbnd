@@ -15,6 +15,7 @@ from targets import target
 
 logger = logging.getLogger(__name__)
 if typing.TYPE_CHECKING:
+    from typing import Any
     from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.task.task import Task
     from dbnd._core.settings import EngineConfig

@@ -188,9 +188,9 @@ class _TaskBannerBuilder(TaskSubCtrl):
                 param_data += [default, section]
 
             # add preview
-            if isinstance(value, Target) and value.value_metrics:
+            if isinstance(value, Target) and value.target_meta:
                 preview_value = safe_string(
-                    value.value_metrics.value_preview, _MAX_VALUE_SIZE
+                    value.target_meta.value_preview, _MAX_VALUE_SIZE
                 )
                 # we should add minimal preview
                 if len(preview_value) < 100:

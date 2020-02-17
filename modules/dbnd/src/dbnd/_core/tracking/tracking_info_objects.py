@@ -95,10 +95,10 @@ class TaskRunInfo(_DbndDataClass):
         return "TaskRunInfo(%s, %s)" % self.name, self.state
 
 
-@attr.s
+@attr.s(hash=True)
 class TargetInfo(_DbndDataClass):
     parameter_name = attr.ib()  # type: str
-    path = attr.ib()  # type: str
+    path = attr.ib(hash=True)  # type: str
     created_date = attr.ib()  # type: Optional[datetime]
     task_run_uid = attr.ib()  # type: Optional[UUID]
 

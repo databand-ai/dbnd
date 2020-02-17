@@ -1,6 +1,8 @@
 import logging
 import typing
 
+from uuid import UUID
+
 from dbnd._core.errors.base import DatabandConnectionException
 
 
@@ -8,9 +10,10 @@ if typing.TYPE_CHECKING:
     from typing import List
 
     from targets.base_target import Target
-    from targets.metrics.target_value_metrics import ValueMetrics
+    from targets.target_meta import TargetMeta
 
-    from dbnd.api.tracking_api import InitRunArgs
+    from dbnd.api.tracking_api import InitRunArgs, AirflowTaskInfo, LogTargetArgs
+    from dbnd._core.constants import DbndTargetOperationType, DbndTargetOperationStatus
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
 
@@ -58,10 +61,6 @@ class TrackingStore(object):
     def save_external_links(self, task_run, external_links_dict):
         pass
 
-    def log_target_metrics(self, task_run, target, value_metrics):
-        # type: (TaskRun, Target, ValueMetrics) -> None
-        pass
-
     def log_metric(self, task_run, metric):
         pass
 
@@ -79,6 +78,22 @@ class TrackingStore(object):
 
     def save_airflow_task_infos(self, airflow_task_infos, is_airflow_synced, base_url):
         # type: (List[AirflowTaskInfo], bool, str) -> None
+        pass
+
+    def log_target(
+        self,
+        task_run,  # type: TaskRun
+        target,  # type: Target
+        target_meta,  # type: TargetMeta
+        operation_type,  # type: DbndTargetOperationType
+        operation_status,  # type: DbndTargetOperationStatus
+        param_name,  # type: str
+        task_def_uid,  # type: UUID
+    ):  # type: (...) -> None
+        pass
+
+    def log_targets(self, targets_info):
+        # type: (List[LogTargetArgs]) -> None
         pass
 
 
@@ -148,8 +163,11 @@ class CompositeTrackingStore(TrackingStore):
     def save_external_links(self, **kwargs):
         return self._invoke(CompositeTrackingStore.save_external_links.__name__, kwargs)
 
-    def log_target_metrics(self, **kwargs):
-        return self._invoke(CompositeTrackingStore.log_target_metrics.__name__, kwargs)
+    def log_target(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.log_target.__name__, kwargs)
+
+    def log_targets(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.log_targets.__name__, kwargs)
 
     def log_metric(self, **kwargs):
         return self._invoke(CompositeTrackingStore.log_metric.__name__, kwargs)

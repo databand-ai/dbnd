@@ -5,6 +5,7 @@ from dbnd._core.current import get_databand_run
 
 
 if typing.TYPE_CHECKING:
+    from typing import Optional
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.settings import EnvConfig
     from dbnd._core.task_ctrl.task_meta import TaskMeta
@@ -94,7 +95,7 @@ class TaskCtrl(TaskSubCtrl):
         self._relations = TaskRelations(task)
         self._task_dag = _TaskDagNode(task)
 
-        self.outputs = TaskOutputBuilder(task)
+        self.outputs = TaskOutputBuilder(task)  # type: TaskOutputBuilder
 
         self._visualiser = TaskVisualiser(task)
         self.describe_dag = DescribeDagCtrl(task)
@@ -102,7 +103,7 @@ class TaskCtrl(TaskSubCtrl):
         self._should_run = self.task_meta.task_enabled and self.task._should_run()
 
         # will be assigned by the latest Run
-        self.last_task_run = None  # type: TaskRun
+        self.last_task_run = None  # type: Optional[TaskRun]
 
     def banner(self, msg, color=None, task_run=None):
         return self.visualiser.banner(msg=msg, color=color, task_run=task_run)

@@ -165,3 +165,16 @@ class ParamValidation(enum.Enum):
     warn = "warn"
     error = "error"
     disabled = "disabled"
+
+
+class DbndTargetOperationType(enum.Enum):
+    init = "init"
+    read = "read"
+    write = "write"
+    reuse = "reuse"
+    log = "log"
+
+
+class DbndTargetOperationStatus(enum.Enum):
+    OK = "OK"
+    NOK = "NOK"

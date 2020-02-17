@@ -3,8 +3,7 @@ import typing
 
 from typing import Any
 
-import six.moves.urllib.parse as urllib_parse
-
+from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_store import TrackingStore
@@ -41,13 +40,19 @@ class TaskRunTracker(TaskRunCtrl):
             task_run=self.task_run, log_body=log_preview
         )
 
-    def log_target_metrics(self, parameter, target, value):
-        # type: (TaskRunTracker, ParameterDefinition, Target, Any) -> None
+    def log_target(self, parameter, target, value, operation_type, operation_status):
+        # type: (TaskRunTracker, ParameterDefinition, Target, Any, DbndTargetOperationType, DbndTargetOperationStatus) -> None
         try:
-            metrics = parameter.get_value_metrics(value)
-            target.value_metrics = metrics
-            self.tracking_store.log_target_metrics(
-                task_run=self.task_run, target=target, value_metrics=metrics
+            target_meta = parameter.get_value_meta(value)
+            target.target_meta = target_meta
+            self.tracking_store.log_target(
+                task_run=self.task_run,
+                target=target,
+                target_meta=target_meta,
+                operation_type=operation_type,
+                operation_status=operation_status,
+                param_name=parameter.name,
+                task_def_uid=parameter.task_definition_uid,
             )
         except Exception as ex:
             logger.warning(

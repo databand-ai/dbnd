@@ -157,38 +157,38 @@ class _StructureValueType(ValueType):
 
 class DictValueType(_StructureValueType):
     """
-   Parameter whose value is a ``dict``.
+    Parameter whose value is a ``dict``.
 
-   In the task definition, use
+    In the task definition, use
 
-   .. code-block:: python
+    .. code-block:: python
 
-       class MyTask(dbnd.Task):
-         tags = databand.DictParameter()
+        class MyTask(dbnd.Task):
+            tags = databand.DictParameter()
 
-           def run(self):
-               logging.info("Find server with role: %s", self.tags['role'])
-               server = aws.ec2.find_my_resource(self.tags)
+            def run(self):
+                logging.info("Find server with role: %s", self.tags['role'])
+                server = aws.ec2.find_my_resource(self.tags)
 
 
     At the command line, use
 
     .. code-block:: console
 
-       $ dbnd --module my_tasks MyTask --tags <JSON string>
-       $ dbnd --module my_tasks MyTask --tags 'key=value key="some value"'
+        $ dbnd --module my_tasks MyTask --tags <JSON string>
+        $ dbnd --module my_tasks MyTask --tags 'key=value key="some value"'
 
     Simple example with two tags:
 
     .. code-block:: console
 
-       $ dbnd --module my_tasks MyTask --tags '{"role": "web", "env": "staging"}'
+        $ dbnd --module my_tasks MyTask --tags '{"role": "web", "env": "staging"}'
 
     We also enable to provide multiple values per parameter
 
     .. code-block:: console
 
-    $ dbnd --module my_tasks MyTask --tags '{"role": "web"}'  --tags  '{ "env": "staging"}'
+        $ dbnd --module my_tasks MyTask --tags '{"role": "web"}'  --tags  '{ "env": "staging"}'
 
 
     It can be used to define dynamic parameters, when you do not know the exact list of your parameters (e.g. list of

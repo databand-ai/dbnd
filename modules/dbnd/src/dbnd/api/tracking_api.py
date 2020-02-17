@@ -3,7 +3,6 @@ import logging
 import typing
 
 from abc import ABCMeta
-from typing import Optional
 from uuid import UUID
 
 import six
@@ -13,7 +12,6 @@ from marshmallow import fields, post_load
 import attr
 
 from dbnd._core.constants import RunState, TaskRunState
-from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._vendor.marshmallow_enum import EnumField
 from dbnd.api.api_utils import (
@@ -33,7 +31,14 @@ from dbnd.api.serialization.task_run_env import TaskRunEnvInfoSchema
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.tracking.tracking_info_objects import ErrorInfo
+    from typing import Optional, List
+    from dbnd._core.tracking.tracking_info_objects import (
+        ErrorInfo,
+        TaskRunEnvInfo,
+        TargetInfo,
+        TaskRunInfo,
+        TaskDefinitionInfo,
+    )
 
 
 class TaskRunsInfoSchema(ApiObjectSchema):
@@ -195,18 +200,50 @@ class LogArtifactSchema(_ApiCallSchema):
 log_artifact_schema = LogArtifactSchema()
 
 
-class LogTargetMetricsSchema(_ApiCallSchema):
+@attr.s
+class LogTargetArgs(object):
+    run_uid = attr.ib()  # type: UUID
+    task_run_uid = attr.ib()  # type: UUID
+    task_run_name = attr.ib()  # type: str
+    task_run_attempt_uid = attr.ib()  # type: UUID
+    target_path = attr.ib()  # type: str
+    param_name = attr.ib()  # type: str
+    task_def_uid = attr.ib()  # type: UUID
+    operation_type = attr.ib()  # type: str
+    operation_status = attr.ib()  # type: str
+
+    value_preview = attr.ib()  # type: str
+    data_dimensions = attr.ib()  # type: List[int]
+    data_schema = attr.ib()  # type: str
+    data_hash = attr.ib()  # type: str
+
+    def asdict(self):
+        return attr.asdict(self, recurse=False)
+
+
+class LogTargetSchema(_ApiCallSchema):
+    run_uid = fields.UUID(required=True)
     task_run_uid = fields.UUID(required=True)
+    task_run_name = fields.String()
     task_run_attempt_uid = fields.UUID(required=True)
 
     target_path = fields.String()
+    param_name = fields.String()
+    task_def_uid = fields.UUID()
+    operation_type = fields.String()
+    operation_status = fields.String()
 
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(), allow_none=True)
     data_schema = fields.String(allow_none=True)
+    data_hash = fields.String(required=True)
 
 
-log_target_metrics_schema = LogTargetMetricsSchema()
+class LogTargetsSchema(_ApiCallSchema):
+    targets_info = fields.Nested(LogTargetSchema, many=True)
+
+
+log_targets_schema = LogTargetsSchema()
 
 
 class HeartbeatSchema(_ApiCallSchema):
@@ -272,8 +309,11 @@ class TrackingAPI(object):
     def save_external_links(self, data):
         return self._handle(TrackingAPI.save_external_links.__name__, data)
 
-    def log_target_metrics(self, data):
-        return self._handle(TrackingAPI.log_target_metrics.__name__, data)
+    def log_target(self, data):
+        return self._handle(TrackingAPI.log_target.__name__, data)
+
+    def log_targets(self, data):
+        return self._handle(TrackingAPI.log_targets.__name__, data)
 
     def log_metric(self, data):
         return self._handle(TrackingAPI.log_metric.__name__, data)

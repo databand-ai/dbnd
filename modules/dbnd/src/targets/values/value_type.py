@@ -1,5 +1,6 @@
 import abc
 import copy
+import hashlib
 import logging
 import re
 
@@ -10,8 +11,9 @@ import six
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.basics.load_python_module import run_user_func
+from dbnd._vendor import fast_hasher
 from targets.config import get_value_preview_max_len
-from targets.metrics.target_value_metrics import ValueMetrics
+from targets.target_meta import TargetMeta
 
 
 logger = logging.getLogger(__name__)
@@ -212,6 +214,7 @@ class ValueType(object):
         return value
 
     def load_from_target(self, target, **kwargs):
+        # type: (DataTarget, **Any) -> Any
         return target.load(value_type=self, **kwargs)
 
     def save_to_target(
@@ -269,17 +272,22 @@ class ValueType(object):
     def get_data_schema(self, value):  # type: (Any) -> str
         return json_utils.dumps({"type": self.type_str})
 
-    def get_value_metrics(self, value):
+    def get_data_hash(self, value):
+        return fast_hasher.hash(value)
+
+    def get_value_meta(self, value):
         data_dimensions = self.get_data_dimensions(value)
         if data_dimensions is not None:
             data_dimensions = list(data_dimensions)
         preview = self.to_preview(value)
         data_schema = self.get_data_schema(value)
+        data_hash = self.get_data_hash(value)
 
-        return ValueMetrics(
+        return TargetMeta(
             value_preview=preview,
             data_dimensions=data_dimensions,
             data_schema=data_schema,
+            data_hash=data_hash,
         )
 
 

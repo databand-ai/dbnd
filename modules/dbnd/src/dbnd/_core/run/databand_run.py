@@ -105,7 +105,7 @@ class DatabandRun(SingletonContext):
         existing_run=None,
         job_name=None,
     ):
-        # type:(DatabandContext, Union[Task, str] , Optional[UUID], Optional[ScheduledRunInfo]) -> None
+        # type:(DatabandContext, Union[Task, str] , Optional[UUID], Optional[ScheduledRunInfo], Optional[bool]) -> None
         self.context = context
         s = self.context.settings  # type: DatabandSettings
 
@@ -493,6 +493,7 @@ class DatabandRun(SingletonContext):
         return tr
 
     def add_task_runs(self, task_runs):
+        # type: (List[TaskRun]) -> None
         for tr in task_runs:
             self._add_task_run(tr)
 
