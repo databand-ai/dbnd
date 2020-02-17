@@ -31,7 +31,6 @@ from airflow.utils.state import State
 
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import DatabandSigTermError
-from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd._core.utils.basics.safe_signal import safe_signal
 
 
@@ -190,11 +189,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         dr = try_get_databand_run()
         task_run = dr.get_task_run_by_af_id(task_id)
         pod_command = [str(c) for c in command]
-        with task_run.runner.task_run_driver_context():
-            kubernetes_config = build_task_from_config(
-                task_name=self.kube_dbnd.engine_config.task_name
-            )  # type: KubernetesEngineConfig
-        pod = kubernetes_config.build_pod(
+        task_engine = task_run.task_engine  # type: KubernetesEngineConfig
+        pod = task_engine.build_pod(
             task_run=task_run,
             cmds=pod_command,
             labels={

@@ -292,10 +292,6 @@ class Task(_BaseTask, _TaskParamContainer):
 
         return True
 
-    def _should_resubmit(self, task_run):
-        tec = task_run.task_engine
-        return tec.require_submit
-
     @dbnd_handle_errors(exit_on_error=False)
     def dbnd_run(self):
         # type: (...)-> DatabandRun

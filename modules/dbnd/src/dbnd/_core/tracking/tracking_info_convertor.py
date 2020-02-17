@@ -50,13 +50,13 @@ class TrackingInfoBuilder(object):
             end_time=None,
             description=run.description,
             is_archived=run.is_archived,
-            # airflow
+            env_name=env.name,
+            cloud_type=env.cloud_type,
+            # deprecate and airflow
             dag_id=run.dag_id,
             execution_date=run.execution_date,
             cmd_name=context.name,
-            env_name=env.name,
-            cloud_type=env.cloud_type,
-            driver_name=run.remote_engine.task_name,
+            driver_name=env.remote_engine or env.local_engine,
             # move to task
             target_date=task.task_target_date,
             version=task.task_version,

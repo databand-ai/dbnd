@@ -52,11 +52,11 @@ from dbnd._core.task_executor.factory import (
     get_task_executor,
 )
 from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
-from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.tracking.tracking_info_run import RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils import console_utils
 from dbnd._core.utils.basics.load_python_module import load_python_callable
+from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.date_utils import unique_execution_date
 from dbnd._core.utils.traversing import flatten
@@ -181,7 +181,6 @@ class DatabandRun(SingletonContext):
         # now we can add driver task
         self.driver_task_run = None  # type: Optional[TaskRun]
         self.root_task_run = None  # type: Optional[TaskRun]
-        self.task_executor = None  # type: Optional[TaskExecutor]
 
         self.run_folder_prefix = os.path.join(
             "log",
@@ -307,7 +306,8 @@ class DatabandRun(SingletonContext):
             task_executor_type = self.task_executor_type
 
             if self.submit_driver:
-                # we are after the jump
+                # submit drive is true, but we are in existing run:
+                # we are after the jump from submit to driver execution (to remote engine)
                 host_engine = self.remote_engine.clone(require_submit=False)
             else:
                 host_engine = self.local_engine.clone(
@@ -340,7 +340,7 @@ class DatabandRun(SingletonContext):
             local_driver_log=local_driver_log,
             remote_driver_root=remote_driver_root,
             driver_dump=driver_dump,
-            send_heartbeat=is_driver and self.sends_heartbeat,
+            sends_heartbeat=self.sends_heartbeat,
         )
 
         tr = TaskRun(task=driver_task, run=self, task_engine=driver_task.host_engine)
@@ -437,20 +437,9 @@ class DatabandRun(SingletonContext):
         dumps current run and context to file
         """
         t = target_file or self.driver_dump
-        logger.info("Saving current pipeline into %s", t)
+        logger.info("Saving current run into %s", t)
         with t.open("wb") as fp:
             cloudpickle.dump(obj=self, file=fp)
-
-    def is_save_pipeline(self):
-        if any(tr.task._conf__require_run_dump_file for tr in self.task_runs):
-            return True
-        core_settings = self.context.settings.core
-        if core_settings.always_save_pipeline:
-            return True
-        if core_settings.disable_save_pipeline:
-            return False
-
-        return self.driver_task.is_save_pipeline()
 
     @contextlib.contextmanager
     def run_context(self):
@@ -603,7 +592,7 @@ class _DbndDriverTask(Task):
     is_driver = parameter[bool]
     is_submitter = parameter[bool]
     execution_date = parameter[datetime]
-    send_heartbeat = parameter[bool]
+    sends_heartbeat = parameter[bool]
 
     host_engine = parameter[EngineConfig]
     target_engine = parameter[EngineConfig]
@@ -664,7 +653,17 @@ class _DbndDriverTask(Task):
             )
             return root_task
 
-    def is_save_pipeline(self):
+    def is_save_run(self, run, task_runs):
+
+        core_settings = run.context.settings.core
+        if core_settings.always_save_pipeline:
+            return True
+        if core_settings.disable_save_pipeline:
+            return False
+
+        if any(tr.task._conf__require_run_dump_file for tr in task_runs):
+            return True
+
         if self.target_engine.require_submit:
             return True
 
@@ -703,7 +702,10 @@ class _DbndDriverTask(Task):
         run.root_task.task_dag.topological_sort()
 
         task_runs = TaskRunsBuilder().build_task_runs(
-            run, run.root_task, self.target_engine, root_task_run_uid=root_task_run_uid
+            run,
+            run.root_task,
+            remote_engine=self.target_engine,
+            root_task_run_uid=root_task_run_uid,
         )
         # we need it before to mark root task
         run.add_task_runs(task_runs)
@@ -715,6 +717,8 @@ class _DbndDriverTask(Task):
         driver_task_run = current_task_run()
         run = driver_task_run.run  # type: DatabandRun
         task_runs = self.build_root_task_runs(run)
+
+        hearbeat = None
 
         # right now we run describe in local controller only, but we should do that for more
         if self.is_driver:
@@ -737,7 +741,13 @@ class _DbndDriverTask(Task):
             )
             run_describe_dag.tree_view(describe_format=DescribeFormat.short)
 
-        # without driver task!
+            if self.is_save_run(run, task_runs):
+                run.save_run()
+
+            if self.sends_heartbeat:
+                hearbeat = start_heartbeat_sender(driver_task_run)
+
+        # create executor without driver task!
         task_executor = get_task_executor(
             run,
             task_executor_type=self.task_executor_type,
@@ -745,15 +755,9 @@ class _DbndDriverTask(Task):
             target_engine=run.root_task_run.task_engine,
             task_runs=task_runs,
         )
-        with task_executor.prepare_run():
-            if run.is_save_pipeline():
-                run.save_run()
 
-            if self.send_heartbeat:
-                with start_heartbeat_sender(driver_task_run):
-                    task_executor.do_run()
-            else:
-                task_executor.do_run()
+        with nested(hearbeat):
+            task_executor.do_run()
 
         if self.is_driver:
             # This is great success!

@@ -42,14 +42,6 @@ class DockerRunTask(Task):
         )  # type: DockerRunCtrl
         self.docker_ctrl.docker_run()
 
-    def _should_resubmit(self, task_run):
-        """
-        We don't want to resubmit if it's dockerized run and we running with the same engine
-        """
-        if self.docker_engine.task_name == task_run.task_engine.task_name:
-            return False
-        super(DockerRunTask, self)._should_resubmit(task_run)
-
     def on_kill(self):
         if self.docker_ctrl is not None:
             logger.error("Killing submitted docker for %s", self.task_id)

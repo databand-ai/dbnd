@@ -42,6 +42,16 @@ def run_task_submit(ctx, task_id):
         task._task_submit()
 
 
+@execute.command(name="task_execute")
+@click.option("--task-id", required=True)
+@click.pass_context
+def run_task_execute(ctx, task_id):
+    """Execute a task"""
+    with ctx.obj["run"].run_context() as dr:
+        task_run = dr.get_task_run_by_id(task_id)
+        task_run.runner.execute(allow_resubmit=False)
+
+
 @execute.command(name="driver")
 @click.pass_context
 def run_driver(ctx):

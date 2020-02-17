@@ -56,3 +56,16 @@ class ContainerEngineConfig(EngineConfig):
             task_is_system=True,
         )
         return submit_task
+
+    def _should_wrap_with_submit_task(self, task_run):
+        """
+        We don't want to resubmit if it's dockerized run and we running with the same engine
+        """
+        from dbnd_docker.docker.docker_task import DockerRunTask
+
+        if isinstance(task_run.task, DockerRunTask):
+            if task_run.task.docker_engine.task_name == self.task_name:
+                return False
+        return super(ContainerEngineConfig, self)._should_wrap_with_submit_task(
+            task_run
+        )

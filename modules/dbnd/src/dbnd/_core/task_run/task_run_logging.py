@@ -84,7 +84,9 @@ class TaskRunLogManager(TaskRunCtrl):
             target_logger.addHandler(handler)
             self._log_task_run_into_file_active = True
             CURRENT_TASK_HANDLER_LOG = handler
-            yield handler
+
+            with self.capture_stderr_stdout():
+                yield handler
         except Exception as task_ex:
             CURRENT_TASK_HANDLER_LOG = None
             raise task_ex

@@ -4,6 +4,8 @@ import typing
 from typing import List
 
 from dbnd._core.settings import EngineConfig, RunConfig
+from dbnd._core.task_build.task_context import TaskContextPhase
+from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd._core.task_ctrl.task_dag import _TaskDagNode, all_subdags
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.task_utils import (
@@ -68,7 +70,7 @@ class TaskRunsBuilder(object):
 
         return runnable_tasks, tasks_disabled
 
-    def build_task_runs(self, run, root_task, task_engine, root_task_run_uid=None):
+    def build_task_runs(self, run, root_task, remote_engine, root_task_run_uid=None):
         # type: (DatabandRun, Task, EngineConfig, UUID) -> List[TaskRun]
         run_config = run.context.settings.run  # type: RunConfig
 
@@ -121,13 +123,19 @@ class TaskRunsBuilder(object):
 
         task_runs = []
         for task in tasks_to_run:
-            task_run = TaskRun(
-                run=run,
-                task=task,
-                task_af_id=friendly_ids[task.task_id],
-                task_engine=task_engine,
-                _uuid=root_task_run_uid if task.task_id == root_task.task_id else None,
-            )
+
+            with task.ctrl.task_context(phase=TaskContextPhase.BUILD):
+                # we want to have configuration with task overrides
+                task_engine = build_task_from_config(task_name=remote_engine.task_name)
+                task_run = TaskRun(
+                    run=run,
+                    task=task,
+                    task_af_id=friendly_ids[task.task_id],
+                    task_engine=task_engine,
+                    _uuid=root_task_run_uid
+                    if task.task_id == root_task.task_id
+                    else None,
+                )
             if task.task_id in completed_ids:
                 task_run.is_reused = True
 

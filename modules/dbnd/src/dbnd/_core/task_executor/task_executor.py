@@ -22,9 +22,5 @@ class TaskExecutor(RunCtrl):
         self.target_engine = target_engine
         self.task_runs = task_runs
 
-    @contextlib.contextmanager
-    def prepare_run(self):
-        yield
-
     def do_run(self):
         raise NotImplementedError()

@@ -5,16 +5,15 @@ import typing
 
 from collections import defaultdict
 
-from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.errors import DatabandConfigError, friendly_error, show_error_once
 from dbnd._core.errors.base import DatabandSigTermError
-from dbnd._core.log.logging_utils import TaskContextFilter
 from dbnd._core.plugin.dbnd_plugins import pm
-from dbnd._core.task_build.task_context import TaskContextPhase, task_context
+from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils import json_utils
+from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.safe_signal import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
@@ -37,36 +36,33 @@ class TaskRunRunner(TaskRunCtrl):
     @contextlib.contextmanager
     def task_run_execution_context(self):
         ctx_managers = [
-            task_context(self.task_run.task, TaskContextPhase.RUN),
-            TaskContextFilter.task_context(self.task.task_id),
+            self.task.ctrl.task_context(phase=TaskContextPhase.RUN),
             self.task_run.log.capture_task_log(),
-            config.config_layer_context(self.task.task_meta.config_layer),
         ]
-
-        ctx_managers.append(self.task_run.log.capture_stderr_stdout())
-
         ctx_managers += pm.hook.dbnd_task_run_context(task_run=self.task_run)
-        with contextlib.ExitStack() as stack:
-            for mgr in ctx_managers:
-                stack.enter_context(mgr)
+        with nested(*ctx_managers):
             yield
 
-    @contextlib.contextmanager
-    def task_run_driver_context(self):
-        # we don't want logs/user wrappers at this stage
-        ctx_managers = [
-            task_context(self.task_run.task, TaskContextPhase.RUN),
-            config.config_layer_context(self.task.task_meta.config_layer),
-        ]
-        with contextlib.ExitStack() as stack:
-            for mgr in ctx_managers:
-                stack.enter_context(mgr)
-            yield
-
-    def execute(self, airflow_context=None):
+    def execute(self, airflow_context=None, allow_resubmit=True):
+        self.task_run.airflow_context = airflow_context
         task_run = self.task_run
         task = self.task  # type: Task
-        task_run.airflow_context = airflow_context
+        task_engine = task_run.task_engine
+        if allow_resubmit and task_engine._should_wrap_with_submit_task(task_run):
+            args = task_engine.dbnd_executable + [
+                "execute",
+                "--dbnd-run",
+                str(task_run.run.driver_dump),
+                "task_execute",
+                "--task-id",
+                task_run.task.task_id,
+            ]
+            submit_task = self.task_run.task_engine.submit_to_engine_task(
+                env=task.task_env, task_name=SystemTaskName.task_submit, args=args
+            )
+            submit_task.task_meta.add_child(task.task_id)
+            task_run.run.run_dynamic_task(submit_task)
+            return
 
         with self.task_run_execution_context():
             if task_run.run.is_killed():
@@ -114,24 +110,7 @@ class TaskRunRunner(TaskRunCtrl):
 
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 try:
-                    if task._should_resubmit(task_run):
-                        args = task_run.task_engine.dbnd_executable + [
-                            "execute",
-                            "--dbnd-run",
-                            str(task_run.run.driver_dump),
-                            "task_submit",
-                            "--task-id",
-                            task_run.task.task_id,
-                        ]
-                        submit_task = self.task_run.task_engine.submit_to_engine_task(
-                            env=task.task_env,
-                            task_name=SystemTaskName.task_submit,
-                            args=args,
-                        )
-                        task_run.run.run_dynamic_task(submit_task)
-                        result = None
-                    else:
-                        result = self.task._task_submit()
+                    result = self.task._task_submit()
                     self._save_task_band()
                     self.validate_complete()
                 finally:

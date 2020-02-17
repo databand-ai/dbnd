@@ -1,7 +1,12 @@
+import contextlib
 import logging
 import typing
 
+from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.current import get_databand_run
+from dbnd._core.log.logging_utils import TaskContextFilter
+from dbnd._core.task_build.task_context import task_context
+from dbnd._core.utils.basics.nested_context import nested
 
 
 if typing.TYPE_CHECKING:
@@ -138,3 +143,13 @@ class TaskCtrl(TaskSubCtrl):
         # type: ()-> TaskRun
         run = get_databand_run()
         return run.get_task_run(self.task.task_id)
+
+    @contextlib.contextmanager
+    def task_context(self, phase):
+        # we don't want logs/user wrappers at this stage
+        with nested(
+            task_context(self.task, phase),
+            TaskContextFilter.task_context(self.task.task_id),
+            config.config_layer_context(self.task.task_meta.config_layer),
+        ):
+            yield

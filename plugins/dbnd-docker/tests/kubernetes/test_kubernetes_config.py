@@ -2,6 +2,7 @@ import logging
 
 from dbnd import override, task
 from dbnd._core.run.databand_run import DatabandRun
+from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd._core.task_run.task_run import TaskRun
 
@@ -45,7 +46,7 @@ class TestTaskConfig(object):
         with DatabandRun.context(actual):
             task_run = actual.task.current_task_run  # type: TaskRun
 
-            with task_run.runner.task_run_driver_context():
+            with task_run.task.ctrl.task_context(phase=TaskContextPhase.BUILD):
                 actual = build_task_from_config(task_name="gcp_k8s_engine")
                 assert actual.cluster_context == "test"
                 assert actual.container_tag == "test_f_value"

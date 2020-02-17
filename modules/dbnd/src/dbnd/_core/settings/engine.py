@@ -2,15 +2,11 @@ import logging
 import sys
 import typing
 
-from dbnd._core.constants import TaskExecutorType
-from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.friendly_error.executor_k8s import (
     local_engine_not_accept_remote_jobs,
 )
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled, is_airflow_enabled
 from dbnd._core.task import config
-from dbnd._core.task_executor.local_task_executor import LocalTaskExecutor
 from targets import DirTarget
 
 
@@ -46,6 +42,9 @@ class EngineConfig(config.Config):
         # type: (DatabandRun) -> None
         return
 
+    def _should_wrap_with_submit_task(self, task_run):
+        return self.require_submit
+
 
 class LocalMachineEngineConfig(EngineConfig):
     _conf__task_family = "local_machine"
@@ -59,4 +58,16 @@ class LocalMachineEngineConfig(EngineConfig):
             task_env=env,
             task_name=task_name,
             task_is_system=True,
+        )
+
+    def _should_wrap_with_submit_task(self, task_run):
+        """
+        We don't want to resubmit if it's bash cmd already
+        """
+        from dbnd.tasks.basics.shell import bash_cmd
+
+        if isinstance(task_run.task, bash_cmd.task):
+            return False
+        return super(LocalMachineEngineConfig, self)._should_wrap_with_submit_task(
+            task_run
         )
