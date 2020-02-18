@@ -1,9 +1,10 @@
 import datetime
 import uuid
 
-import pendulum
 import pytz
 import six
+
+from dbnd._vendor.pendulum import pendulum
 
 
 def get_uuid():
