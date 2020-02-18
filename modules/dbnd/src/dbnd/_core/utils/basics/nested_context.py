@@ -1,10 +1,8 @@
-import contextlib
-
-from contextlib import contextmanager
+from dbnd._core.utils.seven import contextlib
 
 
 # noinspection PyBroadException
-@contextmanager
+@contextlib.contextmanager
 def nested(*managers):
     """Combine multiple context managers into a single nested context manager.
 
