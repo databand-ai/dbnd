@@ -24,14 +24,16 @@ class TaskRunLogManager(TaskRunCtrl):
         super(TaskRunLogManager, self).__init__(task_run)
 
         self.local_log_file = self.task_run.local_task_run_root.partition(
-            name="task.log"
+            name="%s.log" % task_run.attempt_number
         )
         self.local_heartbeat_log_file = self.task_run.local_task_run_root.partition(
-            name="task.heartbeat.log"
+            name="%s.heartbeat.log" % task_run.attempt_number
         )
         self.remote_log_file = None
         if not isinstance(self.task.task_env, LocalEnvConfig):
-            self.remote_log_file = self.task_run.attempt_folder.partition("task.log")
+            self.remote_log_file = self.task_run.attempt_folder.partition(
+                "%s.log" % task_run.attempt_number
+            )
 
         # file handler for task log
         # if set -> we are in the context of capturing

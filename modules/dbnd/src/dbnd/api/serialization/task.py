@@ -103,6 +103,7 @@ class TaskRunInfoSchema(ApiObjectSchema):
     log_remote = fields.String(allow_none=True)
 
     version = fields.String()
+    attempt_number = fields.Number()
 
     task_run_params = fields.Nested(TaskRunParamSchema, many=True)
 
