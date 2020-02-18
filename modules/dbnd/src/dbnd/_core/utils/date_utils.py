@@ -1,8 +1,7 @@
 from datetime import timedelta
 
-import pendulum
-
 from dbnd._core.utils.timezone import utcnow
+from dbnd._vendor import pendulum
 
 
 def airflow_datetime_str(datetime):

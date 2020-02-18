@@ -4,7 +4,6 @@ import os
 
 import flask
 import flask_appbuilder
-import pendulum
 
 from airflow.configuration import conf
 from airflow.jobs import BaseJob
@@ -16,6 +15,8 @@ from airflow.utils.timezone import utcnow
 from sqlalchemy import and_, or_
 
 import flask_admin
+
+from dbnd._vendor import pendulum
 
 
 DEFAULT_DAYS_PERIOD = 30

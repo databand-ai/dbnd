@@ -8,8 +8,8 @@ import warnings
 
 from enum import Enum
 
-from marshmallow import ValidationError
-from marshmallow.fields import Field
+from dbnd._vendor.marshmallow import ValidationError
+from dbnd._vendor.marshmallow.fields import Field
 
 
 PY2 = sys.version_info.major == 2

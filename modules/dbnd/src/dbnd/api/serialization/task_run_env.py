@@ -1,6 +1,5 @@
-from marshmallow import fields, post_load
-
 from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
+from dbnd._vendor.marshmallow import fields, post_load
 from dbnd.api.api_utils import ApiObjectSchema
 
 

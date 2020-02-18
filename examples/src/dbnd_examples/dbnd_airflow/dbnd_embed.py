@@ -7,9 +7,9 @@ import pandas as pd
 
 from airflow.models import DAG
 from airflow.operators.python_operator import PythonOperator
-from pendulum import utcnow
 
 from dbnd import log_dataframe, log_metric, task
+from dbnd._vendor.pendulum import utcnow
 
 
 args = {"owner": "airflow", "start_date": airflow.utils.dates.days_ago(2)}

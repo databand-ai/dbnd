@@ -10,17 +10,19 @@ setuptools.setup(
         "more_itertools",
         "cachetools",
         "attrs",
-        "hjson",
+        # "hjson", -- Moved library to _vendor
         "pyyaml",  # yaml support in targets
-        "cloudpickle",  # serializing pipelines
+        "pytz",  # python time zone for pendulum library
+        "pytzdata",  # python time zone for pendulum library
+        # "cloudpickle",  # serializing pipelines -- Moved library to _vendor
         "requests>=2.18.0",  # API TRACKING
-        "pendulum==1.4.4",
-        "configparser<3.6.0,>=3.5.0",  # same versions as Airflow
-        "tabulate",
-        "marshmallow==2.18.0",
+        # "pendulum==1.4.4", -- Moved library to _vendor
+        "configparser<3.6.0,>=3.5.0",  # same versions as Airflow -- Moved library to _vendor
+        # "tabulate", -- Moved library to _vendor
+        # "marshmallow==2.18.0", -- Moved library to _vendor
         "jinja2>=2.10.1, <2.11.0",  # same versions as Airflow
         "gitpython",
-        "pandas",
+        "pandas<1.0.0,>=0.17.1",
         "numpy",
         "pygments",
         # backward compatible python
@@ -29,7 +31,7 @@ setuptools.setup(
         "pathlib2;python_version<='2.7'",
         "enum34;python_version<='2.7'",
         'contextlib2; python_version < "3"',
-        "croniter>=0.3.30,<0.4",
+        # "croniter>=0.3.30,<0.4", -- Moved library to _vendor
         "psutil>=5.6.7,<6.0.0",
     ],
     extras_require={

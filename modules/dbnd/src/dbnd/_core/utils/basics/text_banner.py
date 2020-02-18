@@ -9,8 +9,8 @@ from dbnd._core.utils import json_utils
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.terminal import get_terminal_size
 from dbnd._core.utils.traversing import traverse, traverse_to_str
+from dbnd._vendor.tabulate import tabulate
 from dbnd._vendor.termcolor import colored
-from tabulate import tabulate
 
 
 logger = logging.getLogger(__name__)

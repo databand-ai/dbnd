@@ -1,10 +1,10 @@
 import datetime
 import time
 
-import pendulum
 import six
 
-from tabulate import tabulate
+from dbnd._vendor import pendulum
+from dbnd._vendor.tabulate import tabulate
 
 
 def apply_patch(base, delta, fields_filter=lambda f: not f.startswith("_")):

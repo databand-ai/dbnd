@@ -25,10 +25,10 @@ from datetime import date, datetime, timedelta
 
 import pytz
 
-from cloudpickle import cloudpickle
 from databand.parameters import DateHourParameter, TimeDeltaParameter
 from dbnd import data, output, parameter
 from dbnd._core.task import base_task
+from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd.tasks import DataSourceTask, Task
 from targets import target
 from test_dbnd.factories import TTask

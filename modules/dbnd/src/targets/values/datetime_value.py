@@ -1,9 +1,9 @@
 import datetime
 
-import pendulum
 import pytz
 
 from dbnd._core.utils.timezone import utcnow
+from dbnd._vendor import pendulum
 from targets.values import ValueType
 
 

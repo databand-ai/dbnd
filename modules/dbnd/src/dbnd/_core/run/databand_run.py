@@ -11,7 +11,6 @@ from uuid import UUID
 
 import six
 
-from cloudpickle import cloudpickle
 from dbnd._core.configuration.environ_config import (
     DBND_PARENT_TASK_RUN_UID,
     DBND_RESUBMIT_RUN,
@@ -61,6 +60,7 @@ from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.date_utils import unique_execution_date
 from dbnd._core.utils.traversing import flatten
 from dbnd._core.utils.uid_utils import get_uuid
+from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd._vendor.namesgenerator import get_random_name
 from targets import FileTarget, Target
 from targets.caching import TARGET_CACHE

@@ -1,6 +1,6 @@
 from six.moves import cPickle as pickle
 
-import cloudpickle
+import dbnd._vendor.cloudpickle as cloudpickle
 
 
 # noinspection PyBroadException

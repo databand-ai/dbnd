@@ -1,6 +1,5 @@
-from marshmallow import fields, post_load
-
 from dbnd._core.constants import RunState
+from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
 from dbnd.api.api_utils import ApiObjectSchema, _as_dotted_dict
 

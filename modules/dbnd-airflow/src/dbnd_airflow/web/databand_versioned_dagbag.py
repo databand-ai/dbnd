@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import logging
 
-import pendulum
-
 from airflow.models import DagBag, DagModel, DagPickle, TaskInstance
 from airflow.utils.db import provide_session
+
+from dbnd._vendor import pendulum
 
 
 logger = logging.getLogger(__name__)

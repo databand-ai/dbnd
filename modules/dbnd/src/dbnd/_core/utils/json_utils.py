@@ -7,9 +7,9 @@ from collections import OrderedDict
 from typing import Mapping
 from uuid import UUID
 
-import hjson
-
 from numpy import int32, int64
+
+import dbnd._vendor.hjson as hjson
 
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.traversing import DatabandDict

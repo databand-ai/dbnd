@@ -2,13 +2,13 @@ import logging
 
 import six
 
-from marshmallow import Schema, fields
 from six.moves.urllib_parse import urljoin
 
 import requests
 
 from dbnd._core.errors.base import DatabandApiError
 from dbnd._core.errors.friendly_error.api import api_connection_refused
+from dbnd._vendor.marshmallow import Schema, fields
 
 
 logger = logging.getLogger(__name__)

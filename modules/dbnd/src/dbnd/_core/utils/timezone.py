@@ -19,7 +19,7 @@
 #
 import datetime as dt
 
-import pendulum
+from dbnd._vendor import pendulum
 
 
 # UTC time zone as a tzinfo instance.

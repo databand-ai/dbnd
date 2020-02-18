@@ -7,12 +7,11 @@ from uuid import UUID
 
 import six
 
-from marshmallow import fields, post_load
-
 import attr
 
 from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
+from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
 from dbnd.api.api_utils import (
     ApiClient,

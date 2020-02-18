@@ -8,11 +8,11 @@ from typing import List
 import pandas as pd
 import pytest
 
-from cloudpickle import cloudpickle
 from dbnd import new_dbnd_context, output, override, parameter, pipeline, task
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.settings import CoreConfig, RunConfig
+from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd.tasks import PythonTask
 from dbnd.testing.helpers import initialized_run
 from test_dbnd.factories import TTask
