@@ -50,6 +50,7 @@ class TaskRunParamInfo(_DbndDataClass):
 class TaskRunInfo(_DbndDataClass):
     task_run_uid = attr.ib()  # type: UUID
     task_run_attempt_uid = attr.ib()  # type: UUID
+    attempt_number = attr.ib()  # type: int
 
     task_definition_uid = attr.ib()  # type: UUID
     run_uid = attr.ib()  # type: UUID

@@ -2,6 +2,7 @@ import logging
 import typing
 
 from dbnd._core.constants import TaskRunState
+from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.task_run.task_run_runner import TaskRunRunner
@@ -35,9 +36,6 @@ class TaskRun(object):
         # type: (Task, DatabandRun, str, int, str, bool, EngineConfig)-> None
         # actually this is used as Task uid
         self.task_run_uid = _uuid or get_uuid()
-        # we can handle only single attempt per run for now
-        # this is the "task_run_attempt_uid" in db
-        self.task_run_attempt_uid = get_uuid()
         self.task = task  # type: Task
         self.run = run  # type: DatabandRun
         self.task_engine = task_engine
@@ -61,10 +59,6 @@ class TaskRun(object):
             postfix=".%s" % str(self.task_run_uid)[:8],
         )
 
-        self.attempt_folder = task._meta_output.folder(
-            "attempt_%s" % self.task_run_attempt_uid, extension=None
-        )
-        self.meta_files = TaskRunMetaFiles(self.attempt_folder)
         # custom per task engine , or just use one from global env
         dbnd_local_root = (
             self.task_engine.dbnd_local_root or self.run.env.dbnd_local_root
@@ -74,6 +68,13 @@ class TaskRun(object):
             .folder("tasks")
             .folder(self.task.task_id)
         )
+
+        self._attempt_number = 1
+        self.task_run_attempt_uid = get_uuid()
+        self.attempt_folder = None
+        self.meta_files = None
+        self.log = None
+        self.init_attempt()
 
         # TODO: inherit from parent task if disabled
         self.is_tracked = task._conf__tracked
@@ -85,9 +86,7 @@ class TaskRun(object):
 
         self.tracking_store = tracking_store
         self.tracker = TaskRunTracker(task_run=self, tracking_store=tracking_store)
-
         self.runner = TaskRunRunner(task_run=self)
-        self.log = TaskRunLogManager(task_run=self)
         self.deploy = TaskSyncCtrl(task_run=self)
         self.task_tracker_url = self.tracker.task_run_url()
         self.external_resource_urls = dict()
@@ -96,11 +95,10 @@ class TaskRun(object):
         self.is_root = False
         self.is_reused = False
         self.is_skipped = False
-
         # Task can be skipped as it's not required by any other task scheduled to run
         self.is_skipped_as_not_required = False
 
-        self.airflow_context = None
+        self._airflow_context = None
         self._task_run_state = None
 
         self.start_time = None
@@ -173,6 +171,41 @@ class TaskRun(object):
         self.tracking_store.save_external_links(
             task_run=self, external_links_dict=links_dict
         )
+
+    @property
+    def attempt_number(self):
+        return self._attempt_number
+
+    @attempt_number.setter
+    def attempt_number(self, value):
+        if not value:
+            raise DatabandRuntimeError("cannot set None as the attempt number")
+
+        if value != self._attempt_number:
+            self._attempt_number = value
+            self.init_attempt()
+            self.run.tracker.tracking_store.add_task_runs(
+                run=self.run, task_runs=[self]
+            )
+
+    @property
+    def airflow_context(self):
+        return self._airflow_context
+
+    @airflow_context.setter
+    def airflow_context(self, value):
+        self._airflow_context = value
+        if self._airflow_context:
+            self.attempt_number = self._airflow_context["ti"].try_number
+
+    def init_attempt(self):
+        self.task_run_attempt_uid = get_uuid()
+        self.attempt_folder = self.task._meta_output.folder(
+            "attempt_%s_%s" % (self.attempt_number, self.task_run_attempt_uid),
+            extension=None,
+        )
+        self.meta_files = TaskRunMetaFiles(self.attempt_folder)
+        self.log = TaskRunLogManager(task_run=self)
 
     def __repr__(self):
         return "TaskRun(%s, %s)" % (self.task.task_name, self.task_run_state)

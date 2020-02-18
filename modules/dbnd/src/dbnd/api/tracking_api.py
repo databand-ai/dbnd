@@ -102,14 +102,16 @@ class TaskRunAttemptUpdateArgs(object):
     timestamp = attr.ib()  # type:  datetime.datetime
     state = attr.ib()  # type: TaskRunState
     error = attr.ib(default=None)  # type: Optional[ErrorInfo]
+    attempt_number = attr.ib(default=None)  # type: int
 
 
 class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
     task_run_uid = fields.UUID()
     task_run_attempt_uid = fields.UUID()
-    state = EnumField(TaskRunState)
+    state = EnumField(TaskRunState, allow_none=True)
     timestamp = fields.DateTime(allow_none=True)
     error = fields.Nested(ErrorInfoSchema, allow_none=True)
+    attempt_number = fields.Number(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
