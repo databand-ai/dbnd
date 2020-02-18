@@ -93,6 +93,9 @@ class CoreConfig(Config):
     tracker = parameter(
         default=["file", "console", "api"], description="Tracking Stores to be used"
     )[List[str]]
+    tracker_raise_on_error = parameter(
+        default=True, description="Raise error when failed to track data"
+    )[bool]
     tracker_api = parameter(default="db", description="Tracking Stores to be used")[str]
     auto_create_local_db = parameter(
         default=True,

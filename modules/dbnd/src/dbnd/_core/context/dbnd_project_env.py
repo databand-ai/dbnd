@@ -260,6 +260,7 @@ def init_databand_env():
     _init_windows_python_path()
 
 
+# is it in use yet?
 def _is_running_airflow_webserver():
     # TODO: ...
     if not sys.argv or len(sys.argv) < 2:
@@ -274,9 +275,20 @@ def _is_running_airflow_webserver():
     return False
 
 
+def _detect_composer():
+    if "COMPOSER_ENVIRONMENT" in os.environ:
+        if ENV_DBND_HOME not in os.environ:
+            os.environ[ENV_DBND_HOME] = os.environ["HOME"]
+
+        env_tracker_raise_on_error = "DBND__CORE__TRACKER_RAISE_ON_ERROR"
+        if env_tracker_raise_on_error not in os.environ:
+            os.environ[env_tracker_raise_on_error] = "false"
+
+
 # we run it automatically
 # as we only affect environ variables
 if ENV_DBND__DISABLED_INIT not in os.environ:
+    _detect_composer()
     DBND_IS_INITIALIZED = init_databand_env()
 else:
     DBND_IS_INITIALIZED = False

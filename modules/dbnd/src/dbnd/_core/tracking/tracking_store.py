@@ -83,8 +83,9 @@ class TrackingStore(object):
 
 
 class CompositeTrackingStore(TrackingStore):
-    def __init__(self, stores):
+    def __init__(self, stores, raise_on_error=True):
         self._stores = stores
+        self._raise_on_error = raise_on_error
 
     def _invoke(self, name, kwargs):
         res = None
@@ -99,13 +100,15 @@ class CompositeTrackingStore(TrackingStore):
                     "Failed to store tracking information from %s at %s : %s"
                     % (name, store.__class__.__name__, ex)
                 )
-                raise
+                if self._raise_on_error:
+                    raise
             except Exception as ex:
                 logger.exception(
                     "Failed to store tracking information from %s at %s"
                     % (name, store.__class__.__name__)
                 )
-                raise
+                if self._raise_on_error:
+                    raise
         return res
 
     # this is a function that used for disabling Tracking api on spark inline tasks.
