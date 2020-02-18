@@ -21,6 +21,7 @@
 import logging
 import os
 import subprocess
+import sys
 
 import argcomplete
 
@@ -33,8 +34,15 @@ def subprocess_airflow(args):
     """Forward arguments to airflow command line"""
     args = ["airflow"] + args
     logging.info("Running airflow command: %s", subprocess.list2cmdline(args))
-    subprocess.check_call(args=args)
-
+    try:
+        subprocess.check_call(args=args)
+    except Exception:
+        logging.error(
+            "Failed to run airflow command %s with path=%s",
+            subprocess.list2cmdline(args),
+            sys.path,
+        )
+        raise
     logging.info("Airflow command has been successfully executed")
 
 
