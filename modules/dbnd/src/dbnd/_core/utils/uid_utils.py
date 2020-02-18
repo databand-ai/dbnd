@@ -1,6 +1,10 @@
 import datetime
 import uuid
 
+import pendulum
+import pytz
+import six
+
 
 def get_uuid():
     # TODO: obfuscate getnode() - mac address part
@@ -26,8 +30,12 @@ def get_task_run_attempt_uid(run_uid, task_id, try_number):
 
 
 def get_job_run_uid(dag_id, execution_date):
+    if isinstance(execution_date, six.string_types):
+        execution_date = pendulum.parse(execution_date)
     if isinstance(execution_date, datetime.datetime):
-        execution_date = execution_date.isoformat()
+        execution_date = (
+            execution_date.replace(microsecond=0).astimezone(pytz.utc).isoformat()
+        )
     return uuid.uuid5(NAMESPACE_DBND_RUN, "{}:{}".format(dag_id, execution_date))
 
 
