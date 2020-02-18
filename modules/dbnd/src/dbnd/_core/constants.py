@@ -106,6 +106,7 @@ class TaskRunState(enum.Enum):
 
     UPSTREAM_FAILED = "upstream_failed"
     SKIPPED = "skipped"
+    UP_FOR_RETRY = "up_for_retry"
 
     @staticmethod
     def final_states():
