@@ -22,6 +22,6 @@ setuptools.setup(
         "botocore",
         "s3fs",
     ],
-    extras_require=dict(tests=[]),
+    extras_require=dict(tests=["awscli"]),
     entry_points={"dbnd": ["dbnd-aws = dbnd_aws._plugin"]},
 )
