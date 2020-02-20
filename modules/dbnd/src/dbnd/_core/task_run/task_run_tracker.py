@@ -60,7 +60,8 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
     def _log_metric(self, key, value, timestamp=None, source=None):
-        metric = Metric(key=key, value=value, timestamp=timestamp or utcnow())
+        metric = Metric(key=key, timestamp=timestamp or utcnow(), value=value)
+
         self.tracking_store.log_metric(
             task_run=self.task_run, metric=metric, source=source
         )
