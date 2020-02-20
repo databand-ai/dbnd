@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 @cached(cache={})
 def get_boto_session():
     if use_airflow_connections():
-        from dbnd_airflow_contrib.credentials_helpers import AwsCredentials
+        from dbnd_airflow_contrib.credentials_helper_aws import AwsCredentials
 
         aws_credentials = AwsCredentials()
         logger.debug(

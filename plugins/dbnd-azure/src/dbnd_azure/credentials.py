@@ -11,7 +11,9 @@ logger = logging.getLogger(__name__)
 @cached(cache={})
 def get_azure_credentials():
     if use_airflow_connections():
-        from dbnd_airflow_contrib.credentials_helpers import AzureBlobStorageCredentials
+        from dbnd_airflow_contrib.credentials_helper_azure import (
+            AzureBlobStorageCredentials,
+        )
 
         aws_storage_credentials = AzureBlobStorageCredentials()
         logger.debug(
