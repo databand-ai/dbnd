@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 @cached(cache={})
 def get_gc_credentials():
     if use_airflow_connections():
-        from dbnd_airflow_contrib.credentials_helpers import GSCredentials
+        from dbnd_airflow_contrib.credentials_helper_gcp import GSCredentials
 
         gcp_credentials = GSCredentials()
         logger.debug(
