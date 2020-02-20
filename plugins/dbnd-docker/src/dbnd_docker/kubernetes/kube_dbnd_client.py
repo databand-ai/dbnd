@@ -430,16 +430,16 @@ class DbndPodCtrl(object):
         detach_run = detach_run or kc.detach_run
         if kc.show_pod_log:
             logger.info(
-                "%s is True,  will send every docker in blocking mode",
-                kc.task_name,
+                "%s is True, %s will send every docker in blocking mode",
                 "show_pod_logs",
+                kc.task_name,
             )
             detach_run = False
         if kc.debug:
             logger.info(
-                "%s is True,  will send every docker in blocking mode",
-                kc.task_name,
+                "%s is True, %s will send every docker in blocking mode",
                 "debug",
+                kc.task_name,
             )
             detach_run = False
 

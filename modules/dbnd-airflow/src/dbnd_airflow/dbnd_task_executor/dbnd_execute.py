@@ -66,27 +66,35 @@ def dbnd_operator__execute(dbnd_operator, context):
     if not run:
         # we are not inside dbnd run, probably we are running from native airflow
         # let's try to load it:
-        executor_config = dbnd_operator.executor_config
-        logger.info("context: %s", context)
+        try:
 
-        logger.info("task.executor_config: %s", dbnd_operator.executor_config)
-        logger.info("ti.executor_config: %s", context["ti"].executor_config)
-        driver_dump = executor_config["DatabandExecutor"].get("dbnd_driver_dump")
-        print(
-            "Running dbnd task %s %s" % (dbnd_operator.dbnd_task_id, driver_dump),
-            file=sys.__stderr__,
-        )
+            executor_config = dbnd_operator.executor_config
+            logger.info("context: %s", context)
 
-        if executor_config["DatabandExecutor"].get(
-            "remove_airflow_std_redirect", False
-        ):
-            sys.stdout = sys.__stdout__
-            sys.stderr = sys.__stderr__
+            logger.info("task.executor_config: %s", dbnd_operator.executor_config)
+            logger.info("ti.executor_config: %s", context["ti"].executor_config)
+            driver_dump = executor_config["DatabandExecutor"].get("dbnd_driver_dump")
+            print(
+                "Running dbnd task %s %s" % (dbnd_operator.dbnd_task_id, driver_dump),
+                file=sys.__stderr__,
+            )
 
-        dbnd_bootstrap()
-        run = DatabandRun.load_run(
-            dump_file=target(driver_dump), disable_tracking_api=False
-        )
+            if executor_config["DatabandExecutor"].get(
+                "remove_airflow_std_redirect", False
+            ):
+                sys.stdout = sys.__stdout__
+                sys.stderr = sys.__stderr__
+
+            dbnd_bootstrap()
+            run = DatabandRun.load_run(
+                dump_file=target(driver_dump), disable_tracking_api=False
+            )
+        except Exception as e:
+            print(
+                "Failed to load dbnd task in native airflow execution! Exception: %s"
+                % (e,),
+                file=sys.__stderr__,
+            )
 
         with run.run_context() as dr:
             task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
