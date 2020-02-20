@@ -22,6 +22,8 @@ class TargetInfoSchema(ApiObjectSchema):
 class MetricSchema(ApiObjectSchema):
     key = fields.String()
     value = fields.String(allow_none=True)
+    value_int = fields.Integer(allow_none=True)
+    value_float = fields.Float(allow_none=True)
     timestamp = fields.DateTime()
 
     @post_load
