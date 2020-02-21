@@ -267,4 +267,7 @@ def build_task_run_info(task_run):
 
 def source_md5(source_code):
     if source_code:
-        return hashlib.md5(source_code.encode("utf-8")).hexdigest()
+        try:
+            return hashlib.md5(source_code.encode("utf-8")).hexdigest()
+        except UnicodeDecodeError:
+            return hashlib.md5(source_code).hexdigest()
