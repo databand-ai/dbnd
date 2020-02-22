@@ -9,7 +9,7 @@ import six
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.current import get_databand_context
-from dbnd._core.errors import TaskClassNotFoundException, friendly_error
+from dbnd._core.errors import friendly_error
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.seven import contextlib
@@ -21,6 +21,11 @@ logger = logging.getLogger(__name__)
 if typing.TYPE_CHECKING:
     from dbnd._core.task.task import Task
     from dbnd._core.task_build.task_definition import TaskDefinition
+
+
+def _validate_no_recursion_in_config(task_name, config_task_type, param):
+    if task_name == config_task_type:
+        raise friendly_error.config.task_name_and_from_are_the_same(task_name, param)
 
 
 class DbndTaskRegistry(SingletonContext):
@@ -67,6 +72,17 @@ class DbndTaskRegistry(SingletonContext):
         task_cls = self._get_registered_task_cls(task_name)
         if task_cls:
             return task_cls
+
+        # we are going to check if we have override/definition in config
+        config_task_type = config.get(task_name, "_type", None)
+        if config_task_type:
+            _validate_no_recursion_in_config(task_name, config_task_type, "_type")
+            return self._get_task_cls(config_task_type)
+
+        config_task_type = config.get(task_name, "_from", None)
+        if config_task_type:
+            _validate_no_recursion_in_config(task_name, config_task_type, "_from")
+            return self._get_task_cls(config_task_type)
 
         if "." in task_name:
             parts = task_name.split(".")
@@ -124,7 +140,6 @@ class DbndTaskRegistry(SingletonContext):
         )
 
     def list_dbnd_task_classes(self):
-
         task_classes = []
         for task_name, task_cls in six.iteritems(self._task_family_to_task_cls):
             if task_cls == self.AMBIGUOUS_CLASS:
@@ -146,22 +161,7 @@ class DbndTaskRegistry(SingletonContext):
         task_kwargs = task_kwargs or dict()
         task_kwargs.setdefault("task_name", task_name)
 
-        task_from = config.get(task_name, "_from", None)
-        if task_from:
-            task_kwargs.setdefault("task_config_sections", [task_from])
-
-        task_family = config.get(task_name, "_type", None)
-        if not task_family:
-            if task_from:
-                if task_name == task_from:
-                    raise friendly_error.config.task_name_and_from_are_the_same(
-                        task_name
-                    )
-                task_family = task_from
-            else:
-                task_family = task_name
-
-        task_cls = self.get_task_cls(task_family)  # type: Type[Task]
+        task_cls = self.get_task_cls(task_name)  # type: Type[Task]
         if is_airflow_enabled():
             from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
                 AirflowDagAsDbndTask,

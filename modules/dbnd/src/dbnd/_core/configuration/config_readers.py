@@ -62,19 +62,16 @@ def _default_configuration_paths():
         yield databand_system_path("databand-test.cfg")
 
 
-def read_from_config_file(config_file_target):
+def read_from_config_stream(config_fp, source="<stream>"):
     """
     Read config from config file (.ini, .cfg)
     """
     from backports.configparser import ConfigParser
 
     parser = ConfigParser()
-    with config_file_target.open("r") as fp:
-        parser._read(fp, str(config_file_target))
+    parser._read(config_fp, source)
 
-    source = "config[{file_name}]".format(
-        file_name=os.path.basename(str(config_file_target))
-    )
+    source = "config[{file_name}]".format(file_name=os.path.basename(str(source)))
     new_config = _ConfigStore()
     for section in parser.sections():
         for option in parser.options(section):
@@ -84,6 +81,15 @@ def read_from_config_file(config_file_target):
             )
 
     return new_config
+
+
+def read_from_config_file(config_file_target):
+    """
+    Read config from config file (.ini, .cfg)
+    """
+
+    with config_file_target.open("r") as fp:
+        return read_from_config_stream(fp, str(config_file_target))
 
 
 def read_from_config_files(config_files):
