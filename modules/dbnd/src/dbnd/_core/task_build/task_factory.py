@@ -122,7 +122,8 @@ class TaskFactory(object):
         self.task_family = task_kwargs.pop("task_family", None)
         # extra params from constructor
         self.task_name = task_kwargs.pop("task_name", None)
-        task_config_sections = task_kwargs.pop("task_config_sections", None) or []
+        kwargs_task_config_sections = task_kwargs.pop("task_config_sections", None)
+
         self.task_config_override = task_kwargs.pop("override", None) or {}
         self.task_kwargs = task_kwargs
 
@@ -142,6 +143,11 @@ class TaskFactory(object):
             self.task_family,
             self.task_definition.full_task_family,
         ]
+        if kwargs_task_config_sections:
+            sections.extend(kwargs_task_config_sections)
+        sections.extend(self._get_task_from_sections(config, self.task_name))
+
+        # adding "default sections"  - LOWEST PRIORITY
         if issubclass(self.task_definition.task_class, _TaskParamContainer):
             sections += [CONF_TASK_SECTION]
 
@@ -150,7 +156,6 @@ class TaskFactory(object):
         if issubclass(self.task_definition.task_class, Config):
             sections += [CONF_CONFIG_SECTION]
 
-        sections += task_config_sections
         sections = list(unique_everseen(filter(None, sections)))
 
         self.task_config_sections = sections
@@ -173,6 +178,22 @@ class TaskFactory(object):
             ),
         )
         self.task_errors = []
+
+    def _get_task_from_sections(self, config, task_name):
+        extra_sections = []
+        while task_name:
+            # "pseudo" recursive call
+            # we check if we have something  for current task_name, and if we do - that's a from
+            task_from = config.get(task_name, "_from", None)
+            if task_from == task_name:
+                # let not throw exception, as it's not a critical error.
+                task_from = None
+
+            if task_from:
+                extra_sections.append(task_from)
+            task_name = task_from
+
+        return extra_sections
 
     def create_dbnd_task(self):
         # create task meta

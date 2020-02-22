@@ -13,4 +13,9 @@ def qualname_func(func):
     return "%s.%s" % (func.__module__, func.__name__)
 
 
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 __all__ = ["contextlib", "qualname_func"]
