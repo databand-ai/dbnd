@@ -18,9 +18,9 @@ def wrong_func_attr_format(attr_path):
     )
 
 
-def task_name_and_from_are_the_same(section):
+def task_name_and_from_are_the_same(section, param):
     return DatabandConfigError(
-        "Can not have task_name and  _from being equal to '%s'." % section,
+        "Can not have task_name and '%s' being equal to '%s'." % (param, section),
         help_msg="Please check your configuration section [%s]" % section,
     )
 

@@ -162,7 +162,7 @@ class CoreConfig(Config):
 
             return TrackingStoreApi(channel=ConsoleDebugTrackingChannel())
         elif name == "api":
-            if not self.databand_url:
+            if not self.databand_url and self.tracker_url:
                 # TODO: Backward compatibility, remove this when tracker_url is officially deprecated
                 logger.warning(
                     "core.databand_url was not set, trying to use deprecated 'core.tracker_url' instead."
