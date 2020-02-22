@@ -13,10 +13,12 @@ import dbnd
 import matplotlib
 
 from dbnd import register_config_cls, register_task
+from dbnd._core.plugin.dbnd_plugins import pm
 from targets import target
 from test_dbnd.factories import FooConfig, TConfig
 
 
+pm.set_blocked("dbnd-airflow")
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",
