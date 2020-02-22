@@ -184,9 +184,14 @@ class TaskFactory(object):
         while task_name:
             # "pseudo" recursive call
             # we check if we have something  for current task_name, and if we do - that's a from
-            task_name = config.get(task_name, "_from", None)
-            if task_name:
-                extra_sections.append(task_name)
+            task_from = config.get(task_name, "_from", None)
+            if task_from == task_name:
+                # let not throw exception, as it's not a critical error.
+                task_from = None
+
+            if task_from:
+                extra_sections.append(task_from)
+            task_name = task_from
 
         return extra_sections
 

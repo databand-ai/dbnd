@@ -1,10 +1,9 @@
-import io
-
 from pytest import fixture
 
 from dbnd import config
 from dbnd._core.configuration.config_readers import read_from_config_stream
 from dbnd._core.task_build.task_registry import build_task_from_config
+from dbnd._core.utils import seven
 
 
 test_config = """
@@ -23,7 +22,7 @@ _from=my_tt
 class TestTaskFromConfig(object):
     @fixture(autouse=True)
     def load_test_config(self):
-        ts = read_from_config_stream(io.StringIO(test_config))
+        ts = read_from_config_stream(seven.StringIO(test_config))
         with config(ts):
             yield ts
 
