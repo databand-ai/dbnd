@@ -30,9 +30,9 @@ def is_in_airflow_dag_build_context():
     return airflow__is_in_airflow_dag_build_context()
 
 
-def build_task_at_airflow_dag_context(task):
+def build_task_at_airflow_dag_context(task_cls, call_args, call_kwargs):
     from dbnd_airflow_operator.airflow_dag_dbnd_operator import (
         build_task_at_airflow_dag_context,
     )
 
-    return build_task_at_airflow_dag_context(task)
+    return build_task_at_airflow_dag_context(task_cls, call_args, call_kwargs)
