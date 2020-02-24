@@ -7,6 +7,7 @@ from typing import Any
 import attr
 
 from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
+from dbnd._core.current import try_get_current_task_run
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 
@@ -101,7 +102,8 @@ class TaskAutoParamsReadWrite(object):
     def auto_save_param(self, parameter, original_value, current_value):
         # type: (ParameterDefinition, Any, Any) -> None
         # it's output! we are going to save it.
-        task_run = self.task.current_task_run
+        # task run doesn't always exist
+        task_run = try_get_current_task_run()
         access_status = DbndTargetOperationStatus.OK
         try:
             parameter.dump_to_target(original_value, current_value)
