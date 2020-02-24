@@ -57,7 +57,10 @@ def patch_airflow_create_app():
             configure_airflow_sql_alchemy_conn()
 
             res = create_app_func(*args, **kwargs)
-            use_databand_airflow_dagbag()
+            try:
+                use_databand_airflow_dagbag()
+            except Exception:
+                logger.info("Failed to apply dbnd versioned dagbag")
             return res
 
         return patched_create_app

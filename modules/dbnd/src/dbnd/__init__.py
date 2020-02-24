@@ -27,11 +27,7 @@ from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
 )
 from dbnd._core.plugin.dbnd_plugins import hookimpl
-from dbnd._core.run.dbnd_run_inplace import (
-    dbnd_run_start,
-    dbnd_run_start_airflow,
-    dbnd_run_stop,
-)
+from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
 from dbnd._core.task.config import Config
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.task.data_source_task import DataSourceTask
