@@ -217,6 +217,8 @@ class _BaseTask(object):
 
         new_k = {}
         for param_name, param_class in six.iteritems(cls.task_definition.task_params):
+            if param_class.is_output():
+                continue
             if param_name in kwargs:
                 new_k[param_name] = kwargs[param_name]
             elif hasattr(self, param_name):
