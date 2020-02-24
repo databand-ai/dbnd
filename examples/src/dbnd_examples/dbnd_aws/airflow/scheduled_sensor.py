@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from airflow import DAG
 
+from dbnd_airflow_operator.dbnd_cmd_operators import dbnd_task_as_bash_operator
 from dbnd_examples.dbnd_aws.ingest_pipeline import partner_data_ingest_new_files
 from dbnd_examples.dbnd_aws.sync_operators import S3StatefulSensor
 
@@ -50,10 +51,11 @@ with DAG(
         dag=dag,
     )
 
-    ingest_op = partner_data_ingest_new_files.task.dbnd_run_airflow_operator(
+    ingest_op = dbnd_task_as_bash_operator(
+        partner_data_ingest_new_files,
         cmd_line="--task-target-date {{ ds }} "
         "--source '{{params.source}}' "
-        "--destination '{{params.destination}}' "
+        "--destination '{{params.destination}}' ",
     )
 
     ingest_op.set_upstream(sensor)

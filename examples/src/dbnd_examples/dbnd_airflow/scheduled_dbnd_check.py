@@ -8,6 +8,7 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 
 from dbnd.tasks.basics import dbnd_sanity_check
+from dbnd_airflow_operator.dbnd_cmd_operators import dbnd_task_as_bash_operator
 
 
 default_args = {
@@ -38,7 +39,8 @@ with DAG("scheduled_dbnd_check", default_args=default_args) as dag:
         dag=dag,
     )
 
-every_minute = dbnd_sanity_check.dbnd_schedule_airflowDAG(
+every_minute = dbnd_task_as_bash_operator(
+    dbnd_sanity_check,
     name="dbnd_check_every_minute",
     schedule_interval=timedelta(minutes=2),
     default_args=default_args,

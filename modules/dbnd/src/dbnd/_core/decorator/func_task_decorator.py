@@ -139,9 +139,6 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
         callable_item.task_cls = task_cls
         callable_item.task = task_cls
         callable_item.t = task_cls
-        callable_item.dbnd_schedule_airflowDAG = task_cls.dbnd_schedule_airflowDAG
-        callable_item.dbnd_run_airflow_operator = task_cls.dbnd_run_airflow_operator
-
         return task_cls._callable_item
 
     # simple `@task` decorator, no options were (probably) given.
