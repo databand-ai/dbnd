@@ -118,7 +118,7 @@ class CoreConfig(Config):
         default=True,
     )
 
-    fix_requests_on_osx = parameter(
+    fix_env_on_osx = parameter(
         description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
     )[bool]
 
