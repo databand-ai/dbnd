@@ -34,7 +34,9 @@ def track_airflow_dag_run_operator_run(task_cls, call_args, call_kwargs):
             # we have func without result, just fallback to None
         return t
     finally:
-        dbnd_run_stop(at_exit=False)
+        # we use update_run_state=False, since during airflow actual task run
+        # we don't know anything about whole run - like is it passed or failed
+        dbnd_run_stop(at_exit=False, update_run_state=False)
 
 
 def dbnd_run_start_airflow_dag_task(dag_id=None, execution_date=None, task_id=None):

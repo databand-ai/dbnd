@@ -101,23 +101,25 @@ class _DbndInplaceRunManager(object):
         task_run.start_time = utcnow()
         task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
-    def stop(self, at_exit=True):
-        databand_run = try_get_databand_run()
-        if databand_run:
-            root_tr = databand_run.task.current_task_run
-            root_tr.finished_time = utcnow()
+    def stop(self, at_exit=True, update_run_state=True):
+        if update_run_state:
+            databand_run = try_get_databand_run()
+            if databand_run:
+                root_tr = databand_run.task.current_task_run
+                root_tr.finished_time = utcnow()
 
-            for tr in databand_run.task_runs:
-                if tr.task_run_state == TaskRunState.FAILED:
-                    root_tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED)
-                    databand_run.set_run_state(RunState.FAILED)
-                    break
-            else:
-                root_tr.set_task_run_state(TaskRunState.SUCCESS)
-                databand_run.set_run_state(RunState.SUCCESS)
-            logger.info(databand_run.describe.run_banner_for_finished())
+                for tr in databand_run.task_runs:
+                    if tr.task_run_state == TaskRunState.FAILED:
+                        root_tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED)
+                        databand_run.set_run_state(RunState.FAILED)
+                        break
+                else:
+                    root_tr.set_task_run_state(TaskRunState.SUCCESS)
+                    databand_run.set_run_state(RunState.SUCCESS)
+                logger.info(databand_run.describe.run_banner_for_finished())
 
         self._close_all_context_managers()
+
         if at_exit and is_airflow_enabled():
             from airflow.settings import dispose_orm
 
@@ -165,5 +167,5 @@ def dbnd_run_start(name=None, in_memory=False):
     _dbnd_start_manager.start(root_task_name=name, in_memory=in_memory)
 
 
-def dbnd_run_stop(at_exit=True):
-    _dbnd_start_manager.stop(at_exit=at_exit)
+def dbnd_run_stop(at_exit=True, update_run_state=True):
+    _dbnd_start_manager.stop(at_exit=at_exit, update_run_state=update_run_state)
