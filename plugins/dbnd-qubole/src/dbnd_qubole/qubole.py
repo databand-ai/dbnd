@@ -1,11 +1,9 @@
 import logging
-import subprocess
 import time
 import typing
 
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
-from dbnd._core.task_run.task_engine_ctrl import TaskEnginePolicyCtrl
-from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
+from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder, list2cmdline_safe
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_qubole import QuboleConfig
@@ -119,15 +117,15 @@ class QuboleCtrl(SparkCtrl):
         # should be reimplemented using SparkSubmitHook (maybe from airflow)
         # note that config jars are not supported.
 
-        arguments = subprocess.list2cmdline(
-            list_of_strings(self.task.application_args())
-        )
+        arguments = list2cmdline_safe(list_of_strings(self.task.application_args()))
 
         cmd = SparkCommand.create(
             script_location=self.deploy.sync(pyspark_script),
             language="python",
             user_program_arguments=arguments,
-            arguments=subprocess.list2cmdline(self.config_to_command_line()),
+            arguments=list2cmdline_safe(
+                self.config_to_command_line(), safe_curly_brackets=True
+            ),
             label=self.qubole_config.cluster_label,
             name=self.task.task_id,
         )
@@ -152,7 +150,7 @@ class QuboleCtrl(SparkCtrl):
         spark_cmd_line.extend(list_of_strings(self.task.application_args()))
 
         cmd = SparkCommand.create(
-            cmdline=spark_cmd_line.get_cmd_line(),
+            cmdline=spark_cmd_line.get_cmd_line(safe_curly_brackets=True),
             language="command_line",
             label=self.qubole_config.cluster_label,
             name=self.task.task_id,
