@@ -47,24 +47,21 @@ class _DecoratedTask(Task):
             # 2. we have this call coming from Task.run / Task.band direct invocation
             return call_user_code(*call_args, **call_kwargs)
 
-        airflow_dag_build_context = is_in_airflow_dag_build_context()
-        airflow_dag_run_context = is_in_airflow_dag_run_context()
-        if not (
-            has_current_task() or airflow_dag_build_context or airflow_dag_run_context
-        ):
-            # direct call to the function
-            return call_user_code(*call_args, **call_kwargs)
-
-        ######
-        # DBND HANDLING OF CALL
-        if airflow_dag_build_context:
+        if is_in_airflow_dag_build_context():
             return build_task_at_airflow_dag_context(
                 task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
             )
-        elif airflow_dag_run_context:
-            return track_airflow_dag_run_operator_run(
-                task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
-            )
+
+        if not has_current_task():
+            ######
+            # DBND HANDLING OF CALL
+            if is_in_airflow_dag_run_context():
+                return track_airflow_dag_run_operator_run(
+                    task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
+                )
+            else:
+                # direct call to the function
+                return call_user_code(*call_args, **call_kwargs)
 
         # now we can make some decisions what we do with the call
         # it's not coming from _invoke_func
