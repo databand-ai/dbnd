@@ -58,8 +58,9 @@ class _DecoratedTask(Task):
         ######
         # DBND HANDLING OF CALL
         if airflow_dag_build_context:
-            t = cls(*call_args, **call_kwargs)
-            return build_task_at_airflow_dag_context(task=t)
+            return build_task_at_airflow_dag_context(
+                task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
+            )
         elif airflow_dag_run_context:
             return track_airflow_dag_run_operator_run(
                 task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
