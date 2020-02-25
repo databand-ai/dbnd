@@ -261,7 +261,6 @@ def build_task_run_info(task_run):
         task_run_params=task_run_params,
         execution_date=task_run.run.execution_date,
         is_root=task_run.is_root,
-        attempt_number=task_run.attempt_number,
     )
 
 
