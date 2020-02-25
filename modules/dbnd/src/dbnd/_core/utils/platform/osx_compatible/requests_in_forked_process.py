@@ -14,8 +14,11 @@ def enable_osx_forked_request_calls():
 
     from dbnd._core.configuration.dbnd_config import config
 
-    if not config.getboolean("core", "fix_requests_on_osx"):
+    if not config.getboolean("core", "fix_env_on_osx"):
         return
 
     if "no_proxy" not in os.environ:
         os.environ["no_proxy"] = "*"
+
+    if "OBJC_DISABLE_INITIALIZE_FORK_SAFETY" not in os.environ:
+        os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "yes"

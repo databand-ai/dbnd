@@ -137,15 +137,18 @@ class TaskFactory(object):
             self.task_name or self.task_definition.task_config_section
         )
 
+        if self.task_name is None:
+            self.task_name = self.task_family
+
         # there is priority of task name over task family, as name is more specific
-        sections = [
-            self.task_name,
-            self.task_family,
-            self.task_definition.full_task_family,
-        ]
+        sections = [self.task_name]
+        # _from at config files
+        sections.extend(self._get_task_from_sections(config, self.task_name))
+
+        sections.extend([self.task_family, self.task_definition.full_task_family])
+
         if kwargs_task_config_sections:
             sections.extend(kwargs_task_config_sections)
-        sections.extend(self._get_task_from_sections(config, self.task_name))
 
         # adding "default sections"  - LOWEST PRIORITY
         if issubclass(self.task_definition.task_class, _TaskParamContainer):
@@ -159,8 +162,6 @@ class TaskFactory(object):
         sections = list(unique_everseen(filter(None, sections)))
 
         self.task_config_sections = sections
-        if self.task_name is None:
-            self.task_name = self.task_family
 
         self.task_params = list(
             self.task_definition.task_params.values()

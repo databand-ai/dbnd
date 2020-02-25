@@ -30,6 +30,7 @@ HDFS_SCHEMA = "hdfs://"
 class WebHdfsClientType(object):
     INSECURE = "insecure"
     KERBEROS = "kerberos"
+    TOKEN = "token"
     # KNOX = "knox"
 
 
@@ -45,6 +46,8 @@ class HdfsCli(FileSystem, Config):
     host = parameter.c(description="HDFS name node URL", default="localhost")[str]
     port = parameter.c(description="HDFS name node port", default=50070)[int]
     user = parameter.c(default="root")[str]
+
+    token = parameter.c(default=None)[str]
 
     client_type = parameter.c(
         default=WebHdfsClientType.INSECURE, description="Type of client used to HDFS"
@@ -97,6 +100,11 @@ class HdfsCli(FileSystem, Config):
             from hdfs import InsecureClient
 
             return InsecureClient(url=self.url, user=self.user)
+
+        elif self.client_type == WebHdfsClientType.TOKEN:
+            from hdfs import TokenClient
+
+            return TokenClient(url=self.url, token=self.token)
         else:
             raise Exception("WebHdfs client type %s does not exist" % self.client_type)
 
