@@ -57,11 +57,13 @@ def dbnd_run_start_airflow_dag_task(dag_id=None, execution_date=None, task_id=No
         root_task_name="DAG", run_uid=run_uid, job_name=dag_id, airflow_context=True
     )
 
-    # now create "main" task for current task_id task
-    class InplaceSubTask(Task):
+    # now create "operator" task for current task_id,
+    # we can't actually run it, we even don't know when it's going to finish
+    # current execution is inside the operator, this is the only thing we know
+    class InplaceAirflowOperatorTask(Task):
         _conf__task_family = task_id
 
-    task = InplaceSubTask(task_version="now", task_name=task_id)
+    task = InplaceAirflowOperatorTask(task_version="now", task_name=task_id)
     tr = dr.create_dynamic_task_run(
         task, dr.local_engine, _uuid=get_task_run_uid(run_uid, task_id)
     )
