@@ -1,4 +1,4 @@
-from marshmallow import fields
+from dbnd._vendor.marshmallow import fields
 
 from dbnd.api.api_utils import _ApiCallSchema
 
