@@ -21,7 +21,7 @@ COMPLETION_SCRIPT_BASH = '''
     local IFS=$'\n'
     COMPREPLY=( $( env COMP_WORDS="${COMP_WORDS[*]}" \\
                    COMP_CWORD=$COMP_CWORD \\
-                   %(autocomplete_var)s=complete python -m databand ) )
+                   %(autocomplete_var)s=complete python -m dbnd 2>/dev/null ) )
     return 0
 }
 
@@ -52,7 +52,7 @@ COMPLETION_SCRIPT_ZSH = '''
     response=("${(@f)$( env COMP_WORDS="${words[*]}" \
                         COMP_CWORD=$((CURRENT-1)) \
                         %(autocomplete_var)s="complete_zsh" \
-                        python -m databand )}")
+                        python -m dbnd 2>/dev/null )}")
 
      for key descr in ${(kv)response}; do
       if [[ "$key" == "==SUFFIX==" ]]; then

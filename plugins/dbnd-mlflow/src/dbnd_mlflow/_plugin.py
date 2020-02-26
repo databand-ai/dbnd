@@ -54,5 +54,7 @@ def dbnd_on_pre_init_context(ctx):
 
 @hookimpl
 def dbnd_on_exit_context(ctx):
+    from mlflow import set_tracking_uri
+
     global _original_mlflow_tracking_uri
     set_tracking_uri(_original_mlflow_tracking_uri)

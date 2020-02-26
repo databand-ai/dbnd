@@ -208,8 +208,7 @@ def init_databand_env():
         # we should not print anything if we are in shell completion!
         import logging
 
-        logging.getLogger("airflow").setLevel(logging.CRITICAL + 1)
-        logging.getLogger("databand").setLevel(logging.CRITICAL + 1)
+        logging.getLogger().setLevel(logging.CRITICAL + 1)
 
     # MAIN PART OF THE SCRIPT
     if ENV_DBND_HOME not in os.environ:
