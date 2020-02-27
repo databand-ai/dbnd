@@ -119,7 +119,6 @@ class _DbndInplaceRunManager(object):
                 logger.info(databand_run.describe.run_banner_for_finished())
 
         self._close_all_context_managers()
-
         if at_exit and is_airflow_enabled():
             from airflow.settings import dispose_orm
 
@@ -140,18 +139,23 @@ def _build_inline_root_task(root_task_name, airflow_context):
         )
         if user_frame:
             module_code = open(user_frame.filename).read()
-            InplaceTask.task_definition.task_source_code = module_code
             InplaceTask.task_definition.task_module_code = module_code
+            if not airflow_context:
+                # we don't set DAGs task's source code
+                InplaceTask.task_definition.task_source_code = module_code
     except Exception as ex:
         logger.info("Failed to find source code: %s", str(ex))
 
     root_task = InplaceTask(task_version="now", task_name=root_task_name)
 
     if airflow_context:
+        # we generate specific cmd values for airflow tasks in sync time
         root_task.task_is_system = True
-
-    root_task.task_meta.task_command_line = list2cmdline(sys.argv)
-    root_task.task_meta.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
+        root_task.task_meta.task_command_line = ""
+        root_task.task_meta.task_functional_call = ""
+    else:
+        root_task.task_meta.task_command_line = list2cmdline(sys.argv)
+        root_task.task_meta.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
 
     return root_task
 
