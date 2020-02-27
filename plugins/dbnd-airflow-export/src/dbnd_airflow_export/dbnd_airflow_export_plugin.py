@@ -200,6 +200,8 @@ class ETask(object):
         task_module_code=None,
         dag_id=None,
         task_id=None,
+        retries=None,
+        command=None,
     ):
         self.upstream_task_ids = list(upstream_task_ids)  # type: List[str]
         self.downstream_task_ids = list(downstream_task_ids)  # type: List[str]
@@ -208,6 +210,8 @@ class ETask(object):
         self.task_module_code = task_module_code
         self.dag_id = dag_id
         self.task_id = task_id
+        self.retries = retries
+        self.command = command
 
     @staticmethod
     def from_task(t):
@@ -220,6 +224,8 @@ class ETask(object):
             task_module_code=_get_module_code(t),
             dag_id=t.dag_id,
             task_id=t.task_id,
+            retries=t.retries,
+            command=_get_command_from_operator(t),
         )
 
     def as_dict(self):
@@ -231,6 +237,8 @@ class ETask(object):
             task_module_code=self.task_module_code,
             dag_id=self.dag_id,
             task_id=self.task_id,
+            retries=self.retries,
+            command=self.command,
         )
 
 
@@ -333,6 +341,7 @@ class EDag(object):
         git_commit,
         dag_folder,
         hostname,
+        source_code,
     ):
         self.description = description
         self.root_task_ids = root_task_ids  # type: List[str]
@@ -347,6 +356,7 @@ class EDag(object):
         self.git_commit = git_commit
         self.dag_folder = dag_folder
         self.hostname = hostname
+        self.source_code = source_code
 
     @staticmethod
     def from_dag(dag, dag_folder):
@@ -366,6 +376,7 @@ class EDag(object):
             git_commit=git_commit or "",
             dag_folder=dag_folder,
             hostname=get_hostname(),
+            source_code=_read_dag_file(dag.fileloc),
         )
 
     def as_dict(self):
@@ -383,6 +394,7 @@ class EDag(object):
             git_commit=self.git_commit,
             dag_folder=self.dag_folder,
             hostname=self.hostname,
+            source_code=self.source_code,
         )
 
 
@@ -474,6 +486,33 @@ def _get_module_code(t):
             return inspect.getsource(inspect.getmodule(t.python_callable))
     except Exception as ex:
         pass
+
+
+def _get_command_from_operator(t):
+    # type: (BaseOperator) -> str
+    from airflow.operators.python_operator import PythonOperator
+    from airflow.operators.bash_operator import BashOperator
+
+    if isinstance(t, BashOperator):
+        return "bash_command='{bash_command}'".format(bash_command=t.bash_command)
+    elif isinstance(t, PythonOperator):
+        return "python_callable={func}, op_kwargs={kwrags}".format(
+            func=t.python_callable.__name__, kwrags=t.op_kwargs
+        )
+
+
+def _read_dag_file(dag_file):
+    # TODO: Change implementation when this is done:
+    # https://github.com/apache/airflow/pull/7217
+
+    if dag_file and os.path.exists(dag_file):
+        with open(dag_file) as file:
+            try:
+                return file.read()
+            except Exception as e:
+                pass
+
+    return None
 
 
 ### Views ###

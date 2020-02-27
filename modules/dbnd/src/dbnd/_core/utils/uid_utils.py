@@ -4,7 +4,7 @@ import uuid
 import pytz
 import six
 
-from dbnd._vendor.pendulum import pendulum
+from dbnd._vendor import pendulum
 
 
 def get_uuid():

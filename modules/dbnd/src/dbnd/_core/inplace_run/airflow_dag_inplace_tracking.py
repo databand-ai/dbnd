@@ -50,6 +50,7 @@ def dbnd_run_start_airflow_dag_task(dag_id=None, execution_date=None, task_id=No
     run_uid = get_job_run_uid(dag_id=dag_id, execution_date=execution_date)
     # root_task_uid = get_task_run_uid(run_uid=run_uid, task_id="DAG")
     # task_uid = get_task_run_uid(run_uid=run_uid, task_id=task_id)
+
     # this will create databand run with driver and root tasks.
     # we need the "root" task to be the same between different airflow tasks invocations
     # since in dbnd we must have single root task, so we create "dummy" task with dag_id name
@@ -64,6 +65,7 @@ def dbnd_run_start_airflow_dag_task(dag_id=None, execution_date=None, task_id=No
     # current execution is inside the operator, this is the only thing we know
     class InplaceAirflowOperatorTask(Task):
         _conf__task_family = task_id
+        execution_date = dr.execution_date
 
     task = InplaceAirflowOperatorTask(task_version="now", task_name=task_id)
     tr = dr.create_dynamic_task_run(
