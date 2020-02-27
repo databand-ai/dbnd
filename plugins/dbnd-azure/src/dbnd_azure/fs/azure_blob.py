@@ -73,7 +73,6 @@ class AzureBlobStorageClient(FileSystem):
             connection_string=self._options.get("connection_string"),
             endpoint_suffix=self._options.get("endpoint_suffix"),
             custom_domain=self._options.get("custom_domain"),
-            token_credential=self._options.get("token_credential"),
         )
 
     @staticmethod

@@ -9,18 +9,6 @@ class AzureCloudConfig(EnvConfig):
     _conf__task_family = CloudType.azure
     conn_id = "azure_blob_storage_default"
 
-    account_name = parameter(
-        description="""The storage account name. This is used to authenticate requests
-            signed with an account key and to construct the storage endpoint. It
-            is required unless a connection string is given, or if a custom
-            domain is used with anonymous authentication."""
-    ).none()[str]
-    account_key = parameter(
-        description="""The storage account key. This is used for shared key authentication.
-            If neither account key or sas token is specified, anonymous access
-            will be used.""",
-        default=None,
-    ).none()[str]
     sas_token = parameter(
         description="""A shared access signature token to use to authenticate requests
              instead of the account key. If account key and sas token are both
