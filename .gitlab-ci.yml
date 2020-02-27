@@ -224,7 +224,7 @@ publish_dbnd_package:
   before_script:
     - pip install twine
   script:
-    - twine upload --repository-url ${PYPI_PUBLIC_URL} dist/*
+    - twine upload dist/*
   only:
     - tags
   when: manual
