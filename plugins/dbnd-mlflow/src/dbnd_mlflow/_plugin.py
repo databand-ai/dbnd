@@ -2,7 +2,6 @@ import logging
 
 from dbnd import config, hookimpl, register_config_cls
 from dbnd._core.errors import DatabandConfigError
-from mlflow import get_tracking_uri, set_tracking_uri
 
 from .url_utils import build_composite_uri, is_composite_uri
 
@@ -22,6 +21,8 @@ _original_mlflow_tracking_uri = None
 
 @hookimpl
 def dbnd_on_pre_init_context(ctx):
+    from mlflow import get_tracking_uri, set_tracking_uri
+
     if not config.getboolean("mlflow_tracking", "databand_tracking"):
         return
 
@@ -53,5 +54,7 @@ def dbnd_on_pre_init_context(ctx):
 
 @hookimpl
 def dbnd_on_exit_context(ctx):
+    from mlflow import set_tracking_uri
+
     global _original_mlflow_tracking_uri
     set_tracking_uri(_original_mlflow_tracking_uri)

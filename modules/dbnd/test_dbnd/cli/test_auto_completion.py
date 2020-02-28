@@ -1,24 +1,67 @@
 import logging
+import os
+import subprocess
+
+from timeit import default_timer as timer
 
 from dbnd import task
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.task_build.task_registry import get_task_registry
+from dbnd.testing.helpers import run_dbnd_subprocess__dbnd
+
+
+def _auto_complete(use_fast_subprocess=False):
+    kwargs = dict()
+
+    if not use_fast_subprocess:
+        kwargs.update(dict(stdout=subprocess.PIPE))
+
+    return run_dbnd_subprocess__dbnd(
+        args=[],
+        blocking=use_fast_subprocess,
+        env={
+            "COMP_WORDS": "dbnd ",
+            "COMP_CWORD": "1",
+            "_DBND_COMPLETE": "complete_zsh",
+            "LANG": os.environ["LANG"],
+        },
+        **kwargs
+    )
 
 
 class TestAutoComplete(object):
+    def test_response_time(self):
+        start = timer()
+        _auto_complete().wait()
+        end = timer()
+        elapsed = end - start
 
-    # def test_autocompletion(self):
-    #     current = os.environ
-    #     try:
-    #         os.environ = {
-    #             "_DBND_COMPLETE": "complete_zsh",
-    #             "COMP_CWORD": "2",
-    #             "COMP_WORDS": "dbnd run ",
-    #         }
-    #         from dbnd import dbnd_main
-    #         dbnd_main()
-    #     except:
-    #         os.environ = current
+        assert elapsed < 2
+
+    def test_bad_lines(self):
+        p = _auto_complete()
+
+        lines = []
+        for line in iter(p.stdout.readline, b""):
+            lines.append(line.decode())
+
+        # find and print bad lines
+        def _is_bad(line):
+            for word in ["DeprecationWarning", "site-packages", "/Users/"]:
+                if word in line:
+                    return True
+            return False
+
+        msg = "There are bad lines in auto completion output!\n\n"
+        has_bad_line = False
+        for line in lines:
+            if _is_bad(line):
+                has_bad_line = True
+                msg += "* " + line
+            else:
+                msg += "  " + line
+
+        assert has_bad_line is False, msg
 
     def test_auto_complete_renew(self):
         @task

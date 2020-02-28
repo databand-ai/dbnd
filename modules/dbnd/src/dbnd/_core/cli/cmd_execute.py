@@ -1,8 +1,6 @@
 import logging
 
-from dbnd._core.run.databand_run import DatabandRun
 from dbnd._vendor import click
-from targets import target
 
 
 logger = logging.getLogger(__name__)
@@ -15,6 +13,9 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def execute(ctx, dbnd_run, disable_tracking_api):
     """Execute databand primitives"""
+    from dbnd._core.run.databand_run import DatabandRun
+    from targets import target
+
     run = DatabandRun.load_run(
         dump_file=target(dbnd_run), disable_tracking_api=disable_tracking_api
     )
