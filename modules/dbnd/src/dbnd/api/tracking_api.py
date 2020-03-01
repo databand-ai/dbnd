@@ -9,7 +9,12 @@ import six
 
 import attr
 
-from dbnd._core.constants import RunState, TaskRunState
+from dbnd._core.constants import (
+    DbndTargetOperationStatus,
+    DbndTargetOperationType,
+    RunState,
+    TaskRunState,
+)
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
@@ -133,7 +138,6 @@ add_task_runs_schema = AddTaskRunsSchema()
 
 
 class SetDatabandRunStateSchema(_ApiCallSchema):
-
     run_uid = fields.UUID(required=True)
     state = EnumField(RunState)
     timestamp = fields.DateTime(required=False, default=None, missing=None)
@@ -211,8 +215,8 @@ class LogTargetArgs(object):
     target_path = attr.ib()  # type: str
     param_name = attr.ib()  # type: str
     task_def_uid = attr.ib()  # type: UUID
-    operation_type = attr.ib()  # type: str
-    operation_status = attr.ib()  # type: str
+    operation_type = attr.ib()  # type: DbndTargetOperationType
+    operation_status = attr.ib()  # type: DbndTargetOperationStatus
 
     value_preview = attr.ib()  # type: str
     data_dimensions = attr.ib()  # type: List[int]
@@ -232,8 +236,8 @@ class LogTargetSchema(_ApiCallSchema):
     target_path = fields.String()
     param_name = fields.String()
     task_def_uid = fields.UUID()
-    operation_type = fields.String()
-    operation_status = fields.String()
+    operation_type = EnumField(DbndTargetOperationType)
+    operation_status = EnumField(DbndTargetOperationStatus)
 
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(), allow_none=True)
