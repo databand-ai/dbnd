@@ -2,7 +2,7 @@ import logging
 
 from cachetools import cached
 from dbnd._core.plugin.dbnd_plugins import use_airflow_connections
-from dbnd_azure.env import AzureCloudConfig
+from dbnd_azure.env import AzureCredentialsConfig
 
 
 logger = logging.getLogger(__name__)
@@ -23,4 +23,4 @@ def get_azure_credentials():
         return aws_storage_credentials.get_credentials()
     else:
         logger.debug("getting azure credentials from dbnd config")
-        return AzureCloudConfig().simple_params_dict()
+        return AzureCredentialsConfig().simple_params_dict()

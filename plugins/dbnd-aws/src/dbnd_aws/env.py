@@ -22,16 +22,25 @@ class AwsEnvConfig(EnvConfig):
         "Override the region_name in connection (if provided)"
     ).none[str]
 
+    update_env_with_boto_creds = parameter(
+        description="Update environment of the current process with boto credentials, "
+        "so third party libraries like pandas can access s3."
+    ).value(True)
+
     def prepare_env(self):
         """
         This allows us to use pandas to load remote dataframes directly
         """
+
+        if not self.update_env_with_boto_creds:
+            return
 
         boto_session = get_boto_session()
         creds = boto_session.get_credentials()
 
         access_key_env = "AWS_ACCESS_KEY_ID"
         secret_key_env = "AWS_SECRET_ACCESS_KEY"
+        token_key_env = "AWS_SESSION_TOKEN"
         if (
             creds.access_key
             and creds.secret_key
@@ -40,3 +49,5 @@ class AwsEnvConfig(EnvConfig):
         ):
             environ[access_key_env] = creds.access_key
             environ[secret_key_env] = creds.secret_key
+            if creds.token:
+                environ[token_key_env] = creds.token
