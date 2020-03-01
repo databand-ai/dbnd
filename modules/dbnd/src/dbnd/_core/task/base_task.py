@@ -33,6 +33,7 @@ from dbnd._core.constants import (
     ParamValidation,
     TaskType,
 )
+from dbnd._core.current import try_get_databand_run
 from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter.parameter_builder import parameter
@@ -173,15 +174,16 @@ class _BaseTask(object):
             # otherwise we will try to save it on autosave ( as it was changed)
             return runtime_value
         elif isinstance(value, Target):
-            task_run = self.current_task_run
-            if task_run:
-                task_run.tracker.log_target(
-                    parameter=parameter,
-                    target=value,
-                    value=runtime_value,
-                    operation_type=DbndTargetOperationType.read,
-                    operation_status=DbndTargetOperationStatus.OK,
-                )
+            if try_get_databand_run():
+                task_run = self.current_task_run
+                if task_run:
+                    task_run.tracker.log_target(
+                        parameter=parameter,
+                        target=value,
+                        value=runtime_value,
+                        operation_type=DbndTargetOperationType.read,
+                        operation_status=DbndTargetOperationStatus.OK,
+                    )
 
         # for the cache, so next time we don't need to calculate it
         setattr(self, name, runtime_value)

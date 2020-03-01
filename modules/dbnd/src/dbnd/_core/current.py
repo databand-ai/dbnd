@@ -65,7 +65,7 @@ def current_task():
 
 
 def try_get_current_task():
-    from dbnd._core.task_build.task_context import current_task as tgct
+    from dbnd._core.task_build.task_context import try_get_current_task as tgct
 
     return tgct()
 
