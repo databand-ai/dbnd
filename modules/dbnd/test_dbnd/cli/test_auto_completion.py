@@ -36,7 +36,7 @@ class TestAutoComplete(object):
         end = timer()
         elapsed = end - start
 
-        assert elapsed < 2
+        assert elapsed < 3
 
     def test_bad_lines(self):
         p = _auto_complete()
