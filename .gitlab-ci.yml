@@ -195,7 +195,7 @@ dbnd_databricks_py27:
       junit: plugins/dbnd-databricks/build/junit-py27.xml
 
 
-build_pypi_whl:
+build_pypi_org_whl:
   stage: build-base
   image: python:3.6
   needs: ["empty_job"]
@@ -214,13 +214,13 @@ build_pypi_whl:
 #    branch: develop
 #  only: *on_significant_branch
 
-publish_dbnd_package:
+publish_pypi_org_dbnd_package:
   stage: publish
   image: python:3.6-slim-buster
   variables:
     GIT_STRATEGY: none
   needs:
-    - build_pypi_whl
+    - build_pypi_org_whl
   before_script:
     - pip install twine
   script:
