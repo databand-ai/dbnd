@@ -482,6 +482,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                                 )
                             else:
                                 self.log.debug("Sending %s to executor", ti)
+                                # if ti.state == State.UP_FOR_RETRY:
+                                #     ti._try_number += 1
                                 # Skip scheduled state, we are executing immediately
                                 ti.state = State.QUEUED
                                 session.merge(ti)

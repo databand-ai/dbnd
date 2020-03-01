@@ -92,6 +92,13 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     requests = parameter.none()[Dict]
     limits = parameter.none()[Dict]
 
+    pod_exit_code_to_retry_count = parameter(empty_default=True).help(
+        "Mapping between pod exit code to amount of pod " "retry attempts"
+    )[Dict]
+    pod_retry_delay = parameter.help(
+        "The delay in milliseconds between each retry attempt"
+    ).value("1m")[str]
+
     startup_timeout_seconds = parameter.value(120)
     show_pod_log = parameter(default=False).help(
         "When using this engine as the task_engine, run tasks sequentially and stream their logs"

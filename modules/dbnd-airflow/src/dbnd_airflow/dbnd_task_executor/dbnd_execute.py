@@ -115,3 +115,23 @@ def dbnd_operator__kill(dbnd_operator):
 
     task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
     return task_run.task.on_kill()
+
+
+def dbnd_operator__get_task_retry_delay(dbnd_operator):
+    """
+    This method overrides the task retry delay found in airflow.
+    We must override the actual task retry delay from airflow to ensure that we can control the retry delay
+    per task, for example when we send pods to retry, we may want a different delay rather than another engine
+    """
+    from dbnd._core.current import try_get_databand_run
+
+    run = try_get_databand_run()
+    if not run:
+        return
+
+    task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
+
+    if task_run.task_engine.task_definition.task_family == "kubernetes":
+        return task_run.task_engine.pod_retry_delay
+    else:
+        return task_run.task.task_retry_delay

@@ -21,6 +21,10 @@ class DbndOperator(BaseOperator):
         super(DbndOperator, self).__init__(**kwargs)
         self._task_type = dbnd_task_type
         self.dbnd_task_id = dbnd_task_id
+        self._retry_delay = self.get_retry_delay()
+        self.retry_delay = property(
+            fget=self.get_retry_delay, fset=self.set_retry_delay
+        )
 
     @property
     def task_type(self):
@@ -29,6 +33,24 @@ class DbndOperator(BaseOperator):
         if v:
             return v
         return BaseOperator.task_type.fget(self)
+
+    def get_retry_delay(self):
+        """
+        This property is called upon when airflow tries to calculate the retry delay for a task.
+        If we are executing kubernetes pods we need to update the retry delay to our configuration settings.
+        Otherwise we are returning the same value that DbndOperator would return normally - task_run.task.retry_delay
+        """
+        from dbnd_airflow.dbnd_task_executor.dbnd_execute import (
+            dbnd_operator__get_task_retry_delay,
+        )
+
+        return dbnd_operator__get_task_retry_delay(self)
+
+    def set_retry_delay(self, value):
+        """
+        Maintain airflow's way of living
+        """
+        self.retry_delay = value
 
     def execute(self, context):
         logger.debug("Running dbnd task from airflow operator %s", self.task_id)
