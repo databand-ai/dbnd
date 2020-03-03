@@ -159,6 +159,10 @@ class DatabandStore(AbstractStore):
         for param in params:
             self._log_param(run_id, param)
 
+    @duplication_store
+    def record_logged_model(self, run_id, mlflow_model):
+        pass
+
 
 @lru_cache()
 def get_dbnd_store(store_uri=None, artifact_uri=None):
