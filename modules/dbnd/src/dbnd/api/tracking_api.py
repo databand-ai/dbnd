@@ -29,7 +29,7 @@ from dbnd.api.serialization.common import (
     MetricSchema,
     TargetInfoSchema,
 )
-from dbnd.api.serialization.run import RunInfoSchema
+from dbnd.api.serialization.run import RunInfoSchema, ScheduledRunInfoSchema
 from dbnd.api.serialization.task import TaskDefinitionInfoSchema, TaskRunInfoSchema
 from dbnd.api.serialization.task_run_env import TaskRunEnvInfoSchema
 
@@ -79,6 +79,7 @@ class InitRunArgs(object):
         default=None
     )  # type: Optional[RunInfo]  # we create it only for the new runs
     scheduled_run_info = attr.ib(default=None)  # type: Optional[ScheduledRunInfo]
+    update_existing = attr.ib(default=False)  # type: bool
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
@@ -94,6 +95,8 @@ class InitRunArgsSchema(ApiObjectSchema):
     task_runs_info = fields.Nested(TaskRunsInfoSchema)
 
     new_run_info = fields.Nested(RunInfoSchema, allow_none=True)
+    scheduled_run_info = fields.Nested(ScheduledRunInfoSchema, allow_none=True)
+    update_existing = fields.Boolean()
 
     @post_load
     def make_init_run_args(self, data, **kwargs):
