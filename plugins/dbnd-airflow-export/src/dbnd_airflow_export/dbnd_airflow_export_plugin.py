@@ -112,7 +112,7 @@ def _get_dagruns(start_date, end_date, session):
     dagruns_query = session.query(DagRun).filter(
         or_(
             DagRun.end_date.is_(None),
-            and_(DagRun.end_date > start_date, DagRun.end_date < end_date),
+            and_(DagRun.end_date >= start_date, DagRun.end_date <= end_date),
         )
     )
     return dagruns_query.all()
@@ -127,13 +127,13 @@ def _get_task_instances(start_date, end_date, session):
                 or_(
                     TaskInstance.end_date.is_(None),
                     and_(
-                        TaskInstance.end_date > start_date,
-                        TaskInstance.end_date < end_date,
+                        TaskInstance.end_date >= start_date,
+                        TaskInstance.end_date <= end_date,
                     ),
                 ),
                 and_(
-                    BaseJob.latest_heartbeat > start_date,
-                    BaseJob.latest_heartbeat < end_date,
+                    BaseJob.latest_heartbeat >= start_date,
+                    BaseJob.latest_heartbeat <= end_date,
                 ),
             )
         )
