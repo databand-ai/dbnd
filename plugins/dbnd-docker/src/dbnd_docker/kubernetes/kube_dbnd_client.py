@@ -17,8 +17,9 @@ from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow.airflow_extensions.dal import (
     get_airflow_task_instance,
     get_airflow_task_instance_state,
-    set_airflow_task_instance_state,
-    update_airflow_task_instance_in_db,
+)
+from dbnd_airflow_contrib.airflow_task_instance_retry_controller import (
+    AirflowTaskInstanceRetryController,
 )
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
@@ -65,8 +66,7 @@ class DbndKubernetesClient(object):
 
         pod_name = pod_data.metadata.name
         phase = pod_data.status.phase
-        # if phase == "Pending":
-        if False:
+        if phase == "Pending":
             logger.info("Event: %s is Pending", pod_name)
             pod_ctrl = self.get_pod_ctrl(name=pod_name)
             try:
@@ -74,8 +74,7 @@ class DbndKubernetesClient(object):
             except Exception as ex:
                 self.dbnd_set_task_pending_fail(pod_data, ex)
                 return "Failed"
-        # elif phase == "Failed":
-        elif True:
+        elif phase == "Failed":
             logger.info("Event: %s Failed", pod_name)
             self.dbnd_set_task_failed(pod_data)
 
@@ -202,8 +201,7 @@ class DbndKubernetesClient(object):
         # airflow_task_state = State.RUNNING
         # # DEBUG
 
-        # if airflow_task_state == State.FAILED:
-        if False:
+        if airflow_task_state == State.FAILED:
             # let just notify the error, so we can show it in summary it
             # we will not send it to databand tracking store
             task_run.set_task_run_state(TaskRunState.FAILED, track=False, error=error)
@@ -223,8 +221,7 @@ class DbndKubernetesClient(object):
                 pod_ctrl.handle_pod_retry(
                     pod_data, task_run, self.engine_config, increment_try_number=True
                 )
-            # elif airflow_task_state == State.RUNNING:
-            elif True:
+            elif airflow_task_state == State.RUNNING:
                 # Task was killed unexpectedly -- probably pod failure in K8s - Possible retry attempt
                 pod_ctrl.handle_pod_retry(pod_data, task_run, self.engine_config)
             else:
@@ -519,9 +516,16 @@ class DbndPodCtrl(object):
         self, pod_data, task_run, engine_config, increment_try_number=False
     ):
         metadata = pod_data.metadata
-        # pod_exit_code = self._try_get_pod_exit_code(pod_data)
-        pod_exit_code = 255
-
+        logger.debug(
+            "Reached handle pod retry for pod %s! Looking for pod exit code",
+            metadata.name,
+        )
+        pod_exit_code = self._try_get_pod_exit_code(pod_data)
+        if not pod_exit_code:
+            # Couldn't find an exit code - container is still alive - wait for the next event
+            logger.debug("No exit code found for pod %s, doing nothing", metadata.name)
+            return
+        logger.info("Found pod exit code %d for pod %s", pod_exit_code, metadata.name)
         if self._should_pod_be_retried(pod_exit_code, engine_config):
             retry_count, retry_delay = self._get_pod_retry_parameters(
                 pod_exit_code, engine_config
@@ -533,15 +537,14 @@ class DbndPodCtrl(object):
             The operator's values are overridden and taken from configuration if the engine is running K8s.
             See dbnd_operator.py
             """
-            if self._is_eligible_to_retry(task_instance):
-                self._schedule_pod_for_retry(
-                    metadata,
-                    retry_count,
-                    retry_delay,
-                    task_instance,
-                    task_run,
-                    increment_try_number,
-                )
+            self._schedule_pod_for_retry(
+                metadata,
+                retry_count,
+                retry_delay,
+                task_instance,
+                task_run,
+                increment_try_number,
+            )
 
     @staticmethod
     def _get_pod_retry_parameters(pod_exit_code, engine_config):
@@ -564,34 +567,31 @@ class DbndPodCtrl(object):
         task_run,
         increment_try_number,
     ):
-        from airflow.utils.state import State
-
         logger.info(
             "Scheduling the pod %s for %s retries with delay of %s",
             metadata.name,
             retry_count,
             retry_delay,
         )
-        task_run.task.task_retries = retry_count
-        task_run.task.task_retry_delay = retry_delay
-        task_instance.state = State.UP_FOR_RETRY
-        if increment_try_number:
-            task_instance._try_number += 1
-        update_airflow_task_instance_in_db(task_instance)
-        task_run.set_task_run_state(TaskRunState.UP_FOR_RETRY, track=True)
+
+        task_instance_retry_controller = AirflowTaskInstanceRetryController(
+            task_instance, task_run
+        )
+        task_instance_retry_controller.schedule_task_instance_for_retry(
+            retry_count, retry_delay, increment_try_number
+        )
 
     @staticmethod
     def _try_get_pod_exit_code(pod_data):
-        for container_status in pod_data.status.container_statuses:
-            # Searching for the container that was terminated
-            pod_exit_code = container_status.state.terminated.exit_code
-            if pod_exit_code:
+        found_exit_code = False
+        if pod_data.status.container_statuses:
+            for container_status in pod_data.status.container_statuses:
+                # Searching for the container that was terminated
+                if container_status.state.terminated:
+                    pod_exit_code = container_status.state.terminated.exit_code
+                    found_exit_code = True
+            if found_exit_code:
                 return pod_exit_code
-
-    @staticmethod
-    def _is_eligible_to_retry(task_instance):
-        """Is task instance is eligible for retry"""
-        return task_instance.try_number <= task_instance.max_tries
 
 
 def _get_status_log_safe(pod_data):

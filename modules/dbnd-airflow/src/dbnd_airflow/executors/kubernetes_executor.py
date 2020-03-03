@@ -17,6 +17,7 @@
 
 import logging
 import signal
+import subprocess
 import typing
 
 from airflow.contrib.executors.kubernetes_executor import (
@@ -190,8 +191,6 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         dr = try_get_databand_run()
         task_run = dr.get_task_run_by_af_id(task_id)
         pod_command = [str(c) for c in command]
-        # DEBUG
-        # DEBUG
         task_engine = task_run.task_engine  # type: KubernetesEngineConfig
         pod = task_engine.build_pod(
             task_run=task_run,
