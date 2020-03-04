@@ -137,6 +137,9 @@ class CompositeTrackingStore(TrackingStore):
             filtered_stores.append(store)
         self._stores = filtered_stores
 
+    def init_scheduled_job(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.init_scheduled_job.__name__, kwargs)
+
     def init_run(self, **kwargs):
         return self._invoke(CompositeTrackingStore.init_run.__name__, kwargs)
 
