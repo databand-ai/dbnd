@@ -197,10 +197,6 @@ class DbndKubernetesClient(object):
         logger.debug("task airflow state: %s ", airflow_task_state)
         from airflow.utils.state import State
 
-        # # DEBUG
-        # airflow_task_state = State.RUNNING
-        # # DEBUG
-
         if airflow_task_state == State.FAILED:
             # let just notify the error, so we can show it in summary it
             # we will not send it to databand tracking store
