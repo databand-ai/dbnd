@@ -127,6 +127,7 @@ class TaskRunsBuilder(object):
             with task.ctrl.task_context(phase=TaskContextPhase.BUILD):
                 # we want to have configuration with task overrides
                 task_engine = build_task_from_config(task_name=remote_engine.task_name)
+                task_engine.require_submit = remote_engine.require_submit
                 task_run = TaskRun(
                     run=run,
                     task=task,

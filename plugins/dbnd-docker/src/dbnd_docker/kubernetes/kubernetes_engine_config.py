@@ -93,11 +93,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     limits = parameter.none()[Dict]
 
     pod_exit_code_to_retry_count = parameter(empty_default=True).help(
-        "Mapping between pod exit code to amount of pod " "retry attempts"
+        "Mapping between pod exit code to amount of pod retry attempts"
     )[Dict]
     pod_retry_delay = parameter.help(
-        "The delay between each retry attempt. Format is '30s', '1m', etc."
-    ).value("1m")[str]
+        "The delay between each pod retry attempt in time delta format. 1m, 5s, 1h, etc."
+    )[datetime.timedelta]
 
     startup_timeout_seconds = parameter.value(120)
     show_pod_log = parameter(default=False).help(

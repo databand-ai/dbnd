@@ -123,6 +123,7 @@ def dbnd_operator__get_task_retry_delay(dbnd_operator):
     We must override the actual task retry delay from airflow to ensure that we can control the retry delay
     per task, for example when we send pods to retry, we may want a different delay rather than another engine
     """
+    import datetime
     from dbnd._core.current import try_get_databand_run
 
     run = try_get_databand_run()

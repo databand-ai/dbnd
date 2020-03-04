@@ -218,12 +218,22 @@ class DbndKubernetesClient(object):
             if airflow_task_state == State.QUEUED:
                 # Special case - no airflow code has been run in the pod at all. Must increment try number and send
                 # to retry if exit code is matching
-                pod_ctrl.handle_pod_retry(
+                if not pod_ctrl.handle_pod_retry(
                     pod_data, task_run, self.engine_config, increment_try_number=True
-                )
+                ):
+                    # No retry was sent
+                    task_run.set_task_run_state(
+                        TaskRunState.FAILED, track=True, error=error
+                    )
             elif airflow_task_state == State.RUNNING:
                 # Task was killed unexpectedly -- probably pod failure in K8s - Possible retry attempt
-                pod_ctrl.handle_pod_retry(pod_data, task_run, self.engine_config)
+                if not pod_ctrl.handle_pod_retry(
+                    pod_data, task_run, self.engine_config
+                ):
+                    # No retry was sent
+                    task_run.set_task_run_state(
+                        TaskRunState.FAILED, track=True, error=error
+                    )
             else:
                 task_run.set_task_run_state(
                     TaskRunState.FAILED, track=True, error=error
@@ -524,7 +534,7 @@ class DbndPodCtrl(object):
         if not pod_exit_code:
             # Couldn't find an exit code - container is still alive - wait for the next event
             logger.debug("No exit code found for pod %s, doing nothing", metadata.name)
-            return
+            return False
         logger.info("Found pod exit code %d for pod %s", pod_exit_code, metadata.name)
         if self._should_pod_be_retried(pod_exit_code, engine_config):
             retry_count, retry_delay = self._get_pod_retry_parameters(
@@ -537,7 +547,7 @@ class DbndPodCtrl(object):
             The operator's values are overridden and taken from configuration if the engine is running K8s.
             See dbnd_operator.py
             """
-            self._schedule_pod_for_retry(
+            return self._schedule_pod_for_retry(
                 metadata,
                 retry_count,
                 retry_delay,
@@ -545,6 +555,13 @@ class DbndPodCtrl(object):
                 task_run,
                 increment_try_number,
             )
+        else:
+            logger.debug(
+                "Pod %s was not scheduled for retry because its exit code %d was not found in config",
+                metadata.name,
+                pod_exit_code,
+            )
+            return False
 
     @staticmethod
     def _get_pod_retry_parameters(pod_exit_code, engine_config):
@@ -567,19 +584,25 @@ class DbndPodCtrl(object):
         task_run,
         increment_try_number,
     ):
-        logger.info(
-            "Scheduling the pod %s for %s retries with delay of %s",
-            metadata.name,
-            retry_count,
-            retry_delay,
-        )
 
         task_instance_retry_controller = AirflowTaskInstanceRetryController(
             task_instance, task_run
         )
-        task_instance_retry_controller.schedule_task_instance_for_retry(
+        if task_instance_retry_controller.schedule_task_instance_for_retry(
             retry_count, retry_delay, increment_try_number
-        )
+        ):
+            logger.info(
+                "Scheduling the pod %s for %s retries with delay of %s",
+                metadata.name,
+                retry_count,
+                retry_delay,
+            )
+            return True
+        else:
+            logger.warning(
+                "Pod %s was not scheduled for retry because it reached the maximum retry limit"
+            )
+            return False
 
     @staticmethod
     def _try_get_pod_exit_code(pod_data):
