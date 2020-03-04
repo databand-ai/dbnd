@@ -33,12 +33,12 @@ from airflow.utils.state import State
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.utils.basics.safe_signal import safe_signal
+from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 
 
 if typing.TYPE_CHECKING:
     from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
     from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
-
 
 MAX_POD_ID_LEN = 253
 
@@ -134,6 +134,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.kube_watcher = self._make_kube_watcher_dbnd()
         # will be used to low level pod interactions
         self.running_pods = {}
+        self.pod_to_task = {}
+        self.metrics_logger = KubernetesMetricsLogger()
 
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
@@ -182,7 +184,6 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         """
         key, command, kube_executor_config = next_job
         dag_id, task_id, execution_date, try_number = key
-        self.log.info("run_next is executing with try_number %d", try_number)
         self.log.debug(
             "Kube POD to submit: image=%s with %s",
             self.kube_config.kube_image,
@@ -210,11 +211,18 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
         self.running_pods[pod.name] = self.namespace
+        self.pod_to_task[pod.name] = task_run.task
+
         pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
+        self.metrics_logger.log_pod_started(task_run.task)
 
     def delete_pod(self, pod_id):
         self.running_pods.pop(pod_id, None)
-        return self.kube_dbnd.delete_pod(pod_id, self.namespace)
+        result = self.kube_dbnd.delete_pod(pod_id, self.namespace)
+
+        self.metrics_logger.log_pod_deleted(self.pod_to_task[pod_id])
+        self.pod_to_task.pop(pod_id)  # Keep the cache clean
+        return result
 
     def terminate(self):
         pods_to_delete = sorted(self.running_pods.keys())
@@ -306,6 +314,8 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
         self.kube_dbnd = kube_dbnd  # type: DbndKubernetesClient
         self.processed_events = {}
+        self.processed_pods = {}
+        self.metrics_logger = KubernetesMetricsLogger()
 
     def run(self):
         """Performs watching"""
@@ -372,6 +382,19 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 self.log.debug("Event: %s at %s - skipping as seen", phase, pod_name)
                 continue
             status = self.kube_dbnd.process_pod_event(event)
+
+            if self.processed_pods.get(pod_name):
+                self.log.debug("Pod %s has already been logged to metrics - skipping")
+            else:
+                node_name = pod_data.spec.node_name
+                if node_name:
+                    # Some events are missing the node name, but it will get there for sure
+                    dr = try_get_databand_run()
+                    task_run = dr.get_task_run(pod_data.metadata.labels["task_id"])
+                    self.metrics_logger.log_pod_information(
+                        task_run.task, pod_name, node_name
+                    )
+                    self.processed_pods[pod_name] = True
 
             if status in ["Succeeded", "Failed"]:
                 self.processed_events[pod_name] = status
