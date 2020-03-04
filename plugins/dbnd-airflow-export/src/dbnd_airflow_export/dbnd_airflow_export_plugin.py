@@ -13,6 +13,7 @@ from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
+from airflow.version import version as airflow_version
 from sqlalchemy import and_, or_
 
 import flask_admin
@@ -84,6 +85,9 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
             if dagbag.get_dag(dm.dag_id)
         ],
         since=start_date,
+        version=airflow_version,
+        dags_path=conf.get("core", "dags_folder"),
+        logs_path=conf.get("core", "base_log_folder"),
     )
 
     return ed
@@ -399,11 +403,16 @@ class EDag(object):
 
 
 class ExportData(object):
-    def __init__(self, dags, dag_runs, task_instances, since):
+    def __init__(
+        self, dags, dag_runs, task_instances, since, version, dags_path, logs_path
+    ):
         self.dags = dags  # type: List[EDag]
         self.dag_runs = dag_runs  # type: List[EDagRun]
         self.task_instances = task_instances  # type: List[ETaskInstance]
         self.since = since  # type: Datetime
+        self.version = version
+        self.dags_path = dags_path
+        self.logs_path = logs_path
 
     def as_dict(self):
         return dict(
@@ -411,6 +420,9 @@ class ExportData(object):
             dag_runs=[x.as_dict() for x in self.dag_runs],
             task_instances=[x.as_dict() for x in self.task_instances],
             since=self.since,
+            version=self.version,
+            dags_path=self.dags_path,
+            logs_path=self.logs_path,
         )
 
 

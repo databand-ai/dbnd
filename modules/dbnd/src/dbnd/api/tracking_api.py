@@ -264,6 +264,7 @@ heartbeat_schema = HeartbeatSchema()
 
 class AirflowTaskInfoSchema(_ApiCallSchema):
     execution_date = fields.DateTime()
+    last_sync = fields.DateTime(allow_none=True)
     dag_id = fields.String()
     task_id = fields.String()
     task_run_attempt_uid = fields.UUID()
@@ -423,11 +424,13 @@ class AirflowTaskInfo(object):
     dag_id = attr.ib()  # type: str
     task_id = attr.ib()  # type: str
     task_run_attempt_uid = attr.ib()  # type: UUID
+    last_sync = attr.ib(default=None)  # type: Optional[datetime.datetime]
     retry_number = attr.ib(default=None)  # type: Optional[int]
 
     def asdict(self):
         return dict(
             execution_date=self.execution_date,
+            last_sync=self.last_sync,
             dag_id=self.dag_id,
             task_id=self.task_id,
             task_run_attempt_uid=self.task_run_attempt_uid,
