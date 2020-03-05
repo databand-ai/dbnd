@@ -44,8 +44,7 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
         start_date, end_date = _get_time_bounderies(since, period, session)
     except EmptyAirflowDatabase as ex:
         logging.warning("Could not find any dag runs or task instances.", exc_info=ex)
-        return ExportData([], [], [], since=utcnow())
-
+        return _create_empty_response(since=utcnow())
     _load_dags_models(session)
     logging.info(
         "Collected %d dags. Trying to query instances and dagruns from %s to %s",
@@ -61,7 +60,7 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
     logging.info("%d dag runs were found." % len(dagruns))
 
     if not task_instances and not dagruns:
-        return ExportData([], [], [], since=start_date)
+        return _create_empty_response(since=start_date)
 
     dag_models = _get_dag_models(
         dagruns.keys() if since and isinstance(dagruns, dict) else None, session
@@ -424,6 +423,12 @@ class ExportData(object):
             dags_path=self.dags_path,
             logs_path=self.logs_path,
         )
+
+
+def _create_empty_response(since):
+    return ExportData(
+        [], [], [], since=since, version=None, dags_path=None, logs_path=None
+    )
 
 
 ### Helpers ###
