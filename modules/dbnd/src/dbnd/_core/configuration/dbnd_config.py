@@ -96,6 +96,11 @@ class DbndConfig(object):
     def _new_config_layer(
         self, config_values, source=None, override=False, merge_settings=None
     ):
+        # let validate that we are initialized
+        # user can call this function out of no-where, so we will create a layer, and will override it
+        # the moment we create more layers on config.system_load
+        dbnd_system_bootstrap()
+
         if not config_values:
             return self.config_layer
         if not isinstance(config_values, _ConfigStore):
@@ -114,10 +119,6 @@ class DbndConfig(object):
 
     @contextlib.contextmanager
     def __call__(self, config_values=None, source=None, merge_settings=None):
-        # let validate that we are initialized
-        # user can call this function out of no-where, so we will create a layer, and will override it
-        # the moment we create more layers on config.system_load
-        dbnd_system_bootstrap()
         new_layer = self._new_config_layer(
             config_values, source=source, merge_settings=merge_settings
         )
