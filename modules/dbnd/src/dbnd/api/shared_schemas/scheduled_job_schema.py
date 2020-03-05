@@ -27,6 +27,9 @@ class ScheduledJobSchemaV2(Schema):
     readable_schedule_interval = fields.Str(
         attribute="DbndScheduledJob.readable_schedule_interval", allow_none=True
     )
+    scheduled_interval_in_seconds = fields.Integer(
+        attribute="DbndScheduledJob.scheduled_interval_in_seconds", allow_none=True
+    )
     catchup = fields.Boolean(allow_none=True, attribute="DbndScheduledJob.catchup")
     depends_on_past = fields.Boolean(
         allow_none=True, attribute="DbndScheduledJob.depends_on_past"
