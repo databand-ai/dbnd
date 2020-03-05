@@ -17,6 +17,10 @@ class XComStr(str):
         obj.task_id = task_id
         return obj
 
+    @property
+    def op(self):
+        return settings.CONTEXT_MANAGER_DAG.get_task(self.task_id)
+
 
 class XComResults(object):
     target_no_traverse = True
@@ -38,7 +42,8 @@ class XComResults(object):
     def as_dict(self):
         return dict(self.xcom_args)
 
-    def as_task(self):
+    @property
+    def op(self):
         return settings.CONTEXT_MANAGER_DAG.get_task(self.xcom_args[0][1].task_id)
 
 

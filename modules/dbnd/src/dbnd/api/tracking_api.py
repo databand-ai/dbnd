@@ -29,7 +29,7 @@ from dbnd.api.serialization.common import (
     MetricSchema,
     TargetInfoSchema,
 )
-from dbnd.api.serialization.run import RunInfoSchema
+from dbnd.api.serialization.run import RunInfoSchema, ScheduledRunInfoSchema
 from dbnd.api.serialization.task import TaskDefinitionInfoSchema, TaskRunInfoSchema
 from dbnd.api.serialization.task_run_env import TaskRunEnvInfoSchema
 
@@ -79,6 +79,7 @@ class InitRunArgs(object):
         default=None
     )  # type: Optional[RunInfo]  # we create it only for the new runs
     scheduled_run_info = attr.ib(default=None)  # type: Optional[ScheduledRunInfo]
+    update_existing = attr.ib(default=False)  # type: bool
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
@@ -94,6 +95,8 @@ class InitRunArgsSchema(ApiObjectSchema):
     task_runs_info = fields.Nested(TaskRunsInfoSchema)
 
     new_run_info = fields.Nested(RunInfoSchema, allow_none=True)
+    scheduled_run_info = fields.Nested(ScheduledRunInfoSchema, allow_none=True)
+    update_existing = fields.Boolean()
 
     @post_load
     def make_init_run_args(self, data, **kwargs):
@@ -261,6 +264,7 @@ heartbeat_schema = HeartbeatSchema()
 
 class AirflowTaskInfoSchema(_ApiCallSchema):
     execution_date = fields.DateTime()
+    last_sync = fields.DateTime(allow_none=True)
     dag_id = fields.String()
     task_id = fields.String()
     task_run_attempt_uid = fields.UUID()
@@ -420,11 +424,13 @@ class AirflowTaskInfo(object):
     dag_id = attr.ib()  # type: str
     task_id = attr.ib()  # type: str
     task_run_attempt_uid = attr.ib()  # type: UUID
+    last_sync = attr.ib(default=None)  # type: Optional[datetime.datetime]
     retry_number = attr.ib(default=None)  # type: Optional[int]
 
     def asdict(self):
         return dict(
             execution_date=self.execution_date,
+            last_sync=self.last_sync,
             dag_id=self.dag_id,
             task_id=self.task_id,
             task_run_attempt_uid=self.task_run_attempt_uid,

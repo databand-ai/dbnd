@@ -4,6 +4,7 @@ import os
 
 import flask
 import flask_appbuilder
+import pendulum
 
 from airflow.configuration import conf
 from airflow.jobs import BaseJob
@@ -12,11 +13,10 @@ from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
+from airflow.version import version as airflow_version
 from sqlalchemy import and_, or_
 
 import flask_admin
-
-from dbnd._vendor import pendulum
 
 
 DEFAULT_DAYS_PERIOD = 30
@@ -82,8 +82,12 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
         dags=[
             EDag.from_dag(dagbag.get_dag(dm.dag_id), dagbag.dag_folder)
             for dm in dag_models
+            if dagbag.get_dag(dm.dag_id)
         ],
         since=start_date,
+        version=airflow_version,
+        dags_path=conf.get("core", "dags_folder"),
+        logs_path=conf.get("core", "base_log_folder"),
     )
 
     return ed
@@ -112,7 +116,7 @@ def _get_dagruns(start_date, end_date, session):
     dagruns_query = session.query(DagRun).filter(
         or_(
             DagRun.end_date.is_(None),
-            and_(DagRun.end_date > start_date, DagRun.end_date < end_date),
+            and_(DagRun.end_date >= start_date, DagRun.end_date <= end_date),
         )
     )
     return dagruns_query.all()
@@ -127,13 +131,13 @@ def _get_task_instances(start_date, end_date, session):
                 or_(
                     TaskInstance.end_date.is_(None),
                     and_(
-                        TaskInstance.end_date > start_date,
-                        TaskInstance.end_date < end_date,
+                        TaskInstance.end_date >= start_date,
+                        TaskInstance.end_date <= end_date,
                     ),
                 ),
                 and_(
-                    BaseJob.latest_heartbeat > start_date,
-                    BaseJob.latest_heartbeat < end_date,
+                    BaseJob.latest_heartbeat >= start_date,
+                    BaseJob.latest_heartbeat <= end_date,
                 ),
             )
         )
@@ -399,11 +403,16 @@ class EDag(object):
 
 
 class ExportData(object):
-    def __init__(self, dags, dag_runs, task_instances, since):
+    def __init__(
+        self, dags, dag_runs, task_instances, since, version, dags_path, logs_path
+    ):
         self.dags = dags  # type: List[EDag]
         self.dag_runs = dag_runs  # type: List[EDagRun]
         self.task_instances = task_instances  # type: List[ETaskInstance]
         self.since = since  # type: Datetime
+        self.version = version
+        self.dags_path = dags_path
+        self.logs_path = logs_path
 
     def as_dict(self):
         return dict(
@@ -411,6 +420,9 @@ class ExportData(object):
             dag_runs=[x.as_dict() for x in self.dag_runs],
             task_instances=[x.as_dict() for x in self.task_instances],
             since=self.since,
+            version=self.version,
+            dags_path=self.dags_path,
+            logs_path=self.logs_path,
         )
 
 
