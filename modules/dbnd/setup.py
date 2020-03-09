@@ -32,7 +32,7 @@ setuptools.setup(
         "enum34;python_version<='2.7'",
         'contextlib2; python_version < "3"',
         # "croniter>=0.3.30,<0.4", -- Moved library to _vendor
-        "psutil>=4.2.0,<5.7.0",
+        # "psutil>=4.2.0,<5.7.0", -- Extracted use to vendorized_psutil.py
     ],
     extras_require={
         ':sys_platform=="win32"': ["colorama"],

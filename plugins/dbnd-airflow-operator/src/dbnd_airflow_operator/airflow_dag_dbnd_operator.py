@@ -11,10 +11,14 @@ from airflow import DAG, settings
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
+from databand import dbnd_config
+from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.current import try_get_databand_context
 from dbnd._core.decorator.schemed_result import ResultProxyTarget
 from dbnd._core.run.databand_run import DatabandRun, new_databand_run
 from dbnd._core.task.task import Task
+from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd_airflow_operator.xcom_target import XComResults, XComStr
@@ -22,25 +26,6 @@ from targets import FileTarget, target
 
 
 logger = logging.getLogger(__name__)
-
-
-def get_normalized_airflow_task_id(dag, task_name):
-    """
-    we want to keep airflow id simple,
-    if this is the first time we see this task_name, let's keep the original value,
-    otherwise start to add _(idx) to the task_name
-    """
-    if not hasattr(dag, "_dbnd_airflow_name"):
-        setattr(dag, "_dbnd_airflow_name", {})
-
-    name_count = dag._dbnd_airflow_name
-    if task_name not in name_count:
-        name_count[task_name] = 0
-    else:
-        name_count[task_name] += 1
-        task_name = "%s_%d" % (task_name, name_count[task_name])
-    logger.debug("normalized : %s", name_count)
-    return task_name
 
 
 def is_in_airflow_dag_build_context():
@@ -62,99 +47,203 @@ def is_in_airflow_dag_build_context():
 def build_task_at_airflow_dag_context(task_cls, call_args, call_kwargs):
     from airflow import settings
 
-    upstream_task_ids = []
+    dag = settings.CONTEXT_MANAGER_DAG
+    dag_ctrl = FunctionalOperatorsDagCtrl.build_or_get_dag_ctrl(dag)
+    return dag_ctrl.build_airflow_operator(
+        task_cls=task_cls, call_args=call_args, call_kwargs=call_kwargs
+    )
 
-    # we support first level xcom values only (not nested)
-    def _process_xcom_value(value):
-        if not isinstance(value, XComStr):
+
+default_dag_config = parse_and_build_config_store(
+    source="airflow_defaults", config_values={"log": {"disabled": True}}
+)
+
+
+class FunctionalOperatorsDagCtrl(object):
+    dag_to_context = {}
+
+    def __init__(self, dag):
+        self.dag = dag
+        self.dbnd_airflow_name = {}
+        config_store = self.get_and_process_dbnd_dag_config()
+        with dbnd_config(
+            config_values=config_store, source="airflow"
+        ) as current_config:
+            self.dbnd_config_layer = current_config.config_layer
+            self.dbnd_context = DatabandContext(name="airflow__%s" % self.dag.dag_id)
+
+    def build_airflow_operator(self, task_cls, call_args, call_kwargs):
+        if try_get_databand_context() is self.dbnd_context:
+            # we are already in the context of build
+            return self._build_airflow_operator(
+                task_cls=task_cls, call_args=call_args, call_kwargs=call_kwargs
+            )
+
+        # we are coming from external world
+        with dbnd_config.config_layer_context(
+            self.dbnd_config_layer
+        ) as c, DatabandContext.context(_context=self.dbnd_context) as dc:
+            return self._build_airflow_operator(
+                task_cls=task_cls, call_args=call_args, call_kwargs=call_kwargs
+            )
+
+    def _build_airflow_operator(self, task_cls, call_args, call_kwargs):
+        dag = self.dag
+        upstream_task_ids = []
+
+        # we support first level xcom values only (not nested)
+        def _process_xcom_value(value):
+            if isinstance(value, BaseOperator):
+                value = build_xcom_str_from_op(value)
+            if isinstance(value, XComStr):
+                upstream_task_ids.append(value.task_id)
+                return target("xcom://%s" % value)
             return value
 
-        upstream_task_ids.append(value.task_id)
-        return target("xcom://%s" % value)
+        call_kwargs["task_name"] = af_task_id = self.get_normalized_airflow_task_id(
+            call_kwargs.pop("task_name", task_cls.get_task_family())
+        )
+        call_args = [_process_xcom_value(arg) for arg in call_args]
+        call_kwargs = {
+            name: _process_xcom_value(arg) for name, arg in six.iteritems(call_kwargs)
+        }
 
-    dag = settings.CONTEXT_MANAGER_DAG
+        task = task_cls(*call_args, **call_kwargs)  # type: Task
+        setattr(task, "_dbnd_no_cache", True)
+        dc = try_get_databand_context()
+        logger.debug("Environment: %s", dc.env)
+        op_kwargs = task.task_airflow_op_kwargs or {}
 
-    call_kwargs["task_name"] = af_task_id = get_normalized_airflow_task_id(
-        dag, call_kwargs.pop("task_name", task_cls.get_task_family())
-    )
-    call_args = [_process_xcom_value(arg) for arg in call_args]
-    call_kwargs = {
-        name: _process_xcom_value(arg) for name, arg in six.iteritems(call_kwargs)
-    }
+        user_inputs_only = task._params.get_param_values(
+            user_only=True, input_only=True
+        )
+        dbnd_xcom_inputs = []
+        dbnd_task_params_fields = []
+        dbnd_task_params = {}
+        for p_def, p_value in user_inputs_only:
+            p_name = p_def.name
 
-    task = task_cls(*call_args, **call_kwargs)  # type: Task
+            dbnd_task_params_fields.append(p_name)
+            if isinstance(p_value, FileTarget) and p_value.fs_name == "xcom":
+                dbnd_xcom_inputs.append(p_name)
+                p_value = p_value.path.replace("xcom://", "")
+            dbnd_task_params[p_name] = convert_to_safe_types(p_value)
 
-    op_kwargs = task.task_airflow_op_kwargs or {}
-
-    user_inputs_only = task._params.get_param_values(user_only=True, input_only=True)
-    dbnd_xcom_inputs = []
-    dbnd_task_params_fields = []
-    dbnd_task_params = {}
-    for p_def, p_value in user_inputs_only:
-        p_name = p_def.name
-
-        dbnd_task_params_fields.append(p_name)
-        if isinstance(p_value, FileTarget) and p_value.fs_name == "xcom":
-            dbnd_xcom_inputs.append(p_name)
-            p_value = p_value.path.replace("xcom://", "")
-        dbnd_task_params[p_name] = convert_to_safe_types(p_value)
-
-    single_result = False
-    if task.task_definition.single_result_output:
-        if isinstance(task.result, ResultProxyTarget):
-            dbnd_xcom_outputs = task.result.names
+        single_result = False
+        if task.task_definition.single_result_output:
+            if isinstance(task.result, ResultProxyTarget):
+                dbnd_xcom_outputs = task.result.names
+            else:
+                dbnd_xcom_outputs = ["result"]
+                single_result = True
         else:
-            dbnd_xcom_outputs = ["result"]
-            single_result = True
-    else:
-        dbnd_xcom_outputs = [
-            p.name for p in task._params.get_params(output_only=True, user_only=True)
-        ]
+            dbnd_xcom_outputs = [
+                p.name
+                for p in task._params.get_params(output_only=True, user_only=True)
+            ]
 
-    op = AirflowDagDbndOperator(
-        task_id=af_task_id,
-        dbnd_task_type=task.get_task_family(),
-        dbnd_task_id=task.task_id,
-        dbnd_xcom_inputs=dbnd_xcom_inputs,
-        dbnd_xcom_outputs=dbnd_xcom_outputs,
-        dbnd_task_params_fields=dbnd_task_params_fields,
-        params=dbnd_task_params,
-        **op_kwargs
-    )
-    task.ctrl.airflow_op = op
+        op = AirflowDagDbndOperator(
+            task_id=af_task_id,
+            dbnd_task_type=task.get_task_family(),
+            dbnd_task_id=task.task_id,
+            dbnd_xcom_inputs=dbnd_xcom_inputs,
+            dbnd_xcom_outputs=dbnd_xcom_outputs,
+            dbnd_task_params_fields=dbnd_task_params_fields,
+            params=dbnd_task_params,
+            **op_kwargs
+        )
+        task.ctrl.airflow_op = op
 
-    for k, v in six.iteritems(dbnd_task_params):
-        setattr(op, k, v)
+        for k, v in six.iteritems(dbnd_task_params):
+            setattr(op, k, v)
 
-    results = [(n, build_str_target(task, n)) for n in dbnd_xcom_outputs]
-    for n, xcom_arg in results:
-        setattr(op, n, xcom_arg)
-    setattr(op, "dbnd_xcom_outputs", dbnd_xcom_outputs)
+        results = [(n, build_xcom_str(task, n)) for n in dbnd_xcom_outputs]
+        for n, xcom_arg in results:
+            setattr(op, n, xcom_arg)
+        setattr(op, "dbnd_xcom_outputs", dbnd_xcom_outputs)
 
-    if task.task_retries is not None:
-        op.retries = task.task_retries
-        op.retry_delay = task.task_retry_delay
-    # set_af_operator_doc_md(task_run, op)
+        if task.task_retries is not None:
+            op.retries = task.task_retries
+            op.retry_delay = task.task_retry_delay
+        # set_af_operator_doc_md(task_run, op)
 
-    for t_child in task.task_meta.children:
-        # let's reconnect to all internal tasks
-        t_child = try_get_databand_context().task_instance_cache.get_task_by_id(t_child)
-        upstream_task = dag.task_dict[t_child.task_name]
-        op.set_upstream(upstream_task)
+        for t_child in task.task_meta.children:
+            # let's reconnect to all internal tasks
+            t_child = try_get_databand_context().task_instance_cache.get_task_by_id(
+                t_child
+            )
+            upstream_task = dag.task_dict.get(t_child.task_name)
+            if not upstream_task:
+                logging.error(
+                    "Failed to connect to child %s %s: %s",
+                    op,
+                    t_child.task_name,
+                    dag.task_dict.keys(),
+                )
+                continue
+            op.set_upstream(upstream_task)
 
-    for task_id in upstream_task_ids:
-        upstream_task = dag.task_dict[task_id]
-        op.set_upstream(upstream_task)
+        for task_id in upstream_task_ids:
+            upstream_task = dag.task_dict.get(task_id)
+            if not upstream_task:
+                logging.error("Failed to connect to dependency %s %s", op, task_id)
+                continue
+            op.set_upstream(upstream_task)
 
-    # we are in inline debug mode -> we are going to execute the task
-    # we are in the band
-    # and want to return result of the object
+        # we are in inline debug mode -> we are going to execute the task
+        # we are in the band
+        # and want to return result of the object
 
-    logger.info("%s params: %s", task.task_id, dbnd_task_params)
-    logger.info("%s outputs: %s", task.task_id, results)
-    if single_result:
-        return results[0][1]
-    return XComResults(results)
+        logger.debug("%s params: %s", task.task_id, dbnd_task_params)
+        logger.debug("%s outputs: %s", task.task_id, results)
+        if single_result:
+            return results[0][1]
+        return XComResults(results)
+
+    def get_and_process_dbnd_dag_config(self):
+        dag = self.dag
+        if not dag.default_args:
+            dag_dbnd_config = {}
+        else:
+            dag_dbnd_config = dag.default_args.get("dbnd_config", {})
+
+        config_store = parse_and_build_config_store(
+            source="%s default args" % dag.dag_id, config_values=dag_dbnd_config
+        )
+
+        # config can have problems around serialization,
+        # let override with "normalized" config
+        if dag.default_args:
+            dag.default_args["dbnd_config"] = config_store
+
+        config_store = default_dag_config.merge(config_store)
+        logger.debug("Config store for %s: %s", self.dag.dag_id, config_store)
+        return config_store
+
+    def get_normalized_airflow_task_id(self, task_name):
+        """
+        we want to keep airflow id simple,
+        if this is the first time we see this task_name, let's keep the original value,
+        otherwise start to add _(idx) to the task_name
+        """
+
+        name_count = self.dbnd_airflow_name
+        if task_name not in name_count:
+            name_count[task_name] = 0
+        else:
+            name_count[task_name] += 1
+            task_name = "%s_%d" % (task_name, name_count[task_name])
+        logger.debug("normalized : %s", name_count)
+        return task_name
+
+    @classmethod
+    def build_or_get_dag_ctrl(cls, dag):
+        # dags can have same name (in tests), can be refreshed from disk..
+        dag_key = id(dag)
+        if dag_key not in cls.dag_to_context:
+            cls.dag_to_context[dag_key] = cls(dag=dag)
+
+        return cls.dag_to_context[dag_key]
 
 
 class AirflowDagDbndOperator(BaseOperator):
@@ -211,16 +300,18 @@ class AirflowDagDbndOperator(BaseOperator):
             if p_name in self.dbnd_xcom_inputs:
                 new_kwargs[p_name] = target(new_kwargs[p_name])
 
-        logger.info("Running %s with kwargs=%s ", self.task_id, new_kwargs)
-        dc = try_get_databand_context()
-
-        dbnd_task = dc.task_instance_cache.get_task_by_id(self.dbnd_task_id)
-        task = dbnd_task.clone(**new_kwargs)
-        task._task_submit()
+        dag = context["dag"]
+        dag_ctrl = FunctionalOperatorsDagCtrl.build_or_get_dag_ctrl(dag)
+        with DatabandContext.context(_context=dag_ctrl.dbnd_context) as dc:
+            logger.info("Running %s with kwargs=%s ", self.task_id, new_kwargs)
+            dbnd_task = dc.task_instance_cache.get_task_by_id(self.dbnd_task_id)
+            with dbnd_task.ctrl.task_context(phase=TaskContextPhase.BUILD):
+                task = dbnd_task.clone(**new_kwargs)
+                task._task_submit()
 
         logger.info("Finished to run %s", self)
         result = {
-            output_name: getattr(task, output_name)
+            output_name: convert_to_safe_types(getattr(task, output_name))
             for output_name in self.dbnd_xcom_outputs
         }
         return result
@@ -259,9 +350,14 @@ def _dbnd_track_and_execute(task, airflow_op, context):
         tr.runner.execute(airflow_context=context)
 
 
-def build_str_target(task, name):
+def build_xcom_str(task, name):
     op = task.ctrl.airflow_op
     xcom_path = "{{task_instance.xcom_pull('%s')['%s']}}" % (op.task_id, name)
+    return XComStr(xcom_path, op.task_id)
+
+
+def build_xcom_str_from_op(op):
+    xcom_path = "{{task_instance.xcom_pull('%s')}}" % (op.task_id)
     return XComStr(xcom_path, op.task_id)
 
 

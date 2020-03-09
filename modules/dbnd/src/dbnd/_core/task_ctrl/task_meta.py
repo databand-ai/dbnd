@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List
 import six
 
 from dbnd._core.configuration.dbnd_config import _ConfigLayer, config
+from dbnd._core.errors import DatabandError
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.task_build.task_signature import (
@@ -100,7 +101,16 @@ class TaskMeta(object):
     def get_children(self):
         # type: (...)-> List[Task]
         tic = self.dbnd_context.task_instance_cache
-        return [tic.get_task_by_id(c_id) for c_id in self.children]
+        children = []
+        for c_id in self.children:
+            child_task = tic.get_task_by_id(c_id)
+            if child_task is None:
+                raise DatabandError(
+                    "You have created %s in different dbnd_context, "
+                    "can't find task object in current context!" % c_id
+                )
+            children.append(child_task)
+        return children
 
     def _calculate_task_meta_key(self):
         params = [
