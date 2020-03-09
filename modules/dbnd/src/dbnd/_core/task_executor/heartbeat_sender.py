@@ -7,11 +7,10 @@ import sys
 
 from time import sleep, time
 
-import psutil
-
 from dbnd._core.constants import RunState
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
+from dbnd._vendor.psutil.vendorized_psutil import pid_exists
 
 
 logger = logging.getLogger(__name__)
@@ -106,7 +105,7 @@ def send_heartbeat_continuously(
         while True:
             loop_start = time()
             try:
-                if not psutil.pid_exists(
+                if not pid_exists(
                     driver_pid
                 ):  # failsafe, in case the driver process died violently
                     logger.info(
