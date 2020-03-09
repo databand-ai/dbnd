@@ -179,3 +179,11 @@ class DbndTargetOperationType(enum.Enum):
 class DbndTargetOperationStatus(enum.Enum):
     OK = "OK"
     NOK = "NOK"
+
+
+class SystemMetrics(enum.Enum):
+    Duration = "Duration"
+    TotalCpuTime = "Total CPU Time"
+    TotalWallTime = "Total Wall Time"
+    ColdTotalCpuTime = "Cold Total CPU Time"
+    ColdTotalWallTime = "Cold Total Wall Time"
