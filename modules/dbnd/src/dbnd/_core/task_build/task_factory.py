@@ -229,7 +229,7 @@ class TaskFactory(object):
         # the previous instance is returned to reduce number of object instances.
         tic = self.dbnd_context.task_instance_cache
         task = tic.get_task_obj_by_id(task_meta.obj_key.id)
-        if not task:
+        if not task or hasattr(task, "_dbnd_no_cache"):
             task = self.new_task_factory(task_meta)
             tic.task_obj_instances[task.task_meta.obj_key.id] = task
 
