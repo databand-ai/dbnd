@@ -3,6 +3,7 @@ import shlex
 
 from typing import Optional
 
+from dbnd._core.errors import ParseParameterError
 from dbnd_docker.docker_ctrl import DockerRunCtrl
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndPodCtrl
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
@@ -24,14 +25,19 @@ class KubernetesTaskRunCtrl(DockerRunCtrl):
 
         kubernetes_config = self.task.docker_engine  # type: KubernetesEngineConfig
         if self.task.image:
+            # If the image was described in the task itself, it should override the configuration
             try:
                 container_repository, container_tag = self.task.image.split(":")
                 kubernetes_config = kubernetes_config.clone(
                     container_repository=container_repository,
                     container_tag=container_tag,
                 )
-            except:
-                raise
+            except ValueError as e:
+                # ValueError is received when the task.image string is not formatted correctly
+                raise ParseParameterError(
+                    "Received image %s is not in image format! Expected repo:tag. Exception: %s"
+                    % (self.task.image, str(e))
+                )
         pod = kubernetes_config.build_pod(cmds=cmds, task_run=self.task_run)
         kube_dbnd = kubernetes_config.build_kube_dbnd()
 
