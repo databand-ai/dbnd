@@ -163,10 +163,14 @@ def unknown_args_in_task_call(parent_task, cls, func_params):
 
 
 def failed_to_create_task(exc_desc, nested_exceptions):
+    msg = "Failed to create task %s" % exc_desc
+    if nested_exceptions:
+        msg += ": "
+        msg += ",".join([str(e) for e in nested_exceptions[:3]])
+        if len(nested_exceptions) > 3:
+            msg += " (showing 3 errors out of %s)" % len(nested_exceptions)
     return DatabandBuildError(
-        "Failed to create task %s" % exc_desc,
-        show_exc_info=False,
-        nested_exceptions=nested_exceptions,
+        msg, show_exc_info=False, nested_exceptions=nested_exceptions
     )
 
 

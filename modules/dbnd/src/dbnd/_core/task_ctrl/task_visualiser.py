@@ -330,15 +330,16 @@ class _TaskBannerBuilder(TaskSubCtrl):
             str(ex),
             raw_name=True,
         )
+
         b.column(
-            colored("NESTED EXCEPTIONS", color="red", attrs=["bold"]),
-            nested_exceptions_str(ex, limit=1),
+            colored("HELP", attrs=["bold"]),
+            get_help_msg(ex),
             raw_name=True,
             skip_if_empty=True,
         )
         b.column(
-            colored("HELP", attrs=["bold"]),
-            get_help_msg(ex),
+            colored("CAUSED BY", color="red", attrs=["bold"]),
+            nested_exceptions_str(ex, limit=3),
             raw_name=True,
             skip_if_empty=True,
         )

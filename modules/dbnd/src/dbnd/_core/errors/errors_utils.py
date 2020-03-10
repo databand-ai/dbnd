@@ -64,7 +64,7 @@ def _nested_exceptions_messages(ex, limit=None, current=""):
         if cur_ex is None:
             continue
         ex_id = "{current}{idx}".format(current=current, idx=idx)
-        message = "{ex_id} {ex_type}: {msg} ".format(
+        message = "{ex_id}. {ex_type}: {msg} ".format(
             ex_id=ex_id, ex_type=type(cur_ex).__name__, msg=str(cur_ex)
         )
         help_msg = get_help_msg(cur_ex)
@@ -81,7 +81,9 @@ def _nested_exceptions_messages(ex, limit=None, current=""):
         messages.append(message)
         if limit is None or limit:
             messages.extend(
-                _nested_exceptions_messages(cur_ex, limit=limit, current=ex_id + ".")
+                _nested_exceptions_messages(
+                    cur_ex, limit=limit, current="(%s)-> " % ex_id
+                )
             )
     return messages
 

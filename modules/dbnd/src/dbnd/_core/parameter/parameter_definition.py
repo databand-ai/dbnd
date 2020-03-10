@@ -360,7 +360,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         define_via = []
 
         define_via.append(
-            "databand.cfg : [%s]%s=VALUE" % (" or ".join(sections), self.name)
+            "project.cfg : [%s]%s=VALUE" % (" | ".join(sections), self.name)
         )
         define_via.append("cli:   --set %s.%s=VALUE" % (self.task_family, self.name))
         define_via.append(
@@ -368,7 +368,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         )
         define_via = "\n".join(["\t* %s" % l for l in define_via])
 
-        return "Please, configure '{task_family}.{name}' using one of the following methods: \n {methods}".format(
+        return "You can change '{task_family}.{name}' value using one of the following methods: \n {methods}".format(
             task_family=(self.task_family), name=self.name, methods=define_via
         )
 

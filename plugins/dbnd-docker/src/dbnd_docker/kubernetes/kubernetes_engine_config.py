@@ -269,6 +269,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         if try_number is not None:
             pod_name = "%s-%s" % (pod_name, try_number)
 
+        image = self.full_image
         labels = combine_mappings(labels, self.labels)
         labels["dbnd_run_uid"] = clean_job_name_dns1123(str(task_run.run.run_uid))
         labels["dbnd_task_run_uid"] = clean_job_name_dns1123(str(task_run.task_run_uid))
@@ -297,8 +298,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             ENV_DBND_POD_NAME: pod_name,
             ENV_DBND_POD_NAMESPACE: self.namespace,
             ENV_DBND_USER: task_run.task_run_env.user,
+            ENV_DBND__ENV_IMAGE: image,
             ENV_DBND_ENV: task_run.run.env.task_name,
-            ENV_DBND__ENV_IMAGE: self.full_image,
             ENV_DBND__ENV_MACHINE: "%s at %s" % (pod_name, self.namespace),
         }
         if self.auto_remove:
@@ -308,6 +309,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         env_vars[
             "DBND__RUN_INFO__SOURCE_VERSION"
         ] = task_run.run.context.task_run_env.user_code_version
+
+        # we want that all next runs will be able to use the image that we have in our configuration
+
         env_vars.update(
             self._params.to_env_map("container_repository", "container_tag")
         )
@@ -344,7 +348,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             namespace=self.namespace,
             name=pod_name,
             envs=env_vars,
-            image="{}:{}".format(self.container_repository, self.container_tag),
+            image=image,
             cmds=cmds,
             args=args,
             labels=labels,
