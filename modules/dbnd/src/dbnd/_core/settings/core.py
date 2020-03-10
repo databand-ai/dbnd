@@ -212,7 +212,8 @@ class CoreConfig(Config):
         from dbnd._core.tracking.tracking_store import CompositeTrackingStore
 
         store_names = self.tracker
-        if len(store_names) == 1:
+        if len(store_names) == 1 and self.tracker_raise_on_error:
+            # only composite store supports tracker_raise_on_error=False
             return self._build_store(store_names[0])
         if not store_names:
             logger.warning("You are running without any tracking store configured.")
@@ -223,7 +224,7 @@ class CoreConfig(Config):
             if store:
                 stores.append(store)
 
-        return CompositeTrackingStore(stores=stores)
+        return CompositeTrackingStore(stores=stores, raise_on_error=self.tracker_raise_on_error)
 
     def get_scheduled_job_service(self):
         from dbnd.api import scheduler_api_client
