@@ -17,6 +17,7 @@ from dbnd import parameter
 from dbnd._core.configuration.environ_config import (
     ENV_DBND__ENV_IMAGE,
     ENV_DBND__ENV_MACHINE,
+    ENV_DBND_ENV,
     ENV_DBND_USER,
     environ_enabled,
 )
@@ -296,6 +297,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             ENV_DBND_POD_NAME: pod_name,
             ENV_DBND_POD_NAMESPACE: self.namespace,
             ENV_DBND_USER: task_run.task_run_env.user,
+            ENV_DBND_ENV: task_run.run.env.task_name,
             ENV_DBND__ENV_IMAGE: self.full_image,
             ENV_DBND__ENV_MACHINE: "%s at %s" % (pod_name, self.namespace),
         }
