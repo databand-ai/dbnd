@@ -46,3 +46,14 @@ def _timestamp(value):
         return value.timestamp()
 
     return time.mktime(value.timetuple())
+
+
+def safe_isinstance(obj, cls_str):
+    """
+    Checks whether a given obj implements the class who's name is in the cls_str parameter.
+    This means that the isinstance check is performed without looking at the object's type hierarchy, but rather
+    by class name.
+    """
+    if cls_str:
+        return cls_str in str(type(obj))
+    return False

@@ -7,9 +7,10 @@ from typing import List
 
 import six
 
-from airflow import DAG, settings
+from airflow import DAG
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
+from more_itertools import unique_everseen
 
 from databand import dbnd_config
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
@@ -20,7 +21,9 @@ from dbnd._core.run.databand_run import DatabandRun, new_databand_run
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.utils.json_utils import convert_to_safe_types
+from dbnd._core.utils.object_utils import safe_isinstance
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
+from dbnd_airflow_operator.airflow_utils import safe_get_context_manager_dag
 from dbnd_airflow_operator.xcom_target import XComResults, XComStr
 from targets import FileTarget, target
 
@@ -32,22 +35,19 @@ def is_in_airflow_dag_build_context():
     """
     :return: bool:  true if we are in DAG definition mode
     """
-    from dbnd_airflow.dbnd_task_executor.airflow_operators_catcher import (
-        DatabandOpCatcherDag,
-    )
-
-    if not settings.CONTEXT_MANAGER_DAG:
-        # there is no active DAG
+    context_manager_dag = safe_get_context_manager_dag()
+    if not context_manager_dag:
+        # there is no active DAG, no DAG context exists
         return False
 
-    # dbnd code capture inline operator creation with Catcher, it's not an airflow mode.
-    return not isinstance(settings.CONTEXT_MANAGER_DAG, DatabandOpCatcherDag)
+    # dbnd code captures inline operator creation with Catcher, it's not in airflow mode.
+    return not safe_isinstance(context_manager_dag, "DatabandOpCatcherDag")
 
 
 def build_task_at_airflow_dag_context(task_cls, call_args, call_kwargs):
     from airflow import settings
 
-    dag = settings.CONTEXT_MANAGER_DAG
+    dag = safe_get_context_manager_dag()
     dag_ctrl = FunctionalOperatorsDagCtrl.build_or_get_dag_ctrl(dag)
     return dag_ctrl.build_airflow_operator(
         task_cls=task_cls, call_args=call_args, call_kwargs=call_kwargs
@@ -95,6 +95,7 @@ class FunctionalOperatorsDagCtrl(object):
         def _process_xcom_value(value):
             if isinstance(value, BaseOperator):
                 value = build_xcom_str_from_op(value)
+                upstream_task_ids.append(value.task_id)
             if isinstance(value, XComStr):
                 upstream_task_ids.append(value.task_id)
                 return target("xcom://%s" % value)
@@ -142,7 +143,16 @@ class FunctionalOperatorsDagCtrl(object):
                 for p in task._params.get_params(output_only=True, user_only=True)
             ]
 
-        op = AirflowDagDbndOperator(
+        """
+        Workaround for backwards compatibility with Airflow 1.10.0,
+        dynamically creating new operator class (that inherits AirflowDagDbndOperator).
+        This is used because XCom templates for each operator are found in a class attribute
+        and we have different XCom templates for each INSTANCE of the operator.
+        Also, the template_fields attribute has a different value for each task, so we must ensure that they
+        don't get mixed up.
+        """
+        new_op = type(af_task_id, (AirflowDagDbndOperator,), {})
+        op = new_op(
             task_id=af_task_id,
             dbnd_task_type=task.get_task_family(),
             dbnd_task_id=task.task_id,
@@ -277,10 +287,13 @@ class AirflowDagDbndOperator(BaseOperator):
         self.dbnd_xcom_outputs = dbnd_xcom_outputs
 
         # make a copy
-        self.template_fields = list(self.template_fields)  # type: List[str]
+        all_template_fields = list(self.template_fields)  # type: List[str]
         if template_fields:
-            self.template_fields.extend(template_fields)
-        self.template_fields.extend(self.dbnd_task_params_fields)
+            all_template_fields.extend(template_fields)
+        all_template_fields.extend(self.dbnd_task_params_fields)
+
+        self.__class__.template_fields = list(unique_everseen(all_template_fields))
+        # self.template_fields = self.__class__.template_fields
 
     @property
     def task_type(self):

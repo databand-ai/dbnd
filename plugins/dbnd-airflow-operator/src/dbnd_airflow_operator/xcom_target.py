@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 from airflow import settings
 
+from dbnd_airflow_operator.airflow_utils import safe_get_context_manager_dag
 from targets import AtomicLocalFile, DataTarget
 from targets.fs import register_file_system
 from targets.fs.file_system import FileSystem
@@ -19,7 +20,7 @@ class XComStr(str):
 
     @property
     def op(self):
-        return settings.CONTEXT_MANAGER_DAG.get_task(self.task_id)
+        return safe_get_context_manager_dag().get_task(self.task_id)
 
     def set_downstream(self, task_or_task_list):
         self.op.set_downstream(task_or_task_list)
@@ -32,6 +33,7 @@ class XComResults(object):
         # type: (List[ Tuple[str, XComStr]]) -> XComResults
         self.xcom_args = xcom_args
 
+    @property
     def names(self):
         return [n for n, _ in self.xcom_args]
 
@@ -47,7 +49,7 @@ class XComResults(object):
 
     @property
     def op(self):
-        return settings.CONTEXT_MANAGER_DAG.get_task(self.xcom_args[0][1].task_id)
+        return safe_get_context_manager_dag().get_task(self.xcom_args[0][1].task_id)
 
     def set_downstream(self, task_or_task_list):
         self.op.set_downstream(task_or_task_list)
