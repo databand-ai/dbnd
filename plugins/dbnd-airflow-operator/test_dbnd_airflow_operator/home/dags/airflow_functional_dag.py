@@ -3,6 +3,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Tuple
 
+import airflow
+
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
@@ -20,6 +22,14 @@ default_args = {
     #      "my_task.p_int": 4
     # }
 }
+
+# support airflow 1.10.0
+if airflow.version.version == "1.10.0":
+
+    class PythonOperator_airflow_1_10_0(PythonOperator):
+        template_fields = ("templates_dict", "op_kwargs")
+
+    PythonOperator = PythonOperator_airflow_1_10_0
 
 
 @task
@@ -43,10 +53,8 @@ def some_python_function(input_path, output_path):
     return "success"
 
 
-#
 with DAG(dag_id="dbnd_operators", default_args=default_args) as dag_operators:
     # t1, t2 and t3 are examples of tasks created by instantiating operators
-    # t1 = my_task(2)
     t1 = my_task(2)
     t2, t3 = my_multiple_outputs(t1)
     tp = PythonOperator(
