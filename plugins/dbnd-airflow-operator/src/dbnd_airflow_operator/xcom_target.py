@@ -2,10 +2,8 @@ import io
 
 from typing import List, Tuple
 
-from airflow import settings
-
 from dbnd_airflow_operator.airflow_utils import safe_get_context_manager_dag
-from targets import AtomicLocalFile, DataTarget
+from targets import AtomicLocalFile
 from targets.fs import register_file_system
 from targets.fs.file_system import FileSystem
 from targets.pipes.base import FileWrapper
@@ -29,27 +27,28 @@ class XComStr(str):
 class XComResults(object):
     target_no_traverse = True
 
-    def __init__(self, xcom_args):
+    def __init__(self, result, sub_results):
         # type: (List[ Tuple[str, XComStr]]) -> XComResults
-        self.xcom_args = xcom_args
+        self.xcom_result = result
+        self.sub_results = sub_results
 
     @property
     def names(self):
-        return [n for n, _ in self.xcom_args]
+        return [n for n, _ in self.sub_results]
 
     def __iter__(self):
-        for _, xcom_arg in self.xcom_args:
-            yield xcom_arg
+        for _, xcom_sub_result in self.sub_results:
+            yield xcom_sub_result
 
     def __repr__(self):
         return "result(%s)" % ",".join(self.names)
 
     def as_dict(self):
-        return dict(self.xcom_args)
+        return dict(self.sub_results)
 
     @property
     def op(self):
-        return safe_get_context_manager_dag().get_task(self.xcom_args[0][1].task_id)
+        return safe_get_context_manager_dag().get_task(self.sub_results[0][1].task_id)
 
     def set_downstream(self, task_or_task_list):
         self.op.set_downstream(task_or_task_list)

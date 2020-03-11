@@ -9,7 +9,7 @@ from dbnd._core.plugin.dbnd_plugins import pm
 
 
 home = os.path.abspath(
-    os.path.normpath(os.path.join(os.path.dirname(__file__), "home"))
+    os.path.normpath(os.path.join(os.path.dirname(__file__), "airflow_home"))
 )
 os.environ["DBND_HOME"] = home
 os.environ["AIRFLOW_HOME"] = home

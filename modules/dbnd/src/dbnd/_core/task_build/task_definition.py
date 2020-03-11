@@ -82,7 +82,8 @@ class TaskDefinition(object):
 
         self.task_params, self.defaults = self._calculate_task_class_values(classdict)
 
-        # if we have output params in func args, the new func can not have only single result
+        # if we have output params in function arguments, like   f(some_p=parameter.output)
+        # the new function can not return the result of return
         self.single_result_output = self._is_result_single_output(self.task_params)
 
         defaults = {
