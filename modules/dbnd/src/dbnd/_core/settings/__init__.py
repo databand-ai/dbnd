@@ -17,7 +17,6 @@ from dbnd._core.settings.output import OutputConfig
 from dbnd._core.settings.run import RunConfig
 from dbnd._core.settings.run_info import RunInfoConfig
 from dbnd._core.settings.scheduler import SchedulerConfig
-from dbnd._core.settings.airflow_monitor import AirflowMonitorConfig
 from dbnd._core.task_build.task_registry import build_task_from_config
 
 if typing.TYPE_CHECKING:
@@ -42,7 +41,6 @@ class DatabandSettings(object):
         self.output = OutputConfig()
 
         self.scheduler = SchedulerConfig()
-        self.airflow_monitor = AirflowMonitorConfig()
 
         self.user_configs = {}
         for user_config in self.core.user_configs:
