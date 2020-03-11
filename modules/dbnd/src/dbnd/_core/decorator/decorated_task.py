@@ -109,8 +109,8 @@ class _DecoratedTask(Task):
         return call_user_code(*call_args, **call_kwargs)
 
     def _invoke_func(self, extra_kwargs=None, force_invoke=False):
-        # this function is called from run/banc
-        # that's mean we just need to execute user code to calculate staff
+        # this function is in charge of calling user defined code (decorated function) call
+        # usually it's called from from task.run/task.band
         extra_kwargs = extra_kwargs or {}
         spec = self._conf__decorator_spec
         invoke_kwargs = {}
