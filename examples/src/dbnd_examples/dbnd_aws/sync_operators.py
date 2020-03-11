@@ -11,7 +11,7 @@ from targets.utils.path import path_to_bucket_and_key
 logger = logging.getLogger(__name__)
 
 """
-This file contains Airflow operator and hook to monitor S3 path for new file. 
+This file contains Airflow operator and hook to monitor S3 path for new file.
 Used by scheduled_s3_sensor DAG in  airflow/scheduled_sensor.py
 """
 

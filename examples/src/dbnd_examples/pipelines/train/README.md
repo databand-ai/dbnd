@@ -6,7 +6,7 @@ dbnd run dbnd_examples.example_ml_pipeline.generate.generate_partner_data
 This pipeline generates data for 3 partners, `a` - csv format, `b`-json format , `c`-csv format:
 1. For each partner, 7 days of data under ```$DBND_PROJECT\example_raw_data\parthner_<name>``` folder.
 2. ```$DBND_PROJECT\example_raw_data\parthner_a.csv``` - a single file to train a model
-3. ```$DBND_PROJECT\example_raw_data\parthner_b.csv``` - a single (bad) file to train a model. 
+3. ```$DBND_PROJECT\example_raw_data\parthner_b.csv``` - a single (bad) file to train a model.
 This file contains random noise in target variable and cause the training pipeline to fail
 
 #Run Scenario
@@ -56,4 +56,3 @@ Prerequisites:
 run scripts/deploy.sh to setup minikube and install databand there
 run scripts/configure.sh to configure your databand dev project to work with minikube
 run scripts/run.sh to generate some load on minikube cluster so
-

@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
     child task not necessary has type definition (DataList[str])
      => passing targets may not work (or we can infer "parent" type for child parameter?)
      => not necessary we'll know to properly serialize any input object (pickle?)
-     
+
      ui - show target name or value?
      dependency to "file__task"?
-     
+
      only for tracking?
 
 ---

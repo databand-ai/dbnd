@@ -48,7 +48,7 @@ class TestSchedulerFileConfigLoader(object):
           schedule_interval: "* * * * *"
           retries: 2
           active: true
-          
+
         - name: predict_wine_quality daily
           cmd: dbnd run predict_wine_quality --task-target-date {{ ds }}
           schedule_interval: "@daily"
@@ -93,9 +93,9 @@ class TestSchedulerFileConfigLoader(object):
           schedule_interval: "@ * * * *"
           retries: five
           active: BANANA
-        
+
         - name: dbnd_sanity_check
-        
+
         - retries: 1
         """
 
@@ -146,7 +146,7 @@ class TestSchedulerFileConfigLoader(object):
         - name: to be updated
           cmd: after
           schedule_interval: "* * * * *"
-        
+
         - name: to be enabled
         """
 

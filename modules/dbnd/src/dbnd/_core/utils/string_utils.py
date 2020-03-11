@@ -84,7 +84,7 @@ def safe_short_string(value, max_value_len=1000, tail=False):
     Parameters:
         value (str): the string to be shortened
         max_value_len (int): max len of output
-        tail (bool): 
+        tail (bool):
     Returns:
         str: the string limited by max_value_len parameter
 

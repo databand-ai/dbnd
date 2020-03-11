@@ -13,5 +13,3 @@ dbnd run dbnd_examples.pipelines.scenario.train_model_for_customer --train-model
 
 #dbnd run dbnd_examples.pipelines.train.train_pipeline.train_model_for_customer
 #dbnd schedule --name train_model_hourly --cmd "dbnd run dbnd_examples.pipelines.train.train_pipeline.train_model_for_customer --train-model-for-customer-data example_raw_data/customer_a.csv" --start_date 2019-08-25 --schedule-interval "@hourly"
-
-

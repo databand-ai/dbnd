@@ -10,9 +10,9 @@ from dbnd_examples.dbnd_aws.sync_operators import S3StatefulSensor
 """
     this file should be put to airflow dag folder (or dag folder should point here)
     It contains definition of Airflow Dag that is used to periodically schedule databand runs.
-    A scheduled_s3_sensor DAG is running Airflow sensor that waits and fires event when new files 
+    A scheduled_s3_sensor DAG is running Airflow sensor that waits and fires event when new files
     are added to source path (new means it does not exists in destination path). ingest_op is running as downstream
-    task and ingest new files after validation into destination path. This DAG is scheduled to run every 2 minutes 
+    task and ingest new files after validation into destination path. This DAG is scheduled to run every 2 minutes
     note that ingest_op is defines as databand task and used as Airflow operator.
     """
 

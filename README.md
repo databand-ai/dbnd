@@ -1,7 +1,7 @@
 [![pipeline status](https://gitlab.com/databand-ai/dbnd/badges/master/pipeline.svg)](https://gitlab.com/databand-ai/dbnd/pipelines)
 
-![PyPI - Downloads](https://img.shields.io/pypi/dm/dbnd) ![PyPI](https://img.shields.io/pypi/v/dbnd) 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dbnd) ![PyPI - License](https://img.shields.io/pypi/l/dbnd) 
+![PyPI - Downloads](https://img.shields.io/pypi/dm/dbnd) ![PyPI](https://img.shields.io/pypi/v/dbnd)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dbnd) ![PyPI - License](https://img.shields.io/pypi/l/dbnd)
 ![Code style: ](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 # DBND
@@ -26,7 +26,7 @@ And makes it easy to track your critical pipeline metadata
 ```python
 from dbnd import log_metric, log_dataframe
 
-log_dataframe("my_dataset", my_dataset) 
+log_dataframe("my_dataset", my_dataset)
 log_metric("r2", r2)
 ```
 

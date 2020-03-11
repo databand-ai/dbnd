@@ -1,10 +1,10 @@
 # Dbnd-Airflow Syncing mechanism
 
-## dbnd-airflow-sync (an Airflow plugin) 
+## dbnd-airflow-sync (an Airflow plugin)
 
-`dbnd-airflow-sync` is a plugin for Airflow system, enables you to fetch data from Airflow database and DAG folder. 
+`dbnd-airflow-sync` is a plugin for Airflow system, enables you to fetch data from Airflow database and DAG folder.
 This Airflow side module is one of two components allows you to sync your Airflow data into `Databand` system.
-  
+
 ### What does it do?
 The plugin exposes a REST Api within `GET` `/export_data` which, expects `since` (utc) and `period` (int) in minutes.
 This api returns json with all the relevant information scraped from airflow system.
@@ -26,18 +26,18 @@ cd dbnd-airflow-sync
 pip install -e .
 ```
 
-## dbnd-airflow-sync (a Databand module) 
+## dbnd-airflow-sync (a Databand module)
 
-`dbnd-airflow-sync` is a stand-alone module for Databand system, enables you to load data from Airflow server and import it into `Databand` system. 
+`dbnd-airflow-sync` is a stand-alone module for Databand system, enables you to load data from Airflow server and import it into `Databand` system.
 This Databand side module is one of two components allows you to sync your Airflow data into `Databand` system.
- 
+
 
 ### Installation with setup tools
 ```bash
 cd modules/dbnd-airflow-sync
 pip install -e .
 ```
- 
+
 ### Usage
 `dbnd airflow-monitor`
 
@@ -47,8 +47,8 @@ You can configure your syncing variables inside `airflow_sync.cfg`
 
 ```cfg
 [core]
-interval = 10 ; Time in seconds to wait between each fetching cycle 
-fetcher = web ; Fetch method. Data can be fetched directly from db or through rest api [web\db] 
+interval = 10 ; Time in seconds to wait between each fetching cycle
+fetcher = web ; Fetch method. Data can be fetched directly from db or through rest api [web\db]
 include_logs = True ; Whether or not to include logs (might be heavy)
 
 # Fetch period in mins

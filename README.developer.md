@@ -2,7 +2,7 @@ Development Guide
 ============
 
 ##  Make Patch or Release
-### Prerequisite: 
+### Prerequisite:
 ```shell script
 pip install wheel twine bumpversion
 ```
@@ -29,9 +29,9 @@ brew install pre-commit
 
 ## Debug
 
-###  User Space Task and Configs objects build 
+###  User Space Task and Configs objects build
 
 ```ini
 [task_build]
-verbose=True 
+verbose=True
 ```

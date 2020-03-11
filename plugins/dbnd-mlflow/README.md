@@ -18,7 +18,7 @@ databand_url=http://localhost:8081
 # Enable tracking to Databand store
 databand_tracking=True
 
-# Optionally, define a URI for mlflow store, 
+# Optionally, define a URI for mlflow store,
 # mlflow.get_tracking_uri() is used by default
 ; duplicate_tracking_to=http://mlflow-store/
 ```
@@ -66,12 +66,12 @@ def mlflow_example():
     * the new uri is set to be used with `mlflow.set_tracking_uri()`
 4. `mlflow_example` task starts:
     1. `mlflow.start_run()`
-        1. `mlflow` reads `entry_points` for each installed package and finds: 
+        1. `mlflow` reads `entry_points` for each installed package and finds:
             * "dbnd = dbnd_mlflow.tracking_store:get_dbnd_store",
             * "dbnd+s = dbnd_mlflow.tracking_store:get_dbnd_store",
             * "databand = dbnd_mlflow.tracking_store:get_dbnd_store",
             * "databand+s = dbnd_mlflow.tracking_store:get_dbnd_store",
-        2. `mlflow` creates `TrackingStoreClient` using the new uri 
+        2. `mlflow` creates `TrackingStoreClient` using the new uri
         3. uri schema instructs to use `dbnd_mlflow.tracking_store:get_dbnd_store`
             * `get_dbnd_store` creates dbnd `TrackingAPIClient`
             * `get_dbnd_store` creates mlflow tracking store to duplicate tracking to
@@ -83,4 +83,4 @@ def mlflow_example():
     3. `mlflow.end_run()`
 5. `mlflow_example` ends
 6. `dbnd_on_exit_context` hook from `dbnd_mlflow` is triggered
-    * restore original mlflow tracking uri 
+    * restore original mlflow tracking uri

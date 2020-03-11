@@ -224,7 +224,9 @@ class CoreConfig(Config):
             if store:
                 stores.append(store)
 
-        return CompositeTrackingStore(stores=stores, raise_on_error=self.tracker_raise_on_error)
+        return CompositeTrackingStore(
+            stores=stores, raise_on_error=self.tracker_raise_on_error
+        )
 
     def get_scheduled_job_service(self):
         from dbnd.api import scheduler_api_client
