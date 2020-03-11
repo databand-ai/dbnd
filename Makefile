@@ -10,6 +10,7 @@ prj_plugins = 	plugins/dbnd-aws  \
           	plugins/dbnd-azure \
           	plugins/dbnd-airflow-export \
           	plugins/dbnd-airflow-versioned-dag \
+          	plugins/dbnd-airflow-operator \
 			plugins/dbnd-databricks \
 			plugins/dbnd-docker \
 			plugins/dbnd-hdfs \
@@ -129,6 +130,8 @@ dist-modules-dirty:
 		(cd $$m && python setup.py sdist bdist_wheel) ;\
 		mv $$m/dist/* dist;\
 	done
+
+	ls -l dist
 
 dist-modules: clean dist-modules-dirty
 
