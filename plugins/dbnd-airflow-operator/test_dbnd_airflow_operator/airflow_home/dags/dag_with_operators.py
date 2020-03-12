@@ -18,9 +18,7 @@ default_args = {
     "start_date": days_ago(2),
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
-    # 'dbnd_config': {
-    #      "my_task.p_int": 4
-    # }
+    "dbnd_config": {"my_task.p_int_with_default": 4},
 }
 
 # support airflow 1.10.0
@@ -33,7 +31,7 @@ if airflow.version.version == "1.10.0":
 
 
 @task
-def my_task(p_int=3, p_str="check") -> str:
+def my_task(p_int=3, p_str="check", p_int_with_default=0) -> str:
     logging.info("I am running")
     return "success"
 
