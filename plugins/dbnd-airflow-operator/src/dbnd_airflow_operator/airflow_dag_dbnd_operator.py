@@ -45,8 +45,6 @@ def is_in_airflow_dag_build_context():
 
 
 def build_task_at_airflow_dag_context(task_cls, call_args, call_kwargs):
-    from airflow import settings
-
     dag = safe_get_context_manager_dag()
     dag_ctrl = FunctionalOperatorsDagCtrl.build_or_get_dag_ctrl(dag)
     return dag_ctrl.build_airflow_operator(
@@ -94,7 +92,7 @@ class FunctionalOperatorsDagCtrl(object):
         # we support first level xcom values only (not nested)
         def _process_xcom_value(value):
             if isinstance(value, BaseOperator):
-                value = build_xcom_str_from_op(value)
+                value = build_xcom_str(value)
                 upstream_task_ids.append(value.task_id)
             if isinstance(value, XComStr):
                 upstream_task_ids.append(value.task_id)
@@ -130,13 +128,13 @@ class FunctionalOperatorsDagCtrl(object):
                 p_value = p_value.path.replace("xcom://", "")
             dbnd_task_params[p_name] = convert_to_safe_types(p_value)
 
-        single_result = False
+        single_value_result = False
         if task.task_definition.single_result_output:
             if isinstance(task.result, ResultProxyTarget):
                 dbnd_xcom_outputs = task.result.names
             else:
                 dbnd_xcom_outputs = ["result"]
-                single_result = True
+                single_value_result = True
         else:
             dbnd_xcom_outputs = [
                 p.name
@@ -151,7 +149,7 @@ class FunctionalOperatorsDagCtrl(object):
         Also, the template_fields attribute has a different value for each task, so we must ensure that they
         don't get mixed up.
         """
-        new_op = type(af_task_id, (AirflowDagDbndOperator,), {})
+        new_op = type(task.get_task_family(), (AirflowDagDbndOperator,), {})
         op = new_op(
             task_id=af_task_id,
             dbnd_task_type=task.get_task_family(),
@@ -164,19 +162,12 @@ class FunctionalOperatorsDagCtrl(object):
         )
         task.ctrl.airflow_op = op
 
-        for k, v in six.iteritems(dbnd_task_params):
-            setattr(op, k, v)
-
-        results = [(n, build_xcom_str(task, n)) for n in dbnd_xcom_outputs]
-        for n, xcom_arg in results:
-            setattr(op, n, xcom_arg)
-        setattr(op, "dbnd_xcom_outputs", dbnd_xcom_outputs)
-
         if task.task_retries is not None:
             op.retries = task.task_retries
             op.retry_delay = task.task_retry_delay
         # set_af_operator_doc_md(task_run, op)
 
+        # in case we are inside pipeline, pipeline task will create more operators inside itself.
         for t_child in task.task_meta.children:
             # let's reconnect to all internal tasks
             t_child = try_get_databand_context().task_instance_cache.get_task_by_id(
@@ -200,15 +191,21 @@ class FunctionalOperatorsDagCtrl(object):
                 continue
             op.set_upstream(upstream_task)
 
-        # we are in inline debug mode -> we are going to execute the task
-        # we are in the band
-        # and want to return result of the object
+        for k, v in six.iteritems(dbnd_task_params):
+            setattr(op, k, v)
 
-        logger.debug("%s params: %s", task.task_id, dbnd_task_params)
-        logger.debug("%s outputs: %s", task.task_id, results)
-        if single_result:
-            return results[0][1]
-        return XComResults(results)
+        results = [(n, build_xcom_str(op=op, name=n)) for n in dbnd_xcom_outputs]
+        for n, xcom_arg in results:
+            setattr(op, n, xcom_arg)
+        setattr(op, "dbnd_xcom_outputs", dbnd_xcom_outputs)
+
+        logger.debug(
+            "%s\n\tparams: %s\n\toutputs: %s", task.task_id, dbnd_task_params, results
+        )
+        if single_value_result:
+            result = results[0]
+            return result[1]  # return result XComStr
+        return XComResults(result=build_xcom_str(op), sub_results=results)
 
     def get_and_process_dbnd_dag_config(self):
         dag = self.dag
@@ -363,14 +360,14 @@ def _dbnd_track_and_execute(task, airflow_op, context):
         tr.runner.execute(airflow_context=context)
 
 
-def build_xcom_str(task, name):
-    op = task.ctrl.airflow_op
-    xcom_path = "{{task_instance.xcom_pull('%s')['%s']}}" % (op.task_id, name)
-    return XComStr(xcom_path, op.task_id)
-
-
-def build_xcom_str_from_op(op):
-    xcom_path = "{{task_instance.xcom_pull('%s')}}" % (op.task_id)
+def build_xcom_str(op, name=None):
+    """
+    :param op: airflow operator
+    :param name: name of result
+    :return:
+    """
+    result_key = "['%s']" % name if name else ""
+    xcom_path = "{{task_instance.xcom_pull('%s')%s}}" % (op.task_id, result_key)
     return XComStr(xcom_path, op.task_id)
 
 
