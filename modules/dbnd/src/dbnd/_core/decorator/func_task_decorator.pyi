@@ -1,12 +1,13 @@
 from datetime import datetime
+from typing import Optional
 
 def task(
-    task_class_version: str,
-    task_env: str,
-    task_target_date: datetime.date,
-    task_airflow_op_kwargs: dict[str, object],
-    task_config: dict,
-    result,
+    task_class_version: Optional[str],
+    task_env: Optional[str],
+    task_target_date: Optional[datetime.date],
+    task_airflow_op_kwargs: Optional[dict[str, object]],
+    task_config: Optional[dict],
+    result: Optional,
 ):
     """
     Used to indicate persistent changes in a code.

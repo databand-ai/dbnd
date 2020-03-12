@@ -73,6 +73,9 @@ As you can see, messages are passed explicitly between all three tasks:
 - some_python_function is wrapped with an operator
 - The new python operator is defined as dependent upon t3's execution (downstream) - explicitly.
 
+>Note: If you run a function marked with the `@task` decorator without a DAG context, and without using the dbnd
+library to run it - it will execute absolutely normally!
+
 Using this method to pass arguments between tasks not only improves developer user-experience, but also allows
 for pipeline execution support for many use-cases. It does not break currently existing DAGs.
 

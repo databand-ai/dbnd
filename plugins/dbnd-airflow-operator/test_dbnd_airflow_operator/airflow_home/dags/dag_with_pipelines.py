@@ -1,11 +1,12 @@
+import logging
+
 from datetime import timedelta
 from typing import Tuple
 
 from airflow import DAG
 from airflow.utils.dates import days_ago
 
-from airflow_functional_dag import my_multiple_outputs, my_task
-from dbnd import pipeline
+from dbnd import pipeline, task
 
 
 default_args = {
@@ -15,6 +16,17 @@ default_args = {
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
 }
+
+
+@task
+def my_task(p_int=3, p_str="check", p_int_with_default=0) -> str:
+    logging.info("I am running")
+    return "success"
+
+
+@task
+def my_multiple_outputs(p_str="some_string") -> Tuple[int, str]:
+    return 1, p_str + "_extra_postfix"
 
 
 @pipeline
@@ -45,7 +57,6 @@ def my_pipeline_search(x_range=3):
 
 with DAG(dag_id="dbnd_pipeline", default_args=default_args) as dag_dbnd_pipeline:
     my_pipeline()
-
 
 with DAG(dag_id="dbnd_search", default_args=default_args) as dag_dbnd_search:
     my_pipeline_search(2)

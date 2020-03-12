@@ -1,48 +1,81 @@
-#  UN-COMMENT TO ACTIVATE
-#
-#
-# from datetime import timedelta
-#
-# from airflow import DAG
-# from airflow.utils.dates import days_ago
-# from pandas import DataFrame
-#
-# from dbnd import pipeline
-# from dbnd._core.current import try_get_current_task
-# from dbnd_examples.pipelines.wine_quality.wine_quality_decorators_py3 import (
-#     predict_wine_quality,
-# )
-#
-#
-# default_args = {
-#     "owner": "airflow",
-#     "depends_on_past": False,
-#     "start_date": days_ago(2),
-#     "retries": 1,
-#     "retry_delay": timedelta(minutes=5),
-#     # 'dbnd_config': {
-#     #      "my_task.p_int": 4
-#     # }
-# }
-#
-#
-# @pipeline
-# def predict_wine_quality_with_airflow(
-#     data: DataFrame = None,
-#     alpha: float = 0.5,
-#     l1_ratio: float = 0.5,
-#     good_alpha: bool = False,
-# ):
-#     from airflow.operators.bash_operator import BashOperator
-#
-#     native_op = BashOperator(task_id="native_airflow_op", bash_command="echo hello")
-#     try_get_current_task().set_upstream(native_op)
-#     return predict_wine_quality(
-#         data=data, alpha=alpha, l1_ratio=l1_ratio, good_alpha=good_alpha
-#     )
-#
-#
-# with DAG(dag_id="dbnd_predict", default_args=default_args) as dag_operators:
-#     predict_wine_quality(
-#         data="../../../../examples/data/wine_quality.csv"
-#     )
+import logging
+import time
+
+from datetime import timedelta
+from typing import Tuple
+
+from airflow import DAG
+from airflow.utils.dates import days_ago
+from pandas import DataFrame
+from sklearn.model_selection import train_test_split
+
+from dbnd import pipeline, task
+
+
+logger = logging.getLogger(__name__)
+
+default_args = {
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": days_ago(2),
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
+    # 'dbnd_config': {
+    #      "my_task.p_int": 4
+    # }
+}
+
+
+@task(result=("training_set", "test_set", "validation_set", "good_alpha"))
+def create_data_sets(
+    data: DataFrame = None
+) -> Tuple[DataFrame, DataFrame, DataFrame, bool]:
+    train_df, test_df = train_test_split(data)
+    test_df, validation_df = train_test_split(test_df, test_size=0.5)
+
+    return train_df, test_df, validation_df, True
+
+
+@task
+def calculate_alpha(alpha: float = 0.5) -> float:
+    alpha -= 0.1
+    return alpha
+
+
+@task
+def train_model(sets: Tuple[DataFrame, DataFrame], alpha: float = 0.5):
+    logging.info("Training the model...")
+    time.sleep(2)
+
+    return 0
+
+
+@task
+def validate_model(model: str, validation_dataset: DataFrame) -> bool:
+    return not validation_dataset.is_copy and model is not None
+
+
+@task
+def get_data_frame(data: DataFrame = None):
+    logging.info("I found the data!")
+    return data
+
+
+alpha = 0.5
+data_path = "../../../../examples/data/wine_quality.csv"
+
+with DAG(dag_id="dbnd_split_data_frame", default_args=default_args) as dag_operators:
+    data_frame = get_data_frame(data_path)
+    train_set, test_set, validation_set, good_alpha = create_data_sets(data=data_frame)
+    if good_alpha:
+        alpha = calculate_alpha(alpha=alpha)
+
+    model = train_model(sets=(train_set, test_set), alpha=alpha)
+
+    validation = validate_model(model=model, validation_dataset=validation_set)
+
+    logger.info("Successfully read pipeline")
+
+if __name__ == "__main__":
+    dag_operators.clear()
+    dag_operators.run()
