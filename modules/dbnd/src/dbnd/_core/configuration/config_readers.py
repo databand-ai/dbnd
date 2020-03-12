@@ -194,6 +194,8 @@ def parse_and_build_config_store(
                         section=section, key=key, config=config_values
                     )
                 )
+            if isinstance(key, ParameterDefinition):
+                key = key.name
             if not isinstance(value, ConfigValue):
                 value = ConfigValue(
                     value=value,
