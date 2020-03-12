@@ -213,7 +213,9 @@ class FunctionalOperatorsDagCtrl(object):
             dag_dbnd_config = dag.default_args.get("dbnd_config", {})
 
         config_store = parse_and_build_config_store(
-            source="%s default args" % dag.dag_id, config_values=dag_dbnd_config
+            source="%s default args" % dag.dag_id,
+            config_values=dag_dbnd_config,
+            auto_section_parse=True,
         )
 
         # config can have problems around serialization,
