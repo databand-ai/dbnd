@@ -74,7 +74,7 @@ with DAG(dag_id="dbnd_split_data_frame", default_args=default_args) as dag_opera
 
     validation = validate_model(model=model, validation_dataset=validation_set)
 
-    logger.info("Successfully read pipeline")
+    logger.debug("Successfully read pipeline")
 
 if __name__ == "__main__":
     dag_operators.clear()
