@@ -18,6 +18,9 @@ class ConsoleDebugTrackingChannel(TrackingAPI):
     def _handle(self, name, data):
         self.print_func("tracking %s():\n%s" % (name, self._printer.pformat(data)))
 
+    def is_ready(self):
+        return True
+
 
 # We can implement file tracking channel the moment we can have proper tracker.close() handling
 # class FileTrackingChannel(TrackingAPI):

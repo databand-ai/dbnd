@@ -15,6 +15,7 @@ from dbnd._core.constants import (
     RunState,
     TaskRunState,
 )
+from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
@@ -337,6 +338,9 @@ class TrackingAPI(object):
     def save_airflow_task_infos(self, data):
         return self._handle(TrackingAPI.save_airflow_task_infos.__name__, data)
 
+    def is_ready(self):
+        return self._handle(TrackingAPI.is_ready.__name__, None)
+
 
 class TrackingApiClient(TrackingAPI):
     """Json API client implementation."""
@@ -346,6 +350,13 @@ class TrackingApiClient(TrackingAPI):
 
     def _handle(self, name, data):
         return self.client.api_request(name, data)
+
+    def is_ready(self):
+        try:
+            self.client.api_request("/app", None, method="HEAD", no_prefix=True)
+            return True
+        except (DatabandConnectionException, DatabandApiError):
+            return False
 
 
 @attr.s
