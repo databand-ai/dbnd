@@ -4,7 +4,7 @@ from typing import Tuple
 from airflow import DAG
 from airflow.utils.dates import days_ago
 
-from airflow_functional_dag import my_multiple_outputs, my_task
+from dag_with_operators import my_multiple_outputs, my_task
 from dbnd import pipeline
 
 
