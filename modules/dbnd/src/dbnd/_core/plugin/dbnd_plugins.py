@@ -1,5 +1,8 @@
 import logging
 import os
+import sys
+
+import six
 
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
@@ -79,6 +82,9 @@ def register_dbnd_plugins():
         return
     _dbnd_plugins_registered = True
 
+    if six.PY2:
+        # fix path from "non" str values, otherwise we fail on py2
+        sys.path = [str(p) if type(p) != str else p for p in sys.path]
     pm.load_setuptools_entrypoints("dbnd")
     pm.check_pending()
 
