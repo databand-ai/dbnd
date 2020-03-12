@@ -61,3 +61,7 @@ with DAG(dag_id="dbnd_operators", default_args=default_args) as dag_operators:
         op_kwargs={"input_path": t3, "output_path": "/tmp/output.txt"},
     )
     tp.set_upstream(t3.op)
+
+if __name__ == "__main__":
+    dag_operators.clear()
+    dag_operators.run()
