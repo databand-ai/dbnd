@@ -1,27 +1,18 @@
-# PLEASE DO NOT MOVE/RENAME THIS FILE, IT'S SERIALIZED INTO AIRFLOW DB
 import logging
-import sys
-
-from subprocess import list2cmdline
-from typing import List
 
 import six
 
-from airflow import DAG
 from airflow.models import BaseOperator
-from airflow.utils.decorators import apply_defaults
-from more_itertools import unique_everseen
 
 from databand import dbnd_config
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.current import try_get_databand_context
 from dbnd._core.decorator.schemed_result import ResultProxyTarget
-from dbnd._core.task.task import Task
-from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.object_utils import safe_isinstance
 from dbnd_airflow_operator.airflow_utils import safe_get_context_manager_dag
+from dbnd_airflow_operator.dbnd_functional_operator import DbndFunctionalOperator
 from dbnd_airflow_operator.xcom_target import XComResults, XComStr, build_xcom_str
 from targets import FileTarget, target
 
@@ -44,18 +35,18 @@ def is_in_airflow_dag_build_context():
 
 def build_task_at_airflow_dag_context(task_cls, call_args, call_kwargs):
     dag = safe_get_context_manager_dag()
-    dag_ctrl = FunctionalOperatorsDagCtrl.build_or_get_dag_ctrl(dag)
+    dag_ctrl = DagFuncOperatorCtrl.build_or_get_dag_ctrl(dag)
     return dag_ctrl.build_airflow_operator(
         task_cls=task_cls, call_args=call_args, call_kwargs=call_kwargs
     )
 
 
-default_dag_config = parse_and_build_config_store(
+_default_dbnd_dag_context_config = parse_and_build_config_store(
     source="airflow_defaults", config_values={"log": {"disabled": True}}
 )
 
 
-class FunctionalOperatorsDagCtrl(object):
+class DagFuncOperatorCtrl(object):
     dag_to_context = {}
 
     def __init__(self, dag):
@@ -106,10 +97,9 @@ class FunctionalOperatorsDagCtrl(object):
         }
 
         task = task_cls(*call_args, **call_kwargs)  # type: Task
+
+        # we will want to not cache "pipelines", as we need to run ".band()" per DAG
         setattr(task, "_dbnd_no_cache", True)
-        dc = try_get_databand_context()
-        logger.debug("Environment: %s", dc.env)
-        op_kwargs = task.task_airflow_op_kwargs or {}
 
         user_inputs_only = task._params.get_param_values(
             user_only=True, input_only=True
@@ -139,6 +129,7 @@ class FunctionalOperatorsDagCtrl(object):
                 for p in task._params.get_params(output_only=True, user_only=True)
             ]
 
+        op_kwargs = task.task_airflow_op_kwargs or {}
         """
         Workaround for backwards compatibility with Airflow 1.10.0,
         dynamically creating new operator class (that inherits AirflowDagDbndOperator).
@@ -147,7 +138,7 @@ class FunctionalOperatorsDagCtrl(object):
         Also, the template_fields attribute has a different value for each task, so we must ensure that they
         don't get mixed up.
         """
-        new_op = type(task.get_task_family(), (AirflowDagDbndOperator,), {})
+        new_op = type(task.get_task_family(), (DbndFunctionalOperator,), {})
         op = new_op(
             task_id=af_task_id,
             dbnd_task_type=task.get_task_family(),
@@ -168,34 +159,27 @@ class FunctionalOperatorsDagCtrl(object):
         # in case we are inside pipeline, pipeline task will create more operators inside itself.
         for t_child in task.task_meta.children:
             # let's reconnect to all internal tasks
-            t_child = try_get_databand_context().task_instance_cache.get_task_by_id(
-                t_child
-            )
+            t_child = self.dbnd_context.task_instance_cache.get_task_by_id(t_child)
             upstream_task = dag.task_dict.get(t_child.task_name)
             if not upstream_task:
-                logging.error(
-                    "Failed to connect to child %s %s: %s",
-                    op,
-                    t_child.task_name,
-                    dag.task_dict.keys(),
-                )
+                self.__log_task_not_found_error(op, t_child.task_name)
                 continue
             op.set_upstream(upstream_task)
 
         for task_id in upstream_task_ids:
             upstream_task = dag.task_dict.get(task_id)
             if not upstream_task:
-                logging.error("Failed to connect to dependency %s %s", op, task_id)
+                self.__log_task_not_found_error(op, task_id)
                 continue
             op.set_upstream(upstream_task)
 
+        # populated Operator with current params values
         for k, v in six.iteritems(dbnd_task_params):
             setattr(op, k, v)
 
         results = [(n, build_xcom_str(op=op, name=n)) for n in dbnd_xcom_outputs]
         for n, xcom_arg in results:
             setattr(op, n, xcom_arg)
-        setattr(op, "dbnd_xcom_outputs", dbnd_xcom_outputs)
 
         logger.debug(
             "%s\n\tparams: %s\n\toutputs: %s", task.task_id, dbnd_task_params, results
@@ -223,7 +207,7 @@ class FunctionalOperatorsDagCtrl(object):
         if dag.default_args:
             dag.default_args["dbnd_config"] = config_store
 
-        config_store = default_dag_config.merge(config_store)
+        config_store = _default_dbnd_dag_context_config.merge(config_store)
         logger.debug("Config store for %s: %s", self.dag.dag_id, config_store)
         return config_store
 
@@ -252,110 +236,10 @@ class FunctionalOperatorsDagCtrl(object):
 
         return cls.dag_to_context[dag_key]
 
-
-class AirflowDagDbndOperator(BaseOperator):
-    """
-    This is the Airflow operator that is created for every Databand Task
-
-
-    it assume all tasks inputs coming from other airlfow tasks are in the format
-
-    """
-
-    ui_color = "#ffefeb"
-
-    @apply_defaults
-    def __init__(
-        self,
-        dbnd_task_type,
-        dbnd_task_id,
-        dbnd_xcom_inputs,
-        dbnd_xcom_outputs,
-        dbnd_task_params_fields,
-        **kwargs
-    ):
-        template_fields = kwargs.pop("template_fields", None)
-        super(AirflowDagDbndOperator, self).__init__(**kwargs)
-        self._task_type = dbnd_task_type
-        self.dbnd_task_id = dbnd_task_id
-
-        self.dbnd_task_params_fields = dbnd_task_params_fields
-        self.dbnd_xcom_inputs = dbnd_xcom_inputs
-        self.dbnd_xcom_outputs = dbnd_xcom_outputs
-
-        # make a copy
-        all_template_fields = list(self.template_fields)  # type: List[str]
-        if template_fields:
-            all_template_fields.extend(template_fields)
-        all_template_fields.extend(self.dbnd_task_params_fields)
-
-        self.__class__.template_fields = list(unique_everseen(all_template_fields))
-        # self.template_fields = self.__class__.template_fields
-
-    @property
-    def task_type(self):
-        return "task"
-
-    def get_dbnd_dag_ctrl(self):
-        dag = self.dag
-        return FunctionalOperatorsDagCtrl.build_or_get_dag_ctrl(dag)
-
-    def get_dbnd_task(self):
-        return self.get_dbnd_dag_ctrl().dbnd_context.task_instance_cache.get_task_by_id(
-            self.dbnd_task_id
+    def __log_task_not_found_error(self, op, task_id):
+        logging.error(
+            "Failed to connect to child %s %s: all known tasks are '%s'",
+            op,
+            task_id,
+            self.dag.task_dict.keys(),
         )
-
-    def execute(self, context):
-        logger.debug("Running dbnd task from airflow operator %s", self.task_id)
-
-        # Airflow has updated all relevan fields in Operator definition with XCom values
-        # now we can create a real dbnd task with real references to task
-        new_kwargs = {}
-        for p_name in self.dbnd_task_params_fields:
-            new_kwargs[p_name] = getattr(self, p_name, None)
-            # this is the real input value after
-            if p_name in self.dbnd_xcom_inputs:
-                new_kwargs[p_name] = target(new_kwargs[p_name])
-
-        dag_ctrl = self.get_dbnd_dag_ctrl()
-        with DatabandContext.context(_context=dag_ctrl.dbnd_context) as dc:
-            logger.debug("Running %s with kwargs=%s ", self.task_id, new_kwargs)
-            dbnd_task = dc.task_instance_cache.get_task_by_id(self.dbnd_task_id)
-            with dbnd_task.ctrl.task_context(phase=TaskContextPhase.BUILD):
-                task = dbnd_task.clone(**new_kwargs)
-
-            with dbnd_task.ctrl.task_context(phase=TaskContextPhase.RUN):
-                task._task_submit()
-
-        logger.debug("Finished to run %s", self)
-        result = {
-            output_name: convert_to_safe_types(getattr(task, output_name))
-            for output_name in self.dbnd_xcom_outputs
-        }
-        return result
-
-    def on_kill(self):
-        return self.get_dbnd_task().on_kill()
-
-
-def build_dag_task(dag):
-    # type: (DAG) -> Task
-
-    # create "root task" with default name as current process executable file name
-
-    class InplaceTask(Task):
-        _conf__task_family = dag.dag_id
-
-    try:
-        if dag.fileloc:
-            dag_code = open(dag.fileloc, "r").read()
-            InplaceTask.task_definition.task_source_code = dag_code
-            InplaceTask.task_definition.task_module_code = dag_code
-    except Exception:
-        pass
-
-    dag_task = InplaceTask(task_version="now", task_name=dag.dag_id)
-    dag_task.task_is_system = True
-    dag_task.task_meta.task_command_line = list2cmdline(sys.argv)
-    dag_task.task_meta.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
-    return dag_task
