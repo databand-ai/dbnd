@@ -34,7 +34,7 @@ def setup_airflow_test_env():
     sql_alchemy_conn = airflow_configuration.get("core", "sql_alchemy_conn")
     if sql_alchemy_conn.find("unittest.db") == -1:
         raise Exception(
-            "You should set SQL_ALCHEMY_CONN to sqlite:///.../unittest.db for tests! %s"
+            "You should set SQL_ALCHEMY_CONN to sqlite:///.../unittest.db for tests! Got '%s' instead!"
             % sql_alchemy_conn
         )
 

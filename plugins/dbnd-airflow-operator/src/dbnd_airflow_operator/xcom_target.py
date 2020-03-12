@@ -9,6 +9,17 @@ from targets.fs.file_system import FileSystem
 from targets.pipes.base import FileWrapper
 
 
+def build_xcom_str(op, name=None):
+    """
+    :param op: airflow operator
+    :param name: name of result
+    :return:
+    """
+    result_key = "['%s']" % name if name else ""
+    xcom_path = "{{task_instance.xcom_pull('%s')%s}}" % (op.task_id, result_key)
+    return XComStr(xcom_path, op.task_id)
+
+
 class XComStr(str):
     def __new__(cls, value, task_id):
         # explicitly only pass value to the str constructor

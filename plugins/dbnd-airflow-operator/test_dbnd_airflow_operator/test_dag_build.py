@@ -2,7 +2,7 @@ import copy
 
 from airflow import DAG
 
-from airflow_home.dags.dag_test_examples import (
+from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
     default_args_test,
     t_A,
     t_B,

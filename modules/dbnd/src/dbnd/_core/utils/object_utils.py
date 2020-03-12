@@ -54,6 +54,6 @@ def safe_isinstance(obj, cls_str):
     This means that the isinstance check is performed without looking at the object's type hierarchy, but rather
     by class name.
     """
-    if cls_str:
+    if cls_str and obj:
         return cls_str in str(type(obj))
     return False

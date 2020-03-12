@@ -5,9 +5,12 @@ import pytest
 
 from airflow import DAG
 
-from dag_examples import default_args_test, t_A
 from dbnd._core.settings import CoreConfig, DatabandSystemConfig, EnvConfig
-from utils import run_and_get
+from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
+    default_args_test,
+    t_A,
+)
+from test_dbnd_airflow_operator.utils import run_and_get
 
 
 TEST_ENV__AWS_ROOT = os.environ.get("TEST_ENV__AWS_ROOT")
@@ -27,7 +30,7 @@ class TestDagOnAws(object):
 
         t_a = dag_operators.task_dict["t_A"]
 
-    @pytest.mark.skipif(not TEST_ENV__AWS_ROOT)
+    @pytest.mark.skipif("not TEST_ENV__AWS_ROOT")
     def test_aws_config(self):
         args_test = copy.copy(default_args_test)
         args_test["dbnd_config"] = {

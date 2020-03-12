@@ -17,13 +17,15 @@ from dbnd._core.errors import DatabandBuildError, friendly_error
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.basics.text_banner import safe_string
-from dbnd._core.utils.task_utils import to_targets
 from dbnd._core.utils.traversing import traverse
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
-from targets import DataTarget, FileTarget, InMemoryTarget, target
 from targets.base_target import Target, TargetSource
+from targets.data_target import DataTarget
+from targets.file_target import FileTarget
 from targets.inline_target import InlineTarget
+from targets.inmemory_target import InMemoryTarget
 from targets.target_config import FileFormat, TargetConfig
+from targets.target_factory import target
 from targets.types import Path
 from targets.values import (
     InlineValueType,
@@ -216,6 +218,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         if isinstance(self.value_type, _TargetValueType):
             # if it "target" type, let read it into "user friendly" format
             # regardless it's input or output
+
             return traverse(value, self.value_type.target_to_value)
 
         # usually we should not load "outputs" on read
@@ -328,6 +331,9 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         """
         if isinstance(self.value_type, _TargetValueType):
             # can not move to value_type, we need target_config
+
+            from dbnd._core.utils.task_utils import to_targets
+
             return to_targets(x, from_string_kwargs=dict(config=self.target_config))
         return self.value_type.normalize(x)
 

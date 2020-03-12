@@ -17,14 +17,12 @@ from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.current import try_get_databand_context
 from dbnd._core.decorator.schemed_result import ResultProxyTarget
-from dbnd._core.run.databand_run import DatabandRun, new_databand_run
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.object_utils import safe_isinstance
-from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd_airflow_operator.airflow_utils import safe_get_context_manager_dag
-from dbnd_airflow_operator.xcom_target import XComResults, XComStr
+from dbnd_airflow_operator.xcom_target import XComResults, XComStr, build_xcom_str
 from targets import FileTarget, target
 
 
@@ -294,15 +292,22 @@ class AirflowDagDbndOperator(BaseOperator):
 
     @property
     def task_type(self):
-        # we want to override task_type so we can have unique types for every Databand task
-        v = getattr(self, "_task_type", None)
-        if v:
-            return v
-        return BaseOperator.task_type.fget(self)
+        return "task"
+
+    def get_dbnd_dag_ctrl(self):
+        dag = self.dag
+        return FunctionalOperatorsDagCtrl.build_or_get_dag_ctrl(dag)
+
+    def get_dbnd_task(self):
+        return self.get_dbnd_dag_ctrl().dbnd_context.task_instance_cache.get_task_by_id(
+            self.dbnd_task_id
+        )
 
     def execute(self, context):
-        logger.info("Running dbnd task from airflow operator %s", self.task_id)
+        logger.debug("Running dbnd task from airflow operator %s", self.task_id)
 
+        # Airflow has updated all relevan fields in Operator definition with XCom values
+        # now we can create a real dbnd task with real references to task
         new_kwargs = {}
         for p_name in self.dbnd_task_params_fields:
             new_kwargs[p_name] = getattr(self, p_name, None)
@@ -310,16 +315,17 @@ class AirflowDagDbndOperator(BaseOperator):
             if p_name in self.dbnd_xcom_inputs:
                 new_kwargs[p_name] = target(new_kwargs[p_name])
 
-        dag = context["dag"]
-        dag_ctrl = FunctionalOperatorsDagCtrl.build_or_get_dag_ctrl(dag)
+        dag_ctrl = self.get_dbnd_dag_ctrl()
         with DatabandContext.context(_context=dag_ctrl.dbnd_context) as dc:
-            logger.info("Running %s with kwargs=%s ", self.task_id, new_kwargs)
+            logger.debug("Running %s with kwargs=%s ", self.task_id, new_kwargs)
             dbnd_task = dc.task_instance_cache.get_task_by_id(self.dbnd_task_id)
             with dbnd_task.ctrl.task_context(phase=TaskContextPhase.BUILD):
                 task = dbnd_task.clone(**new_kwargs)
+
+            with dbnd_task.ctrl.task_context(phase=TaskContextPhase.RUN):
                 task._task_submit()
 
-        logger.info("Finished to run %s", self)
+        logger.debug("Finished to run %s", self)
         result = {
             output_name: convert_to_safe_types(getattr(task, output_name))
             for output_name in self.dbnd_xcom_outputs
@@ -327,48 +333,7 @@ class AirflowDagDbndOperator(BaseOperator):
         return result
 
     def on_kill(self):
-        from dbnd_airflow.dbnd_task_executor.dbnd_execute import dbnd_operator__kill
-
-        return dbnd_operator__kill(self)
-
-
-def _dbnd_track_and_execute(task, airflow_op, context):
-    dag = context["dag"]
-    dag_id = dag.dag_id
-    run_uid = get_job_run_uid(dag_id=dag_id, execution_date=context["execution_date"])
-    task_run_uid = get_task_run_uid(run_uid, airflow_op.task_id)
-
-    dag_task = build_dag_task(dag)
-    dc = try_get_databand_context()
-    # create databand run
-    with new_databand_run(
-        context=dc,
-        task_or_task_name=dag_task,
-        run_uid=run_uid,
-        existing_run=False,
-        job_name=dag.dag_id,
-    ) as dr:  # type: DatabandRun
-        root_task_run_uid = get_task_run_uid(run_uid, dag_id)
-        dr._init_without_run(root_task_run_uid=root_task_run_uid)
-
-        # self._start_taskrun(dr.driver_task_run)
-        # self._start_taskrun(dr.root_task_run)
-
-        tr = dr.create_dynamic_task_run(
-            task, dr.local_engine, _uuid=task_run_uid, task_af_id=airflow_op.task_id
-        )
-        tr.runner.execute(airflow_context=context)
-
-
-def build_xcom_str(op, name=None):
-    """
-    :param op: airflow operator
-    :param name: name of result
-    :return:
-    """
-    result_key = "['%s']" % name if name else ""
-    xcom_path = "{{task_instance.xcom_pull('%s')%s}}" % (op.task_id, result_key)
-    return XComStr(xcom_path, op.task_id)
+        return self.get_dbnd_task().on_kill()
 
 
 def build_dag_task(dag):

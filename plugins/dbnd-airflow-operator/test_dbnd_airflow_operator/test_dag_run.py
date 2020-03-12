@@ -2,10 +2,19 @@ import copy
 
 from airflow import DAG
 
-from airflow_home.dags.dag_test_examples import default_args_test, t_A, t_B, t_pipeline
-from targets import target
-from utils import run_and_get
+import dbnd
 
+from targets import target
+from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
+    default_args_test,
+    t_A,
+    t_B,
+    t_pipeline,
+)
+from test_dbnd_airflow_operator.utils import run_and_get
+
+
+str(dbnd)
 
 # we need all these dags at file level, so we can use standard airflow executor to run them.
 with DAG(
