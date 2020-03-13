@@ -42,7 +42,7 @@ with DAG(
     t_pipeline()
 
 
-class TestFunctionalDagBuild(object):
+class TestFunctionalDagRun(object):
     def test_simple_run(self):
         actual = run_and_get(dag_simple_build, "t_A")
         assert _read_result_value(actual) == "checkcheck"
