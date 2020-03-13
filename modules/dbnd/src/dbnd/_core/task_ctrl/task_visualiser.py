@@ -265,7 +265,6 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
             disable.append(("task_enabled_in_prod", t.task_enabled_in_prod))
             b.column("DISABLED", b.f_simple_dict(disable))
-        b.column("TASK_BAND", t.task_band)
 
     def _add_task_run_info(self, task_run):
         # type: (TaskRun)-> None
@@ -354,6 +353,8 @@ class _TaskBannerBuilder(TaskSubCtrl):
         b.column("INPUTS USER", b.f_io(relations.task_inputs_user))
         b.column("INPUTS SYSTEM", b.f_struct(relations.task_inputs_system))
         b.new_section()
+
+        b.column("TASK_BAND", t.task_band)
         b.column("OUTPUTS USER", b.f_io(relations.task_outputs_user))
         b.column("OUTPUTS SYSTEM", b.f_struct(relations.task_outputs_system))
         b.write("\n")

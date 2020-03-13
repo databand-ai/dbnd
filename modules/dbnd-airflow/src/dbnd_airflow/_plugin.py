@@ -43,6 +43,11 @@ def dbnd_post_enter_context(ctx):  # type: (DatabandContext) -> None
 
     global _airflow_op_catcher_dag
 
+    import airflow
+
+    if airflow.settings.CONTEXT_MANAGER_DAG:
+        # we are inside native airflow DAG or already have DatabandOpCatcherDag
+        return
     _airflow_op_catcher_dag = DatabandOpCatcherDag(
         dag_id="inline_airflow_ops", default_args=get_dbnd_default_args()
     )
