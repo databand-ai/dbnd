@@ -105,6 +105,9 @@ class FileTrackingStore(TrackingStore):
             % type(artifact)
         )
 
+    def is_ready(self):
+        return True
+
 
 class TaskRunMetricsFileStoreReader(object):
     def __init__(self, attempt_folder, **kwargs):

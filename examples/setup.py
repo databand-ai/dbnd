@@ -14,6 +14,8 @@ INSTALL_REQUIRES = [
     "scikit-learn;python_version>='3.5'",
     "scikit-learn==0.20.3;python_version<'3.5'",  # The latest version which supports Python 2.7
     "scipy==1.1.0",
+    "sklearn",
+    "matplotlib",
 ]
 setup(
     name="dbnd-examples",

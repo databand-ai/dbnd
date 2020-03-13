@@ -227,3 +227,6 @@ class TrackingStoreApi(TrackingStore):
         # if resp_schema and resp:
         #     resp = resp_schema.load(resp)
         return resp
+
+    def is_ready(self):
+        return self.channel.is_ready()

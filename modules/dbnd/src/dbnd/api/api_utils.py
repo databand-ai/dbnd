@@ -82,16 +82,13 @@ class ApiClient(object):
     def api_request(
         self, endpoint, data, method="POST", headers=None, query=None, no_prefix=False
     ):
+        url = endpoint if no_prefix else urljoin(self.api_prefix, endpoint)
         try:
             resp = self._request(
-                endpoint if no_prefix else urljoin(self.api_prefix, endpoint),
-                method=method,
-                data=data,
-                headers=headers,
-                query=query,
+                url, method=method, data=data, headers=headers, query=query
             )
         except requests.ConnectionError as ex:
-            raise api_connection_refused(self._api_base_url + self.api_prefix, ex)
+            raise api_connection_refused(self._api_base_url + url, ex)
         return resp
 
 

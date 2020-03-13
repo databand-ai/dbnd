@@ -96,6 +96,10 @@ class TrackingStore(object):
         # type: (List[LogTargetArgs]) -> None
         pass
 
+    def is_ready(self):
+        # type: () -> bool
+        pass
+
 
 class CompositeTrackingStore(TrackingStore):
     def __init__(self, stores, raise_on_error=True):
@@ -199,3 +203,6 @@ class CompositeTrackingStore(TrackingStore):
         return self._invoke(
             CompositeTrackingStore.update_task_run_attempts.__name__, kwargs
         )
+
+    def is_ready(self, **kwargs):
+        return all(store.is_ready() for store in self._stores)

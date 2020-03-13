@@ -100,3 +100,6 @@ class ConsoleStore(tracking_store.TrackingStore):
                 "%s: %s" % (k, v) for k, v in six.iteritems(external_links_dict)
             ),
         )
+
+    def is_ready(self):
+        return True
