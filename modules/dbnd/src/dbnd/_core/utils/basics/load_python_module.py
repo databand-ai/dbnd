@@ -6,6 +6,7 @@ import sys
 
 from cachetools.func import lru_cache
 from dbnd._core.errors import DatabandError, friendly_error
+from dbnd._core.errors.friendly_error import dbnd_module_not_found_tip
 
 
 logger = logging.getLogger(__name__)
@@ -31,9 +32,9 @@ def _load_module(module, description):
                 raise
 
             # we'll try to load current folder to PYTHONPATH, just in case
-            logger.warning(
+            logger.info(
                 "Databand has failed to load module '%s', "
-                "databand will add current directory to PYTHONPATH and retry!" % module
+                "it will retry with cwd at PYTHONPATH." % module
             )
             sys.path.insert(0, os.getcwd())
             m = importlib.import_module(module)
@@ -45,8 +46,9 @@ def _load_module(module, description):
             return m
     except import_errors as ex:
         logger.error(
-            "Failed to load module '%s': cwd='%s', sys.path=\n\t%s",
+            "Failed to load module '%s' %s: cwd='%s', sys.path=\n\t%s",
             module,
+            friendly_error.dbnd_module_not_found_tip(module),
             os.getcwd(),
             "\n\t".join(sys.path),
         )

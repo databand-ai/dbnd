@@ -20,8 +20,12 @@ def wrong_func_attr_format(attr_path):
 
 def task_name_and_from_are_the_same(section, param):
     return DatabandConfigError(
-        "Can not have task_name and '%s' being equal to '%s'." % (param, section),
-        help_msg="Please check your configuration section [%s]" % section,
+        "Your [%s] defined using _type=%s. "
+        "System can't handle recursive type resolving. "
+        "Probably you are missing the module that has '%s' defined. "
+        % (param, section, section),
+        help_msg="Please check your configuration section [%s] "
+        "or try to install package with %s" % (section, section),
     )
 
 

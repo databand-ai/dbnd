@@ -77,8 +77,15 @@ class DbndTaskRegistry(SingletonContext):
         config_task_type = config.get(task_name, "_type", None)
         if config_task_type:
             _validate_no_recursion_in_config(task_name, config_task_type, "_type")
-            return self._get_task_cls(config_task_type)
-
+            try:
+                return self._get_task_cls(config_task_type)
+            except Exception:
+                logger.error(
+                    "Failed to load type required by [%s] using _type=%s",
+                    task_name,
+                    config_task_type,
+                )
+                raise
         config_task_type = config.get(task_name, "_from", None)
         if config_task_type:
             _validate_no_recursion_in_config(task_name, config_task_type, "_from")

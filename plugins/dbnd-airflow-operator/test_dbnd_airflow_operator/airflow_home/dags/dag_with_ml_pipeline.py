@@ -7,9 +7,8 @@ from typing import Tuple
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from pandas import DataFrame
-from sklearn.model_selection import train_test_split
 
-from dbnd import pipeline, task
+from dbnd import task
 
 
 logger = logging.getLogger(__name__)
@@ -26,12 +25,17 @@ default_args = {
 }
 
 
+def _split(data):
+    half_len = len(data) / 2
+    return data.iloc[:, :half_len], data.iloc[:, half_len:]
+
+
 @task(result=("training_set", "test_set", "validation_set", "good_alpha"))
 def create_data_sets(
     data: DataFrame = None
 ) -> Tuple[DataFrame, DataFrame, DataFrame, bool]:
-    train_df, test_df = train_test_split(data)
-    test_df, validation_df = train_test_split(test_df, test_size=0.5)
+    train_df, test_df = _split(data)
+    test_df, validation_df = _split(test_df)
 
     return train_df, test_df, validation_df, True
 

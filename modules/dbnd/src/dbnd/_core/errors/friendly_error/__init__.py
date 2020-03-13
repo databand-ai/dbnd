@@ -7,7 +7,6 @@ from dbnd._core.errors import (
     DatabandConfigError,
     DatabandError,
     DatabandRuntimeError,
-    TaskClassNotFoundException,
     TaskClassAmbigiousException,
 )
 from dbnd._core.errors.errors_utils import safe_value
@@ -143,10 +142,21 @@ def dag_with_different_contexts(task_id):
     )
 
 
+def dbnd_module_not_found_tip(module):
+    if str(module).startswith("dbnd"):
+        dbnd_module = module.split(".")[0]
+        return "Do you have '%s' installed?" % (dbnd_module.replace("_", "-"))
+    return ""
+
+
 def failed_to_import_user_module(ex, module, description):
     s = format_exception_as_str(sys.exc_info())
+    msg = "Module '%s' can not be loaded: %s" % (
+        module,
+        dbnd_module_not_found_tip(module),
+    )
     return DatabandError(
-        "Module %s can not be loaded: %s" % (module, s),
+        "%s exception: %s." % (msg, s),
         help_msg=" Databand is trying to load user module '%s' as required by %s: \n "
         "Probably, it has compile errors or not exists." % (module, description),
         show_exc_info=False,
