@@ -8,12 +8,11 @@ from dbnd._core.errors.friendly_error.task_execution import (
     failed_spark_status,
     failed_to_run_spark_script,
 )
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
+from dbnd._core.plugin.dbnd_plugins import assert_airflow_package_installed
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark._core.spark_error_parser import parse_spark_log
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_ctrl import SparkCtrl
-from targets.fs import FileSystems
 
 
 class LocalSparkExecutionCtrl(SparkCtrl):
@@ -30,7 +29,7 @@ class LocalSparkExecutionCtrl(SparkCtrl):
         return self._run_spark_submit(application=application, jars=self.config.jars)
 
     def _run_spark_submit(self, application, jars):
-        assert_airflow_enabled()
+        assert_airflow_package_installed()
         from airflow.contrib.hooks.spark_submit_hook import SparkSubmitHook
         from airflow.exceptions import AirflowException
 
