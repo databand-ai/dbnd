@@ -5,6 +5,7 @@ import six
 from airflow.models import BaseOperator
 
 from databand import dbnd_config
+from dbnd import dbnd_handle_errors
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.current import try_get_databand_context
@@ -33,6 +34,7 @@ def is_in_airflow_dag_build_context():
     return not safe_isinstance(context_manager_dag, "DatabandOpCatcherDag")
 
 
+@dbnd_handle_errors(exit_on_error=False)
 def build_task_at_airflow_dag_context(task_cls, call_args, call_kwargs):
     dag = safe_get_context_manager_dag()
     dag_ctrl = DagFuncOperatorCtrl.build_or_get_dag_ctrl(dag)
@@ -181,9 +183,16 @@ class DagFuncOperatorCtrl(object):
         for n, xcom_arg in results:
             setattr(op, n, xcom_arg)
 
-        logger.debug(
-            "%s\n\tparams: %s\n\toutputs: %s", task.task_id, dbnd_task_params, results
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                task.ctrl.banner("Created task '%s'." % task.task_name, color="green")
+            )
+            logger.debug(
+                "%s\n\tparams: %s\n\toutputs: %s",
+                task.task_id,
+                dbnd_task_params,
+                results,
+            )
         if single_value_result:
             result = results[0]
             return result[1]  # return result XComStr

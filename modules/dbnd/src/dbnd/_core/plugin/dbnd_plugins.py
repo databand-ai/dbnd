@@ -17,8 +17,8 @@ hookimpl = pluggy.HookimplMarker("dbnd")
 pm = pluggy.PluginManager("dbnd")
 pm.add_hookspecs(dbnd_plugin_spec)
 
-
-_AIRFLOW_ENABLED = None
+_AIRFLOW_PACKAGE_INSTALLED = None  # apache airflow is installed
+_AIRFLOW_ENABLED = None  # dbnd-airflow is installed and enabled
 
 
 def _is_airflow_enabled():
@@ -49,6 +49,18 @@ def assert_airflow_enabled():
     if not is_airflow_enabled():
         raise friendly_error.config.missing_module("dbnd-airflow")
     return True
+
+
+def assert_airflow_package_installed():
+    global _AIRFLOW_PACKAGE_INSTALLED
+    if _AIRFLOW_PACKAGE_INSTALLED is None:
+        try:
+            import airflow
+
+            _AIRFLOW_PACKAGE_INSTALLED = True
+        except Exception:
+            _AIRFLOW_PACKAGE_INSTALLED = False
+    return _AIRFLOW_PACKAGE_INSTALLED
 
 
 # all other modules
