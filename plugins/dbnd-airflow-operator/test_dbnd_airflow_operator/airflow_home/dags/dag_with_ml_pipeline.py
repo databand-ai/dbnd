@@ -26,7 +26,7 @@ default_args = {
 
 
 def _split(data):
-    half_len = len(data) / 2
+    half_len = int(len(data) / 2)
     return data.iloc[:, :half_len], data.iloc[:, half_len:]
 
 
