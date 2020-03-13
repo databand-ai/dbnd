@@ -64,6 +64,8 @@ with DAG(dag_id="dbnd_operators", default_args=default_args) as dag_operators:
     tp.set_upstream(t3.op)
 
     t1_op = t1.op
+
+
 if __name__ == "__main__":
     ti = TaskInstance(t1_op, days_ago(0))
     ti.run(ignore_task_deps=True, ignore_ti_state=True, test_mode=True)

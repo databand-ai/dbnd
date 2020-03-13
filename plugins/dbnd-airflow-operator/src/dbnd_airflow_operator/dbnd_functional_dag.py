@@ -58,8 +58,10 @@ class DagFuncOperatorCtrl(object):
         with dbnd_config(
             config_values=config_store, source="airflow"
         ) as current_config:
-            self.dbnd_config_layer = current_config.config_layer
             self.dbnd_context = DatabandContext(name="airflow__%s" % self.dag.dag_id)
+            with DatabandContext.context(_context=self.dbnd_context):
+                # we need databand context to update config first
+                self.dbnd_config_layer = current_config.config_layer
 
     def build_airflow_operator(self, task_cls, call_args, call_kwargs):
         if try_get_databand_context() is self.dbnd_context:
