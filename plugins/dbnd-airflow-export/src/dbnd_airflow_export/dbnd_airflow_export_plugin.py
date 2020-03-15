@@ -5,6 +5,7 @@ import os
 import flask
 import flask_appbuilder
 import pendulum
+import pkg_resources
 
 from airflow.configuration import conf
 from airflow.jobs import BaseJob
@@ -29,6 +30,7 @@ try:
 except Exception:
     from airflow.models import TaskInstance
 
+
 ### Exceptions ###
 
 
@@ -39,32 +41,39 @@ class EmptyAirflowDatabase(Exception):
 ### Plugin Business Logic ###
 
 
-def do_export_data(dagbag, since, period, include_logs=False, session=None):
-    try:
-        start_date, end_date = _get_time_bounderies(since, period, session)
-    except EmptyAirflowDatabase as ex:
-        logging.warning("Could not find any dag runs or task instances.", exc_info=ex)
-        return _create_empty_response(since=utcnow())
+def do_export_data(
+    dagbag, since, include_logs=False, dag_ids=None, tasks=None, session=None
+):
+    """
+    Get first task instances which have the largest amount of objects in DB.
+    Then get related DAG runs and DAG runs in the same time frame.
+    All DAGs are always exported since their amount is low.
+    Amount of exported data is limited by tasks parameter which limits the number to task instances to export.
+    """
+    since = since or pendulum.datetime.min
     _load_dags_models(session)
     logging.info(
-        "Collected %d dags. Trying to query instances and dagruns from %s to %s",
+        "Collected %d dags. Trying to query task instances and dagruns from %s",
         len(current_dags),
-        start_date,
-        end_date,
+        since,
     )
 
-    task_instances = _get_task_instances(start_date, end_date, session)
+    task_instances, dag_runs = _get_task_instances(since, dag_ids, tasks, session)
     logging.info("%d task instances were found." % len(task_instances))
 
-    dagruns = _get_dagruns(start_date, end_date, session)
-    logging.info("%d dag runs were found." % len(dagruns))
+    task_end_dates = [
+        task.end_date for task, job in task_instances if task.end_date is not None
+    ]
+    dag_run_end_date = max(task_end_dates) if task_end_dates else pendulum.datetime.max
+    dag_runs |= _get_dag_runs(since, dag_run_end_date, dag_ids, session)
+    logging.info("%d dag runs were found." % len(dag_runs))
 
-    if not task_instances and not dagruns:
-        return _create_empty_response(since=start_date)
+    if not task_instances and not dag_runs:
+        return ExportData(since=since)
 
-    dag_models = _get_dag_models(
-        dagruns.keys() if since and isinstance(dagruns, dict) else None, session
-    )
+    dag_models = current_dags.values()
+    if dag_ids:
+        dag_models = [dag for dag in dag_models if dag.dag_id in dag_ids]
 
     ed = ExportData(
         task_instances=[
@@ -77,16 +86,13 @@ def do_export_data(dagbag, since, period, include_logs=False, session=None):
             for ti, job in task_instances
             for dag in [dagbag.get_dag(ti.dag_id)]
         ],
-        dag_runs=[EDagRun.from_dagrun(dr) for dr in dagruns],
+        dag_runs=[EDagRun.from_dagrun(dr) for dr in dag_runs],
         dags=[
             EDag.from_dag(dagbag.get_dag(dm.dag_id), dagbag.dag_folder)
             for dm in dag_models
             if dagbag.get_dag(dm.dag_id)
         ],
-        since=start_date,
-        version=airflow_version,
-        dags_path=conf.get("core", "dags_folder"),
-        logs_path=conf.get("core", "base_log_folder"),
+        since=since,
     )
 
     return ed
@@ -98,50 +104,52 @@ def _load_dags_models(session=None):
         current_dags[dag_model.dag_id] = dag_model
 
 
-def _get_dag_models(dag_ids, session):
-    # TODO: Remove this query since we pre-fetch all dag models
-    dag_models_query = session.query(DagModel)
-    if dag_ids is not None:
-        if dag_ids:
-            dag_models_query = dag_models_query.filter(DagModel.dag_id.in_(dag_ids))
-        else:
-            return []
-
-    dag_models = dag_models_query.all()
-    return dag_models
-
-
-def _get_dagruns(start_date, end_date, session):
+def _get_dag_runs(start_date, end_date, dag_ids, session):
     dagruns_query = session.query(DagRun).filter(
         or_(
             DagRun.end_date.is_(None),
             and_(DagRun.end_date >= start_date, DagRun.end_date <= end_date),
         )
     )
-    return dagruns_query.all()
+
+    if dag_ids:
+        dagruns_query = dagruns_query.filter(DagRun.dag_id.in_(dag_ids))
+
+    return set(dagruns_query.all())
 
 
-def _get_task_instances(start_date, end_date, session):
+def _get_task_instances(start_date, dag_ids, quantity, session):
     task_instances_query = (
-        session.query(TaskInstance, BaseJob)
+        session.query(TaskInstance, BaseJob, DagRun)
         .outerjoin(BaseJob, TaskInstance.job_id == BaseJob.id)
+        .join(
+            DagRun,
+            (TaskInstance.dag_id == DagRun.dag_id)
+            & (TaskInstance.execution_date == DagRun.execution_date),
+        )
         .filter(
             or_(
-                or_(
-                    TaskInstance.end_date.is_(None),
-                    and_(
-                        TaskInstance.end_date >= start_date,
-                        TaskInstance.end_date <= end_date,
-                    ),
-                ),
-                and_(
-                    BaseJob.latest_heartbeat >= start_date,
-                    BaseJob.latest_heartbeat <= end_date,
-                ),
+                TaskInstance.end_date.is_(None),
+                TaskInstance.end_date >= start_date,
+                BaseJob.latest_heartbeat >= start_date,
             )
         )
     )
-    return task_instances_query.all()
+
+    if dag_ids:
+        task_instances_query = task_instances_query.filter(
+            TaskInstance.dag_id.in_(dag_ids)
+        )
+
+    if quantity is not None:
+        task_instances_query = task_instances_query.order_by(
+            TaskInstance.end_date
+        ).limit(quantity)
+
+    results = task_instances_query.all()
+    tasks_and_jobs = [(task, job) for task, job, dag_run in results]
+    dag_runs = {dag_run for task, job, dag_run in results}
+    return tasks_and_jobs, dag_runs
 
 
 @provide_session
@@ -153,44 +161,6 @@ def _get_current_dag_model(dag_id, session=None):
         )
 
     return current_dags[dag_id]
-
-
-def _get_time_bounderies(since, period, session):
-    if not since:
-        basic_dag_query = (
-            session.query(DagRun.end_date)
-            .filter(DagRun.end_date.isnot(None))
-            .order_by(DagRun.end_date)
-            .first()
-        )
-        if basic_dag_query:
-            basic_dag_query = basic_dag_query[0]
-        basic_task_query = (
-            session.query(TaskInstance.end_date)
-            .filter(TaskInstance.end_date.isnot(None))
-            .order_by(TaskInstance.end_date)
-            .first()
-        )
-        if basic_task_query:
-            basic_task_query = basic_task_query[0]
-
-        if basic_dag_query or basic_task_query:
-            since = min(
-                basic_dag_query or basic_task_query, basic_task_query or basic_dag_query
-            )
-
-    if not since:
-        raise EmptyAirflowDatabase(
-            "Could not find any tasks instances or dag runs in the requested airflow database."
-        )
-
-    until = (
-        since + datetime.timedelta(minutes=period)
-        if period
-        else since + datetime.timedelta(days=DEFAULT_DAYS_PERIOD)
-    )
-
-    return since, until
 
 
 class ETask(object):
@@ -402,16 +372,17 @@ class EDag(object):
 
 
 class ExportData(object):
-    def __init__(
-        self, dags, dag_runs, task_instances, since, version, dags_path, logs_path
-    ):
-        self.dags = dags  # type: List[EDag]
-        self.dag_runs = dag_runs  # type: List[EDagRun]
-        self.task_instances = task_instances  # type: List[ETaskInstance]
+    def __init__(self, since, dags=None, dag_runs=None, task_instances=None):
+        self.dags = dags or []  # type: List[EDag]
+        self.dag_runs = dag_runs or []  # type: List[EDagRun]
+        self.task_instances = task_instances or []  # type: List[ETaskInstance]
         self.since = since  # type: Datetime
-        self.version = version
-        self.dags_path = dags_path
-        self.logs_path = logs_path
+        self.airflow_version = airflow_version
+        self.dags_path = conf.get("core", "dags_folder")
+        self.logs_path = conf.get("core", "base_log_folder")
+        self.airflow_export_version = pkg_resources.get_distribution(
+            "dbnd_airflow_export"
+        ).version
 
     def as_dict(self):
         return dict(
@@ -419,16 +390,11 @@ class ExportData(object):
             dag_runs=[x.as_dict() for x in self.dag_runs],
             task_instances=[x.as_dict() for x in self.task_instances],
             since=self.since,
-            version=self.version,
+            airflow_version=self.airflow_version,
             dags_path=self.dags_path,
             logs_path=self.logs_path,
+            airflow_export_version=self.airflow_export_version,
         )
-
-
-def _create_empty_response(since):
-    return ExportData(
-        [], [], [], since=since, version=None, dags_path=None, logs_path=None
-    )
 
 
 ### Helpers ###
@@ -562,8 +528,9 @@ class ExportDataViewAdmin(flask_admin.BaseView):
 
 
 @provide_session
-def _handle_export_data(dagbag, since, period, include_logs, session=None):
-    period = int(period) if period else None
+def _handle_export_data(
+    dagbag, since, include_logs, dag_ids=None, tasks=None, session=None
+):
     include_logs = bool(include_logs)
     if since:
         since = pendulum.parse(str(since).replace(" 00:00", "Z"))
@@ -575,8 +542,9 @@ def _handle_export_data(dagbag, since, period, include_logs, session=None):
         result = do_export_data(
             dagbag=dagbag,
             since=since,
-            period=period,
             include_logs=include_logs,
+            dag_ids=dag_ids,
+            tasks=tasks,
             session=session,
         )
     finally:
@@ -590,12 +558,13 @@ def _handle_export_data(dagbag, since, period, include_logs, session=None):
 
 def export_data_api(dagbag):
     since = flask.request.args.get("since")
-    period = flask.request.args.get("period")
     include_logs = flask.request.args.get("include_logs")
+    dag_ids = flask.request.args.getlist("dag_ids")
+    tasks = flask.request.args.get("tasks", type=int)
 
     # do_update = flask.request.args.get("do_update", "").lower() == "true"
     # verbose = flask.request.args.get("verbose", str(not do_update)).lower() == "true"
-    return _handle_export_data(dagbag, since, period, include_logs)
+    return _handle_export_data(dagbag, since, include_logs, dag_ids, tasks)
 
 
 ### Plugin ###
@@ -612,7 +581,9 @@ class DataExportAirflowPlugin(AirflowPlugin):
 ### Direct API ###
 
 
-def export_data_directly(sql_alchemy_conn, dag_folder, since, period, include_logs):
+def export_data_directly(
+    sql_alchemy_conn, dag_folder, since, include_logs, dag_ids, tasks
+):
     from airflow import models, settings, conf
     from airflow.settings import STORE_SERIALIZED_DAGS
     from sqlalchemy import create_engine
@@ -627,4 +598,6 @@ def export_data_directly(sql_alchemy_conn, dag_folder, since, period, include_lo
 
     engine = create_engine(sql_alchemy_conn)
     session = sessionmaker(bind=engine)
-    return _handle_export_data(dagbag, since, period, include_logs, session=session())
+    return _handle_export_data(
+        dagbag, since, include_logs, dag_ids, tasks, session=session()
+    )
