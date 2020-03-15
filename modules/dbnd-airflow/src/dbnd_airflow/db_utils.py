@@ -2,13 +2,6 @@ import logging
 import time
 import traceback
 
-import flask
-
-from flask import has_request_context
-
-from databand import dbnd_config
-from dbnd_web.services.stats_service import sql_query_metric
-
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +52,7 @@ def trace_sqlalchemy_query(connection, cursor, query, parameters, *_):
 def get_calling_line():
     code = "unknown"
     for (file_path, val1, val2, line_contents) in traceback.extract_stack():
-        if "dbnd_web" not in file_path:
+        if "airflow" not in file_path:
             continue
         if (
             "utils/sqlalchemy.py" in file_path
@@ -81,12 +74,6 @@ def profile_after_cursor_execute(conn, cursor, statement, parameters, *_):
     logger.debug(
         "Query Complete! %s  \n--> %f seconds\nPARAMS: %s", statement, total, parameters
     )
-
-    api = None
-    if has_request_context():
-        api = flask.request.path
-    code = get_calling_line()
-    sql_query_metric.labels(query=statement.strip(), api=api, code=code).set(total)
 
 
 def airflow_tables_to_dump():

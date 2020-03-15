@@ -26,21 +26,16 @@ def reinit_airflow_sql_conn():
         )
 
     # this will print query execution time
-    if dbnd_config.getboolean("log", "sqlalchemy_profile"):
-        from sqlalchemy import event
-        from airflow import settings as airflow_settings
-        from dbnd_airflow.db_utils import (
-            profile_before_cursor_execute,
-            profile_after_cursor_execute,
-        )
+    from sqlalchemy import event
+    from airflow import settings as airflow_settings
+    from dbnd_airflow.db_utils import (
+        profile_before_cursor_execute,
+        profile_after_cursor_execute,
+    )
 
-        event.listen(
-            airflow_settings.engine,
-            "before_cursor_execute",
-            profile_before_cursor_execute,
-        )
-        event.listen(
-            airflow_settings.engine,
-            "after_cursor_execute",
-            profile_after_cursor_execute,
-        )
+    event.listen(
+        airflow_settings.engine, "before_cursor_execute", profile_before_cursor_execute
+    )
+    event.listen(
+        airflow_settings.engine, "after_cursor_execute", profile_after_cursor_execute
+    )
