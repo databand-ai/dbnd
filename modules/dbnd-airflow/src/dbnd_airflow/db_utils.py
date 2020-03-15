@@ -45,17 +45,7 @@ def remove_listener_by_name(target, identifier, name):
 
 
 def trace_sqlalchemy_query(connection, cursor, query, parameters, *_):
-    code = "unknown"
-    for (file_path, val1, val2, line_contents) in traceback.extract_stack():
-        if "airflow" not in file_path:
-            continue
-        if (
-            "utils/sqlalchemy.py" in file_path
-            or "utils/db.py" in file_path
-            or "db_utils" in file_path
-        ):
-            continue
-        code = str((file_path, val1, val2, line_contents))
+    code = get_calling_line()
 
     logger.info(
         "\nDBNDSQL QUERY: %s\nPARAMS: %s\nDBNDSQL CODE: %s\nDBNDSQL STACK: %s",
@@ -64,6 +54,21 @@ def trace_sqlalchemy_query(connection, cursor, query, parameters, *_):
         code,
         "   ".join(map(str, traceback.extract_stack())),
     )
+
+
+def get_calling_line():
+    code = "unknown"
+    for (file_path, val1, val2, line_contents) in traceback.extract_stack():
+        if "dbnd_web" not in file_path:
+            continue
+        if (
+            "utils/sqlalchemy.py" in file_path
+            or "utils/db.py" in file_path
+            or "db_utils" in file_path
+        ):
+            continue
+        code = str((file_path, val1, val2))
+    return code
 
 
 def profile_before_cursor_execute(conn, cursor, statement, *_):
@@ -80,7 +85,8 @@ def profile_after_cursor_execute(conn, cursor, statement, parameters, *_):
     api = None
     if has_request_context():
         api = flask.request.path
-    sql_query_metric.labels(query=statement, api=api).set(total)
+    code = get_calling_line()
+    sql_query_metric.labels(query=statement.strip(), api=api, code=code).set(total)
 
 
 def airflow_tables_to_dump():
