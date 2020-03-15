@@ -72,9 +72,6 @@ class LoggingConfig(config.Config):
 
     sqlalchemy_print = parameter(description="enable sqlalchemy logger").value(False)
     sqlalchemy_trace = parameter(description="trace sqlalchemy queries").value(False)
-    sqlalchemy_profile = parameter(description="profile sqlalchemy queries").value(
-        False
-    )
     api_profile = parameter(description="profile api calls").value(False)
 
     def _initialize(self):

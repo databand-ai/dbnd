@@ -2,7 +2,12 @@ import logging
 import time
 import traceback
 
+import flask
+
+from flask import has_request_context
+
 from databand import dbnd_config
+from dbnd_web.services.stats_service import sql_query_metric
 
 
 logger = logging.getLogger(__name__)
@@ -68,9 +73,14 @@ def profile_before_cursor_execute(conn, cursor, statement, *_):
 
 def profile_after_cursor_execute(conn, cursor, statement, parameters, *_):
     total = time.time() - conn.info["query_start_time"].pop(-1)
-    logger.info(
+    logger.debug(
         "Query Complete! %s  \n--> %f seconds\nPARAMS: %s", statement, total, parameters
     )
+
+    api = None
+    if has_request_context():
+        api = flask.request.path
+    sql_query_metric.labels(query=statement, api=api).set(total)
 
 
 def airflow_tables_to_dump():
