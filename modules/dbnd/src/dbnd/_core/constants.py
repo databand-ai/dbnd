@@ -116,6 +116,10 @@ class TaskRunState(enum.Enum):
         }
 
     @staticmethod
+    def final_states_str():
+        return [s.value for s in TaskRunState.final_states()]
+
+    @staticmethod
     def finished_states():
         return {TaskRunState.SUCCESS, TaskRunState.FAILED, TaskRunState.CANCELLED}
 
@@ -187,3 +191,17 @@ class SystemMetrics(enum.Enum):
     TotalWallTime = "Total Wall Time"
     ColdTotalCpuTime = "Cold Total CPU Time"
     ColdTotalWallTime = "Cold Total Wall Time"
+
+    @staticmethod
+    def duration_metrics():
+        """Used to select metrics for removal during metrics re-generation"""
+        return [
+            s.value
+            for s in [
+                SystemMetrics.Duration,
+                SystemMetrics.TotalCpuTime,
+                SystemMetrics.TotalWallTime,
+                SystemMetrics.ColdTotalCpuTime,
+                SystemMetrics.ColdTotalWallTime,
+            ]
+        ]
