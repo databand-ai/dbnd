@@ -73,13 +73,10 @@ class TaskRunRunner(TaskRunCtrl):
             try:
 
                 def signal_handler(signum, frame):
-                    logger.warning(
-                        "Received SIGTERM. Raising  DatabandSigTermError() exception!"
-                    )
+                    logger.info("Task runner received signal. Exiting...")
                     task_run.run._internal_kill()
                     raise DatabandSigTermError(
-                        "Task received SIGTERM signal",
-                        help_msg="Probably the job was canceled",
+                        "Task received signal", help_msg="Probably the job was canceled"
                     )
 
                 original_sigterm_signal = safe_signal(signal.SIGTERM, signal_handler)
