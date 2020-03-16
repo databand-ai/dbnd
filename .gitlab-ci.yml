@@ -194,6 +194,73 @@ dbnd_databricks_py27:
     reports:
       junit: plugins/dbnd-databricks/build/junit-py27.xml
 
+dbnd_airflow_operator 0 27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd dbnd-core
+    - cd plugins/dbnd-airflow-operator
+    - export SLUGIFY_USES_TEXT_UNIDECODE=yes
+    - tox -e py27-airflow_1_10_1
+  artifacts:
+    reports:
+      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_1.xml
+
+dbnd_airflow_operator 1 27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd dbnd-core
+    - cd plugins/dbnd-airflow-operator
+    - tox -e py27-airflow_1_10_7
+  artifacts:
+    reports:
+      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_7.xml
+
+dbnd_airflow_operator 2 27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd dbnd-core
+    - cd plugins/dbnd-airflow-operator
+    - tox -e py27-airflow_1_10_9
+  artifacts:
+    reports:
+      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_9.xml
+
+dbnd_airflow_operator 0 36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd dbnd-core
+    - cd plugins/dbnd-airflow-operator
+    - export SLUGIFY_USES_TEXT_UNIDECODE=yes
+    - tox -e py36-airflow_1_10_1
+  artifacts:
+    reports:
+      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_1.xml
+
+dbnd_airflow_operator 1 36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd dbnd-core
+    - cd plugins/dbnd-airflow-operator
+    - tox -e py36-airflow_1_10_7
+  artifacts:
+    reports:
+      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_7.xml
+
+dbnd_airflow_operator 2 36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd dbnd-core
+    - cd plugins/dbnd-airflow-operator
+    - tox -e py36-airflow_1_10_9
+  artifacts:
+    reports:
+      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_9.xml
 
 build_pypi_org_whl:
   stage: build-base
