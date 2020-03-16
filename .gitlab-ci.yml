@@ -200,7 +200,6 @@ dbnd_airflow_operator 0 27:
   script:
     - cd dbnd-core
     - cd plugins/dbnd-airflow-operator
-    - export SLUGIFY_USES_TEXT_UNIDECODE=yes
     - tox -e py27-airflow_1_10_1
   artifacts:
     reports:
@@ -234,7 +233,6 @@ dbnd_airflow_operator 0 36:
   script:
     - cd dbnd-core
     - cd plugins/dbnd-airflow-operator
-    - export SLUGIFY_USES_TEXT_UNIDECODE=yes
     - tox -e py36-airflow_1_10_1
   artifacts:
     reports:
