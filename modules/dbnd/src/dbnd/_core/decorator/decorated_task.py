@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class _DecoratedTask(Task):
+    _dbnd_decorated_task = True
     result = None
 
     @classmethod

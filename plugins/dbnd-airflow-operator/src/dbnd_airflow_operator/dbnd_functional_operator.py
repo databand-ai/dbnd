@@ -1,11 +1,8 @@
 # PLEASE DO NOT MOVE/RENAME THIS FILE, IT'S SERIALIZED INTO AIRFLOW DB
 import logging
 
-from typing import List
-
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from more_itertools import unique_everseen
 
 from dbnd import PipelineTask, PythonTask
 from dbnd._core.context.databand_context import DatabandContext
@@ -40,7 +37,6 @@ class DbndFunctionalOperator(BaseOperator):
         dbnd_task_params_fields,
         **kwargs
     ):
-        template_fields = kwargs.pop("template_fields", None)
         super(DbndFunctionalOperator, self).__init__(**kwargs)
         self._task_type = dbnd_task_type
         self.dbnd_task_id = dbnd_task_id
@@ -48,15 +44,6 @@ class DbndFunctionalOperator(BaseOperator):
         self.dbnd_task_params_fields = dbnd_task_params_fields
         self.dbnd_xcom_inputs = dbnd_xcom_inputs
         self.dbnd_xcom_outputs = dbnd_xcom_outputs
-
-        # make a copy
-        all_template_fields = list(self.template_fields)  # type: List[str]
-        if template_fields:
-            all_template_fields.extend(template_fields)
-        all_template_fields.extend(self.dbnd_task_params_fields)
-
-        self.__class__.template_fields = list(unique_everseen(all_template_fields))
-        # self.template_fields = self.__class__.template_fields
 
     @property
     def task_type(self):
@@ -87,6 +74,7 @@ class DbndFunctionalOperator(BaseOperator):
             if p_name in self.dbnd_xcom_inputs:
                 new_kwargs[p_name] = target(new_kwargs[p_name])
 
+        new_kwargs["_dbnd_disable_airflow_inplace"] = True
         dag_ctrl = self.get_dbnd_dag_ctrl()
         with DatabandContext.context(_context=dag_ctrl.dbnd_context) as dc:
             logger.debug("Running %s with kwargs=%s ", self.task_id, new_kwargs)

@@ -5,7 +5,12 @@ import six
 
 from dbnd._core.configuration.config_store import ConfigMergeSettings
 from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.constants import _ConfigParamContainer
 from dbnd._core.current import get_databand_context
+from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
+    build_task_at_airflow_dag_context,
+    is_in_airflow_dag_build_context,
+)
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_factory import TaskFactory
 from dbnd._core.task_build.task_registry import get_task_registry
@@ -56,6 +61,21 @@ class TaskMetaclass(abc.ABCMeta):
         """
         Custom class instantiation utilizing instance cache.
         """
+        _dbnd_disable_airflow_inplace = kwargs.pop(
+            "_dbnd_disable_airflow_inplace", False
+        )
+        if (
+            is_in_airflow_dag_build_context()
+            and not _ConfigParamContainer.is_type_config(cls)
+            and not _dbnd_disable_airflow_inplace
+            and not getattr(cls, "_dbnd_decorated_task", False)
+        ):
+            kwargs = kwargs.copy()
+            kwargs["_dbnd_disable_airflow_inplace"] = True
+            return build_task_at_airflow_dag_context(
+                task_cls=cls, call_args=args, call_kwargs=kwargs
+            )
+
         task_definition = cls.task_definition
         # we need to have context initialized before we start to run all logic in config() scope
         dbnd_context = get_databand_context()

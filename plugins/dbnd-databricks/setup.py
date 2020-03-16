@@ -14,11 +14,7 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-databricks",
     package_dir={"": "src"},
-    install_requires=[
-        "dbnd==" + version,
-        "dbnd-airflow==" + version,
-        "dbnd-spark==" + version,
-    ],
+    install_requires=["dbnd==" + version, "dbnd-spark==" + version],
     extras_require=dict(tests=[]),
     entry_points={"dbnd": ["dbnd-databricks = dbnd_databricks._plugin"]},
 )

@@ -6,7 +6,9 @@ from dbnd.api.api_utils import _ApiCallSchema
 
 class AirflowServerInfoSchema(_ApiCallSchema):
     base_url = fields.String()
-    version = fields.String(allow_none=True)
+    airflow_version = fields.String(allow_none=True)
+    airflow_export_version = fields.String(allow_none=True)
+    airflow_monitor_version = fields.String(allow_none=True)
     dags_path = fields.String(allow_none=True)
     logs_path = fields.String(allow_none=True)
     last_sync_time = fields.DateTime(allow_none=True)
@@ -15,7 +17,6 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     monitor_start_time = fields.DateTime(allow_none=True)
     synced_from = fields.DateTime(allow_none=True)
     synced_to = fields.DateTime(allow_none=True)
-    monitor_period = fields.Integer(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -28,7 +29,9 @@ airflow_server_info_schema = AirflowServerInfoSchema()
 @attr.s
 class AirflowServerInfo(object):
     base_url = attr.ib()  # type: str
-    version = attr.ib(default=None)  # type: Optional[str]
+    airflow_version = attr.ib(default=None)  # type: Optional[str]
+    airflow_export_version = attr.ib(default=None)  # type: Optional[str]
+    airflow_monitor_version = attr.ib(default=None)  # type: Optional[str]
     dags_path = attr.ib(default=None)  # type: Optional[str]
     logs_path = attr.ib(default=None)  # type: Optional[str]
     last_sync_time = attr.ib(default=None)  # type: Optional[datetime.datetime]
@@ -37,4 +40,3 @@ class AirflowServerInfo(object):
     monitor_start_time = attr.ib(default=None)  # type: Optional[datetime.datetime]
     synced_from = attr.ib(default=None)  # type: Optional[datetime.datetime]
     synced_to = attr.ib(default=None)  # type: Optional[datetime.datetime]
-    monitor_period = attr.ib(default=None)  # type: Optional[int]

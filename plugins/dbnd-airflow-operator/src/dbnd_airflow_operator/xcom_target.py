@@ -42,10 +42,14 @@ class XComResults(object):
         # type: (List[ Tuple[str, XComStr]]) -> XComResults
         self.xcom_result = result
         self.sub_results = sub_results
+        self._names = [n for n, _ in sub_results]
+        for k, v in self.sub_results:
+            if not hasattr(self, k):
+                setattr(self, k, v)
 
     @property
     def names(self):
-        return [n for n, _ in self.sub_results]
+        return self._names
 
     def __iter__(self):
         for _, xcom_sub_result in self.sub_results:
@@ -63,6 +67,9 @@ class XComResults(object):
 
     def set_downstream(self, task_or_task_list):
         self.op.set_downstream(task_or_task_list)
+
+    def __getitem__(self, key):
+        return self.as_dict()[key]
 
 
 class AirflowXComFileSystem(FileSystem):

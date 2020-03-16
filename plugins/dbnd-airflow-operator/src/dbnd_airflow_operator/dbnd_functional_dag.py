@@ -12,13 +12,20 @@ from dbnd._core.current import try_get_databand_context
 from dbnd._core.decorator.schemed_result import ResultProxyTarget
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.object_utils import safe_isinstance
-from dbnd_airflow_operator.airflow_utils import safe_get_context_manager_dag
+from dbnd_airflow_operator.airflow_utils import (
+    DbndFunctionalOperator_1_10_0,
+    is_airflow_support_template_fields,
+    safe_get_context_manager_dag,
+)
 from dbnd_airflow_operator.dbnd_functional_operator import DbndFunctionalOperator
 from dbnd_airflow_operator.xcom_target import XComResults, XComStr, build_xcom_str
 from targets import FileTarget, target
 
 
 logger = logging.getLogger(__name__)
+
+if not is_airflow_support_template_fields():
+    DbndFunctionalOperator = DbndFunctionalOperator_1_10_0
 
 
 def is_in_airflow_dag_build_context():
@@ -134,16 +141,8 @@ class DagFuncOperatorCtrl(object):
             ]
 
         op_kwargs = task.task_airflow_op_kwargs or {}
-        """
-        Workaround for backwards compatibility with Airflow 1.10.0,
-        dynamically creating new operator class (that inherits AirflowDagDbndOperator).
-        This is used because XCom templates for each operator are found in a class attribute
-        and we have different XCom templates for each INSTANCE of the operator.
-        Also, the template_fields attribute has a different value for each task, so we must ensure that they
-        don't get mixed up.
-        """
-        new_op = type(task.get_task_family(), (DbndFunctionalOperator,), {})
-        op = new_op(
+
+        op = DbndFunctionalOperator(
             task_id=af_task_id,
             dbnd_task_type=task.get_task_family(),
             dbnd_task_id=task.task_id,
@@ -153,6 +152,8 @@ class DagFuncOperatorCtrl(object):
             params=dbnd_task_params,
             **op_kwargs
         )
+        # doesn't work in airflow 1_10_0
+        op.template_fields = dbnd_task_params_fields
         task.ctrl.airflow_op = op
 
         if task.task_retries is not None:

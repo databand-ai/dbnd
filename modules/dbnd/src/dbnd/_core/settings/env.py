@@ -57,7 +57,7 @@ class EnvConfig(Config):
 
     spark_engine = task_env_param.help(
         "Cluster engine (local/emr(aws)/dataproc(gcp)/.."
-    ).value("local_spark")
+    ).value("spark_local")
 
     hdfs = task_env_param.help("Hdfs cluster config").value("hdfs_knox")
 
