@@ -1,17 +1,21 @@
 # PLEASE DO NOT MOVE/RENAME THIS FILE, IT'S SERIALIZED INTO AIRFLOW DB
 import logging
+import typing
 
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
-from dbnd import PipelineTask, PythonTask
+from dbnd import Task, dbnd_handle_errors
 from dbnd._core.context.databand_context import DatabandContext
-from dbnd._core.current import try_get_databand_run
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.utils.json_utils import convert_to_safe_types
+from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from targets import target
 
+
+if typing.TYPE_CHECKING:
+    from dbnd._core.run.databand_run import DatabandRun
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +66,17 @@ class DbndFunctionalOperator(BaseOperator):
             self.dbnd_task_id
         )
 
+    @dbnd_handle_errors(exit_on_error=False)
     def execute(self, context):
         logger.debug("Running dbnd dbnd_task from airflow operator %s", self.task_id)
+
+        dag = context["dag"]
+        execution_date = context["execution_date"]
+        dag_id = dag.dag_id
+        run_uid = get_job_run_uid(dag_id=dag_id, execution_date=execution_date)
+
+        dag_task_run_uid = get_task_run_uid(run_uid, dag_id)
+        task_run_uid = get_task_run_uid(run_uid, self.task_id)
 
         # Airflow has updated all relevan fields in Operator definition with XCom values
         # now we can create a real dbnd dbnd_task with real references to dbnd_task
@@ -79,27 +92,40 @@ class DbndFunctionalOperator(BaseOperator):
         with DatabandContext.context(_context=dag_ctrl.dbnd_context) as dc:
             logger.debug("Running %s with kwargs=%s ", self.task_id, new_kwargs)
             dbnd_task = dc.task_instance_cache.get_task_by_id(self.dbnd_task_id)
-            # rebuild task with new values
+            # rebuild task with new values coming from xcom->operator
             with dbnd_task.ctrl.task_context(phase=TaskContextPhase.BUILD):
                 dbnd_task = dbnd_task.clone(**new_kwargs)
 
-            logger.info(
-                dbnd_task.ctrl.banner(
-                    "Running task '%s'." % dbnd_task.task_name, color="cyan"
-                )
-            )
-            with dbnd_task.ctrl.task_context(phase=TaskContextPhase.RUN):
-                needs_databand_run = not isinstance(
-                    dbnd_task, (PipelineTask, PythonTask)
-                )
-                dr = try_get_databand_run()
-                if needs_databand_run and not dr:
-                    logger.info("Creating nplace databand run for driver dump")
-                    with new_databand_run(context=dc, task_or_task_name=dbnd_task) as r:
-                        r._init_without_run()
-                        r.save_run()
-                        dbnd_task._task_submit()
-                else:
+            logger.debug("Creating inplace databand run for driver dump")
+            dag_task = Task(task_name=dag.dag_id, task_target_date=execution_date)
+            dag_task.set_upstream(dbnd_task)
+
+            # create databand run
+            with new_databand_run(
+                context=dc,
+                task_or_task_name=dag_task,
+                run_uid=run_uid,
+                existing_run=False,
+                job_name=dag.dag_id,
+            ) as dr:  # type: DatabandRun
+                dr._init_without_run(root_task_run_uid=dag_task_run_uid)
+
+                # dr.driver_task_run.set_task_run_state(state=TaskRunState.RUNNING)
+                # "make dag run"
+                # dr.root_task_run.set_task_run_state(state=TaskRunState.RUNNING)
+                # tr = dr.get_task_run_by_id(dbnd_task.task_id)
+
+                needs_databand_run_save = dbnd_task._conf__require_run_dump_file
+                if needs_databand_run_save:
+                    dr.save_run()
+
+                with dbnd_task.ctrl.task_context(phase=TaskContextPhase.RUN):
+                    logger.info(
+                        dbnd_task.ctrl.banner(
+                            "Running task '%s'." % dbnd_task.task_name, color="cyan"
+                        )
+                    )
+                    # should be replaced with  tr._execute call
                     dbnd_task._task_submit()
 
         logger.debug("Finished to run %s", self)
