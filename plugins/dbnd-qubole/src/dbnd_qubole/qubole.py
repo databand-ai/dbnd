@@ -117,7 +117,9 @@ class QuboleCtrl(SparkCtrl):
         # should be reimplemented using SparkSubmitHook (maybe from airflow)
         # note that config jars are not supported.
 
-        arguments = list2cmdline_safe(list_of_strings(self.task.application_args()))
+        arguments = list2cmdline_safe(
+            list_of_strings(self.task.application_args()), safe_curly_brackets=True
+        )
 
         cmd = SparkCommand.create(
             script_location=self.deploy.sync(pyspark_script),
