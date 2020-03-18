@@ -1,3 +1,4 @@
+from dbnd._core.utils.basics import nested_context
 from dbnd._vendor import click
 from dbnd._vendor.click import command
 
@@ -25,7 +26,17 @@ def send_heartbeat(
             }
         }
     ):
-        tracking_store = CoreConfig().get_tracking_store()
-        send_heartbeat_continuously(
-            run_uid, tracking_store, heartbeat_interval, driver_pid
-        )
+        requred_context = []
+        if tracker_api == "db":
+            from dbnd import new_dbnd_context
+
+            requred_context.append(
+                new_dbnd_context(name="send_heartbeat", autoload_modules=False)
+            )
+
+        with nested_context.nested(*requred_context):
+            tracking_store = CoreConfig().get_tracking_store()
+
+            send_heartbeat_continuously(
+                run_uid, tracking_store, heartbeat_interval, driver_pid
+            )

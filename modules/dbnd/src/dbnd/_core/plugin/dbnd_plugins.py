@@ -1,3 +1,4 @@
+import importlib
 import logging
 import sys
 
@@ -7,6 +8,7 @@ from dbnd._core.configuration import environ_config
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
 from dbnd._core.utils.basics.load_python_module import _load_module
+from dbnd._core.utils.seven import import_errors
 from dbnd._vendor import pluggy
 
 
@@ -44,6 +46,12 @@ def is_airflow_enabled():
     return _AIRFLOW_ENABLED
 
 
+def disable_airflow_plugin():
+    global _AIRFLOW_ENABLED
+    _AIRFLOW_ENABLED = False
+    pm.set_blocked("dbnd-airflow")
+
+
 def use_airflow_connections():
     from dbnd._core.configuration.dbnd_config import config
 
@@ -69,22 +77,32 @@ def assert_airflow_package_installed():
 
 
 # all other modules
-def is_plugin_enabled(module):
-    return pm.has_plugin(module)
+def is_plugin_enabled(module, module_import=None):
+    if pm.has_plugin(module):
+        return True
+
+    if module_import:
+        try:
+            importlib.import_module(module_import)
+            return True
+        except import_errors:
+            pass
+
+    return False
 
 
-def assert_plugin_enabled(module, reason=None):
-    if not is_plugin_enabled(module):
+def assert_plugin_enabled(module, reason=None, module_import=None):
+    if not is_plugin_enabled(module, module_import=module_import):
         raise friendly_error.config.missing_module(module, reason)
     return True
 
 
 def is_web_enabled():
-    return is_plugin_enabled("dbnd-web")
+    return is_plugin_enabled("dbnd-web", "dbnd_web")
 
 
 def assert_web_enabled(reason=None):
-    return assert_plugin_enabled("dbnd-web", reason)
+    return assert_plugin_enabled("dbnd-web", reason=reason, module_import="dbnd_web")
 
 
 _dbnd_plugins_registered = False

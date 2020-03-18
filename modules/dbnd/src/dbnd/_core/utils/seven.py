@@ -18,4 +18,10 @@ try:
 except ImportError:
     from io import StringIO
 
-__all__ = ["contextlib", "qualname_func"]
+try:
+    import_errors = (ImportError, ModuleNotFoundError)
+except Exception:
+    # we are python2
+    import_errors = (ImportError,)
+
+__all__ = ["contextlib", "qualname_func", "import_errors"]

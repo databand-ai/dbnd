@@ -15,8 +15,7 @@ import dbnd
 
 from dbnd import register_config_cls, register_task
 from dbnd._core.configuration import environ_config
-from dbnd._core.plugin import dbnd_plugins
-from dbnd._core.plugin.dbnd_plugins import pm
+from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
 from targets import target
 from test_dbnd.factories import FooConfig, TConfig
 
@@ -27,8 +26,7 @@ environ_config.set_on(environ_config.ENV_DBND__NO_MODULES)
 os.environ["DBND__CORE__TRACKER"] = "['file', 'console']"
 
 # DISABLE AIRFLOW, we don't test it in this module!
-dbnd_plugins._AIRFLOW_ENABLED = False
-pm.set_blocked("dbnd-airflow")
+disable_airflow_plugin()
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",
