@@ -23,10 +23,10 @@ import sys
 
 from copy import deepcopy
 
-from airflow import configuration as conf
 from airflow.config_templates.airflow_local_settings import (
     DEFAULT_LOGGING_CONFIG as airflow_default_log_config,
 )
+from airflow.configuration import conf
 from airflow.utils.log.file_processor_handler import FileProcessorHandler
 
 
