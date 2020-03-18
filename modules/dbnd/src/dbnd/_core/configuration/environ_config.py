@@ -1,5 +1,4 @@
 import os
-import sys
 
 
 PARAM_ENV_TEMPLATE = "DBND__{S}__{K}"
@@ -14,6 +13,7 @@ ENV_DBND__ENABLED = "DBND__ENABLED"
 ENV_DBND__UNITTEST_MODE = "DBND__UNITTEST_MODE"
 ENV_DBND__CONFIG = "DBND__CONFIG"
 ENV_DBND__USER_PRE_INIT = "DBND__USER_PRE_INIT"
+ENV_DBND__NO_MODULES = "DBND__NO_MODULES"
 
 ENV_DBND_USER = "DBND_USER"
 ENV_DBND_ENV = "DBND_ENV"
@@ -90,8 +90,16 @@ def disable_databand():
 
 
 def set_dbnd_unit_test_mode():
-    os.environ[ENV_DBND__UNITTEST_MODE] = "True"
+    set_on(ENV_DBND__UNITTEST_MODE)
 
 
 def get_user_preinit():
     return os.environ.get(ENV_DBND__USER_PRE_INIT, None)
+
+
+def is_no_modules():
+    return environ_enabled(ENV_DBND__NO_MODULES)
+
+
+def set_on(env_key):
+    os.environ[env_key] = "True"

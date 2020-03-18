@@ -30,7 +30,6 @@ from dbnd_airflow.dbnd_task_executor.dbnd_task_to_airflow_operator import (
     set_af_operator_doc_md,
 )
 from dbnd_airflow.executors import AirflowTaskExecutorType
-from dbnd_airflow.executors.kubernetes_executor import DbndKubernetesExecutor
 from dbnd_airflow.executors.simple_executor import InProcessExecutor
 from dbnd_airflow.scheduler.single_dag_run_job import SingleDagRunJob
 
@@ -335,6 +334,10 @@ class AirflowTaskExecutor(TaskExecutor):
 
         if self.task_executor_type == AirflowTaskExecutorType.airflow_kubernetes:
             assert_plugin_enabled("dbnd-docker")
+
+            from dbnd_airflow.executors.kubernetes_executor import (
+                DbndKubernetesExecutor,
+            )
             from dbnd_docker.kubernetes.kubernetes_engine_config import (
                 KubernetesEngineConfig,
             )

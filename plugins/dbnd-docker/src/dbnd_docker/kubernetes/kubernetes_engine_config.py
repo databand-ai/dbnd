@@ -406,11 +406,15 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
 def readable_pod_request(pod_req):
     try:
-        return yaml.safe_dump(pod_req, encoding="utf-8", allow_unicode=True).decode(
-            "ascii", errors="ignore"
-        )
+        return yaml.dump(
+            pod_req,
+            encoding="utf-8",
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+        ).decode("ascii", errors="ignore")
     except Exception as ex:
-        logger.exception("Failed to create readable pod request representation: %s", ex)
+        logger.info("Failed to create readable pod request representation: %s", ex)
         return dumps_safe(pod_req)
 
 

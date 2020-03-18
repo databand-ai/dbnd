@@ -198,7 +198,7 @@ class CoreConfig(Config):
             from dbnd.api.tracking_api import TrackingApiClient
 
             if not databand_url:
-                logger.info(
+                logger.debug(
                     "Although 'api' was set in 'core.tracker', and 'web' was set in 'core.tracker_api'"
                     "dbnd will not use it since 'core.databand_url' was not set."
                 )

@@ -54,12 +54,12 @@ class TestFunctionalDagRun(object):
 
         assert _read_result_value(result) == "checkcheckt_B"
 
-    def test_dag_pipeline(self):
+    def test_dag_pipeline_run(self):
         result = run_and_get(dag_with_pipeline, task_id="t_A")
         actual = _read_result_value(result)
         assert actual == "from_pipeline_ctorfrom_pipeline_ctor"
 
-    def test_dag_config(self):
+    def test_dag_config_run(self):
 
         result = run_and_get(dag_with_config, task_id="t_A")
         actual = _read_result_value(result)
