@@ -156,13 +156,13 @@ class TaskRunMetricsFileStoreReader(object):
         metric_data = metric_target.readlines()
         if len(metric_data) == 0:
             raise DatabandRuntimeError("Metric '%s' is malformed. No data found." % key)
-        last_line = metric_data[-1]
+        first_line = metric_data[0]
 
-        metric_parsed = _METRICS_RE.match(last_line)
+        metric_parsed = _METRICS_RE.match(first_line)
         if not metric_parsed:
             raise DatabandRuntimeError(
                 "Metric '%s' is malformed. Expected format: 'TS VALUE', got='%s'"
-                % (key, last_line)
+                % (key, first_line)
             )
 
         timestamp, val = metric_parsed.groups()

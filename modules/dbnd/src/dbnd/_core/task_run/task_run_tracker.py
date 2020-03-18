@@ -8,6 +8,7 @@ from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.timezone import utcnow
+from targets.values import get_value_type_of_obj
 
 
 if typing.TYPE_CHECKING:
@@ -85,12 +86,17 @@ class TaskRunTracker(TaskRunCtrl):
         )
         self._log_metric(key, value, timestamp=timestamp, source=source)
 
-    def log_dataframe(self, key, df):
-        logger.info("Dataframe '{}'='{}".format(key, df.shape))
-        if len(df.shape) == 1:
-            self._log_metric(key, df.shape[0][1])
-            return
+    def log_dataframe(self, key, df, with_preview=True):
+        value_type = get_value_type_of_obj(df)
+        value_meta = value_type.get_value_meta(df)
 
-        self.log_metric(key, df.shape)
-        for dim, size in enumerate(df.shape):
-            self._log_metric("%s[%s]" % (key, dim), size)
+        if value_meta.data_dimensions:
+            logger.info("Dataframe '{}'='{}".format(key, value_meta.data_dimensions))
+
+            self._log_metric("%s.shape" % key, value_meta.data_dimensions)
+            for dim, size in enumerate(value_meta.data_dimensions):
+                self._log_metric("%s.shape[%s]" % (key, dim), size)
+
+        self._log_metric("%s.schema" % key, value_meta.data_schema)
+        if with_preview:
+            self._log_metric("%s.preview" % key, value_meta.value_preview)
