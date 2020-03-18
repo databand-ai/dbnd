@@ -41,6 +41,12 @@ class EmptyAirflowDatabase(Exception):
 ### Plugin Business Logic ###
 
 
+def _load_dags_models(session=None):
+    dag_models = session.query(DagModel).all()
+    for dag_model in dag_models:
+        current_dags[dag_model.dag_id] = dag_model
+
+
 def do_export_data(
     dagbag, since, include_logs=False, dag_ids=None, tasks=None, session=None
 ):
@@ -64,7 +70,8 @@ def do_export_data(
     task_end_dates = [
         task.end_date for task, job in task_instances if task.end_date is not None
     ]
-    dag_run_end_date = max(task_end_dates) if task_end_dates else pendulum.datetime.max
+    # dag_run_end_date = max(task_end_dates) if task_end_dates else pendulum.datetime.max
+    dag_run_end_date = pendulum.datetime.max
     dag_runs |= _get_dag_runs(since, dag_run_end_date, dag_ids, session)
     logging.info("%d dag runs were found." % len(dag_runs))
 
@@ -98,12 +105,6 @@ def do_export_data(
     return ed
 
 
-def _load_dags_models(session=None):
-    dag_models = session.query(DagModel).all()
-    for dag_model in dag_models:
-        current_dags[dag_model.dag_id] = dag_model
-
-
 def _get_dag_runs(start_date, end_date, dag_ids, session):
     dagruns_query = session.query(DagRun).filter(
         or_(
@@ -128,11 +129,7 @@ def _get_task_instances(start_date, dag_ids, quantity, session):
             & (TaskInstance.execution_date == DagRun.execution_date),
         )
         .filter(
-            or_(
-                TaskInstance.end_date.is_(None),
-                TaskInstance.end_date >= start_date,
-                BaseJob.latest_heartbeat >= start_date,
-            )
+            or_(TaskInstance.end_date.is_(None), TaskInstance.end_date >= start_date)
         )
     )
 
@@ -246,7 +243,7 @@ class ETaskInstance(object):
             try_number=ti._try_number,
             task_id=ti.task_id,
             start_date=ti.start_date,
-            end_date=ti.end_date or job.latest_heartbeat if job else None,
+            end_date=ti.end_date,
             log_body=_get_log(ti, task) if include_logs else None,
         )
 
