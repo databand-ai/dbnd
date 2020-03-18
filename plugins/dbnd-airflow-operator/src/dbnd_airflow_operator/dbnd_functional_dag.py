@@ -51,7 +51,8 @@ def build_task_at_airflow_dag_context(task_cls, call_args, call_kwargs):
 
 
 _default_dbnd_dag_context_config = parse_and_build_config_store(
-    source="airflow_defaults", config_values={"log": {"disabled": True}}
+    source="airflow_defaults",
+    config_values={"log": {"disabled": True, "capture_task_run_log": False}},
 )
 
 

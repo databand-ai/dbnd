@@ -48,7 +48,6 @@ class DbndFunctionalOperator(BaseOperator):
         self.dbnd_task_params_fields = dbnd_task_params_fields
         self.dbnd_xcom_inputs = dbnd_xcom_inputs
         self.dbnd_xcom_outputs = dbnd_xcom_outputs
-        self.operator_config = DbndAirflowOperatorConfig()
 
     @property
     def task_type(self):
@@ -114,20 +113,21 @@ class DbndFunctionalOperator(BaseOperator):
                 # dr.driver_task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 # "make dag run"
                 # dr.root_task_run.set_task_run_state(state=TaskRunState.RUNNING)
-                # tr = dr.get_task_run_by_id(dbnd_task.task_id)
+                dbnd_task_run = dr.get_task_run_by_id(dbnd_task.task_id)
 
                 needs_databand_run_save = dbnd_task._conf__require_run_dump_file
                 if needs_databand_run_save:
                     dr.save_run()
 
-                with dbnd_task.ctrl.task_context(phase=TaskContextPhase.RUN):
-                    logger.info(
-                        dbnd_task.ctrl.banner(
-                            "Running task '%s'." % dbnd_task.task_name, color="cyan"
-                        )
+                logger.info(
+                    dbnd_task.ctrl.banner(
+                        "Running task '%s'." % dbnd_task.task_name, color="cyan"
                     )
-                    # should be replaced with  tr._execute call
-                    dbnd_task._task_submit()
+                )
+                # should be replaced with  tr._execute call
+                dbnd_task_run.runner.execute(
+                    airflow_context=context, handle_sigterm=False
+                )
 
         logger.debug("Finished to run %s", self)
         result = {
@@ -135,15 +135,6 @@ class DbndFunctionalOperator(BaseOperator):
             for output_name in self.dbnd_xcom_outputs
         }
         return result
-
-    def validate_and_submit_task(self, dbnd_task):
-        if self.operator_config.validate_operator_inputs:
-            dbnd_task.ctrl.validator.validate_task_is_ready_to_run()
-        dbnd_task._task_submit()
-
-    def validate_task_output(self, dbnd_task):
-        if self.operator_config.validate_operator_outputs:
-            dbnd_task.ctrl.validator.validate_task_is_complete()
 
     def on_kill(self):
         return self.get_dbnd_task().on_kill()
