@@ -20,7 +20,7 @@ class TaskValidator(TaskCtrl):
     def __init__(self, task):
         super(TaskCtrl, self).__init__(task)
 
-    def validate_task_inputs(self):
+    def find_and_raise_missing_inputs(self):
         missing = find_non_completed(self.relations.task_outputs_user)
         missing_str = non_completed_outputs_to_str(missing)
         raise DatabandConfigError(
@@ -29,7 +29,7 @@ class TaskValidator(TaskCtrl):
             % (missing_str, self.task.task_id)
         )
 
-    def validate_task_is_ready_to_run(self):
+    def validate_task_inputs(self):
         if not self.task.ctrl.should_run():
             missing = find_non_completed(self.relations.task_outputs_user)
             missing_str = non_completed_outputs_to_str(missing)

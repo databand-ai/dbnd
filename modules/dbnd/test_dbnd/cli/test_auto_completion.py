@@ -57,7 +57,7 @@ class TestAutoComplete(object):
         for line in lines:
             if _is_bad(line):
                 has_bad_line = True
-                msg += "* " + line
+                msg += "BAD LINE: " + line
             else:
                 msg += "  " + line
 

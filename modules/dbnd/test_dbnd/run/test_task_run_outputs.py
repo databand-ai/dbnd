@@ -2,11 +2,10 @@ import logging
 
 import pandas as pd
 
+import dbnd._core.task_ctrl.task_validator
 import dbnd._core.task_run.task_run
 
 from dbnd import output, task
-from dbnd._core.current import get_databand_context
-from dbnd._core.run.databand_run import new_databand_run
 from dbnd.testing.helpers import initialized_run
 from targets import FileTarget
 from test_dbnd.factories import TTask
@@ -29,17 +28,17 @@ class TestTaskRunOutputs(object):
 
         task = TTask()
         with initialized_run(task):
-            runner = task.current_task_run.runner
+            validator = task.ctrl.validator
 
             with monkeypatch.context() as m:
                 m.setattr(FileTarget, "exist_after_write_consistent", lambda a: False)
                 m.setattr(FileTarget, "exists", lambda a: False)
                 m.setattr(
-                    dbnd._core.task_run.task_run_runner,
+                    dbnd._core.task_ctrl.task_validator,
                     "EVENTUAL_CONSISTENCY_MAX_SLEEPS",
                     1,
                 )
-                assert not runner.wait_for_consistency()
+                assert not validator.wait_for_consistency()
 
     def test_hdf5_output(self):
         t_f_hdf5.dbnd_run()

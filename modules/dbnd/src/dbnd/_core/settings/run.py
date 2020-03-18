@@ -97,3 +97,11 @@ class RunConfig(config.Config):
         default=False,
         description="When submitting driver to remote execution keep tracking of submitted process and wait for completion",
     )[bool]
+
+    validate_task_inputs = parameter(default=True).help(
+        "Should dbnd task check that all input files exist"
+    )[bool]
+
+    validate_task_outputs = parameter(default=True).help(
+        "Should dbnd task check that all outputs exist after task has been executed"
+    )[bool]
