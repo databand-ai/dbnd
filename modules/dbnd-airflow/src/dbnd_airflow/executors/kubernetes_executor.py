@@ -110,8 +110,7 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
     if ec.affinity is not None:
         airflow_kube_config.kube_affinity = ec.affinity
     if ec.tolerations is not None:
-        # Must translate ordered dictionary to normal dictionary
-        airflow_kube_config.kube_tolerations = [dict(t) for t in ec.tolerations]
+        airflow_kube_config.kube_tolerations = ec.tolerations
 
 
 class DbndKubernetesScheduler(AirflowKubernetesScheduler):
