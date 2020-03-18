@@ -10,6 +10,7 @@ from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
 from dbnd._core.tracking.tracking_store_console import ConsoleStore
 from dbnd._core.utils.string_utils import clean_job_name, clean_job_name_dns1123
+from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
 from targets import target
 
@@ -143,6 +144,8 @@ class TaskRun(object):
 
         if error:
             self.errors.append(error)
+        if state == TaskRunState.RUNNING:
+            self.start_time = utcnow()
 
         self._task_run_state = state
         if track:

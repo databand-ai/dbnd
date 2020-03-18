@@ -45,7 +45,7 @@ class TestFunctionalDagBuild(object):
         assert isinstance(a, str)
         assert isinstance(b, str)
 
-    def test_dag_config(self):
+    def test_dag_config_build(self):
         args_test = copy.copy(default_args_test)
         args_test["dbnd_config"] = {t_pipeline.task.p_str: "from_config"}
         with DAG(dag_id="test_dag_config", default_args=args_test) as dag_operators:

@@ -7,8 +7,8 @@ from airflow.models import TaskInstance
 from airflow.utils.dates import days_ago
 from pyspark.sql import DataFrame
 
-from dbnd import task
-from dbnd_spark.spark import spark_task
+from dbnd import parameter, relative_path, task
+from dbnd_spark.spark import PySparkTask, spark_task
 from dbnd_spark.targets import register_targets
 
 
@@ -47,15 +47,27 @@ def word_count_inline(text: DataFrame) -> DataFrame:
     return get_spark_session().createDataFrame(counts)
 
 
+class WordCountPySparkTask(PySparkTask):
+    text = parameter.data
+    counters = parameter.output
+
+    python_script = relative_path(__file__, "spark_scripts/word_count.py")
+
+    def application_args(self):
+        return [self.text, self.counters]
+
+
 with DAG(dag_id="dbnd_dag_with_spark", default_args=default_args) as dag_spark:
     # noinspection PyTypeChecker
-    spark_result = word_count_inline("/tmp/sample.txt")
-    spark_op = spark_result.op
+    spark_task = WordCountPySparkTask(text="s3://dbnd/README.md")
+    spark_op = spark_task.op
+    # spark_result = word_count_inline("/tmp/sample.txt")
+    # spark_op = spark_result.op
 
 if __name__ == "__main__":
-    # ti = TaskInstance(spark_op, days_ago(0))
-    # ti.run(ignore_task_deps=True, ignore_ti_state=True, test_mode=True)
-    # #
-
-    dag_spark.clear()
-    dag_spark.run(start_date=days_ago(0), end_date=days_ago(0))
+    ti = TaskInstance(spark_op, days_ago(0))
+    ti.run(ignore_task_deps=True, ignore_ti_state=True, test_mode=True)
+    # # #
+    #
+    # dag_spark.clear()
+    # dag_spark.run(start_date=days_ago(0), end_date=days_ago(0))

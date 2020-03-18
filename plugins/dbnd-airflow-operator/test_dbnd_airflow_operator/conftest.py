@@ -5,9 +5,11 @@ import os
 
 import pytest
 
+# import dbnd should be first!
 from dbnd._core.plugin.dbnd_plugins import pm
 
 
+# should be before any databand import!
 home = os.path.abspath(
     os.path.normpath(os.path.join(os.path.dirname(__file__), "airflow_home"))
 )
@@ -16,8 +18,6 @@ os.environ["AIRFLOW_HOME"] = home
 os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"
 
 logger = logging.getLogger(__name__)
-
-# import dbnd should be first!
 
 
 pm.set_blocked("dbnd-airflow")

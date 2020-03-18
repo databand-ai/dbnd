@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import os
+
 from datetime import datetime
 
 import numpy as np
@@ -10,14 +12,22 @@ from pytest import fixture
 
 # import dbnd should be first!
 import dbnd
-import matplotlib
 
 from dbnd import register_config_cls, register_task
+from dbnd._core.configuration import environ_config
+from dbnd._core.plugin import dbnd_plugins
 from dbnd._core.plugin.dbnd_plugins import pm
 from targets import target
 from test_dbnd.factories import FooConfig, TConfig
 
 
+# we want to test only this module
+environ_config.set_on(environ_config.ENV_DBND__NO_MODULES)
+# disable DB tracking
+os.environ["DBND__CORE__TRACKER"] = "['file', 'console']"
+
+# DISABLE AIRFLOW, we don't test it in this module!
+dbnd_plugins._AIRFLOW_ENABLED = False
 pm.set_blocked("dbnd-airflow")
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_plugin",
@@ -25,11 +35,15 @@ pytest_plugins = [
 ]
 __all__ = ["dbnd"]
 
-# see:
-# https://stackoverflow.com/questions/37604289/tkinter-tclerror-no-display-name-and-no-display-environment-variable
-# https://markhneedham.com/blog/2018/05/04/python-runtime-error-osx-matplotlib-not-installed-as-framework-mac/
-matplotlib.use("Agg")
+try:
+    import matplotlib
 
+    # see:
+    # https://stackoverflow.com/questions/37604289/tkinter-tclerror-no-display-name-and-no-display-environment-variable
+    # https://markhneedham.com/blog/2018/05/04/python-runtime-error-osx-matplotlib-not-installed-as-framework-mac/
+    matplotlib.use("Agg")
+except ModuleNotFoundError:
+    pass
 
 # by default exclude tests marked with following marks from execution:
 markers_to_exlude_by_default = ["dbnd_integration"]

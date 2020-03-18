@@ -7,6 +7,7 @@ from dbnd._core.current import get_databand_run
 from dbnd._core.log.logging_utils import TaskContextFilter
 from dbnd._core.task_build.task_context import task_context
 from dbnd._core.utils.basics.nested_context import nested
+from dbnd._core.utils.traversing import traverse_to_str
 
 
 if typing.TYPE_CHECKING:
@@ -73,6 +74,10 @@ class TaskSubCtrl(object):
         return self.ctrl._relations
 
     @property
+    def validator(self):  # type: () -> TaskValidator
+        return self.ctrl.task_validator
+
+    @property
     def task_env(self):
         # type: ()-> EnvConfig
         return self.task.task_env
@@ -96,8 +101,10 @@ class TaskCtrl(TaskSubCtrl):
         from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser  # noqa: F811
         from dbnd._core.task_ctrl.task_output_builder import TaskOutputBuilder
         from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
+        from dbnd._core.task_ctrl.task_validator import TaskValidator
 
         self._relations = TaskRelations(task)
+        self.task_validator = TaskValidator(task)
         self._task_dag = _TaskDagNode(task)
 
         self.outputs = TaskOutputBuilder(task)  # type: TaskOutputBuilder
@@ -153,3 +160,8 @@ class TaskCtrl(TaskSubCtrl):
             config.config_layer_context(self.task.task_meta.config_layer),
         ):
             yield
+
+    def save_task_band(self):
+        if self.task.task_band:
+            task_outputs = traverse_to_str(self.task.task_outputs)
+            self.task.task_band.as_object.write_json(task_outputs)
