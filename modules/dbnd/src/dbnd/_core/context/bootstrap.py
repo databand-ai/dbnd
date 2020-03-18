@@ -58,8 +58,7 @@ def dbnd_system_bootstrap():
         _dbnd_system_bootstrap = True
         # prevent recursive call, problematic on exception
 
-        if ENV_DBND_HOME not in os.environ:
-            init_databand_env()
+        init_databand_env()
 
         if not in_quiet_mode():
             logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())

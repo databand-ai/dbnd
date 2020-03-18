@@ -1,3 +1,6 @@
+import logging
+import os
+
 from datetime import datetime
 
 from airflow import DAG, settings
@@ -10,6 +13,7 @@ from dbnd._core.utils.project.project_fs import abs_join
 from dbnd._core.utils.timezone import utcnow
 
 
+logger = logging.getLogger(__name__)
 _lib_dbnd_airflow_operator_test = relative_path(__file__, "..", "..", "..")
 
 
@@ -32,7 +36,19 @@ def dbnd_airflow_operator_home_path(*path):
 
 def run_and_get(dag, task_id, execution_date=None):
     execution_date = execution_date or utcnow()
-    _run_dag(dag, execution_date=execution_date)
+    try:
+        _run_dag(dag, execution_date=execution_date)
+    except Exception:
+        logger.exception("Failed to run %s %s %s", dag.dag_id, task_id, execution_date)
+
+        from airflow.configuration import conf as airflow_conf
+
+        iso = execution_date.isoformat()
+        log = os.path.expanduser(airflow_conf.get("core", "BASE_LOG_FOLDER"))
+        log_path = os.path.join(log, dag.dag_id, task_id, iso)
+        logger.info("Check logs at %s", log_path)
+        raise
+
     return _get_result(dag, task_id, execution_date=execution_date)
 
 
