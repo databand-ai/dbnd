@@ -1,33 +1,23 @@
 import logging
 import signal
-import time
 import typing
 
-from collections import defaultdict
-
 from dbnd._core.constants import SystemTaskName, TaskRunState
-from dbnd._core.errors import DatabandConfigError, friendly_error, show_error_once
+from dbnd._core.errors import friendly_error, show_error_once
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd._core.utils import json_utils
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.safe_signal import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
-from dbnd._core.utils.traversing import flatten, traverse_to_str
+from dbnd._core.utils.traversing import traverse_to_str
 
 
 if typing.TYPE_CHECKING:
     from dbnd import Task
-
-# Time to sleep while waiting for eventual consistency to finish.
-EVENTUAL_CONSISTENCY_SLEEP_INTERVAL = 1
-
-# Maximum number of sleeps for eventual consistency.
-EVENTUAL_CONSISTENCY_MAX_SLEEPS = 30
 
 logger = logging.getLogger(__name__)
 
@@ -87,29 +77,16 @@ class TaskRunRunner(TaskRunCtrl):
                     task_run.set_task_reused()
                     return
 
-                if not self.ctrl.should_run():
-                    missing = find_non_completed(self.relations.task_outputs_user)
-                    missing_str = non_completed_outputs_to_str(missing)
-                    raise DatabandConfigError(
-                        "You are missing some input tasks in your pipeline! \n\t%s\n"
-                        "The task execution was disabled for '%s'."
-                        % (missing_str, self.task_id)
-                    )
+                if not self.task.ctrl.should_run():
+                    self.task.ctrl.validator.validate_task_inputs()
 
-                missing = []
-                for partial_output in flatten(self.relations.task_inputs_user):
-                    if not partial_output.exists():
-                        missing.append(partial_output)
-                if missing:
-                    raise friendly_error.task_data_source_not_exists(
-                        self, missing, downstream=[self.task]
-                    )
+                self.ctrl.validator.validate_task_is_ready_to_run()
 
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 try:
                     result = self.task._task_submit()
-                    self._save_task_band()
-                    self.validate_complete()
+                    self.ctrl.save_task_band()
+                    self.ctrl.validator.validate_task_is_complete()
                 finally:
                     self.task_run.finished_time = utcnow()
 
@@ -169,66 +146,3 @@ class TaskRunRunner(TaskRunCtrl):
         if self.task.task_band:
             task_outputs = traverse_to_str(self.task.task_outputs)
             self.task.task_band.as_object.write_json(task_outputs)
-
-    def validate_complete(self):
-        if self.task._complete():
-            return
-
-        if self.wait_for_consistency():
-            return
-
-        missing = find_non_completed(self.relations.task_outputs_user)
-        if not missing:
-            raise friendly_error.task_has_not_complete_but_all_outputs_exists(self)
-
-        missing_str = non_completed_outputs_to_str(missing)
-        raise friendly_error.task_has_missing_outputs_after_execution(
-            self.task, missing_str
-        )
-
-    def wait_for_consistency(self):
-        for attempt in range(EVENTUAL_CONSISTENCY_MAX_SLEEPS):
-            missing = find_non_completed(self.task.task_outputs)
-            if not missing:
-                return True
-            missing_and_not_consistent = find_non_consistent(missing)
-            if not missing_and_not_consistent:
-                return False
-
-            missing_str = non_completed_outputs_to_str(missing_and_not_consistent)
-            logging.warning(
-                "Some outputs are missing, potentially due to eventual consistency of "
-                "your data store. Waining %s second to retry. Additional attempts: %s\n\t%s"
-                % (
-                    str(EVENTUAL_CONSISTENCY_SLEEP_INTERVAL),
-                    str(EVENTUAL_CONSISTENCY_MAX_SLEEPS - attempt),
-                    missing_str,
-                )
-            )
-
-            time.sleep(EVENTUAL_CONSISTENCY_SLEEP_INTERVAL)
-        return False
-
-
-def find_non_completed(targets):
-    missing = defaultdict(list)
-    for k, v in targets.items():
-        for partial_output in flatten(v):
-            if not partial_output.exists():
-                missing[k].append(partial_output)
-
-    return missing
-
-
-def find_non_consistent(targets):
-    non_consistent = list()
-    for k, v in targets.items():
-        for partial_output in flatten(v):
-            if not partial_output.exist_after_write_consistent():
-                non_consistent.append(partial_output)
-
-    return non_consistent
-
-
-def non_completed_outputs_to_str(non_completed_outputs):
-    return json_utils.dumps(non_completed_outputs)

@@ -48,6 +48,7 @@ class DbndFunctionalOperator(BaseOperator):
         self.dbnd_task_params_fields = dbnd_task_params_fields
         self.dbnd_xcom_inputs = dbnd_xcom_inputs
         self.dbnd_xcom_outputs = dbnd_xcom_outputs
+        self.operator_config = DbndAirflowOperatorConfig()
 
     @property
     def task_type(self):
@@ -78,7 +79,7 @@ class DbndFunctionalOperator(BaseOperator):
         dag_task_run_uid = get_task_run_uid(run_uid, dag_id)
         task_run_uid = get_task_run_uid(run_uid, self.task_id)
 
-        # Airflow has updated all relevan fields in Operator definition with XCom values
+        # Airflow has updated all relevant fields in Operator definition with XCom values
         # now we can create a real dbnd dbnd_task with real references to dbnd_task
         new_kwargs = {}
         for p_name in self.dbnd_task_params_fields:
@@ -134,6 +135,15 @@ class DbndFunctionalOperator(BaseOperator):
             for output_name in self.dbnd_xcom_outputs
         }
         return result
+
+    def validate_and_submit_task(self, dbnd_task):
+        if self.operator_config.validate_operator_inputs:
+            dbnd_task.ctrl.validator.validate_task_is_ready_to_run()
+        dbnd_task._task_submit()
+
+    def validate_task_output(self, dbnd_task):
+        if self.operator_config.validate_operator_outputs:
+            dbnd_task.ctrl.validator.validate_task_is_complete()
 
     def on_kill(self):
         return self.get_dbnd_task().on_kill()
