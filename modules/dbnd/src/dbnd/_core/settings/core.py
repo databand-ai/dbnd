@@ -70,7 +70,10 @@ class CoreConfig(Config):
 
     tracker_version = parameter[str]
 
-    user_configs = parameter(empty_default=True)[List[str]]
+    user_configs = parameter(
+        empty_default=True,
+        description="Contains the config for creating tasks from user code",
+    )[List[str]]
 
     # user_pre_init = defined at Databand System config, dbnd_on_pre_init_context
     user_init = parameter(
@@ -86,9 +89,15 @@ class CoreConfig(Config):
         default=None, description="Runs in sub process (parallel/kubernets/external)"
     )[object]
 
-    sql_alchemy_conn = parameter[str]
+    sql_alchemy_conn = parameter(description="The connection string for the database")[
+        str
+    ]
 
-    pickle_handler = parameter(default=None)[str]
+    pickle_handler = parameter(
+        default=None,
+        description="Defines a python pickle handler to be used to pickle the "
+        "run's data",
+    )[str]
 
     tracker = parameter(
         default=["file", "console", "api"], description="Tracking Stores to be used"
@@ -102,8 +111,12 @@ class CoreConfig(Config):
         description="Automatically create local SQLite db if it's not present",
     )[bool]
 
-    always_save_pipeline = parameter.value(False)
-    disable_save_pipeline = parameter.value(False)
+    always_save_pipeline = parameter(
+        description="Boolean for always saving pipeline to pickle"
+    ).value(False)
+    disable_save_pipeline = parameter(
+        description="Boolean for disabling pipeline pickling"
+    ).value(False)
     auto_save_target_metrics = parameter(
         default=True, description="Auto save target metrics and preview"
     )[bool]
@@ -235,6 +248,10 @@ class CoreConfig(Config):
 
 
 class DynamicTaskConfig(Config):
+    """
+    Configuration section for dynamically generated tasks.
+    """
+
     _conf__task_family = "dynamic_task"
 
     enabled = parameter(default=True, description="Allow tasks calls at runtime")[bool]
@@ -244,6 +261,10 @@ class DynamicTaskConfig(Config):
 
 
 class FeaturesConfig(Config):
+    """
+    Configuration section for caching features.
+    """
+
     _conf__task_family = "features"
 
     in_memory_cache_target_value = parameter(

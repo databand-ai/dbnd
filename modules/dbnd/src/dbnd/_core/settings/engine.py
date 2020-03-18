@@ -17,16 +17,20 @@ logger = logging.getLogger(__name__)
 
 
 class EngineConfig(config.Config):
-    """Databand's engine (where tasks are executed)"""
+    """Databand's engine configuration (where tasks are executed)"""
 
-    require_submit = parameter.value(False)
+    require_submit = parameter(
+        description="Should the task engine be forced to submit tasks"
+    ).value(False)
 
     sql_alchemy_conn = parameter(
         default=None,
         description="Alternate sql connection when submitting to the engine",
     )[str]
 
-    dbnd_local_root = parameter(default=None)[DirTarget]
+    dbnd_local_root = parameter(
+        default=None, description="Local dbnd home directory at the engine environment"
+    )[DirTarget]
     dbnd_executable = parameter(
         default=[sys.executable, "-m", "dbnd"],
         description="'dbnd' executable path at engine environment",
@@ -47,6 +51,10 @@ class EngineConfig(config.Config):
 
 
 class LocalMachineEngineConfig(EngineConfig):
+    """
+    Engine configuration for executing on the local machine.
+    """
+
     _conf__task_family = "local_machine"
 
     def submit_to_engine_task(self, env, task_name, args, interactive=True):

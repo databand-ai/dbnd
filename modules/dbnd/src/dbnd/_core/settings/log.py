@@ -22,30 +22,54 @@ logger = logging.getLogger(__name__)
 
 
 class LoggingConfig(config.Config):
-    """Databand's logger"""
+    """Databand's logger configuration"""
 
     _conf__task_family = "log"
-    disabled = parameter.value(False)
-    capture_stdout_stderr = parameter.value(True)
+    disabled = parameter(description="Should logging be disabled").value(False)
+    capture_stdout_stderr = parameter(
+        description="Should logger retransmit all output wrtten to stdout\stderr"
+    ).value(True)
     capture_task_run_log = parameter.help("Capture task output into log").value(True)
 
-    override_airflow_logging_on_task_run = parameter.value(True)
-    support_jupiter = parameter.value(True)
+    override_airflow_logging_on_task_run = parameter(
+        description="Replace airflow logger with databand logger"
+    ).value(True)
+    support_jupiter = parameter(
+        description="Support logging output to Jupiter UI"
+    ).value(True)
 
-    level = parameter.value("INFO")
-    formatter = parameter[str]
-    formatter_colorlog = parameter[str]
-    formatter_simple = parameter[str]
+    level = parameter(description="Logging level. DEBUG\INFO\WARN\ERROR").value("INFO")
+    formatter = parameter(
+        description="Log formatting string (logging library convention)"
+    )[str]
+    formatter_colorlog = parameter(
+        description="Log formatting string (logging library convention)"
+    )[str]
+    formatter_simple = parameter(
+        description="Log formatting string (logging library convention)"
+    )[str]
 
-    console_formatter_name = parameter[str]
-    file_formatter_name = parameter[str]
+    console_formatter_name = parameter(
+        description="The name of the formatter logging to console output"
+    )[str]
+    file_formatter_name = parameter(
+        description="The name of the formatter logging to file output"
+    )[str]
 
-    sentry_url = parameter(default=None)[str]
-    sentry_env = parameter(default=None)[str]
+    sentry_url = parameter(
+        default=None, description="URL for setting up sentry logger"
+    )[str]
+    sentry_env = parameter(default=None, description="Envrionment for sentry logger")[
+        str
+    ]
 
-    stream_stdout = parameter.value(False)
+    stream_stdout = parameter(
+        description="Should databand'a logger stream stdout instead of stderr"
+    ).value(False)
 
-    custom_dict_config = parameter(default=None)[Callable]
+    custom_dict_config = parameter(
+        default=None, description="Advanced: Customized logging configuration"
+    )[Callable]
 
     at_warn = parameter.help("name of loggers to put in WARNING mode").c[List[str]]
     at_debug = parameter.help("name of loggers to put in DEBUG mode").c[List[str]]

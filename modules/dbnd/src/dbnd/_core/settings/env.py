@@ -14,7 +14,7 @@ task_env_param = parameter(scope=ParameterScope.children)
 
 
 class EnvConfig(Config):
-    """Databand's environment"""
+    """Databand's environment configuration"""
 
     _conf__task_family = "env"
     cloud_type = parameter(description="cloud type: gcp/aws/")[str]
@@ -35,9 +35,15 @@ class EnvConfig(Config):
     root = parameter.folder[DirTarget]
 
     # DATABAND SYSTEM FOLDERS
-    dbnd_root = parameter.output.folder(default=None)[DirTarget]
-    dbnd_local_root = parameter.output.folder()[DirTarget]
-    dbnd_data_sync_root = parameter.output.folder()[DirTarget]
+    dbnd_root = parameter(description="DBND rooted home folder").output.folder(
+        default=None
+    )[DirTarget]
+    dbnd_local_root = parameter(
+        description="DBND home for the local engine environment"
+    ).output.folder()[DirTarget]
+    dbnd_data_sync_root = parameter(
+        description="Rooted directory for target syncing against remote engine"
+    ).output.folder()[DirTarget]
 
     # execution
     local_engine = parameter(
@@ -101,4 +107,8 @@ class EnvConfig(Config):
 
 
 class LocalEnvConfig(EnvConfig):
+    """
+    Local environment configuration section
+    """
+
     _conf__task_family = CloudType.local
