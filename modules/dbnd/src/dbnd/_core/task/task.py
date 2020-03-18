@@ -232,8 +232,8 @@ class Task(_BaseTask, _TaskParamContainer):
         # backward compatible code
         return self.current_task_run.tracker
 
-    def log_dataframe(self, key, df):
-        self.metrics.log_dataframe(key, df)
+    def log_dataframe(self, key, df, with_preview=True):
+        self.metrics.log_dataframe(key, df, with_preview)
 
     def log_metric(self, key, value, source=None):
         """

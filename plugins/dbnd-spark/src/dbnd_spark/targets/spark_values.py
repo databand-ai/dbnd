@@ -41,3 +41,7 @@ class SparkDataFrameValueType(DataValueType):
             "dtypes": {f.name: str(f.dataType) for f in df.schema.fields},
         }
         return json_utils.dumps(schema)
+
+    def get_data_hash(self, value):
+        # TODO Hash dataframe path
+        return None
