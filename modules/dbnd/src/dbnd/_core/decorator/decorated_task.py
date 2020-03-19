@@ -10,8 +10,8 @@ from dbnd._core.errors.friendly_error.task_execution import (
     failed_to_process_non_empty_result,
 )
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
-    is_in_airflow_dag_run_context,
     track_airflow_dag_run_operator_run,
+    try_get_airflow_context,
 )
 from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     build_task_at_airflow_dag_context,
@@ -56,9 +56,13 @@ class _DecoratedTask(Task):
         if not has_current_task():
             ######
             # DBND HANDLING OF CALL
-            if is_in_airflow_dag_run_context():
+            airflow_task_context = try_get_airflow_context()
+            if airflow_task_context:
                 return track_airflow_dag_run_operator_run(
-                    task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
+                    task_cls=cls,
+                    call_args=call_args,
+                    call_kwargs=call_kwargs,
+                    airflow_task_context=airflow_task_context,
                 )
             else:
                 # direct call to the function

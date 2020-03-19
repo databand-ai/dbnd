@@ -1,23 +1,78 @@
 import os
 
+import attr
+
 from dbnd import current_task_run
+from dbnd._core.configuration import environ_config
 from dbnd._core.decorator.dynamic_tasks import run_dynamic_task
 from dbnd._core.inplace_run.inplace_run_manager import get_dbnd_inplace_run_manager
 from dbnd._core.task.task import Task
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 
 
-def is_in_airflow_dag_run_context():
-    if "AIRFLOW_CTX_DAG_ID" in os.environ:
-        return True
-    return False
+_SPARK_ENV_FLAG = "SPARK_ENV_LOADED"  # if set, we are in spark
 
 
-def track_airflow_dag_run_operator_run(task_cls, call_args, call_kwargs):
+@attr.s
+class AirflowTaskContext(object):
+    dag_id = attr.ib()  # type: str
+    execution_date = attr.ib()  # type: str
+    task_id = attr.ib()  # type: str
+
+
+def try_get_airflow_context():
+    # type: ()-> AirflowTaskContext
+    # first try to get from spark
+    from_spark = try_get_airflow_context_from_spark_conf()
+    if from_spark:
+        return from_spark
+
+    dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
+    execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
+    task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")
+    if dag_id and task_id and execution_date:
+        return AirflowTaskContext(
+            dag_id=dag_id, execution_date=execution_date, task_id=task_id
+        )
+    return None
+
+
+def try_get_airflow_context_from_spark_conf():
+    if (
+        not environ_config.environ_enabled("DBND__ENABLE__SPARK_CONTEXT_ENV")
+        or _SPARK_ENV_FLAG not in os.environ
+    ):
+        return None
+
+    try:
+        from pyspark import SparkContext
+    except Exception:
+        return None
+
+    conf = SparkContext.getOrCreate().getConf()
+
+    dag_id = conf.get("spark.env.AIRFLOW_CTX_DAG_ID")
+    execution_date = conf.get("spark.env.AIRFLOW_CTX_EXECUTION_DATE")
+    task_id = conf.get("spark.env.AIRFLOW_CTX_TASK_ID")
+
+    if dag_id and task_id and execution_date:
+        return AirflowTaskContext(
+            dag_id=dag_id, execution_date=execution_date, task_id=task_id
+        )
+    return None
+
+
+def track_airflow_dag_run_operator_run(
+    task_cls, call_args, call_kwargs, airflow_task_context
+):
     from dbnd import dbnd_run_stop
 
     # this part will run DAG and Operator Tasks
-    dr = dbnd_run_start_airflow_dag_task()
+    dr = dbnd_run_start_airflow_dag_task(
+        dag_id=airflow_task_context.dag_id,
+        execution_date=airflow_task_context.execution_date,
+        task_id=airflow_task_context.task_id,
+    )
 
     # this is the real run of the decorated function
     try:
@@ -39,14 +94,7 @@ def track_airflow_dag_run_operator_run(task_cls, call_args, call_kwargs):
         dbnd_run_stop(at_exit=False, update_run_state=False)
 
 
-def dbnd_run_start_airflow_dag_task(dag_id=None, execution_date=None, task_id=None):
-    if not dag_id:
-        dag_id = os.environ["AIRFLOW_CTX_DAG_ID"]
-    if not execution_date:
-        execution_date = os.environ["AIRFLOW_CTX_EXECUTION_DATE"]
-    if not task_id:
-        task_id = os.environ["AIRFLOW_CTX_TASK_ID"]
-
+def dbnd_run_start_airflow_dag_task(dag_id, execution_date, task_id):
     run_uid = get_job_run_uid(dag_id=dag_id, execution_date=execution_date)
     # root_task_uid = get_task_run_uid(run_uid=run_uid, task_id="DAG")
     # task_uid = get_task_run_uid(run_uid=run_uid, task_id=task_id)

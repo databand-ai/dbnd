@@ -21,21 +21,31 @@ from operator import add
 
 from pyspark.sql import SparkSession
 
+from dbnd import task
+
+
+# import pydevd_pycharm
+# pydevd_pycharm.settrace('localhost', port=13013, stdoutToServer=True, stderrToServer=True)
+
+
+@task
+def word_count(input_path, output_path):
+    spark = SparkSession.builder.appName("PythonWordCount").getOrCreate()
+    lines = spark.read.text(input_path).rdd.map(lambda r: r[0])
+    counts = (
+        lines.flatMap(lambda x: x.split(" ")).map(lambda x: (x, 1)).reduceByKey(add)
+    )
+    counts.saveAsTextFile(output_path)
+    output = counts.collect()
+    for (word, count) in output:
+        print("%s: %i" % (word, count))
+    # this makes trouble on job submit on databricks!
+    # spark.close()
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: wordcount <file> <output>")
         sys.exit(-1)
 
-    spark = SparkSession.builder.appName("PythonWordCount").getOrCreate()
-
-    lines = spark.read.text(sys.argv[1]).rdd.map(lambda r: r[0])
-    counts = (
-        lines.flatMap(lambda x: x.split(" ")).map(lambda x: (x, 1)).reduceByKey(add)
-    )
-    counts.saveAsTextFile(sys.argv[2])
-    output = counts.collect()
-    for (word, count) in output:
-        print("%s: %i" % (word, count))
-    # this makes trouble on job submit on databricks!
-    # spark.close()
+    word_count(sys.argv[1], sys.argv[2])
