@@ -1,4 +1,5 @@
 import logging
+import typing
 
 from datetime import timedelta
 
@@ -7,8 +8,11 @@ import six
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import dbnd_context
 from dbnd._core.tracking import tracking_store
+from dbnd._core.tracking.metrics import Metric
 
 
+if typing.TYPE_CHECKING:
+    from dbnd._core.task_run.task_run import TaskRun
 logger = logging.getLogger(__name__)
 
 
@@ -103,3 +107,14 @@ class ConsoleStore(tracking_store.TrackingStore):
 
     def is_ready(self):
         return True
+
+    def log_metric(self, task_run, metric, source=None):
+        # type: (TaskRun, Metric, str) -> None
+        logger.info(
+            "{}{}Metric '{}'='{}'".format(
+                (source or "").capitalize(),
+                " " if source else "",
+                metric.key,
+                metric.value,
+            )
+        )

@@ -21,7 +21,7 @@ from operator import add
 
 from pyspark.sql import SparkSession
 
-from dbnd import task
+from dbnd import log_dataframe, task
 
 
 # import pydevd_pycharm
@@ -31,12 +31,18 @@ from dbnd import task
 @task
 def word_count(input_path, output_path):
     spark = SparkSession.builder.appName("PythonWordCount").getOrCreate()
-    lines = spark.read.text(input_path).rdd.map(lambda r: r[0])
+    lines = spark.read.text(input_path)
+
+    log_dataframe("lines", lines)
+    lines = lines.rdd.map(lambda r: r[0])
+
+    log_dataframe("lines_rdd", lines)
     counts = (
         lines.flatMap(lambda x: x.split(" ")).map(lambda x: (x, 1)).reduceByKey(add)
     )
     counts.saveAsTextFile(output_path)
     output = counts.collect()
+    log_dataframe("output", output)
     for (word, count) in output:
         print("%s: %i" % (word, count))
     # this makes trouble on job submit on databricks!

@@ -275,11 +275,11 @@ class ValueType(object):
     def get_data_hash(self, value):
         return fast_hasher.hash(value)
 
-    def get_value_meta(self, value):
+    def get_value_meta(self, value, with_preview=True):
         data_dimensions = self.get_data_dimensions(value)
         if data_dimensions is not None:
             data_dimensions = list(data_dimensions)
-        preview = self.to_preview(value)
+        preview = self.to_preview(value) if with_preview else None
         data_schema = self.get_data_schema(value)
         data_hash = self.get_data_hash(value)
 

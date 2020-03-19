@@ -498,8 +498,8 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     def get_env_key(self, section):
         return PARAM_ENV_TEMPLATE.format(S=section.upper(), K=self.name.upper())
 
-    def get_value_meta(self, value):
-        return self.value_type.get_value_meta(value)
+    def get_value_meta(self, value, with_preview=True):
+        return self.value_type.get_value_meta(value, with_preview=with_preview)
 
 
 def _update_parameter_from_runtime_value_type(parameter, cf_value):

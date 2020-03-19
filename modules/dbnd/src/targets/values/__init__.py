@@ -83,6 +83,7 @@ def get_types_registry():
 
 
 def get_value_type_of_obj(obj, default_value_type=None):
+    # type: (object, ValueType)->ValueType
     return get_types_registry().get_value_type_of_obj(obj, default_value_type)
 
 

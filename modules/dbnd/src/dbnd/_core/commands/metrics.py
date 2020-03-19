@@ -2,7 +2,7 @@ import logging
 import typing
 
 from dbnd._core.task_build.task_context import current, has_current_task
-from targets.values import get_value_type_of_obj
+from dbnd._core.task_run.task_run_tracker import get_value_meta_for_metric
 
 
 if typing.TYPE_CHECKING:
@@ -17,9 +17,11 @@ logger = logging.getLogger(__name__)
 def log_dataframe(key, value, with_preview=True):
     # type: (str, Union[pd.DataFrame, spark.DataFrame], Optional[bool]) -> None
     if not has_current_task():
-        value_type = get_value_type_of_obj(value)
-        shape = value_type.get_data_dimensions(value)
-        logger.info("DataFrame Shape '{}'='{}'".format(key, shape))
+        value_type = get_value_meta_for_metric(key, value, with_preview=with_preview)
+        if value_type:
+            logger.info(
+                "log_dataframe '{}': shape='{}'".format(key, value_type.data_dimensions)
+            )
         return
 
     return current().log_dataframe(key, value, with_preview)

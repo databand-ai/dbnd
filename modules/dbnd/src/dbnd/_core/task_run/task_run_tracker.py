@@ -8,6 +8,7 @@ from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.timezone import utcnow
+from targets.target_meta import TargetMeta
 from targets.values import get_value_type_of_obj
 
 
@@ -79,20 +80,14 @@ class TaskRunTracker(TaskRunCtrl):
         )
 
     def log_metric(self, key, value, timestamp=None, source=None):
-        logger.info(
-            "{}{}Metric '{}'='{}'".format(
-                (source or "").capitalize(), " " * bool(source), key, value
-            )
-        )
         self._log_metric(key, value, timestamp=timestamp, source=source)
 
     def log_dataframe(self, key, df, with_preview=True):
-        value_type = get_value_type_of_obj(df)
-        value_meta = value_type.get_value_meta(df)
+        value_meta = get_value_meta_for_metric(key, df, with_preview=with_preview)
+        if not value_meta:
+            return
 
         if value_meta.data_dimensions:
-            logger.info("Dataframe '{}'='{}".format(key, value_meta.data_dimensions))
-
             self._log_metric("%s.shape" % key, value_meta.data_dimensions)
             for dim, size in enumerate(value_meta.data_dimensions):
                 self._log_metric("%s.shape[%s]" % (key, dim), size)
@@ -100,3 +95,50 @@ class TaskRunTracker(TaskRunCtrl):
         self._log_metric("%s.schema" % key, value_meta.data_schema)
         if with_preview:
             self._log_metric("%s.preview" % key, value_meta.value_preview)
+
+
+def get_value_meta_for_metric(key, value, with_preview=True, with_data_hash=False):
+    value_type = get_value_type_of_obj(value)
+    if value_type is None:
+        logger.info(
+            "Can't detect known type for '%s' with type='%s' ", key, type(value)
+        )
+        return None
+    try:
+        data_dimensions = value_type.get_data_dimensions(value)
+        if data_dimensions is not None:
+            data_dimensions = list(data_dimensions)
+
+        try:
+            preview = value_type.to_preview(value) if with_preview else None
+            data_hash = value_type.get_data_hash(value) if with_data_hash else None
+        except Exception as ex:
+            logger.info(
+                "Failed to calculate data preview for '%s' with type='%s'"
+                " ( detected as %s): %s",
+                key,
+                type(value),
+                value_type,
+                ex,
+            )
+            data_hash = preview = None
+
+        data_schema = value_type.get_data_schema(value)
+
+        return TargetMeta(
+            value_preview=preview,
+            data_dimensions=data_dimensions,
+            data_schema=data_schema,
+            data_hash=data_hash,
+        )
+
+    except Exception as ex:
+        logger.info(
+            "Failed to build value meta info for '%s' with type='%s'"
+            " ( detected as %s): %s",
+            key,
+            type(value),
+            value_type,
+            ex,
+        )
+    return None
