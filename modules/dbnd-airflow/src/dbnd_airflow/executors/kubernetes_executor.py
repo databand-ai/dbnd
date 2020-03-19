@@ -17,7 +17,6 @@
 
 import logging
 import signal
-import subprocess
 import typing
 
 from airflow.contrib.executors.kubernetes_executor import (
@@ -382,18 +381,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 continue
             status = self.kube_dbnd.process_pod_event(event)
 
-            if self.processed_pods.get(pod_name):
-                self.log.debug("Pod %s has already been logged to metrics - skipping")
-            else:
-                node_name = pod_data.spec.node_name
-                if node_name:
-                    # Some events are missing the node name, but it will get there for sure
-                    dr = try_get_databand_run()
-                    task_run = dr.get_task_run(pod_data.metadata.labels["task_id"])
-                    self.metrics_logger.log_pod_information(
-                        task_run.task, pod_name, node_name
-                    )
-                    self.processed_pods[pod_name] = True
+            self._update_node_name(pod_name, pod_data)
 
             if status in ["Succeeded", "Failed"]:
                 self.processed_events[pod_name] = status
@@ -407,6 +395,32 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.resource_version = task.metadata.resource_version
 
         return self.resource_version
+
+    def _update_node_name(self, pod_name, pod_data):
+        if self.processed_pods.get(pod_name):
+            self.log.debug("Pod %s has already been logged to metrics - skipping")
+            return
+        node_name = pod_data.spec.node_name
+        if not node_name:
+            return
+        # Some events are missing the node name, but it will get there for sure
+        try:
+            task_id = pod_data.metadata.labels.get("task_id")
+            if not task_id:
+                return
+
+            dr = try_get_databand_run()
+            if not dr:
+                return
+            task_run = dr.get_task_run(task_id)
+            if not task_run:
+                return
+
+            self.metrics_logger.log_pod_information(task_run.task, pod_name, node_name)
+        except Exception as ex:
+            logger.info("Failed to gather node name for %s", pod_name)
+        finally:
+            self.processed_pods[pod_name] = True
 
     def process_status_quite(self, pod_id, status, labels, resource_version):
         """Process status response"""
