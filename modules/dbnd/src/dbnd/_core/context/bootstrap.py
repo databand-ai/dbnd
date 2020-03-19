@@ -11,8 +11,8 @@ from dbnd._core.context.dbnd_project_env import (
     _env_banner,
     init_databand_env,
 )
-from dbnd._core.plugin.dbnd_plugins import (
-    is_airflow_enabled,
+from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
+from dbnd._core.plugin.dbnd_plugins_mng import (
     register_dbnd_plugins,
     register_dbnd_user_plugins,
 )

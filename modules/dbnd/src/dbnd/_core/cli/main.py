@@ -21,7 +21,8 @@ from dbnd._core.cli.cmd_utils import ipython
 from dbnd._core.context.bootstrap import _dbnd_exception_handling, dbnd_bootstrap
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
-from dbnd._core.plugin.dbnd_plugins import pm, register_dbnd_plugins
+from dbnd._core.plugin.dbnd_plugins import pm
+from dbnd._core.plugin.dbnd_plugins_mng import register_dbnd_plugins
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
