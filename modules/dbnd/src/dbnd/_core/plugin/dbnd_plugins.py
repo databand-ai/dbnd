@@ -1,13 +1,9 @@
 import importlib
 import logging
-import sys
-
-import six
 
 from dbnd._core.configuration import environ_config
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
-from dbnd._core.utils.basics.load_python_module import _load_module
 from dbnd._core.utils.seven import import_errors
 from dbnd._vendor import pluggy
 
@@ -103,27 +99,3 @@ def is_web_enabled():
 
 def assert_web_enabled(reason=None):
     return assert_plugin_enabled("dbnd-web", reason=reason, module_import="dbnd_web")
-
-
-_dbnd_plugins_registered = False
-
-
-def register_dbnd_plugins():
-    if environ_config.is_no_modules():
-        return
-
-    global _dbnd_plugins_registered
-    if _dbnd_plugins_registered:
-        return
-    _dbnd_plugins_registered = True
-
-    if six.PY2:
-        # fix path from "non" str values, otherwise we fail on py2
-        sys.path = [str(p) if type(p) != str else p for p in sys.path]
-    pm.load_setuptools_entrypoints("dbnd")
-    pm.check_pending()
-
-
-def register_dbnd_user_plugins(user_plugin_modules):
-    for plugin_module in user_plugin_modules:
-        pm.register(_load_module(plugin_module, "plugin:%s" % plugin_module))
