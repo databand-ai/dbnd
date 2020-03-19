@@ -342,7 +342,7 @@ class TaskFactory(object):
                     and not value.source.endswith(
                         self._source_suffix(ParameterScope.children.value)
                     )
-                    and not key == "_type"
+                    and key not in ["_type", "_from"]
                 ):
                     exc = friendly_error.task_build.unknown_parameter_in_config(
                         task_name=self.task_name,

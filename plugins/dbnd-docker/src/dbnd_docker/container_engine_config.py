@@ -14,6 +14,9 @@ class ContainerEngineConfig(EngineConfig):
         "Docker container registry"
     )[str]
     container_tag = parameter.none().help("Docker container tag")[VersionStr]
+    container_tag_gpu = parameter.none().help("Docker container tag for GPU tasks")[
+        VersionStr
+    ]
 
     docker_build_tag = parameter.help("Auto build docker container tag").value(
         "dbnd_build"
