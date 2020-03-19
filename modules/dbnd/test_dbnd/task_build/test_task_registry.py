@@ -28,11 +28,17 @@ class TestDbndTaskRegistry(object):
         )
         assert actual == RAmbiguousClass
 
-    def test_error_on_same_from(self):
+    def test_no_error_on_same_from(self):
         @task
         def task_with_from():
             return
 
+        with config({"task_with_from": {"_from": "task_with_from"}}):
+            get_task_registry().build_dbnd_task("task_with_from")
+
+    def test_error_on_same_from(self):
         with pytest.raises(Exception):
-            with config({"task_with_from": {"_from": "task_with_from"}}):
-                get_task_registry().build_dbnd_task("task_with_from")
+            with config(
+                {"unknown_task_with_from": {"_from": "unknown_task_with_from"}}
+            ):
+                get_task_registry().build_dbnd_task("unknown_task_with_from")
