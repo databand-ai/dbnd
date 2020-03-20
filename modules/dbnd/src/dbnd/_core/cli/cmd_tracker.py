@@ -19,7 +19,7 @@ def tracker():
 
 @tracker.command()
 @click.option(
-    "--timeout", "-t", type=int, default=60, help="Wait for tracker to be running"
+    "--timeout", "-t", type=int, default=120, help="Wait for tracker to be running"
 )
 def wait(timeout):
     with new_dbnd_context(name="new_context"):
