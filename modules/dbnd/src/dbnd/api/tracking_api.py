@@ -349,7 +349,11 @@ class TrackingApiClient(TrackingAPI):
         self.client = ApiClient(api_base_url=api_base_url, auth=auth)
 
     def _handle(self, name, data):
-        return self.client.api_request("tracking/%s" % name, data)
+        # disabled for now, should be changed back on 0.26
+        # api_endpoint = "tracking/%s" % name
+
+        api_endpoint = name
+        return self.client.api_request(api_endpoint, data)
 
     def is_ready(self):
         try:
