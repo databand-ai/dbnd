@@ -194,71 +194,74 @@ dbnd_databricks_py27:
     reports:
       junit: plugins/dbnd-databricks/build/junit-py27.xml
 
-dbnd_airflow_operator 0 27:
+
+dbnd_airflow_operator 0 1_10_1_py27:
   <<: *template__python_test_job
   image: python:2.7
   script:
-    - cd dbnd-core
     - cd plugins/dbnd-airflow-operator
     - tox -e py27-airflow_1_10_1
   artifacts:
     reports:
-      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_1.xml
+      junit: plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_1.xml
+  only: *on_significant_branch
+  when: manual
 
-dbnd_airflow_operator 1 27:
+dbnd_airflow_operator 0 1_10_7_py27:
   <<: *template__python_test_job
   image: python:2.7
   script:
-    - cd dbnd-core
     - cd plugins/dbnd-airflow-operator
     - tox -e py27-airflow_1_10_7
   artifacts:
     reports:
-      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_7.xml
+      junit: plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_7.xml
+  only: *on_significant_branch
 
-dbnd_airflow_operator 2 27:
+dbnd_airflow_operator 0 1_10_9_py27:
   <<: *template__python_test_job
   image: python:2.7
   script:
-    - cd dbnd-core
     - cd plugins/dbnd-airflow-operator
     - tox -e py27-airflow_1_10_9
   artifacts:
     reports:
-      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_9.xml
+      junit: plugins/dbnd-airflow-operator/build/junit-py27-airflow_1_10_9.xml
+  only: *on_significant_branch
 
-dbnd_airflow_operator 0 36:
+dbnd_airflow_operator 0 1_10_1_py36:
   <<: *template__python_test_job
   image: python:3.6
   script:
-    - cd dbnd-core
     - cd plugins/dbnd-airflow-operator
     - tox -e py36-airflow_1_10_1
   artifacts:
     reports:
-      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_1.xml
+      junit: plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_1.xml
+  only: *on_significant_branch
+  when: manual
 
-dbnd_airflow_operator 1 36:
+dbnd_airflow_operator 0 1_10_7_py36:
   <<: *template__python_test_job
   image: python:3.6
   script:
-    - cd dbnd-core
     - cd plugins/dbnd-airflow-operator
     - tox -e py36-airflow_1_10_7
   artifacts:
     reports:
-      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_7.xml
+      junit: plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_7.xml
+  only: *on_significant_branch
 
-dbnd_airflow_operator 2 36:
+dbnd_airflow_operator 0 1_10_9_py36:
   <<: *template__python_test_job
   image: python:3.6
   script:
-    - cd dbnd-core
     - cd plugins/dbnd-airflow-operator
     - tox -e py36-airflow_1_10_9
   artifacts:
     reports:
-      junit: dbnd-core/plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_9.xml
+      junit: plugins/dbnd-airflow-operator/build/junit-py36-airflow_1_10_9.xml
+  only: *on_significant_branch
 
 build_pypi_org_whl:
   stage: build-base
