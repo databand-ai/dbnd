@@ -186,7 +186,7 @@ class UserCodeDetector(object):
         return cls(code_dir=code_dir, system_code_dirs=system_code_dirs)
 
 
-def log_exception(msg, ex, logger_=None, verbose=None):
+def log_exception(msg, ex, logger_=None, verbose=None, non_critical=False):
     logger_ = logger_ or logger
 
     from dbnd._core.errors.base import DatabandError
@@ -199,9 +199,18 @@ def log_exception(msg, ex, logger_=None, verbose=None):
             else True
         )
 
-    if isinstance(ex, DatabandError) and not verbose:
+    if verbose:
+        # just show the exception
+        logger_.exception(msg)
+        return
+
+    if non_critical:
+        logger_.info(msg + ": %s" % str(ex))
+        return
+
+    if isinstance(ex, DatabandError):
         # msg = "{msg}:{ex}".format(msg=msg, ex=ex)
         logger_.error(msg + ": %s" % str(ex))
-        return
     else:
+        # should we? let's show the exception for now so we can debug
         logger_.exception(msg)

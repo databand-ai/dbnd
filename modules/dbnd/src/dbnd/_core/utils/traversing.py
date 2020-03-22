@@ -89,7 +89,9 @@ def traverse(
         if isinstance(obj, six.string_types):
             return convert_f(obj)
 
-        if getattr(obj, "target_no_traverse", None):
+        if hasattr(obj, "target_no_traverse") and getattr(
+            obj, "target_no_traverse", None
+        ):
             return convert_f(obj)
 
         list_obj_constructor = None

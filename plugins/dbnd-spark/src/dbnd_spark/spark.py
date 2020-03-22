@@ -95,7 +95,6 @@ class PySparkTask(_BaseSparkTask):
 
 
 class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
-    _conf__require_run_dump_file = True
 
     _application_args = ["defined_at_runtime"]
 
@@ -112,6 +111,11 @@ class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
 
                 return has_spark_session()
         return False
+
+    @property
+    def _conf__require_run_dump_file(self):
+        # if we run inplace we don't want to save dataframe in case user have real Spark DataFrame as a parameter
+        return not self._use_spark_context_inplace()
 
     def _task_submit(self):
         spark_ctrl = self._get_spark_ctrl()

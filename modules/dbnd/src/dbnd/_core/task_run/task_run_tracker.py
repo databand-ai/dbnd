@@ -4,6 +4,7 @@ import typing
 from typing import Any
 
 from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
+from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_store import TrackingStore
@@ -57,8 +58,10 @@ class TaskRunTracker(TaskRunCtrl):
                 task_def_uid=parameter.task_definition_uid,
             )
         except Exception as ex:
-            logger.warning(
-                "Error occurred during target metrics save for %s: %s" % (target, ex)
+            log_exception(
+                "Error occurred during target metrics save for %s" % (target,),
+                ex,
+                non_critical=True,
             )
 
     def _log_metric(self, key, value, timestamp=None, source=None):
@@ -69,32 +72,53 @@ class TaskRunTracker(TaskRunCtrl):
         )
 
     def log_artifact(self, name, artifact):
-        # file storage will save file
-        # db will save path
-        artifact_target = self.task_run.meta_files.get_artifact_target(name)
-        self.tracking_store.log_artifact(
-            task_run=self.task_run,
-            name=name,
-            artifact=artifact,
-            artifact_target=artifact_target,
-        )
+        try:
+            # file storage will save file
+            # db will save path
+            artifact_target = self.task_run.meta_files.get_artifact_target(name)
+            self.tracking_store.log_artifact(
+                task_run=self.task_run,
+                name=name,
+                artifact=artifact,
+                artifact_target=artifact_target,
+            )
+        except Exception as ex:
+            log_exception(
+                "Error occurred during log_artifact for %s" % (name,),
+                ex,
+                non_critical=True,
+            )
 
     def log_metric(self, key, value, timestamp=None, source=None):
-        self._log_metric(key, value, timestamp=timestamp, source=source)
+        try:
+            self._log_metric(key, value, timestamp=timestamp, source=source)
+        except Exception as ex:
+            log_exception(
+                "Error occurred during log_metric for %s" % (key,),
+                ex,
+                non_critical=True,
+            )
 
     def log_dataframe(self, key, df, with_preview=True):
-        value_meta = get_value_meta_for_metric(key, df, with_preview=with_preview)
-        if not value_meta:
-            return
+        try:
+            value_meta = get_value_meta_for_metric(key, df, with_preview=with_preview)
+            if not value_meta:
+                return
 
-        if value_meta.data_dimensions:
-            self._log_metric("%s.shape" % key, value_meta.data_dimensions)
-            for dim, size in enumerate(value_meta.data_dimensions):
-                self._log_metric("%s.shape[%s]" % (key, dim), size)
+            if value_meta.data_dimensions:
+                self._log_metric("%s.shape" % key, value_meta.data_dimensions)
+                for dim, size in enumerate(value_meta.data_dimensions):
+                    self._log_metric("%s.shape[%s]" % (key, dim), size)
 
-        self._log_metric("%s.schema" % key, value_meta.data_schema)
-        if with_preview:
-            self._log_metric("%s.preview" % key, value_meta.value_preview)
+            self._log_metric("%s.schema" % key, value_meta.data_schema)
+            if with_preview:
+                self._log_metric("%s.preview" % key, value_meta.value_preview)
+        except Exception as ex:
+            log_exception(
+                "Error occurred during log_dataframe for %s" % (key,),
+                ex,
+                non_critical=True,
+            )
 
 
 def get_value_meta_for_metric(key, value, with_preview=True, with_data_hash=False):
