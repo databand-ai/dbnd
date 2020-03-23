@@ -9,10 +9,7 @@ from pyspark.sql import DataFrame
 
 from dbnd import parameter, relative_path, task
 from dbnd_spark.spark import PySparkTask, spark_task
-from dbnd_spark.targets import register_targets
 
-
-register_targets()
 
 default_args = {
     "owner": "airflow",

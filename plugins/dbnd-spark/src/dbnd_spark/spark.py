@@ -4,7 +4,6 @@ import typing
 
 from typing import Union
 
-from dbnd import output, parameter
 from dbnd._core.commands import get_spark_session
 from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
@@ -12,6 +11,7 @@ from dbnd._core.current import get_databand_run
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.func_task_decorator import _task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
+from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.task.config import Config
 from dbnd._core.task.task import Task
 from dbnd._core.utils.project.project_fs import databand_lib_path

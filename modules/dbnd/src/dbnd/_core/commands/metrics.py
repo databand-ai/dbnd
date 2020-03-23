@@ -1,9 +1,6 @@
 import logging
 import typing
 
-from dbnd._core.task_build.task_context import current, has_current_task
-from dbnd._core.task_run.task_run_tracker import get_value_meta_for_metric
-
 
 if typing.TYPE_CHECKING:
     from typing import Optional, Union
@@ -16,7 +13,12 @@ logger = logging.getLogger(__name__)
 
 def log_dataframe(key, value, with_preview=True):
     # type: (str, Union[pd.DataFrame, spark.DataFrame], Optional[bool]) -> None
+
+    from dbnd._core.task_build.task_context import current, has_current_task
+
     if not has_current_task():
+        from dbnd._core.task_run.task_run_tracker import get_value_meta_for_metric
+
         value_type = get_value_meta_for_metric(key, value, with_preview=with_preview)
         if value_type:
             logger.info(
@@ -28,6 +30,8 @@ def log_dataframe(key, value, with_preview=True):
 
 
 def log_metric(key, value, source="user"):
+    from dbnd._core.task_build.task_context import current, has_current_task
+
     if not has_current_task():
         logger.info("{} Metric '{}'='{}'".format(source.capitalize(), key, value))
         return
@@ -35,6 +39,8 @@ def log_metric(key, value, source="user"):
 
 
 def log_artifact(key, artifact):
+    from dbnd._core.task_build.task_context import current, has_current_task
+
     if not has_current_task():
         logger.info("Artifact %s=%s", key, artifact)
         return
