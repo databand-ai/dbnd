@@ -49,9 +49,9 @@ def _is_spark_installed():
         try:
             from pyspark import SparkContext
 
-            from dbnd_spark import dbnd_register_spark_types
+            from dbnd_spark import dbnd_spark_bootstrap
 
-            dbnd_register_spark_types()
+            dbnd_spark_bootstrap()
         except import_errors:
             _IS_SPARK_INSTALLED = False
         else:
