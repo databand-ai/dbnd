@@ -117,14 +117,6 @@ def build_task(root_task, **kwargs):
         return get_task_registry().build_dbnd_task(task_name=root_task)
 
 
-def init_airflow_test_config():
-    if is_airflow_enabled():
-        from airflow import configuration
-        from airflow.configuration import TEST_CONFIG_FILE
-
-        configuration.conf.read(TEST_CONFIG_FILE)
-
-
 def run_dbnd_test_project(project_dir, args_str, clean_env=True):
     args = shlex.split(args_str, posix=not windows_compatible_mode)
 

@@ -5,6 +5,7 @@ import six
 
 from six import StringIO
 
+from dbnd._core.configuration.environ_config import ENV_DBND__NO_TABLES, environ_enabled
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.terminal import get_terminal_size
@@ -137,7 +138,10 @@ def safe_tabulate(tabular_data, headers, **kwargs):
     terminal_columns, _ = get_terminal_size()
     # fancy_grid format has utf-8 characters (in corners of table)
     # cp1252 fails to encode that
-    tablefmt = "fancy_grid" if not windows_compatible_mode else "grid"
+    fancy_grid = not windows_compatible_mode and not environ_enabled(
+        ENV_DBND__NO_TABLES
+    )
+    tablefmt = "fancy_grid" if fancy_grid else "grid"
     table = tabulate(tabular_data, headers=headers, tablefmt=tablefmt, **kwargs)
     if table and max(map(len, table.split())) >= terminal_columns:
         table = tabulate(tabular_data, headers=headers, tablefmt="plain", **kwargs)
