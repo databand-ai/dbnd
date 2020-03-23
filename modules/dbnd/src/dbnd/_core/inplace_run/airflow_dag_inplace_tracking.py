@@ -7,6 +7,7 @@ from dbnd._core.configuration import environ_config
 from dbnd._core.decorator.dynamic_tasks import run_dynamic_task
 from dbnd._core.inplace_run.inplace_run_manager import get_dbnd_inplace_run_manager
 from dbnd._core.task.task import Task
+from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 
 
@@ -37,6 +38,31 @@ def try_get_airflow_context():
     return None
 
 
+_IS_SPARK_INSTALLED = None
+
+
+def _is_spark_installed():
+    global _IS_SPARK_INSTALLED
+    if _IS_SPARK_INSTALLED is not None:
+        return _IS_SPARK_INSTALLED
+    try:
+        try:
+            from pyspark import SparkContext
+
+            from dbnd_spark import dbnd_register_spark_types
+
+            dbnd_register_spark_types()
+        except import_errors:
+            _IS_SPARK_INSTALLED = False
+        else:
+            _IS_SPARK_INSTALLED = True
+    except Exception:
+        # safeguard, on any exception
+        _IS_SPARK_INSTALLED = False
+
+    return _IS_SPARK_INSTALLED
+
+
 def try_get_airflow_context_from_spark_conf():
     if (
         not environ_config.environ_enabled("DBND__ENABLE__SPARK_CONTEXT_ENV")
@@ -44,21 +70,23 @@ def try_get_airflow_context_from_spark_conf():
     ):
         return None
 
+    if not _is_spark_installed():
+        return None
     try:
         from pyspark import SparkContext
+
+        conf = SparkContext.getOrCreate().getConf()
+
+        dag_id = conf.get("spark.env.AIRFLOW_CTX_DAG_ID")
+        execution_date = conf.get("spark.env.AIRFLOW_CTX_EXECUTION_DATE")
+        task_id = conf.get("spark.env.AIRFLOW_CTX_TASK_ID")
+
+        if dag_id and task_id and execution_date:
+            return AirflowTaskContext(
+                dag_id=dag_id, execution_date=execution_date, task_id=task_id
+            )
     except Exception:
-        return None
-
-    conf = SparkContext.getOrCreate().getConf()
-
-    dag_id = conf.get("spark.env.AIRFLOW_CTX_DAG_ID")
-    execution_date = conf.get("spark.env.AIRFLOW_CTX_EXECUTION_DATE")
-    task_id = conf.get("spark.env.AIRFLOW_CTX_TASK_ID")
-
-    if dag_id and task_id and execution_date:
-        return AirflowTaskContext(
-            dag_id=dag_id, execution_date=execution_date, task_id=task_id
-        )
+        pass
     return None
 
 
