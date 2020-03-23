@@ -26,10 +26,10 @@ databand_tracking=True
 # Run example
 You might need to install examples at first `pip install dbnd-examples`.
 ```bash
-dbnd run dbnd_examples.mlflow.run_mlflow_in_dbnd_task.mlflow_tracking_in_task_example
+dbnd run dbnd_examples.mlflow_.run_mlflow_in_dbnd_task.mlflow_tracking_in_task_example
 
 # or set configs manually
-dbnd run dbnd_examples.mlflow.run_mlflow_in_dbnd_task.mlflow_tracking_in_task_example --set-config mlflow_tracking.databand_tracking=True
+dbnd run dbnd_examples.mlflow_.run_mlflow_in_dbnd_task.mlflow_tracking_in_task_example --set-config mlflow_tracking.databand_tracking=True
 ```
 
 # Explanation
