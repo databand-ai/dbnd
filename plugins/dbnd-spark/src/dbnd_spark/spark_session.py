@@ -1,3 +1,6 @@
+from dbnd._core.utils.seven import import_errors
+
+
 def get_spark_session():
     from pyspark.sql import SparkSession
 
@@ -5,6 +8,9 @@ def get_spark_session():
 
 
 def has_spark_session():
-    from pyspark.sql import SparkSession
+    try:
+        from pyspark.sql import SparkSession
 
-    return SparkSession._instantiatedSession is not None
+        return SparkSession._instantiatedSession is not None
+    except import_errors:
+        return False

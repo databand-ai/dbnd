@@ -67,6 +67,15 @@ class TestSparkTasksLocally(object):
             with config({SparkLocalEngineConfig.enable_spark_context_inplace: True}):
                 assert_run_task(word_count_inline.t(text=__file__))
 
+    def test_spark_inline_with_inplace_df(self):
+        from pyspark.sql import SparkSession
+        from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
+
+        with SparkSession.builder.getOrCreate() as sc:
+            with config({SparkLocalEngineConfig.enable_spark_context_inplace: True}):
+                inplace_df = sc.read.csv(__file__)
+                assert_run_task(word_count_inline.t(text=inplace_df))
+
     def test_spark_io(self):
         from dbnd_test_scenarios.spark.test_spark_io import dataframes_io_pandas_spark
 

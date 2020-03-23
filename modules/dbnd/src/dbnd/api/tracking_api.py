@@ -246,7 +246,7 @@ class LogTargetSchema(_ApiCallSchema):
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(), allow_none=True)
     data_schema = fields.String(allow_none=True)
-    data_hash = fields.String(required=True)
+    data_hash = fields.String(allow_none=True)
 
 
 class LogTargetsSchema(_ApiCallSchema):

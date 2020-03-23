@@ -82,7 +82,11 @@ class TaskVisualiser(TaskSubCtrl):
                 task_run=task_run, exc_info=exc_info
             ).get_banner_str()
         except Exception as ex:
-            log_exception("Failed to calculate banner for '%s'" % self.task_id, ex)
+            log_exception(
+                "Failed to calculate banner for '%s'" % self.task_id,
+                ex,
+                non_critical=True,
+            )
             return msg + (" ( task_id=%s)" % self.task_id)
 
 
