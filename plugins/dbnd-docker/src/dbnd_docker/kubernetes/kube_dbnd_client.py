@@ -157,6 +157,7 @@ class DbndKubernetesClient(object):
             pod_ctrl.stream_pod_logs(
                 print_func=log_printer, tail_lines=100, follow=False
             )
+            pod_ctrl.stream_pod_logs(print_func=log_printer, follow=False)
         except Exception as ex:
             # when deleting pods we get extra failure events so we will have lots of this in the log
             if isinstance(ex, ApiException) and ex.status == 404:
@@ -321,15 +322,16 @@ class DbndPodCtrl(object):
             time.sleep(1)
             _logger.debug("Pod not yet started: %s", pod_status.status)
 
-    def stream_pod_logs(self, print_func=logger.info, follow=False, tail_lines=10):
+    def stream_pod_logs(self, print_func=logger.info, follow=False, tail_lines=None):
         kwargs = {
             "name": self.name,
             "namespace": self.namespace,
             "container": "base",
             "follow": follow,
-            "tail_lines": tail_lines,
             "_preload_content": False,
         }
+        if tail_lines:
+            kwargs["tail_lines"] = tail_lines
 
         logs = self.kube_client.read_namespaced_pod_log(**kwargs)
         try:
