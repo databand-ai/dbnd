@@ -106,3 +106,4 @@ unittests.db
 databand-0.*/**
 _databand_project.py
 .quasar-ide-helper/
+plugins/dbnd-airflow-operator/test_dbnd_airflow_operator/airflow_home/airflow.cfg
