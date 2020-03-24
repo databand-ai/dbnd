@@ -9,6 +9,7 @@ from dbnd._core.constants import TaskRunState
 from dbnd._core.current import dbnd_context
 from dbnd._core.tracking import tracking_store
 from dbnd._core.tracking.metrics import Metric
+from dbnd._core.utils.timezone import utcnow
 
 
 if typing.TYPE_CHECKING:
@@ -46,13 +47,21 @@ class ConsoleStore(tracking_store.TrackingStore):
             )
         )
 
-    def set_task_run_state(self, task_run, state, error=None, timestamp=None):
+    def set_task_run_state(
+        self,
+        task_run,
+        state,
+        error=None,
+        timestamp=None,
+        do_not_update_start_date=False,
+    ):
         super(ConsoleStore, self).set_task_run_state(task_run=task_run, state=state)
         task = task_run.task
 
         # optimize, don't print success banner for fast running tasks
         quick_task = task_run.finished_time and (
-            task_run.finished_time - task_run.start_time
+            task_run.finished_time
+            - (task_run.start_time if task_run.start_time else utcnow())
         ) < timedelta(seconds=5)
         show_simple_log = not self.verbose and (
             task_run.task.task_is_system or quick_task

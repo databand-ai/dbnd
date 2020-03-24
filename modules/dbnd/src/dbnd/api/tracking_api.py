@@ -14,6 +14,7 @@ from dbnd._core.constants import (
     DbndTargetOperationType,
     RunState,
     TaskRunState,
+    UpdateSource,
 )
 from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
@@ -81,6 +82,7 @@ class InitRunArgs(object):
     )  # type: Optional[RunInfo]  # we create it only for the new runs
     scheduled_run_info = attr.ib(default=None)  # type: Optional[ScheduledRunInfo]
     update_existing = attr.ib(default=False)  # type: bool
+    source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
@@ -98,6 +100,7 @@ class InitRunArgsSchema(ApiObjectSchema):
     new_run_info = fields.Nested(RunInfoSchema, allow_none=True)
     scheduled_run_info = fields.Nested(ScheduledRunInfoSchema, allow_none=True)
     update_existing = fields.Boolean()
+    source = fields.Str(allow_none=True)
 
     @post_load
     def make_init_run_args(self, data, **kwargs):
@@ -112,6 +115,8 @@ class TaskRunAttemptUpdateArgs(object):
     state = attr.ib()  # type: TaskRunState
     error = attr.ib(default=None)  # type: Optional[ErrorInfo]
     attempt_number = attr.ib(default=None)  # type: int
+    source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
+    do_not_update_start_date = attr.ib(default=False)  # type: bool
 
 
 class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
@@ -121,6 +126,8 @@ class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
     timestamp = fields.DateTime(allow_none=True)
     error = fields.Nested(ErrorInfoSchema, allow_none=True)
     attempt_number = fields.Number(allow_none=True)
+    source = fields.Str(allow_none=True)
+    do_not_update_start_date = fields.Boolean(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -246,7 +253,7 @@ class LogTargetSchema(_ApiCallSchema):
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(), allow_none=True)
     data_schema = fields.String(allow_none=True)
-    data_hash = fields.String(required=True)
+    data_hash = fields.String(allow_none=True)
 
 
 class LogTargetsSchema(_ApiCallSchema):
@@ -278,7 +285,7 @@ class AirflowTaskInfoSchema(_ApiCallSchema):
 
 class AirflowTaskInfosSchema(_ApiCallSchema):
     airflow_task_infos = fields.Nested(AirflowTaskInfoSchema, many=True)
-    is_airflow_synced = fields.Boolean()
+    source = fields.String()
     base_url = fields.String()
 
 

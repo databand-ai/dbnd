@@ -4,7 +4,6 @@ import typing
 
 from typing import Union
 
-from dbnd import output, parameter
 from dbnd._core.commands import get_spark_session
 from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
@@ -12,6 +11,7 @@ from dbnd._core.current import get_databand_run
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.func_task_decorator import _task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
+from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.task.config import Config
 from dbnd._core.task.task import Task
 from dbnd._core.utils.project.project_fs import databand_lib_path
@@ -95,7 +95,6 @@ class PySparkTask(_BaseSparkTask):
 
 
 class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
-    _conf__require_run_dump_file = True
 
     _application_args = ["defined_at_runtime"]
 
@@ -112,6 +111,11 @@ class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
 
                 return has_spark_session()
         return False
+
+    @property
+    def _conf__require_run_dump_file(self):
+        # if we run inplace we don't want to save dataframe in case user have real Spark DataFrame as a parameter
+        return not self._use_spark_context_inplace()
 
     def _task_submit(self):
         spark_ctrl = self._get_spark_ctrl()

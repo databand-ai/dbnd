@@ -2,6 +2,7 @@ import datetime
 import logging
 import typing
 
+from dbnd._core.constants import UpdateSource
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.timezone import utcnow
 from dbnd.api.tracking_api import (
@@ -85,7 +86,14 @@ class TrackingStoreApi(TrackingStore):
             task_outputs_signature=task_run.task.task_meta.task_outputs_signature,
         )
 
-    def set_task_run_state(self, task_run, state, error=None, timestamp=None):
+    def set_task_run_state(
+        self,
+        task_run,
+        state,
+        error=None,
+        timestamp=None,
+        do_not_update_start_date=False,
+    ):
         # type: (TaskRun, TaskRunState, TaskRunError, datetime.datetime) -> None
         return self._m(
             self.channel.update_task_run_attempts,
@@ -97,6 +105,7 @@ class TrackingStoreApi(TrackingStore):
                     state=state,
                     error=error.as_error_info() if error else None,
                     timestamp=timestamp or utcnow(),
+                    do_not_update_start_date=do_not_update_start_date,
                 )
             ],
         )
@@ -206,14 +215,14 @@ class TrackingStoreApi(TrackingStore):
     def heartbeat(self, run_uid):
         return self._m(self.channel.heartbeat, heartbeat_schema, run_uid=run_uid)
 
-    def save_airflow_task_infos(self, airflow_task_infos, is_airflow_synced, base_url):
+    def save_airflow_task_infos(self, airflow_task_infos, source, base_url):
         from dbnd.api.tracking_api import airflow_task_infos_schema
 
         return self._m(
             self.channel.save_airflow_task_infos,
             airflow_task_infos_schema,
             airflow_task_infos=airflow_task_infos,
-            is_airflow_synced=is_airflow_synced,
+            source=source,
             base_url=base_url,
         )
 

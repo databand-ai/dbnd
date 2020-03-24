@@ -2,13 +2,14 @@ import pyspark.sql as spark
 
 from dbnd import output, parameter
 from dbnd.tasks import spark_task
+from targets.types import PathStr
 
 
 @spark_task(result=output[spark.DataFrame])
 def word_count_inline(
     text=parameter.data.txt[spark.DataFrame], counters=output.txt.data
 ):
-    # type:  (spark.DataFrame, Target) -> spark.DataFrame
+    # type:  (spark.DataFrame, PathStr) -> spark.DataFrame
     from operator import add
     from dbnd._core.commands import get_spark_session
 
