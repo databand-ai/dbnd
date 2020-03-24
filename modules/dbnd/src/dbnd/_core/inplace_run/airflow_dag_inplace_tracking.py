@@ -147,5 +147,5 @@ def dbnd_run_start_airflow_dag_task(dag_id, execution_date, task_id):
     tr = dr.create_dynamic_task_run(
         task, dr.local_engine, _uuid=get_task_run_uid(run_uid, task_id)
     )
-    inplace_run_manager._start_taskrun(tr)
+    inplace_run_manager._start_taskrun(tr, airflow_context=True)
     return dr

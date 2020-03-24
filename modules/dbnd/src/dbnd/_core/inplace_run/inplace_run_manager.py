@@ -92,14 +92,18 @@ class _DbndInplaceRunManager(object):
             root_task_run_uid = None
         dr._init_without_run(root_task_run_uid=root_task_run_uid)
 
-        self._start_taskrun(dr.driver_task_run)
-        self._start_taskrun(dr.root_task_run)
+        self._start_taskrun(dr.driver_task_run, airflow_context=airflow_context)
+        self._start_taskrun(dr.root_task_run, airflow_context=airflow_context)
         return dr
 
-    def _start_taskrun(self, task_run):
+    def _start_taskrun(self, task_run, airflow_context=False):
         self._enter_cm(task_run.runner.task_run_execution_context())
-        task_run.start_time = utcnow()
-        task_run.set_task_run_state(state=TaskRunState.RUNNING)
+        task_run.start_time = None if airflow_context else utcnow()
+        # don't update start date in airflow context, because when monitor will get into action
+        # we don't want this attempt to be chosen as "latest_task_run_attempt" (chosen by start date)
+        task_run.set_task_run_state(
+            state=TaskRunState.RUNNING, do_not_update_start_date=airflow_context
+        )
 
     def stop(self, at_exit=True, update_run_state=True):
         if update_run_state:
