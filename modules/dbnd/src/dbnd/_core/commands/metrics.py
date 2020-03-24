@@ -1,4 +1,5 @@
 import logging
+import os
 import typing
 
 
@@ -16,7 +17,8 @@ def log_dataframe(key, value, with_preview=True):
 
     from dbnd._core.task_build.task_context import current, has_current_task
 
-    if not has_current_task():
+    tracker = current() if has_current_task() else _get_ondemand_tracker()
+    if not tracker:
         from dbnd._core.task_run.task_run_tracker import get_value_meta_for_metric
 
         value_type = get_value_meta_for_metric(key, value, with_preview=with_preview)
@@ -26,22 +28,78 @@ def log_dataframe(key, value, with_preview=True):
             )
         return
 
-    return current().log_dataframe(key, value, with_preview)
+    return tracker.log_dataframe(key, value, with_preview)
 
 
 def log_metric(key, value, source="user"):
     from dbnd._core.task_build.task_context import current, has_current_task
 
-    if not has_current_task():
+    tracker = current() if has_current_task() else _get_ondemand_tracker()
+    if not tracker:
         logger.info("{} Metric '{}'='{}'".format(source.capitalize(), key, value))
         return
-    return current().log_metric(key, value, source=source)
+
+    return tracker.log_metric(key, value, source=source)
 
 
 def log_artifact(key, artifact):
     from dbnd._core.task_build.task_context import current, has_current_task
 
-    if not has_current_task():
+    tracker = current() if has_current_task() else _get_ondemand_tracker()
+    if not tracker:
         logger.info("Artifact %s=%s", key, artifact)
         return
-    return current().log_artifact(key, artifact)
+
+    return tracker.log_artifact(key, artifact)
+
+
+def _get_ondemand_tracker():
+    from dbnd._core.task_run.task_run_tracker import TaskRunTracker
+
+    task_run = _get_ondemand_tracking_task_run()
+    if task_run:
+        trt = TaskRunTracker(task_run, _get_ondemand_tracking_store())
+        return trt
+
+
+def _get_ondemand_tracking_task_run():
+    from dbnd._core.configuration.environ_config import DBND_TASK_RUN_ATTEMPT_UID
+
+    tra_uid = os.environ.get(DBND_TASK_RUN_ATTEMPT_UID)
+    if not tra_uid:
+        # try get from airflow
+        from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
+            try_get_airflow_context,
+        )
+        from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_attempt_uid
+
+        airflow_context = try_get_airflow_context()
+        if airflow_context:
+            tra_uid = get_task_run_attempt_uid(
+                run_uid=get_job_run_uid(
+                    dag_id=airflow_context.dag_id,
+                    execution_date=airflow_context.execution_date,
+                ),
+                task_id=airflow_context.task_id,
+                try_number=0,
+            )
+
+    if tra_uid:
+        return TaskRunMock(tra_uid)
+
+
+def _get_ondemand_tracking_store():
+    from dbnd import config
+    from dbnd._core.settings import CoreConfig
+
+    with config({CoreConfig.tracker_raise_on_error: False}, source="ondemand_tracking"):
+        tracking_store = CoreConfig().get_tracking_store()
+        return tracking_store
+
+
+class TaskRunMock(object):
+    def __init__(self, task_run_attempt_uid):
+        self.task_run_attempt_uid = task_run_attempt_uid
+
+    def __getattr__(self, item):
+        return self.__dict__.get(item, self)

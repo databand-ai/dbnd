@@ -30,7 +30,7 @@ class EmrStepCtrl(EmrCtrl):
             keytab=_config.keytab,
             principal=_config.principal,
             num_executors=_config.num_executors,
-            env_vars=_config.env_vars,
+            env_vars=self._get_env_vars(),
             verbose=_config.verbose,
         )
 

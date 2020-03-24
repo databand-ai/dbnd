@@ -4,6 +4,8 @@ from typing import List
 
 import six
 
+from dbnd import current
+from dbnd._core.configuration.environ_config import DBND_TASK_RUN_ATTEMPT_UID
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_sync_ctrl import DisabledTaskSyncCtrl, TaskSyncCtrl
 from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
@@ -83,3 +85,15 @@ class SparkCtrl(TaskRunCtrl):
 
     def sync(self, local_file):
         return self.deploy.sync(local_file)
+
+    def _get_env_vars(self, conf_env_vars=None):
+        env_vars = {
+            DBND_TASK_RUN_ATTEMPT_UID: str(
+                current().current_task_run.task_run_attempt_uid
+            )
+        }
+        if conf_env_vars is None:
+            conf_env_vars = self.config.env_vars
+        if conf_env_vars:
+            env_vars.update(conf_env_vars)
+        return env_vars
