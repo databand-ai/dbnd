@@ -70,7 +70,7 @@ def do_export_data(
     task_end_dates = [
         task.end_date for task, job in task_instances if task.end_date is not None
     ]
-    if not task_end_dates or len(task_instances) < tasks:
+    if not task_end_dates or not tasks or len(task_instances) < tasks:
         dag_run_end_date = pendulum.datetime.max
     else:
         dag_run_end_date = max(task_end_dates)
@@ -380,9 +380,7 @@ class ExportData(object):
         self.airflow_version = airflow_version
         self.dags_path = conf.get("core", "dags_folder")
         self.logs_path = conf.get("core", "base_log_folder")
-        self.airflow_export_version = pkg_resources.get_distribution(
-            "dbnd_airflow_export"
-        ).version
+        self.airflow_export_version = _get_export_plugin_version()
 
     def as_dict(self):
         return dict(
@@ -496,6 +494,14 @@ def _read_dag_file(dag_file):
                 pass
 
     return None
+
+
+def _get_export_plugin_version():
+    try:
+        return pkg_resources.get_distribution("dbnd_airflow_export").version
+    except Exception:
+        # plugin is probably not installed but "copied" to plugins folder so we cannot know its version
+        return None
 
 
 ### Views ###
