@@ -107,7 +107,7 @@ class DatabricksCtrl(SparkCtrl):
             "node_type_id": self.databricks_config.node_type_id,
             "init_scripts": self.databricks_config.init_scripts,
             "cluster_log_conf": self.databricks_config.cluster_log_conf,
-            "spark_env_vars": self.databricks_config.spark_env_vars,
+            "spark_env_vars": self._get_env_vars(self.databricks_config.spark_env_vars),
         }
         if self.databricks_config.cloud_type == DatabricksCloud.aws:
             attributes = DatabricksAwsConfig()

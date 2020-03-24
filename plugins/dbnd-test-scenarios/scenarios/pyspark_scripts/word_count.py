@@ -23,6 +23,8 @@ from operator import add
 
 from pyspark.sql import SparkSession
 
+from dbnd import log_dataframe, log_metric
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -37,5 +39,9 @@ if __name__ == "__main__":
     )
     counts.saveAsTextFile(sys.argv[2])
     output = counts.collect()
+
+    log_dataframe("output", output)
     for (word, count) in output:
         print("%s: %i" % (word, count))
+
+    log_metric("output_len", len(output))
