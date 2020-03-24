@@ -70,8 +70,11 @@ def do_export_data(
     task_end_dates = [
         task.end_date for task, job in task_instances if task.end_date is not None
     ]
-    # dag_run_end_date = max(task_end_dates) if task_end_dates else pendulum.datetime.max
-    dag_run_end_date = pendulum.datetime.max
+    if not task_end_dates or len(task_instances) < tasks:
+        dag_run_end_date = pendulum.datetime.max
+    else:
+        dag_run_end_date = max(task_end_dates)
+
     dag_runs |= _get_dag_runs(since, dag_run_end_date, dag_ids, session)
     logging.info("%d dag runs were found." % len(dag_runs))
 

@@ -205,3 +205,16 @@ class SystemMetrics(enum.Enum):
                 SystemMetrics.ColdTotalWallTime,
             ]
         ]
+
+
+class UpdateSource(enum.Enum):
+    dbnd = "dbnd"
+    airflow_monitor = "airflow_monitor"
+
+    def __eq__(self, other):
+        if isinstance(other, UpdateSource):
+            return self.value == other.value
+        elif isinstance(other, str):
+            return str(self) == other or str(self.value) == other
+
+        return False

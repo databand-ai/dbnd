@@ -13,6 +13,7 @@ from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from sqlalchemy.orm import Session
 
+from dbnd._core.constants import UpdateSource
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
@@ -207,7 +208,7 @@ class AirflowTaskExecutor(TaskExecutor):
             if af_instances and self.airflow_config.webserver_url:
                 self.run.tracker.tracking_store.save_airflow_task_infos(
                     airflow_task_infos=af_instances,
-                    is_airflow_synced=False,
+                    source=UpdateSource.dbnd,
                     base_url=self.airflow_config.webserver_url,
                 )
 

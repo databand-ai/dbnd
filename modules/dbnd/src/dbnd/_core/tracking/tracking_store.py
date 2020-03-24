@@ -13,7 +13,11 @@ if typing.TYPE_CHECKING:
     from targets.target_meta import TargetMeta
 
     from dbnd.api.tracking_api import InitRunArgs, AirflowTaskInfo, LogTargetArgs
-    from dbnd._core.constants import DbndTargetOperationType, DbndTargetOperationStatus
+    from dbnd._core.constants import (
+        DbndTargetOperationType,
+        DbndTargetOperationStatus,
+        UpdateSource,
+    )
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
 
@@ -46,7 +50,14 @@ class TrackingStore(object):
     def set_task_reused(self, task_run):
         pass
 
-    def set_task_run_state(self, task_run, state, error=None, timestamp=None):
+    def set_task_run_state(
+        self,
+        task_run,
+        state,
+        error=None,
+        timestamp=None,
+        do_not_update_start_date=False,
+    ):
         pass
 
     def set_task_run_states(self, task_runs):
@@ -76,8 +87,8 @@ class TrackingStore(object):
     def update_task_run_attempts(self, task_run_attempt_updates):
         pass
 
-    def save_airflow_task_infos(self, airflow_task_infos, is_airflow_synced, base_url):
-        # type: (List[AirflowTaskInfo], bool, str) -> None
+    def save_airflow_task_infos(self, airflow_task_infos, source, base_url):
+        # type: (List[AirflowTaskInfo], UpdateSource, str) -> None
         pass
 
     def log_target(
