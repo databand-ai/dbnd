@@ -136,7 +136,9 @@ class TaskRun(object):
     def task_run_state(self, value):
         raise AttributeError("Please use explicit .set_task_run_state()")
 
-    def set_task_run_state(self, state, track=True, error=None):
+    def set_task_run_state(
+        self, state, track=True, error=None, do_not_update_start_date=False
+    ):
         # type: (TaskRunState, bool, Any) -> bool
         # Optional bool track param - will send tracker.set_task_run_state() by default
         if not state or self._task_run_state == state:
@@ -145,12 +147,15 @@ class TaskRun(object):
         if error:
             self.errors.append(error)
         if state == TaskRunState.RUNNING:
-            self.start_time = utcnow()
+            self.start_time = utcnow() if not do_not_update_start_date else None
 
         self._task_run_state = state
         if track:
             self.tracking_store.set_task_run_state(
-                task_run=self, state=state, error=error
+                task_run=self,
+                state=state,
+                error=error,
+                do_not_update_start_date=do_not_update_start_date,
             )
         return True
 
