@@ -37,9 +37,12 @@ def generate_requirements(
             parts.append(str(req.specifier))
         req_str = "".join(parts)
         if req.marker:
-            requirements_extras[str(req.marker)].append(req_str)
-        else:
-            requirements.append(req_str)
+            if str(req.marker).startswith("extra"):
+                print("Extras marker:", req.marker)
+                requirements_extras[str(req.marker)].append(req_str)
+                continue
+            req_str = "; ".join([req_str, str(req.marker)])
+        requirements.append(req_str)
 
     for extra_name in extra_packages:
         for p in requirements_extras.get('extra == "%s"' % extra_name, []):
