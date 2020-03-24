@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class DockerBuild(Task):
-    use_koniko = parameter(default=True)[bool]
+    use_kaniko = parameter(default=True)[bool]
 
     docker_file = parameter(default=project_path("Dockerfile"))[str]
     image_name = parameter()[str]
@@ -32,7 +32,7 @@ class DockerBuild(Task):
     image_name_with_tag = None
 
     def run(self):
-        if self.use_koniko:
+        if self.use_kaniko:
             return self.run_using_kaniko()
         else:
             return self.run_using_docker_build()
@@ -83,10 +83,10 @@ class DockerBuild(Task):
         else:
             self.image_name_with_tag = self.full_image_name
 
-        command = "{} -c {} -d {} --cache=true".format(self.kaniko_command, self.context, self.docker_file)
+        command = "{} -c {} -d {}".format(self.kaniko_command, self.context, self.docker_file)
 
         if self.destinations is None or len(self.destinations) == 0:
-            command = command + "--no-push"
+            command = command + " --no-push"
         else:
             destination_list = ["--destination {}".format(destination) for destination in self.destinations]
             command = command + "".join(destination_list)
