@@ -83,16 +83,20 @@ class DockerBuild(Task):
         else:
             self.image_name_with_tag = self.full_image_name
 
-        command = "{} -c {} -d {}".format(self.kaniko_command, self.context, self.docker_file)
+        command = "{} -c {} -f {}".format(
+            self.kaniko_command, self.context, self.docker_file
+        )
 
         if self.destinations is None or len(self.destinations) == 0:
             command = command + " --no-push"
         else:
-            destination_list = ["--destination {}".format(destination) for destination in self.destinations]
+            destination_list = [
+                " -d {}".format(destination) for destination in self.destinations
+            ]
             command = command + "".join(destination_list)
 
         if self.build_args is not None and len(self.build_args):
-            build_args_list = ["--build-args {}".format(arg) for arg in self.build_args]
+            build_args_list = [" --build-arg {}".format(arg) for arg in self.build_args]
             command = command + "".join(build_args_list)
 
         if self.label:
@@ -105,8 +109,7 @@ class DockerBuild(Task):
             run_cmd(command, shell=True, cwd=project_path())
         except Exception as e:
             raise DatabandRuntimeError(
-                "failed building docker image {}".format("?"),
-                nested_exceptions=[e],
+                "failed building docker image {}".format("?"), nested_exceptions=[e]
             )
 
         return self.image_name_with_tag
