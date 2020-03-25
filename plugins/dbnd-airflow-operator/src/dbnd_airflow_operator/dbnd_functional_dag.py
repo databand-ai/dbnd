@@ -18,6 +18,7 @@ from dbnd_airflow_operator.airflow_utils import (
     safe_get_context_manager_dag,
 )
 from dbnd_airflow_operator.dbnd_functional_operator import DbndFunctionalOperator
+from dbnd_airflow_operator.jinja_arg import JinjaArg
 from dbnd_airflow_operator.xcom_target import XComResults, XComStr, build_xcom_str
 from targets import FileTarget, target
 
@@ -98,6 +99,8 @@ class DagFuncOperatorCtrl(object):
             if isinstance(value, XComStr):
                 upstream_task_ids.append(value.task_id)
                 return target("xcom://%s" % value)
+            if isinstance(value, JinjaArg):
+                return target("jinja://%s" % value)
             return value
 
         call_kwargs["task_name"] = af_task_id = self.get_normalized_airflow_task_id(
@@ -126,6 +129,8 @@ class DagFuncOperatorCtrl(object):
             if isinstance(p_value, FileTarget) and p_value.fs_name == "xcom":
                 dbnd_xcom_inputs.append(p_name)
                 p_value = p_value.path.replace("xcom://", "")
+            elif isinstance(p_value, FileTarget) and p_value.fs_name == "jinja":
+                p_value = p_value.path.replace("jinja://", "")
             dbnd_task_params[p_name] = convert_to_safe_types(p_value)
 
         single_value_result = False

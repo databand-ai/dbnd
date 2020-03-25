@@ -4,14 +4,13 @@ from airflow import DAG
 
 import dbnd
 
-from targets import target
 from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
     default_args_test,
     t_A,
     t_B,
     t_pipeline,
 )
-from test_dbnd_airflow_operator.utils import run_and_get
+from test_dbnd_airflow_operator.utils import read_xcom_result_value, run_and_get
 
 
 str(dbnd)
@@ -45,27 +44,22 @@ with DAG(
 class TestFunctionalDagRun(object):
     def test_simple_run(self):
         actual = run_and_get(dag_simple_build, "t_A")
-        assert _read_result_value(actual) == "checkcheck"
+        assert read_xcom_result_value(actual) == "checkcheck"
 
     def test_simple_2_run(self):
         assert len(dag_simple_run_wiring.tasks) == 2
 
         result = run_and_get(dag_simple_run_wiring, task_id="t_B")
 
-        assert _read_result_value(result) == "checkcheckt_B"
+        assert read_xcom_result_value(result) == "checkcheckt_B"
 
     def test_dag_pipeline_run(self):
         result = run_and_get(dag_with_pipeline, task_id="t_A")
-        actual = _read_result_value(result)
+        actual = read_xcom_result_value(result)
         assert actual == "from_pipeline_ctorfrom_pipeline_ctor"
 
     def test_dag_config_run(self):
 
         result = run_and_get(dag_with_config, task_id="t_A")
-        actual = _read_result_value(result)
+        actual = read_xcom_result_value(result)
         assert actual == "from_configfrom_config"
-
-
-def _read_result_value(xcom_result):
-    result_path = xcom_result["result"]
-    return target(result_path).read()

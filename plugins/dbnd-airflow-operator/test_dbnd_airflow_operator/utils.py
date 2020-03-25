@@ -11,6 +11,7 @@ from airflow.utils.dates import days_ago
 from dbnd import relative_path
 from dbnd._core.utils.project.project_fs import abs_join
 from dbnd._core.utils.timezone import utcnow
+from targets import target
 
 
 logger = logging.getLogger(__name__)
@@ -73,3 +74,8 @@ def _get_result(dag, task_id, execution_date=None):
     )
     assert result
     return result
+
+
+def read_xcom_result_value(xcom_result, key="result"):
+    result_path = xcom_result[key]
+    return target(result_path).read()
