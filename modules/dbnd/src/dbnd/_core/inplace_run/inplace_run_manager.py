@@ -67,6 +67,9 @@ class _DbndInplaceRunManager(object):
             },  # we don't want to "check" as script is task_version="now"
             "task": {"task_in_memory_outputs": in_memory},  # do not save any outputs
         }
+        if airflow_context:
+            # do not fail on tracker errors
+            c.update({"core": {"tracker_raise_on_error": False}})
         config.set_values(config_values=c, override=True, source="dbnd_start")
         context_kwargs = {"name": "airflow"} if airflow_context else {}
         # create databand context

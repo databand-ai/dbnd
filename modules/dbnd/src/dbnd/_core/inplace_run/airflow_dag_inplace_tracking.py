@@ -1,17 +1,20 @@
+import logging
 import os
 
 import attr
 
-from dbnd import current_task_run
 from dbnd._core.configuration import environ_config
-from dbnd._core.decorator.dynamic_tasks import run_dynamic_task
+from dbnd._core.decorator.dynamic_tasks import create_dynamic_task, run_dynamic_task
 from dbnd._core.inplace_run.inplace_run_manager import get_dbnd_inplace_run_manager
-from dbnd._core.task.task import Task
+from dbnd._core.task.task import Task, TaskCallState
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 
 
 _SPARK_ENV_FLAG = "SPARK_ENV_LOADED"  # if set, we are in spark
+FAILURE = object()
+
+logger = logging.getLogger(__name__)
 
 
 @attr.s
@@ -22,7 +25,7 @@ class AirflowTaskContext(object):
 
 
 def try_get_airflow_context():
-    # type: ()-> AirflowTaskContext
+    # type: ()-> Optional[AirflowTaskContext]
     # first try to get from spark
     from_spark = try_get_airflow_context_from_spark_conf()
     if from_spark:
@@ -95,31 +98,44 @@ def track_airflow_dag_run_operator_run(
 ):
     from dbnd import dbnd_run_stop
 
-    # this part will run DAG and Operator Tasks
-    dr = dbnd_run_start_airflow_dag_task(
-        dag_id=airflow_task_context.dag_id,
-        execution_date=airflow_task_context.execution_date,
-        task_id=airflow_task_context.task_id,
-    )
-
-    # this is the real run of the decorated function
+    task = None
     try:
-        task_run = run_dynamic_task(
-            parent_task_run=current_task_run(),
-            task_cls=task_cls,
-            call_args=call_args,
-            call_kwargs=call_kwargs,
+        # this part will run DAG and Operator Tasks
+        dbnd_run_start_airflow_dag_task(
+            dag_id=airflow_task_context.dag_id,
+            execution_date=airflow_task_context.execution_date,
+            task_id=airflow_task_context.task_id,
         )
-        t = task_run.task
-        # if we are inside run, we want to have real values, not deferred!
-        if t.task_definition.single_result_output:
-            return t.__class__.result.load_from_target(t.result)
-            # we have func without result, just fallback to None
-        return t
+
+        task = create_dynamic_task(task_cls, call_args, call_kwargs)
+        task._dbnd_call_state = TaskCallState(should_store_result=True)
+
+        # this is the real run of the decorated function
+        return run_dynamic_task(task)
+    except Exception:
+        if task and task._dbnd_call_state:
+            if task._dbnd_call_state.finished:
+                # if function was invoked and finished - than we failed in dbnd post-exec
+                # just return invoke_result to user
+                logger.warning("Error during dbnd post-exec, ignoring", exc_info=True)
+                return task._dbnd_call_state.result
+            if task._dbnd_call_state.started:
+                # if started but not finished -> it was user code exception -> re-raise
+                raise
+
+        # not started - our exception on pre-exec, return FAILURE (call user code)
+        logger.warning("Error during dbnd pre-exec, ignoring", exc_info=True)
+        return FAILURE
     finally:
+        # we'd better clean _invoke_result to avoid memory leaks
+        task._dbnd_call_state = None
         # we use update_run_state=False, since during airflow actual task run
         # we don't know anything about whole run - like is it passed or failed
-        dbnd_run_stop(at_exit=False, update_run_state=False)
+        try:
+            dbnd_run_stop(at_exit=False, update_run_state=False)
+        except Exception:
+            # don't fail if run_stop failed
+            logger.warning("Error during dbnd_run_stop, ignoring", exc_info=True)
 
 
 def dbnd_run_start_airflow_dag_task(dag_id, execution_date, task_id):

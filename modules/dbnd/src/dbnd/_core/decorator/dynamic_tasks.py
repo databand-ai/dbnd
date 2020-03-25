@@ -1,8 +1,8 @@
 import typing
 
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Tuple, Type, Union
 
-from dbnd._core.current import get_databand_run
+from dbnd._core.current import current_task_run, get_databand_run
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from dbnd._core.task_run.task_run import TaskRun
 from targets.inline_target import InlineTarget
@@ -12,12 +12,12 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task.task import Task
 
 
-def run_dynamic_task(parent_task_run, task_cls, call_args, call_kwargs):
-    # type: (TaskRun, Type[Task], Tuple[Any], Dict[str,Any]) -> TaskRun
+def create_dynamic_task(task_cls, call_args, call_kwargs):
+    # type: (Type[Task], Tuple[Any], Dict[str,Any]) -> Task
     from dbnd import pipeline, PipelineTask
     from dbnd._core.decorator.func_task_decorator import _default_output
 
-    parent_task = parent_task_run.task
+    parent_task = current_task_run().task
     dbnd_run = get_databand_run()
 
     if task_cls._conf__decorator_spec is not None:
@@ -57,8 +57,7 @@ def run_dynamic_task(parent_task_run, task_cls, call_args, call_kwargs):
 
         # instantiate inline pipeline
         t = task_cls(*call_args, **call_kwargs)
-        run = dbnd_run.context.dbnd_run_task(t)
-        return run.get_task_run(t.task_id)
+        return t
     else:
         # instantiate inline task
         t = task_cls(*call_args, **call_kwargs)
@@ -67,4 +66,27 @@ def run_dynamic_task(parent_task_run, task_cls, call_args, call_kwargs):
         # we can have the task as upstream , as it was executed already
         if not parent_task.task_dag.has_upstream(t):
             parent_task.set_upstream(t)
-        return dbnd_run.run_dynamic_task(t, task_engine=parent_task_run.task_engine)
+        return t
+
+
+def run_dynamic_task(task):
+    # type: (Task) -> Union[Task, Any]
+    from dbnd import PipelineTask
+
+    dbnd_run = get_databand_run()
+
+    if isinstance(task, PipelineTask):
+        # if it's pipeline - create new databand run
+        run = dbnd_run.context.dbnd_run_task(task)
+        task_run = run.get_task_run(task.task_id)
+    else:
+        task_run = dbnd_run.run_dynamic_task(
+            task, task_engine=current_task_run().task_engine
+        )
+
+    t = task_run.task
+    # if we are inside run, we want to have real values, not deferred!
+    if t.task_definition.single_result_output:
+        return t.__class__.result.load_from_target(t.result)
+        # we have func without result, just fallback to None
+    return t

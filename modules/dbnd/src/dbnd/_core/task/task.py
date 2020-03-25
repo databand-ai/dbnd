@@ -4,6 +4,8 @@ import warnings
 
 from typing import Dict
 
+import attr
+
 from dbnd._core.constants import OutputMode, _TaskParamContainer
 from dbnd._core.current import get_databand_run
 from dbnd._core.failures import dbnd_handle_errors
@@ -127,6 +129,8 @@ class Task(_BaseTask, _TaskParamContainer):
     task_retry_delay = parameter.system(
         description="timedelta to wait before retrying a task. Example: 5s"
     )[datetime.timedelta]
+
+    _dbnd_call_state = None  # type: TaskCallState
 
     def __init__(self, **kwargs):
         super(Task, self).__init__(**kwargs)
@@ -304,6 +308,24 @@ class Task(_BaseTask, _TaskParamContainer):
         ctx = get_databand_context()
         result = ctx.dbnd_run_task(self)
         return result
+
+
+@attr.s
+class TaskCallState(object):
+    should_store_result = attr.ib(default=False)
+    started = attr.ib(default=False)
+    finished = attr.ib(default=False)
+    result = attr.ib(default=None)
+
+    def start(self):
+        self.started = True
+        self.finished = False
+        self.result = None
+
+    def finish(self, result=None):
+        self.finished = True
+        if self.should_store_result:
+            self.result = result
 
 
 Task.task_definition.hidden = True
