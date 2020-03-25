@@ -1,7 +1,8 @@
 import copy
 from typing import Tuple
 
-from airflow import DAG
+from airflow import DAG, AirflowException
+from airflow.models import BaseOperator
 from airflow.operators.bash_operator import BashOperator
 from dbnd import task, pipeline
 import pytest
@@ -13,6 +14,10 @@ from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
 
 
 class TestFunctionalDagBuild(object):
+    @staticmethod
+    def is_xcom_str(x: str):
+        return "task_instance.xcom_pull" in x
+
     def test_task_is_bind_to_dag(self):
         @task
         def sample_callable():
@@ -23,7 +28,7 @@ class TestFunctionalDagBuild(object):
 
         assert len(dag.tasks) == 1
         assert isinstance(bool_value, str)
-        # TODO: assert type of dag.tasks[0]
+        assert self.is_xcom_str(bool_value)
 
     def test_multiple_outputs(self):
         @task
@@ -35,6 +40,8 @@ class TestFunctionalDagBuild(object):
 
         assert isinstance(a, str)
         assert isinstance(b, str)
+        assert self.is_xcom_str(a)
+        assert self.is_xcom_str(b)
 
     def test_multiple_outputs_fail_without_type(self):
         @task
@@ -43,7 +50,7 @@ class TestFunctionalDagBuild(object):
 
         with pytest.raises(ValueError):
             with DAG(dag_id="test_simple_build", default_args=default_args_test):
-                a, b = two_outputs()
+                _, _ = two_outputs()
 
     def test_tasks_are_bind_and_upstream_is_set(self):
         @task
@@ -77,7 +84,16 @@ class TestFunctionalDagBuild(object):
                 task1("check")
                 task2()
 
-    @pytest.mark.xfail
+    def test_task_and_chain_operator_fail(self):
+        @task
+        def task1():
+            return True
+
+        with pytest.raises(AirflowException):
+            with DAG(dag_id="test_simple_build", default_args=default_args_test):
+                bash_task = BashOperator(task_id="bash_task", bash_command="echo 'Ni!'")
+                bash_task >> task1()  # should be task1().op -> next test
+
     def test_task_and_chain_operator(self):
         @task
         def task1():
@@ -85,7 +101,7 @@ class TestFunctionalDagBuild(object):
 
         with DAG(dag_id="test_simple_build", default_args=default_args_test) as dag:
             bash_task = BashOperator(task_id="bash_task", bash_command="echo 'Ni!'")
-            bash_task >> task1()
+            bash_task >> task1().op
 
         _, b = dag.tasks
         assert bash_task in b.upstream_list
