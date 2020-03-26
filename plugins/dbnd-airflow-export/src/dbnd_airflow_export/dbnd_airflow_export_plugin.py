@@ -11,6 +11,7 @@ from airflow.configuration import conf
 from airflow.jobs import BaseJob
 from airflow.models import BaseOperator, DagModel, DagRun
 from airflow.plugins_manager import AirflowPlugin
+from airflow.utils.dates import days_ago
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
@@ -513,10 +514,9 @@ class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
 
     @flask_appbuilder.expose("/export_data")
     def export_data(self):
-        from airflow.www_rbac.utils import json_response
         from airflow.www_rbac.views import dagbag
 
-        return json_response(export_data_api(dagbag))
+        return export_data_api(dagbag)
 
 
 class ExportDataViewAdmin(flask_admin.BaseView):
@@ -527,10 +527,9 @@ class ExportDataViewAdmin(flask_admin.BaseView):
     @flask_admin.expose("/")
     @flask_admin.expose("/export_data")
     def export_data(self):
-        from airflow.www.utils import json_response
         from airflow.www.views import dagbag
 
-        return json_response(export_data_api(dagbag))
+        return export_data_api(dagbag)
 
 
 @provide_session
@@ -563,14 +562,26 @@ def _handle_export_data(
 
 
 def export_data_api(dagbag):
+    from airflow.www.utils import json_response
+
     since = flask.request.args.get("since")
     include_logs = flask.request.args.get("include_logs")
     dag_ids = flask.request.args.getlist("dag_ids")
     tasks = flask.request.args.get("tasks", type=int)
 
+    if not since and not include_logs and not dag_ids and not tasks:
+        new_since = datetime.datetime.utcnow().replace(
+            tzinfo=pendulum.timezone("UTC")
+        ) - datetime.timedelta(days=1)
+        return flask.redirect(
+            flask.url_for("data_export_plugin.export_data", since=new_since, code=303)
+        )
+
     # do_update = flask.request.args.get("do_update", "").lower() == "true"
     # verbose = flask.request.args.get("verbose", str(not do_update)).lower() == "true"
-    return _handle_export_data(dagbag, since, include_logs, dag_ids, tasks)
+    return json_response(
+        _handle_export_data(dagbag, since, include_logs, dag_ids, tasks)
+    )
 
 
 ### Plugin ###
