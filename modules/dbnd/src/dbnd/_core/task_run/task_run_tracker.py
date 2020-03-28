@@ -59,7 +59,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
         except Exception as ex:
             log_exception(
-                "Error occurred during target metrics save for %s" % (target,),
+                "Error occurred during target logging for %s" % (target,),
                 ex,
                 non_critical=True,
             )

@@ -11,7 +11,12 @@ import attr
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.environ_config import PARAM_ENV_TEMPLATE
-from dbnd._core.constants import OutputMode, _TaskParamContainer
+from dbnd._core.constants import (
+    DbndTargetOperationStatus,
+    DbndTargetOperationType,
+    OutputMode,
+    _TaskParamContainer,
+)
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandBuildError, friendly_error
 from dbnd._core.errors.errors_utils import log_exception
@@ -228,7 +233,10 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
         if isinstance(value, Target):
             try:
-                return self.load_from_target(value)
+                runtime_value = self.load_from_target(value)
+                if self.is_input():
+                    self._log_target_preview(runtime_value, value, task)
+                return runtime_value
             except Exception as ex:
                 raise friendly_error.failed_to_read_target_as_task_input(
                     ex=ex, task=task, parameter=self, target=value
@@ -239,9 +247,16 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
             and self.value_type.sub_value_type
         ):
             try:
-                return traverse(
-                    value, convert_f=self.value_type.sub_value_type.load_runtime
-                )
+
+                def load_with_preview(val):
+                    runtime_val = self.value_type.sub_value_type.load_runtime(val)
+                    if self.is_input() and isinstance(val, Target):
+                        # Optimisation opportunity: log all targets in a single call
+                        self._log_target_preview(runtime_val, val, task)
+
+                    return runtime_val
+
+                return traverse(value, convert_f=load_with_preview)
             except Exception as ex:
                 raise friendly_error.failed_to_read_task_input(
                     ex=ex, task=task, parameter=self, target=value
@@ -309,6 +324,16 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
                 kwargs.update(**self.save_options[f])
 
         self.value_type.save_to_target(target, value, **kwargs)  # default impl
+
+    def _log_target_preview(self, runtime_value, value, task):
+        if try_get_databand_run() and task.current_task_run:
+            task.current_task_run.tracker.log_target(
+                parameter=self,
+                target=value,
+                value=runtime_value,
+                operation_type=DbndTargetOperationType.read,
+                operation_status=DbndTargetOperationStatus.OK,
+            )
 
     def _store_value_origin_target(self, value, target):
         dbnd_run = try_get_databand_run()
@@ -483,6 +508,9 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         # we separate into two functions ,
         # as we want to be able to call build_target from output_factory implementation
         return self.build_target(task)
+
+    def is_input(self):
+        return self.kind == _ParameterKind.task_input
 
     def is_output(self):
         return self.kind == _ParameterKind.task_output
