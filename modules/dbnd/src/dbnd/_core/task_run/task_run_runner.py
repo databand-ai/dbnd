@@ -11,7 +11,7 @@ from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.nested_context import nested
-from dbnd._core.utils.basics.safe_signal import safe_signal
+from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
 

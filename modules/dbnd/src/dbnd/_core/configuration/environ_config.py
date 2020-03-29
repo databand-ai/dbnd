@@ -15,6 +15,7 @@ ENV_DBND__CONFIG = "DBND__CONFIG"
 ENV_DBND__USER_PRE_INIT = "DBND__USER_PRE_INIT"
 ENV_DBND__NO_MODULES = "DBND__NO_MODULES"
 ENV_DBND__NO_TABLES = "DBND__NO_TABLES"
+ENV_DBND__SHOW_STACK_ON_SIGQUIT = "DBND__SHOW_STACK_ON_SIGQUIT"
 
 ENV_DBND_USER = "DBND_USER"
 ENV_DBND_ENV = "DBND_ENV"
@@ -101,6 +102,10 @@ def get_user_preinit():
 
 def is_no_modules():
     return environ_enabled(ENV_DBND__NO_MODULES)
+
+
+def is_sigquit_handler_on():
+    return environ_enabled(ENV_DBND__SHOW_STACK_ON_SIGQUIT)
 
 
 def set_on(env_key):

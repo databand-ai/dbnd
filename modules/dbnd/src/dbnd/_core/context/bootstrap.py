@@ -5,7 +5,11 @@ import warnings
 
 import dbnd
 
-from dbnd._core.configuration.environ_config import in_quiet_mode, is_unit_test_mode
+from dbnd._core.configuration.environ_config import (
+    in_quiet_mode,
+    is_sigquit_handler_on,
+    is_unit_test_mode,
+)
 from dbnd._core.context.dbnd_project_env import (
     ENV_DBND_HOME,
     _env_banner,
@@ -16,7 +20,7 @@ from dbnd._core.plugin.dbnd_plugins_mng import (
     register_dbnd_plugins,
     register_dbnd_user_plugins,
 )
-from dbnd._core.utils.basics.safe_signal import safe_signal
+from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.platform.osx_compatible.requests_in_forked_process import (
     enable_osx_forked_request_calls,
@@ -111,6 +115,11 @@ def dbnd_bootstrap():
         pm.hook.dbnd_setup_unittest()
 
     pm.hook.dbnd_setup_plugin()
+
+    if is_sigquit_handler_on():
+        from dbnd._core.utils.basics.signal_utils import sigquit_handler
+
+        signal.signal(signal.SIGQUIT, sigquit_handler)
 
     # now we can run user code ( at driver/task)
     user_preinit = environ_config.get_user_preinit()

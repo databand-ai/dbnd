@@ -31,7 +31,7 @@ from airflow.utils.state import State
 
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import DatabandSigTermError
-from dbnd._core.utils.basics.safe_signal import safe_signal
+from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 
 
