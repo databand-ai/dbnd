@@ -17,6 +17,7 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     monitor_start_time = fields.DateTime(allow_none=True)
     synced_from = fields.DateTime(allow_none=True)
     synced_to = fields.DateTime(allow_none=True)
+    rbac_enabled = fields.Boolean(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -40,3 +41,4 @@ class AirflowServerInfo(object):
     monitor_start_time = attr.ib(default=None)  # type: Optional[datetime.datetime]
     synced_from = attr.ib(default=None)  # type: Optional[datetime.datetime]
     synced_to = attr.ib(default=None)  # type: Optional[datetime.datetime]
+    rbac_enabled = attr.ib(default=None)  # type: Optional[bool]

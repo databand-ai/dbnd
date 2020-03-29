@@ -382,6 +382,7 @@ class ExportData(object):
         self.dags_path = conf.get("core", "dags_folder")
         self.logs_path = conf.get("core", "base_log_folder")
         self.airflow_export_version = _get_export_plugin_version()
+        self.rbac_enabled = conf.get("webserver", "rbac")
 
     def as_dict(self):
         return dict(
@@ -393,6 +394,7 @@ class ExportData(object):
             dags_path=self.dags_path,
             logs_path=self.logs_path,
             airflow_export_version=self.airflow_export_version,
+            rbac_enabled=self.rbac_enabled,
         )
 
 
