@@ -2,14 +2,17 @@ import logging
 
 from dbnd._core.configuration.environ_config import is_databand_enabled
 from dbnd._core.constants import TaskType
-from dbnd._core.decorator.dynamic_tasks import create_dynamic_task, run_dynamic_task
+from dbnd._core.decorator.dynamic_tasks import (
+    create_dynamic_task,
+    run_dynamic_task_safe,
+)
+from dbnd._core.decorator.func_task_call import FuncCall, TaskCallState
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.errors.friendly_error.task_execution import (
     failed_to_assign_result,
     failed_to_process_non_empty_result,
 )
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
-    FAILURE,
     track_airflow_dag_run_operator_run,
     try_get_airflow_context,
 )
@@ -19,7 +22,7 @@ from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
 )
 from dbnd._core.task.pipeline_task import PipelineTask
 from dbnd._core.task.python_task import PythonTask
-from dbnd._core.task.task import Task, TaskCallState
+from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_context import (
     TaskContextPhase,
     current_phase,
@@ -52,20 +55,20 @@ class _DecoratedTask(Task):
             return build_task_at_airflow_dag_context(
                 task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
             )
-
+        func_call = FuncCall(
+            task_cls=cls,
+            call_args=call_args,
+            call_kwargs=call_kwargs,
+            call_user_code=call_user_code,
+        )
         if not has_current_task():
             ######
             # DBND HANDLING OF CALL
             airflow_task_context = try_get_airflow_context()
             if airflow_task_context:
-                result = track_airflow_dag_run_operator_run(
-                    task_cls=cls,
-                    call_args=call_args,
-                    call_kwargs=call_kwargs,
-                    airflow_task_context=airflow_task_context,
+                return track_airflow_dag_run_operator_run(
+                    func_call=func_call, airflow_task_context=airflow_task_context
                 )
-                if result is not FAILURE:
-                    return result
 
             # direct call to the function
             return call_user_code(*call_args, **call_kwargs)
@@ -99,14 +102,19 @@ class _DecoratedTask(Task):
                 # and the current task supports inline calls
                 # that's extra mechanism in addition to __force_invoke
                 # on pickle/unpickle isinstance fails to run.
-                return run_dynamic_task(
-                    create_dynamic_task(
-                        task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
+
+                try:
+                    task = create_dynamic_task(func_call)
+                except Exception:
+                    logger.warning(
+                        "Failed during dbnd task-create, ignoring", exc_info=True
                     )
-                )
+                    return func_call.invoke()
+
+                return run_dynamic_task_safe(task=task, func_call=func_call)
 
         # we can not call it in"databand" way, fallback to normal execution
-        return call_user_code(*call_args, **call_kwargs)
+        return func_call.invoke()
 
     def _invoke_func(self, extra_kwargs=None, force_invoke=False):
         # this function is in charge of calling user defined code (decorated function) call

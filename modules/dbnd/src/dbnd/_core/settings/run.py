@@ -98,6 +98,10 @@ class RunConfig(config.Config):
         description="When submitting driver to remote execution keep tracking of submitted process and wait for completion",
     )[bool]
 
+    skip_completed_on_run = parameter(default=True).help(
+        "Should dbnd task check that task is completed and mark it as resued on task execution"
+    )[bool]
+
     validate_task_inputs = parameter(default=True).help(
         "Should dbnd task check that all input files exist"
     )[bool]

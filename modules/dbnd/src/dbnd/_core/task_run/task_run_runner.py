@@ -65,7 +65,7 @@ class TaskRunRunner(TaskRunCtrl):
                 )
             try:
                 self.task_env.prepare_env()
-                if task._complete():
+                if run_config.skip_completed_on_run and task._complete():
                     task_run.set_task_reused()
                     return
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)

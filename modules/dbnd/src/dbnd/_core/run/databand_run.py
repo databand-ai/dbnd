@@ -537,10 +537,8 @@ class DatabandRun(SingletonContext):
             env[ENV_DBND__USER_PRE_INIT] = self.context.settings.core.user_code_on_fork
         return env
 
-    def _init_without_run(self, root_task_run_uid=None):
-        self.driver_task_run.task.build_root_task_runs(
-            self, root_task_run_uid=root_task_run_uid
-        )
+    def _init_without_run(self):
+        self.driver_task_run.task.build_root_task_runs(self)
 
     def is_killed(self):
         return _is_killed.is_set()
@@ -687,7 +685,7 @@ class _DbndDriverTask(Task):
     def build_task_from_cmd_line(self, task_name):
         return
 
-    def build_root_task_runs(self, run, root_task_run_uid=None):
+    def build_root_task_runs(self, run):
         """
         called by .run and inline
         :return:
@@ -707,10 +705,7 @@ class _DbndDriverTask(Task):
         run.root_task.task_dag.topological_sort()
 
         task_runs = TaskRunsBuilder().build_task_runs(
-            run,
-            run.root_task,
-            remote_engine=self.target_engine,
-            root_task_run_uid=root_task_run_uid,
+            run, run.root_task, remote_engine=self.target_engine
         )
         # we need it before to mark root task
         run.add_task_runs(task_runs)

@@ -4,8 +4,6 @@ import warnings
 
 from typing import Dict
 
-import attr
-
 from dbnd._core.constants import OutputMode, _TaskParamContainer
 from dbnd._core.current import get_databand_run
 from dbnd._core.failures import dbnd_handle_errors
@@ -27,6 +25,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
+    from dbnd._core.decorator.safe_task_call import TaskCallState
 
 DEFAULT_CLASS_VERSION = ""
 
@@ -308,24 +307,6 @@ class Task(_BaseTask, _TaskParamContainer):
         ctx = get_databand_context()
         result = ctx.dbnd_run_task(self)
         return result
-
-
-@attr.s
-class TaskCallState(object):
-    should_store_result = attr.ib(default=False)
-    started = attr.ib(default=False)
-    finished = attr.ib(default=False)
-    result = attr.ib(default=None)
-
-    def start(self):
-        self.started = True
-        self.finished = False
-        self.result = None
-
-    def finish(self, result=None):
-        self.finished = True
-        if self.should_store_result:
-            self.result = result
 
 
 Task.task_definition.hidden = True

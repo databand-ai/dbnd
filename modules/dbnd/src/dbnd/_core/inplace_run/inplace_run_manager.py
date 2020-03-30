@@ -44,18 +44,11 @@ class _DbndInplaceRunManager(object):
             cm = self._context_managers.pop()
             cm.__exit__(None, None, None)
 
-    def start(
-        self,
-        root_task_name,
-        in_memory=True,
-        run_uid=None,
-        airflow_context=False,
-        job_name=None,
-    ):
+    def start(self, root_task_name, in_memory=True, job_name=None):
         if try_get_databand_context():
             return
 
-        if not airflow_context and not self._atexit_registered:
+        if not self._atexit_registered:
             atexit.register(self.stop)
             if is_airflow_enabled():
                 from airflow.settings import dispose_orm
@@ -67,63 +60,50 @@ class _DbndInplaceRunManager(object):
             },  # we don't want to "check" as script is task_version="now"
             "task": {"task_in_memory_outputs": in_memory},  # do not save any outputs
         }
-        if airflow_context:
-            # do not fail on tracker errors
-            c.update({"core": {"tracker_raise_on_error": False}})
         config.set_values(config_values=c, override=True, source="dbnd_start")
-        context_kwargs = {"name": "airflow"} if airflow_context else {}
         # create databand context
-        dc = self._enter_cm(new_dbnd_context(**context_kwargs))  # type: DatabandContext
+        dc = self._enter_cm(new_dbnd_context())  # type: DatabandContext
 
-        root_task = _build_inline_root_task(
-            root_task_name, airflow_context=airflow_context
-        )
+        root_task = _build_inline_root_task(root_task_name)
         # create databand run
         dr = self._enter_cm(
             new_databand_run(
                 context=dc,
                 task_or_task_name=root_task,
-                run_uid=run_uid,
                 existing_run=False,
                 job_name=job_name,
             )
         )  # type: DatabandRun
 
-        if run_uid:
-            root_task_run_uid = get_task_run_uid(run_uid, root_task_name)
-        else:
-            root_task_run_uid = None
-        dr._init_without_run(root_task_run_uid=root_task_run_uid)
+        dr._init_without_run()
 
-        self._start_taskrun(dr.driver_task_run, airflow_context=airflow_context)
-        self._start_taskrun(dr.root_task_run, airflow_context=airflow_context)
+        # we do it manually in airflow
+        self._start_taskrun(dr.driver_task_run)
+        self._start_taskrun(dr.root_task_run)
         return dr
 
-    def _start_taskrun(self, task_run, airflow_context=False):
+    def _start_taskrun(self, task_run):
         self._enter_cm(task_run.runner.task_run_execution_context())
-        task_run.start_time = None if airflow_context else utcnow()
         # don't update start date in airflow context, because when monitor will get into action
         # we don't want this attempt to be chosen as "latest_task_run_attempt" (chosen by start date)
-        task_run.set_task_run_state(
-            state=TaskRunState.RUNNING, do_not_update_start_date=airflow_context
-        )
+        task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
-    def stop(self, at_exit=True, update_run_state=True):
-        if update_run_state:
-            databand_run = try_get_databand_run()
-            if databand_run:
-                root_tr = databand_run.task.current_task_run
-                root_tr.finished_time = utcnow()
+    def stop(self, at_exit=True):
 
-                for tr in databand_run.task_runs:
-                    if tr.task_run_state == TaskRunState.FAILED:
-                        root_tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED)
-                        databand_run.set_run_state(RunState.FAILED)
-                        break
-                else:
-                    root_tr.set_task_run_state(TaskRunState.SUCCESS)
-                    databand_run.set_run_state(RunState.SUCCESS)
-                logger.info(databand_run.describe.run_banner_for_finished())
+        databand_run = try_get_databand_run()
+        if databand_run:
+            root_tr = databand_run.task.current_task_run
+            root_tr.finished_time = utcnow()
+
+            for tr in databand_run.task_runs:
+                if tr.task_run_state == TaskRunState.FAILED:
+                    root_tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED)
+                    databand_run.set_run_state(RunState.FAILED)
+                    break
+            else:
+                root_tr.set_task_run_state(TaskRunState.SUCCESS)
+                databand_run.set_run_state(RunState.SUCCESS)
+            logger.info(databand_run.describe.run_banner_for_finished())
 
         self._close_all_context_managers()
         if at_exit and is_airflow_enabled():
@@ -132,7 +112,7 @@ class _DbndInplaceRunManager(object):
             dispose_orm()
 
 
-def _build_inline_root_task(root_task_name, airflow_context):
+def _build_inline_root_task(root_task_name):
     # create "root task" with default name as current process executable file name
     if not root_task_name:
         root_task_name = sys.argv[0].split(os.path.sep)[-1]
@@ -147,22 +127,14 @@ def _build_inline_root_task(root_task_name, airflow_context):
         if user_frame:
             module_code = open(user_frame.filename).read()
             InplaceTask.task_definition.task_module_code = module_code
-            if not airflow_context:
-                # we don't set DAGs task's source code
-                InplaceTask.task_definition.task_source_code = module_code
+            InplaceTask.task_definition.task_source_code = module_code
     except Exception as ex:
         logger.info("Failed to find source code: %s", str(ex))
 
     root_task = InplaceTask(task_version="now", task_name=root_task_name)
 
-    if airflow_context:
-        # we generate specific cmd values for airflow tasks in sync time
-        root_task.task_is_system = True
-        root_task.task_meta.task_command_line = ""
-        root_task.task_meta.task_functional_call = ""
-    else:
-        root_task.task_meta.task_command_line = list2cmdline(sys.argv)
-        root_task.task_meta.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
+    root_task.task_meta.task_command_line = list2cmdline(sys.argv)
+    root_task.task_meta.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
 
     return root_task
 
@@ -178,5 +150,5 @@ def dbnd_run_start(name=None, in_memory=False):
     _dbnd_start_manager.start(root_task_name=name, in_memory=in_memory)
 
 
-def dbnd_run_stop(at_exit=True, update_run_state=True):
-    _dbnd_start_manager.stop(at_exit=at_exit, update_run_state=update_run_state)
+def dbnd_run_stop(at_exit=True):
+    _dbnd_start_manager.stop(at_exit=at_exit)

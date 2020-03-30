@@ -1,21 +1,29 @@
+import datetime
 import logging
 import os
+
+from typing import Any
 
 import attr
 
 from dbnd._core.configuration import environ_config
-from dbnd._core.decorator.dynamic_tasks import create_dynamic_task, run_dynamic_task
-from dbnd._core.inplace_run.inplace_run_manager import get_dbnd_inplace_run_manager
-from dbnd._core.task.task import Task, TaskCallState
+from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
+from dbnd._core.decorator.dynamic_tasks import (
+    create_dynamic_task,
+    run_dynamic_task_safe,
+)
+from dbnd._core.decorator.func_task_call import FuncCall
+from dbnd._core.parameter.parameter_builder import parameter
+from dbnd._core.run.databand_run import new_databand_run
+from dbnd._core.task.task import Task
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.string_utils import task_name_for_runtime
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 
 
-_SPARK_ENV_FLAG = "SPARK_ENV_LOADED"  # if set, we are in spark
-FAILURE = object()
-
 logger = logging.getLogger(__name__)
+_SPARK_ENV_FLAG = "SPARK_ENV_LOADED"  # if set, we are in spark
 
 
 @attr.s
@@ -94,87 +102,147 @@ def try_get_airflow_context_from_spark_conf():
     return None
 
 
-def track_airflow_dag_run_operator_run(
-    task_cls, call_args, call_kwargs, airflow_task_context
-):
-    from dbnd import dbnd_run_stop
+class AirflowDagRuntimeTask(Task):
+    task_is_system = True
+    _conf__track_source_code = False
 
-    task = None
+    dag_id = parameter[str]
+    execution_date = parameter[datetime.datetime]
+
+
+class AirflowOperatorRuntimeTask(Task):
+    task_is_system = True
+    _conf__track_source_code = False
+
+    dag_id = parameter[str]
+    execution_date = parameter[datetime.datetime]
+
+
+def anonymize_task(task):
+    # we generate specific cmd values for airflow tasks in sync time
+    task.task_meta.task_command_line = ""
+    task.task_meta.task_functional_call = ""
+
+
+_CURRENT_AIRFLOW_TRACKING_MANAGER = None
+
+
+def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
+    global _CURRENT_AIRFLOW_TRACKING_MANAGER
+    if _CURRENT_AIRFLOW_TRACKING_MANAGER is False:
+        # we already failed to create ourself once
+        return func_call.invoke()
+
     try:
         # this part will run DAG and Operator Tasks
-        dr = dbnd_run_start_airflow_dag_task(
-            dag_id=airflow_task_context.dag_id,
-            execution_date=airflow_task_context.execution_date,
-            task_id=airflow_task_context.task_id,
-        )
-
-        task = create_dynamic_task(task_cls, call_args, call_kwargs)
-        task._dbnd_call_state = TaskCallState(should_store_result=True)
-        task.task_meta.extra_parents_task_run_uids.add(
-            get_task_run_uid(dr.run_uid, airflow_task_context.task_id)
-        )
-
-        # this is the real run of the decorated function
-        return run_dynamic_task(task)
+        if _CURRENT_AIRFLOW_TRACKING_MANAGER is None:
+            # this is our first call!
+            _CURRENT_AIRFLOW_TRACKING_MANAGER = AirflowTrackingManager(
+                af_context=airflow_task_context
+            )
     except Exception:
-        if task and task._dbnd_call_state:
-            if task._dbnd_call_state.finished:
-                # if function was invoked and finished - than we failed in dbnd post-exec
-                # just return invoke_result to user
-                logger.warning("Error during dbnd post-exec, ignoring", exc_info=True)
-                return task._dbnd_call_state.result
-            if task._dbnd_call_state.started:
-                # if started but not finished -> it was user code exception -> re-raise
-                raise
+        _CURRENT_AIRFLOW_TRACKING_MANAGER = False
+        logger.warning("Error during dbnd pre-init, ignoring", exc_info=True)
+        return func_call.invoke()
 
-        # not started - our exception on pre-exec, return FAILURE (call user code)
-        logger.warning("Error during dbnd pre-exec, ignoring", exc_info=True)
-        return FAILURE
-    finally:
-        # we'd better clean _invoke_result to avoid memory leaks
-        task._dbnd_call_state = None
-        # we use update_run_state=False, since during airflow actual task run
-        # we don't know anything about whole run - like is it passed or failed
+    return _CURRENT_AIRFLOW_TRACKING_MANAGER.run_airflow_dynamic_task(func_call)
+
+
+class AirflowTrackingManager(object):
+    def __init__(self, af_context):
+        self.run_uid = get_job_run_uid(
+            dag_id=af_context.dag_id, execution_date=af_context.execution_date
+        )
+
+        # this is the real operator uid, we need to connect to it with our "tracked" task,
+        # so the moment monitor is on -> we can sync
+        self.af_operator_sync__task_run_uid = get_task_run_uid(
+            self.run_uid, af_context.task_id
+        )
+        # 1. create proper DatabandContext so we can create other objects
+        config_for_airflow = {
+            "run": {
+                "skip_completed": False,
+                "skip_completed_on_run": False,
+                "validate_task_inputs": False,
+                "validate_task_outputs": False,
+            },  # we don't want to "check" as script is task_version="now"
+            "task": {"task_in_memory_outputs": True},  # do not save any outputs
+            "core": {"tracker_raise_on_error": False},  # do not fail on tracker errors
+        }
+        config.set_values(
+            config_values=config_for_airflow, override=True, source="dbnd_start"
+        )
+        # create databand context
+        with new_dbnd_context(name="airflow") as dc:  # type: DatabandContext
+
+            # now create "operator" task for current task_id,
+            # we can't actually run it, we even don't know when it's going to finish
+            # current execution is inside the operator, this is the only thing we know
+            #    AirflowOperator__runtime ->  DAG__runtime
+
+            # AIRFLOW OPERATOR RUNTIME
+            self.af_operator_runtime__task = af_runtime_op = AirflowOperatorRuntimeTask(
+                task_family=task_name_for_runtime(af_context.task_id),
+                dag_id=af_context.dag_id,
+                execution_date=af_context.execution_date,
+            )
+            af_runtime_op.ctrl.force_task_run_uid = get_task_run_uid(
+                self.run_uid, af_runtime_op.task_name
+            )
+
+            # AIRFLOW DAG RUNTIME
+            self.af_dag_runtime__task = af_runtime_dag = AirflowDagRuntimeTask(
+                task_name=task_name_for_runtime("DAG"),
+                dag_id=af_context.dag_id,
+                execution_date=af_context.execution_date,
+            )
+            af_runtime_dag.set_upstream(af_runtime_op)
+            af_runtime_dag.ctrl.force_task_run_uid = get_task_run_uid(
+                self.run_uid, af_runtime_dag.task_name
+            )
+            # this will create databand run with driver and root tasks.
+            # we need the "root" task to be the same between different airflow tasks invocations
+            # since in dbnd we must have single root task, so we create "dummy" task with dag_id name
+
+            # create databand run
+            with new_databand_run(
+                context=dc,
+                task_or_task_name=self.af_dag_runtime__task,
+                run_uid=self.run_uid,
+                existing_run=False,
+                job_name=af_context.dag_id,
+            ) as dr:
+                self.dr = dr
+                dr._init_without_run()
+                self.airflow_operator__task_run = dr.get_task_run_by_id(
+                    af_runtime_op.task_id
+                )
+
+    def run_airflow_dynamic_task(self, func_call):
+        # type: (FuncCall) -> Any
+        context_enter_ok = False
         try:
-            dbnd_run_stop(at_exit=False, update_run_state=False)
+            with self.dr.run_context():
+                with self.airflow_operator__task_run.runner.task_run_execution_context():
+                    context_enter_ok = True
+                    try:
+                        task = create_dynamic_task(func_call)
+                        task.task_meta.extra_parents_task_run_uids.add(
+                            self.af_operator_sync__task_run_uid
+                        )
+                    except Exception:
+                        logger.warning(
+                            "Failed during dbnd task-create, ignoring", exc_info=True
+                        )
+                        return func_call.invoke()
+
+                    return run_dynamic_task_safe(task=task, func_call=func_call)
         except Exception:
-            # don't fail if run_stop failed
-            logger.warning("Error during dbnd_run_stop, ignoring", exc_info=True)
-
-
-def dbnd_run_start_airflow_dag_task(dag_id, execution_date, task_id):
-    run_uid = get_job_run_uid(dag_id=dag_id, execution_date=execution_date)
-    # root_task_uid = get_task_run_uid(run_uid=run_uid, task_id="DAG")
-    # task_uid = get_task_run_uid(run_uid=run_uid, task_id=task_id)
-
-    # this will create databand run with driver and root tasks.
-    # we need the "root" task to be the same between different airflow tasks invocations
-    # since in dbnd we must have single root task, so we create "dummy" task with dag_id name
-
-    inplace_run_manager = get_dbnd_inplace_run_manager()
-    dr = inplace_run_manager.start(
-        root_task_name=task_name_for_runtime("DAG"),
-        run_uid=run_uid,
-        job_name=dag_id,
-        airflow_context=True,
-    )
-
-    # now create "operator" task for current task_id,
-    # we can't actually run it, we even don't know when it's going to finish
-    # current execution is inside the operator, this is the only thing we know
-    class InplaceAirflowOperatorTask(Task):
-        _conf__task_family = task_id
-        execution_date = dr.execution_date
-
-    task = InplaceAirflowOperatorTask(
-        task_version="now",
-        task_name=task_name_for_runtime(task_id),
-        task_is_system=True,
-    )
-    tr = dr.create_dynamic_task_run(
-        task,
-        dr.local_engine,
-        _uuid=get_task_run_uid(run_uid, task_name_for_runtime(task_id)),
-    )
-    inplace_run_manager._start_taskrun(tr, airflow_context=True)
-    return dr
+            if not context_enter_ok:
+                logger.warning(
+                    "Failed during dbnd context-enter, ignoring", exc_info=True
+                )
+                global _CURRENT_AIRFLOW_TRACKING_MANAGER
+                _CURRENT_AIRFLOW_TRACKING_MANAGER = False
+                return func_call.invoke()

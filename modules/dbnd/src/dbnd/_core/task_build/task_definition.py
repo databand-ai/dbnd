@@ -106,10 +106,15 @@ class TaskDefinition(object):
         # now, if we have overloads in code ( calculated in task_definition):
         # class T(BaseT):
         #     some_base_t_property = new_value
+        if self.task_class._conf__track_source_code:
+            self.task_source_code = _get_task_source_code(self.task_class)
+            self.task_module_code = _get_task_module_source_code(self.task_class)
+            self.task_source_file = _get_source_file(self.task_class)
+        else:
 
-        self.task_source_code = _get_task_source_code(self.task_class)
-        self.task_module_code = _get_task_module_source_code(self.task_class)
-        self.task_source_file = _get_source_file(self.task_class)
+            self.task_source_code = None
+            self.task_module_code = ""
+            self.task_source_file = None
 
     def _calculate_task_class_values(self, classdict):
         # reflect inherited attributes

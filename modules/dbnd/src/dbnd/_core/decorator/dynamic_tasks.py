@@ -1,19 +1,27 @@
+import logging
 import typing
 
 from typing import Any, Dict, Tuple, Type, Union
 
 from dbnd._core.current import current_task_run, get_databand_run
+from dbnd._core.decorator.func_task_call import FuncCall
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
-from dbnd._core.task_run.task_run import TaskRun
 from targets.inline_target import InlineTarget
 
+
+logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
     from dbnd._core.task.task import Task
 
 
-def create_dynamic_task(task_cls, call_args, call_kwargs):
-    # type: (Type[Task], Tuple[Any], Dict[str,Any]) -> Task
+def create_dynamic_task(func_call):
+    # type: (FuncCall) -> Task
+    task_cls, call_args, call_kwargs = (
+        func_call.task_cls,
+        func_call.call_args,
+        func_call.call_kwargs,
+    )
     from dbnd import pipeline, PipelineTask
     from dbnd._core.decorator.func_task_decorator import _default_output
 
@@ -90,3 +98,29 @@ def run_dynamic_task(task):
         return t.__class__.result.load_from_target(t.result)
         # we have func without result, just fallback to None
     return t
+
+
+def run_dynamic_task_safe(task, func_call):
+    try:
+        from dbnd._core.decorator.func_task_call import TaskCallState, CALL_FAILURE_OBJ
+
+        task._dbnd_call_state = TaskCallState(should_store_result=True)
+        # this is the real run of the decorated function
+        return run_dynamic_task(task)
+    except Exception:
+        if task and task._dbnd_call_state:
+            if task._dbnd_call_state.finished:
+                # if function was invoked and finished - than we failed in dbnd post-exec
+                # just return invoke_result to user
+                logger.warning("Error during dbnd post-exec, ignoring", exc_info=True)
+                return task._dbnd_call_state.result
+            if task._dbnd_call_state.started:
+                # if started but not finished -> it was user code exception -> re-raise
+                raise
+
+        # not started - our exception on pre-exec, run user code
+        logger.warning("Error during dbnd task-pre-execute, ignoring", exc_info=True)
+        return func_call.invoke()
+    finally:
+        # we'd better clean _invoke_result to avoid memory leaks
+        task._dbnd_call_state = None

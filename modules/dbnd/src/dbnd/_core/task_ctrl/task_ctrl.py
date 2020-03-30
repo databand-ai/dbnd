@@ -116,6 +116,7 @@ class TaskCtrl(TaskSubCtrl):
 
         # will be assigned by the latest Run
         self.last_task_run = None  # type: Optional[TaskRun]
+        self.force_task_run_uid = None  # force task run uid
 
     def banner(self, msg, color=None, task_run=None):
         return self.visualiser.banner(msg=msg, color=color, task_run=task_run)

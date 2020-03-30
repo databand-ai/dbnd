@@ -70,7 +70,7 @@ class TaskRunsBuilder(object):
 
         return runnable_tasks, tasks_disabled
 
-    def build_task_runs(self, run, root_task, remote_engine, root_task_run_uid=None):
+    def build_task_runs(self, run, root_task, remote_engine):
         # type: (DatabandRun, Task, EngineConfig, UUID) -> List[TaskRun]
         run_config = run.context.settings.run  # type: RunConfig
 
@@ -133,9 +133,7 @@ class TaskRunsBuilder(object):
                     task=task,
                     task_af_id=friendly_ids[task.task_id],
                     task_engine=task_engine,
-                    _uuid=root_task_run_uid
-                    if task.task_id == root_task.task_id
-                    else None,
+                    _uuid=task.ctrl.force_task_run_uid,
                 )
             if task.task_id in completed_ids:
                 task_run.is_reused = True

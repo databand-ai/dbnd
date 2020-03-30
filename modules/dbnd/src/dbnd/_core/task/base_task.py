@@ -50,6 +50,7 @@ if typing.TYPE_CHECKING:
 class _BaseTask(object):
     # override to change get_task_family() -> changes task_family
     _conf__task_family = None
+    _conf__track_source_code = True  # module/class/function user source code tracking
     task_namespace = NOTHING
 
     _conf__task_type_name = TaskType.python
