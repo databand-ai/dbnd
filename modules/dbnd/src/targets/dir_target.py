@@ -56,13 +56,6 @@ class DirTarget(FileTarget):
 
     def exists(self):
         path = self.path
-        if "*" in path or "?" in path or "[" in path or "{" in path:
-            logger.warning(
-                "Using wildcards in path %s might lead to processing of an incomplete dataset; "
-                "override exists() to suppress the warning.",
-                path,
-            )
-
         if self.flag_target:
             return self.flag_target.exists()
 

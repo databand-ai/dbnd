@@ -1,9 +1,9 @@
 import logging
 import os
 import typing
-from collections import Callable
 
 from dbnd._core.errors import DatabandRuntimeError
+from dbnd._core.utils.seven import Callable
 from targets.fs.local import LocalFileSystem
 
 logger = logging.getLogger(__name__)
