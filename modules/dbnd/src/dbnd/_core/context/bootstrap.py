@@ -10,11 +10,7 @@ from dbnd._core.configuration.environ_config import (
     is_sigquit_handler_on,
     is_unit_test_mode,
 )
-from dbnd._core.context.dbnd_project_env import (
-    ENV_DBND_HOME,
-    _env_banner,
-    init_databand_env,
-)
+from dbnd._core.context.dbnd_project_env import _env_banner, init_databand_env
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.plugin.dbnd_plugins_mng import (
     register_dbnd_plugins,
@@ -117,9 +113,11 @@ def dbnd_bootstrap():
     pm.hook.dbnd_setup_plugin()
 
     if is_sigquit_handler_on():
-        from dbnd._core.utils.basics.signal_utils import sigquit_handler
+        from dbnd._core.utils.basics.signal_utils import (
+            register_sigquit_stack_dump_handler,
+        )
 
-        signal.signal(signal.SIGQUIT, sigquit_handler)
+        register_sigquit_stack_dump_handler()
 
     # now we can run user code ( at driver/task)
     user_preinit = environ_config.get_user_preinit()
