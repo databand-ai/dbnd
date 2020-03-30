@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class DockerBuild(Task):
+    use_kaniko = parameter(default=False)[bool]
+
     docker_file = parameter(default=project_path("Dockerfile"))[str]
     image_name = parameter()[str]
     tag = parameter(default="latest")[str]
@@ -20,11 +22,22 @@ class DockerBuild(Task):
 
     working_dir = parameter(default=None)[str]
 
+    kaniko_command = parameter(default=None)[str]
+    context = parameter(default=None)[str]
+    destinations = parameter(default=None)[list]
+    build_args = parameter(default=None)[list]
+
     full_image_name = None
     computed_tag = None
     image_name_with_tag = None
 
     def run(self):
+        if self.use_kaniko:
+            return self.run_using_kaniko()
+        else:
+            return self.run_using_docker_build()
+
+    def run_using_docker_build(self):
         if self.tag:
             self.image_name_with_tag = "{}:{}".format(self.image_name, self.tag)
         else:
