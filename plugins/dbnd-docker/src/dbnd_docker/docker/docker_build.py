@@ -53,7 +53,9 @@ class DockerBuild(Task):
                 cmd = cmd + " --target " + self.target
 
             if self.build_args:
-                build_args_list = [" --build-arg {}".format(arg) for arg in self.build_args]
+                build_args_list = [
+                    " --build-arg {}".format(arg) for arg in self.build_args
+                ]
                 cmd = cmd + "".join(build_args_list)
 
             logger.info("Running docker build: %s", cmd)
@@ -117,4 +119,3 @@ class DockerBuild(Task):
             raise DatabandRuntimeError(
                 "failed building docker image {}".format("?"), nested_exceptions=[e]
             )
-
