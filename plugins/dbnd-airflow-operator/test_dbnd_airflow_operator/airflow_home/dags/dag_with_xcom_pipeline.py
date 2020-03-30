@@ -18,12 +18,14 @@ default_args = {
 
 
 @task
-def bool_to_string(p_bool: bool) -> str:
+def bool_to_string(p_bool):
+    # type: (bool) -> str
     return str(p_bool)
 
 
 @task
-def date_correction(p_date: datetime = None) -> datetime:
+def date_correction(p_date=None):
+    # type: (datetime) -> datetime
     if p_date.day % 2 == 0:
         return p_date
     else:
@@ -31,18 +33,21 @@ def date_correction(p_date: datetime = None) -> datetime:
 
 
 @task
-def convert_to_string(p_date: datetime = None) -> str:
+def convert_to_string(p_date=None):
+    # type: (datetime) -> str
     return p_date.isoformat()
 
 
 @task
-def parse_to_string(p_date: datetime = None) -> str:
+def parse_to_string(p_date=None):
+    # type: (datetime ) -> str
     split = p_date.isoformat().split("T")
     return "SEPARATOR".join(split)
 
 
 @pipeline
-def my_xcom_pipeline(p_date: datetime = None) -> Tuple[str, str]:
+def my_xcom_pipeline(p_date=None):
+    # type: ( datetime ) -> Tuple[str, str]
     corrected_date = date_correction(p_date=p_date)
     string_date = convert_to_string(p_date=corrected_date)
     parsed_string = my_second_pipeline(p_date=corrected_date)
@@ -50,7 +55,8 @@ def my_xcom_pipeline(p_date: datetime = None) -> Tuple[str, str]:
 
 
 @pipeline
-def my_second_pipeline(p_date: datetime = None) -> str:
+def my_second_pipeline(p_date=None):
+    # type: ( datetime ) -> str
     parsed_string = parse_to_string(p_date)
     return parsed_string
 
