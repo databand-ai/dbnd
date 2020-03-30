@@ -130,6 +130,13 @@ class TrackingInfoBuilder(object):
             task_dag = task.ctrl.task_dag
             for upstream in task_dag.upstream:
                 _add_rel(upstreams_map, task.task_id, upstream.task_id)
+
+        for task_run in task_runs:
+            for parent_tr_uid in task_run.task.task_meta.extra_parents_task_run_uids:
+                parent_child_map.add((parent_tr_uid, task_run.task_run_uid))
+                # we'll add them to upstreams map as well to see connections in graph
+                upstreams_map.add((parent_tr_uid, task_run.task_run_uid))
+
         return TaskRunsInfo(
             run_uid=self.run.run_uid,
             root_run_uid=self.run.root_run_info.root_run_uid,

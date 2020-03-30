@@ -8,6 +8,7 @@ from dbnd._core.decorator.dynamic_tasks import create_dynamic_task, run_dynamic_
 from dbnd._core.inplace_run.inplace_run_manager import get_dbnd_inplace_run_manager
 from dbnd._core.task.task import Task, TaskCallState
 from dbnd._core.utils.seven import import_errors
+from dbnd._core.utils.string_utils import task_name_for_sync
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 
 
@@ -101,7 +102,7 @@ def track_airflow_dag_run_operator_run(
     task = None
     try:
         # this part will run DAG and Operator Tasks
-        dbnd_run_start_airflow_dag_task(
+        dr = dbnd_run_start_airflow_dag_task(
             dag_id=airflow_task_context.dag_id,
             execution_date=airflow_task_context.execution_date,
             task_id=airflow_task_context.task_id,
@@ -109,6 +110,9 @@ def track_airflow_dag_run_operator_run(
 
         task = create_dynamic_task(task_cls, call_args, call_kwargs)
         task._dbnd_call_state = TaskCallState(should_store_result=True)
+        task.task_meta.extra_parents_task_run_uids.add(
+            get_task_run_uid(dr.run_uid, airflow_task_context.task_id)
+        )
 
         # this is the real run of the decorated function
         return run_dynamic_task(task)
@@ -149,7 +153,10 @@ def dbnd_run_start_airflow_dag_task(dag_id, execution_date, task_id):
 
     inplace_run_manager = get_dbnd_inplace_run_manager()
     dr = inplace_run_manager.start(
-        root_task_name="DAG", run_uid=run_uid, job_name=dag_id, airflow_context=True
+        root_task_name=task_name_for_sync("DAG"),
+        run_uid=run_uid,
+        job_name=dag_id,
+        airflow_context=True,
     )
 
     # now create "operator" task for current task_id,
@@ -159,9 +166,13 @@ def dbnd_run_start_airflow_dag_task(dag_id, execution_date, task_id):
         _conf__task_family = task_id
         execution_date = dr.execution_date
 
-    task = InplaceAirflowOperatorTask(task_version="now", task_name=task_id)
+    task = InplaceAirflowOperatorTask(
+        task_version="now", task_name=task_name_for_sync(task_id), task_is_system=True
+    )
     tr = dr.create_dynamic_task_run(
-        task, dr.local_engine, _uuid=get_task_run_uid(run_uid, task_id)
+        task,
+        dr.local_engine,
+        _uuid=get_task_run_uid(run_uid, task_name_for_sync(task_id)),
     )
     inplace_run_manager._start_taskrun(tr, airflow_context=True)
     return dr

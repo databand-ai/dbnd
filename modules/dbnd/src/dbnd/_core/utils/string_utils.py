@@ -143,3 +143,13 @@ def pluralize(s, n, plural_form=None):
 
 def strip_whitespace(string):
     return re.sub(r"\s+", " ", string.strip(), flags=re.UNICODE)
+
+
+# in sync flow we're generating temporary tasks, which disappear once syncer
+# brings actual data on DAG and operator tasks, so we need stable temp name for those
+def task_name_for_sync(task_name):
+    return "{}__sync".format(task_name)
+
+
+def is_task_name_for_sync(task_name):
+    return task_name.endswith("__sync")
