@@ -3,8 +3,10 @@ import six
 
 if six.PY3:
     import contextlib
+    from collections.abc import Callable
 else:
     import contextlib2 as contextlib
+    from collections import Callable
 
 
 def qualname_func(func):
@@ -24,4 +26,4 @@ except Exception:
     # we are python2
     import_errors = (ImportError,)
 
-__all__ = ["contextlib", "qualname_func", "import_errors"]
+__all__ = ["contextlib", "qualname_func", "import_errors", "Callable"]

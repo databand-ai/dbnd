@@ -271,6 +271,14 @@ class TestLocalTarget(FileTargetTestMixin):
         #         t.open(mode)
         print()
 
+    def test_path_with_file_pattern(self):
+        t = targets.target(self.path, "a")
+
+        t_star = target(os.path.dirname(t.path) + "/a/*")
+        assert not t_star.exists()
+        t.touch()
+        assert t_star.exists()
+
 
 class LocalTargetRelativeTest(TestLocalTarget):
     # We had a bug that caused relative file paths to fail, adding test for it
