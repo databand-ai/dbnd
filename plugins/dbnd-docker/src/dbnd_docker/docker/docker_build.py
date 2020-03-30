@@ -38,6 +38,13 @@ class DockerBuild(Task):
                 cmd = cmd + " --label " + self.label
             if self.target:
                 cmd = cmd + " --target " + self.target
+
+            if self.build_args:
+                build_args_list = [
+                    " --build-arg {}".format(arg) for arg in self.build_args
+                ]
+                cmd = cmd + "".join(build_args_list)
+
             logger.info("Running docker build: %s", cmd)
             cwd = self.working_dir or project_path()
             run_cmd(cmd, shell=True, cwd=cwd)
@@ -63,3 +70,39 @@ class DockerBuild(Task):
             logger.info("skipping docker push")
 
         return self.image_name_with_tag
+
+    def run_using_kaniko(self):
+        if self.tag:
+            self.image_name_with_tag = "{}:{}".format(self.image_name, self.tag)
+        else:
+            self.image_name_with_tag = self.full_image_name
+
+        command = "{} -c {} -f {}".format(
+            self.kaniko_command, self.context, self.docker_file
+        )
+
+        if not self.destinations:
+            command = command + " --no-push"
+        else:
+            destination_list = [
+                " -d {}".format(destination) for destination in self.destinations
+            ]
+            command = command + "".join(destination_list)
+
+        if self.build_args:
+            build_args_list = [" --build-arg {}".format(arg) for arg in self.build_args]
+            command = command + "".join(build_args_list)
+
+        if self.label:
+            command = command + " --label " + self.label
+
+        if self.target:
+            command = command + " --target " + self.target
+
+        try:
+            logger.info("Running build using Kaniko: %s", command)
+            run_cmd(command, shell=True, cwd=project_path())
+        except Exception as e:
+            raise DatabandRuntimeError(
+                "failed building docker image {}".format("?"), nested_exceptions=[e]
+            )
