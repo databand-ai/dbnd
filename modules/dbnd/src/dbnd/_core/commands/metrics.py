@@ -24,7 +24,7 @@ def log_dataframe(key, value, with_preview=True):
         value_type = get_value_meta_for_metric(key, value, with_preview=with_preview)
         if value_type:
             logger.info(
-                "log_dataframe '{}': shape='{}'".format(key, value_type.data_dimensions)
+                "Log DataFrame '{}': shape='{}'".format(key, value_type.data_dimensions)
             )
         return
 
@@ -36,7 +36,7 @@ def log_metric(key, value, source="user"):
 
     tracker = current() if has_current_task() else _get_ondemand_tracker()
     if not tracker:
-        logger.info("{} Metric '{}'='{}'".format(source.capitalize(), key, value))
+        logger.info("Log {} Metric '{}'='{}'".format(source.capitalize(), key, value))
         return
 
     return tracker.log_metric(key, value, source=source)
