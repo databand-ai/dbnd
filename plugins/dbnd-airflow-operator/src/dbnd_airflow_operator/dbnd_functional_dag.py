@@ -167,15 +167,13 @@ class DagFuncOperatorCtrl(object):
             op.retry_delay = task.task_retry_delay
         # set_af_operator_doc_md(task_run, op)
 
-        # in case we are inside pipeline, pipeline task will create more operators inside itself.
-        for t_child in task.task_meta.children:
-            # let's reconnect to all internal tasks
-            t_child = self.dbnd_context.task_instance_cache.get_task_by_id(t_child)
-            upstream_task = dag.task_dict.get(t_child.task_name)
-            if not upstream_task:
-                self.__log_task_not_found_error(op, t_child.task_name)
+        for upstream_task in task.task_dag.upstream:
+            upstream_operator = dag.task_dict.get(upstream_task.task_name)
+            if not upstream_operator:
+                self.__log_task_not_found_error(op, upstream_task.task_name)
                 continue
-            op.set_upstream(upstream_task)
+            if not upstream_operator.downstream_task_ids:
+                op.set_upstream(upstream_operator)
 
         for task_id in upstream_task_ids:
             upstream_task = dag.task_dict.get(task_id)
