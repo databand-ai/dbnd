@@ -8,7 +8,7 @@ from dbnd._core.decorator.dynamic_tasks import create_dynamic_task, run_dynamic_
 from dbnd._core.inplace_run.inplace_run_manager import get_dbnd_inplace_run_manager
 from dbnd._core.task.task import Task, TaskCallState
 from dbnd._core.utils.seven import import_errors
-from dbnd._core.utils.string_utils import task_name_for_sync
+from dbnd._core.utils.string_utils import task_name_for_runtime
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 
 
@@ -153,7 +153,7 @@ def dbnd_run_start_airflow_dag_task(dag_id, execution_date, task_id):
 
     inplace_run_manager = get_dbnd_inplace_run_manager()
     dr = inplace_run_manager.start(
-        root_task_name=task_name_for_sync("DAG"),
+        root_task_name=task_name_for_runtime("DAG"),
         run_uid=run_uid,
         job_name=dag_id,
         airflow_context=True,
@@ -167,12 +167,14 @@ def dbnd_run_start_airflow_dag_task(dag_id, execution_date, task_id):
         execution_date = dr.execution_date
 
     task = InplaceAirflowOperatorTask(
-        task_version="now", task_name=task_name_for_sync(task_id), task_is_system=True
+        task_version="now",
+        task_name=task_name_for_runtime(task_id),
+        task_is_system=True,
     )
     tr = dr.create_dynamic_task_run(
         task,
         dr.local_engine,
-        _uuid=get_task_run_uid(run_uid, task_name_for_sync(task_id)),
+        _uuid=get_task_run_uid(run_uid, task_name_for_runtime(task_id)),
     )
     inplace_run_manager._start_taskrun(tr, airflow_context=True)
     return dr
