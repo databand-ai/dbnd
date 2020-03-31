@@ -5,7 +5,6 @@ from airflow import DAG
 from airflow.utils.dates import days_ago
 
 from dbnd import pipeline, task
-from dbnd_airflow_operator.jinja_arg import JinjaArg
 
 
 default_args = {
@@ -62,4 +61,4 @@ def my_second_pipeline(p_date=None):
 
 
 with DAG(dag_id=f"my_xcom_dag", default_args=default_args) as dag:
-    parsed, original = my_xcom_pipeline(p_date=JinjaArg("{{ ts }}"))
+    my_xcom_pipeline(p_date="{{ ts }}")

@@ -1,4 +1,5 @@
 import logging
+import re
 
 import six
 
@@ -18,7 +19,6 @@ from dbnd_airflow_operator.airflow_utils import (
     safe_get_context_manager_dag,
 )
 from dbnd_airflow_operator.dbnd_functional_operator import DbndFunctionalOperator
-from dbnd_airflow_operator.jinja_arg import JinjaArg
 from dbnd_airflow_operator.xcom_target import XComResults, XComStr, build_xcom_str
 from targets import FileTarget, target
 
@@ -99,7 +99,7 @@ class DagFuncOperatorCtrl(object):
             if isinstance(value, XComStr):
                 upstream_task_ids.append(value.task_id)
                 return target("xcom://%s" % value)
-            if isinstance(value, JinjaArg):
+            if self._is_jinja_arg(value):
                 return target("jinja://%s" % value)
             return value
 
@@ -119,10 +119,23 @@ class DagFuncOperatorCtrl(object):
         user_inputs_only = task._params.get_param_values(
             user_only=True, input_only=True
         )
+        # take only outputs that are coming from ctror ( based on ParameterValue in task.task_meta
+        user_ctor_outputs_only = []
+        for p_val in task.task_meta.task_params:
+            if (
+                p_val.parameter.is_output()
+                and p_val.source
+                and p_val.source.endswith("[ctor]")
+            ):
+                user_ctor_outputs_only.append((p_val.parameter, p_val.value))
+
+        user_ctor_outputs_only_names = {
+            p_val_def.name for p_val_def, p_val in user_ctor_outputs_only
+        }
         dbnd_xcom_inputs = []
         dbnd_task_params_fields = []
         dbnd_task_params = {}
-        for p_def, p_value in user_inputs_only:
+        for p_def, p_value in user_inputs_only + user_ctor_outputs_only:
             p_name = p_def.name
 
             dbnd_task_params_fields.append(p_name)
@@ -145,6 +158,7 @@ class DagFuncOperatorCtrl(object):
                 p.name
                 for p in task._params.get_params(output_only=True, user_only=True)
             ]
+        dbnd_xcom_outputs = [n for n in dbnd_xcom_outputs]
 
         op_kwargs = task.task_airflow_op_kwargs or {}
 
@@ -154,6 +168,7 @@ class DagFuncOperatorCtrl(object):
             dbnd_task_id=task.task_id,
             dbnd_xcom_inputs=dbnd_xcom_inputs,
             dbnd_xcom_outputs=dbnd_xcom_outputs,
+            dbnd_overridden_output_params=user_ctor_outputs_only_names,
             dbnd_task_params_fields=dbnd_task_params_fields,
             params=dbnd_task_params,
             **op_kwargs
@@ -187,7 +202,10 @@ class DagFuncOperatorCtrl(object):
             setattr(op, k, v)
 
         results = [(n, build_xcom_str(op=op, name=n)) for n in dbnd_xcom_outputs]
+
         for n, xcom_arg in results:
+            if n in user_ctor_outputs_only_names:
+                continue
             setattr(op, n, xcom_arg)
 
         if logger.isEnabledFor(logging.DEBUG):
@@ -204,6 +222,12 @@ class DagFuncOperatorCtrl(object):
             result = results[0]
             return result[1]  # return result XComStr
         return XComResults(result=build_xcom_str(op), sub_results=results)
+
+    def _is_jinja_arg(self, p_value):
+        jinja_regex = re.compile("{\s*{.*}\s*}")
+        # Use regex match and not find to prevent false-positives
+        # Finds two opening braces and two closing braces, ignoring whitespaces between them
+        return isinstance(p_value, str) and jinja_regex.match(p_value)
 
     def get_and_process_dbnd_dag_config(self):
         dag = self.dag
