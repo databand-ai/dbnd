@@ -217,6 +217,8 @@ class DatabandRun(SingletonContext):
 
         self.sends_heartbeat = send_heartbeat
 
+        self.dynamic_af_tasks_count = dict()
+
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
         return build_task_from_config(name, EngineConfig)
@@ -475,6 +477,17 @@ class DatabandRun(SingletonContext):
         return self._template_vars
 
     def create_dynamic_task_run(self, task, task_engine, _uuid=None, task_af_id=None):
+        if task_af_id is None:
+            task_name = task.friendly_task_name
+            if task_name in self.dynamic_af_tasks_count:
+                self.dynamic_af_tasks_count[task_name] += 1
+                task_af_id = "{}_{}".format(
+                    task_name, self.dynamic_af_tasks_count[task_name]
+                )
+            else:
+                self.dynamic_af_tasks_count[task_name] = 1
+                task_af_id = task_name
+
         tr = TaskRun(
             task=task,
             run=self,
