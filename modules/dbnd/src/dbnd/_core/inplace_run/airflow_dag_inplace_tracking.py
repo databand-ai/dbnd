@@ -115,12 +115,7 @@ class AirflowOperatorRuntimeTask(Task):
     execution_date = parameter[datetime.datetime]
 
 
-def anonymize_task(task):
-    # we generate specific cmd values for airflow tasks in sync time
-    task.task_meta.task_command_line = ""
-    task.task_meta.task_functional_call = ""
-
-
+# there can be only one tracking manager
 _CURRENT_AIRFLOW_TRACKING_MANAGER = None
 
 
@@ -198,6 +193,8 @@ class AirflowTrackingManager(object):
             af_runtime_op.task_meta.extra_parents_task_run_uids.add(
                 self.af_operator_sync__task_run_uid
             )
+            af_runtime_op.task_meta.task_command_line = ""
+            af_runtime_op.task_meta.task_functional_call = ""
             # AIRFLOW DAG RUNTIME
             self.af_dag_runtime__task = af_runtime_dag = AirflowDagRuntimeTask(
                 task_name=task_name_for_runtime("DAG"),
@@ -209,6 +206,8 @@ class AirflowTrackingManager(object):
                 self.run_uid, af_runtime_dag.task_name
             )
             af_runtime_dag.task_meta.add_child(af_runtime_op.task_id)
+            af_runtime_dag.task_meta.task_command_line = ""
+            af_runtime_dag.task_meta.task_functional_call = ""
             # this will create databand run with driver and root tasks.
             # we need the "root" task to be the same between different airflow tasks invocations
             # since in dbnd we must have single root task, so we create "dummy" task with dag_id name
