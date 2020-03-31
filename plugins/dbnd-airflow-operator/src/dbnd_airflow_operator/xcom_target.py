@@ -89,3 +89,4 @@ class XComAtomicFile(AtomicLocalFile):
 
 
 register_file_system("xcom", AirflowXComFileSystem)
+register_file_system("jinja", AirflowXComFileSystem)

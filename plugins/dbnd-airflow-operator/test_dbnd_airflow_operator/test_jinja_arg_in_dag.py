@@ -1,6 +1,5 @@
 from airflow import DAG
 
-from dbnd_airflow_operator.jinja_arg import JinjaArg
 from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
     default_args_test,
 )
@@ -13,17 +12,17 @@ from test_dbnd_airflow_operator.utils import read_xcom_result_value, run_and_get
 
 
 with DAG(dag_id="simple_jinja_dag", default_args=default_args_test) as simple_jinja_dag:
-    my_second_pipeline(p_date=JinjaArg("{{ ts }}"))
+    my_second_pipeline(p_date="{{ ts }}")
 
 with DAG(
     dag_id="nested_pipeline_dag", default_args=default_args_test
 ) as nested_pipeline_dag:
-    my_xcom_pipeline(p_date=JinjaArg("{{ ts }}"))
+    my_xcom_pipeline(p_date="{{ ts }}")
 
 with DAG(
     dag_id="jinja_arg_to_task", default_args=default_args_test
 ) as jinja_to_task_dag:
-    bool_to_string(p_bool=JinjaArg("{{ test_mode }}"))
+    bool_to_string(p_bool="{{ test_mode }}")
 
 
 class TestFunctionalDagRun(object):

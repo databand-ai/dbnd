@@ -38,6 +38,7 @@ class DbndFunctionalOperator(BaseOperator):
         dbnd_task_id,
         dbnd_xcom_inputs,
         dbnd_xcom_outputs,
+        dbnd_overridden_output_params,
         dbnd_task_params_fields,
         **kwargs
     ):
@@ -48,6 +49,7 @@ class DbndFunctionalOperator(BaseOperator):
         self.dbnd_task_params_fields = dbnd_task_params_fields
         self.dbnd_xcom_inputs = dbnd_xcom_inputs
         self.dbnd_xcom_outputs = dbnd_xcom_outputs
+        self.dbnd_overridden_output_params = dbnd_overridden_output_params
 
     @property
     def task_type(self):
@@ -94,7 +96,10 @@ class DbndFunctionalOperator(BaseOperator):
             dbnd_task = dc.task_instance_cache.get_task_by_id(self.dbnd_task_id)
             # rebuild task with new values coming from xcom->operator
             with dbnd_task.ctrl.task_context(phase=TaskContextPhase.BUILD):
-                dbnd_task = dbnd_task.clone(**new_kwargs)
+                dbnd_task = dbnd_task.clone(
+                    output_params_to_clone=self.dbnd_overridden_output_params,
+                    **new_kwargs
+                )
 
             logger.debug("Creating inplace databand run for driver dump")
             dag_task = Task(task_name=dag.dag_id, task_target_date=execution_date)
@@ -129,11 +134,11 @@ class DbndFunctionalOperator(BaseOperator):
                     airflow_context=context, handle_sigterm=False
                 )
 
-        logger.debug("Finished to run %s", self)
-        result = {
-            output_name: convert_to_safe_types(getattr(dbnd_task, output_name))
-            for output_name in self.dbnd_xcom_outputs
-        }
+            logger.debug("Finished to run %s", self)
+            result = {
+                output_name: convert_to_safe_types(getattr(dbnd_task, output_name))
+                for output_name in self.dbnd_xcom_outputs
+            }
         return result
 
     def on_kill(self):

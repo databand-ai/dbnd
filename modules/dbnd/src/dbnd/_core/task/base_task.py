@@ -183,7 +183,7 @@ class _BaseTask(object):
         )
         return c.auto_load_save_params()
 
-    def clone(self, cls=None, **kwargs):
+    def clone(self, cls=None, output_params_to_clone=None, **kwargs):
         """
         Creates a new instance from an existing instance where some of the args have changed.
 
@@ -198,10 +198,10 @@ class _BaseTask(object):
         """
         if cls is None:
             cls = self.__class__
-
+        output_params_to_clone = output_params_to_clone or []
         new_k = {}
         for param_name, param_class in six.iteritems(cls.task_definition.task_params):
-            if param_class.is_output():
+            if param_class.is_output() and param_name not in output_params_to_clone:
                 continue
             if param_name in kwargs:
                 new_k[param_name] = kwargs[param_name]
