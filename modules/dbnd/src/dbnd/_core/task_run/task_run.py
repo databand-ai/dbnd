@@ -1,7 +1,7 @@
 import logging
 import typing
 
-from dbnd._core.constants import TaskRunState
+from dbnd._core.constants import TaskRunState, TaskRunUidMode
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
@@ -11,7 +11,7 @@ from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
 from dbnd._core.tracking.tracking_store_console import ConsoleStore
 from dbnd._core.utils.string_utils import clean_job_name, clean_job_name_dns1123
 from dbnd._core.utils.timezone import utcnow
-from dbnd._core.utils.uid_utils import get_uuid
+from dbnd._core.utils.uid_utils import get_task_run_uid, get_uuid
 from targets import target
 
 
@@ -30,23 +30,28 @@ class TaskRun(object):
         run,
         task_af_id=None,
         try_number=1,
-        _uuid=None,
         is_dynamic=None,
         task_engine=None,
     ):
-        # type: (Task, DatabandRun, str, int, str, bool, EngineConfig)-> None
+        # type: (Task, DatabandRun, str, int, bool, EngineConfig)-> None
         # actually this is used as Task uid
-        self.task_run_uid = _uuid or get_uuid()
+
         self.task = task  # type: Task
         self.run = run  # type: DatabandRun
         self.task_engine = task_engine
         self.try_number = try_number
         self.is_dynamic = is_dynamic if is_dynamic is not None else task.task_is_dynamic
         self.is_system = task.task_is_system
-
         self.task_af_id = task_af_id or self.task.task_id
 
-        # used by all kind of submission controllers
+        if task.ctrl.force_task_run_uid:
+            self.task_run_uid = task.ctrl.force_task_run_uid
+            if self.task_run_uid == TaskRunUidMode.task_af_id_consistent:
+                self.task_run_uid = get_task_run_uid(run.run_uid, self.task_af_id)
+        else:
+            self.task_run_uid = get_uuid()
+
+            # used by all kind of submission controllers
         # TODO: should job_name be based on task_af_id or task_id ?
         self.job_name = clean_job_name(self.task_af_id).lower()
         self.job_id = self.job_name + "_" + str(self.task_run_uid)[:8]

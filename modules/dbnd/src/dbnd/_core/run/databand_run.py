@@ -476,7 +476,7 @@ class DatabandRun(SingletonContext):
     def get_template_vars(self):
         return self._template_vars
 
-    def create_dynamic_task_run(self, task, task_engine, _uuid=None, task_af_id=None):
+    def create_dynamic_task_run(self, task, task_engine, task_af_id=None):
         if task_af_id is None:
             task_name = task.friendly_task_name
             if task_name in self.dynamic_af_tasks_count:
@@ -493,7 +493,6 @@ class DatabandRun(SingletonContext):
             run=self,
             is_dynamic=True,
             task_engine=task_engine,
-            _uuid=_uuid,
             task_af_id=task_af_id,
         )
         self.add_task_runs([tr])
