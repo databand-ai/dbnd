@@ -54,38 +54,36 @@ def log_artifact(key, artifact):
 
 
 def _get_ondemand_tracker():
-    from dbnd._core.task_run.task_run_tracker import TaskRunTracker
+    try:
+        from dbnd._core.task_run.task_run_tracker import TaskRunTracker
+        from dbnd._core.configuration.environ_config import DBND_TASK_RUN_ATTEMPT_UID
 
-    task_run = _get_ondemand_tracking_task_run()
-    if task_run:
-        trt = TaskRunTracker(task_run, _get_ondemand_tracking_store())
-        return trt
+        tra_uid = os.environ.get(DBND_TASK_RUN_ATTEMPT_UID)
+        if tra_uid:
+            task_run = TaskRunMock(tra_uid)
+            trt = TaskRunTracker(task_run, _get_ondemand_tracking_store())
+            return trt
 
-
-def _get_ondemand_tracking_task_run():
-    from dbnd._core.configuration.environ_config import DBND_TASK_RUN_ATTEMPT_UID
-
-    tra_uid = os.environ.get(DBND_TASK_RUN_ATTEMPT_UID)
-    if not tra_uid:
-        # try get from airflow
+        # let's check if we are in airflow env
         from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
             try_get_airflow_context,
         )
-        from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_attempt_uid
 
         airflow_context = try_get_airflow_context()
         if airflow_context:
-            tra_uid = get_task_run_attempt_uid(
-                run_uid=get_job_run_uid(
-                    dag_id=airflow_context.dag_id,
-                    execution_date=airflow_context.execution_date,
-                ),
-                task_id=airflow_context.task_id,
-                try_number=0,
+            from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
+                get_airflow_tracking_manager,
             )
 
-    if tra_uid:
-        return TaskRunMock(tra_uid)
+            atm = get_airflow_tracking_manager(airflow_context)
+            if atm:
+                return atm.airflow_operator__task_run.tracker
+
+    except Exception:
+        logger.warning(
+            "Failed during dbnd context-metrics-enter, ignoring", exc_info=True
+        )
+        return None
 
 
 def _get_ondemand_tracking_store():

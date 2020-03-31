@@ -9,10 +9,7 @@ import attr
 from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
-from dbnd._core.decorator.dynamic_tasks import (
-    create_dynamic_task,
-    run_dynamic_task_safe,
-)
+from dbnd._core.decorator.dynamic_tasks import create_and_run_dynamic_task_safe
 from dbnd._core.decorator.func_task_call import FuncCall
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.run.databand_run import new_databand_run
@@ -128,10 +125,18 @@ _CURRENT_AIRFLOW_TRACKING_MANAGER = None
 
 
 def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
+    atm = get_airflow_tracking_manager(airflow_task_context)
+    if not atm:
+        # we failed to get tracker
+        return func_call.invoke()
+    return atm.run_airflow_dynamic_task(func_call)
+
+
+def get_airflow_tracking_manager(airflow_task_context):
     global _CURRENT_AIRFLOW_TRACKING_MANAGER
     if _CURRENT_AIRFLOW_TRACKING_MANAGER is False:
         # we already failed to create ourself once
-        return func_call.invoke()
+        return None
 
     try:
         # this part will run DAG and Operator Tasks
@@ -140,12 +145,11 @@ def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
             _CURRENT_AIRFLOW_TRACKING_MANAGER = AirflowTrackingManager(
                 af_context=airflow_task_context
             )
+        return _CURRENT_AIRFLOW_TRACKING_MANAGER
     except Exception:
         _CURRENT_AIRFLOW_TRACKING_MANAGER = False
         logger.warning("Error during dbnd pre-init, ignoring", exc_info=True)
-        return func_call.invoke()
-
-    return _CURRENT_AIRFLOW_TRACKING_MANAGER.run_airflow_dynamic_task(func_call)
+        return None
 
 
 class AirflowTrackingManager(object):
@@ -190,7 +194,10 @@ class AirflowTrackingManager(object):
             af_runtime_op.ctrl.force_task_run_uid = get_task_run_uid(
                 self.run_uid, af_runtime_op.task_name
             )
-
+            # we add __runtime to the real operator ( on monitor sync it will become visible)
+            af_runtime_op.task_meta.extra_parents_task_run_uids.add(
+                self.af_operator_sync__task_run_uid
+            )
             # AIRFLOW DAG RUNTIME
             self.af_dag_runtime__task = af_runtime_dag = AirflowDagRuntimeTask(
                 task_name=task_name_for_runtime("DAG"),
@@ -201,6 +208,7 @@ class AirflowTrackingManager(object):
             af_runtime_dag.ctrl.force_task_run_uid = get_task_run_uid(
                 self.run_uid, af_runtime_dag.task_name
             )
+            af_runtime_dag.task_meta.add_child(af_runtime_op.task_id)
             # this will create databand run with driver and root tasks.
             # we need the "root" task to be the same between different airflow tasks invocations
             # since in dbnd we must have single root task, so we create "dummy" task with dag_id name
@@ -226,23 +234,12 @@ class AirflowTrackingManager(object):
             with self.dr.run_context():
                 with self.airflow_operator__task_run.runner.task_run_execution_context():
                     context_enter_ok = True
-                    try:
-                        task = create_dynamic_task(func_call)
-                        task.task_meta.extra_parents_task_run_uids.add(
-                            self.af_operator_sync__task_run_uid
-                        )
-                    except Exception:
-                        logger.warning(
-                            "Failed during dbnd task-create, ignoring", exc_info=True
-                        )
-                        return func_call.invoke()
-
-                    return run_dynamic_task_safe(task=task, func_call=func_call)
+                    return create_and_run_dynamic_task_safe(func_call)
         except Exception:
-            if not context_enter_ok:
-                logger.warning(
-                    "Failed during dbnd context-enter, ignoring", exc_info=True
-                )
-                global _CURRENT_AIRFLOW_TRACKING_MANAGER
-                _CURRENT_AIRFLOW_TRACKING_MANAGER = False
-                return func_call.invoke()
+            if context_enter_ok:
+                raise
+
+            logger.warning("Failed during dbnd context-enter, ignoring", exc_info=True)
+            global _CURRENT_AIRFLOW_TRACKING_MANAGER
+            _CURRENT_AIRFLOW_TRACKING_MANAGER = False
+            return func_call.invoke()

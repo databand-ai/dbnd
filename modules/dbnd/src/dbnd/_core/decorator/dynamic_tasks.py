@@ -124,3 +124,13 @@ def run_dynamic_task_safe(task, func_call):
     finally:
         # we'd better clean _invoke_result to avoid memory leaks
         task._dbnd_call_state = None
+
+
+def create_and_run_dynamic_task_safe(func_call):
+    try:
+        task = create_dynamic_task(func_call)
+    except Exception:
+        logger.warning("Failed during dbnd task-create, ignoring", exc_info=True)
+        return func_call.invoke()
+
+    return run_dynamic_task_safe(task=task, func_call=func_call)

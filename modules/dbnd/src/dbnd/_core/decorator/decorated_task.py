@@ -3,6 +3,7 @@ import logging
 from dbnd._core.configuration.environ_config import is_databand_enabled
 from dbnd._core.constants import TaskType
 from dbnd._core.decorator.dynamic_tasks import (
+    create_and_run_dynamic_task_safe,
     create_dynamic_task,
     run_dynamic_task_safe,
 )
@@ -88,7 +89,8 @@ class _DecoratedTask(Task):
             if t.task_definition.single_result_output:
                 return t.result
 
-            # we have multiple outputs ( result, another output.. ) -> just return task object
+            # we have multiple outputs ( result, another output.. )
+            # -> just return task object
             return t
 
         if phase is TaskContextPhase.RUN:
@@ -102,16 +104,7 @@ class _DecoratedTask(Task):
                 # and the current task supports inline calls
                 # that's extra mechanism in addition to __force_invoke
                 # on pickle/unpickle isinstance fails to run.
-
-                try:
-                    task = create_dynamic_task(func_call)
-                except Exception:
-                    logger.warning(
-                        "Failed during dbnd task-create, ignoring", exc_info=True
-                    )
-                    return func_call.invoke()
-
-                return run_dynamic_task_safe(task=task, func_call=func_call)
+                return create_and_run_dynamic_task_safe(func_call=func_call)
 
         # we can not call it in"databand" way, fallback to normal execution
         return func_call.invoke()
