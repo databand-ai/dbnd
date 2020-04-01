@@ -133,3 +133,10 @@ def failed_to_import_pyspark(task, ex):
         nested_exceptions=[ex],
         help_msg="Check your environment for pyspark installation.",
     )
+
+
+def failed_to_access_dbnd_home(dbnd_home, ex):
+    return DatabandBuildError(
+        f"Failed to access DBND_HOME '{dbnd_home}'. Check that folder exists and a process has sufficient permissions "
+        f"to write there. Exception: {ex}"
+    )

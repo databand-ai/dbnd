@@ -78,12 +78,17 @@ class EnvConfig(Config):
 
     def _initialize(self):
         super(EnvConfig, self)._initialize()
-        self.dbnd_root = self.dbnd_root or self.root.folder("dbnd")
+        try:
+            self.dbnd_root = self.dbnd_root or self.root.folder("dbnd")
 
-        if not self.dbnd_local_root:
-            if not self.dbnd_root.is_local():
-                raise friendly_error.config.dbnd_root_local_not_defined(self.name)
-            self.dbnd_local_root = self.dbnd_root
+            if not self.dbnd_local_root:
+                if not self.dbnd_root.is_local():
+                    raise friendly_error.config.dbnd_root_local_not_defined(self.name)
+                self.dbnd_local_root = self.dbnd_root
+        except Exception as e:
+            raise friendly_error.task_build.failed_to_access_dbnd_home(
+                self.dbnd_root, e
+            )
 
         if not self.dbnd_data_sync_root:
             self.dbnd_data_sync_root = self.dbnd_root.folder("sync")
