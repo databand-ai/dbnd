@@ -207,10 +207,6 @@ class SystemMetrics(enum.Enum):
         ]
 
 
-class TaskRunUidMode(enum.Enum):
-    task_af_id_consistent = "task_af_id_consistent"
-
-
 class UpdateSource(enum.Enum):
     dbnd = "dbnd"
     airflow_monitor = "airflow_monitor"

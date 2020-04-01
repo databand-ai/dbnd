@@ -1,7 +1,7 @@
 import logging
 import typing
 
-from dbnd._core.constants import TaskRunState, TaskRunUidMode
+from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
@@ -11,7 +11,7 @@ from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
 from dbnd._core.tracking.tracking_store_console import ConsoleStore
 from dbnd._core.utils.string_utils import clean_job_name, clean_job_name_dns1123
 from dbnd._core.utils.timezone import utcnow
-from dbnd._core.utils.uid_utils import get_task_run_uid, get_uuid
+from dbnd._core.utils.uid_utils import get_uuid
 from targets import target
 
 
@@ -45,14 +45,15 @@ class TaskRun(object):
         self.task_af_id = task_af_id or self.task.task_id
 
         if task.ctrl.force_task_run_uid:
-            self.task_run_uid = task.ctrl.force_task_run_uid
-            if self.task_run_uid == TaskRunUidMode.task_af_id_consistent:
-                self.task_run_uid = get_task_run_uid(run.run_uid, self.task_af_id)
+            self.task_run_uid = tr_uid = task.ctrl.force_task_run_uid
+            if isinstance(tr_uid, TaskRunUidGen):
+                self.task_run_uid = tr_uid.generate_task_run_uid(
+                    run=run, task=task, task_af_id=self.task_af_id
+                )
         else:
             self.task_run_uid = get_uuid()
 
-            # used by all kind of submission controllers
-        # TODO: should job_name be based on task_af_id or task_id ?
+        # used by all kind of submission controllers
         self.job_name = clean_job_name(self.task_af_id).lower()
         self.job_id = self.job_name + "_" + str(self.task_run_uid)[:8]
 
@@ -222,3 +223,8 @@ class TaskRun(object):
 
     def __repr__(self):
         return "TaskRun(%s, %s)" % (self.task.task_name, self.task_run_state)
+
+
+class TaskRunUidGen(object):
+    def generate_task_run_uid(self, run, task, task_af_id):
+        return get_uuid()

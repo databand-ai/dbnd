@@ -1,16 +1,14 @@
-import atexit
 import datetime
 import logging
 import os
 
-from typing import Any
+from typing import Any, Optional
 
 import attr
 
 from cachetools import cached
 from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.constants import TaskRunUidMode
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.decorator.dynamic_tasks import (
     create_dynamic_task,
@@ -26,6 +24,7 @@ from dbnd._core.task_build.task_context import (
     current_task,
     has_current_task,
 )
+from dbnd._core.task_run.task_run import TaskRunUidGen
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.string_utils import task_name_for_runtime
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
@@ -135,7 +134,7 @@ class AirflowOperatorRuntimeTask(Task):
 
 
 # there can be only one tracking manager
-_CURRENT_AIRFLOW_TRACKING_MANAGER = None
+_CURRENT_AIRFLOW_TRACKING_MANAGER = None  # type: Optional[AirflowTrackingManager]
 
 
 def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
@@ -208,7 +207,7 @@ class AirflowTrackingManager(object):
                 dag_id=af_context.dag_id,
                 execution_date=af_context.execution_date,
             )
-            af_runtime_op.ctrl.force_task_run_uid = TaskRunUidMode.task_af_id_consistent
+            af_runtime_op.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
             # we add __runtime to the real operator ( on monitor sync it will become visible)
             af_runtime_op.task_meta.extra_parents_task_run_uids.add(
                 self.af_operator_sync__task_run_uid
@@ -222,9 +221,7 @@ class AirflowTrackingManager(object):
                 execution_date=af_context.execution_date,
             )
             af_runtime_dag.set_upstream(af_runtime_op)
-            af_runtime_dag.ctrl.force_task_run_uid = (
-                TaskRunUidMode.task_af_id_consistent
-            )
+            af_runtime_dag.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
             af_runtime_dag.task_meta.add_child(af_runtime_op.task_id)
             af_runtime_dag.task_meta.task_command_line = ""
             af_runtime_dag.task_meta.task_functional_call = ""
@@ -298,7 +295,7 @@ class AirflowTrackingManager(object):
 
         # we want all tasks to be "consistent" between all retries
         # so we will see airflow retries as same task_run
-        task.ctrl.force_task_run_uid = TaskRunUidMode.task_af_id_consistent
+        task.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId_Runtime()
         return run_dynamic_task_safe(task=task, func_call=func_call)
 
 
@@ -310,3 +307,16 @@ def _handle_tracking_error(func_call, msg):
     global _CURRENT_AIRFLOW_TRACKING_MANAGER
     _CURRENT_AIRFLOW_TRACKING_MANAGER = False
     return func_call.invoke()
+
+
+class TaskRunUidGen_TaskAfId(TaskRunUidGen):
+    def generate_task_run_uid(self, run, task, task_af_id):
+        return get_task_run_uid(run.run_uid, task_af_id)
+
+
+class TaskRunUidGen_TaskAfId_Runtime(TaskRunUidGen):
+    def generate_task_run_uid(self, run, task, task_af_id):
+        runtime_af = (
+            _CURRENT_AIRFLOW_TRACKING_MANAGER.airflow_operator__task_run.task_af_id
+        )
+        return get_task_run_uid(run.run_uid, "%s_%s" % (runtime_af, task_af_id))
