@@ -134,6 +134,7 @@ class DagFuncOperatorCtrl(object):
         }
         dbnd_xcom_inputs = []
         dbnd_task_params_fields = []
+        non_templated_fields = []
         dbnd_task_params = {}
         for p_def, p_value in user_inputs_only + user_ctor_outputs_only:
             p_name = p_def.name
@@ -144,6 +145,8 @@ class DagFuncOperatorCtrl(object):
                 p_value = p_value.path.replace("xcom://", "")
             elif isinstance(p_value, FileTarget) and p_value.fs_name == "jinja":
                 p_value = p_value.path.replace("jinja://", "")
+                if p_def.disable_jinja_templating:
+                    non_templated_fields.append(p_name)
             dbnd_task_params[p_name] = convert_to_safe_types(p_value)
 
         single_value_result = False
@@ -174,7 +177,9 @@ class DagFuncOperatorCtrl(object):
             **op_kwargs
         )
         # doesn't work in airflow 1_10_0
-        op.template_fields = dbnd_task_params_fields
+        op.template_fields = [
+            f for f in dbnd_task_params_fields if f not in non_templated_fields
+        ]
         task.ctrl.airflow_op = op
 
         if task.task_retries is not None:
