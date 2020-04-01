@@ -1,0 +1,52 @@
+import os
+
+
+def _filter_vars(key, bypass_dbnd, bypass_airflow, bypass_rest):
+    if key.startswith("AIRFLOW_"):
+        return True if bypass_airflow else False
+    if key.startswith("DBND_"):
+        return True if bypass_dbnd else False
+    return True if bypass_rest else False
+
+
+def dbnd_tracking_env(
+    new_vars, bypass_dbnd=True, bypass_airflow=True, bypass_rest=False
+):
+
+    environment = {
+        key: os.environ[key]
+        for key in os.environ.keys()
+        if _filter_vars(key, bypass_dbnd, bypass_airflow, bypass_rest)
+    }
+    environment.update(new_vars)
+    return environment
+
+
+# SparkSubmit operator handles existing environment, add additional databand variables only
+def dbnd_wrap_spark_environment(environment=None):
+    if not environment:
+        environment = dict()
+    environment.update({"DBND__ENABLE__SPARK_CONTEXT_ENV": "1"})
+    return environment
+
+
+def get_dbnd_tracking_spark_conf(
+    dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ds}}"
+):
+    confs = [
+        "--conf",
+        "spark.env.AIRFLOW_CTX_DAG_ID=%s" % dag_id,
+        "--conf",
+        "spark.env.AIRFLOW_CTX_EXECUTION_DATE=%s" % execution_date,
+        "--conf",
+        "spark.env.AIRFLOW_CTX_TASK_ID=%s" % task_id,
+    ]
+
+    return confs
+
+
+def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
+    if not dbnd_context:
+        dbnd_context = get_dbnd_tracking_spark_conf()
+    index = command_as_list.index("spark-submit")
+    return command_as_list[0 : index + 1] + dbnd_context + command_as_list[index + 1 :]
