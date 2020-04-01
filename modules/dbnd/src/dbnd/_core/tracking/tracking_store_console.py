@@ -47,14 +47,7 @@ class ConsoleStore(tracking_store.TrackingStore):
             )
         )
 
-    def set_task_run_state(
-        self,
-        task_run,
-        state,
-        error=None,
-        timestamp=None,
-        do_not_update_start_date=False,
-    ):
+    def set_task_run_state(self, task_run, state, error=None, timestamp=None):
         super(ConsoleStore, self).set_task_run_state(task_run=task_run, state=state)
         task = task_run.task
 

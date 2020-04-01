@@ -86,14 +86,7 @@ class TrackingStoreApi(TrackingStore):
             task_outputs_signature=task_run.task.task_meta.task_outputs_signature,
         )
 
-    def set_task_run_state(
-        self,
-        task_run,
-        state,
-        error=None,
-        timestamp=None,
-        do_not_update_start_date=False,
-    ):
+    def set_task_run_state(self, task_run, state, error=None, timestamp=None):
         # type: (TaskRun, TaskRunState, TaskRunError, datetime.datetime) -> None
         return self._m(
             self.channel.update_task_run_attempts,
@@ -105,7 +98,6 @@ class TrackingStoreApi(TrackingStore):
                     state=state,
                     error=error.as_error_info() if error else None,
                     timestamp=timestamp or utcnow(),
-                    do_not_update_start_date=do_not_update_start_date,
                 )
             ],
         )

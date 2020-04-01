@@ -116,7 +116,7 @@ class TaskRunAttemptUpdateArgs(object):
     error = attr.ib(default=None)  # type: Optional[ErrorInfo]
     attempt_number = attr.ib(default=None)  # type: int
     source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
-    do_not_update_start_date = attr.ib(default=False)  # type: bool
+    start_date = attr.ib(default=None)  # type: datetime.datetime
 
 
 class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
@@ -127,7 +127,7 @@ class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
     error = fields.Nested(ErrorInfoSchema, allow_none=True)
     attempt_number = fields.Number(allow_none=True)
     source = fields.Str(allow_none=True)
-    do_not_update_start_date = fields.Boolean(allow_none=True)
+    start_date = fields.DateTime(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):

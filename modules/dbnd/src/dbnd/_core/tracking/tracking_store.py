@@ -50,14 +50,7 @@ class TrackingStore(object):
     def set_task_reused(self, task_run):
         pass
 
-    def set_task_run_state(
-        self,
-        task_run,
-        state,
-        error=None,
-        timestamp=None,
-        do_not_update_start_date=False,
-    ):
+    def set_task_run_state(self, task_run, state, error=None, timestamp=None):
         pass
 
     def set_task_run_states(self, task_runs):

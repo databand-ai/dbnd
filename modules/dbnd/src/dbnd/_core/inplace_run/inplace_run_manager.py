@@ -84,8 +84,6 @@ class _DbndInplaceRunManager(object):
 
     def _start_taskrun(self, task_run):
         self._enter_cm(task_run.runner.task_run_execution_context())
-        # don't update start date in airflow context, because when monitor will get into action
-        # we don't want this attempt to be chosen as "latest_task_run_attempt" (chosen by start date)
         task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
     def stop(self, at_exit=True):

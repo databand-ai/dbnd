@@ -45,14 +45,7 @@ _METRICS_RE = re.compile(r"(\d+)\s+(.+)")
 
 
 class FileTrackingStore(TrackingStore):
-    def set_task_run_state(
-        self,
-        task_run,
-        state,
-        error=None,
-        timestamp=None,
-        do_not_update_start_date=False,
-    ):
+    def set_task_run_state(self, task_run, state, error=None, timestamp=None):
         if state == TaskRunState.RUNNING:
             self.dump_task_run_info(task_run)
 
