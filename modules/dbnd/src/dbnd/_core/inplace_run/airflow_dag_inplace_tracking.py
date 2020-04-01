@@ -2,18 +2,29 @@ import datetime
 import logging
 import os
 
-from typing import Any
+from typing import Any, Optional
 
 import attr
 
+from cachetools import cached
 from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
-from dbnd._core.decorator.dynamic_tasks import create_and_run_dynamic_task_safe
+from dbnd._core.decorator.dynamic_tasks import (
+    create_dynamic_task,
+    run_dynamic_task_safe,
+)
 from dbnd._core.decorator.func_task_call import FuncCall
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task.task import Task
+from dbnd._core.task_build.task_context import (
+    TaskContextPhase,
+    current_phase,
+    current_task,
+    has_current_task,
+)
+from dbnd._core.task_run.task_run import TaskRunUidGen
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.string_utils import task_name_for_runtime
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
@@ -30,21 +41,28 @@ class AirflowTaskContext(object):
     task_id = attr.ib()  # type: str
 
 
+_AIRFLOW_TASK_CONTEXT = None
+
+
+@cached(cache={})
 def try_get_airflow_context():
     # type: ()-> Optional[AirflowTaskContext]
     # first try to get from spark
-    from_spark = try_get_airflow_context_from_spark_conf()
-    if from_spark:
-        return from_spark
+    try:
+        from_spark = try_get_airflow_context_from_spark_conf()
+        if from_spark:
+            return from_spark
 
-    dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
-    execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
-    task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")
-    if dag_id and task_id and execution_date:
-        return AirflowTaskContext(
-            dag_id=dag_id, execution_date=execution_date, task_id=task_id
-        )
-    return None
+        dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
+        execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
+        task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")
+        if dag_id and task_id and execution_date:
+            return AirflowTaskContext(
+                dag_id=dag_id, execution_date=execution_date, task_id=task_id
+            )
+        return None
+    except Exception:
+        return None
 
 
 _IS_SPARK_INSTALLED = None
@@ -116,7 +134,7 @@ class AirflowOperatorRuntimeTask(Task):
 
 
 # there can be only one tracking manager
-_CURRENT_AIRFLOW_TRACKING_MANAGER = None
+_CURRENT_AIRFLOW_TRACKING_MANAGER = None  # type: Optional[AirflowTrackingManager]
 
 
 def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
@@ -124,6 +142,8 @@ def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
     if not atm:
         # we failed to get tracker
         return func_call.invoke()
+
+    # @task runs inside this function
     return atm.run_airflow_dynamic_task(func_call)
 
 
@@ -178,7 +198,8 @@ class AirflowTrackingManager(object):
             # now create "operator" task for current task_id,
             # we can't actually run it, we even don't know when it's going to finish
             # current execution is inside the operator, this is the only thing we know
-            #    AirflowOperator__runtime ->  DAG__runtime
+            # STATE AFTER INIT:
+            # AirflowOperator__runtime ->  DAG__runtime
 
             # AIRFLOW OPERATOR RUNTIME
             self.af_operator_runtime__task = af_runtime_op = AirflowOperatorRuntimeTask(
@@ -186,9 +207,7 @@ class AirflowTrackingManager(object):
                 dag_id=af_context.dag_id,
                 execution_date=af_context.execution_date,
             )
-            af_runtime_op.ctrl.force_task_run_uid = get_task_run_uid(
-                self.run_uid, af_runtime_op.task_name
-            )
+            af_runtime_op.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
             # we add __runtime to the real operator ( on monitor sync it will become visible)
             af_runtime_op.task_meta.extra_parents_task_run_uids.add(
                 self.af_operator_sync__task_run_uid
@@ -202,9 +221,7 @@ class AirflowTrackingManager(object):
                 execution_date=af_context.execution_date,
             )
             af_runtime_dag.set_upstream(af_runtime_op)
-            af_runtime_dag.ctrl.force_task_run_uid = get_task_run_uid(
-                self.run_uid, af_runtime_dag.task_name
-            )
+            af_runtime_dag.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
             af_runtime_dag.task_meta.add_child(af_runtime_op.task_id)
             af_runtime_dag.task_meta.task_command_line = ""
             af_runtime_dag.task_meta.task_functional_call = ""
@@ -213,6 +230,7 @@ class AirflowTrackingManager(object):
             # since in dbnd we must have single root task, so we create "dummy" task with dag_id name
 
             # create databand run
+            # we will want to preserve
             with new_databand_run(
                 context=dc,
                 task_or_task_name=self.af_dag_runtime__task,
@@ -229,17 +247,76 @@ class AirflowTrackingManager(object):
 
     def run_airflow_dynamic_task(self, func_call):
         # type: (FuncCall) -> Any
+        if has_current_task():
+            can_run_nested = False
+            try:
+                current = current_task()
+                phase = current_phase()
+                if (
+                    phase is TaskContextPhase.RUN
+                    and current.settings.dynamic_task.enabled
+                    and current.task_supports_dynamic_tasks
+                ):
+                    can_run_nested = True
+            except Exception:
+                return _handle_tracking_error(func_call, "nested-check")
+
+            if can_run_nested:
+                return self._create_and_run_dynamic_task_safe(
+                    func_call, attach_to_monitor_op=False
+                )
+            else:
+                # unsupported mode
+                return func_call.invoke()
+
         context_enter_ok = False
         try:
             with self.dr.run_context():
                 with self.airflow_operator__task_run.runner.task_run_execution_context():
                     context_enter_ok = True
-                    return create_and_run_dynamic_task_safe(func_call)
+                    return self._create_and_run_dynamic_task_safe(
+                        func_call, attach_to_monitor_op=True
+                    )
         except Exception:
             if context_enter_ok:
                 raise
+            return _handle_tracking_error(func_call, "context-enter")
 
-            logger.warning("Failed during dbnd context-enter, ignoring", exc_info=True)
-            global _CURRENT_AIRFLOW_TRACKING_MANAGER
-            _CURRENT_AIRFLOW_TRACKING_MANAGER = False
-            return func_call.invoke()
+    def _create_and_run_dynamic_task_safe(self, func_call, attach_to_monitor_op):
+        try:
+            task = create_dynamic_task(func_call)
+            if attach_to_monitor_op:
+                # attach task to the Operator created by Monitor
+                task.task_meta.extra_parents_task_run_uids.add(
+                    self.af_operator_sync__task_run_uid
+                )
+        except Exception:
+            return _handle_tracking_error(func_call, "task-create")
+
+        # we want all tasks to be "consistent" between all retries
+        # so we will see airflow retries as same task_run
+        task.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId_Runtime()
+        return run_dynamic_task_safe(task=task, func_call=func_call)
+
+
+def _handle_tracking_error(func_call, msg):
+    logger.warning(
+        "Failed during dbnd %s, ignoring, and continue without tracking" % msg,
+        exc_info=True,
+    )
+    global _CURRENT_AIRFLOW_TRACKING_MANAGER
+    _CURRENT_AIRFLOW_TRACKING_MANAGER = False
+    return func_call.invoke()
+
+
+class TaskRunUidGen_TaskAfId(TaskRunUidGen):
+    def generate_task_run_uid(self, run, task, task_af_id):
+        return get_task_run_uid(run.run_uid, task_af_id)
+
+
+class TaskRunUidGen_TaskAfId_Runtime(TaskRunUidGen):
+    def generate_task_run_uid(self, run, task, task_af_id):
+        runtime_af = (
+            _CURRENT_AIRFLOW_TRACKING_MANAGER.airflow_operator__task_run.task_af_id
+        )
+        return get_task_run_uid(run.run_uid, "%s_%s" % (runtime_af, task_af_id))

@@ -30,24 +30,30 @@ class TaskRun(object):
         run,
         task_af_id=None,
         try_number=1,
-        _uuid=None,
         is_dynamic=None,
         task_engine=None,
     ):
-        # type: (Task, DatabandRun, str, int, str, bool, EngineConfig)-> None
+        # type: (Task, DatabandRun, str, int, bool, EngineConfig)-> None
         # actually this is used as Task uid
-        self.task_run_uid = _uuid or get_uuid()
+
         self.task = task  # type: Task
         self.run = run  # type: DatabandRun
         self.task_engine = task_engine
         self.try_number = try_number
         self.is_dynamic = is_dynamic if is_dynamic is not None else task.task_is_dynamic
         self.is_system = task.task_is_system
-
         self.task_af_id = task_af_id or self.task.task_id
 
+        if task.ctrl.force_task_run_uid:
+            self.task_run_uid = tr_uid = task.ctrl.force_task_run_uid
+            if isinstance(tr_uid, TaskRunUidGen):
+                self.task_run_uid = tr_uid.generate_task_run_uid(
+                    run=run, task=task, task_af_id=self.task_af_id
+                )
+        else:
+            self.task_run_uid = get_uuid()
+
         # used by all kind of submission controllers
-        # TODO: should job_name be based on task_af_id or task_id ?
         self.job_name = clean_job_name(self.task_af_id).lower()
         self.job_id = self.job_name + "_" + str(self.task_run_uid)[:8]
 
@@ -212,3 +218,8 @@ class TaskRun(object):
 
     def __repr__(self):
         return "TaskRun(%s, %s)" % (self.task.task_name, self.task_run_state)
+
+
+class TaskRunUidGen(object):
+    def generate_task_run_uid(self, run, task, task_af_id):
+        return get_uuid()

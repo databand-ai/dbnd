@@ -71,7 +71,7 @@ class TaskRunsBuilder(object):
         return runnable_tasks, tasks_disabled
 
     def build_task_runs(self, run, root_task, remote_engine):
-        # type: (DatabandRun, Task, EngineConfig, UUID) -> List[TaskRun]
+        # type: (DatabandRun, Task, EngineConfig) -> List[TaskRun]
         run_config = run.context.settings.run  # type: RunConfig
 
         # first, let remove all tasks explicitly marked as disabled by user
@@ -128,12 +128,9 @@ class TaskRunsBuilder(object):
                 # we want to have configuration with task overrides
                 task_engine = build_task_from_config(task_name=remote_engine.task_name)
                 task_engine.require_submit = remote_engine.require_submit
+                task_af_id = friendly_ids[task.task_id]
                 task_run = TaskRun(
-                    run=run,
-                    task=task,
-                    task_af_id=friendly_ids[task.task_id],
-                    task_engine=task_engine,
-                    _uuid=task.ctrl.force_task_run_uid,
+                    task=task, run=run, task_af_id=task_af_id, task_engine=task_engine
                 )
             if task.task_id in completed_ids:
                 task_run.is_reused = True
