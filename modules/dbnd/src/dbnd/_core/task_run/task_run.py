@@ -144,7 +144,7 @@ class TaskRun(object):
     def set_task_run_state(
         self, state, track=True, error=None, do_not_update_start_date=False
     ):
-        # type: (TaskRunState, bool, Any) -> bool
+        # type: (TaskRunState, bool, Any, bool) -> bool
         # Optional bool track param - will send tracker.set_task_run_state() by default
         if not state or self._task_run_state == state:
             return False

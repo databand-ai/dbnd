@@ -1,3 +1,4 @@
+import atexit
 import datetime
 import logging
 import os
@@ -142,6 +143,8 @@ def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
     if not atm:
         # we failed to get tracker
         return func_call.invoke()
+
+    # @task runs inside this function
     return atm.run_airflow_dynamic_task(func_call)
 
 
@@ -196,7 +199,8 @@ class AirflowTrackingManager(object):
             # now create "operator" task for current task_id,
             # we can't actually run it, we even don't know when it's going to finish
             # current execution is inside the operator, this is the only thing we know
-            #    AirflowOperator__runtime ->  DAG__runtime
+            # STATE AFTER INIT:
+            # AirflowOperator__runtime ->  DAG__runtime
 
             # AIRFLOW OPERATOR RUNTIME
             self.af_operator_runtime__task = af_runtime_op = AirflowOperatorRuntimeTask(
@@ -261,7 +265,9 @@ class AirflowTrackingManager(object):
                 return _handle_tracking_error(func_call, "nested-check")
 
             if can_run_nested:
-                return self._create_and_run_dynamic_task_safe(func_call)
+                return self._create_and_run_dynamic_task_safe(
+                    func_call, attach_to_monitor_op=False
+                )
             else:
                 # unsupported mode
                 return func_call.invoke()
@@ -271,15 +277,22 @@ class AirflowTrackingManager(object):
             with self.dr.run_context():
                 with self.airflow_operator__task_run.runner.task_run_execution_context():
                     context_enter_ok = True
-                    return self._create_and_run_dynamic_task_safe(func_call)
+                    return self._create_and_run_dynamic_task_safe(
+                        func_call, attach_to_monitor_op=True
+                    )
         except Exception:
             if context_enter_ok:
                 raise
             return _handle_tracking_error(func_call, "context-enter")
 
-    def _create_and_run_dynamic_task_safe(self, func_call):
+    def _create_and_run_dynamic_task_safe(self, func_call, attach_to_monitor_op):
         try:
             task = create_dynamic_task(func_call)
+            if attach_to_monitor_op:
+                # attach task to the Operator created by Monitor
+                task.task_meta.extra_parents_task_run_uids.add(
+                    self.af_operator_sync__task_run_uid
+                )
         except Exception:
             return _handle_tracking_error(func_call, "task-create")
 

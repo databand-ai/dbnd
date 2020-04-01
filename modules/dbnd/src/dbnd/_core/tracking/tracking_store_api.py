@@ -94,7 +94,7 @@ class TrackingStoreApi(TrackingStore):
         timestamp=None,
         do_not_update_start_date=False,
     ):
-        # type: (TaskRun, TaskRunState, TaskRunError, datetime.datetime) -> None
+        # type: (TaskRun, TaskRunState, TaskRunError, datetime.datetime, bool) -> None
         return self._m(
             self.channel.update_task_run_attempts,
             update_task_run_attempts_schema,
