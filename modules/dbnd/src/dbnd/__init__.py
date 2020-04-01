@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from dbnd._core.context.dbnd_project_env import DBND_IS_INITIALIZED
 
+
 str(DBND_IS_INITIALIZED)
 
 from dbnd._core.configuration.config_store import ConfigMergeSettings
@@ -43,8 +44,16 @@ from dbnd._core.utils.project.project_fs import (
     relative_path,
     databand_lib_path,
 )
+from dbnd._core.inplace_run.airflow_utils import (
+    dbnd_tracking_env,
+    dbnd_wrap_spark_environment,
+    get_dbnd_tracking_spark_conf,
+    spark_submit_with_dbnd_tracking,
+)
+
 from dbnd.tasks import basics
 from targets import _set_patches
+
 
 dbnd_config = config
 __all__ = [
