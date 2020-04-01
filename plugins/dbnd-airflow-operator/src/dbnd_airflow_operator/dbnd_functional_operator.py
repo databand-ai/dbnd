@@ -113,7 +113,7 @@ class DbndFunctionalOperator(BaseOperator):
                 existing_run=False,
                 job_name=dag.dag_id,
             ) as dr:  # type: DatabandRun
-                dr._init_without_run(root_task_run_uid=dag_task_run_uid)
+                dr._init_without_run()
 
                 # dr.driver_task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 # "make dag run"

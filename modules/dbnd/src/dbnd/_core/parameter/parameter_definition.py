@@ -125,6 +125,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
     description = attr.ib(default=NOTHING)  # type: str
     config_path = attr.ib(default=None)  # type: Optional[ConfigPath]
+    disable_jinja_templating = attr.ib(default=False)  # type: bool
     env_interpolation = attr.ib(default=True)
     # parameter kind
     significant = attr.ib(default=True)  # type: bool

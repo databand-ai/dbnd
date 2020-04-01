@@ -206,6 +206,14 @@ class ParameterFactory(object):
         return self.modify(env_interpolation=False)
 
     @property
+    def disable_jinja_templating(self):
+        """
+        Disables Jinja template parsing
+        :return: ParameterFactory
+        """
+        return self.modify(disable_jinja_templating=True)
+
+    @property
     def prod_immutable(self):
         """
         Converts parameter to production immutable output
