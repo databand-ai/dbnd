@@ -508,7 +508,12 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
         # we separate into two functions ,
         # as we want to be able to call build_target from output_factory implementation
-        return self.build_target(task)
+        try:
+            return self.build_target(task)
+        except Exception as e:
+            raise friendly_error.task_build.failed_to_build_output_target(
+                self.name, task, e
+            )
 
     def is_input(self):
         return self.kind == _ParameterKind.task_input
