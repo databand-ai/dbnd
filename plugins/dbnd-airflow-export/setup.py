@@ -14,7 +14,8 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-airflow-export",
     package_dir={"": "src"},
-    install_requires=["apache-airflow>=1.10.3", "setuptools"],
+    # we are not requiring airflow, as this plugin should be installed into existing airflow deployment
+    install_requires=["setuptools"],
     entry_points={
         "airflow.plugins": [
             "dbnd_airflow_export = dbnd_airflow_export.dbnd_airflow_export_plugin:DataExportAirflowPlugin"
