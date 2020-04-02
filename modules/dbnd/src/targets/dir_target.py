@@ -59,7 +59,7 @@ class DirTarget(FileTarget):
         if self.flag_target:
             return self.flag_target.exists()
 
-        return self.fs.exists(path)
+        return super(DirTarget, self).exists()
 
     def folder_exists(self):
         return self.fs.exists(self.path)

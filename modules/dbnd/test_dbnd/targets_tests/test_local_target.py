@@ -272,9 +272,9 @@ class TestLocalTarget(FileTargetTestMixin):
         print()
 
     def test_path_with_file_pattern(self):
-        t = targets.target(self.path, "a")
+        t = targets.target(self.path, "a/1")
 
-        t_star = target(os.path.dirname(t.path) + "/a/*")
+        t_star = target(self.path + "/a/*")
         assert not t_star.exists()
         t.touch()
         assert t_star.exists()

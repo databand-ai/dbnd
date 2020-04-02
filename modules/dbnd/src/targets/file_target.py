@@ -1,3 +1,5 @@
+import os
+
 import six
 
 from targets import pipes
@@ -96,6 +98,17 @@ class FileTarget(DataTarget):
         This method is implemented by using :py:attr:`fs`.
         """
         path = self.path
+        original_path = path
+        while "*" in path or "?" in path or "[" in path or "{" in path:
+            path = os.path.dirname(path)
+
+        if path != original_path:
+            logger.info(
+                "Wildcard in path '%s', checking only for '%s'", original_path, path
+            )
+            # treat it as directory (can have different behaviour on key-values stores like s3)
+            if not path.endswith(os.path.sep):
+                path += os.path.sep
         return self.fs.exists(path)
 
     def exist_after_write_consistent(self):

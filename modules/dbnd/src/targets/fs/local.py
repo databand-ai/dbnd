@@ -36,14 +36,6 @@ class LocalFileSystem(FileSystem):
             shutil.copytree(old_path, new_path)
 
     def exists(self, path):
-        original_path = path
-        while "*" in path or "?" in path or "[" in path or "{" in path:
-            path = os.path.dirname(path)
-        if path != original_path:
-            logger.info(
-                "Wildcard in path '%s', checking only for '%s'", original_path, path
-            )
-
         return os.path.exists(path)
 
     def mkdir(self, path, parents=True, raise_if_exists=False):
