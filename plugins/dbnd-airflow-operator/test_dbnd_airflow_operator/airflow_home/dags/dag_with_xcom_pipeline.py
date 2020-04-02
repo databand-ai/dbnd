@@ -60,5 +60,5 @@ def my_second_pipeline(p_date=None):
     return parsed_string
 
 
-with DAG(dag_id=f"my_xcom_dag", default_args=default_args) as dag:
+with DAG(dag_id="my_xcom_dag", default_args=default_args) as dag:
     my_xcom_pipeline(p_date="{{ ts }}")

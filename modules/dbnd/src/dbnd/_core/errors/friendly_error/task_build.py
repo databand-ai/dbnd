@@ -106,9 +106,15 @@ def failed_to_assign_param_value_at_band(ex, param, value, task):
 
 
 def failed_to_build_output_target(p_name, task, ex):
-    help_msg = f"Make sure that output parameter '{p_name}' is configured without keyword [parameter]!"
+    help_msg = (
+        "Make sure that output parameter '{p_name}' is "
+        "configured without keyword [parameter]!"
+    ).format(p_name=p_name)
     return DatabandBuildError(
-        f"Failed to build output target for parameter '{p_name}' in task '{task}'! Exception: {ex}",
+        (
+            "Failed to build output target for parameter '{p_name}' in task '{task}'! "
+            "Exception: {ex}"
+        ).format(p_name=p_name, task=task, ex=ex),
         help_msg=help_msg,
     )
 
@@ -145,6 +151,9 @@ def failed_to_import_pyspark(task, ex):
 
 def failed_to_access_dbnd_home(dbnd_home, ex):
     return DatabandBuildError(
-        f"Failed to access DBND_HOME '{dbnd_home}'. Check that folder exists and a process has sufficient permissions "
-        f"to write there. Exception: {ex}"
+        (
+            "Failed to access DBND_HOME '{dbnd_home}'. "
+            "Check that folder exists and a process has sufficient permissions to write there. "
+            "Exception: {ex}"
+        ).format(dbnd_home=dbnd_home, ex=ex)
     )
