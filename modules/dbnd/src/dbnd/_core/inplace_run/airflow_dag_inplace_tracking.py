@@ -4,6 +4,8 @@ import os
 
 from typing import Any, Optional
 
+import pytz
+
 import attr
 
 from cachetools import cached
@@ -32,6 +34,7 @@ from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.string_utils import task_name_for_runtime
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
+from dbnd._vendor import pendulum
 
 
 logger = logging.getLogger(__name__)
@@ -211,12 +214,15 @@ class AirflowTrackingManager(object):
             # current execution is inside the operator, this is the only thing we know
             # STATE AFTER INIT:
             # AirflowOperator__runtime ->  DAG__runtime
-
+            task_target_date = pendulum.parse(
+                af_context.execution_date, tz=pytz.UTC
+            ).date()
             # AIRFLOW OPERATOR RUNTIME
             self.af_operator_runtime__task = af_runtime_op = AirflowOperatorRuntimeTask(
                 task_family=task_name_for_runtime(af_context.task_id),
                 dag_id=af_context.dag_id,
                 execution_date=af_context.execution_date,
+                task_target_date=task_target_date,
             )
             af_runtime_op.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
             # we add __runtime to the real operator ( on monitor sync it will become visible)
@@ -234,6 +240,7 @@ class AirflowTrackingManager(object):
                 task_name=task_name_for_runtime("DAG"),
                 dag_id=af_context.dag_id,
                 execution_date=af_context.execution_date,
+                task_target_date=task_target_date,
             )
             af_runtime_dag.set_upstream(af_runtime_op)
             af_runtime_dag.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
