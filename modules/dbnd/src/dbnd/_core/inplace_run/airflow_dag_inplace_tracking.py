@@ -25,6 +25,7 @@ from dbnd._core.task_build.task_context import (
     has_current_task,
 )
 from dbnd._core.task_run.task_run import TaskRunUidGen
+from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.string_utils import task_name_for_runtime
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
@@ -212,7 +213,11 @@ class AirflowTrackingManager(object):
             af_runtime_op.task_meta.extra_parents_task_run_uids.add(
                 self.af_operator_sync__task_run_uid
             )
-            af_runtime_op.task_meta.task_command_line = ""
+            af_runtime_op.task_meta.task_command_line = generate_airflow_cmd(
+                dag_id=af_context.dag_id,
+                task_id=af_context.task_id,
+                execution_date=af_context.execution_date,
+            )
             af_runtime_op.task_meta.task_functional_call = ""
             # AIRFLOW DAG RUNTIME
             self.af_dag_runtime__task = af_runtime_dag = AirflowDagRuntimeTask(
@@ -223,7 +228,12 @@ class AirflowTrackingManager(object):
             af_runtime_dag.set_upstream(af_runtime_op)
             af_runtime_dag.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
             af_runtime_dag.task_meta.add_child(af_runtime_op.task_id)
-            af_runtime_dag.task_meta.task_command_line = ""
+            af_runtime_dag.task_meta.task_command_line = generate_airflow_cmd(
+                dag_id=af_context.dag_id,
+                task_id=af_context.task_id,
+                execution_date=af_context.execution_date,
+                is_root_task=True,
+            )
             af_runtime_dag.task_meta.task_functional_call = ""
             # this will create databand run with driver and root tasks.
             # we need the "root" task to be the same between different airflow tasks invocations
