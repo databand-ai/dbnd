@@ -30,19 +30,24 @@ def dbnd_wrap_spark_environment(environment=None):
     return environment
 
 
+def get_dbnd_tracking_spark_conf_dict(
+    dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ds}}"
+):
+    return {
+        "spark.env.AIRFLOW_CTX_DAG_ID": dag_id,
+        "spark.env.AIRFLOW_CTX_EXECUTION_DATE": execution_date,
+        "spark.env.AIRFLOW_CTX_TASK_ID": task_id,
+    }
+
+
 def get_dbnd_tracking_spark_conf(
     dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ds}}"
 ):
-    confs = [
-        "--conf",
-        "spark.env.AIRFLOW_CTX_DAG_ID=%s" % dag_id,
-        "--conf",
-        "spark.env.AIRFLOW_CTX_EXECUTION_DATE=%s" % execution_date,
-        "--conf",
-        "spark.env.AIRFLOW_CTX_TASK_ID=%s" % task_id,
-    ]
-
-    return confs
+    conf_as_dict = get_dbnd_tracking_spark_conf_dict(dag_id, task_id, execution_date)
+    conf = []
+    for key in conf_as_dict.keys():
+        conf.append(["--conf", key + "=" + conf_as_dict[key]])
+    return conf
 
 
 def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):

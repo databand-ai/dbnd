@@ -48,6 +48,7 @@ from dbnd._core.inplace_run.airflow_utils import (
     dbnd_tracking_env,
     dbnd_wrap_spark_environment,
     get_dbnd_tracking_spark_conf,
+    get_dbnd_tracking_spark_conf_dict,
     spark_submit_with_dbnd_tracking,
 )
 
