@@ -14,6 +14,7 @@ from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
     ENV_DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING,
 )
+from dbnd._core.constants import UpdateSource
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.decorator.dynamic_tasks import (
     create_dynamic_task,
@@ -266,6 +267,7 @@ class AirflowTrackingManager(object):
                 existing_run=False,
                 job_name=af_context.dag_id,
                 send_heartbeat=False,  # we don't send heartbeat in tracking
+                source=UpdateSource.airflow_tracking,
             ) as dr:
                 self.dr = dr
                 dr._init_without_run()

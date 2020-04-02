@@ -210,6 +210,7 @@ class SystemMetrics(enum.Enum):
 class UpdateSource(enum.Enum):
     dbnd = "dbnd"
     airflow_monitor = "airflow_monitor"
+    airflow_tracking = "airflow_tracking"
 
     def __eq__(self, other):
         if isinstance(other, UpdateSource):

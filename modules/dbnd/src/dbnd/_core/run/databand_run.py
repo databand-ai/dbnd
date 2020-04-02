@@ -25,6 +25,7 @@ from dbnd._core.constants import (
     SystemTaskName,
     TaskExecutorType,
     TaskRunState,
+    UpdateSource,
 )
 from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRuntimeError
@@ -104,8 +105,9 @@ class DatabandRun(SingletonContext):
         send_heartbeat=True,
         existing_run=None,
         job_name=None,
+        source=UpdateSource.dbnd,
     ):
-        # type:(DatabandContext, Union[Task, str] , Optional[UUID], Optional[ScheduledRunInfo], Optional[bool]) -> None
+        # type:(DatabandContext, Union[Task, str] , Optional[UUID], Optional[ScheduledRunInfo], Optional[bool], Optional[UpdateSource]) -> None
         self.context = context
         s = self.context.settings  # type: DatabandSettings
 
@@ -123,7 +125,7 @@ class DatabandRun(SingletonContext):
         self.name = s.run.name or get_random_name()
         self.description = s.run.description
         self.is_archived = s.run.is_archived
-
+        self.source = source
         # this was added to allow the scheduler to create the run which will be continued by the actually run command instead of having 2 separate runs
         if not run_uid and DBND_RUN_UID in os.environ:
             # we pop so if this run spawnes subprocesses with their own runs they will be associated using the sub-runs mechanism instead
