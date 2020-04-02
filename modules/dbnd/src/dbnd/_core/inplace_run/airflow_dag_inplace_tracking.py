@@ -9,6 +9,9 @@ import attr
 from cachetools import cached
 from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING,
+)
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.decorator.dynamic_tasks import (
     create_dynamic_task,
@@ -188,6 +191,12 @@ class AirflowTrackingManager(object):
             },  # we don't want to "check" as script is task_version="now"
             "task": {"task_in_memory_outputs": True},  # do not save any outputs
             "core": {"tracker_raise_on_error": False},  # do not fail on tracker errors
+            # we should no override airflow logging by default
+            "log": {
+                "disabled": not environ_config.environ_enabled(
+                    ENV_DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING
+                )
+            },
         }
         config.set_values(
             config_values=config_for_airflow, override=True, source="dbnd_start"
