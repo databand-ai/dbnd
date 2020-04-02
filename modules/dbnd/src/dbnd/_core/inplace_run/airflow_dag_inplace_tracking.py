@@ -71,7 +71,7 @@ def try_get_airflow_context():
 _IS_SPARK_INSTALLED = None
 
 
-def _is_spark_installed():
+def _is_dbnd_spark_installed():
     global _IS_SPARK_INSTALLED
     if _IS_SPARK_INSTALLED is not None:
         return _IS_SPARK_INSTALLED
@@ -100,7 +100,7 @@ def try_get_airflow_context_from_spark_conf():
     ):
         return None
 
-    if not _is_spark_installed():
+    if not _is_dbnd_spark_installed():
         return None
     try:
         from pyspark import SparkContext
@@ -115,8 +115,9 @@ def try_get_airflow_context_from_spark_conf():
             return AirflowTaskContext(
                 dag_id=dag_id, execution_date=execution_date, task_id=task_id
             )
-    except Exception:
-        pass
+    except Exception as ex:
+        logger.info("Failed to get airlfow context info from spark job: %s", ex)
+
     return None
 
 
