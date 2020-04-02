@@ -31,7 +31,7 @@ def dbnd_wrap_spark_environment(environment=None):
 
 
 def get_dbnd_tracking_spark_conf_dict(
-    dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ds}}"
+    dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ts}}"
 ):
     return {
         "spark.env.AIRFLOW_CTX_DAG_ID": dag_id,
@@ -41,7 +41,7 @@ def get_dbnd_tracking_spark_conf_dict(
 
 
 def get_dbnd_tracking_spark_conf(
-    dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ds}}"
+    dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ts}}"
 ):
     conf_as_dict = get_dbnd_tracking_spark_conf_dict(dag_id, task_id, execution_date)
     conf = []
