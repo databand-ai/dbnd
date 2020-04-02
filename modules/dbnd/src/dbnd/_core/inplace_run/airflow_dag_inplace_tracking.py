@@ -223,6 +223,7 @@ class AirflowTrackingManager(object):
                 dag_id=af_context.dag_id,
                 execution_date=af_context.execution_date,
                 task_target_date=task_target_date,
+                task_version="%s:%s" % (af_context.task_id, af_context.execution_date),
             )
             af_runtime_op.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
             # we add __runtime to the real operator ( on monitor sync it will become visible)
