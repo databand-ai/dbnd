@@ -365,7 +365,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
         b.column("SIGNATURE SOURCE", task_meta.task_signature_source)
         b.column(
-            "TASK OUTPUTS SIGNATURE SOURCE", task_meta.task_outputs_key.signature_source
+            "TASK OUTPUTS SIGNATURE SOURCE", task_meta.task_outputs_signature_source
         )
 
     def _add_spark_info(self):

@@ -65,8 +65,8 @@ class TaskMeta(object):
         self.task_signature = None
         self.task_signature_source = None
 
-        self.task_outputs_key = None
         self.task_outputs_signature = None
+        self.task_outputs_signature_source = None
 
         self.task_enabled = task_enabled
 
@@ -163,9 +163,13 @@ class TaskMeta(object):
         self.task_signature_source = signature.signature_source
 
     def initialize_task_output_id(self, task_outputs):
-        sig = build_signature_from_values("task_outputs", task_outputs)
-        self.task_outputs_key = sig
-        self.task_outputs_signature = sig.signature
+        if task_outputs:
+            sig = build_signature_from_values("task_outputs", task_outputs)
+            self.task_outputs_signature = sig.signature
+            self.task_outputs_signature_source = sig.signature_source
+        else:
+            self.task_outputs_signature = self.task_signature
+            self.task_outputs_signature_source = self.task_signature_source
 
     def get_task_config_value(self, key):
         for section in self.task_sections:
