@@ -105,6 +105,14 @@ def failed_to_assign_param_value_at_band(ex, param, value, task):
     )
 
 
+def failed_to_build_output_target(p_name, task, ex):
+    help_msg = f"Make sure that output parameter '{p_name}' is configured without keyword [parameter]!"
+    return DatabandBuildError(
+        f"Failed to build output target for parameter '{p_name}' in task '{task}'! Exception: {ex}",
+        help_msg=help_msg,
+    )
+
+
 def iteration_over_task(task):
     help_msg = "You can iterate over task results, but not the task itself"
     if hasattr(task, "result"):
