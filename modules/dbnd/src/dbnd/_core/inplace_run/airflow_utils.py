@@ -46,7 +46,7 @@ def get_dbnd_tracking_spark_conf(
     conf_as_dict = get_dbnd_tracking_spark_conf_dict(dag_id, task_id, execution_date)
     conf = []
     for key in conf_as_dict.keys():
-        conf.append(["--conf", key + "=" + conf_as_dict[key]])
+        conf.extend(["--conf", key + "=" + conf_as_dict[key]])
     return conf
 
 
