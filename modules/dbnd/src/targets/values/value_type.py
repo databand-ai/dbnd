@@ -171,18 +171,42 @@ class ValueType(object):
             # we are in the string mode
             # it's can be "serialized to string" or path value
             if load_value:
-                # we can just load value from string
+                # in case we have simple type -> just load/parse it
                 if self.support_from_str:
                     value = self.parse_from_str(value)
                     value = self.normalize(value)
                     return value
 
-            # otherwise - the value is a path!
+            # otherwise - the data is "Complex object"
+            # our assumption is that it can not be loaded from string
+            # the value is a path!
             target_kwargs = {}
             if target_config:
                 target_kwargs["config"] = target_config
 
-            return to_targets(json_utils.loads(value), from_string_kwargs=target_kwargs)
+            """
+            it's possible that we have a list of targets, or just a single target (all targets should be loaded as
+            single object). we need to support:
+                1. /some/path
+                2. /some/path,....
+                3. ["/some_path",..]
+            we will try to parse it as list, if we get list with one element (1) -> we can  return it, otherwise we
+            wrap it with MultiTarget
+            """
+            from targets.values.structure import ListValueType
+
+            # Parse into value type list
+            list_of_targets = ListValueType().parse_from_str(value)
+            # Apply all values from config
+            list_of_targets = to_targets(
+                list_of_targets, from_string_kwargs=target_kwargs
+            )
+            if len(list_of_targets) == 1:
+                return list_of_targets[0]
+            else:
+                from targets.multi_target import MultiTarget
+
+                return MultiTarget(list_of_targets)
 
         from dbnd._core.task import Task
         from targets import Target
