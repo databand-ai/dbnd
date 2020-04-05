@@ -34,6 +34,15 @@ class XComStr(str):
     def set_downstream(self, task_or_task_list):
         self.op.set_downstream(task_or_task_list)
 
+    def set_upstream(self, task_or_task_list):
+        self.op.set_upstream(task_or_task_list)
+
+    def __lshift__(self, other):
+        return self.set_upstream(other)
+
+    def __rshift__(self, other):
+        return self.set_downstream(other)
+
 
 class XComResults(object):
     target_no_traverse = True
@@ -52,8 +61,7 @@ class XComResults(object):
         return self._names
 
     def __iter__(self):
-        for _, xcom_sub_result in self.sub_results:
-            yield xcom_sub_result
+        return iter(xcom_sub_result for _, xcom_sub_result in self.sub_results)
 
     def __repr__(self):
         return "result(%s)" % ",".join(self.names)
@@ -67,6 +75,15 @@ class XComResults(object):
 
     def set_downstream(self, task_or_task_list):
         self.op.set_downstream(task_or_task_list)
+
+    def set_upstream(self, task_or_task_list):
+        self.op.set_upstream(task_or_task_list)
+
+    def __lshift__(self, other):
+        return self.set_upstream(other)
+
+    def __rshift__(self, other):
+        return self.set_downstream(other)
 
     def __getitem__(self, key):
         return self.as_dict()[key]
