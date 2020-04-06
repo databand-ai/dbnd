@@ -330,7 +330,8 @@ class TaskFactory(object):
         """
         check that the user did not set any config values that don't have a matching param definition (protects against typos)
         """
-        task_param_names = [tp.name for tp in self.task_params]
+        # Must lower task parameter name to comply to case insensitivity of configuration
+        task_param_names = [tp.name.lower() for tp in self.task_params]
         for section_name in self.task_config_sections:
             section = self.config.config_layer.config.get(section_name)
             if not section:
