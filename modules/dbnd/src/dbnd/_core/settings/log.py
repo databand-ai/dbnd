@@ -63,6 +63,8 @@ class LoggingConfig(config.Config):
         str
     ]
 
+    file_log = parameter(default=None, description="Log to file (off by default)")[str]
+
     stream_stdout = parameter(
         description="Should databand'a logger stream stdout instead of stderr"
     ).value(False)
@@ -205,7 +207,7 @@ class LoggingConfig(config.Config):
         if self.disabled:
             return
 
-        dict_config = self.get_dbnd_logging_config(filename=None)
+        dict_config = self.get_dbnd_logging_config(filename=self.file_log)
 
         airflow_task_log_handler = None
         if self.override_airflow_logging_on_task_run:
