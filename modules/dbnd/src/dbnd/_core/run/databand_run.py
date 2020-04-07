@@ -62,7 +62,7 @@ from dbnd._core.utils.date_utils import unique_execution_date
 from dbnd._core.utils.traversing import flatten
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.cloudpickle import cloudpickle
-from dbnd._vendor.namesgenerator import get_random_name
+from dbnd._vendor.namesgenerator import get_name_for_uid
 from targets import FileTarget, Target
 from targets.caching import TARGET_CACHE
 
@@ -122,7 +122,6 @@ class DatabandRun(SingletonContext):
 
         self.job_name = job_name or self.root_task_name
 
-        self.name = s.run.name or get_random_name()
         self.description = s.run.description
         self.is_archived = s.run.is_archived
         self.source = source
@@ -141,6 +140,7 @@ class DatabandRun(SingletonContext):
         if existing_run is not None:
             self.existing_run = existing_run
 
+        self.name = s.run.name or get_name_for_uid(self.run_uid)
         # this is so the scheduler can create a run with partial information and then have the subprocess running the actual cmd fill in the details
         self.resubmit_run = (
             DBND_RESUBMIT_RUN in os.environ

@@ -143,6 +143,10 @@ class CoreConfig(Config):
         default=None,
     )[str]
 
+    plugins = parameter(
+        description="plugins to load on databand context creation", default=None
+    )[str]
+
     def _validate(self):
         if self.databand_url and self.databand_url.endswith("/"):
             logger.warning(

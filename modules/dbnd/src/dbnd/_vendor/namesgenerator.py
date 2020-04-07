@@ -430,14 +430,18 @@ right = [
 ]
 
 
-def get_random_name(sep="_"):
-    r = random.SystemRandom()
+def get_random_name(sep="_", r=None):
+    r = r or random.SystemRandom()
     while 1:
         name = "%s%s%s" % (r.choice(left), sep, r.choice(right))
         if name == "boring" + sep + "wozniak":  # Steve Wozniak is not boring
             continue
         return name
 
+
+def get_name_for_uid(uid_str, sep="_"):
+    r = random.Random(uid_str)
+    return get_random_name(sep=sep, r=r)
 
 if __name__ == "__main__":
     print(get_random_name())
