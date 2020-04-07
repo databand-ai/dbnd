@@ -570,14 +570,17 @@ def export_data_api(dagbag):
     include_logs = flask.request.args.get("include_logs")
     dag_ids = flask.request.args.getlist("dag_ids")
     tasks = flask.request.args.get("tasks", type=int)
+    rbac_enabled = conf.get("webserver", "rbac")
 
     if not since and not include_logs and not dag_ids and not tasks:
         new_since = datetime.datetime.utcnow().replace(
             tzinfo=pendulum.timezone("UTC")
         ) - datetime.timedelta(days=1)
-        return flask.redirect(
-            flask.url_for("data_export_plugin.export_data", since=new_since, code=303)
+        redirect_url = (
+            "ExportDataViewAppBuilder" if rbac_enabled else "data_export_plugin"
         )
+        redirect_url += ".data_export_plugin"
+        return flask.redirect(flask.url_for(redirect_url, since=new_since, code=303))
 
     # do_update = flask.request.args.get("do_update", "").lower() == "true"
     # verbose = flask.request.args.get("verbose", str(not do_update)).lower() == "true"

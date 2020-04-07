@@ -704,15 +704,6 @@ class _DbndDriverTask(Task):
         called by .run and inline
         :return:
         """
-
-        ctx = run.context
-
-        if self.is_submitter:
-            run.set_run_state(RunState.RUNNING)
-        ctx.settings.git.validate_git_policy()
-
-        # let prepare for remote execution
-        run.remote_engine.prepare_for_run(run)
         run.root_task = self._build_root_task(run)
 
         # for validation only
@@ -730,6 +721,15 @@ class _DbndDriverTask(Task):
     def run(self):
         driver_task_run = current_task_run()
         run = driver_task_run.run  # type: DatabandRun
+        if self.is_submitter:
+            run.set_run_state(RunState.RUNNING)
+
+        ctx = run.context
+        ctx.settings.git.validate_git_policy()
+
+        # let prepare for remote execution
+        run.remote_engine.prepare_for_run(run)
+
         task_runs = self.build_root_task_runs(run)
 
         hearbeat = None
