@@ -21,7 +21,7 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND_USER,
     environ_enabled,
 )
-from dbnd._core.errors import DatabandConfigError
+from dbnd._core.errors import DatabandConfigError, friendly_error
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.json_utils import dumps_safe
@@ -258,8 +258,15 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     def build_kube_dbnd(self, in_cluster=None):
         from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
+        from kubernetes.config import ConfigException
 
-        kube_client = self.get_kube_client(in_cluster=in_cluster)
+        try:
+            kube_client = self.get_kube_client(in_cluster=in_cluster)
+        except ConfigException as e:
+            raise friendly_error.executor_k8s.failed_to_connect_to_cluster(
+                self.in_cluster, e
+            )
+
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 

@@ -66,3 +66,11 @@ def no_tag_on_no_build():
         "You are running with 'docker_build=False', however, 'container_tag' is not defined",
         help_msg="Please configure 'container_ta'g or change 'docker_build' to 'True'.",
     )
+
+
+def failed_to_connect_to_cluster(in_cluster_value, exc):
+    return DatabandConfigError(
+        "Could not connect to kubernetes cluster! Exception: %s" % (exc,),
+        help_msg="in-cluster is set to '%s'. Are you running %s cluster?"
+        % (in_cluster_value, "inside" if in_cluster_value else "outside"),
+    )
