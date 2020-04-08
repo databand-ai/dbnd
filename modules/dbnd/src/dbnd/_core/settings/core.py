@@ -196,6 +196,12 @@ class CoreConfig(Config):
         raise friendly_error.config.wrong_store_name(name)
 
     def _build_tracking_api_store(self, tracker_api, databand_url):
+        """
+                                                             ctx (+DB)
+                                                                |
+        DBND -> Tracker —> WebChannel -> ApiClient -> HTTP -> Flask -> Views -x-> TrackingApiHandler -> TrackingDbService -> SQLA -> DB
+                      \ -> DBChannel ——————————————----------------------———-/
+        """
         from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
 
         if tracker_api == "web":
@@ -214,6 +220,10 @@ class CoreConfig(Config):
             assert_web_enabled(
                 "It is required when trying to use local db connection (tracker_api=db)."
             )
+            from dbnd_web.app import activate_dbnd_web_context
+
+            # DirectDbChannel requires DB session, it's available in Flask Context
+            activate_dbnd_web_context()
 
             from dbnd_web.api.v1.tracking_api import (
                 TrackingApiHandler as DirectDbChannel,

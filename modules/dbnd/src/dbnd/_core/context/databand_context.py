@@ -138,9 +138,6 @@ class DatabandContext(SingletonContext):
             # we get here if we are running at sub process that recreates the Context
             pm.hook.dbnd_on_existing_context(ctx=self)
 
-        self.tracking_store = self.settings.core.get_tracking_store()
-        self.scheduled_job_service = self.settings.core.get_scheduled_job_service()
-
         # we do it every time we go into databand_config
         self.configure_targets()
         self.settings.log.configure_dbnd_logging()
@@ -149,6 +146,14 @@ class DatabandContext(SingletonContext):
             self.settings.core.__class__.user_init, self.settings.core.user_init
         )
         pm.hook.dbnd_post_enter_context(ctx=self)
+
+    @property
+    def tracking_store(self):
+        return self.settings.core.get_tracking_store()
+
+    @property
+    def scheduled_job_service(self):
+        return self.settings.core.get_scheduled_job_service()
 
     def configure_targets(self):
         output_config = self.settings.output  # type: OutputConfig
