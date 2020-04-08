@@ -31,7 +31,21 @@ def dbnd_package(name):
 
 
 EXTRAS_REQUIRE = {
-    "airflow": [dbnd_package("dbnd-airflow"), "psycopg2>=2.7.4,<2.8"],
+    "airflow": [
+        dbnd_package("dbnd-airflow"),
+        "psycopg2>=2.7.4,<2.8",
+        "apache-airflow==1.10.7",
+    ],
+    "airflow-1_10_7": [
+        dbnd_package("dbnd-airflow"),
+        "psycopg2>=2.7.4,<2.8",
+        "apache-airflow==1.10.7",
+    ],
+    "airflow-1_10_9": [
+        dbnd_package("dbnd-airflow"),
+        "psycopg2>=2.7.4,<2.8",
+        "apache-airflow==1.10.9",
+    ],
     "airflow-export": [dbnd_package("dbnd-airflow-export")],
     "airflow-operator": [dbnd_package("dbnd-airflow-operator")],
     "airflow-versioned-dag": [dbnd_package("dbnd-airflow-versioned-dag")],
