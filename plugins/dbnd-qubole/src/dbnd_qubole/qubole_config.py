@@ -23,6 +23,10 @@ class QuboleConfig(SparkEngineConfig):
         "API URL without version. like:'https://<ENV>.qubole.com/api'"
     )[str]
 
+    ui_url = parameter(default="https://api.qubole.com").help(
+        "UI URL for accessing Qubole logs"
+    )[str]
+
     api_token = parameter.help("API key of qubole account")[str]
     cluster_label = parameter().help("the label of the cluster to run the command on")[
         str
