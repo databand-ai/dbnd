@@ -33,7 +33,7 @@ class TrackingStore(object):
         init_run_args = TrackingInfoBuilder(dbnd_run).build_init_args()
         return init_run_args
 
-    def init_scheduled_job(self, scheduled_job):
+    def init_scheduled_job(self, scheduled_job, update_existing):
         pass
 
     def init_run(self, run):

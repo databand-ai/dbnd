@@ -435,6 +435,7 @@ class ScheduledJobInfoSchema(ApiObjectSchema):
 
 class ScheduledJobArgsSchema(_ApiCallSchema):
     scheduled_job_args = fields.Nested(ScheduledJobInfoSchema)
+    update_existing = fields.Boolean(default=False)
 
 
 scheduled_job_args_schema = ScheduledJobArgsSchema()
