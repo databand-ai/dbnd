@@ -26,6 +26,13 @@ class TTaskThatFails(TTask):
         raise ValueError()
 
 
+class CaseSensitiveParameterTask(PythonTask):
+    TParam = parameter.value(1)
+
+    def run(self):
+        return self.TParam ** 2
+
+
 class RequiredConfig(dbnd.Config):
     required_test_param = parameter[str]
 
