@@ -16,13 +16,13 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=[
         "dbnd==" + version,
-        "apache-airflow==1.10.7",
         "Werkzeug<1.0.0",
         "future>=0.16.0, <0.17",
         "sqlalchemy_utc",
         "sqlalchemy_utils",
     ],
     extras_require=dict(
+        airflow=["apache-airflow==1.10.9"],
         tests=[
             # airflow support
             "pandas<1.0.0,>=0.17.1",
@@ -45,7 +45,7 @@ setuptools.setup(
             # k8s
             "kubernetes==9.0.0",
             "cryptography>=2.0.0",
-        ]
+        ],
     ),
     entry_points={
         "console_scripts": ["dbnd-airflow = dbnd_airflow.dbnd_airflow_main:main"],
