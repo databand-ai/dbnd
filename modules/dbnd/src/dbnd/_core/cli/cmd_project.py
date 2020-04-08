@@ -53,6 +53,6 @@ def project_init(ctx, no_init_db, overwrite, dbnd_home, dbnd_system):
         return
 
     if is_web_enabled():
-        from dbnd_web.cmd_db import init as db_init
+        from dbnd_web.cli.cmd_db import init as db_init
 
         ctx.invoke(db_init)
