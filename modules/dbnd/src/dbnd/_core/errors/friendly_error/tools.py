@@ -1,4 +1,4 @@
-from dbnd._core.errors import DatabandRuntimeError
+from dbnd._core.errors import DatabandConfigError, DatabandRuntimeError
 from dbnd._core.errors.friendly_error.helpers import _run_name
 
 

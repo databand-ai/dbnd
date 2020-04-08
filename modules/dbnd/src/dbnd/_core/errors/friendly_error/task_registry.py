@@ -3,11 +3,14 @@ from dbnd._core.errors import DatabandConfigError, TaskClassNotFoundException
 
 def wrong_type_for_task(section, task_cls, expected_type):
     return DatabandConfigError(
-        "You config '{section}' should be derived from '{expected_type}. Got {task_cls}".format(
+        "Your config '{section}' should be derived from '{expected_type}. Got {task_cls}".format(
             section=section, expected_type=expected_type, task_cls=task_cls
         ),
-        help_msg="Please check your [{section}] _type = value. ".format(
-            section=section
+        help_msg="Make sure '{section}' section in your configuration is of the correct type! (check [{"
+        "section}]._type and [{section}]._from ".format(
+            section=section,
+            task_cls=task_cls,
+            # expected_type=expected_type,
         ),
     )
 
