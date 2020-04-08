@@ -10,14 +10,14 @@ from dbnd._core.constants import TaskType
 from dbnd._core.current import get_databand_run
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.func_task_decorator import _task_decorator
-from dbnd._core.errors import DatabandBuildError, DatabandConfigError
+from dbnd._core.errors import DatabandBuildError, DatabandConfigError, friendly_error
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.task.config import Config
 from dbnd._core.task.task import Task
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
-from dbnd_spark.spark_config import SparkConfig
+from dbnd_spark.spark_config import SparkConfig, SparkEngineConfig
 
 
 if typing.TYPE_CHECKING:
@@ -32,7 +32,7 @@ class _BaseSparkTask(Task):
     # will get it from env
     spark_config = parameter(config_path=from_task_env("spark_config"))[SparkConfig]
     spark_engine = parameter(config_path=from_task_env("spark_engine"))[
-        Config
+        SparkEngineConfig
     ]  # type: Union[EmrConfig]
 
     python_script = None

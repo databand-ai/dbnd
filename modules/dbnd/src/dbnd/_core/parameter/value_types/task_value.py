@@ -62,7 +62,7 @@ class ConfigValueType(ValueType):
 
         if isinstance(self.config_cls, EnvConfig):
             return get_settings().get_env_config(input)
-        return build_task_from_config(input)
+        return build_task_from_config(input, expected_type=self.config_cls)
 
     def to_str(self, x):
         """
