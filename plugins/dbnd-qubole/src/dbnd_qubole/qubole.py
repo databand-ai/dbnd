@@ -60,9 +60,13 @@ class QuboleCtrl(SparkCtrl):
         return log, err_ptr, log_ptr, new_log_bytes
 
     def _get_url(self, qubole_cmd_id):
-        cmd_id = qubole_cmd_id
-        host = self.qubole_config.api_url.replace("/api", "")
-        return "{host}/v2/analyze?command_id={id}".format(host=host, id=cmd_id)
+        import os
+
+        return os.path.join(
+            self.qubole_config.ui_url,
+            "v2",
+            "analyze?command_id={qubole_cmd_id}".format(qubole_cmd_id=qubole_cmd_id),
+        )
 
     def _handle_qubole_operator_execution(self, cmd):
         """
