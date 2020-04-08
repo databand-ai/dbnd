@@ -6,7 +6,7 @@ from dbnd import Task, config, new_dbnd_context
 from dbnd._core.constants import ParamValidation
 from dbnd._core.errors import DatabandBuildError, DatabandError, UnknownParameterError
 from dbnd._core.settings import CoreConfig
-from test_dbnd.factories import TTask, ttask_simple
+from test_dbnd.factories import CaseSensitiveParameterTask, TTask, ttask_simple
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,41 @@ class TestTaskMetaBuild(object):
         task = ttask_simple.task()
         logger.info("SOURCE:%s", task.task_meta.task_call_source)
         assert task.task_meta.task_call_source[0].filename in __file__
+
+    def test_case_insensitive_parameter_building(self):
+        # First run with correct case
+        with config(
+            {
+                "CaseSensitiveParameterTask": {
+                    "TParam": 2,
+                    "validate_no_extra_params": ParamValidation.error,
+                }
+            }
+        ):
+            dbnd_run = CaseSensitiveParameterTask().dbnd_run()
+        assert dbnd_run.task.TParam == 2
+        # Second run with incorrect lower case
+        with config(
+            {
+                "CaseSensitiveParameterTask": {
+                    "tparam": 3,
+                    "validate_no_extra_params": ParamValidation.error,
+                }
+            }
+        ):
+            dbnd_run = CaseSensitiveParameterTask().dbnd_run()
+        assert dbnd_run.task.TParam == 3
+        # Third run with incorrect upper case
+        with config(
+            {
+                "CaseSensitiveParameterTask": {
+                    "TPARAM": 4,
+                    "validate_no_extra_params": ParamValidation.error,
+                }
+            }
+        ):
+            dbnd_run = CaseSensitiveParameterTask().dbnd_run()
+        assert dbnd_run.task.TParam == 4
 
     def test_wrong_config_validation(self):
         # raise exception
