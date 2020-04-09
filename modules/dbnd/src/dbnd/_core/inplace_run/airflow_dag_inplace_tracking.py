@@ -48,6 +48,25 @@ class AirflowTaskContext(object):
     execution_date = attr.ib()  # type: str
     task_id = attr.ib()  # type: str
 
+    @property
+    def root_dag_id(self):
+        return self.dag_id.split(".", 1)[0]
+
+    @property
+    def is_subdag(self):
+        return "." in self.dag_id
+
+    @property
+    def subdags_names(self):
+        # for subdag root_dag.subdag1.subdag2.subdag3 it should return
+        # subdag1, subdag1.subdag2, subdag1.subdag2.subdag3
+        names_ret = []
+        name_parts = self.dag_id.split(".")[1:]
+        while name_parts:
+            names_ret.insert(0, ".".join(name_parts))
+            name_parts.pop()
+        return names_ret
+
 
 _AIRFLOW_TASK_CONTEXT = None
 
@@ -178,8 +197,9 @@ def get_airflow_tracking_manager(airflow_task_context):
 
 class AirflowTrackingManager(object):
     def __init__(self, af_context):
+        # type: (AirflowTaskContext) -> None
         self.run_uid = get_job_run_uid(
-            dag_id=af_context.dag_id, execution_date=af_context.execution_date
+            dag_id=af_context.root_dag_id, execution_date=af_context.execution_date
         )
 
         # this is the real operator uid, we need to connect to it with our "tracked" task,
@@ -237,6 +257,36 @@ class AirflowTrackingManager(object):
                 execution_date=af_context.execution_date,
             )
             af_runtime_op.task_meta.task_functional_call = ""
+
+            af_runtime_child = af_runtime_op
+            for subdag_id in af_context.subdags_names:
+                # this is the real operator uid, we need to connect to it with our "tracked" task,
+                # so the moment monitor is on -> we can sync
+                af_subdag_sync__task_run_uid = get_task_run_uid(self.run_uid, subdag_id)
+                # AIRFLOW SUBDAG OPERATOR RUNTIME
+                af_runtime_subdag = AirflowOperatorRuntimeTask(
+                    task_family=task_name_for_runtime(subdag_id),
+                    dag_id=af_context.dag_id,
+                    execution_date=af_context.execution_date,
+                    task_target_date=task_target_date,
+                    task_version="%s:%s" % (subdag_id, af_context.execution_date),
+                )
+                af_runtime_subdag.set_upstream(af_runtime_child)
+                af_runtime_subdag.task_meta.add_child(af_runtime_child.task_id)
+                af_runtime_subdag.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
+                # we add __runtime to the real operator ( on monitor sync it will become visible)
+                af_runtime_subdag.task_meta.extra_parents_task_run_uids.add(
+                    af_subdag_sync__task_run_uid
+                )
+                af_runtime_subdag.task_meta.task_command_line = generate_airflow_cmd(
+                    dag_id=af_context.dag_id,
+                    task_id=subdag_id,
+                    execution_date=af_context.execution_date,
+                )
+                af_runtime_subdag.task_meta.task_functional_call = ""
+
+                af_runtime_child = af_runtime_subdag
+
             # AIRFLOW DAG RUNTIME
             self.af_dag_runtime__task = af_runtime_dag = AirflowDagRuntimeTask(
                 task_name=task_name_for_runtime("DAG"),
@@ -244,9 +294,9 @@ class AirflowTrackingManager(object):
                 execution_date=af_context.execution_date,
                 task_target_date=task_target_date,
             )
-            af_runtime_dag.set_upstream(af_runtime_op)
+            af_runtime_dag.set_upstream(af_runtime_child)
             af_runtime_dag.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId()
-            af_runtime_dag.task_meta.add_child(af_runtime_op.task_id)
+            af_runtime_dag.task_meta.add_child(af_runtime_child.task_id)
             af_runtime_dag.task_meta.task_command_line = generate_airflow_cmd(
                 dag_id=af_context.dag_id,
                 task_id=af_context.task_id,
