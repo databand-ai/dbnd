@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import collections
 
 from .cache import Cache
@@ -32,8 +34,15 @@ class LRUCache(Cache):
         else:
             return (key, self.pop(key))
 
-    def __update(self, key):
-        try:
-            self.__order.move_to_end(key)
-        except KeyError:
-            self.__order[key] = None
+    if hasattr(collections.OrderedDict, 'move_to_end'):
+        def __update(self, key):
+            try:
+                self.__order.move_to_end(key)
+            except KeyError:
+                self.__order[key] = None
+    else:
+        def __update(self, key):
+            try:
+                self.__order[key] = self.__order.pop(key)
+            except KeyError:
+                self.__order[key] = None
