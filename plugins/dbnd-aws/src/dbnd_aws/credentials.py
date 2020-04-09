@@ -4,13 +4,13 @@ import boto3
 
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.plugin.dbnd_plugins import use_airflow_connections
-from dbnd._vendor.cachetools import cached
+from dbnd._core.utils.basics.memoized import per_thread_cached
 
 
 logger = logging.getLogger(__name__)
 
 
-@cached(cache={})
+@per_thread_cached()
 def get_boto_session():
     if use_airflow_connections():
         from dbnd_airflow_contrib.credentials_helper_aws import AwsCredentials
@@ -31,12 +31,12 @@ def get_boto_session():
         return session
 
 
-@cached(cache={})
+@per_thread_cached()
 def get_boto_s3_resource():
     session = get_boto_session()
     return session.resource("s3")
 
 
-@cached(cache={})
+@per_thread_cached()
 def get_boto_emr_client(region_name=None):
     return get_boto_session().client("emr", region_name=region_name)

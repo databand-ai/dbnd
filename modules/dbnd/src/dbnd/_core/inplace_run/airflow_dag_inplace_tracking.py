@@ -31,11 +31,11 @@ from dbnd._core.task_build.task_context import (
 )
 from dbnd._core.task_run.task_run import TaskRunUidGen
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
+from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.string_utils import task_name_for_runtime
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd._vendor import pendulum
-from dbnd._vendor.cachetools import cached
 
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class AirflowTaskContext(object):
 _AIRFLOW_TASK_CONTEXT = None
 
 
-@cached(cache={})
+@cached()
 def try_get_airflow_context():
     # type: ()-> Optional[AirflowTaskContext]
     # first try to get from spark

@@ -1,14 +1,14 @@
 import logging
 
 from dbnd._core.plugin.dbnd_plugins import use_airflow_connections
-from dbnd._vendor.cachetools import cached
+from dbnd._core.utils.basics.memoized import per_thread_cached
 from dbnd_azure.env import AzureCredentialsConfig
 
 
 logger = logging.getLogger(__name__)
 
 
-@cached(cache={})
+@per_thread_cached()
 def get_azure_credentials():
     if use_airflow_connections():
         from dbnd_airflow_contrib.credentials_helper_azure import (

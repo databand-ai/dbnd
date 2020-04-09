@@ -5,8 +5,7 @@ import re
 import sys
 
 from dbnd._core.errors import DatabandError, friendly_error
-from dbnd._core.errors.friendly_error import dbnd_module_not_found_tip
-from dbnd._vendor.cachetools.func import lru_cache
+from dbnd._core.utils.basics.memoized import cached
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ except Exception:
     import_errors = (ImportError,)
 
 
-@lru_cache()
+@cached()
 def _load_module(module, description):
     try:
         try:

@@ -26,4 +26,12 @@ except Exception:
     # we are python2
     import_errors = (ImportError,)
 
-__all__ = ["contextlib", "qualname_func", "import_errors", "Callable"]
+try:
+    from thread import get_ident
+except ImportError:
+    try:
+        from _thread import get_ident
+    except ImportError:
+        from _dummy_thread import get_ident
+
+__all__ = ["contextlib", "qualname_func", "import_errors", "Callable", "get_ident"]

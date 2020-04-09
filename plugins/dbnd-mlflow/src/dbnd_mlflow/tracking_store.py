@@ -8,8 +8,8 @@ import dbnd
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
+from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.timezone import utcnow
-from dbnd._vendor.cachetools.func import lru_cache
 from dbnd.api.tracking_api import TrackingApiClient
 from mlflow.entities import ViewType
 from mlflow.store.tracking.abstract_store import AbstractStore
@@ -164,7 +164,7 @@ class DatabandStore(AbstractStore):
         pass
 
 
-@lru_cache()
+@cached()
 def get_dbnd_store(store_uri=None, artifact_uri=None):
     dbnd_store_url, duplicate_tracking_to = parse_composite_uri(store_uri)
 
