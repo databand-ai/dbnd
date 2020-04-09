@@ -22,8 +22,8 @@ class ConsoleStore(tracking_store.TrackingStore):
         super(ConsoleStore, self).__init__()
         self.verbose = dbnd_context().system_settings.verbose
 
-    def init_scheduled_job(self, scheduled_job):
-        super(ConsoleStore, self).init_scheduled_job(scheduled_job)
+    def init_scheduled_job(self, scheduled_job, update_existing):
+        super(ConsoleStore, self).init_scheduled_job(scheduled_job, update_existing)
 
     def init_run(self, run):
         logger.info(

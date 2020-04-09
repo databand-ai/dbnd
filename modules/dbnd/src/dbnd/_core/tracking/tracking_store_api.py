@@ -37,11 +37,12 @@ class TrackingStoreApi(TrackingStore):
     def __init__(self, channel):
         self.channel = channel
 
-    def init_scheduled_job(self, scheduled_job):
+    def init_scheduled_job(self, scheduled_job, update_existing):
         return self._m(
             self.channel.init_scheduled_job,
             scheduled_job_args_schema,
             scheduled_job_args=scheduled_job,
+            update_existing=update_existing,
         )
 
     def init_run(self, run):
