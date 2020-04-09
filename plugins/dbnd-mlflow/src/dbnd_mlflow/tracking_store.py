@@ -5,11 +5,11 @@ from functools import wraps
 
 import dbnd
 
-from cachetools.func import lru_cache
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
 from dbnd._core.utils.timezone import utcnow
+from dbnd._vendor.cachetools.func import lru_cache
 from dbnd.api.tracking_api import TrackingApiClient
 from mlflow.entities import ViewType
 from mlflow.store.tracking.abstract_store import AbstractStore

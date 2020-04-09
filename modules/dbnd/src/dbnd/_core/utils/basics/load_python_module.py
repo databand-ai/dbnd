@@ -4,9 +4,9 @@ import os
 import re
 import sys
 
-from cachetools.func import lru_cache
 from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.errors.friendly_error import dbnd_module_not_found_tip
+from dbnd._vendor.cachetools.func import lru_cache
 
 
 logger = logging.getLogger(__name__)

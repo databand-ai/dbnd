@@ -2,8 +2,8 @@ import logging
 
 from google.auth import default
 
-from cachetools import cached
 from dbnd._core.plugin.dbnd_plugins import use_airflow_connections
+from dbnd._vendor.cachetools import cached
 
 
 logger = logging.getLogger(__name__)

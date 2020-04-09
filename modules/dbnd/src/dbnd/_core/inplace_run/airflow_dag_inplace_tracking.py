@@ -8,7 +8,6 @@ import pytz
 
 import attr
 
-from cachetools import cached
 from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
@@ -36,6 +35,7 @@ from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.string_utils import task_name_for_runtime
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd._vendor import pendulum
+from dbnd._vendor.cachetools import cached
 
 
 logger = logging.getLogger(__name__)

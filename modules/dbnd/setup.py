@@ -8,7 +8,7 @@ setuptools.setup(
         "tzlocal>=1.0.0,<2.0.0",
         "six",
         "more_itertools",
-        "cachetools",
+        # "cachetools", -- Moved library to _vendor
         "attrs",
         # "hjson", -- Moved library to _vendor
         "pyyaml",  # yaml support in targets

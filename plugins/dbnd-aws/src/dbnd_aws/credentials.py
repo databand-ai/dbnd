@@ -2,9 +2,9 @@ import logging
 
 import boto3
 
-from cachetools import cached
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.plugin.dbnd_plugins import use_airflow_connections
+from dbnd._vendor.cachetools import cached
 
 
 logger = logging.getLogger(__name__)
