@@ -8,11 +8,14 @@ from targets.fs import FileSystems, register_file_system
 @dbnd.hookimpl
 def dbnd_setup_plugin():
     # register configs
-    from dbnd_aws.emr.emr_config import EmrConfig
     from dbnd_aws.env import AwsEnvConfig
 
-    register_config_cls(EmrConfig)
     register_config_cls(AwsEnvConfig)
+
+    if is_plugin_enabled("dbnd-spark"):
+        from dbnd_aws.emr.emr_config import EmrConfig
+
+        register_config_cls(EmrConfig)
 
     if is_plugin_enabled("dbnd-docker"):
         from dbnd_aws.batch.aws_batch_ctrl import AwsBatchConfig
