@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
-from typing import Tuple
+from typing import Any, Optional, Tuple
 
 import pyspark.sql as spark
 
 from dbnd._core.utils import json_utils
 from targets.config import get_value_preview_max_len
+from targets.target_meta import TargetMeta
 from targets.values.builtins_values import DataValueType
 
 
@@ -28,20 +29,29 @@ class SparkDataFrameValueType(DataValueType):
             ]
         )
 
-    def get_data_dimensions(self, value):  # type: (spark.DataFrame) -> Tuple[int]
-        return value.count(), len(value.columns)
+    def get_value_meta(self, value, with_preview=True):
+        # type: (spark.DataFrame, Optional[bool]) -> TargetMeta
 
-    def get_data_schema(self, df):  # type: (spark.DataFrame) -> str
-
-        schema = {
+        data_dimensions = None
+        data_schema = {
             "type": self.type_str,
-            "columns": list(df.schema.names),
-            "size": int(df.count() * len(df.columns)),
-            "shape": (df.count(), len(df.columns)),
-            "dtypes": {f.name: str(f.dataType) for f in df.schema.fields},
+            "columns": list(value.schema.names),
+            "dtypes": {f.name: str(f.dataType) for f in value.schema.fields},
         }
-        return json_utils.dumps(schema)
 
-    def get_data_hash(self, value):
-        # TODO Hash dataframe path
-        return None
+        if with_preview:
+            rows = value.count()
+            data_dimensions = (rows, len(value.columns))
+            data_schema.update(
+                {
+                    "size": int(rows * len(value.columns)),
+                    "shape": (rows, len(value.columns)),
+                }
+            )
+
+        return TargetMeta(
+            value_preview=self.to_preview(value) if with_preview else None,
+            data_dimensions=data_dimensions,
+            data_schema=json_utils.dumps(data_schema),
+            data_hash=None,  # TODO Hash dataframe path ??
+        )

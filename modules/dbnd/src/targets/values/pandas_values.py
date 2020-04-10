@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import os
 
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import pandas as pd
 import six
@@ -14,6 +14,7 @@ from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
 from targets.config import get_value_preview_max_len
 from targets.target_config import FileFormat
+from targets.target_meta import TargetMeta
 from targets.values.builtins_values import DataValueType
 from targets.values.structure import DictValueType
 from targets.values.value_type import _isinstances
@@ -35,21 +36,22 @@ class DataFrameValueType(DataValueType):
             : get_value_preview_max_len()
         ]
 
-    def get_data_dimensions(self, value):  # type: (pd.DataFrame) -> Tuple[int]
-        return value.shape
-
-    def get_data_schema(self, df):  # type: (pd.DataFrame) -> str
-        schema = {
+    def get_value_meta(self, value, with_preview=True):
+        # type: (pd.DataFrame, Optional[bool]) -> TargetMeta
+        data_schema = {
             "type": self.type_str,
-            "columns": list(df.columns),
-            "size": int(df.size),
-            "shape": df.shape,
-            "dtypes": {col: str(type_) for col, type_ in df.dtypes.items()},
+            "columns": list(value.columns),
+            "size": int(value.size),
+            "shape": value.shape,
+            "dtypes": {col: str(type_) for col, type_ in value.dtypes.items()},
         }
-        return json_utils.dumps(schema)
 
-    def get_data_hash(self, value):
-        return fast_hasher.hash(hash_pandas_object(value, index=True).values)
+        return TargetMeta(
+            value_preview=self.to_preview(value) if with_preview else None,
+            data_dimensions=value.shape,
+            data_schema=json_utils.dumps(data_schema),
+            data_hash=fast_hasher.hash(hash_pandas_object(value, index=True).values),
+        )
 
     def merge_values(self, *values, **kwargs):
         # Concatenate all data into one DataFrame

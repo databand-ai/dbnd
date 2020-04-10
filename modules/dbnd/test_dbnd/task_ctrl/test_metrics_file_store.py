@@ -33,7 +33,7 @@ class TestFileMetricsStore(object):
             "a_tuple": "(1, 2)",
             "df.preview": "Names  Births",
             "df.schema": "{",
-            "df.shape": "[5, 2]",
+            "df.shape": "(5, 2)",
             "df.shape_0_": 5.0,
             "df.shape_1_": 2.0,
         }

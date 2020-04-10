@@ -121,7 +121,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
 
-def get_value_meta_for_metric(key, value, with_preview=True, with_data_hash=False):
+def get_value_meta_for_metric(key, value, with_preview=True):
     value_type = get_value_type_of_obj(value)
     if value_type is None:
         logger.info(
@@ -129,36 +129,11 @@ def get_value_meta_for_metric(key, value, with_preview=True, with_data_hash=Fals
         )
         return None
     try:
-        data_dimensions = value_type.get_data_dimensions(value)
-        if data_dimensions is not None:
-            data_dimensions = list(data_dimensions)
-
-        try:
-            preview = value_type.to_preview(value) if with_preview else None
-            data_hash = value_type.get_data_hash(value) if with_data_hash else None
-        except Exception as ex:
-            logger.info(
-                "Failed to calculate data preview for '%s' with type='%s'"
-                " ( detected as %s): %s",
-                key,
-                type(value),
-                value_type,
-                ex,
-            )
-            data_hash = preview = None
-
-        data_schema = value_type.get_data_schema(value)
-
-        return TargetMeta(
-            value_preview=preview,
-            data_dimensions=data_dimensions,
-            data_schema=data_schema,
-            data_hash=data_hash,
-        )
+        return value_type.get_value_meta(value, with_preview)
 
     except Exception as ex:
         logger.info(
-            "Failed to build value meta info for '%s' with type='%s'"
+            "Failed to get value meta info for '%s' with type='%s'"
             " ( detected as %s): %s",
             key,
             type(value),

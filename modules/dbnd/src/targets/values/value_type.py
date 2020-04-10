@@ -290,26 +290,16 @@ class ValueType(object):
     def with_sub_type_handler(self, type_handler):
         return self
 
-    def get_data_dimensions(self, value):  # type: (Any) -> Optional[Tuple[int, ...]]
-        return None
-
-    def get_data_schema(self, value):  # type: (Any) -> str
-        return json_utils.dumps({"type": self.type_str})
-
-    def get_data_hash(self, value):
-        return fast_hasher.hash(value)
-
     def get_value_meta(self, value, with_preview=True):
-        data_dimensions = self.get_data_dimensions(value)
-        if data_dimensions is not None:
-            data_dimensions = list(data_dimensions)
+        # type: (Any, Optional[bool]) -> TargetMeta
+
         preview = self.to_preview(value) if with_preview else None
-        data_schema = self.get_data_schema(value)
-        data_hash = self.get_data_hash(value)
+        data_schema = json_utils.dumps({"type": self.type_str})
+        data_hash = fast_hasher.hash(value)
 
         return TargetMeta(
             value_preview=preview,
-            data_dimensions=data_dimensions,
+            data_dimensions=None,
             data_schema=data_schema,
             data_hash=data_hash,
         )

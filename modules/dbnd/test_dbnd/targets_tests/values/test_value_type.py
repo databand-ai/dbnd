@@ -2,6 +2,8 @@ import pytest
 
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.utils import json_utils
+from dbnd._vendor import fast_hasher
+from targets.target_meta import TargetMeta
 from targets.values import InlineValueType, StrValueType, register_value_type
 
 
@@ -23,12 +25,12 @@ class TestValueType(object):
         with pytest.raises(DatabandRuntimeError):
             actual.parse_from_str("a")
 
-    def test_data_dimensions(self):
-        data_dimensions = StrValueType().get_data_dimensions("a")
-
-        assert data_dimensions is None
-
-    def test_data_schema(self):
-        data_shape = StrValueType().get_data_schema("a")
-
-        assert data_shape == json_utils.dumps({"type": "str"})
+    def test_str_value_meta(self):
+        str_value_meta = StrValueType().get_value_meta("foo")
+        expected_value_meta = TargetMeta(
+            value_preview="foo",
+            data_dimensions=None,
+            data_schema=json_utils.dumps({"type": "str"}),
+            data_hash=fast_hasher.hash("foo"),
+        )
+        assert str_value_meta == expected_value_meta
