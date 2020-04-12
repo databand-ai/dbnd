@@ -199,8 +199,8 @@ class CoreConfig(Config):
         """
                                                              ctx (+DB)
                                                                 |
-        DBND -> Tracker —> WebChannel -> ApiClient -> HTTP -> Flask -> Views -x-> TrackingApiHandler -> TrackingDbService -> SQLA -> DB
-                      \ -> DBChannel ——————————————----------------------———-/
+        DBND -> Tracker -> WebChannel -> ApiClient -> HTTP -> Flask -> Views -x-> TrackingApiHandler -> TrackingDbService -> SQLA -> DB
+                      \ -> DBChannel ----------------------------------------/
         """
         from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
 
