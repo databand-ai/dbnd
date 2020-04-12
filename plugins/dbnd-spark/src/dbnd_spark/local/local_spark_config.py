@@ -1,8 +1,8 @@
 from dbnd import parameter
-from dbnd._core.task.config import Config
+from dbnd_spark.spark_config import SparkEngineConfig
 
 
-class SparkLocalEngineConfig(Config):
+class SparkLocalEngineConfig(SparkEngineConfig):
     """Apache Spark local deployment"""
 
     # we don't want spark class to inherit from this one, as it should has Config behaviour
