@@ -201,11 +201,11 @@ class AirflowTrackingManager(object):
         self.run_uid = get_job_run_uid(
             dag_id=af_context.root_dag_id, execution_date=af_context.execution_date
         )
-
+        self.dag_id = af_context.dag_id
         # this is the real operator uid, we need to connect to it with our "tracked" task,
         # so the moment monitor is on -> we can sync
         self.af_operator_sync__task_run_uid = get_task_run_uid(
-            self.run_uid, af_context.task_id
+            self.run_uid, af_context.dag_id, af_context.task_id
         )
         # 1. create proper DatabandContext so we can create other objects
         config_for_airflow = {
@@ -375,7 +375,7 @@ class AirflowTrackingManager(object):
 
         # we want all tasks to be "consistent" between all retries
         # so we will see airflow retries as same task_run
-        task.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId_Runtime()
+        task.ctrl.force_task_run_uid = TaskRunUidGen_TaskAfId_Runtime(self.dag_id)
         return run_dynamic_task_safe(task=task, func_call=func_call)
 
 
@@ -390,13 +390,23 @@ def _handle_tracking_error(func_call, msg):
 
 
 class TaskRunUidGen_TaskAfId(TaskRunUidGen):
+    def __init__(self, dag_id):
+        super(TaskRunUidGen_TaskAfId, self).__init__()
+        self.dag_id = dag_id
+
     def generate_task_run_uid(self, run, task, task_af_id):
-        return get_task_run_uid(run.run_uid, task_af_id)
+        return get_task_run_uid(run.run_uid, self.dag_id, task_af_id)
 
 
 class TaskRunUidGen_TaskAfId_Runtime(TaskRunUidGen):
+    def __init__(self, dag_id):
+        super(TaskRunUidGen_TaskAfId_Runtime, self).__init__()
+        self.dag_id = dag_id
+
     def generate_task_run_uid(self, run, task, task_af_id):
         runtime_af = (
             _CURRENT_AIRFLOW_TRACKING_MANAGER.airflow_operator__task_run.task_af_id
         )
-        return get_task_run_uid(run.run_uid, "%s_%s" % (runtime_af, task_af_id))
+        return get_task_run_uid(
+            run.run_uid, "%s.%s.%s" % (self.dag_id, runtime_af, task_af_id)
+        )

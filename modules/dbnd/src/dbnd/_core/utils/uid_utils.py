@@ -22,12 +22,12 @@ def get_task_def_uid(dag_id, task_id):
     return uuid.uuid5(NAMESPACE_DBND_TASK_DEF, "{}.{}".format(dag_id, task_id))
 
 
-def get_task_run_uid(run_uid, task_id):
-    return uuid.uuid5(run_uid, task_id)
+def get_task_run_uid(run_uid, dag_id, task_id):
+    return uuid.uuid5(run_uid, "{}.{}".format(dag_id, task_id))
 
 
-def get_task_run_attempt_uid(run_uid, task_id, try_number):
-    return uuid.uuid5(run_uid, "{}:{}".format(task_id, try_number))
+def get_task_run_attempt_uid(run_uid, dag_id, task_id, try_number):
+    return uuid.uuid5(run_uid, "{}.{}:{}".format(dag_id, task_id, try_number))
 
 
 def get_job_run_uid(dag_id, execution_date):

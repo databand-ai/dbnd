@@ -10,7 +10,7 @@ from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.utils.json_utils import convert_to_safe_types
-from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
+from dbnd._core.utils.uid_utils import get_job_run_uid
 from targets import target
 
 
@@ -76,9 +76,6 @@ class DbndFunctionalOperator(BaseOperator):
         execution_date = context["execution_date"]
         dag_id = dag.dag_id
         run_uid = get_job_run_uid(dag_id=dag_id, execution_date=execution_date)
-
-        dag_task_run_uid = get_task_run_uid(run_uid, dag_id)
-        task_run_uid = get_task_run_uid(run_uid, self.task_id)
 
         # Airflow has updated all relevant fields in Operator definition with XCom values
         # now we can create a real dbnd dbnd_task with real references to dbnd_task
