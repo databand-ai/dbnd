@@ -6,7 +6,7 @@ from six.moves.urllib_parse import urljoin
 
 import requests
 
-from dbnd._core.errors.base import DatabandApiError
+from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 from dbnd._core.errors.friendly_error.api import api_connection_refused
 from dbnd._vendor.marshmallow import Schema, fields
 
@@ -90,6 +90,13 @@ class ApiClient(object):
         except requests.ConnectionError as ex:
             raise api_connection_refused(self._api_base_url + url, ex)
         return resp
+
+    def is_ready(self):
+        try:
+            self.client.api_request("/", None, method="HEAD", no_prefix=True)
+            return True
+        except (DatabandConnectionException, DatabandApiError):
+            return False
 
 
 class dotdict(dict):

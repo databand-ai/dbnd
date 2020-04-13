@@ -363,11 +363,7 @@ class TrackingApiClient(TrackingAPI):
         return self.client.api_request(api_endpoint, data)
 
     def is_ready(self):
-        try:
-            self.client.api_request("/app", None, method="HEAD", no_prefix=True)
-            return True
-        except (DatabandConnectionException, DatabandApiError):
-            return False
+        return self.client.is_ready()
 
 
 @attr.s
