@@ -62,7 +62,6 @@ def dbnd_setup_unittest():
 def dbnd_task_run_context(task_run):
     # type: (TaskRun)-> Context
     """ Using this context when running task_run  """
-    task_run.set_external_resource_urls()
     pass
 
 
