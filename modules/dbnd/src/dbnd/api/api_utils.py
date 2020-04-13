@@ -93,7 +93,7 @@ class ApiClient(object):
 
     def is_ready(self):
         try:
-            self.client.api_request("/", None, method="HEAD", no_prefix=True)
+            self.api_request("/", None, method="HEAD", no_prefix=True)
             return True
         except (DatabandConnectionException, DatabandApiError):
             return False
