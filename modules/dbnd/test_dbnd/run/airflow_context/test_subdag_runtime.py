@@ -5,7 +5,8 @@ import mock
 from pytest import fixture
 
 from dbnd import log_metric, task
-from dbnd._core.current import get_databand_run
+from dbnd._core.current import try_get_databand_run
+from dbnd._core.inplace_run import airflow_dag_inplace_tracking
 
 
 PARENT_DAG = "parent_dag"
@@ -16,7 +17,8 @@ FULL_DAG_NAME = "%s.%s" % (PARENT_DAG, CHILD_DAG)
 @task
 def fake_task_inside_dag():
     log_metric("Testing", "Metric")
-    run = get_databand_run()
+    run = try_get_databand_run()
+    assert run is not None, "Task should run in databand run, check airflow tracking!"
     root_task = run.root_task
 
     # Validate regular subdag properties
@@ -50,5 +52,8 @@ def set_env():
 
 class TestTaskInplaceRun(object):
     def test_sanity_with_airflow(self, set_env):
+        airflow_dag_inplace_tracking._TRY_GET_AIRFLOW_CONTEXT_CACHE.clear()
         fake_task_inside_dag()
+
+        airflow_dag_inplace_tracking._TRY_GET_AIRFLOW_CONTEXT_CACHE.clear()
         print("hey")

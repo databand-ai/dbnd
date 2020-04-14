@@ -81,9 +81,10 @@ class AirflowTaskContext(object):
 
 
 _AIRFLOW_TASK_CONTEXT = None
+_TRY_GET_AIRFLOW_CONTEXT_CACHE = {}
 
 
-@cached()
+@cached(cache=_TRY_GET_AIRFLOW_CONTEXT_CACHE)
 def try_get_airflow_context():
     # type: ()-> Optional[AirflowTaskContext]
     # first try to get from spark
