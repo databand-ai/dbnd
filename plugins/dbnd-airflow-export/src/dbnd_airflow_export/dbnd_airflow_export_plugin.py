@@ -316,6 +316,7 @@ class EDag(object):
         dag_folder,
         hostname,
         source_code,
+        is_subdag,
     ):
         self.description = description
         self.root_task_ids = root_task_ids  # type: List[str]
@@ -331,6 +332,7 @@ class EDag(object):
         self.dag_folder = dag_folder
         self.hostname = hostname
         self.source_code = source_code
+        self.is_subdag = is_subdag
 
     @staticmethod
     def from_dag(dag, dag_folder):
@@ -351,6 +353,7 @@ class EDag(object):
             dag_folder=dag_folder,
             hostname=get_hostname(),
             source_code=_read_dag_file(dag.fileloc),
+            is_subdag=dag.is_subdag,
         )
 
     def as_dict(self):
@@ -369,6 +372,7 @@ class EDag(object):
             dag_folder=self.dag_folder,
             hostname=self.hostname,
             source_code=self.source_code,
+            is_subdag=self.is_subdag,
         )
 
 
