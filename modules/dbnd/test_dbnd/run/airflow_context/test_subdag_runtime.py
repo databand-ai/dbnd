@@ -20,16 +20,17 @@ def fake_task_inside_dag():
     root_task = run.root_task
 
     # Validate regular subdag properties
-    assert run.job_name == FULL_DAG_NAME
+    assert run.job_name == PARENT_DAG
     assert root_task.task_name == "DAG__runtime"
 
     # Validate relationships
     ## sub dag
     child_task = list(root_task.task_dag.upstream)[0]
-    assert CHILD_DAG in child_task.task_name
-    ## fake task
-    child_task = list(child_task.task_dag.upstream)[0]
-    assert fake_task_inside_dag.__name__ in child_task.task_name
+    assert "fake_task_inside_dag" in child_task.task_name
+    assert child_task.dag_id == FULL_DAG_NAME
+    ## function task
+    func_task = list(child_task.task_dag.upstream)[0]
+    assert fake_task_inside_dag.__name__ in func_task.task_name
 
     return "Regular test"
 
