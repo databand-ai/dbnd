@@ -11,7 +11,6 @@ from airflow.configuration import conf
 from airflow.jobs import BaseJob
 from airflow.models import BaseOperator, DagModel, DagRun
 from airflow.plugins_manager import AirflowPlugin
-from airflow.utils.dates import days_ago
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
@@ -82,7 +81,7 @@ def do_export_data(
     if not task_instances and not dag_runs:
         return ExportData(since=since)
 
-    dag_models = current_dags.values()
+    dag_models = [d for d in current_dags.values() if d]
     if dag_ids:
         dag_models = [dag for dag in dag_models if dag.dag_id in dag_ids]
 
