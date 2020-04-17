@@ -51,7 +51,40 @@ def get_dbnd_tracking_spark_conf(
 
 
 def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
+    """ This functions augments spark-submit command with dbnd tracking metadata aka dbnd_context. If context
+    is not provided, a default Airflow templates are set for DAG Id, Task Id, and execution date
+
+    Adds 3 configuration properties to spark-submit to associate spark run with airflow DAG that initiated this run.
+    These properties are
+        spark.env.AIRFLOW_CTX_DAG_ID  -  name of the Airflow DAG to associate a run with
+        spark.env.AIRFLOW_CTX_EXECUTION_DATE - execution_date to associate a run with
+        spark.env.AIRFLOW_CTX_TASK_ID" - name of the Airflow Task to associate a run with
+
+    Example:
+        >>> spark_submit_with_dbnd_tracking(["spark-submit","my_script.py","my_param"])
+        ['spark-submit', '--conf', 'spark.env.AIRFLOW_CTX_DAG_ID={{dag.dag_id}}', '--conf', 'spark.env.AIRFLOW_CTX_EXECUTION_DATE={{ts}}', '--conf', 'spark.env.AIRFLOW_CTX_TASK_ID={{task.task_id}}', 'my_script.py', 'my_param']
+
+    Args:
+        command_as_list: spark-submit command line as a list of strings.
+        dbnd_context: optional dbnd_context provided by a user. I
+
+    Returns:
+        An updated spark-submit command including dbnd context.
+
+    """
+
     if not dbnd_context:
         dbnd_context = get_dbnd_tracking_spark_conf()
-    index = command_as_list.index("spark-submit")
+
+    index = next(
+        (
+            command_as_list.index(elm)
+            for elm in command_as_list
+            if "spark-submit" in elm
+        ),
+        -1,
+    )
+    if index == -1:
+        raise Exception("Failed to find spark-submit in %s" % " ".join(command_as_list))
+
     return command_as_list[0 : index + 1] + dbnd_context + command_as_list[index + 1 :]
