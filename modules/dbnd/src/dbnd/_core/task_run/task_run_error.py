@@ -36,8 +36,8 @@ class TaskRunError(object):
         return self.exc_info[1]
 
     @classmethod
-    def buid_from_ex(self, ex, task_run):
-        exc_info = sys.exc_info()
+    def buid_from_ex(self, ex, task_run, exc_info=None):
+        exc_info = exc_info or sys.exc_info()
         return TaskRunError(
             exc_info=exc_info,
             traceback=traceback.format_exc(),

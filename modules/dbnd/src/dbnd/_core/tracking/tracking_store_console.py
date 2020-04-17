@@ -6,7 +6,7 @@ from datetime import timedelta
 import six
 
 from dbnd._core.constants import TaskRunState
-from dbnd._core.current import dbnd_context
+from dbnd._core.current import dbnd_context, is_verbose
 from dbnd._core.tracking import tracking_store
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class ConsoleStore(tracking_store.TrackingStore):
     def __init__(self):
         super(ConsoleStore, self).__init__()
-        self.verbose = dbnd_context().system_settings.verbose
+        self.verbose = is_verbose()
 
     def init_scheduled_job(self, scheduled_job, update_existing):
         super(ConsoleStore, self).init_scheduled_job(scheduled_job, update_existing)

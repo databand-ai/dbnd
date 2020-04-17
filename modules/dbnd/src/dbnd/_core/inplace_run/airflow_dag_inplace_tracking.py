@@ -9,7 +9,6 @@ import pytz
 import attr
 
 from dbnd._core.configuration import environ_config
-from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import UpdateSource
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.decorator.dynamic_tasks import (
@@ -17,6 +16,7 @@ from dbnd._core.decorator.dynamic_tasks import (
     run_dynamic_task_safe,
 )
 from dbnd._core.decorator.func_task_call import FuncCall
+from dbnd._core.inplace_run.tracking_config import set_tracking_config_overide
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task.task import Task
@@ -236,21 +236,10 @@ class AirflowTrackingManager(object):
             self.run_uid, af_context.dag_id, af_runtime_op_task_id
         )
         # 1. create proper DatabandContext so we can create other objects
-        config_for_airflow = {
-            "run": {
-                "skip_completed": False,
-                "skip_completed_on_run": False,
-                "validate_task_inputs": False,
-                "validate_task_outputs": False,
-            },  # we don't want to "check" as script is task_version="now"
-            "task": {"task_in_memory_outputs": True},  # do not save any outputs
-            "core": {"tracker_raise_on_error": False},  # do not fail on tracker errors
-            # we should no override airflow logging by default
-            "log": {"disabled": not override_airflow_log_system_for_tracking()},
-        }
-        config.set_values(
-            config_values=config_for_airflow, override=True, source="dbnd_start"
+        set_tracking_config_overide(
+            use_dbnd_log=override_airflow_log_system_for_tracking()
         )
+
         # create databand context
         with new_dbnd_context(name="airflow") as dc:  # type: DatabandContext
 

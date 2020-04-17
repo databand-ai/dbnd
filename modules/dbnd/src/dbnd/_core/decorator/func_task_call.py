@@ -14,10 +14,11 @@ if typing.TYPE_CHECKING:
 
 @attr.s
 class TaskCallState(object):
-    should_store_result = attr.ib(default=False)
     started = attr.ib(default=False)
     finished = attr.ib(default=False)
     result = attr.ib(default=None)
+
+    should_store_result = attr.ib(default=False)
 
     def start(self):
         self.started = True
@@ -27,6 +28,7 @@ class TaskCallState(object):
     def finish(self, result=None):
         self.finished = True
         if self.should_store_result:
+            self.result_saved = True
             self.result = result
 
 
