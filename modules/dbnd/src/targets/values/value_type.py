@@ -305,7 +305,7 @@ class ValueType(object):
 
 def _safe_hash(value):
     try:
-        fast_hasher.hash(value)
+        return fast_hasher.hash(value)
     except:
         logger.info("Failed to hash value of type %s", type(value))
         return None
