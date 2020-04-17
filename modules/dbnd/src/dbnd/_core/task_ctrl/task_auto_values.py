@@ -10,6 +10,8 @@ from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationT
 from dbnd._core.current import try_get_current_task_run
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
+from targets import InMemoryTarget
+from targets.values import get_value_type_of_obj
 
 
 logger = logging.getLogger(__name__)
@@ -106,7 +108,16 @@ class TaskAutoParamsReadWrite(object):
         task_run = try_get_current_task_run()
         access_status = DbndTargetOperationStatus.OK
         try:
+            if isinstance(original_value, InMemoryTarget):
+                parameter.value_type = get_value_type_of_obj(
+                    current_value, parameter.value_type
+                )
+
             parameter.dump_to_target(original_value, current_value)
+            # it's a workaround, we don't want to change parameter for outputs (dynamically)
+            # however, we need proper value type to "dump" preview an other meta.
+            # we will update it only for In memory targets only for now
+
         except Exception as ex:
             access_status = DbndTargetOperationStatus.NOK
             raise friendly_error.task_execution.failed_to_save_value_to_target(

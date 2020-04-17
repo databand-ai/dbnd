@@ -400,24 +400,7 @@ class TaskFactory(object):
                     sections=self.task_config_sections
                 ),
             )
-        if cf_value:
-            param_def, p_value = build_parameter_value(param_def, cf_value)
-            p_value = ParameterValue(
-                parameter=param_def,
-                source=cf_value.source,
-                source_value=cf_value.value,
-                value=p_value,
-                parsed=cf_value.require_parse,
-            )
-        else:
-            p_value = ParameterValue(
-                parameter=param_def,
-                source=None,
-                source_value=NOTHING,
-                value=NOTHING,
-                parsed=False,
-            )
-        return p_value
+        return build_parameter_value(param_def, cf_value)
 
     def _get_param_config_value(self, param_def):
         try:

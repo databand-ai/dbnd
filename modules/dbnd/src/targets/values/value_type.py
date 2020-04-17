@@ -1,10 +1,9 @@
 import abc
 import copy
-import hashlib
 import logging
 import re
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import six
 
@@ -123,7 +122,6 @@ class ValueType(object):
     ##################
 
     def _interpolate_from_str(self, value):
-        from dbnd._core.utils.task_utils import to_targets
 
         # when we parse string, if it's has @ - we always will want to "de-reference" it
         # and read from disk
@@ -218,7 +216,7 @@ class ValueType(object):
             return value
 
         # so we have a value that is obviously "Data" type,
-        # we want to be able to supporet "load_value" behaviour
+        # we want to be able to support "load_value" behaviour
         if not load_value and not isinstance(self, _TargetValueType):
             return InMemoryTarget(value, value_type=self)
 
@@ -295,7 +293,7 @@ class ValueType(object):
 
         preview = self.to_preview(value) if with_preview else None
         data_schema = json_utils.dumps({"type": self.type_str})
-        data_hash = fast_hasher.hash(value)
+        data_hash = _safe_hash(value)
 
         return TargetMeta(
             value_preview=preview,
@@ -303,6 +301,14 @@ class ValueType(object):
             data_schema=data_schema,
             data_hash=data_hash,
         )
+
+
+def _safe_hash(value):
+    try:
+        fast_hasher.hash(value)
+    except:
+        logger.info("Failed to hash value of type %s", type(value))
+        return None
 
 
 class InlineValueType(ValueType):

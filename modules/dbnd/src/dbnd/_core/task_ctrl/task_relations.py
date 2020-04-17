@@ -38,7 +38,15 @@ class TaskRelations(TaskSubCtrl):
         self.initialize_band()
 
         # STEP 1 - calculate all inputs and _required
-        self.initialize_required()
+        try:
+            self.task_inputs = self.initialize_required()
+        except Exception:
+            logger.warning(
+                "Failed to calculate relationships for %s" % self.task_id, exc_info=True
+            )
+            self.task_inputs = {}
+            if not self.task.task_is_dynamic:
+                raise
 
         # STEP 2 ( now we have all inputs, we can calculate real signature)
         # support for two phase build
@@ -159,7 +167,7 @@ class TaskRelations(TaskSubCtrl):
         # now may be user still use function _requires - so let add that to dependencies
         _extend_system_section("required", self.task._requires())
 
-        self.task_inputs = to_targets(inputs)
+        return to_targets(inputs)
 
     def initialize_outputs(self):
         """

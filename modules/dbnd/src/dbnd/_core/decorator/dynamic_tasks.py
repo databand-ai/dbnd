@@ -39,11 +39,14 @@ def create_dynamic_task(func_call):
     # get all possible value's targets
     call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(call_kwargs)
     for p_name, value_origin in call_kwargs_as_targets.items():
+        root_target = value_origin.origin_target
+        path = root_target.path if hasattr(root_target, "path") else None
         call_kwargs[p_name] = InlineTarget(
-            root_target=value_origin.origin_target,
+            root_target=root_target,
             obj=call_kwargs[p_name],
             value_type=value_origin.value_type,
             source=value_origin.origin_target.source,
+            path=path,
         )
 
     call_kwargs.setdefault("task_is_dynamic", True)
