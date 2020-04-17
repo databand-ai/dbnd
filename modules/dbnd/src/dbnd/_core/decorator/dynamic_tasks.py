@@ -96,14 +96,16 @@ def run_dynamic_task_safe(task, func_call):
             task_run = dbnd_run.run_dynamic_task(
                 task, task_engine=current_task_run().task_engine
             )
+            if task._dbnd_call_state.result_saved:
+                return task._dbnd_call_state.result
 
-        # t = task_run.task
+        t = task_run.task
         # if we are inside run, we want to have real values, not deferred!
-        # if t.task_definition.single_result_output:
-        #     return t.__class__.result.load_from_target(t.result)
-        #     # we have func without result, just fallback to None
+        if t.task_definition.single_result_output:
+            return t.__class__.result.load_from_target(t.result)
+            # we have func without result, just fallback to None
 
-        return task._dbnd_call_state.result
+        return t
     except Exception:
         if task and task._dbnd_call_state:
             if task._dbnd_call_state.finished:

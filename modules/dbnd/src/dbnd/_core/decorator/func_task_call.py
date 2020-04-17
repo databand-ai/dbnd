@@ -16,6 +16,8 @@ if typing.TYPE_CHECKING:
 class TaskCallState(object):
     started = attr.ib(default=False)
     finished = attr.ib(default=False)
+    result_saved = attr.ib(default=False)
+
     result = attr.ib(default=None)
 
     should_store_result = attr.ib(default=False)

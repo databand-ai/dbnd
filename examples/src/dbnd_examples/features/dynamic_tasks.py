@@ -38,5 +38,4 @@ def say_hello_to_everybody(users_num=3) -> Tuple[str, str]:
 
 
 if __name__ == "__main__":
-    os.environ["DBND__TRACKING"] = "True"
     say_hello_to_everybody()

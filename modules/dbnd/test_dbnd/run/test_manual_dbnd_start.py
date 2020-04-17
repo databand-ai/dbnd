@@ -1,8 +1,7 @@
+import logging
 import os
 import re
 import sys
-
-import pytest
 
 from dbnd import dbnd_run_start, dbnd_run_stop, task
 from dbnd.testing.helpers import run_dbnd_subprocess
@@ -23,6 +22,11 @@ CURRENT_PY_FILE = __file__.replace(".pyc", ".py")
 def run_dbnd_subprocess__current_file(args, **kwargs):
     args = args or []
     return run_dbnd_subprocess([sys.executable, CURRENT_PY_FILE] + args, **kwargs)
+
+
+def _assert_output(reg_exp, output, count=1):
+    logging.info("RE: %s", reg_exp)
+    assert count == len(re.findall(reg_exp, output))
 
 
 class TestManualDbndStart(object):
@@ -49,7 +53,7 @@ class TestManualDbndStart(object):
             assert 0 == len(re.findall(r"Task {}__\w+".format(task_name), result))
 
         for task_name, count in self.expected_task_names:
-            assert count == len(re.findall(RE_F_RUNNING.format(task_name), result))
+            _assert_output(RE_F_RUNNING.format(task_name), result, count)
 
     def test_manual_dbnd_start_manual_stop(self):
         run_dbnd_subprocess__current_file([USE_DBND_START, USE_DBND_STOP])
@@ -59,16 +63,14 @@ class TestManualDbndStart(object):
             [USE_DBND_START, FAIL_MAIN], retcode=1
         )
         assert "main bummer!" in result
-
-        for task_name, count in self.expected_task_names + ((self.auto_task_name, 1),):
-            assert count == len(re.findall(RE_TASK_COMPLETED.format(task_name), result))
+        _assert_output(RE_TASK_FAILED.format("test_manual_dbnd_start.py"), result)
 
     def test_manual_dbnd_start_fail_f2(self):
         result = run_dbnd_subprocess__current_file([USE_DBND_START, FAIL_F2], retcode=1)
         assert "f2 bummer!" in result
 
         for task_name, count in self.expected_task_names:
-            assert 1 == len(re.findall(RE_TASK_FAILED.format(task_name), result))
+            _assert_output(RE_TASK_FAILED.format(task_name), result)
 
 
 @task
