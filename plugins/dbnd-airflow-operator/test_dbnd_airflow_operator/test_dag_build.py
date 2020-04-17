@@ -1,5 +1,4 @@
 import copy
-import sys
 
 from typing import Tuple
 
@@ -55,7 +54,7 @@ class TestFunctionalDagBuild(object):
         assert isinstance(bool_value, str)
         assert self.is_xcom_str(bool_value)
 
-    def test_multiple_outputs(self):
+    def test_multiple_outputs_with_type_annotation(self):
         @task
         def two_outputs():
             # type:  () -> Tuple[str, str]
@@ -74,9 +73,10 @@ class TestFunctionalDagBuild(object):
         def two_outputs():
             return "Nights", "Ni!"
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError) as err:
             with DAG(dag_id="test_simple_build", default_args=default_args_test):
                 _, _ = two_outputs()
+            err.match(".*type annotations.*")
 
     def test_tasks_are_bind_and_upstream_is_set(self):
         @task

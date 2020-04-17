@@ -52,6 +52,12 @@ class XComStr(str, _BaseOperator):
         obj.task_id = task_id
         return obj
 
+    def __iter__(self):
+        raise ValueError(
+            "It seems that you are trying to assign output to multiple values. If your task's function "
+            "returns multiple values please add type annotations to it."
+        )
+
     @property
     def op(self):
         return safe_get_context_manager_dag().get_task(self.task_id)
