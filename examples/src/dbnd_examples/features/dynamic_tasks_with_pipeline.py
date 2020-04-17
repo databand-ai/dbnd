@@ -1,9 +1,11 @@
 import logging
-import os
 
 from typing import Tuple
 
-from dbnd import dbnd_run_start, task
+from dbnd import dbnd_run_start, pipeline, task
+
+
+dbnd_run_start()
 
 
 @task
@@ -18,7 +20,7 @@ def join_greeting(base_greeting, extra_name):
     return "{} and {}".format(base_greeting, extra_name)
 
 
-@task
+@pipeline
 def say_hello_pipe(users_num=3):
     v = say_hello("some_user")
     for i in range(users_num):
@@ -38,5 +40,4 @@ def say_hello_to_everybody(users_num=3) -> Tuple[str, str]:
 
 
 if __name__ == "__main__":
-    os.environ["DBND__TRACKING"] = "True"
     say_hello_to_everybody()

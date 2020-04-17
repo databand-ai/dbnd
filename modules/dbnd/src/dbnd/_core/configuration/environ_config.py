@@ -3,18 +3,24 @@ import os
 
 PARAM_ENV_TEMPLATE = "DBND__{S}__{K}"
 
+# Filee locations
 ENV_DBND_HOME = "DBND_HOME"
 ENV_AIRFLOW_CONFIG = "AIRFLOW_CONFIG"
 ENV_DBND_SYSTEM = "DBND_SYSTEM"
 ENV_DBND_LIB = "DBND_LIB"
+ENV_DBND_CONFIG = "DBND_CONFIG"  # extra config for DBND
 
 
 ENV_DBND__ENABLED = "DBND__ENABLED"
+ENV_DBND__TRACKING = (
+    "DBND__TRACKING"
+)  # implicit DBND tracking ( on any @task/log_ call)
+ENV_DBND__VERBOSE = "DBND__VERBOSE"  # VERBOSE
 ENV_DBND__UNITTEST_MODE = "DBND__UNITTEST_MODE"
-ENV_DBND__CONFIG = "DBND__CONFIG"
-ENV_DBND__USER_PRE_INIT = "DBND__USER_PRE_INIT"
-ENV_DBND__NO_MODULES = "DBND__NO_MODULES"
-ENV_DBND__NO_TABLES = "DBND__NO_TABLES"
+ENV_DBND__USER_PRE_INIT = "DBND__USER_PRE_INIT"  # run on user init
+ENV_DBND__NO_MODULES = "DBND__NO_MODULES"  # do not auto-load user modules
+
+ENV_DBND__NO_TABLES = "DBND__NO_TABLES"  # do not print fancy tables
 ENV_DBND__SHOW_STACK_ON_SIGQUIT = "DBND__SHOW_STACK_ON_SIGQUIT"
 ENV_DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING = (
     "DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING"
@@ -76,7 +82,7 @@ def environ_enabled(variable_name, default=False):
 
 
 def get_dbnd_environ_config_file():
-    return os.environ.get(ENV_DBND__CONFIG, None)
+    return os.environ.get(ENV_DBND_CONFIG, None)
 
 
 def is_unit_test_mode():
