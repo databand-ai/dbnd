@@ -101,7 +101,13 @@ def get_settings():
 
 
 def is_verbose():
-    return get_settings().system.verbose
+    context = try_get_databand_context()
+    if context:
+        return context.settings.system.verbose
+
+    from dbnd._core.configuration import environ_config
+
+    return environ_config.environ_enabled(environ_config.ENV_DBND__VERBOSE)
 
 
 def is_killed():

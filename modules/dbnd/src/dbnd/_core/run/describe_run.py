@@ -3,6 +3,7 @@ import typing
 from collections import Counter
 
 from dbnd._core.constants import RunState, SystemTaskName, TaskRunState
+from dbnd._core.current import is_verbose
 from dbnd._core.run.run_ctrl import RunCtrl
 from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.utils.basics.text_banner import TextBanner
@@ -37,10 +38,16 @@ class DescribeRun(RunCtrl):
                     skipped=task_skipped_as_not_required
                 )
             )
+        show_more = is_verbose()
+        task_runs = run.task_runs
+        if not show_more:  # show only non system
+            task_runs = [tr for tr in run.task_runs if not tr.task.task_is_system]
+            if not task_runs:
+                task_runs = run.task_runs
 
-        states = Counter(tr.task_run_state for tr in run.task_runs if tr.task_run_state)
+        states = Counter(tr.task_run_state for tr in task_runs if tr.task_run_state)
 
-        tasks = [("total", len(self.run.task_runs))]
+        tasks = [("total", len(task_runs))]
         tasks += [(k.value, v) for k, v in states.items()]
 
         b.column_properties("TASKS", tasks)

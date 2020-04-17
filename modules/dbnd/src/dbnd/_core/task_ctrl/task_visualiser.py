@@ -14,7 +14,7 @@ from dbnd._core.task_run.task_run_error import task_call_source_to_str
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_string, safe_tabulate
 from dbnd._core.utils.structures import list_of_strings
 from dbnd._vendor.termcolor import colored
-from targets import DataTarget, Target
+from targets import DataTarget, InMemoryTarget, Target
 
 
 if typing.TYPE_CHECKING:
@@ -161,6 +161,8 @@ class _TaskBannerBuilder(TaskSubCtrl):
             value = self.params.get_value(p.name)
             value_meta = self.params.get_value_meta(p.name)
             target_config = p.target_config
+            if isinstance(value, InMemoryTarget):
+                target_config = "memory"
 
             if isinstance(value, DataTarget) and hasattr(value, "config"):
                 target_config = value.config

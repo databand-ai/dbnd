@@ -13,6 +13,7 @@ from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
     track_airflow_dag_run_operator_run,
     try_get_airflow_context,
 )
+from dbnd._core.inplace_run.inplace_run_manager import is_inplace_run
 from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     build_task_at_airflow_dag_context,
     is_in_airflow_dag_build_context,
@@ -23,8 +24,7 @@ from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_context import (
     TaskContextPhase,
     current_phase,
-    current_task,
-    has_current_task,
+    try_get_current_task,
 )
 
 
@@ -65,7 +65,15 @@ class _DecoratedTask(Task):
                 func_call=func_call, airflow_task_context=airflow_task_context
             )
 
-        if not has_current_task():  # direct call to the function
+        current = try_get_current_task()
+        if not current and is_inplace_run():
+            from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start
+
+            task_run = dbnd_run_start()
+            if task_run:
+                current = task_run.task
+
+        if not current:  # direct call to the function
             return func_call.invoke()
 
         ######
@@ -73,7 +81,6 @@ class _DecoratedTask(Task):
         # now we can make some decisions what we do with the call
         # it's not coming from _invoke_func
         # but from   user code ...   some_func()  or SomeTask()
-        current = current_task()
         phase = current_phase()
         if phase is TaskContextPhase.BUILD:
             # we are in the @pipeline context, we are building execution plan

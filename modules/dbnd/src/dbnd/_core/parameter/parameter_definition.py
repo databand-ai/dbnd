@@ -2,7 +2,7 @@ import enum
 import logging
 import typing
 
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Dict, Optional, Type
 
 import six
 
@@ -20,6 +20,7 @@ from dbnd._core.constants import (
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandBuildError, friendly_error
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.basics.text_banner import safe_string
 from dbnd._core.utils.traversing import traverse
@@ -317,14 +318,15 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     def dump_to_target(
         self, target, value, **kwargs
     ):  # type: (DataTarget, T, **Any)-> None
-        self._store_value_origin_target(value, target)
-
         if hasattr(target, "config"):
             f = target.config.format
             if f and f in self.save_options:
                 kwargs.update(**self.save_options[f])
 
         self.value_type.save_to_target(target, value, **kwargs)  # default impl
+
+        # we need updated target
+        self._store_value_origin_target(value, target)
 
     def _log_target_preview(self, runtime_value, value, task):
         if try_get_databand_run() and task.current_task_run:
@@ -536,23 +538,20 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         return self.value_type.get_value_meta(value, with_preview=with_preview)
 
 
-def _update_parameter_from_runtime_value_type(parameter, cf_value):
-    # type: ( ParameterDefinition, ConfigValue)->ParameterDefinition
-    value = cf_value.value
-    if value is None or parameter.is_output():
-        return parameter
+def _update_parameter_from_runtime_value_type(parameter, value):
+    # type: ( ParameterDefinition, Any)->Optional[ValueType]
 
-    compiled_value_type = parameter.value_type
+    original_value_type = parameter.value_type
     runtime_value_type = None
     if isinstance(value, Target):
         if isinstance(value, InlineTarget):
             runtime_value_type = value.value_type
-        elif isinstance(compiled_value_type, _TargetValueType):
+        elif isinstance(original_value_type, _TargetValueType):
             # user expects to get target/path/str
             # we will validate that value is good at "parse"
             pass
         else:
-            # we are going to "load" the value from target into compiled_value_type
+            # we are going to "load" the value from target into original_value_type
             # let get the "real" value type from the source of it
             if value.source and value.source_parameter:
                 # we can take value type from the creator of it
@@ -560,73 +559,92 @@ def _update_parameter_from_runtime_value_type(parameter, cf_value):
                 if isinstance(
                     runtime_value_type, (_TargetValueType, DefaultObjectValueType)
                 ):
-                    return parameter
+                    return None
             else:
                 # we don't really have value type
-                return parameter
+                return None
     else:
         if isinstance(value, six.string_types) or isinstance(value, Path):
             # str are going to be parsed, or treated as Target
             # Path is going to be used as Target
-            return parameter
+            return None
 
         runtime_value_type = get_types_registry().get_value_type_of_obj(value)
 
     # not found or the same
-    if not runtime_value_type or runtime_value_type == compiled_value_type:
-        return parameter
+    if not runtime_value_type or runtime_value_type == original_value_type:
+        return None
 
     # value is str, most chances we will parse it into the value
     if type(runtime_value_type) in [StrValueType, VersionValueType]:
-        return parameter
+        return None
     if isinstance(runtime_value_type, _StructureValueType):
-        if isinstance(compiled_value_type, _StructureValueType):
-            if type(runtime_value_type) == type(compiled_value_type):
+        if isinstance(original_value_type, _StructureValueType):
+            if type(runtime_value_type) == type(original_value_type):
                 # probably we have difference on sub level,
                 # there is no a clear way to find sub types of object
                 if not runtime_value_type.sub_value_type:
-                    return parameter
-    if compiled_value_type.type is object:
-        return parameter
-
-    message = (
-        "{parameter}: type of the value at runtime '{runtime}"
-        " doesn't match user defined type '{compile}'".format(
-            parameter=parameter, runtime=runtime_value_type, compile=compiled_value_type
-        )
-    )
-    # we update, only if user didn't specify the value type
-    # in the task definition
-    if isinstance(parameter.value_type, DefaultObjectValueType):
-        message = "%s: updating parameter with the runtime info" % (message)
-        cf_value.warnings.append(message)
-        logger.info(message)
-        parameter = attr.evolve(parameter, value_type=runtime_value_type)
-    else:
-        cf_value.warnings.append(message)
-        logger.warning(message)
-
-    return parameter
+                    return None
+    if original_value_type.type is object:
+        if runtime_value_type.type is object:
+            return None
+        if not isinstance(original_value_type, DefaultObjectValueType):
+            return None
+    return runtime_value_type
 
 
 def build_parameter_value(parameter, cf_value):
-    # type: (ParameterDefinition, ConfigValue) -> Tuple[ParameterDefinition, Any]
+    # type: (ParameterDefinition, ConfigValue) -> ParameterValue
+    if not cf_value:
+        return ParameterValue(
+            parameter=parameter,
+            source=None,
+            source_value=NOTHING,
+            value=NOTHING,
+            parsed=False,
+        )
+
+    warnings = []
+    value = cf_value.value
     try:
-        parameter = _update_parameter_from_runtime_value_type(parameter, cf_value)
+        if value is not None and not parameter.is_output():
+            updated_value_type = _update_parameter_from_runtime_value_type(
+                parameter, value
+            )
+            message = (
+                "{parameter}: type of the value at runtime '{runtime}"
+                " doesn't match user defined type '{compile}'".format(
+                    parameter=parameter,
+                    runtime=updated_value_type,
+                    compile=parameter.value_type,
+                )
+            )
+            if updated_value_type:
+                if isinstance(parameter.value_type, DefaultObjectValueType):
+                    # we are going to update
+                    parameter = attr.evolve(
+                        parameter,
+                        value_type=updated_value_type,
+                        load_on_build=updated_value_type.load_on_build,
+                    )
+                    message = "%s: updating parameter with the runtime info" % (message)
+                # warn anyway
+                warnings.append(message)
+
     except Exception as ex:
         # we don't want to fail user code on failed value discovery
         # we only print message from "friendly exception" and show real stack
         logger.exception("Failed to discover runtime for %s", parameter)
 
     try:
-        p_val = parameter.calc_init_value(cf_value.value)
+        p_val = parameter.calc_init_value(value)
     except Exception as ex:
         raise parameter.parameter_exception("calculate value", ex=ex)
 
     # we need to break strong reference between tasks
     # otherwise we will have pointer from task to another task
     # if p_val is task, that's ok, but let minimize the risk by patching cf_value
-    if isinstance(cf_value.value, _TaskParamContainer):
+    if isinstance(value, _TaskParamContainer):
         cf_value.value = str(cf_value)
 
     try:
@@ -637,7 +655,16 @@ def build_parameter_value(parameter, cf_value):
             "validate value='%s'" % safe_string(p_val), ex=ex
         )
 
-    return parameter, p_val
+    p_value = ParameterValue(
+        parameter=parameter,
+        source=cf_value.source,
+        source_value=cf_value.value,
+        value=p_val,
+        parsed=cf_value.require_parse,
+        warnings=warnings + cf_value.warnings,
+    )
+
+    return p_value
 
 
 def _add_description(base, extra):

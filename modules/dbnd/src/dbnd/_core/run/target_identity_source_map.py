@@ -5,7 +5,7 @@ import six
 
 import attr
 
-from targets import Target
+from targets import InMemoryTarget, Target
 from targets.values import ValueType
 
 
@@ -39,6 +39,8 @@ class TargetIdentitySourceMap(object):
             return
 
         obj_id = id(runtime_value)
+        if isinstance(origin_target, InMemoryTarget):
+            value_type = origin_target.value_type
         self.id_map[obj_id].append(
             ValueOrigin(
                 obj_id=obj_id, origin_target=origin_target, value_type=value_type

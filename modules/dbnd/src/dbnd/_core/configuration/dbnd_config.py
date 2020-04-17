@@ -150,6 +150,7 @@ class DbndConfig(object):
             merge_settings=merge_settings,
             override=override,
         )
+        return self.config_layer
 
     def set_from_config_file(self, config_path):
         # type: (Union[Target,str]) -> None

@@ -109,3 +109,7 @@ class RunConfig(config.Config):
     validate_task_outputs = parameter(default=True).help(
         "Should dbnd task check that all outputs exist after task has been executed"
     )[bool]
+
+    tracking_with_cache = parameter(default=False).help(
+        "Should dbnd cache results during tracking"
+    )[bool]

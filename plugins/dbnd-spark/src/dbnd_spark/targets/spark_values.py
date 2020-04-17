@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from typing import Any, Optional, Tuple
+from typing import Optional
 
 import pyspark.sql as spark
 
@@ -18,7 +18,8 @@ class SparkDataFrameValueType(DataValueType):
     config_name = "spark_dataframe"
 
     def to_signature(self, x):
-        return str(x.rdd.id())
+        id = "rdd-%s-at-%s" % (x.rdd.id(), x.rdd.context.applicationId)
+        return id
 
     def to_preview(self, df):  # type: (spark.DataFrame) -> str
         return (
@@ -53,5 +54,5 @@ class SparkDataFrameValueType(DataValueType):
             value_preview=self.to_preview(value) if with_preview else None,
             data_dimensions=data_dimensions,
             data_schema=json_utils.dumps(data_schema),
-            data_hash=None,  # TODO Hash dataframe path ??
+            data_hash=self.to_signature(value),
         )

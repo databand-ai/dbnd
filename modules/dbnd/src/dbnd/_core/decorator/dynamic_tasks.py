@@ -1,7 +1,7 @@
 import logging
 import typing
 
-from typing import Any, Dict, Tuple, Type, Union
+from typing import Any, Union
 
 from dbnd._core.current import current_task_run, get_databand_run
 from dbnd._core.decorator.func_task_call import FuncCall
@@ -39,11 +39,14 @@ def create_dynamic_task(func_call):
     # get all possible value's targets
     call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(call_kwargs)
     for p_name, value_origin in call_kwargs_as_targets.items():
+        root_target = value_origin.origin_target
+        path = root_target.path if hasattr(root_target, "path") else None
         call_kwargs[p_name] = InlineTarget(
-            root_target=value_origin.origin_target,
+            root_target=root_target,
             obj=call_kwargs[p_name],
             value_type=value_origin.value_type,
             source=value_origin.origin_target.source,
+            path=path,
         )
 
     call_kwargs.setdefault("task_is_dynamic", True)
@@ -77,36 +80,35 @@ def create_dynamic_task(func_call):
         return t
 
 
-def run_dynamic_task(task):
-    # type: (Task) -> Union[Task, Any]
-    from dbnd import PipelineTask
-
-    dbnd_run = get_databand_run()
-
-    if isinstance(task, PipelineTask):
-        # if it's pipeline - create new databand run
-        run = dbnd_run.context.dbnd_run_task(task)
-        task_run = run.get_task_run(task.task_id)
-    else:
-        task_run = dbnd_run.run_dynamic_task(
-            task, task_engine=current_task_run().task_engine
-        )
-
-    t = task_run.task
-    # if we are inside run, we want to have real values, not deferred!
-    if t.task_definition.single_result_output:
-        return t.__class__.result.load_from_target(t.result)
-        # we have func without result, just fallback to None
-    return t
-
-
 def run_dynamic_task_safe(task, func_call):
+    # type: (Task, FuncCall) -> Union[Any]
     try:
         from dbnd._core.decorator.func_task_call import TaskCallState, CALL_FAILURE_OBJ
 
         task._dbnd_call_state = TaskCallState(should_store_result=True)
         # this is the real run of the decorated function
-        return run_dynamic_task(task)
+        from dbnd import PipelineTask
+
+        dbnd_run = get_databand_run()
+
+        if isinstance(task, PipelineTask):
+            # if it's pipeline - create new databand run
+            run = dbnd_run.context.dbnd_run_task(task)
+            task_run = run.get_task_run(task.task_id)
+        else:
+            task_run = dbnd_run.run_dynamic_task(
+                task, task_engine=current_task_run().task_engine
+            )
+            if task._dbnd_call_state.result_saved:
+                return task._dbnd_call_state.result
+
+        t = task_run.task
+        # if we are inside run, we want to have real values, not deferred!
+        if t.task_definition.single_result_output:
+            return t.__class__.result.load_from_target(t.result)
+            # we have func without result, just fallback to None
+
+        return t
     except Exception:
         if task and task._dbnd_call_state:
             if task._dbnd_call_state.finished:
