@@ -43,6 +43,26 @@ def get_dbnd_tracking_spark_conf_dict(
 def get_dbnd_tracking_spark_conf(
     dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ts}}"
 ):
+    """ This functions returns Airflow ids  as spark configuration properties. This is used to assositae spark run with airflow dag/task.
+        These properties are
+            spark.env.AIRFLOW_CTX_DAG_ID  -  name of the Airflow DAG to associate a run with
+            spark.env.AIRFLOW_CTX_EXECUTION_DATE - execution_date to associate a run with
+            spark.env.AIRFLOW_CTX_TASK_ID" - name of the Airflow Task to associate a run with
+
+        Example:
+            >>> get_dbnd_tracking_spark_conf()
+            ['--conf', 'spark.env.AIRFLOW_CTX_DAG_ID={{dag.dag_id}}', '--conf', 'spark.env.AIRFLOW_CTX_EXECUTION_DATE={{ts}}', '--conf', 'spark.env.AIRFLOW_CTX_TASK_ID={{task.task_id}}']
+
+        Args:
+            dag_id: name of the Airflow DAG to associate a run. By default set to {{dag.dag_id}} Airflow template
+            task_id: name of the Airflow task to associate a run. By default set to {{task.task_id}} Airflow template
+            execution_date: execution date as a string. By default set to {{ts}} Airflow template
+
+        Returns:
+            List of Airflow Ids as spark properties. Ready to concatenate to spark-submit command
+
+    """
+
     conf_as_dict = get_dbnd_tracking_spark_conf_dict(dag_id, task_id, execution_date)
     conf = []
     for key in conf_as_dict.keys():
@@ -88,3 +108,7 @@ def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
         raise Exception("Failed to find spark-submit in %s" % " ".join(command_as_list))
 
     return command_as_list[0 : index + 1] + dbnd_context + command_as_list[index + 1 :]
+
+
+if __name__ == "__main__":
+    print(get_dbnd_tracking_spark_conf())
