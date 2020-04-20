@@ -41,6 +41,9 @@ DBND_RUN_SUBMIT_UID = "DBND_SUBMIT_UID"
 DBND_RUN_UID = "DBND_RUN_UID"
 DBND_RESUBMIT_RUN = "DBND_RESUBMIT_RUN"
 DBND_TASK_RUN_ATTEMPT_UID = "DBND_TASK_RUN_ATTEMPT_UID"
+DBND_MAX_CALLS_PER_RUN = "DBND_MAX_CALL_PER_FUNC"
+DEFAULT_MAX_CALLS_PER_RUN = 100
+
 
 ENV_DBND__ENV_MACHINE = "DBND__ENV_MACHINE"
 ENV_DBND__ENV_IMAGE = "DBND__ENV_IMAGE"
@@ -120,3 +123,13 @@ def is_sigquit_handler_on():
 
 def set_on(env_key):
     os.environ[env_key] = "True"
+
+
+def get_max_calls_per_func():
+    try:
+        max_calls_per_run = os.environ.get(
+            DBND_MAX_CALLS_PER_RUN, DEFAULT_MAX_CALLS_PER_RUN
+        )
+        return int(max_calls_per_run)
+    except:
+        return DEFAULT_MAX_CALLS_PER_RUN

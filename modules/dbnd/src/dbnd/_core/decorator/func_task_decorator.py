@@ -7,6 +7,7 @@ from typing import Type
 import six
 
 from dbnd._core.configuration import environ_config
+from dbnd._core.configuration.environ_config import get_max_calls_per_func
 from dbnd._core.decorator.decorated_task import (
     DecoratedPipelineTask,
     DecoratedPythonTask,
@@ -50,8 +51,24 @@ class _decorated_user_func(object):
         # this will make class look like a origin function
         self.task_func = self.task_cls._conf__decorator_spec.item
         functools.update_wrapper(self, self.task_func)
+        self._call_count = 0
+        self._call_as_func = False
+        self._max_call_count = get_max_calls_per_func()
 
     def __call__(self, *args, **kwargs):
+        if not self._call_as_func:
+            self._call_count += 1
+            if self._call_count > self._max_call_count:
+                logger.info(
+                    "Reached maximum tracking limit of {} tasks. Running function regularly.".format(
+                        self._max_call_count
+                    )
+                )
+                self._call_as_func = True
+
+        if self._call_as_func:
+            return self.task_func(*args, **kwargs)
+
         return self.task_cls._call_handler(
             call_user_code=self.task_func, call_args=args, call_kwargs=kwargs
         )
