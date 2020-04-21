@@ -53,7 +53,7 @@ class XComStr(str, _BaseOperator):
         return obj
 
     def __iter__(self):
-        raise ValueError(
+        raise TypeError(
             "It seems that you are trying to assign output to multiple values. If your task's function "
             "returns multiple values please add type annotations to it."
         )

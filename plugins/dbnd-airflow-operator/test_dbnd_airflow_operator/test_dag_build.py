@@ -73,7 +73,7 @@ class TestFunctionalDagBuild(object):
         def two_outputs():
             return "Nights", "Ni!"
 
-        with pytest.raises(ValueError) as err:
+        with pytest.raises(TypeError) as err:
             with DAG(dag_id="test_simple_build", default_args=default_args_test):
                 _, _ = two_outputs()
             err.match(".*type annotations.*")
