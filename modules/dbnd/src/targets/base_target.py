@@ -106,3 +106,15 @@ class Target(object):
 
     def clear_cache(self):
         self._cache = {}
+
+    def set_upstream(self, t):
+        self.task.set_upstream(t)
+
+    def set_downstream(self, t):
+        self.task.set_downstream(t)
+
+    def __lshift__(self, other):
+        return self.set_upstream(other)
+
+    def __rshift__(self, other):
+        return self.set_downstream(other)

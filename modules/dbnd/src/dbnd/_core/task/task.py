@@ -228,6 +228,12 @@ class Task(_BaseTask, _TaskParamContainer):
     def set_downstream(self, task_or_task_list):
         self.task_dag.set_downstream(task_or_task_list)
 
+    def __lshift__(self, other):
+        return self.set_upstream(other)
+
+    def __rshift__(self, other):
+        return self.set_downstream(other)
+
     def set_global_upstream(self, task_or_task_list):
         self.task_dag.set_global_upstream(task_or_task_list)
 
