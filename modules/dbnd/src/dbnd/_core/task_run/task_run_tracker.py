@@ -9,7 +9,6 @@ from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.timezone import utcnow
-from targets.target_meta import TargetMeta
 from targets.values import get_value_type_of_obj
 
 
@@ -45,8 +44,13 @@ class TaskRunTracker(TaskRunCtrl):
 
     def log_target(self, parameter, target, value, operation_type, operation_status):
         # type: (TaskRunTracker, ParameterDefinition, Target, Any, DbndTargetOperationType, DbndTargetOperationStatus) -> None
+        features_conf = self.settings.features
+        if not features_conf.log_value_meta:
+            return
         try:
-            target_meta = parameter.get_value_meta(value)
+
+            meta_conf = features_conf.get_value_meta_conf(parameter.value_meta_conf)
+            target_meta = parameter.get_value_meta(value, meta_conf=meta_conf)
             target.target_meta = target_meta
             self.tracking_store.log_target(
                 task_run=self.task_run,
@@ -99,9 +103,9 @@ class TaskRunTracker(TaskRunCtrl):
                 non_critical=True,
             )
 
-    def log_dataframe(self, key, df, with_preview=True):
+    def log_dataframe(self, key, df, meta_conf):
         try:
-            value_meta = get_value_meta_for_metric(key, df, with_preview=with_preview)
+            value_meta = get_value_meta_for_metric(key, df, meta_conf=meta_conf)
             if not value_meta:
                 return
 
@@ -109,9 +113,9 @@ class TaskRunTracker(TaskRunCtrl):
                 self._log_metric("%s.shape" % key, value_meta.data_dimensions)
                 for dim, size in enumerate(value_meta.data_dimensions):
                     self._log_metric("%s.shape[%s]" % (key, dim), size)
-
-            self._log_metric("%s.schema" % key, value_meta.data_schema)
-            if with_preview:
+            if meta_conf.log_schema:
+                self._log_metric("%s.schema" % key, value_meta.data_schema)
+            if meta_conf.log_preview:
                 self._log_metric("%s.preview" % key, value_meta.value_preview)
         except Exception as ex:
             log_exception(
@@ -121,7 +125,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
 
-def get_value_meta_for_metric(key, value, with_preview=True):
+def get_value_meta_for_metric(key, value, meta_conf):
     value_type = get_value_type_of_obj(value)
     if value_type is None:
         logger.info(
@@ -129,7 +133,7 @@ def get_value_meta_for_metric(key, value, with_preview=True):
         )
         return None
     try:
-        return value_type.get_value_meta(value, with_preview)
+        return value_type.get_value_meta(value, meta_conf=meta_conf)
 
     except Exception as ex:
         logger.info(

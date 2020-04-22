@@ -3,16 +3,14 @@ import copy
 import logging
 import re
 
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import six
 
 from dbnd._core.errors import friendly_error
-from dbnd._core.utils import json_utils
 from dbnd._core.utils.basics.load_python_module import run_user_func
 from dbnd._vendor import fast_hasher
-from targets.config import get_value_preview_max_len
-from targets.target_meta import TargetMeta
+from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 logger = logging.getLogger(__name__)
@@ -114,8 +112,8 @@ class ValueType(object):
     def to_signature(self, x):
         return self.to_str(x)
 
-    def to_preview(self, x):  # type: (T) -> str
-        return self.to_str(x)[: get_value_preview_max_len()]
+    def to_preview(self, x, preview_size):  # type: (T, int) -> str
+        return self.to_str(x)[:preview_size]
 
     ##################
     # Target I/O
@@ -288,14 +286,19 @@ class ValueType(object):
     def with_sub_type_handler(self, type_handler):
         return self
 
-    def get_value_meta(self, value, with_preview=True):
-        # type: (Any, Optional[bool]) -> TargetMeta
+    def get_value_meta(self, value, meta_conf):
+        # type: (Any,  ValueMetaConf) -> ValueMeta
 
-        preview = self.to_preview(value) if with_preview else None
-        data_schema = json_utils.dumps({"type": self.type_str})
-        data_hash = _safe_hash(value)
+        if meta_conf.log_preview:
+            preview = self.to_preview(value, preview_size=meta_conf.get_preview_size())
+            data_hash = _safe_hash(value)
+        else:
+            preview = None
+            data_hash = None
 
-        return TargetMeta(
+        data_schema = {"type": self.type_str}
+
+        return ValueMeta(
             value_preview=preview,
             data_dimensions=None,
             data_schema=data_schema,

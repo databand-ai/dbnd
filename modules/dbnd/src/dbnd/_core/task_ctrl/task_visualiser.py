@@ -159,7 +159,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
         for p in relevant_params:
             value = self.params.get_value(p.name)
-            value_meta = self.params.get_value_meta(p.name)
+            param_meta = self.params.get_param_meta(p.name)
             target_config = p.target_config
             if isinstance(value, InMemoryTarget):
                 target_config = "memory"
@@ -178,10 +178,10 @@ class _TaskBannerBuilder(TaskSubCtrl):
             value_str = safe_string(value_str, _MAX_VALUE_SIZE)
 
             value_source = ""
-            if value_meta:
-                value_source = value_meta.source
-                if value_meta.warnings:
-                    params_warnings.extend(value_meta.warnings)
+            if param_meta:
+                value_source = param_meta.source
+                if param_meta.warnings:
+                    params_warnings.extend(param_meta.warnings)
             type_handler = p.value_type_str
             param_data = [p.name, p_kind, type_handler, target_config, value_source]
 

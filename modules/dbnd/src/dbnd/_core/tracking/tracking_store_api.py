@@ -4,6 +4,7 @@ import typing
 
 from dbnd._core.constants import UpdateSource
 from dbnd._core.tracking.tracking_store import TrackingStore
+from dbnd._core.utils import json_utils
 from dbnd._core.utils.timezone import utcnow
 from dbnd.api.tracking_api import (
     LogTargetArgs,
@@ -164,6 +165,11 @@ class TrackingStoreApi(TrackingStore):
         param_name,
         task_def_uid,
     ):
+        data_schema = (
+            json_utils.dumps(target_meta.data_schema)
+            if target_meta.data_schema is not None
+            else None
+        )
         target_info = LogTargetArgs(
             run_uid=task_run.run.run_uid,
             task_run_uid=task_run.task_run_uid,
@@ -176,7 +182,7 @@ class TrackingStoreApi(TrackingStore):
             operation_status=operation_status,
             value_preview=target_meta.value_preview,
             data_dimensions=target_meta.data_dimensions,
-            data_schema=target_meta.data_schema,
+            data_schema=data_schema,
             data_hash=target_meta.data_hash,
         )
         return self.log_targets(targets_info=[target_info])

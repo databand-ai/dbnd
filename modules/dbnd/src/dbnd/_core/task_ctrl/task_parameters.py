@@ -29,7 +29,7 @@ class TaskParameters(object):
 
         return getattr(self.task, param_name)
 
-    def get_value_meta(self, param_name):  # type: (str)->ConfigValue
+    def get_param_meta(self, param_name):  # type: (str)->ConfigValue
         return self._param_meta_map.get(param_name, None)
 
     def get_params(
@@ -92,8 +92,8 @@ class TaskParameters(object):
         # Returns where param was created, e.g. ctor/CLI argument/env var/config
         from dbnd._core.task_ctrl.task_visualiser import _MAX_VALUE_SIZE
 
-        value_meta = self.get_value_meta(param_name)
-        value_source = value_meta.source if value_meta else ""
+        param_meta = self.get_param_meta(param_name)
+        value_source = param_meta.source if param_meta else ""
         value_origin = safe_string(value_source, _MAX_VALUE_SIZE)
         return value_origin
 

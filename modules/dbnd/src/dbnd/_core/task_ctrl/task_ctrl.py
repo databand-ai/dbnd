@@ -13,12 +13,13 @@ from dbnd._core.utils.traversing import traverse_to_str
 if typing.TYPE_CHECKING:
     from typing import Optional
     from dbnd._core.task_run.task_run import TaskRun
-    from dbnd._core.settings import EnvConfig
+    from dbnd._core.settings import EnvConfig, DatabandSettings
     from dbnd._core.task_ctrl.task_meta import TaskMeta
     from dbnd._core.task_ctrl.task_parameters import TaskParameters
     from dbnd._core.task_ctrl.task_relations import TaskRelations
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.context.databand_context import DatabandContext
+    from dbnd._core.task_ctrl.task_validator import TaskValidator
 
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ class TaskSubCtrl(object):
         return self.task._params
 
     @property
-    def settings(self):
+    def settings(self):  # type: ()-> DatabandSettings
         return self.task.settings
 
     @property

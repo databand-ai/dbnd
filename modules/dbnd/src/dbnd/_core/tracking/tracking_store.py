@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
     from typing import List
 
     from targets.base_target import Target
-    from targets.target_meta import TargetMeta
+    from targets.value_meta import ValueMeta
 
     from dbnd.api.tracking_api import InitRunArgs, AirflowTaskInfo, LogTargetArgs
     from dbnd._core.constants import (
@@ -88,7 +88,7 @@ class TrackingStore(object):
         self,
         task_run,  # type: TaskRun
         target,  # type: Target
-        target_meta,  # type: TargetMeta
+        target_meta,  # type: ValueMeta
         operation_type,  # type: DbndTargetOperationType
         operation_status,  # type: DbndTargetOperationStatus
         param_name,  # type: str

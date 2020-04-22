@@ -1,8 +1,7 @@
-from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
 from targets import target
-from targets.target_meta import TargetMeta
 from targets.types import Path
+from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values import TargetPathLibValueType
 
 
@@ -14,12 +13,15 @@ class TestTargetValueType(object):
 
     def test_target_value_meta(self):
         v = target("a")
-        target_value_meta = TargetPathLibValueType().get_value_meta(v)
+        meta_conf = ValueMetaConf()
+        target_value_meta = TargetPathLibValueType().get_value_meta(
+            v, meta_conf=meta_conf
+        )
 
-        expected_value_meta = TargetMeta(
+        expected_value_meta = ValueMeta(
             value_preview='"a"',
             data_dimensions=None,
-            data_schema=json_utils.dumps({"type": "Path"}),
+            data_schema={"type": "Path"},
             data_hash=fast_hasher.hash(v),
         )
 

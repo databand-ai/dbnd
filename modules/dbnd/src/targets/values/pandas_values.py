@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import os
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 import pandas as pd
 import six
@@ -10,11 +10,9 @@ import six
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._core.errors import friendly_error
-from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
-from targets.config import get_value_preview_max_len
 from targets.target_config import FileFormat
-from targets.target_meta import TargetMeta
+from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.builtins_values import DataValueType
 from targets.values.structure import DictValueType
 from targets.values.value_type import _isinstances
@@ -31,26 +29,39 @@ class DataFrameValueType(DataValueType):
         shape = "[%s]" % (",".join(map(str, x.shape)))
         return "%s:%s" % (shape, fast_hasher.hash(x))
 
-    def to_preview(self, df):  # type: (pd.DataFrame) -> str
-        return df.to_string(index=False, max_rows=20, max_cols=1000)[
-            : get_value_preview_max_len()
-        ]
+    def to_preview(self, df, preview_size):  # type: (pd.DataFrame, int) -> str
+        return df.to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
 
-    def get_value_meta(self, value, with_preview=True):
-        # type: (pd.DataFrame, Optional[bool]) -> TargetMeta
-        data_schema = {
-            "type": self.type_str,
-            "columns": list(value.columns),
-            "size": int(value.size),
-            "shape": value.shape,
-            "dtypes": {col: str(type_) for col, type_ in value.dtypes.items()},
-        }
+    def get_value_meta(self, value, meta_conf):
+        # type: (pd.DataFrame, ValueMetaConf) -> ValueMeta
+        data_schema = {}
+        if meta_conf.log_schema:
+            data_schema.update(
+                {
+                    "type": self.type_str,
+                    "columns": list(value.columns),
+                    "shape": value.shape,
+                    "dtypes": {col: str(type_) for col, type_ in value.dtypes.items()},
+                }
+            )
 
-        return TargetMeta(
-            value_preview=self.to_preview(value) if with_preview else None,
+        if meta_conf.log_size:
+            data_schema["size"] = int(value.size)
+
+        if meta_conf.log_preview:
+            value_preview = self.to_preview(
+                value, preview_size=meta_conf.get_preview_size()
+            )
+            data_hash = fast_hasher.hash(hash_pandas_object(value, index=True).values)
+        else:
+            value_preview = None
+            data_hash = None
+
+        return ValueMeta(
+            value_preview=value_preview,
             data_dimensions=value.shape,
-            data_schema=json_utils.dumps(data_schema),
-            data_hash=fast_hasher.hash(hash_pandas_object(value, index=True).values),
+            data_schema=data_schema,
+            data_hash=data_hash,
         )
 
     def merge_values(self, *values, **kwargs):

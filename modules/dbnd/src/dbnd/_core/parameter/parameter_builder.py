@@ -22,6 +22,7 @@ from dbnd._core.parameter.validators import ChoiceValidator, NumericalValidator
 from dbnd._core.utils.basics.nothing import NOTHING, is_defined, is_not_defined
 from targets.target_config import TargetConfig
 from targets.types import DataList
+from targets.value_meta import ValueMetaConf
 from targets.values import (
     TargetPathValueType,
     TargetValueType,
@@ -434,51 +435,55 @@ class ParameterFactory(object):
 
     def _build_parameter(self, context="inline"):
         s = self.parameter  # type: ParameterDefinition
-        default = s.default
+        update_kwargs = {}
+
         value_type = self._build_value_type(context)
 
         validator = s.validator
         if s.choices:
             validator = ChoiceValidator(s.choices)
 
-        empty_default = s.empty_default
-        if is_not_defined(default):
-            if empty_default:
-                default = value_type._generate_empty_default()
+        if is_not_defined(s.default):
+            if s.empty_default:
+                update_kwargs["default"] = value_type._generate_empty_default()
 
-        load_on_build = (
-            s.load_on_build
-            if s.load_on_build is not NOTHING
-            else value_type.load_on_build
-        )
+        if not is_defined(s.load_on_build):
+            update_kwargs["load_on_build"] = value_type.load_on_build
+
+        # create value meta
+        if s.value_meta_conf is None:
+            update_kwargs["value_meta_conf"] = ValueMetaConf(
+                log_preview=s.log_preview,
+                log_preview_size=s.log_preview_size,
+                log_schema=s.log_schema,
+                log_size=s.log_size,
+            )
 
         # Whether different values for this parameter will differentiate otherwise equal tasks
         description = s.description or ""
-        if is_defined(description):
-            description = description
-        elif s.is_output() and s.default_output_description:
-            description = s.default_output_description
-        elif not s.load_on_build and s.default_input_description:
-            description = s.default_input_description
-        else:
-            description = s.default_description
+        if not is_defined(description):
+            if s.is_output() and s.default_output_description:
+                description = s.default_output_description
+            elif not s.load_on_build and s.default_input_description:
+                description = s.default_input_description
+            else:
+                description = s.default_description
 
-        if s.validator:
-            description = _add_description(description, validator.description)
-
+            if s.validator:
+                description = _add_description(description, validator.description)
+            update_kwargs["description"] = description()
         # We need to keep track of this to get the order right (see Task class)
         ParameterDefinition._total_counter += 1
-        significant = s.significant if s.kind == _ParameterKind.task_input else False
+        if s.kind == _ParameterKind.task_output:
+            update_kwargs["significant"] = False
 
         updated = self.modify(
-            default=default,
             value_type=value_type,
             value_type_defined=value_type,
             validator=validator,
-            load_on_build=load_on_build,
-            significant=significant,
             description=description,
             parameter_id=ParameterDefinition._total_counter,
+            **update_kwargs
         )
 
         return updated.parameter

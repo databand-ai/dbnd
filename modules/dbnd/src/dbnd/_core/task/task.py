@@ -18,6 +18,7 @@ from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.traversing import flatten
 from targets.target_config import folder
+from targets.value_meta import ValueMetaConf
 from targets.values.version_value import VersionStr
 
 
@@ -235,8 +236,9 @@ class Task(_BaseTask, _TaskParamContainer):
         # backward compatible code
         return self.current_task_run.tracker
 
-    def log_dataframe(self, key, df, with_preview=True):
-        self.metrics.log_dataframe(key, df, with_preview)
+    def log_dataframe(self, key, df, with_preview=True, with_schema=True):
+        meta_conf = ValueMetaConf(log_preview=with_preview, log_schema=with_schema)
+        self.metrics.log_dataframe(key, df, meta_conf=meta_conf)
 
     def log_metric(self, key, value, source=None):
         """

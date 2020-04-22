@@ -8,6 +8,7 @@ from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.plugin.dbnd_plugins import assert_web_enabled, is_airflow_enabled
 from dbnd._core.task import Config
 from dbnd._core.tracking.tracking_store import TrackingStore
+from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
 
 
 logger = logging.getLogger()
@@ -120,9 +121,6 @@ class CoreConfig(Config):
     auto_save_target_metrics = parameter(
         default=True, description="Auto save target metrics and preview"
     )[bool]
-    value_preview_max_len = parameter(
-        description="Max size of value preview to be saved at DB, max value=50000"
-    ).value(50000)
 
     recheck_circle_dependencies = parameter(
         description="Re check circle dependencies on every task creation,"
@@ -284,3 +282,30 @@ class FeaturesConfig(Config):
     in_memory_cache_target_value = parameter(
         default=True, description="Cache targets values in memory during execution"
     )[bool]
+
+    log_value_size = parameter(
+        default=True,
+        description="Calculate and log value size (can cause a full scan on not-indexable distributed memory objects) ",
+    )[bool]
+
+    log_value_preview = parameter(
+        default=True, description="Calculate and log value preview "
+    )[bool]
+
+    log_value_preview_max_len = parameter(
+        description="Max size of value preview to be saved at DB, max value=50000"
+    ).value(_DEFAULT_VALUE_PREVIEW_MAX_LEN)
+
+    log_value_meta = parameter(
+        default=True, description="Calculate and log value meta "
+    )[bool]
+
+    def get_value_meta_conf(self, parameter_value_meta_conf):
+        # type: (ValueMetaConf) -> ValueMetaConf
+        mc = parameter_value_meta_conf
+        return ValueMetaConf(
+            log_preview=mc.log_preview and self.log_value_preview,
+            log_preview_size=mc.log_preview_size or self.log_value_preview_max_len,
+            log_schema=mc.log_schema and self.log_value_schema,
+            log_size=mc.log_size and self.log_value_size,
+        )

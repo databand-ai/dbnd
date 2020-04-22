@@ -3,7 +3,7 @@ import pytest
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
-from targets.target_meta import TargetMeta
+from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values import InlineValueType, StrValueType, register_value_type
 
 
@@ -26,11 +26,11 @@ class TestValueType(object):
             actual.parse_from_str("a")
 
     def test_str_value_meta(self):
-        str_value_meta = StrValueType().get_value_meta("foo")
-        expected_value_meta = TargetMeta(
+        str_value_meta = StrValueType().get_value_meta("foo", ValueMetaConf())
+        expected_value_meta = ValueMeta(
             value_preview="foo",
             data_dimensions=None,
-            data_schema=json_utils.dumps({"type": "str"}),
+            data_schema={"type": "str"},
             data_hash=fast_hasher.hash("foo"),
         )
         assert str_value_meta == expected_value_meta

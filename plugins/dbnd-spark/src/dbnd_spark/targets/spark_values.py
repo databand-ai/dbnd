@@ -1,12 +1,8 @@
 from __future__ import absolute_import
 
-from typing import Optional
-
 import pyspark.sql as spark
 
-from dbnd._core.utils import json_utils
-from targets.config import get_value_preview_max_len
-from targets.target_meta import TargetMeta
+from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.builtins_values import DataValueType
 
 
@@ -21,26 +17,32 @@ class SparkDataFrameValueType(DataValueType):
         id = "rdd-%s-at-%s" % (x.rdd.id(), x.rdd.context.applicationId)
         return id
 
-    def to_preview(self, df):  # type: (spark.DataFrame) -> str
+    def to_preview(self, df, preview_size):  # type: (spark.DataFrame, int) -> str
         return (
             df.limit(1000)
             .toPandas()
-            .to_string(index=False, max_rows=20, max_cols=1000)[
-                : get_value_preview_max_len()
-            ]
+            .to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
         )
 
-    def get_value_meta(self, value, with_preview=True):
-        # type: (spark.DataFrame, Optional[bool]) -> TargetMeta
+    def get_value_meta(self, value, meta_conf):
+        # type: (spark.DataFrame,ValueMetaConf) -> ValueMeta
 
-        data_dimensions = None
-        data_schema = {
-            "type": self.type_str,
-            "columns": list(value.schema.names),
-            "dtypes": {f.name: str(f.dataType) for f in value.schema.fields},
-        }
+        if meta_conf.log_schema:
+            data_schema = {
+                "type": self.type_str,
+                "columns": list(value.schema.names),
+                "dtypes": {f.name: str(f.dataType) for f in value.schema.fields},
+            }
+        else:
+            data_schema = None
 
-        if with_preview:
+        if meta_conf.log_preview:
+            data_preview = self.to_preview(value, meta_conf.get_preview_size())
+        else:
+            data_preview = None
+
+        if meta_conf.log_size:
+            data_schema = data_schema or {}
             rows = value.count()
             data_dimensions = (rows, len(value.columns))
             data_schema.update(
@@ -49,10 +51,12 @@ class SparkDataFrameValueType(DataValueType):
                     "shape": (rows, len(value.columns)),
                 }
             )
+        else:
+            data_dimensions = None
 
-        return TargetMeta(
-            value_preview=self.to_preview(value) if with_preview else None,
+        return ValueMeta(
+            value_preview=data_preview,
             data_dimensions=data_dimensions,
-            data_schema=json_utils.dumps(data_schema),
+            data_schema=data_schema,
             data_hash=self.to_signature(value),
         )

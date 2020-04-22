@@ -1,6 +1,7 @@
 import pandas as pd
 
 from dbnd import pipeline, task
+from targets.value_meta import ValueMetaConf
 
 
 @task
@@ -28,4 +29,4 @@ def t_no_warnings():
 class TestParameterTypeCheckWarnings(object):
     def test_no_warnings_on_target(self):
         actual = t_no_warnings.task()
-        assert not actual.result.task._params.get_value_meta("df").warnings
+        assert not actual.result.task._params.get_param_meta("df").warnings

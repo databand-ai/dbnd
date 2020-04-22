@@ -1,6 +1,5 @@
-from dbnd._core.utils import json_utils
 from dbnd_spark.targets import SparkDataFrameValueType
-from targets.target_meta import TargetMeta
+from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 class TestSparkDataFrameValueType(object):
@@ -13,10 +12,13 @@ class TestSparkDataFrameValueType(object):
             "dtypes": {f.name: str(f.dataType) for f in spark_data_frame.schema.fields},
         }
 
-        expected_value_meta = TargetMeta(
-            value_preview=SparkDataFrameValueType().to_preview(spark_data_frame),
+        meta_conf = ValueMetaConf()
+        expected_value_meta = ValueMeta(
+            value_preview=SparkDataFrameValueType().to_preview(
+                spark_data_frame, meta_conf.get_preview_size()
+            ),
             data_dimensions=(spark_data_frame.count(), len(spark_data_frame.columns)),
-            data_schema=json_utils.dumps(expected_data_schema),
+            data_schema=expected_data_schema,
             data_hash=None,
         )
 

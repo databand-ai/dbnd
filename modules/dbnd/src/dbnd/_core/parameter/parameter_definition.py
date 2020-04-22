@@ -17,7 +17,7 @@ from dbnd._core.constants import (
     OutputMode,
     _TaskParamContainer,
 )
-from dbnd._core.current import try_get_databand_run
+from dbnd._core.current import try_get_current_task_run, try_get_databand_run
 from dbnd._core.errors import DatabandBuildError, friendly_error
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_value import ParameterValue
@@ -151,10 +151,22 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     load_on_build = attr.ib(default=NOTHING)  # type: bool
     empty_default = attr.ib(default=NOTHING)
 
+    # value preview and meta settings
+    log_preview = attr.ib(default=True)  # type: bool
+    log_preview_size = attr.ib(default=None)  # type: Optional[int]
+    log_schema = attr.ib(default=True)  # type: bool
+    log_size = attr.ib(default=True)  # type: bool
+
+    log_meta = attr.ib(
+        default=True
+    )  # type: bool  # log all (can disable whole value log)
+
     # ParameterDefinition ownership
     task_cls = attr.ib(default=None)  # type: Type[Task]
     parameter_origin = attr.ib(default=None)
     parameter_id = attr.ib(default=1)
+
+    value_meta_conf = attr.ib(default=None)  # type: ValueMetaConf
 
     @property
     def group(self):
@@ -534,8 +546,9 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     def get_env_key(self, section):
         return PARAM_ENV_TEMPLATE.format(S=section.upper(), K=self.name.upper())
 
-    def get_value_meta(self, value, with_preview=True):
-        return self.value_type.get_value_meta(value, with_preview=with_preview)
+    def get_value_meta(self, value, meta_conf):
+        # do not use meta_conf directly, you should get it merged with main config
+        return self.value_type.get_value_meta(value, meta_conf=meta_conf)
 
 
 def _update_parameter_from_runtime_value_type(parameter, value):
