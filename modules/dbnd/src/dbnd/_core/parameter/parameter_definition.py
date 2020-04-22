@@ -17,7 +17,7 @@ from dbnd._core.constants import (
     OutputMode,
     _TaskParamContainer,
 )
-from dbnd._core.current import try_get_current_task_run, try_get_databand_run
+from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandBuildError, friendly_error
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_value import ParameterValue
@@ -152,10 +152,11 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     empty_default = attr.ib(default=NOTHING)
 
     # value preview and meta settings
-    log_preview = attr.ib(default=True)  # type: bool
+    log_preview = attr.ib(default=None)  # type: Optional[bool]
     log_preview_size = attr.ib(default=None)  # type: Optional[int]
-    log_schema = attr.ib(default=True)  # type: bool
-    log_size = attr.ib(default=True)  # type: bool
+    log_schema = attr.ib(default=None)  # type: Optional[bool]
+    log_size = attr.ib(default=None)  # type: Optional[bool]
+    log_stats = attr.ib(default=None)  # type: Optional[bool]
 
     log_meta = attr.ib(
         default=True

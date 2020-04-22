@@ -2,6 +2,7 @@ import abc
 import copy
 import logging
 import re
+import typing
 
 from typing import Any, Union
 
@@ -11,6 +12,10 @@ from dbnd._core.errors import friendly_error
 from dbnd._core.utils.basics.load_python_module import run_user_func
 from dbnd._vendor import fast_hasher
 from targets.value_meta import ValueMeta, ValueMetaConf
+
+
+if typing.TYPE_CHECKING:
+    from targets.base_target import Target
 
 
 logger = logging.getLogger(__name__)
@@ -304,6 +309,10 @@ class ValueType(object):
             data_schema=data_schema,
             data_hash=data_hash,
         )
+
+    def support_fast_count(self, target):
+        # type: (Target) -> bool
+        return True
 
 
 def _safe_hash(value):

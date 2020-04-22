@@ -457,6 +457,7 @@ class ParameterFactory(object):
                 log_preview_size=s.log_preview_size,
                 log_schema=s.log_schema,
                 log_size=s.log_size,
+                log_stats=s.log_stats,
             )
 
         # Whether different values for this parameter will differentiate otherwise equal tasks

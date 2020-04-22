@@ -18,7 +18,7 @@ class TestDataFrameValueType(object):
             },
         }
 
-        meta_conf = ValueMetaConf()
+        meta_conf = ValueMetaConf.enabled()
         expected_value_meta = ValueMeta(
             value_preview=DataFrameValueType().to_preview(
                 pandas_data_frame, preview_size=meta_conf.get_preview_size()

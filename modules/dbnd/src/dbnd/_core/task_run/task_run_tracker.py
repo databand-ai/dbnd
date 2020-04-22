@@ -48,9 +48,12 @@ class TaskRunTracker(TaskRunCtrl):
         if not features_conf.log_value_meta:
             return
         try:
+            value_type = parameter.value_type
+            meta_conf = features_conf.get_value_meta_conf(
+                parameter.value_meta_conf, value_type=value_type, target=target
+            )
 
-            meta_conf = features_conf.get_value_meta_conf(parameter.value_meta_conf)
-            target_meta = parameter.get_value_meta(value, meta_conf=meta_conf)
+            target_meta = value_type.get_value_meta(value, meta_conf=meta_conf)
             target.target_meta = target_meta
             self.tracking_store.log_target(
                 task_run=self.task_run,

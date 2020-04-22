@@ -8,7 +8,9 @@ from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.plugin.dbnd_plugins import assert_web_enabled, is_airflow_enabled
 from dbnd._core.task import Config
 from dbnd._core.tracking.tracking_store import TrackingStore
+from targets import Target
 from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
+from targets.values import ValueType
 
 
 logger = logging.getLogger()
@@ -288,6 +290,13 @@ class FeaturesConfig(Config):
         description="Calculate and log value size (can cause a full scan on not-indexable distributed memory objects) ",
     )[bool]
 
+    log_value_schema = parameter(
+        default=True, description="Calculate and log value schema "
+    )[bool]
+    log_value_stats = parameter(
+        default=True,
+        description="Calculate and log value stats(expensive to calculate, better use log_stats on parameter level)",
+    )[bool]
     log_value_preview = parameter(
         default=True, description="Calculate and log value preview "
     )[bool]
@@ -300,12 +309,31 @@ class FeaturesConfig(Config):
         default=True, description="Calculate and log value meta "
     )[bool]
 
-    def get_value_meta_conf(self, parameter_value_meta_conf):
-        # type: (ValueMetaConf) -> ValueMetaConf
+    auto_disable_slow_size = parameter(
+        default=True,
+        description="Auto disable slow preview for Spark DF with text formats",
+    )[bool]
+
+    def get_value_meta_conf(
+        self, parameter_value_meta_conf, value_type=None, target=None
+    ):
+        # type: (ValueMetaConf, ValueType, Target) -> ValueMetaConf
         mc = parameter_value_meta_conf
+
+        log_value_size = self.log_value_size
+        if target and self.auto_disable_slow_size and log_value_size:
+            log_value_size = value_type.support_fast_count(target)
+
         return ValueMetaConf(
-            log_preview=mc.log_preview and self.log_value_preview,
-            log_preview_size=mc.log_preview_size or self.log_value_preview_max_len,
-            log_schema=mc.log_schema and self.log_value_schema,
-            log_size=mc.log_size and self.log_value_size,
+            log_preview=mc.log_preview
+            if mc.log_preview is not None
+            else self.log_value_preview,
+            log_preview_size=mc.log_preview_size
+            if mc.log_preview_size is not None
+            else self.log_value_preview_max_len,
+            log_schema=mc.log_schema
+            if mc.log_schema is not None
+            else self.log_value_schema,
+            log_size=mc.log_size if mc.log_size is not None else log_value_size,
+            log_stats=mc.log_stats if mc.log_stats is not None else log_value_stats,
         )

@@ -13,7 +13,7 @@ class TestTargetValueType(object):
 
     def test_target_value_meta(self):
         v = target("a")
-        meta_conf = ValueMetaConf()
+        meta_conf = ValueMetaConf.enabled()
         target_value_meta = TargetPathLibValueType().get_value_meta(
             v, meta_conf=meta_conf
         )

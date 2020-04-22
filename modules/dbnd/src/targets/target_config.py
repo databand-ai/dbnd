@@ -1,6 +1,7 @@
 import os
 
 from os.path import normpath
+from typing import Optional
 
 import six
 
@@ -107,9 +108,9 @@ register_file_extension(FileFormat.tsv)
 
 @attr.s(frozen=True, repr=False)
 class TargetConfig(object):
-    format = attr.ib(default=None)
-    compression = attr.ib(default=None)
-    folder = attr.ib(default=False)
+    format = attr.ib(default=None)  # type: Optional[str]
+    compression = attr.ib(default=None)  # type: Optional[str]
+    folder = attr.ib(default=False)  # type: bool
     meta_files = attr.ib(default=tuple())
 
     flag = attr.ib(default=True)

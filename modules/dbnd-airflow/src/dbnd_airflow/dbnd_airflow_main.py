@@ -33,10 +33,10 @@ import argcomplete
 def subprocess_airflow(args):
     """Forward arguments to airflow command line"""
     # if we use airflow, we can get airflow from external env
-    args = ["dbnd-airflow"] + args
+    args = [sys.executable, "-m", "dbnd_airflow"] + args
     logging.info("Running airflow command: %s", subprocess.list2cmdline(args))
     try:
-        subprocess.check_call(args=args)
+        subprocess.check_call(args=args, shell=True, stdout=subprocess.STDOUT)
     except Exception:
         logging.error(
             "Failed to run airflow command %s with path=%s",

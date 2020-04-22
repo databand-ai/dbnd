@@ -41,6 +41,11 @@ class SparkDataFrameValueType(DataValueType):
         else:
             data_preview = None
 
+        if meta_conf.log_stats:
+            data_schema["stats"] = self.to_preview(
+                value.summary(), meta_conf.get_preview_size()
+            )
+
         if meta_conf.log_size:
             data_schema = data_schema or {}
             rows = value.count()
@@ -60,3 +65,12 @@ class SparkDataFrameValueType(DataValueType):
             data_schema=data_schema,
             data_hash=self.to_signature(value),
         )
+
+    def support_fast_count(self, target):
+        from targets import FileTarget
+
+        if not isinstance(target, FileTarget):
+            return False
+        from targets.target_config import FileFormat
+
+        return target.config.format == FileFormat.parquet

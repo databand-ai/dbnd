@@ -236,8 +236,21 @@ class Task(_BaseTask, _TaskParamContainer):
         # backward compatible code
         return self.current_task_run.tracker
 
-    def log_dataframe(self, key, df, with_preview=True, with_schema=True):
-        meta_conf = ValueMetaConf(log_preview=with_preview, log_schema=with_schema)
+    def log_dataframe(
+        self,
+        key,
+        df,
+        with_preview=True,
+        with_schema=True,
+        with_size=True,
+        with_stats=False,
+    ):
+        meta_conf = ValueMetaConf(
+            log_preview=with_preview,
+            log_schema=with_schema,
+            log_size=with_size,
+            log_stats=with_stats,
+        )
         self.metrics.log_dataframe(key, df, meta_conf=meta_conf)
 
     def log_metric(self, key, value, source=None):

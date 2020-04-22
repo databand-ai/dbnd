@@ -24,11 +24,16 @@ def _get_tracker():
     return None
 
 
-def log_dataframe(key, value, with_preview=True, with_size=True, with_schema=True):
+def log_dataframe(
+    key, value, with_preview=True, with_size=True, with_schema=True, with_stats=False
+):
     # type: (str, Union[pd.DataFrame, spark.DataFrame], bool,bool, bool) -> None
 
     meta_conf = ValueMetaConf(
-        log_preview=with_preview, log_schema=with_schema, log_size=with_size
+        log_preview=with_preview,
+        log_schema=with_schema,
+        log_size=with_size,
+        log_stats=with_stats,
     )
     tracker = _get_tracker()
     if tracker:

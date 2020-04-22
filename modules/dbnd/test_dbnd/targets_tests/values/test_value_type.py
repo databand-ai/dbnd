@@ -26,7 +26,7 @@ class TestValueType(object):
             actual.parse_from_str("a")
 
     def test_str_value_meta(self):
-        str_value_meta = StrValueType().get_value_meta("foo", ValueMetaConf())
+        str_value_meta = StrValueType().get_value_meta("foo", ValueMetaConf.enabled())
         expected_value_meta = ValueMeta(
             value_preview="foo",
             data_dimensions=None,
