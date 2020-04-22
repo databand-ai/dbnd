@@ -22,6 +22,11 @@ setuptools.setup(
         "botocore",
         "s3fs",
     ],
-    extras_require=dict(tests=["awscli"]),
+    extras_require={
+        "tests": [
+            "awscli",
+            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+        ]
+    },
     entry_points={"dbnd": ["dbnd-aws = dbnd_aws._plugin"]},
 )
