@@ -16,13 +16,16 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=[
         "dbnd==" + version,
-        "Werkzeug<1.0.0",
         "future>=0.16.0, <0.17",
         "sqlalchemy_utc",
         "sqlalchemy_utils",
     ],
     extras_require=dict(
-        airflow=["apache-airflow==1.10.9"],
+        airflow=[
+            "apache-airflow==1.10.9",
+            "WTForms<2.3.0"  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            "Werkzeug<1.0.0",
+        ],
         tests=[
             # airflow support
             "pandas<1.0.0,>=0.17.1",
