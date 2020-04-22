@@ -59,6 +59,7 @@ setuptools.setup(
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
             "openpyxl==2.6.4",
             "sklearn",
+            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
         ],
     },
     entry_points={"console_scripts": ["dbnd = dbnd:dbnd_main"]},
