@@ -71,12 +71,10 @@ def dbnd_setup_unittest():
     logger.info("Reading Airflow test config at %s" % TEST_CONFIG_FILE)
     airflow_configuration.conf.read(TEST_CONFIG_FILE)
 
-    sql_alchemy_conn = airflow_configuration.get("core", "sql_alchemy_conn")
-    if sql_alchemy_conn.find("unittests.db") == -1:
-        logger.warning(
-            "You should set SQL_ALCHEMY_CONN to sqlite:///.../unittests.db for tests! %s"
-            % sql_alchemy_conn
-        )
+    from dbnd_airflow.bootstrap import set_airflow_sql_conn_from_dbnd_config
+
+    set_airflow_sql_conn_from_dbnd_config()
+
     from dbnd_airflow.airflow_extensions.airflow_config import reinit_airflow_sql_conn
 
     reinit_airflow_sql_conn()
