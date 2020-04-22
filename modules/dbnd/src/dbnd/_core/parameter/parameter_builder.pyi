@@ -77,6 +77,9 @@ class ParameterFactory(object):
         empty_default: bool = ...,
         log_size: bool = ...,
         log_stats: bool = ...,
+        log_schema: bool = ...,
+        log_preview: bool = ...,
+        log_preview_size: int = ...,
     ) -> ParameterFactory: ...
     def __getitem__(self, type_: Type[_C]) -> _C: ...
     def modify(self, **kwargs: Any) -> ParameterFactory: ...

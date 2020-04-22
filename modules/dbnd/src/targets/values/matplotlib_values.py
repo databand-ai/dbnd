@@ -28,7 +28,7 @@ class MatplotlibFigureValueType(DataValueType):
             preview = base64.b64encode(figure_bytes.read())
             if len(preview) > preview_size:
                 return (
-                    ".png size %s is bigger than %s bytes, change '[core/value_preview_max_len]'"
+                    ".png size %s is bigger than %s bytes, change '[feature]/log_value_preview_max_len'"
                     % (len(preview), preview_size)
                 )
             return preview
