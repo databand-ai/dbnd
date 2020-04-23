@@ -124,7 +124,7 @@ class TaskAutoParamsReadWrite(object):
                 ex, self.task, parameter, original_value, current_value
             )
         finally:
-            if self.task.settings.core.auto_save_target_metrics and task_run:
+            if task_run:
                 try:
                     task_run.tracker.log_target(
                         parameter=parameter,

@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from dbnd._core.current import try_get_databand_context
+from dbnd._core.current import is_verbose
 from dbnd._core.utils.basics.text_banner import safe_string
 from dbnd._core.utils.project.project_fs import databand_lib_path, project_path
 
@@ -192,12 +192,7 @@ def log_exception(msg, ex, logger_=None, verbose=None, non_critical=False):
     from dbnd._core.errors.base import DatabandError
 
     if verbose is None:
-        dc = try_get_databand_context()
-        verbose = (
-            dc.system_settings.verbose
-            if dc and getattr(dc, "system_settings", None)
-            else True
-        )
+        verbose = is_verbose()
 
     if verbose:
         # just show the exception

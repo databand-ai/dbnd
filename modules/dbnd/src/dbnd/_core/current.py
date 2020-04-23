@@ -102,8 +102,8 @@ def get_settings():
 
 def is_verbose():
     context = try_get_databand_context()
-    if context:
-        return context.settings.system.verbose
+    if context and getattr(context, "system_settings", None):
+        return context.system_settings.verbose
 
     from dbnd._core.configuration import environ_config
 

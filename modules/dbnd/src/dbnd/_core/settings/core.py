@@ -120,9 +120,6 @@ class CoreConfig(Config):
     disable_save_pipeline = parameter(
         description="Boolean for disabling pipeline pickling"
     ).value(False)
-    auto_save_target_metrics = parameter(
-        default=True, description="Auto save target metrics and preview"
-    )[bool]
 
     recheck_circle_dependencies = parameter(
         description="Re check circle dependencies on every task creation,"
@@ -335,5 +332,5 @@ class FeaturesConfig(Config):
             if mc.log_schema is not None
             else self.log_value_schema,
             log_size=mc.log_size if mc.log_size is not None else log_value_size,
-            log_stats=mc.log_stats if mc.log_stats is not None else log_value_stats,
+            log_stats=mc.log_stats,
         )
