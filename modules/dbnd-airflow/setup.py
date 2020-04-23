@@ -22,7 +22,7 @@ setuptools.setup(
     ],
     extras_require=dict(
         airflow=[
-            "WTForms<2.3.0"  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
             "Werkzeug<1.0.0",
             "apache-airflow==1.10.9",
         ],
