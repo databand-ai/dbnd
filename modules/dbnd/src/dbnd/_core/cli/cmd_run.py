@@ -313,7 +313,11 @@ def run(
             print_help(ctx, task_cls)
             return
 
-        if context.settings.core.auto_create_local_db and is_web_enabled():
+        if (
+            context.settings.core.auto_create_local_db
+            and is_web_enabled()
+            and is_running_in_direct_db_mode(context)
+        ):
             sql_alchemy_conn = context.settings.core.get_sql_alchemy_conn()
             if sql_alchemy_conn and sql_alchemy_conn.startswith("sqlite:///"):
                 from dbnd_web.utils.dbnd_db import init_local_db
@@ -325,6 +329,10 @@ def run(
             run_uid=run_driver,
             scheduled_run_info=scheduled_run_info,
         )
+
+
+def is_running_in_direct_db_mode(ctx):
+    return "api" in ctx.settings.core.tracker and ctx.settings.core.tracker_api == "db"
 
 
 def print_help(ctx, task_cls):
