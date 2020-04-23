@@ -75,10 +75,12 @@ def dbnd_setup_unittest():
 
     set_airflow_sql_conn_from_dbnd_config()
 
+    # init db first
+    from dbnd_airflow.dbnd_airflow_main import subprocess_airflow_initdb
+
+    subprocess_airflow_initdb()
+
+    # now reconnnect
     from dbnd_airflow.airflow_extensions.airflow_config import reinit_airflow_sql_conn
 
     reinit_airflow_sql_conn()
-
-    from dbnd_airflow.dbnd_airflow_main import subprocess_airflow
-
-    subprocess_airflow(args=["initdb"])

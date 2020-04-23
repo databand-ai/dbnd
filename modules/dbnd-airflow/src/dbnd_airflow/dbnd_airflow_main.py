@@ -32,11 +32,25 @@ import argcomplete
 
 def subprocess_airflow(args):
     """Forward arguments to airflow command line"""
+
+    from airflow.configuration import conf
+    from sqlalchemy.engine.url import make_url
+
+    # let's make sure that we user correct connection string
+    airflow_sql_conn = conf.get("core", "SQL_ALCHEMY_CONN")
+    env = os.environ.copy()
+    env["AIRFLOW__CORE__SQL_ALCHEMY_CONN"] = airflow_sql_conn
+    env["AIRFLOW__CORE__FERNET_KEY"] = conf.get("core", "FERNET_KEY")
+
     # if we use airflow, we can get airflow from external env
     args = [sys.executable, "-m", "dbnd_airflow"] + args
-    logging.info("Running airflow command: %s", subprocess.list2cmdline(args))
+    logging.info(
+        "Running airflow command at subprocess: '%s" " with DB=%s",
+        subprocess.list2cmdline(args),
+        repr(make_url(airflow_sql_conn)),
+    )
     try:
-        subprocess.check_call(args=args, shell=True, stdout=subprocess.STDOUT)
+        subprocess.check_call(args=args, env=env)
     except Exception:
         logging.error(
             "Failed to run airflow command %s with path=%s",
@@ -45,6 +59,11 @@ def subprocess_airflow(args):
         )
         raise
     logging.info("Airflow command has been successfully executed")
+
+
+def subprocess_airflow_initdb():
+    logging.info("Initializing Airflow DB")
+    return subprocess_airflow(args=["initdb"])
 
 
 def main(args=None):

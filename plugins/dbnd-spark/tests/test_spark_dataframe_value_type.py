@@ -12,7 +12,7 @@ class TestSparkDataFrameValueType(object):
             "dtypes": {f.name: str(f.dataType) for f in spark_data_frame.schema.fields},
         }
 
-        meta_conf = ValueMetaConf()
+        meta_conf = ValueMetaConf.enabled()
         expected_value_meta = ValueMeta(
             value_preview=SparkDataFrameValueType().to_preview(
                 spark_data_frame, meta_conf.get_preview_size()
