@@ -318,7 +318,7 @@ class GCSClient(FileSystem):
     def put_multiple(
         self, filepaths, remote_directory, mimetype=None, chunksize=None, num_process=1
     ):
-        if isinstance(filepaths, str):
+        if isinstance(filepaths, six.string_types):
             raise ValueError(
                 "filenames must be a list of strings. If you want to put a single file, "
                 "use the `put(self, filename, ...)` method"

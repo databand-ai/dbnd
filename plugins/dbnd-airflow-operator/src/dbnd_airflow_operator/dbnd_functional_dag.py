@@ -232,7 +232,7 @@ class DagFuncOperatorCtrl(object):
         jinja_regex = re.compile("{\s*{.*}\s*}")
         # Use regex match and not find to prevent false-positives
         # Finds two opening braces and two closing braces, ignoring whitespaces between them
-        return isinstance(p_value, str) and jinja_regex.match(p_value)
+        return isinstance(p_value, six.string_types) and jinja_regex.match(p_value)
 
     def get_and_process_dbnd_dag_config(self):
         dag = self.dag

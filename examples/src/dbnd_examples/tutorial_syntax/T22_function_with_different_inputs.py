@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import List
 
+import six
+
 from dbnd import pipeline, task
 from targets import Target, target
 from targets.types import PathStr
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 def f_simple_types(v_int: int, v_bool: bool, v_str: str) -> str:
     assert isinstance(v_int, int)
     assert isinstance(v_bool, bool)
-    assert isinstance(v_str, str)
+    assert isinstance(v_str, six.string_types)
 
     logger.info("v_int: %s", v_int)
     logger.info("v_bool: %s", v_bool)
@@ -38,7 +40,7 @@ def f_datetime_types(
 @task
 def f_path_types(pathlib_path: Path, str_as_path: PathStr, target_path: Target) -> str:
     assert isinstance(pathlib_path, Path)
-    assert isinstance(str_as_path, str)
+    assert isinstance(str_as_path, six.string_types)
     assert isinstance(target_path, Target)
 
     return _return_value(pathlib_path, str_as_path, target_path)
@@ -55,10 +57,10 @@ def f_lists(
     assert isinstance(v_list_date[0], datetime.date)
 
     assert isinstance(v_list_obj[0], int)
-    assert isinstance(v_list_obj[1], str)
+    assert isinstance(v_list_obj[1], six.string_types)
 
     assert isinstance(v_list_int[0], int)
-    assert isinstance(v_list_str[0], str)
+    assert isinstance(v_list_str[0], six.string_types)
 
     return _return_value(v_list, v_list_obj, v_list_str, v_list_date, v_list_int)
 

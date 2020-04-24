@@ -3,6 +3,7 @@ import copy
 from typing import Tuple
 
 import pytest
+import six
 
 from airflow import DAG, AirflowException
 from airflow.operators.bash_operator import BashOperator
@@ -29,7 +30,7 @@ class TestFunctionalDagBuild(object):
             bool_value = sample_callable()
 
         assert len(dag.tasks) == 1
-        assert isinstance(bool_value, str)
+        assert isinstance(bool_value, six.string_types)
         assert self.is_xcom_str(bool_value)
 
     def test_multiple_outputs(self):
@@ -41,8 +42,8 @@ class TestFunctionalDagBuild(object):
         with DAG(dag_id="test_simple_build", default_args=default_args_test):
             a, b = two_outputs()
 
-        assert isinstance(a, str)
-        assert isinstance(b, str)
+        assert isinstance(a, six.string_types)
+        assert isinstance(b, six.string_types)
         assert self.is_xcom_str(a)
         assert self.is_xcom_str(b)
 

@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import six
+
 from dbnd._vendor import namesgenerator
 from dbnd._vendor.namesgenerator import get_random_name
 
@@ -18,7 +20,7 @@ def get_hashed_name(s, paranoid=False):
         return get_exportable_value(s)
 
     digest = hashlib.md5(str(s).encode()).digest()
-    if isinstance(digest, str):
+    if isinstance(digest, six.string_types):
         # python 2
         import struct
 

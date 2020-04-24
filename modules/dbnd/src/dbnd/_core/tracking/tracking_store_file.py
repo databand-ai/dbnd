@@ -8,6 +8,7 @@ import time
 
 from datetime import datetime
 
+import six
 import yaml
 
 from six import BytesIO
@@ -81,7 +82,7 @@ class FileTrackingStore(TrackingStore):
     def log_artifact(self, task_run, name, artifact, artifact_target):
         artifact_target.mkdir_parent()
 
-        if isinstance(artifact, str):
+        if isinstance(artifact, six.string_types):
             from targets.dir_target import DirTarget
 
             artifact_target_source = target(artifact)

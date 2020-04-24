@@ -1,6 +1,8 @@
 import datetime
 import enum
 
+import six
+
 import attr
 
 from dbnd._core.utils.timezone import make_aware, utcnow
@@ -215,7 +217,7 @@ class UpdateSource(enum.Enum):
     def __eq__(self, other):
         if isinstance(other, UpdateSource):
             return self.value == other.value
-        elif isinstance(other, str):
+        elif isinstance(other, six.string_types):
             return str(self) == other or str(self.value) == other
 
         return False

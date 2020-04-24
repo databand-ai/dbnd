@@ -5,6 +5,7 @@ import logging
 from typing import List, Optional, Union
 
 import pandas as pd
+import six
 
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
@@ -107,7 +108,7 @@ class TestTaskDecoratorsPY3(TargetTestBase):
             p_int: Union[int, LazyLoad],
             p_list: Union[List[int], LazyLoad],
         ) -> Union[str, None]:
-            assert isinstance(p_str, str)
+            assert isinstance(p_str, six.string_types)
             assert isinstance(p_int, int)
             assert isinstance(p_list, List)
             return "ok"
