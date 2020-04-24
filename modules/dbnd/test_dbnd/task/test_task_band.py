@@ -4,6 +4,7 @@ import os
 from typing import Any
 
 import pytest
+import six
 
 from dbnd import PipelineTask, band, current_task, output, parameter, pipeline, task
 from dbnd._core.errors import DatabandBuildError
@@ -172,7 +173,7 @@ class TestTaskBand(object):
         @task
         def t_with_path_str(p_o):
             # type: (PathStr) -> str
-            assert all(isinstance(v, str) for v in p_o.values())
+            assert all(isinstance(v, six.string_types) for v in p_o.values())
             return ""
 
         @task

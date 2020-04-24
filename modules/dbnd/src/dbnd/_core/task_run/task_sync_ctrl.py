@@ -2,6 +2,8 @@ import logging
 
 from os import path
 
+import six
+
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.task_utils import targets_to_str
 from targets import Target, target
@@ -35,7 +37,7 @@ class TaskSyncCtrl(TaskRunCtrl):
         #  should return None, not empty string to be compatible with airflow code
         if not local_files:
             return None
-        if isinstance(local_files, str):
+        if isinstance(local_files, six.string_types):
             local_files = [local_files]
         synced_files = self.sync_files(local_files)
         synced_files_str = targets_to_str(synced_files)
