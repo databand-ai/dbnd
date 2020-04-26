@@ -339,6 +339,7 @@ class AirflowTrackingManager(object):
                 job_name=af_context.root_dag_id,
                 send_heartbeat=False,  # we don't send heartbeat in tracking
                 source=UpdateSource.airflow_tracking,
+                af_context=af_context,
             ) as dr:
                 self.dr = dr
                 dr._init_without_run()

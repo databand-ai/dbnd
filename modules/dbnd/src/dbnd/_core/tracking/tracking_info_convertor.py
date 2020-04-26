@@ -81,6 +81,7 @@ class TrackingInfoBuilder(object):
             driver_task_uid=run.driver_task_run.task_run_uid,
             task_run_env=run.context.task_run_env,
             source=run.source,
+            af_context=run.af_context,
         )
 
         if driver_task.is_submitter:

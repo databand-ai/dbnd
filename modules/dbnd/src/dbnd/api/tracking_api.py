@@ -83,9 +83,17 @@ class InitRunArgs(object):
     scheduled_run_info = attr.ib(default=None)  # type: Optional[ScheduledRunInfo]
     update_existing = attr.ib(default=False)  # type: bool
     source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
+    af_context = attr.ib(default=None)  # type: Optional[AirflowTaskContext]
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
+
+
+class AirflowTaskContextSchema(ApiObjectSchema):
+    dag_id = fields.String()
+    execution_date = fields.String()
+    task_id = fields.String()
+    try_number = fields.Integer()
 
 
 class InitRunArgsSchema(ApiObjectSchema):
@@ -101,6 +109,7 @@ class InitRunArgsSchema(ApiObjectSchema):
     scheduled_run_info = fields.Nested(ScheduledRunInfoSchema, allow_none=True)
     update_existing = fields.Boolean()
     source = fields.Str(allow_none=True)
+    af_context = fields.Nested(AirflowTaskContextSchema, allow_none=True)
 
     @post_load
     def make_init_run_args(self, data, **kwargs):

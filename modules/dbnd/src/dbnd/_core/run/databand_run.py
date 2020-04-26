@@ -106,6 +106,7 @@ class DatabandRun(SingletonContext):
         existing_run=None,
         job_name=None,
         source=UpdateSource.dbnd,
+        af_context=None,
     ):
         # type:(DatabandContext, Union[Task, str] , Optional[UUID], Optional[ScheduledRunInfo], Optional[bool], Optional[UpdateSource]) -> None
         self.context = context
@@ -218,8 +219,8 @@ class DatabandRun(SingletonContext):
         )
 
         self.sends_heartbeat = send_heartbeat
-
         self.dynamic_af_tasks_count = dict()
+        self.af_context = af_context
 
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
