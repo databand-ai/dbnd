@@ -31,39 +31,50 @@ def dbnd_wrap_spark_environment(environment=None):
 
 
 def get_dbnd_tracking_spark_conf_dict(
-    dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ts}}"
+    dag_id="{{dag.dag_id}}",
+    task_id="{{task.task_id}}",
+    execution_date="{{ts}}",
+    try_number="{{task_instance._try_number}}",
 ):
     return {
         "spark.env.AIRFLOW_CTX_DAG_ID": dag_id,
         "spark.env.AIRFLOW_CTX_EXECUTION_DATE": execution_date,
         "spark.env.AIRFLOW_CTX_TASK_ID": task_id,
+        "spark.env.AIRFLOW_CTX_TRY_NUMBER": try_number,
     }
 
 
 def get_dbnd_tracking_spark_conf(
-    dag_id="{{dag.dag_id}}", task_id="{{task.task_id}}", execution_date="{{ts}}"
+    dag_id="{{dag.dag_id}}",
+    task_id="{{task.task_id}}",
+    execution_date="{{ts}}",
+    try_number="{{task_instance._try_number}}",
 ):
-    """ This functions returns Airflow ids  as spark configuration properties. This is used to assositae spark run with airflow dag/task.
+    """ This functions returns Airflow ids  as spark configuration properties. This is used to associate spark run with airflow dag/task.
         These properties are
             spark.env.AIRFLOW_CTX_DAG_ID  -  name of the Airflow DAG to associate a run with
             spark.env.AIRFLOW_CTX_EXECUTION_DATE - execution_date to associate a run with
             spark.env.AIRFLOW_CTX_TASK_ID" - name of the Airflow Task to associate a run with
+            spark.env.AIRFLOW_CTX_TRY_NUMBER" - try number of the Airflow Task to associate a run with
 
         Example:
             >>> get_dbnd_tracking_spark_conf()
-            ['--conf', 'spark.env.AIRFLOW_CTX_DAG_ID={{dag.dag_id}}', '--conf', 'spark.env.AIRFLOW_CTX_EXECUTION_DATE={{ts}}', '--conf', 'spark.env.AIRFLOW_CTX_TASK_ID={{task.task_id}}']
+            ['--conf', 'spark.env.AIRFLOW_CTX_DAG_ID={{dag.dag_id}}', '--conf', 'spark.env.AIRFLOW_CTX_EXECUTION_DATE={{ts}}', '--conf', 'spark.env.AIRFLOW_CTX_TASK_ID={{task.task_id}}', '--conf', 'spark.env.AIRFLOW_CTX_TRY_NUMBER={{task._try_number}}']
 
         Args:
             dag_id: name of the Airflow DAG to associate a run. By default set to {{dag.dag_id}} Airflow template
             task_id: name of the Airflow task to associate a run. By default set to {{task.task_id}} Airflow template
             execution_date: execution date as a string. By default set to {{ts}} Airflow template
+            try_number: try number of Airflow task. By default set to {{task_instance._try_number}} Airflow template
 
         Returns:
             List of Airflow Ids as spark properties. Ready to concatenate to spark-submit command
 
     """
 
-    conf_as_dict = get_dbnd_tracking_spark_conf_dict(dag_id, task_id, execution_date)
+    conf_as_dict = get_dbnd_tracking_spark_conf_dict(
+        dag_id, task_id, execution_date, try_number
+    )
     conf = []
     for key in conf_as_dict.keys():
         conf.extend(["--conf", key + "=" + conf_as_dict[key]])
