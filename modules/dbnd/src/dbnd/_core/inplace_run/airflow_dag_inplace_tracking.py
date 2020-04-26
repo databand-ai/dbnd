@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import sys
 
 from typing import Any, Optional
 
@@ -58,6 +59,7 @@ class AirflowTaskContext(object):
     dag_id = attr.ib()  # type: str
     execution_date = attr.ib()  # type: str
     task_id = attr.ib()  # type: str
+    try_number = attr.ib(default=1)
 
     root_dag_id = attr.ib(init=False, repr=False)  # type: str
     is_subdag = attr.ib(init=False, repr=False)  # type: bool
@@ -84,6 +86,37 @@ _AIRFLOW_TASK_CONTEXT = None
 _TRY_GET_AIRFLOW_CONTEXT_CACHE = {}
 
 
+def _get_try_number():
+    import inspect
+
+    is_python_operator_exec = list(
+        filter(
+            lambda frame: "python_operator" in frame.filename.lower()
+            and frame.function == "execute",
+            inspect.stack(),
+        )
+    )
+
+    if is_python_operator_exec:
+        # We are in python operator execution flow
+        # let's get real airflow context from stack trace
+        try:
+            frame = is_python_operator_exec[0].frame
+            if "context" in frame.f_locals and "ti" in frame.f_locals["context"]:
+                return frame.f_locals["context"]["ti"].try_number
+            else:
+                raise Exception("Could not find airflow context inside PythonOperator.")
+        except Exception as e:
+            logging.error("Could not get try number from airflow context")
+            raise e
+
+    else:
+        # We are in bash operator execution flow
+        # TODO: generate try_number mechanism for bash operator
+        try_number = os.environ.get("AIRFLOW_CTX_TRY_NUMBER")
+        return try_number
+
+
 @cached(cache=_TRY_GET_AIRFLOW_CONTEXT_CACHE)
 def try_get_airflow_context():
     # type: ()-> Optional[AirflowTaskContext]
@@ -96,9 +129,17 @@ def try_get_airflow_context():
         dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
         execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
         task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")
+        try:
+            try_number = _get_try_number()
+        except Exception:
+            try_number = None
+
         if dag_id and task_id and execution_date:
             return AirflowTaskContext(
-                dag_id=dag_id, execution_date=execution_date, task_id=task_id
+                dag_id=dag_id,
+                execution_date=execution_date,
+                task_id=task_id,
+                try_number=try_number,
             )
         return None
     except Exception:
