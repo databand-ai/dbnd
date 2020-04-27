@@ -17,6 +17,7 @@ from dbnd._core.constants import (
     UpdateSource,
 )
 from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
+from dbnd._core.inplace_run.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
@@ -93,7 +94,11 @@ class AirflowTaskContextSchema(ApiObjectSchema):
     dag_id = fields.String()
     execution_date = fields.String()
     task_id = fields.String()
-    try_number = fields.Integer()
+    try_number = fields.Integer(allow_none=True)
+
+    @post_load
+    def make_run_info(self, data, **kwargs):
+        return AirflowTaskContext(**data)
 
 
 class InitRunArgsSchema(ApiObjectSchema):
@@ -152,6 +157,7 @@ init_run_schema = InitRunSchema()
 
 class AddTaskRunsSchema(_ApiCallSchema):
     task_runs_info = fields.Nested(TaskRunsInfoSchema)
+    source = EnumField(UpdateSource, allow_none=True)
 
 
 add_task_runs_schema = AddTaskRunsSchema()

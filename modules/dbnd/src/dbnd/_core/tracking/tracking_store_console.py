@@ -91,7 +91,7 @@ class ConsoleStore(tracking_store.TrackingStore):
         except Exception as ex:
             logger.log(level, "%s \nfailed to create banner: %s" % (task_msg, ex))
 
-    def add_task_runs(self, run, task_runs):
+    def add_task_runs(self, run, task_runs, source):
         pass
 
     def save_external_links(self, task_run, external_links_dict):

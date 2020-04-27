@@ -26,10 +26,10 @@ class TaskDefinitionInfo(_DbndDataClass):
 
     class_version = attr.ib()  # type: str
 
-    module_source = attr.ib()  # type: str
-    module_source_hash = attr.ib()  # type: str
-
     task_param_definitions = attr.ib()  # type: List[ParameterDefinition]
+
+    module_source = attr.ib(default=None)  # type: str
+    module_source_hash = attr.ib(default=None)  # type: str
 
     source = attr.ib(default=None)  # type: str
     source_hash = attr.ib(default=None)  # type: str
