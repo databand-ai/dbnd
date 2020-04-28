@@ -1,3 +1,7 @@
+"""
+Context: airflow operator/task is running a function with @task
+Here we create dbnd objects to represent them and send to webserver through tracking api.
+"""
 import datetime
 import logging
 import os
@@ -126,6 +130,7 @@ def try_get_airflow_context():
         if from_spark:
             return from_spark
 
+        # Those env vars are set by airflow before running the operator
         dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
         execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
         task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")
@@ -226,14 +231,21 @@ class AirflowDagRuntimeTask(_AirflowRuntimeTask):
 
 
 class AirflowOperatorRuntimeTask(_AirflowRuntimeTask):
+    """
+    Its main purpose is to wrap airflow operator with dbnd task so we can track it.
+    It doesn't implement run function because it doesn't run anything.
+    """
+
     pass
 
 
-# there can be only one tracking manager
+# there can be only one tracking manager - 1 for each operator (each operator runs in a different process)
+# if we have multiple @task in an operator they should all use the same tracking manager
 _CURRENT_AIRFLOW_TRACKING_MANAGER = None  # type: Optional[AirflowTrackingManager]
 
 
-def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
+def track_airflow_operator_run(func_call, airflow_task_context):
+    """ The "entry point" to this file. It's called from decorated task after verifying it's running in airflow context """
     atm = get_airflow_tracking_manager(airflow_task_context)
     if not atm:
         # we failed to get tracker
@@ -264,6 +276,11 @@ def get_airflow_tracking_manager(airflow_task_context):
 
 
 class AirflowTrackingManager(object):
+    """
+    The main code of this file. It gets airflow context, creates runtime tasks for dag and operator,
+    sets their relationships, calls tracking code, and runs the function
+    """
+
     def __init__(self, af_context):
         # type: (AirflowTaskContext) -> None
         self.run_uid = get_job_run_uid(

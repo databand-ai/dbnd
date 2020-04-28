@@ -33,26 +33,24 @@ DEFAULT_CLASS_VERSION = ""
 
 class Task(_BaseTask, _TaskParamContainer):
     """
-    This is the base class of all databand Tasks, the base unit of work in databand.
+    This is the base class of all dbnd Tasks, the base unit of work in databand.
 
-    A databand Task describes a unit or work.
+    A dbnd Task describes a unit or work.
 
     The key methods of a Task, which must be implemented in a subclass are:
 
     * :py:meth:`run` - the computation done by this task.
-    * :py:meth:`requires` - the list of Tasks that this Task depends on.
-    * :py:meth:`output` - the output :py:class:`Target` that this Task creates.
 
-    Each :py:class:`~databand.Parameter` of the Task should be declared as members:
+    Each :py:class:`~dbnd.parameter` of the Task should be declared as members:
 
     .. code:: python
 
         class MyTask(dbnd.Task):
-            count = databand.parameter[int]
-            second_param = databand.parameter[str]
+            count = dbnd.parameter[int]
+            second_param = dbnd.parameter[str]
 
     In addition to any declared properties and methods, there are a few
-    non-declared properties, which are created by the :py:class:`Register`
+    non-declared properties, which are created by the :py:class:`TaskMetaclass`
     metaclass:
 
     """

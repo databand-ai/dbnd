@@ -10,7 +10,7 @@ from dbnd._core.errors.friendly_error.task_execution import (
     failed_to_process_non_empty_result,
 )
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
-    track_airflow_dag_run_operator_run,
+    track_airflow_operator_run,
     try_get_airflow_context,
 )
 from dbnd._core.inplace_run.inplace_run_manager import is_inplace_run
@@ -61,7 +61,7 @@ class _DecoratedTask(Task):
 
         airflow_task_context = try_get_airflow_context()
         if airflow_task_context:
-            return track_airflow_dag_run_operator_run(
+            return track_airflow_operator_run(
                 func_call=func_call, airflow_task_context=airflow_task_context
             )
 
