@@ -35,16 +35,19 @@ EXTRAS_REQUIRE = {
         dbnd_package("dbnd-airflow"),
         "psycopg2>=2.7.4,<2.8",
         "apache-airflow==1.10.7",
+        "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
     ],
     "airflow-1_10_7": [
         dbnd_package("dbnd-airflow"),
         "psycopg2>=2.7.4,<2.8",
         "apache-airflow==1.10.7",
+        "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
     ],
     "airflow-1_10_9": [
         dbnd_package("dbnd-airflow"),
         "psycopg2>=2.7.4,<2.8",
         "apache-airflow==1.10.9",
+        "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
     ],
     "airflow-export": [dbnd_package("dbnd-airflow-export")],
     "airflow-operator": [dbnd_package("dbnd-airflow-operator")],
