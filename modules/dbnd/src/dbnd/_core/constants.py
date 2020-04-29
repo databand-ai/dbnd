@@ -61,7 +61,7 @@ class DescribeFormat(object):
 # Compute Types
 
 
-class EnumAllMixin(object):
+class EnumWithAll(enum.Enum):
     @classmethod
     def all(cls):
         return list(cls)
@@ -75,7 +75,7 @@ class EnumAllMixin(object):
         return [x.name for x in cls]
 
 
-class SparkClusters(EnumAllMixin, enum.Enum):
+class SparkClusters(EnumWithAll):
     local = "local"
     dataproc = "dataproc"
     databricks = "databricks"
@@ -111,7 +111,7 @@ class TaskType(object):
     docker = "docker"
 
 
-class TaskRunState(EnumAllMixin, enum.Enum):
+class TaskRunState(EnumWithAll):
     SCHEDULED = "scheduled"
     QUEUED = "queued"
     RUNNING = "running"
@@ -151,7 +151,7 @@ class TaskRunState(EnumAllMixin, enum.Enum):
 REUSED = "reused"
 
 
-class RunState(EnumAllMixin, enum.Enum):
+class RunState(EnumWithAll):
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
@@ -159,7 +159,7 @@ class RunState(EnumAllMixin, enum.Enum):
     CANCELLED = "cancelled"
 
 
-class AlertStatus(EnumAllMixin, enum.Enum):
+class AlertStatus(EnumWithAll):
     TRIGGERED = "TRIGGERED"
     RESOLVED = "RESOLVED"
     ACKNOWLEDGED = "ACKNOWLEDGED"
@@ -182,13 +182,13 @@ class _DbndDataClass(object):
 HEARTBEAT_DISABLED = make_aware(datetime.datetime.fromtimestamp(0))
 
 
-class ParamValidation(EnumAllMixin, enum.Enum):
+class ParamValidation(EnumWithAll):
     warn = "warn"
     error = "error"
     disabled = "disabled"
 
 
-class DbndTargetOperationType(EnumAllMixin, enum.Enum):
+class DbndTargetOperationType(EnumWithAll):
     init = "init"
     read = "read"
     write = "write"
@@ -196,12 +196,12 @@ class DbndTargetOperationType(EnumAllMixin, enum.Enum):
     log = "log"
 
 
-class DbndTargetOperationStatus(EnumAllMixin, enum.Enum):
+class DbndTargetOperationStatus(EnumWithAll):
     OK = "OK"
     NOK = "NOK"
 
 
-class SystemMetrics(EnumAllMixin, enum.Enum):
+class SystemMetrics(EnumWithAll):
     Duration = "Duration"
     TotalCpuTime = "Total CPU Time"
     TotalWallTime = "Total Wall Time"
@@ -223,7 +223,7 @@ class SystemMetrics(EnumAllMixin, enum.Enum):
         ]
 
 
-class UpdateSource(EnumAllMixin, enum.Enum):
+class UpdateSource(EnumWithAll):
     dbnd = "dbnd"
     airflow_monitor = "airflow_monitor"
     airflow_tracking = "airflow_tracking"
