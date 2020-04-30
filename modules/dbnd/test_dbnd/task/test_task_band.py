@@ -10,10 +10,10 @@ from dbnd import PipelineTask, band, current_task, output, parameter, pipeline, 
 from dbnd._core.errors import DatabandBuildError
 from dbnd.tasks.basics.publish import publish_results
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import Target, target
 from targets.target_config import TargetConfig
 from targets.types import Path, PathStr
-from test_dbnd.factories import TTask
 
 
 logger = logging.getLogger(__name__)

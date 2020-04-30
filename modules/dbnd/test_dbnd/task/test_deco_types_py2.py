@@ -3,7 +3,7 @@ import logging
 from typing import Optional, Tuple, Union
 
 from dbnd import task
-from test_dbnd.targets_tests import TargetTestBase
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 
 
 logger = logging.getLogger(__name__)

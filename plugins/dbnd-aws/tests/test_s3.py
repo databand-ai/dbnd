@@ -27,8 +27,10 @@ import tempfile
 import pytest
 
 from dbnd_aws.fs import s3
+from dbnd_test_scenarios.test_common.targets.base_target_test_mixin import (
+    FileTargetTestMixin,
+)
 from targets import target
-from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 
 class _S3BaseTestCase(object):

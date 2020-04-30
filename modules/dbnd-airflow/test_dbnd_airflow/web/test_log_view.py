@@ -26,7 +26,7 @@ from airflow.config_templates.airflow_local_settings import DEFAULT_LOGGING_CONF
 from pytest import fixture, mark
 
 from dbnd._core.utils.date_utils import airflow_datetime_str
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 from test_dbnd_airflow.utils import WebAppTest
 
 

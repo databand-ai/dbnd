@@ -4,7 +4,7 @@ import logging
 from dbnd import PythonTask, dbnd_run_cmd, parameter
 from dbnd._core.errors import DatabandRunError
 from dbnd.testing.helpers_pytest import run_locally__raises
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

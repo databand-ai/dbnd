@@ -12,9 +12,9 @@ from dbnd import PythonTask, config, dbnd_run_cmd, output, parameter, task
 from dbnd._core.constants import OutputMode
 from dbnd._core.current import get_databand_context
 from dbnd.testing.helpers_pytest import assert_run_task, skip_on_windows
+from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import Target
 from targets.target_config import file, folder
-from test_dbnd.factories import TTask
 
 
 logger = logging.getLogger(__name__)

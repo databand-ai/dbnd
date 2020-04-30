@@ -32,8 +32,10 @@ import targets
 import targets.pipes
 
 from dbnd.testing.helpers_pytest import skip_on_windows
+from dbnd_test_scenarios.test_common.targets.base_target_test_mixin import (
+    FileTargetTestMixin,
+)
 from targets import target
-from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 
 class TestLocalTarget(FileTargetTestMixin):

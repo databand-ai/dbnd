@@ -5,7 +5,7 @@ from dbnd._core.configuration.config_readers import (
     read_environ_config,
     read_from_config_files,
 )
-from test_dbnd.scenarios import scenario_path
+from dbnd_test_scenarios.dbnd_scenarios import scenario_path
 
 
 class TestConfigReaders(object):

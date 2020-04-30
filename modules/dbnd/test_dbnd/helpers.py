@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

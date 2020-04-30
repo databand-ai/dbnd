@@ -2,9 +2,9 @@ import logging
 
 from dbnd import output, pipeline, task
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets import target
 from targets.types import PathStr
-from test_dbnd.targets_tests import TargetTestBase
 
 
 logger = logging.getLogger(__name__)

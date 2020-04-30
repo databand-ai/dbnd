@@ -2,7 +2,7 @@ from threading import Thread
 
 from dbnd import new_dbnd_context
 from dbnd._core.settings import RunConfig
-from test_dbnd.factories import ttask_simple
+from dbnd_test_scenarios.test_common.task.factories import ttask_simple
 
 
 class TestRunFromThread(object):

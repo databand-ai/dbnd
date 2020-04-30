@@ -10,7 +10,7 @@ from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd.tasks.basics import SimplestTask
 from dbnd.testing.helpers import run_dbnd_test_project
 from dbnd.testing.helpers_pytest import assert_run_task
-from test_dbnd.factories import TTask, TTaskWithInput
+from dbnd_test_scenarios.test_common.task.factories import TTask, TTaskWithInput
 from test_dbnd.scenarios.pipelines.pipe_4tasks import (
     MainPipeline as Scenario4_MainPipeline,
 )

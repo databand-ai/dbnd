@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Tuple
 
 from dbnd import ParameterDefinition, band, config, parameter, task
 from dbnd._core.task.task import TASK_PARAMS_COUNT, Task
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

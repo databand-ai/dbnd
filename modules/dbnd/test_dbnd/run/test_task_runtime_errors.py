@@ -4,7 +4,7 @@ from pandas import DataFrame
 
 from dbnd import PythonTask, data, new_dbnd_context, output
 from dbnd._core.errors import DatabandRunError
-from test_dbnd.targets_tests import TargetTestBase
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 
 
 class TMissingOutputs(PythonTask):

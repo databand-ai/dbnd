@@ -9,9 +9,9 @@ from pytest import fixture
 
 from dbnd import band, output, task
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets import FileTarget
 from targets.types import DataList
-from test_dbnd.targets_tests import TargetTestBase
 
 
 @task(result=output.data_list_str)

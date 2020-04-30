@@ -7,8 +7,8 @@ from dbnd_examples.feature_data import (
     example_folder,
     example_output_per_id,
 )
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets.dir_target import DirTarget
-from test_dbnd.targets_tests import TargetTestBase
 
 
 @pytest.fixture

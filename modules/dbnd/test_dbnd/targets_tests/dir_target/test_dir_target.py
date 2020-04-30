@@ -2,10 +2,10 @@ import os
 
 import pytest
 
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets import target
 from targets.dir_target import DEFAULT_FLAG_FILE_NAME
 from targets.target_config import file, folder
-from test_dbnd.targets_tests import TargetTestBase
 
 
 class TestDirTarget(TargetTestBase):

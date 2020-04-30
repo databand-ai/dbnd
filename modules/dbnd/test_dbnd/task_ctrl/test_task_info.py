@@ -5,8 +5,8 @@ import shlex
 from typing import List
 
 from dbnd import dbnd_run_cmd, parameter
+from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets.values import DateValueType
-from test_dbnd.factories import TTask
 
 
 logger = logging.getLogger(__name__)

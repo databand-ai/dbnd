@@ -7,6 +7,7 @@ import pytest
 
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets.marshalling import (
     DataFrameToCsv,
     DataFrameToFeather,
@@ -14,7 +15,6 @@ from targets.marshalling import (
     DataFrameToPickle,
     DataFrameToTsv,
 )
-from test_dbnd.targets_tests import TargetTestBase
 
 
 logger = logging.getLogger(__name__)

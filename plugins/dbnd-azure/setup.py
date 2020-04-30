@@ -15,6 +15,6 @@ setuptools.setup(
     name="dbnd-azure",
     package_dir={"": "src"},
     install_requires=["dbnd==" + version, "azure-storage-blob>=2.1.0,<3.0.0"],
-    extras_require=dict(tests=[]),
+    extras_require=dict(tests=["dbnd_test_scenarios==" + version]),
     entry_points={"dbnd": ["dbnd-azure = dbnd_azure._plugin"]},
 )

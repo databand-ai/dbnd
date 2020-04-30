@@ -3,10 +3,10 @@ import six
 
 from dbnd import data
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_test_scenarios.dbnd_scenarios import scenario_path, scenario_target
+from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import target
 from targets.target_config import file
-from test_dbnd.factories import TTask
-from test_dbnd.scenarios import scenario_path, scenario_target
 
 
 class TTextDataTask(TTask):

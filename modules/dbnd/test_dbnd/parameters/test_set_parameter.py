@@ -2,7 +2,7 @@ from typing import Set
 
 from dbnd import parameter
 from dbnd.testing.helpers import build_task
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 class SetParameterTask(TTask):

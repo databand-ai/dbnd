@@ -12,8 +12,13 @@ def abs_join(*path):
 
 
 def relative_path(file_in_path, *path):
-    _current_dir = os.path.dirname(os.path.abspath(file_in_path))
-    return abs_join(_current_dir, *path)
+    current_dir = os.path.dirname(os.path.abspath(file_in_path))
+    return abs_join(current_dir, *path)
+
+
+def relative_path_directory(file_in_path, *path):
+    current_dir = os.path.abspath(file_in_path)
+    return abs_join(current_dir, *path)
 
 
 _lib_home_default = relative_path(__file__, "..", "..", "..")

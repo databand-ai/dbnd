@@ -5,7 +5,7 @@ import six
 
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd.testing.helpers import run_test_notebook
-from test_dbnd.scenarios import scenario_path
+from dbnd_test_scenarios.dbnd_scenarios import scenario_path
 
 
 class TestJupyter(object):

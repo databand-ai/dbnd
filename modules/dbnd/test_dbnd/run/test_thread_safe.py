@@ -2,7 +2,7 @@ import threading
 
 from dbnd import PythonTask, output
 from dbnd._core.context.bootstrap import _dbnd_exception_handling
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 class TMissingOutputs(PythonTask):

@@ -3,7 +3,7 @@ import sys
 
 from dbnd import task
 from dbnd._core.task_ctrl.task_visualiser import _MAX_VALUE_SIZE, TaskVisualiser
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

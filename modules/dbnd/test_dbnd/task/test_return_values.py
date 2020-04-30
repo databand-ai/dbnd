@@ -10,7 +10,7 @@ from pandas.util.testing import assert_frame_equal
 from dbnd import output, task
 from dbnd._core.errors import DatabandBuildError, DatabandRunError
 from dbnd.testing.helpers_pytest import assert_run_task
-from test_dbnd.targets_tests import TargetTestBase
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 
 
 class TestTaskDecoReturnValues(TargetTestBase):

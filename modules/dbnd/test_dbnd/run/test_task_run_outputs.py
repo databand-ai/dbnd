@@ -7,8 +7,8 @@ import dbnd._core.task_run.task_run
 
 from dbnd import output, task
 from dbnd.testing.helpers import initialized_run
+from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import FileTarget
-from test_dbnd.factories import TTask
 
 
 logger = logging.getLogger(__name__)

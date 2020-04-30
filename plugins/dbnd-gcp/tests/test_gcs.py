@@ -32,8 +32,10 @@ import pytest
 
 from dbnd import config
 from dbnd_gcp.fs import gcs
+from dbnd_test_scenarios.test_common.targets.base_target_test_mixin import (
+    FileTargetTestMixin,
+)
 from targets import target
-from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 
 pytest.importorskip("googleapiclient.errors")

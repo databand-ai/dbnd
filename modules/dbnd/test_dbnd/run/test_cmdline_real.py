@@ -9,8 +9,8 @@ import targets
 from dbnd._core.utils.project.project_fs import project_path
 from dbnd.testing.helpers import run_dbnd_subprocess__dbnd_run
 from dbnd.testing.helpers_pytest import skip_on_windows
-from test_dbnd import factories
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task import factories
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

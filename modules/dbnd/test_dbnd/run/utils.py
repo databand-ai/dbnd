@@ -5,7 +5,7 @@ import subprocess
 from pytest import fixture
 
 from dbnd import dbnd_run_cmd
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 class DbndCmdTest(object):

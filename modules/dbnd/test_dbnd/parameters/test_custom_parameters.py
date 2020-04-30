@@ -6,17 +6,20 @@ from pandas.util.testing import assert_frame_equal
 from pytest import fixture
 
 from dbnd.testing.helpers_pytest import assert_run_task
-from targets import target
-from targets.target_config import folder
-from targets.values.builtins_values import DataValueType
-from targets.values.pandas_values import DataFramesDictValueType
-from test_dbnd.parameters.custom_parameter_feature_store import (
+from dbnd_test_scenarios.test_common.custom_parameter_feature_store import (
     CalculateAdvancedFeatures,
     CreateFeatureStoreViaClass,
     FeatureStore,
     report_features,
 )
-from test_dbnd.parameters.custom_parameter_hdf5 import BuildMyData, MyDataReport
+from dbnd_test_scenarios.test_common.custom_parameter_hdf5 import (
+    BuildMyData,
+    MyDataReport,
+)
+from targets import target
+from targets.target_config import folder
+from targets.values.builtins_values import DataValueType
+from targets.values.pandas_values import DataFramesDictValueType
 
 
 logger = logging.getLogger(__name__)

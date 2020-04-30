@@ -26,6 +26,7 @@ setuptools.setup(
         "tests": [
             "awscli",
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            "dbnd_test_scenarios==" + version,
         ]
     },
     entry_points={"dbnd": ["dbnd-aws = dbnd_aws._plugin"]},

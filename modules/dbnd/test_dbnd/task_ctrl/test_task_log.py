@@ -8,7 +8,7 @@ import matplotlib
 import dbnd
 
 from dbnd import PipelineTask, data, output
-from test_dbnd.scenarios import scenario_path
+from dbnd_test_scenarios.dbnd_scenarios import scenario_path
 
 
 matplotlib.use("Agg")

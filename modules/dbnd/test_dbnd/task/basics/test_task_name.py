@@ -1,5 +1,5 @@
 from dbnd import PipelineTask, config, output, parameter
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 class TTNFirstTask(TTask):

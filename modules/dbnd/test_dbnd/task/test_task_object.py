@@ -30,8 +30,8 @@ from dbnd import data, output, parameter
 from dbnd._core.task import base_task
 from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd.tasks import DataSourceTask, Task
+from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import target
-from test_dbnd.factories import TTask
 
 
 class DefaultInsignificantParamTask(TTask):

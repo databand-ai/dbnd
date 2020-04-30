@@ -15,6 +15,9 @@ setuptools.setup(
     name="dbnd-hdfs",
     package_dir={"": "src"},
     install_requires=["dbnd==" + version, "pyox", "hdfs"],
-    extras_require=dict(kerberos=["requests_kerberos", "hdfs"], tests=[]),
+    extras_require=dict(
+        kerberos=["requests_kerberos", "hdfs"],
+        tests=["dbnd_test_scenarios==" + version],
+    ),
     entry_points={"dbnd": ["dbnd-hdfs = dbnd_hdfs._plugin"]},
 )

@@ -24,6 +24,6 @@ setuptools.setup(
         "PyOpenSSL",
         "pandas-gbq",
     ],
-    extras_require=dict(tests=[]),
+    extras_require=dict(tests=["dbnd_test_scenarios==" + version]),
     entry_points={"dbnd": ["dbnd-gcp = dbnd_gcp._plugin"]},
 )

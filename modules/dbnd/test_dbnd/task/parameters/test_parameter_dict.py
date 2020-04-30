@@ -1,8 +1,8 @@
 from typing import Dict
 
 from dbnd import band, task
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets.types import Path
-from test_dbnd.targets_tests import TargetTestBase
 
 
 @task

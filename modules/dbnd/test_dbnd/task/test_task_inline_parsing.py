@@ -8,7 +8,7 @@ import pandas as pd
 from databand import parameters
 from dbnd import PipelineTask, output, parameter, task
 from dbnd.testing.helpers_pytest import assert_run_task
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 class DummyTask(TTask):

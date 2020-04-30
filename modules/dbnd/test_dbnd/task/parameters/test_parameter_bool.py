@@ -1,5 +1,5 @@
 from dbnd import dbnd_run_cmd, parameter
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 class Baz(TTask):

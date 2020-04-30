@@ -7,7 +7,7 @@ from dbnd._core.commands import log_artifact, log_metric
 from dbnd._core.current import get_databand_run
 from dbnd._core.tracking.tracking_store_file import read_task_metrics
 from dbnd.testing.helpers_pytest import assert_run_task
-from test_dbnd.targets_tests import TargetTestBase
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 
 
 class TestTaskMetricsCommands(TargetTestBase):

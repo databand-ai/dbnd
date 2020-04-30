@@ -5,8 +5,10 @@ import pytest
 
 from dbnd import config
 from dbnd_azure.fs.azure_blob import AzureBlobStorageClient
+from dbnd_test_scenarios.test_common.targets.base_target_test_mixin import (
+    FileTargetTestMixin,
+)
 from targets import target
-from test_dbnd.targets_tests.base_target_test_mixin import FileTargetTestMixin
 
 
 ATTEMPTED_CONTAINER_CREATE = False

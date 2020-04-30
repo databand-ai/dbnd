@@ -10,11 +10,11 @@ from dbnd_examples.extensions.custom_value_type import (
     TaskWithCustomValue,
     TaskWithCustomValueInline,
 )
-from test_dbnd.parameters.custom_parameter_feature_store import (
+from dbnd_test_scenarios.test_common.custom_parameter_feature_store import (
     calculate_features,
     calculate_features_via_classes,
 )
-from test_dbnd.parameters.custom_parameter_hdf5 import MyHdf5DataPipeline
+from dbnd_test_scenarios.test_common.custom_parameter_hdf5 import MyHdf5DataPipeline
 
 
 class TestFeatureCustom(object):

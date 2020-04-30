@@ -6,7 +6,11 @@ from dbnd import Task, config, new_dbnd_context
 from dbnd._core.constants import ParamValidation
 from dbnd._core.errors import DatabandBuildError, DatabandError, UnknownParameterError
 from dbnd._core.settings import CoreConfig
-from test_dbnd.factories import CaseSensitiveParameterTask, TTask, ttask_simple
+from dbnd_test_scenarios.test_common.task.factories import (
+    CaseSensitiveParameterTask,
+    TTask,
+    ttask_simple,
+)
 
 
 logger = logging.getLogger(__name__)

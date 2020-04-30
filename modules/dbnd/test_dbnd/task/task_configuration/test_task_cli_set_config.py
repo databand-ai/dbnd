@@ -5,8 +5,8 @@ import dbnd
 
 from dbnd import config, dbnd_run_cmd, output, parameter
 from dbnd.testing.helpers_pytest import skip_on_windows
-from test_dbnd.factories import TTask
-from test_dbnd.scenarios import scenario_path
+from dbnd_test_scenarios.dbnd_scenarios import scenario_path
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

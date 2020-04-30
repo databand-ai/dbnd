@@ -51,6 +51,7 @@ setuptools.setup(
             "kubernetes==9.0.0",
             "cryptography>=2.0.0",
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            "dbnd_test_scenarios==" + version,
         ],
     ),
     entry_points={

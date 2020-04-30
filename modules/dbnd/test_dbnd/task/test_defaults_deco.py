@@ -4,8 +4,8 @@ import logging
 
 from dbnd import dbnd_run_cmd, output, parameter, task
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets import Target
-from test_dbnd.targets_tests import TargetTestBase
 
 
 logger = logging.getLogger(__name__)

@@ -1,8 +1,8 @@
 from dbnd import PipelineTask, PythonTask, data, output
 from dbnd.tasks import DataSourceTask
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_test_scenarios.dbnd_scenarios import scenario_path
 from targets import target
-from test_dbnd.scenarios import scenario_path
 
 
 class TLogInputs(DataSourceTask):

@@ -15,7 +15,7 @@ from dbnd._core.settings import CoreConfig, RunConfig
 from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd.tasks import PythonTask
 from dbnd.testing.helpers import initialized_run
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

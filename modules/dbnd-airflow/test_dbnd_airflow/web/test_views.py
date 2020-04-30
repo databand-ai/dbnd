@@ -24,7 +24,7 @@ from pytest import fixture
 
 from dbnd._core.utils.date_utils import airflow_datetime_str
 from dbnd_airflow.airflow_override.dbnd_aiflow_webserver import patch_airflow_create_app
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 from test_dbnd_airflow.utils import WebAppTest, assert_content_in_response, assert_ok
 
 

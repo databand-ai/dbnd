@@ -23,6 +23,7 @@ from typing import List
 
 import pytest
 
+from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets.values import (
     DictValueType,
     IntValueType,
@@ -30,7 +31,6 @@ from targets.values import (
     SetValueType,
     ValueType,
 )
-from test_dbnd.targets_tests import TargetTestBase
 
 
 class CustomValueType(ValueType):

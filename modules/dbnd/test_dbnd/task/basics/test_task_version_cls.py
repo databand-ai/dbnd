@@ -1,5 +1,5 @@
 from dbnd import PipelineTask, namespace, output, parameter
-from test_dbnd.factories import FooConfig, TTask
+from dbnd_test_scenarios.test_common.task.factories import FooConfig, TTask
 
 
 namespace("n_tv")

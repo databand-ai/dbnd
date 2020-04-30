@@ -7,7 +7,7 @@ import pytest
 from dbnd import Task, dbnd_run_cmd
 from dbnd._core.errors import TaskClassAmbigiousException, TaskClassNotFoundException
 from dbnd._vendor.snippets.edit_distance import get_editdistance
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

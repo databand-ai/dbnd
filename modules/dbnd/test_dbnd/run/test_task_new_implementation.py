@@ -3,7 +3,7 @@ import logging
 from dbnd import data
 from dbnd.tasks.basics import SimplestTask
 from dbnd.testing.helpers_pytest import assert_run_task
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)

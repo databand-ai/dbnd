@@ -1,6 +1,6 @@
 from dbnd import auto_namespace, band, parameter
 from dbnd._core.constants import CloudType
-from test_dbnd.factories import FooConfig, TTask
+from dbnd_test_scenarios.test_common.task.factories import FooConfig, TTask
 
 
 auto_namespace(scope=__name__)

@@ -2,7 +2,7 @@ from airflow.operators.bash_operator import BashOperator
 
 from dbnd import Task, dbnd_run_cmd, pipeline
 from dbnd.testing.helpers_pytest import skip_on_windows
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 @skip_on_windows

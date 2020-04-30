@@ -9,6 +9,7 @@ We want to save 2 data frames into HDF5 File store using custom API
 
 If you have function with MyData - >  it will be converted into  parameter that were used in register_custom_parameter
 """
+from __future__ import absolute_import
 
 import logging
 

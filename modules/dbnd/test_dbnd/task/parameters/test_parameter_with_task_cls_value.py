@@ -3,7 +3,7 @@ import pytest
 from databand.parameters import TaskParameter
 from dbnd import PipelineTask, dbnd_run_cmd, output
 from dbnd._core.errors import DatabandError
-from test_dbnd.factories import TTask
+from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 class MNTask1(TTask):
