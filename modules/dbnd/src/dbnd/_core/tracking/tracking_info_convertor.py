@@ -123,11 +123,13 @@ class TrackingInfoBuilder(object):
         # set children/upstreams maps
         upstreams_map = set()
         parent_child_map = set()
+        parent_task_ids = set()
 
         for task_run in run.task_runs:
             task = task_run.task
             for t_id in task.task_meta.children:
                 _add_rel(parent_child_map, task.task_id, t_id)
+                parent_task_ids.add(run.get_task_run_by_id(t_id).task_af_id)
 
             task_dag = task.ctrl.task_dag
             for upstream in task_dag.upstream:
@@ -149,6 +151,8 @@ class TrackingInfoBuilder(object):
             parent_child_map=parent_child_map,
             upstreams_map=upstreams_map,
             dynamic_task_run_update=dynamic_task_run_update,
+            parent_task_ids=parent_task_ids,
+            af_context=run.af_context,
         )
 
     def task_to_targets(self, task, targets):
