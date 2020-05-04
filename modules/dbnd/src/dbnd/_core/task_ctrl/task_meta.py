@@ -57,8 +57,6 @@ class TaskMeta(object):
         self.dbnd_context = dbnd_context  # type: DatabandContext
 
         self.children = set()
-        # allows to explicitly specify parents task_run_uids for tracking (sync flow)
-        self.extra_parents_task_run_uids = set()
         self.build_warnings = build_warnings or []
 
         self.task_id = None

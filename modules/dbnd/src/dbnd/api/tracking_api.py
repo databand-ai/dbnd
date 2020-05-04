@@ -69,8 +69,6 @@ class TaskRunsInfoSchema(ApiObjectSchema):
         TaskRunInfoSchema, many=True, exclude=("task_signature_source",)
     )
     upstreams_map = fields.List(fields.List(fields.UUID()))
-    runtime_children = fields.List(fields.Str())
-
     dynamic_task_run_update = fields.Boolean()
 
     targets = fields.Nested(TargetInfoSchema, many=True)
@@ -396,7 +394,6 @@ class TaskRunsInfo(object):
 
     parent_child_map = attr.ib(default=None)
     upstreams_map = attr.ib(default=None)
-    runtime_children = attr.ib(default=None)
     dynamic_task_run_update = attr.ib(default=False)
     af_context = attr.ib(default=None)  # type: Optional[AirflowTaskContext]
 

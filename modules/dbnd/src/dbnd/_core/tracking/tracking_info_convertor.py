@@ -123,26 +123,15 @@ class TrackingInfoBuilder(object):
         # set children/upstreams maps
         upstreams_map = set()
         parent_child_map = set()
-        runtime_children = set()
 
         for task_run in run.task_runs:
             task = task_run.task
             for t_id in task.task_meta.children:
                 _add_rel(parent_child_map, task.task_id, t_id)
-                if is_task_name_for_runtime(task.task_id):
-                    # saving children of '__runtime' operators, so we'll know to create special relationships for them
-                    # in the webserver
-                    runtime_children.add(t_id)
 
             task_dag = task.ctrl.task_dag
             for upstream in task_dag.upstream:
                 _add_rel(upstreams_map, task.task_id, upstream.task_id)
-
-        for task_run in task_runs:
-            for parent_tr_uid in task_run.task.task_meta.extra_parents_task_run_uids:
-                parent_child_map.add((parent_tr_uid, task_run.task_run_uid))
-                # we'll add them to upstreams map as well to see connections in graph
-                upstreams_map.add((parent_tr_uid, task_run.task_run_uid))
 
         return TaskRunsInfo(
             run_uid=self.run.run_uid,
@@ -154,7 +143,6 @@ class TrackingInfoBuilder(object):
             parent_child_map=parent_child_map,
             upstreams_map=upstreams_map,
             dynamic_task_run_update=dynamic_task_run_update,
-            runtime_children=runtime_children,
             af_context=run.af_context,
         )
 
