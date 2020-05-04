@@ -56,7 +56,7 @@ class TrackingStoreApi(TrackingStore):
     def init_run_from_args(self, init_args):
         return self._m(self.channel.init_run, init_run_schema, init_args=init_args)
 
-    def add_task_runs(self, run, task_runs, source):
+    def add_task_runs(self, run, task_runs):
         from dbnd._core.tracking.tracking_info_convertor import TrackingInfoBuilder
 
         task_runs_info = TrackingInfoBuilder(run).build_task_runs_info(
@@ -67,7 +67,7 @@ class TrackingStoreApi(TrackingStore):
             self.channel.add_task_runs,
             add_task_runs_schema,
             task_runs_info=task_runs_info,
-            source=source,
+            source=run.source,
         )
 
     def set_run_state(self, run, state, error=None, timestamp=None):

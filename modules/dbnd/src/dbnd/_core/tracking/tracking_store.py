@@ -71,7 +71,7 @@ class TrackingStore(object):
     def log_artifact(self, task_run, name, artifact, artifact_target):
         pass
 
-    def add_task_runs(self, run, task_runs, source):
+    def add_task_runs(self, run, task_runs):
         pass
 
     def heartbeat(self, run_uid):

@@ -47,9 +47,7 @@ class RunTracker(RunCtrl):
     def add_task_runs(self, task_runs):
         if not self.run.is_tracked:
             return
-        self.tracking_store.add_task_runs(
-            run=self.run, task_runs=task_runs, source=self.run.source
-        )
+        self.tracking_store.add_task_runs(run=self.run, task_runs=task_runs)
 
     def set_task_run_states(self, task_runs):
         # type: (List[TaskRun]) -> None
