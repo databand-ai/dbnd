@@ -26,15 +26,15 @@ def is_composite_uri(uri):
     Returns:
         bool: is the uri has a dbnd store uri schema
 
-    >>> is_composite_uri('dbnd://localhost:8081')
+    >>> is_composite_uri('dbnd://localhost:8080')
     True
-    >>> is_composite_uri('dbnd+s://localhost:8081')
+    >>> is_composite_uri('dbnd+s://localhost:8080')
     True
-    >>> is_composite_uri('databand://localhost:8081')
+    >>> is_composite_uri('databand://localhost:8080')
     True
-    >>> is_composite_uri('databand+s://localhost:8081')
+    >>> is_composite_uri('databand+s://localhost:8080')
     True
-    >>> is_composite_uri('http://localhost:8081')
+    >>> is_composite_uri('http://localhost:8080')
     False
     """
     parsed_url = urlparse(uri)
@@ -43,7 +43,7 @@ def is_composite_uri(uri):
 
 def build_composite_uri(dbnd_store_url, duplicate_tracking_to):
     """Returns dbnd store uri that contain uri to duplicate tracking data to.
-    E.g. dbnd://localhost:8081?duplicate_tracking_to=http%3A%2F%2Fmlflow-store%3A80%2F
+    E.g. dbnd://localhost:8080?duplicate_tracking_to=http%3A%2F%2Fmlflow-store%3A80%2F
 
     Parameters:
         dbnd_store_url (str): dbnd store url to send tracking data to
@@ -51,14 +51,14 @@ def build_composite_uri(dbnd_store_url, duplicate_tracking_to):
     Returns:
         str: dbnd store composite uri to be used by MLFlow
 
-    >>> build_composite_uri('http://localhost:8081', 'http://mlflow-store:80/')
-    'dbnd://localhost:8081?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F'
-    >>> build_composite_uri('https://localhost:8081', 'http://mlflow-store:80/')
-    'dbnd+s://localhost:8081?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F'
-    >>> build_composite_uri('http://localhost:8081', '')
-    'dbnd://localhost:8081?duplicate_tracking_to='
-    >>> build_composite_uri('http://localhost:8081', None)
-    'dbnd://localhost:8081'
+    >>> build_composite_uri('http://localhost:8080', 'http://mlflow-store:80/')
+    'dbnd://localhost:8080?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F'
+    >>> build_composite_uri('https://localhost:8080', 'http://mlflow-store:80/')
+    'dbnd+s://localhost:8080?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F'
+    >>> build_composite_uri('http://localhost:8080', '')
+    'dbnd://localhost:8080?duplicate_tracking_to='
+    >>> build_composite_uri('http://localhost:8080', None)
+    'dbnd://localhost:8080'
     """
     parsed_url = urlparse(dbnd_store_url)
     assert parsed_url.scheme in WEB2DBND_MAP
@@ -75,27 +75,27 @@ def build_composite_uri(dbnd_store_url, duplicate_tracking_to):
 
 def parse_composite_uri(composite_uri):
     """Returns a tuple with a parsed dbnd store url and mlflow uri to duplicate tracking data to.
-    E.g. dbnd://localhost:8081?duplicate_tracking_to=http%3A%2F%2Fmlflow-store%3A80%2F
+    E.g. dbnd://localhost:8080?duplicate_tracking_to=http%3A%2F%2Fmlflow-store%3A80%2F
 
     Parameters:
         composite_uri (str): dbnd store uri with dbnd schema
     Returns:
         tuple: dbnd_store_url and duplicate_tracking_to url
 
-    >>> parse_composite_uri('dbnd://localhost:8081?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F')
-    ('http://localhost:8081', 'http://mlflow-store:80/')
-    >>> parse_composite_uri('dbnd+s://localhost:8081?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F')
-    ('https://localhost:8081', 'http://mlflow-store:80/')
-    >>> parse_composite_uri('dbnd://localhost:8081?duplicate_tracking_to=')
-    ('http://localhost:8081', None)
-    >>> parse_composite_uri('dbnd+s://localhost:8081?duplicate_tracking_to=')
-    ('https://localhost:8081', None)
-    >>> parse_composite_uri('databand://localhost:8081?duplicate_tracking_to=')
-    ('http://localhost:8081', None)
-    >>> parse_composite_uri('databand+s://localhost:8081?duplicate_tracking_to=')
-    ('https://localhost:8081', None)
-    >>> parse_composite_uri('dbnd://localhost:8081')
-    ('http://localhost:8081', None)
+    >>> parse_composite_uri('dbnd://localhost:8080?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F')
+    ('http://localhost:8080', 'http://mlflow-store:80/')
+    >>> parse_composite_uri('dbnd+s://localhost:8080?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F')
+    ('https://localhost:8080', 'http://mlflow-store:80/')
+    >>> parse_composite_uri('dbnd://localhost:8080?duplicate_tracking_to=')
+    ('http://localhost:8080', None)
+    >>> parse_composite_uri('dbnd+s://localhost:8080?duplicate_tracking_to=')
+    ('https://localhost:8080', None)
+    >>> parse_composite_uri('databand://localhost:8080?duplicate_tracking_to=')
+    ('http://localhost:8080', None)
+    >>> parse_composite_uri('databand+s://localhost:8080?duplicate_tracking_to=')
+    ('https://localhost:8080', None)
+    >>> parse_composite_uri('dbnd://localhost:8080')
+    ('http://localhost:8080', None)
     """
     parsed_url = urlparse(composite_uri)
     assert parsed_url.scheme in DBND2WEB_MAP
