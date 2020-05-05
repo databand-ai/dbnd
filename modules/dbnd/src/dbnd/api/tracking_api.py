@@ -73,7 +73,7 @@ class InitRunArgs(object):
     root_run_uid = attr.ib()  # type: UUID
     run_uid = attr.ib()  # type: UUID
     task_runs_info = attr.ib()  # type: TaskRunsInfo
-    driver_task_uid = attr.ib(default=None)
+    driver_task_uid = attr.ib(default=None)  # type: UUID
 
     task_run_env = attr.ib(default=None)  # type: TaskRunEnvInfo
 
@@ -405,11 +405,11 @@ class ScheduledJobInfo(object):
     depends_on_past = attr.ib(default=None)  # type: Optional[bool]
     retries = attr.ib(default=None)  # type: Optional[int]
     active = attr.ib(default=None)  # type: Optional[bool]
-    update_user = attr.ib(default=None)  # type: str
+    update_user = attr.ib(default=None)  # type: Optional[str]
     update_time = attr.ib(default=None)  # type: Optional[datetime.datetime]
     from_file = attr.ib(default=False)  # type: bool
     deleted_from_file = attr.ib(default=False)  # type: bool
-    list_order = attr.ib(default=None)  # type: List[int]
+    list_order = attr.ib(default=None)  # type: Optional[List[int]]
     job_name = attr.ib(default=None)  # type: Optional[str]
 
 

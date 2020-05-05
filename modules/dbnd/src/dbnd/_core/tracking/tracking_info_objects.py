@@ -80,7 +80,7 @@ class TaskRunInfo(_DbndDataClass):
 
     output_signature = attr.ib()  # type: str
     state = attr.ib()  # type: TaskRunState
-    target_date = attr.ib()  # type: date
+    target_date = attr.ib()  # type: Optional[date]
 
     version = attr.ib()  # type: str
 
