@@ -8,6 +8,7 @@ from uuid import UUID
 import attr
 
 from dbnd._core.configuration.environ_config import (
+    DBND_PARENT_TASK_RUN_ATTEMPT_UID,
     DBND_PARENT_TASK_RUN_UID,
     DBND_ROOT_RUN_TRACKER_URL,
     DBND_ROOT_RUN_UID,
@@ -93,6 +94,7 @@ class RootRunInfo(_DbndDataClass):
 
     root_run_url = attr.ib(default=None)  # type: Optional[str]
     root_task_run_uid = attr.ib(default=None)  # type: Optional[UUID]
+    root_task_run_attempt_uid = attr.ib(default=None)  # type: Optional[UUID]
 
     @classmethod
     def from_env(cls, current_run):
@@ -104,9 +106,10 @@ class RootRunInfo(_DbndDataClass):
             # update parent run info if required
             root_task_run = try_get_current_task_run()
             if root_task_run:
-                root_task_run_uid = root_task_run.task_run_uid
                 root_run_info = attr.evolve(
-                    root_run_info, root_task_run_uid=root_task_run_uid
+                    root_run_info,
+                    root_task_run_uid=root_task_run.task_run_uid,
+                    root_task_run_attempt_uid=root_task_run.task_run_attempt_uid,
                 )
 
             return root_run_info
@@ -115,6 +118,7 @@ class RootRunInfo(_DbndDataClass):
         root_run_uid = os.environ.get(DBND_ROOT_RUN_UID)
         root_run_url = os.environ.get(DBND_ROOT_RUN_TRACKER_URL)
         root_task_run_uid = os.environ.get(DBND_PARENT_TASK_RUN_UID)
+        root_task_run_attempt_uid = os.environ.get(DBND_PARENT_TASK_RUN_ATTEMPT_UID)
 
         if not root_run_uid:
             # current run is the main run
@@ -125,4 +129,5 @@ class RootRunInfo(_DbndDataClass):
             root_run_uid=root_run_uid,
             root_run_url=root_run_url,
             root_task_run_uid=root_task_run_uid,
+            root_task_run_attempt_uid=root_task_run_attempt_uid,
         )
