@@ -1,6 +1,6 @@
 import logging
 
-from dbnd._core.configuration.environ_config import is_databand_enabled
+from dbnd._core.configuration.environ_config import get_environ_config
 from dbnd._core.constants import TaskType
 from dbnd._core.decorator.dynamic_tasks import create_and_run_dynamic_task_safe
 from dbnd._core.decorator.func_task_call import FuncCall, TaskCallState
@@ -9,7 +9,6 @@ from dbnd._core.errors.friendly_error.task_execution import (
     failed_to_assign_result,
     failed_to_process_non_empty_result,
 )
-from dbnd._core.inplace_run.inplace_run_manager import is_inplace_run
 from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     build_task_at_airflow_dag_context,
     is_in_airflow_dag_build_context,
@@ -39,7 +38,9 @@ class _DecoratedTask(Task):
         decorated object call/creation  ( my_func(), MyDecoratedTask()
         """
         force_invoke = call_kwargs.pop("__force_invoke", False)
-        if force_invoke or not is_databand_enabled():
+        basic_environ_config = get_environ_config()
+
+        if force_invoke or not basic_environ_config.enabled:
             # 1. Databand is not enabled
             # 2. we have this call coming from Task.run / Task.band direct invocation
             return call_user_code(*call_args, **call_kwargs)
@@ -56,10 +57,12 @@ class _DecoratedTask(Task):
             )
 
         current = try_get_current_task()
-        if not current and is_inplace_run():
-            from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start
+        if not current:
+            from dbnd._core.inplace_run.inplace_run_manager import (
+                try_get_inplace_task_run,
+            )
 
-            task_run = dbnd_run_start()
+            task_run = try_get_inplace_task_run()
             if task_run:
                 current = task_run.task
 

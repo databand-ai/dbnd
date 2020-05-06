@@ -2,6 +2,8 @@ import typing
 
 from typing import Optional
 
+from dbnd._core.configuration.environ_config import get_environ_config
+
 
 if typing.TYPE_CHECKING:
     from dbnd._core.context.databand_context import DatabandContext
@@ -105,9 +107,7 @@ def is_verbose():
     if context and getattr(context, "system_settings", None):
         return context.system_settings.verbose
 
-    from dbnd._core.configuration import environ_config
-
-    return environ_config.environ_enabled(environ_config.ENV_DBND__VERBOSE)
+    return get_environ_config().is_verbose()
 
 
 def is_killed():

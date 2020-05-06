@@ -1,7 +1,4 @@
-from dbnd import dbnd_run_stop
-from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
-    dbnd_run_start_airflow_dag_task,
-)
+from dbnd import dbnd_run_start, dbnd_run_stop
 
 
 def apply_dbnd_on_operator(operator):
@@ -12,12 +9,15 @@ def apply_dbnd_on_operator(operator):
         pre_execute(*args, **kwargs)
 
         ti = kwargs["context"]["task_instance"]
-        dbnd_run_start_airflow_dag_task(
-            dag_id=ti.dag_id, execution_date=ti.execution_date, task_id=ti.task_id
-        )
+        # set context for
+        # dag_id=ti.dag_id,
+        # execution_date=ti.execution_date,
+        # task_id=ti.task_id
+
+        dbnd_run_start()
 
     def new_post_execute(*args, **kwargs):
-        dbnd_run_stop(at_exit=False)
+        dbnd_run_stop()
         post_execute(*args, **kwargs)
 
     operator.pre_execute = new_pre_execute

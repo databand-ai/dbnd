@@ -7,8 +7,8 @@ import typing
 from subprocess import list2cmdline
 from typing import Optional
 
-from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.configuration.environ_config import get_environ_config
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
@@ -20,6 +20,7 @@ from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
 )
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task.task import Task
+from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor import pendulum
@@ -32,15 +33,6 @@ if typing.TYPE_CHECKING:
     from dbnd._core.run.databand_run import DatabandRun
 
     T = typing.TypeVar("T")
-
-
-def is_inplace_run():
-    if environ_config.environ_enabled(environ_config.ENV_DBND__TRACKING):
-        return True
-    airflow_context = try_get_airflow_context()
-    if airflow_context:
-        return True
-    return False
 
 
 def set_tracking_config_overide(airflow_context=None, use_dbnd_log=None):
@@ -79,9 +71,7 @@ class _DbndInplaceRunManager(object):
         self._context_managers = []
         self._atexit_registered = False
 
-        self._started = False
-        self._stoped = False
-        self._disabled = False
+        self._active = False
 
         self._run = None
         self._task_run = None
@@ -99,25 +89,9 @@ class _DbndInplaceRunManager(object):
             cm.__exit__(None, None, None)
 
     def start(self, root_task_name, job_name=None):
-        if self._run:
-            return
-        if self._started or self._disabled:  # started or failed
+        if self._run or self._active or try_get_databand_run():
             return
 
-        try:
-            if try_get_databand_run():
-                return
-
-            self.tracking_context(root_task_name=root_task_name, job_name=job_name)
-            self._started = True
-        except Exception:
-            _handle_inline_error("inline-start")
-            self._disabled = True
-            return
-        finally:
-            self._started = True
-
-    def tracking_context(self, root_task_name, job_name=None):
         airflow_context = try_get_airflow_context()
         set_tracking_config_overide(use_dbnd_log=True, airflow_context=airflow_context)
 
@@ -150,11 +124,13 @@ class _DbndInplaceRunManager(object):
             )
         )  # type: DatabandRun
 
-        self._run._init_without_run()
-
         if not self._atexit_registered:
             atexit.register(self.stop)
         sys.excepthook = self.stop_on_exception
+        self._active = True
+
+        # now we send data to DB
+        self._run._init_without_run()
 
         self._start_taskrun(self._run.driver_task_run)
         self._start_taskrun(self._run.root_task_run)
@@ -166,8 +142,9 @@ class _DbndInplaceRunManager(object):
         task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
     def stop(self):
-        if self._stoped:
+        if not self._active:
             return
+        self._active = False
         try:
             databand_run = self._run
             root_tr = self._task_run
@@ -190,19 +167,17 @@ class _DbndInplaceRunManager(object):
 
             self._close_all_context_managers()
         except Exception as ex:
-            _handle_inline_error("dbnd-tracking-shutdown")
-        finally:
-            self._stoped = True
+            _handle_inline_run_error("dbnd-tracking-shutdown")
 
     def stop_on_exception(self, type, value, traceback):
-        if not self._stoped:
+        if self._active:
             try:
                 error = TaskRunError.buid_from_ex(
                     ex=value, task_run=self._task_run, exc_info=(type, value, traceback)
                 )
                 self._task_run.set_task_run_state(TaskRunState.FAILED, error=error)
             except:
-                _handle_inline_error("dbnd-set-script-error")
+                _handle_inline_run_error("dbnd-set-script-error")
 
         self.stop()
         sys.__excepthook__(type, value, traceback)
@@ -235,44 +210,43 @@ def _build_inline_root_task(root_task_name):
     return root_task
 
 
+def try_get_inplace_task_run():
+    # type: ()->Optional[TaskRun]
+    if get_environ_config().is_inplace_run():
+        return dbnd_run_start()
+
+
 # there can be only one tracking manager
-_dbnd_start_manager = None  # type: Optional[_DbndInplaceRunManager]
-
-
-def get_dbnd_inplace_run_manager():
-    global _dbnd_start_manager
-    if _dbnd_start_manager is False:
-        # we already failed to create ourself once
-        return None
-
-    try:
-        # this part will run DAG and Operator Tasks
-        if _dbnd_start_manager is None:
-            # this is our first call!
-
-            _dbnd_start_manager = _DbndInplaceRunManager()
-        return _dbnd_start_manager
-    except Exception:
-        _dbnd_start_manager = False
-        logger.warning("Error during dbnd pre-init, ignoring", exc_info=True)
-        return None
+_dbnd_inline_manager = None  # type: Optional[_DbndInplaceRunManager]
 
 
 def dbnd_run_start(name=None):
-    dsm = get_dbnd_inplace_run_manager()
-    if not dsm:
-        return
-    return dsm.start(root_task_name=name)
+    if not get_environ_config().enabled:
+        return None
+
+    global _dbnd_inline_manager
+    if not _dbnd_inline_manager:
+        dsm = _DbndInplaceRunManager()
+        try:
+            dsm.start(root_task_name=name)
+            if dsm._active:
+                _dbnd_inline_manager = dsm
+        except Exception:
+            _handle_inline_run_error("inline-start")
+            get_environ_config().enabled = False
+            return None
+    if _dbnd_inline_manager and _dbnd_inline_manager._active:
+        return _dbnd_inline_manager._task_run
 
 
 def dbnd_run_stop():
-    dsm = get_dbnd_inplace_run_manager()
-    if not dsm:
-        return
-    _dbnd_start_manager.stop()
+    global _dbnd_inline_manager
+    if _dbnd_inline_manager:
+        _dbnd_inline_manager.stop()
+        _dbnd_inline_manager = None
 
 
-def _handle_inline_error(msg, func_call=None):
+def _handle_inline_run_error(msg):
     if is_verbose():
         logger.warning(
             "Failed during dbnd %s, ignoring, and continue without tracking" % msg,
@@ -282,7 +256,3 @@ def _handle_inline_error(msg, func_call=None):
         logger.info(
             "Failed during dbnd %s, ignoring, and continue without tracking" % msg
         )
-
-    global _dbnd_start_manager
-    _dbnd_start_manager = False
-    return func_call.invoke()

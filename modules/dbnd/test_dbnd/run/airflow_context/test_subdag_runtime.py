@@ -5,6 +5,7 @@ import mock
 from pytest import fixture
 
 from dbnd import dbnd_run_stop, log_metric, task
+from dbnd._core.configuration import environ_config
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.inplace_run import airflow_dag_inplace_tracking
 
@@ -37,13 +38,13 @@ patch_dict = {
 
 @fixture
 def with_airflow_tracking_env():
-    airflow_dag_inplace_tracking._TRY_GET_AIRFLOW_CONTEXT_CACHE.clear()
+    environ_config.reset()
 
     try:
         with mock.patch.dict(os.environ, patch_dict):
             yield
     finally:
-        airflow_dag_inplace_tracking._TRY_GET_AIRFLOW_CONTEXT_CACHE.clear()
+        environ_config.reset()
 
 
 class TestTaskInplaceRun(object):

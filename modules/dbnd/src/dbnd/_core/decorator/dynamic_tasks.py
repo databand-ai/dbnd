@@ -3,7 +3,7 @@ import typing
 
 from typing import Any, Union
 
-from dbnd._core.current import current_task_run, get_databand_run
+from dbnd._core.current import current_task_run, get_databand_run, is_verbose
 from dbnd._core.decorator.func_task_call import FuncCall
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from targets.inline_target import InlineTarget
@@ -114,14 +114,14 @@ def run_dynamic_task_safe(task, func_call):
             if task._dbnd_call_state.finished:
                 # if function was invoked and finished - than we failed in dbnd post-exec
                 # just return invoke_result to user
-                logger.warning("Error during dbnd post-exec, ignoring", exc_info=True)
+                _handle_dynamic_error("task-post-execute", func_call)
                 return task._dbnd_call_state.result
             if task._dbnd_call_state.started:
                 # if started but not finished -> it was user code exception -> re-raise
                 raise
 
         # not started - our exception on pre-exec, run user code
-        logger.warning("Error during dbnd task-pre-execute, ignoring", exc_info=True)
+        _handle_dynamic_error("task-pre-execute", func_call)
         return func_call.invoke()
     finally:
         # we'd better clean _invoke_result to avoid memory leaks
@@ -132,7 +132,21 @@ def create_and_run_dynamic_task_safe(func_call):
     try:
         task = create_dynamic_task(func_call)
     except Exception:
-        logger.warning("Failed during dbnd task-create, ignoring", exc_info=True)
+        _handle_dynamic_error("task-create", func_call)
         return func_call.invoke()
 
     return run_dynamic_task_safe(task=task, func_call=func_call)
+
+
+def _handle_dynamic_error(msg, func_call):
+    if is_verbose():
+        logger.warning(
+            "Failed during dbnd %s for %s, ignoring, and continue without tracking/orchestration"
+            % (msg, func_call.task_cls),
+            exc_info=True,
+        )
+    else:
+        logger.info(
+            "Failed during dbnd %s for %s, ignoring, and continue without tracking"
+            % (msg, func_call.task_cls)
+        )

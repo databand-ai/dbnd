@@ -60,10 +60,6 @@ class AirflowTaskContext(object):
             self.parent_dags = []
 
 
-_AIRFLOW_TASK_CONTEXT = None
-_TRY_GET_AIRFLOW_CONTEXT_CACHE = {}
-
-
 def _get_try_number():
     import inspect
 
@@ -95,7 +91,6 @@ def _get_try_number():
         return try_number
 
 
-@cached(cache=_TRY_GET_AIRFLOW_CONTEXT_CACHE)
 def try_get_airflow_context():
     # type: ()-> Optional[AirflowTaskContext]
     # first try to get from spark
