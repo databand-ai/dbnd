@@ -14,7 +14,7 @@ from dbnd._core.tracking.tracking_info_objects import (
     TaskRunParamInfo,
 )
 from dbnd._core.tracking.tracking_info_run import RunInfo
-from dbnd._core.utils.string_utils import is_task_name_for_runtime, safe_short_string
+from dbnd._core.utils.string_utils import safe_short_string
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import traverse
 from dbnd.api.tracking_api import InitRunArgs, TaskRunsInfo

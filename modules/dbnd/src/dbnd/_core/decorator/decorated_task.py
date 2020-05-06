@@ -9,10 +9,6 @@ from dbnd._core.errors.friendly_error.task_execution import (
     failed_to_assign_result,
     failed_to_process_non_empty_result,
 )
-from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
-    track_airflow_dag_run_operator_run,
-    try_get_airflow_context,
-)
 from dbnd._core.inplace_run.inplace_run_manager import is_inplace_run
 from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     build_task_at_airflow_dag_context,
@@ -57,12 +53,6 @@ class _DecoratedTask(Task):
         if is_in_airflow_dag_build_context():  # we are in Airflow DAG building mode
             return build_task_at_airflow_dag_context(
                 task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
-            )
-
-        airflow_task_context = try_get_airflow_context()
-        if airflow_task_context:
-            return track_airflow_dag_run_operator_run(
-                func_call=func_call, airflow_task_context=airflow_task_context
             )
 
         current = try_get_current_task()

@@ -1,37 +1,17 @@
 import datetime
 import logging
 import os
-import sys
 
-from typing import Any, Optional
-
-import pytz
+from typing import Optional
 
 import attr
 
 from dbnd._core.configuration import environ_config
-from dbnd._core.constants import UpdateSource
-from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
-from dbnd._core.decorator.dynamic_tasks import (
-    create_dynamic_task,
-    run_dynamic_task_safe,
-)
-from dbnd._core.decorator.func_task_call import FuncCall
-from dbnd._core.inplace_run.tracking_config import set_tracking_config_overide
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task.task import Task
-from dbnd._core.task_build.task_context import (
-    TaskContextPhase,
-    current_phase,
-    current_task,
-    has_current_task,
-)
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.seven import import_errors
-from dbnd._core.utils.string_utils import task_name_for_runtime
-from dbnd._vendor import pendulum
 
 
 logger = logging.getLogger(__name__)
@@ -201,167 +181,33 @@ def try_get_airflow_context_from_spark_conf():
     return None
 
 
-class _AirflowRuntimeTask(Task):
-    task_is_system = True
+class AirflowOperatorRuntimeTask(Task):
+    task_is_system = False
     _conf__track_source_code = False
 
     dag_id = parameter[str]
     execution_date = parameter[datetime.datetime]
 
-    is_dag = parameter(system=True).value(False)
-
     def _initialize(self):
-        super(_AirflowRuntimeTask, self)._initialize()
+        super(AirflowOperatorRuntimeTask, self)._initialize()
         self.task_meta.task_functional_call = ""
 
         self.task_meta.task_command_line = generate_airflow_cmd(
             dag_id=self.dag_id,
             task_id=self.task_id,
             execution_date=self.execution_date,
-            is_root_task=self.is_dag,
+            is_root_task=False,
         )
 
+    @classmethod
+    def build_from_airflow_context(self, af_context):
+        # we can't actually run it, we even don't know when it's going to finish
+        # current execution is inside the operator, this is the only thing we know
 
-class AirflowOperatorRuntimeTask(_AirflowRuntimeTask):
-    pass
-
-
-# there can be only one tracking manager
-_CURRENT_AIRFLOW_TRACKING_MANAGER = None  # type: Optional[AirflowTrackingManager]
-
-
-def track_airflow_dag_run_operator_run(func_call, airflow_task_context):
-    atm = get_airflow_tracking_manager(airflow_task_context)
-    if not atm:
-        # we failed to get tracker
-        return func_call.invoke()
-
-    # @task runs inside this function
-    return atm.run_airflow_dynamic_task(func_call)
-
-
-def get_airflow_tracking_manager(airflow_task_context):
-    global _CURRENT_AIRFLOW_TRACKING_MANAGER
-    if _CURRENT_AIRFLOW_TRACKING_MANAGER is False:
-        # we already failed to create ourself once
-        return None
-
-    try:
-        # this part will run DAG and Operator Tasks
-        if _CURRENT_AIRFLOW_TRACKING_MANAGER is None:
-            # this is our first call!
-            _CURRENT_AIRFLOW_TRACKING_MANAGER = AirflowTrackingManager(
-                af_context=airflow_task_context
-            )
-        return _CURRENT_AIRFLOW_TRACKING_MANAGER
-    except Exception:
-        _CURRENT_AIRFLOW_TRACKING_MANAGER = False
-        logger.warning("Error during dbnd pre-init, ignoring", exc_info=True)
-        return None
-
-
-class AirflowTrackingManager(object):
-    def __init__(self, af_context):
-        # type: (AirflowTaskContext) -> None
-        self.dag_id = af_context.dag_id
-        af_runtime_op_task_id = af_context.task_id
-
-        # 1. create proper DatabandContext so we can create other objects
-        set_tracking_config_overide(
-            use_dbnd_log=override_airflow_log_system_for_tracking()
+        # AIRFLOW OPERATOR RUNTIME
+        return AirflowOperatorRuntimeTask(
+            task_family="%s__execute" % (af_context.task_id),
+            dag_id=af_context.dag_id,
+            execution_date=af_context.execution_date,
+            task_version="%s:%s" % (af_context.task_id, af_context.execution_date),
         )
-
-        # create databand context
-        with new_dbnd_context(name="airflow") as dc:  # type: DatabandContext
-
-            # now create "operator" task for current task_id,
-            # we can't actually run it, we even don't know when it's going to finish
-            # current execution is inside the operator, this is the only thing we know
-            # STATE AFTER INIT:
-            # AirflowOperator__runtime ->  DAG__runtime
-            task_target_date = pendulum.parse(
-                af_context.execution_date, tz=pytz.UTC
-            ).date()
-            # AIRFLOW OPERATOR RUNTIME
-
-            self.af_runtime_op = AirflowOperatorRuntimeTask(
-                task_family=task_name_for_runtime(af_runtime_op_task_id),
-                dag_id=af_context.dag_id,
-                execution_date=af_context.execution_date,
-                task_target_date=task_target_date,
-                task_version="%s:%s"
-                % (af_runtime_op_task_id, af_context.execution_date),
-            )
-            # this will create databand run with driver and root tasks.
-            # we need the "root" task to be the same between different airflow tasks invocations
-            # since in dbnd we must have single root task, so we create "dummy" task with dag_id name
-
-            # create databand run
-            # we will want to preserve
-            with new_databand_run(
-                context=dc,
-                task_or_task_name=self.af_runtime_op,
-                existing_run=False,
-                job_name="{}.{}".format(af_context.dag_id, af_context.task_id),
-                send_heartbeat=False,  # we don't send heartbeat in tracking
-                source=UpdateSource.airflow_tracking,
-                af_context=af_context,
-            ) as dr:
-                self.dr = dr
-                dr._init_without_run()
-                self.airflow_operator__task_run = dr.root_task_run
-
-    def run_airflow_dynamic_task(self, func_call):
-        # type: (FuncCall) -> Any
-        if has_current_task():
-            can_run_nested = False
-            try:
-                current = current_task()
-                phase = current_phase()
-                if (
-                    phase is TaskContextPhase.RUN
-                    and current.settings.dynamic_task.enabled
-                    and current.task_supports_dynamic_tasks
-                ):
-                    can_run_nested = True
-            except Exception:
-                return _handle_tracking_error(func_call, "nested-check")
-
-            if can_run_nested:
-                return self._create_and_run_dynamic_task_safe(
-                    func_call, attach_to_monitor_op=False
-                )
-            else:
-                # unsupported mode
-                return func_call.invoke()
-
-        context_enter_ok = False
-        try:
-            with self.dr.run_context():
-                with self.airflow_operator__task_run.runner.task_run_execution_context():
-                    context_enter_ok = True
-                    return self._create_and_run_dynamic_task_safe(func_call)
-        except Exception:
-            if context_enter_ok:
-                raise
-            return _handle_tracking_error(func_call, "context-enter")
-
-    def _create_and_run_dynamic_task_safe(self, func_call):
-        try:
-            task = create_dynamic_task(func_call)
-        except Exception:
-            return _handle_tracking_error(func_call, "task-create")
-
-        # we want all tasks to be "consistent" between all retries
-        # so we will see airflow retries as same task_run
-        return run_dynamic_task_safe(task=task, func_call=func_call)
-
-
-def _handle_tracking_error(func_call, msg):
-    logger.warning(
-        "Failed during dbnd %s, ignoring, and continue without tracking" % msg,
-        exc_info=True,
-    )
-    global _CURRENT_AIRFLOW_TRACKING_MANAGER
-    _CURRENT_AIRFLOW_TRACKING_MANAGER = False
-    return func_call.invoke()

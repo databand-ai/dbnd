@@ -145,15 +145,5 @@ def strip_whitespace(string):
     return re.sub(r"\s+", " ", string.strip(), flags=re.UNICODE)
 
 
-# in dbnd execution inside airflow flow we're generating temporary tasks, which disappear once syncer
-# brings actual data on DAG and operator tasks, so we need stable temp name for those
-def task_name_for_runtime(task_name):
-    return "{}__runtime".format(task_name)
-
-
-def is_task_name_for_runtime(task_name):
-    return "__runtime" in task_name
-
-
 def is_task_name_driver(task_name):
     return "dbnd_driver" in task_name
