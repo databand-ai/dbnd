@@ -186,10 +186,14 @@ def try_get_airflow_context_from_spark_conf():
         dag_id = conf.get("spark.env.AIRFLOW_CTX_DAG_ID")
         execution_date = conf.get("spark.env.AIRFLOW_CTX_EXECUTION_DATE")
         task_id = conf.get("spark.env.AIRFLOW_CTX_TASK_ID")
+        try_number = conf.get("spark.env.AIRFLOW_CTX_TRY_NUMBER")
 
         if dag_id and task_id and execution_date:
             return AirflowTaskContext(
-                dag_id=dag_id, execution_date=execution_date, task_id=task_id
+                dag_id=dag_id,
+                execution_date=execution_date,
+                task_id=task_id,
+                try_number=try_number,
             )
     except Exception as ex:
         logger.info("Failed to get airlfow context info from spark job: %s", ex)
