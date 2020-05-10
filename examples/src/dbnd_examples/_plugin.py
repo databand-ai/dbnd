@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @dbnd.hookimpl
-def dbnd_on_pre_init_context(ctx):
+def dbnd_setup_plugin():
     # register configs
     from dbnd_examples.pipelines.wine_quality import wine_quality_decorators
     from dbnd_examples import feature_data
