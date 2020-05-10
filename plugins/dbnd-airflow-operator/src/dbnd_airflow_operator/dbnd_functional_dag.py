@@ -23,6 +23,11 @@ from dbnd_airflow_operator.xcom_target import XComResults, XComStr, build_xcom_s
 from targets import FileTarget, target
 
 
+try:
+    from inspect import signature
+except ImportError:
+    from funcsigs import signature
+
 logger = logging.getLogger(__name__)
 
 if not is_airflow_support_template_fields():
@@ -164,6 +169,12 @@ class DagFuncOperatorCtrl(object):
         dbnd_xcom_outputs = [n for n in dbnd_xcom_outputs]
 
         op_kwargs = task.task_airflow_op_kwargs or {}
+        allowed_kwargs = signature(BaseOperator.__init__).parameters
+        for kwarg in op_kwargs:
+            if kwarg not in allowed_kwargs:
+                raise AttributeError(
+                    "__init__() got an unexpected keyword argument '{}'".format(kwarg)
+                )
 
         op = DbndFunctionalOperator(
             task_id=af_task_id,

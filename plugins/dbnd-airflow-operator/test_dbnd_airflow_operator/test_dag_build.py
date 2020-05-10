@@ -7,12 +7,34 @@ import six
 
 from airflow import DAG, AirflowException
 from airflow.operators.bash_operator import BashOperator
+from airflow.utils.trigger_rule import TriggerRule
 
 from dbnd import pipeline, task
 from dbnd._core.errors import MissingParameterError
 from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
     default_args_test,
 )
+
+
+class TestFunctionalOperatorAirflowKwargs:
+    def test_airflow_op_kwargs_are_set(self):
+        @task(task_airflow_op_kwargs={"trigger_rule": TriggerRule.ALL_FAILED})
+        def sample_callable():
+            return True
+
+        with DAG(dag_id="test_simple_build", default_args=default_args_test) as dag:
+            bool_value = sample_callable()
+            assert bool_value.op.trigger_rule == TriggerRule.ALL_FAILED
+
+    def test_airflow_op_kwargs_error_if_not_kwarg(self):
+        @task(task_airflow_op_kwargs={"nonExistingField": "vaaalue"})
+        def sample_callable():
+            return True
+
+        # This should rise an error during parsing
+        with pytest.raises(AttributeError):
+            with DAG(dag_id="test_simple_build", default_args=default_args_test) as dag:
+                bool_value = sample_callable()
 
 
 class TestFunctionalDagBuild(object):
@@ -33,7 +55,7 @@ class TestFunctionalDagBuild(object):
         assert isinstance(bool_value, six.string_types)
         assert self.is_xcom_str(bool_value)
 
-    def test_multiple_outputs(self):
+    def test_multiple_outputs_with_type_annotation(self):
         @task
         def two_outputs():
             # type:  () -> Tuple[str, str]
@@ -52,9 +74,10 @@ class TestFunctionalDagBuild(object):
         def two_outputs():
             return "Nights", "Ni!"
 
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError) as err:
             with DAG(dag_id="test_simple_build", default_args=default_args_test):
                 _, _ = two_outputs()
+            err.match(".*type annotations.*")
 
     def test_tasks_are_bind_and_upstream_is_set(self):
         @task
