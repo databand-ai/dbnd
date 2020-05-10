@@ -8,14 +8,22 @@ def get_windows_compatible_patches():
     from dbnd_airflow.airflow_override.dbnd_airflow_windows.configuration import tmp_configuration_copy
     from dbnd_airflow.airflow_override.dbnd_airflow_windows.getuser import find_runnable_getuser_function
 
-    return (
+    patches = [
         (timeout, "timeout", timeout_patch.timeout),
         (airflow_configuration, "tmp_configuration_copy", tmp_configuration_copy),
         (getpass, "getuser", find_runnable_getuser_function()),
-        (sys, "maxint", sys.maxsize),
-    )
+    ]
+
+    if hasattr(sys, "maxint"):
+        patches.append((sys, "maxint", sys.maxsize), )
+
+    return patches
 
 
 def patch_airflow_windows_support():
     from dbnd._core.utils.object_utils import patch_models
     patch_models(get_windows_compatible_patches())
+
+
+if __name__ == '__main__':
+    patch_airflow_windows_support()
