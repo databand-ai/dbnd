@@ -44,7 +44,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
     ID_PREFIX = BackfillJob.ID_PREFIX + "manual_    "
     ID_FORMAT_PREFIX = ID_PREFIX + "{0}"
 
-    __mapper_args__ = {"polymorphic_identity": "SingleDagRunJob"}
+    # if we use real name of the class we need to load it at Airflow Webserver
+    __mapper_args__ = {"polymorphic_identity": "BackfillJob"}
 
     def __init__(
         self,
