@@ -25,6 +25,7 @@ setuptools.setup(
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
             "Werkzeug<1.0.0",
             "apache-airflow==1.10.9",
+            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
         ],
         tests=[
             # airflow support

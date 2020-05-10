@@ -1,3 +1,7 @@
+"""
+Context: airflow operator/task is running a function with @task
+Here we create dbnd objects to represent them and send to webserver through tracking api.
+"""
 import datetime
 import logging
 import os
@@ -99,6 +103,7 @@ def try_get_airflow_context():
         if from_spark:
             return from_spark
 
+        # Those env vars are set by airflow before running the operator
         dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
         execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
         task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")

@@ -42,15 +42,15 @@ class RunInfo(_DbndDataClass):
     # deprecate
     dag_id = attr.ib()  # type: str
     execution_date = attr.ib()  # type: datetime
-    cmd_name = attr.ib()  # type: str
+    cmd_name = attr.ib()  # type: Optional[str]
 
     # task attributes
-    target_date = attr.ib()  # type: date
-    version = attr.ib()  # type: str
+    target_date = attr.ib()  # type: Optional[date]
+    version = attr.ib()  # type: Optional[str]
 
     driver_name = attr.ib()  # type: str
     is_archived = attr.ib()  # type: bool
-    env_name = attr.ib()  # type: str
+    env_name = attr.ib()  # type: Optional[str]
     cloud_type = attr.ib()  # type: str
     trigger = attr.ib()  # type: str
 

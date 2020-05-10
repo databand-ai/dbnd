@@ -75,7 +75,7 @@ class TrackingInfoBuilder(object):
         task_run_info = self.build_task_runs_info(run.task_runs)
         driver_task = run.driver_task_run.task
         init_args = InitRunArgs(
-            run_uid=self.run.run_uid,
+            run_uid=run.run_uid,
             root_run_uid=run.root_run_info.root_run_uid,
             task_runs_info=task_run_info,
             driver_task_uid=run.driver_task_run.task_run_uid,
