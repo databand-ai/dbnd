@@ -1,7 +1,5 @@
 import os
 
-from dbnd_airflow.web.single_job_run_support import register_legacy_single_job_run
-
 
 _airflow_bootstrap_applied = False
 
@@ -29,6 +27,8 @@ def dbnd_airflow_bootstrap():
     )
 
     init_airflow_sqlconn_by_dbnd()
+
+    from dbnd_airflow.web.single_job_run_support import register_legacy_single_job_run
 
     register_legacy_single_job_run()
 
