@@ -1,3 +1,5 @@
+import sys
+
 import six
 
 
@@ -34,4 +36,18 @@ except ImportError:
     except ImportError:
         from _dummy_thread import get_ident
 
-__all__ = ["contextlib", "qualname_func", "import_errors", "Callable", "get_ident"]
+
+def fix_sys_path_str():
+    if six.PY2:
+        # fix path from "non" str values, otherwise we fail on py2
+        sys.path = [str(p) if type(p) != str else p for p in sys.path]
+
+
+__all__ = [
+    "contextlib",
+    "qualname_func",
+    "import_errors",
+    "Callable",
+    "get_ident",
+    "fix_sys_path_str",
+]

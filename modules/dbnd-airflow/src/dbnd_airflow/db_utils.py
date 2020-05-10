@@ -94,3 +94,14 @@ def airflow_tables_to_dump():
         # job -> dag_id, hostname, unixname
         af_jobs.BaseJob,
     )
+
+
+def airflow_sql_conn_repr():
+    from airflow.configuration import conf as airflow_conf
+
+    try:
+        from sqlalchemy.engine.url import make_url
+    except:
+        return "`pip install sqlalchemy` in order to get sql db url"
+
+    return make_url(airflow_conf.get("core", "sql_alchemy_conn"))

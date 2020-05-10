@@ -1,10 +1,7 @@
-import sys
-
-import six
-
 from dbnd._core.configuration import environ_config
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.utils.basics.load_python_module import _load_module
+from dbnd._core.utils.seven import fix_sys_path_str
 
 
 _dbnd_plugins_registered = False
@@ -19,9 +16,8 @@ def register_dbnd_plugins():
         return
     _dbnd_plugins_registered = True
 
-    if six.PY2:
-        # fix path from "non" str values, otherwise we fail on py2
-        sys.path = [str(p) if type(p) != str else p for p in sys.path]
+    fix_sys_path_str()
+
     pm.load_setuptools_entrypoints("dbnd")
     pm.check_pending()
 
