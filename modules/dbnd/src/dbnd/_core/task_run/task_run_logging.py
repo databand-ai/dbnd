@@ -1,4 +1,7 @@
 import logging
+import os
+import re
+import traceback
 import typing
 
 from contextlib import contextmanager
@@ -26,6 +29,12 @@ class TaskRunLogManager(TaskRunCtrl):
         self.local_log_file = self.task_run.local_task_run_root.partition(
             name="%s.log" % task_run.attempt_number
         )
+
+        if os.getenv("DBND__LOG_SPARK"):
+            self.local_spark_log_file = self.task_run.local_task_run_root.partition(
+                name="%s-spark.log" % task_run.attempt_number
+            )
+
         self.local_heartbeat_log_file = self.task_run.local_task_run_root.partition(
             name="%s.heartbeat.log" % task_run.attempt_number
         )
@@ -82,7 +91,9 @@ class TaskRunLogManager(TaskRunCtrl):
             return
         target_logger = logging.root
         logger.debug("Capturing task log into '%s'", log_file)
+
         try:
+            self.attach_spark_logger()
             target_logger.addHandler(handler)
             self._log_task_run_into_file_active = True
             CURRENT_TASK_HANDLER_LOG = handler
@@ -93,6 +104,7 @@ class TaskRunLogManager(TaskRunCtrl):
             CURRENT_TASK_HANDLER_LOG = None
             raise task_ex
         finally:
+            self.detach_spark_logger()
             try:
                 target_logger.removeHandler(handler)
                 handler.close()
@@ -100,6 +112,53 @@ class TaskRunLogManager(TaskRunCtrl):
                 logger.error("Failed to close file handler for log %s", log_file)
             self._log_task_run_into_file_active = False
             self._upload_task_log_preview()
+
+    def attach_spark_logger(self):
+        if os.getenv("DBND__LOG_SPARK"):
+            spark_log_file = self.local_spark_log_file
+            try:
+                from pyspark.sql import SparkSession
+
+                spark = SparkSession.builder.getOrCreate()
+                log4j = spark._jvm.org.apache.log4j
+
+                spark_logger = log4j.Logger.getLogger("org.apache.spark")
+
+                pattern = "[%d] {%c,%C{1}} %p - %m%n"
+                file_appender = log4j.FileAppender()
+
+                file_appender.setFile(spark_log_file.path)
+                file_appender.setName(spark_log_file.path)
+                file_appender.setLayout(log4j.PatternLayout(pattern))
+                file_appender.setThreshold(log4j.Priority.toPriority("INFO"))
+                file_appender.activateOptions()
+                spark_logger.addAppender(file_appender)
+            except Exception as task_ex:
+                logger.error(
+                    "Failed to attach spark logger for log %s: %s",
+                    spark_log_file,
+                    task_ex,
+                )
+
+    def detach_spark_logger(self):
+        if os.getenv("DBND__LOG_SPARK"):
+            spark_log_file = self.local_spark_log_file
+            try:
+                from pyspark.sql import SparkSession
+
+                spark = SparkSession.builder.getOrCreate()
+
+                jvm = spark._jvm
+                log4j = jvm.org.apache.log4j
+                spark_logger = log4j.Logger.getLogger("org.apache.spark")
+
+                spark_logger.removeAppender(spark_log_file.path)
+            except Exception as task_ex:
+                logger.error(
+                    "Failed to detach spark logger for log %s: %s",
+                    spark_log_file,
+                    task_ex,
+                )
 
     def _upload_task_log_preview(self):
         try:
@@ -111,7 +170,10 @@ class TaskRunLogManager(TaskRunCtrl):
 
     def read_log_body(self):
         try:
-            log_body = self.local_log_file.read()
+            log_body = self.local_log_file.readlines()
+            if os.getenv("DBND__LOG_SPARK"):
+                spark_log_body = self.local_spark_log_file.readlines()
+                log_body = self.merge_logs(log_body, spark_log_body)
             if six.PY2:
                 log_body = log_body.decode("utf-8")
             return log_body
@@ -123,6 +185,26 @@ class TaskRunLogManager(TaskRunCtrl):
                 ex,
             )
             return None
+
+    # todo: find memory-efficient way to do logs merging
+    def merge_logs(self, first, second):
+        first_aggregated = []
+
+        r = re.compile("\[\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}\]")
+
+        last_timestamp_line_idx = 0
+
+        for line in first:
+            if line.startswith("[") and r.match(line):
+                first_aggregated.append(line + "\n")
+                last_timestamp_line_idx = last_timestamp_line_idx + 1
+            else:
+                first_aggregated[last_timestamp_line_idx - 1] += line + "\n"
+
+        result = first_aggregated + second
+        result.sort()
+
+        return "\n".join(result)
 
     def write_remote_log(self, log_body):
         if self.task.settings.log.remote_logging_disabled or not self.remote_log_file:
