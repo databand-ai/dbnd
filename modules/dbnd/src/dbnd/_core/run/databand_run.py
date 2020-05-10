@@ -12,6 +12,7 @@ from uuid import UUID
 import six
 
 from dbnd._core.configuration.environ_config import (
+    DBND_PARENT_TASK_RUN_ATTEMPT_UID,
     DBND_PARENT_TASK_RUN_UID,
     DBND_RESUBMIT_RUN,
     DBND_ROOT_RUN_TRACKER_URL,
@@ -542,8 +543,8 @@ class DatabandRun(SingletonContext):
         if current:
             tr = self.get_task_run_by_id(current.task_id)
             if tr:
-                parent_task_run_uid = tr.task_run_uid
-                env[DBND_PARENT_TASK_RUN_UID] = str(parent_task_run_uid)
+                env[DBND_PARENT_TASK_RUN_UID] = str(tr.task_run_uid)
+                env[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = str(tr.task_run_attempt_uid)
 
         env[DBND_ROOT_RUN_UID] = str(self.root_run_info.root_run_uid)
         env[DBND_ROOT_RUN_TRACKER_URL] = self.root_run_info.root_run_url

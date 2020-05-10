@@ -4,7 +4,8 @@ import mock
 
 from pytest import fixture
 
-from dbnd import log_metric, task
+from dbnd import dbnd_run_stop, log_metric, task
+from dbnd._core.configuration import environ_config
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.inplace_run import airflow_dag_inplace_tracking
 
@@ -22,17 +23,8 @@ def fake_task_inside_dag():
     root_task = run.root_task
 
     # Validate regular subdag properties
-    assert run.job_name == PARENT_DAG
-    assert root_task.task_name == "DAG__runtime"
-
-    # Validate relationships
-    ## sub dag
-    child_task = list(root_task.task_dag.upstream)[0]
-    assert "fake_task_inside_dag" in child_task.task_name
-    assert child_task.dag_id == FULL_DAG_NAME
-    ## function task
-    func_task = list(child_task.task_dag.upstream)[0]
-    assert fake_task_inside_dag.__name__ in func_task.task_name
+    assert run.job_name == "%s.%s.fake_task_inside_dag" % (PARENT_DAG, CHILD_DAG)
+    assert root_task.task_name == "fake_task_inside_dag__execute"
 
     return "Regular test"
 
@@ -45,15 +37,18 @@ patch_dict = {
 
 
 @fixture
-def set_env():
-    with mock.patch.dict(os.environ, patch_dict):
-        yield
+def with_airflow_tracking_env():
+    environ_config.reset()
+
+    try:
+        with mock.patch.dict(os.environ, patch_dict):
+            yield
+    finally:
+        environ_config.reset()
 
 
 class TestTaskInplaceRun(object):
-    def test_sanity_with_airflow(self, set_env):
-        airflow_dag_inplace_tracking._TRY_GET_AIRFLOW_CONTEXT_CACHE.clear()
+    def test_sanity_with_airflow(self, with_airflow_tracking_env):
         fake_task_inside_dag()
-
-        airflow_dag_inplace_tracking._TRY_GET_AIRFLOW_CONTEXT_CACHE.clear()
+        dbnd_run_stop()
         print("hey")

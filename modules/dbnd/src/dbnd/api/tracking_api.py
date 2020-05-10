@@ -17,6 +17,7 @@ from dbnd._core.constants import (
     UpdateSource,
 )
 from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
+from dbnd._core.inplace_run.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
@@ -47,6 +48,17 @@ if typing.TYPE_CHECKING:
     )
 
 
+class AirflowTaskContextSchema(ApiObjectSchema):
+    dag_id = fields.String()
+    execution_date = fields.String()
+    task_id = fields.String()
+    try_number = fields.Integer(allow_none=True)
+
+    @post_load
+    def make_run_info(self, data, **kwargs):
+        return AirflowTaskContext(**data)
+
+
 class TaskRunsInfoSchema(ApiObjectSchema):
     run_uid = fields.UUID()
     root_run_uid = fields.UUID()
@@ -57,11 +69,11 @@ class TaskRunsInfoSchema(ApiObjectSchema):
         TaskRunInfoSchema, many=True, exclude=("task_signature_source",)
     )
     upstreams_map = fields.List(fields.List(fields.UUID()))
-
     dynamic_task_run_update = fields.Boolean()
 
     targets = fields.Nested(TargetInfoSchema, many=True)
     task_definitions = fields.Nested(TaskDefinitionInfoSchema, many=True)
+    af_context = fields.Nested(AirflowTaskContextSchema, allow_none=True)
 
     @post_load
     def make_run_info(self, data, **kwargs):
@@ -87,13 +99,6 @@ class InitRunArgs(object):
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
-
-
-class AirflowTaskContextSchema(ApiObjectSchema):
-    dag_id = fields.String()
-    execution_date = fields.String()
-    task_id = fields.String()
-    try_number = fields.Integer()
 
 
 class InitRunArgsSchema(ApiObjectSchema):
@@ -152,6 +157,7 @@ init_run_schema = InitRunSchema()
 
 class AddTaskRunsSchema(_ApiCallSchema):
     task_runs_info = fields.Nested(TaskRunsInfoSchema)
+    source = EnumField(UpdateSource, allow_none=True)
 
 
 add_task_runs_schema = AddTaskRunsSchema()
@@ -389,6 +395,7 @@ class TaskRunsInfo(object):
     parent_child_map = attr.ib(default=None)
     upstreams_map = attr.ib(default=None)
     dynamic_task_run_update = attr.ib(default=False)
+    af_context = attr.ib(default=None)  # type: Optional[AirflowTaskContext]
 
 
 @attr.s

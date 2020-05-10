@@ -18,6 +18,7 @@ class ScheduledRunInfoSchema(ApiObjectSchema):
 class RootRunInfoSchema(ApiObjectSchema):
     root_run_uid = fields.UUID()
     root_task_run_uid = fields.UUID(allow_none=True)
+    root_task_run_attempt_uid = fields.UUID(allow_none=True)
     root_run_url = fields.String(allow_none=True)
 
     @post_load

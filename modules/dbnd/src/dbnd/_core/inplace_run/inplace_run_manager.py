@@ -5,17 +5,25 @@ import sys
 import typing
 
 from subprocess import list2cmdline
+from typing import Optional
 
-from dbnd._core.configuration import environ_config
-from dbnd._core.constants import RunState, TaskRunState
+from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.configuration.environ_config import get_environ_config
+from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
 from dbnd._core.errors.errors_utils import UserCodeDetector
-from dbnd._core.inplace_run.tracking_config import set_tracking_config_overide
+from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
+    AirflowOperatorRuntimeTask,
+    override_airflow_log_system_for_tracking,
+    try_get_airflow_context,
+)
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task.task import Task
+from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
+from dbnd._vendor import pendulum
 
 
 logger = logging.getLogger(__name__)
@@ -27,8 +35,35 @@ if typing.TYPE_CHECKING:
     T = typing.TypeVar("T")
 
 
-def is_inplace_run():
-    return environ_config.environ_enabled(environ_config.ENV_DBND__TRACKING)
+def set_tracking_config_overide(airflow_context=None, use_dbnd_log=None):
+    # 1. create proper DatabandContext so we can create other objects
+    track_with_cache = config.getboolean("run", "tracking_with_cache")
+    config_for_tracking = {
+        "run": {
+            "skip_completed": track_with_cache,
+            "skip_completed_on_run": track_with_cache,
+            "validate_task_inputs": track_with_cache,
+            "validate_task_outputs": track_with_cache,
+        },  # we don't want to "check" as script is task_version="now"
+        "task": {
+            "task_in_memory_outputs": not track_with_cache
+        },  # do not save any outputs
+        "core": {"tracker_raise_on_error": False},  # do not fail on tracker errors
+    }
+    if airflow_context:
+        import pytz
+
+        task_target_date = pendulum.parse(
+            airflow_context.execution_date, tz=pytz.UTC
+        ).date()
+        use_dbnd_log = override_airflow_log_system_for_tracking()
+        config_for_tracking["task"]["task_target_date"] = task_target_date
+
+    if use_dbnd_log is not None:
+        config_for_tracking["log"] = {"disabled": not use_dbnd_log}
+    return config.set_values(
+        config_values=config_for_tracking, override=True, source="dbnd_tracking_config"
+    )
 
 
 class _DbndInplaceRunManager(object):
@@ -36,9 +71,7 @@ class _DbndInplaceRunManager(object):
         self._context_managers = []
         self._atexit_registered = False
 
-        self._started = False
-        self._stoped = False
-        self._disabled = False
+        self._active = False
 
         self._run = None
         self._task_run = None
@@ -56,58 +89,62 @@ class _DbndInplaceRunManager(object):
             cm.__exit__(None, None, None)
 
     def start(self, root_task_name, job_name=None):
-        if self._run:
-            return
-        if self._started or self._disabled:  # started or failed
+        if self._run or self._active or try_get_databand_run():
             return
 
-        try:
-            if try_get_databand_run():
-                return
+        airflow_context = try_get_airflow_context()
+        set_tracking_config_overide(use_dbnd_log=True, airflow_context=airflow_context)
 
-            self._started = True
+        # 1. create proper DatabandContext so we can create other objects
+        dc = self._enter_cm(new_dbnd_context())  # type: DatabandContext
 
-            # 1. create proper DatabandContext so we can create other objects
-            set_tracking_config_overide(use_dbnd_log=True)
-            # create databand context
-            dc = self._enter_cm(new_dbnd_context())  # type: DatabandContext
+        if airflow_context:
+            root_task_or_task_name = AirflowOperatorRuntimeTask.build_from_airflow_context(
+                airflow_context
+            )
+            source = UpdateSource.airflow_tracking
+            job_name = "{}.{}".format(airflow_context.dag_id, airflow_context.task_id)
+        else:
+            root_task_or_task_name = _build_inline_root_task(root_task_name)
+            source = UpdateSource.dbnd
 
-            root_task = _build_inline_root_task(root_task_name)
+        # create databand run
+        # this will create databand run with driver and root tasks.
 
-            # create databand run
-            self._run = self._enter_cm(
-                new_databand_run(
-                    context=dc,
-                    task_or_task_name=root_task,
-                    existing_run=False,
-                    job_name=job_name,
-                )
-            )  # type: DatabandRun
+        # create databand run
+        # we will want to preserve
+        self._run = self._enter_cm(
+            new_databand_run(
+                context=dc,
+                task_or_task_name=root_task_or_task_name,
+                job_name=job_name,
+                existing_run=False,
+                source=source,
+                af_context=airflow_context,
+            )
+        )  # type: DatabandRun
 
-            self._run._init_without_run()
+        if not self._atexit_registered:
+            atexit.register(self.stop)
+        sys.excepthook = self.stop_on_exception
+        self._active = True
 
-            if not self._atexit_registered:
-                atexit.register(self.stop)
-            sys.excepthook = self.stop_on_exception
+        # now we send data to DB
+        self._run._init_without_run()
 
-            self._start_taskrun(self._run.driver_task_run)
-            self._start_taskrun(self._run.root_task_run)
-            self._task_run = self._run.root_task_run
-            return self._task_run
-        except Exception:
-            _handle_inline_error("inline-start")
-            self._disabled = True
-            return
-        finally:
-            self._started = True
+        self._start_taskrun(self._run.driver_task_run)
+        self._start_taskrun(self._run.root_task_run)
+        self._task_run = self._run.root_task_run
+        return self._task_run
 
     def _start_taskrun(self, task_run):
         self._enter_cm(task_run.runner.task_run_execution_context())
         task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
     def stop(self):
-        if self._stoped:
+        if not self._active:
             return
+        self._active = False
         try:
             databand_run = self._run
             root_tr = self._task_run
@@ -129,20 +166,18 @@ class _DbndInplaceRunManager(object):
             logger.info(databand_run.describe.run_banner_for_finished())
 
             self._close_all_context_managers()
-        except:
-            _handle_inline_error("dbnd-tracking-shutdown")
-        finally:
-            self._stoped = True
+        except Exception as ex:
+            _handle_inline_run_error("dbnd-tracking-shutdown")
 
     def stop_on_exception(self, type, value, traceback):
-        if not self._stoped:
+        if self._active:
             try:
                 error = TaskRunError.buid_from_ex(
                     ex=value, task_run=self._task_run, exc_info=(type, value, traceback)
                 )
                 self._task_run.set_task_run_state(TaskRunState.FAILED, error=error)
             except:
-                _handle_inline_error("dbnd-set-script-error")
+                _handle_inline_run_error("dbnd-set-script-error")
 
         self.stop()
         sys.__excepthook__(type, value, traceback)
@@ -175,26 +210,43 @@ def _build_inline_root_task(root_task_name):
     return root_task
 
 
-_dbnd_start_manager = _DbndInplaceRunManager()
+def try_get_inplace_task_run():
+    # type: ()->Optional[TaskRun]
+    if get_environ_config().is_inplace_run():
+        return dbnd_run_start()
 
 
-def get_dbnd_inplace_run_manager():
-    return _dbnd_start_manager
+# there can be only one tracking manager
+_dbnd_inline_manager = None  # type: Optional[_DbndInplaceRunManager]
 
 
 def dbnd_run_start(name=None):
-    if not _dbnd_start_manager:
-        return
-    return _dbnd_start_manager.start(root_task_name=name)
+    if not get_environ_config().enabled:
+        return None
+
+    global _dbnd_inline_manager
+    if not _dbnd_inline_manager:
+        dsm = _DbndInplaceRunManager()
+        try:
+            dsm.start(root_task_name=name)
+            if dsm._active:
+                _dbnd_inline_manager = dsm
+        except Exception:
+            _handle_inline_run_error("inline-start")
+            get_environ_config().enabled = False
+            return None
+    if _dbnd_inline_manager and _dbnd_inline_manager._active:
+        return _dbnd_inline_manager._task_run
 
 
 def dbnd_run_stop():
-    if not _dbnd_start_manager:
-        return
-    _dbnd_start_manager.stop()
+    global _dbnd_inline_manager
+    if _dbnd_inline_manager:
+        _dbnd_inline_manager.stop()
+        _dbnd_inline_manager = None
 
 
-def _handle_inline_error(msg):
+def _handle_inline_run_error(msg):
     if is_verbose():
         logger.warning(
             "Failed during dbnd %s, ignoring, and continue without tracking" % msg,

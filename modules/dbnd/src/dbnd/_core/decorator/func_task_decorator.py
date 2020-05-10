@@ -6,8 +6,10 @@ from typing import Type
 
 import six
 
-from dbnd._core.configuration import environ_config
-from dbnd._core.configuration.environ_config import get_max_calls_per_func
+from dbnd._core.configuration.environ_config import (
+    get_environ_config,
+    is_databand_enabled,
+)
 from dbnd._core.decorator.decorated_task import (
     DecoratedPipelineTask,
     DecoratedPythonTask,
@@ -53,7 +55,7 @@ class _decorated_user_func(object):
         functools.update_wrapper(self, self.task_func)
         self._call_count = 0
         self._call_as_func = False
-        self._max_call_count = get_max_calls_per_func()
+        self._max_call_count = get_environ_config().max_calls_per_run
 
     def __call__(self, *args, **kwargs):
         if not self._call_as_func:
@@ -109,7 +111,7 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
         "_task_default_result"
     )  # ParameterFactory
     task_defaults = decorator_kwargs.pop("defaults", None)
-    if not environ_config.is_databand_enabled():
+    if not is_databand_enabled():
         # simple `@task` decorator, no options were (probably) given.
         if len(decorator_args) == 1 and callable(decorator_args[0]):
             return decorator_args[0]

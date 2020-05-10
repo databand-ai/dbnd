@@ -67,6 +67,7 @@ class TrackingStoreApi(TrackingStore):
             self.channel.add_task_runs,
             add_task_runs_schema,
             task_runs_info=task_runs_info,
+            source=run.source,
         )
 
     def set_run_state(self, run, state, error=None, timestamp=None):

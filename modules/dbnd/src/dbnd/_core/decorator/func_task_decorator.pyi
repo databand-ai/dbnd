@@ -1,5 +1,7 @@
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
+
+from dbnd._core.parameter.parameter_builder import ParameterFactory
 
 def task(
     task_class_version: Optional[str] = None,
@@ -24,3 +26,5 @@ def task(
     every item inside it. result=("output1", "output2")
     """
     ...
+
+_default_output: Union[ParameterFactory, object]
