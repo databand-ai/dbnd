@@ -12,7 +12,7 @@ pip install databand[mlflow]
 ```ini
 [core]
 # Databand store url should be defined
-databand_url=http://localhost:8080
+databand_url=http://localhost:8081
 
 [mlflow_tracking]
 # Enable tracking to Databand store
@@ -62,7 +62,7 @@ def mlflow_example():
 2. dbnd creates a new dbnd context
 3. `dbnd_on_pre_init_context` hook from `dbnd_mlflow` is triggered
     * a new uri is computed to be used by mlflow, e.g.:
-        * `dbnd://localhost:8080?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F`
+        * `dbnd://localhost:8081?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F`
     * the new uri is set to be used with `mlflow.set_tracking_uri()`
 4. `mlflow_example` task starts:
     1. `mlflow.start_run()`

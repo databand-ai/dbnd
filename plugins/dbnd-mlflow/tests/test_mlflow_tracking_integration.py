@@ -60,7 +60,7 @@ class TestMLFlowTrackingIntegration(object):
             "dbnd_mlflow.tracking_store.TrackingApiClient"
         ) as fake_tracking_store:
             mlflow_tracking_integration_check.dbnd_run()
-            fake_tracking_store.assert_called_once_with("http://localhost:8080")
+            fake_tracking_store.assert_called_once_with("http://localhost:8081")
 
         with new_dbnd_context(
             conf={
