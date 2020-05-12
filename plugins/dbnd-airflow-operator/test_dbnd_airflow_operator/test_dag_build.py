@@ -170,3 +170,27 @@ class TestFunctionalDagBuild(object):
             pipe()
 
         assert dag_operators.task_dict["task1"].p_str == "from_config"
+
+
+class TestPipelinesWithFunctionalOperators:
+    def test_pipeline_with_airflow_ops(self):
+        @task
+        def task1(x):
+            return x
+
+        @pipeline
+        def pipe():
+            a = task1("run on this")
+            b = BashOperator(bash_command="echo 42", task_id="bash_op")
+            c = task1("and on this")
+            a >> b
+            b >> c.op
+            return c
+
+        with DAG(dag_id="test_dag_config", default_args=default_args_test) as dag:
+            pipe()
+
+        assert len(dag.tasks) == 4
+        a = dag.get_task("task1")
+        b = dag.get_task("bash_op")
+        assert a in b.upstream_list
