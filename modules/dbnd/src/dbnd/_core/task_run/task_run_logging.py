@@ -1,7 +1,5 @@
 import logging
 import os
-import re
-import traceback
 import typing
 
 from contextlib import contextmanager
@@ -12,7 +10,7 @@ from dbnd._core.log.logging_utils import find_handler, redirect_stderr, redirect
 from dbnd._core.settings import LocalEnvConfig
 from dbnd._core.settings.log import _safe_is_typeof
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.utils.string_utils import safe_short_string
+from dbnd._core.utils.string_utils import merge_dbnd_and_spark_logs, safe_short_string
 
 
 if typing.TYPE_CHECKING:
@@ -173,7 +171,10 @@ class TaskRunLogManager(TaskRunCtrl):
             log_body = self.local_log_file.readlines()
             if os.getenv("DBND__LOG_SPARK"):
                 spark_log_body = self.local_spark_log_file.readlines()
-                log_body = self.merge_logs(log_body, spark_log_body)
+                merged_logs = merge_dbnd_and_spark_logs(log_body, spark_log_body)
+                log_body = "\n".join(merged_logs)
+            else:
+                log_body = "\n".join(log_body)
             if six.PY2:
                 log_body = log_body.decode("utf-8")
             return log_body
@@ -185,26 +186,6 @@ class TaskRunLogManager(TaskRunCtrl):
                 ex,
             )
             return None
-
-    # todo: find memory-efficient way to do logs merging
-    def merge_logs(self, first, second):
-        first_aggregated = []
-
-        r = re.compile("\[\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}\]")
-
-        last_timestamp_line_idx = 0
-
-        for line in first:
-            if line.startswith("[") and r.match(line):
-                first_aggregated.append(line + "\n")
-                last_timestamp_line_idx = last_timestamp_line_idx + 1
-            else:
-                first_aggregated[last_timestamp_line_idx - 1] += line + "\n"
-
-        result = first_aggregated + second
-        result.sort()
-
-        return "\n".join(result)
 
     def write_remote_log(self, log_body):
         if self.task.settings.log.remote_logging_disabled or not self.remote_log_file:
