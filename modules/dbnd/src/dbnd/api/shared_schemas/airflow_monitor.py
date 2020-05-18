@@ -19,6 +19,7 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     synced_to = fields.DateTime(allow_none=True)
     rbac_enabled = fields.Boolean(allow_none=True)
     sync_interval = fields.Integer(allow_none=True)
+    is_sync_enabled = fields.Boolean(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
