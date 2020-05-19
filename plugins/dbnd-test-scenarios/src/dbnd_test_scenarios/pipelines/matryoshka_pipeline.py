@@ -1,21 +1,23 @@
-from dbnd._core.decorator.func_task_decorator import pipeline
+from dbnd._core.decorator.func_task_decorator import pipeline, task
 
 
 @pipeline
 def matryoshka():
-    a()
+    r1 = a(1)
+    r2 = a(r1)
+    a(r2)
 
 
 @pipeline
-def a():
-    b()
+def a(param):
+    return b(param)
 
 
 @pipeline
-def b():
-    c()
+def b(param):
+    return c(param)
 
 
-@pipeline
-def c():
-    return
+@task
+def c(param):
+    return param + 1
