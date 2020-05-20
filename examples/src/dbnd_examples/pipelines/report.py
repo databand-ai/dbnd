@@ -2,16 +2,15 @@ import logging
 
 from typing import Dict, List
 
+import matplotlib
 import pandas as pd
 
+from matplotlib.figure import Figure
 from pandas import DataFrame, np
-
-import matplotlib
 
 from dbnd import band, log_dataframe, output, parameter, task
 from dbnd.tasks.basics.publish import publish_results
 from dbnd.utils import data_combine
-from matplotlib.figure import Figure
 from targets import Target
 
 

@@ -1,9 +1,8 @@
 # =======================
 import logging
 
-import data as data
-
 from dbnd import PipelineTask, PythonTask, output, parameter
+from test_dbnd.scenarios import data
 
 
 logger = logging.getLogger(__name__)

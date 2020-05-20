@@ -1,6 +1,6 @@
 import pyspark
 
-from dbnd_spark.targets.spark_marshalling import SparkMarshaller, SparkDataFrameToCsv
+from dbnd_spark.targets.spark_marshalling import SparkDataFrameToCsv, SparkMarshaller
 from dbnd_spark.targets.spark_values import SparkDataFrameValueType
 from targets.marshalling import register_marshaller
 from targets.target_config import FileFormat

@@ -165,8 +165,8 @@ class TrackingInfoBuilder(object):
             if not dbnd_target:
                 # we see this target for the first time
                 target_task_run_uid = (
-                    None
-                )  # let assume that Target is now owned by any task
+                    None  # let assume that Target is now owned by any task
+                )
                 # let try to find it's owner, so we create target that relates to some Task
                 # if `task` is pipeline, the target owner is going to be different task
                 if target.task:

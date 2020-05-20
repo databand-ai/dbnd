@@ -6,6 +6,7 @@ from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.utils.seven import Callable
 from targets.fs.local import LocalFileSystem
 
+
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:

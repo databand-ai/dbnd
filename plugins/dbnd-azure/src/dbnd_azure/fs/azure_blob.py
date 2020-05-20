@@ -96,9 +96,11 @@ class AzureBlobStorageClient(FileSystem):
         return key if key[-1:] == "/" or key == "" else key + "/"
 
     def exists(self, path):
-        storage_account, container_name, blob_name = self._path_to_account_container_and_blob(
-            path
-        )
+        (
+            storage_account,
+            container_name,
+            blob_name,
+        ) = self._path_to_account_container_and_blob(path)
         assert self.account == storage_account
         if self._is_container(blob_name):
             return self.conn.exists(container_name)
@@ -109,9 +111,11 @@ class AzureBlobStorageClient(FileSystem):
         return self.conn.exists(container_name, blob_name)
 
     def isdir(self, path):
-        storage_account, container_name, blob_name = self._path_to_account_container_and_blob(
-            path
-        )
+        (
+            storage_account,
+            container_name,
+            blob_name,
+        ) = self._path_to_account_container_and_blob(path)
         assert self.account == storage_account
 
         if self._is_container(blob_name):
@@ -124,9 +128,11 @@ class AzureBlobStorageClient(FileSystem):
         return len(list(matches))
 
     def remove(self, path, recursive=True, skip_trash=True):
-        storage_account, container_name, prefix = self._path_to_account_container_and_blob(
-            path
-        )
+        (
+            storage_account,
+            container_name,
+            prefix,
+        ) = self._path_to_account_container_and_blob(path)
         assert self.account == storage_account
 
         if self._is_container(prefix):
@@ -172,12 +178,16 @@ class AzureBlobStorageClient(FileSystem):
 
     def copy(self, source_path, destination_path):
 
-        source_account, source_container, source_blob = self._path_to_account_container_and_blob(
-            source_path
-        )
-        dest_account, dest_container, dest_prefix = self._path_to_account_container_and_blob(
-            destination_path
-        )
+        (
+            source_account,
+            source_container,
+            source_blob,
+        ) = self._path_to_account_container_and_blob(source_path)
+        (
+            dest_account,
+            dest_container,
+            dest_prefix,
+        ) = self._path_to_account_container_and_blob(destination_path)
         assert self.account == dest_account
 
         if self.isdir(source_path):

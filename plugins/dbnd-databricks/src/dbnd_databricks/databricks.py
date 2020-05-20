@@ -53,9 +53,11 @@ class DatabricksCtrl(SparkCtrl):
 
         from dbnd_azure.fs.azure_blob import AzureBlobStorageClient
 
-        storage_account, container_name, blob_name = AzureBlobStorageClient._path_to_account_container_and_blob(
-            path
-        )
+        (
+            storage_account,
+            container_name,
+            blob_name,
+        ) = AzureBlobStorageClient._path_to_account_container_and_blob(path)
         return "dbfs://%s" % (os.path.join(self.local_dbfs_mount, blob_name))
 
     def _handle_databricks_operator_execution(self, run_id, hook, task_id):

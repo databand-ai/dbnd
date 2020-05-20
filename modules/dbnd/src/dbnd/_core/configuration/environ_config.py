@@ -15,8 +15,8 @@ ENV_DBND_CONFIG = "DBND_CONFIG"  # extra config for DBND
 
 ENV_DBND__ENABLED = "DBND__ENABLED"
 ENV_DBND__TRACKING = (
-    "DBND__TRACKING"
-)  # implicit DBND tracking ( on any @task/log_ call)
+    "DBND__TRACKING"  # implicit DBND tracking ( on any @task/log_ call)
+)
 ENV_DBND__VERBOSE = "DBND__DATABAND__VERBOSE"  # VERBOSE
 ENV_DBND__UNITTEST_MODE = "DBND__UNITTEST_MODE"
 ENV_DBND__USER_PRE_INIT = "DBND__USER_PRE_INIT"  # run on user init

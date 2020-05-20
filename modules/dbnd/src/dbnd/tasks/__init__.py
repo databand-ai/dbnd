@@ -4,8 +4,8 @@ from dbnd._core.task.data_source_task import DataSourceTask, data_source
 from dbnd._core.task.pipeline_task import PipelineTask
 from dbnd._core.task.python_task import PythonTask
 from dbnd._core.task.task import Task
-
 from dbnd.tasks import basics
+
 
 __all__ = [
     "Task",

@@ -1,5 +1,6 @@
 from dbnd_azure.credentials import get_azure_credentials
 
+
 AZURE_BLOB_FS_NAME = "azure_blob"
 
 

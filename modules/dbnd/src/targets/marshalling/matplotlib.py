@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import io
 
 from matplotlib import figure
+
 from targets.marshalling.marshaller import Marshaller
 from targets.target_config import FileFormat
 

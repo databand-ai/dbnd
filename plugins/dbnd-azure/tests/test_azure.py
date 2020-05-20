@@ -43,7 +43,11 @@ class _AzureBlobBaseTestCase(object):
 @pytest.mark.azure
 class TestAzureBlobClient(_AzureBlobBaseTestCase):
     def test_parse_path(self):
-        account, container, blob = AzureBlobStorageClient._path_to_account_container_and_blob(
+        (
+            account,
+            container,
+            blob,
+        ) = AzureBlobStorageClient._path_to_account_container_and_blob(
             "https://myaccount.blob.core.windows.net/mycontainer/folder1/folder2/myblob"
         )
         assert account == "myaccount"

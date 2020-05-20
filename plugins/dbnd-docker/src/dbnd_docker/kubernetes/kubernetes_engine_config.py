@@ -282,9 +282,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         labels["dbnd_task_run_uid"] = clean_job_name_dns1123(str(task_run.task_run_uid))
         labels[
             "dbnd"
-        ] = (
-            "task_run"
-        )  # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
+        ] = "task_run"  # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
 
         annotations = self.annotations.copy()
         if self.gcp_service_account_keys:
