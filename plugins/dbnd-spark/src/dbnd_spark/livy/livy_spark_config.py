@@ -1,8 +1,8 @@
 from dbnd import parameter
-from dbnd._core.task.config import Config
+from dbnd_spark.spark_config import SparkEngineConfig
 
 
-class LivySparkConfig(Config):
+class LivySparkConfig(SparkEngineConfig):
     # we don't want spark class to inherit from this one, as it should has Config behaviour
     _conf__task_family = "livy"
     _conf__help_description = "livy configuration"
