@@ -44,4 +44,4 @@ class AirflowServerInfo(object):
     synced_from = attr.ib(default=None)  # type: Optional[datetime.datetime]
     synced_to = attr.ib(default=None)  # type: Optional[datetime.datetime]
     sync_interval = attr.ib(default=None)  # type: Optional[int]
-    is_sync_enabled = attr.ib(default=True)  # type: Optional[bool]
+    is_sync_enabled = attr.ib(default=None)  # type: Optional[bool]

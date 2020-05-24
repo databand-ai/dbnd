@@ -21,7 +21,7 @@ dbnd_spark_env_vars = (
 
 
 class TestTrackDagFunction(object):
-    @pytest.fixture()
+    @pytest.fixture
     def dag(self):
         args = dict(start_date=days_ago(2))
         dag_object = DAG(
@@ -41,7 +41,7 @@ class TestTrackDagFunction(object):
     def test_python_operator(self, python_operator):
         assert isinstance(python_operator.python_callable, _decorated_user_func)
 
-    @pytest.fixture()
+    @pytest.fixture
     def emr_operator(self, dag):
         spark_submit_command = [
             "spark-submit",
@@ -73,7 +73,7 @@ class TestTrackDagFunction(object):
         for env_var in dbnd_spark_env_vars:
             assert env_var in emr_args
 
-    @pytest.fixture()
+    @pytest.fixture
     def dataproc_operator(self, dag):
         from airflow.contrib.operators.dataproc_operator import DataProcPySparkOperator
 
@@ -95,7 +95,7 @@ class TestTrackDagFunction(object):
         for env_var in dbnd_spark_env_vars:
             assert env_var in dataproc_operator.dataproc_properties
 
-    @pytest.fixture()
+    @pytest.fixture
     def spark_submit_operator(self, dag):
         operator = SparkSubmitOperator(
             task_id="spark_submit_task",
