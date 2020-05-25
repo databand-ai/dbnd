@@ -6,6 +6,7 @@ from dbnd.api.api_utils import _ApiCallSchema
 
 class AirflowServerInfoSchema(_ApiCallSchema):
     base_url = fields.String()
+    external_url = fields.String()
     airflow_version = fields.String(allow_none=True)
     airflow_export_version = fields.String(allow_none=True)
     airflow_monitor_version = fields.String(allow_none=True)
