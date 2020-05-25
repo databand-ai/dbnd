@@ -1,6 +1,7 @@
 from dbnd import relative_path
 from dbnd._core.utils.project.project_fs import abs_join
 
+
 _airflow_scenarios_default = relative_path(__file__)
 
 

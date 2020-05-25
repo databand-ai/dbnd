@@ -1,6 +1,9 @@
 import errno
+import logging
 import os
 
+
+logger = logging.getLogger(__name__)
 
 try:
     from urlparse import urlsplit
@@ -30,6 +33,7 @@ def safe_mkdirs(path, mode):
         os.makedirs(path, mode)
     except OSError as e:
         if e.errno != errno.EEXIST:
+            logger.error("Could not create dir: %s. %s", path, e)
             raise
     finally:
         os.umask(o_umask)

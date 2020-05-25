@@ -20,6 +20,7 @@ from targets.marshalling.numpy import NumpyArrayMarshaller, NumpyArrayPickleMars
 from targets.marshalling.pandas import (
     DataFrameDictToHdf5,
     DataFrameToCsv,
+    DataFrameToExcel,
     DataFrameToFeather,
     DataFrameToHdf5,
     DataFrameToJson,
@@ -27,12 +28,12 @@ from targets.marshalling.pandas import (
     DataFrameToPickle,
     DataFrameToTable,
     DataFrameToTsv,
-    DataFrameToExcel,
 )
 from targets.target_config import FileFormat
 from targets.types import DataList
 from targets.values import get_value_type_of_type
 from targets.values.version_value import VersionStr
+
 
 logger = logging.getLogger(__name__)
 

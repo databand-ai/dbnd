@@ -4,21 +4,20 @@ import logging
 
 from typing import List, Tuple
 
+import matplotlib
 import numpy as np
 import pandas as pd
 
+from matplotlib import figure
 from sklearn import preprocessing
 from sklearn.linear_model import ElasticNet
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
-import matplotlib
-
 from dbnd import log_dataframe, log_metric, parameter, pipeline, task
 from dbnd.utils import data_combine, period_dates
 from dbnd_examples.data import demo_data_repo
 from dbnd_examples.pipelines.wine_quality.serving.docker import package_as_docker
-from matplotlib import figure
 from targets import target
 
 
@@ -102,7 +101,7 @@ def calculate_features(
 
 @task(result="training_set, test_set, validation_set")
 def split_data(
-    raw_data: pd.DataFrame
+    raw_data: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     columns_to_remove = set(["id", "0_norm", "10_norm"])
     if columns_to_remove.issubset(raw_data.columns):

@@ -63,6 +63,7 @@ class ScheduledJobSchemaV2(Schema):
     last_run_job = fields.Str(dump_only=True)
     last_job_date = fields.DateTime(dump_only=True)
     last_run_state = fields.Str(dump_only=True)
+    is_airflow_synced = fields.Bool(dump_only=True)
     list_order = fields.Integer(
         attribute="DbndScheduledJob.list_order", allow_none=True
     )

@@ -112,8 +112,8 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     default_output_description = "data output"
 
     _total_counter = (
-        0
-    )  # non-atomically increasing counter used for ordering parameters.
+        0  # non-atomically increasing counter used for ordering parameters.
+    )
 
     default = attr.ib(default=NOTHING)
 

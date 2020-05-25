@@ -1,4 +1,8 @@
-from dbnd._core.utils.string_utils import clean_job_name, clean_job_name_dns1123
+from dbnd._core.utils.string_utils import (
+    clean_job_name,
+    clean_job_name_dns1123,
+    merge_dbnd_and_spark_logs,
+)
 
 
 class TestStringUtils(object):
@@ -43,3 +47,43 @@ class TestStringUtils(object):
             clean_job_name_dns1123("a" * 300, placeholder=r"-", postfix=".%s" % job_id)
             == "a" * 244 + ".6a8330cc"
         )
+
+    def test_logs_merging(self):
+        dbnd = [
+            "[2020-05-07 17:47:07,768] {tracking_store_console.py:89} INFO - \n",
+            "dbnd one\n",
+            "dbnd two\n",
+            "[2020-05-07 17:47:09,231] {tracking_store_console.py:89} INFO - \n",
+            "dbnd three \n",
+            "dbnd four\n",
+            "[2020-05-07 17:47:19,231] {tracking_store_console.py:89} INFO - \n",
+            "dbnd string five \n",
+            "dbnd string six\n",
+        ]
+        spark = [
+            "[2020-05-07 17:47:07,881] INFO - Spark one\n",
+            "[2020-05-07 17:47:07,882] INFO - Spark two\n",
+            "[2020-05-07 17:47:09,811] INFO - Spark three\n",
+            "[2020-05-07 17:47:09,812] INFO - Spark four\n",
+            "[2020-05-07 17:47:19,881] INFO - Spark five\n",
+        ]
+
+        expected = [
+            "[2020-05-07 17:47:07,768] {tracking_store_console.py:89} INFO - \n",
+            "dbnd one\n",
+            "dbnd two\n",
+            "[2020-05-07 17:47:07,881] INFO - Spark one\n",
+            "[2020-05-07 17:47:07,882] INFO - Spark two\n",
+            "[2020-05-07 17:47:09,231] {tracking_store_console.py:89} INFO - \n",
+            "dbnd three \n",
+            "dbnd four\n",
+            "[2020-05-07 17:47:09,811] INFO - Spark three\n",
+            "[2020-05-07 17:47:09,812] INFO - Spark four\n",
+            "[2020-05-07 17:47:19,231] {tracking_store_console.py:89} INFO - \n",
+            "dbnd string five \n",
+            "dbnd string six\n",
+            "[2020-05-07 17:47:19,881] INFO - Spark five\n",
+        ]
+
+        result = merge_dbnd_and_spark_logs(dbnd, spark)
+        assert result == expected

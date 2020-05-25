@@ -3,8 +3,9 @@ import os
 
 from collections import Counter
 
-import dbnd
 import matplotlib
+
+import dbnd
 
 from dbnd import PipelineTask, data, output
 from test_dbnd.scenarios import scenario_path

@@ -1,11 +1,11 @@
 import logging
 
+import matplotlib
 import numpy as np
 
-import matplotlib
+from matplotlib.figure import Figure
 
 from dbnd import task
-from matplotlib.figure import Figure
 from test_dbnd.targets_tests import TargetTestBase
 
 

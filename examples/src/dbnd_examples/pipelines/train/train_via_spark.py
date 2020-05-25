@@ -96,7 +96,7 @@ def calculate_features(
 
 @spark_task(result="training_set, test_set, validation_set")
 def split_data_spark(
-    raw_data: spark.DataFrame
+    raw_data: spark.DataFrame,
 ) -> Tuple[spark.DataFrame, spark.DataFrame, spark.DataFrame]:
 
     columns_to_remove = set(["id", "0_norm", "10_norm"])

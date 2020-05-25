@@ -28,7 +28,8 @@ DBND_SYSTEM = None
 def set_project_fs(root=None, dbnd_system=None):
     global PROJECT_HOME, DBND_SYSTEM
     PROJECT_HOME = root or os.environ.get(ENV_DBND_HOME, _home_default)
-    DBND_SYSTEM = dbnd_system or os.environ.get(ENV_DBND_SYSTEM, _system_default)
+    if dbnd_system:
+        os.environ[ENV_DBND_SYSTEM] = dbnd_system
 
 
 def get_project_home():
@@ -44,7 +45,8 @@ def databand_config_path(*path):
 
 
 def databand_system_path(*path):
-    return abs_join(DBND_SYSTEM, *path)
+    dbnd_system = os.environ.get(ENV_DBND_SYSTEM, _system_default)
+    return abs_join(dbnd_system, *path)
 
 
 def project_path(*path):

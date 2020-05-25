@@ -5,8 +5,9 @@ import logging
 
 from io import BytesIO
 
-from dbnd._vendor import fast_hasher
 from matplotlib import figure
+
+from dbnd._vendor import fast_hasher
 from targets.values.builtins_values import DataValueType
 
 

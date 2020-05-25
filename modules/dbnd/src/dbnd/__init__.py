@@ -1,49 +1,22 @@
 # -*- coding: utf-8 -*-
-from dbnd._core.context.dbnd_project_env import DBND_IS_INITIALIZED
-
-
-str(DBND_IS_INITIALIZED)
-
-from dbnd._core.configuration.config_store import ConfigMergeSettings
-from dbnd._core.context.bootstrap import dbnd_bootstrap
-from dbnd._core.task_build import task_namespace
-from dbnd._core.task_build.task_registry import register_config_cls, register_task
-from dbnd._core.cli.main import main as dbnd_main, dbnd_cmd, dbnd_run_cmd
-from dbnd._core.commands import log_metric, log_dataframe
+from dbnd._core.cli.main import dbnd_cmd, dbnd_run_cmd, main as dbnd_main
+from dbnd._core.commands import log_dataframe, log_metric
+from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.configuration.config_readers import override
+from dbnd._core.configuration.config_store import ConfigMergeSettings
 from dbnd._core.configuration.dbnd_config import config, config_deco
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import new_dbnd_context
+from dbnd._core.context.dbnd_project_env import DBND_IS_INITIALIZED
 from dbnd._core.current import (
-    dbnd_context,
-    get_databand_context,
     current_task,
     current_task_run,
+    dbnd_context,
+    get_databand_context,
     get_databand_run,
 )
 from dbnd._core.decorator.func_task_decorator import band, pipeline, task
 from dbnd._core.failures import dbnd_handle_errors
-from dbnd._core.parameter.parameter_builder import data, output, parameter
-from dbnd._core.parameter.parameter_definition import (
-    ParameterScope,
-    ParameterDefinition,
-)
-from dbnd._core.plugin.dbnd_plugins import hookimpl
-from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
-from dbnd._core.task.config import Config
-from dbnd._core.configuration.config_path import ConfigPath
-from dbnd._core.task.data_source_task import DataSourceTask
-from dbnd._core.task.pipeline_task import PipelineTask
-from dbnd._core.task.python_task import PythonTask
-from dbnd._core.task.task import Task
-from dbnd._core.task_build.task_context import current
-from dbnd._core.task_build.task_namespace import auto_namespace, namespace
-from dbnd._core.task_ctrl.task_relations import as_task
-from dbnd._core.utils.project.project_fs import (
-    project_path,
-    databand_system_path,
-    relative_path,
-    databand_lib_path,
-)
 from dbnd._core.inplace_run.airflow_utils import (
     dbnd_tracking_env,
     dbnd_wrap_spark_environment,
@@ -51,9 +24,34 @@ from dbnd._core.inplace_run.airflow_utils import (
     get_dbnd_tracking_spark_conf_dict,
     spark_submit_with_dbnd_tracking,
 )
-
+from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
+from dbnd._core.parameter.parameter_builder import data, output, parameter
+from dbnd._core.parameter.parameter_definition import (
+    ParameterDefinition,
+    ParameterScope,
+)
+from dbnd._core.plugin.dbnd_plugins import hookimpl
+from dbnd._core.task.config import Config
+from dbnd._core.task.data_source_task import DataSourceTask
+from dbnd._core.task.pipeline_task import PipelineTask
+from dbnd._core.task.python_task import PythonTask
+from dbnd._core.task.task import Task
+from dbnd._core.task_build import task_namespace
+from dbnd._core.task_build.task_context import current
+from dbnd._core.task_build.task_namespace import auto_namespace, namespace
+from dbnd._core.task_build.task_registry import register_config_cls, register_task
+from dbnd._core.task_ctrl.task_relations import as_task
+from dbnd._core.utils.project.project_fs import (
+    databand_lib_path,
+    databand_system_path,
+    project_path,
+    relative_path,
+)
 from dbnd.tasks import basics
 from targets import _set_patches
+
+
+str(DBND_IS_INITIALIZED)
 
 
 dbnd_config = config

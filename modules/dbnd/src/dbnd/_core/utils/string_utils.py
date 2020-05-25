@@ -147,3 +147,49 @@ def strip_whitespace(string):
 
 def is_task_name_driver(task_name):
     return "dbnd_driver" in task_name
+
+
+# Regex to catch start of dbnd logs (they're starting like this: [2020-05-07 17:47:07,768])
+DBND_LOGS_REGEX = re.compile("\[\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}\]")
+
+
+def merge_dbnd_and_spark_logs(dbnd, spark):
+    """Merges dbnd and spark logs into single array and sorts them by timestamp provided.
+    dbnd logs are multi-lined so we have to perform a tricky comparison and append here.
+    """
+    result = []
+
+    dbnd_idx = 0
+    spark_idx = 0
+
+    while True:
+        dbnd_line = None if dbnd_idx >= len(dbnd) else dbnd[dbnd_idx]
+        spark_line = None if spark_idx >= len(spark) else spark[spark_idx]
+
+        if spark_line is None and dbnd_line is None:
+            break
+
+        if spark_line is None:
+            result.append(dbnd_line)
+            dbnd_idx += 1
+            continue
+
+        if dbnd_line is None:
+            result.append(spark_line)
+            spark_idx += 1
+            continue
+
+        # dbnd logs are multi-lined and the first line is timestamp starting from [.
+        # However, the rest of lines in the log record can also start with '[' so we have to check the line with regex
+        if dbnd_line.startswith("[") and DBND_LOGS_REGEX.match(dbnd_line):
+            if dbnd_line < spark_line:
+                result.append(dbnd_line)
+                dbnd_idx += 1
+            else:
+                result.append(spark_line)
+                spark_idx += 1
+        else:
+            result.append(dbnd_line)
+            dbnd_idx += 1
+
+    return result

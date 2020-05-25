@@ -32,7 +32,7 @@ def _split(data):
 
 @task(result=("training_set", "test_set", "validation_set", "good_alpha"))
 def create_data_sets(
-    data: DataFrame = None
+    data: DataFrame = None,
 ) -> Tuple[DataFrame, DataFrame, DataFrame, bool]:
     train_df, test_df = _split(data)
     test_df, validation_df = _split(test_df)

@@ -49,7 +49,7 @@ def func_returns_two_dataframes_named_tuple_v1(p: int) -> FeatureStore:
 
 @task
 def func_returns_two_dataframes_named_tuple_v2(
-    p: int
+    p: int,
 ) -> NamedTuple(
     "FeatureStore", fields=[("features", DataFrame), ("scores", DataFrame)]
 ):

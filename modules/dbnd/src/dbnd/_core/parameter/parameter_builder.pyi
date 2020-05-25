@@ -1,4 +1,4 @@
-from typing import Any, Type, TypeVar, Union, Callable, List, overload
+from typing import Any, Callable, List, Type, TypeVar, Union, overload
 
 import numpy
 import pandas as pd
@@ -7,12 +7,12 @@ from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.constants import OutputMode
 from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
-    _ParameterKind,
     ParameterScope,
+    _ParameterKind,
 )
 from dbnd._core.parameter.validators import Validator
 from targets import DataTarget, Target
-from targets.target_config import TargetConfig, FileFormat
+from targets.target_config import FileFormat, TargetConfig
 from targets.types import DataList
 from targets.values import ValueType
 

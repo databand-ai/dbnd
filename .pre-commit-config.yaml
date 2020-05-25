@@ -5,25 +5,26 @@ exclude: >
       .+/reliable_http_client.py
   )$
 repos:
-  - repo: https://github.com/ambv/black
-    rev: 19.3b0
+  - repo: https://github.com/psf/black
+    rev: 19.10b0
     hooks:
       - id: black
         language_version: python3.6
-        # override until resolved: https://github.com/ambv/black/issues/402
         files: \.pyi?$
         exclude: dbnd/_vendor
+        # override until resolved: https://github.com/psf/black/issues/402
         types: []
 
-#  - repo: https://github.com/asottile/seed-isort-config
-#    rev: v1.0.1
-#    hooks:
-#      - id: seed-isort-config
-#        language_version: python3.6
+  - repo: https://github.com/asottile/seed-isort-config
+    rev: v2.1.1
+    hooks:
+      - id: seed-isort-config
+        language_version: python3.6
 
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v4.3.4
+  - repo: https://github.com/timothycrosley/isort
+    rev: 4.3.20
     hooks:
       - id: isort
         language_version: python3.6
+        files: \.py$
         exclude: dbnd/_vendor

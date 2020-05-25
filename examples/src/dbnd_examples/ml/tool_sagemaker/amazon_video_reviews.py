@@ -13,13 +13,14 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 
+from scipy.sparse import lil_matrix
+
 import sagemaker.amazon.common as smac
 
 from dbnd import log_dataframe, log_metric, output, pipeline, task
 from dbnd_aws.sagemaker import SageMakerTrainTask
 from dbnd_aws.sagemaker.estimator_config import Algorithm, GenericEstimatorConfig
 from dbnd_examples.ml.tool_sagemaker import sagemaker_data_repo
-from scipy.sparse import lil_matrix
 from targets import Target
 from targets.fs import FileSystems
 
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 @task(result="training_set, test_set, validation_set")
 def preprocess(
-    raw_data: pd.DataFrame = sagemaker_data_repo.amazon_reviews_raw_data
+    raw_data: pd.DataFrame = sagemaker_data_repo.amazon_reviews_raw_data,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Preprocesses data based on business logic
     - Reads delimited file passed as s3_url and preprocess data by filtering
@@ -227,7 +228,7 @@ def prepare(
 
 @pipeline
 def train_review_model(
-    raw_data: pd.DataFrame = sagemaker_data_repo.amazon_reviews_raw_data
+    raw_data: pd.DataFrame = sagemaker_data_repo.amazon_reviews_raw_data,
 ):
     train, test, validate = preprocess(raw_data=raw_data)
     prepared = prepare(train=train, test=test, validation=validate)

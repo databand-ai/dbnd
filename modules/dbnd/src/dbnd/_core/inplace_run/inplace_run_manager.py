@@ -125,7 +125,9 @@ class _DbndInplaceRunManager(object):
         )  # type: DatabandRun
 
         if not self._atexit_registered:
-            atexit.register(self.stop)
+            _set_process_exit_handler(self.stop)
+            self._atexit_registered = True
+
         sys.excepthook = self.stop_on_exception
         self._active = True
 
@@ -154,10 +156,13 @@ class _DbndInplaceRunManager(object):
                 for tr in databand_run.task_runs:
                     if tr.task_run_state == TaskRunState.FAILED:
                         root_tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED)
-                        databand_run.set_run_state(RunState.FAILED)
                         break
                 else:
                     root_tr.set_task_run_state(TaskRunState.SUCCESS)
+
+            driver_tr = databand_run.driver_task.current_task_run
+            if driver_tr.task_run_state not in TaskRunState.finished_states():
+                driver_tr.set_task_run_state(TaskRunState.SUCCESS)
 
             if root_tr.task_run_state == TaskRunState.SUCCESS:
                 databand_run.set_run_state(RunState.SUCCESS)
@@ -181,6 +186,27 @@ class _DbndInplaceRunManager(object):
 
         self.stop()
         sys.__excepthook__(type, value, traceback)
+
+
+def _set_process_exit_handler(handler):
+    atexit.register(handler)
+
+    # https://docs.python.org/3/library/atexit.html
+    # The functions registered via this module are not called when the program
+    # is killed by a signal not handled by Python, when a Python fatal internal
+    # error is detected, or when os._exit() is called.
+    #                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+    # and os._exit is the one used by airflow (and maybe other libraries)
+    # so we'd like to monkey-patch os._exit to stop dbnd inplace run manager
+    original_os_exit = os._exit
+
+    def _dbnd_os_exit(*args, **kwargs):
+        try:
+            handler()
+        finally:
+            original_os_exit(*args, **kwargs)
+
+    os._exit = _dbnd_os_exit
 
 
 def _build_inline_root_task(root_task_name):
