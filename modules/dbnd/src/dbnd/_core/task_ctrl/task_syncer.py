@@ -1,10 +1,8 @@
 import os
 
 from dbnd._core.parameter.parameter_definition import _ParameterKind
-from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
-from targets import Target, target
-from targets.values import TargetValueType
+from targets import FileTarget, target
 
 
 def generate_local_path(remote_path):
@@ -29,7 +27,7 @@ class TaskSyncer(TaskSubCtrl):
 
     def sync_pre_execute(self):
         for p_def, p_val in self.task._params.get_param_values(user_only=True):
-            if isinstance(p_val, Target) and p_val.config.require_local_access:
+            if isinstance(p_val, FileTarget) and p_val.config.require_local_access:
                 # Target requires local access, it points to a remote path that must be synced-to from a local path
                 local_path = generate_local_path(p_val.path)
                 local_target = target(local_path)
