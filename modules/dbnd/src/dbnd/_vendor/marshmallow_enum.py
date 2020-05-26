@@ -8,8 +8,7 @@ import warnings
 
 from enum import Enum
 
-from dbnd._vendor.marshmallow import ValidationError
-from dbnd._vendor.marshmallow.fields import Field
+from dbnd._vendor.marshmallow import ValidationError, fields
 
 
 PY2 = sys.version_info.major == 2
@@ -27,7 +26,7 @@ class LoadDumpOptions(Enum):
     name = 0
 
 
-class EnumField(Field):
+class EnumField(fields.Field):
     VALUE = LoadDumpOptions.value
     NAME = LoadDumpOptions.name
 
