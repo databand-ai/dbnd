@@ -136,7 +136,21 @@ else:
     # handling dotted names is not needed, so we simply define _getattribute as
     # a wrapper around getattr.
     def _getattribute(obj, name):
-        return getattr(obj, name, None), None
+        # DBND MANUAL PATCH
+        # Tensorflow pickle support
+        # https://github.com/cloudpipe/cloudpickle/pull/306/files
+        # return getattr(obj, name, None), None
+        for subpath in name.split('.'):
+            if subpath == '<locals>':
+                raise AttributeError("Can't get local attribute {!r} on {!r}"
+                                     .format(name, obj))
+            try:
+                parent = obj
+                obj = getattr(obj, subpath)
+            except AttributeError:
+                raise AttributeError("Can't get attribute {!r} on {!r}"
+                                     .format(name, obj))
+        return obj, parent
 
 
 def _whichmodule(obj, name):
@@ -268,9 +282,21 @@ def _find_imported_submodules(code, top_level_dependencies):
                 # sys.modules.
                 if name is not None and name.startswith(prefix):
                     # check whether the function can address the sub-module
-                    tokens = set(name[len(prefix):].split('.'))
+                    # DBND MANUAL PATCH
+                    # Tensorflow pickle support
+                    # https://github.com/cloudpipe/cloudpickle/pull/306/files
+                    # tokens = set(name[len(prefix):].split('.'))
+                    submodule_relative_path = name[len(prefix):]
+                    tokens = set(submodule_relative_path.split('.'))
                     if not tokens - set(code.co_names):
-                        subimports.append(sys.modules[name])
+                        # DBND MANUAL PATCH
+                        # Tensorflow pickle support
+                        # https://github.com/cloudpipe/cloudpickle/pull/306/files
+                        if "tensorflow" in x.__name__  or "tf" in x.__name__:
+                            subimports.append(
+                                _getattribute(x, submodule_relative_path)[0])
+                        else:
+                            subimports.append(sys.modules[name])
     return subimports
 
 
