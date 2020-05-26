@@ -40,5 +40,4 @@ def target(*path, **kwargs):
         from targets.dir_target import DirTarget
 
         return DirTarget(path, fs=fs, config=config)
-
     return FileTarget(path=path, fs=fs, config=config, **kwargs)

@@ -83,6 +83,10 @@ class TaskSubCtrl(object):
         # type: ()-> EnvConfig
         return self.task.task_env
 
+    @property
+    def syncer(self):  # type: () -> TaskSyncer
+        return self.ctrl.task_syncer
+
     def get_task_by_task_id(self, task_id):
         return self.dbnd_context.task_instance_cache.get_task_by_id(task_id)
 
@@ -103,9 +107,11 @@ class TaskCtrl(TaskSubCtrl):
         from dbnd._core.task_ctrl.task_output_builder import TaskOutputBuilder
         from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
         from dbnd._core.task_ctrl.task_validator import TaskValidator
+        from dbnd._core.task_ctrl.task_syncer import TaskSyncer
 
         self._relations = TaskRelations(task)
         self.task_validator = TaskValidator(task)
+        self.task_syncer = TaskSyncer(task)
         self._task_dag = _TaskDagNode(task)
 
         self.outputs = TaskOutputBuilder(task)  # type: TaskOutputBuilder

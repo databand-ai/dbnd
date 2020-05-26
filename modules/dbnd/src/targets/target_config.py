@@ -115,6 +115,7 @@ class TargetConfig(object):
 
     flag = attr.ib(default=True)
     target_factory = attr.ib(default=None)
+    require_local_access = attr.ib(default=False)
 
     def with_compression(self, compression):
         return attr.evolve(self, compression=compression)
@@ -139,6 +140,9 @@ class TargetConfig(object):
 
     def as_file(self):
         return attr.evolve(self, folder=False, flag=None, target_factory=None)
+
+    def with_require_local_access(self):
+        return attr.evolve(self, require_local_access=True)
 
     @property
     def gzip(self):

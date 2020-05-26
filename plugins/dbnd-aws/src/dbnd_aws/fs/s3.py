@@ -426,6 +426,9 @@ class S3Client(FileSystem):
         # download the file
         self.s3.meta.client.download_file(bucket, key, destination_local_path)
 
+    def download(self, path, location):
+        self.get(s3_path=path, destination_local_path=location)
+
     def get_as_string(self, s3_path):
         """
         Get the contents of an object stored in S3 as a string.

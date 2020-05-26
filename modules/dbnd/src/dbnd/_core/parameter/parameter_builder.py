@@ -215,6 +215,17 @@ class ParameterFactory(object):
         return self.modify(disable_jinja_templating=True)
 
     @property
+    def require_local_access(self):
+        """
+        Write parameter to local filesystem before syncing to remote filesystem
+        :return: ParameterFactory
+        """
+        modified = self.modify(require_local_access=True)
+        target_config = TargetConfig()
+        target_config = target_config.with_require_local_access()
+        return modified.target_config(target_config)
+
+    @property
     def prod_immutable(self):
         """
         Converts parameter to production immutable output
