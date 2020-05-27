@@ -16,18 +16,19 @@ from targets.fs import register_file_system
 from targets.target_config import TargetConfig
 
 
-def save_my_custom_object(path: str, data) -> None:
+def save_my_custom_object(path, data):
     with open(path, "w") as fd:
         fd.writelines(data)
 
 
-def load_my_custom_object(path: str) -> List[str]:
+def load_my_custom_object(path):
     with open(path, "r") as fd:
         return fd.readlines()
 
 
 @task
-def read(loc: Target) -> str:
+def read(loc):
+    # type: (Target) -> str
     data = load_my_custom_object(loc.path)
     return " ".join(data)
 
@@ -44,7 +45,7 @@ def write_read(data=["abcd", "zxcvb"]):
     return r
 
 
-class TestTaskSyncer:
+class TestTaskSyncer(object):
     def test_task_syncer_pre_exec(self):
         params = MagicMock(TaskParameters)
         task = MagicMock(Task)

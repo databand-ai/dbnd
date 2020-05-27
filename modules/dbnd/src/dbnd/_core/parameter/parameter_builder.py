@@ -169,6 +169,14 @@ class ParameterFactory(object):
     def file_numpy(self):
         return self.target_config(self._target_config.numpy)
 
+    @property
+    def require_local_access(self):
+        """
+        Write parameter to local filesystem before syncing to remote filesystem
+        :return: ParameterFactory
+        """
+        return self.target_config(self._target_config.with_require_local_access())
+
     def target_factory(self, target_factory, folder=False):
         tc = self.target_config(self._target_config.with_target_factory(target_factory))
         if folder:
@@ -213,17 +221,6 @@ class ParameterFactory(object):
         :return: ParameterFactory
         """
         return self.modify(disable_jinja_templating=True)
-
-    @property
-    def require_local_access(self):
-        """
-        Write parameter to local filesystem before syncing to remote filesystem
-        :return: ParameterFactory
-        """
-        modified = self.modify(require_local_access=True)
-        target_config = TargetConfig()
-        target_config = target_config.with_require_local_access()
-        return modified.target_config(target_config)
 
     @property
     def prod_immutable(self):
