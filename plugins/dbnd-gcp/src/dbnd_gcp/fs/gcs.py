@@ -455,6 +455,7 @@ class GCSClient(FileSystem):
         self,
         remote_path,
         local_path=None,
+        delete_file_on_close=True,
         chunksize=None,
         chunk_callback=lambda _: False,
     ):
@@ -468,7 +469,10 @@ class GCSClient(FileSystem):
         tmp_file_path = local_path or get_local_tempfile(os.path.basename(remote_path))
         with open(tmp_file_path, "wb") as fp:
             # We can't return the tempfile reference because of a bug in python: http://bugs.python.org/issue18879
-            return_fp = _DeleteOnCloseFile(tmp_file_path, "r")
+            if delete_file_on_close:
+                return_fp = _DeleteOnCloseFile(tmp_file_path, "r")
+            else:
+                return_fp = fp
 
             # Special case empty files because chunk-based downloading doesn't work.
             result = self.client.objects().get(bucket=bucket, object=obj).execute()
@@ -511,7 +515,9 @@ class GCSClient(FileSystem):
         :param location: local path or none
         :return:
         """
-        return self._open_read(remote_path=path, local_path=location)
+        return self._open_read(
+            remote_path=path, local_path=location, delete_file_on_close=False
+        )
 
     def mkdir_parent(self, path):
         pass

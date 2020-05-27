@@ -1,8 +1,9 @@
 import pytest
 
 from dbnd import dbnd_config, output, pipeline, task
-from dbnd_gcp.fs import build_gcs_client
-from targets.fs import FileSystems, register_file_system
+from targets import Target
+
+from .test_gcs import _GCSBaseTestCase
 
 
 def save_my_custom_object(path, data):
@@ -35,8 +36,7 @@ def write_read(data=["abcd", "zxcvb"]):
 
 
 @pytest.mark.gcp
-class TestGcsSync:
+class TestGcsSync(_GCSBaseTestCase):
     def test_sync_execution(self):
-        register_file_system(FileSystems.gcs, build_gcs_client)
-        with dbnd_config({write.task.res: "gs://my/bucket/path"}):
+        with dbnd_config({write.task.res: self.bucket_url("write_destination")}):
             write_read.dbnd_run()
