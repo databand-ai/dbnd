@@ -215,10 +215,15 @@ class Task(_BaseTask, _TaskParamContainer):
         return self._task_run()
 
     def _task_run(self):
+        # bring all relevant files
+        self.current_task_run.sync_local.sync_pre_execute()
         with self._auto_load_save_params(
             auto_read=self._conf_auto_read_params, save_on_change=True
         ):
             return self.run()
+
+        self.current_task_run.sync_local.sync_post_execute()
+        # publish all relevant files
 
     def set_upstream(self, task_or_task_list):
         self.task_dag.set_upstream(task_or_task_list)

@@ -24,6 +24,7 @@ class FileSystem(object):
     name = None
     support_direct_access = False
     _exist_after_write_consistent = True
+    local = False
 
     @classmethod
     def exist_after_write_consistent(cls):
@@ -143,7 +144,12 @@ class FileSystem(object):
 
     def copy_from_local(self, local_path, dest):
         raise NotImplementedError(
-            "move_from_local() not implemented on {0}".format(self.__class__.__name__)
+            "copy_from_local() not implemented on {0}".format(self.__class__.__name__)
+        )
+
+    def download(self, path, location):
+        raise NotImplementedError(
+            "download() not implemented on {0}".format(self.__class__.__name__)
         )
 
     def open_read(self, path, mode="r"):
@@ -153,8 +159,3 @@ class FileSystem(object):
 
     def open_write(self, path, mode="w"):
         return AtomicLocalFile(path, self, mode=mode)
-
-    def download(self, path, location):
-        raise NotImplementedError(
-            "download() not implemented on {0}".format(self.__class__.__name__)
-        )

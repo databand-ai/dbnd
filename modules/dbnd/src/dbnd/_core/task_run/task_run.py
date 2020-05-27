@@ -6,6 +6,7 @@ from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.task_run.task_run_runner import TaskRunRunner
+from dbnd._core.task_run.task_run_sync_local import TaskRunLocalSyncer
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
 from dbnd._core.tracking.tracking_store_console import ConsoleStore
@@ -95,6 +96,7 @@ class TaskRun(object):
         self.tracker = TaskRunTracker(task_run=self, tracking_store=tracking_store)
         self.runner = TaskRunRunner(task_run=self)
         self.deploy = TaskSyncCtrl(task_run=self)
+        self.sync_local = TaskRunLocalSyncer(task_run=self)
         self.task_tracker_url = self.tracker.task_run_url()
         self.external_resource_urls = dict()
         self.errors = []
@@ -213,6 +215,11 @@ class TaskRun(object):
             "attempt_%s_%s" % (self.attempt_number, self.task_run_attempt_uid),
             extension=None,
         )
+        self.attempt_folder_local = self.local_task_run_root.folder(
+            "attempt_%s_%s" % (self.attempt_number, self.task_run_attempt_uid),
+            extension=None,
+        )
+        self.attemp_folder_local_cache = self.attempt_folder_local.folder("cache")
         self.meta_files = TaskRunMetaFiles(self.attempt_folder)
         self.log = TaskRunLogManager(task_run=self)
 

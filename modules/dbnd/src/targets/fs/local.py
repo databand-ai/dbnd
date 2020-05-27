@@ -23,6 +23,7 @@ class LocalFileSystem(FileSystem):
 
     name = "local"
     support_direct_access = True
+    local = True
 
     def copy(self, old_path, new_path, raise_if_exists=False):
         if raise_if_exists and os.path.exists(new_path):
