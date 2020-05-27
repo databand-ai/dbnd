@@ -21,6 +21,13 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 _IS_INSTANCE_SAMPLE = 1000
 
+_GLOB_PATH_REGEX = re.compile(r".*{.*,.*}.*")
+
+
+def _is_glob_path(path):
+    match = _GLOB_PATH_REGEX.match(path)
+    return match is not None
+
 
 class ValueType(object):
     support_merge = False
@@ -160,6 +167,7 @@ class ValueType(object):
         from dbnd._core.utils.task_utils import to_targets
         from targets.inmemory_target import InMemoryTarget
         from targets.values.target_values import _TargetValueType
+        from targets import Target
 
         if load_value is None:
             load_value = self.load_on_build
@@ -185,6 +193,12 @@ class ValueType(object):
             if target_config:
                 target_kwargs["config"] = target_config
 
+            # Check for glob path
+            if _is_glob_path(value):
+                from targets import target
+
+                return target(value)
+
             """
             it's possible that we have a list of targets, or just a single target (all targets should be loaded as
             single object). we need to support:
@@ -202,6 +216,7 @@ class ValueType(object):
             list_of_targets = to_targets(
                 list_of_targets, from_string_kwargs=target_kwargs
             )
+
             if len(list_of_targets) == 1:
                 return list_of_targets[0]
             else:
@@ -210,7 +225,6 @@ class ValueType(object):
                 return MultiTarget(list_of_targets)
 
         from dbnd._core.task import Task
-        from targets import Target
 
         if isinstance(value, Task):
             return to_targets(value)
