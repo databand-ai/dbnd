@@ -142,6 +142,9 @@ class FileTarget(DataTarget):
     def copy_from_local(self, local_path):
         self.fs.copy_from_local(local_path, self.path)
 
+    def download(self, local_path):
+        self.fs.download(self.path, local_path)
+
     def copy(self, new_path, raise_if_exists=False):
         self.fs.copy(self.path, str(new_path), raise_if_exists)
 

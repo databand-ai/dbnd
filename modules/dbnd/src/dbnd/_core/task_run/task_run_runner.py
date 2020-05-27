@@ -73,15 +73,12 @@ class TaskRunRunner(TaskRunCtrl):
                 if not self.task.ctrl.should_run():
                     self.task.ctrl.validator.find_and_raise_missing_inputs()
 
-                self.syncer.sync_pre_execute()
-
                 if run_config.validate_task_inputs:
                     self.ctrl.validator.validate_task_inputs()
 
                 try:
                     result = self.task._task_submit()
                     self.ctrl.save_task_band()
-                    self.syncer.sync_post_execute()
                     if run_config.validate_task_outputs:
                         self.ctrl.validator.validate_task_is_complete()
                 finally:

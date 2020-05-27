@@ -17,7 +17,6 @@
 
 """databand bindings for Google Cloud Storage"""
 
-
 import logging
 import mimetypes
 import os
@@ -452,18 +451,28 @@ class GCSClient(FileSystem):
             ):
                 yield it
 
-    def download(self, path, chunksize=None, chunk_callback=lambda _: False):
+    def _open_read(
+        self,
+        remote_path,
+        local_path=None,
+        delete_file_on_close=True,
+        chunksize=None,
+        chunk_callback=lambda _: False,
+    ):
         """Downloads the object contents to local file system.
 
         Optionally stops after the first chunk for which chunk_callback returns True.
         """
         chunksize = chunksize or self.chunksize
-        bucket, obj = self._path_to_bucket_and_key(path)
+        bucket, obj = self._path_to_bucket_and_key(remote_path)
 
-        tmp_file = get_local_tempfile(os.path.basename(path))
-        with open(tmp_file, "wb") as fp:
+        tmp_file_path = local_path or get_local_tempfile(os.path.basename(remote_path))
+        with open(tmp_file_path, "wb") as fp:
             # We can't return the tempfile reference because of a bug in python: http://bugs.python.org/issue18879
-            return_fp = _DeleteOnCloseFile(tmp_file, "r")
+            if delete_file_on_close:
+                return_fp = _DeleteOnCloseFile(tmp_file_path, "r")
+            else:
+                return_fp = fp
 
             # Special case empty files because chunk-based downloading doesn't work.
             result = self.client.objects().get(bucket=bucket, object=obj).execute()
@@ -499,6 +508,17 @@ class GCSClient(FileSystem):
 
         return return_fp
 
+    def download(self, path, location=None):
+        """
+        Download file to local filesystem
+        :param path: remote path
+        :param location: local path or none
+        :return:
+        """
+        return self._open_read(
+            remote_path=path, local_path=location, delete_file_on_close=False
+        )
+
     def mkdir_parent(self, path):
         pass
 
@@ -506,4 +526,4 @@ class GCSClient(FileSystem):
         self.put(local_path, dest)
 
     def open_read(self, path, mode="r"):
-        return self.download(path)
+        return self._open_read(path)
