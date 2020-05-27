@@ -452,7 +452,7 @@ class GCSClient(FileSystem):
             ):
                 yield it
 
-    def download(self, path, chunksize=None, chunk_callback=lambda _: False):
+    def _open_read(self, path, chunksize=None, chunk_callback=lambda _: False):
         """Downloads the object contents to local file system.
 
         Optionally stops after the first chunk for which chunk_callback returns True.
@@ -506,4 +506,4 @@ class GCSClient(FileSystem):
         self.put(local_path, dest)
 
     def open_read(self, path, mode="r"):
-        return self.download(path)
+        return self._open_read(path)
