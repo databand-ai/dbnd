@@ -200,7 +200,7 @@ def task_to_task_def(ctx, task):
     # type: (DatabandContext, Task) -> TaskDefinitionInfo
     td = task.task_definition
 
-    task_param_definitions = list(td.task_params.values())
+    task_param_definitions = [value for key, value in sorted(td.task_params.items())]
     task_family = task.task_meta.task_family
     task_definition = TaskDefinitionInfo(
         task_definition_uid=td.task_definition_uid,
@@ -232,7 +232,7 @@ def build_task_run_info(task_run):
             value_origin=t._params.get_param_value_origin(tdp.name),
             value=safe_short_string(task_params_values[tdp.name], max_value_len=5000),
         )
-        for tdp in task_definition.task_params.values()
+        for (key, tdp) in sorted(task_definition.task_params.items())
     ]
 
     return TaskRunInfo(

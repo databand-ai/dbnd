@@ -38,7 +38,7 @@ class TaskReprBuilder(TaskSubCtrl):
                 if same_value:
                     continue
             relevant.append((p, value))
-        return relevant
+        return sorted(relevant, key=lambda x: x[0].name)
 
     def __get_override_repr(self):
         if not self.task.task_meta.task_config_override:
@@ -61,7 +61,7 @@ class TaskReprBuilder(TaskSubCtrl):
 
         overrides = self.__get_override_repr()
         if overrides:
-            for k, v in six.iteritems(overrides):
+            for k, v in sorted(overrides.items()):
                 overrides_str = "'{param_name}':{param_value}".format(
                     param_name=k, param_value=repr(v)
                 )
@@ -81,7 +81,7 @@ class TaskReprBuilder(TaskSubCtrl):
 
         overrides = self.__get_override_repr()
         if overrides:
-            for k, v in six.iteritems(overrides):
+            for k, v in sorted(overrides.items()):
                 overrides_str = "'{param_name}':{param_value}".format(
                     param_name=k, param_value=repr(v)
                 )
