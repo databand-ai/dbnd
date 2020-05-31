@@ -36,6 +36,8 @@ class FileFormat(object):
     pickle = "pickle"
     yaml = "yaml"
     tsv = "tsv"
+    tfmodel = "tfmodel"
+    tfhistory = "tfhistory"
 
 
 @attr.s(frozen=True, repr=True)
@@ -104,6 +106,8 @@ register_file_extension(FileFormat.json, ["json", "hjson"])
 register_file_extension(FileFormat.yaml, ["yaml", "yml"])
 register_file_extension(FileFormat.numpy, ["npy", "numpy"])
 register_file_extension(FileFormat.tsv)
+register_file_extension(FileFormat.tfmodel)
+register_file_extension(FileFormat.tfhistory)
 
 
 @attr.s(frozen=True, repr=False)
@@ -207,6 +211,14 @@ class TargetConfig(object):
     @property
     def pickle(self):
         return self.with_format(FileFormat.pickle)
+
+    @property
+    def tfmodel(self):
+        return self.with_format(FileFormat.tfmodel)
+
+    @property
+    def tfhistory(self):
+        return self.with_format(FileFormat.tfhistory)
 
     def get_ext(self):  # type: (TargetConfig) -> str
         ext = ""

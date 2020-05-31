@@ -70,7 +70,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
 
         for p_def, p_val, local_target in self.outputs_to_sync:
             try:
-                logger.info("Uploading  %s %s to %s", p_def, p_val, local_target)
+                logger.info("Uploading  %s %s from %s", p_def, p_val, local_target)
                 p_val.copy_from_local(local_path=local_target.path)
             except Exception as ex:
                 logger.exception(

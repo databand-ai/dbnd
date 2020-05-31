@@ -60,3 +60,13 @@ def failed_to_save_value__wrong_type(value, target, expected_type):
         ),
         help_msg="Review type implementation and set support_parse_from_str flag to True",
     )
+
+
+def target_must_be_local_for_tensorflow_marshalling(target):
+    return DatabandRuntimeError(
+        "Can not read value of tensorflow model in path {path}! Path must be local!".format(
+            path=target.path
+        ),
+        help_msg="To marshall tensorflow objects you must use 'require_local_access`, e.g.:\n@task("
+        "result=output.tfmodel.require_local_access[tf.keras.models.Model])\ndef my_task(p1, p2):...",
+    )

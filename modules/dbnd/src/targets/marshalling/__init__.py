@@ -116,7 +116,6 @@ def register_basic_data_marshallers():
         )
     except ImportError:
         pass
-
     try:
         from matplotlib import figure
         from targets.marshalling.matplotlib import MatplotlibFigureMarshaller

@@ -140,6 +140,14 @@ class ParameterFactory(object):
         return self.target_config(self._target_config.pickle)
 
     @property
+    def tfmodel(self):
+        return self.target_config(self._target_config.tfmodel)
+
+    @property
+    def tfhistory(self):
+        return self.target_config(self._target_config.tfhistory)
+
+    @property
     def feather(self):
         return self.target_config(self._target_config.feather)
 

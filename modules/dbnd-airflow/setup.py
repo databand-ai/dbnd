@@ -19,6 +19,7 @@ setuptools.setup(
         "future>=0.16.0, <0.17",
         "sqlalchemy_utc",
         "sqlalchemy_utils",
+        "argcomplete",
     ],
     extras_require=dict(
         airflow=[
