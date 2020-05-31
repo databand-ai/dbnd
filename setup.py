@@ -61,6 +61,7 @@ EXTRAS_REQUIRE = {
     "mlflow": [dbnd_package("dbnd-mlflow")],
     "qubole": [dbnd_package("dbnd-qubole")],
     "spark": [dbnd_package("dbnd-spark")],
+    "tensorflow": [dbnd_package("dbnd-tensorflow")],
 }
 
 # Aliases:
