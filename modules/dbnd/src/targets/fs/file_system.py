@@ -143,13 +143,40 @@ class FileSystem(object):
         os.remove(local_path)
 
     def copy_from_local(self, local_path, dest):
+        if os.path.isdir(local_path):
+            for path, subdirs, files in os.walk(local_path):
+                for file in files:
+                    # construct the full local path
+                    local_file_path = os.path.join(local_path, path, file)
+                    relative_path = os.path.relpath(local_file_path, local_path)
+                    remote_path = os.path.join(dest, relative_path)
+                    self.copy_from_local_file(local_file_path, remote_path)
+        else:
+            self.copy_from_local_file(local_path, dest)
+
+    def copy_from_local_file(self, local_path, dest):
         raise NotImplementedError(
-            "copy_from_local() not implemented on {0}".format(self.__class__.__name__)
+            "copy_from_local_file() not implemented on {0}".format(
+                self.__class__.__name__
+            )
         )
 
     def download(self, path, location):
+        if self.isdir(path):
+            os.mkdir(location)
+            for f in self.listdir(path):
+                filename = os.path.basename(f)
+                local_path = os.path.join(location, filename)
+                if self.isdir(f):
+                    self.download(f, local_path)
+                    continue
+                self.download_file(f, local_path)
+        else:
+            self.download_file(path, location)
+
+    def download_file(self, path, location):
         raise NotImplementedError(
-            "download() not implemented on {0}".format(self.__class__.__name__)
+            "download_file() not implemented on {0}".format(self.__class__.__name__)
         )
 
     def open_read(self, path, mode="r"):

@@ -3,7 +3,7 @@ import os
 
 from dbnd._core.parameter.parameter_definition import _ParameterKind
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from targets import FileTarget, target
+from targets import DirTarget, FileTarget, target
 
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,8 @@ class TaskRunLocalSyncer(TaskRunCtrl):
             try:
                 logger.info("Uploading  %s %s from %s", p_def, p_val, local_target)
                 p_val.copy_from_local(local_path=local_target.path)
+                if p_val.config.flag:
+                    p_val.mark_success()
             except Exception as ex:
                 logger.exception(
                     "Failed to upload task output %s %s from %s",

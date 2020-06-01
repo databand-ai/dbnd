@@ -115,7 +115,7 @@ class HdfsPyox(FileSystem, Config):
         permission = int(oct(mode)[2:])  # Convert from int(decimal) to int(octal)
         self.client.make_directory(self._remove_schema(path), permission=permission)
 
-    def download(self, hdfs_path, local_path, overwrite=False, n_threads=-1):
+    def download_file(self, hdfs_path, local_path, overwrite=False, n_threads=-1):
         if overwrite or n_threads != -1:
             warnings.warn("webhdfs download: overwrite/n_threads not implemented")
 
@@ -230,7 +230,7 @@ class HdfsPyox(FileSystem, Config):
 
         return _DeleteOnCloseFile(local_tmp_file, mode)
 
-    def copy_from_local(self, local_path, dest):
+    def copy_from_local_file(self, local_path, dest):
         self.put(local_path, dest)
 
     def put(self, local_path, destination):

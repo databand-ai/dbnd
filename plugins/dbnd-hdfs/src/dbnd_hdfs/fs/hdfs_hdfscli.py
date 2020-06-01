@@ -134,7 +134,7 @@ class HdfsCli(FileSystem, Config):
             self._remove_schema(hdfs_path), local_path, overwrite=overwrite
         )
 
-    def download(self, hdfs_path, local_path, overwrite=False, n_threads=-1):
+    def download_file(self, hdfs_path, local_path, overwrite=False, n_threads=-1):
         return self.client.download(
             self._remove_schema(hdfs_path),
             local_path,
@@ -222,7 +222,7 @@ class HdfsCli(FileSystem, Config):
 
         return _DeleteOnCloseFile(local_tmp_file, mode)
 
-    def copy_from_local(self, local_path, dest):
+    def copy_from_local_file(self, local_path, dest):
         self.put(local_path, dest)
 
     def put(self, local_path, destination):

@@ -271,7 +271,7 @@ class AzureBlobStorageClient(FileSystem):
     def mkdir_parent(self, path):
         pass
 
-    def copy_from_local(self, local_path, dest):
+    def copy_from_local_file(self, local_path, dest):
         account, container_name, blob_name = self._path_to_account_container_and_blob(
             dest
         )
@@ -288,7 +288,7 @@ class AzureBlobStorageClient(FileSystem):
 
         return _DeleteOnCloseFile(local_tmp_file, mode)
 
-    def download(self, azure_path, location):
+    def download_file(self, azure_path, location):
         account, container, blob = self._path_to_account_container_and_blob(azure_path)
         assert self.account == account
 

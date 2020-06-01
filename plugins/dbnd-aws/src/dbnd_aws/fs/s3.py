@@ -333,18 +333,7 @@ class S3Client(FileSystem):
             ExtraArgs=kwargs,
         )
 
-    def copy_from_local(self, local_path, dest):
-        if os.path.isdir(local_path):
-            for path, subdirs, files in os.walk(local_path):
-                for file in files:
-                    # construct the full local path
-                    local_file_path = os.path.join(local_path, path, file)
-                    relative_path = os.path.relpath(local_file_path, local_path)
-                    s3_path = os.path.join(dest, relative_path)
-                    self.put_multipart(
-                        local_path=local_file_path, destination_s3_path=s3_path
-                    )
-            return
+    def copy_from_local_file(self, local_path, dest):
         return self.put_multipart(local_path=local_path, destination_s3_path=dest)
 
     def copy(
@@ -437,7 +426,7 @@ class S3Client(FileSystem):
         # download the file
         self.s3.meta.client.download_file(bucket, key, destination_local_path)
 
-    def download(self, path, location):
+    def download_file(self, path, location):
         self.get(s3_path=path, destination_local_path=location)
 
     def get_as_string(self, s3_path):
