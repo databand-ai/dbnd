@@ -17,7 +17,8 @@ class NumpyArrayMarshaller(Marshaller):
         """
         import numpy as np
 
-        return np.load(target.path, **kwargs)
+        with target.open("rb") as fp:
+            return np.load(fp, **kwargs)
 
     def value_to_target(self, value, target, **kwargs):
         """
@@ -27,7 +28,8 @@ class NumpyArrayMarshaller(Marshaller):
         import numpy as np
 
         target.mkdir_parent()
-        np.save(target.path, value, **kwargs)
+        with target.open("wb") as fp:
+            np.save(fp, value, **kwargs)
 
 
 class NumpyArrayPickleMarshaler(NumpyArrayMarshaller):
