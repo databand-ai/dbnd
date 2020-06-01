@@ -125,7 +125,7 @@ class _LivySparkCtrl(SparkCtrl):
 class LivySparkCtrl(_LivySparkCtrl):
     def sync(self, local_file):
         """
-        we don;'t sync for now
+        we don't sync for now
         """
         return local_file.path
 
