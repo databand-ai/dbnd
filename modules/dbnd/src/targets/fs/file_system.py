@@ -1,4 +1,6 @@
 import abc
+import errno
+import logging
 import os
 import warnings
 
@@ -6,6 +8,9 @@ import six
 
 from targets.errors import FileAlreadyExists
 from targets.utils.atomic import AtomicLocalFile
+
+
+logger = logging.getLogger(__name__)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -162,15 +167,22 @@ class FileSystem(object):
         )
 
     def download(self, path, location):
+        logger.info("download %s to %s", path, location)
+        parent_location = os.path.dirname(location)
+        if not os.path.exists(parent_location):
+            try:
+                os.makedirs(parent_location)
+            except OSError as err:
+                # somebody already created the path
+                if err.errno != errno.EEXIST:
+                    raise
+
         if self.isdir(path):
             os.mkdir(location)
             for f in self.listdir(path):
-                filename = os.path.basename(f)
-                local_path = os.path.join(location, filename)
-                if self.isdir(f):
-                    self.download(f, local_path)
-                    continue
-                self.download_file(f, local_path)
+                relative_path = os.path.relpath(f, path)
+                local_path = os.path.join(location, relative_path)
+                self.download(f, local_path)
         else:
             self.download_file(path, location)
 
