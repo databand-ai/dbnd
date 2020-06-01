@@ -50,6 +50,7 @@ EXTRAS_REQUIRE = {
         "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
     ],
     "airflow-export": [dbnd_package("dbnd-airflow-export")],
+    "airflow-auto-tracking": [dbnd_package("dbnd-airflow-auto-tracking")],
     "airflow-operator": [dbnd_package("dbnd-airflow-operator")],
     "airflow-versioned-dag": [dbnd_package("dbnd-airflow-versioned-dag")],
     "aws": [dbnd_package("dbnd-aws")],

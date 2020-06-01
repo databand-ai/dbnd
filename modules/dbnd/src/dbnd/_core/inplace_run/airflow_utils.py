@@ -5,6 +5,7 @@ import sys
 from types import FunctionType, ModuleType
 
 from dbnd import task
+from dbnd._core.configuration.environ_config import get_environ_config
 from dbnd._core.decorator.func_task_decorator import _decorated_user_func
 
 
@@ -172,7 +173,7 @@ def track_python_operator(operator):
     operator.python_callable = task(operator.python_callable)
 
 
-def track_task(task):
+def _track_task(task):
     if is_instance_by_class_name(task, "EmrAddStepsOperator"):
         track_emr_add_steps_operator(task)
     elif is_instance_by_class_name(task, "DataProcPySparkOperator"):
@@ -181,6 +182,21 @@ def track_task(task):
         track_spark_submit_operator(task)
     elif is_instance_by_class_name(task, "PythonOperator"):
         track_python_operator(task)
+
+
+def _is_verbose():
+    config = get_environ_config()
+    return config.is_verbose()
+
+
+def track_task(task):
+    try:
+        _track_task(task)
+    except Exception:
+        if _is_verbose():
+            logger.exception("Failed to modify %s for tracking" % task.task_id)
+        else:
+            logger.info("Failed to modify %s for tracking" % task.task_id)
 
 
 def track_dag(dag):
@@ -195,11 +211,11 @@ def track_dag(dag):
     - SparkSubmitOperator: add dbnd variables to spark-submit command using --conf
     - PythonOperator: wrap python function with @task
     """
-    for task in dag.tasks:
-        try:
+    try:
+        for task in dag.tasks:
             track_task(task)
-        except Exception:
-            logger.exception("Failed to modify %s for tracking" % task.task_id)
+    except Exception:
+        logger.exception("Failed to modify %s for tracking" % dag.dag_id)
 
 
 def _is_function(obj):
@@ -276,6 +292,42 @@ def _is_module_function(function, module):
     except Exception:
         logger.exception("Failed to track %s" % function)
         return False
+
+
+def _wrap_policy(policy):
+    from dbnd._core.inplace_run.airflow_utils import track_task
+
+    def new_policy(task):
+        policy(task)
+        track_task(task)
+
+    return new_policy
+
+
+def _patch_policy(module):
+    new_policy = _wrap_policy(module.policy)
+    module.policy = new_policy
+
+
+def _add_tracking_to_policy():
+    try:
+        import airflow_local_settings
+
+        _patch_policy(airflow_local_settings)
+    except ImportError:
+        pass
+
+    from airflow import settings
+
+    _patch_policy(settings)
+
+
+def add_tracking_to_policy():
+    """ Add tracking to all tasks as part of airflow policy """
+    try:
+        _add_tracking_to_policy()
+    except Exception:
+        logging.exception("Failed to add tracking in policy")
 
 
 if __name__ == "__main__":
