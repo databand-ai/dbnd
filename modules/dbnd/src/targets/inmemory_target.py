@@ -1,6 +1,9 @@
+from typing import Any
+
 from targets import Target
 from targets.values import (
     ObjectValueType,
+    ValueType,
     get_value_type_of_obj,
     get_value_type_of_type,
 )
@@ -11,6 +14,7 @@ _NOTHING = object()
 
 class InMemoryTarget(Target):
     def __init__(self, obj=_NOTHING, path=None, value_type=None, **kwargs):
+        # type: (Any, str, ValueType, **Any) -> None
         from targets.values import get_value_type_of_obj
 
         super(InMemoryTarget, self).__init__(**kwargs)

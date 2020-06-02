@@ -31,7 +31,7 @@ class DatabandSettings(object):
         self.databand_context = databand_context  # type: DatabandContext
 
         self.core = CoreConfig()
-        self.features = FeaturesConfig()
+        self.features = FeaturesConfig()  # type: FeaturesConfig
         self.dynamic_task = DynamicTaskConfig()
 
         self.run = RunConfig()

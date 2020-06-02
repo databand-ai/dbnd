@@ -16,7 +16,6 @@ from dbnd._core.constants import (
     TaskRunState,
     UpdateSource,
 )
-from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._vendor.marshmallow import fields, post_load
@@ -38,7 +37,7 @@ from dbnd.api.serialization.task_run_env import TaskRunEnvInfoSchema
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, List
+    from typing import Optional, List, Dict, Tuple
     from dbnd._core.tracking.tracking_info_objects import (
         ErrorInfo,
         TaskRunEnvInfo,
@@ -216,6 +215,7 @@ save_external_links_schema = SaveExternalLinksSchema()
 
 class LogMetricSchema(_ApiCallSchema):
     task_run_attempt_uid = fields.UUID(required=True)
+    target_meta_uid = fields.UUID(allow_none=True)
     metric = fields.Nested(MetricSchema, allow_none=True)
     source = fields.String(allow_none=True)
 
@@ -253,6 +253,13 @@ class LogTargetArgs(object):
         return attr.asdict(self, recurse=False)
 
 
+@attr.s
+class LogDataframeHistogramsArgs(LogTargetArgs):
+    descriptive_stats = attr.ib()  # type: Dict
+    histograms = attr.ib()  # type: Dict[str, Tuple]
+    timestamp = attr.ib()  # type: datetime.datetime
+
+
 class LogTargetSchema(_ApiCallSchema):
     run_uid = fields.UUID(required=True)
     task_run_uid = fields.UUID(required=True)
@@ -276,6 +283,19 @@ class LogTargetsSchema(_ApiCallSchema):
 
 
 log_targets_schema = LogTargetsSchema()
+
+
+class LogDataframeHistogramSchema(LogTargetSchema):
+    histograms = fields.Dict()
+    descriptive_stats = fields.Dict()
+    timestamp = fields.DateTime()
+
+
+class LogDataframeHistogramListSchema(_ApiCallSchema):
+    histograms_info = fields.Nested(LogDataframeHistogramSchema)
+
+
+log_df_hist_schema = LogDataframeHistogramListSchema()
 
 
 class HeartbeatSchema(_ApiCallSchema):
@@ -347,6 +367,9 @@ class TrackingAPI(object):
 
     def log_targets(self, data):
         return self._handle(TrackingAPI.log_targets.__name__, data)
+
+    def log_df_hist(self, data):
+        return self._handle(TrackingAPI.log_df_hist.__name__, data)
 
     def log_metric(self, data):
         return self._handle(TrackingAPI.log_metric.__name__, data)

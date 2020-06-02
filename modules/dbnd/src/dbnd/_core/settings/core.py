@@ -306,6 +306,10 @@ class FeaturesConfig(Config):
         default=True, description="Calculate and log value meta "
     )[bool]
 
+    log_df_histograms = parameter(
+        default=False, description="Calculate and log DataFrames histograms"
+    )[bool]
+
     auto_disable_slow_size = parameter(
         default=True,
         description="Auto disable slow preview for Spark DF with text formats",
@@ -333,4 +337,5 @@ class FeaturesConfig(Config):
             else self.log_value_schema,
             log_size=mc.log_size if mc.log_size is not None else log_value_size,
             log_stats=mc.log_stats,
+            log_df_hist=bool(self.log_df_histograms and mc.log_df_hist),
         )

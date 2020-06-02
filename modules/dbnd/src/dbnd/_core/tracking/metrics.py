@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import attr
 
 from dbnd._core.constants import _DbndDataClass
@@ -13,6 +11,7 @@ class Metric(_DbndDataClass):
         value_int=None,
         value_float=None,
         value_str=None,
+        value_json=None,
         value=None,
     ):
         self.key = key
@@ -20,7 +19,12 @@ class Metric(_DbndDataClass):
         self.value_int = value_int
         self.value_float = value_float
         self.value_str = value_str
-        self.value = value
+        self.value_json = None
+        if value_json:
+            self.value_json = value_json
+            self.value_str = None
+        elif not (value_int or value_float or value_str):
+            self.value = value
 
     @property
     def value(self):
@@ -28,6 +32,8 @@ class Metric(_DbndDataClass):
             return self.value_float
         if self.value_int is not None:
             return self.value_int
+        if self.value_json is not None:
+            return self.value_json
         return self.value_str
 
     @value.setter

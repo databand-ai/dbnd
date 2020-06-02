@@ -13,6 +13,39 @@ def simple_df():
 
 
 @fixture
+def pandas_data_frame():
+    names = ["Bob", "Jessica", "Mary", "John", "Mel"]
+    births = [968, 155, 77, 578, 973]
+    df = pd.DataFrame(data=list(zip(names, births)), columns=["Names", "Births"])
+    return df
+
+
+@fixture
+def pandas_data_frame_histograms(pandas_data_frame):
+    return {
+        "Births": ([2, 0, 1, 2], [77.0, 301.0, 525.0, 749.0, 973.0],),
+    }
+
+
+@fixture
+def pandas_data_frame_stats(pandas_data_frame):
+    return {
+        "Births": {
+            "count": 5.0,
+            "mean": 550.2,
+            "std": 428.42467249214303,
+            "min": 77.0,
+            "25%": 155.0,
+            "50%": 578.0,
+            "75%": 968.0,
+            "max": 973.0,
+            "non-null": 5,
+            "distinct": 5,
+        }
+    }
+
+
+@fixture
 def s1_root_dir(tmpdir):
     dir_path = str(tmpdir.join("dir.csv/"))
     os.makedirs(dir_path)

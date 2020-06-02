@@ -7,7 +7,9 @@ from targets.values.pandas_values import DataFrameValueType
 
 
 class TestDataFrameValueType(object):
-    def test_df_value_meta(self, pandas_data_frame):
+    def test_df_value_meta(
+        self, pandas_data_frame, pandas_data_frame_histograms, pandas_data_frame_stats
+    ):
         expected_data_schema = {
             "type": DataFrameValueType.type_str,
             "columns": list(pandas_data_frame.columns),
@@ -28,6 +30,8 @@ class TestDataFrameValueType(object):
             data_hash=fast_hasher.hash(
                 hash_pandas_object(pandas_data_frame, index=True).values
             ),
+            descriptive_stats=pandas_data_frame_stats,
+            histograms=pandas_data_frame_histograms,
         )
 
         df_value_meta = DataFrameValueType().get_value_meta(
@@ -40,4 +44,6 @@ class TestDataFrameValueType(object):
             expected_value_meta.data_schema
         )
         assert df_value_meta.data_dimensions == expected_value_meta.data_dimensions
+        assert df_value_meta.descriptive_stats == expected_value_meta.descriptive_stats
+        assert df_value_meta.histograms == expected_value_meta.histograms
         assert df_value_meta == expected_value_meta

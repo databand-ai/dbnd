@@ -1,20 +1,28 @@
 import logging
 import typing
 
-from typing import Any
-
-from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
+from dbnd._core.constants import (
+    DbndTargetOperationStatus,
+    DbndTargetOperationType,
+    MetricSource,
+)
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_store import TrackingStore
 from dbnd._core.utils.timezone import utcnow
+from targets import Target
 from targets.values import get_value_type_of_obj
 
 
 if typing.TYPE_CHECKING:
-    from targets import Target
-    from dbnd._core.parameter.parameter_definition import ParameterDefinition
+    from datetime import datetime
+    from typing import Any, Optional, Union
+    import pandas as pd
+    import pyspark.sql as spark
+
+    from targets.value_meta import ValueMetaConf
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +79,12 @@ class TaskRunTracker(TaskRunCtrl):
                 non_critical=True,
             )
 
-    def _log_metric(self, key, value, timestamp=None, source=None):
-        metric = Metric(key=key, timestamp=timestamp or utcnow(), value=value)
+    def _log_metric(self, key, value, timestamp=None, source=None, is_json=False):
+        # type: (str, Any, Optional[datetime], Optional[MetricSource], Optional[bool]) -> None
+        if is_json:
+            metric = Metric(key=key, timestamp=timestamp or utcnow(), value_json=value)
+        else:
+            metric = Metric(key=key, timestamp=timestamp or utcnow(), value=value)
 
         self.tracking_store.log_metric(
             task_run=self.task_run, metric=metric, source=source
@@ -107,25 +119,54 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
     def log_dataframe(self, key, df, meta_conf):
+        # type: (str, Union[pd.DataFrame, spark.DataFrame], ValueMetaConf) -> None
         try:
+            # Combine meta_conf with the config settings
+            meta_conf = self.settings.features.get_value_meta_conf(meta_conf)
             value_meta = get_value_meta_for_metric(key, df, meta_conf=meta_conf)
             if not value_meta:
                 return
 
+            # TODO: Performance optimization opportunity: batch log_metric API calls
             if value_meta.data_dimensions:
                 self._log_metric("%s.shape" % key, value_meta.data_dimensions)
                 for dim, size in enumerate(value_meta.data_dimensions):
                     self._log_metric("%s.shape[%s]" % (key, dim), size)
             if meta_conf.log_schema:
-                self._log_metric("%s.schema" % key, value_meta.data_schema)
+                self._log_metric(
+                    "%s.schema" % key, value_meta.data_schema, is_json=True
+                )
             if meta_conf.log_preview:
                 self._log_metric("%s.preview" % key, value_meta.value_preview)
+            if meta_conf.log_df_hist:
+                self._log_histograms(key, value_meta)
         except Exception as ex:
             log_exception(
                 "Error occurred during log_dataframe for %s" % (key,),
                 ex,
                 non_critical=True,
             )
+
+    def _log_histograms(self, df_name, value_meta):
+        self._log_metric(
+            "%s.stats" % df_name,
+            value_meta.descriptive_stats,
+            source=MetricSource.histograms,
+            is_json=True,
+        )
+        self._log_metric(
+            "%s.histograms" % df_name,
+            value_meta.histograms,
+            source=MetricSource.histograms,
+            is_json=True,
+        )
+        for column, stats in value_meta.descriptive_stats.items():
+            for stat, value in stats.items():
+                self._log_metric(
+                    "{}.{}.{}".format(df_name, column, stat),
+                    value,
+                    source=MetricSource.histograms,
+                )
 
 
 def get_value_meta_for_metric(key, value, meta_conf):

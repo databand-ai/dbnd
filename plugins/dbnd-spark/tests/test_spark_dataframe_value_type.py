@@ -3,7 +3,9 @@ from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 class TestSparkDataFrameValueType(object):
-    def test_spark_df_value_meta(self, spark_data_frame):
+    def test_spark_df_value_meta(
+        self, spark_data_frame, spark_data_frame_histograms, spark_data_frame_stats
+    ):
         expected_data_schema = {
             "type": SparkDataFrameValueType.type_str,
             "columns": list(spark_data_frame.schema.names),
@@ -19,10 +21,14 @@ class TestSparkDataFrameValueType(object):
             ),
             data_dimensions=(spark_data_frame.count(), len(spark_data_frame.columns)),
             data_schema=expected_data_schema,
-            data_hash=None,
+            data_hash=SparkDataFrameValueType().to_signature(spark_data_frame),
+            descriptive_stats=spark_data_frame_stats,
+            histograms=spark_data_frame_histograms,
         )
 
-        df_value_meta = SparkDataFrameValueType().get_value_meta(spark_data_frame)
+        df_value_meta = SparkDataFrameValueType().get_value_meta(
+            spark_data_frame, meta_conf
+        )
 
         assert df_value_meta.value_preview == expected_value_meta.value_preview
         assert df_value_meta.data_hash == expected_value_meta.data_hash

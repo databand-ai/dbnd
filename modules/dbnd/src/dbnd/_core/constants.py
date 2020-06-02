@@ -194,6 +194,7 @@ class DbndTargetOperationType(EnumWithAll):
     write = "write"
     reuse = "reuse"
     log = "log"
+    log_hist = "log_hist"
 
 
 class DbndTargetOperationStatus(EnumWithAll):
@@ -235,3 +236,21 @@ class UpdateSource(EnumWithAll):
             return str(self) == other or str(self.value) == other
 
         return False
+
+
+class MetricSource(object):
+    user = "user"
+    system = "system"
+    histograms = "histograms"
+
+    @classmethod
+    def all(cls):
+        return [cls.user, cls.system, cls.histograms]
+
+    @classmethod
+    def default_sources(cls):
+        return [cls.user, cls.histograms]
+
+    @classmethod
+    def default_sources_str(cls):
+        return ",".join(cls.default_sources())

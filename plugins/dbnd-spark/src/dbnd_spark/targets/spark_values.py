@@ -1,9 +1,20 @@
 from __future__ import absolute_import
 
+import logging
+import typing
+
 import pyspark.sql as spark
 
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.builtins_values import DataValueType
+from targets.values.pandas_values import DataFrameValueType
+
+
+if typing.TYPE_CHECKING:
+    from typing import Tuple, Optional, Dict, Any
+
+
+logger = logging.getLogger(__name__)
 
 
 class SparkDataFrameValueType(DataValueType):
@@ -25,7 +36,7 @@ class SparkDataFrameValueType(DataValueType):
         )
 
     def get_value_meta(self, value, meta_conf):
-        # type: (spark.DataFrame,ValueMetaConf) -> ValueMeta
+        # type: (spark.DataFrame, ValueMetaConf) -> ValueMeta
 
         if meta_conf.log_schema:
             data_schema = {
@@ -59,12 +70,25 @@ class SparkDataFrameValueType(DataValueType):
         else:
             data_dimensions = None
 
+        df_stats, histograms = None, None
+        if meta_conf.log_df_hist:
+            df_stats, histograms = self.get_histograms(value)
+
         return ValueMeta(
             value_preview=data_preview,
             data_dimensions=data_dimensions,
             data_schema=data_schema,
             data_hash=self.to_signature(value),
+            descriptive_stats=df_stats,
+            histograms=histograms,
         )
+
+    def get_histograms(self, df):
+        # type: (spark.DataFrame) -> Tuple[Optional[Dict[Dict[str, Any]]], Optional[Dict[str, Tuple]]]
+        try:
+            return DataFrameValueType.get_histograms(df.toPandas())
+        except Exception:
+            logger.exception("Error occured during histograms calculation")
 
     def support_fast_count(self, target):
         from targets import FileTarget

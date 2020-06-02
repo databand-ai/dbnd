@@ -1,8 +1,4 @@
-from dbnd._core.tracking.tracking_info_objects import (
-    ErrorInfo,
-    TargetInfo,
-    TaskRunEnvInfo,
-)
+from dbnd._core.tracking.tracking_info_objects import ErrorInfo, TargetInfo
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd.api.api_utils import ApiObjectSchema
 
@@ -22,6 +18,8 @@ class TargetInfoSchema(ApiObjectSchema):
 class MetricSchema(ApiObjectSchema):
     key = fields.String()
     value = fields.String(allow_none=True)
+    value_str = fields.String(allow_none=True)
+    value_json = fields.Dict(allow_none=True)
     value_int = fields.Integer(allow_none=True)
     value_float = fields.Float(allow_none=True)
     timestamp = fields.DateTime()

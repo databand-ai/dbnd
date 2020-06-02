@@ -1,12 +1,15 @@
 from __future__ import absolute_import
 
+import logging
 import os
 
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 import six
 
+from pandas.core.dtypes.common import is_string_dtype
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._core.errors import friendly_error
@@ -16,6 +19,9 @@ from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.builtins_values import DataValueType
 from targets.values.structure import DictValueType
 from targets.values.value_type import _isinstances
+
+
+logger = logging.getLogger(__name__)
 
 
 class DataFrameValueType(DataValueType):
@@ -48,21 +54,65 @@ class DataFrameValueType(DataValueType):
         if meta_conf.log_size:
             data_schema["size"] = int(value.size)
 
+        value_preview, data_hash = None, None
         if meta_conf.log_preview:
             value_preview = self.to_preview(
                 value, preview_size=meta_conf.get_preview_size()
             )
             data_hash = fast_hasher.hash(hash_pandas_object(value, index=True).values)
-        else:
-            value_preview = None
-            data_hash = None
+
+        df_stats, histograms = None, None
+        if meta_conf.log_df_hist:
+            df_stats, histograms = self.get_histograms(value)
 
         return ValueMeta(
             value_preview=value_preview,
             data_dimensions=value.shape,
             data_schema=data_schema,
             data_hash=data_hash,
+            descriptive_stats=df_stats,
+            histograms=histograms,
         )
+
+    @classmethod
+    def get_histograms(self, df):
+        # type: (pd.DataFrame) -> Tuple[Dict[Dict[str, Any]], Dict[str, Tuple]]
+        histograms = df.apply(
+            self._calculate_histograms, args=(df.describe().to_dict(),)
+        )
+        hist_dict, stats_dict = {}, {}
+        for column, hist_stats in histograms.to_dict().items():
+            if hist_stats:
+                hist, bins, stats = hist_stats
+                hist_dict[column] = (hist, bins)
+                stats_dict[column] = stats
+        return stats_dict, hist_dict
+
+    @staticmethod
+    def _calculate_histograms(df_column, df_stats):
+        # type: (pd.Series, pd.Series) -> Optional[Tuple[List, List, Dict]]
+        column_stats = df_stats.get(str(df_column.name), None)  # type: Dict
+        if column_stats is None:
+            # logger.warning("No stats for column '%s' in '%s'", df_column.name, df_stats)
+            return
+        column_stats["non-null"] = df_column.size - np.count_nonzero(
+            np.isnan(df_column)
+        )
+        column_stats["distinct"] = len(df_column.unique())
+
+        try:
+            # TODO: check efficiency
+            bins = int(min(20, max(column_stats["distinct"] - 1, 1)))
+            if is_string_dtype(df_column) and column_stats["count"] < 100:
+                bins = column_stats["distinct"]
+            hist, bin_edges = np.histogram(
+                df_column, bins=bins
+            )  # type: np.array, np.array
+            return hist.tolist(), bin_edges.tolist(), column_stats
+        except Exception:
+            logger.exception(
+                "log_histogram: Something went wrong for column '%s'", df_column.name
+            )
 
     def merge_values(self, *values, **kwargs):
         # Concatenate all data into one DataFrame

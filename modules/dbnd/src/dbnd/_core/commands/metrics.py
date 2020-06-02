@@ -25,15 +25,21 @@ def _get_tracker():
 
 
 def log_dataframe(
-    key, value, with_preview=True, with_size=True, with_schema=True, with_stats=False
-):
-    # type: (str, Union[pd.DataFrame, spark.DataFrame], bool,bool, bool) -> None
+    key,  # type: str
+    value,  # type: Union[pd.DataFrame, spark.DataFrame]
+    with_preview=True,  # type: Optional[bool]
+    with_size=True,  # type: Optional[bool]
+    with_schema=True,  # type: Optional[bool]
+    with_stats=False,  # type: Optional[bool]
+    with_histograms=True,  # type: Optional[bool]
+):  # type: (...) -> None
 
     meta_conf = ValueMetaConf(
         log_preview=with_preview,
         log_schema=with_schema,
         log_size=with_size,
         log_stats=with_stats,
+        log_df_hist=with_histograms,
     )
     tracker = _get_tracker()
     if tracker:
