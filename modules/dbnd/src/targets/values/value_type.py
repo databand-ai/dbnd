@@ -197,7 +197,7 @@ class ValueType(object):
             if _is_glob_path(value):
                 from targets import target
 
-                return target(value)
+                return target(value, config=target_config)
 
             """
             it's possible that we have a list of targets, or just a single target (all targets should be loaded as
