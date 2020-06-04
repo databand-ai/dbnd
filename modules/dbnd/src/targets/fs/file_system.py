@@ -178,7 +178,8 @@ class FileSystem(object):
                     raise
 
         if self.isdir(path):
-            os.mkdir(location)
+            if not os.path.exists(location):
+                os.mkdir(location)
             for f in self.listdir(path):
                 relative_path = os.path.relpath(f, path)
                 local_path = os.path.join(location, relative_path)
