@@ -2,8 +2,9 @@ import typing
 
 from collections import Counter
 
-from dbnd._core.constants import RunState, SystemTaskName, TaskRunState
+from dbnd._core.constants import RunState, SystemTaskName, TaskRunState, UpdateSource
 from dbnd._core.current import is_verbose
+from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
 from dbnd._core.run.run_ctrl import RunCtrl
 from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.utils.basics.text_banner import TextBanner
@@ -61,10 +62,12 @@ class DescribeRun(RunCtrl):
         ctx = run.context
         task_run_env = ctx.task_run_env  # type: TaskRunEnvInfo
         driver_task = run.driver_task_run.task
-        if show_tasks_info and driver_task.is_driver:
-            self._add_tasks_info(b)
+
+        orchestration_mode = run.source == UpdateSource.dbnd
 
         b.column("TRACKER URL", run.run_url, skip_if_empty=True)
+        if show_tasks_info and orchestration_mode and driver_task.is_driver:
+            self._add_tasks_info(b)
 
         if run.root_run_info.root_run_uid != run.run_uid:
             b.column(
@@ -84,7 +87,12 @@ class DescribeRun(RunCtrl):
 
         if show_run_info:
             b.new_line()
-            b.column("USER", task_run_env.user)
+            run_params = [
+                ("user", task_run_env.user),
+                ("run_uid", "%s" % run.run_uid),
+                ("env", run.env.name),
+            ]
+            b.column("RUN", b.f_simple_dict(run_params))
             b.column(
                 "LOG",
                 b.f_simple_dict(
@@ -96,23 +104,29 @@ class DescribeRun(RunCtrl):
             )
             b.column("USER CODE VERSION", task_run_env.user_code_version)
             b.column("CMD", task_run_env.cmd_line)
-            b.column("RUN UID", "%s" % run.run_uid)
-            b.column("DB", self.context.settings.core.sql_conn_repr)
-            b.column("ENV", run.env.name)
-            b.column(
-                "RUN",
-                b.f_simple_dict(
-                    [
-                        ("TASK_EXECUTOR", run.task_executor_type),
-                        ("PARALLEL", run.parallel),
-                        ("SUBMIT_DRIVER", run.submit_driver),
-                        ("SUBMIT_TASKS", run.submit_tasks),
-                    ],
+
+            if orchestration_mode:
+                if run.context.settings.core.is_db_store_enabled():
+                    b.column("DB", self.context.settings.core.sql_conn_repr)
+                if run.task_executor_type.startswith("airflow"):
+                    assert_airflow_enabled()
+                    from dbnd_airflow.db_utils import airflow_sql_conn_repr
+
+                    b.column("Airflow DB", airflow_sql_conn_repr())
+                b.column(
+                    "EXECUTE",
+                    b.f_simple_dict(
+                        [
+                            ("TASK_EXECUTOR", run.task_executor_type),
+                            ("PARALLEL", run.parallel),
+                            ("SUBMIT_DRIVER", run.submit_driver),
+                            ("SUBMIT_TASKS", run.submit_tasks),
+                        ],
+                        skip_if_empty=True,
+                    ),
                     skip_if_empty=True,
-                ),
-                skip_if_empty=True,
-            )
-            if task_run_env.user_data:
+                )
+            if task_run_env.user_data and task_run_env.user_data != "None":
                 b.column("USER DATA", task_run_env.user_data, skip_if_empty=True)
             b.new_line()
 

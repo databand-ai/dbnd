@@ -5,7 +5,9 @@ import warnings
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.friendly_error import _band_call_str
+from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
+from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.nothing import is_not_defined
 from dbnd._core.utils.task_utils import to_targets
 from dbnd._core.utils.traversing import traverse
@@ -85,9 +87,19 @@ class TaskRelations(TaskSubCtrl):
 
     def initialize_band(self):
         try:
-            with self.task._auto_load_save_params(
-                auto_read=False, normalize_on_change=True
-            ):
+            band_context = [
+                self.task._auto_load_save_params(
+                    auto_read=False, normalize_on_change=True
+                )
+            ]
+            if is_airflow_enabled():
+                from dbnd_airflow.dbnd_task_executor.airflow_operators_catcher import (
+                    get_databand_op_catcher_dag,
+                )
+
+                band_context.append(get_databand_op_catcher_dag())
+
+            with nested(*band_context):
                 band = self.task.band()
                 # this one would be normalized
                 self.task._task_band_result = band

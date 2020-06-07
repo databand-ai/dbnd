@@ -15,6 +15,30 @@ def apply_patch(base, delta, fields_filter=lambda f: not f.startswith("_")):
             base.__setattr__(k, v)
 
 
+def patch_module_attr(module, name, value):
+    original_name = "_original_" + name
+    if getattr(module, original_name, None):
+        return
+    setattr(module, original_name, getattr(module, name))
+    setattr(module, name, value)
+
+
+def unpatch_module_attr(module, name, value):
+    original_name = "_original_" + name
+    if hasattr(module, original_name):
+        setattr(module, name, getattr(module, original_name))
+
+
+def patch_models(patches):
+    for module, name, value in patches:
+        patch_module_attr(module, name, value)
+
+
+def unpatch_models(patches):
+    for module, name, value in patches:
+        unpatch_module_attr(module, name, value)
+
+
 def tabulate_objects(
     objects,
     fields_filter=lambda f: not f.startswith("_"),

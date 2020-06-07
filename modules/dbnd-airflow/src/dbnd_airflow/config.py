@@ -10,6 +10,33 @@ class AirflowConfig(Config):
 
     _conf__task_family = "airflow"
 
+    # override airflow settings
+    sql_alchemy_conn = parameter(
+        description="key used by airflow to encrypt connections credentials "
+        "(use 'dbnd' for using value from `core.fernet_key`)",
+        default=None,
+    )[str]
+    fernet_key = parameter(
+        description="key used by airflow to encrypt connections credentials "
+        "(use 'dbnd' for using value from `core.fernet_key`)",
+        default=None,
+    )[str]
+
+    enable_dbnd_patches = parameter(
+        default=True,
+        description="Enables dbnd patches (adding extra functionality like extended context to airflow)",
+    )[bool]
+
+    enable_windows_support = parameter(
+        default=True,
+        description="Enables patch of all windows non-compatible calls at airflow",
+    )[bool]
+
+    # Databand Executor
+    webserver_url = parameter(
+        default=None, description="URL of airflow webserver used by local runs"
+    )[str]
+
     optimize_airflow_db_access = parameter(
         description="Enable all Airflow DB access optimizations"
     )[bool]
@@ -35,16 +62,7 @@ class AirflowConfig(Config):
         "(redirect can cause crash due to loopback between streams",
     )[bool]
 
-    sql_alchemy_conn = parameter(
-        description="key used by airflow to encrypt connections credentials "
-        "(use 'dbnd' for using value from `core.fernet_key`)",
-        default=None,
-    )[str]
-    fernet_key = parameter(
-        description="key used by airflow to encrypt connections credentials "
-        "(use 'dbnd' for using value from `core.fernet_key`)",
-        default=None,
-    )[str]
+    # dbnd-airflow command
     auto_add_versioned_dags = parameter(
         default=True,
         description="Auto add versioned dag support to dbnd-airflow command",
@@ -55,14 +73,12 @@ class AirflowConfig(Config):
     )
     auto_disable_scheduled_dags_load = parameter(
         default=True,
-        description="Auto disable dbnd scheduled dags load in databand clie",
+        description="Auto disable dbnd scheduled dags load in databand cli",
     )
-    webserver_url = parameter(
-        default=None, description="URL of airflow webserver used by local runs"
-    )[str]
 
+    # targets
     use_connections = parameter(
-        description="use the airflow connection to connect to a cloud environment",
+        description="use the airflow connection to connect to a cloud environment in databand targets (s3://.. , gcp://..)",
         default=True,
     )[bool]
 

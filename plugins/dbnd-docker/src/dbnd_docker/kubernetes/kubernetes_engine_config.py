@@ -6,7 +6,6 @@ import textwrap
 from os import environ
 from typing import Dict, List, Optional
 
-import airflow.contrib.kubernetes.pod
 import yaml
 
 from six import PY2
@@ -291,6 +290,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             ] = self.gcp_service_account_keys
         annotations["dbnd_tracker"] = task_run.task_tracker_url
 
+        from dbnd_docker.kubernetes.dbnd_extended_resources import DbndExtendedResources
+
         resources = DbndExtendedResources(
             requests=self.requests,
             limits=self.limits,
@@ -421,11 +422,3 @@ def readable_pod_request(pod_req):
     except Exception as ex:
         logger.info("Failed to create readable pod request representation: %s", ex)
         return dumps_safe(pod_req)
-
-
-class DbndExtendedResources(airflow.contrib.kubernetes.pod.Resources):
-    def __init__(self, requests=None, limits=None, **kwargs):
-        # py2 support: Resources is not object
-        airflow.contrib.kubernetes.pod.Resources.__init__(self, **kwargs)
-        self.requests = requests
-        self.limits = limits

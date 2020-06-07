@@ -5,7 +5,7 @@ from typing import Dict, List
 from dbnd._core.constants import CloudType
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
-from dbnd._core.plugin.dbnd_plugins import assert_web_enabled, is_airflow_enabled
+from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
 from dbnd._core.task import Config
 from dbnd._core.tracking.tracking_store import TrackingStore
 from targets import Target
@@ -157,10 +157,12 @@ class CoreConfig(Config):
 
     @property
     def sql_conn_repr(self):
-        if is_airflow_enabled():
+        try:
             from sqlalchemy.engine.url import make_url
+        except:
+            return "`pip install sqlalchemy` in order to get sql db url"
 
-            return repr(make_url(self.get_sql_alchemy_conn()))
+        return repr(make_url(self.get_sql_alchemy_conn()))
 
     def _build_store(self, name):
         # type: (str) -> TrackingStore
@@ -251,6 +253,9 @@ class CoreConfig(Config):
         return CompositeTrackingStore(
             stores=stores, raise_on_error=self.tracker_raise_on_error
         )
+
+    def is_db_store_enabled(self):
+        return "api" in self.tracker and self.tracker_api == "db"
 
     def get_scheduled_job_service(self):
         from dbnd.api import scheduler_api_client

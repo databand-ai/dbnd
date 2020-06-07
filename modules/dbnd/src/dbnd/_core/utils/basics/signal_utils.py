@@ -25,6 +25,11 @@ def sigquit_handler__dump_stack(sig, frame):
     """Helps debug deadlocks by printing stacktraces when this gets a SIGQUIT
     e.g. kill -s QUIT <PID> or CTRL+\
     """
+    dump_trace(dump_file=True)
+    return True
+
+
+def dump_trace(dump_file=None):
     import threading, traceback, sys, os
 
     try:
@@ -47,12 +52,16 @@ def sigquit_handler__dump_stack(sig, frame):
                     code.append("  {}".format(line.strip()))
         traceback_data = "\n".join(code)
         _p("%s\n" % traceback_data)
-        temp_filename = os.path.join(
-            SIGQUIT_DUMP_DIR, "dbnd.dump.%s.txt" % (utcnow().strftime("%Y%m%d-%H%M%S"))
-        )
-        with open(temp_filename, "wt") as dump_file:
-            dump_file.write(traceback_data)
-        return True
+        if dump_file is True:
+            dump_file = os.path.join(
+                SIGQUIT_DUMP_DIR,
+                "dbnd.dump.%s.txt" % (utcnow().strftime("%Y%m%d-%H%M%S")),
+            )
+        if dump_file:
+            with open(dump_file, "wt") as df_fp:
+                df_fp.write(traceback_data)
+            _p("Stack has been dumped into {}".format(dump_file))
+        return traceback_data
     except Exception as e:
         print(
             "Couldn't report stack traces after reciving SIGQUIT! Exception: %s", str(e)

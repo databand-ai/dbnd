@@ -3,12 +3,19 @@ import logging
 
 import pytest
 
+from dbnd_airflow.testing.unittest_env import setup_unittest_airflow
+
 
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",
 ]
 logger = logging.getLogger(__name__)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def dbnd_airflow_unittest_setup():
+    setup_unittest_airflow()
 
 
 @pytest.fixture(autouse=True)

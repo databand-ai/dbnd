@@ -2,6 +2,7 @@ import logging
 import os
 
 from dbnd._core.configuration.environ_config import in_quiet_mode
+from dbnd._core.utils.object_utils import patch_module_attr
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,6 @@ def use_databand_airflow_dagbag():
         from airflow.www_rbac import views
     else:
         from airflow.www import views
-    from dbnd_airflow.airflow_override import patch_module_attr
 
     logging.info("Using dbnd dagbag (supporting versioned dags).")
     from dbnd_airflow.web.databand_versioned_dagbag import DbndAirflowDagBag, DbndDagModel
@@ -47,14 +47,12 @@ def patch_airflow_create_app():
     def patch_create_app(create_app_func):
         def patched_create_app(*args, **kwargs):
             from dbnd._core.configuration.dbnd_config import config
-            from dbnd_airflow._plugin import configure_airflow_sql_alchemy_conn
-            from dbnd_airflow.bootstrap import _register_sqlachemy_local_dag_job
-
-            _register_sqlachemy_local_dag_job()
 
             logger.info("Setting SQL from databand configuration.")
             config.load_system_configs()
-            configure_airflow_sql_alchemy_conn()
+
+            from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
+            dbnd_airflow_bootstrap()
 
             res = create_app_func(*args, **kwargs)
             try:

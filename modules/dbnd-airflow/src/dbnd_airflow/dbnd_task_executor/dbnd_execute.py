@@ -5,6 +5,8 @@ import sys
 import typing
 
 from dbnd import dbnd_bootstrap
+from dbnd._core.utils.basics.signal_utils import dump_trace
+from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
     AirflowOperatorAsDbndTask,
 )
@@ -75,7 +77,8 @@ def dbnd_operator__execute(dbnd_operator, context):
             logger.info("ti.executor_config: %s", context["ti"].executor_config)
             driver_dump = executor_config["DatabandExecutor"].get("dbnd_driver_dump")
             print(
-                "Running dbnd task %s %s" % (dbnd_operator.dbnd_task_id, driver_dump),
+                "Running dbnd task %s from %s"
+                % (dbnd_operator.dbnd_task_id, driver_dump),
                 file=sys.__stderr__,
             )
 
@@ -86,6 +89,7 @@ def dbnd_operator__execute(dbnd_operator, context):
                 sys.stderr = sys.__stderr__
 
             dbnd_bootstrap()
+            dbnd_airflow_bootstrap()
             run = DatabandRun.load_run(
                 dump_file=target(driver_dump), disable_tracking_api=False
             )
@@ -95,6 +99,8 @@ def dbnd_operator__execute(dbnd_operator, context):
                 % (e,),
                 file=sys.__stderr__,
             )
+            dump_trace()
+            raise
 
         with run.run_context() as dr:
             task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
@@ -123,7 +129,6 @@ def dbnd_operator__get_task_retry_delay(dbnd_operator):
     We must override the actual task retry delay from airflow to ensure that we can control the retry delay
     per task, for example when we send pods to retry, we may want a different delay rather than another engine
     """
-    import datetime
     from dbnd._core.current import try_get_databand_run
 
     run = try_get_databand_run()

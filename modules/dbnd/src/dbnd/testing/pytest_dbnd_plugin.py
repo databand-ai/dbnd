@@ -70,7 +70,7 @@ def databand_context_kwargs():
     return {}
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def databand_config():
     config.load_system_configs()
     return config

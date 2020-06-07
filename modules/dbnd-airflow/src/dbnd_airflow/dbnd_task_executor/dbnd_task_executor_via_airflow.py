@@ -19,6 +19,7 @@ from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
 from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
+from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
 from dbnd_airflow.config import AirflowConfig, get_dbnd_default_args
 from dbnd_airflow.db_utils import remove_listener_by_name
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
@@ -128,6 +129,9 @@ class AirflowTaskExecutor(TaskExecutor):
             target_engine=target_engine,
             task_runs=task_runs,
         )
+
+        dbnd_airflow_bootstrap()
+
         self.airflow_config = AirflowConfig()
         self.airflow_task_executor = self._get_airflow_executor()
         logger.info(
@@ -190,27 +194,30 @@ class AirflowTaskExecutor(TaskExecutor):
 
     def do_run(self):
         dag = self.build_airflow_dag(task_runs=self.task_runs)
+        self._connect_dbnd_task_to_airflow_ui(dag)
         with set_dag_as_current(dag):
-            from dbnd.api.tracking_api import AirflowTaskInfo
-
             self.run_airflow_dag(dag)
-            af_instances = []
-            for task_run in self.task_runs:
-                if not task_run.is_reused:
-                    # we build airflow infos only for not reused tasks
-                    af_instance = AirflowTaskInfo(
-                        execution_date=self.run.execution_date,
-                        dag_id=dag.dag_id,
-                        task_id=task_run.task_af_id,
-                        task_run_attempt_uid=task_run.task_run_attempt_uid,
-                    )
-                    af_instances.append(af_instance)
-            if af_instances and self.airflow_config.webserver_url:
-                self.run.tracker.tracking_store.save_airflow_task_infos(
-                    airflow_task_infos=af_instances,
-                    source=UpdateSource.dbnd,
-                    base_url=self.airflow_config.webserver_url,
+
+    def _connect_dbnd_task_to_airflow_ui(self, dag):
+        from dbnd.api.tracking_api import AirflowTaskInfo
+
+        af_instances = []
+        for task_run in self.task_runs:
+            if not task_run.is_reused:
+                # we build airflow infos only for not reused tasks
+                af_instance = AirflowTaskInfo(
+                    execution_date=self.run.execution_date,
+                    dag_id=dag.dag_id,
+                    task_id=task_run.task_af_id,
+                    task_run_attempt_uid=task_run.task_run_attempt_uid,
                 )
+                af_instances.append(af_instance)
+        if af_instances and self.airflow_config.webserver_url:
+            self.run.tracker.tracking_store.save_airflow_task_infos(
+                airflow_task_infos=af_instances,
+                source=UpdateSource.dbnd,
+                base_url=self.airflow_config.webserver_url,
+            )
 
     def _pickle_dag_and_save_pickle_id_for_versioned(self, dag, session):
         dp = DagPickle(dag=dag)

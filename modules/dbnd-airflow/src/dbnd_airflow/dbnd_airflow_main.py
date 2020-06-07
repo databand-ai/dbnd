@@ -78,9 +78,9 @@ def main(args=None):
     dbnd_system_bootstrap()
 
     # LET'S PATCH AIRFLOW FIRST
-    from dbnd_airflow.bootstrap import airflow_bootstrap
+    from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
 
-    airflow_bootstrap()
+    dbnd_airflow_bootstrap()
 
     from airflow.bin.cli import CLIFactory
     from airflow.configuration import conf
