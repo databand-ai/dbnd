@@ -11,9 +11,13 @@ from .test_s3 import _S3BaseTestCase
 
 class TestS3Sync(_S3BaseTestCase):
     def test_sync_execution_file_target(self):
+        self.client.remove(self.bucket_url("write_destination"))
+
         with dbnd_config({write.task.res: self.bucket_url("write_destination")}):
             write_read.dbnd_run()
 
     def test_sync_execution_dir_target(self):
+        self.client.remove(self.bucket_url("write_destination/"))
+
         with dbnd_config({write_dir.task.res: self.bucket_url("write_destination/")}):
             write_read_dir.dbnd_run()
