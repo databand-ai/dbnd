@@ -193,7 +193,6 @@ class AirflowTaskExecutor(TaskExecutor):
         with set_dag_as_current(dag):
             from dbnd.api.tracking_api import AirflowTaskInfo
 
-            self.run_airflow_dag(dag)
             af_instances = []
             for task_run in self.task_runs:
                 if not task_run.is_reused:
@@ -205,12 +204,15 @@ class AirflowTaskExecutor(TaskExecutor):
                         task_run_attempt_uid=task_run.task_run_attempt_uid,
                     )
                     af_instances.append(af_instance)
+
             if af_instances and self.airflow_config.webserver_url:
                 self.run.tracker.tracking_store.save_airflow_task_infos(
                     airflow_task_infos=af_instances,
                     source=UpdateSource.dbnd,
                     base_url=self.airflow_config.webserver_url,
                 )
+
+            self.run_airflow_dag(dag)
 
     def _pickle_dag_and_save_pickle_id_for_versioned(self, dag, session):
         dp = DagPickle(dag=dag)
