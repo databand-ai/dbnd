@@ -119,6 +119,7 @@ class TaskRunState(EnumWithAll):
     FAILED = "failed"
 
     CANCELLED = "cancelled"
+    SHUTDOWN = "shutdown"
 
     UPSTREAM_FAILED = "upstream_failed"
     SKIPPED = "skipped"
