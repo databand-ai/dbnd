@@ -11,9 +11,7 @@ from airflow.utils.trigger_rule import TriggerRule
 
 from dbnd import pipeline, task
 from dbnd._core.errors import MissingParameterError
-from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
-    default_args_test,
-)
+from test_dbnd_airflow.airflow_home.dags.dag_test_examples import default_args_test
 
 
 class TestFunctionalOperatorAirflowKwargs:

@@ -13,13 +13,13 @@ from dbnd._core.current import try_get_databand_context
 from dbnd._core.decorator.schemed_result import ResultProxyTarget
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.object_utils import safe_isinstance
-from dbnd_airflow_operator.airflow_utils import (
+from dbnd_airflow.airflow_utils import (
     DbndFunctionalOperator_1_10_0,
     is_airflow_support_template_fields,
     safe_get_context_manager_dag,
 )
-from dbnd_airflow_operator.dbnd_functional_operator import DbndFunctionalOperator
-from dbnd_airflow_operator.xcom_target import XComResults, XComStr, build_xcom_str
+from dbnd_airflow.functional.dbnd_functional_operator import DbndFunctionalOperator
+from dbnd_airflow.functional.xcom_target import XComResults, XComStr, build_xcom_str
 from targets import FileTarget, target
 
 

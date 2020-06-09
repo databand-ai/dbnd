@@ -6,4 +6,4 @@ recursive-exclude * *.py[co]
 recursive-exclude * .ipynb_checkpoints
 
 exclude tox.ini
-prune test_dbnd_airflow_operator
+prune test_dbnd_airflow

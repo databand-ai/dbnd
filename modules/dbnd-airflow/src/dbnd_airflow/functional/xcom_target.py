@@ -5,7 +5,7 @@ from typing import List, Tuple, Union
 from airflow.models import BaseOperator
 
 from dbnd._core.decorator.schemed_result import ResultProxyTarget
-from dbnd_airflow_operator.airflow_utils import safe_get_context_manager_dag
+from dbnd_airflow.airflow_utils import safe_get_context_manager_dag
 from targets import AtomicLocalFile
 from targets.fs import register_file_system
 from targets.fs.file_system import FileSystem

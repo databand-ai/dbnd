@@ -1,14 +1,12 @@
 from airflow import DAG
 
-from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
-    default_args_test,
-)
-from test_dbnd_airflow_operator.airflow_home.dags.dag_with_xcom_pipeline import (
+from test_dbnd_airflow.airflow_home.dags.dag_test_examples import default_args_test
+from test_dbnd_airflow.airflow_home.dags.dag_with_xcom_pipeline import (
     bool_to_string,
     my_second_pipeline,
     my_xcom_pipeline,
 )
-from test_dbnd_airflow_operator.utils import read_xcom_result_value, run_and_get
+from test_dbnd_airflow.functional.utils import read_xcom_result_value, run_and_get
 
 
 with DAG(dag_id="simple_jinja_dag", default_args=default_args_test) as simple_jinja_dag:

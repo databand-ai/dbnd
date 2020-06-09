@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from airflow import DAG
 
-from dbnd_airflow_operator.dbnd_cmd_operators import dbnd_task_as_bash_operator
+from dbnd_airflow.functional.dbnd_cmd_operators import dbnd_task_as_bash_operator
 from dbnd_examples.dbnd_aws.ingest_pipeline import partner_data_ingest_new_files
 from dbnd_examples.dbnd_aws.sync_operators import S3StatefulSensor
 

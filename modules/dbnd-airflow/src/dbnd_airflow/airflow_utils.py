@@ -44,7 +44,7 @@ def DbndFunctionalOperator_1_10_0(
     don't get mixed up.
     """
     template_fields = dbnd_task_params_fields
-    from dbnd_airflow_operator.dbnd_functional_operator import DbndFunctionalOperator
+    from dbnd_airflow import DbndFunctionalOperator
 
     new_op = type(
         dbnd_task_type, (DbndFunctionalOperator,), {"template_fields": template_fields}

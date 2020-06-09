@@ -59,7 +59,7 @@ class DbndFunctionalOperator(BaseOperator):
     def get_dbnd_dag_ctrl(self):
         dag = self.dag
 
-        from dbnd_airflow_operator.dbnd_functional_dag import DagFuncOperatorCtrl
+        from dbnd_airflow.functional.dbnd_functional_dag import DagFuncOperatorCtrl
 
         return DagFuncOperatorCtrl.build_or_get_dag_ctrl(dag)
 

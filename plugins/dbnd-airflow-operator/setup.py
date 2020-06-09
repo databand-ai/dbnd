@@ -14,5 +14,5 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-airflow-operator",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version],
+    install_requires=["dbnd-airflow==" + version],
 )

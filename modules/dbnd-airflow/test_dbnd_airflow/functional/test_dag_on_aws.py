@@ -6,11 +6,8 @@ import pytest
 from airflow import DAG
 
 from dbnd._core.settings import CoreConfig, DatabandSystemConfig, EnvConfig
-from test_dbnd_airflow_operator.airflow_home.dags.dag_test_examples import (
-    default_args_test,
-    t_A,
-)
-from test_dbnd_airflow_operator.utils import run_and_get
+from test_dbnd_airflow.airflow_home.dags.dag_test_examples import default_args_test, t_A
+from test_dbnd_airflow.functional.utils import run_and_get
 
 
 TEST_ENV__AWS_ROOT = os.environ.get("TEST_ENV__AWS_ROOT")

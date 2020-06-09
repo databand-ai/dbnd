@@ -8,7 +8,7 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 
 from dbnd.tasks.basics import dbnd_sanity_check
-from dbnd_airflow_operator.dbnd_cmd_operators import dbnd_task_as_bash_operator
+from dbnd_airflow.functional.dbnd_cmd_operators import dbnd_task_as_bash_operator
 
 
 default_args = {
