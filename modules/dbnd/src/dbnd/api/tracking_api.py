@@ -17,6 +17,7 @@ from dbnd._core.constants import (
     UpdateSource,
 )
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import AirflowTaskContext
+from dbnd._core.tracking.metrics import Metric
 from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
@@ -223,6 +224,17 @@ class LogMetricSchema(_ApiCallSchema):
 log_metric_schema = LogMetricSchema()
 
 
+class LogMetricsSchema(_ApiCallSchema):
+    metrics_info = fields.Nested(LogMetricSchema, many=True)
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        data["metrics_info"] = [LogMetricArgs(**m) for m in data["metrics_info"]]
+
+
+log_metrics_schema = LogMetricsSchema()
+
+
 class LogArtifactSchema(_ApiCallSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     name = fields.String()
@@ -230,6 +242,14 @@ class LogArtifactSchema(_ApiCallSchema):
 
 
 log_artifact_schema = LogArtifactSchema()
+
+
+@attr.s
+class LogMetricArgs(object):
+    task_run_attempt_uid = attr.ib()  # type: UUID
+    metric = attr.ib()  # type: Metric
+    source = attr.ib()  # type: Optional[str]
+    target_meta_uid = attr.ib(default=None)  # type: Optional[UUID]
 
 
 @attr.s
