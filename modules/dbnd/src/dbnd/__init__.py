@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-from dbnd._core.context.dbnd_project_env import DBND_IS_INITIALIZED  # isort:skip
-
-str(DBND_IS_INITIALIZED)  # isort:skip
 from dbnd._core.cli.main import dbnd_cmd, dbnd_run_cmd, main as dbnd_main
 from dbnd._core.commands import log_dataframe, log_metric
 from dbnd._core.configuration.config_path import ConfigPath
@@ -53,6 +50,14 @@ from dbnd._core.utils.project.project_fs import (
 )
 from dbnd.tasks import basics
 from targets import _set_patches
+
+
+from dbnd._core.configuration.environ_config import (  # isort:skip
+    get_dbnd_project_config,
+)
+
+
+get_dbnd_project_config().validate_init()  # isort:skip
 
 
 dbnd_config = config

@@ -13,7 +13,6 @@ from dbnd._core.configuration.environ_config import (
     DBND_RESUBMIT_RUN,
     DBND_RUN_UID,
     ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD,
-    environ_enabled,
     in_quiet_mode,
 )
 from dbnd._core.configuration.scheduler_file_config_loader import (
@@ -23,6 +22,7 @@ from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.settings import LoggingConfig, RunConfig
 from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
+from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import convert_to_utc
 from dbnd.api import scheduler_api_client

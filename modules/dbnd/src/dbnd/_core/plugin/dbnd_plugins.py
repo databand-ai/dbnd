@@ -1,7 +1,7 @@
 import importlib
 import logging
 
-from dbnd._core.configuration import environ_config
+from dbnd._core.configuration import environ_config, get_dbnd_project_config
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
 from dbnd._core.utils.seven import import_errors
@@ -23,7 +23,7 @@ def _is_airflow_enabled():
     if pm.has_plugin("dbnd-airflow"):
         return True
 
-    if environ_config.is_no_modules():
+    if get_dbnd_project_config().is_no_modules:
         return False
 
     # TODO: make decision based on plugin only

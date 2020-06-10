@@ -2,7 +2,7 @@ import typing
 
 from typing import Optional
 
-from dbnd._core.configuration.environ_config import get_environ_config
+from dbnd._core.configuration import get_dbnd_project_config
 
 
 if typing.TYPE_CHECKING:
@@ -107,7 +107,7 @@ def is_verbose():
     if context and getattr(context, "system_settings", None):
         return context.system_settings.verbose
 
-    return get_environ_config().is_verbose()
+    return get_dbnd_project_config().is_verbose()
 
 
 def is_killed():

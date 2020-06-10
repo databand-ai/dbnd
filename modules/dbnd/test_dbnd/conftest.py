@@ -12,6 +12,7 @@ from pytest import fixture
 
 # import dbnd should be first!
 import dbnd
+import dbnd._core.utils.basics.environ_utils
 
 from dbnd import register_config_cls, register_task
 from dbnd._core.configuration import environ_config
@@ -21,7 +22,7 @@ from targets import target
 
 
 # we want to test only this module
-environ_config.set_on(environ_config.ENV_DBND__NO_MODULES)
+dbnd._core.utils.basics.environ_utils.set_on(environ_config.ENV_DBND__NO_MODULES)
 # disable DB tracking
 os.environ["DBND__CORE__TRACKER"] = "['file', 'console']"
 

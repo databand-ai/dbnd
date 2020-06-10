@@ -6,12 +6,12 @@ import warnings
 import dbnd
 
 from dbnd._core.configuration.environ_config import (
+    _env_banner,
+    _initialize_dbnd_home,
+    get_dbnd_project_config,
     in_quiet_mode,
-    is_sigquit_handler_on,
     is_unit_test_mode,
 )
-from dbnd._core.context.dbnd_project_env import _env_banner, init_databand_env
-from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.plugin.dbnd_plugins_mng import (
     register_dbnd_plugins,
     register_dbnd_user_plugins,
@@ -56,11 +56,11 @@ def dbnd_system_bootstrap():
         return
     try:
         _dbnd_system_bootstrap = True
-        # prevent recursive call, problematic on exception
 
-        init_databand_env()
+        # this will also initialize env if it's not initialized
+        project_config = get_dbnd_project_config()
 
-        if not in_quiet_mode():
+        if not project_config.quiet_mode:
             logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
         from databand import dbnd_config
 
@@ -82,6 +82,8 @@ def dbnd_bootstrap():
     _dbnd_bootstrap_started = True
 
     dbnd_system_bootstrap()
+
+    dbnd_project_config = get_dbnd_project_config()
     from targets.marshalling import register_basic_data_marshallers
 
     register_basic_data_marshallers()
@@ -107,7 +109,7 @@ def dbnd_bootstrap():
 
     pm.hook.dbnd_setup_plugin()
 
-    if is_sigquit_handler_on():
+    if dbnd_project_config.is_sigquit_handler_on:
         from dbnd._core.utils.basics.signal_utils import (
             register_sigquit_stack_dump_handler,
         )

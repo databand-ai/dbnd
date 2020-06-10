@@ -6,9 +6,8 @@ import sys
 
 from subprocess import list2cmdline
 
-from dbnd._core.context.dbnd_project_env import ENV_DBND_HOME
+from dbnd._core.configuration.environ_config import ENV_DBND_HOME
 from dbnd._core.current import dbnd_context
-from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tools.jupyter.notebook import notebook_run

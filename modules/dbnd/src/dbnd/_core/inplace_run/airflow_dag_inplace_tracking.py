@@ -9,6 +9,7 @@ import os
 from typing import Optional
 
 import attr
+import dbnd._core.utils.basics.environ_utils
 
 from dbnd._core.configuration import environ_config
 from dbnd._core.parameter.parameter_builder import parameter
@@ -25,13 +26,13 @@ DAG_SPECIAL_TASK_ID = "DAG"
 
 
 def override_airflow_log_system_for_tracking():
-    return environ_config.environ_enabled(
+    return dbnd._core.utils.basics.environ_utils.environ_enabled(
         environ_config.ENV_DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING
     )
 
 
 def disable_airflow_subdag_tracking():
-    return environ_config.environ_enabled(
+    return dbnd._core.utils.basics.environ_utils.environ_enabled(
         environ_config.ENV_DBND__DISABLE_AIRFLOW_SUBDAG_TRACKING, False
     )
 
@@ -151,7 +152,9 @@ def _is_dbnd_spark_installed():
 
 def try_get_airflow_context_from_spark_conf():
     if (
-        not environ_config.environ_enabled("DBND__ENABLE__SPARK_CONTEXT_ENV")
+        not dbnd._core.utils.basics.environ_utils.environ_enabled(
+            "DBND__ENABLE__SPARK_CONTEXT_ENV"
+        )
         or _SPARK_ENV_FLAG not in os.environ
     ):
         return None

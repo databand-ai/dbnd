@@ -7,8 +7,8 @@ import typing
 from subprocess import list2cmdline
 from typing import Optional
 
+from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import get_environ_config
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
@@ -238,7 +238,7 @@ def _build_inline_root_task(root_task_name):
 
 def try_get_inplace_task_run():
     # type: ()->Optional[TaskRun]
-    if get_environ_config().is_inplace_run():
+    if get_dbnd_project_config().is_inplace_run():
         return dbnd_run_start()
 
 
@@ -247,7 +247,7 @@ _dbnd_inline_manager = None  # type: Optional[_DbndInplaceRunManager]
 
 
 def dbnd_run_start(name=None):
-    if not get_environ_config().enabled:
+    if not get_dbnd_project_config().disabled:
         return None
 
     global _dbnd_inline_manager
@@ -259,7 +259,7 @@ def dbnd_run_start(name=None):
                 _dbnd_inline_manager = dsm
         except Exception:
             _handle_inline_run_error("inline-start")
-            get_environ_config().enabled = False
+            get_dbnd_project_config().disabled = True
             return None
     if _dbnd_inline_manager and _dbnd_inline_manager._active:
         return _dbnd_inline_manager._task_run

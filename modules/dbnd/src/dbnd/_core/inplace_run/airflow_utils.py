@@ -5,7 +5,7 @@ import sys
 from types import FunctionType, ModuleType
 
 from dbnd import task
-from dbnd._core.configuration.environ_config import get_environ_config
+from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.decorator.func_task_decorator import _decorated_user_func
 
 
@@ -185,7 +185,7 @@ def _track_task(task):
 
 
 def _is_verbose():
-    config = get_environ_config()
+    config = get_dbnd_project_config()
     return config.is_verbose()
 
 

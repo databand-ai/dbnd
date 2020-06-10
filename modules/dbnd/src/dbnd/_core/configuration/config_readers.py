@@ -9,6 +9,7 @@ import six
 
 import attr
 
+from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.environ_config import (
@@ -21,7 +22,6 @@ from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.utils.project.project_fs import (
     databand_config_path,
     databand_system_path,
-    get_project_home,
 )
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 from targets import target
@@ -41,11 +41,13 @@ def _default_configuration_paths():
         yield system_config
 
     # now we can start to look for project configs
+    dbnd_project_config = get_dbnd_project_config()
+
     possible_locations = [
         databand_system_path("databand-system.cfg"),
-        os.path.join(get_project_home(), "conf", "databand.cfg"),
-        os.path.join(get_project_home(), "databand.cfg"),
-        os.path.join(get_project_home(), "project.cfg"),
+        dbnd_project_config.dbnd_project_path("conf", "databand.cfg"),  # deprecated
+        dbnd_project_config.dbnd_project_path("databand.cfg"),  # deprecated
+        dbnd_project_config.dbnd_project_path("project.cfg"),
     ]
     env_config = get_dbnd_environ_config_file()
     if env_config:

@@ -18,11 +18,11 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND__ENV_MACHINE,
     ENV_DBND_ENV,
     ENV_DBND_USER,
-    environ_enabled,
 )
 from dbnd._core.errors import DatabandConfigError, friendly_error
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.task_run.task_run import TaskRun
+from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.string_utils import clean_job_name_dns1123
 from dbnd._core.utils.structures import combine_mappings

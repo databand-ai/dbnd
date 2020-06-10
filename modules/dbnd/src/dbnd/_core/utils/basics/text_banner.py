@@ -5,8 +5,9 @@ import six
 
 from six import StringIO
 
-from dbnd._core.configuration.environ_config import ENV_DBND__NO_TABLES, environ_enabled
+from dbnd._core.configuration.environ_config import ENV_DBND__NO_TABLES
 from dbnd._core.utils import json_utils
+from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.terminal import get_terminal_size
 from dbnd._core.utils.traversing import traverse, traverse_to_str

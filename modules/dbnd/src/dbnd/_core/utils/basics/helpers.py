@@ -1,7 +1,5 @@
 from six.moves.builtins import str
 
-from dbnd._core.errors import DatabandError
-
 
 def parse_bool(s):
     if s is None:
@@ -15,7 +13,7 @@ def parse_bool(s):
     elif val.lower() in ("f", "false", "no", "0"):
         return False
     else:
-        raise DatabandError("Can't parse '%s' as boolean" % s)
+        raise ValueError("Can't parse '%s' as boolean" % s)
 
 
 def indent(string, prefix):

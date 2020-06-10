@@ -1,6 +1,6 @@
 import logging
 
-from dbnd._core.configuration.environ_config import get_environ_config
+from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import TaskType
 from dbnd._core.decorator.dynamic_tasks import create_and_run_dynamic_task_safe
 from dbnd._core.decorator.func_task_call import FuncCall, TaskCallState
@@ -38,9 +38,9 @@ class _DecoratedTask(Task):
         decorated object call/creation  ( my_func(), MyDecoratedTask()
         """
         force_invoke = call_kwargs.pop("__force_invoke", False)
-        basic_environ_config = get_environ_config()
+        dbnd_project_config = get_dbnd_project_config()
 
-        if force_invoke or not basic_environ_config.enabled:
+        if force_invoke or not dbnd_project_config.disabled:
             # 1. Databand is not enabled
             # 2. we have this call coming from Task.run / Task.band direct invocation
             return call_user_code(*call_args, **call_kwargs)

@@ -28,6 +28,8 @@ import argcomplete
 
 # DO NOT IMPORT ANYTHING FROM AIRFLOW
 # we need to initialize some config values first
+from dbnd import dbnd_config  # isort:skip
+from dbnd._core.context.bootstrap import dbnd_system_bootstrap  # isort:skip
 
 
 def subprocess_airflow(args):
@@ -70,11 +72,6 @@ def main(args=None):
     # from dbnd._core.log.config import configure_basic_logging
     # configure_basic_logging(None)
 
-    from dbnd import dbnd_config
-    from dbnd._core.configuration.environ_config import set_quiet_mode
-    from dbnd._core.context.bootstrap import dbnd_system_bootstrap
-
-    set_quiet_mode()
     dbnd_system_bootstrap()
 
     # LET'S PATCH AIRFLOW FIRST
