@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import six
 
-from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import is_numeric_dtype, is_string_dtype
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._core.errors import friendly_error
@@ -77,9 +77,7 @@ class DataFrameValueType(DataValueType):
     @classmethod
     def get_histograms(self, df):
         # type: (pd.DataFrame) -> Tuple[Dict[Dict[str, Any]], Dict[str, Tuple]]
-        histograms = df.apply(
-            self._calculate_histograms, args=(df.describe().to_dict(),)
-        )
+        histograms = df.apply(self._calculate_histograms, args=(df.describe(), df))
         hist_dict, stats_dict = {}, {}
         for column, hist_stats in histograms.to_dict().items():
             if hist_stats:
@@ -89,27 +87,32 @@ class DataFrameValueType(DataValueType):
         return stats_dict, hist_dict
 
     @staticmethod
-    def _calculate_histograms(df_column, df_stats):
-        # type: (pd.Series, pd.Series) -> Optional[Tuple[List, List, Dict]]
-        column_stats = df_stats.get(str(df_column.name), None)  # type: Dict
+    def _calculate_histograms(df_column, df_stats, df):
+        # type: (pd.Series, pd.Series, pd.DataFrame) -> Optional[Tuple[List, List, Dict]]
+        column_stats = df_stats.get(df_column.name, None)  # type: pd.Series
         if column_stats is None:
-            # logger.warning("No stats for column '%s' in '%s'", df_column.name, df_stats)
             return
         column_stats["non-null"] = df_column.size - np.count_nonzero(
-            np.isnan(df_column)
+            pd.isnull(df_column)
         )
         column_stats["distinct"] = len(df_column.unique())
 
         try:
             # TODO: check efficiency
             bins = int(min(20, max(column_stats["distinct"] - 1, 1)))
-            if is_string_dtype(df_column) and column_stats["count"] < 100:
-                bins = column_stats["distinct"]
-            hist, bin_edges = np.histogram(
-                df_column, bins=bins
-            )  # type: np.array, np.array
-            return hist.tolist(), bin_edges.tolist(), column_stats
-        except Exception:
+            # For some reason is_numeric_dtype(df_column) returns different result
+            if is_numeric_dtype(df[df_column.name]):
+                hist, bin_edges = np.histogram(
+                    df_column, bins=bins
+                )  # type: np.array, np.array
+            elif is_string_dtype(df[df_column.name]) and column_stats["count"] < 100:
+                hist = df_column.value_counts()
+                bin_edges = df_column.unique()
+            else:
+                return
+
+            return hist.tolist(), bin_edges.tolist(), column_stats.to_dict()
+        except Exception as ex:
             logger.exception(
                 "log_histogram: Something went wrong for column '%s'", df_column.name
             )

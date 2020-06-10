@@ -32,6 +32,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.constants import TaskRunState
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.task_run.task_run_error import TaskRunError
+    from dbnd.api.tracking_api import TrackingApiClient
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class TrackingStoreApi(TrackingStore):
     """Track data to Tracking API"""
 
     def __init__(self, channel):
+        # type: (TrackingApiClient) -> None
         self.channel = channel
 
     def init_scheduled_job(self, scheduled_job, update_existing):

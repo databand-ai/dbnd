@@ -17,7 +17,7 @@ class TargetInfoSchema(ApiObjectSchema):
 
 class MetricSchema(ApiObjectSchema):
     key = fields.String()
-    value = fields.String(allow_none=True)
+    value = fields.Raw(allow_none=True)
     value_str = fields.String(allow_none=True)
     value_json = fields.Dict(allow_none=True)
     value_int = fields.Integer(allow_none=True)

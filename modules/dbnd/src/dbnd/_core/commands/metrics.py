@@ -31,7 +31,7 @@ def log_dataframe(
     with_size=True,  # type: Optional[bool]
     with_schema=True,  # type: Optional[bool]
     with_stats=False,  # type: Optional[bool]
-    with_histograms=True,  # type: Optional[bool]
+    with_histograms=False,  # type: Optional[bool]
 ):  # type: (...) -> None
 
     meta_conf = ValueMetaConf(

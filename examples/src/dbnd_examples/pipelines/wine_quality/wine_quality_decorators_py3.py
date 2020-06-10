@@ -22,6 +22,7 @@ from dbnd import (
     log_dataframe,
     log_metric,
     output,
+    parameter,
     pipeline,
     task,
 )
@@ -56,7 +57,7 @@ def prepare_data(raw_data: DataFrame) -> Tuple[DataFrame, DataFrame, DataFrame]:
     print("..and this one..\n")
     logger.info("..and this one for sure!")
 
-    log_dataframe("raw", raw_data)
+    log_dataframe("raw", raw_data, with_histograms=True)
 
     return train_df, test_df, validation_df
 
@@ -68,7 +69,7 @@ def calculate_alpha(alpha: float = 0.5) -> float:
     return alpha
 
 
-@task
+@task(training_set=parameter[DataFrame](log_histograms=True))
 def train_model(
     test_set: DataFrame,
     training_set: DataFrame,
@@ -188,7 +189,7 @@ def wine_quality_day(
     return target(root_location, task_target_date.strftime("%Y-%m-%d"), "wine.csv")
 
 
-@task(result=output.prod_immutable[DataFrame])
+@task(result=output.prod_immutable[DataFrame](log_histograms=True))
 def fetch_wine_quality(
     task_target_date: datetime.date, data: pd.DataFrame = data_repo.wines_full
 ) -> pd.DataFrame:

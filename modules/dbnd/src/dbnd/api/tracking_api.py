@@ -38,7 +38,7 @@ from dbnd.api.serialization.task_run_env import TaskRunEnvInfoSchema
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, List, Dict, Tuple
+    from typing import Optional, List, Dict, Tuple, Sequence
     from dbnd._core.tracking.tracking_info_objects import (
         ErrorInfo,
         TaskRunEnvInfo,
@@ -265,7 +265,7 @@ class LogTargetArgs(object):
     operation_status = attr.ib()  # type: DbndTargetOperationStatus
 
     value_preview = attr.ib()  # type: str
-    data_dimensions = attr.ib()  # type: List[int]
+    data_dimensions = attr.ib()  # type: Sequence[int]
     data_schema = attr.ib()  # type: str
     data_hash = attr.ib()  # type: str
 
