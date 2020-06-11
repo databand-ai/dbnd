@@ -128,6 +128,11 @@ class AirflowTaskExecutor(TaskExecutor):
             target_engine=target_engine,
             task_runs=task_runs,
         )
+
+        from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
+
+        dbnd_airflow_bootstrap()
+
         self.airflow_config = AirflowConfig()
         self.airflow_task_executor = self._get_airflow_executor()
         logger.info(
