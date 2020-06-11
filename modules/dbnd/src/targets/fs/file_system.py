@@ -183,7 +183,9 @@ class FileSystem(object):
             for f in self.listdir(path):
                 relative_path = os.path.relpath(f, path)
                 local_path = os.path.join(location, relative_path)
-                self.download(f, local_path)
+                # prevent reference to the folder itself (.)
+                if f != path:
+                    self.download(f, local_path)
         else:
             self.download_file(path, location)
 
