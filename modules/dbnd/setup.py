@@ -39,7 +39,7 @@ setuptools.setup(
         "tests": [
             "coverage",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
-            "pytest-cov",
+            "pytest-cov==2.9.0",
             "pluggy==0.11.0",  # 0.12 has import_metadata, fails on py2
             "zope.interface",
             "mock",
