@@ -40,7 +40,7 @@ class _DecoratedTask(Task):
         force_invoke = call_kwargs.pop("__force_invoke", False)
         dbnd_project_config = get_dbnd_project_config()
 
-        if force_invoke or not dbnd_project_config.disabled:
+        if force_invoke or dbnd_project_config.disabled:
             # 1. Databand is not enabled
             # 2. we have this call coming from Task.run / Task.band direct invocation
             return call_user_code(*call_args, **call_kwargs)
