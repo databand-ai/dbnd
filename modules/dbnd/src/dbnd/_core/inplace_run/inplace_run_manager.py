@@ -247,7 +247,7 @@ _dbnd_inline_manager = None  # type: Optional[_DbndInplaceRunManager]
 
 
 def dbnd_run_start(name=None):
-    if not get_dbnd_project_config().disabled:
+    if get_dbnd_project_config().disabled:
         return None
 
     global _dbnd_inline_manager
