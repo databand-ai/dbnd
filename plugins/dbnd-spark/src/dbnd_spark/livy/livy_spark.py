@@ -8,6 +8,7 @@ from dbnd._core.utils.http.endpoint import Endpoint
 from dbnd._core.utils.structures import list_of_strings
 from dbnd._vendor.termcolor import colored
 from dbnd_spark.livy.livy_batch import LivyBatchClient
+from dbnd_spark.livy.livy_spark_config import LivySparkConfig
 from dbnd_spark.spark import SparkTask
 from dbnd_spark.spark_ctrl import SparkCtrl
 
@@ -123,12 +124,6 @@ class _LivySparkCtrl(SparkCtrl):
 
 
 class LivySparkCtrl(_LivySparkCtrl):
-    def sync(self, local_file):
-        """
-        we don't sync for now
-        """
-        return local_file.path
-
     def run_pyspark(self, pyspark_script):
         jars = list(self.config.jars)
         if self.config.main_jar:
@@ -140,5 +135,5 @@ class LivySparkCtrl(_LivySparkCtrl):
         return self._run_spark_submit(file=self.config.main_jar, jars=self.config.jars)
 
     def get_livy_endpoint(self):
-        livy_config = self.task_run.task.spark_engine  # type: LivyConfig
+        livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
         return Endpoint(livy_config.url)
