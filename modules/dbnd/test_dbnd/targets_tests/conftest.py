@@ -40,6 +40,7 @@ def pandas_data_frame_stats(pandas_data_frame):
             "75%": 968.0,
             "max": 973.0,
             "non-null": 5,
+            "null-count": 0,
             "distinct": 5,
         }
     }

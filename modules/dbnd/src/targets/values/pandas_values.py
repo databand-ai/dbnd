@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import six
 
-from pandas.core.dtypes.common import is_numeric_dtype, is_string_dtype
+from pandas.core.dtypes.common import is_bool_dtype, is_numeric_dtype, is_string_dtype
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._core.errors import friendly_error
@@ -75,9 +75,9 @@ class DataFrameValueType(DataValueType):
         )
 
     @classmethod
-    def get_histograms(self, df):
+    def get_histograms(cls, df):
         # type: (pd.DataFrame) -> Tuple[Dict[Dict[str, Any]], Dict[str, Tuple]]
-        histograms = df.apply(self._calculate_histograms, args=(df.describe(), df))
+        histograms = df.apply(cls._calculate_histograms, args=(df.describe(), df))
         hist_dict, stats_dict = {}, {}
         for column, hist_stats in histograms.to_dict().items():
             if hist_stats:
@@ -92,22 +92,30 @@ class DataFrameValueType(DataValueType):
         column_stats = df_stats.get(df_column.name, None)  # type: pd.Series
         if column_stats is None:
             return
-        column_stats["non-null"] = df_column.size - np.count_nonzero(
-            pd.isnull(df_column)
-        )
+        column_stats["null-count"] = np.count_nonzero(pd.isnull(df_column))
+        column_stats["non-null"] = df_column.size - column_stats["null-count"]
         column_stats["distinct"] = len(df_column.unique())
 
         try:
             # TODO: check efficiency
-            bins = int(min(20, max(column_stats["distinct"] - 1, 1)))
+            df_type = df[df_column.name]
+            if is_bool_dtype(df_type) or is_string_dtype(df_type):
+                column_stats["count"] = int(column_stats["count"])
+                column_stats["freq"] = int(column_stats["freq"])
+
+                hist = df_column.value_counts()
+                if column_stats["distinct"] > 50:
+                    hist, tail = hist[:49], hist[49:]
+                    tail_sum = pd.Series([tail.sum()], index=["_others"])
+                    hist = hist.append(tail_sum)
+                bin_edges = hist.index
+
             # For some reason is_numeric_dtype(df_column) returns different result
-            if is_numeric_dtype(df[df_column.name]):
+            elif is_numeric_dtype(df_type):
+                bins = int(min(20, max(column_stats["distinct"] - 1, 1)))
                 hist, bin_edges = np.histogram(
                     df_column, bins=bins
                 )  # type: np.array, np.array
-            elif is_string_dtype(df[df_column.name]) and column_stats["count"] < 100:
-                hist = df_column.value_counts()
-                bin_edges = df_column.unique()
             else:
                 return
 
