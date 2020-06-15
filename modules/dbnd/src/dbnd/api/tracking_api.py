@@ -248,7 +248,7 @@ log_artifact_schema = LogArtifactSchema()
 class LogMetricArgs(object):
     task_run_attempt_uid = attr.ib()  # type: UUID
     metric = attr.ib()  # type: Metric
-    source = attr.ib()  # type: Optional[str]
+    source = attr.ib(default=None)  # type: Optional[str]
     target_meta_uid = attr.ib(default=None)  # type: Optional[UUID]
 
 
