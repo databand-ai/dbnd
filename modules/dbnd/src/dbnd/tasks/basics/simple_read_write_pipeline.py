@@ -2,6 +2,7 @@ import os
 
 from dbnd import output, pipeline, task
 from targets import Target
+from targets.types import PathStr
 
 
 def save_my_custom_object(path, data):
@@ -23,7 +24,7 @@ def read(loc):
 
 @task
 def write(data, res=output.data.require_local_access):
-    save_my_custom_object(res, data)
+    save_my_custom_object(res.path, data)
 
 
 @pipeline
@@ -43,7 +44,7 @@ def read_dir(loc):
 
 
 @task
-def write_dir(data, res=output.data.require_local_access):
+def write_dir(data, res=output.data.require_local_access[PathStr]):
     os.mkdir(res)
     for i in range(3):
         file_path = os.path.join(res, str(i) + ".data")
