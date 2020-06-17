@@ -96,7 +96,7 @@ class PySparkTask(_BaseSparkTask):
         return self._get_spark_ctrl().run_pyspark(pyspark_script=self.python_script)
 
 
-class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
+class PySparkInlineTask(_BaseSparkTask):
 
     _application_args = ["defined_at_runtime"]
 
@@ -148,19 +148,21 @@ class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
         )
 
     def _task_run(self):
-        super(_InlineSparkTask, self)._task_run()
+        super(PySparkInlineTask, self)._task_run()
 
         if self._get_spark_ctrl().stop_spark_session_on_finish:
             session = get_spark_session()
             logger.info("Stopping spark session: %s")
             session.stop()
 
+
+class _PySparkInlineFuncTask(PySparkInlineTask, _DecoratedTask):
     def run(self):
         # we actually are going to run run function via our python script
         self._invoke_func()
 
 
 def spark_task(*args, **kwargs):
-    kwargs.setdefault("_task_type", _InlineSparkTask)
+    kwargs.setdefault("_task_type", _PySparkInlineFuncTask)
     kwargs.setdefault("_task_default_result", parameter.output.pickle[object])
     return _task_decorator(*args, **kwargs)
