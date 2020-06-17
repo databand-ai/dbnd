@@ -7,6 +7,7 @@ from types import FunctionType, ModuleType
 from dbnd import task
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.decorator.func_task_decorator import _decorated_user_func
+from dbnd._core.settings import CoreConfig
 
 
 logger = logging.getLogger(__name__)
@@ -139,6 +140,21 @@ def track_emr_add_steps_operator(operator):
             step["HadoopJarStep"]["Args"] = spark_submit_with_dbnd_tracking(args)
 
 
+def track_databricks_submit_run_operator(operator):
+    config = operator.json
+    # passing env variables is only supported in new clusters
+    if "new_cluster" in config:
+        cluster = config["new_cluster"]
+        if "spark_env_vars" not in cluster:
+            cluster["spark_env_vars"] = {}
+        spark_vars = cluster["spark_env_vars"]
+        spark_vars["AIRFLOW_CTX_DAG_ID"] = "{{ dag.dag_id }}"
+        spark_vars["AIRFLOW_CTX_EXECUTION_DATE"] = "{{ ts }}"
+        spark_vars["AIRFLOW_CTX_TASK_ID"] = "{{ task.task_id }}"
+        spark_vars["AIRFLOW_CTX_TRY_NUMBER"] = "{{ task_instance._try_number }}"
+        spark_vars["DBND__CORE__DATABAND_URL"] = CoreConfig().databand_url
+
+
 def track_data_proc_pyspark_operator(operator):
     if operator.dataproc_properties is None:
         operator.dataproc_properties = dict()
@@ -176,6 +192,8 @@ def track_python_operator(operator):
 def _track_task(task):
     if is_instance_by_class_name(task, "EmrAddStepsOperator"):
         track_emr_add_steps_operator(task)
+    elif is_instance_by_class_name(task, "DatabricksSubmitRunOperator"):
+        track_databricks_submit_run_operator(task)
     elif is_instance_by_class_name(task, "DataProcPySparkOperator"):
         track_data_proc_pyspark_operator(task)
     elif is_instance_by_class_name(task, "SparkSubmitOperator"):
