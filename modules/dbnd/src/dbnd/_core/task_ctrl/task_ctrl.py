@@ -100,15 +100,12 @@ class TaskCtrl(TaskSubCtrl):
         from dbnd._core.task_ctrl.task_relations import TaskRelations  # noqa: F811
         from dbnd._core.task_ctrl.task_dag import _TaskDagNode  # noqa: F811
         from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser  # noqa: F811
-        from dbnd._core.task_ctrl.task_output_builder import TaskOutputBuilder
         from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
         from dbnd._core.task_ctrl.task_validator import TaskValidator
 
         self._relations = TaskRelations(task)
         self.task_validator = TaskValidator(task)
         self._task_dag = _TaskDagNode(task)
-
-        self.outputs = TaskOutputBuilder(task)  # type: TaskOutputBuilder
 
         self._visualiser = TaskVisualiser(task)
         self.describe_dag = DescribeDagCtrl(task)

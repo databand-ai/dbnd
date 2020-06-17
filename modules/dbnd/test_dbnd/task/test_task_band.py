@@ -118,7 +118,7 @@ class TestTaskBand(object):
 
         @pipeline
         def t_pipe():
-            output_path = current_task().ctrl.outputs.target(
+            output_path = current_task().get_target(
                 "outputs", config=TargetConfig(folder=True)
             )
             output_path.mkdir()

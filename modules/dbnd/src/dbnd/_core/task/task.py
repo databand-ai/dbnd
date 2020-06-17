@@ -1,4 +1,5 @@
 import datetime
+import random
 import typing
 import warnings
 
@@ -15,9 +16,11 @@ from dbnd._core.parameter.parameter_definition import (
 from dbnd._core.settings.env import EnvConfig
 from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
+from dbnd._core.task_ctrl.task_output_builder import calculate_path
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.traversing import flatten
-from targets.target_config import folder
+from targets import target
+from targets.target_config import TargetConfig, folder
 from targets.value_meta import ValueMetaConf
 from targets.values.version_value import VersionStr
 
@@ -306,6 +309,24 @@ class Task(_BaseTask, _TaskParamContainer):
         if self.task_env.production and output_mode == OutputMode.prod_immutable:
             return self.settings.output.path_prod_immutable_task
         return self._conf__base_output_path_fmt or self.settings.output.path_task
+
+    def get_target(self, name, config=None, output_ext=None, output_mode=None):
+        name = name or "tmp/dbnd-tmp-%09d" % random.randint(0, 999999999)
+        config = config or TargetConfig()
+        path_pattern = self._get_task_output_path_format(output_mode)
+
+        path = calculate_path(
+            task=self,
+            name=name,
+            output_ext=output_ext,
+            is_dir=config.folder,
+            path_pattern=path_pattern,
+        )
+
+        return target(path, config=config)
+
+    def get_root(self):
+        return self.task_env.root
 
     def _initialize(self):
         super(Task, self)._initialize()

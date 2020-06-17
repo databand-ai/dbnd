@@ -75,8 +75,7 @@ class TrainIrisModel(PythonTask):
 
         self.model.mkdir_parent()
         t_model = classifier.export_savedmodel(
-            self.ctrl.outputs.get_tmp_output(name="model").path,
-            iris.create_receiver_fn(),
+            self.get_target(name="tmp/model").path, iris.create_receiver_fn(),
         )
 
         self.model.move_from(t_model)
