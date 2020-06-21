@@ -41,6 +41,11 @@ register_file_system("file", LocalFileSystem)
 _cached_fs = {}
 
 
+def reset_fs_cache():
+    global _cached_fs
+    _cached_fs = {}
+
+
 def get_file_system(fs_name):
     fs = _cached_fs.get(fs_name)
     if fs:

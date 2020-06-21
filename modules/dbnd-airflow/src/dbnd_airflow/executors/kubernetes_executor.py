@@ -318,6 +318,10 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
     def run(self):
         """Performs watching"""
+
+        # Must reset filesystem cache to avoid using out-of-cluster credentials within Kubernetes
+        self.reset_fs_cache()
+
         kube_client = self.kube_dbnd.kube_client
         try:
             while True:
@@ -444,3 +448,8 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 labels,
                 resource_version,
             )
+
+    def reset_fs_cache(self):
+        from targets.fs import reset_fs_cache
+
+        reset_fs_cache()
