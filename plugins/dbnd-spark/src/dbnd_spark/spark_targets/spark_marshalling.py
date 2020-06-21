@@ -2,14 +2,18 @@ from __future__ import absolute_import
 
 import logging
 
-from urllib.parse import urlparse
-
 import pyspark.sql as spark
 
 from dbnd._core.commands import get_spark_session
 from targets.marshalling.marshaller import Marshaller
 from targets.target_config import FileFormat
 from targets.utils.performance import target_timeit
+
+
+try:
+    import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 
 
 logger = logging.getLogger(__name__)
