@@ -28,7 +28,11 @@ from dbnd._core.constants import (
     TaskRunState,
     UpdateSource,
 )
-from dbnd._core.current import current_task_run
+from dbnd._core.current import (
+    current_task_run,
+    try_get_current_task,
+    try_get_databand_run,
+)
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import (
     DatabandFailFastError,
@@ -450,11 +454,12 @@ class DatabandRun(SingletonContext):
     @contextlib.contextmanager
     def run_context(self):
         # type: (DatabandRun) -> Iterator[DatabandRun]
+
         from dbnd._core.context.databand_context import DatabandContext  # noqa: F811
 
         with DatabandContext.context(_context=self.context):
             with DatabandRun.context(_context=self) as dr:
-                yield dr  # type: DatabandRun
+                yield dr
 
     @classmethod
     def load_run(self, dump_file, disable_tracking_api):
@@ -568,7 +573,7 @@ class DatabandRun(SingletonContext):
 
     def kill(self):
         """
-        called from user space
+        called from user space, kills the current task only
         :return:
         """
         # this is very naive stop implementation
@@ -596,6 +601,15 @@ class DatabandRun(SingletonContext):
         except Exception as ex:
             logger.error("Failed to kill current task %s: %s" % (current_task, ex))
             return
+
+    def kill_run(self):
+        _is_killed.set()
+        try:
+            self.context.kill_api_client.kill_run(str(self.run_uid))
+        except Exception as e:
+            raise DatabandFailFastError(
+                "Could not send request to kill databand run!", e
+            )
 
     def get_current_dbnd_local_root(self):
         # we should return here the proper engine config, based in which context we run right now

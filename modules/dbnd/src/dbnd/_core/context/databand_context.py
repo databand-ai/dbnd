@@ -21,6 +21,7 @@ from dbnd._core.utils import seven
 from dbnd._core.utils.basics.load_python_module import load_python_module, run_user_func
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.timezone import utcnow
+from dbnd.api.kill_api_client import KillApiClient
 from targets.target_config import FileFormat
 
 
@@ -81,6 +82,8 @@ class DatabandContext(SingletonContext):
         self.task_instance_cache = TaskInstanceCache()
         self.user_code_detector = UserCodeDetector.build_code_detector()
         self._autoload_modules = autoload_modules
+
+        self.kill_api_client = KillApiClient()
 
         # will set up in __enter__
         # we can't initialize settings without having self defined as context
