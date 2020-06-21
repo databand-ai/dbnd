@@ -38,7 +38,11 @@ class KubernetesTaskRunCtrl(DockerRunCtrl):
                     "Received image %s is not in image format! Expected repo:tag. Exception: %s"
                     % (self.task.image, str(e))
                 )
-        pod = kubernetes_config.build_pod(cmds=cmds, task_run=self.task_run)
+        pod = kubernetes_config.build_pod(
+            cmds=cmds,
+            task_run=self.task_run,
+            include_system_secrets=self.task.task_is_system,  # include only for driver,and other system tasks
+        )
         kube_dbnd = kubernetes_config.build_kube_dbnd()
 
         self.pod_ctrl = kube_dbnd.get_pod_ctrl_for_pod(pod)

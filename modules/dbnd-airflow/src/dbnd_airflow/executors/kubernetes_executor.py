@@ -51,7 +51,7 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
     # We still are mapping databand KubeConfig -> airflow KubeConfig as some functions are using values from it.
     ec = engine_config
 
-    secrets = ec.get_secrets()
+    secrets = ec.get_secrets(include_system_secrets=True)
     if secrets:
         kube_secrets = {}
         env_from_secret_ref = []
@@ -205,6 +205,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 "try_number": str(try_number),
             },
             try_number=try_number,
+            include_system_secrets=True,
         )
 
         pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)

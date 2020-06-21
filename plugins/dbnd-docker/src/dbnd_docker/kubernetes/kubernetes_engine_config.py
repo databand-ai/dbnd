@@ -269,7 +269,15 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 
-    def build_pod(self, task_run, cmds, args=None, labels=None, try_number=None):
+    def build_pod(
+        self,
+        task_run,
+        cmds,
+        args=None,
+        labels=None,
+        try_number=None,
+        include_system_secrets=False,
+    ):
         # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int]) ->Pod
         pod_name = task_run.job_id__dns1123
         if try_number is not None:
@@ -325,7 +333,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         env_vars.update(self.env_vars)
         env_vars.update(task_run.run.get_context_spawn_env())
 
-        secrets = self.get_secrets()
+        secrets = self.get_secrets(include_system_secrets=include_system_secrets)
 
         from airflow.contrib.kubernetes.pod import Pod
 
@@ -379,12 +387,15 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         return pod
 
-    def get_secrets(self):
+    def get_secrets(self, include_system_secrets=True):
         """Defines any necessary secrets for the pod executor"""
         from airflow.contrib.kubernetes.secret import Secret
 
         result = []
-        secrets = self.system_secrets + self.secrets
+        if include_system_secrets:
+            secrets = self.system_secrets + self.secrets
+        else:
+            secrets = self.secrets
         for secret_data in secrets:
             result.append(
                 Secret(
