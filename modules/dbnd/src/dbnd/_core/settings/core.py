@@ -108,7 +108,9 @@ class CoreConfig(Config):
     tracker_raise_on_error = parameter(
         default=True, description="Raise error when failed to track data"
     )[bool]
-    tracker_api = parameter(default="db", description="Tracking Stores to be used")[str]
+    tracker_api = parameter(default="web", description="Tracking Stores to be used")[
+        str
+    ]
     auto_create_local_db = parameter(
         default=True,
         description="Automatically create local SQLite db if it's not present",
@@ -229,6 +231,9 @@ class CoreConfig(Config):
             )
 
             channel = DirectDbChannel()
+        elif tracker_api == "disabled":
+            logger.info("Tracking store is disable at core.tracker_api.")
+            return TrackingStore()
         else:
             raise friendly_error.config.wrong_tracking_api_name(tracker_api)
         return TrackingStoreApi(channel=channel)

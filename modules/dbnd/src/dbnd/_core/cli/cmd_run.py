@@ -126,18 +126,16 @@ def build_dynamic_task(original_cls, new_cls_name):
     "--submit-tasks",
     "submit_tasks",
     flag_value=1,
-    help="Run submission in blocking mode",
+    help="Submit tasks from driver to remote engine",
 )
 @click.option(
     "--no-submit-tasks",
     "submit_tasks",
     flag_value=0,
-    help="Run submission in blocking mode",
+    help="Disable task submission, run tasks in the driver process.",
 )
 @click.option(
-    "--direct-db",
-    help="Use local db with direct connection instead of communication through web api.",
-    is_flag=True,
+    "--disable-web-tracker", help="Disable web tracking", is_flag=True,
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.pass_context
@@ -166,7 +164,7 @@ def run(
     interactive,
     submit_driver,
     submit_tasks,
-    direct_db,
+    disable_web_tracker,
 ):
     """
     Run a task or a DAG
@@ -205,6 +203,8 @@ def run(
         main_switches["run"]["submit_driver"] = bool(submit_driver)
     if submit_tasks is not None:
         main_switches["run"]["submit_tasks"] = bool(submit_tasks)
+    if disable_web_tracker:
+        main_switches.setdefault("core", {})["tracker_api"] = "disabled"
 
     if task_version is not None:
         main_switches["task"] = {"task_version": task_version}
@@ -247,22 +247,6 @@ def run(
         cmd_line_config.update(
             _parse_cli([{"task_build.verbose": True}], source="-v -v")
         )
-    if direct_db:
-        from dbnd import databand_system_path
-
-        direct_db_configuration = {"core": {"tracker_api": "db"}}
-        local_db_path = "sqlite:///" + databand_system_path("dbnd.db")
-
-        if not is_unit_test_mode():
-            direct_db_configuration["core"]["sql_alchemy_conn"] = local_db_path
-
-        logger.info(
-            "You are now using --direct-db mode. "
-            "Please make sure 'dbnd_web' module is installed and db exist on: %s",
-            local_db_path,
-        )
-
-        config.set_values(direct_db_configuration, source="--direct-db", override=True)
 
     if cmd_line_config:
         config.set_values(cmd_line_config, source="cmdline")

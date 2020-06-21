@@ -2,6 +2,7 @@ from typing import Dict, List
 
 from dbnd import parameter
 from dbnd._core.task.config import Config
+from targets import DirTarget
 
 
 class SparkConfig(Config):
@@ -109,4 +110,6 @@ class SparkConfig(Config):
 
 
 class SparkEngineConfig(Config):
-    pass
+    root = parameter(default=None, description="Data outputs location override")[
+        DirTarget
+    ]

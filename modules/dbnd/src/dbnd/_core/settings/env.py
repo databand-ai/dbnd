@@ -32,10 +32,10 @@ class EnvConfig(Config):
     conn_id = parameter(default=None, description="cloud connection settings")[str]
 
     # MAIN OUTPUT FOLDER
-    root = parameter.folder[DirTarget]
+    root = parameter(description="Data outputs location").folder[DirTarget]
 
     # DATABAND SYSTEM FOLDERS
-    dbnd_root = parameter(description="DBND rooted home folder").output.folder(
+    dbnd_root = parameter(description="DBND system outputs location").output.folder(
         default=None
     )[DirTarget]
     dbnd_local_root = parameter(

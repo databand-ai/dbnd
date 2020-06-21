@@ -10,9 +10,8 @@ from dbnd._core.constants import TaskType
 from dbnd._core.current import get_databand_run
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.func_task_decorator import _task_decorator
-from dbnd._core.errors import DatabandBuildError, DatabandConfigError, friendly_error
+from dbnd._core.errors import DatabandBuildError, DatabandConfigError
 from dbnd._core.parameter.parameter_builder import output, parameter
-from dbnd._core.task.config import Config
 from dbnd._core.task.task import Task
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
@@ -61,6 +60,9 @@ class _BaseSparkTask(Task):
         except Exception:
             logger.exception("Failed to get spark command line from %s" % self)
 
+    def get_root(self):
+        return self.spark_engine.root or super(_BaseSparkTask, self).get_root()
+
 
 spark_output = output.folder
 
@@ -94,7 +96,7 @@ class PySparkTask(_BaseSparkTask):
         return self._get_spark_ctrl().run_pyspark(pyspark_script=self.python_script)
 
 
-class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
+class PySparkInlineTask(_BaseSparkTask):
 
     _application_args = ["defined_at_runtime"]
 
@@ -146,19 +148,21 @@ class _InlineSparkTask(_BaseSparkTask, _DecoratedTask):
         )
 
     def _task_run(self):
-        super(_InlineSparkTask, self)._task_run()
+        super(PySparkInlineTask, self)._task_run()
 
         if self._get_spark_ctrl().stop_spark_session_on_finish:
             session = get_spark_session()
             logger.info("Stopping spark session: %s")
             session.stop()
 
+
+class _PySparkInlineFuncTask(PySparkInlineTask, _DecoratedTask):
     def run(self):
         # we actually are going to run run function via our python script
         self._invoke_func()
 
 
 def spark_task(*args, **kwargs):
-    kwargs.setdefault("_task_type", _InlineSparkTask)
+    kwargs.setdefault("_task_type", _PySparkInlineFuncTask)
     kwargs.setdefault("_task_default_result", parameter.output.pickle[object])
     return _task_decorator(*args, **kwargs)

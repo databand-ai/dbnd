@@ -23,14 +23,10 @@ class EngineConfig(config.Config):
         description="Should the task engine be forced to submit tasks"
     ).value(False)
 
-    sql_alchemy_conn = parameter(
-        default=None,
-        description="Alternate sql connection when submitting to the engine",
-    )[str]
-
     dbnd_local_root = parameter(
         default=None, description="Local dbnd home directory at the engine environment"
     )[DirTarget]
+
     dbnd_executable = parameter(
         default=[sys.executable, "-m", "dbnd"],
         description="'dbnd' executable path at engine environment",

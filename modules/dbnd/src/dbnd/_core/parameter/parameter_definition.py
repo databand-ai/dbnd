@@ -493,7 +493,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         output_ext = self.output_ext
         if output_ext is None:
             output_ext = target_config.get_ext()
-        return task.ctrl.outputs.target(
+        return task.get_target(
             name=self.output_name or self.name,
             output_ext=output_ext,
             config=target_config,
