@@ -1,4 +1,4 @@
-from dbnd_spark.targets import SparkDataFrameValueType
+from dbnd_spark.spark_targets import SparkDataFrameValueType
 from targets.value_meta import ValueMeta, ValueMetaConf
 
 

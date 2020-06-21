@@ -26,7 +26,7 @@ def dbnd_spark_bootstrap():
         return
     # we register spark types only if we have spark installed
     try:
-        from dbnd_spark.targets import dbnd_register_spark_types
+        from dbnd_spark.spark_targets import dbnd_register_spark_types
 
         dbnd_register_spark_types()
     except Exception:
