@@ -9,6 +9,7 @@ prj_plugins_spark  = plugins/dbnd-spark \
 prj_plugins = 	plugins/dbnd-aws  \
           	plugins/dbnd-azure \
           	plugins/dbnd-airflow-export \
+          	plugins/dbnd-airflow-auto-tracking \
           	plugins/dbnd-airflow-versioned-dag \
           	plugins/dbnd-airflow-operator \
 			plugins/dbnd-databricks \
