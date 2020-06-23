@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: name
+spec:
+  containers:
+    - name: base
+      volumeMounts:
+        - mountPath: /output/training_logs
+          name: training-logs-volume
+    - name: tensorboard
+      image: tensorflow/tensorflow:latest
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 6006
+          name: tensorboard
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          tensorboard --logdir /output/training_logs --host 0.0.0.0 &
+          CHILD_PID=$!
+          (while true; do if [[ -f "/output/training_logs/main-terminated" ]]; then kill $CHILD_PID; fi; sleep 1; done) &
+          wait $CHILD_PID
+          if [[ -f "/output/training_logs/main-terminated" ]]; then exit 0; fi
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 6006
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 6006
+      volumeMounts:
+        - mountPath: /output/training_logs
+          name: training-logs-volume
+  volumes:
+    - name: training-logs-volume
+      emptyDir: {}
+  restartPolicy: Never
