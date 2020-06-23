@@ -317,7 +317,7 @@ class FeaturesConfig(Config):
     )[bool]
 
     log_df_histograms = parameter(
-        default=False, description="Calculate and log DataFrames histograms"
+        default=True, description="Calculate and log DataFrames histograms"
     )[bool]
 
     auto_disable_slow_size = parameter(
