@@ -1,6 +1,7 @@
 import pyspark.sql as spark
 
 from databand import output, parameter
+from dbnd import log_dataframe, log_metric
 from dbnd_spark.spark import PySparkInlineTask, spark_task
 from targets import Target
 from targets.target_config import FileFormat
@@ -21,7 +22,11 @@ def word_count_inline(text=parameter.csv[spark.DataFrame], counters=output.txt.d
     for (word, count) in output:
         print("%s: %i" % (word, count))
 
-    return get_spark_session().createDataFrame(counts)
+    counts_df = get_spark_session().createDataFrame(counts)
+    log_dataframe("counts_df", counts_df)
+    log_metric("test", 1)
+
+    return counts_df
 
 
 class WordCountSparkInline(PySparkInlineTask):

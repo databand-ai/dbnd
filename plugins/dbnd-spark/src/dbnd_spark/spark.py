@@ -135,13 +135,15 @@ class PySparkInlineTask(_BaseSparkTask):
         driver_dump = self.current_task_run.run.driver_task.driver_dump
         self._application_args = [
             "execute",
-            "--disable-tracking-api",
             "--dbnd-run",
             spark_ctrl.sync(driver_dump),
             "task",
             "--task-id",
             self.task_id,
         ]
+
+        if spark_ctrl.config.disable_tracking_api:
+            self._application_args[1:1] = ["--disable-tracking-api"]
 
         return spark_ctrl.run_pyspark(
             pyspark_script=databand_lib_path("_core", "cli", "main.py")

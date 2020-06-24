@@ -1,5 +1,6 @@
 import logging
 
+from dbnd._core.task_build.task_context import TaskContextPhase, task_context
 from dbnd._vendor import click
 
 
@@ -19,7 +20,7 @@ def execute(ctx, dbnd_run, disable_tracking_api):
     run = DatabandRun.load_run(
         dump_file=target(dbnd_run), disable_tracking_api=disable_tracking_api
     )
-    ctx.obj = {"run": run}
+    ctx.obj = {"run": run, "disable_tracking_api": disable_tracking_api}
 
 
 @execute.command(name="task")
@@ -30,7 +31,14 @@ def run_task(ctx, task_id):
 
     with ctx.obj["run"].run_context() as dr:
         task = dr._get_task_by_id(task_id)
-        task._task_run()
+
+        # this tracking store should be the same object as the one in the context but they're actually
+        # different.
+        if ctx.obj["disable_tracking_api"]:
+            task.current_task_run.tracker.tracking_store.disable_tracking_api()
+
+        with task_context(task, TaskContextPhase.RUN):
+            task._task_run()
 
 
 @execute.command(name="task_submit")

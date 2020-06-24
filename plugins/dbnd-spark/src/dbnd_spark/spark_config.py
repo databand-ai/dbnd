@@ -108,6 +108,12 @@ class SparkConfig(Config):
         False, description="Disable databand auto sync mode for spark files"
     )
 
+    disable_tracking_api = parameter.value(
+        False,
+        description="Disable saving of metrics and dataframes (so log_metric and log_dataframe will just print to the spark log)."
+        + " Set this to true if you can't configure connectivity from the spark cluster to the databand server.",
+    )
+
 
 class SparkEngineConfig(Config):
     root = parameter(default=None, description="Data outputs location override")[
