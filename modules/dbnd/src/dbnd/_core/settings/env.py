@@ -89,6 +89,7 @@ class EnvConfig(Config):
             raise friendly_error.task_build.failed_to_access_dbnd_home(
                 self.dbnd_root, e
             )
+        self.dbnd_local_root__build = self.dbnd_local_root.folder("build")
 
         if not self.dbnd_data_sync_root:
             self.dbnd_data_sync_root = self.dbnd_root.folder("sync")
