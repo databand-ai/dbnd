@@ -140,8 +140,8 @@ class TrackingInfoBuilder(object):
             task_definitions=[val for key, val in sorted(task_defs.items())],
             task_runs=[val for key, val in sorted(all_task_models.items())],
             targets=[val for key, val in sorted(all_targets.items())],
-            parent_child_map=list(sorted(parent_child_map)),
-            upstreams_map=list(sorted(upstreams_map)),
+            parent_child_map=parent_child_map,
+            upstreams_map=upstreams_map,
             dynamic_task_run_update=dynamic_task_run_update,
             af_context=run.af_context,
         )
