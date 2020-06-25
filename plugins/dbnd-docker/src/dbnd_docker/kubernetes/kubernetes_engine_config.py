@@ -269,6 +269,12 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 
+    def get_pod_name(self, task_run, try_number):
+        pod_name = task_run.job_id__dns1123
+        if try_number is not None:
+            pod_name = "%s-%s" % (pod_name, try_number)
+        return pod_name
+
     def build_pod(
         self,
         task_run,
@@ -279,9 +285,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         include_system_secrets=False,
     ):
         # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int]) ->Pod
-        pod_name = task_run.job_id__dns1123
-        if try_number is not None:
-            pod_name = "%s-%s" % (pod_name, try_number)
+        pod_name = self.get_pod_name(task_run=task_run, try_number=try_number)
 
         image = self.full_image
         labels = combine_mappings(labels, self.labels)
