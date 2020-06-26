@@ -231,7 +231,10 @@ def track_dag(dag):
     """
     try:
         for task in dag.tasks:
-            track_task(task)
+            if is_instance_by_class_name(task, "SubDagOperator"):
+                track_dag(task.subdag)
+            else:
+                track_task(task)
     except Exception:
         logger.exception("Failed to modify %s for tracking" % dag.dag_id)
 
