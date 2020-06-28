@@ -37,7 +37,14 @@ def get_config_section_values(section):
 def get_local_tempfile(*path):
     run = try_get_databand_run()
     if run:
-        tempdir = run.get_current_dbnd_local_root().partition("tmp").path
+        dbnd_local_root = run.get_current_dbnd_local_root()
+        if os.path.exists(dbnd_local_root):
+            # on remote engine temp defined at driver can be un-awailable
+            # simple workaround to use tmp folder on the machine
+            tempdir = dbnd_local_root.partition("tmp").path
+        else:
+            # fallback to simple temp dir
+            tempdir = tempfile.gettempdir()
     else:
         tempdir = tempfile.gettempdir()
 
