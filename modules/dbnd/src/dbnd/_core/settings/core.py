@@ -112,10 +112,6 @@ class CoreConfig(Config):
     tracker_api = parameter(default="web", description="Tracking Stores to be used")[
         str
     ]
-    auto_create_local_db = parameter(
-        default=True,
-        description="Automatically create local SQLite db if it's not present",
-    )[bool]
 
     always_save_pipeline = parameter(
         description="Boolean for always saving pipeline to pickle"
