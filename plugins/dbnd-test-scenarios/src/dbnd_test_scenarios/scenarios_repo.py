@@ -7,9 +7,10 @@ from targets import target
 
 logger = logging.getLogger(__name__)
 
+scenarios_dir = relative_path(__file__, "..", "..", "scenarios")
+
 
 def test_scenario_path(*path):
-    scenarios_dir = relative_path(__file__, "..", "..", "scenarios")
     # if env var exists - use it as the examples dir, otherwise, calculate relative from here.
 
     return os.path.join(scenarios_dir, *path)

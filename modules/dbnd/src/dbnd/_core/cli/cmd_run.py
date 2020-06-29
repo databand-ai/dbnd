@@ -302,7 +302,7 @@ def run(
             and is_web_enabled()
             and is_running_in_direct_db_mode(context)
         ):
-            sql_alchemy_conn = context.settings.core.get_sql_alchemy_conn()
+            sql_alchemy_conn = context.settings.web.get_sql_alchemy_conn()
             if sql_alchemy_conn and sql_alchemy_conn.startswith("sqlite:///"):
                 from dbnd_web.utils.dbnd_db import init_local_db
 

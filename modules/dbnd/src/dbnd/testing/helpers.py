@@ -39,10 +39,6 @@ def run_dbnd_subprocess(args, retcode=255, clean_env=False, blocking=True, **kwa
 
     from dbnd._core.current import get_databand_context
 
-    env[
-        "DBND__CORE__SQL_ALCHEMY_CONN"
-    ] = get_databand_context().settings.core.get_sql_alchemy_conn()
-
     cmd_line = list2cmdline(cmd_args)
 
     logger.info(

@@ -3,6 +3,7 @@ import logging
 from typing import Dict, List
 
 from dbnd._core.constants import CloudType
+from dbnd._core.current import get_settings
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
@@ -96,10 +97,6 @@ class CoreConfig(Config):
         default=None, description="Runs in sub process (parallel/kubernets/external)"
     )[object]
 
-    sql_alchemy_conn = parameter(description="The connection string for the database")[
-        str
-    ]
-
     pickle_handler = parameter(
         default=None,
         description="Defines a python pickle handler to be used to pickle the "
@@ -141,11 +138,6 @@ class CoreConfig(Config):
         description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
     )[bool]
 
-    fernet_key = parameter(
-        description="key used by airflow to encrypt connections credentials",
-        default=None,
-    )[str]
-
     plugins = parameter(
         description="plugins to load on databand context creation", default=None
     )[str]
@@ -159,18 +151,6 @@ class CoreConfig(Config):
             self.databand_url = self.databand_url[:-1]
         if not self.databand_external_url:
             self.databand_external_url = self.databand_url
-
-    def get_sql_alchemy_conn(self):
-        return self.sql_alchemy_conn
-
-    @property
-    def sql_conn_repr(self):
-        try:
-            from sqlalchemy.engine.url import make_url
-        except Exception:
-            return "`pip install sqlalchemy` in order to get sql db url"
-
-        return repr(make_url(self.get_sql_alchemy_conn()))
 
     def is_db_store_enabled(self):
         return "api" in self.tracker and self.tracker_api == "db"

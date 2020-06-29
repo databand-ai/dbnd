@@ -10,21 +10,9 @@ class AirflowConfig(Config):
 
     _conf__task_family = "airflow"
 
-    # override airflow settings
-    sql_alchemy_conn = parameter(
-        description="key used by airflow to encrypt connections credentials "
-        "(use 'dbnd' for using value from `core.fernet_key`)",
-        default=None,
-    )[str]
-    fernet_key = parameter(
-        description="key used by airflow to encrypt connections credentials "
-        "(use 'dbnd' for using value from `core.fernet_key`)",
-        default=None,
-    )[str]
-
-    enable_dbnd_patches = parameter(
+    enable_dbnd_context_vars = parameter(
         default=True,
-        description="Enables dbnd patches (adding extra functionality like extended context to airflow)",
+        description="Enable extended airflow context vars (includes DBND info)",
     )[bool]
 
     enable_windows_support = parameter(
