@@ -14,7 +14,7 @@ from pytest import fixture
 import dbnd
 import dbnd._core.utils.basics.environ_utils
 
-from dbnd import register_config_cls, register_task
+from dbnd import get_dbnd_project_config, register_config_cls, register_task
 from dbnd._core.configuration import environ_config
 from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
 from dbnd_test_scenarios.test_common.task.factories import FooConfig, TConfig
@@ -22,7 +22,7 @@ from targets import target
 
 
 # we want to test only this module
-dbnd._core.utils.basics.environ_utils.set_on(environ_config.ENV_DBND__NO_MODULES)
+get_dbnd_project_config().is_no_modules = True
 # disable DB tracking
 os.environ["DBND__CORE__TRACKER"] = "['file', 'console']"
 
