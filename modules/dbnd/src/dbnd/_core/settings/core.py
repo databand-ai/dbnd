@@ -65,6 +65,11 @@ class CoreConfig(Config):
         description="Tracker URL to be used for creating links in console logs",
     )[str]
 
+    databand_external_url = parameter(
+        default=None,
+        description="Tracker URL to be used for tracking from external systems",
+    )[str]
+
     # Backward compatibility
     tracker_url = parameter(
         default=None,
@@ -150,9 +155,11 @@ class CoreConfig(Config):
         if self.databand_url and self.databand_url.endswith("/"):
             logger.warning(
                 "Please fix your core.databand_url value, "
-                "it should not containe / at the end, auto-fix has been applied."
+                "it should not contain '/' at the end, auto-fix has been applied."
             )
             self.databand_url = self.databand_url[:-1]
+        if not self.databand_external_url:
+            self.databand_external_url = self.databand_url
 
     def get_sql_alchemy_conn(self):
         return self.sql_alchemy_conn

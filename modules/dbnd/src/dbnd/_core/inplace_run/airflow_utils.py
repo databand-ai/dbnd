@@ -152,7 +152,7 @@ def track_databricks_submit_run_operator(operator):
         spark_vars["AIRFLOW_CTX_EXECUTION_DATE"] = "{{ ts }}"
         spark_vars["AIRFLOW_CTX_TASK_ID"] = "{{ task.task_id }}"
         spark_vars["AIRFLOW_CTX_TRY_NUMBER"] = "{{ task_instance._try_number }}"
-        spark_vars["DBND__CORE__DATABAND_URL"] = CoreConfig().databand_url
+        spark_vars["DBND__CORE__DATABAND_URL"] = CoreConfig().databand_external_url
 
 
 def track_data_proc_pyspark_operator(operator):
