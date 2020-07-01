@@ -656,7 +656,9 @@ def build_parameter_value(parameter, cf_value):
     try:
         p_val = parameter.calc_init_value(value)
     except Exception as ex:
-        raise parameter.parameter_exception("calculate value", ex=ex)
+        raise parameter.parameter_exception(
+            "calculate value from '%s'" % safe_string(value, 100), ex=ex
+        )
 
     # we need to break strong reference between tasks
     # otherwise we will have pointer from task to another task

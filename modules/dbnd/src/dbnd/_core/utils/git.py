@@ -41,5 +41,5 @@ def get_git_commit(path):
         commit = repo.head.commit.hexsha
         return commit
     except Exception as ex:
-        logger.error("Failed to get git version: %s", ex)
+        logger.warning("Failed to get GIT version of %s: %s", path, ex)
         return None

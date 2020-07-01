@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 @per_thread_cached()
 def get_azure_credentials():
     if use_airflow_connections():
+        from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
+
+        dbnd_airflow_bootstrap()
+
         from dbnd_airflow_contrib.credentials_helper_azure import (
             AzureBlobStorageCredentials,
         )
