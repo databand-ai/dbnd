@@ -5,7 +5,7 @@ import os
 logger = logging.getLogger(__name__)
 
 
-def restart_airflow_sql_conn():
+def reinit_airflow_sql_conn():
     from airflow.settings import configure_vars, configure_orm
     from dbnd._core.configuration.dbnd_config import config as dbnd_config
 
