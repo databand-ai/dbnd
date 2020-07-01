@@ -20,7 +20,15 @@ from dbnd._core.utils.project.project_fs import abs_join
 logger = logging.getLogger(__name__)
 
 
-def run_dbnd_subprocess(args, retcode=255, clean_env=False, blocking=True, **kwargs):
+def get_environ_without_dbnd_and_airflow_vars():
+    env = os.environ.copy()
+    for key in list(env.keys()):
+        if key.startswith("DBND") or key.startswith("AIRFLOW"):
+            del env[key]
+    return env
+
+
+def run_dbnd_subprocess(args, retcode=255, blocking=True, **kwargs):
     # implement runner with https://docs.pytest.org/en/latest/capture.html
     # do not run in subprocess
     # main.main(['run', '--module', str(factories.__name__), ] + args)
@@ -29,15 +37,8 @@ def run_dbnd_subprocess(args, retcode=255, clean_env=False, blocking=True, **kwa
     cmd_args = list(map(str, args))
     env = kwargs.pop("env", os.environ).copy()
 
-    if clean_env:
-        for key in list(env.keys()):
-            if key.startswith("DBND") or key.startswith("AIRFLOW"):
-                del env[key]
-
     # env['PYTHONUNBUFFERED'] = 'false'
     # env['PYTHONPATH'] = env.get('PYTHONPATH', '') + ':.:test'
-
-    from dbnd._core.current import get_databand_context
 
     cmd_line = list2cmdline(cmd_args)
 
@@ -81,6 +82,8 @@ def run_subprocess__airflow(args, retcode=255, **kwargs):
 
 
 def run_dbnd_subprocess__dbnd(args, retcode=255, **kwargs):
+    if isinstance(args, str):
+        args = shlex.split(args, posix=not windows_compatible_mode)
     return run_dbnd_subprocess(
         args=[sys.executable, "-m", "dbnd"] + args,
         cwd=kwargs.pop("cwd", os.environ[ENV_DBND_HOME]),
@@ -110,14 +113,6 @@ def build_task(root_task, **kwargs):
 
     with new_dbnd_context(conf={root_task: kwargs}):
         return get_task_registry().build_dbnd_task(task_name=root_task)
-
-
-def run_dbnd_test_project(project_dir, args_str, clean_env=True):
-    args = shlex.split(args_str, posix=not windows_compatible_mode)
-
-    output = run_dbnd_subprocess__dbnd(args=args, clean_env=clean_env, cwd=project_dir)
-    logger.warning("Test project at %s: '%s'", project_dir, args_str)
-    return output
 
 
 @seven.contextlib.contextmanager

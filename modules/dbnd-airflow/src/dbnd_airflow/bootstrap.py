@@ -34,10 +34,6 @@ def dbnd_airflow_bootstrap():
             ]
             patch_models(patches)
 
-        from dbnd_airflow.airflow_override import patch_airflow_modules
-
-        patch_airflow_modules()
-
     if os.name == "nt" and dbnd_config.getboolean("airflow", "enable_windows_support"):
         from dbnd_airflow.airflow_override.dbnd_airflow_windows import (
             patch_airflow_windows_support,

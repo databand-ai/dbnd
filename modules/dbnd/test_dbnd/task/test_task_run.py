@@ -1,14 +1,8 @@
 import logging
-import os
-
-from os.path import exists
-
-import pytest
 
 from dbnd import ParameterScope, PipelineTask, data, dbnd_run_cmd, output, parameter
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd.tasks.basics import SimplestTask
-from dbnd.testing.helpers import run_dbnd_test_project
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_test_scenarios.test_common.task.factories import TTask, TTaskWithInput
 from test_dbnd.scenarios.pipelines.pipe_4tasks import (
@@ -121,25 +115,3 @@ class TestTaskRun(object):
 
     def test_scenario_4_select_task(self, tmpdir_factory):
         dbnd_run_cmd([Scenario4_MainPipeline.get_task_family(), "-c run.task=B_F4Task"])
-
-    def test_databand_files(self, tmpdir_factory):
-        # create a file "myfile" in "mydir" in temp folder
-        new_project_dir = tmpdir_factory.mktemp("test_project").strpath
-        output = run_dbnd_test_project(new_project_dir, "project-init")
-        assert "Databand project has been initialized at" in output
-        target = new_project_dir
-
-        assert exists(target)
-        assert exists(os.path.join(target, "project.cfg"))
-
-    def test_double_init_fail(self, tmpdir_factory):
-        # create a file "myfile" in "mydir" in temp folder
-        new_project_dir = tmpdir_factory.mktemp("test_project").strpath
-        output = run_dbnd_test_project(new_project_dir, "project-init")
-        assert "Databand project has been initialized at" in output
-
-        with pytest.raises(Exception):
-            run_dbnd_test_project(new_project_dir, "project-init")
-
-        output = run_dbnd_test_project(new_project_dir, "project-init --overwrite")
-        assert "Databand project has been initialized at" in output
