@@ -16,12 +16,13 @@ from six import BytesIO
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandError, DatabandRuntimeError
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
-from dbnd._core.tracking.metrics import Artifact, Metric
+from dbnd._core.tracking.backends import TrackingStore
+from dbnd._core.tracking.schemas.metrics import Artifact, Metric
 from dbnd._core.tracking.tracking_info_convertor import (
     build_task_run_info,
     task_to_task_def,
 )
-from dbnd._core.tracking.tracking_store import TrackingStore
+from dbnd.api.serialization.run import RunInfoSchema
 from dbnd.api.serialization.task import TaskDefinitionInfoSchema, TaskRunInfoSchema
 from targets import target
 
@@ -51,8 +52,6 @@ class FileTrackingStore(TrackingStore):
             self.dump_task_run_info(task_run)
 
     def dump_task_run_info(self, task_run):
-
-        from dbnd.api.serialization.run import RunInfoSchema
 
         info = {
             "task_run": TaskRunInfoSchema().dump(build_task_run_info(task_run)).data,
@@ -144,8 +143,6 @@ class TaskRunMetricsFileStoreReader(object):
         return {m.key: m.value for m in metrics}
 
     def get_run_info(self):
-
-        from dbnd.api.serialization.run import RunInfoSchema
 
         with self.meta.get_meta_data_file().open("r") as yaml_file:
             return RunInfoSchema().load(**yaml.load(yaml_file))

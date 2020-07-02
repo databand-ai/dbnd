@@ -10,7 +10,7 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
-from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
+from dbnd._core.tracking.schemas.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.utils.basics.text_banner import safe_string
 from dbnd._core.utils.platform.windows_compatible.getuser import dbnd_getuser
 from dbnd._core.utils.project.project_fs import project_path

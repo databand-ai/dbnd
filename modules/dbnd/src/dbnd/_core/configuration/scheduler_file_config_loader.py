@@ -9,7 +9,11 @@ import yaml
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.utils.string_utils import pluralize
 from dbnd._core.utils.timezone import make_aware
-from dbnd.api import scheduler_api_client
+from dbnd.api.scheduler import (
+    get_scheduled_jobs,
+    patch_scheduled_job,
+    post_scheduled_job,
+)
 from dbnd.api.shared_schemas.scheduled_job_schema import (
     ScheduledJobSchemaV2,
     validate_cron,
@@ -50,9 +54,9 @@ class SchedulerFileConfigLoader(object):
         to_create, to_update, to_enable, to_disable = self.build_delta()
 
         for s in to_create:
-            scheduler_api_client.post_scheduled_job(s)
+            post_scheduled_job(s)
         for s in to_update + to_disable + to_enable:
-            scheduler_api_client.patch_scheduled_job(s)
+            patch_scheduled_job(s)
 
         if to_create or to_update or to_enable or to_disable:
             return {
@@ -75,9 +79,7 @@ class SchedulerFileConfigLoader(object):
 
         from_db = [
             s["DbndScheduledJob"]
-            for s in scheduler_api_client.get_scheduled_jobs(
-                from_file_only=True, include_deleted=True
-            )
+            for s in get_scheduled_jobs(from_file_only=True, include_deleted=True)
         ]
         return self.delta(from_db, from_file, file_modified_time)
 

@@ -9,7 +9,7 @@ from dbnd._core.errors.errors_utils import (
     nested_exceptions_str,
     show_exc_info,
 )
-from dbnd._core.tracking.tracking_info_objects import ErrorInfo
+from dbnd._core.tracking.schemas.tracking_info_objects import ErrorInfo
 from dbnd._core.utils.timezone import utcnow
 
 

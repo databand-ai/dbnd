@@ -18,7 +18,7 @@ from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.plugin.dbnd_plugins import is_web_enabled
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
-from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
+from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.basics.dict_utils import filter_dict_remove_false_values
 from dbnd._vendor import click
 from dbnd._vendor.click_tzdatetime import TZAwareDateTime

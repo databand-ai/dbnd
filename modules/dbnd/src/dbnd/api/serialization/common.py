@@ -1,6 +1,7 @@
-from dbnd._core.tracking.tracking_info_objects import ErrorInfo, TargetInfo
+from dbnd._core.tracking.schemas.base import ApiObjectSchema
+from dbnd._core.tracking.schemas.metrics import Metric
+from dbnd._core.tracking.schemas.tracking_info_objects import ErrorInfo, TargetInfo
 from dbnd._vendor.marshmallow import fields, post_load
-from dbnd.api.api_utils import ApiObjectSchema
 
 
 class TargetInfoSchema(ApiObjectSchema):
@@ -26,8 +27,6 @@ class MetricSchema(ApiObjectSchema):
 
     @post_load
     def make_object(self, data, **kwargs):
-        from dbnd._core.tracking.metrics import Metric
-
         return Metric(**data)
 
 

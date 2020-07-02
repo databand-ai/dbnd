@@ -3,7 +3,7 @@ import logging
 import typing
 
 from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
-from dbnd._core.tracking.tracking_store import TrackingStore
+from dbnd._core.tracking.backends.abstract_tracking_store import TrackingStore
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.timezone import utcnow
 from dbnd.api.tracking_api import (
@@ -11,14 +11,18 @@ from dbnd.api.tracking_api import (
     LogTargetArgs,
     TaskRunAttemptUpdateArgs,
     add_task_runs_schema,
+    airflow_task_infos_schema,
     heartbeat_schema,
     init_run_schema,
     log_artifact_schema,
     log_df_hist_schema,
     log_metric_schema,
     log_targets_schema,
+    save_external_links_schema,
+    save_task_run_log_schema,
     scheduled_job_args_schema,
     set_run_state_schema,
+    set_task_run_reused_schema,
     set_unfinished_tasks_state_schema,
     update_task_run_attempts_schema,
 )
@@ -33,16 +37,16 @@ if typing.TYPE_CHECKING:
     from dbnd._core.constants import TaskRunState
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.task_run.task_run_error import TaskRunError
-    from dbnd.api.tracking_api import TrackingApiClient
+    from dbnd._core.tracking.backends.channels import TrackingWebChannel
 
 logger = logging.getLogger(__name__)
 
 
-class TrackingStoreApi(TrackingStore):
+class TrackingStoreThroughChannel(TrackingStore):
     """Track data to Tracking API"""
 
     def __init__(self, channel):
-        # type: (TrackingApiClient) -> None
+        # type: (TrackingWebChannel) -> None
         self.channel = channel
 
     def init_scheduled_job(self, scheduled_job, update_existing):
@@ -87,8 +91,6 @@ class TrackingStoreApi(TrackingStore):
         )
 
     def set_task_reused(self, task_run):
-        from dbnd.api.tracking_api import set_task_run_reused_schema
-
         return self._m(
             self.channel.set_task_reused,
             set_task_run_reused_schema,
@@ -144,8 +146,6 @@ class TrackingStoreApi(TrackingStore):
         )
 
     def save_task_run_log(self, task_run, log_body):
-        from dbnd.api.tracking_api import save_task_run_log_schema
-
         return self._m(
             self.channel.save_task_run_log,
             save_task_run_log_schema,
@@ -154,8 +154,6 @@ class TrackingStoreApi(TrackingStore):
         )
 
     def save_external_links(self, task_run, external_links_dict):
-        from dbnd.api.tracking_api import save_external_links_schema
-
         return self._m(
             self.channel.save_external_links,
             save_external_links_schema,
@@ -252,8 +250,6 @@ class TrackingStoreApi(TrackingStore):
         return self._m(self.channel.heartbeat, heartbeat_schema, run_uid=run_uid)
 
     def save_airflow_task_infos(self, airflow_task_infos, source, base_url):
-        from dbnd.api.tracking_api import airflow_task_infos_schema
-
         return self._m(
             self.channel.save_airflow_task_infos,
             airflow_task_infos_schema,

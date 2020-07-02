@@ -7,12 +7,12 @@ import six
 
 from mock import mock_open, patch
 
+from dbnd._core.configuration import scheduler_file_config_loader
 from dbnd._core.configuration.scheduler_file_config_loader import (
     InvalidConfigException,
     SchedulerFileConfigLoader,
 )
 from dbnd._core.utils.timezone import utcnow
-from dbnd.api import scheduler_api_client
 
 
 class TestSchedulerFileConfigLoader(object):
@@ -21,7 +21,7 @@ class TestSchedulerFileConfigLoader(object):
         existing_jobs = []
 
         monkeypatch.setattr(
-            scheduler_api_client,
+            scheduler_file_config_loader,
             "get_scheduled_jobs",
             lambda *args, **kwargs: existing_jobs,
         )
@@ -63,7 +63,7 @@ class TestSchedulerFileConfigLoader(object):
             )
             assert delta_result.to_create[0]["schedule_interval"] == "* * * * *"
             assert delta_result.to_create[0]["retries"] == 2
-            assert delta_result.to_create[0]["active"] == True
+            assert delta_result.to_create[0]["active"] is True
 
             assert delta_result.to_create[1]["name"] == "predict_wine_quality daily"
 

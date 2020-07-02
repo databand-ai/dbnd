@@ -21,11 +21,11 @@ from dbnd._core.configuration.scheduler_file_config_loader import (
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.settings import LoggingConfig, RunConfig
-from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
+from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import convert_to_utc
-from dbnd.api import scheduler_api_client
+from dbnd.api.scheduler import get_scheduled_jobs
 from dbnd.tasks.basics.shell import bash_cmd
 
 
@@ -86,7 +86,7 @@ class DbndSchedulerDBDagsProvider(object):
     def get_scheduled_jobs(self):  # type: () -> List[dict]
         return [
             s["DbndScheduledJob"]
-            for s in scheduler_api_client.get_scheduled_jobs()
+            for s in get_scheduled_jobs()
             if not s["DbndScheduledJob"].get("validation_errors")
         ]
 

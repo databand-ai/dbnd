@@ -4,6 +4,7 @@ import typing
 from uuid import UUID
 
 from dbnd._core.errors.base import DatabandConnectionException
+from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
 
 
 if typing.TYPE_CHECKING:
@@ -12,7 +13,11 @@ if typing.TYPE_CHECKING:
     from targets.base_target import Target
     from targets.value_meta import ValueMeta
 
-    from dbnd.api.tracking_api import InitRunArgs, AirflowTaskInfo, LogTargetArgs
+    from dbnd.api.tracking_api import (
+        InitRunArgs,
+        AirflowTaskInfo,
+        LogTargetArgs,
+    )
     from dbnd._core.constants import (
         DbndTargetOperationType,
         DbndTargetOperationStatus,
@@ -24,90 +29,11 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class TrackingStore(object):
-    @staticmethod
-    def _serialize_dbnd_objects(dbnd_run):
-        # type: (DatabandRun) -> InitRunArgs
-        from dbnd._core.tracking.tracking_info_convertor import TrackingInfoBuilder
-
-        init_run_args = TrackingInfoBuilder(dbnd_run).build_init_args()
-        return init_run_args
-
-    def init_scheduled_job(self, scheduled_job, update_existing):
-        pass
-
-    def init_run(self, run):
-        # type: (DatabandRun) -> List[int]
-        pass
-
-    def init_run_from_args(self, init_args):
-        # type: (InitRunArgs) -> List[int]
-        pass
-
-    def set_run_state(self, run, state, timestamp=None):
-        pass
-
-    def set_task_reused(self, task_run):
-        pass
-
-    def set_task_run_state(self, task_run, state, error=None, timestamp=None):
-        pass
-
-    def set_task_run_states(self, task_runs):
-        pass
-
-    def set_unfinished_tasks_state(self, run_uid, state):
-        pass
-
-    def save_task_run_log(self, task_run, log_body):
-        pass
-
-    def save_external_links(self, task_run, external_links_dict):
-        pass
-
-    def log_metric(self, task_run, metric, source=None):
-        pass
-
-    def log_artifact(self, task_run, name, artifact, artifact_target):
-        pass
-
-    def add_task_runs(self, run, task_runs):
-        pass
-
-    def heartbeat(self, run_uid):
-        pass
-
-    def update_task_run_attempts(self, task_run_attempt_updates):
-        pass
-
-    def save_airflow_task_infos(self, airflow_task_infos, source, base_url):
-        # type: (List[AirflowTaskInfo], UpdateSource, str) -> None
-        pass
-
-    def log_target(
-        self,
-        task_run,  # type: TaskRun
-        target,  # type: Union[Target, str]
-        target_meta,  # type: ValueMeta
-        operation_type,  # type: DbndTargetOperationType
-        operation_status,  # type: DbndTargetOperationStatus
-        param_name=None,  # type: Optional[str]
-        task_def_uid=None,  # type: Optional[UUID]
-    ):  # type: (...) -> None
-        pass
-
-    def log_targets(self, targets_info):
-        # type: (List[LogTargetArgs]) -> None
-        pass
-
-    def is_ready(self):
-        # type: () -> bool
-        pass
-
-
 class CompositeTrackingStore(TrackingStore):
-    def __init__(self, stores, raise_on_error=True):
-        self._stores = stores
+    def __init__(self, tracking_stores, raise_on_error=True):
+        if not tracking_stores:
+            logger.warning("You are running without any tracking store configured.")
+        self._stores = tracking_stores
         self._raise_on_error = raise_on_error
 
     def _invoke(self, name, kwargs):
@@ -121,14 +47,14 @@ class CompositeTrackingStore(TrackingStore):
             except DatabandConnectionException as ex:
                 logger.error(
                     "Failed to store tracking information from %s at %s : %s"
-                    % (name, store.__class__.__name__, ex)
+                    % (name, store.__class__.__name__, str(ex))
                 )
                 if self._raise_on_error:
                     raise
             except Exception as ex:
                 logger.exception(
                     "Failed to store tracking information from %s at %s"
-                    % (name, store.__class__.__name__)
+                    % (name, store.__class__.__name__, str(ex))
                 )
                 if self._raise_on_error:
                     raise
@@ -137,10 +63,9 @@ class CompositeTrackingStore(TrackingStore):
     # this is a function that used for disabling Tracking api on spark inline tasks.
     def disable_tracking_api(self):
         filtered_stores = []
-        from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
 
         for store in self._stores:
-            if isinstance(store, TrackingStoreApi):
+            if isinstance(store, TrackingStoreThroughChannel):
                 continue
             filtered_stores.append(store)
         self._stores = filtered_stores

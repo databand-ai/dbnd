@@ -6,7 +6,7 @@ from dbnd._core.constants import RunState, SystemTaskName, TaskRunState, UpdateS
 from dbnd._core.current import is_verbose
 from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
 from dbnd._core.run.run_ctrl import RunCtrl
-from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
+from dbnd._core.tracking.schemas.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.utils.basics.text_banner import TextBanner
 
 

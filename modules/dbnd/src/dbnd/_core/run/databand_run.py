@@ -58,7 +58,7 @@ from dbnd._core.task_executor.factory import (
 )
 from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 from dbnd._core.task_run.task_run import TaskRun
-from dbnd._core.tracking.tracking_info_run import RootRunInfo, ScheduledRunInfo
+from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils import console_utils
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.nested_context import nested
@@ -68,16 +68,10 @@ from dbnd._core.utils.traversing import flatten
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd._vendor.namesgenerator import get_name_for_uid
+from dbnd.api.runs import kill_run
 from targets import FileTarget, Target
 from targets.caching import TARGET_CACHE
 
-
-if typing.TYPE_CHECKING:
-    from uuid import UUID
-
-
-if typing.TYPE_CHECKING:
-    from dbnd._core.context.databand_context import DatabandContext
 
 logger = logging.getLogger(__name__)
 
@@ -462,7 +456,7 @@ class DatabandRun(SingletonContext):
                 yield dr
 
     @classmethod
-    def load_run(self, dump_file, disable_tracking_api):
+    def load_run(cls, dump_file, disable_tracking_api):
         # type: (FileTarget, bool) -> DatabandRun
         logger.info("Loading dbnd run from %s", dump_file)
         with dump_file.open("rb") as fp:
@@ -605,7 +599,7 @@ class DatabandRun(SingletonContext):
     def kill_run(self):
         _is_killed.set()
         try:
-            return self.context.kill_api_client.kill_run(str(self.run_uid))
+            return kill_run(str(self.run_uid), ctx=self.context)
         except Exception as e:
             raise DatabandFailFastError(
                 "Could not send request to kill databand run!", e

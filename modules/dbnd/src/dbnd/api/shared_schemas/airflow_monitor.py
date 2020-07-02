@@ -1,7 +1,7 @@
 import attr
 
+from dbnd._core.tracking.schemas.base import _ApiCallSchema
 from dbnd._vendor.marshmallow import fields, post_load
-from dbnd.api.api_utils import _ApiCallSchema
 
 
 class AirflowServerInfoSchema(_ApiCallSchema):

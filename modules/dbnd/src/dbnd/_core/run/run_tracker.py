@@ -7,7 +7,7 @@ from dbnd._core.run.run_ctrl import RunCtrl
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.tracking.tracking_store import TrackingStore
+    from dbnd._core.tracking.backends import TrackingStore
     from dbnd._core.task_run.task_run import TaskRun
 
 logger = logging.getLogger(__name__)

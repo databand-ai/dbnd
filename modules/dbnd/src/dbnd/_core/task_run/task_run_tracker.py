@@ -9,14 +9,14 @@ from dbnd._core.constants import (
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.tracking.metrics import Metric
-from dbnd._core.tracking.tracking_store import TrackingStore
+from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 from targets import Target
 from targets.values import get_value_type_of_obj
 
 
 if typing.TYPE_CHECKING:
+    from dbnd._core.tracking.backends import TrackingStore
     from datetime import datetime
     from typing import Any, Optional, Union
     import pandas as pd

@@ -2,7 +2,7 @@ from mock import Mock
 
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
-from dbnd._core.tracking.tracking_store_file import (
+from dbnd._core.tracking.backends.tracking_store_file import (
     FileTrackingStore,
     TaskRunMetricsFileStoreReader,
 )
