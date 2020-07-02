@@ -1,12 +1,16 @@
 import logging
 import typing
 
-from dbnd._core.task_run.task_run_tracker import TaskRunTracker
-from targets.value_meta import ValueMetaConf
+from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
+from dbnd._core.task_run.task_run_tracker import (
+    TaskRunTracker,
+    get_value_meta_for_metric,
+)
+from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, Union
+    from typing import Any, Optional, Union
     import pandas as pd
     import pyspark.sql as spark
 
@@ -27,6 +31,8 @@ def _get_tracker():
 def log_dataframe(
     key,  # type: str
     value,  # type: Union[pd.DataFrame, spark.DataFrame]
+    path=None,  # type: Optional[str]
+    access_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType
     with_preview=True,  # type: Optional[bool]
     with_size=True,  # type: Optional[bool]
     with_schema=True,  # type: Optional[bool]
@@ -42,6 +48,9 @@ def log_dataframe(
         log_df_hist=with_histograms,
     )
     tracker = _get_tracker()
+    if path:
+        log_target(value, path, access_type, meta_conf)
+
     if tracker:
         tracker.log_dataframe(key, value, meta_conf=meta_conf)
         return
@@ -55,6 +64,23 @@ def log_dataframe(
         )
     else:
         logger.info("Log DataFrame '{}': {} is not supported".format(key, type(value)))
+
+
+def log_target(value, path, access_type=DbndTargetOperationType.write, meta_conf=None):
+    # type: (Any, str, DbndTargetOperationType, Optional[ValueMetaConf]) -> None
+    tracker = _get_tracker()
+    if tracker:
+        if meta_conf:
+            value_meta = get_value_meta_for_metric(path, value, meta_conf=meta_conf)
+        else:
+            value_meta = ValueMeta(value_preview="<N/A>")
+        tracker.tracking_store.log_target(
+            task_run=tracker.task_run,
+            target=path,
+            target_meta=value_meta,
+            operation_type=access_type,
+            operation_status=DbndTargetOperationStatus.OK,
+        )
 
 
 def log_metric(key, value, source="user"):

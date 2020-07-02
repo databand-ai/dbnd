@@ -7,7 +7,7 @@ from dbnd._core.errors.base import DatabandConnectionException
 
 
 if typing.TYPE_CHECKING:
-    from typing import List
+    from typing import List, Optional, Union
 
     from targets.base_target import Target
     from targets.value_meta import ValueMeta
@@ -87,12 +87,12 @@ class TrackingStore(object):
     def log_target(
         self,
         task_run,  # type: TaskRun
-        target,  # type: Target
+        target,  # type: Union[Target, str]
         target_meta,  # type: ValueMeta
         operation_type,  # type: DbndTargetOperationType
         operation_status,  # type: DbndTargetOperationStatus
-        param_name,  # type: str
-        task_def_uid,  # type: UUID
+        param_name=None,  # type: Optional[str]
+        task_def_uid=None,  # type: Optional[UUID]
     ):  # type: (...) -> None
         pass
 

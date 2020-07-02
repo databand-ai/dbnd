@@ -27,7 +27,8 @@ from targets.value_meta import ValueMeta
 
 
 if typing.TYPE_CHECKING:
-    from typing import List
+    from typing import List, Optional
+    from uuid import UUID
 
     from dbnd._core.constants import TaskRunState
     from dbnd._core.task_run.task_run import TaskRun
@@ -169,8 +170,8 @@ class TrackingStoreApi(TrackingStore):
         target_meta,  # type: ValueMeta
         operation_type,  # type: DbndTargetOperationType
         operation_status,  # type: DbndTargetOperationStatus
-        param_name,
-        task_def_uid,
+        param_name=None,  # type: Optional[str]
+        task_def_uid=None,  # type: Optional[UUID]
     ):
         data_schema = (
             json_utils.dumps(target_meta.data_schema)

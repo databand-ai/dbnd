@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
     import pandas as pd
     import pyspark.sql as spark
 
-    from targets.value_meta import ValueMetaConf
+    from targets.value_meta import ValueMetaConf, ValueMeta
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
             target_meta = value_type.get_value_meta(value, meta_conf=meta_conf)
-            target.target_meta = target_meta
+            target.target_meta = target_meta  # Do we actually need this?
             self.tracking_store.log_target(
                 task_run=self.task_run,
                 target=target,
@@ -170,6 +170,7 @@ class TaskRunTracker(TaskRunCtrl):
 
 
 def get_value_meta_for_metric(key, value, meta_conf):
+    # type: (...) -> Optional[ValueMeta]
     value_type = get_value_type_of_obj(value)
     if value_type is None:
         logger.info(

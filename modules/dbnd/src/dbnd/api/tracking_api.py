@@ -259,8 +259,6 @@ class LogTargetArgs(object):
     task_run_name = attr.ib()  # type: str
     task_run_attempt_uid = attr.ib()  # type: UUID
     target_path = attr.ib()  # type: str
-    param_name = attr.ib()  # type: str
-    task_def_uid = attr.ib()  # type: UUID
     operation_type = attr.ib()  # type: DbndTargetOperationType
     operation_status = attr.ib()  # type: DbndTargetOperationStatus
 
@@ -269,15 +267,34 @@ class LogTargetArgs(object):
     data_schema = attr.ib()  # type: str
     data_hash = attr.ib()  # type: str
 
+    param_name = attr.ib(default=None)  # type: Optional[str]
+    task_def_uid = attr.ib(default=None)  # type: Optional[UUID]
+
     def asdict(self):
         return attr.asdict(self, recurse=False)
 
 
 @attr.s
-class LogDataframeHistogramsArgs(LogTargetArgs):
-    descriptive_stats = attr.ib()  # type: Dict
+class LogDataframeHistogramsArgs(object):
+    run_uid = attr.ib()  # type: UUID
+    task_run_uid = attr.ib()  # type: UUID
+    task_run_name = attr.ib()  # type: str
+    task_run_attempt_uid = attr.ib()  # type: UUID
+    target_path = attr.ib()  # type: str
+    operation_type = attr.ib()  # type: DbndTargetOperationType
+    operation_status = attr.ib()  # type: DbndTargetOperationStatus
+
+    value_preview = attr.ib()  # type: str
+    data_dimensions = attr.ib()  # type: Sequence[int]
+    data_schema = attr.ib()  # type: str
+    data_hash = attr.ib()  # type: str
+
+    descriptive_stats = attr.ib()  # type: Dict[str, Dict]
     histograms = attr.ib()  # type: Dict[str, Tuple]
     timestamp = attr.ib()  # type: datetime.datetime
+
+    param_name = attr.ib(default=None)  # type: Optional[str]
+    task_def_uid = attr.ib(default=None)  # type: Optional[UUID]
 
 
 class LogTargetSchema(_ApiCallSchema):
@@ -287,8 +304,8 @@ class LogTargetSchema(_ApiCallSchema):
     task_run_attempt_uid = fields.UUID(required=True)
 
     target_path = fields.String()
-    param_name = fields.String()
-    task_def_uid = fields.UUID()
+    param_name = fields.String(allow_none=True)
+    task_def_uid = fields.UUID(allow_none=True)
     operation_type = EnumField(DbndTargetOperationType)
     operation_status = EnumField(DbndTargetOperationStatus)
 

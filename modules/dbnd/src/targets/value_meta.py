@@ -10,9 +10,9 @@ _DEFAULT_VALUE_PREVIEW_MAX_LEN = 10000
 @attr.s(slots=True)
 class ValueMeta(object):
     value_preview = attr.ib()  # type: str
-    data_dimensions = attr.ib()  # type: Optional[Sequence[int]]
-    data_schema = attr.ib()  # type: Optional[Dict[str,Any]]
-    data_hash = attr.ib()  # type: Optional[str]
+    data_dimensions = attr.ib(default=None)  # type: Optional[Sequence[int]]
+    data_schema = attr.ib(default=None)  # type: Optional[Dict[str,Any]]
+    data_hash = attr.ib(default=None)  # type: Optional[str]
     descriptive_stats = attr.ib(
         default=None
     )  # type: Optional[Dict[str, Dict[str, Union[int, float]]]]
