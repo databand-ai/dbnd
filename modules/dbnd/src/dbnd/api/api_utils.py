@@ -56,7 +56,11 @@ class ApiClient(object):
             raise DatabandApiError(
                 method, url, resp.status_code, resp.content.decode("utf-8")
             )
-
+        if resp.content:
+            try:
+                return resp.json()
+            except Exception:
+                return None
         return resp.json() if resp.content else None
 
     def _init_session(self):

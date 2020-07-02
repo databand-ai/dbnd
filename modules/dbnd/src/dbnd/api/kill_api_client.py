@@ -12,4 +12,4 @@ class KillApiClient(object):
         self.client = ApiClient(api_base_url=api_base_url, auth=auth)
 
     def kill_run(self, run_uid):
-        self.client.api_request(endpoint="runs/stop", data=[run_uid])
+        return self.client.api_request(endpoint="runs/stop", data=[run_uid])

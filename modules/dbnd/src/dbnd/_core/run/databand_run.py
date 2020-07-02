@@ -605,7 +605,7 @@ class DatabandRun(SingletonContext):
     def kill_run(self):
         _is_killed.set()
         try:
-            self.context.kill_api_client.kill_run(str(self.run_uid))
+            return self.context.kill_api_client.kill_run(str(self.run_uid))
         except Exception as e:
             raise DatabandFailFastError(
                 "Could not send request to kill databand run!", e
