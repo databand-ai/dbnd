@@ -250,7 +250,7 @@ class MetricSource(object):
 
     @classmethod
     def default_sources(cls):
-        return [cls.user, cls.histograms]
+        return [cls.user, cls.system, cls.histograms]
 
     @classmethod
     def default_sources_str(cls):
