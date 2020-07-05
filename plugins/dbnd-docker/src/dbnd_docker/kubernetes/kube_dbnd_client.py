@@ -103,7 +103,7 @@ class DbndKubernetesClient(object):
             return
         from dbnd._core.task_run.task_run_error import TaskRunError
 
-        task_run_error = TaskRunError.buid_from_ex(ex, task_run)
+        task_run_error = TaskRunError.build_from_ex(ex, task_run)
 
         status_log = _get_status_log_safe(pod_data)
         logger.info(
@@ -192,7 +192,7 @@ class DbndKubernetesClient(object):
                 help_msg="Please see full pod log for more details",
             )
         except DatabandError as ex:
-            error = TaskRunError.buid_from_ex(ex, task_run)
+            error = TaskRunError.build_from_ex(ex, task_run)
 
         airflow_task_state = get_airflow_task_instance_state(task_run=task_run)
         logger.debug("task airflow state: %s ", airflow_task_state)
@@ -501,7 +501,7 @@ class DbndPodCtrl(object):
             )
             logger.debug("Pod Creation Response: %s", resp)
         except ApiException as ex:
-            task_run_error = TaskRunError.buid_from_ex(ex, task_run)
+            task_run_error = TaskRunError.build_from_ex(ex, task_run)
             task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
             logger.error(
                 "Exception when attempting to create Namespaced Pod using: %s",

@@ -95,7 +95,7 @@ class TaskRunRunner(TaskRunCtrl):
                 )
                 run._internal_kill()
 
-                error = TaskRunError.buid_from_ex(ex, task_run)
+                error = TaskRunError.build_from_ex(ex, task_run)
                 try:
                     task.on_kill()
                 except Exception:
@@ -106,7 +106,7 @@ class TaskRunRunner(TaskRunCtrl):
                 logger.error(
                     "User Interrupt! Killing the task %s", task_run.task.task_id
                 )
-                error = TaskRunError.buid_from_ex(ex, task_run)
+                error = TaskRunError.build_from_ex(ex, task_run)
                 try:
                     if task._conf_confirm_on_kill_msg:
                         from dbnd._vendor import click
@@ -125,11 +125,11 @@ class TaskRunRunner(TaskRunCtrl):
                 run._internal_kill()
                 raise
             except SystemExit as ex:
-                error = TaskRunError.buid_from_ex(ex, task_run)
+                error = TaskRunError.build_from_ex(ex, task_run)
                 task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
                 raise friendly_error.task_execution.system_exit_at_task_run(task, ex)
             except Exception as ex:
-                error = TaskRunError.buid_from_ex(ex, task_run)
+                error = TaskRunError.build_from_ex(ex, task_run)
                 task_run.set_task_run_state(TaskRunState.FAILED, error=error)
                 show_error_once.set_shown(ex)
                 raise
