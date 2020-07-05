@@ -347,13 +347,11 @@ def _find_and_set_dbnd_home():
             set_env_dir(ENV_DBND_HOME, dbnd_home)
             return True
 
-    # last chance, if airflow is defined, let's use it as home
-    airflow_home = os.environ.get("AIRFLOW_HOME")
-    if airflow_home:
-        _debug_init_print(
-            "dbnd home was not found. using airflow home: %s" % airflow_home
-        )
-        set_env_dir(ENV_DBND_HOME, airflow_home)
+    # last chance, we couldn't find dbnd project so we'll use user's home folder
+    user_home = os.path.expanduser("~")
+    if user_home:
+        _debug_init_print("dbnd home was not found. Using user's home: %s" % user_home)
+        set_env_dir(ENV_DBND_HOME, user_home)
         return True
 
     return False
