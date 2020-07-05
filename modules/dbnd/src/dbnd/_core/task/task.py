@@ -77,7 +77,7 @@ class Task(_BaseTask, _TaskParamContainer):
         significant=False,
         description="Location of all internal outputs (e.g. metrics)",
     )
-    task_band = output.json(output_name="band")
+    task_band = output.json(output_name="band", system=True)
 
     task_enabled = parameter.system(scope=ParameterScope.children)[bool]
     task_enabled_in_prod = parameter.system(scope=ParameterScope.children)[bool]
