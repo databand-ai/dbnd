@@ -12,8 +12,21 @@ def _get_metadata(wheel_file):
     raise Exception("Metadata file not found in %s" % wheel_file)
 
 
+def save_to_file(requirements_file, requirements):
+    print(
+        "Saving requirements to %s:\n\t%s"
+        % (requirements_file, "\n\t".join(requirements))
+    )
+    with open(requirements_file, "w") as rg:
+        rg.write("\n".join(requirements))
+
+
 def generate_requirements(
-    wheel_file, requirements_file, extra_packages, third_party_only=False
+    wheel_file,
+    requirements_file,
+    extra_packages,
+    separate_extras=False,
+    third_party_only=False,
 ):
     metadata = _get_metadata(wheel_file)
     requirements = []
@@ -45,16 +58,21 @@ def generate_requirements(
         requirements.append(req_str)
 
     for extra_name in extra_packages:
-        for p in requirements_extras.get('extra == "%s"' % extra_name, []):
+        extras = requirements_extras.get('extra == "%s"' % extra_name, [])
+        if separate_extras and extras:
+            extras_filename = requirements_file + "[%s]" % extra_name
+            if ".requirements.txt" in requirements_file:
+                extras_filename = requirements_file.replace(
+                    ".requirements.txt", "[%s].requirements.txt" % extra_name
+                )
+
+            save_to_file(extras_filename, extras)
+            continue
+        for p in extras:
             if p not in requirements:
                 requirements.append(p)
 
-    print(
-        "Saving requirements to %s:\n\t%s"
-        % (requirements_file, "\n\t".join(requirements))
-    )
-    with open(requirements_file, "w") as rg:
-        rg.write("\n".join(requirements))
+    save_to_file(requirements_file, requirements)
 
 
 def main():
@@ -71,6 +89,12 @@ def main():
         "--extras", dest="extras", default="", help="Extras (comma separated)"
     )
     parser.add_argument(
+        "--separate-extras",
+        dest="separate_extras",
+        action="store_true",
+        help="Save extras into separate requirement files",
+    )
+    parser.add_argument(
         "--third-party-only",
         dest="third_party_only",
         action="store_true",
@@ -84,6 +108,7 @@ def main():
         requirements_file=args.output
         or args.wheel.replace(".whl", ".requirements.txt"),
         extra_packages=args.extras.split(","),
+        separate_extras=args.separate_extras,
         third_party_only=args.third_party_only,
     )
 
