@@ -182,10 +182,11 @@ class Task(_BaseTask, _TaskParamContainer):
         outputs = flatten(self.task_outputs)
         if len(outputs) == 0:
             warnings.warn(
-                "Task %r without outputs has no custom complete() method" % self,
+                "Task %r without outputs has no custom complete() method, defaulting to task band check"
+                % self,
                 stacklevel=2,
             )
-            return False
+            return self.task_band and self.task_band.exists()
 
         return all((o.exists() for o in outputs))
 
