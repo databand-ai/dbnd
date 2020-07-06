@@ -10,6 +10,7 @@ def task(
     task_airflow_op_kwargs: Optional[Dict[str, object]] = None,
     task_config: Optional[dict] = None,
     result: Optional = None,
+    **kwargs,
 ):
     """
     :param task_class_version: Used to indicate persistent changes in a code.
@@ -33,6 +34,7 @@ def pipeline(
     task_airflow_op_kwargs: Optional[Dict[str, object]] = None,
     task_config: Optional[dict] = None,
     result: Optional = None,
+    **kwargs,
 ):
     """
     :param task_class_version: Used to indicate persistent changes in a code.
@@ -56,6 +58,7 @@ def band(
     task_airflow_op_kwargs: Optional[Dict[str, object]] = None,
     task_config: Optional[dict] = None,
     result: Optional = None,
+    **kwargs,
 ):
     """
     :param task_class_version: Used to indicate persistent changes in a code.
