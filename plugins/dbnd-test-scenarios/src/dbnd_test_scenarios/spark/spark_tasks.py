@@ -1,7 +1,10 @@
 from dbnd import data, output
 from dbnd.tasks import PySparkTask, SparkTask
 from dbnd_spark.spark_config import SparkConfig
-from dbnd_test_scenarios.scenarios_repo import test_scenario_target
+from dbnd_test_scenarios.scenarios_repo import (
+    scenario_pyspark_path,
+    test_scenario_target,
+)
 
 
 COUNT_WITH_HTML_MAIN_CLASS = "ai.databand.examples.WordCountWithHtml"
@@ -35,7 +38,7 @@ class WordCountPySparkTask(PySparkTask):
 
     defaults = EXAMPLE_JVM_DEFAULTS
 
-    python_script = test_scenario_target("pyspark_scripts/word_count.py")
+    python_script = scenario_pyspark_path("word_count.py")
 
     def application_args(self):
         return [self.text, self.counters]
@@ -45,7 +48,7 @@ class WordCountThatFails(PySparkTask):
     text = data
     counters = output
 
-    python_script = test_scenario_target("pyspark_scripts/word_count_with_error.py")
+    python_script = scenario_pyspark_path("word_count_with_error.py")
 
     def application_args(self):
         return [self.text, self.counters]
