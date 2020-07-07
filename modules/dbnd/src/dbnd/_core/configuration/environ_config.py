@@ -308,6 +308,7 @@ def _find_and_set_dbnd_home():
         set_env_dir(ENV_DBND_HOME, dbnd_home)
         return True
 
+    # looking for dbnd project folder to be set as home
     project_folder = _find_project_by_import()
     if project_folder:
         _debug_init_print(
@@ -324,6 +325,7 @@ def _find_and_set_dbnd_home():
         set_env_dir(ENV_DBND_HOME, dbnd_home)
         return True
 
+    # traversing all the way up to until finding relevant anchor files
     cur_dir = os.path.normpath(os.getcwd())
     cur_dir_split = cur_dir.split(os.sep)
     cur_dir_split_reversed = reversed(list(enumerate(cur_dir_split)))
@@ -344,6 +346,13 @@ def _find_and_set_dbnd_home():
         if dbnd_home:
             set_env_dir(ENV_DBND_HOME, dbnd_home)
             return True
+
+    # last chance, we couldn't find dbnd project so we'll use user's home folder
+    user_home = os.path.expanduser("~")
+    if user_home:
+        _debug_init_print("dbnd home was not found. Using user's home: %s" % user_home)
+        set_env_dir(ENV_DBND_HOME, user_home)
+        return True
 
     return False
 

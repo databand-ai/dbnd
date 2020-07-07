@@ -177,7 +177,7 @@ class _DbndInplaceRunManager(object):
     def stop_on_exception(self, type, value, traceback):
         if self._active:
             try:
-                error = TaskRunError.buid_from_ex(
+                error = TaskRunError.build_from_ex(
                     ex=value, task_run=self._task_run, exc_info=(type, value, traceback)
                 )
                 self._task_run.set_task_run_state(TaskRunState.FAILED, error=error)
