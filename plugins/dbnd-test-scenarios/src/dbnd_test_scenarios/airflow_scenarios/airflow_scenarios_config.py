@@ -30,6 +30,10 @@ stg_schedule = SmartScheduler()
 
 
 def magicDAG(dag_id, **kwargs):
+    # make sure that created dag is visible at the place of creation
+    # so user doesn't need to assign it to variable (global) on module level
+    # HINT: Airflow discover dags by looking ag globals() of imported module
+    # and taking all variables with DAG instance
     caller_globals = inspect.stack()[1][0].f_globals
 
     kwargs.setdefault("default_args", DEFAULT_ARGS)
