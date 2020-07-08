@@ -18,7 +18,9 @@ prj_plugins = 	plugins/dbnd-aws  \
           	plugins/dbnd-gcp \
           	plugins/dbnd-mlflow \
           	plugins/dbnd-tensorflow \
-          	plugins/dbnd-test-scenarios
+          	plugins/dbnd-postgres \
+          	plugins/dbnd-test-scenarios \
+          	plugins/dbnd-luigi
 
 
 prj_dist = $(prj_modules) $(prj_plugins) $(prj_plugins_spark)

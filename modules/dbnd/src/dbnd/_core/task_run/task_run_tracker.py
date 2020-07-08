@@ -118,12 +118,12 @@ class TaskRunTracker(TaskRunCtrl):
                 non_critical=True,
             )
 
-    def log_dataframe(self, key, df, meta_conf):
-        # type: (str, Union[pd.DataFrame, spark.DataFrame], ValueMetaConf) -> None
+    def log_data(self, key, data, meta_conf):
+        # type: (str, Union[pd.DataFrame, spark.DataFrame, PostgresTable], ValueMetaConf) -> None
         try:
             # Combine meta_conf with the config settings
             meta_conf = self.settings.features.get_value_meta_conf(meta_conf)
-            value_meta = get_value_meta_for_metric(key, df, meta_conf=meta_conf)
+            value_meta = get_value_meta_for_metric(key, data, meta_conf=meta_conf)
             if not value_meta:
                 return
 

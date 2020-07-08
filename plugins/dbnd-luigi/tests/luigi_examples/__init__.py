@@ -1,0 +1,2 @@
+class LuigiTestException(Exception):
+    pass

@@ -2,6 +2,7 @@ import logging
 import typing
 
 from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
+from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd._core.task_run.task_run_tracker import (
     TaskRunTracker,
     get_value_meta_for_metric,
@@ -13,7 +14,6 @@ if typing.TYPE_CHECKING:
     from typing import Any, Optional, Union
     import pandas as pd
     import pyspark.sql as spark
-
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def _get_tracker():
     return None
 
 
-def log_dataframe(
+def log_data(
     key,  # type: str
     value,  # type: Union[pd.DataFrame, spark.DataFrame]
     path=None,  # type: Optional[str]
@@ -52,7 +52,7 @@ def log_dataframe(
         log_target(value, path, access_type, meta_conf)
 
     if tracker:
-        tracker.log_dataframe(key, value, meta_conf=meta_conf)
+        tracker.log_data(key, value, meta_conf=meta_conf)
         return
 
     from dbnd._core.task_run.task_run_tracker import get_value_meta_for_metric
@@ -81,6 +81,34 @@ def log_target(value, path, access_type=DbndTargetOperationType.write, meta_conf
             operation_type=access_type,
             operation_status=DbndTargetOperationStatus.OK,
         )
+
+
+log_dataframe = log_data
+
+
+def log_pg_table(
+    table_name,
+    connection_string,
+    with_preview=True,
+    with_schema=True,
+    with_histograms=False,
+):
+
+    try:
+        if not is_plugin_enabled("dbnd-postgres", module_import="dbnd_postgres"):
+            return
+        from dbnd_postgres import postgres_values
+
+        pg_table = postgres_values.PostgresTable(table_name, connection_string)
+        log_data(
+            table_name,
+            pg_table,
+            with_preview=with_preview,
+            with_schema=with_schema,
+            with_histograms=with_histograms,
+        )
+    except Exception:
+        logger.exception("Failed to log_pg_table")
 
 
 def log_metric(key, value, source="user"):

@@ -268,7 +268,7 @@ class Task(_BaseTask, _TaskParamContainer):
             log_size=with_size,
             log_stats=with_stats,
         )
-        self.metrics.log_dataframe(key, df, meta_conf=meta_conf)
+        self.metrics.log_data(key, df, meta_conf=meta_conf)
 
     def log_metric(self, key, value, source=None):
         """

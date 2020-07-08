@@ -1,4 +1,5 @@
 import logging
+import os
 
 from typing import Type
 from weakref import WeakValueDictionary
@@ -11,6 +12,7 @@ import luigi.worker
 from dbnd import Task, parameter
 from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.context.databand_context import DatabandContext
+from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task_build.task_definition import (
     _get_source_file,
@@ -33,7 +35,7 @@ class _LuigiTask(Task):
 
 
 def _luigi_task_cls_to_dbnd_task_cls(luigi_task_cls, luigi_task):
-    # type: ( Type[luigi.Task])-> Type[_LuigiTask]
+    # type: ( Type[luigi.Task], luigi.Task)-> Type[_LuigiTask]
     # create "root task" with default name as current process executable file name
 
     task_family = luigi_task_cls.get_task_family()
@@ -68,36 +70,61 @@ def _extract_parameters(attributes, luigi_task_cls):
 
 
 def _extract_targets(attributes, luigi_task):
-    def extract_target(luigi_output_target):
+    def iterate_targets(target_or_targets, is_output, name=None):
+        if isinstance(target_or_targets, dict):
+            # Multiple targets, dict object
+            for name, val in target_or_targets.items():
+                iterate_targets(val, is_output, name)
+
+        elif isinstance(target_or_targets, list):
+            for t in target_or_targets:
+                iterate_targets(t, is_output)
+        else:
+            # Single target, target object
+            extract_target(target_or_targets, is_output, name)
+
+    def extract_target(t, is_output, name):
+        if not t:
+            return
         dbnd_target_param = _luigi_target_to_dbnd_target_param(
-            luigi_output_target, luigi_task.task_id
+            t, luigi_task.task_id, is_output=is_output
         )
-        attributes["result"] = dbnd_target_param
+        if not dbnd_target_param:
+            return
+        # TODO: Decide on parameter naming mechanism to prevent overwriting of two targets with same basename or name
+        parameter_name = name or os.path.basename(t.path)
+        counter = 0
+        while parameter_name in attributes:
+            if counter > 0:
+                parameter_name = parameter_name[:-1] + str(counter)
+            else:
+                parameter_name = parameter_name + str(counter)
+            counter += 1
+        attributes[parameter_name] = dbnd_target_param
 
-    luigi_output = luigi_task.output()
-    try:
-        iterator = iter(luigi_output)
-    except TypeError:
-        # not iterable, single output target
-        extract_target(luigi_output)
-    else:
-        # iterable, multiple outputs
-        for output_target in luigi_output:
-            extract_target(output_target)
+    iterate_targets(luigi_task.output(), is_output=True)
+    iterate_targets(luigi_task.input(), is_output=False)
 
 
-def _luigi_target_to_dbnd_target_param(luigi_target, task_id, is_output=True):
+def _luigi_target_to_dbnd_target_param(luigi_target, task_id, is_output):
     from dbnd._core.task_ctrl.task_relations import traverse_and_set_target
     from targets.base_target import TargetSource
+    from luigi.target import FileSystemTarget
 
-    dbnd_target = target(luigi_target.path, fs=LocalFileSystem())
-    fixed_target = traverse_and_set_target(dbnd_target, TargetSource(task_id=task_id))
-    target_param = _get_dbnd_param_by_luigi_name("TargetParameter").target_config(
-        fixed_target.config
-    )()
-    if is_output:
-        target_param = target_param.output()
-    return target_param
+    # TODO: Determine filesystem properly, currently relying on path
+    if isinstance(luigi_target, FileSystemTarget):
+        dbnd_target = target(luigi_target.path)
+        fixed_target = traverse_and_set_target(
+            dbnd_target, TargetSource(task_id=task_id)
+        )
+        target_param = (
+            _get_dbnd_param_by_luigi_name("TargetParameter")
+            .target_config(fixed_target.config)
+            .default(fixed_target.path)()
+        )
+        if is_output:
+            target_param = target_param.output()
+        return target_param
 
 
 def _get_dbnd_param_by_luigi_name(luigi_param_name):
@@ -132,7 +159,6 @@ def _luigi_task_to_dbnd_task(luigi_task):
         task_name=luigi_task.task_id, **luigi_task.param_kwargs
     )
 
-    # _connect_targets(dbnd_task_instance, luigi_task)
     return dbnd_task_instance
 
 
@@ -152,6 +178,38 @@ class Singleton(type):
         for i in cls._instances:
             del i
         cls._instances = WeakValueDictionary()
+
+
+def handle_postgres_histogram_logging(luigi_task):
+    from dbnd_postgres.postgres_config import PostgresConfig
+
+    conf = PostgresConfig()
+    if not conf.auto_log_pg_histograms:
+        return
+    postgres_target = luigi_task.output()
+    from dbnd._core.commands.metrics import log_pg_table
+
+    log_pg_table(
+        table_name=postgres_target.table,
+        connection_string="postgres://{}:{}@{}:{}/{}".format(
+            postgres_target.user,
+            postgres_target.password,
+            postgres_target.host,
+            postgres_target.port,
+            postgres_target.database,
+        ),
+        with_histograms=True,
+    )
+
+
+def should_log_pg_histogram(luigi_task):
+    if not is_plugin_enabled("dbnd-postgres", module_import="dbnd_postgres"):
+        return False
+    try:
+        from luigi.contrib.postgres import PostgresQuery
+    except ImportError:
+        return False
+    return isinstance(luigi_task, PostgresQuery)
 
 
 # TODO: Possibly fix metaclass syntax for python2
@@ -236,13 +294,16 @@ class LuigiRunManager(metaclass=Singleton):
         )
         self._close_all_context_managers()
 
-    #################
-    # LUIGI HANDLERS
-    #################
-
     def _init_databand_run(self, scheduled_tasks=None):
         if not self.databand_run:
             self._enter_databand_run(scheduled_tasks)
+
+    def _is_luigi_task_discovered(self, luigi_task):
+        return luigi_task.task_id in self.task_cache
+
+    #################
+    # LUIGI HANDLERS
+    #################
 
     def on_run_start(self, luigi_task):
         # implicitly creates dbnd context if not exists
@@ -260,7 +321,9 @@ class LuigiRunManager(metaclass=Singleton):
         self.root_task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
     def on_success(self, luigi_task):
-        # Pop all tasks that finished running
+        if should_log_pg_histogram(luigi_task):
+            handle_postgres_histogram_logging(luigi_task)
+
         dbnd_task = self.get_dbnd_task(luigi_task)
         dbnd_task.current_task_run.set_task_run_state(state=TaskRunState.SUCCESS)
         if self._current_execution_context:
@@ -306,13 +369,15 @@ class LuigiRunManager(metaclass=Singleton):
 
     def on_dependency_present(self, luigi_task):
         """
-        Dependency is already complete. This means it did not reach dependency discovered event.
+        Dependency is already found. This could either mean that dependency is complete, or was already found by Luigi
         """
-        dbnd_task = self.get_dbnd_task(luigi_task)
-        dbnd_task._luigi_task_completed = True
+        # If dependency was already discovered - do not mark luigi task as completed
+        if not self._is_luigi_task_discovered(luigi_task):
+            dbnd_task = self.get_dbnd_task(luigi_task)
+            dbnd_task._luigi_task_completed = True
 
-        if not self.root_dbnd_task:
-            self.root_dbnd_task = dbnd_task
+            if not self.root_dbnd_task:
+                self.root_dbnd_task = dbnd_task
 
     def on_dependency_missing(self, luigi_task):
         logger.warning(

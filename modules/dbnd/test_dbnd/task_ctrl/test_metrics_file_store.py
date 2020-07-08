@@ -25,9 +25,7 @@ class TestFileMetricsStore(object):
         tr_tracker.log_metric("a_string", "1")
         tr_tracker.log_metric("a_list", [1, 3])
         tr_tracker.log_metric("a_tuple", (1, 2))
-        tr_tracker.log_dataframe(
-            "df", pandas_data_frame, meta_conf=ValueMetaConf.enabled()
-        )
+        tr_tracker.log_data("df", pandas_data_frame, meta_conf=ValueMetaConf.enabled())
 
         actual = TaskRunMetricsFileStoreReader(metrics_folder).get_all_metrics_values()
 
