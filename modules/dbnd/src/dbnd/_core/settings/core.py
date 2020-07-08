@@ -148,9 +148,6 @@ class CoreConfig(Config):
         if not self.databand_external_url:
             self.databand_external_url = self.databand_url
 
-    def is_db_store_enabled(self):
-        return "api" in self.tracker and self.tracker_api == "db"
-
 
 class DynamicTaskConfig(Config):
     """
