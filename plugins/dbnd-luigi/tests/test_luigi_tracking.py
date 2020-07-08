@@ -104,7 +104,7 @@ class TestLuigiWiring(object):
             assert dbnd_task
             assert dbnd_task.task_outputs
             # 'result' is our added output target
-            assert len(dbnd_task.task_outputs) == 2
+            assert len(dbnd_task.task_outputs) == 1
             dbnd_output = [
                 v for k, v in dbnd_task.task_outputs.items() if k != "task_band"
             ][0]
@@ -156,7 +156,7 @@ class TestLuigiWiring(object):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
             dbnd_task = _luigi_task_to_dbnd_task(task_b)
             assert dbnd_task
-            assert len(dbnd_task.task_outputs) == 3
+            assert len(dbnd_task.task_outputs) == 2
             assert dbnd_task.output1
             assert dbnd_task.output2
             output1 = [

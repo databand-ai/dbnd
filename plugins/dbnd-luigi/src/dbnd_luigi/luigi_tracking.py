@@ -156,7 +156,7 @@ def _luigi_task_to_dbnd_task(luigi_task):
     dbnd_task_cls = _luigi_task_cls_to_dbnd_task_cls(luigi_task.__class__, luigi_task)
 
     dbnd_task_instance = dbnd_task_cls(
-        task_name=luigi_task.task_id, **luigi_task.param_kwargs
+        task_name=luigi_task.get_task_family(), **luigi_task.param_kwargs
     )
 
     return dbnd_task_instance
@@ -318,7 +318,7 @@ class LuigiRunManager(metaclass=Singleton):
         )
         self._current_execution_context.__enter__()
 
-        self.root_task_run.set_task_run_state(state=TaskRunState.RUNNING)
+        dbnd_task.current_task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
     def on_success(self, luigi_task):
         if should_log_pg_histogram(luigi_task):

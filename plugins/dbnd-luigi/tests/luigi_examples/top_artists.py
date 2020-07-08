@@ -28,7 +28,7 @@ import luigi.contrib.hdfs
 import luigi.contrib.postgres
 import luigi.contrib.spark
 
-from dbnd import dbnd_config
+from dbnd import dbnd_config, log_metric
 from dbnd._core.settings import CoreConfig
 from dbnd_luigi.luigi_tracking import dbnd_luigi_run
 from tests.luigi_examples import LuigiTestException
@@ -61,6 +61,7 @@ class Streams(luigi.Task):
                         random.randint(0, 999),
                     )
                 )
+            log_metric("lines", 1000)
 
     def output(self):
         """
