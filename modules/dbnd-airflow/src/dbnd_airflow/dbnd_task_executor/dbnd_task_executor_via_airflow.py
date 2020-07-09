@@ -130,13 +130,16 @@ class AirflowTaskExecutor(TaskExecutor):
         )
 
         from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
+        from dbnd_airflow.db_utils import airflow_sql_conn_repr
 
         dbnd_airflow_bootstrap()
 
         self.airflow_config = AirflowConfig()
         self.airflow_task_executor = self._get_airflow_executor()
         logger.info(
-            "Using airflow executor: %s" % self.airflow_task_executor.__class__.__name__
+            "Using airflow executor '%s' with airflow DB at '%s'",
+            self.airflow_task_executor.__class__.__name__,
+            airflow_sql_conn_repr(),
         )
 
     def build_airflow_dag(self, task_runs):

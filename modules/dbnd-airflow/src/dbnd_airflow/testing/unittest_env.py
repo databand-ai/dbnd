@@ -16,16 +16,12 @@ def setup_unittest_airflow():
     logger.info("Reading Airflow test config at %s" % TEST_CONFIG_FILE)
     airflow_configuration.conf.read(TEST_CONFIG_FILE)
 
-    from dbnd_airflow.airflow_extensions.airflow_config import (
-        init_airflow_sqlconn_by_dbnd,
-    )
-
-    init_airflow_sqlconn_by_dbnd()
     # init db first
     from dbnd_airflow.dbnd_airflow_main import subprocess_airflow_initdb
 
     subprocess_airflow_initdb()
 
     # now reconnnect
+    from dbnd_airflow.airflow_extensions.airflow_config import reinit_airflow_sql_conn
 
-    init_airflow_sqlconn_by_dbnd()
+    reinit_airflow_sql_conn()

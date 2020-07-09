@@ -42,7 +42,7 @@ def export_db(
 
             assert_web_enabled(reason="dbnd_web is required for export db")
             dbnd_context = get_databand_context()
-            conn_string = dbnd_context.settings.core.get_sql_alchemy_conn()
+            conn_string = dbnd_context.settings.web.get_sql_alchemy_conn()
             if conn_string.startswith("sqlite:"):
                 from dbnd_web.utils.dbnd_db import get_sqlite_db_location
 

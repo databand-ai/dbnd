@@ -1,9 +1,14 @@
+import sys
+
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 
 
 ######
 ## SUPPORT DBND TASK AS AIRFLOW OPERATORS
 def is_in_airflow_dag_build_context():
+    if "airflow" not in sys.modules:
+        return False
+
     if not is_airflow_enabled():
         return False
 
