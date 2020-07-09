@@ -97,7 +97,8 @@ def build_fat_requirements_py_zip_file(
         package_name, package_version = _get_package_name_and_version_from_whl(
             tmp_build_dir
         )
-        generate_third_party_deps(requirements_file, tmp_build_dir)
+        if requirements_file is not None:
+            generate_third_party_deps(requirements_file, tmp_build_dir)
         fat_py_output_dir.mkdir()
         package_with_deps_zip = os.path.join(
             str(fat_py_output_dir),
