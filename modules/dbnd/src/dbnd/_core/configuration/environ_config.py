@@ -347,13 +347,11 @@ def _find_and_set_dbnd_home():
             set_env_dir(ENV_DBND_HOME, dbnd_home)
             return True
 
-    # last chance, if airflow is defined, let's use it as home
-    airflow_home = os.environ.get("AIRFLOW_HOME")
-    if airflow_home:
-        _debug_init_print(
-            "dbnd home was not found. using airflow home: %s" % airflow_home
-        )
-        set_env_dir(ENV_DBND_HOME, airflow_home)
+    # last chance, we couldn't find dbnd project so we'll use user's home folder
+    user_home = os.path.expanduser("~")
+    if user_home:
+        _debug_init_print("dbnd home was not found. Using user's home: %s" % user_home)
+        set_env_dir(ENV_DBND_HOME, user_home)
         return True
 
     return False
@@ -437,7 +435,6 @@ def __initialize_dbnd_home_environ():
 
 def __initialize_airflow_home():
     ENV_AIRFLOW_HOME = "AIRFLOW_HOME"
-    ENV_AIRFLOW_CONFIG = "AIRFLOW_CONFIG"
 
     if ENV_AIRFLOW_HOME in os.environ:
         # user settings - we do nothing
@@ -446,24 +443,18 @@ def __initialize_airflow_home():
         )
         return
 
-    dbnd_airflow_home = os.path.join(os.environ[ENV_DBND_SYSTEM], "airflow")
-    if os.path.exists(dbnd_airflow_home):
+    for dbnd_airflow_home in [
+        os.path.join(os.environ[ENV_DBND_SYSTEM], "airflow"),
+        os.path.join(os.environ[ENV_DBND_HOME], ".airflow"),
+    ]:
+        if not os.path.exists(dbnd_airflow_home):
+            continue
+
         _debug_init_print(
             "Found airflow home folder at DBND, setting AIRFLOW_HOME to %s"
             % dbnd_airflow_home
         )
         os.environ[ENV_AIRFLOW_HOME] = dbnd_airflow_home
-
-        # airflow config override
-        airflow_user_config = os.path.join(dbnd_airflow_home, "airflow.cfg")
-        if ENV_AIRFLOW_CONFIG not in os.environ and not os.path.exists(
-            airflow_user_config
-        ):
-            # User did not define his own airflow configuration
-            # Use dbnd core lib configuration
-            os.environ[ENV_AIRFLOW_CONFIG] = os.path.join(
-                _databand_package, "conf", "airflow.cfg"
-            )
 
 
 def _initialize_google_composer():

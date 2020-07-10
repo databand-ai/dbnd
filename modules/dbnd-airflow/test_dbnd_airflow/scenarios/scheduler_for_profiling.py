@@ -12,9 +12,8 @@ print(os.environ["DBND__LOG__SQLALCHEMY_TRACE"])
 # in order to profile scheduler.py Dag Processor you need to add folowing lines to scheduler_job.py:145
 # # ========
 # # DBND
-# from dbnd_airflow.airflow_extensions.airflow_config import init_airflow_sqlconn_by_dbnd
-#
-# init_airflow_sqlconn_by_dbnd()
+# from dbnd_airflow.airflow_extensions.airflow_config import reinit_airflow_sql_conn
+# reinit_airflow_sql_conn()
 #
 # from dbnd._core.log.logging_utils import create_file_handler
 # from test_dbnd_airflow.scenarios.scheduler_perf_experiment import log_processor_file
@@ -30,9 +29,6 @@ def main():
 
     from dbnd import dbnd_bootstrap
     from dbnd._core.log.logging_utils import create_file_handler
-    from dbnd_airflow.airflow_extensions.airflow_config import (
-        init_airflow_sqlconn_by_dbnd,
-    )
     from dbnd_airflow.executors.simple_executor import InProcessExecutor
     from test_dbnd_airflow.scenarios.scheduler_perf_experiment import (
         dag_folder,
@@ -41,7 +37,6 @@ def main():
     )
 
     dbnd_bootstrap()
-    init_airflow_sqlconn_by_dbnd()
     conf.set("core", "unit_test_mode", "True")
 
     logging.root.addHandler(create_file_handler(log_file=log_scheduler))

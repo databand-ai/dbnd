@@ -3,6 +3,7 @@ import typing
 
 from typing import Optional
 
+from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import try_get_current_task_run
 from dbnd._vendor.colorlog import logging
 
@@ -45,10 +46,12 @@ def _get_task_run_mock(tra_uid):
         with config(
             {CoreConfig.tracker_raise_on_error: False}, source="on_demand_tracking"
         ):
-            tracking_store = CoreConfig().get_tracking_store()
-            trt = TaskRunTracker(task_run, tracking_store)
-            task_run.tracker = trt
-            return task_run
+            with new_dbnd_context(
+                name="fast_dbnd_context", autoload_modules=False
+            ) as fast_dbnd_ctx:
+                trt = TaskRunTracker(task_run, fast_dbnd_ctx.tracking_store)
+                task_run.tracker = trt
+                return task_run
     except Exception:
         logger.info("Failed during dbnd inplace tracking init.", exc_info=True)
         return None

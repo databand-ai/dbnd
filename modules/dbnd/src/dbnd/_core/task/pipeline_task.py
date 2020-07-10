@@ -22,5 +22,10 @@ class PipelineTask(Task):
         """
         return
 
+    def _complete(self):
+        if self.task_band and not self.task_band.exists():
+            return False
+        return super(PipelineTask, self)._complete()
+
 
 PipelineTask.task_definition.hidden = True

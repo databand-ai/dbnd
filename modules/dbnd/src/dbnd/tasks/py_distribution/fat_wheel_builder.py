@@ -54,8 +54,10 @@ def build_wheel_zips(use_cached=True, output_dir=None):
         return _bdist_zip_list_cache[bdist_zip_cache_key]
 
     package_zip = build_package_zip(output_dir, conf.package_dir)
-    third_party_zip = build_third_party_zip(output_dir, conf.requirements_file)
-    result_file_list = [package_zip, third_party_zip]
+    result_file_list = [package_zip]
+    if conf.requirements_file:
+        third_party_zip = build_third_party_zip(output_dir, conf.requirements_file)
+        result_file_list.append(third_party_zip)
     _bdist_zip_list_cache[bdist_zip_cache_key] = result_file_list
     return result_file_list
 

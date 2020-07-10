@@ -3,11 +3,11 @@ import logging
 from typing import Dict, List
 
 from dbnd._core.constants import CloudType
+from dbnd._core.current import get_settings
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
 from dbnd._core.task import Config
-from dbnd._core.tracking.tracking_store import TrackingStore
 from targets import Target
 from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
 from targets.values import ValueType
@@ -97,10 +97,6 @@ class CoreConfig(Config):
         default=None, description="Runs in sub process (parallel/kubernets/external)"
     )[object]
 
-    sql_alchemy_conn = parameter(description="The connection string for the database")[
-        str
-    ]
-
     pickle_handler = parameter(
         default=None,
         description="Defines a python pickle handler to be used to pickle the "
@@ -116,10 +112,6 @@ class CoreConfig(Config):
     tracker_api = parameter(default="web", description="Tracking Stores to be used")[
         str
     ]
-    auto_create_local_db = parameter(
-        default=True,
-        description="Automatically create local SQLite db if it's not present",
-    )[bool]
 
     always_save_pipeline = parameter(
         description="Boolean for always saving pipeline to pickle"
@@ -142,11 +134,6 @@ class CoreConfig(Config):
         description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
     )[bool]
 
-    fernet_key = parameter(
-        description="key used by airflow to encrypt connections credentials",
-        default=None,
-    )[str]
-
     plugins = parameter(
         description="plugins to load on databand context creation", default=None
     )[str]
@@ -160,119 +147,6 @@ class CoreConfig(Config):
             self.databand_url = self.databand_url[:-1]
         if not self.databand_external_url:
             self.databand_external_url = self.databand_url
-
-    def get_sql_alchemy_conn(self):
-        return self.sql_alchemy_conn
-
-    @property
-    def sql_conn_repr(self):
-        try:
-            from sqlalchemy.engine.url import make_url
-        except:
-            return "`pip install sqlalchemy` in order to get sql db url"
-
-        return repr(make_url(self.get_sql_alchemy_conn()))
-
-    def _build_store(self, name):
-        # type: (str) -> TrackingStore
-        from dbnd._core.tracking.tracking_store_console import ConsoleStore
-        from dbnd._core.tracking.tracking_store_file import FileTrackingStore
-        from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
-
-        if name == "file":
-            return FileTrackingStore()
-        elif name == "console":
-            return ConsoleStore()
-        elif name == "debug":
-            from dbnd._core.tracking.channels.tracking_debug_channel import (
-                ConsoleDebugTrackingChannel,
-            )
-
-            return TrackingStoreApi(channel=ConsoleDebugTrackingChannel())
-        elif name == "api":
-            if not self.databand_url and self.tracker_url:
-                # TODO: Backward compatibility, remove this when tracker_url is officially deprecated
-                logger.warning(
-                    "core.databand_url was not set, trying to use deprecated 'core.tracker_url' instead."
-                )
-                self.databand_url = self.tracker_url
-
-            return self._build_tracking_api_store(
-                tracker_api=self.tracker_api, databand_url=self.databand_url
-            )
-
-        raise friendly_error.config.wrong_store_name(name)
-
-    def _build_tracking_api_store(self, tracker_api, databand_url):
-        """
-                                                             ctx (+DB)
-                                                                |
-        DBND -> Tracker -> WebChannel -> ApiClient -> HTTP -> Flask -> Views -x-> TrackingApiHandler -> TrackingDbService -> SQLA -> DB
-                      \ -> DBChannel ----------------------------------------/
-        """
-        from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
-
-        if tracker_api == "web":
-            from dbnd.api.tracking_api import TrackingApiClient
-
-            if not databand_url:
-                logger.debug(
-                    "Although 'api' was set in 'core.tracker', and 'web' was set in 'core.tracker_api'"
-                    "dbnd will not use it since 'core.databand_url' was not set."
-                )
-                return
-
-            # TODO Add auth actually
-            channel = TrackingApiClient(api_base_url=databand_url, auth=None)
-        elif tracker_api == "db":
-            assert_web_enabled(
-                "It is required when trying to use local db connection (tracker_api=db)."
-            )
-            from dbnd_web.app import activate_dbnd_web_context
-
-            # DirectDbChannel requires DB session, it's available in Flask Context
-            activate_dbnd_web_context()
-
-            from dbnd_web.api.v1.tracking_api import (
-                TrackingApiHandler as DirectDbChannel,
-            )
-
-            channel = DirectDbChannel()
-        elif tracker_api == "disabled":
-            logger.info("Tracking store is disable at core.tracker_api.")
-            return TrackingStore()
-        else:
-            raise friendly_error.config.wrong_tracking_api_name(tracker_api)
-        return TrackingStoreApi(channel=channel)
-
-    def get_tracking_store(self):
-        # type: () -> TrackingStore
-        from dbnd._core.tracking.tracking_store import CompositeTrackingStore
-
-        store_names = self.tracker
-        if len(store_names) == 1 and self.tracker_raise_on_error:
-            # only composite store supports tracker_raise_on_error=False
-            return self._build_store(store_names[0])
-        if not store_names:
-            logger.warning("You are running without any tracking store configured.")
-
-        stores = []
-        for name in store_names:
-            store = self._build_store(name)
-            if store:
-                stores.append(store)
-
-        return CompositeTrackingStore(
-            stores=stores, raise_on_error=self.tracker_raise_on_error
-        )
-
-    def is_db_store_enabled(self):
-        return "api" in self.tracker and self.tracker_api == "db"
-
-    def get_scheduled_job_service(self):
-        from dbnd.api import scheduler_api_client
-
-        return scheduler_api_client
 
 
 class DynamicTaskConfig(Config):

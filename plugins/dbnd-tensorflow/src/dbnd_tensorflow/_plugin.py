@@ -1,14 +1,5 @@
 import dbnd
-import tensorflow
 
-from dbnd_tensorflow.marshalling.tensorflow_marshaller import (
-    TensorflowKerasHistoryMarshaller,
-    TensorflowKerasModelMarshaller,
-)
-from dbnd_tensorflow.marshalling.tensorflow_values import (
-    TensorflowHistoryValueType,
-    TensorflowModelValueType,
-)
 from targets.marshalling import register_marshaller
 from targets.target_config import FileFormat
 from targets.values import register_value_type
@@ -16,6 +7,17 @@ from targets.values import register_value_type
 
 @dbnd.hookimpl
 def dbnd_setup_plugin():
+    import tensorflow
+
+    from dbnd_tensorflow.marshalling.tensorflow_marshaller import (
+        TensorflowKerasHistoryMarshaller,
+        TensorflowKerasModelMarshaller,
+    )
+    from dbnd_tensorflow.marshalling.tensorflow_values import (
+        TensorflowHistoryValueType,
+        TensorflowModelValueType,
+    )
+
     register_marshaller(
         tensorflow.python.keras.engine.training.Model,
         FileFormat.tfmodel,

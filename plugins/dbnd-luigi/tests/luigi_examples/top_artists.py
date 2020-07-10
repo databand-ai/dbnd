@@ -16,6 +16,7 @@
 #
 
 import logging
+import os
 import random
 
 from collections import defaultdict
@@ -27,9 +28,10 @@ import luigi.contrib.hdfs
 import luigi.contrib.postgres
 import luigi.contrib.spark
 
-from dbnd import dbnd_config
+from dbnd import dbnd_config, log_metric
 from dbnd._core.settings import CoreConfig
 from dbnd_luigi.luigi_tracking import dbnd_luigi_run
+from tests.luigi_examples import LuigiTestException
 
 
 logger = logging.getLogger("user_log")
@@ -59,6 +61,7 @@ class Streams(luigi.Task):
                         random.randint(0, 999),
                     )
                 )
+            log_metric("lines", 1000)
 
     def output(self):
         """
@@ -68,8 +71,10 @@ class Streams(luigi.Task):
         :rtype: object (:py:class:`luigi.target.Target`)
         """
         return luigi.LocalTarget(
-            "data/streams_%s__%s_faked.tsv"
-            % (self.date.strftime(" %Y_%m_%d"), self.version)
+            os.path.abspath(
+                "data/streams_%s__%s_faked.tsv"
+                % (self.date.strftime(" %Y_%m_%d"), self.version)
+            )
         )
 
 
@@ -91,7 +96,11 @@ class AggregateArtists(luigi.Task):
         :rtype: object (:py:class:`luigi.target.Target`)
         """
         return luigi.LocalTarget(
-            "data/artist_streams_{}__{}.tsv".format(self.date_interval, self.version)
+            os.path.abspath(
+                "data/artist_streams_{}__{}.tsv".format(
+                    self.date_interval, self.version
+                )
+            )
         )
 
     def requires(self):
@@ -144,7 +153,9 @@ class Top10Artists(luigi.Task):
         :rtype: object (:py:class:`luigi.target.Target`)
         """
         return luigi.LocalTarget(
-            "data/top_artists_%s_%s.tsv" % (self.date_interval, self.version)
+            os.path.abspath(
+                "data/top_artists_%s_%s.tsv" % (self.date_interval, self.version)
+            )
         )
 
     def run(self):
@@ -174,17 +185,29 @@ class Top10Artists(luigi.Task):
 
 class Top10ArtistsRunException(Top10Artists):
     def run(self):
-        raise Exception("Run throws a test exception!")
+        raise LuigiTestException("Run throws a test exception!")
 
 
 class Top10ArtistsRequiresException(Top10Artists):
     def requires(self):
-        raise Exception("Requires throws a test exception!")
+        raise LuigiTestException("Requires throws a test exception!")
 
 
 class Top10ArtistsOutputException(Top10Artists):
     def output(self):
-        raise Exception("Output throws a test exception!")
+        raise LuigiTestException("Output throws a test exception!")
+
+
+class MyPostgresQuery(luigi.contrib.postgres.PostgresQuery):
+    host = "localhost"
+    database = "databand"
+    user = "databand"
+    password = "databand"
+    table = "dbnd_task_run_v2"
+    query = "select * from dbnd_task_run_v2 limit 10000"
+
+    def run(self):
+        return True
 
 
 if __name__ == "__main__":

@@ -8,7 +8,6 @@ import requests
 
 from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 from dbnd._core.errors.friendly_error.api import api_connection_refused
-from dbnd._vendor.marshmallow import Schema, fields
 
 
 logger = logging.getLogger(__name__)
@@ -17,12 +16,6 @@ logger = logging.getLogger(__name__)
 # uncomment for requests trace
 # import http.client
 # http.client.HTTPConnection.debuglevel = 1
-
-
-class AlwaysString(fields.Field):
-    def _serialize(self, value, attr, obj):
-        if value is not None:
-            return str(value.value)
 
 
 class ApiClient(object):
@@ -103,18 +96,6 @@ class ApiClient(object):
             return False
 
 
-class dotdict(dict):
-    """dot.notation access to dictionary attributes"""
-
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
-
-def _as_dotted_dict(**dict_obj):
-    return dotdict(**dict_obj)
-
-
 def dict_dump(obj_dict, value_schema):
     """
     Workaround around marshmallow 2.0 not supporting Dict with types
@@ -123,13 +104,3 @@ def dict_dump(obj_dict, value_schema):
     return {
         key: value_schema.dump(value).data for key, value in six.iteritems(obj_dict)
     }
-
-
-class ApiObjectSchema(Schema):
-    class Meta:
-        strict = True
-
-
-class _ApiCallSchema(Schema):
-    class Meta:
-        strict = True

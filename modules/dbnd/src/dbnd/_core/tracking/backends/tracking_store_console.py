@@ -7,8 +7,8 @@ import six
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import dbnd_context, is_verbose
-from dbnd._core.tracking import tracking_store
-from dbnd._core.tracking.metrics import Metric
+from dbnd._core.tracking.backends import TrackingStore
+from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -17,7 +17,7 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ConsoleStore(tracking_store.TrackingStore):
+class ConsoleStore(TrackingStore):
     def __init__(self):
         super(ConsoleStore, self).__init__()
         self.verbose = is_verbose()

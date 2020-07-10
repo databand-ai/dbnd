@@ -77,7 +77,7 @@ class Task(_BaseTask, _TaskParamContainer):
         significant=False,
         description="Location of all internal outputs (e.g. metrics)",
     )
-    task_band = output.json(output_name="band")
+    task_band = output.json(output_name="band", system=True)
 
     task_enabled = parameter.system(scope=ParameterScope.children)[bool]
     task_enabled_in_prod = parameter.system(scope=ParameterScope.children)[bool]
@@ -181,11 +181,15 @@ class Task(_BaseTask, _TaskParamContainer):
         # user don't see them
         outputs = flatten(self.task_outputs)
         if len(outputs) == 0:
-            warnings.warn(
-                "Task %r without outputs has no custom complete() method" % self,
-                stacklevel=2,
-            )
-            return False
+            if not self.task_band:
+                warnings.warn(
+                    "Task %r without outputs has no custom complete() and no task band!"
+                    % self,
+                    stacklevel=2,
+                )
+                return False
+            else:
+                return self.task_band.exists()
 
         return all((o.exists() for o in outputs))
 
@@ -264,7 +268,7 @@ class Task(_BaseTask, _TaskParamContainer):
             log_size=with_size,
             log_stats=with_stats,
         )
-        self.metrics.log_dataframe(key, df, meta_conf=meta_conf)
+        self.metrics.log_data(key, df, meta_conf=meta_conf)
 
     def log_metric(self, key, value, source=None):
         """

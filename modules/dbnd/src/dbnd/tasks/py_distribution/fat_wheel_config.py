@@ -10,5 +10,5 @@ class FatWheelConfig(Config):
         description="Full path to the directory of the package that contains setup.py",
     )[str]
     requirements_file = parameter.c(
-        description="Full path to the requirements file (if any)"
+        description="Full path to the requirements file (if any)", default=None
     )[str]

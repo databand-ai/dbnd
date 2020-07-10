@@ -8,7 +8,7 @@ import sys
 from time import sleep, time
 
 from dbnd._core.constants import RunState
-from dbnd._core.tracking.tracking_store import TrackingStore
+from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._vendor.psutil.vendorized_psutil import pid_exists
 

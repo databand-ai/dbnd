@@ -3,6 +3,8 @@ Support old version of SingleJobRun
 Once it has SingleJobRun as polymorfic name
 If we have DB with this jobs - we need to make sure SqlAlchemy see this class before we go to
   airflow_url/job/list/
+
+not in use anymore, but legacy DB can contains such objects
 """
 from airflow.jobs import BaseJob
 

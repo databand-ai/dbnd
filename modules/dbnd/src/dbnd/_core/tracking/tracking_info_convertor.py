@@ -6,14 +6,13 @@ from functools import partial
 from itertools import chain
 
 from dbnd._core.constants import RunState, TaskRunState
-from dbnd._core.context.databand_context import DatabandContext
-from dbnd._core.tracking.tracking_info_objects import (
+from dbnd._core.tracking.schemas.tracking_info_objects import (
     TargetInfo,
     TaskDefinitionInfo,
     TaskRunInfo,
     TaskRunParamInfo,
 )
-from dbnd._core.tracking.tracking_info_run import RunInfo
+from dbnd._core.tracking.schemas.tracking_info_run import RunInfo
 from dbnd._core.utils.string_utils import safe_short_string
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import traverse
@@ -21,6 +20,7 @@ from dbnd.api.tracking_api import InitRunArgs, TaskRunsInfo
 
 
 if typing.TYPE_CHECKING:
+    from dbnd._core.context.databand_context import DatabandContext
     from typing import Dict, List
     from targets import Target
     from dbnd import Task

@@ -9,7 +9,7 @@ from dbnd._core.task_run.task_run_runner import TaskRunRunner
 from dbnd._core.task_run.task_run_sync_local import TaskRunLocalSyncer
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
-from dbnd._core.tracking.tracking_store_console import ConsoleStore
+from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.utils.string_utils import clean_job_name, clean_job_name_dns1123
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
@@ -90,7 +90,7 @@ class TaskRun(object):
         if self.is_tracked and self.run.is_tracked:
             tracking_store = self.run.context.tracking_store
         else:
-            tracking_store = ConsoleStore()
+            tracking_store = get_tracking_store(["console"], None, False)
 
         self.tracking_store = tracking_store
         self.tracker = TaskRunTracker(task_run=self, tracking_store=tracking_store)

@@ -6,7 +6,7 @@ from dbnd._core.constants import RunState, SystemTaskName, TaskRunState, UpdateS
 from dbnd._core.current import is_verbose
 from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
 from dbnd._core.run.run_ctrl import RunCtrl
-from dbnd._core.tracking.tracking_info_objects import TaskRunEnvInfo
+from dbnd._core.tracking.schemas.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.utils.basics.text_banner import TextBanner
 
 
@@ -106,13 +106,6 @@ class DescribeRun(RunCtrl):
             b.column("CMD", task_run_env.cmd_line)
 
             if orchestration_mode:
-                if run.context.settings.core.is_db_store_enabled():
-                    b.column("DB", self.context.settings.core.sql_conn_repr)
-                if run.task_executor_type.startswith("airflow"):
-                    assert_airflow_enabled()
-                    from dbnd_airflow.db_utils import airflow_sql_conn_repr
-
-                    b.column("Airflow DB", airflow_sql_conn_repr())
                 b.column(
                     "EXECUTE",
                     b.f_simple_dict(

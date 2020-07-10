@@ -6,11 +6,10 @@ from functools import wraps
 import dbnd
 
 from dbnd._core.task_build.task_context import try_get_current_task
-from dbnd._core.tracking.metrics import Metric
-from dbnd._core.tracking.tracking_store_api import TrackingStoreApi
+from dbnd._core.tracking.registry import get_tracking_store
+from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.timezone import utcnow
-from dbnd.api.tracking_api import TrackingApiClient
 from mlflow.entities import ViewType
 from mlflow.store.tracking.abstract_store import AbstractStore
 from mlflow.utils.rest_utils import MlflowHostCreds
@@ -180,6 +179,6 @@ def get_dbnd_store(store_uri=None, artifact_uri=None):
 
         duplication_store = _get_store(duplicate_tracking_to, artifact_uri)
 
-    dbnd_store = TrackingStoreApi(channel=TrackingApiClient(dbnd_store_url))
+    dbnd_store = get_tracking_store(["api"], "web", True)
 
     return DatabandStore(dbnd_store, duplication_store)

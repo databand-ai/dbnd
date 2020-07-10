@@ -1,11 +1,7 @@
 import datetime
-import logging
 import typing
 
-from abc import ABCMeta
 from uuid import UUID
-
-import six
 
 import attr
 
@@ -17,16 +13,12 @@ from dbnd._core.constants import (
     UpdateSource,
 )
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import AirflowTaskContext
-from dbnd._core.tracking.metrics import Metric
-from dbnd._core.tracking.tracking_info_run import RunInfo, ScheduledRunInfo
+from dbnd._core.tracking.schemas.base import ApiObjectSchema, _ApiCallSchema
+from dbnd._core.tracking.schemas.metrics import Metric
+from dbnd._core.tracking.schemas.tracking_info_run import RunInfo, ScheduledRunInfo
+from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
-from dbnd.api.api_utils import (
-    ApiClient,
-    ApiObjectSchema,
-    _ApiCallSchema,
-    _as_dotted_dict,
-)
 from dbnd.api.serialization.common import (
     ErrorInfoSchema,
     MetricSchema,
@@ -39,7 +31,7 @@ from dbnd.api.serialization.task_run_env import TaskRunEnvInfoSchema
 
 if typing.TYPE_CHECKING:
     from typing import Optional, List, Dict, Tuple, Sequence
-    from dbnd._core.tracking.tracking_info_objects import (
+    from dbnd._core.tracking.schemas.tracking_info_objects import (
         ErrorInfo,
         TaskRunEnvInfo,
         TargetInfo,
@@ -362,83 +354,6 @@ class AirflowTaskInfosSchema(_ApiCallSchema):
 
 
 airflow_task_infos_schema = AirflowTaskInfosSchema()
-
-
-logger = logging.getLogger(__name__)
-
-
-@six.add_metaclass(ABCMeta)
-class TrackingAPI(object):
-    def _handle(self, name, data):
-        logger.info("Tracking %s.%s is not implemented", self.__class__.__name__, name)
-
-    def init_scheduled_job(self, data):
-        return self._handle(TrackingAPI.init_scheduled_job.__name__, data)
-
-    def init_run(self, data):
-        return self._handle(TrackingAPI.init_run.__name__, data)
-
-    def add_task_runs(self, data):
-        return self._handle(TrackingAPI.add_task_runs.__name__, data)
-
-    def set_run_state(self, data):
-        return self._handle(TrackingAPI.set_run_state.__name__, data)
-
-    def set_task_reused(self, data):
-        return self._handle(TrackingAPI.set_task_reused.__name__, data)
-
-    def update_task_run_attempts(self, data):
-        return self._handle(TrackingAPI.update_task_run_attempts.__name__, data)
-
-    def set_unfinished_tasks_state(self, data):
-        return self._handle(TrackingAPI.set_unfinished_tasks_state.__name__, data)
-
-    def save_task_run_log(self, data):
-        return self._handle(TrackingAPI.save_task_run_log.__name__, data)
-
-    def save_external_links(self, data):
-        return self._handle(TrackingAPI.save_external_links.__name__, data)
-
-    def log_target(self, data):
-        return self._handle(TrackingAPI.log_target.__name__, data)
-
-    def log_targets(self, data):
-        return self._handle(TrackingAPI.log_targets.__name__, data)
-
-    def log_df_hist(self, data):
-        return self._handle(TrackingAPI.log_df_hist.__name__, data)
-
-    def log_metric(self, data):
-        return self._handle(TrackingAPI.log_metric.__name__, data)
-
-    def log_artifact(self, data):
-        return self._handle(TrackingAPI.log_artifact.__name__, data)
-
-    def heartbeat(self, data):
-        return self._handle(TrackingAPI.heartbeat.__name__, data)
-
-    def save_airflow_task_infos(self, data):
-        return self._handle(TrackingAPI.save_airflow_task_infos.__name__, data)
-
-    def is_ready(self):
-        return self._handle(TrackingAPI.is_ready.__name__, None)
-
-
-class TrackingApiClient(TrackingAPI):
-    """Json API client implementation."""
-
-    def __init__(self, api_base_url=None, auth=None):
-        self.client = ApiClient(api_base_url=api_base_url, auth=auth)
-
-    def _handle(self, name, data):
-        # disabled for now, should be changed back on 0.26
-        # api_endpoint = "tracking/%s" % name
-
-        api_endpoint = name
-        return self.client.api_request(api_endpoint, data)
-
-    def is_ready(self):
-        return self.client.is_ready()
 
 
 @attr.s

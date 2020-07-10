@@ -1,7 +1,7 @@
 import attr
 
+from dbnd._core.tracking.schemas.base import _ApiCallSchema
 from dbnd._vendor.marshmallow import fields, post_load
-from dbnd.api.api_utils import _ApiCallSchema
 
 
 class AirflowServerInfoSchema(_ApiCallSchema):
@@ -21,6 +21,8 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     rbac_enabled = fields.Boolean(allow_none=True)
     sync_interval = fields.Integer(allow_none=True)
     is_sync_enabled = fields.Boolean(allow_none=True)
+    fetcher = fields.String(allow_none=True)
+    composer_client_id = fields.String(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -46,3 +48,5 @@ class AirflowServerInfo(object):
     synced_to = attr.ib(default=None)  # type: Optional[datetime.datetime]
     sync_interval = attr.ib(default=None)  # type: Optional[int]
     is_sync_enabled = attr.ib(default=None)  # type: Optional[bool]
+    fetcher = attr.ib(default=None)  # type: Optional[str]
+    composer_client_id = attr.ib(default=None)  # type: Optional[str]

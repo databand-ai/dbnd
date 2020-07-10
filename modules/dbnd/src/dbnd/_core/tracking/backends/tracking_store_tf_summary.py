@@ -1,12 +1,12 @@
 import logging
 
-from dbnd._core.tracking import tracking_store
+from dbnd._core.tracking.backends import TrackingStore
 
 
 logger = logging.getLogger(__name__)
 
 
-class TbSummaryFileStore(tracking_store.TrackingStore):
+class TbSummaryFileStore(TrackingStore):
     def init_run(self, run):
         from dbnd._core.tools.tensorboard import save_task_graph
 

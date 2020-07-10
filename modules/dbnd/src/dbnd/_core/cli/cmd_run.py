@@ -18,7 +18,7 @@ from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.plugin.dbnd_plugins import is_web_enabled
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
-from dbnd._core.tracking.tracking_info_run import ScheduledRunInfo
+from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.basics.dict_utils import filter_dict_remove_false_values
 from dbnd._vendor import click
 from dbnd._vendor.click_tzdatetime import TZAwareDateTime
@@ -296,17 +296,6 @@ def run(
         if is_help or not task_name:
             print_help(ctx, task_cls)
             return
-
-        if (
-            context.settings.core.auto_create_local_db
-            and is_web_enabled()
-            and is_running_in_direct_db_mode(context)
-        ):
-            sql_alchemy_conn = context.settings.core.get_sql_alchemy_conn()
-            if sql_alchemy_conn and sql_alchemy_conn.startswith("sqlite:///"):
-                from dbnd_web.utils.dbnd_db import init_local_db
-
-                init_local_db(sql_alchemy_conn)
 
         return context.dbnd_run_task(
             task_or_task_name=task_name,

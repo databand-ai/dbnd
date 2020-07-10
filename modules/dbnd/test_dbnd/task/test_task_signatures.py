@@ -91,5 +91,5 @@ class TestTaskSignature(object):
 
     def test_signatures_pipeline(self):
         tasks = [TPipeline(task_target_date=task_target_date)]
-        expected = {"TPipeline": "a2c796957e"}
+        expected = {"TPipeline": "a14cf2517b"}
         assert_signatures(tasks, expected)

@@ -1,79 +1,38 @@
-import datetime
-import logging
-import random
 import sys
 
 import mock
 import pytest
 
 from dbnd import dbnd_config
+from dbnd._core.parameter.parameter_definition import _ParameterKind
 from dbnd._core.settings import CoreConfig
-from dbnd_luigi.luigi_tracking import dbnd_luigi_build, dbnd_luigi_run
-from luigi import LuigiStatusCode
-from luigi.date_interval import Custom
-from tests.luigi_examples.top_artists import (
-    Streams,
-    Top10Artists,
-    Top10ArtistsOutputException,
-    Top10ArtistsRequiresException,
-    Top10ArtistsRunException,
+from dbnd_luigi.luigi_tracking import (
+    _luigi_task_to_dbnd_task,
+    dbnd_luigi_build,
+    dbnd_luigi_run,
 )
+from luigi import LuigiStatusCode
+from tests.conftest import delete_task_output
+from tests.luigi_examples.top_artists import LuigiTestException, MyPostgresQuery
 
 
-# logger = logging.getLogger(__name__)
-
-
-class TestLuigiExecution(object):
+class TestLuigiTaskExecution(object):
     @pytest.fixture(autouse=True)
     def clean_output(self):
         import os
 
         os.system("rm -rf ./data/*")
 
-    @pytest.fixture(autouse=True)
-    def date_a(self):
-        return datetime.date(year=2019, month=1, day=1)
-
-    @pytest.fixture(autouse=True)
-    def date_b(self, date_a):
-        return datetime.date(year=2019, month=1, day=3)
-
-    @pytest.fixture(autouse=True)
-    def date_interval(self, date_a, date_b):
-        return Custom(date_a, date_b)
-
-    @pytest.fixture(autouse=True)
-    def streams(self, date_a):
-        return Streams(date=date_a)
-
-    @pytest.fixture(autouse=True)
-    def top10_artists(self, date_interval):
-        return Top10Artists(date_interval=date_interval)
-
-    @pytest.fixture(autouse=True)
-    def top10_artists_run_error(self, date_interval):
-        return Top10ArtistsRunException(date_interval=date_interval)
-
-    @pytest.fixture(autouse=True)
-    def top10_artists_requires_error(self, date_interval):
-        return Top10ArtistsRequiresException(date_interval=date_interval)
-
-    @pytest.fixture(autouse=True)
-    def top10_artists_output_error(self, date_interval):
-        return Top10ArtistsOutputException(date_interval=date_interval)
-
     def test_luigi_sanity(self, top10_artists):
-        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            # result = dbnd_luigi_build(
-            #     tasks=[top10_artists],
-            # )
-            result = dbnd_luigi_build(tasks=[top10_artists])
+        with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
+            with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+                result = dbnd_luigi_build(tasks=[top10_artists])
         assert result.status == LuigiStatusCode.SUCCESS
 
     def test_luigi_orphan_task(self, streams):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
             result = dbnd_luigi_build(tasks=[streams])
-            assert result.status == LuigiStatusCode.SUCCESS
+        assert result.status == LuigiStatusCode.SUCCESS
 
     def test_luigi_run_exception(self):
         sys.argv = [
@@ -108,16 +67,114 @@ class TestLuigiExecution(object):
 
     def test_luigi_requires_exception(self, top10_artists_requires_error):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            result = dbnd_luigi_build(tasks=[top10_artists_requires_error])
-            assert result.status == LuigiStatusCode.SCHEDULING_FAILED
-
-    def test_luigi_output_exception(self, top10_artists_output_error):
-        with pytest.raises(Exception):
-            with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-                result = dbnd_luigi_build(tasks=[top10_artists_output_error])
-                # Exception in output leads to scheduling failed because Luigi starts by checking if output exists
+            with pytest.raises(LuigiTestException):
+                result = dbnd_luigi_build(tasks=[top10_artists_requires_error])
                 assert result.status == LuigiStatusCode.SCHEDULING_FAILED
 
-    # TODO:
-    # def test_luigi_output_target_tracking(self):
-    # def test_luigi_input_target_tracking(self):
+    def test_luigi_output_exception(self, top10_artists_output_error):
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+            with pytest.raises(LuigiTestException):
+                result = dbnd_luigi_build(tasks=[top10_artists_output_error])
+                assert result.status == LuigiStatusCode.SCHEDULING_FAILED
+
+
+class TestLuigiWrapperTaskExecution(object):
+    def test_luigi_wrapper_task_sanity(self, wrapper_task):
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+            result = dbnd_luigi_build(tasks=[wrapper_task])
+        assert result.status == LuigiStatusCode.SUCCESS
+
+    def test_luigi_wrapper_task_run_fail(self, wrapper_task_run_fail):
+        delete_task_output(wrapper_task_run_fail)
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+            with mock.patch("dbnd_luigi.luigi_tracking.lrm") as lrm_patch:
+                lrm_patch.events_active = False
+                result = dbnd_luigi_build(tasks=[wrapper_task_run_fail])
+                assert lrm_patch.on_failure.call_count == 1
+                assert lrm_patch.on_success.call_count == 1
+                assert lrm_patch.on_dependency_discovered.call_count == 1
+                assert lrm_patch.on_run_start.call_count == 2
+                assert result.status == LuigiStatusCode.FAILED
+
+
+class TestLuigiWiring(object):
+    def test_luigi_sanity_output_target_tracking(self, top10_artists):
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+            dbnd_task = _luigi_task_to_dbnd_task(top10_artists)
+            assert dbnd_task
+            assert dbnd_task.task_outputs
+            # 'result' is our added output target
+            assert len(dbnd_task.task_outputs) == 1
+            dbnd_output = [
+                v for k, v in dbnd_task.task_outputs.items() if k != "task_band"
+            ][0]
+            assert dbnd_output
+            luigi_output = top10_artists.output()
+            assert luigi_output
+            # Assert we preserve filename and directory tree format
+            assert luigi_output.path in dbnd_output.path
+
+    def test_luigi_sanity_input_target_tracking(self, top10_artists):
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+            dbnd_task = _luigi_task_to_dbnd_task(top10_artists)
+            assert dbnd_task
+            dbnd_input_target = [
+                x for x in dbnd_task.task_meta.task_params if "artist_streams" in x.name
+            ][0].value
+            assert dbnd_input_target
+            luigi_target = top10_artists.input()
+            assert luigi_target
+            assert luigi_target.path in dbnd_input_target.path
+
+    def test_multiple_input_tracking(self, task_c):
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+            dbnd_task = _luigi_task_to_dbnd_task(task_c)
+            assert dbnd_task
+            # Output1 and 2 are actually inputs from TaskB, just badly named
+            assert dbnd_task.output1
+            assert dbnd_task.output10
+            assert dbnd_task.output2
+            assert dbnd_task.output20
+            output1 = [
+                x for x in dbnd_task.task_meta.task_params if x.name == "output1"
+            ][0]
+            output10 = [
+                x for x in dbnd_task.task_meta.task_params if x.name == "output10"
+            ][0]
+            output2 = [
+                x for x in dbnd_task.task_meta.task_params if x.name == "output2"
+            ][0]
+            output20 = [
+                x for x in dbnd_task.task_meta.task_params if x.name == "output20"
+            ][0]
+            assert output1.parameter.kind == _ParameterKind.task_input
+            assert output10.parameter.kind == _ParameterKind.task_input
+            assert output2.parameter.kind == _ParameterKind.task_input
+            assert output20.parameter.kind == _ParameterKind.task_input
+
+    def test_multiple_output_tracking(self, task_b):
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+            dbnd_task = _luigi_task_to_dbnd_task(task_b)
+            assert dbnd_task
+            assert len(dbnd_task.task_outputs) == 2
+            assert dbnd_task.output1
+            assert dbnd_task.output2
+            output1 = [
+                x for x in dbnd_task.task_meta.task_params if x.name == "output1"
+            ][0]
+            output2 = [
+                x for x in dbnd_task.task_meta.task_params if x.name == "output2"
+            ][0]
+            assert output1.parameter.kind == _ParameterKind.task_output
+            assert output2.parameter.kind == _ParameterKind.task_output
+
+
+# TODO: Convert to integration test
+# def test_postgres(self):
+#     t = MyPostgresQuery()
+#     ptarget = t.output()
+#     ptarget.create_marker_table()
+#     with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
+#         # with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+#         result = dbnd_luigi_build(tasks=[t])
+#     assert result.status == LuigiStatusCode.SUCCESS

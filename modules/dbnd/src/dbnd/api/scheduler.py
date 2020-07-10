@@ -3,39 +3,33 @@ import json
 from collections import namedtuple
 from typing import Any, Dict
 
-from dbnd._core.configuration.dbnd_config import config
-from dbnd.api.api_utils import ApiClient
+from dbnd._core.current import get_databand_context
 from dbnd.api.shared_schemas.scheduled_job_schema import ScheduledJobSchemaV2
 
 
-config.load_system_configs()
-api_client = ApiClient(
-    config.get("core", "databand_url"),
-    auth=True,
-    user=config.get("scheduler", "dbnd_user"),
-    password=config.get("scheduler", "dbnd_password"),
+ScheduledJobNamedTuple = namedtuple(
+    "ScheduledJobNamedTuple", ScheduledJobSchemaV2().fields.keys()
 )
-
-
-schema = ScheduledJobSchemaV2(strict=False)
-
-ScheduledJobNamedTuple = namedtuple("ScheduledJobNamedTuple", schema.fields.keys())
 ScheduledJobNamedTuple.__new__.__defaults__ = (None,) * len(
     ScheduledJobNamedTuple._fields
 )
 
 
-def post_scheduled_job(scheduled_job_dict):
+def post_scheduled_job(scheduled_job_dict, ctx=None):
+    ctx = ctx or get_databand_context()
+    schema = ScheduledJobSchemaV2(strict=False)
     data, _ = schema.dump({"DbndScheduledJob": scheduled_job_dict})
-    response = api_client.api_request(
+    response = ctx.databand_api_client.api_request(
         "/api/v1/scheduled_jobs", data, method="POST", no_prefix=True
     )
     return schema.load(data=response).data
 
 
-def patch_scheduled_job(scheduled_job_dict):
+def patch_scheduled_job(scheduled_job_dict, ctx=None):
+    ctx = ctx or get_databand_context()
+    schema = ScheduledJobSchemaV2(strict=False)
     data, _ = schema.dump({"DbndScheduledJob": scheduled_job_dict})
-    response = api_client.api_request(
+    response = ctx.databand_api_client.api_request(
         "/api/v1/scheduled_jobs?name=%s" % scheduled_job_dict["name"],
         data,
         method="PATCH",
@@ -44,8 +38,9 @@ def patch_scheduled_job(scheduled_job_dict):
     return schema.load(data=response).data
 
 
-def delete_scheduled_job(scheduled_job_name, revert=False):
-    api_client.api_request(
+def delete_scheduled_job(scheduled_job_name, revert=False, ctx=None):
+    ctx = ctx or get_databand_context()
+    ctx.databand_api_client.api_request(
         "/api/v1/scheduled_jobs?name=%s&revert=%s"
         % (scheduled_job_name, str(revert).lower()),
         None,
@@ -54,7 +49,11 @@ def delete_scheduled_job(scheduled_job_name, revert=False):
     )
 
 
-def get_scheduled_jobs(name_pattern=None, from_file_only=False, include_deleted=False):
+def get_scheduled_jobs(
+    name_pattern=None, from_file_only=False, include_deleted=False, ctx=None
+):
+    ctx = ctx or get_databand_context()
+    schema = ScheduledJobSchemaV2(strict=False)
     query_filter = []
     if from_file_only:
         query_filter.append({"name": "from_file", "op": "eq", "val": True})
@@ -67,14 +66,15 @@ def get_scheduled_jobs(name_pattern=None, from_file_only=False, include_deleted=
 
     query = {"filter": json.dumps(query_filter)}
 
-    res = api_client.api_request(
+    res = ctx.databand_api_client.api_request(
         "/api/v1/scheduled_jobs", None, method="GET", query=query, no_prefix=True
     )
     return schema.load(data=res["data"], many=True).data
 
 
-def set_active(name, value):
-    api_client.api_request(
+def set_scheduled_job_active(name, value, ctx=None):
+    ctx = ctx or get_databand_context()
+    ctx.databand_api_client.api_request(
         "/api/v1/scheduled_jobs/set_active?name=%s&value=%s"
         % (name, str(value).lower()),
         None,
