@@ -45,6 +45,12 @@ class ParameterFactory(object):
         parameter_cls: Type = ...,
         load_on_build: bool = ...,
         empty_default: bool = ...,
+        log_histograms: bool = ...,
+        log_size: bool = ...,
+        log_stats: bool = ...,
+        log_schema: bool = ...,
+        log_preview: bool = ...,
+        log_preview_size: int = ...,
     ) -> _T: ...
     @overload
     def value(
@@ -75,6 +81,7 @@ class ParameterFactory(object):
         parameter_cls: Type = ...,
         load_on_build: bool = ...,
         empty_default: bool = ...,
+        log_histograms: bool = ...,
         log_size: bool = ...,
         log_stats: bool = ...,
         log_schema: bool = ...,
