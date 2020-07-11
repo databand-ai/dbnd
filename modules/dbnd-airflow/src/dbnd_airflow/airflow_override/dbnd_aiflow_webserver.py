@@ -2,6 +2,7 @@ import logging
 import os
 
 from dbnd._core.configuration.environ_config import in_quiet_mode
+from dbnd._core.log import dbnd_log_info_error
 from dbnd._core.utils.object_utils import patch_module_attr
 
 logger = logging.getLogger(__name__)
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 # WE SHOULD NOT HAVE ANY dbnd imports here -- circle import:  dbnd_airflow -> airflow -> load .. -> import dbnd_airflow
 
-def use_databand_airflow_dagbag():
+def _use_databand_airflow_dagbag():
     """
     Overriding Airflow Dagbag, so versioned dags can be used
     :return:
@@ -22,7 +23,6 @@ def use_databand_airflow_dagbag():
     else:
         from airflow.www import views
 
-    logging.info("Using dbnd dagbag (supporting versioned dags).")
     from dbnd_airflow.web.databand_versioned_dagbag import DbndAirflowDagBag, DbndDagModel
 
     if os.environ.get("SKIP_DAGS_PARSING") != "True":
@@ -39,6 +39,15 @@ def use_databand_airflow_dagbag():
     patch_module_attr(airflow.models.dag, "DagBag", DbndAirflowDagBag)
     patch_module_attr(airflow.models.dag, "DagModel", DbndDagModel)
 
+    logging.error("Using DBND DagBag with support for versioned dags and historic dag runs.")
+
+
+def use_databand_airflow_dagbag():
+    try:
+        _use_databand_airflow_dagbag()
+    except Exception:
+        dbnd_log_info_error("Failed to switch to versioned dagbag")
+
 
 def patch_airflow_create_app():
     if not in_quiet_mode():
@@ -47,10 +56,7 @@ def patch_airflow_create_app():
     def patch_create_app(create_app_func):
         def patched_create_app(*args, **kwargs):
             res = create_app_func(*args, **kwargs)
-            try:
-                use_databand_airflow_dagbag()
-            except Exception:
-                logger.info("Failed to apply dbnd versioned dagbag")
+            use_databand_airflow_dagbag()
             return res
 
         return patched_create_app

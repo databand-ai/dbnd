@@ -1,4 +1,5 @@
 import logging
+
 from typing import Dict, List
 
 from dbnd._core.constants import CloudType
@@ -8,6 +9,7 @@ from dbnd._core.task import Config
 from targets import Target
 from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
 from targets.values import ValueType
+
 
 logger = logging.getLogger()
 
@@ -165,6 +167,7 @@ class CoreConfig(Config):
 
     def build_tracking_store(self):
         from dbnd._core.tracking.registry import get_tracking_store
+
         return get_tracking_store(
             tracking_store_names=self.tracker,
             api_channel_name=self.tracker_api,
@@ -173,6 +176,7 @@ class CoreConfig(Config):
 
     def build_databand_api_client(self):
         from dbnd.utils.api_client import ApiClient
+
         return ApiClient(
             self.databand_url,
             auth=True,

@@ -1,6 +1,7 @@
 import logging
 import typing
 import uuid
+
 from typing import Optional
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.timezone import utcnow
 from targets.target_config import FileFormat
+
 
 if typing.TYPE_CHECKING:
     from dbnd._core.run.databand_run import DatabandRun
@@ -113,7 +115,9 @@ class DatabandContext(SingletonContext):
             # we want to be able to catch all "new" inline airflow operators
             self.system_settings = DatabandSystemConfig()
             if self.system_settings.conf:
-                self.config.set_values(self.system_settings.conf, source="[databand]conf")
+                self.config.set_values(
+                    self.system_settings.conf, source="[databand]conf"
+                )
             if self.system_settings.conf_file:
                 conf_file = read_from_config_files(self.system_settings.conf_file)
                 self.config.set_values(conf_file, source="[databand]conf")
