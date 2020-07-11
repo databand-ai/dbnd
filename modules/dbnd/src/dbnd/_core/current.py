@@ -105,7 +105,9 @@ def get_settings():
 def is_verbose():
     context = try_get_databand_context()
     if context and getattr(context, "system_settings", None):
-        return context.system_settings.verbose
+        if context.system_settings.verbose:
+            # only if True, otherwise check project config too
+            return True
 
     return get_dbnd_project_config().is_verbose()
 

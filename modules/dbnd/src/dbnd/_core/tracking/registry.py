@@ -63,7 +63,7 @@ def register_store(name, store_builder):
 
 
 def get_tracking_store(tracking_store_names, api_channel_name, tracker_raise_on_error):
-    # type: () -> TrackingStore
+    # type: (...) -> TrackingStore
     tracking_store_instances = []
     for name in tracking_store_names:
         if name == "api":
