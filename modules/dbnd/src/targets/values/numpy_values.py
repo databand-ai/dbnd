@@ -12,7 +12,8 @@ class NumpyArrayValueType(DataValueType):
     support_merge = True
 
     def to_signature(self, x):
-        return fast_hasher.hash(x)
+        shape = "[%s]" % (",".join(map(str, x.shape)))
+        return "%s:%s" % (shape, fast_hasher.hash(x))
 
     def merge_values(self, *values, **kwargs):
         import numpy as np
