@@ -46,14 +46,6 @@ def patch_airflow_create_app():
 
     def patch_create_app(create_app_func):
         def patched_create_app(*args, **kwargs):
-            from dbnd._core.configuration.dbnd_config import config
-
-            logger.info("Setting SQL from databand configuration.")
-            config.load_system_configs()
-
-            from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
-            dbnd_airflow_bootstrap()
-
             res = create_app_func(*args, **kwargs)
             try:
                 use_databand_airflow_dagbag()
