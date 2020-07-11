@@ -1,4 +1,5 @@
 import datetime
+import shutil
 import sys
 
 from random import randint, random
@@ -13,6 +14,7 @@ from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.utils.basics.exportable_strings import get_hashed_name
 from dbnd._core.utils.basics.range import period_dates
 from dbnd_test_scenarios.pipelines.common.pandas_tasks import load_from_sql_data
+from dbnd_test_scenarios.scenarios_repo import client_scoring_data
 from targets import target
 
 
@@ -92,15 +94,12 @@ def ingest_partner_data(
 
     imputed = enrich_missing_fields(data, columns_to_impute)
     clean = clean_pii(imputed, pii_columns)
-
     deduped = dedup_records(clean, columns=dedup_columns)
     result = create_report(deduped)
     return result, deduped
 
 
 # PARTNERS DATA
-
-
 def partner_file_data_location(name, task_target_date):
     rand = random()
     if rand < 0.2:
@@ -109,6 +108,11 @@ def partner_file_data_location(name, task_target_date):
         partner_file = "data/small_file.csv"
 
     return target(partner_file)
+
+
+def run_fetch_customer_data(partner_name, output_path):
+    shutil.copy(client_scoring_data.p_a_master_data, output_path)
+    return output_path
 
 
 @pipeline
@@ -129,9 +133,7 @@ def fetch_partners_data(
 
 
 # ###########
-# RUN FUNCTIONS
-
-
+# RUN FUNCTIONS,  (not sure if we need them)
 def run_process_customer_data_from_sql(query, sql_conn_str, output_file):
     data = load_from_sql_data(sql_conn_str=sql_conn_str, query=query)
     report = ingest_partner_data(data)
@@ -145,7 +147,7 @@ def run_process_customer_data(input_file, output_file):
     return output_file
 
 
-def run_unit_imputation(input_path, output_path):
+def run_enrich_missing_fields(input_path, output_path):
     enrich_missing_fields(pd.read_csv(input_path)).to_csv(output_path)
     return output_path
 
@@ -158,6 +160,11 @@ def run_clean_piis(input_path, output_path):
 
 def run_dedup_records(data_path, output_path, columns=None, **kwargs):
     dedup_records(data=pd.read_csv(data_path)).to_csv(output_path, columns=columns)
+    return output_path
+
+
+def run_func(func, input_path, output_path):
+    func(pd.read_csv(input_path)).to_csv(output_path)
     return output_path
 
 

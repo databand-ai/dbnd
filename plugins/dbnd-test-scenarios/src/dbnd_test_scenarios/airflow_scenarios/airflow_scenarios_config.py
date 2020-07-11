@@ -1,12 +1,21 @@
 import inspect
+import os
 
 from airflow import DAG
 from airflow.utils.dates import days_ago
 
 from dbnd._core.inplace_run.airflow_utils import track_dag
+from dbnd._core.utils.basics.helpers import parse_bool
 
 
-DEFAULT_ARGS = {"owner": "staging", "start_date": days_ago(2)}
+start_days_ago = int(os.environ.get("SCENARIOS__START_DAYS_AGO", "2"))
+catchup = parse_bool(os.environ.get("SCENARIOS__CATCHUP", "False"))
+
+DEFAULT_ARGS = {
+    "owner": "staging",
+    "start_date": days_ago(start_days_ago),
+    "catchup": catchup,
+}
 
 
 def dag_task_output(*path):

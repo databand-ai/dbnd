@@ -37,8 +37,17 @@ def scenario_pyspark_path(*path):
     return scenario_src_path("spark", "pyspark_scripts", *path)
 
 
-class Scenarios(object):
+class _Scenarios(object):
     pass
 
 
-scenarios = Scenarios()
+class _ScenariosClientScoringData(object):
+    p_a_master_data = scenario_data_target("client_scoring/p_a_master_data.csv")
+    p_a_master_data_bad = scenario_data_target("client_scoring/p_a_master_data_bad.csv")
+    train_data = scenario_data_target("client_scoring/train_task_data.csv")
+
+    partners = ["autolab", "picsdata", "myp"]
+
+
+scenarios = _Scenarios()
+client_scoring_data = _ScenariosClientScoringData()
