@@ -63,13 +63,9 @@ def split_data(
     raw_data: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     raw_data.drop(["id", "1_norm", "10_norm"], axis=1, inplace=True, errors="ignore")
-    log_dataframe("raw", raw_data)
-
+    log_dataframe("raw", raw_data, with_histograms=True)
     train_df, test_df = train_test_split(raw_data)
     test_df, validation_df = train_test_split(test_df, test_size=0.5)
-
-    log_metric("target.mean", raw_data["target"].mean())
-    log_metric("target.std", raw_data["target"].std())
 
     return train_df, test_df, validation_df
 

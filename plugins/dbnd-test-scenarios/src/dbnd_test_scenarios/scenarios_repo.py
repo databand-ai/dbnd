@@ -47,6 +47,7 @@ class _ScenariosClientScoringData(object):
     train_data = scenario_data_target("client_scoring/train_task_data.csv")
 
     partners = ["autolab", "picsdata", "myp"]
+    partners_big = ["autobig", "picsbig"]
 
 
 scenarios = _Scenarios()
