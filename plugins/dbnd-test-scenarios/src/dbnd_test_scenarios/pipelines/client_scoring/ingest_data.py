@@ -2,10 +2,12 @@ import datetime
 import logging
 import shutil
 import sys
+
 from random import randint, random
 from typing import List, Tuple
 
 import pandas as pd
+
 from sklearn import preprocessing
 
 from dbnd import log_dataframe, log_metric, pipeline, task
@@ -15,6 +17,7 @@ from dbnd._core.utils.basics.range import period_dates
 from dbnd_test_scenarios.pipelines.common.pandas_tasks import load_from_sql_data
 from dbnd_test_scenarios.scenarios_repo import client_scoring_data
 from targets import target
+
 
 logger = logging.getLogger(__name__)
 
