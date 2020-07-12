@@ -59,11 +59,9 @@ def log_data(
 
     value_type = get_value_meta_for_metric(key, value, meta_conf=meta_conf)
     if value_type:
-        logger.info(
-            "Log DataFrame '{}': shape='{}'".format(key, value_type.data_dimensions)
-        )
+        logger.info("Log data '{}': shape='{}'".format(key, value_type.data_dimensions))
     else:
-        logger.info("Log DataFrame '{}': {} is not supported".format(key, type(value)))
+        logger.info("Log data '{}': {} is not supported".format(key, type(value)))
 
 
 def log_target(value, path, access_type=DbndTargetOperationType.write, meta_conf=None):
