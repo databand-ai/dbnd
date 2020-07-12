@@ -39,7 +39,7 @@ def _use_databand_airflow_dagbag():
     patch_module_attr(airflow.models.dag, "DagBag", DbndAirflowDagBag)
     patch_module_attr(airflow.models.dag, "DagModel", DbndDagModel)
 
-    logging.error("Using DBND DagBag with support for versioned dags and historic dag runs.")
+    logging.info("Using DBND DagBag with support for versioned dags and historic dag runs.")
 
 
 def use_databand_airflow_dagbag():
