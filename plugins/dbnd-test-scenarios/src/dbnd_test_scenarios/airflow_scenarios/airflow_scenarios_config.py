@@ -1,5 +1,6 @@
 import inspect
 import os
+import sys
 
 from airflow import DAG
 from airflow.utils.dates import days_ago
@@ -51,7 +52,7 @@ def magicDAG(dag_id, **kwargs):
     # catchup
     # tracking
     dag = TrackedDAG(dag_id=dag_id, **kwargs)
-
+    dag.fileloc = sys._getframe().f_back.f_code.co_filename
     # set dag at global space so it can be discovered
     caller_globals["DAG__%s" % dag_id] = dag
     return dag

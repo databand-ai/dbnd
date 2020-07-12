@@ -67,7 +67,7 @@ def dedup_records(data: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
 
 
 @task
-def create_report(data: pd.DataFrame) -> str:
+def create_report(data: pd.DataFrame) -> pd.DataFrame:
     avg_score = int(
         data["score"].sum() + randint(-2 * len(data.columns), 2 * len(data.columns))
     )
@@ -81,7 +81,7 @@ def create_report(data: pd.DataFrame) -> str:
             "Client Score Stats", "Mean: %.2f. Std: %.2f." % (desc["mean"], desc["std"])
         )
 
-    return "0,10,12"
+    return pd.DataFrame(data=[[avg_score]], columns=["avg_score"])
 
 
 @pipeline
@@ -152,31 +152,25 @@ def run_process_customer_data(input_file, output_file):
     return output_file
 
 
-def run_enrich_missing_fields(input_path, output_path):
-    enrich_missing_fields(pd.read_csv(input_path)).to_csv(output_path)
+def run_enrich_missing_fields(input_path, output_path, columns_to_impute=None):
+    enrich_missing_fields(
+        raw_data=pd.read_csv(input_path), columns_to_impute=columns_to_impute
+    ).to_csv(output_path)
     return output_path
 
 
-def run_clean_piis(input_path, output_path):
-    log_metric("input path", input_path)
-    clean_pii(pd.read_csv(input_path), ["name", "address", "phone"]).to_csv(output_path)
+def run_clean_piis(input_path, output_path, pii_columns):
+    clean_pii(data=pd.read_csv(input_path), pii_columns=pii_columns).to_csv(output_path)
     return output_path
 
 
-def run_dedup_records(data_path, output_path, columns=None, **kwargs):
-    dedup_records(data=pd.read_csv(data_path)).to_csv(output_path, columns=columns)
+def run_dedup_records(input_path, output_path, columns=None):
+    dedup_records(data=pd.read_csv(input_path), columns=columns).to_csv(output_path)
     return output_path
 
 
-def run_func(func, input_path, output_path, **kwargs):
-    logger.info(
-        "Calling %s with  %s -> %s (extra args: %s)",
-        func,
-        input_path,
-        output_path,
-        kwargs,
-    )
-    func(pd.read_csv(input_path), **kwargs).to_csv(output_path)
+def run_create_report(input_path, output_path):
+    create_report(data=pd.read_csv(input_path),).to_csv(output_path)
     return output_path
 
 
