@@ -21,6 +21,7 @@ from targets import target
 
 logger = logging.getLogger(__name__)
 
+
 @task
 def enrich_missing_fields(
     raw_data=parameter(log_histograms=True)[pd.DataFrame],
@@ -168,7 +169,13 @@ def run_dedup_records(data_path, output_path, columns=None, **kwargs):
 
 
 def run_func(func, input_path, output_path, **kwargs):
-    logger.info("Calling %s with  %s -> %s (extra args: %s)", func, input_path, output_path, kwargs)
+    logger.info(
+        "Calling %s with  %s -> %s (extra args: %s)",
+        func,
+        input_path,
+        output_path,
+        kwargs,
+    )
     func(pd.read_csv(input_path), **kwargs).to_csv(output_path)
     return output_path
 
