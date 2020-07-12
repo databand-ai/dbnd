@@ -1,12 +1,10 @@
 import datetime
 import shutil
 import sys
-
 from random import randint, random
 from typing import List, Tuple
 
 import pandas as pd
-
 from sklearn import preprocessing
 
 from dbnd import log_dataframe, log_metric, pipeline, task
@@ -111,6 +109,7 @@ def partner_file_data_location(name, task_target_date):
 
 
 def run_fetch_customer_data(partner_name, output_path):
+    target(output_path).mkdir_parent()
     shutil.copy(client_scoring_data.p_a_master_data, output_path)
     return output_path
 
@@ -163,8 +162,8 @@ def run_dedup_records(data_path, output_path, columns=None, **kwargs):
     return output_path
 
 
-def run_func(func, input_path, output_path):
-    func(pd.read_csv(input_path)).to_csv(output_path)
+def run_func(func, input_path, output_path, **kwargs):
+    func(pd.read_csv(input_path), **kwargs).to_csv(output_path)
     return output_path
 
 
