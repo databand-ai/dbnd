@@ -14,9 +14,10 @@ from pyspark.sql.types import DoubleType
 
 from dbnd import log_metric, parameter, pipeline
 from dbnd.utils import data_combine, period_dates
-from dbnd_demo.demo_data_repo import partner_demo_data
 from dbnd_spark.spark import spark_task
-from targets import target
+from dbnd_test_scenarios.pipelines.client_scoring.ingest_data import (
+    partner_file_data_location,
+)
 from targets.types import PathStr
 
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def data_source(task_target_date, name):
-    return target(partner_demo_data.partner_to_file(name, task_target_date))
+    return partner_file_data_location(name, task_target_date)
 
 
 @spark_task(result=parameter.output.csv[spark.DataFrame])
