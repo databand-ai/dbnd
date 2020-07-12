@@ -89,9 +89,17 @@ def traverse(
         if isinstance(obj, six.string_types):
             return convert_f(obj)
 
-        if hasattr(obj, "target_no_traverse") and getattr(
-            obj, "target_no_traverse", None
-        ):
+        if "pyspark" in str(type(obj)):
+            return convert_f(obj)
+
+        try:
+            target_no_traverse = hasattr(obj, "target_no_traverse") and getattr(
+                obj, "target_no_traverse", None
+            )
+        except ValueError:
+            # SPARK OBJECTS do not support hasattr
+            target_no_traverse = True
+        if target_no_traverse is bool and target_no_traverse:
             return convert_f(obj)
 
         list_obj_constructor = None

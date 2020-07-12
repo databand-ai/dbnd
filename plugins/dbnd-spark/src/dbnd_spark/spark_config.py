@@ -114,6 +114,12 @@ class SparkConfig(Config):
         + " Set this to true if you can't configure connectivity from the spark cluster to the databand server.",
     )
 
+    use_current_spark_session = parameter.value(
+        False,
+        description="If Spark Session exists, "
+        "do not send to remote cluster/spark-submit, but use existing",
+    )
+
 
 class SparkEngineConfig(Config):
     root = parameter(default=None, description="Data outputs location override")[

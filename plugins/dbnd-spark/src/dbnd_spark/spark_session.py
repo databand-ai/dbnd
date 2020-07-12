@@ -1,3 +1,5 @@
+import sys
+
 from dbnd._core.utils.seven import import_errors
 
 
@@ -8,6 +10,9 @@ def get_spark_session():
 
 
 def has_spark_session():
+    if "pyspark" not in sys.modules:
+        return False
+
     try:
         from pyspark.sql import SparkSession
 
