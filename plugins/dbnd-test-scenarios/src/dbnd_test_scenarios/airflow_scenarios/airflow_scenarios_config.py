@@ -32,6 +32,13 @@ def txcom(task_id):
     return "{{ti.xcom_pull(task_ids='%s')}}" % task_id
 
 
+def initialized_dags():
+    import json
+
+    init_dags = os.getenv("AIRFLOW_INIT_DAGS", "[]")
+    return json.loads(init_dags)
+
+
 class SmartScheduler(object):
     frequent = "*/15 * * * *"
     daily = "0 1 * * *"  # daily at 1am
@@ -55,6 +62,7 @@ def magicDAG(dag_id, **kwargs):
     dag.fileloc = sys._getframe().f_back.f_code.co_filename
     # set dag at global space so it can be discovered
     caller_globals["DAG__%s" % dag_id] = dag
+    # dag.is_paused_upon_creation = False if dag_id in initialized_dags() else True
     return dag
 
 
