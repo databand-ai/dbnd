@@ -148,7 +148,7 @@ def train_for_all_customer(customer=parameter[List[pd.DataFrame]]):
 
 @pipeline
 def training_with_parameter_search(
-    data: pd.DataFrame = client_scoring_data.p_a_master_data,
+    data: pd.DataFrame = client_scoring_data.p_g_train_data,
     alpha_step: float = 0.3,
     l1_ratio_step: float = 0.4,
 ):
@@ -169,7 +169,7 @@ def training_with_parameter_search(
 
 @click.command()
 @click.option(
-    "--train-data", default=client_scoring_data.train_data, help="Training data"
+    "--train-data", default=client_scoring_data.p_g_train_data, help="Training data"
 )
 @click.option(
     "--output-model", default="/tmp/trained_model.pickle", help="Output model location"

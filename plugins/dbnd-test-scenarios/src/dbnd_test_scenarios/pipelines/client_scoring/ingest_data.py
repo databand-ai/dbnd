@@ -12,10 +12,10 @@ from sklearn import preprocessing
 
 from dbnd import log_dataframe, log_metric, pipeline, task
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.utils.basics.exportable_strings import get_hashed_name
 from dbnd._core.utils.basics.range import period_dates
 from dbnd_test_scenarios.pipelines.common.pandas_tasks import load_from_sql_data
 from dbnd_test_scenarios.scenarios_repo import client_scoring_data
+from dbnd_test_scenarios.utils.data_utils import get_hash_for_obj
 from targets import target
 
 
@@ -23,38 +23,38 @@ logger = logging.getLogger(__name__)
 
 
 @task
+def clean_pii(data: pd.DataFrame, pii_columns) -> pd.DataFrame:
+    data[pii_columns] = data[pii_columns].apply(
+        lambda x: x.apply(get_hash_for_obj), axis=1
+    )
+    log_metric("PII items removed:", len(pii_columns) * data.shape[0])
+    log_dataframe("pii_clean", data)
+    return data
+
+
+@task
 def enrich_missing_fields(
     raw_data=parameter(log_histograms=True)[pd.DataFrame],
     columns_to_impute=None,
+    columns_min_max_scaler=None,
     fill_with=0,
 ) -> pd.DataFrame:
     columns_to_impute = columns_to_impute or ["10"]
+    columns_min_max_scaler = columns_min_max_scaler or []
+
     counter = int(raw_data[columns_to_impute].copy().isna().sum())
     noise = randint(-counter, counter)
     log_metric(
         "Replaced NaNs", int(raw_data[columns_to_impute].copy().isna().sum()) + noise
     )
     raw_data[columns_to_impute] = raw_data[columns_to_impute].fillna(fill_with)
+
+    for column_name in columns_min_max_scaler:
+        scaler = preprocessing.MinMaxScaler()
+        raw_data[column_name + "_norm"] = scaler.fit_transform(
+            raw_data[[column_name]].values.astype(float)
+        )
     return raw_data
-
-
-@task
-def enrich_with_scaler(raw_data: pd.DataFrame, column_name: str) -> pd.DataFrame:
-    scaler = preprocessing.MinMaxScaler()
-    raw_data[column_name + "_norm"] = scaler.fit_transform(
-        raw_data[[column_name]].values.astype(float)
-    )
-    return raw_data
-
-
-@task
-def clean_pii(data: pd.DataFrame, pii_columns) -> pd.DataFrame:
-    data[pii_columns] = data[pii_columns].apply(
-        lambda x: x.apply(get_hashed_name), axis=1
-    )
-    log_metric("PII items removed:", len(pii_columns) * data.shape[0])
-    log_dataframe("pii_clean", data)
-    return data
 
 
 @task
@@ -69,18 +69,12 @@ def dedup_records(data: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
 @task
 def create_report(data: pd.DataFrame) -> pd.DataFrame:
     avg_score = int(
-        data["score"].sum() + randint(-2 * len(data.columns), 2 * len(data.columns))
+        data["score_label"].sum()
+        + randint(-2 * len(data.columns), 2 * len(data.columns))
     )
-
     log_metric("Column Count", len(data.columns))
     log_metric("Avg Score", avg_score)
-    log_dataframe("ready_data", data)
-    if "client_score" in data.columns:
-        desc = data["client_score"].describe()[["mean", "std"]].to_dict()
-        log_metric(
-            "Client Score Stats", "Mean: %.2f. Std: %.2f." % (desc["mean"], desc["std"])
-        )
-
+    log_dataframe("ready_data", data, with_histograms=True)
     return pd.DataFrame(data=[[avg_score]], columns=["avg_score"])
 
 
@@ -91,16 +85,17 @@ def ingest_partner_data(
     dedup_columns=None,
     columns_to_impute=None,
     pii_columns=None,
-) -> Tuple[str, pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     pii_columns = pii_columns or ["name", "address", "phone"]
     dedup_columns = dedup_columns or ["phone"]
     columns_to_impute = columns_to_impute or ["10"]
 
-    imputed = enrich_missing_fields(data, columns_to_impute)
-    clean = clean_pii(imputed, pii_columns)
-    deduped = dedup_records(clean, columns=dedup_columns)
-    result = create_report(deduped)
-    return result, deduped
+    clean = clean_pii(data, pii_columns)
+
+    enriched = enrich_missing_fields(clean, columns_to_impute)
+    deduped = dedup_records(enriched, columns=dedup_columns)
+    report = create_report(deduped)
+    return report, deduped
 
 
 # PARTNERS DATA
@@ -116,7 +111,7 @@ def partner_file_data_location(name, task_target_date):
 
 def run_fetch_customer_data(partner_name, output_path):
     target(output_path).mkdir_parent()
-    shutil.copy(client_scoring_data.p_a_master_data, output_path)
+    shutil.copy(client_scoring_data.p_g_ingest_data, output_path)
     return output_path
 
 
@@ -148,29 +143,33 @@ def run_process_customer_data_from_sql(query, sql_conn_str, output_file):
 
 def run_process_customer_data(input_file, output_file):
     report = ingest_partner_data(pd.read_csv(input_file))
-    report[1].to_csv(output_file)
+    report[1].to_csv(output_file, index=False)
     return output_file
 
 
 def run_enrich_missing_fields(input_path, output_path, columns_to_impute=None):
     enrich_missing_fields(
         raw_data=pd.read_csv(input_path), columns_to_impute=columns_to_impute
-    ).to_csv(output_path)
+    ).to_csv(output_path, index=False)
     return output_path
 
 
 def run_clean_piis(input_path, output_path, pii_columns):
-    clean_pii(data=pd.read_csv(input_path), pii_columns=pii_columns).to_csv(output_path)
+    clean_pii(data=pd.read_csv(input_path), pii_columns=pii_columns).to_csv(
+        output_path, index=False
+    )
     return output_path
 
 
 def run_dedup_records(input_path, output_path, columns=None):
-    dedup_records(data=pd.read_csv(input_path), columns=columns).to_csv(output_path)
+    dedup_records(data=pd.read_csv(input_path), columns=columns).to_csv(
+        output_path, index=False
+    )
     return output_path
 
 
 def run_create_report(input_path, output_path):
-    create_report(data=pd.read_csv(input_path),).to_csv(output_path)
+    create_report(data=pd.read_csv(input_path),).to_csv(output_path, index=False)
     return output_path
 
 

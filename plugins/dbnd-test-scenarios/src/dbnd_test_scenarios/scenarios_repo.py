@@ -42,9 +42,10 @@ class _Scenarios(object):
 
 
 class _ScenariosClientScoringData(object):
-    p_a_master_data = scenario_data_target("client_scoring/p_a_master_data.csv")
+    p_g_ingest_data = scenario_data_target("client_scoring/p_g_ready_for_ingest.csv")
+    p_g_train_data = scenario_data_target("client_scoring/p_g_ready_for_train.csv")
+
     p_a_master_data_bad = scenario_data_target("client_scoring/p_a_master_data_bad.csv")
-    train_data = scenario_data_target("client_scoring/train_task_data.csv")
 
     partners = ["autolab", "picsdata", "myp"]
     partners_big = ["autobig", "picsbig"]

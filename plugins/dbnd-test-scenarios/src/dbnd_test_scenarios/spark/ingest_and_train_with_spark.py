@@ -1,6 +1,5 @@
 import logging
 
-from random import randint
 from typing import List, Tuple
 
 import pyspark.sql as spark
@@ -14,10 +13,12 @@ from pyspark.sql.functions import exp, udf
 from pyspark.sql.types import DoubleType
 
 from dbnd import log_metric, output, parameter, pipeline
+from dbnd._core.commands.metrics import log_dataframe
 from dbnd_spark.spark import spark_task
 from dbnd_test_scenarios.pipelines.client_scoring.ingest_data import (
     partner_file_data_location,
 )
+from dbnd_test_scenarios.utils.data_chaos_monkey import chaos_float, chaos_int
 from dbnd_test_scenarios.utils.data_utils import get_hash
 from targets.types import PathStr
 
@@ -34,15 +35,15 @@ get_hash_udf = udf(get_hash)
 def unit_imputation(
     raw_data: DataFrame, columns_to_impute=["10"], value=0
 ) -> DataFrame:
-    counter = int(raw_data.describe().first().phone)
-    noise = randint(-counter, counter)
-    log_metric("Replaced NaNs", counter + noise)
+    log_metric("Replaced NaNs", chaos_int(0.5 * raw_data.count()))
+
+    # data_with_new_feature = raw_data.withColumn(column_name + "_exp", exp(column_name))
     return raw_data.na.fill(value, columns_to_impute)
 
 
-# without type annotations
-@spark_task(result=output(log_histograms=True)[DataFrame])
-def dedup_records(data: DataFrame, key_columns=["name"]) -> DataFrame:
+# without type annotations   (log_histograms=True)
+@spark_task(result=output[DataFrame])
+def dedup_records(data: DataFrame, key_columns=["id"]) -> DataFrame:
     data = data.dropDuplicates(key_columns)
     return data
 
@@ -50,44 +51,22 @@ def dedup_records(data: DataFrame, key_columns=["name"]) -> DataFrame:
 @spark_task
 def create_report(data: DataFrame) -> DataFrame:
     log_metric("Column Count", len(data.columns))
+    log_dataframe("ready_data", data, with_histograms=True)
     log_metric(
-        "Avg Score",
-        int(
-            data.agg({"score": "sum"}).collect()[0][0]
-            + randint(-2 * len(data.columns), 2 * len(data.columns))
-        ),
+        "Avg Score", chaos_float(data.agg({"score_label": "sum"}).collect()[0][0])
     )
     return data
 
 
 @spark_task
 def ingest_customer_data(data: spark.DataFrame) -> spark.DataFrame:
-    key_columns = ["name"]
+    key_columns = ["id"]
     columns_to_impute = ["10"]
-
+    data = data.repartition(1)
     imputed = unit_imputation(data, columns_to_impute)
     clean = dedup_records(imputed, key_columns)
     report = create_report(clean)
     return report
-
-
-@spark_task(result=parameter.output.csv[spark.DataFrame])
-def get_and_enrich_spark(raw_data: spark.DataFrame, column_name: str):
-    raw_data.show()
-    data_with_new_feature = raw_data.withColumn(column_name + "_exp", exp(column_name))
-    return data_with_new_feature
-
-
-@spark_task(result=parameter.output.csv[spark.DataFrame])
-def clean_data_spark(raw_data: spark.DataFrame):
-    return raw_data.na.fill(0)
-
-
-@pipeline
-def ingest_partner_data(task_target_date):
-    raw_data = partner_file_data_location(name="a", task_target_date=task_target_date)
-    clean = clean_data_spark(raw_data=raw_data)
-    return get_and_enrich_spark(raw_data=clean, column_name="1")
 
 
 @spark_task
