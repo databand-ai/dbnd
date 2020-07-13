@@ -31,13 +31,12 @@ def run_task(ctx, task_id):
 
     with ctx.obj["run"].run_context() as dr:
         task = dr._get_task_by_id(task_id)
-
+        task_run = task.current_task_run
         # this tracking store should be the same object as the one in the context but they're actually
         # different.
         if ctx.obj["disable_tracking_api"]:
-            task.current_task_run.tracker.tracking_store.disable_tracking_api()
-
-        with task_context(task, TaskContextPhase.RUN):
+            task_run.tracker.tracking_store.disable_tracking_api()
+        with task.ctrl.task_context(phase=TaskContextPhase.RUN):
             task._task_run()
 
 
