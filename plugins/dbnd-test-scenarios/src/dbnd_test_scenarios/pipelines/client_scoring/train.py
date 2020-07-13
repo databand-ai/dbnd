@@ -19,6 +19,19 @@ from dbnd import log_dataframe, log_metric, parameter, pipeline, task
 from dbnd_test_scenarios.scenarios_repo import client_scoring_data
 
 
+TARGET_LABEL = "target_label"
+SELECTED_FEATURES = [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    TARGET_LABEL,
+]
 logger = logging.getLogger(__name__)
 matplotlib.use("Agg")
 
@@ -53,8 +66,7 @@ def create_scatter_plot(actual, predicted) -> figure.Figure:
 def calculate_features(
     data: pd.DataFrame, selected_features: List[str] = None
 ) -> pd.DataFrame:
-    if selected_features:
-        data = data[selected_features]
+    data = data[selected_features]
     return data
 
 
@@ -77,11 +89,14 @@ def train_model(
     alpha: float = 1.0,
     l1_ratio: float = 0.5,
 ) -> ElasticNet:
+    print(training_set)
+    print(training_set.shape)
+    print("%s" % str({col: str(type_) for col, type_ in training_set.dtypes.items()}))
     lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
-    lr.fit(training_set.drop(["target"], 1), training_set[["target"]])
-    prediction = lr.predict(test_set.drop(["target"], 1))
+    lr.fit(training_set.drop([TARGET_LABEL], 1), training_set[[TARGET_LABEL]])
+    prediction = lr.predict(test_set.drop([TARGET_LABEL], 1))
 
-    (rmse, mae, r2) = calculate_metrics(test_set[["target"]], prediction)
+    (rmse, mae, r2) = calculate_metrics(test_set[[TARGET_LABEL]], prediction)
 
     logging.info(
         "Elasticnet model (alpha=%f, l1_ratio=%f): rmse = %f, mae = %f, r2 = %f",
@@ -102,8 +117,8 @@ def validate_model_for_customer(
 
     # support for py3 parqeut
     validation_dataset = validation_dataset.rename(str, axis="columns")
-    validation_x = validation_dataset.drop(["target"], 1)
-    validation_y = validation_dataset[["target"]]
+    validation_x = validation_dataset.drop([TARGET_LABEL], 1)
+    validation_y = validation_dataset[[TARGET_LABEL]]
 
     prediction = model.predict(validation_x)
     (rmse, mae, r2) = calculate_metrics(validation_y, prediction)
@@ -125,6 +140,7 @@ def train_partner_model(
     l1_ratio: float = 0.5,
     selected_features: List[str] = None,
 ):
+    selected_features = selected_features or SELECTED_FEATURES
     data = calculate_features(selected_features=selected_features, data=data)
     training_set, test_set, validation_set = split_data(raw_data=data)
 
