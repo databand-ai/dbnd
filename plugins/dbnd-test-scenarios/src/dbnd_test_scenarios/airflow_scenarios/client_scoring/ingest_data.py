@@ -15,6 +15,10 @@ from dbnd_test_scenarios.pipelines.client_scoring.ingest_data import (
 )
 
 
+def publish_result(path):
+    return path
+
+
 def build_partner_ingest_dag(partner):
     """
     Run only from DAG context
@@ -77,6 +81,13 @@ def build_partner_ingest_dag(partner):
     )
     dedup_records_op >> report_op
 
+    publish_result_op = PythonOperator(
+        task_id="published",
+        python_callable=publish_result,
+        op_kwargs={"path": p_dto_csv("dedup_records")},
+    )
+    dedup_records_op >> publish_result_op
+
     return enrich_missing_fields_op
 
 
@@ -85,4 +96,4 @@ with DAG(
 ) as customer_ingest_dag:
     build_partner_ingest_dag("airflow_scenario_partner")
 
-track_dag(customer_ingest_dag)
+# track_dag(customer_ingest_dag)
