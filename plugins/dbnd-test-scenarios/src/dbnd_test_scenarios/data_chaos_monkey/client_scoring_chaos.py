@@ -24,7 +24,7 @@ class ClientChaos(object):
 
 
 def is_chaos_column_10(partner, task_target_date):
-    if partner in ["autolab", "autobig"] and task_target_date >= COLUMN_10_DATE:
+    if partner in ["autolab", "autobig", "myp"] and task_target_date >= COLUMN_10_DATE:
         return True
     return False
 

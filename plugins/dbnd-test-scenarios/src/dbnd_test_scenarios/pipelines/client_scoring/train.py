@@ -35,6 +35,7 @@ SELECTED_FEATURES = [
     "7",
     "8",
     "9",
+    "10",
     TARGET_LABEL,
 ]
 logger = logging.getLogger(__name__)
