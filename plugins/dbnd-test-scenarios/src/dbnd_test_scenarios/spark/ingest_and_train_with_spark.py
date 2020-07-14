@@ -8,14 +8,17 @@ from pyspark.ml import Pipeline
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.feature import VectorAssembler
 from pyspark.mllib.evaluation import RegressionMetrics
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import udf
 from pyspark.sql.types import DoubleType
 
-from dbnd import log_metric, output, parameter
+from dbnd import log_metric, output, parameter, task
 from dbnd._core.commands.metrics import log_dataframe
+from dbnd._core.constants import DbndTargetOperationType
+from dbnd._vendor import click
 from dbnd_spark.spark import spark_task
 from dbnd_test_scenarios.data_chaos_monkey.chaos_utils import chaos_float, chaos_int
+from dbnd_test_scenarios.scenarios_repo import client_scoring_data
 from dbnd_test_scenarios.utils.data_utils import get_hash
 from targets.types import PathStr
 
@@ -26,6 +29,7 @@ LABEL_COLUMN = "score_label"
 SELECTED_FEATURES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 get_hash_udf = udf(get_hash)
 model_output_parameter = parameter.output.folder_data.pickle.with_flag(None)[PathStr]
+
 
 # with type annotations
 @spark_task
@@ -62,7 +66,7 @@ def ingest_customer_data(data: spark.DataFrame) -> spark.DataFrame:
     imputed = unit_imputation(data, columns_to_impute)
     clean = dedup_records(imputed, key_columns)
     report = create_report(clean)
-    return report
+    return clean
 
 
 @spark_task
@@ -158,3 +162,52 @@ def train_model_for_customer_spark(
     )
 
     return model
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command(name="ingest")
+@click.option("--data", default=client_scoring_data.p_g_ingest_data, help="Ingst data")
+@click.option(
+    "--output-path", default="/tmp/ingested.csv", help="Output model location"
+)
+@task
+def run_ingest(data: PathStr, output_path: PathStr):
+    spark = SparkSession.builder.appName("ingest_data_spark").getOrCreate()
+    data_df = spark.read.csv(data, inferSchema=True, header=True, sep=",")
+
+    result_df = ingest_customer_data(data_df)
+
+    log_dataframe(
+        "published",
+        result_df,
+        path=output_path,
+        with_histograms=True,
+        access_type=DbndTargetOperationType.write,
+    )
+    result_df.write.csv(str(output_path), header=True)
+    spark.stop()
+
+
+@cli.command(name="train")
+@click.option(
+    "--data", default=client_scoring_data.p_g_train_data, help="Training data"
+)
+@click.option(
+    "--model-path", default="/tmp/trained_model.pickle", help="Output model location"
+)
+@task
+def run_train(data: PathStr, model_path: PathStr):
+    spark = SparkSession.builder.appName("train_data_spark").getOrCreate()
+    data_df = spark.read.csv(data, inferSchema=True, header=True, sep=",")
+
+    log_dataframe("ingest", data_df, path=data, with_histograms=True)
+    train_model_for_customer_spark(data_df, saved_model=model_path)
+    spark.stop()
+
+
+if __name__ == "__main__":
+    cli()
