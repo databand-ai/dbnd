@@ -2,6 +2,7 @@ import itertools
 import logging
 import pickle
 
+from random import randint
 from typing import List, Tuple
 
 import matplotlib
@@ -17,6 +18,7 @@ import click
 
 from dbnd import log_dataframe, log_metric, parameter, pipeline, task
 from dbnd_test_scenarios.scenarios_repo import client_scoring_data
+from targets.types import PathStr
 
 
 TARGET_LABEL = "target_label"
@@ -64,8 +66,9 @@ def create_scatter_plot(actual, predicted) -> figure.Figure:
 
 @task
 def calculate_features(
-    data: pd.DataFrame, selected_features: List[str] = None
+    data: pd.DataFrame, selected_features: List[str] = None, data_path: PathStr = None
 ) -> pd.DataFrame:
+    log_dataframe("data_path", data, with_histograms=True, path=data_path)
     data = data[selected_features]
     return data
 
@@ -136,12 +139,15 @@ def validate_model_for_customer(
 @task
 def train_partner_model(
     data: pd.DataFrame = None,
+    data_path: PathStr = None,
     alpha: float = 1.0,
     l1_ratio: float = 0.5,
     selected_features: List[str] = None,
 ):
     selected_features = selected_features or SELECTED_FEATURES
-    data = calculate_features(selected_features=selected_features, data=data)
+    data = calculate_features(
+        selected_features=selected_features, data=data, data_path=data_path
+    )
     training_set, test_set, validation_set = split_data(raw_data=data)
 
     model = train_model(
@@ -191,7 +197,8 @@ def training_with_parameter_search(
     "--output-model", default="/tmp/trained_model.pickle", help="Output model location"
 )
 def cli_run_train_model(train_data, output_model):
-    model, validation = train_partner_model(pd.read_csv(train_data))
+    data = pd.read_csv(train_data)
+    model, validation = train_partner_model(data, data_path=train_data)
     with open(output_model, "wb") as f:
         pickle.dump(model, f)
     click.echo("Your model is ready at %s!" % output_model)

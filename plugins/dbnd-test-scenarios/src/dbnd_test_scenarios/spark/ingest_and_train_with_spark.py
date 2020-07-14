@@ -15,7 +15,7 @@ from pyspark.sql.types import DoubleType
 from dbnd import log_metric, output, parameter
 from dbnd._core.commands.metrics import log_dataframe
 from dbnd_spark.spark import spark_task
-from dbnd_test_scenarios.utils.data_chaos_monkey import chaos_float, chaos_int
+from dbnd_test_scenarios.data_chaos_monkey.chaos_utils import chaos_float, chaos_int
 from dbnd_test_scenarios.utils.data_utils import get_hash
 from targets.types import PathStr
 
@@ -23,9 +23,9 @@ from targets.types import PathStr
 logger = logging.getLogger(__name__)
 
 LABEL_COLUMN = "score_label"
-SELECTED_FEATURES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+SELECTED_FEATURES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 get_hash_udf = udf(get_hash)
-
+model_output_parameter = parameter.output.folder_data.pickle.with_flag(None)[PathStr]
 
 # with type annotations
 @spark_task
@@ -82,7 +82,7 @@ def calculate_features(
     if columns_to_remove:
         for col in columns_to_remove:
             if data.columns.contains(col):
-                data = data.drop(columns_to_remove)
+                data = data.drop([col])
     if selected_features:
         data = data.select(selected_features)
     return data
@@ -103,7 +103,7 @@ def train_model_spark(
     training_set: spark.DataFrame,
     alpha: float = 1.0,
     l1_ratio: float = 0.5,
-    saved_model=parameter.output.folder_data.with_flag(None)[PathStr],
+    saved_model=model_output_parameter,
 ) -> str:
     transform = VectorAssembler(inputCols=SELECTED_FEATURES, outputCol="features")
     lr = LogisticRegression(
@@ -140,6 +140,7 @@ def train_model_for_customer_spark(
     alpha: float = 1.0,
     l1_ratio: float = 0.5,
     selected_features: List[str] = None,
+    saved_model=model_output_parameter,
 ):
     selected_features = selected_features or SELECTED_FEATURES
     if LABEL_COLUMN not in selected_features:
@@ -149,7 +150,11 @@ def train_model_for_customer_spark(
     training_set, test_set, validation_set = split_data_spark(raw_data=data)
 
     model = train_model_spark(
-        test_set=test_set, training_set=training_set, alpha=alpha, l1_ratio=l1_ratio
+        test_set=test_set,
+        training_set=training_set,
+        alpha=alpha,
+        l1_ratio=l1_ratio,
+        saved_model=saved_model,
     )
 
     return model

@@ -11,7 +11,7 @@ from dbnd_test_scenarios.pipelines.client_scoring.ingest_data import (
     run_create_report,
     run_dedup_records,
     run_enrich_missing_fields,
-    run_fetch_customer_data,
+    run_get_customer_data,
 )
 
 
@@ -29,10 +29,11 @@ def build_partner_ingest_dag(partner):
 
     customer_data_op = PythonOperator(
         task_id="get_customer_data",
-        python_callable=run_fetch_customer_data,
+        python_callable=run_get_customer_data,
         op_kwargs={
             "partner_name": partner,
             "output_path": p_dto_csv("get_customer_data"),
+            "target_date_str": "{{ds}}",
         },
     )
 

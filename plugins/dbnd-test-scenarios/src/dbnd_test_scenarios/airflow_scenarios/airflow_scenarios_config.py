@@ -9,7 +9,7 @@ from dbnd._core.inplace_run.airflow_utils import track_dag
 from dbnd._core.utils.basics.helpers import parse_bool
 
 
-start_days_ago = int(os.environ.get("SCENARIOS__START_DAYS_AGO", "2"))
+start_days_ago = int(os.environ.get("SCENARIOS__START_DAYS_AGO", "10"))
 catchup = parse_bool(os.environ.get("SCENARIOS__CATCHUP", "False"))
 output_root = os.environ.get("SCENARIOS__OUTPUT_ROOT", "/tmp/staging/outputs")
 

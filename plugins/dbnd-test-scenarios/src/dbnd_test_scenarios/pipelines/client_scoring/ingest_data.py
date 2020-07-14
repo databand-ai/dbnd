@@ -22,6 +22,13 @@ from targets import target
 logger = logging.getLogger(__name__)
 
 
+def run_get_customer_data(partner_name, output_path, target_date_str):
+    target(output_path).mkdir_parent()
+    source_file = client_scoring_data.get_ingest_data(partner_name, target_date_str)
+    shutil.copy(source_file, output_path)
+    return output_path
+
+
 @task
 def clean_pii(data: pd.DataFrame, pii_columns) -> pd.DataFrame:
     data[pii_columns] = data[pii_columns].apply(
@@ -109,12 +116,6 @@ def partner_file_data_location(name, task_target_date):
     return target(partner_file)
 
 
-def run_fetch_customer_data(partner_name, output_path):
-    target(output_path).mkdir_parent()
-    shutil.copy(client_scoring_data.p_g_ingest_data, output_path)
-    return output_path
-
-
 @pipeline
 def fetch_partners_data(
     task_target_date, selected_partners: List[str], period=datetime.timedelta(days=7)
@@ -169,7 +170,9 @@ def run_dedup_records(input_path, output_path, columns=None):
 
 
 def run_create_report(input_path, output_path):
-    create_report(data=pd.read_csv(input_path),).to_csv(output_path, index=False)
+    data = pd.read_csv(input_path)
+    log_dataframe("data", data, path=input_path, with_histograms=True)
+    create_report(data,).to_csv(output_path, index=False)
     return output_path
 
 

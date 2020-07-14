@@ -43,12 +43,21 @@ class _Scenarios(object):
 
 class _ScenariosClientScoringData(object):
     p_g_ingest_data = scenario_data_target("client_scoring/p_g_ready_for_ingest.csv")
+    p_g_ingest_data__no_col_10 = scenario_data_target(
+        "client_scoring/p_g_ready_for_ingest__no_col_10.csv"
+    )
+
     p_g_train_data = scenario_data_target("client_scoring/p_g_ready_for_train.csv")
 
     p_a_master_data_bad = scenario_data_target("client_scoring/p_a_master_data_bad.csv")
 
     partners = ["autolab", "picsdata", "myp"]
     partners_big = ["autobig", "picsbig"]
+
+    def get_ingest_data(self, partner, target_date_str):
+        if partner == "myp" and target_date_str == "2020-07-10":
+            return self.p_g_ingest_data__no_col_10
+        return self.p_g_ingest_data
 
 
 scenarios = _Scenarios()
