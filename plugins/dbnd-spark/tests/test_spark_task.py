@@ -77,6 +77,6 @@ class TestSparkTasksLocally(object):
                 assert_run_task(word_count_inline.t(text=inplace_df))
 
     def test_spark_io(self):
-        from dbnd_test_scenarios.spark.test_spark_io import dataframes_io_pandas_spark
+        from dbnd_test_scenarios.spark.spark_io_inline import dataframes_io_pandas_spark
 
         assert_run_task(dataframes_io_pandas_spark.t(text=__file__))

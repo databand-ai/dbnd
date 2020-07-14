@@ -53,7 +53,7 @@ class CompositeTrackingStore(TrackingStore):
                     raise
             except Exception as ex:
                 logger.exception(
-                    "Failed to store tracking information from %s at %s"
+                    "Failed to store tracking information from %s at %s: %s"
                     % (name, store.__class__.__name__, str(ex))
                 )
                 if self._raise_on_error:

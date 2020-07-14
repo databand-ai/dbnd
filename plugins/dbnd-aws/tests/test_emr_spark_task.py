@@ -72,7 +72,7 @@ class TestEmrSparkTasks(object):
 
     @pytest.mark.skip
     def test_io(self):
-        from dbnd_test_scenarios.spark.test_spark_io import dataframes_io_pandas_spark
+        from dbnd_test_scenarios.spark.spark_io_inline import dataframes_io_pandas_spark
 
         assert_run_task(
             dataframes_io_pandas_spark.t(

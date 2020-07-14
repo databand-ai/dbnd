@@ -40,14 +40,6 @@ class SchedulerConfig(config.Config):
         description="number of times to retry a failed run, unless set to a different value on the scheduled job"
     )[int]
 
-    dbnd_user = parameter(description="user used to connect to the dbnd web server")[
-        str
-    ]
-
-    dbnd_password = parameter(
-        description="password used to connect to the dbnd web server"
-    )[str]
-
     shell_cmd = parameter(
         description="If shell_cmd is True, the specified command will be executed through the shell. "
         "This can be useful if you are using Python primarily "

@@ -16,14 +16,12 @@ from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import DatabandSystemConfig, OutputConfig, RunInfoConfig
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_instance_cache import TaskInstanceCache
-from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.load_python_module import load_python_module, run_user_func
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.timezone import utcnow
-from dbnd.utils.api_client import ApiClient
 from targets.target_config import FileFormat
 
 
@@ -117,10 +115,12 @@ class DatabandContext(SingletonContext):
             # we want to be able to catch all "new" inline airflow operators
             self.system_settings = DatabandSystemConfig()
             if self.system_settings.conf:
-                self.config.set_values(self.system_settings.conf, source="dbnd.conf")
+                self.config.set_values(
+                    self.system_settings.conf, source="[databand]conf"
+                )
             if self.system_settings.conf_file:
                 conf_file = read_from_config_files(self.system_settings.conf_file)
-                self.config.set_values(conf_file, source="dbnd__databand__conf")
+                self.config.set_values(conf_file, source="[databand]conf")
 
             from dbnd._core.settings import DatabandSettings
 
@@ -157,27 +157,12 @@ class DatabandContext(SingletonContext):
     @property
     @cached()
     def tracking_store(self):
-        return get_tracking_store(
-            self.settings.core.tracker,
-            self.settings.core.tracker_api,
-            self.settings.core.tracker_raise_on_error,
-        )
+        return self.settings.core.build_tracking_store()
 
     @property
     @cached()
     def databand_api_client(self):
-        if not self.settings.core.databand_url and self.settings.core.tracker_url:
-            # TODO: Backward compatibility, remove this when tracker_url is officially deprecated
-            logger.warning(
-                "core.databand_url was not set, trying to use deprecated 'core.tracker_url' instead."
-            )
-            self.settings.core.databand_url = self.settings.core.tracker_url
-        return ApiClient(
-            self.settings.core.databand_url,
-            auth=True,
-            user=self.settings.scheduler.dbnd_user,
-            password=self.settings.scheduler.dbnd_password,
-        )
+        return self.settings.core.build_databand_api_client()
 
     def configure_targets(self):
         output_config = self.settings.output  # type: OutputConfig

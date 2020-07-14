@@ -4,7 +4,7 @@ import time
 from datetime import timedelta
 from typing import List
 
-from dbnd import pipeline, task
+from dbnd import log_metric, pipeline, task
 from dbnd_test_scenarios.pipelines import bad_pipeline
 
 
@@ -42,6 +42,13 @@ def pipe_of_long_tasks(num_per_iteration=3, iterations=1, with_failure=False):
             )
         p_input = combine_all_inputs(iter_task_results)
     return p_input
+
+
+@task
+def task_write_n_metrics(n=10):
+    for i in range(n):
+        log_metric(str(i), i)
+    print("done")
 
 
 def user_exception_task(p_input=""):

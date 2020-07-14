@@ -3,10 +3,8 @@ import logging
 from typing import Dict, List
 
 from dbnd._core.constants import CloudType
-from dbnd._core.current import get_settings
-from dbnd._core.errors import friendly_error
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
-from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
 from dbnd._core.task import Config
 from targets import Target
 from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
@@ -60,6 +58,12 @@ class CoreConfig(Config):
 
     environments = parameter(description="List of enabled environments")[List[str]]
 
+    dbnd_user = parameter(description="user used to connect to the dbnd web server")[
+        str
+    ]
+    dbnd_password = parameter(
+        description="password used to connect to the dbnd web server"
+    )[str]
     databand_url = parameter(
         default=None,
         description="Tracker URL to be used for creating links in console logs",
@@ -139,14 +143,46 @@ class CoreConfig(Config):
     )[str]
 
     def _validate(self):
-        if self.databand_url and self.databand_url.endswith("/"):
+        if not self.databand_url and self.tracker_url:
             logger.warning(
+                "core.databand_url was not set, using deprecated 'core.tracker_url' instead."
+            )
+            self.databand_url = self.tracker_url
+
+        if self.databand_url and self.databand_url.endswith("/"):
+            dbnd_log_debug(
                 "Please fix your core.databand_url value, "
                 "it should not contain '/' at the end, auto-fix has been applied."
             )
             self.databand_url = self.databand_url[:-1]
         if not self.databand_external_url:
             self.databand_external_url = self.databand_url
+
+        # automatically disabling tracking if databand_url is not set
+        if not self.databand_url:
+            dbnd_log_debug(
+                "Automatically disabling tracking to databand service as databand_url is not set"
+            )
+            self.tracker = [t for t in self.tracker if t != "api"]
+
+    def build_tracking_store(self):
+        from dbnd._core.tracking.registry import get_tracking_store
+
+        return get_tracking_store(
+            tracking_store_names=self.tracker,
+            api_channel_name=self.tracker_api,
+            tracker_raise_on_error=self.tracker_raise_on_error,
+        )
+
+    def build_databand_api_client(self):
+        from dbnd.utils.api_client import ApiClient
+
+        return ApiClient(
+            self.databand_url,
+            auth=True,
+            user=self.dbnd_user,
+            password=self.dbnd_password,
+        )
 
 
 class DynamicTaskConfig(Config):

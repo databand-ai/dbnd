@@ -40,7 +40,3 @@ def dbnd_airflow_bootstrap():
         )
 
         patch_airflow_windows_support()
-
-    from dbnd_airflow.web.single_job_run_support import register_legacy_single_job_run
-
-    register_legacy_single_job_run()
