@@ -11,6 +11,7 @@ import pandas as pd
 from sklearn import preprocessing
 
 from dbnd import log_dataframe, log_metric, pipeline, task
+from dbnd._core.constants import DbndTargetOperationType
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.utils.basics.range import period_dates
 from dbnd_test_scenarios.pipelines.common.pandas_tasks import load_from_sql_data
@@ -30,7 +31,14 @@ def run_get_customer_data(partner_name, output_path, target_date_str):
 
 
 @task
-def clean_pii(data: pd.DataFrame, pii_columns) -> pd.DataFrame:
+def clean_pii(
+    data: pd.DataFrame, pii_columns: List[str], target_date: datetime.date = None
+) -> pd.DataFrame:
+    # I am not sure about this code, but this might help
+    if target_date and target_date >= datetime.date(2020, 7, 12):
+        if "10" not in data.columns:
+            log_metric("Fixed columns", ["10"])
+            data["10"] = 0
     data[pii_columns] = data[pii_columns].apply(
         lambda x: x.apply(get_hash_for_obj), axis=1
     )
@@ -155,8 +163,17 @@ def run_enrich_missing_fields(input_path, output_path, columns_to_impute=None):
     return output_path
 
 
-def run_clean_piis(input_path, output_path, pii_columns):
-    clean_pii(data=pd.read_csv(input_path), pii_columns=pii_columns).to_csv(
+def run_clean_piis(input_path, output_path, pii_columns, target_date_str=None):
+    target_date = datetime.datetime.strptime(target_date_str, "%Y-%m-%d").date()
+    data = pd.read_csv(input_path)
+    log_dataframe(
+        "data",
+        data,
+        path=input_path,
+        with_histograms=True,
+        access_type=DbndTargetOperationType.read,
+    )
+    clean_pii(data=data, pii_columns=pii_columns, target_date=target_date).to_csv(
         output_path, index=False
     )
     return output_path
@@ -171,7 +188,13 @@ def run_dedup_records(input_path, output_path, columns=None):
 
 def run_create_report(input_path, output_path):
     data = pd.read_csv(input_path)
-    log_dataframe("data", data, path=input_path, with_histograms=True)
+    log_dataframe(
+        "data",
+        data,
+        path=input_path,
+        with_histograms=True,
+        access_type=DbndTargetOperationType.write,
+    )
     create_report(data,).to_csv(output_path, index=False)
     return output_path
 

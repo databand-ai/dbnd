@@ -7,6 +7,9 @@ import pandas
 from dbnd import Config, parameter
 
 
+COLUMN_10_DATE = datetime.date(2020, 7, 11)
+
+
 class ClientScoringChaos(Config):
     _conf__task_family = "client_chaos"
     partner = parameter[str]
@@ -17,4 +20,16 @@ class ClientScoringChaos(Config):
 
 class ClientChaos(object):
     def fetch_data_chaos(self, data: pandas.DataFrame, partner, target_date):
-        data.drop
+        pass
+
+
+def is_chaos_column_10(partner, task_target_date):
+    if partner in ["autolab", "autobig"] and task_target_date >= COLUMN_10_DATE:
+        return True
+    return False
+
+
+def chaos_model_metric(value, task_target_date):
+    if task_target_date and task_target_date >= COLUMN_10_DATE:
+        return value / 10
+    return value

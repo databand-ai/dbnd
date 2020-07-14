@@ -1,6 +1,10 @@
+import datetime
 import logging
 
 from dbnd._core.utils.project.project_fs import abs_join, relative_path
+from dbnd_test_scenarios.data_chaos_monkey.client_scoring_chaos import (
+    is_chaos_column_10,
+)
 from targets import target
 
 
@@ -55,7 +59,8 @@ class _ScenariosClientScoringData(object):
     partners_big = ["autobig", "picsbig"]
 
     def get_ingest_data(self, partner, target_date_str):
-        if partner == "myp" and target_date_str == "2020-07-10":
+        target_date = datetime.datetime.strptime(target_date_str, "%Y-%m-%d").date()
+        if is_chaos_column_10(partner, target_date):
             return self.p_g_ingest_data__no_col_10
         return self.p_g_ingest_data
 
