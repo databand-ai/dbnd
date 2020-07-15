@@ -42,6 +42,12 @@ def dbnd_wrap_spark_environment(environment=None):
     return environment
 
 
+def with_dbnd_tracking_spark_conf(user_dict):
+    dbnd_dict = get_dbnd_tracking_spark_conf_dict()
+    user_dict.update(dbnd_dict)
+    return user_dict
+
+
 def get_dbnd_tracking_spark_conf_dict(
     dag_id="{{dag.dag_id}}",
     task_id="{{task.task_id}}",
