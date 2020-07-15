@@ -87,6 +87,10 @@ class _BaseTask(object):
     def get_task_family(cls):
         return cls.task_definition.task_family
 
+    @classmethod
+    def get_full_task_family(cls):
+        return cls.task_definition.full_task_family
+
     def __init__(self, **kwargs):
         super(_BaseTask, self).__init__()
 

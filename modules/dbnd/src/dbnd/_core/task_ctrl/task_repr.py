@@ -52,7 +52,7 @@ class TaskReprBuilder(TaskSubCtrl):
 
     def calculate_command_line_for_task(self):
 
-        task_name = self.task.get_task_family()
+        task_name = self.task.get_full_task_family()
         base = "dbnd run {task_name} ".format(task_name=task_name)
 
         params = []
@@ -87,7 +87,7 @@ class TaskReprBuilder(TaskSubCtrl):
                 )
                 params.append("overrides={ %s }" % overrides_str)
 
-        task_ref = "{task_name}".format(task_name=self.task.get_task_family())
+        task_ref = "{task_name}".format(task_name=self.task.get_full_task_family())
         if self.task._conf__decorator_spec:
             task_ref += ".task"
         return "{task_ref}({params})".format(

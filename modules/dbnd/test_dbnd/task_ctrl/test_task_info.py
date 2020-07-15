@@ -45,6 +45,8 @@ class TestTaskInfo(object):
         assert dbnd_run_cmd(cmd_line[2:])
 
     def test_generated_function_call(self):
+        import test_dbnd
+
         t = TaskInfoParamsTask(str_param=15, num_param=12, list_param=[1, 2, 3])
         func_call = t.task_meta.task_functional_call
         logger.info("Func all : %s", func_call)
