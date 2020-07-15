@@ -9,7 +9,7 @@ from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.feature import VectorAssembler
 from pyspark.mllib.evaluation import RegressionMetrics
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import udf
+from pyspark.sql.functions import exp, udf
 from pyspark.sql.types import DoubleType
 
 from dbnd import log_metric, output, parameter, task
@@ -38,7 +38,6 @@ def unit_imputation(
 ) -> DataFrame:
     log_metric("Replaced NaNs", chaos_int(0.5 * raw_data.count()))
 
-    # data_with_new_feature = raw_data.withColumn(column_name + "_exp", exp(column_name))
     return raw_data.na.fill(value, columns_to_impute)
 
 
@@ -46,7 +45,9 @@ def unit_imputation(
 @spark_task(result=output[DataFrame])
 def dedup_records(data: DataFrame, key_columns) -> DataFrame:
     data = data.dropDuplicates(key_columns)
-    return data
+
+    data_with_new_feature = data.withColumn("10_exp", exp("10"))
+    return data_with_new_feature
 
 
 @spark_task
@@ -60,7 +61,7 @@ def create_report(data: DataFrame) -> DataFrame:
 
 @spark_task
 def ingest_customer_data(data: spark.DataFrame) -> spark.DataFrame:
-    key_columns = ["id"]
+    key_columns = ["id", "10"]
     columns_to_impute = ["10"]
     data = data.repartition(1)
     imputed = unit_imputation(data, columns_to_impute)

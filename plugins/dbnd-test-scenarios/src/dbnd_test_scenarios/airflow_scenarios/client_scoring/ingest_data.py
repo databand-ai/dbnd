@@ -1,7 +1,6 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 
-from dbnd._core.inplace_run.airflow_utils import track_dag
 from dbnd_test_scenarios.airflow_scenarios.airflow_scenarios_config import (
     dag_task_output,
 )
@@ -48,6 +47,7 @@ def build_partner_ingest_dag(partner):
             "input_path": p_dto_csv("get_customer_data"),
             "output_path": p_dto_csv("clean_pii"),
             "pii_columns": ["name", "address", "phone"],
+            "target_date_str": "{{ds}}",
         },
     )
 

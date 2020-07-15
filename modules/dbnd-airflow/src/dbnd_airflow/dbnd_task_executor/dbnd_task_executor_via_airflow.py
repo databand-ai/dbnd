@@ -129,6 +129,8 @@ class AirflowTaskExecutor(TaskExecutor):
             task_runs=task_runs,
         )
 
+        # we want to use reference to AIRFLOW HOME as it can be changed in runtime
+        from airflow import configuration
         from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
         from dbnd_airflow.db_utils import airflow_sql_conn_repr
 
@@ -136,10 +138,12 @@ class AirflowTaskExecutor(TaskExecutor):
 
         self.airflow_config = AirflowConfig()
         self.airflow_task_executor = self._get_airflow_executor()
+
         logger.info(
-            "Using airflow executor '%s' with airflow DB at '%s'",
+            "Using airflow executor '%s' with airflow DB at '%s' \nAIRFLOW_HOME='%s'",
             self.airflow_task_executor.__class__.__name__,
             airflow_sql_conn_repr(),
+            configuration.AIRFLOW_HOME,
         )
 
     def build_airflow_dag(self, task_runs):

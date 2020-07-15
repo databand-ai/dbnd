@@ -1,8 +1,8 @@
+import datetime
 import itertools
 import logging
 import pickle
 
-from random import randint
 from typing import List, Tuple
 
 import matplotlib
@@ -17,6 +17,9 @@ from sklearn.model_selection import train_test_split
 import click
 
 from dbnd import log_dataframe, log_metric, parameter, pipeline, task
+from dbnd_test_scenarios.data_chaos_monkey.client_scoring_chaos import (
+    chaos_model_metric,
+)
 from dbnd_test_scenarios.scenarios_repo import client_scoring_data
 from targets.types import PathStr
 
@@ -32,6 +35,7 @@ SELECTED_FEATURES = [
     "7",
     "8",
     "9",
+    "10",
     TARGET_LABEL,
 ]
 logger = logging.getLogger(__name__)
@@ -40,10 +44,13 @@ matplotlib.use("Agg")
 
 # Utilities
 @task
-def calculate_metrics(actual, pred):
+def calculate_metrics(actual, pred, target_date=None):
     rmse = np.sqrt(mean_squared_error(actual, pred))
     mae = mean_absolute_error(actual, pred)
     r2 = r2_score(actual, pred)
+
+    r2 = chaos_model_metric(r2, target_date)
+    rmse = chaos_model_metric(rmse, target_date)
 
     log_metric("rmse", rmse)
     log_metric("mae", mae)
@@ -91,6 +98,7 @@ def train_model(
     training_set: pd.DataFrame,
     alpha: float = 1.0,
     l1_ratio: float = 0.5,
+    target_date: datetime.date = None,
 ) -> ElasticNet:
     print(training_set)
     print(training_set.shape)
@@ -99,7 +107,9 @@ def train_model(
     lr.fit(training_set.drop([TARGET_LABEL], 1), training_set[[TARGET_LABEL]])
     prediction = lr.predict(test_set.drop([TARGET_LABEL], 1))
 
-    (rmse, mae, r2) = calculate_metrics(test_set[[TARGET_LABEL]], prediction)
+    (rmse, mae, r2) = calculate_metrics(
+        test_set[[TARGET_LABEL]], prediction, target_date=target_date
+    )
 
     logging.info(
         "Elasticnet model (alpha=%f, l1_ratio=%f): rmse = %f, mae = %f, r2 = %f",
@@ -114,7 +124,10 @@ def train_model(
 
 @task(result=("report", "prediction_scatter_plot"))
 def validate_model_for_customer(
-    model: ElasticNet, validation_dataset: pd.DataFrame, threshold=0.2
+    model: ElasticNet,
+    validation_dataset: pd.DataFrame,
+    threshold=0.2,
+    target_date: datetime.date = None,
 ) -> Tuple[str, figure.Figure]:
     log_dataframe("validation", validation_dataset)
 
@@ -124,14 +137,16 @@ def validate_model_for_customer(
     validation_y = validation_dataset[[TARGET_LABEL]]
 
     prediction = model.predict(validation_x)
-    (rmse, mae, r2) = calculate_metrics(validation_y, prediction)
+    (rmse, mae, r2) = calculate_metrics(
+        validation_y, prediction, target_date=target_date
+    )
 
     fig = create_scatter_plot(validation_y, prediction)
-    if r2 < threshold:
-        raise Exception(
-            "Model quality is below threshold. Got R2 equal to %s, expect at least %s"
-            % (r2, threshold)
-        )
+    # if r2 < threshold:
+    #     raise Exception(
+    #         "Model quality is below threshold. Got R2 equal to %s, expect at least %s"
+    #         % (r2, threshold)
+    #     )
 
     return "%s,%s,%s" % (rmse, mae, r2), fig
 
@@ -143,6 +158,7 @@ def train_partner_model(
     alpha: float = 1.0,
     l1_ratio: float = 0.5,
     selected_features: List[str] = None,
+    target_date: datetime.date = None,
 ):
     selected_features = selected_features or SELECTED_FEATURES
     data = calculate_features(
@@ -151,10 +167,14 @@ def train_partner_model(
     training_set, test_set, validation_set = split_data(raw_data=data)
 
     model = train_model(
-        test_set=test_set, training_set=training_set, alpha=alpha, l1_ratio=l1_ratio
+        test_set=test_set,
+        training_set=training_set,
+        alpha=alpha,
+        l1_ratio=l1_ratio,
+        target_date=target_date,
     )
     validation, _ = validate_model_for_customer(
-        model=model, validation_dataset=validation_set
+        model=model, validation_dataset=validation_set, target_date=target_date
     )
     return model, validation
 
@@ -189,6 +209,20 @@ def training_with_parameter_search(
     return result
 
 
+@task
+def run_train(train_data, output_model, target_date_str=None):
+    if target_date_str:
+        target_date = datetime.datetime.strptime(target_date_str, "%Y-%m-%d").date()
+    else:
+        target_date = None
+    data = pd.read_csv(train_data)
+    model, validation = train_partner_model(
+        data, data_path=train_data, target_date=target_date
+    )
+    with open(output_model, "wb") as f:
+        pickle.dump(model, f)
+
+
 @click.command()
 @click.option(
     "--train-data", default=client_scoring_data.p_g_train_data, help="Training data"
@@ -197,10 +231,7 @@ def training_with_parameter_search(
     "--output-model", default="/tmp/trained_model.pickle", help="Output model location"
 )
 def cli_run_train_model(train_data, output_model):
-    data = pd.read_csv(train_data)
-    model, validation = train_partner_model(data, data_path=train_data)
-    with open(output_model, "wb") as f:
-        pickle.dump(model, f)
+    run_train(train_data=train_data, output_model=output_model)
     click.echo("Your model is ready at %s!" % output_model)
 
 
