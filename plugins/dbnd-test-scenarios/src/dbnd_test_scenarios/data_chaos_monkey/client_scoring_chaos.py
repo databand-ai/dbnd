@@ -1,26 +1,16 @@
 import datetime
 
-from typing import List
-
-import pandas
-
-from dbnd import Config, parameter
-
 
 COLUMN_10_DATE = datetime.date(2020, 7, 11)
 
 
-class ClientScoringChaos(Config):
-    _conf__task_family = "client_chaos"
-    partner = parameter[str]
-    fetch_data__column_v2_dates = parameter[List[datetime.datetime]]
-
-    column_v2_dates = parameter[List[datetime.datetime]]
-
-
-class ClientChaos(object):
-    def fetch_data_chaos(self, data: pandas.DataFrame, partner, target_date):
-        pass
+# class ClientScoringChaos(Config):
+#     _conf__task_family = "client_chaos"
+#     partner = parameter[str]
+#     fetch_data__column_v2_dates = parameter[List[datetime.datetime]]
+#
+#     column_v2_dates = parameter[List[datetime.datetime]]
+#
 
 
 def is_chaos_column_10(partner, task_target_date):
