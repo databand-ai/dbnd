@@ -202,7 +202,9 @@ def track_python_operator(operator):
 
 
 def _track_task(task):
-    if is_instance_by_class_name(task, "EmrAddStepsOperator"):
+    if is_instance_by_class_name(task, "SubDagOperator"):
+        track_dag(task.subdag)
+    elif is_instance_by_class_name(task, "EmrAddStepsOperator"):
         track_emr_add_steps_operator(task)
     elif is_instance_by_class_name(task, "DatabricksSubmitRunOperator"):
         track_databricks_submit_run_operator(task)
@@ -243,10 +245,7 @@ def track_dag(dag):
     """
     try:
         for task in dag.tasks:
-            if is_instance_by_class_name(task, "SubDagOperator"):
-                track_dag(task.subdag)
-            else:
-                track_task(task)
+            track_task(task)
     except Exception:
         logger.exception("Failed to modify %s for tracking" % dag.dag_id)
 
