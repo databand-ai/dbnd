@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+import typing
 
 from datetime import datetime
 
@@ -25,6 +26,12 @@ from dbnd._core.tracking.tracking_info_convertor import (
 from dbnd.api.serialization.run import RunInfoSchema
 from dbnd.api.serialization.task import TaskDefinitionInfoSchema, TaskRunInfoSchema
 from targets import target
+
+
+if typing.TYPE_CHECKING:
+    from typing import List
+
+    from dbnd._core.task_run.task_run import TaskRun
 
 
 logger = logging.getLogger(__name__)
@@ -69,14 +76,21 @@ class FileTrackingStore(TrackingStore):
             yaml.dump(info, yaml_file, default_flow_style=False)
 
     def log_metric(self, task_run, metric, source=None):
+        # type: (TaskRun, Metric, str) -> None
         metric_path = task_run.meta_files.get_metric_target(metric.key, source=source)
         timestamp = int(time.mktime(metric.timestamp.timetuple()))
-        value = "%s %s\n" % (timestamp, metric.value)
+        value = "{} {}\n".format(timestamp, metric.serialized_value)
 
         data = value
         if metric_path.exists():
             data = metric_path.read() + value
         metric_path.write(data)
+
+    def log_metrics(self, task_run, metrics):
+        # type: (TaskRun, List[Metric]) -> None
+        # TODO: More efficient implementation?
+        for metric in metrics:
+            self.log_metric(task_run, metric, metric.source)
 
     def log_artifact(self, task_run, name, artifact, artifact_target):
         artifact_target.mkdir_parent()

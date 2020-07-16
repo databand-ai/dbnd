@@ -1,30 +1,8 @@
 import logging
-import typing
-
-from uuid import UUID
 
 from dbnd._core.errors.base import DatabandConnectionException
 from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
 
-
-if typing.TYPE_CHECKING:
-    from typing import List, Optional, Union
-
-    from targets.base_target import Target
-    from targets.value_meta import ValueMeta
-
-    from dbnd.api.tracking_api import (
-        InitRunArgs,
-        AirflowTaskInfo,
-        LogTargetArgs,
-    )
-    from dbnd._core.constants import (
-        DbndTargetOperationType,
-        DbndTargetOperationStatus,
-        UpdateSource,
-    )
-    from dbnd._core.task_run.task_run import TaskRun
-    from dbnd._core.run.databand_run import DatabandRun
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +88,9 @@ class CompositeTrackingStore(TrackingStore):
 
     def log_metric(self, **kwargs):
         return self._invoke(CompositeTrackingStore.log_metric.__name__, kwargs)
+
+    def log_metrics(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.log_metrics.__name__, kwargs)
 
     def log_artifact(self, **kwargs):
         return self._invoke(CompositeTrackingStore.log_artifact.__name__, kwargs)

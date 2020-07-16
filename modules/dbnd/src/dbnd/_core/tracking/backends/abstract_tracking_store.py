@@ -62,6 +62,9 @@ class TrackingStore(object):
     def log_metric(self, task_run, metric, source=None):
         pass
 
+    def log_metrics(self, task_run, metrics):
+        pass
+
     def log_artifact(self, task_run, name, artifact, artifact_target):
         pass
 

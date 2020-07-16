@@ -52,6 +52,9 @@ class TrackingChannel(object):
     def log_metric(self, data):
         return self._handle(TrackingChannel.log_metric.__name__, data)
 
+    def log_metrics(self, data):
+        return self._handle(TrackingChannel.log_metrics.__name__, data)
+
     def log_artifact(self, data):
         return self._handle(TrackingChannel.log_artifact.__name__, data)
 

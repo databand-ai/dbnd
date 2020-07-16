@@ -17,6 +17,7 @@ from dbnd.api.tracking_api import (
     log_artifact_schema,
     log_df_hist_schema,
     log_metric_schema,
+    log_metrics_schema,
     log_targets_schema,
     save_external_links_schema,
     save_task_run_log_schema,
@@ -38,6 +39,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.task_run.task_run_error import TaskRunError
     from dbnd._core.tracking.backends.channels import TrackingChannel
+    from dbnd._core.tracking.schemas.metrics import Metric
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +237,20 @@ class TrackingStoreThroughChannel(TrackingStore):
             task_run_attempt_uid=task_run.task_run_attempt_uid,
             metric=metric,
             source=source,
+        )
+
+    def log_metrics(self, task_run, metrics):
+        # type: (TaskRun, List[Metric]) -> None
+        metrics_info = [
+            {
+                "task_run_attempt_uid": task_run.task_run_attempt_uid,
+                "metric": metric,
+                "source": metric.source,
+            }
+            for metric in metrics
+        ]
+        return self._m(
+            self.channel.log_metrics, log_metrics_schema, metrics_info=metrics_info,
         )
 
     def log_artifact(self, task_run, name, artifact, artifact_target):

@@ -6,13 +6,14 @@ from datetime import timedelta
 import six
 
 from dbnd._core.constants import TaskRunState
-from dbnd._core.current import dbnd_context, is_verbose
+from dbnd._core.current import is_verbose
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 
 
 if typing.TYPE_CHECKING:
+    from typing import List
     from dbnd._core.task_run.task_run import TaskRun
 logger = logging.getLogger(__name__)
 
@@ -120,3 +121,8 @@ class ConsoleStore(TrackingStore):
                 metric.value,
             )
         )
+
+    def log_metrics(self, task_run, metrics, source=None):
+        # type: (TaskRun, List[Metric], str) -> None
+        for metric in metrics:
+            self.log_metric(task_run, metric, source)

@@ -1,5 +1,9 @@
+import pytest
+import six
+
 from mock import Mock
 
+from dbnd._core.constants import MetricSource
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.tracking.backends.tracking_store_file import (
@@ -25,20 +29,59 @@ class TestFileMetricsStore(object):
         tr_tracker.log_metric("a_string", "1")
         tr_tracker.log_metric("a_list", [1, 3])
         tr_tracker.log_metric("a_tuple", (1, 2))
-        tr_tracker.log_data("df", pandas_data_frame, meta_conf=ValueMetaConf.enabled())
 
-        actual = TaskRunMetricsFileStoreReader(metrics_folder).get_all_metrics_values()
+        user_metrics = TaskRunMetricsFileStoreReader(
+            metrics_folder
+        ).get_all_metrics_values(MetricSource.user)
 
-        print(actual)
-        assert "df.schema" in actual
-        del actual["df.schema"]
-        assert actual == {
+        assert user_metrics == {
             "a": 1.0,
             "a_list": "[1, 3]",
             "a_string": 1.0,
             "a_tuple": "(1, 2)",
+        }
+
+    @pytest.mark.skipif(six.PY2, reason="float representation issue with stats.std")
+    def test_task_metrics_histograms(self, tmpdir, pandas_data_frame):
+        metrics_folder = target(str(tmpdir))
+
+        task_run = Mock()
+        task_run.meta_files = TaskRunMetaFiles(metrics_folder)
+        t = FileTrackingStore()
+        tr_tracker = TaskRunTracker(task_run=task_run, tracking_store=t)
+        tr_tracker.settings.features.get_value_meta_conf = Mock(
+            return_value=ValueMetaConf.enabled()
+        )
+        tr_tracker.log_data("df", pandas_data_frame, meta_conf=ValueMetaConf.enabled())
+
+        hist_metrics = TaskRunMetricsFileStoreReader(
+            metrics_folder
+        ).get_all_metrics_values(MetricSource.histograms)
+
+        # std value varies in different py versions due to float precision fluctuation
+        df_births_std = hist_metrics["df.Births.std"]
+        assert df_births_std == pytest.approx(428.4246)
+        assert hist_metrics == {
+            "df.Births.25_": 155.0,
+            "df.Births.50_": 578.0,
+            "df.Births.75_": 968.0,
+            "df.Births.count": 5.0,
+            "df.Births.distinct": 5.0,
+            "df.Births.std": df_births_std,
+            "df.Births.max": 973.0,
+            "df.Births.mean": 550.2,
+            "df.Births.min": 77.0,
+            "df.Births.non_null": 5.0,
+            "df.Births.null_count": 0.0,
+            "df.histograms": '{"Births": [[2, 0, 1, 2], [77.0, 301.0, 525.0, 749.0, 973.0]]}',
             "df.preview": "Names  Births",
+            "df.schema": '{"columns": ["Names", "Births"], "dtypes": {"Births": "int64", '
+            '"Names": "object"}, "shape": [5, 2], "size": 10, "type": '
+            '"DataFrame"}',
             "df.shape": "(5, 2)",
-            "df.shape_0_": 5.0,
-            "df.shape_1_": 2.0,
+            "df.shape0": 5.0,
+            "df.shape1": 2.0,
+            "df.stats": '{{"Births": {{"25%": 155.0, "50%": 578.0, "75%": 968.0, "count": '
+            '5.0, "distinct": 5.0, "max": 973.0, "mean": 550.2, "min": 77.0, '
+            '"non-null": 5.0, "null-count": 0.0, "std": {}}}}}'.format(df_births_std),
         }

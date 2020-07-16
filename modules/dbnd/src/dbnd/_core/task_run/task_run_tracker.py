@@ -18,7 +18,7 @@ from targets.values import get_value_type_of_obj
 if typing.TYPE_CHECKING:
     from dbnd._core.tracking.backends import TrackingStore
     from datetime import datetime
-    from typing import Any, Optional, Union
+    from typing import Any, Optional, Union, List
     import pandas as pd
     import pyspark.sql as spark
 
@@ -90,6 +90,10 @@ class TaskRunTracker(TaskRunCtrl):
             task_run=self.task_run, metric=metric, source=source
         )
 
+    def _log_metrics(self, metrics):
+        # type: (List[Metric]) -> None
+        self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
+
     def log_artifact(self, name, artifact):
         try:
             # file storage will save file
@@ -109,6 +113,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
     def log_metric(self, key, value, timestamp=None, source=None):
+        # type: (str, Any, Optional[datetime], Optional[MetricSource]) -> None
         try:
             self._log_metric(key, value, timestamp=timestamp, source=source)
         except Exception as ex:
@@ -127,19 +132,50 @@ class TaskRunTracker(TaskRunCtrl):
             if not value_meta:
                 return
 
-            # TODO: Performance optimization opportunity: batch log_metric API calls
+            ts = utcnow()
+            hist_metrics = []
             if value_meta.data_dimensions:
-                self._log_metric("%s.shape" % key, value_meta.data_dimensions)
+                hist_metrics.append(
+                    Metric(
+                        key="{}.shape".format(key),
+                        value=value_meta.data_dimensions,
+                        source=MetricSource.histograms,
+                        timestamp=ts,
+                    )
+                )
                 for dim, size in enumerate(value_meta.data_dimensions):
-                    self._log_metric("%s.shape[%s]" % (key, dim), size)
+                    hist_metrics.append(
+                        Metric(
+                            key="{}.shape{}".format(key, dim),
+                            value=size,
+                            source=MetricSource.histograms,
+                            timestamp=ts,
+                        )
+                    )
             if meta_conf.log_schema:
-                self._log_metric(
-                    "%s.schema" % key, value_meta.data_schema, is_json=True
+                hist_metrics.append(
+                    Metric(
+                        key="{}.schema".format(key),
+                        value_json=value_meta.data_schema,
+                        source=MetricSource.histograms,
+                        timestamp=ts,
+                    )
                 )
             if meta_conf.log_preview:
-                self._log_metric("%s.preview" % key, value_meta.value_preview)
+                hist_metrics.append(
+                    Metric(
+                        key="{}.preview".format(key),
+                        value=value_meta.value_preview,
+                        source=MetricSource.histograms,
+                        timestamp=ts,
+                    )
+                )
             if meta_conf.log_df_hist:
-                self._log_histograms(key, value_meta)
+                hist_metrics.extend(
+                    self._get_histogram_metrics(key, value_meta, timestamp=ts)
+                )
+            self._log_metrics(hist_metrics)
+
         except Exception as ex:
             log_exception(
                 "Error occurred during log_dataframe for %s" % (key,),
@@ -147,26 +183,33 @@ class TaskRunTracker(TaskRunCtrl):
                 non_critical=True,
             )
 
-    def _log_histograms(self, df_name, value_meta):
-        self._log_metric(
-            "%s.stats" % df_name,
-            value_meta.descriptive_stats,
-            source=MetricSource.histograms,
-            is_json=True,
-        )
-        self._log_metric(
-            "%s.histograms" % df_name,
-            value_meta.histograms,
-            source=MetricSource.histograms,
-            is_json=True,
-        )
+    def _get_histogram_metrics(self, df_name, value_meta, timestamp):
+        metrics = [
+            Metric(
+                key="{}.stats".format(df_name),
+                value_json=value_meta.descriptive_stats,
+                source=MetricSource.histograms,
+                timestamp=timestamp,
+            ),
+            Metric(
+                key="{}.histograms".format(df_name),
+                value_json=value_meta.histograms,
+                source=MetricSource.histograms,
+                timestamp=timestamp,
+            ),
+        ]
         for column, stats in value_meta.descriptive_stats.items():
             for stat, value in stats.items():
-                self._log_metric(
-                    "{}.{}.{}".format(df_name, column, stat),
-                    value,
-                    source=MetricSource.histograms,
+                metrics.append(
+                    Metric(
+                        key="{}.{}.{}".format(df_name, column, stat),
+                        value=value,
+                        source=MetricSource.histograms,
+                        timestamp=timestamp,
+                    )
                 )
+
+        return metrics
 
 
 def get_value_meta_for_metric(key, value, meta_conf):

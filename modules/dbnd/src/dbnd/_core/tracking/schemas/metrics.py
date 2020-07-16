@@ -1,3 +1,5 @@
+import json
+
 import attr
 
 from dbnd._core.constants import _DbndDataClass
@@ -13,9 +15,11 @@ class Metric(_DbndDataClass):
         value_str=None,
         value_json=None,
         value=None,
+        source=None,
     ):
         self.key = key
         self.timestamp = timestamp
+        self.source = source
         self.value_int = value_int
         self.value_float = value_float
         self.value_str = value_str
@@ -35,6 +39,13 @@ class Metric(_DbndDataClass):
         if self.value_json is not None:
             return self.value_json
         return self.value_str
+
+    @property
+    def serialized_value(self):
+        if self.value_json is not None:
+            return json.dumps(self.value_json, sort_keys=True)
+        else:
+            return str(self.value)
 
     @value.setter
     def value(self, value):
