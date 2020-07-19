@@ -2,7 +2,7 @@ import logging
 import subprocess
 import typing
 
-from typing import Union
+from typing import Dict, Union
 
 from dbnd._core.commands import get_spark_session
 from dbnd._core.configuration.config_path import from_task_env
@@ -15,8 +15,10 @@ from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.task.task import Task
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
+from dbnd.tasks.py_distribution.fat_wheel_tasks import fat_wheel_building_task
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_config import SparkConfig, SparkEngineConfig
+from targets.file_target import FileTarget
 
 
 if typing.TYPE_CHECKING:
@@ -36,6 +38,16 @@ class _BaseSparkTask(Task):
 
     python_script = None
     main_class = None
+
+    spark_resources = parameter.c(default=None, system=True)[Dict[str, FileTarget]]
+
+    def band(self):
+        result = super(_BaseSparkTask, self).band()
+
+        if self.spark_config.include_user_project:
+            self.spark_resources = {"user_project": fat_wheel_building_task()}
+
+        return result
 
     def application_args(self):
         """

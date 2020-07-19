@@ -37,6 +37,12 @@ class LocalSparkExecutionCtrl(SparkCtrl):
         spark_local_config = SparkLocalEngineConfig()
         _config = self.config
         deploy = self.deploy
+
+        py_files = _config.py_files
+        if self.task.spark_resources and "user_project" in self.task.spark_resources:
+            project_files = self.task.spark_resources["user_project"].load(str)
+            py_files.append(project_files)
+
         spark = SparkSubmitHook(
             conf=_config.conf,
             conn_id=spark_local_config.conn_id,
@@ -44,7 +50,7 @@ class LocalSparkExecutionCtrl(SparkCtrl):
             application_args=list_of_strings(self.task.application_args()),
             java_class=self.task.main_class,
             files=deploy.arg_files(_config.files),
-            py_files=deploy.arg_files(_config.py_files),
+            py_files=deploy.arg_files(py_files),
             driver_class_path=_config.driver_class_path,
             jars=deploy.arg_files(jars),
             packages=_config.packages,
