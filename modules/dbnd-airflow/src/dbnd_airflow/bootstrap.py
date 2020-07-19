@@ -1,5 +1,7 @@
 import os
 
+from dbnd._core.inplace_run.airflow_utils import patch_airflow_context_vars
+
 
 _airflow_bootstrap_applied = False
 
@@ -16,23 +18,7 @@ def dbnd_airflow_bootstrap():
     from dbnd._core.configuration.dbnd_config import config as dbnd_config
 
     if dbnd_config.getboolean("airflow", "enable_dbnd_context_vars"):
-        import airflow
-        from airflow.utils import operator_helpers
-        from dbnd_airflow.airflow_override.operator_helpers import (
-            context_to_airflow_vars,
-        )
-
-        from dbnd._core.utils.object_utils import patch_models
-
-        if hasattr(airflow.utils.operator_helpers, "context_to_airflow_vars"):
-            patches = [
-                (
-                    airflow.utils.operator_helpers,
-                    "context_to_airflow_vars",
-                    context_to_airflow_vars,
-                )
-            ]
-            patch_models(patches)
+        patch_airflow_context_vars()
 
     if os.name == "nt" and dbnd_config.getboolean("airflow", "enable_windows_support"):
         from dbnd_airflow.airflow_override.dbnd_airflow_windows import (

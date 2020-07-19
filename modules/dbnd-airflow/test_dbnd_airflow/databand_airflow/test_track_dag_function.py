@@ -7,9 +7,10 @@ from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
+from mock import Mock
 
 from dbnd._core.decorator.func_task_decorator import _decorated_user_func
-from dbnd._core.inplace_run.airflow_utils import track_dag
+from dbnd._core.inplace_run.airflow_utils import patch_airflow_context_vars, track_dag
 
 
 dbnd_spark_env_vars = (
@@ -111,3 +112,12 @@ class TestTrackDagFunction(object):
             assert env_var in spark_submit_operator._conf
 
         assert "DBND__ENABLE__SPARK_CONTEXT_ENV" in spark_submit_operator._env_vars
+
+    def test_airflow_context_vars_patch(self):
+        patch_airflow_context_vars()
+        from airflow.utils.operator_helpers import context_to_airflow_vars
+
+        mock_task_instance = Mock(try_number=1)
+        context = dict(task_instance=mock_task_instance)
+        airflow_vars = context_to_airflow_vars(context)
+        assert airflow_vars["AIRFLOW_CTX_TRY_NUMBER"] == "1"

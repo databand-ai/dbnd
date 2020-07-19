@@ -362,5 +362,24 @@ def add_tracking_to_policy():
         logging.exception("Failed to add tracking in policy")
 
 
+def patch_airflow_context_vars():
+    """ used for tracking bash operators """
+    import airflow
+    from airflow.utils import operator_helpers
+    from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars
+
+    from dbnd._core.utils.object_utils import patch_models
+
+    if hasattr(airflow.utils.operator_helpers, "context_to_airflow_vars"):
+        patches = [
+            (
+                airflow.utils.operator_helpers,
+                "context_to_airflow_vars",
+                context_to_airflow_vars,
+            )
+        ]
+        patch_models(patches)
+
+
 if __name__ == "__main__":
     print(get_dbnd_tracking_spark_conf())
