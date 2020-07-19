@@ -1,5 +1,6 @@
 import abc
 import logging
+import time
 
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils.basics.nothing import NOTHING, is_not_defined
@@ -115,7 +116,15 @@ class DataTarget(Target):
             value_type = get_value_type_of_obj(value, ObjectValueType())
         try:
             m = get_marshaller_ctrl(self, value_type=value_type)
+            start_time = time.time()
             m.dump(value, **kwargs)
+            end_time = time.time()
+            total_time_in_milliseconds = (end_time - start_time) * 1000
+            logger.debug(
+                "Total marshaling time for target {} is {} milliseconds".format(
+                    type(self), total_time_in_milliseconds
+                )
+            )
         except Exception as ex:
             raise friendly_error.failed_to_write_task_output(
                 ex, self, value_type=value_type
@@ -130,7 +139,16 @@ class DataTarget(Target):
             return TARGET_CACHE[cache_key]
 
         m = get_marshaller_ctrl(self, value_type)
+
+        start_time = time.time()
         value = m.load(**kwargs)
+        end_time = time.time()
+        total_time_in_milliseconds = (end_time - start_time) * 1000
+        logger.debug(
+            "Total unmarshaling for target {} is {} milliseconds".format(
+                type(self), total_time_in_milliseconds
+            )
+        )
 
         TARGET_CACHE[cache_key] = value
 
