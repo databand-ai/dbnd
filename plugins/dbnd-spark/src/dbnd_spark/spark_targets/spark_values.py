@@ -5,8 +5,26 @@ import typing
 
 import pyspark.sql as spark
 
-from pyspark.sql.functions import desc
-from pyspark.sql.types import BooleanType, NumericType, StringType
+from pyspark.sql.functions import (
+    col,
+    count,
+    countDistinct,
+    desc,
+    isnull,
+    mean,
+    stddev,
+    when,
+)
+from pyspark.sql.types import (
+    ArrayType,
+    BooleanType,
+    IntegerType,
+    IntegralType,
+    MapType,
+    NumericType,
+    StringType,
+    StructType,
+)
 
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.builtins_values import DataValueType
@@ -86,68 +104,112 @@ class SparkDataFrameValueType(DataValueType):
         )
 
     @classmethod
-    def _calculate_histogram(cls, column_df):
-        total_count = column_df.count()
-        distinct = column_df.distinct().count()
-        column_df = column_df.na.drop()
-        non_null = column_df.count()
-        null_values = total_count - non_null
-        stats_dict = {
-            "count": non_null,
-            "non-null": non_null,
-            "null-count": null_values,
-            "distinct": distinct,
-        }
-
-        column_name = column_df.schema.fields[0].name
-        column_type = column_df.schema.fields[0].dataType
-        histogram = None
-
-        if isinstance(column_type, (StringType, BooleanType)):
-            value_counts = (
-                column_df.groupby(column_name).count().orderBy(desc("count")).collect()
-            )
-            counts = [row["count"] for row in value_counts]
-            values = [row[column_name] for row in value_counts]
-
-            if distinct > 50:
-                counts, tail = counts[:49], counts[49:]
-                counts.append(sum(tail))
-                values = values[:49]
-                values.append("_others")
-
-            histogram = (counts, values)
-        elif isinstance(column_type, NumericType):
-            buckets = min(distinct, 20)
-            histogram = column_df.rdd.map(lambda x: x[column_name]).histogram(buckets)
-            histogram = tuple(reversed(histogram))
-
-            stats_rows = column_df.summary().collect()
-            summary = dict(
-                [(row["summary"], float(row[column_name])) for row in stats_rows]
-            )
-            stats_dict.update(summary)
-            stats_dict["std"] = stats_dict.pop("stddev")
-        else:
-            logger.info("Data type %s is not supported by histograms", column_type)
-
-        return stats_dict, histogram
-
-    @classmethod
     def get_histograms(cls, df):
         # type: (spark.DataFrame) -> Tuple[Optional[Dict[Dict[str, Any]]], Optional[Dict[str, Tuple]]]
         try:
-            stats, histograms = dict(), dict()
-            for column_name, column_type in df.dtypes:
-                column = df.select(column_name)
-                stats[column_name], histograms[column_name] = cls._calculate_histogram(
-                    column
-                )
+            df = cls._filter_complex_columns(df)
 
-            return stats, histograms
+            summary = cls._calculate_summary(df)
+            histograms = cls._calculate_histograms(df, summary)
+
+            return summary, histograms
         except Exception:
             logger.exception("Error occured during histograms calculation")
             return None, None
+
+    @classmethod
+    def _filter_complex_columns(cls, df):
+        simple_columns = []
+        for column_def in df.schema.fields:
+            if isinstance(column_def.dataType, (ArrayType, MapType, StructType)):
+                logger.warning(
+                    "Column %s was ignored in histogram calculation as it contains complex type (%s)",
+                    column_def.name,
+                    column_def.dataType,
+                )
+                continue
+            simple_columns.append(column_def.name)
+        return df.select(simple_columns)
+
+    @classmethod
+    def _calculate_summary(cls, df):
+        summary = df.summary().collect()
+        # non-null and distinct counts should be calculated in separate query, because summary doesn't includes it
+        counts = df.agg(
+            *(countDistinct(col(c)).alias("%s_distinct" % c) for c in df.columns),
+            *(count(when(isnull(c), c)).alias("%s_count_null" % c) for c in df.columns),
+            *(count(col(c)).alias("%s_count" % c) for c in df.columns),
+        ).collect()[0]
+
+        result = {column_name: {} for column_name in df.columns}
+        for column_def in df.schema.fields:
+            column_name = column_def.name
+            if isinstance(column_def.dataType, NumericType):
+                # summary (min, max, mean, std, etc.) make sense only for numeric types
+                for row in summary:
+                    # zero cell contains summary metrics name
+                    result[column_name][row[0]] = float(row[column_name])
+                # so frontend will be able to eat metric
+                result[column_name]["std"] = result[column_name]["stddev"]
+            result[column_name]["distinct"] = counts["%s_distinct" % column_name]
+            result[column_name]["null-count"] = counts["%s_count_null" % column_name]
+            result[column_name]["non-null"] = counts["%s_count" % column_name]
+            # count in summary calculates only non-null counts, so we have to summarize non-null and null
+            result[column_name]["count"] = (
+                result[column_name]["non-null"] + result[column_name]["null-count"]
+            )
+        return result
+
+    @classmethod
+    def _calculate_histograms(cls, df, summary):
+        result = {column_name: None for column_name in df.columns}
+
+        for column_def in df.schema.fields:
+            column_type = column_def.dataType
+            column_name = column_def.name
+            distinct = summary[column_name]["distinct"]
+            if isinstance(column_type, (StringType, BooleanType)):
+                value_counts = (
+                    df.select(column_name)
+                    .groupby(column_name)
+                    .count()
+                    .orderBy(desc("count"))
+                    .collect()
+                )
+                counts = [row["count"] for row in value_counts]
+                values = [row[column_name] for row in value_counts]
+
+                if distinct > 50:
+                    counts, tail = counts[:49], counts[49:]
+                    counts.append(sum(tail))
+                    values = values[:49]
+                    values.append("_others")
+
+                result[column_name] = (counts, values)
+            elif isinstance(column_type, NumericType):
+                # hardcoded value
+                buckets = 20
+                # for integral types bucket should be also integral
+                if isinstance(column_type, IntegralType):
+                    minv = summary[column_name]["min"]
+                    maxv = summary[column_name]["max"]
+                    # buckets calculation is copied from rdd.histogram() code and ajusted to be integers
+                    buckets_count = max(distinct, 20)
+                    inc = int((maxv - minv) / buckets_count)
+                    buckets = [i * inc + minv for i in range(buckets)]
+                    buckets.append(maxv)
+                else:
+                    buckets = max(distinct, 20)
+                histogram = (
+                    df.select(column_name)
+                    .rdd.map(lambda x: x[column_name])
+                    .histogram(buckets)
+                )
+                result[column_name] = tuple(reversed(histogram))
+            else:
+                logger.info("Data type %s is not supported by histograms", column_type)
+
+        return result
 
     def support_fast_count(self, target):
         from targets import FileTarget
