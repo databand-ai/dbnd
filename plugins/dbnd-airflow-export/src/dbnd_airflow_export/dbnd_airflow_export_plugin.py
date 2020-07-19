@@ -11,6 +11,7 @@ from airflow.configuration import conf
 from airflow.jobs import BaseJob
 from airflow.models import BaseOperator, DagModel, DagRun
 from airflow.plugins_manager import AirflowPlugin
+from airflow.sensors.base_sensor_operator import BaseSensorOperator
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
@@ -175,6 +176,7 @@ class ETask(object):
         task_id=None,
         retries=None,
         command=None,
+        task_args=None,
     ):
         self.upstream_task_ids = list(upstream_task_ids)  # type: List[str]
         self.downstream_task_ids = list(downstream_task_ids)  # type: List[str]
@@ -185,6 +187,7 @@ class ETask(object):
         self.task_id = task_id
         self.retries = retries
         self.command = command
+        self.task_args = task_args
 
     @staticmethod
     def from_task(t):
@@ -199,6 +202,7 @@ class ETask(object):
             task_id=t.task_id,
             retries=t.retries,
             command=_get_command_from_operator(t),
+            task_args=_get_task_args(t),
         )
 
     def as_dict(self):
@@ -212,6 +216,7 @@ class ETask(object):
             task_id=self.task_id,
             retries=self.retries,
             command=self.command,
+            task_args=self.task_args,
         )
 
 
@@ -486,6 +491,30 @@ def _get_command_from_operator(t):
         return "python_callable={func}, op_kwargs={kwrags}".format(
             func=t.python_callable.__name__, kwrags=t.op_kwargs
         )
+
+
+def _get_task_args(t):
+    # type: (BaseOperator) -> Dict[str]
+    try:
+        from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
+        from airflow.contrib.sensors.file_sensor import FileSensor
+
+        if isinstance(t, BaseSensorOperator):
+            # We currently handle input args for sensors only
+            args = {"interval": "", "wait_condition": ""}
+            if isinstance(t, FileSensor):
+                args["interval"] = t.poke_interval
+                args["wait_condition"] = t.filepath
+
+            elif isinstance(t, EmrStepSensor):
+                args["interval"] = t.poke_interval
+                args["wait_condition"] = t.step_id
+
+            return args
+        return
+
+    except Exception as ex:
+        logging.error("Could not collect task args for %s: %s", t.task_id, ex)
 
 
 def _read_dag_file(dag_file):
