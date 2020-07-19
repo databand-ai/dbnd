@@ -120,6 +120,12 @@ class SparkConfig(Config):
         "do not send to remote cluster/spark-submit, but use existing",
     )
 
+    include_user_project = parameter.c(
+        default=False,
+        description="Build fat_wheel from configured package and third-party requirements"
+        + " (configured in bdist_zip section) and upload it to Spark",
+    )[bool]
+
 
 class SparkEngineConfig(Config):
     root = parameter(default=None, description="Data outputs location override")[
