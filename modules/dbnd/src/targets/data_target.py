@@ -10,6 +10,7 @@ from targets.errors import NotADirectory
 from targets.extras.file_ctrl import ObjectMarshallingCtrl
 from targets.extras.pandas_ctrl import PandasMarshallingCtrl
 from targets.marshalling import get_marshaller_ctrl
+from targets.utils.performance import target_timeit_log
 
 
 logger = logging.getLogger(__name__)
@@ -116,15 +117,9 @@ class DataTarget(Target):
             value_type = get_value_type_of_obj(value, ObjectValueType())
         try:
             m = get_marshaller_ctrl(self, value_type=value_type)
-            start_time = time.time()
-            m.dump(value, **kwargs)
-            end_time = time.time()
-            total_time_in_milliseconds = (end_time - start_time) * 1000
-            logger.debug(
-                "Total marshaling time for target {} is {} milliseconds".format(
-                    type(self), total_time_in_milliseconds
-                )
-            )
+
+            with target_timeit_log(self, "marshalling"):
+                m.dump(value, **kwargs)
         except Exception as ex:
             raise friendly_error.failed_to_write_task_output(
                 ex, self, value_type=value_type
@@ -140,15 +135,8 @@ class DataTarget(Target):
 
         m = get_marshaller_ctrl(self, value_type)
 
-        start_time = time.time()
-        value = m.load(**kwargs)
-        end_time = time.time()
-        total_time_in_milliseconds = (end_time - start_time) * 1000
-        logger.debug(
-            "Total unmarshaling for target {} is {} milliseconds".format(
-                type(self), total_time_in_milliseconds
-            )
-        )
+        with target_timeit_log(self, "unmarshalling"):
+            value = m.load(**kwargs)
 
         TARGET_CACHE[cache_key] = value
 
