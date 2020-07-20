@@ -164,10 +164,25 @@ class SparkDataFrameValueType(DataValueType):
     def _calculate_histograms(cls, df, summary):
         result = {column_name: None for column_name in df.columns}
 
+        # all_buckets contains tuples of:
+        # - column name
+        # - bucket min value
+        # - bucket max value
+        # - bucket number
+        # we need such bunch of tuples to perform single spark query later
+        all_buckets = []
+
+        numeric_columns = [
+            f.name for f in df.schema.fields if isinstance(f.dataType, NumericType)
+        ]
+        # column -> [buckets]
+        named_buckets = {column_name: [] for column_name in numeric_columns}
+
         for column_def in df.schema.fields:
             column_type = column_def.dataType
             column_name = column_def.name
             distinct = summary[column_name]["distinct"]
+            # string values histograms are calculated in old N+1 way
             if isinstance(column_type, (StringType, BooleanType)):
                 value_counts = (
                     df.select(column_name)
@@ -187,27 +202,63 @@ class SparkDataFrameValueType(DataValueType):
 
                 result[column_name] = (counts, values)
             elif isinstance(column_type, NumericType):
-                # hardcoded value
-                buckets = 20
-                # for integral types bucket should be also integral
+                minv = summary[column_name]["min"]
+                maxv = summary[column_name]["max"]
+
+                # buckets count should be 20 or number of distinct elements in the column
+                buckets_count = min(distinct, 20)
+
                 if isinstance(column_type, IntegralType):
-                    minv = summary[column_name]["min"]
-                    maxv = summary[column_name]["max"]
                     # buckets calculation is copied from rdd.histogram() code and ajusted to be integers
-                    buckets_count = max(distinct, 20)
+                    # for integral types bucket should be also integral that's why we're casting increment to int
                     inc = int((maxv - minv) / buckets_count)
-                    buckets = [i * inc + minv for i in range(buckets)]
-                    buckets.append(maxv)
                 else:
-                    buckets = max(distinct, 20)
-                histogram = (
-                    df.select(column_name)
-                    .rdd.map(lambda x: x[column_name])
-                    .histogram(buckets)
-                )
-                result[column_name] = tuple(reversed(histogram))
+                    inc = (maxv - minv) * 1.0 / buckets_count
+
+                buckets = [i * inc + minv for i in range(buckets_count)]
+                buckets.append(maxv)
+
+                for i in range(0, len(buckets)):
+                    all_buckets.append(
+                        {
+                            "c": column_name,
+                            "min": buckets[i],
+                            # for max value we're adding 1 so the max value will fall into last bucket
+                            "max": buckets[i] + 1
+                            if (i == len(buckets) - 1)
+                            else buckets[i + 1],
+                            "bucket": i,
+                        }
+                    )
+                named_buckets[column_name] = buckets
             else:
                 logger.info("Data type %s is not supported by histograms", column_type)
+
+        # For each 'bucket' (column with min/max values) we're performing
+        # "select count(column) from table where column >= min and column < max"
+        # then aggregating all values into single row with column aliases like "<column>_<bucket_number>"
+        # note that we're performing batch histograms calculation only for numeric columns
+        histograms = (
+            df.select(numeric_columns)
+            .agg(
+                *(
+                    count(
+                        when((col(c["c"]) >= c["min"]) & (col(c["c"]) < c["max"]), 1)
+                    ).alias("%s_%s" % (c["c"], c["bucket"]))
+                    for c in all_buckets
+                )
+            )
+            .collect()[0]
+        )
+
+        # Aggregating results into api-consumable form.
+        # We're taking all buckets and looking up for counts for each bucket.
+        for column in numeric_columns:
+            counts = [
+                histograms["%s_%s" % (column, i)]
+                for i in range(0, len(named_buckets[column]))
+            ]
+            result[column] = (counts, named_buckets[column])
 
         return result
 
