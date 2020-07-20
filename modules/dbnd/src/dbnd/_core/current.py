@@ -1,3 +1,4 @@
+import logging
 import typing
 
 from typing import Optional
@@ -110,6 +111,16 @@ def is_verbose():
             return True
 
     return get_dbnd_project_config().is_verbose()
+
+
+def get_target_logging_level():
+    default_level = 10  # DEBUG
+
+    context = try_get_databand_context()
+    if context and getattr(context, "settings", None):
+        return getattr(logging, context.settings.log.targets_log_level)
+
+    return default_level
 
 
 def is_killed():

@@ -96,6 +96,11 @@ class LoggingConfig(config.Config):
         "for tasks using a cloud environment, don't copy the task log to cloud storage"
     ).value(False)
 
+    targets_log_level = parameter(
+        default="DEBUG",
+        description="Should log the time it takes for marshalling and unmarshalling targets",
+    )[str]
+
     sqlalchemy_print = parameter(description="enable sqlalchemy logger").value(False)
     sqlalchemy_trace = parameter(description="trace sqlalchemy queries").value(False)
     api_profile = parameter(description="profile api calls").value(False)
