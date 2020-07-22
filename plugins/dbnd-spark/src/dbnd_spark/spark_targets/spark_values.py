@@ -218,17 +218,19 @@ class SparkDataFrameValueType(DataValueType):
                 buckets = [i * inc + minv for i in range(buckets_count)]
                 buckets.append(maxv)
 
-                for i in range(0, len(buckets)):
+                for i in range(0, len(buckets) - 1):
                     all_buckets.append(
-                        {
-                            "c": column_name,
-                            "min": buckets[i],
-                            # for max value we're adding 1 so the max value will fall into last bucket
-                            "max": buckets[i] + 1
-                            if (i == len(buckets) - 1)
-                            else buckets[i + 1],
-                            "bucket": i,
-                        }
+                        count(
+                            when(
+                                (buckets[i] <= col(column_name))
+                                & (
+                                    col(column_name) <= buckets[i + 1]
+                                    if (i == len(buckets) - 2)
+                                    else col(column_name) < buckets[i + 1]
+                                ),
+                                1,
+                            )
+                        ).alias("%s_%s" % (column_name, i))
                     )
                 named_buckets[column_name] = buckets
             else:
@@ -238,25 +240,15 @@ class SparkDataFrameValueType(DataValueType):
         # "select count(column) from table where column >= min and column < max"
         # then aggregating all values into single row with column aliases like "<column>_<bucket_number>"
         # note that we're performing batch histograms calculation only for numeric columns
-        histograms = (
-            df.select(numeric_columns)
-            .agg(
-                *(
-                    count(
-                        when((col(c["c"]) >= c["min"]) & (col(c["c"]) < c["max"]), 1)
-                    ).alias("%s_%s" % (c["c"], c["bucket"]))
-                    for c in all_buckets
-                )
-            )
-            .collect()[0]
-        )
+        if len(all_buckets):
+            histograms = df.select(numeric_columns).agg(*all_buckets).collect()[0]
 
         # Aggregating results into api-consumable form.
         # We're taking all buckets and looking up for counts for each bucket.
         for column in numeric_columns:
             counts = [
                 histograms["%s_%s" % (column, i)]
-                for i in range(0, len(named_buckets[column]))
+                for i in range(0, len(named_buckets[column]) - 1)
             ]
             result[column] = (counts, named_buckets[column])
 
