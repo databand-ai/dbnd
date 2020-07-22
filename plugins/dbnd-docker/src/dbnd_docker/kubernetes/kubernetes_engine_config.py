@@ -98,6 +98,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     pod_retry_delay = parameter.help(
         "The delay between each pod retry attempt in time delta format. 1m, 5s, 1h, etc."
     )[datetime.timedelta]
+    retry_on_image_pull_error_count = parameter.help(
+        "Describes the amount of retry attempts when a pod fails with " "'ErrImagePull'"
+    ).default(0)[int]
 
     startup_timeout_seconds = parameter.value(120)
     show_pod_log = parameter(default=False).help(
