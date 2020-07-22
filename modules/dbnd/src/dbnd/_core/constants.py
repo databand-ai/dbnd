@@ -243,14 +243,15 @@ class MetricSource(object):
     user = "user"
     system = "system"
     histograms = "histograms"
+    spark = "spark"
 
     @classmethod
     def all(cls):
-        return [cls.user, cls.system, cls.histograms]
+        return [cls.user, cls.system, cls.histograms, cls.spark]
 
     @classmethod
     def default_sources(cls):
-        return [cls.user, cls.system, cls.histograms]
+        return [cls.user, cls.system, cls.histograms, cls.spark]
 
     @classmethod
     def default_sources_str(cls):
