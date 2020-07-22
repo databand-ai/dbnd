@@ -417,12 +417,16 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             DbndPodRequestFactory,
         )
 
+        self.apply_env_vars_to_pod(pod)
         kube_req_factory = DbndPodRequestFactory()
         if hasattr(pod, "pod_yaml"):
             kube_req_factory._yaml = pod.pod_yaml
 
         req = kube_req_factory.create(pod)
         return req
+
+    def apply_env_vars_to_pod(self, pod):
+        pod.envs["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
 
 
 def readable_pod_request(pod_req):

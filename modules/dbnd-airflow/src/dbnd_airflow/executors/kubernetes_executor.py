@@ -248,6 +248,10 @@ def mgr_init():
 class DbndKubernetesExecutor(KubernetesExecutor):
     def __init__(self, kube_dbnd=None):
         # type: (DbndKubernetesExecutor, DbndKubernetesClient) -> None
+        from os import environ
+
+        # This env variable is required for airflow's kubernetes configuration validation
+        environ["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
         super(DbndKubernetesExecutor, self).__init__()
 
         from multiprocessing.managers import SyncManager
