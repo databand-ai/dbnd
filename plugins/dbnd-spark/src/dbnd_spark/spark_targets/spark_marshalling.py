@@ -5,6 +5,7 @@ import logging
 import pyspark.sql as spark
 
 from dbnd._core.commands import get_spark_session
+from dbnd_spark.spark_config import SparkMarshallingConfig
 from targets.marshalling.marshaller import Marshaller
 from targets.target_config import FileFormat
 from targets.utils.performance import target_timeit
@@ -47,22 +48,26 @@ class SparkMarshaller(Marshaller):
 
 
 class SparkDataFrameToCsv(SparkMarshaller):
-    infer_schema = True
-    header = True
-
     @target_timeit
     def target_to_value(self, target, **kwargs):
+        marshalling_config = SparkMarshallingConfig()
         # keep it backward compatible
         if "header" not in kwargs:
-            kwargs["header"] = self.header
+            default_header_value = marshalling_config.default_header_value
+            kwargs["header"] = default_header_value
+            logger.warning("Header value is %s", default_header_value)
         if "inferSchema" not in kwargs:
-            kwargs["inferSchema"] = self.infer_schema
+            default_infer_schema_value = marshalling_config.default_infer_schema_value
+            kwargs["inferSchema"] = default_infer_schema_value
+            logger.warning("Infer schema value is %s", default_infer_schema_value)
         return super(SparkDataFrameToCsv, self).target_to_value(target, **kwargs)
 
     def value_to_target(self, value, target, **kwargs):
+        marshalling_config = SparkMarshallingConfig()
         # keep it backward compatible
         if "header" not in kwargs:
-            kwargs["header"] = self.header
+            default_header_value = marshalling_config.default_header_value
+            kwargs["header"] = default_header_value
         return super(SparkDataFrameToCsv, self).value_to_target(value, target, **kwargs)
 
 
