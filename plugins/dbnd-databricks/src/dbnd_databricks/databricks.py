@@ -4,7 +4,7 @@ import time
 
 from airflow import AirflowException
 
-from dbnd._core.current import current_task_run
+from dbnd._core.current import current_task, current_task_run
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
@@ -18,7 +18,7 @@ from dbnd_databricks.errors import (
     failed_to_run_databricks_job,
     failed_to_submit_databricks_job,
 )
-from dbnd_spark.spark import SparkTask
+from dbnd_spark.spark import SparkTask, _BaseSparkTask
 from dbnd_spark.spark_ctrl import SparkCtrl
 
 
@@ -102,14 +102,19 @@ class DatabricksCtrl(SparkCtrl):
             logger.info(b.get_banner_str())
 
     def _create_spark_submit_json(self, spark_submit_parameters):
+        spark_config = self.task.spark_config
         new_cluster = {
             "num_workers": self.databricks_config.num_workers,
             "spark_version": self.databricks_config.spark_version,
-            "spark_conf": self.databricks_config.spark_conf,
+            # spark_conf not supported, instead uses 'conf'
+            "conf": self.databricks_config.spark_conf,
             "node_type_id": self.databricks_config.node_type_id,
             "init_scripts": self.databricks_config.init_scripts,
             "cluster_log_conf": self.databricks_config.cluster_log_conf,
             "spark_env_vars": self._get_env_vars(self.databricks_config.spark_env_vars),
+            "py_files": self.deploy.arg_files(spark_config.py_files),
+            "files": self.deploy.arg_files(spark_config.files),
+            "jars": self.deploy.arg_files(spark_config.jars),
         }
         if self.databricks_config.cloud_type == DatabricksCloud.aws:
             attributes = DatabricksAwsConfig()
