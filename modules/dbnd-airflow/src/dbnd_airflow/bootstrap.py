@@ -1,6 +1,6 @@
 import os
 
-from dbnd._core.inplace_run.airflow_utils import patch_airflow_context_vars
+from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 
 
 _airflow_bootstrap_applied = False

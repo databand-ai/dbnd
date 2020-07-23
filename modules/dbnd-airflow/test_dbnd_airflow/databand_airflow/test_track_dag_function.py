@@ -10,7 +10,8 @@ from airflow.utils.dates import days_ago
 from mock import Mock
 
 from dbnd._core.decorator.func_task_decorator import _decorated_user_func
-from dbnd._core.inplace_run.airflow_utils import patch_airflow_context_vars, track_dag
+from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
+from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
 
 
 dbnd_spark_env_vars = (
