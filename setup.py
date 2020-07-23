@@ -62,6 +62,8 @@ EXTRAS_REQUIRE = {
     "mlflow": [dbnd_package("dbnd-mlflow")],
     "qubole": [dbnd_package("dbnd-qubole")],
     "spark": [dbnd_package("dbnd-spark")],
+    "postgres": [dbnd_package("dbnd-postgres")],
+    "redshift": [dbnd_package("dbnd-redshift")],
     "tensorflow": [dbnd_package("dbnd-tensorflow")],
 }
 
