@@ -5,8 +5,8 @@ import sys
 from airflow import DAG
 from airflow.utils.dates import days_ago
 
-from dbnd._core.inplace_run.airflow_utils import track_dag
 from dbnd._core.utils.basics.helpers import parse_bool
+from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
 
 
 start_days_ago = int(os.environ.get("SCENARIOS__START_DAYS_AGO", "10"))

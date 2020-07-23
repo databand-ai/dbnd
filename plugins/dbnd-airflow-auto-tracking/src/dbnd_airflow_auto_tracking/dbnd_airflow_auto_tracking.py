@@ -1,6 +1,6 @@
 from airflow.plugins_manager import AirflowPlugin
 
-from dbnd._core.inplace_run.airflow_utils import (
+from dbnd_airflow.tracking.airflow_patching import (
     add_tracking_to_policy,
     patch_airflow_context_vars,
 )
