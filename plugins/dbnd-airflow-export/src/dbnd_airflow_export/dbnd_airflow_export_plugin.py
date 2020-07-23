@@ -496,7 +496,6 @@ def _get_command_from_operator(t):
 def _get_task_args(t):
     # type: (BaseOperator) -> Dict[str]
     try:
-        from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
         from airflow.contrib.sensors.file_sensor import FileSensor
 
         if isinstance(t, BaseSensorOperator):
@@ -506,9 +505,10 @@ def _get_task_args(t):
                 args["interval"] = t.poke_interval
                 args["wait_condition"] = t.filepath
 
-            elif isinstance(t, EmrStepSensor):
-                args["interval"] = t.poke_interval
-                args["wait_condition"] = t.step_id
+            # from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
+            # elif isinstance(t, EmrStepSensor):
+            #     args["interval"] = t.poke_interval
+            #     args["wait_condition"] = t.step_id
 
             return args
         return
