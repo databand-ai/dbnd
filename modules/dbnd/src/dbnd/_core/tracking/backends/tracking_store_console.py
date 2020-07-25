@@ -10,6 +10,7 @@ from dbnd._core.current import is_verbose
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
+from dbnd._vendor.ascii_graph import Pyasciigraph
 
 
 if typing.TYPE_CHECKING:
@@ -21,7 +22,9 @@ logger = logging.getLogger(__name__)
 class ConsoleStore(TrackingStore):
     def __init__(self):
         super(ConsoleStore, self).__init__()
+        self.max_log_value_len = 50
         self.verbose = is_verbose()
+        self.ascii_graph = Pyasciigraph()
 
     def init_scheduled_job(self, scheduled_job, update_existing):
         super(ConsoleStore, self).init_scheduled_job(scheduled_job, update_existing)
@@ -111,18 +114,15 @@ class ConsoleStore(TrackingStore):
     def is_ready(self):
         return True
 
-    def log_metric(self, task_run, metric, source=None):
-        # type: (TaskRun, Metric, str) -> None
-        logger.info(
-            "{}{}Metric '{}'='{}'".format(
-                (source or "").capitalize(),
-                " " if source else "",
-                metric.key,
-                metric.value,
-            )
-        )
+    def log_histograms(self, task_run, key, value_meta, timestamp):
+        for hist_name, hist_values in value_meta.histograms.items():
+            for line in self.ascii_graph.graph(
+                "Histogram logged: {}.{}".format(key, hist_name),
+                list(zip(*reversed(hist_values))),
+            ):
+                logger.info(line)
+        # TODO: Add more compact logging if user opts out
 
-    def log_metrics(self, task_run, metrics, source=None):
-        # type: (TaskRun, List[Metric], str) -> None
-        for metric in metrics:
-            self.log_metric(task_run, metric, source)
+    def log_metrics(self, task_run, metrics):
+        # type: (TaskRun, List[Metric]) -> None
+        logger.info("Metrics logged: {}".format([m.key for m in metrics]))

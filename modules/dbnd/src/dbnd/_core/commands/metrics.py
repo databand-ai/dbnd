@@ -15,6 +15,8 @@ if typing.TYPE_CHECKING:
     import pandas as pd
     import pyspark.sql as spark
 
+    from dbnd_postgres.postgres_values import PostgresTable
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,7 +32,7 @@ def _get_tracker():
 
 def log_data(
     key,  # type: str
-    value,  # type: Union[pd.DataFrame, spark.DataFrame]
+    value,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable]
     path=None,  # type: Optional[str]
     access_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType
     with_preview=True,  # type: Optional[bool]

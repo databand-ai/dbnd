@@ -129,14 +129,14 @@ class DatabandStore(AbstractStore):
             # mlflow.entities.Metric.timestamp is `int(time.time() * 1000)`
             timestamp=datetime.fromtimestamp(metric.timestamp / 1000),
         )
-        self.dbnd_store.log_metric(self._get_current_task_run(), dbnd_metric)
+        self.dbnd_store.log_metrics(self._get_current_task_run(), [dbnd_metric])
         logger.info("Metric {}".format(metric))
 
     def _log_param(self, run_id, param):
         # type: (str, mlflow.entities.Param) -> None
         # Temporarly log params as metrics
         dbnd_metric = Metric(key=param.key, value=param.value, timestamp=utcnow())
-        self.dbnd_store.log_metric(self._get_current_task_run(), dbnd_metric)
+        self.dbnd_store.log_metrics(self._get_current_task_run(), [dbnd_metric])
         logger.info("Param {}".format(param))
 
     @duplication_store

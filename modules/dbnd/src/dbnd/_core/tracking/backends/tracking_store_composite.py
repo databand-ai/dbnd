@@ -86,8 +86,8 @@ class CompositeTrackingStore(TrackingStore):
     def log_targets(self, **kwargs):
         return self._invoke(CompositeTrackingStore.log_targets.__name__, kwargs)
 
-    def log_metric(self, **kwargs):
-        return self._invoke(CompositeTrackingStore.log_metric.__name__, kwargs)
+    def log_histograms(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.log_histograms.__name__, kwargs)
 
     def log_metrics(self, **kwargs):
         return self._invoke(CompositeTrackingStore.log_metrics.__name__, kwargs)

@@ -58,30 +58,57 @@ class TestFileMetricsStore(object):
             metrics_folder
         ).get_all_metrics_values(MetricSource.histograms)
 
+        expected_preview = (
+            "   Names  Births\n"
+            "     Bob     968\n"
+            " Jessica     155\n"
+            "    Mary      77\n"
+            "    John     578\n"
+            "     Mel     973"
+        )
+
         # std value varies in different py versions due to float precision fluctuation
         df_births_std = hist_metrics["df.Births.std"]
         assert df_births_std == pytest.approx(428.4246)
         assert hist_metrics == {
-            "df.Births.25_": 155.0,
-            "df.Births.50_": 578.0,
-            "df.Births.75_": 968.0,
+            "df.Births.25%": 155.0,
+            "df.Births.50%": 578.0,
+            "df.Births.75%": 968.0,
             "df.Births.count": 5.0,
             "df.Births.distinct": 5.0,
             "df.Births.std": df_births_std,
             "df.Births.max": 973.0,
             "df.Births.mean": 550.2,
             "df.Births.min": 77.0,
-            "df.Births.non_null": 5.0,
-            "df.Births.null_count": 0.0,
-            "df.histograms": '{"Births": [[2, 0, 1, 2], [77.0, 301.0, 525.0, 749.0, 973.0]]}',
-            "df.preview": "Names  Births",
-            "df.schema": '{"columns": ["Names", "Births"], "dtypes": {"Births": "int64", '
-            '"Names": "object"}, "shape": [5, 2], "size": 10, "type": '
-            '"DataFrame"}',
-            "df.shape": "(5, 2)",
-            "df.shape0": 5.0,
-            "df.shape1": 2.0,
-            "df.stats": '{{"Births": {{"25%": 155.0, "50%": 578.0, "75%": 968.0, "count": '
-            '5.0, "distinct": 5.0, "max": 973.0, "mean": 550.2, "min": 77.0, '
-            '"non-null": 5.0, "null-count": 0.0, "std": {}}}}}'.format(df_births_std),
+            "df.Births.non-null": 5.0,
+            "df.Births.null-count": 0.0,
+            "df.histograms": {
+                "Births": [[2, 0, 1, 2], [77.0, 301.0, 525.0, 749.0, 973.0]]
+            },
+            "df.preview": expected_preview,
+            "df.schema": {
+                "columns": ["Names", "Births"],
+                "dtypes": {"Births": "int64", "Names": "object"},
+                "shape": [5, 2],
+                "size": 10,
+                "type": "DataFrame",
+            },
+            "df.shape": [5, 2],
+            "df.shape0": 5,
+            "df.shape1": 2,
+            "df.stats": {
+                "Births": {
+                    "25%": 155.0,
+                    "50%": 578.0,
+                    "75%": 968.0,
+                    "count": 5.0,
+                    "distinct": 5.0,
+                    "max": 973.0,
+                    "mean": 550.2,
+                    "min": 77.0,
+                    "non-null": 5.0,
+                    "null-count": 0.0,
+                    "std": df_births_std,
+                }
+            },
         }

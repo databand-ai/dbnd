@@ -1,6 +1,7 @@
 # ORIGIN: https://github.com/databricks/mlflow : mlflow/store/tracking_store_file.py
 from __future__ import print_function
 
+import json
 import logging
 import os
 import re
@@ -14,7 +15,7 @@ import yaml
 
 from six import BytesIO
 
-from dbnd._core.constants import TaskRunState
+from dbnd._core.constants import MetricSource, TaskRunState
 from dbnd._core.errors import DatabandError, DatabandRuntimeError
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.tracking.backends import TrackingStore
@@ -29,9 +30,10 @@ from targets import target
 
 
 if typing.TYPE_CHECKING:
-    from typing import List
+    from typing import List, Iterable
 
     from dbnd._core.task_run.task_run import TaskRun
+    from targets.value_meta import ValueMeta
 
 
 logger = logging.getLogger(__name__)
@@ -75,22 +77,38 @@ class FileTrackingStore(TrackingStore):
         with meta_data_file.open("w") as yaml_file:
             yaml.dump(info, yaml_file, default_flow_style=False)
 
-    def log_metric(self, task_run, metric, source=None):
-        # type: (TaskRun, Metric, str) -> None
-        metric_path = task_run.meta_files.get_metric_target(metric.key, source=source)
-        timestamp = int(time.mktime(metric.timestamp.timetuple()))
-        value = "{} {}\n".format(timestamp, metric.serialized_value)
-
-        data = value
-        if metric_path.exists():
-            data = metric_path.read() + value
+    def log_histograms(self, task_run, key, value_meta, timestamp):
+        # type: (TaskRun, str, ValueMeta, datetime) -> None
+        metric_path = task_run.meta_files.get_metric_target(
+            "{}.json".format(key), source=MetricSource.histograms
+        )
+        data = json.dumps(
+            {
+                "timestamp": int(timestamp.timestamp()),
+                "metrics": {
+                    "schema": value_meta.data_schema,
+                    "preview": value_meta.value_preview,
+                    "shape": value_meta.data_dimensions,
+                    "stats": value_meta.descriptive_stats,
+                    "histograms": value_meta.histograms,
+                },
+            }
+        )
         metric_path.write(data)
 
     def log_metrics(self, task_run, metrics):
         # type: (TaskRun, List[Metric]) -> None
-        # TODO: More efficient implementation?
         for metric in metrics:
-            self.log_metric(task_run, metric, metric.source)
+            metric_path = task_run.meta_files.get_metric_target(
+                metric.key, source=metric.source
+            )
+            timestamp = int(time.mktime(metric.timestamp.timetuple()))
+            value = "{} {}\n".format(timestamp, metric.serialized_value)
+
+            data = value
+            if metric_path.exists():
+                data = metric_path.read() + value
+            metric_path.write(data)
 
     def log_artifact(self, task_run, name, artifact, artifact_target):
         artifact_target.mkdir_parent()
@@ -131,7 +149,7 @@ class TaskRunMetricsFileStoreReader(object):
     def _get_all_metrics_names(self, source=None):
         metrics_root = self.meta.get_metric_folder(source=source)
         all_files = [os.path.basename(str(p)) for p in metrics_root.list_partitions()]
-        return all_files
+        return [re.sub(r"\.json\b", "", f) for f in all_files]
 
     def get_metric_history(self, key, source=None):
         metric_target = self.meta.get_metric_target(key, source=source)
@@ -148,7 +166,7 @@ class TaskRunMetricsFileStoreReader(object):
         metrics = []
         for key in self._get_all_metrics_names(source=source):
             try:
-                metrics.append(self.get_metric(key, source=source))
+                metrics.extend(self.get_metrics(key, source=source))
             except Exception as ex:
                 raise DatabandError(
                     "Failed to read metrics for %s at %s" % (key, self.meta.root),
@@ -157,11 +175,14 @@ class TaskRunMetricsFileStoreReader(object):
         return {m.key: m.value for m in metrics}
 
     def get_run_info(self):
-
         with self.meta.get_meta_data_file().open("r") as yaml_file:
             return RunInfoSchema().load(**yaml.load(yaml_file))
 
-    def get_metric(self, key, source=None):
+    def get_metrics(self, key, source=None):
+        # type: (str, MetricSource) -> List[Metric]
+        if source == MetricSource.histograms:
+            return self.get_histogram_metrics(key)
+
         metric_target = self.meta.get_metric_target(key, source=source)
         if not metric_target.exists():
             raise DatabandRuntimeError("Metric '%s' not found" % key)
@@ -179,11 +200,50 @@ class TaskRunMetricsFileStoreReader(object):
 
         timestamp, val = metric_parsed.groups()
 
-        return Metric(
+        metric = Metric(
             key=key,
             value=_parse_metric(val),
             timestamp=datetime.fromtimestamp(int(timestamp)),
         )
+        return [metric]
+
+    def get_histogram_metrics(self, key):
+        # type: (str) -> Iterable[Metric]
+        metric_target = self.meta.get_metric_target(
+            "{}.json".format(key), source=MetricSource.histograms
+        )
+        hist_metrics = json.load(metric_target)
+        timestamp = hist_metrics["timestamp"]
+        metrics = hist_metrics["metrics"]
+        for name, value in metrics.items():
+            if not isinstance(value, (dict, list)):
+                yield Metric(
+                    key="{}.{}".format(key, name),
+                    value=value,
+                    timestamp=datetime.fromtimestamp(timestamp),
+                )
+                continue
+
+            yield Metric(
+                key="{}.{}".format(key, name),
+                value_json=value,
+                timestamp=datetime.fromtimestamp(timestamp),
+            )
+            if name == "stats":
+                for column, stats in value.items():
+                    for stat, val in stats.items():
+                        yield Metric(
+                            key="{}.{}.{}".format(key, column, stat),
+                            value=val,
+                            timestamp=datetime.fromtimestamp(timestamp),
+                        )
+            elif name == "shape":
+                for dim, val in enumerate(value):
+                    yield Metric(
+                        key="{}.shape{}".format(key, dim),
+                        value=val,
+                        timestamp=datetime.fromtimestamp(timestamp),
+                    )
 
     def get_artifact(self, name):
         artifact_target = self.meta.get_artifact_target(name)
