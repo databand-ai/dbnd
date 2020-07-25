@@ -59,7 +59,7 @@ class TrackingStore(object):
     def save_external_links(self, task_run, external_links_dict):
         pass
 
-    def log_metric(self, task_run, metric, source=None):
+    def log_histograms(self, task_run, key, value_meta, timestamp):
         pass
 
     def log_metrics(self, task_run, metrics):
