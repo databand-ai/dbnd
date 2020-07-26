@@ -1,11 +1,14 @@
 import logging
 
+from types import FunctionType, ModuleType
+
 from dbnd import task
 from dbnd._core.configuration.environ_config import get_dbnd_project_config
 from dbnd._core.decorator.func_task_decorator import _decorated_user_func
 from dbnd._core.settings import CoreConfig
 from dbnd._core.tracking.no_tracking import should_not_track
 from dbnd_airflow.tracking.dbnd_spark_conf import (
+    _get_databand_url,
     dbnd_wrap_spark_environment,
     get_dbnd_tracking_spark_conf_dict,
     spark_submit_with_dbnd_tracking,
@@ -34,13 +37,10 @@ def track_databricks_submit_run_operator(operator):
         spark_vars["AIRFLOW_CTX_EXECUTION_DATE"] = "{{ ts }}"
         spark_vars["AIRFLOW_CTX_TASK_ID"] = "{{ task.task_id }}"
         spark_vars["AIRFLOW_CTX_TRY_NUMBER"] = "{{ task_instance._try_number }}"
-        try:
-            if CoreConfig().databand_external_url:
-                spark_vars[
-                    "DBND__CORE__DATABAND_URL"
-                ] = CoreConfig().databand_external_url
-        except Exception:
-            pass
+
+        databand_url = _get_databand_url()
+        if databand_url:
+            spark_vars["DBND__CORE__DATABAND_URL"] = databand_url
 
 
 def track_data_proc_pyspark_operator(operator):

@@ -12,6 +12,7 @@ import attr
 import dbnd._core.utils.basics.environ_utils
 
 from dbnd._core.configuration import environ_config
+from dbnd._core.configuration.environ_config import spark_tracking_enabled
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
@@ -151,12 +152,7 @@ def _is_dbnd_spark_installed():
 
 
 def try_get_airflow_context_from_spark_conf():
-    if (
-        not dbnd._core.utils.basics.environ_utils.environ_enabled(
-            "DBND__ENABLE__SPARK_CONTEXT_ENV"
-        )
-        or _SPARK_ENV_FLAG not in os.environ
-    ):
+    if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
         return None
 
     if not _is_dbnd_spark_installed():

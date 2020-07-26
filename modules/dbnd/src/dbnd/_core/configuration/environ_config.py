@@ -115,6 +115,10 @@ def is_unit_test_mode():
     return get_dbnd_project_config().unit_test_mode
 
 
+def spark_tracking_enabled():
+    return environ_enabled("DBND__ENABLE__SPARK_CONTEXT_ENV")
+
+
 _project_config = None  # type: Optional[DbndProjectConfig]
 
 

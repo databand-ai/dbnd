@@ -2,13 +2,11 @@ from __future__ import print_function
 
 import logging
 
-import pandas as pd
 import pytest
 
 from pyspark.sql import SparkSession
 
-from dbnd_spark.targets import SparkDataFrameValueType
-from targets.values.pandas_values import DataFrameValueType
+from dbnd_spark.spark_targets import SparkDataFrameValueType
 
 
 logger = logging.getLogger(__name__)
@@ -30,14 +28,14 @@ class TestHistograms:
         stats, histograms = SparkDataFrameValueType.get_histograms(boolean_df)
 
         histogram = histograms["boolean_column"]
-        assert histogram[0] == [30, 20]
-        assert histogram[1] == [True, False]
+        assert histogram[0] == [30, 20, 10]
+        assert histogram[1] == [True, False, None]
 
         stats = stats["boolean_column"]
-        assert stats["count"] == 50
+        assert stats["count"] == 60
         assert stats["non-null"] == 50
         assert stats["null-count"] == 10
-        assert stats["distinct"] == 3
+        assert stats["distinct"] == 2
 
     def test_numerical_histogram(self, spark_session):
         numbers = [1, 3, 3, 1, 5, 1, 5, 5]
@@ -54,8 +52,8 @@ class TestHistograms:
 
     def test_strings_histogram(self, spark_session):
         strings = (
-            ["Hello World!"] * 10
-            + [None] * 10
+            ["Hello World!"] * 15
+            + [None] * 5
             + ["Ola Mundo!"] * 15
             + ["Shalom Olam!"] * 20
             + ["Ola Mundo!"] * 15
@@ -65,14 +63,14 @@ class TestHistograms:
         stats, histograms = SparkDataFrameValueType.get_histograms(df)
 
         histogram = histograms["string_column"]
-        assert histogram[0] == [30, 20, 10]
-        assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!"]
+        assert histogram[0] == [30, 20, 15, 5]
+        assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!", None]
 
         stats = stats["string_column"]
-        assert stats["count"] == 60
-        assert stats["non-null"] == 60
-        assert stats["null-count"] == 10
-        assert stats["distinct"] == 4
+        assert stats["count"] == 70
+        assert stats["non-null"] == 65
+        assert stats["null-count"] == 5
+        assert stats["distinct"] == 3
 
     def test_histogram_others(self, spark_session):
         strings = []

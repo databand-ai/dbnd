@@ -127,8 +127,12 @@ def read_environ_config():
     $DBND__SECTION__KEY=value  (please notice double underscore "__")
     :return:
     """
+    return get_environ_config_from_dict(os.environ, "environ")
+
+
+def get_environ_config_from_dict(env_dict, source_prefix):
     dbnd_environ = _ConfigStore()
-    for key, value in six.iteritems(os.environ):
+    for key, value in six.iteritems(env_dict):
         if not key.startswith("DBND__"):
             continue
         # must have format DBND__{SECTION}__{KEY} (note double underscore)
@@ -139,7 +143,9 @@ def read_environ_config():
                 section,
                 key,
                 ConfigValue(
-                    value, source="environ[{}]".format(key), require_parse=True
+                    value,
+                    source="{}[{}]".format(source_prefix, key),
+                    require_parse=True,
                 ),
             )
         else:

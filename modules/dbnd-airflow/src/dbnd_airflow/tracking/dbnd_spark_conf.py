@@ -1,5 +1,7 @@
 import os
 
+from dbnd._core.settings import CoreConfig
+
 
 def _filter_vars(key, bypass_dbnd, bypass_airflow, bypass_rest):
     if key.startswith("AIRFLOW_"):
@@ -41,12 +43,25 @@ def get_dbnd_tracking_spark_conf_dict(
     execution_date="{{ts}}",
     try_number="{{task_instance._try_number}}",
 ):
-    return {
+    spark_conf = {
         "spark.env.AIRFLOW_CTX_DAG_ID": dag_id,
         "spark.env.AIRFLOW_CTX_EXECUTION_DATE": execution_date,
         "spark.env.AIRFLOW_CTX_TASK_ID": task_id,
         "spark.env.AIRFLOW_CTX_TRY_NUMBER": try_number,
     }
+
+    databand_url = _get_databand_url()
+    if databand_url:
+        spark_conf["spark.env.DBND__CORE__DATABAND_URL"] = databand_url
+
+    return spark_conf
+
+
+def _get_databand_url():
+    try:
+        return CoreConfig().databand_external_url
+    except Exception:
+        pass
 
 
 def get_dbnd_tracking_spark_conf(
