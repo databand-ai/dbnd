@@ -1,11 +1,11 @@
 from dbnd._core.decorator.func_task_decorator import _decorated_user_func
-from dbnd_airflow.tracking.dbnd_dag_tracking import (
+from dbnd._core.tracking.python_tracking import (
     _is_function,
     track_functions,
     track_modules,
 )
-from test_dbnd_airflow.databand_airflow import module_to_track
-from test_dbnd_airflow.databand_airflow.module_to_track import f1, f2, f3, f4, f6
+from test_dbnd.decorator import module_to_track
+from test_dbnd.decorator.module_to_track import f1, f2, f3, f4, f6
 
 
 class TestFunctionDecorating(object):

@@ -7,8 +7,7 @@ from random import randint
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import udf
 
-from dbnd import log_dataframe, log_metric, task
-from dbnd_airflow.tracking.dbnd_dag_tracking import track_functions
+from dbnd import log_dataframe, log_metric, task, track_functions
 
 
 logger = logging.getLogger(__name__)

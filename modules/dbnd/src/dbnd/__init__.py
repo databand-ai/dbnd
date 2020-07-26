@@ -35,6 +35,11 @@ from dbnd._core.task_build.task_context import current
 from dbnd._core.task_build.task_namespace import auto_namespace, namespace
 from dbnd._core.task_build.task_registry import register_config_cls, register_task
 from dbnd._core.task_ctrl.task_relations import as_task
+from dbnd._core.tracking.python_tracking import (
+    track_functions,
+    track_module_functions,
+    track_modules,
+)
 from dbnd._core.utils.project.project_fs import (
     databand_lib_path,
     databand_system_path,
@@ -111,6 +116,9 @@ __all__ = [
     "DBND_IS_INITIALIZED",
     "dbnd_bootstrap",
     "_set_patches",
+    "track_modules",
+    "track_module_functions",
+    "track_functions",
 ]
 
 # validate missing __all__
