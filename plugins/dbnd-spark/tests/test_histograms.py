@@ -20,6 +20,7 @@ class TestHistograms:
         ).getOrCreate()
         return spark
 
+    @pytest.mark.skip
     def test_boolean_histogram(self, spark_session):
         booleans = [True] * 10 + [None] * 10 + [False] * 20 + [True] * 20
         booleans = [(i,) for i in booleans]
@@ -37,6 +38,7 @@ class TestHistograms:
         assert stats["null-count"] == 10
         assert stats["distinct"] == 2
 
+    @pytest.mark.skip
     def test_numerical_histogram(self, spark_session):
         numbers = [1, 3, 3, 1, 5, 1, 5, 5]
         numbers = [(i,) for i in numbers]
@@ -50,6 +52,7 @@ class TestHistograms:
         assert stats["min"] == 1
         assert stats["max"] == 5
 
+    @pytest.mark.skip
     def test_strings_histogram(self, spark_session):
         strings = (
             ["Hello World!"] * 15
@@ -72,6 +75,7 @@ class TestHistograms:
         assert stats["null-count"] == 5
         assert stats["distinct"] == 3
 
+    @pytest.mark.skip
     def test_histogram_others(self, spark_session):
         strings = []
         for i in range(1, 101):

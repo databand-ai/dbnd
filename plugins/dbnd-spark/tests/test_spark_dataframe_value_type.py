@@ -1,8 +1,11 @@
+import pytest
+
 from dbnd_spark.spark_targets import SparkDataFrameValueType
 from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 class TestSparkDataFrameValueType(object):
+    @pytest.mark.skip
     def test_spark_df_value_meta(
         self, spark_data_frame, spark_data_frame_histograms, spark_data_frame_stats
     ):

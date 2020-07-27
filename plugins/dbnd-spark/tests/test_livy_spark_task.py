@@ -24,7 +24,7 @@ conf_override = {
 
 
 @pytest.mark.livy
-class TestEmrSparkTasks(object):
+class TestLivySparkTasks(object):
     # add back java code test
     @pytest.mark.skip
     def test_word_count_spark(self):
@@ -37,6 +37,7 @@ class TestEmrSparkTasks(object):
         actual.dbnd_run()
         print(target(actual.counters.path, "part-00000").read())
 
+    @pytest.mark.skip
     def test_word_count_pyspark(self):
         logging.info("Running %s", WordCountPySparkTask)
         actual = WordCountPySparkTask(
@@ -47,6 +48,7 @@ class TestEmrSparkTasks(object):
         actual.dbnd_run()
         print(target(actual.counters.path, "part-00000").read())
 
+    @pytest.mark.skip
     def test_word_spark_with_error(self):
         actual = WordCountThatFails(
             text=config.get("livy_tests", "text"),
