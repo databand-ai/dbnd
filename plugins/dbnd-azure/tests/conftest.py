@@ -1,11 +1,12 @@
 # inline conftest
 
-from dbnd import dbnd_config, relative_path
+from dbnd.testing.test_config_setter import add_test_configuration
 
 
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",
+    "dbnd.testing.pytest_dbnd_home_plugin",
 ]
 
-dbnd_config.set_from_config_file(relative_path(__file__, "databand-test.cfg"))
+add_test_configuration(__file__)

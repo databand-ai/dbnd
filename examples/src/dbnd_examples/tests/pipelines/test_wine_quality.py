@@ -1,7 +1,7 @@
 import pytest
 import six
 
-from dbnd import relative_path
+from dbnd import dbnd_config, relative_path
 from dbnd.testing.helpers import run_test_notebook
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.data import data_repo, dbnd_examples_data_path
@@ -37,11 +37,14 @@ class TestWineQualityClasses(object):
 
     @pytest.mark.skipif(not six.PY3, reason="requires python3")
     def test_wine_quality_deco_simple_all(self):
-        task = wine_quality_decorators.predict_wine_quality.t(
-            alpha=0.5,
-            override={wine_quality_decorators.fetch_data.t.task_env: "local_prod"},
-        )
-        assert_run_task(task)
+        with dbnd_config(
+            {"local_prod": {"_from": "local", "env_label": "prod", "production": True}}
+        ):
+            task = wine_quality_decorators.predict_wine_quality.t(
+                alpha=0.5,
+                override={wine_quality_decorators.fetch_data.t.task_env: "local_prod"},
+            )
+            assert_run_task(task)
 
     def test_wine_quality_deco_simple_py2(self):
         task = wine_quality_decorators_py2.predict_wine_quality.t(alpha=0.5)

@@ -1,9 +1,0 @@
-data/
-logs/
-autocompletion/
-dbnd.db
-dbnd*.db
-dump_csv
-*unittests.db
-airflow-webserver.pid
-azure_storage_credentials.json

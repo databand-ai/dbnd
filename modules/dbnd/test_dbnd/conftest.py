@@ -14,15 +14,9 @@ from pytest import fixture
 import dbnd
 import dbnd._core.utils.basics.environ_utils
 
-from dbnd import (
-    dbnd_config,
-    get_dbnd_project_config,
-    register_config_cls,
-    register_task,
-    relative_path,
-)
-from dbnd._core.configuration import environ_config
+from dbnd import get_dbnd_project_config, register_config_cls, register_task
 from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
+from dbnd.testing.test_config_setter import add_test_configuration
 from dbnd_test_scenarios.test_common.task.factories import FooConfig, TConfig
 from targets import target
 
@@ -37,10 +31,11 @@ disable_airflow_plugin()
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",
+    "dbnd.testing.pytest_dbnd_home_plugin",
 ]
 __all__ = ["dbnd"]
 
-dbnd_config.set_from_config_file(relative_path(__file__, "databand-test.cfg"))
+add_test_configuration(__file__)
 
 try:
     import matplotlib
