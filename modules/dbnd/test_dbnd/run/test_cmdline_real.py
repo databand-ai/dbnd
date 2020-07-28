@@ -6,7 +6,7 @@ import sys
 
 import targets
 
-from dbnd._core.utils.project.project_fs import project_path
+from dbnd._core.utils.basics.path_utils import relative_path
 from dbnd.testing.helpers import run_dbnd_subprocess__dbnd_run
 from dbnd.testing.helpers_pytest import skip_on_windows
 from dbnd_test_scenarios.test_common.task import factories
@@ -27,7 +27,7 @@ def run_dbnd_subprocess_test(*args, **kwargs):
     env["PYTHONPATH"] = ":".join(
         [
             env.get("PYTHONPATH", ""),
-            project_path("modules", "dbnd"),
+            relative_path(relative_path(relative_path(__file__))),
         ]  # we add current project so we can import test_dbnd
     )
     return run_dbnd_subprocess__dbnd_run(*args, module=factories, env=env, **kwargs)

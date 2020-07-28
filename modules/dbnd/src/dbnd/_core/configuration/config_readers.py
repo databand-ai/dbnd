@@ -60,8 +60,6 @@ def _default_configuration_paths():
     user_config = expand_env_var("~/.dbnd/databand.cfg")
     if os.path.isfile(user_config):
         yield user_config
-    if is_unit_test_mode():
-        yield databand_system_path("databand-test.cfg")
 
 
 def read_from_config_stream(config_fp, source="<stream>"):

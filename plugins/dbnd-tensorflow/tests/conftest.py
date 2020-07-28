@@ -24,5 +24,6 @@ disable_airflow_plugin()
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",
+    "dbnd.testing.pytest_dbnd_home_plugin",
 ]
 __all__ = ["dbnd"]
