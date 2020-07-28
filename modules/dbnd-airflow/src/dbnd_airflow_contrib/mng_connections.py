@@ -1,12 +1,16 @@
 import logging
 
-from urllib.parse import urlunparse
-
 from airflow import settings
 from airflow.models import Connection
 from sqlalchemy.orm import exc
 
 from dbnd._core.errors import DatabandRuntimeError
+
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 
 logger = logging.getLogger(__name__)

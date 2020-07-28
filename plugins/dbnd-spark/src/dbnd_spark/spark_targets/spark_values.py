@@ -135,11 +135,12 @@ class SparkDataFrameValueType(DataValueType):
     def _calculate_summary(cls, df):
         summary = df.summary().collect()
         # non-null and distinct counts should be calculated in separate query, because summary doesn't includes it
-        counts = df.agg(
-            *(countDistinct(col(c)).alias("%s_distinct" % c) for c in df.columns),
-            *(count(when(isnull(c), c)).alias("%s_count_null" % c) for c in df.columns),
-            *(count(col(c)).alias("%s_count" % c) for c in df.columns),
-        ).collect()[0]
+        expressions = (
+            [countDistinct(col(c)).alias("%s_distinct" % c) for c in df.columns]
+            + [count(when(isnull(c), c)).alias("%s_count_null" % c) for c in df.columns]
+            + [count(col(c)).alias("%s_count" % c) for c in df.columns]
+        )
+        counts = df.agg(*expressions).collect()[0]
 
         result = {column_name: {} for column_name in df.columns}
         for column_def in df.schema.fields:
