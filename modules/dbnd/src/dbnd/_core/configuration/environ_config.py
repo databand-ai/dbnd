@@ -218,7 +218,7 @@ class DbndProjectConfig(object):
         return abs_join(self.dbnd_home(), *path)
 
     def validate_init(self):
-        _debug_init_print("Successfully crated dbnd project config")
+        _debug_init_print("Successfully created dbnd project config")
 
 
 def _debug_init_print(msg):

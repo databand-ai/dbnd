@@ -12,7 +12,10 @@ import attr
 import dbnd._core.utils.basics.environ_utils
 
 from dbnd._core.configuration import environ_config
-from dbnd._core.configuration.environ_config import spark_tracking_enabled
+from dbnd._core.configuration.environ_config import (
+    _debug_init_print,
+    spark_tracking_enabled,
+)
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
@@ -104,6 +107,8 @@ def try_get_airflow_context():
         from_spark = try_get_airflow_context_from_spark_conf()
         if from_spark:
             return from_spark
+        else:
+            _debug_init_print("couldn't get airflow context from spark")
 
         # Those env vars are set by airflow before running the operator
         dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
@@ -153,11 +158,16 @@ def _is_dbnd_spark_installed():
 
 def try_get_airflow_context_from_spark_conf():
     if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
+        _debug_init_print(
+            "DBND__ENABLE__SPARK_CONTEXT_ENV or SPARK_ENV_LOADED are not set"
+        )
         return None
 
     if not _is_dbnd_spark_installed():
+        _debug_init_print("failed to import pyspark or dbnd-spark")
         return None
     try:
+        _debug_init_print("creating spark context to get spark conf")
         from pyspark import SparkContext
 
         conf = SparkContext.getOrCreate().getConf()
