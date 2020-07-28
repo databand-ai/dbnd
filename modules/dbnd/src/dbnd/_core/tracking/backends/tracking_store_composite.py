@@ -1,6 +1,7 @@
 import logging
 
 from dbnd._core.errors.base import DatabandConnectionException
+from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
 
 
@@ -30,12 +31,12 @@ class CompositeTrackingStore(TrackingStore):
                 if self._raise_on_error:
                     raise
             except Exception as ex:
-                logger.exception(
+                log_exception(
                     "Failed to store tracking information from %s at %s: %s"
-                    % (name, store.__class__.__name__, str(ex))
+                    % (name, store.__class__.__name__, str(ex)),
+                    ex,
+                    non_critical=True,
                 )
-                if self._raise_on_error:
-                    raise
         return res
 
     # this is a function that used for disabling Tracking api on spark inline tasks.
