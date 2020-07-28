@@ -7,11 +7,16 @@ __pycache__/
 
 .dbnd/airflow/data/
 .dbnd/airflow/logs/
+.dbnd/airflow/airflow-unittests.db
 .dbnd/dbnd.db
 .dbnd/unittests.db
 .dbnd/airflow-webserver.pid
 .dbnd/last_pipeline.pickle
 .dbnd/archive
+.dbnd/dbnd-*.db
+.dbnd/logs
+.dbnd/autocompletion/.shell
+.dbnd/autocompletion/.shell.unittest
 
 logs/*
 .tox
@@ -98,10 +103,6 @@ unittests.db
 
 # VSCode settings
 .vscode/*
-
-.dbnd/dbnd-*.db
-.dbnd/airflow/logs
-.dbnd/logs
 
 databand-0.*/**
 _databand_project.py
