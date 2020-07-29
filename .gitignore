@@ -7,11 +7,14 @@ __pycache__/
 
 .dbnd/airflow/data/
 .dbnd/airflow/logs/
+.dbnd/airflow/keys/*
+.dbnd/airflow/airflow.cfg
 .dbnd/dbnd.db
 .dbnd/unittests.db
 .dbnd/airflow-webserver.pid
 .dbnd/last_pipeline.pickle
 .dbnd/archive
+project.cfg
 
 logs/*
 .tox
