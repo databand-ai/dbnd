@@ -4,8 +4,8 @@ from collections import Counter
 
 from dbnd._core.constants import RunState, SystemTaskName, TaskRunState, UpdateSource
 from dbnd._core.current import is_verbose
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_enabled
 from dbnd._core.run.run_ctrl import RunCtrl
+from dbnd._core.settings.core import CoreConfig
 from dbnd._core.tracking.schemas.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.utils.basics.text_banner import TextBanner
 
@@ -66,6 +66,7 @@ class DescribeRun(RunCtrl):
         orchestration_mode = run.source == UpdateSource.dbnd
 
         b.column("TRACKER URL", run.run_url, skip_if_empty=True)
+        b.column("Configured trackers", CoreConfig().tracker)
         if show_tasks_info and orchestration_mode and driver_task.is_driver:
             self._add_tasks_info(b)
 
