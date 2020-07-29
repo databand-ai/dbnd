@@ -51,7 +51,7 @@ _BACKENDS_REGISTRY = {
     ("api", "web"): lambda: TrackingStoreThroughChannel(channel=TrackingWebChannel()),
     ("api", "db"): tracking_store_through_db_channel_builder,
     ("api", "disabled"): lambda: TrackingStoreThroughChannel(
-        channel=TrackingWebChannel()
+        channel=DisabledTrackingChannel()
     ),
 }
 
