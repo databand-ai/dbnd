@@ -26,29 +26,20 @@ VERSION = setup_cfg.get("metadata", "version")
 print(setup_cfg)
 
 
-def dbnd_package(name):
-    return "%s==%s" % (name, VERSION)
+def dbnd_package(name, extras=None):
+    pkg = name
+    if extras:
+        pkg += "[%s]" % ",".join(extras)
+
+    pkg += "==%s" % VERSION
+    return pkg
 
 
 EXTRAS_REQUIRE = {
-    "airflow": [
-        dbnd_package("dbnd-airflow"),
-        "psycopg2>=2.7.4,<2.8",
-        "apache-airflow==1.10.7",
-        "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
-    ],
-    "airflow-1_10_7": [
-        dbnd_package("dbnd-airflow"),
-        "psycopg2>=2.7.4,<2.8",
-        "apache-airflow==1.10.7",
-        "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
-    ],
-    "airflow-1_10_9": [
-        dbnd_package("dbnd-airflow"),
-        "psycopg2>=2.7.4,<2.8",
-        "apache-airflow==1.10.9",
-        "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
-    ],
+    "airflow": [dbnd_package("dbnd-airflow", ["airflow"]),],
+    "airflow_1_10_7": [dbnd_package("dbnd-airflow", ["airflow_1_10_7"]),],
+    "airflow_1_10_8": [dbnd_package("dbnd-airflow", ["airflow_1_10_8"]),],
+    "airflow_1_10_9": [dbnd_package("dbnd-airflow", ["airflow_1_10_9"]),],
     "airflow-export": [dbnd_package("dbnd-airflow-export")],
     "airflow-auto-tracking": [dbnd_package("dbnd-airflow-auto-tracking")],
     "airflow-operator": [dbnd_package("dbnd-airflow-operator")],
