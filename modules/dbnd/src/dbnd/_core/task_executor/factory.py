@@ -53,7 +53,7 @@ def calculate_task_executor_type(submit_tasks, remote_engine, settings):
             or task_executor_type == AirflowTaskExecutorType.airflow_kubernetes
         ):
             from dbnd_airflow.db_utils import (
-                airflow_sql_conn_repr,
+                airflow_sql_conn_url,
                 airlow_sql_alchemy_conn,
             )
 
@@ -61,7 +61,7 @@ def calculate_task_executor_type(submit_tasks, remote_engine, settings):
                 if settings.run.enable_concurent_sqlite:
                     logger.warning(
                         "You are running parallel execution on top of sqlite database at %s! (see run.enable_concurent_sqlite)",
-                        airflow_sql_conn_repr(),
+                        airflow_sql_conn_url(),
                     )
                 else:
                     # in theory sqlite can support a decent amount of parallelism, but in practice

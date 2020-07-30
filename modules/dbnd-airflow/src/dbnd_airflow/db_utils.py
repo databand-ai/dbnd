@@ -96,7 +96,7 @@ def airflow_tables_to_dump():
     )
 
 
-def airflow_sql_conn_repr():
+def airflow_sql_conn_url():
     try:
         from sqlalchemy.engine.url import make_url
     except:
