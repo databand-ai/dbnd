@@ -1,4 +1,4 @@
-from dbnd._core.decorator.func_task_decorator import pipeline, task
+from dbnd._core.decorator.dbnd_func_proxy import pipeline, task
 
 
 @pipeline

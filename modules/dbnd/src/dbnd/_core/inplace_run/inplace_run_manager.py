@@ -238,7 +238,7 @@ def _build_inline_root_task(root_task_name):
 
 def try_get_inplace_task_run():
     # type: ()->Optional[TaskRun]
-    if get_dbnd_project_config().is_inplace_run():
+    if get_dbnd_project_config().is_tracking_mode():
         return dbnd_run_start()
 
 

@@ -9,7 +9,7 @@ import mock
 import pytest
 
 from dbnd import new_dbnd_context
-from dbnd._core.decorator.func_task_decorator import task
+from dbnd._core.decorator.dbnd_func_proxy import task
 from mlflow import (
     end_run,
     get_tracking_uri,

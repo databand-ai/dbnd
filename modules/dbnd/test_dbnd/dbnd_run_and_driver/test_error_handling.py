@@ -1,7 +1,7 @@
 import mock
 import pytest
 
-from dbnd._core.decorator.func_task_decorator import task
+from dbnd._core.decorator.dbnd_func_proxy import task
 from dbnd._core.errors import UnknownParameterError
 from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.failures import dbnd_handle_errors

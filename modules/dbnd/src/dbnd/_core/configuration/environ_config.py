@@ -187,7 +187,7 @@ class DbndProjectConfig(object):
             self._airflow_context = try_get_airflow_context()
         return self._airflow_context
 
-    def is_inplace_run(self):
+    def is_tracking_mode(self):
         if self.disabled:
             return False
         return self._dbnd_tracking or self.airflow_context()

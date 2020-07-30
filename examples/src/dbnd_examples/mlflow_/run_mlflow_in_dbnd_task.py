@@ -4,7 +4,7 @@ import os
 
 from random import randint, random
 
-from dbnd._core.decorator.func_task_decorator import task
+from dbnd._core.decorator.dbnd_func_proxy import task
 from mlflow import (
     active_run,
     end_run,

@@ -9,7 +9,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 from mock import Mock
 
-from dbnd._core.decorator.func_task_decorator import _decorated_user_func
+from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
 
@@ -41,7 +41,7 @@ class TestTrackDagFunction(object):
         return operator
 
     def test_python_operator(self, python_operator):
-        assert isinstance(python_operator.python_callable, _decorated_user_func)
+        assert isinstance(python_operator.python_callable, DbndFuncProxy)
 
     @pytest.fixture
     def emr_operator(self, dag):

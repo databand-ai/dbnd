@@ -23,7 +23,7 @@ def create_dynamic_task(func_call):
         func_call.call_kwargs,
     )
     from dbnd import pipeline, PipelineTask
-    from dbnd._core.decorator.func_task_decorator import _default_output
+    from dbnd._core.decorator.dbnd_func_proxy import _default_output
 
     parent_task = current_task_run().task
     dbnd_run = get_databand_run()

@@ -74,9 +74,11 @@ def get_tracking_store(tracking_store_names, api_channel_name, tracker_raise_on_
         instance = tracking_store_builder()
         tracking_store_instances.append(instance)
 
+    # if tracker_raise_on_error is False - must use CompositeTrackingStore
+    # regardless of tracking_stores - only CompositeTrackingStore suppresses errors
     return (
         tracking_store_instances[0]
-        if len(tracking_store_instances) == 1
+        if len(tracking_store_instances) == 1 and tracker_raise_on_error
         else CompositeTrackingStore(
             tracking_stores=tracking_store_instances,
             raise_on_error=tracker_raise_on_error,

@@ -8,8 +8,8 @@ from typing import Dict, List
 
 from dbnd import parameter
 from dbnd._core.configuration.config_path import from_task_env
+from dbnd._core.decorator.dbnd_func_proxy import _task_decorator
 from dbnd._core.decorator.decorated_task import _DecoratedTask
-from dbnd._core.decorator.func_task_decorator import _task_decorator
 from dbnd._core.errors import DatabandConfigError, friendly_error
 from dbnd._core.settings.engine import EngineConfig
 from dbnd._core.task_ctrl.task_repr import _parameter_value_to_argparse_str
