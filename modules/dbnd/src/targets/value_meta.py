@@ -17,6 +17,7 @@ class ValueMeta(object):
         default=None
     )  # type: Optional[Dict[str, Dict[str, Union[int, float]]]]
     histograms = attr.ib(default=None)  # type: Optional[Dict[str, Tuple]]
+    histograms_calc_duration = attr.ib(default=None)  # type: Optional[float]
 
 
 @attr.s

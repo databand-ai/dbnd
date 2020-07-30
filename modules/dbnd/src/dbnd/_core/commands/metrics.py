@@ -1,5 +1,8 @@
 import logging
+import time
 import typing
+
+from functools import wraps
 
 from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
@@ -7,6 +10,7 @@ from dbnd._core.task_run.task_run_tracker import (
     TaskRunTracker,
     get_value_meta_for_metric,
 )
+from dbnd._core.utils import seven
 from targets.value_meta import ValueMeta, ValueMetaConf
 
 
@@ -127,3 +131,26 @@ def log_artifact(key, artifact):
         return
 
     logger.info("Artifact %s=%s", key, artifact)
+
+
+def log_function_duration(metric_key):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = f(*args, **kwargs)
+            end_time = time.time()
+            log_metric(metric_key, end_time - start_time)
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+@seven.contextlib.contextmanager
+def log_duration(metric_key):
+    start_time = time.time()
+    yield
+    end_time = time.time()
+    log_metric(metric_key, end_time - start_time)

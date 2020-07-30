@@ -240,6 +240,12 @@ class TrackingStoreThroughChannel(TrackingStore):
     def _get_histogram_metrics(self, df_name, value_meta, timestamp):
         metrics = [
             Metric(
+                key="{}.histogram_calc_duration_sec".format(df_name),
+                value=value_meta.histograms_calc_duration,
+                source=MetricSource.histograms,
+                timestamp=timestamp,
+            ),
+            Metric(
                 key="{}.stats".format(df_name),
                 value_json=value_meta.descriptive_stats,
                 source=MetricSource.histograms,

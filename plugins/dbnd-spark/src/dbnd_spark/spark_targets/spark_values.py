@@ -1,27 +1,17 @@
 from __future__ import absolute_import
 
 import logging
+import time
 import typing
 
 from collections import defaultdict
 
 import pyspark.sql as spark
 
-from pyspark.sql.functions import (
-    col,
-    count,
-    countDistinct,
-    desc,
-    isnull,
-    lit,
-    mean,
-    stddev,
-    when,
-)
+from pyspark.sql.functions import col, count, countDistinct, desc, isnull, lit, when
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
-    IntegerType,
     IntegralType,
     MapType,
     NumericType,
@@ -94,7 +84,10 @@ class SparkDataFrameValueType(DataValueType):
 
         df_stats, histograms = None, None
         if meta_conf.log_df_hist:
+            hist_calc_start_time = time.time()
             df_stats, histograms = self.get_histograms(value)
+            hist_calc_end_time = time.time()
+            hist_calc_duration = hist_calc_end_time - hist_calc_start_time
 
         return ValueMeta(
             value_preview=data_preview,
@@ -103,6 +96,7 @@ class SparkDataFrameValueType(DataValueType):
             data_hash=self.to_signature(value),
             descriptive_stats=df_stats,
             histograms=histograms,
+            histograms_calc_duration=hist_calc_duration,
         )
 
     @classmethod
