@@ -44,7 +44,7 @@ matplotlib.use("Agg")
 
 # Utilities
 @task
-def calculate_metrics(actual, pred, target_date=None):
+def calculate_metrics(actual, pred, target_date=None, additional_name=""):
     rmse = np.sqrt(mean_squared_error(actual, pred))
     mae = mean_absolute_error(actual, pred)
     r2 = r2_score(actual, pred)
@@ -52,9 +52,9 @@ def calculate_metrics(actual, pred, target_date=None):
     r2 = chaos_model_metric(r2, target_date)
     rmse = chaos_model_metric(rmse, target_date)
 
-    log_metric("rmse", rmse)
-    log_metric("mae", mae)
-    log_metric("r2", r2)
+    log_metric("rmse{}".format(additional_name), rmse)
+    log_metric("mae{}".format(additional_name), mae)
+    log_metric("r2{}".format(additional_name), r2)
     return rmse, mae, r2
 
 
@@ -108,7 +108,10 @@ def train_model(
     prediction = lr.predict(test_set.drop([TARGET_LABEL], 1))
 
     (rmse, mae, r2) = calculate_metrics(
-        test_set[[TARGET_LABEL]], prediction, target_date=target_date
+        test_set[[TARGET_LABEL]],
+        prediction,
+        target_date=target_date,
+        additional_name="_train",
     )
 
     logging.info(
@@ -138,7 +141,7 @@ def validate_model_for_customer(
 
     prediction = model.predict(validation_x)
     (rmse, mae, r2) = calculate_metrics(
-        validation_y, prediction, target_date=target_date
+        validation_y, prediction, target_date=target_date, additional_name="_validate"
     )
 
     fig = create_scatter_plot(validation_y, prediction)
