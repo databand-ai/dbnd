@@ -36,10 +36,10 @@ def dbnd_package(name, extras=None):
 
 
 EXTRAS_REQUIRE = {
-    "airflow": [dbnd_package("dbnd-airflow", ["airflow"]),],
-    "airflow_1_10_7": [dbnd_package("dbnd-airflow", ["airflow_1_10_7"]),],
-    "airflow_1_10_8": [dbnd_package("dbnd-airflow", ["airflow_1_10_8"]),],
-    "airflow_1_10_9": [dbnd_package("dbnd-airflow", ["airflow_1_10_9"]),],
+    "airflow": [dbnd_package("dbnd-airflow", ["airflow"])],
+    "airflow_1_10_7": [dbnd_package("dbnd-airflow", ["airflow_1_10_7"])],
+    "airflow_1_10_8": [dbnd_package("dbnd-airflow", ["airflow_1_10_8"])],
+    "airflow_1_10_9": [dbnd_package("dbnd-airflow", ["airflow_1_10_9"])],
     "airflow-export": [dbnd_package("dbnd-airflow-export")],
     "airflow-auto-tracking": [dbnd_package("dbnd-airflow-auto-tracking")],
     "airflow-operator": [dbnd_package("dbnd-airflow-operator")],
