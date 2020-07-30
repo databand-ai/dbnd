@@ -12,9 +12,10 @@ from airflow.utils import timezone
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from sqlalchemy.orm import Session
+from sqlalchemy_utils.functions import database_exists
 
 from dbnd._core.constants import UpdateSource
-from dbnd._core.errors import friendly_error
+from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
 from dbnd._core.task_executor.task_executor import TaskExecutor
@@ -132,19 +133,63 @@ class AirflowTaskExecutor(TaskExecutor):
         # we want to use reference to AIRFLOW HOME as it can be changed in runtime
         from airflow import configuration
         from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
-        from dbnd_airflow.db_utils import airflow_sql_conn_repr
+        from dbnd_airflow.db_utils import airlow_sql_alchemy_conn, airflow_sql_conn_repr
 
         dbnd_airflow_bootstrap()
 
         self.airflow_config = AirflowConfig()
         self.airflow_task_executor = self._get_airflow_executor()
 
+        conn_string = airlow_sql_alchemy_conn()
+        conn_string_repr = airflow_sql_conn_repr().__repr__()
+
         logger.info(
             "Using airflow executor '%s' with airflow DB at '%s' \nAIRFLOW_HOME='%s'",
             self.airflow_task_executor.__class__.__name__,
-            airflow_sql_conn_repr(),
+            conn_string_repr,
             configuration.AIRFLOW_HOME,
         )
+
+        self._validate_airflow_db(conn_string, conn_string_repr)
+
+    def _validate_db_exist(self, conn_string, conn_string_repr):
+        db_exist = True
+        try:
+            db_exist = database_exists(conn_string)
+        except Exception:
+            db_exist = False
+        finally:
+            # Raise here because we don't want the full stack trace
+            if not db_exist:
+                raise DatabandError(
+                    "You are running in Airflow mode (task_executor={}) but Airflow database doesn't exist at {}".format(
+                        RunConfig().task_executor_type, conn_string_repr
+                    ),
+                    help_msg="Check that sql_alchemy_conn in airflow.cfg or environment variable"
+                    " AIRFLOW__CORE__SQL_ALCHEMY_CONN is set correctly",
+                )
+
+    @provide_session
+    def _validate_airflow_schema(self, conn_string_repr, session=None):
+        was_exception = False
+        try:
+            session.query(DagPickle).first()
+        except Exception:
+            was_exception = True
+
+        # Raise here because we don't want the full stack trace
+        if was_exception:
+            raise DatabandError(
+                "You are running in Airflow mode (task_executor={}) but Airflow database isn't initialized at {}".format(
+                    RunConfig().task_executor_type, conn_string_repr
+                ),
+                help_msg="Check that sql_alchemy_conn in airflow.cfg or environment variable "
+                "AIRFLOW__CORE__SQL_ALCHEMY_CONN is set correctly and that you run airflow initdb command",
+            )
+
+    def _validate_airflow_db(self, conn_string, conn_string_repr):
+        self._validate_db_exist(conn_string, conn_string_repr)
+        self._validate_airflow_schema(conn_string_repr)
 
     def build_airflow_dag(self, task_runs):
         # create new dag from current tasks and tasks selected to run
