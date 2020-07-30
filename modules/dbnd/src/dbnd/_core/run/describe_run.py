@@ -66,7 +66,7 @@ class DescribeRun(RunCtrl):
         orchestration_mode = run.source == UpdateSource.dbnd
 
         b.column("TRACKER URL", run.run_url, skip_if_empty=True)
-        b.column("TRAKERS", CoreConfig().tracker)
+        b.column("TRACKERS", CoreConfig().tracker)
         if show_tasks_info and orchestration_mode and driver_task.is_driver:
             self._add_tasks_info(b)
 

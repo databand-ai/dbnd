@@ -1,4 +1,5 @@
 import datetime
+import logging
 import random
 import typing
 import warnings
@@ -32,6 +33,9 @@ if typing.TYPE_CHECKING:
     from dbnd._core.decorator.safe_task_call import TaskCallState
 
 DEFAULT_CLASS_VERSION = ""
+
+
+logger = logging.getLogger(__name__)
 
 
 class Task(_BaseTask, _TaskParamContainer):
@@ -177,8 +181,8 @@ class Task(_BaseTask, _TaskParamContainer):
         However, you may freely override this method with custom logic.
         """
         # we check only user side task outputs
-        # all system tasks outputs are not important (if the exists or not)
-        # user don't see them
+        # all system tasks outputs are not important (if they exists or not)
+        # user doesn't see them
         outputs = flatten(self.task_outputs)
         if len(outputs) == 0:
             if not self.task_band:
@@ -191,7 +195,24 @@ class Task(_BaseTask, _TaskParamContainer):
             else:
                 return self.task_band.exists()
 
-        return all((o.exists() for o in outputs))
+        incomplete_outputs = [str(o) for o in outputs if not o.exists()]
+        num_of_incomplete_outputs = len(incomplete_outputs)
+
+        if 0 < num_of_incomplete_outputs < len(outputs):
+            complete_outputs = [str(o) for o in outputs if o.exists()]
+            logger.warning(
+                "Task {} has incomplete outputs! "
+                "This means the task might fail every time. "
+                "Complete outputs: {} "
+                "Incomplete outputs: {} "
+                "Hint: clean the environment or overwrite the output".format(
+                    self.task_meta.task_name,
+                    ", ".join(complete_outputs),
+                    ", ".join(incomplete_outputs),
+                )
+            )
+
+        return num_of_incomplete_outputs == 0
 
     @property
     def current_task_run(self):
