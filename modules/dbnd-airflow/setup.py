@@ -20,9 +20,28 @@ setuptools.setup(
         "sqlalchemy_utc",
         "sqlalchemy_utils",
         "argcomplete",
+        "psycopg2>=2.7.4,<2.8",
     ],
     extras_require=dict(
         airflow=[
+            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            "Werkzeug<1.0.0",
+            "apache-airflow==1.10.7",
+            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
+        ],
+        airflow_1_10_7=[
+            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            "Werkzeug<1.0.0",
+            "apache-airflow==1.10.7",
+            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
+        ],
+        airflow_1_10_8=[
+            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            "Werkzeug<1.0.0",
+            "apache-airflow==1.10.8",
+            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
+        ],
+        airflow_1_10_9=[
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
             "Werkzeug<1.0.0",
             "apache-airflow==1.10.9",
