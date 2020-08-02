@@ -127,16 +127,10 @@ class TaskRunTracker(TaskRunCtrl):
 
             ts = utcnow()
             data_metrics = []
-            # TODO: Are these metrics part of histogram metrics or not?
+            dataframe_metric_value = {}
+
             if value_meta.data_dimensions:
-                data_metrics.append(
-                    Metric(
-                        key="{}.shape".format(key),
-                        value=value_meta.data_dimensions,
-                        source=MetricSource.user,
-                        timestamp=ts,
-                    )
-                )
+                dataframe_metric_value["data_dimensions"] = value_meta.data_dimensions
                 for dim, size in enumerate(value_meta.data_dimensions):
                     data_metrics.append(
                         Metric(
@@ -146,7 +140,9 @@ class TaskRunTracker(TaskRunCtrl):
                             timestamp=ts,
                         )
                     )
+
             if meta_conf.log_schema:
+                dataframe_metric_value["schema"] = value_meta.data_schema
                 data_metrics.append(
                     Metric(
                         key="{}.schema".format(key),
@@ -155,21 +151,26 @@ class TaskRunTracker(TaskRunCtrl):
                         timestamp=ts,
                     )
                 )
+
             if meta_conf.log_preview:
+                dataframe_metric_value["value_preview"] = value_meta.value_preview
+                dataframe_metric_value["type"] = "dataframe_metric"
                 data_metrics.append(
                     Metric(
-                        key="{}.preview".format(key),
-                        value=value_meta.value_preview,
+                        key=str(key),
+                        value_json=dataframe_metric_value,
                         source=MetricSource.user,
                         timestamp=ts,
                     )
                 )
-            self._log_metrics(data_metrics)
 
             if meta_conf.log_df_hist:
                 self.tracking_store.log_histograms(
                     task_run=self.task_run, key=key, value_meta=value_meta, timestamp=ts
                 )
+
+            if data_metrics:
+                self._log_metrics(data_metrics)
 
         except Exception as ex:
             log_exception(
