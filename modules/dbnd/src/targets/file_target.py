@@ -33,7 +33,6 @@ class FileTarget(DataTarget):
         :param str path: the path associated with this FileTarget.
         """
         super(FileTarget, self).__init__(properties=properties, source=source)
-
         self.path = path
         self._fs = fs
         self.fs_name = self._fs.name if self._fs else get_file_system_name(path)

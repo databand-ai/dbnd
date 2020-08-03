@@ -47,6 +47,10 @@ class _BaseSparkTask(Task):
         if self.spark_config.include_user_project:
             self.spark_resources = {"user_project": fat_wheel_building_task()}
 
+        if self.spark_engine.disable_task_band:
+            logger.debug("Task band is disabled due to disable_task_band flag")
+            self.task_band = None
+
         return result
 
     def application_args(self):

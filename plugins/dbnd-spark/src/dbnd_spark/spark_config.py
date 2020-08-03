@@ -132,6 +132,10 @@ class SparkEngineConfig(Config):
         DirTarget
     ]
 
+    disable_task_band = parameter(
+        default=False, description="Disable task_band file creation"
+    )[bool]
+
 
 class SparkMarshallingConfig(Config):
     _conf__task_family = "spark_marshalling"
