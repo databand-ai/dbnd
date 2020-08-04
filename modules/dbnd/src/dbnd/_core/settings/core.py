@@ -165,13 +165,14 @@ class CoreConfig(Config):
             )
             self.tracker = [t for t in self.tracker if t != "api"]
 
-    def build_tracking_store(self):
+    def build_tracking_store(self, remove_failed_store=True):
         from dbnd._core.tracking.registry import get_tracking_store
 
         return get_tracking_store(
             tracking_store_names=self.tracker,
             api_channel_name=self.tracker_api,
             tracker_raise_on_error=self.tracker_raise_on_error,
+            remove_failed_store=remove_failed_store,
         )
 
     def build_databand_api_client(self):

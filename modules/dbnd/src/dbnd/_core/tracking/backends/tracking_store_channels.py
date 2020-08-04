@@ -319,3 +319,6 @@ class TrackingStoreThroughChannel(TrackingStore):
 
     def is_ready(self):
         return self.channel.is_ready()
+
+    def __str__(self):
+        return "TrackingStoreThroughChannel with channel=%s" % (str(self.channel),)

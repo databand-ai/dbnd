@@ -9,14 +9,16 @@ logger = logging.getLogger(__name__)
 
 
 class CompositeTrackingStore(TrackingStore):
-    def __init__(self, tracking_stores, raise_on_error=True):
+    def __init__(self, tracking_stores, raise_on_error=True, remove_failed_store=False):
         if not tracking_stores:
             logger.warning("You are running without any tracking store configured.")
         self._stores = tracking_stores
         self._raise_on_error = raise_on_error
+        self._remove_failed_store = remove_failed_store
 
     def _invoke(self, name, kwargs):
         res = None
+        failed_stores = []
         for store in self._stores:
             try:
                 handler = getattr(store, name)
@@ -26,17 +28,27 @@ class CompositeTrackingStore(TrackingStore):
             except DatabandConnectionException as ex:
                 logger.error(
                     "Failed to store tracking information from %s at %s : %s"
-                    % (name, store.__class__.__name__, str(ex))
+                    % (name, str(store), str(ex))
                 )
+                if self._remove_failed_store:
+                    failed_stores.append(store)
                 if self._raise_on_error:
                     raise
             except Exception as ex:
+                if self._remove_failed_store:
+                    failed_stores.append(store)
                 log_exception(
                     "Failed to store tracking information from %s at %s: %s"
-                    % (name, store.__class__.__name__, str(ex)),
+                    % (name, str(store), str(ex)),
                     ex,
                     non_critical=True,
                 )
+        if failed_stores:
+            for store in failed_stores:
+                logger.warning(
+                    "Removing store %s from stores list due to failure" % (str(store),)
+                )
+                self._stores.remove(store)
         return res
 
     # this is a function that used for disabling Tracking api on spark inline tasks.

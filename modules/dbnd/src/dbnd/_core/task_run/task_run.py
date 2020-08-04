@@ -90,7 +90,7 @@ class TaskRun(object):
         if self.is_tracked and self.run.is_tracked:
             tracking_store = self.run.context.tracking_store
         else:
-            tracking_store = get_tracking_store(["console"], None, False)
+            tracking_store = get_tracking_store(["console"], None, False, True)
 
         self.tracking_store = tracking_store
         self.tracker = TaskRunTracker(task_run=self, tracking_store=tracking_store)

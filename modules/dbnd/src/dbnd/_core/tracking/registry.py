@@ -62,7 +62,9 @@ def register_store(name, store_builder):
     _BACKENDS_REGISTRY[name] = store_builder
 
 
-def get_tracking_store(tracking_store_names, api_channel_name, tracker_raise_on_error):
+def get_tracking_store(
+    tracking_store_names, api_channel_name, tracker_raise_on_error, remove_failed_store
+):
     # type: (...) -> TrackingStore
     tracking_store_instances = []
     for name in tracking_store_names:
@@ -82,5 +84,6 @@ def get_tracking_store(tracking_store_names, api_channel_name, tracker_raise_on_
         else CompositeTrackingStore(
             tracking_stores=tracking_store_instances,
             raise_on_error=tracker_raise_on_error,
+            remove_failed_store=remove_failed_store,
         )
     )
