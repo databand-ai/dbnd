@@ -30,11 +30,11 @@ _____________
 
 
 
-DBND 0.28
+DBND v.0.28.00
 
 New features:
 –––––––––––––
-Support for fat_wheel for Spark py_files
+- Support for fat_wheel for Spark py_files
 
 
 Improvements:
