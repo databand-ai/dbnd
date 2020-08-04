@@ -179,6 +179,6 @@ def get_dbnd_store(store_uri=None, artifact_uri=None):
 
         duplication_store = _get_store(duplicate_tracking_to, artifact_uri)
 
-    dbnd_store = get_tracking_store(["api"], "web", True)
+    dbnd_store = get_tracking_store(["api"], "web", True, False)
 
     return DatabandStore(dbnd_store, duplication_store)

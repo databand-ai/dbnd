@@ -20,3 +20,6 @@ class TrackingWebChannel(TrackingChannel):
 
     def is_ready(self):
         return self.client.is_ready()
+
+    def __str__(self):
+        return "Web"

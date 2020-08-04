@@ -161,6 +161,11 @@ class DatabandContext(SingletonContext):
 
     @property
     @cached()
+    def tracking_store_allow_errors(self):
+        return self.settings.core.build_tracking_store(remove_failed_store=False)
+
+    @property
+    @cached()
     def databand_api_client(self):
         return self.settings.core.build_databand_api_client()
 
