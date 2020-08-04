@@ -8,7 +8,9 @@ from dbnd._core.commands.metrics import log_pg_table
 class LogPostgresTableOperator(BaseOperator):
     @apply_defaults
     def __init__(self, table_name, conn_id, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(LogPostgresTableOperator, self).__init__(
+            *args, **kwargs
+        )  # py2.7 compatibility
         self.table_name = table_name
         self.conn_id = conn_id
 

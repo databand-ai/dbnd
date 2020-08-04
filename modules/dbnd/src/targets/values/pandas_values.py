@@ -99,6 +99,7 @@ class DataFrameValueType(DataValueType):
         try:
             # TODO: check efficiency
             df_type = df[df_column.name]
+            column_stats["type"] = df_type.dtype.name
             if is_bool_dtype(df_type) or is_string_dtype(df_type):
                 column_stats["count"] = int(column_stats["count"])
                 column_stats["freq"] = int(column_stats["freq"])
