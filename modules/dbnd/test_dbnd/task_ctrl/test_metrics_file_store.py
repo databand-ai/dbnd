@@ -71,6 +71,7 @@ class TestFileMetricsStore(object):
         df_births_std = hist_metrics["df.Births.std"]
         assert df_births_std == pytest.approx(428.4246)
         assert hist_metrics == {
+            "df.Births.type": "int64",
             "df.Births.25%": 155.0,
             "df.Births.50%": 578.0,
             "df.Births.75%": 968.0,
@@ -98,6 +99,7 @@ class TestFileMetricsStore(object):
             "df.shape1": 2,
             "df.stats": {
                 "Births": {
+                    "type": "int64",
                     "25%": 155.0,
                     "50%": 578.0,
                     "75%": 968.0,

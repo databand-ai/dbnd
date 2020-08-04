@@ -33,10 +33,18 @@ class TestHistograms:
         assert histogram[1] == [True, False, None]
 
         stats = stats["boolean_column"]
+        assert list(stats.keys()) == [
+            "type",
+            "distinct",
+            "null-count",
+            "non-null",
+            "count",
+        ]
         assert stats["count"] == 60
         assert stats["non-null"] == 50
         assert stats["null-count"] == 10
         assert stats["distinct"] == 2
+        assert stats["type"] == "boolean"
 
     @pytest.mark.skip
     def test_numerical_histogram(self, spark_session):
@@ -46,11 +54,27 @@ class TestHistograms:
         stats, histograms = SparkDataFrameValueType.get_histograms(df)
 
         stats = stats["numerical_column"]
+        assert list(stats.keys()) == [
+            "count",
+            "mean",
+            "stddev",
+            "min",
+            "25%",
+            "50%",
+            "75%",
+            "max",
+            "std",
+            "type",
+            "distinct",
+            "null-count",
+            "non-null",
+        ]
         assert stats["count"] == 8
         assert stats["non-null"] == 8
         assert stats["distinct"] == 3
         assert stats["min"] == 1
         assert stats["max"] == 5
+        assert stats["type"] == "long"
 
     @pytest.mark.skip
     def test_strings_histogram(self, spark_session):
@@ -70,10 +94,18 @@ class TestHistograms:
         assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!", None]
 
         stats = stats["string_column"]
+        assert list(stats.keys()) == [
+            "type",
+            "distinct",
+            "null-count",
+            "non-null",
+            "count",
+        ]
         assert stats["count"] == 70
         assert stats["non-null"] == 65
         assert stats["null-count"] == 5
         assert stats["distinct"] == 3
+        assert stats["type"] == "string"
 
     @pytest.mark.skip
     def test_histogram_others(self, spark_session):
@@ -99,3 +131,4 @@ class TestHistograms:
         assert stats["non-null"] == 5050
         assert stats["null-count"] == 0
         assert stats["distinct"] == 100
+        assert stats["type"] == "string"

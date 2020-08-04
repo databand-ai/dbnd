@@ -42,6 +42,7 @@ def pandas_data_frame_stats(pandas_data_frame):
             "non-null": 5,
             "null-count": 0,
             "distinct": 5,
+            "type": "int64",
         }
     }
 

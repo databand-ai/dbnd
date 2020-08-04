@@ -148,6 +148,7 @@ class SparkDataFrameValueType(DataValueType):
                     result[column_name][row[0]] = float(row[column_name])
                 # so frontend will be able to eat metric
                 result[column_name]["std"] = result[column_name]["stddev"]
+            result[column_name]["type"] = column_def.dataType.jsonValue()
             result[column_name]["distinct"] = counts["%s_distinct" % column_name]
             result[column_name]["null-count"] = counts["%s_count_null" % column_name]
             result[column_name]["non-null"] = counts["%s_count" % column_name]

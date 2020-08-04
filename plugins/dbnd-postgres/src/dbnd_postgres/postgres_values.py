@@ -1,3 +1,5 @@
+from typing import Dict
+
 import yaml
 
 import attr
@@ -78,6 +80,7 @@ class PostgresController:
         return preview_table
 
     def get_column_types(self):
+        # type: () -> Dict[str, str]
         if self._column_types is not None:
             return self._column_types
 
@@ -110,6 +113,7 @@ class PostgresController:
 
     def _get_column_histogram_and_stats(self, pg_stats_row, count, column_type):
         stats = self._calculate_stats(count, pg_stats_row)
+        stats["type"] = column_type
         common_counts, common_values = self._get_common_values(count, pg_stats_row)
 
         # types according to postgres documentation:
