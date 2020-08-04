@@ -20,6 +20,7 @@ _____________
 - #1183947756269387: Changed the default SparkDataFrameToCsv marshaller behaviour
 - #1186029239496897: Added automatic logging for Spark initialization
 - #1180558848817017: Automatic configuration of the databand_url on Spark
+- Timeline - parent tasks now clearly show when a child task was running
 
 Fixed issues:
 _____________
@@ -27,6 +28,8 @@ _____________
 - #1186251402357473: --disable-web-tracker function does not work.
 - #1183600904070465: 500 HTTP error thrown on bad paramater definition: Format=parameter.choices(["artemis","bago_dialer"]).default("artemis")
 - #1186666107312349: Recreated filesystem objects on remote execution to prevent credentials conflict
+- Timeline - children didn't always appear below their parents
+- Timeline - tasks with the same name were incorrectly grouped together
 
 
 
