@@ -30,6 +30,7 @@ _____________
 - #1186666107312349: Recreated filesystem objects on remote execution to prevent credentials conflict
 - Timeline - children didn't always appear below their parents
 - Timeline - tasks with the same name were incorrectly grouped together
+- Refresh button wasn't working correctly on several pages
 
 
 
