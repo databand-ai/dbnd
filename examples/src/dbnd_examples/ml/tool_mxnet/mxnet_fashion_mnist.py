@@ -1,5 +1,10 @@
 from time import time
 
+from mxnet import autograd, gluon, init
+from mxnet.gluon import nn
+from mxnet.gluon.data.dataset import ArrayDataset
+from mxnet.gluon.data.vision import transforms
+
 from dbnd import data, namespace, output, parameter
 from dbnd.tasks import PipelineTask
 from dbnd_examples.ml.tool_mxnet import (
@@ -8,10 +13,6 @@ from dbnd_examples.ml.tool_mxnet import (
     fashion_data,
     read_minst,
 )
-from mxnet import autograd, gluon, init
-from mxnet.gluon import nn
-from mxnet.gluon.data.dataset import ArrayDataset
-from mxnet.gluon.data.vision import transforms
 
 
 namespace("fashion")

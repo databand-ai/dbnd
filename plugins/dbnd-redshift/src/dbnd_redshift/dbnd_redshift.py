@@ -2,8 +2,9 @@ import logging
 
 import psycopg2
 
-from dbnd import log_metric
 from psycopg2.extras import RealDictCursor
+
+from dbnd import log_metric
 
 
 logger = logging.getLogger(__name__)

@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from airflow import DAG
 from airflow.utils.dates import days_ago
-
 from dag_test_examples import t_A, t_B
 
 

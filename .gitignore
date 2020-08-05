@@ -7,6 +7,8 @@ __pycache__/
 
 .dbnd/airflow/data/
 .dbnd/airflow/logs/
+.dbnd/airflow/keys/*
+.dbnd/airflow/airflow.cfg
 .dbnd/airflow/airflow-unittests.db
 .dbnd/dbnd.db
 .dbnd/unittests.db
@@ -17,6 +19,7 @@ __pycache__/
 .dbnd/logs
 .dbnd/autocompletion/.shell
 .dbnd/autocompletion/.shell.unittest
+project.cfg
 
 logs/*
 .tox

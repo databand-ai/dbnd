@@ -1,9 +1,8 @@
 import datetime
 import enum
 
-import six
-
 import attr
+import six
 
 from dbnd._core.utils.timezone import make_aware, utcnow
 

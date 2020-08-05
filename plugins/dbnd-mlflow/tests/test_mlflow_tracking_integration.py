@@ -8,8 +8,6 @@ from random import randint, random
 import mock
 import pytest
 
-from dbnd import new_dbnd_context
-from dbnd._core.decorator.dbnd_func_proxy import task
 from mlflow import (
     end_run,
     get_tracking_uri,
@@ -18,6 +16,9 @@ from mlflow import (
     log_param,
     start_run,
 )
+
+from dbnd import new_dbnd_context
+from dbnd._core.decorator.dbnd_func_proxy import task
 
 
 logger = logging.getLogger(__name__)

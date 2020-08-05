@@ -2,11 +2,10 @@ from __future__ import absolute_import
 
 import logging
 
+import attr
 import pandas as pd
 
 from pandas import DataFrame
-
-import attr
 
 from dbnd import PythonTask, band, output, parameter, task
 from dbnd._core.commands.metrics import log_dataframe

@@ -1,11 +1,11 @@
 import datetime
 import os
 
+import luigi
 import pytest
 
-import luigi
-
 from luigi.date_interval import Custom
+
 from tests.luigi_examples.multiple_input_output import (
     MyWrapperTask,
     MyWrapperTaskOutputFails,

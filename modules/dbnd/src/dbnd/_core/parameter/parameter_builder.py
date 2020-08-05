@@ -1,9 +1,8 @@
 import logging
 
+import attr
 import numpy
 import pandas as pd
-
-import attr
 
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.constants import OutputMode, _ConfigParamContainer

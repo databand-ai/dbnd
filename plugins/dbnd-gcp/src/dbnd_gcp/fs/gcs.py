@@ -16,7 +16,8 @@
 #
 
 """databand bindings for Google Cloud Storage"""
-
+import base64
+import hashlib
 import logging
 import mimetypes
 import os
@@ -527,3 +528,14 @@ class GCSClient(FileSystem):
 
     def open_read(self, path, mode="r"):
         return self._open_read(path)
+
+    def local_md5(self, local_path):
+        with open(local_path, "r+") as f:
+            checksum = hashlib.md5(f.read().encode("utf-8"))
+            base64_md5 = base64.b64encode(checksum.digest()).decode("utf-8")
+        return base64_md5
+
+    def remote_md5(self, remote_path):
+        bucket, obj = self._path_to_bucket_and_key(remote_path)
+        result = self.client.objects().get(bucket=bucket, object=obj).execute()
+        return result["md5Hash"]

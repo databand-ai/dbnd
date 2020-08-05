@@ -4,7 +4,6 @@ import os
 
 from random import randint, random
 
-from dbnd._core.decorator.dbnd_func_proxy import task
 from mlflow import (
     active_run,
     end_run,
@@ -15,6 +14,8 @@ from mlflow import (
     start_run,
 )
 from mlflow.tracking import MlflowClient
+
+from dbnd._core.decorator.dbnd_func_proxy import task
 
 
 logger = logging.getLogger(__name__)

@@ -77,9 +77,11 @@ def get_file_system_name(path):
         return FileSystems.local
 
     if fs_prefix:
+        # TODO: it would be nice to provide more useful information
         raise DatabandRuntimeError(
             "Can't find file system '%s'" % fs_prefix,
-            help_msg="Please check that you have registered required schema with `register_file_system` or relevant plugin is installed",
+            help_msg="Please check that you have registered required schema with"
+            " `register_file_system` or relevant plugin is installed",
         )
     return FileSystems.local
 

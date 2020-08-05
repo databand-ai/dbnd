@@ -1,9 +1,8 @@
 from collections import defaultdict
 from typing import Any, Dict
 
-import six
-
 import attr
+import six
 
 from targets import InMemoryTarget, Target
 from targets.values import ValueType

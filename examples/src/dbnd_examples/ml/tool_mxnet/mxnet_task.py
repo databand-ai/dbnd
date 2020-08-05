@@ -1,8 +1,9 @@
 import mxnet as mx
 
+from mxnet.gluon import utils
+
 from dbnd import PythonTask, output, parameter
 from dbnd_examples.ml.tool_mxnet import mnist_to_ndarray_iterator
-from mxnet.gluon import utils
 
 
 class DownloadFile(PythonTask):

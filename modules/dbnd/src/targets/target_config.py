@@ -3,9 +3,8 @@ import os
 from os.path import normpath
 from typing import Optional
 
-import six
-
 import attr
+import six
 
 from targets.utils.path import trailing_slash
 

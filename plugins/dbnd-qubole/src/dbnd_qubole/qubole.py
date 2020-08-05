@@ -2,6 +2,9 @@ import logging
 import time
 import typing
 
+from qds_sdk.commands import SparkCommand
+from qds_sdk.qubole import Qubole
+
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder, list2cmdline_safe
 from dbnd._core.utils.basics.text_banner import TextBanner
@@ -9,8 +12,6 @@ from dbnd._core.utils.structures import list_of_strings
 from dbnd_qubole import QuboleConfig
 from dbnd_qubole.errors import failed_to_run_qubole_job
 from dbnd_spark.spark_ctrl import SparkCtrl
-from qds_sdk.commands import SparkCommand
-from qds_sdk.qubole import Qubole
 
 
 if typing.TYPE_CHECKING:

@@ -4,10 +4,13 @@ import os
 from typing import Type
 from weakref import WeakValueDictionary
 
-import databand.parameters
 import luigi
 import luigi.scheduler
 import luigi.worker
+
+from luigi.interface import _WorkerSchedulerFactory
+
+import databand.parameters
 
 from dbnd import Task, parameter
 from dbnd._core.constants import RunState, TaskRunState
@@ -20,7 +23,6 @@ from dbnd._core.task_build.task_definition import (
     _get_task_source_code,
 )
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
-from luigi.interface import _WorkerSchedulerFactory
 from targets import LocalFileSystem, target
 
 
