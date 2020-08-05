@@ -27,7 +27,6 @@ class DataProcCtrl(SparkCtrl):
             region=self.dataproc.region,
             cluster_name=self.dataproc.cluster,
         )
-        self.storage = GoogleCloudStorageHook(google_cloud_storage_conn_id=gcp_conn_id)
 
         cluster_temp = self.cluster_info.get("config", {}).get("configBucket")
         if cluster_temp:
