@@ -18,10 +18,10 @@ class SparkCtrl(TaskRunCtrl):
     def __init__(self, task_run):
         super(SparkCtrl, self).__init__(task_run=task_run)
 
-        if not self.config.disable_sync:
-            self.deploy = self._get_deploy_ctrl()
-        else:
+        if self.config.disable_sync:
             self.deploy = DisabledTaskSyncCtrl(task_run=task_run)
+        else:
+            self.deploy = self._get_deploy_ctrl()
 
     def _get_deploy_ctrl(self):
         return self.task_run.deploy  # type: TaskSyncCtrl

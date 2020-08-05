@@ -18,7 +18,7 @@ class DataProcCtrl(SparkCtrl):
     def __init__(self, task_run):
         super(DataProcCtrl, self).__init__(task_run=task_run)
 
-        self.dataproc = self.task.dataproc
+        self.dataproc = self.task.spark_engine
 
         gcp_conn_id = self.task_env.conn_id
         self.cluster_hook = DataProcHook(gcp_conn_id=gcp_conn_id)
@@ -27,7 +27,6 @@ class DataProcCtrl(SparkCtrl):
             region=self.dataproc.region,
             cluster_name=self.dataproc.cluster,
         )
-        self.storage = GoogleCloudStorageHook(google_cloud_storage_conn_id=gcp_conn_id)
 
         cluster_temp = self.cluster_info.get("config", {}).get("configBucket")
         if cluster_temp:

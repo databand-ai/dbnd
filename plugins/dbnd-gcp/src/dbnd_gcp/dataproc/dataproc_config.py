@@ -8,10 +8,10 @@ from databand.parameters import (
 from dbnd import parameter
 from dbnd._core.constants import ClusterPolicy, SparkClusters
 from dbnd._core.errors import DatabandConfigError
-from dbnd._core.task.config import Config
+from dbnd_spark.spark_config import SparkEngineConfig
 
 
-class DataprocConfig(Config):
+class DataprocConfig(SparkEngineConfig):
     """Google Cloud Dataproc"""
 
     _conf__task_family = "dataproc"
@@ -124,4 +124,4 @@ class DataprocConfig(Config):
     def get_spark_ctrl(self, task_run):
         from dbnd_gcp.dataproc.dataproc import DataProcCtrl
 
-        return DataProcCtrl(self, job=task_run)
+        return DataProcCtrl(task_run=task_run)
