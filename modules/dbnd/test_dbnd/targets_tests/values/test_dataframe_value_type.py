@@ -1,5 +1,6 @@
 from pandas.core.util.hashing import hash_pandas_object
 
+from dbnd._core.tracking.histograms import HistogramSpec
 from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
 from targets.value_meta import ValueMeta, ValueMetaConf
@@ -35,7 +36,9 @@ class TestDataFrameValueType(object):
         )
 
         df_value_meta = DataFrameValueType().get_value_meta(
-            pandas_data_frame, meta_conf=meta_conf
+            pandas_data_frame,
+            meta_conf=meta_conf,
+            histogram_spec=HistogramSpec(columns=set(pandas_data_frame.columns)),
         )
 
         assert df_value_meta.value_preview == expected_value_meta.value_preview

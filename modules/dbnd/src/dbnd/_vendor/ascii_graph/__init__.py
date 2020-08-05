@@ -351,6 +351,8 @@ class Pyasciigraph:
                 info = unicode(string)
             else:
                 info = str(string)
+        else:
+            info = str(string)
         return info
 
     def _sanitize_value(self, value):

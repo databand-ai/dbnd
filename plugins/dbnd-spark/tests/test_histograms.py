@@ -6,7 +6,9 @@ import pytest
 
 from pyspark.sql import SparkSession
 
+from dbnd._core.tracking.histograms import HistogramRequest, HistogramSpec
 from dbnd_spark.spark_targets import SparkDataFrameValueType
+from targets.values import get_value_type_of_obj
 
 
 logger = logging.getLogger(__name__)
@@ -20,13 +22,21 @@ class TestHistograms:
         ).getOrCreate()
         return spark
 
+    def _build_hist_spec(self, df):
+        value_type = get_value_type_of_obj(df)
+        return HistogramSpec.build_spec(value_type, df, HistogramRequest.ALL())
+
     @pytest.mark.skip
     def test_boolean_histogram(self, spark_session):
         booleans = [True] * 10 + [None] * 10 + [False] * 20 + [True] * 20
         booleans = [(i,) for i in booleans]
         boolean_df = spark_session.createDataFrame(booleans, ["boolean_column"])
 
-        stats, histograms = SparkDataFrameValueType.get_histograms(boolean_df)
+        histogram_spec = self._build_hist_spec(boolean_df)
+
+        stats, histograms = SparkDataFrameValueType.get_histograms(
+            boolean_df, histogram_spec
+        )
 
         histogram = histograms["boolean_column"]
         assert histogram[0] == [30, 20, 10]
@@ -51,7 +61,9 @@ class TestHistograms:
         numbers = [1, 3, 3, 1, 5, 1, 5, 5]
         numbers = [(i,) for i in numbers]
         df = spark_session.createDataFrame(numbers, ["numerical_column"])
-        stats, histograms = SparkDataFrameValueType.get_histograms(df)
+        histogram_spec = self._build_hist_spec(df)
+
+        stats, histograms = SparkDataFrameValueType.get_histograms(df, histogram_spec)
 
         stats = stats["numerical_column"]
         assert list(stats.keys()) == [
@@ -87,7 +99,9 @@ class TestHistograms:
         )
         strings = [(i,) for i in strings]
         df = spark_session.createDataFrame(strings, ["string_column"])
-        stats, histograms = SparkDataFrameValueType.get_histograms(df)
+        histogram_spec = self._build_hist_spec(df)
+
+        stats, histograms = SparkDataFrameValueType.get_histograms(df, histogram_spec)
 
         histogram = histograms["string_column"]
         assert histogram[0] == [30, 20, 15, 5]
@@ -117,7 +131,9 @@ class TestHistograms:
 
         strings = [(i,) for i in strings]
         df = spark_session.createDataFrame(strings, ["string_column"])
-        stats, histograms = SparkDataFrameValueType.get_histograms(df)
+        histogram_spec = self._build_hist_spec(df)
+
+        stats, histograms = SparkDataFrameValueType.get_histograms(df, histogram_spec)
 
         histogram = histograms["string_column"]
         assert len(histogram[0]) == 50 and len(histogram[1]) == 50

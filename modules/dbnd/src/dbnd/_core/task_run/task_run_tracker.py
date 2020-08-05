@@ -9,6 +9,7 @@ from dbnd._core.constants import (
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
+from dbnd._core.tracking.histograms import HistogramRequest, HistogramSpec
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 from targets import Target
@@ -62,7 +63,10 @@ class TaskRunTracker(TaskRunCtrl):
                 parameter.value_meta_conf, value_type=value_type, target=target
             )
 
-            target_meta = value_type.get_value_meta(value, meta_conf=meta_conf)
+            histogram_spec = HistogramSpec.build_spec(
+                value_type, value, HistogramRequest.NONE()
+            )
+            target_meta = value_type.get_value_meta(value, meta_conf, histogram_spec)
             target.target_meta = target_meta  # Do we actually need this?
             self.tracking_store.log_target(
                 task_run=self.task_run,
@@ -116,12 +120,15 @@ class TaskRunTracker(TaskRunCtrl):
                 non_critical=True,
             )
 
-    def log_data(self, key, data, meta_conf):
-        # type: (str, Union[pd.DataFrame, spark.DataFrame, PostgresTable], ValueMetaConf) -> None
+    def log_data(
+        self, key, data, meta_conf, histogram_request=HistogramRequest(none=True)
+    ):  # type: (str, Union[pd.DataFrame, spark.DataFrame, PostgresTable], ValueMetaConf, HistogramRequest) -> None
         try:
             # Combine meta_conf with the config settings
             meta_conf = self.settings.features.get_value_meta_conf(meta_conf)
-            value_meta = get_value_meta_for_metric(key, data, meta_conf=meta_conf)
+            value_meta = get_value_meta_for_metric(
+                key, data, meta_conf=meta_conf, histogram_request=histogram_request
+            )
             if not value_meta:
                 return
 
@@ -166,7 +173,11 @@ class TaskRunTracker(TaskRunCtrl):
 
             if meta_conf.log_df_hist:
                 self.tracking_store.log_histograms(
-                    task_run=self.task_run, key=key, value_meta=value_meta, timestamp=ts
+                    task_run=self.task_run,
+                    key=key,
+                    histogram_spec=value_meta.histogram_spec,
+                    value_meta=value_meta,
+                    timestamp=ts,
                 )
 
             if data_metrics:
@@ -180,8 +191,9 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
 
-def get_value_meta_for_metric(key, value, meta_conf):
-    # type: (...) -> Optional[ValueMeta]
+def get_value_meta_for_metric(
+    key, value, meta_conf, histogram_request=HistogramRequest.NONE
+):  # type: (str, Any, ValueMetaConf, HistogramRequest) -> Optional[ValueMeta]
     value_type = get_value_type_of_obj(value)
     if value_type is None:
         logger.info(
@@ -189,7 +201,10 @@ def get_value_meta_for_metric(key, value, meta_conf):
         )
         return None
     try:
-        return value_type.get_value_meta(value, meta_conf=meta_conf)
+        histogram_spec = HistogramSpec.build_spec(value_type, value, histogram_request)
+        return value_type.get_value_meta(
+            value, meta_conf=meta_conf, histogram_spec=histogram_spec
+        )
 
     except Exception as ex:
         logger.info(

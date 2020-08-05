@@ -23,7 +23,8 @@ from dbnd._core.task_build.task_definition import (
     _get_task_source_code,
 )
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
-from targets import LocalFileSystem, target
+from dbnd._core.tracking.histograms import HistogramRequest
+from targets import target
 
 
 logger = logging.getLogger(__name__)
@@ -200,7 +201,7 @@ def handle_postgres_histogram_logging(luigi_task):
             postgres_target.port,
             postgres_target.database,
         ),
-        with_histograms=True,
+        with_histograms=HistogramRequest.DEFAULT(),
     )
 
 

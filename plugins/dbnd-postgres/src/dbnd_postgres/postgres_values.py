@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional, Tuple
 
 import attr
 import psycopg2
@@ -6,6 +6,7 @@ import yaml
 
 from psycopg2.extras import RealDictCursor
 
+from dbnd._core.tracking.histograms import HistogramDataType, HistogramSpec
 from dbnd._vendor.tabulate import tabulate
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values import register_value_type
@@ -30,13 +31,28 @@ class PostgresTableValueType(DataValueType):
         db_uri = value.connection_string.split("@")[1]
         return db_uri + "/" + value.table_name
 
-    def get_value_meta(self, value, meta_conf):
-        # type: (PostgresTable, ValueMetaConf) -> ValueMeta
+    def get_all_data_columns(self, value):
+        # type: (PostgresTable) -> Dict[str, HistogramDataType]
+        types_map = {
+            "boolean": HistogramDataType.boolean,
+            "integer": HistogramDataType.numeric,
+            "real": HistogramDataType.numeric,
+            "smallint": HistogramDataType.numeric,
+        }
+        with PostgresController(value.connection_string, value.table_name) as postgres:
+            pg_types = postgres.get_column_types()
+        return {
+            column: types_map.get(pg_type, HistogramDataType.string)
+            for column, pg_type in pg_types.items()
+        }
+
+    def get_value_meta(self, value, meta_conf, histogram_spec=None):
+        # type: (PostgresTable, ValueMetaConf, Optional[HistogramSpec]) -> ValueMeta
         stats, histograms, data_schema, data_preview, column_name_to_type = [None] * 5
 
         with PostgresController(value.connection_string, value.table_name) as postgres:
             if meta_conf.log_df_hist:
-                stats, histograms = postgres.get_histograms_and_stats()
+                stats, histograms = postgres.get_histograms_and_stats(histogram_spec)
             if meta_conf.log_preview:
                 data_preview = postgres.to_preview()
             if meta_conf.log_schema:
@@ -91,7 +107,11 @@ class PostgresController:
         self._column_types = {row["column_name"]: row["data_type"] for row in results}
         return self._column_types
 
-    def get_histograms_and_stats(self):
+    def get_histograms_and_stats(self, histogram_spec):
+        # type: (HistogramSpec) -> Tuple[Dict, Dict]
+        if histogram_spec.none:
+            return {}, {}
+
         pg_stats = self._query(
             "select * from pg_stats where tablename = %s", self.table_name
         )
@@ -101,9 +121,11 @@ class PostgresController:
         column_name_to_type = self.get_column_types()
         for pg_stat_row in pg_stats:
             column_name = pg_stat_row["attname"]
+            if column_name not in histogram_spec.columns:
+                continue
             column_type = column_name_to_type[column_name]
             column_stats, column_histogram = self._get_column_histogram_and_stats(
-                pg_stat_row, count, column_type
+                pg_stat_row, count, column_type, histogram_spec
             )
             if column_histogram is not None:
                 histograms[column_name] = column_histogram
@@ -111,9 +133,14 @@ class PostgresController:
 
         return stats, histograms
 
-    def _get_column_histogram_and_stats(self, pg_stats_row, count, column_type):
+    def _get_column_histogram_and_stats(
+        self, pg_stats_row, count, column_type, histogram_spec
+    ):
+        # type: (..., ..., ..., HistogramSpec) -> Tuple[Dict, Optional[Tuple]]
         stats = self._calculate_stats(count, pg_stats_row)
         stats["type"] = column_type
+        if histogram_spec.only_stats:
+            return stats, None
         common_counts, common_values = self._get_common_values(count, pg_stats_row)
 
         # types according to postgres documentation:
@@ -162,6 +189,7 @@ class PostgresController:
         return int(result[0]["reltuples"])
 
     def _calculate_stats(self, count, pg_stats_row):
+        # type: (...) -> Dict
         stats = dict()
         stats["null-count"] = int(pg_stats_row["null_frac"] * count)
         stats["count"] = count

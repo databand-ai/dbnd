@@ -3,6 +3,7 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
 from dbnd._core.commands.metrics import log_pg_table
+from dbnd._core.tracking.histograms import HistogramRequest
 
 
 class LogPostgresTableOperator(BaseOperator):
@@ -17,4 +18,8 @@ class LogPostgresTableOperator(BaseOperator):
     def execute(self, context):
         hook = PostgresHook(postgres_conn_id=self.conn_id)
         connection_string = hook.get_uri()
-        log_pg_table(self.table_name, connection_string, with_histograms=True)
+        log_pg_table(
+            self.table_name,
+            connection_string,
+            with_histograms=HistogramRequest.DEFAULT(),
+        )

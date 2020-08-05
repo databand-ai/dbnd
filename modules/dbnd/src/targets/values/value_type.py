@@ -4,11 +4,12 @@ import logging
 import re
 import typing
 
-from typing import Any, Union
+from typing import Any, Dict, Optional, Union
 
 import six
 
 from dbnd._core.errors import friendly_error
+from dbnd._core.tracking.histograms import HistogramDataType, HistogramSpec
 from dbnd._core.utils.basics.load_python_module import run_user_func
 from dbnd._vendor import fast_hasher
 from targets.value_meta import ValueMeta, ValueMetaConf
@@ -102,6 +103,9 @@ class ValueType(object):
 
     def _generate_empty_default(self):
         return None
+
+    def get_all_data_columns(self, x):  # type: (T) -> Dict[str, HistogramDataType]
+        return {}
 
     # dump
 
@@ -272,7 +276,7 @@ class ValueType(object):
         purposes. Enabling it to pretty print tasks like ``MyTask(num=1),
         MyTask(num=2), MyTask(num=3)`` to ``MyTask(num=1..3)``.
 
-        :param value: The value
+        :param _value: The value
         :return: The next value, like "value + 1". Or ``None`` if there's no enumerable ordering.
         """
         return None
@@ -305,8 +309,8 @@ class ValueType(object):
     def with_sub_type_handler(self, type_handler):
         return self
 
-    def get_value_meta(self, value, meta_conf):
-        # type: (Any,  ValueMetaConf) -> ValueMeta
+    def get_value_meta(self, value, meta_conf, histogram_spec=None):
+        # type: (Any,  ValueMetaConf, Optional[HistogramSpec]) -> ValueMeta
 
         if meta_conf.log_preview:
             preview = self.to_preview(value, preview_size=meta_conf.get_preview_size())
@@ -322,6 +326,7 @@ class ValueType(object):
             data_dimensions=None,
             data_schema=data_schema,
             data_hash=data_hash,
+            histogram_spec=histogram_spec,
         )
 
     def support_fast_count(self, target):

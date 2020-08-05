@@ -10,6 +10,7 @@ from dbnd._core.tracking.backends.tracking_store_file import (
     FileTrackingStore,
     TaskRunMetricsFileStoreReader,
 )
+from dbnd._core.tracking.histograms import HistogramRequest
 from targets import target
 from targets.value_meta import ValueMetaConf
 
@@ -52,19 +53,24 @@ class TestFileMetricsStore(object):
         tr_tracker.settings.features.get_value_meta_conf = Mock(
             return_value=ValueMetaConf.enabled()
         )
-        tr_tracker.log_data("df", pandas_data_frame, meta_conf=ValueMetaConf.enabled())
+        tr_tracker.log_data(
+            "df",
+            pandas_data_frame,
+            meta_conf=ValueMetaConf.enabled(),
+            histogram_request=HistogramRequest.ALL(),
+        )
 
         hist_metrics = TaskRunMetricsFileStoreReader(
             metrics_folder
         ).get_all_metrics_values(MetricSource.histograms)
 
         expected_preview = (
-            "   Names  Births\n"
-            "     Bob     968\n"
-            " Jessica     155\n"
-            "    Mary      77\n"
-            "    John     578\n"
-            "     Mel     973"
+            "   Names  Births  Married\n"
+            "     Bob     968     True\n"
+            " Jessica     155    False\n"
+            "    Mary      77     True\n"
+            "    John     578    False\n"
+            "     Mel     973     True"
         )
 
         # std value varies in different py versions due to float precision fluctuation
@@ -76,27 +82,27 @@ class TestFileMetricsStore(object):
             "df.Births.50%": 578.0,
             "df.Births.75%": 968.0,
             "df.Births.count": 5.0,
-            "df.Births.distinct": 5.0,
+            "df.Births.distinct": 5,
             "df.Births.std": df_births_std,
             "df.Births.max": 973.0,
             "df.Births.mean": 550.2,
             "df.Births.min": 77.0,
-            "df.Births.non-null": 5.0,
-            "df.Births.null-count": 0.0,
+            "df.Births.non-null": 5,
+            "df.Births.null-count": 0,
             "df.histograms": {
                 "Births": [[2, 0, 1, 2], [77.0, 301.0, 525.0, 749.0, 973.0]]
             },
             "df.preview": expected_preview,
             "df.schema": {
-                "columns": ["Names", "Births"],
-                "dtypes": {"Births": "int64", "Names": "object"},
-                "shape": [5, 2],
-                "size": 10,
+                "columns": ["Names", "Births", "Married"],
+                "dtypes": {"Births": "int64", "Names": "object", "Married": "bool"},
+                "shape": [5, 3],
+                "size": 15,
                 "type": "DataFrame",
             },
-            "df.shape": [5, 2],
+            "df.shape": [5, 3],
             "df.shape0": 5,
-            "df.shape1": 2,
+            "df.shape1": 3,
             "df.stats": {
                 "Births": {
                     "type": "int64",
@@ -104,12 +110,12 @@ class TestFileMetricsStore(object):
                     "50%": 578.0,
                     "75%": 968.0,
                     "count": 5.0,
-                    "distinct": 5.0,
+                    "distinct": 5,
                     "max": 973.0,
                     "mean": 550.2,
                     "min": 77.0,
-                    "non-null": 5.0,
-                    "null-count": 0.0,
+                    "non-null": 5,
+                    "null-count": 0,
                     "std": df_births_std,
                 }
             },

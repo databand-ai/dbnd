@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import os
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import is_bool_dtype, is_numeric_dtype, is_string
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._core.errors import friendly_error
+from dbnd._core.tracking.histograms import HistogramDataType, HistogramSpec
 from dbnd._vendor import fast_hasher
 from targets.target_config import FileFormat
 from targets.value_meta import ValueMeta, ValueMetaConf
@@ -38,8 +39,27 @@ class DataFrameValueType(DataValueType):
     def to_preview(self, df, preview_size):  # type: (pd.DataFrame, int) -> str
         return df.to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
 
-    def get_value_meta(self, value, meta_conf):
-        # type: (pd.DataFrame, ValueMetaConf) -> ValueMeta
+    def get_all_data_columns(self, df):
+        # type: (pd.DataFrame) -> Dict[str, HistogramDataType]
+        types_map = {
+            "float64": HistogramDataType.numeric,
+            "float32": HistogramDataType.numeric,
+            "float16": HistogramDataType.numeric,
+            "int64": HistogramDataType.numeric,
+            "int32": HistogramDataType.numeric,
+            "int8": HistogramDataType.numeric,
+            "uint64": HistogramDataType.numeric,
+            "uint32": HistogramDataType.numeric,
+            "uint8": HistogramDataType.numeric,
+            "bool": HistogramDataType.boolean,
+        }
+        return {
+            col: types_map.get(type_.name, HistogramDataType.string)
+            for col, type_ in df.dtypes.items()
+        }
+
+    def get_value_meta(self, value, meta_conf, histogram_spec=None):
+        # type: (pd.DataFrame, ValueMetaConf, Optional[HistogramSpec]) -> ValueMeta
         data_schema = {}
         if meta_conf.log_schema:
             data_schema.update(
@@ -63,7 +83,7 @@ class DataFrameValueType(DataValueType):
 
         df_stats, histograms = None, None
         if meta_conf.log_df_hist:
-            df_stats, histograms = self.get_histograms(value)
+            df_stats, histograms = self.get_histograms(value, histogram_spec)
 
         return ValueMeta(
             value_preview=value_preview,
@@ -75,9 +95,22 @@ class DataFrameValueType(DataValueType):
         )
 
     @classmethod
-    def get_histograms(cls, df):
-        # type: (pd.DataFrame) -> Tuple[Dict[Dict[str, Any]], Dict[str, Tuple]]
-        histograms = df.apply(cls._calculate_histograms, args=(df.describe(), df))
+    def get_histograms(cls, df, histogram_spec):
+        # type: (pd.DataFrame, HistogramSpec) -> Tuple[Dict[Dict[str, Any]], Dict[str, Tuple]]
+        if histogram_spec.none:
+            return {}, {}
+
+        df = df.filter(items=histogram_spec.columns)
+        if df.empty:
+            return {}, {}
+
+        if histogram_spec.only_stats:
+            return cls._calculate_stats(df), {}
+
+        # TODO: df.describe(include="all") .to_dict() returns pandas dtypes which are not JSON serializable
+        histograms = df.apply(
+            cls._calculate_histograms, args=(cls._calculate_stats(df), df)
+        )
         hist_dict, stats_dict = {}, {}
         for column, hist_stats in histograms.to_dict().items():
             if hist_stats:
@@ -87,14 +120,22 @@ class DataFrameValueType(DataValueType):
         return stats_dict, hist_dict
 
     @staticmethod
+    def _calculate_stats(df):
+        # type: (pd.DataFrame) -> Dict[str, Dict]
+        stats = df.describe().to_dict()
+        for col in stats.keys():
+            stats[col]["null-count"] = np.count_nonzero(pd.isnull(df[col]))
+            stats[col]["non-null"] = df[col].size - stats[col]["null-count"]
+            stats[col]["distinct"] = len(df[col].unique())
+            stats[col]["type"] = df[col].dtype.name
+        return stats
+
+    @staticmethod
     def _calculate_histograms(df_column, df_stats, df):
-        # type: (pd.Series, pd.Series, pd.DataFrame) -> Optional[Tuple[List, List, Dict]]
-        column_stats = df_stats.get(df_column.name, None)  # type: pd.Series
+        # type: (pd.Series, Dict, pd.DataFrame) -> Optional[Tuple[List, List, Mapping]]
+        column_stats = df_stats.get(df_column.name, None)  # type: Dict
         if column_stats is None:
             return
-        column_stats["null-count"] = np.count_nonzero(pd.isnull(df_column))
-        column_stats["non-null"] = df_column.size - column_stats["null-count"]
-        column_stats["distinct"] = len(df_column.unique())
 
         try:
             # TODO: check efficiency
@@ -120,7 +161,7 @@ class DataFrameValueType(DataValueType):
             else:
                 return
 
-            return hist.tolist(), bin_edges.tolist(), column_stats.to_dict()
+            return hist.tolist(), bin_edges.tolist(), column_stats
         except Exception as ex:
             logger.exception(
                 "log_histogram: Something went wrong for column '%s'", df_column.name

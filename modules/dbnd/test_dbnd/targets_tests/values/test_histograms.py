@@ -4,6 +4,7 @@ import logging
 
 import pandas as pd
 
+from dbnd._core.tracking.histograms import HistogramSpec
 from targets.values.pandas_values import DataFrameValueType
 
 
@@ -14,7 +15,9 @@ class TestHistograms:
     def test_boolean_histogram(self):
         d = {"boolean_column": [True] * 10 + [None] * 10 + [False] * 20 + [True] * 20}
         df = pd.DataFrame(d)
-        stats, histograms = DataFrameValueType.get_histograms(df)
+        stats, histograms = DataFrameValueType.get_histograms(
+            df, HistogramSpec(columns=["boolean_column"])
+        )
 
         histogram = histograms["boolean_column"]
         assert histogram[0] == [30, 20]
@@ -29,7 +32,9 @@ class TestHistograms:
     def test_numerical_histogram(self):
         d = {"numerical_column": [1, 3, 3, 1, 5, 1, 5, 5]}
         df = pd.DataFrame(d)
-        stats, histograms = DataFrameValueType.get_histograms(df)
+        stats, histograms = DataFrameValueType.get_histograms(
+            df, HistogramSpec(columns=["numerical_column"])
+        )
 
         stats = stats["numerical_column"]
         assert stats["count"] == 8
@@ -47,7 +52,9 @@ class TestHistograms:
             + ["Ola Mundo!"] * 15
         }
         df = pd.DataFrame(d)
-        stats, histograms = DataFrameValueType.get_histograms(df)
+        stats, histograms = DataFrameValueType.get_histograms(
+            df, HistogramSpec(columns=["string_column"])
+        )
 
         histogram = histograms["string_column"]
         assert histogram[0] == [30, 20, 10]
@@ -66,9 +73,11 @@ class TestHistograms:
             new_values = [str] * i
             values.extend(new_values)
 
-        d = dict(string_column=values)
+        d = {"string_column": values}
         df = pd.DataFrame(d)
-        stats, histograms = DataFrameValueType.get_histograms(df)
+        stats, histograms = DataFrameValueType.get_histograms(
+            df, HistogramSpec(columns=["string_column"])
+        )
 
         histogram = histograms["string_column"]
         assert len(histogram[0]) == 50 and len(histogram[1]) == 50

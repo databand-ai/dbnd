@@ -233,7 +233,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             self.channel.log_targets, log_targets_schema, targets_info=targets_info
         )
 
-    def log_histograms(self, task_run, key, value_meta, timestamp):
+    def log_histograms(self, task_run, key, histogram_spec, value_meta, timestamp):
         hist_metrics = self._get_histogram_metrics(key, value_meta, timestamp)
         self.log_metrics(task_run=task_run, metrics=hist_metrics)
 

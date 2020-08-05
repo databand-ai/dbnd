@@ -19,6 +19,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from dbnd._core.tracking.histograms import HistogramDataType, HistogramSpec
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.builtins_values import DataValueType
 
@@ -47,8 +48,23 @@ class SparkDataFrameValueType(DataValueType):
             .to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
         )
 
-    def get_value_meta(self, value, meta_conf):
-        # type: (spark.DataFrame, ValueMetaConf) -> ValueMeta
+    @staticmethod
+    def __types_map(dataType):
+        if isinstance(dataType, (StringType, BooleanType)):
+            return HistogramDataType.boolean
+        elif isinstance(dataType, NumericType):
+            return HistogramDataType.numeric
+        elif isinstance(dataType, StringType):
+            return HistogramDataType.string
+        else:
+            return HistogramDataType.string
+
+    def get_all_data_columns(self, df):
+        # type: (spark.DataFrame) -> Dict[str, HistogramDataType]
+        return {f.name: self.__types_map(f.dataType) for f in df.schema.fields}
+
+    def get_value_meta(self, value, meta_conf, histogram_spec=None):
+        # type: (spark.DataFrame, ValueMetaConf, Optional[HistogramSpec]) -> ValueMeta
 
         if meta_conf.log_schema:
             data_schema = {
@@ -82,10 +98,10 @@ class SparkDataFrameValueType(DataValueType):
         else:
             data_dimensions = None
 
-        df_stats, histograms = None, None
+        df_stats, histograms, hist_calc_duration = None, None, 0
         if meta_conf.log_df_hist:
             hist_calc_start_time = time.time()
-            df_stats, histograms = self.get_histograms(value)
+            df_stats, histograms = self.get_histograms(value, histogram_spec)
             hist_calc_end_time = time.time()
             hist_calc_duration = hist_calc_end_time - hist_calc_start_time
 
@@ -100,12 +116,18 @@ class SparkDataFrameValueType(DataValueType):
         )
 
     @classmethod
-    def get_histograms(cls, df):
-        # type: (spark.DataFrame) -> Tuple[Optional[Dict[Dict[str, Any]]], Optional[Dict[str, Tuple]]]
+    def get_histograms(cls, df, histogram_spec):
+        # type: (spark.DataFrame, HistogramSpec) -> Tuple[Optional[Dict[Dict[str, Any]]], Optional[Dict[str, Tuple]]]
         try:
-            df = cls._filter_complex_columns(df)
+            if histogram_spec.none:
+                return None, None
+
+            df = cls._filter_complex_columns(df).select(list(histogram_spec.columns))
 
             summary = cls._calculate_summary(df)
+            if histogram_spec.only_stats:
+                return summary, {}
+
             histograms = cls._calculate_histograms(df, summary)
 
             return summary, histograms
@@ -160,6 +182,7 @@ class SparkDataFrameValueType(DataValueType):
 
     @classmethod
     def _calculate_histograms(cls, df, summary):
+        # type: (spark.DataFrame, Dict) -> Dict
         histograms = {column_name: None for column_name in df.columns}
 
         boolean_histograms = cls._calculate_categorical_histograms_by_type(
@@ -193,6 +216,7 @@ class SparkDataFrameValueType(DataValueType):
         # - bucket number
         # we need such bunch of tuples to perform single spark query later
         all_buckets = []
+
         numeric_columns = [
             f.name for f in df.schema.fields if isinstance(f.dataType, NumericType)
         ]

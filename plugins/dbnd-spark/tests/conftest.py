@@ -15,9 +15,14 @@ add_test_configuration(__file__)
 
 @pytest.fixture
 def pandas_data_frame():
-    names = ["Bob", "Jessica", "Mary", "John", "Mel"]
-    births = [968, 155, 77, 578, 973]
-    df = pd.DataFrame(data=list(zip(names, births)), columns=["Names", "Births"])
+    df = pd.DataFrame(
+        {
+            "Names": pd.Series(["Bob", "Jessica", "Mary", "John", "Mel"], dtype="str"),
+            "Births": pd.Series([968, 155, 77, 578, 973], dtype="int"),
+            "Weights": pd.Series([12.3, 23.4, 45.6, 56.7, 67.8], dtype="float"),
+            "Married": pd.Series([True, False, True, False, True], dtype="bool"),
+        }
+    )
     return df
 
 

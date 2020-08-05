@@ -19,6 +19,7 @@ from dbnd._core.constants import MetricSource, TaskRunState
 from dbnd._core.errors import DatabandError, DatabandRuntimeError
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.tracking.backends import TrackingStore
+from dbnd._core.tracking.histograms import HistogramSpec
 from dbnd._core.tracking.schemas.metrics import Artifact, Metric
 from dbnd._core.tracking.tracking_info_convertor import (
     build_task_run_info,
@@ -77,8 +78,8 @@ class FileTrackingStore(TrackingStore):
         with meta_data_file.open("w") as yaml_file:
             yaml.dump(info, yaml_file, default_flow_style=False)
 
-    def log_histograms(self, task_run, key, value_meta, timestamp):
-        # type: (TaskRun, str, ValueMeta, datetime) -> None
+    def log_histograms(self, task_run, key, histogram_spec, value_meta, timestamp):
+        # type: (TaskRun, str, HistogramSpec, ValueMeta, datetime) -> None
         metric_path = task_run.meta_files.get_metric_target(
             "{}.json".format(key), source=MetricSource.histograms
         )
@@ -179,7 +180,7 @@ class TaskRunMetricsFileStoreReader(object):
             return RunInfoSchema().load(**yaml.load(yaml_file))
 
     def get_metrics(self, key, source=None):
-        # type: (str, MetricSource) -> List[Metric]
+        # type: (str, MetricSource) -> Iterable[Metric]
         if source == MetricSource.histograms:
             return self.get_histogram_metrics(key)
 
