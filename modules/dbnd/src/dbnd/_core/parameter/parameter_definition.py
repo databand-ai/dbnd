@@ -4,9 +4,8 @@ import typing
 
 from typing import Any, Dict, Optional, Type
 
-import six
-
 import attr
+import six
 
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.configuration.config_value import ConfigValue

@@ -1,8 +1,8 @@
 from typing import Union
 
-from jinja2 import Template
-
 import attr
+
+from jinja2 import Template
 
 
 @attr.s

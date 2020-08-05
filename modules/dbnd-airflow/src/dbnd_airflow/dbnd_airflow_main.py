@@ -23,9 +23,9 @@ import os
 import subprocess
 import sys
 
-from airflow import settings as airflow_settings
-
 import argcomplete
+
+from airflow import settings as airflow_settings
 
 from dbnd._core.utils.timeout import wait_until
 

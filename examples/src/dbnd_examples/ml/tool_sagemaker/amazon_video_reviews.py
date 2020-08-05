@@ -12,10 +12,9 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
+import sagemaker.amazon.common as smac
 
 from scipy.sparse import lil_matrix
-
-import sagemaker.amazon.common as smac
 
 from dbnd import log_dataframe, log_metric, output, pipeline, task
 from dbnd_aws.sagemaker import SageMakerTrainTask

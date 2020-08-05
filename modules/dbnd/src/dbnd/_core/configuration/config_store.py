@@ -3,9 +3,8 @@ import typing
 from collections import OrderedDict
 from typing import Optional
 
-import six
-
 import attr
+import six
 
 from dbnd._core.configuration.config_value import ConfigValue
 

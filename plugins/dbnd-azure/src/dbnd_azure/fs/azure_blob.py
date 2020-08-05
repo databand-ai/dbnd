@@ -4,9 +4,9 @@ import logging
 import os
 import time
 
+from azure.storage.blob import BlockBlobService
 from six.moves import xrange
 
-from azure.storage.blob import BlockBlobService
 from dbnd_azure.fs import AZURE_BLOB_FS_NAME
 from targets import AtomicLocalFile
 from targets.config import get_local_tempfile

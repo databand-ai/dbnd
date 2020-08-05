@@ -1,12 +1,12 @@
 from typing import Dict
 
-import yaml
-
 import attr
 import psycopg2
+import yaml
+
+from psycopg2.extras import RealDictCursor
 
 from dbnd._vendor.tabulate import tabulate
-from psycopg2.extras import RealDictCursor
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType

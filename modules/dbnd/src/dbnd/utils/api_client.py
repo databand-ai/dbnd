@@ -1,10 +1,9 @@
 import logging
 
+import requests
 import six
 
 from six.moves.urllib_parse import urljoin
-
-import requests
 
 from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 from dbnd._core.errors.friendly_error.api import api_connection_refused

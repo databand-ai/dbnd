@@ -20,13 +20,13 @@ from __future__ import absolute_import
 import logging
 import re
 
-from past.builtins import unicode
-
 import apache_beam as beam
 
 from apache_beam.io import ReadFromText, WriteToText
 from apache_beam.metrics import Metrics
 from apache_beam.metrics.metric import MetricsFilter
+from past.builtins import unicode
+
 from dbnd import dbnd_main
 from dbnd_gcp.apache_beam.apache_beam_task import beam_task
 from dbnd_gcp.apache_beam.parameters import beam_output

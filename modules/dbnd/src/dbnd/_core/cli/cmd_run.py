@@ -4,9 +4,8 @@ import functools
 import logging
 import sys
 
-import six
-
 import attr
+import six
 
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer

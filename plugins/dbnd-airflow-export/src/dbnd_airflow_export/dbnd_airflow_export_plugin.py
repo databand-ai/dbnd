@@ -3,6 +3,7 @@ import logging
 import os
 
 import flask
+import flask_admin
 import flask_appbuilder
 import pendulum
 import pkg_resources
@@ -17,8 +18,6 @@ from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
 from airflow.version import version as airflow_version
 from sqlalchemy import and_, or_
-
-import flask_admin
 
 
 DEFAULT_DAYS_PERIOD = 30

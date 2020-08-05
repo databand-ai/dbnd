@@ -5,9 +5,8 @@ import re
 
 from collections import Mapping
 
-import six
-
 import attr
+import six
 
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_store import _ConfigStore

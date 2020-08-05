@@ -1,8 +1,7 @@
 import inspect
 
-import six
-
 import attr
+import six
 
 from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 from dbnd._core.utils.typing_utils.doc_annotations import get_doc_annotaions

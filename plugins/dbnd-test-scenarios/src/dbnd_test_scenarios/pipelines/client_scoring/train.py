@@ -5,6 +5,7 @@ import pickle
 
 from typing import List, Tuple
 
+import click
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -13,8 +14,6 @@ from matplotlib import figure
 from sklearn.linear_model import ElasticNet
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-
-import click
 
 from dbnd import log_dataframe, log_metric, parameter, pipeline, task
 from dbnd_test_scenarios.data_chaos_monkey.client_scoring_chaos import (

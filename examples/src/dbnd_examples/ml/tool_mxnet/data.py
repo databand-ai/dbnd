@@ -1,9 +1,8 @@
 import gzip
 import struct
 
-import numpy as np
-
 import mxnet as mx
+import numpy as np
 
 from mxnet import nd
 from mxnet.gluon import utils

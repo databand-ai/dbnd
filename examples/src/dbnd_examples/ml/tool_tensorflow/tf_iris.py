@@ -1,9 +1,9 @@
 # Inspired by an tensorflow tutorial:
 #   https://www.tensorflow.org/guide/premade_estimators
 
-from sklearn.model_selection import train_test_split
-
 import tensorflow as tf
+
+from sklearn.model_selection import train_test_split
 
 from dbnd import ConfigPath, data, output, parameter
 from dbnd.tasks import PipelineTask, PythonTask
