@@ -145,31 +145,6 @@ dbnd_py37:
     reports:
       junit: modules/dbnd/build/junit-py37.xml
 
-dbnd_airflow_py27:
-  <<: *template__python_test_job
-  image: python:2.7
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py27
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py27.xml
-
-dbnd_airflow_py36_win:
-  <<: *template__windows_tests_job
-  script:
-    - xcopy /y "modules\setup.cfg" "modules\dbnd-airflow\"
-    - tox -c modules/dbnd-airflow/tox.ini -r -e win-py36
-
-dbnd_airflow_py37:
-  <<: *template__python_test_job
-  image: python:3.7
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py37
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py37.xml
 
 dbnd_examples_py27:
   <<: *template__python_test_job
