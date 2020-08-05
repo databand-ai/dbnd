@@ -12,11 +12,7 @@ class TrackingWebChannel(TrackingChannel):
         return get_databand_context().databand_api_client
 
     def _handle(self, name, data):
-        # disabled for now, should be changed back on 0.26
-        # api_endpoint = "tracking/%s" % name
-
-        api_endpoint = name
-        return self.client.api_request(api_endpoint, data)
+        return self.client.api_request("tracking/%s" % name, data)
 
     def is_ready(self):
         return self.client.is_ready()
