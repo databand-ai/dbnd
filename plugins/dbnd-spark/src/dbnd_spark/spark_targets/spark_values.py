@@ -278,7 +278,7 @@ class SparkDataFrameValueType(DataValueType):
             if value_counts is None:
                 value_counts = column_value_counts
             else:
-                value_counts.union(column_value_counts)
+                value_counts = value_counts.union(column_value_counts)
         return value_counts.collect()
 
     @classmethod
