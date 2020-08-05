@@ -162,20 +162,27 @@ class SparkDataFrameValueType(DataValueType):
     def _calculate_histograms(cls, df, summary):
         histograms = {column_name: None for column_name in df.columns}
 
-        str_and_bool_columns = [
-            df.select(f.name)
-            for f in df.schema.fields
-            if isinstance(f.dataType, (StringType, BooleanType))
-        ]
-        boolean_histograms = cls._calculate_str_and_bool_histograms(
-            str_and_bool_columns, summary
+        boolean_histograms = cls._calculate_categorical_histograms_by_type(
+            df, BooleanType, summary
         )
         histograms.update(boolean_histograms)
 
+        str_histograms = cls._calculate_categorical_histograms_by_type(
+            df, StringType, summary
+        )
+        histograms.update(str_histograms)
+
         numeric_histograms = cls._calculate_numeric_histograms(df, summary)
         histograms.update(numeric_histograms)
-
         return histograms
+
+    @classmethod
+    def _get_columns_by_type(cls, dataframe, column_type):
+        return [
+            dataframe.select(f.name)
+            for f in dataframe.schema.fields
+            if isinstance(f.dataType, column_type)
+        ]
 
     @classmethod
     def _calculate_numeric_histograms(cls, df, summary):
@@ -250,20 +257,21 @@ class SparkDataFrameValueType(DataValueType):
         return result
 
     @classmethod
-    def _calculate_str_and_bool_histograms(cls, column_df_list, summary):
+    def _calculate_categorical_histograms_by_type(cls, dataframe, column_type, summary):
         max_buckets = 50
+
+        column_df_list = cls._get_columns_by_type(dataframe, column_type)
         if not column_df_list:
             return dict()
 
-        value_counts = cls._spark_calc_str_and_bool_histograms(
-            column_df_list, max_buckets
-        )
+        value_counts = cls._spark_categorical_histograms(column_df_list, max_buckets)
         histograms = cls._convert_histogram_df_to_dict(value_counts)
         cls._add_others(histograms, summary, max_buckets)
         return histograms
 
     @classmethod
-    def _spark_calc_str_and_bool_histograms(cls, column_df_list, max_buckets):
+    def _spark_categorical_histograms(cls, column_df_list, max_buckets):
+        """ all columns in column_df_list should have the same type (e.g. all should be booleans or all strings) """
         value_counts = None
         for column_df in column_df_list:
             column_name = column_df.schema.names[0]
