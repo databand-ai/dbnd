@@ -11,10 +11,10 @@ ____________
 - #1186666107312362: Warning message displayed when not all outputs are available for a task.
 - #1184186845180735: Support for py_files in the Databricks environment.
 - #1185262786942811: Added overwriting of targets via save_options to historically overwrite new data to the same path.
+- #1184836053179881: Added ability to configure histograms
 
 Improvements:
 _____________
-- #1184836053179881: Refactored log_dataframe() histograms
 - #1186033707483059: Trackers added to a task/pipeline run banner
 - #1185174851651484: Tracking logic moved to dbnd_airflow
 - #1183947756269387: Changed the default SparkDataFrameToCsv marshaller behaviour
