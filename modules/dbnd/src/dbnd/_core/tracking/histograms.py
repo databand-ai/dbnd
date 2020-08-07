@@ -7,7 +7,7 @@ import attr
 
 
 if typing.TYPE_CHECKING:
-    from typing import Callable, List, Union
+    from typing import Callable, List, Union, Optional
     import pandas as pd
     import pyspark.sql as spark
     from dbnd_postgres.postgres_values import PostgresTable
@@ -76,6 +76,8 @@ def columns_converter(columns):
 
 @attr.s
 class HistogramRequest(object):
+    """Configuration class for histograms calculations."""
+
     include_columns = attr.ib(
         converter=columns_converter, factory=list
     )  # type: Union[Callable[[], List[str]], List]
@@ -91,30 +93,52 @@ class HistogramRequest(object):
     # TODO: Make these helpers class properties
     @classmethod
     def ALL_BOOLEAN(cls):
+        """Calculate statistics and histograms for all columns of boolean type(s)"""
         return cls(include_all_boolean=True)
 
     @classmethod
     def ALL_NUMERIC(cls):
+        """Calculate statistics and histograms for all columns of Numeric type(s)"""
         return cls(include_all_numeric=True)
 
     @classmethod
     def ALL_STRING(cls):
+        """Calculate statistics and histograms for all columns of String type(s). Usually this means all non boolean, non numeric types"""
         return cls(include_all_string=True)
 
     @classmethod
     def ALL(cls):
+        """Calculate statistics and histograms for all columns"""
         return cls(
             include_all_boolean=True, include_all_numeric=True, include_all_string=True
         )
 
     @classmethod
     def DEFAULT(cls):
+        """Calculate statistics and histograms for all columns"""
         return cls.ALL()
 
     @classmethod
     def NONE(cls):
+        """Don't calculate statistics and histograms"""
         return cls(none=True)
 
     @classmethod
     def ONLY_STATS(cls):
+        """Calculate statistics, but no histograms. Can save some CPU time and provide high level data overview"""
         return cls(only_stats=True)
+
+    @classmethod
+    def from_with_histograms(cls, with_histograms):
+        # type: (Optional[Union[bool, str, List[str], HistogramRequest]]) -> HistogramRequest
+        histogram_request = HistogramRequest.NONE()
+        if isinstance(with_histograms, HistogramRequest):
+            histogram_request = with_histograms
+        elif isinstance(with_histograms, bool):
+            histogram_request = (
+                HistogramRequest.ALL() if with_histograms else HistogramRequest.NONE()
+            )
+        elif isinstance(with_histograms, (list, str)):
+            histogram_request = HistogramRequest(include_columns=with_histograms)
+
+        return histogram_request

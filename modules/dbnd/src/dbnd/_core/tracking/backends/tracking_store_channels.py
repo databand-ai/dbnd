@@ -36,7 +36,7 @@ from targets.value_meta import ValueMeta
 
 
 if typing.TYPE_CHECKING:
-    from typing import List, Optional
+    from typing import List, Optional, Iterable
     from uuid import UUID
 
     from dbnd._core.constants import TaskRunState
@@ -238,41 +238,39 @@ class TrackingStoreThroughChannel(TrackingStore):
         self.log_metrics(task_run=task_run, metrics=hist_metrics)
 
     def _get_histogram_metrics(self, df_name, value_meta, timestamp):
-        metrics = [
-            Metric(
+        # type: (str, ValueMeta, datetime) -> Iterable[Metric]
+        if value_meta.histograms_calc_duration is not None:
+            yield Metric(
                 key="{}.histogram_calc_duration_sec".format(df_name),
                 value=value_meta.histograms_calc_duration,
                 source=MetricSource.histograms,
                 timestamp=timestamp,
-            ),
-            Metric(
+            )
+        if value_meta.descriptive_stats:
+            yield Metric(
                 key="{}.stats".format(df_name),
                 value_json=value_meta.descriptive_stats,
                 source=MetricSource.histograms,
                 timestamp=timestamp,
-            ),
-            Metric(
+            )
+        if value_meta.histograms:
+            yield Metric(
                 key="{}.histograms".format(df_name),
                 value_json=value_meta.histograms,
                 source=MetricSource.histograms,
                 timestamp=timestamp,
-            ),
-        ]
+            )
         for column, stats in value_meta.descriptive_stats.items():
             for stat, value in stats.items():
-                metrics.append(
-                    Metric(
-                        key="{}.{}.{}".format(df_name, column, stat),
-                        value=value,
-                        source=MetricSource.histograms,
-                        timestamp=timestamp,
-                    )
+                yield Metric(
+                    key="{}.{}.{}".format(df_name, column, stat),
+                    value=value,
+                    source=MetricSource.histograms,
+                    timestamp=timestamp,
                 )
 
-        return metrics
-
     def log_metrics(self, task_run, metrics):
-        # type: (TaskRun, List[Metric]) -> None
+        # type: (TaskRun, Iterable[Metric]) -> None
         metrics_info = [
             {
                 "task_run_attempt_uid": task_run.task_run_attempt_uid,
