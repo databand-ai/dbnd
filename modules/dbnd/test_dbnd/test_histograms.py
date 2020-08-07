@@ -6,23 +6,25 @@ from targets.values import get_value_type_of_obj
 
 class TestHistogramSpec(object):
     @pytest.mark.parametrize(
-        "histogram_request,expected_columns,expected_only_stats",
+        "histogram_request,expected_columns,expected_only_stats,expected_none",
         [
-            (HistogramRequest.ALL(), ["Names", "Births", "Married"], False),
-            (HistogramRequest.DEFAULT(), ["Names", "Births", "Married"], False),
-            (HistogramRequest.ALL_BOOLEAN(), ["Married"], False),
-            (HistogramRequest.ALL_NUMERIC(), ["Births"], False),
-            (HistogramRequest.ALL_STRING(), ["Names"], False),
-            (HistogramRequest.ONLY_STATS(), [], True),
-            (HistogramRequest.NONE(), [], False),
+            (HistogramRequest.ALL(), ["Names", "Births", "Married"], False, False),
+            (HistogramRequest.DEFAULT(), ["Names", "Births", "Married"], False, False),
+            (HistogramRequest.ALL_BOOLEAN(), ["Married"], False, False),
+            (HistogramRequest.ALL_NUMERIC(), ["Births"], False, False),
+            (HistogramRequest.ALL_STRING(), ["Names"], False, False),
+            (HistogramRequest.ONLY_STATS(), [], True, False),
+            (HistogramRequest.NONE(), [], False, True),
             (
                 HistogramRequest(include_columns=["Names", "Married"]),
                 ["Names", "Married"],
+                False,
                 False,
             ),
             (
                 HistogramRequest(include_columns=lambda: ["Names", "Married"]),
                 ["Names", "Married"],
+                False,
                 False,
             ),
             (
@@ -32,6 +34,7 @@ class TestHistogramSpec(object):
                 ),
                 ["Births", "Married"],
                 False,
+                False,
             ),
             (
                 HistogramRequest(
@@ -39,6 +42,7 @@ class TestHistogramSpec(object):
                     exclude_columns=lambda: ["Names"],
                 ),
                 ["Births", "Married"],
+                False,
                 False,
             ),
         ],
@@ -49,6 +53,7 @@ class TestHistogramSpec(object):
         histogram_request,
         expected_columns,
         expected_only_stats,
+        expected_none,
     ):
         # Arrange
         value_type = get_value_type_of_obj(pandas_data_frame)
@@ -61,3 +66,4 @@ class TestHistogramSpec(object):
         # Assert
         assert histogram_spec.columns == frozenset(expected_columns)
         assert histogram_spec.only_stats == expected_only_stats
+        assert histogram_spec.none == expected_none

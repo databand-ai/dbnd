@@ -55,15 +55,7 @@ def log_data(
         log_df_hist=with_histograms,
     )
     tracker = _get_tracker()
-    histogram_request = HistogramRequest.NONE()
-    if isinstance(with_histograms, HistogramRequest):
-        histogram_request = with_histograms
-    elif isinstance(with_histograms, bool):
-        histogram_request = (
-            HistogramRequest.ALL() if with_histograms else HistogramRequest.NONE()
-        )
-    elif isinstance(with_histograms, (list, str)):
-        histogram_request = HistogramRequest(include_columns=with_histograms)
+    histogram_request = HistogramRequest.from_with_histograms(with_histograms)
 
     if path:
         log_target(value, path, access_type, meta_conf, histogram_request)
