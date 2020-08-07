@@ -184,7 +184,9 @@ class HdfsPyox(FileSystem, Config):
                     )
         return destpath
 
-    def _copy_to_destination(self, source, destpath, mkdirs, force=False):
+    def _copy_to_destination(self, source, destpath, mkdirs=None, force=False):
+        if mkdirs is None:
+            mkdirs = set()
         size = os.path.getsize(source)
         targetpath = source
         slash = source.rfind("/")
