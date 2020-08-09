@@ -26,30 +26,11 @@ from dbnd._core.tracking.backends.channels import (
 logger = logging.getLogger(__name__)
 
 
-def tracking_store_through_db_channel_builder():
-    """
-                                                        ctx (+DB)
-                                                            |
-    DBND -> TrackingStoreThroughChannel -> WebChannel -> ApiClient -> HTTP -> Flask -> Views -x-> TrackingApiHandler -> TrackingDbService -> SQLA -> DB
-                                      \ -> DBChannel ---------------------------------------------------------------/
-    """
-    assert_web_enabled(
-        "It is required when trying to use local db connection (tracker_api=db)."
-    )
-    from dbnd_web.app import activate_dbnd_web_context
-    from dbnd_web.api.v1.tracking_api import TrackingApiHandler as DirectDbChannel
-
-    # DirectDbChannel requires DB session, it's available in Flask Context
-    activate_dbnd_web_context()
-    return TrackingStoreThroughChannel(channel=DirectDbChannel())
-
-
 _BACKENDS_REGISTRY = {
     "file": FileTrackingStore,
     "console": ConsoleStore,
     "debug": lambda: TrackingStoreThroughChannel(channel=ConsoleDebugTrackingChannel()),
     ("api", "web"): lambda: TrackingStoreThroughChannel(channel=TrackingWebChannel()),
-    ("api", "db"): tracking_store_through_db_channel_builder,
     ("api", "disabled"): lambda: TrackingStoreThroughChannel(
         channel=DisabledTrackingChannel()
     ),
@@ -70,6 +51,10 @@ def get_tracking_store(
     for name in tracking_store_names:
         if name == "api":
             name = (name, api_channel_name)
+        if name == ("api", "db"):
+            assert_web_enabled(
+                "It is required when trying to use local db connection (tracker_api=db)."
+            )
         tracking_store_builder = _BACKENDS_REGISTRY.get(name)
         if tracking_store_builder is None:
             friendly_error.config.wrong_store_name(name)
