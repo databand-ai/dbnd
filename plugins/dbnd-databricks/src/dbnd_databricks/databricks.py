@@ -112,7 +112,7 @@ class DatabricksCtrl(SparkCtrl):
             "init_scripts": self.databricks_config.init_scripts,
             "cluster_log_conf": self.databricks_config.cluster_log_conf,
             "spark_env_vars": self._get_env_vars(self.databricks_config.spark_env_vars),
-            "py_files": self.deploy.arg_files(spark_config.py_files),
+            "py_files": self.deploy.arg_files(self.task.get_py_files()),
             "files": self.deploy.arg_files(spark_config.files),
             "jars": self.deploy.arg_files(spark_config.jars),
         }

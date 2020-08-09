@@ -53,7 +53,7 @@ class _LivySparkCtrl(SparkCtrl):
             name=self.job.job_id,
             args=list_of_strings(task.application_args()),
             files=deploy.sync_files(_config.files),
-            pyFiles=deploy.sync_files(_config.py_files),
+            pyFiles=deploy.sync_files(self.task.get_py_files()),
             jars=deploy.sync_files(jars),
             executorCores=_config.executor_cores,
             executorMemory=_config.executor_memory,

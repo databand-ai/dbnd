@@ -56,7 +56,7 @@ class SparkCtrl(TaskRunCtrl):
                 cmd.option("--conf", "{}={}".format(str(key), str(value)))
 
         cmd.option("--files", deploy.arg_files(config.files))
-        cmd.option("--py-files", deploy.arg_files(config.py_files))
+        cmd.option("--py-files", deploy.arg_files(self.task.get_py_files()))
         cmd.option("--archives", deploy.arg_files(config.archives))
         cmd.option("--jars", deploy.arg_files(config.jars))
 
