@@ -219,7 +219,9 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.running_pods.pop(pod_id, None)
         result = self.kube_dbnd.delete_pod(pod_id, self.namespace)
 
-        self.metrics_logger.log_pod_deleted(self.pod_to_task[pod_id])
+        if pod_id in self.pod_to_task.keys():
+            self.metrics_logger.log_pod_deleted(self.pod_to_task[pod_id])
+
         self.pod_to_task.pop(pod_id)  # Keep the cache clean
         return result
 
