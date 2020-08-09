@@ -145,24 +145,24 @@ def log_artifact(key, artifact):
     logger.info("Artifact %s=%s", key, artifact)
 
 
-def log_function_duration(metric_key):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            start_time = time.time()
-            result = f(*args, **kwargs)
-            end_time = time.time()
-            log_metric(metric_key, end_time - start_time)
-            return result
-
-        return wrapper
-
-    return decorator
-
-
 @seven.contextlib.contextmanager
 def log_duration(metric_key):
-    start_time = time.time()
-    yield
-    end_time = time.time()
-    log_metric(metric_key, end_time - start_time)
+    """
+    Measure time of function or code block, and log to Databand as a metric.
+    Can be used as a decorator and in "with" statement as a context manager.
+
+    Example 1:
+        @log_duration("f_time_duration")
+        def f():
+            sleep(1)
+
+    Example 2:
+        with log_duration("my_code_duration"):
+            sleep(1)
+    """
+    try:
+        start_time = time.time()
+        yield
+    finally:
+        end_time = time.time()
+        log_metric(metric_key, end_time - start_time)

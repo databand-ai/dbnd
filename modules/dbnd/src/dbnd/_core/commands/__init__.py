@@ -1,4 +1,9 @@
-from dbnd._core.commands.metrics import log_artifact, log_dataframe, log_metric
+from dbnd._core.commands.metrics import (
+    log_artifact,
+    log_dataframe,
+    log_duration,
+    log_metric,
+)
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 
 
