@@ -17,7 +17,7 @@ class EmrStepCtrl(EmrCtrl):
             application_args=list_of_strings(self.task.application_args()),
             java_class=self.task.main_class,
             files=deploy.arg_files(_config.files),
-            py_files=deploy.arg_files(_config.py_files),
+            py_files=deploy.arg_files(self.task.get_py_files()),
             driver_class_path=_config.driver_class_path,
             jars=deploy.arg_files(jars),
             packages=_config.packages,

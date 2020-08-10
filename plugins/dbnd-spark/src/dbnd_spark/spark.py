@@ -53,6 +53,13 @@ class _BaseSparkTask(Task):
 
         return result
 
+    def get_py_files(self):
+        py_files = self.spark_config.py_files.copy()
+        if self.spark_resources and "user_project" in self.spark_resources:
+            project_files = self.spark_resources["user_project"].load(str)
+            py_files.append(project_files)
+        return py_files
+
     def application_args(self):
         """
         'Arguments for the application being submitted'
