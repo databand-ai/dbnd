@@ -60,6 +60,11 @@ def _default_configuration_paths():
     if os.path.isfile(user_config):
         yield user_config
 
+    if is_unit_test_mode():
+        tests_config_path = databand_system_path("databand-test.cfg")
+        if os.path.exists(tests_config_path):
+            yield tests_config_path
+
 
 def read_from_config_stream(config_fp, source="<stream>"):
     """
