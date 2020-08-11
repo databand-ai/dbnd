@@ -25,15 +25,17 @@ from dbnd._core.decorator.dynamic_tasks import (
     create_dynamic_task,
 )
 from dbnd._core.decorator.func_task_call import FuncCall
+from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
 from dbnd._core.errors import show_exc_info
-from dbnd._core.errors.errors_utils import user_side_code
+from dbnd._core.errors.errors_utils import log_exception, user_side_code
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
+from targets.values import get_value_type_of_obj
 
 
 if typing.TYPE_CHECKING:
@@ -211,15 +213,55 @@ def _create_dynamic_task_run(func_call):
 
 def _log_result(task_run, result):
     try:
+        task_result_parameter = task_run.task._params.get_param("result")
+
+        # spread result into relevant fields.
+        if isinstance(task_result_parameter, FuncResultParameter):
+            # assign all returned values to relevant band Outputs
+            if result is None:
+                return
+            for r_name, value in task_result_parameter.named_results(result):
+                _log_parameter_value(
+                    task_run,
+                    parameter_definition=task_run.task._params.get_param(r_name),
+                    target=task_run.task._params.get_value(r_name),
+                    value=value,
+                )
+        else:
+            _log_parameter_value(
+                task_run,
+                parameter_definition=task_result_parameter,
+                target=task_run.task.result,
+                value=result,
+            )
+    except Exception as ex:
+        log_exception(
+            "Failed to log result to tracking store.", ex=ex, non_critical=True
+        )
+
+
+def _log_parameter_value(task_run, parameter_definition, target, value):
+    try:
+        # case what if result is Proxy
+        value_type = get_value_type_of_obj(value, parameter_definition.value_type)
+        task_run.run.target_origin.add(target, value, value_type)
+    except Exception as ex:
+        log_exception(
+            "Failed to register result to target tracking.", ex=ex, non_critical=True
+        )
+
+    try:
         task_run.tracker.log_target(
             parameter=task_run.task.task_definition.task_class.result,
-            target=task_run.task.result,
-            value=result,
+            target=target,
+            value=value,
             operation_type=DbndTargetOperationType.write,  # is it write? (or log?)
             operation_status=DbndTargetOperationStatus.OK,
         )
     except Exception as ex:
-        logger.warning("Failed to log result to tracking store. %s", ex)
+        log_exception(
+            "Failed to log result to tracking store.", ex=ex, non_critical=True
+        )
 
 
 def _task_decorator(*decorator_args, **decorator_kwargs):
