@@ -16,7 +16,9 @@ pytest_plugins = [
     "dbnd.testing.pytest_dbnd_markers_plugin",
 ]
 
-add_test_configuration(__file__)
+
+def pytest_configure(config):
+    add_test_configuration(__file__)
 
 
 @fixture

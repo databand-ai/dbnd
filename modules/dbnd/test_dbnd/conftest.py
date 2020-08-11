@@ -35,8 +35,6 @@ pytest_plugins = [
 ]
 __all__ = ["dbnd"]
 
-add_test_configuration(__file__)
-
 try:
     import matplotlib
 
@@ -52,6 +50,7 @@ markers_to_exlude_by_default = ["dbnd_integration"]
 
 
 def pytest_configure(config):
+    add_test_configuration(__file__)
     markexpr = getattr(config.option, "markexpr", "")
     marks = [markexpr] if markexpr else []
     for mark in markers_to_exlude_by_default:

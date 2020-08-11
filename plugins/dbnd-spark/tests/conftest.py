@@ -10,7 +10,9 @@ pytest_plugins = [
     "dbnd.testing.pytest_dbnd_home_plugin",
 ]
 
-add_test_configuration(__file__)
+
+def pytest_configure(config):
+    add_test_configuration(__file__)
 
 
 @pytest.fixture
