@@ -35,6 +35,7 @@ from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
+from targets import InMemoryTarget
 from targets.values import get_value_type_of_obj
 
 
@@ -128,6 +129,9 @@ class DbndFuncProxy(object):
                 task_run = _create_dynamic_task_run(func_call)
                 with task_run.runner.task_run_execution_context(handle_sigterm=True):
                     task_run.set_task_run_state(state=TaskRunState.RUNNING)
+
+                    _log_inputs(task_run)
+
                     # if we reached this line, then all tracking initialization is
                     # finished successfully, and we're going to execute user code
                     user_code_called = True
@@ -211,7 +215,42 @@ def _create_dynamic_task_run(func_call):
     return task_run
 
 
+def _log_inputs(task_run):
+    """
+    For tracking mode. Logs InMemoryTarget inputs.
+    """
+    try:
+        params = task_run.task._params
+        for param in params.get_params(input_only=True):
+            value = params.get_value(param.name)
+
+            # we
+            if isinstance(value, InMemoryTarget):
+                try:
+                    task_run.tracker.log_target(
+                        parameter=param,
+                        target=value,
+                        value=value._obj,
+                        operation_type=DbndTargetOperationType.read,
+                        operation_status=DbndTargetOperationStatus.OK,
+                    )
+                except Exception as ex:
+                    log_exception(
+                        "Failed to log input param to tracking store.",
+                        ex=ex,
+                        non_critical=True,
+                    )
+    except Exception as ex:
+        log_exception(
+            "Failed to log input params to tracking store.", ex=ex, non_critical=True
+        )
+
+
 def _log_result(task_run, result):
+    """
+    For tracking mode. Logs the task result and adds it to the target_origin map to support relationships between
+    dynamic tasks.
+    """
     try:
         task_result_parameter = task_run.task._params.get_param("result")
 
