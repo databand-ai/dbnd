@@ -21,6 +21,7 @@ _____________
 - #1186029239496897: Added automatic logging for Spark initialization
 - #1180558848817017: Automatic configuration of the databand_url on Spark
 - Timeline - parent tasks now clearly show when a child task was running
+- Show value inline for short params and results instead of the path or a placeholder
 
 Fixed issues:
 _____________
@@ -31,6 +32,10 @@ _____________
 - Timeline - children didn't always appear below their parents
 - Timeline - tasks with the same name were incorrectly grouped together
 - Refresh button wasn't working correctly on several pages
+- Recent values in alert config showing non-recent values
+- fixed run list UI issues
+- fixed task sometimes not being selected in the graph during initial page load
+- large performance improvements for the stats endpoint exporting metrics to prometheus
 
 
 
