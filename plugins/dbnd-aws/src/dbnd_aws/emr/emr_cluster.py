@@ -5,7 +5,7 @@ import time
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.friendly_error.task_execution import failed_to_run_emr_step
 from dbnd_aws.credentials import get_boto_emr_client
-from dbnd_spark._core.spark_error_parser import parse_spark_log
+from dbnd_spark._core.spark_error_parser import parse_spark_log_safe
 from targets import target
 
 
@@ -156,7 +156,7 @@ class EmrCluster(object):
             raise failed_to_run_emr_step(
                 details["Reason"],
                 details["LogFile"],
-                self._get_errors_from_log(details["LogFile"]),
+                self._try_get_errors_from_log(details["LogFile"]),
             )
 
     def _default_status_reporter(self, step_response):
@@ -171,7 +171,7 @@ class EmrCluster(object):
         for attempt in range(eventual_consistency_max_sleeps):
             log_dump = target(path + "stderr.gz")
             if log_dump.exists():
-                return parse_spark_log(log_dump.readlines())
+                return parse_spark_log_safe(log_dump.readlines())
 
             logging.warning(
                 "Emr step logs are not yet available at %s. Waining %i second to retry. Additional attempts: %i\n"
@@ -183,4 +183,13 @@ class EmrCluster(object):
             )
 
             time.sleep(eventual_consistency_sleep_interval)
+
         raise failed_to_run_emr_step("Failed to read log file at %s" % path, None, None)
+
+    def _try_get_errors_from_log(self, path):
+        try:
+            errors = self._get_errors_from_log(path)
+            return errors
+        except Exception as e:
+            logging.error("Failed to get error from log. Exception: %s" % (e,))
+            return ""

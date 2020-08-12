@@ -1,6 +1,9 @@
 import logging
+import sys
 import time
 import typing
+
+import six
 
 from qds_sdk.commands import SparkCommand
 from qds_sdk.qubole import Qubole
@@ -60,6 +63,14 @@ class QuboleCtrl(SparkCtrl):
             err_ptr += int(err_len)
         return log, err_ptr, log_ptr, new_log_bytes
 
+    def _get_results(self, cmd, fallback=False):
+        with six.StringIO() as str_io:
+            if not fallback:
+                cmd.get_results(fp=str_io)
+            else:
+                get_status_and_results(cmd.id, str_io)
+            return str_io.getvalue()
+
     def _get_url(self, qubole_cmd_id):
         import os
 
@@ -94,18 +105,34 @@ class QuboleCtrl(SparkCtrl):
             log, err_ptr, log_ptr, received_log = self._print_partial_log(
                 cmd, err_ptr, log_ptr
             )
-            if received_log > 0 and self.qubole_config.show_spark_log:
-                logger.info("Spark LOG:")
-                logger.info(log)
+            if self.qubole_config.show_spark_log:
+                if received_log > 0:
+                    logger.info("Spark LOG:")
+                    logger.info(log)
+
             if SparkCommand.is_done(status):
                 if SparkCommand.is_success(status):
+                    results = self._get_results(cmd)
+                    logger.info("Spark results:")
+                    logger.info(results)
                     return True
-                else:  # failed
+                else:
+                    results = self._get_results(cmd)
+                    if results == "":
+                        results = self._get_results(cmd, fallback=True)
+                    logger.info("Spark results:")
+                    logger.info(results)
+                    recent_log = "\n".join(log.split("\n")[-50:])
                     raise failed_to_run_qubole_job(
-                        status, self.qubole_job_url, log[-15:]
+                        status, self.qubole_job_url, recent_log
                     )
             else:
                 time.sleep(self.qubole_config.status_polling_interval_seconds)
+
+    def _handle_done_job(
+        self, status,
+    ):
+        pass
 
     def _qubole_banner(self, status):
         b = TextBanner(
@@ -171,3 +198,19 @@ class QuboleCtrl(SparkCtrl):
             SparkCommand.cancel(self.qubole_cmd_id)
         except Exception as e:
             logger.error("Failed to stop qubole", e)
+
+
+def get_status_and_results(cmd_id, fp=sys.stdout):
+    """
+    Fetches the result for the command represented by this object
+
+    get_results will retrieve results of the command and write to stdout by default.
+    Optionally one can write to a filestream specified in `fp`.
+    """
+    result_path = "commands/%s/status_with_results" % cmd_id
+
+    conn = Qubole.agent()
+    result = conn.get(result_path)
+
+    raw_results = result["results"]
+    fp.write(raw_results)

@@ -1,8 +1,12 @@
+import logging
 import os
 import re
 
 from dbnd import parameter
 from dbnd._core.task.config import Config
+
+
+logger = logging.getLogger(__name__)
 
 
 class SparkLogParserConfig(Config):
@@ -40,3 +44,12 @@ def parse_spark_log(lines):
         else:
             index = index + 1
     return errors_snippet[: spark_log_config.snippets_to_show]
+
+
+def parse_spark_log_safe(lines):
+    try:
+        result = parse_spark_log(lines)
+        return result
+    except Exception as e:
+        logger.error("Failed to parse spark log. Error: %s" % (e,))
+        return None

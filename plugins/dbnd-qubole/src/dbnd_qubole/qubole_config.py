@@ -35,7 +35,7 @@ class QuboleConfig(SparkEngineConfig):
     status_polling_interval_seconds = parameter(default=10).help(
         "seconds to sleep between polling databricks for job status."
     )[int]
-    show_spark_log = parameter(default=True).help(
+    show_spark_log = parameter(default=False).help(
         "if True full spark log will be printed."
     )[bool]
     qds_sdk_logging_level = parameter(default=logging.WARNING).help(
