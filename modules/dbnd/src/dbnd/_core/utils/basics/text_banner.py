@@ -9,6 +9,7 @@ from dbnd._core.configuration.environ_config import ENV_DBND__NO_TABLES
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.platform import windows_compatible_mode
+from dbnd._core.utils.string_utils import safe_short_string
 from dbnd._core.utils.terminal import get_terminal_size
 from dbnd._core.utils.traversing import traverse, traverse_to_str
 from dbnd._vendor.tabulate import tabulate
@@ -25,13 +26,7 @@ def safe_string(value, max_value_len=1000):
         if not isinstance(value, six.string_types):
             value = str(value)
 
-        if value and len(value) > max_value_len:
-            value = "%s... (%s of %s)" % (
-                value[:max_value_len],
-                max_value_len,
-                len(value),
-            )
-        return value
+        return safe_short_string(value=value, max_value_len=max_value_len)
     except Exception as ex:
         return "Failed to convert value to string:%s" % ex
 

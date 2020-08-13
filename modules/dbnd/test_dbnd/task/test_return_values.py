@@ -121,6 +121,8 @@ class TestTaskDecoReturnValues(TargetTestBase):
             def t_f(same_name=3, a=5):
                 return {"o_a": [str(a)], "o_b": same_name}
 
+            t_f()  # ???
+
     def test_fails_on_dict_spec(self):
         with pytest.raises(
             DatabandBuildError, message="have same keys in result schema"
@@ -129,6 +131,8 @@ class TestTaskDecoReturnValues(TargetTestBase):
             @task(result={"a": List[str]})
             def t_f(same_name=3, a=5):
                 return {"o_a": [str(a)], "o_b": same_name}
+
+            t_f()  # ???
 
     def test_fails_on_wrong_ret_type(self):
         @task

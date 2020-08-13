@@ -37,58 +37,23 @@ class FuncParamsBuilder(object):
         self.base_params = base_params
         self.decorator_spec = decorator_spec  # type: _TaskDecoratorSpec
 
-        self.decorator_kwargs = decorator_spec.decorator_kwargs
+        self.decorator_kwargs = (
+            decorator_spec.decorator_kwargs if decorator_spec else {}
+        )
 
-    def _spec_params(self):
-        """
-        We process only regular params here, not the "result" params
-        :return:
-        """
+        self.exclude = {RESULT_PARAM, "self"}
+
+        self.decorator_kwargs_params = {}
+        self.func_spec_params = {}
+        self.result_params = {}
+
+    def _build_func_spec_params(self, decorator_kwargs_params):
         params = {}
-
-        exclude = {RESULT_PARAM, "self"}
-        for k, param in six.iteritems(self.decorator_kwargs):
-            if k in exclude:  # we'll take care of result param later
-                continue
-
-            if param is None:
-                exclude.add(k)
-                continue
-
-            context = "%s.%s" % (self.decorator_spec.name, k)
-
-            if k not in self.decorator_spec.args and k not in self.base_params:
-                # we have parameter which is not part of real function signature
-                # @task(some_unknown_parameter=parameter)
-                logger.info(
-                    "{} is not part of parameters, creating hidden parameter".format(
-                        context
-                    )
-                )
-
-            if k in self.decorator_spec.defaults:
-                if isinstance(self.decorator_spec.defaults[k], ParameterFactory):
-                    raise DatabandBuildError(
-                        "{}: {} has conlficted definition in function and in decorator itself".format(
-                            context, k
-                        )
-                    )
-                if is_defined(param.parameter.default):
-                    logger.warning(
-                        "Default value conflict between function and @task decorator"
-                    )
-                param = param.default(self.decorator_spec.defaults.get(k))
-
-            if k in self.base_params and not isinstance(param, ParameterFactory):
-                # just override value
-                params[k] = param
-            else:
-                # we are going to build a new parameter
-                params[k] = build_parameter(param, context=context)
-
         # let go over all kwargs of the functions
         for k in self.decorator_spec.args:
-            if k in exclude or k in params:  # excluded or processed already
+            if (
+                k in self.exclude or k in decorator_kwargs_params
+            ):  # excluded or processed already
                 continue
             context = "%s.%s" % (self.decorator_spec.name, k)
 
@@ -120,6 +85,46 @@ class FuncParamsBuilder(object):
                 except Exception:
                     logger.exception("Failed to analyze function arg %s", context)
                     raise
+        return params
+
+    def _build_decorator_kwargs_params(self):
+        params = {}
+        for k, param in six.iteritems(self.decorator_kwargs):
+            if k in self.exclude:  # we'll take care of result param later
+                continue
+
+            if param is None:
+                self.exclude.add(k)
+                continue
+
+            context = "%s.%s" % (self.decorator_spec.name, k)
+
+            if k not in self.decorator_spec.args and k not in self.base_params:
+                # we have parameter which is not part of real function signature
+                # @task(some_unknown_parameter=parameter)
+                logger.info(
+                    "{} is not part of parameters, creating hidden parameter".format(
+                        context
+                    )
+                )
+
+            if k in self.decorator_spec.defaults:
+                if isinstance(self.decorator_spec.defaults[k], ParameterFactory):
+                    raise DatabandBuildError(
+                        "{}: {} has conlficted definition in function and in decorator itself".format(
+                            context, k
+                        )
+                    )
+                if is_defined(param.parameter.default):
+                    logger.warning(
+                        "Default value conflict between function and @task decorator"
+                    )
+                param = param.default(self.decorator_spec.defaults.get(k))
+
+            if k not in self.base_params or isinstance(param, ParameterFactory):
+                # we are going to build a new parameter
+                param = build_parameter(param, context=context)
+            params[k] = param
         return params
 
     def _build_multiple_outputs_result(self, result_deco_spec):
@@ -252,11 +257,30 @@ class FuncParamsBuilder(object):
             )
         return build_parameter(param, context)
 
-    def get_task_parameters(self):
+    def build_func_params(self):
+        if not self.decorator_spec:
+            return
+
         # calc auto parameters from function spec
         # it's easy, as we take function value or deco value.
-        params = self._spec_params()
+        self.decorator_kwargs_params = self._build_decorator_kwargs_params()
+        self.func_spec_params = self._build_func_spec_params(
+            self.decorator_kwargs_params
+        )
+        self.result_params = self._build_func_result_params()
 
+        self._validate_result_params()
+
+    def _validate_result_params(self):
+        conflict_keys = set(self.result_params.keys()).intersection(
+            set(self.decorator_kwargs_params.keys()) | set(self.func_spec_params.keys())
+        )
+        if conflict_keys:
+            raise friendly_error.task_parameters.result_and_params_have_same_keys(
+                self.decorator_spec.name, conflict_keys
+            )
+
+    def _build_func_result_params(self):
         # much more complicated , we need to "smart merge" the result
         # and we need the result type
         result_param = self._get_result_parameter()
@@ -265,16 +289,7 @@ class FuncParamsBuilder(object):
             result_params[RESULT_PARAM] = result_param
             if isinstance(result_param, FuncResultParameter):
                 result_params.update({p.name: p for p in result_param.schema})
-
-        conflict_keys = set(result_params.keys()).intersection(set(params.keys()))
-        if conflict_keys:
-            raise friendly_error.task_parameters.result_and_params_have_same_keys(
-                self.decorator_spec.name, conflict_keys
-            )
-        params.update(result_params)
-
-        self.decorator_spec.params = params
-        return params
+        return result_params
 
     def _validate_return_spec(self, deco_spec, return_spec):
         # validate lengths

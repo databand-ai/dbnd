@@ -3,7 +3,7 @@ import logging
 import sys
 import typing
 
-from typing import Type
+from typing import Callable, Dict, Type
 
 import six
 
@@ -28,6 +28,22 @@ def _validate_no_recursion_in_config(task_name, config_task_type, param):
         raise friendly_error.config.task_name_and_from_are_the_same(task_name, param)
 
 
+class TaskEntry(object):
+    def __init__(
+        self, task_family, full_task_family, task_cls=None, task_cls_factory=None
+    ):
+        self.task_family = task_family
+        self.full_task_family = full_task_family
+        self._task_cls = task_cls
+        self._task_cls_factory = task_cls_factory
+
+    @property
+    def task_cls(self):
+        if self._task_cls is None:
+            self._task_cls = self._task_cls_factory()
+        return self._task_cls
+
+
 class DbndTaskRegistry(SingletonContext):
     """
     Registry of all `dbnd` tasks
@@ -36,8 +52,12 @@ class DbndTaskRegistry(SingletonContext):
     AMBIGUOUS_CLASS = object()
 
     def __init__(self):
-        self._fqn_to_task_cls = {}  # map between full task class name and class
-        self._task_family_to_task_cls = {}  # map between task_family name and class
+        self._fqn_to_task_cls = (
+            {}
+        )  # type: Dict[str, TaskEntry]  # map between full task class name and class
+        self._task_family_to_task_cls = (
+            {}
+        )  # type: Dict[str, TaskEntry]  # map between task_family name and class
 
         # namespace management
 
@@ -48,22 +68,66 @@ class DbndTaskRegistry(SingletonContext):
 
     def register_task(self, task_cls):
         td = task_cls.task_definition  # type: TaskDefinition
+        self._register_entry(
+            TaskEntry(
+                task_cls=task_cls,
+                task_family=td.task_family,
+                full_task_family=td.full_task_family,
+            )
+        )
 
-        self._fqn_to_task_cls[td.full_task_family] = task_cls
-        if td.task_family in self._task_family_to_task_cls:
-            task_cls = self.AMBIGUOUS_CLASS
-        self._task_family_to_task_cls[td.task_family] = task_cls
+    def register_task_cls_factory(
+        self, task_cls_factory, task_family, full_task_family
+    ):
+        # type: (Callable, str, str) -> None
+        self._register_entry(
+            TaskEntry(
+                task_cls_factory=task_cls_factory,
+                task_family=task_family,
+                full_task_family=full_task_family,
+            )
+        )
+
+    def _register_entry(self, task_entry):
+        # type: (TaskEntry) -> None
+        if task_entry.full_task_family in self._fqn_to_task_cls:
+            # we're invoking factory
+            existing_task_entry = self._fqn_to_task_cls[
+                task_entry.full_task_family
+            ]  # type: TaskEntry
+            if (
+                existing_task_entry._task_cls is None
+                and task_entry._task_cls is not None
+            ):
+                existing_task_entry._task_cls = task_entry._task_cls
+                return
+
+            # else some weird duplication happened? should we log?
+
+        self._fqn_to_task_cls[task_entry.full_task_family] = task_entry
+
+        # TODO: support history?
+        self._task_family_to_task_cls[task_entry.task_family] = (
+            task_entry
+            if task_entry.task_family not in self._task_family_to_task_cls
+            else TaskEntry(
+                task_cls=self.AMBIGUOUS_CLASS,
+                task_family=task_entry.task_family,
+                full_task_family=self.AMBIGUOUS_CLASS,
+            )
+        )
 
     def _get_registered_task_cls(self, name):  # type: (str) -> Type[Task]
         """
         Returns an task class based on task_family, or full task class name
         We don't preload/check anything here
         """
-        task_cls = self._fqn_to_task_cls.get(name)
-        if task_cls:
-            return task_cls
+        task_entry = self._fqn_to_task_cls.get(name)  # type: TaskEntry
+        if task_entry is None:
+            task_entry = self._task_family_to_task_cls.get(name)
 
-        return self._task_family_to_task_cls.get(name)
+        if task_entry is not None:
+            return task_entry.task_cls
 
     # used for both tasks and configurations
     def _get_task_cls(self, task_name):
@@ -148,7 +212,8 @@ class DbndTaskRegistry(SingletonContext):
 
     def list_dbnd_task_classes(self):
         task_classes = []
-        for task_name, task_cls in six.iteritems(self._task_family_to_task_cls):
+        for task_name, task_entry in six.iteritems(self._task_family_to_task_cls):
+            task_cls = task_entry.task_cls
             if task_cls == self.AMBIGUOUS_CLASS:
                 continue
             td = task_cls.task_definition

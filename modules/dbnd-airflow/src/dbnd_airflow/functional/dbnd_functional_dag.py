@@ -1,5 +1,6 @@
 import logging
 import re
+import typing
 
 import six
 
@@ -21,6 +22,10 @@ from dbnd_airflow.airflow_utils import (
 from dbnd_airflow.functional.dbnd_functional_operator import DbndFunctionalOperator
 from dbnd_airflow.functional.xcom_target import XComResults, XComStr, build_xcom_str
 from targets import FileTarget, target
+
+
+if typing.TYPE_CHECKING:
+    from dbnd import Task
 
 
 try:
@@ -126,7 +131,7 @@ class DagFuncOperatorCtrl(object):
         )
         # take only outputs that are coming from ctror ( based on ParameterValue in task.task_meta
         user_ctor_outputs_only = []
-        for p_val in task.task_meta.task_params:
+        for p_val in task.task_meta.class_task_params:
             if (
                 p_val.parameter.is_output()
                 and p_val.source

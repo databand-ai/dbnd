@@ -10,6 +10,7 @@ import six
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.environ_config import is_databand_enabled
 from dbnd._core.constants import (
+    RESULT_PARAM,
     DbndTargetOperationStatus,
     DbndTargetOperationType,
     TaskRunState,
@@ -26,13 +27,17 @@ from dbnd._core.decorator.dynamic_tasks import (
 )
 from dbnd._core.decorator.func_task_call import FuncCall
 from dbnd._core.decorator.schemed_result import FuncResultParameter
-from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
+from dbnd._core.decorator.task_decorator_spec import (
+    args_to_kwargs,
+    build_task_decorator_spec,
+)
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, user_side_code
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
+from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
 from targets import InMemoryTarget
@@ -66,21 +71,68 @@ band = pipeline
 class DbndFuncProxy(object):
     def __call__(self, *args, **kwargs):
         if _is_tracking_mode():
-            with self.tracking_context(args, kwargs) as rt:
-                return rt(self.task_func(*args, **kwargs))
+            with self.tracking_context(args, kwargs) as track_result_callback:
+                return track_result_callback(self.task_func(*args, **kwargs))
 
         return self.task_cls._call_handler(
             call_user_code=self.task_func, call_args=args, call_kwargs=kwargs
         )
 
-    def __init__(self, task_cls):
-        self.task_cls = task_cls  # type: Type[Task]
+    def __init__(self, func_spec, task_type, task_defaults):
+        # type: (_TaskDecoratorSpec, Type[_DecoratedTask], Any) -> None
+        self.func_spec = func_spec
+        self.task_type = task_type
+        self.task_defaults = task_defaults
+
+        self._task_cls = None
+        self._normal_task_cls = None
+        self._tracking_task_cls = None
+        # self.task_cls = task_cls  # type: Type[Task]
         # this will make class look like a origin function
-        self.task_func = self.task_cls._conf__decorator_spec.item
         functools.update_wrapper(self, self.task_func)
         self._call_count = 0
         self._call_as_func = False
         self._max_call_count = get_dbnd_project_config().max_calls_per_run
+
+    @property
+    def task_func(self):
+        return self.func_spec.item
+
+    @property
+    def func(self):
+        return self.task_func
+
+    @property
+    def task_cls(self):
+        if self._task_cls is None:
+            self._task_cls = self._build_task_cls()
+        return self._task_cls
+
+    def _build_task_cls(self, is_tracking_mode=False):
+        class_or_func = self.task_func
+        bases = (self.task_type,)
+        task_cls = TaskMetaclass(
+            str(class_or_func.__name__),
+            bases,
+            dict(
+                _conf__decorator_spec=self.func_spec,
+                _callable_item=None,
+                __doc__=class_or_func.__doc__,
+                __module__=class_or_func.__module__,
+                defaults=self.task_defaults,
+                is_tracking_mode=is_tracking_mode,
+            ),
+        )
+        # should we assign it to self._task_cls here?
+        return task_cls
+
+    @property
+    def task(self):
+        return self.task_cls
+
+    @property
+    def t(self):
+        return self.task_cls
 
     def _call_count_limit_exceeded(self):
         if not self._call_as_func:
@@ -109,6 +161,13 @@ class DbndFuncProxy(object):
 
     @contextlib.contextmanager
     def tracking_context(self, call_args, call_kwargs):
+        if not self._tracking_task_cls:
+            self._tracking_task_cls = self._build_task_cls(is_tracking_mode=True)
+
+        # switch task_cls
+        self._normal_task_cls = self._task_cls
+        self._task_cls = self._tracking_task_cls
+
         func_call = FuncCall(
             task_cls=self.task_cls,
             call_user_code=self.task_func,
@@ -164,6 +223,9 @@ class DbndFuncProxy(object):
             # else it's either we didn't reached calling user code, or already passed it
             # then it's some dbnd tracking error - just log it
             _handle_dynamic_error("tracking-init", func_call)
+        finally:
+            # switch task_cls back
+            self._task_cls = self._normal_task_cls
 
         # if we didn't reached user_code_called=True line - there was an error during
         # dbnd tracking initialization, so nothing is done - user function wasn't called yet
@@ -207,12 +269,30 @@ def _get_or_create_inplace_task():
 
 
 def _create_dynamic_task_run(func_call):
-    task = create_dynamic_task(func_call)
+    task = _create_dynamic_task(func_call)
     dbnd_run = get_databand_run()
     task_run = dbnd_run.create_dynamic_task_run(
         task, task_engine=current_task_run().task_engine
     )
     return task_run
+
+
+def _create_dynamic_task(func_call):
+    # type: (FuncCall) -> Task
+    task_cls = func_call.task_cls
+    call_args, call_kwargs = args_to_kwargs(
+        task_cls._conf__decorator_spec.args, func_call.call_args, func_call.call_kwargs
+    )
+
+    # instantiate inline task
+    t = task_cls._create_task(call_args, call_kwargs)
+
+    # update upstream/downstream relations - needed for correct tracking
+    # we can have the task as upstream , as it was executed already
+    parent_task = current_task_run().task
+    if not parent_task.task_dag.has_upstream(t):
+        parent_task.set_upstream(t)
+    return t
 
 
 def _log_inputs(task_run):
@@ -252,7 +332,7 @@ def _log_result(task_run, result):
     dynamic tasks.
     """
     try:
-        task_result_parameter = task_run.task._params.get_param("result")
+        task_result_parameter = task_run.task._params.get_param(RESULT_PARAM)
 
         # spread result into relevant fields.
         if isinstance(task_result_parameter, FuncResultParameter):
@@ -291,7 +371,7 @@ def _log_parameter_value(task_run, parameter_definition, target, value):
 
     try:
         task_run.tracker.log_parameter_data(
-            parameter=task_run.task.task_definition.task_class.result,
+            parameter=parameter_definition,  # was: task_run.task.task_definition.task_class.result,
             target=target,
             value=value,
             operation_type=DbndTargetOperationType.write,  # is it write? (or log?)
@@ -304,22 +384,23 @@ def _log_parameter_value(task_run, parameter_definition, target, value):
 
 
 def _task_decorator(*decorator_args, **decorator_kwargs):
-    task_type = decorator_kwargs.pop("_task_type")  # type: Type[_DecoratedTask]
-    task_default_result = decorator_kwargs.pop(
-        "_task_default_result"
-    )  # ParameterFactory
-    task_defaults = decorator_kwargs.pop("defaults", None)
     if not is_databand_enabled():
         # simple `@task` decorator, no options were (probably) given.
         if len(decorator_args) == 1 and callable(decorator_args[0]):
             return decorator_args[0]
         return __passthrough_decorator
 
-    def decorated(item):
+    task_type = decorator_kwargs.pop("_task_type")  # type: Type[_DecoratedTask]
+    task_default_result = decorator_kwargs.pop(
+        "_task_default_result"
+    )  # ParameterFactory
+    task_defaults = decorator_kwargs.pop("defaults", None)
+
+    def decorated(class_or_func):
         try:
 
             func_spec = build_task_decorator_spec(
-                item=item,
+                class_or_func=class_or_func,
                 decorator_kwargs=decorator_kwargs,
                 default_result=task_default_result,
             )
@@ -327,21 +408,10 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
             # we can't create class dynamically because of python2/3
             # __name__ is not overridable
 
-            task_cls = TaskMetaclass(
-                str(item.__name__),
-                (task_type,),
-                dict(
-                    _conf__decorator_spec=func_spec,
-                    _callable_item=None,
-                    __doc__=item.__doc__,
-                    __module__=item.__module__,
-                    defaults=task_defaults,
-                ),
-            )
         except Exception as ex:
             logger.error(
                 "Failed to create task %s: %s\n%s\n",
-                item.__name__,
+                class_or_func.__name__,
                 str(ex),
                 user_side_code(context=5),
                 exc_info=show_exc_info(ex),
@@ -349,16 +419,36 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
             raise
 
         if func_spec.is_class:
-            callable_item = six.add_metaclass(_DecoratedUserClassMeta)(item)
+            # TODO: reuse DbndFuncProxy as well! (or similar)
+            task_cls = TaskMetaclass(
+                str(class_or_func.__name__),
+                (task_type,),
+                dict(
+                    _conf__decorator_spec=func_spec,
+                    _callable_item=None,
+                    __doc__=class_or_func.__doc__,
+                    __module__=class_or_func.__module__,
+                    defaults=task_defaults,
+                ),
+            )
+            callable_item = six.add_metaclass(_DecoratedUserClassMeta)(class_or_func)
+            callable_item.func = class_or_func
+            callable_item.task_cls = task_cls
+            callable_item.task = task_cls
+            callable_item.t = task_cls
+            task_cls._callable_item = callable_item
         else:
-            callable_item = DbndFuncProxy(task_cls=task_cls)
-        task_cls._callable_item = callable_item
+            callable_item = DbndFuncProxy(func_spec, task_type, task_defaults)
+            # TODO
+            r = get_task_registry()
+            r.register_task_cls_factory(
+                task_cls_factory=callable_item._build_task_cls,
+                full_task_family="%s.%s"
+                % (class_or_func.__module__, class_or_func.__name__),
+                task_family=class_or_func.__name__,  # TODO: use same functionality as TaskDefinition
+            )
 
-        callable_item.func = item
-        callable_item.task_cls = task_cls
-        callable_item.task = task_cls
-        callable_item.t = task_cls
-        return task_cls._callable_item
+        return callable_item
 
     # simple `@task` decorator, no options were (probably) given.
     if len(decorator_args) == 1 and callable(decorator_args[0]):

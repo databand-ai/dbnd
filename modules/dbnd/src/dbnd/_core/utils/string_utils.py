@@ -1,5 +1,7 @@
 import re
 
+import six
+
 
 MAX_CLEAN_NAME_DNS1123_LEN = 253
 

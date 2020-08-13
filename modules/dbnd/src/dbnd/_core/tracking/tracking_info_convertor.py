@@ -200,7 +200,8 @@ def task_to_task_def(ctx, task):
     # type: (DatabandContext, Task) -> TaskDefinitionInfo
     td = task.task_definition
 
-    task_param_definitions = [value for key, value in sorted(td.task_params.items())]
+    tracked_params = td.user_params if task.is_tracking_mode else td.all_task_params
+    task_param_definitions = [value for key, value in sorted(tracked_params.items())]
     task_family = task.task_meta.task_family
     task_definition = TaskDefinitionInfo(
         task_definition_uid=td.task_definition_uid,
@@ -225,15 +226,24 @@ def build_task_run_info(task_run):
     log_local, log_remote = task_run._get_log_files()
 
     task_params_values = dict(t._params.get_params_serialized())
-    task_definition = t.task_definition
-    task_run_params = [
-        TaskRunParamInfo(
-            parameter_name=tdp.name,
-            value_origin=t._params.get_param_value_origin(tdp.name),
-            value=safe_short_string(task_params_values[tdp.name], max_value_len=5000),
+    td = t.task_definition
+    task_run_params = []
+    tracked_params = td.user_params if t.is_tracking_mode else td.all_task_params
+    for key, tdp in sorted(tracked_params.items()):
+        param_meta = t._params.get_param_meta(tdp.name)
+        if param_meta:
+            value_source, value = param_meta.source, param_meta.value
+        else:
+            value_source, value = "", ""
+        task_run_params.append(
+            TaskRunParamInfo(
+                parameter_name=tdp.name,
+                value_origin=safe_short_string(str(value_source), max_value_len=5000),
+                value=safe_short_string(
+                    str(task_params_values.get(tdp.name, value)), max_value_len=5000,
+                ),
+            )
         )
-        for (key, tdp) in sorted(task_definition.task_params.items())
-    ]
 
     return TaskRunInfo(
         run_uid=task_run.run.run_uid,

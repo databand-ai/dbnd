@@ -17,7 +17,7 @@ class ParameterValue(object):
     source = attr.ib()  # type: str
     source_value = attr.ib()  # type: Any
 
-    parsed = attr.ib(True)  # type: bool
+    parsed = attr.ib(default=True)  # type: bool
     warnings = attr.ib(factory=list)
 
     @property

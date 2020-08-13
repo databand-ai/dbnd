@@ -71,7 +71,7 @@ def _build_luigi_classdict(luigi_task):
     attributes = dict(
         _conf__task_family=task_family,
         _conf__decorator_spec=build_task_decorator_spec(
-            item=luigi_task_cls,
+            class_or_func=luigi_task_cls,
             decorator_kwargs={},
             default_result=parameter.output.pickle[object],
         ),

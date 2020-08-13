@@ -628,7 +628,7 @@ def build_parameter_value(parameter, cf_value):
                 parameter, value
             )
             message = (
-                "{parameter}: type of the value at runtime '{runtime}"
+                "{parameter}: type of the value at runtime '{runtime}'"
                 " doesn't match user defined type '{compile}'".format(
                     parameter=parameter,
                     runtime=updated_value_type,
@@ -683,6 +683,32 @@ def build_parameter_value(parameter, cf_value):
     )
 
     return p_value
+
+
+def infer_parameter_value_type(parameter, value):
+    warnings = []
+    runtime_value_type = get_types_registry().get_value_type_of_obj(value)
+    if not runtime_value_type:
+        runtime_value_type = DefaultObjectValueType()
+    if runtime_value_type != parameter.value_type:
+        if not isinstance(parameter.value_type, DefaultObjectValueType):
+            message = (
+                "{parameter}: type of the value at runtime '{runtime}'"
+                " doesn't match user defined type '{compile}'".format(
+                    parameter=parameter,
+                    runtime=runtime_value_type,
+                    compile=parameter.value_type,
+                )
+            )
+            warnings.append(message)
+
+        parameter = attr.evolve(
+            parameter,
+            value_type=runtime_value_type,
+            value_type_defined=parameter.value_type,
+            load_on_build=runtime_value_type.load_on_build,
+        )
+    return parameter, warnings
 
 
 def _add_description(base, extra):

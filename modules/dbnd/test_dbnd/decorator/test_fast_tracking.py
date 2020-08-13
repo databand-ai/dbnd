@@ -5,6 +5,7 @@ from collections import Counter
 import mock
 import pandas as pd
 import pytest
+import six
 
 from dbnd import config, dbnd_run_stop, log_metric, task
 from dbnd._core.configuration.environ_config import (
@@ -14,10 +15,11 @@ from dbnd._core.configuration.environ_config import (
 from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.errors import DatabandRunError
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import AirflowTaskContext
+from dbnd._core.tracking.schemas.tracking_info_objects import (
+    TaskDefinitionInfo,
+    TaskRunInfo,
+)
 from dbnd._core.utils.timezone import utcnow
-
-
-COMPOSITE_TRACKING_STORE_INVOKE_REF = "dbnd._core.tracking.backends.tracking_store_composite.CompositeTrackingStore._invoke"
 
 
 @task
@@ -77,6 +79,11 @@ def task_in_conf(param1="default_value", param2=None):
 
 
 @pytest.fixture
+def databand_context_kwargs():
+    return dict(conf={"core": {"tracker": ["console", "debug"]}})
+
+
+@pytest.fixture
 def set_af_context():
     with mock.patch(
         "dbnd._core.inplace_run.airflow_dag_inplace_tracking.try_get_airflow_context"
@@ -96,144 +103,188 @@ def set_af_context():
             reset_dbnd_project_config()
 
 
+@pytest.fixture
+def mock_channel_tracker():
+    with mock.patch(
+        "dbnd._core.tracking.backends.tracking_store_channels.TrackingStoreThroughChannel._m"
+    ) as mock_store:
+        yield mock_store
+
+
 def _check_tracking_calls(mock_store, tracking_calls_counter):
-    store_calls = Counter([call.args[0] for call in mock_store.call_args_list])
+    store_calls = Counter([call.args[0].__name__ for call in mock_store.call_args_list])
     # assert tracking_calls_counter == store_calls would also work, but this
     # will make it easier to compare visually
     assert sorted(tracking_calls_counter.items()) == sorted(store_calls.items())
 
 
 @pytest.mark.usefixtures("set_af_context")
-def test_tracking_pass_through_default(pandas_data_frame_on_disk):
+def test_tracking_pass_through_default(pandas_data_frame_on_disk, mock_channel_tracker):
     df, df_file = pandas_data_frame_on_disk
 
-    with mock.patch(COMPOSITE_TRACKING_STORE_INVOKE_REF) as mock_store:
-        # we'll pass string instead of defined expected DataFrame and it should work
-        task_result = task_pass_through_default(
-            str(df_file), utcnow().isoformat(), expect_pass_through=True
-        )
-        assert task_result == str(df_file)
+    # we'll pass string instead of defined expected DataFrame and it should work
+    some_date = utcnow().isoformat()
+    task_result = task_pass_through_default(
+        str(df_file), some_date, expect_pass_through=True
+    )
+    assert task_result == str(df_file)
 
-        _check_tracking_calls(
-            mock_store,
-            {
-                "init_run": 1,
-                "add_task_runs": 2,
-                "set_task_run_state": 4,  # DAG start, driver start, task start, task finished
-                "log_metrics": 1,
-                "log_target": 1,
-                "save_task_run_log": 1,
-            },
-        )
+    _check_tracking_calls(
+        mock_channel_tracker,
+        {
+            "init_run": 1,
+            "add_task_runs": 2,
+            "update_task_run_attempts": 4,  # DAG start, driver start, task start, task finished
+            "log_metrics": 1,
+            "log_targets": 1,
+            "save_task_run_log": 1,
+        },
+    )
 
-        # this should happen on process exit in normal circumstances
-        dbnd_run_stop()
+    _assert_tracked_params(
+        mock_channel_tracker,
+        task_pass_through_default,
+        data=str(df_file),
+        dt=some_date,
+        expect_pass_through=True,
+    )
 
-        _check_tracking_calls(
-            mock_store,
-            {
-                "init_run": 1,
-                "add_task_runs": 2,
-                "set_task_run_state": 6,  # as above + driver stop, DAG stop
-                "log_metrics": 1,
-                "log_target": 1,
-                "set_run_state": 1,
-                "save_task_run_log": 3,  # as above + drive log, DAG log
-            },
-        )
+    # this should happen on process exit in normal circumstances
+    dbnd_run_stop()
+
+    _check_tracking_calls(
+        mock_channel_tracker,
+        {
+            "init_run": 1,
+            "add_task_runs": 2,
+            "update_task_run_attempts": 6,  # as above + driver stop, DAG stop
+            "log_metrics": 1,
+            "log_targets": 1,
+            "set_run_state": 1,
+            "save_task_run_log": 3,  # as above + drive log, DAG log
+        },
+    )
+
+
+def _assert_tracked_params(mock_channel_tracker, task_func, **kwargs):
+    tdi, tri = _get_tracked_task_run_info(mock_channel_tracker, task_func)
+    tdi_params = {tpd.name: tpd for tpd in tdi.task_param_definitions}
+    tri_params = {tp.parameter_name: tp for tp in tri.task_run_params}
+    for name in kwargs.keys():
+        assert name in tdi_params
+
+    for k, v in six.iteritems(kwargs):
+        assert tri_params[k].value == str(v)
+
+
+def _get_tracked_task_run_info(mock_channel_tracker, task_cls):
+    tdi_result, tri_result = None, None
+    for call in mock_channel_tracker.call_args_list:
+        if call.args[0].__name__ == "add_task_runs":
+            for tdi in call.kwargs[
+                "task_runs_info"
+            ].task_definitions:  # type: TaskDefinitionInfo
+                if tdi.name == task_cls.__name__:
+                    tdi_result = tdi
+            for tri in call.kwargs["task_runs_info"].task_runs:  # type: TaskRunInfo
+                if tri.name == task_cls.__name__:
+                    tri_result = tri
+
+            if tdi_result and tri_result:
+                return tdi_result, tri_result
 
 
 @pytest.mark.usefixtures("set_af_context")
-def test_tracking_pass_through_nested_default(pandas_data_frame_on_disk):
+def test_tracking_pass_through_nested_default(
+    pandas_data_frame_on_disk, mock_channel_tracker
+):
     df, df_file = pandas_data_frame_on_disk
 
-    with mock.patch(COMPOSITE_TRACKING_STORE_INVOKE_REF) as mock_store:
-        # we'll pass string instead of defined expected DataFrame and it should work
-        task_result = task_pass_through_nested_default(
-            str(df_file), utcnow().isoformat(), expect_pass_through=True
-        )
-        assert task_result == str(df_file) + str(df_file)
+    # we'll pass string instead of defined expected DataFrame and it should work
+    task_result = task_pass_through_nested_default(
+        str(df_file), utcnow().isoformat(), expect_pass_through=True
+    )
+    assert task_result == str(df_file) + str(df_file)
 
-        _check_tracking_calls(
-            mock_store,
-            {
-                "init_run": 1,
-                "add_task_runs": 3,
-                "set_task_run_state": 6,
-                "log_metrics": 1,
-                "log_target": 2,
-                "save_task_run_log": 2,
-            },
-        )
+    _check_tracking_calls(
+        mock_channel_tracker,
+        {
+            "init_run": 1,
+            "add_task_runs": 3,
+            "update_task_run_attempts": 6,
+            "log_metrics": 1,
+            "log_targets": 2,
+            "save_task_run_log": 2,
+        },
+    )
 
-        # this should happen on process exit in normal circumstances
-        dbnd_run_stop()
+    # this should happen on process exit in normal circumstances
+    dbnd_run_stop()
 
-        _check_tracking_calls(
-            mock_store,
-            {
-                "init_run": 1,
-                "add_task_runs": 3,
-                "set_task_run_state": 8,
-                "log_metrics": 1,
-                "log_target": 2,
-                "set_run_state": 1,
-                "save_task_run_log": 4,
-            },
-        )
+    _check_tracking_calls(
+        mock_channel_tracker,
+        {
+            "init_run": 1,
+            "add_task_runs": 3,
+            "update_task_run_attempts": 8,
+            "log_metrics": 1,
+            "log_targets": 2,
+            "set_run_state": 1,
+            "save_task_run_log": 4,
+        },
+    )
 
 
 @pytest.mark.usefixtures("set_af_context")
-def test_tracking_user_exception():
-    with mock.patch(COMPOSITE_TRACKING_STORE_INVOKE_REF) as mock_store:
-        # we'll pass string instead of defined expected DataFrame and it should work
-        with pytest.raises(ZeroDivisionError):
-            task_pass_through_exception()
+def test_tracking_user_exception(mock_channel_tracker):
+    # we'll pass string instead of defined expected DataFrame and it should work
+    with pytest.raises(ZeroDivisionError):
+        task_pass_through_exception()
 
-        _check_tracking_calls(
-            mock_store,
-            {
-                "init_run": 1,
-                "add_task_runs": 2,
-                "set_task_run_state": 4,
-                "save_task_run_log": 1,
-            },
-        )
+    _check_tracking_calls(
+        mock_channel_tracker,
+        {
+            "init_run": 1,
+            "add_task_runs": 2,
+            "update_task_run_attempts": 4,
+            "save_task_run_log": 1,
+        },
+    )
 
-        # this should happen on process exit in normal circumstances
-        dbnd_run_stop()
+    # this should happen on process exit in normal circumstances
+    dbnd_run_stop()
 
-        _check_tracking_calls(
-            mock_store,
-            {
-                "init_run": 1,
-                "add_task_runs": 2,
-                "set_task_run_state": 6,
-                "set_run_state": 1,
-                "save_task_run_log": 3,
-            },
-        )
+    _check_tracking_calls(
+        mock_channel_tracker,
+        {
+            "init_run": 1,
+            "add_task_runs": 2,
+            "update_task_run_attempts": 6,
+            "set_run_state": 1,
+            "save_task_run_log": 3,
+        },
+    )
 
-        set_task_run_state_chain = [
-            call.args[1]["state"]
-            for call in mock_store.call_args_list
-            if call.args[0] == "set_task_run_state"
-        ]
-        assert [
-            TaskRunState.RUNNING,  # driver
-            TaskRunState.RUNNING,  # DAG
-            TaskRunState.RUNNING,  # task
-            TaskRunState.FAILED,  # task
-            TaskRunState.UPSTREAM_FAILED,  # DAG
-            TaskRunState.SUCCESS,  # driver
-        ] == set_task_run_state_chain
+    update_task_run_attempts_chain = [
+        call.kwargs["task_run_attempt_updates"][0].state
+        for call in mock_channel_tracker.call_args_list
+        if call.args[0].__name__ == "update_task_run_attempts"
+    ]
+    assert [
+        TaskRunState.RUNNING,  # driver
+        TaskRunState.RUNNING,  # DAG
+        TaskRunState.RUNNING,  # task
+        TaskRunState.FAILED,  # task
+        TaskRunState.UPSTREAM_FAILED,  # DAG
+        TaskRunState.SUCCESS,  # driver
+    ] == update_task_run_attempts_chain
 
-        set_run_state_chain = [
-            call.args[1]["state"]
-            for call in mock_store.call_args_list
-            if call.args[0] == "set_run_state"
-        ]
-        assert [RunState.FAILED] == set_run_state_chain
+    set_run_state_chain = [
+        call.kwargs["state"]
+        for call in mock_channel_tracker.call_args_list
+        if call.args[0].__name__ == "set_run_state"
+    ]
+    assert [RunState.FAILED] == set_run_state_chain
 
 
 @pytest.mark.usefixtures("set_af_context")
@@ -273,37 +324,60 @@ def test_task_in_conf():
         assert param2 == "param2_value"
 
 
-def test_dbnd_pass_through_default(pandas_data_frame_on_disk):
+def test_dbnd_pass_through_default(pandas_data_frame_on_disk, mock_channel_tracker):
     df, df_file = pandas_data_frame_on_disk
+    some_date = utcnow().isoformat()
     r = task_pass_through_default.dbnd_run(
-        str(df_file), utcnow().isoformat(), expect_pass_through=False
+        str(df_file), some_date, expect_pass_through=False
     )
     assert r.root_task.result.read() == str(df)
 
+    _check_tracking_calls(
+        mock_channel_tracker,
+        {
+            "init_run": 1,
+            "add_task_runs": 1,
+            "update_task_run_attempts": 4,  # DAG start, driver start, task start, task finished
+            "log_metrics": 3,
+            "log_targets": 2,  # read input "data" dataframe, write result
+            "save_task_run_log": 2,  # task, driver
+            "set_run_state": 2,  # running, success
+        },
+    )
 
-def test_dbnd_excetion():
-    with mock.patch(COMPOSITE_TRACKING_STORE_INVOKE_REF) as mock_store:
-        # we'll pass string instead of defined expected DataFrame and it should work
-        with pytest.raises(DatabandRunError):
-            task_pass_through_exception.dbnd_run()
+    _assert_tracked_params(
+        mock_channel_tracker,
+        task_pass_through_default,
+        data=str(
+            df_file
+        ),  # param value is file path, the DF value will be logged as log_targets
+        dt=some_date.replace("+00:00", "").replace(":", ""),
+        expect_pass_through=False,
+    )
 
-        _check_tracking_calls(
-            mock_store,
-            Counter(
-                {
-                    "init_run": 1,
-                    "set_run_state": 2,
-                    "set_task_run_state": 4,
-                    "add_task_runs": 1,
-                    "save_task_run_log": 2,
-                    "set_unfinished_tasks_state": 1,
-                }
-            ),
-        )
+
+def test_dbnd_exception(mock_channel_tracker):
+    # we'll pass string instead of defined expected DataFrame and it should work
+    with pytest.raises(DatabandRunError):
+        task_pass_through_exception.dbnd_run()
+
+    _check_tracking_calls(
+        mock_channel_tracker,
+        Counter(
+            {
+                "init_run": 1,
+                "set_run_state": 2,
+                "update_task_run_attempts": 4,
+                "add_task_runs": 1,
+                "save_task_run_log": 2,
+                "set_unfinished_tasks_state": 1,
+            }
+        ),
+    )
 
 
 @pytest.mark.usefixtures("set_af_context")
-def test_tracking_limit():
+def test_tracking_limit(mock_channel_tracker):
     @task
     def inc_task(x):
         return x + 1
@@ -311,14 +385,17 @@ def test_tracking_limit():
     max_calls_allowed = get_max_calls_per_func()
     extra_func_calls = 10
 
-    with mock.patch(COMPOSITE_TRACKING_STORE_INVOKE_REF) as mock_store:
-        n = 0
-        for i in range(max_calls_allowed + extra_func_calls):
-            n = inc_task(n)
+    n = 0
+    for i in range(max_calls_allowed + extra_func_calls):
+        n = inc_task(n)
 
-        # ensure that function was actually invoked all the times (max_calls_allowed + extra_func_calls)
-        assert max_calls_allowed + extra_func_calls == n
+    # ensure that function was actually invoked all the times (max_calls_allowed + extra_func_calls)
+    assert max_calls_allowed + extra_func_calls == n
 
-        # check that there was only max_calls_allowed "tracked" calls
-        track_call = [x for x in mock_store.call_args_list if x.args[0] == "log_target"]
-        assert max_calls_allowed == len(track_call)
+    # check that there was only max_calls_allowed "tracked" calls
+    track_call = [
+        x
+        for x in mock_channel_tracker.call_args_list
+        if x.args[0].__name__ == "log_targets"
+    ]
+    assert max_calls_allowed == len(track_call)

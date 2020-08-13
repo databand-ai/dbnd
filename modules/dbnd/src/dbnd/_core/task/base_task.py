@@ -75,6 +75,7 @@ class _BaseTask(object):
     # execution
     # will be used by Registry
     task_definition = None  # type: TaskDefinition
+    is_tracking_mode = False  # type: bool
 
     # user can override this with his configuration
     defaults = None  # type: Dict[ParameterDefinition, any()]
@@ -98,7 +99,7 @@ class _BaseTask(object):
         self.task_meta = kwargs["task_meta"]  # type: TaskMeta
         self._params = TaskParameters(self)
 
-        for p_value in self.task_meta.task_params:
+        for p_value in self.task_meta.class_task_params:
             setattr(self, p_value.name, p_value.value)
 
         self._task_auto_read_current = None
@@ -205,7 +206,9 @@ class _BaseTask(object):
             cls = self.__class__
         output_params_to_clone = output_params_to_clone or []
         new_k = {}
-        for param_name, param_class in six.iteritems(cls.task_definition.task_params):
+        for param_name, param_class in six.iteritems(
+            cls.task_definition.all_task_params
+        ):
             if param_class.is_output() and param_name not in output_params_to_clone:
                 continue
             if param_name in kwargs:
@@ -242,4 +245,4 @@ class _BaseTask(object):
         return
 
     def simple_params_dict(self):
-        return {k: p.value for k, p in self._params._param_meta_map.items()}
+        return {p.name: p.value for p in self._params.task_meta.class_task_params}
