@@ -25,17 +25,11 @@ import sys
 
 import argcomplete
 
-from airflow import settings as airflow_settings
-
-from dbnd._core.utils.timeout import wait_until
-
 
 # DO NOT IMPORT ANYTHING FROM AIRFLOW
 # we need to initialize some config values first
 from dbnd import dbnd_config  # isort:skip
 from dbnd._core.context.bootstrap import dbnd_system_bootstrap  # isort:skip
-
-logger = logging.getLogger(__name__)
 
 
 def subprocess_airflow(args):
@@ -74,29 +68,6 @@ def subprocess_airflow_initdb():
     return subprocess_airflow(args=["initdb"])
 
 
-def wait_for_airflow_db(args):
-    logger.info(
-        "Waiting {} seconds for Airflow DB to become ready:".format(args.timeout)
-    )
-
-    check_alive_query = "SELECT now();"
-    if repr(airflow_settings.engine.url).startswith("sqlite:///"):
-        check_alive_query = "SELECT date();"
-
-    def is_db_ready():
-        try:
-            airflow_settings.engine.execute(check_alive_query)
-            return True
-        except Exception as exc:
-            return False
-
-    is_ready = wait_until(is_db_ready, args.timeout)
-    if not is_ready:
-        logger.error("Airflow DB is not ready after {} seconds.".format(args.timeout))
-        sys.exit(1)
-    logger.info("Airflow DB is ready.")
-
-
 def main(args=None):
     # from dbnd._core.log.config import configure_basic_logging
     # configure_basic_logging(None)
@@ -121,13 +92,6 @@ def main(args=None):
         os.environ["KRB5_KTNAME"] = conf.get("kerberos", "keytab")
 
     parser = CLIFactory.get_parser()
-    initdb_parser = parser._subparsers._group_actions[0]._name_parser_map["initdb"]
-    initdb_parser.add_argument(
-        "--wait", action="store_true", help="Wait airflow DB to become available",
-    )
-    initdb_parser.add_argument(
-        "--timeout", default=120, type=int, help="Timeout for waiting airflow DB",
-    )
     argcomplete.autocomplete(parser)
     args = parser.parse_args(args=args)
     func_name = args.func.__name__
@@ -142,9 +106,6 @@ def main(args=None):
         "webserver"
     ]:
         setup_versioned_dags()
-
-    if args.subcommand == "initdb" and args.wait:
-        wait_for_airflow_db(args)
 
     args.func(args)
 
