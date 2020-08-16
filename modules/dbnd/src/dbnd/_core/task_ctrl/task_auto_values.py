@@ -126,7 +126,7 @@ class TaskAutoParamsReadWrite(object):
         finally:
             if task_run:
                 try:
-                    task_run.tracker.log_target(
+                    task_run.tracker.log_parameter_data(
                         parameter=parameter,
                         target=original_value,
                         value=current_value,

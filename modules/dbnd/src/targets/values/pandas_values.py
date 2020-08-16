@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+import json
 import logging
 import os
+import time
 
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
@@ -58,8 +60,8 @@ class DataFrameValueType(DataValueType):
             for col, type_ in df.dtypes.items()
         }
 
-    def get_value_meta(self, value, meta_conf, histogram_spec=None):
-        # type: (pd.DataFrame, ValueMetaConf, Optional[HistogramSpec]) -> ValueMeta
+    def get_value_meta(self, value, meta_conf):
+        # type: (pd.DataFrame, ValueMetaConf) -> ValueMeta
         data_schema = {}
         if meta_conf.log_schema:
             data_schema.update(
@@ -81,9 +83,10 @@ class DataFrameValueType(DataValueType):
             )
             data_hash = fast_hasher.hash(hash_pandas_object(value, index=True).values)
 
-        df_stats, histograms = None, None
-        if meta_conf.log_df_hist:
-            df_stats, histograms = self.get_histograms(value, histogram_spec)
+        start_time = time.time()
+        df_stats, histograms = self.get_histograms(value, meta_conf)
+        end_time = time.time()
+        hist_calc_duration = end_time - start_time
 
         return ValueMeta(
             value_preview=value_preview,
@@ -92,11 +95,12 @@ class DataFrameValueType(DataValueType):
             data_hash=data_hash,
             descriptive_stats=df_stats,
             histograms=histograms,
+            histograms_calc_duration=hist_calc_duration,
         )
 
-    @classmethod
-    def get_histograms(cls, df, histogram_spec):
-        # type: (pd.DataFrame, HistogramSpec) -> Tuple[Dict[Dict[str, Any]], Dict[str, Tuple]]
+    def get_histograms(self, df, meta_conf):
+        # type: (pd.DataFrame, ValueMetaConf) -> Tuple[Dict[Dict[str, Any]], Dict[str, Tuple]]
+        histogram_spec = meta_conf.get_histogram_spec(self, df)
         if histogram_spec.none:
             return {}, {}
 
@@ -105,11 +109,11 @@ class DataFrameValueType(DataValueType):
             return {}, {}
 
         if histogram_spec.only_stats:
-            return cls._calculate_stats(df), {}
+            return self._calculate_stats(df), {}
 
         # TODO: df.describe(include="all") .to_dict() returns pandas dtypes which are not JSON serializable
         histograms = df.apply(
-            cls._calculate_histograms, args=(cls._calculate_stats(df), df)
+            self._calculate_histograms, args=(self._calculate_stats(df), df)
         )
         hist_dict, stats_dict = {}, {}
         for column, hist_stats in histograms.to_dict().items():
@@ -119,10 +123,11 @@ class DataFrameValueType(DataValueType):
                 stats_dict[column] = stats
         return stats_dict, hist_dict
 
-    @staticmethod
-    def _calculate_stats(df):
+    def _calculate_stats(self, df):
         # type: (pd.DataFrame) -> Dict[str, Dict]
-        stats = df.describe().to_dict()
+        stats = df.describe(include="all").to_json()
+        stats = json.loads(stats)
+        stats = self._remove_none_values(stats)
         for col in stats.keys():
             stats[col]["null-count"] = np.count_nonzero(pd.isnull(df[col]))
             stats[col]["non-null"] = df[col].size - stats[col]["null-count"]
@@ -130,8 +135,16 @@ class DataFrameValueType(DataValueType):
             stats[col]["type"] = df[col].dtype.name
         return stats
 
-    @staticmethod
-    def _calculate_histograms(df_column, df_stats, df):
+    def _remove_none_values(self, input_dict):
+        """ remove none values from dict recursively """
+        for key, value in list(input_dict.items()):
+            if value is None:
+                input_dict.pop(key)
+            elif isinstance(value, dict):
+                self._remove_none_values(value)
+        return input_dict
+
+    def _calculate_histograms(self, df_column, df_stats, df):
         # type: (pd.Series, Dict, pd.DataFrame) -> Optional[Tuple[List, List, Mapping]]
         column_stats = df_stats.get(df_column.name, None)  # type: Dict
         if column_stats is None:
@@ -142,6 +155,10 @@ class DataFrameValueType(DataValueType):
             df_type = df[df_column.name]
             column_stats["type"] = df_type.dtype.name
             if is_bool_dtype(df_type) or is_string_dtype(df_type):
+                # it's random for strings and booleans
+                if "top" in column_stats:
+                    column_stats.pop("top")
+
                 column_stats["count"] = int(column_stats["count"])
                 column_stats["freq"] = int(column_stats["freq"])
 

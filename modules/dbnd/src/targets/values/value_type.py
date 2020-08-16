@@ -309,8 +309,8 @@ class ValueType(object):
     def with_sub_type_handler(self, type_handler):
         return self
 
-    def get_value_meta(self, value, meta_conf, histogram_spec=None):
-        # type: (Any,  ValueMetaConf, Optional[HistogramSpec]) -> ValueMeta
+    def get_value_meta(self, value, meta_conf):
+        # type: (Any,  ValueMetaConf) -> ValueMeta
 
         if meta_conf.log_preview:
             preview = self.to_preview(value, preview_size=meta_conf.get_preview_size())
@@ -326,7 +326,7 @@ class ValueType(object):
             data_dimensions=None,
             data_schema=data_schema,
             data_hash=data_hash,
-            histogram_spec=histogram_spec,
+            histogram_spec=meta_conf.get_histogram_spec(self, value),
         )
 
     def support_fast_count(self, target):

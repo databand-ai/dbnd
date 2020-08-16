@@ -290,7 +290,7 @@ def _log_parameter_value(task_run, parameter_definition, target, value):
         )
 
     try:
-        task_run.tracker.log_target(
+        task_run.tracker.log_parameter_data(
             parameter=task_run.task.task_definition.task_class.result,
             target=target,
             value=value,
