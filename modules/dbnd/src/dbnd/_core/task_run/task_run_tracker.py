@@ -64,7 +64,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
             histogram_spec = HistogramSpec.build_spec(
-                value_type, value, HistogramRequest.NONE()
+                value_type, value, HistogramRequest.DEFAULT()
             )
             target_meta = value_type.get_value_meta(value, meta_conf, histogram_spec)
             target.target_meta = target_meta  # Do we actually need this?
