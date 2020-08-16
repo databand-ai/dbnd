@@ -66,8 +66,8 @@ class _LivySparkCtrl(SparkCtrl):
         )
         data = {k: v for k, v in six.iteritems(data) if v is not None}
         livy_endpoint = self.get_livy_endpoint()
+        self.task_run.set_external_resource_urls({"Livy url": livy_endpoint.url})
         logger.info("Connecting to: %s", livy_endpoint)
-
         livy = LivyBatchClient.from_endpoint(livy_endpoint)
         batch = livy.post_batch(data)
         livy.track_batch_progress(
