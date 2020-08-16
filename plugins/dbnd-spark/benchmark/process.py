@@ -32,19 +32,18 @@ def dedup_records(
 ) -> Tuple[DataFrame, tuple]:
     data = data.dropDuplicates(key_columns)
 
-    log_data = data
     if sampling_type is not None:
         if sampling_type == 'random':
-            log_data = log_data.sample(False, sampling_fraction)
+            data = data.sample(False, sampling_fraction)
         if sampling_type == 'first':
-            log_data = log_data.limit(int(log_data.count() * sampling_fraction))
+            data = data.limit(int(data.count() * sampling_fraction))
 
-    inputs_shape = (log_data.count(), len(log_data.columns))
+    inputs_shape = (data.count(), len(data.columns))
 
     if to_pandas:
-        log_data = log_data.toPandas()
-
-    log_dataframe("data", log_data, with_histograms=with_histograms)
+        log_dataframe("data", data.toPandas(), with_histograms=with_histograms)
+    else:
+        log_dataframe("data", data, with_histograms=with_histograms)
 
     return data, inputs_shape
 
@@ -87,7 +86,6 @@ def process_customer_data(
             .appName(app_name)
             .master("yarn")
             .config("spark.submit.deployMode", "client")
-            .config("spark.executor.memory", "4g")
             .config("spark.driver.memory", "10g")
             .getOrCreate()
     )
