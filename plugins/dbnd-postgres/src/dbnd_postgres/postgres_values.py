@@ -46,12 +46,15 @@ class PostgresTableValueType(DataValueType):
             for column, pg_type in pg_types.items()
         }
 
-    def get_value_meta(self, value, meta_conf, histogram_spec=None):
-        # type: (PostgresTable, ValueMetaConf, Optional[HistogramSpec]) -> ValueMeta
+    def get_value_meta(self, value, meta_conf):
+        # type: (PostgresTable, ValueMetaConf) -> ValueMeta
         stats, histograms, data_schema, data_preview, column_name_to_type = [None] * 5
 
         with PostgresController(value.connection_string, value.table_name) as postgres:
-            if meta_conf.log_df_hist:
+            if meta_conf.log_histograms:
+                histogram_spec = meta_conf.get_histogram_spec(
+                    self, PostgresTable(postgres.table_name, postgres.connection_string)
+                )
                 stats, histograms = postgres.get_histograms_and_stats(histogram_spec)
             if meta_conf.log_preview:
                 data_preview = postgres.to_preview()
@@ -109,6 +112,7 @@ class PostgresController:
 
     def get_histograms_and_stats(self, histogram_spec):
         # type: (HistogramSpec) -> Tuple[Dict, Dict]
+
         if histogram_spec.none:
             return {}, {}
 

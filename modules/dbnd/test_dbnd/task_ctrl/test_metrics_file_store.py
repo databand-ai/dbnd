@@ -54,10 +54,7 @@ class TestFileMetricsStore(object):
             return_value=ValueMetaConf.enabled()
         )
         tr_tracker.log_data(
-            "df",
-            pandas_data_frame,
-            meta_conf=ValueMetaConf.enabled(),
-            histogram_request=HistogramRequest.ALL(),
+            "df", pandas_data_frame, meta_conf=ValueMetaConf.enabled(),
         )
 
         hist_metrics = TaskRunMetricsFileStoreReader(
@@ -76,6 +73,7 @@ class TestFileMetricsStore(object):
         # std value varies in different py versions due to float precision fluctuation
         df_births_std = hist_metrics["df.Births.std"]
         assert df_births_std == pytest.approx(428.4246)
+        hist_metrics["df.histograms"].pop("Names")
         assert hist_metrics == {
             "df.Births.type": "int64",
             "df.Births.25%": 155.0,
@@ -89,8 +87,23 @@ class TestFileMetricsStore(object):
             "df.Births.min": 77.0,
             "df.Births.non-null": 5,
             "df.Births.null-count": 0,
+            "df.Married.count": 5,
+            "df.Married.distinct": 2,
+            "df.Married.freq": 3,
+            "df.Married.non-null": 5,
+            "df.Married.null-count": 0,
+            "df.Married.type": "bool",
+            "df.Married.unique": 2,
+            "df.Names.count": 5,
+            "df.Names.distinct": 5,
+            "df.Names.freq": 1,
+            "df.Names.non-null": 5,
+            "df.Names.null-count": 0,
+            "df.Names.type": "object",
+            "df.Names.unique": 5,
             "df.histograms": {
-                "Births": [[2, 0, 1, 2], [77.0, 301.0, 525.0, 749.0, 973.0]]
+                "Births": [[2, 0, 1, 2], [77.0, 301.0, 525.0, 749.0, 973.0]],
+                "Married": [[3, 2], [True, False]],
             },
             "df.preview": expected_preview,
             "df.schema": {
@@ -117,6 +130,24 @@ class TestFileMetricsStore(object):
                     "non-null": 5,
                     "null-count": 0,
                     "std": df_births_std,
-                }
+                },
+                "Married": {
+                    "count": 5,
+                    "distinct": 2,
+                    "freq": 3,
+                    "non-null": 5,
+                    "null-count": 0,
+                    "type": "bool",
+                    "unique": 2,
+                },
+                "Names": {
+                    "count": 5,
+                    "distinct": 5,
+                    "freq": 1,
+                    "non-null": 5,
+                    "null-count": 0,
+                    "type": "object",
+                    "unique": 5,
+                },
             },
         }

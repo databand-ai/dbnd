@@ -25,7 +25,7 @@ class ValueMeta(object):
 
 @attr.s
 class ValueMetaConf(object):
-    log_df_hist = attr.ib(
+    log_histograms = attr.ib(
         default=False
     )  # type: Optional[Union[HistogramRequest, bool]]
     log_preview = attr.ib(default=None)  # type: Optional[bool]
@@ -44,5 +44,8 @@ class ValueMetaConf(object):
             log_preview=True,
             log_schema=True,
             log_stats=log_stats,
-            log_df_hist=True,
+            log_histograms=True,
         )
+
+    def get_histogram_spec(self, value_type, value):
+        return HistogramSpec.build_spec(value_type, value, self.log_histograms)

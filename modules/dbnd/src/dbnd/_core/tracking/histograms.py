@@ -35,6 +35,8 @@ class HistogramSpec(object):
         data,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable]
         histogram_request,  # type: HistogramRequest
     ):  # type: (...) -> HistogramSpec
+        histogram_request = HistogramRequest.from_with_histograms(histogram_request)
+
         if histogram_request.none:
             return cls(none=True)
 

@@ -252,7 +252,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
             try:
                 runtime_value = self.load_from_target(value)
                 if self.is_input():
-                    self._log_target_on_read(runtime_value, value, task)
+                    self._log_parameter_value(runtime_value, value, task)
                 return runtime_value
             except Exception as ex:
                 raise friendly_error.failed_to_read_target_as_task_input(
@@ -269,7 +269,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
                     runtime_val = self.value_type.sub_value_type.load_runtime(val)
                     if self.is_input() and isinstance(val, Target):
                         # Optimisation opportunity: log all targets in a single call
-                        self._log_target_on_read(runtime_val, val, task)
+                        self._log_parameter_value(runtime_val, val, task)
 
                     return runtime_val
 
@@ -343,9 +343,9 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         # we need updated target
         self._store_value_origin_target(value, target)
 
-    def _log_target_on_read(self, runtime_value, value, task):
+    def _log_parameter_value(self, runtime_value, value, task):
         if try_get_databand_run() and task.current_task_run:
-            task.current_task_run.tracker.log_target(
+            task.current_task_run.tracker.log_parameter_data(
                 parameter=self,
                 target=value,
                 value=runtime_value,

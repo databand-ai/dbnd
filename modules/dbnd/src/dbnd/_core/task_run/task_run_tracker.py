@@ -1,6 +1,8 @@
 import logging
 import typing
 
+import attr
+
 from dbnd._core.constants import (
     DbndTargetOperationStatus,
     DbndTargetOperationType,
@@ -52,8 +54,13 @@ class TaskRunTracker(TaskRunCtrl):
             task_run=self.task_run, log_body=log_preview
         )
 
-    def log_target(self, parameter, target, value, operation_type, operation_status):
+    def log_parameter_data(
+        self, parameter, target, value, operation_type, operation_status
+    ):
         # type: (TaskRunTracker, ParameterDefinition, Target, Any, DbndTargetOperationType, DbndTargetOperationStatus) -> None
+        """
+        Logs parameter data
+        """
         features_conf = self.settings.features
         if not features_conf.log_value_meta:
             return
@@ -63,10 +70,7 @@ class TaskRunTracker(TaskRunCtrl):
                 parameter.value_meta_conf, value_type=value_type, target=target
             )
 
-            histogram_spec = HistogramSpec.build_spec(
-                value_type, value, HistogramRequest.DEFAULT()
-            )
-            target_meta = value_type.get_value_meta(value, meta_conf, histogram_spec)
+            target_meta = value_type.get_value_meta(value, meta_conf)
             target.target_meta = target_meta  # Do we actually need this?
             self.tracking_store.log_target(
                 task_run=self.task_run,
@@ -121,18 +125,34 @@ class TaskRunTracker(TaskRunCtrl):
             )
 
     def log_data(
-        self, key, data, meta_conf, histogram_request=HistogramRequest(none=True)
-    ):  # type: (str, Union[pd.DataFrame, spark.DataFrame, PostgresTable], ValueMetaConf, HistogramRequest) -> None
+        self,
+        key,
+        data,
+        meta_conf,
+        path=None,
+        operation_type=DbndTargetOperationType.read,
+        operation_status=DbndTargetOperationStatus.OK,
+    ):  # type: (str, Union[pd.DataFrame, spark.DataFrame, PostgresTable], ValueMetaConf, Union[Target,str], DbndTargetOperationType, DbndTargetOperationStatus) -> None
         try:
             # Combine meta_conf with the config settings
             meta_conf = self.settings.features.get_value_meta_conf(meta_conf)
-            value_meta = get_value_meta_for_metric(
-                key, data, meta_conf=meta_conf, histogram_request=histogram_request
-            )
+            value_meta = get_value_meta_for_metric(key, data, meta_conf=meta_conf)
             if not value_meta:
                 return
 
             ts = utcnow()
+
+            if path:
+                target_meta = attr.evolve(
+                    value_meta, descriptive_stats=None, histograms=None
+                )
+                self.tracking_store.log_target(
+                    task_run=self.task_run,
+                    target=path,
+                    target_meta=target_meta,
+                    operation_type=operation_type,
+                    operation_status=operation_status,
+                )
             data_metrics = []
             dataframe_metric_value = {}
 
@@ -171,7 +191,7 @@ class TaskRunTracker(TaskRunCtrl):
                     )
                 )
 
-            if meta_conf.log_df_hist:
+            if meta_conf.log_histograms:
                 self.tracking_store.log_histograms(
                     task_run=self.task_run,
                     key=key,
@@ -201,18 +221,13 @@ def get_value_meta_for_metric(
         )
         return None
     try:
-        histogram_spec = HistogramSpec.build_spec(value_type, value, histogram_request)
-        return value_type.get_value_meta(
-            value, meta_conf=meta_conf, histogram_spec=histogram_spec
-        )
+        return value_type.get_value_meta(value, meta_conf=meta_conf)
 
     except Exception as ex:
-        logger.info(
+        log_exception(
             "Failed to get value meta info for '%s' with type='%s'"
-            " ( detected as %s): %s",
-            key,
-            type(value),
-            value_type,
+            " ( detected as %s)" % (key, type(value), value_type,),
             ex,
+            non_critical=True,
         )
     return None

@@ -37,66 +37,30 @@ def _get_tracker():
 
 def log_data(
     key,  # type: str
-    value,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable]
+    value=None,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable]
     path=None,  # type: Optional[str]
-    access_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType
+    operation_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType
     with_preview=True,  # type: Optional[bool]
     with_size=True,  # type: Optional[bool]
     with_schema=True,  # type: Optional[bool]
     with_stats=False,  # type: Optional[bool]
     with_histograms=HistogramRequest.NONE(),  # type: Optional[Union[bool, str, List[str], HistogramRequest]]
 ):  # type: (...) -> None
+    tracker = _get_tracker()
+    if not tracker:
+        return
 
     meta_conf = ValueMetaConf(
         log_preview=with_preview,
         log_schema=with_schema,
         log_size=with_size,
         log_stats=with_stats,
-        log_df_hist=with_histograms,
+        log_histograms=with_histograms,
     )
-    tracker = _get_tracker()
-    histogram_request = HistogramRequest.from_with_histograms(with_histograms)
 
-    if path:
-        log_target(value, path, access_type, meta_conf, histogram_request)
-
-    if tracker:
-        tracker.log_data(
-            key, value, meta_conf=meta_conf, histogram_request=histogram_request
-        )
-        return
-
-    from dbnd._core.task_run.task_run_tracker import get_value_meta_for_metric
-
-    value_type = get_value_meta_for_metric(key, value, meta_conf, histogram_request)
-    if value_type:
-        logger.info("Log data '{}': shape='{}'".format(key, value_type.data_dimensions))
-    else:
-        logger.info("Log data '{}': {} is not supported".format(key, type(value)))
-
-
-def log_target(
-    value,  # type: Any
-    path,  # type: str
-    access_type=DbndTargetOperationType.write,  # type: DbndTargetOperationType
-    meta_conf=None,  # type: Optional[ValueMetaConf]
-    histogram_request=HistogramRequest.NONE(),  # type: HistogramRequest
-):  # type: (...) -> None
-    tracker = _get_tracker()
-    if tracker:
-        if meta_conf:
-            value_meta = get_value_meta_for_metric(
-                path, value, meta_conf, histogram_request
-            )
-        else:
-            value_meta = ValueMeta(value_preview="<N/A>")
-        tracker.tracking_store.log_target(
-            task_run=tracker.task_run,
-            target=path,
-            target_meta=value_meta,
-            operation_type=access_type,
-            operation_status=DbndTargetOperationStatus.OK,
-        )
+    tracker.log_data(
+        key, value, meta_conf=meta_conf, path=path, operation_type=operation_type
+    )
 
 
 log_dataframe = log_data

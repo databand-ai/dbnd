@@ -1,6 +1,5 @@
 from pandas.core.util.hashing import hash_pandas_object
 
-from dbnd._core.tracking.histograms import HistogramSpec
 from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
 from targets.value_meta import ValueMeta, ValueMetaConf
@@ -36,9 +35,7 @@ class TestDataFrameValueType(object):
         )
 
         df_value_meta = DataFrameValueType().get_value_meta(
-            pandas_data_frame,
-            meta_conf=meta_conf,
-            histogram_spec=HistogramSpec(columns=set(pandas_data_frame.columns)),
+            pandas_data_frame, meta_conf=meta_conf
         )
 
         assert df_value_meta.value_preview == expected_value_meta.value_preview
@@ -47,6 +44,20 @@ class TestDataFrameValueType(object):
             expected_value_meta.data_schema
         )
         assert df_value_meta.data_dimensions == expected_value_meta.data_dimensions
+
+        std = df_value_meta.descriptive_stats["Births"].pop("std")
+        expected_std = expected_value_meta.descriptive_stats["Births"].pop("std")
+        assert round(std, 2) == expected_std
         assert df_value_meta.descriptive_stats == expected_value_meta.descriptive_stats
+
+        counts, values = df_value_meta.histograms.pop("Names")
+        expected_counts, expected_values = expected_value_meta.histograms.pop("Names")
+        assert counts == expected_counts
+        assert set(values) == set(expected_values)  # order changes in each run
         assert df_value_meta.histograms == expected_value_meta.histograms
+
+        assert isinstance(df_value_meta.histograms_calc_duration, float)
+        expected_value_meta.histograms_calc_duration = (
+            df_value_meta.histograms_calc_duration
+        )
         assert df_value_meta == expected_value_meta

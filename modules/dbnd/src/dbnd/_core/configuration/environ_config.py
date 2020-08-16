@@ -197,7 +197,8 @@ class DbndProjectConfig(object):
 
         context = try_get_databand_context()
         if context and getattr(context, "system_settings", None):
-            return context.system_settings.verbose
+            if context.system_settings.verbose:
+                return True
 
         return self._verbose
 

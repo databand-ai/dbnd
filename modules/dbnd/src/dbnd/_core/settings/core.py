@@ -234,9 +234,7 @@ class FeaturesConfig(Config):
         default=True, description="Calculate and log value meta "
     )[bool]
 
-    log_df_histograms = parameter(
-        default=True, description="Calculate and log DataFrames histograms"
-    )[bool]
+    log_histograms = parameter(default=True, description="Enable log_histogram")[bool]
 
     auto_disable_slow_size = parameter(
         default=True,
@@ -253,6 +251,7 @@ class FeaturesConfig(Config):
         if target and self.auto_disable_slow_size and log_value_size:
             log_value_size = value_type.support_fast_count(target)
 
+        log_histograms = False if not self.log_histograms else mc.log_histograms
         return ValueMetaConf(
             log_preview=mc.log_preview
             if mc.log_preview is not None
@@ -265,5 +264,5 @@ class FeaturesConfig(Config):
             else self.log_value_schema,
             log_size=mc.log_size if mc.log_size is not None else log_value_size,
             log_stats=mc.log_stats,
-            log_df_hist=bool(self.log_df_histograms and mc.log_df_hist),
+            log_histograms=log_histograms,
         )

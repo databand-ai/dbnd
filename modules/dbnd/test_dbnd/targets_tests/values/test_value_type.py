@@ -1,7 +1,6 @@
 import pytest
 
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values import InlineValueType, StrValueType, register_value_type
@@ -32,5 +31,6 @@ class TestValueType(object):
             data_dimensions=None,
             data_schema={"type": "str"},
             data_hash=fast_hasher.hash("foo"),
+            histogram_spec=str_value_meta.histogram_spec,
         )
         assert str_value_meta == expected_value_meta
