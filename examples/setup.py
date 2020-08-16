@@ -10,12 +10,12 @@ config = read_configuration(CFG_PATH)
 version = config["metadata"]["version"]
 INSTALL_REQUIRES = [
     # we are still installing 'databand' in dockers.. "dbnd==" + version,
-    "matplotlib",
-    "scikit-learn;python_version>='3.5'",
     "scikit-learn==0.20.3;python_version<'3.5'",  # The latest version which supports Python 2.7
+    "scikit-learn==0.23.2;python_version>='3.5'",
     "scipy==1.1.0",
-    "sklearn",
-    "matplotlib",
+    "sklearn==0.0",
+    "matplotlib==2.2.5;python_version<'3.5'",
+    "matplotlib==3.3.0;python_version>='3.5'",
 ]
 setup(
     name="dbnd-examples",
