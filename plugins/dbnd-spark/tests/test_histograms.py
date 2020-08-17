@@ -11,6 +11,7 @@ from dbnd._core.tracking.histograms import HistogramRequest, HistogramSpec
 from dbnd_spark.spark_targets import SparkDataFrameValueType
 from targets.value_meta import ValueMetaConf
 from targets.values import get_value_type_of_obj
+from targets.values.pandas_values import DataFrameValueType
 
 
 logger = logging.getLogger(__name__)
@@ -43,13 +44,9 @@ class TestHistograms:
         assert histogram[1] == [True, False, None]
 
         stats = stats["boolean_column"]
-        assert list(stats.keys()) == [
-            "type",
-            "distinct",
-            "null-count",
-            "non-null",
-            "count",
-        ]
+        assert set(stats.keys()) == set(
+            ["type", "distinct", "null-count", "non-null", "count",]
+        )
         assert stats["count"] == 60
         assert stats["non-null"] == 50
         assert stats["null-count"] == 10
@@ -63,6 +60,8 @@ class TestHistograms:
         df = spark_session.createDataFrame(numbers, ["numerical_column"])
 
         stats, histograms = SparkDataFrameValueType().get_histograms(df, meta_conf)
+        # pandas_df = df.toPandas()
+        # pandas_stats, pandas_histograms = DataFrameValueType().get_histograms(pandas_df, meta_conf)
 
         stats = stats["numerical_column"]
         assert list(stats.keys()) == [
@@ -106,13 +105,9 @@ class TestHistograms:
         assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!", None]
 
         stats = stats["string_column"]
-        assert list(stats.keys()) == [
-            "type",
-            "distinct",
-            "null-count",
-            "non-null",
-            "count",
-        ]
+        assert set(stats.keys()) == set(
+            ["type", "distinct", "null-count", "non-null", "count"]
+        )
         assert stats["count"] == 70
         assert stats["non-null"] == 65
         assert stats["null-count"] == 5

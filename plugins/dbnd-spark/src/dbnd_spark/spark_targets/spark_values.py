@@ -161,28 +161,16 @@ class SparkDataFrameValueType(DataValueType):
             simple_columns.append(column_def.name)
         return df.select(simple_columns)
 
+    def _count_in_summary(self, dataframe, column_name):
+        """ dataframe.summary() returns count only for numeric and string types, otherwise we need to calculate it our own """
+        column_field = [f for f in dataframe.schema.fields if f.name == column_name][0]
+        return isinstance(column_field.dataType, (NumericType, StringType))
+
     def _calculate_summary(self, df, meta_conf):
+        counts = self._query_counts(df, meta_conf)
         summary = df.summary().collect()
-        # non-null and distinct counts should be calculated in separate query, because summary doesn't includes it
-        if (
-            isinstance(meta_conf.log_histograms, HistogramRequest)
-            and meta_conf.log_histograms.approx_distinct_count
-        ):
-            count_distinct_function = approx_count_distinct
-        else:
-            count_distinct_function = countDistinct
-
-        expressions = (
-            [
-                count_distinct_function(col(c)).alias("%s_distinct" % c)
-                for c in df.columns
-            ]
-            + [count(when(isnull(c), c)).alias("%s_count_null" % c) for c in df.columns]
-            + [count(col(c)).alias("%s_count" % c) for c in df.columns]
-        )
-        counts = df.agg(*expressions).collect()[0]
-
         result = {column_name: {} for column_name in df.columns}
+
         for column_def in df.schema.fields:
             column_name = column_def.name
             if isinstance(column_def.dataType, NumericType):
@@ -190,17 +178,46 @@ class SparkDataFrameValueType(DataValueType):
                 for row in summary:
                     # zero cell contains summary metrics name
                     result[column_name][row[0]] = float(row[column_name])
-                # so frontend will be able to eat metric
                 result[column_name]["std"] = result[column_name]["stddev"]
+            elif isinstance(column_def.dataType, StringType):
+                count_row = [row for row in summary if row[0] == "count"][0]
+                result[column_name]["count"] = int(count_row[column_name])
+            else:
+                result[column_name]["count"] = counts["%s_count" % column_name]
+
             result[column_name]["type"] = column_def.dataType.jsonValue()
             result[column_name]["distinct"] = counts["%s_distinct" % column_name]
             result[column_name]["null-count"] = counts["%s_count_null" % column_name]
-            result[column_name]["non-null"] = counts["%s_count" % column_name]
             # count in summary calculates only non-null counts, so we have to summarize non-null and null
-            result[column_name]["count"] = (
-                result[column_name]["non-null"] + result[column_name]["null-count"]
-            )
+            result[column_name]["non-null"] = result[column_name]["count"]
+            result[column_name]["count"] += result[column_name]["null-count"]
         return result
+
+    def _query_counts(self, df, meta_conf):
+        """
+        non-null and distinct counts should be calculated in separate query, because summary doesn't includes it
+        """
+        if (
+            isinstance(meta_conf.log_histograms, HistogramRequest)
+            and meta_conf.log_histograms.approx_distinct_count
+        ):
+            count_distinct_function = approx_count_distinct
+        else:
+            count_distinct_function = countDistinct
+        expressions = (
+            [
+                count_distinct_function(col(c)).alias("%s_distinct" % c)
+                for c in df.columns
+            ]
+            + [count(when(isnull(c), c)).alias("%s_count_null" % c) for c in df.columns]
+            + [
+                count(col(c)).alias("%s_count" % c)
+                for c in df.columns
+                if not self._count_in_summary(df, c)
+            ]
+        )
+        counts = df.agg(*expressions).collect()[0]
+        return counts
 
     def _calculate_histograms(self, df, summary):
         # type: (spark.DataFrame, Dict) -> Dict
