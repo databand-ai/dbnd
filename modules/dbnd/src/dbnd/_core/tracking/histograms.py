@@ -90,6 +90,7 @@ class HistogramRequest(object):
     include_all_numeric = attr.ib(default=False)  # type: bool
     include_all_string = attr.ib(default=False)  # type: bool
     only_stats = attr.ib(default=False)  # type: bool
+    approx_distinct_count = attr.ib(default=False)  # type: bool
     none = attr.ib(default=False)  # type: bool
 
     # TODO: Make these helpers class properties

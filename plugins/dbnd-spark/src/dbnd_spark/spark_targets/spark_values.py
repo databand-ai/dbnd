@@ -8,7 +8,16 @@ from collections import defaultdict
 
 import pyspark.sql as spark
 
-from pyspark.sql.functions import col, count, countDistinct, desc, isnull, lit, when
+from pyspark.sql.functions import (
+    approx_count_distinct,
+    col,
+    count,
+    countDistinct,
+    desc,
+    isnull,
+    lit,
+    when,
+)
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
@@ -19,7 +28,11 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from dbnd._core.tracking.histograms import HistogramDataType, HistogramSpec
+from dbnd._core.tracking.histograms import (
+    HistogramDataType,
+    HistogramRequest,
+    HistogramSpec,
+)
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.builtins_values import DataValueType
 
@@ -124,7 +137,7 @@ class SparkDataFrameValueType(DataValueType):
 
             df = self._filter_complex_columns(df).select(list(histogram_spec.columns))
 
-            summary = self._calculate_summary(df)
+            summary = self._calculate_summary(df, meta_conf)
             if histogram_spec.only_stats:
                 return summary, {}
 
@@ -148,11 +161,22 @@ class SparkDataFrameValueType(DataValueType):
             simple_columns.append(column_def.name)
         return df.select(simple_columns)
 
-    def _calculate_summary(self, df):
+    def _calculate_summary(self, df, meta_conf):
         summary = df.summary().collect()
         # non-null and distinct counts should be calculated in separate query, because summary doesn't includes it
+        if (
+            isinstance(meta_conf.log_histograms, HistogramRequest)
+            and meta_conf.log_histograms.approx_distinct_count
+        ):
+            count_distinct_function = approx_count_distinct
+        else:
+            count_distinct_function = countDistinct
+
         expressions = (
-            [countDistinct(col(c)).alias("%s_distinct" % c) for c in df.columns]
+            [
+                count_distinct_function(col(c)).alias("%s_distinct" % c)
+                for c in df.columns
+            ]
             + [count(when(isnull(c), c)).alias("%s_count_null" % c) for c in df.columns]
             + [count(col(c)).alias("%s_count" % c) for c in df.columns]
         )
