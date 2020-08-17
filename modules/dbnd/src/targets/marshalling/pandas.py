@@ -61,6 +61,16 @@ def _is_default_index(df):
     return isinstance(df.index, RangeIndex) or df.index.name is None
 
 
+def _file_open_mode(target, mode="r"):
+    try:
+        mode = mode + "b" if target.config.is_binary else mode
+    except Exception as ex:
+        logger.warning("Could not calculate file open mode, returning %s. %s", mode, ex)
+        pass
+
+    return mode
+
+
 class _PandasMarshaller(Marshaller):
     type = pd.DataFrame
     support_directory_read = False
@@ -112,7 +122,8 @@ class _PandasMarshaller(Marshaller):
                 if self.support_direct_read(target):
                     df = self._pd_read(target.path, **read_kwargs)
                 else:
-                    with target.open("r") as fp:
+                    mode = _file_open_mode(target, "r")
+                    with target.open(mode) as fp:
                         df = self._pd_read(fp, **read_kwargs)
 
             except Exception as ex:
@@ -175,7 +186,8 @@ class _PandasMarshaller(Marshaller):
             if self.support_direct_write(target):
                 return self._pd_to(value, target.path, **to_kwargs)
             else:
-                with target.open("w") as fp:
+                mode = _file_open_mode(target, "w")
+                with target.open(mode) as fp:
                     return self._pd_to(value, fp, **to_kwargs)
         except Exception as ex:
             raise friendly_error.failed_to_write_pandas(ex, target)

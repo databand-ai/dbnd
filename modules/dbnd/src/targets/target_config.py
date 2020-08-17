@@ -39,6 +39,17 @@ class FileFormat(object):
     tfhistory = "tfhistory"
 
 
+BINARY_FORMATS = [
+    FileFormat.hdf5,
+    FileFormat.feather,
+    FileFormat.numpy,
+    FileFormat.excel,
+    FileFormat.parquet,
+    FileFormat.pickle,
+    FileFormat.tfmodel,
+]
+
+
 @attr.s(frozen=True, repr=True)
 class _FileExtensionMap(object):
     _ext_to_name = attr.ib(factory=dict)
@@ -117,6 +128,7 @@ class TargetConfig(object):
     meta_files = attr.ib(default=tuple())
 
     flag = attr.ib(default=True)
+    is_binary = attr.ib(default=False)
     target_factory = attr.ib(default=None)
     require_local_access = attr.ib(default=False)
 
@@ -124,7 +136,7 @@ class TargetConfig(object):
         return attr.evolve(self, compression=compression)
 
     def with_format(self, format):
-        return attr.evolve(self, format=format)
+        return attr.evolve(self, format=format, is_binary=format in BINARY_FORMATS)
 
     def with_meta_files(self, list_of_meta_files):
         return attr.evolve(self, meta_files=list_of_meta_files, folder=True)
