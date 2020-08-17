@@ -187,7 +187,7 @@ def run_ingest(data: PathStr, output_path: PathStr):
         result_df,
         path=output_path,
         with_histograms=True,
-        access_type=DbndTargetOperationType.write,
+        operation_type=DbndTargetOperationType.write,
     )
     result_df.write.csv(str(output_path), header=True)
     spark.stop()

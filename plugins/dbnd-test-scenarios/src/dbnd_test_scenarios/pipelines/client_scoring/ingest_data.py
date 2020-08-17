@@ -171,7 +171,7 @@ def run_clean_piis(input_path, output_path, pii_columns, target_date_str=None):
         data,
         path=input_path,
         with_histograms=True,
-        access_type=DbndTargetOperationType.read,
+        operation_type=DbndTargetOperationType.read,
     )
     clean_pii(data=data, pii_columns=pii_columns, target_date=target_date).to_csv(
         output_path, index=False
@@ -193,7 +193,7 @@ def run_create_report(input_path, output_path):
         data,
         path=input_path,
         with_histograms=True,
-        access_type=DbndTargetOperationType.write,
+        operation_type=DbndTargetOperationType.write,
     )
     create_report(data,).to_csv(output_path, index=False)
     return output_path
