@@ -1,6 +1,22 @@
 History
 =======
 
+DBND v.0.28.04
+
+New features:
+____________
+- #1186838986890801: Created @log_duration to measure and log execution time as a metric
+
+Improvements:
+_____________
+- #1186434551886169: Log pandas histogram calculation time as a metric
+
+Fixed issues:
+_____________
+
+
+
+
 
 DBND v.0.28.01
 
