@@ -10,10 +10,19 @@ ____________
 Improvements:
 _____________
 - #1186434551886169: Log pandas histogram calculation time as a metric
+- #1183936916078873: Display JSON path as well as content in preview
+- #1185884345508633: Add Livy url to external links
+- #1183936916078876: Retrieve Qubole traceback and exception when run fails
+- #1187615130069532: ci/cd deploy dbnd to quoble/emr from s3 bucket
+- #1184859956507691: airflow monitor: print proper error message on RBAC
 
 Fixed issues:
 _____________
 - #1178184224046201: Tracking is slowing down tasks when dbnd-web address is wrong
+- #1188853509921970: Add task-version now  to fat_wheel building task
+- #1188398439358980: Bring back loading of .dbnd/databand-test.cfg if exist
+- #1187836261701377: Fix kubernetes infinite loop on change_state -> delete_pod
+- #1188150247653234: support py-files with inline in all engines
 
 
 
