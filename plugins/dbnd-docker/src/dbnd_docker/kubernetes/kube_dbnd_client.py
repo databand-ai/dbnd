@@ -286,9 +286,9 @@ class DbndPodCtrl(object):
                 self.name,
                 e if e.status != 404 else "pod not found",
             )
-            # If the pod is already deleted
-            if e.status != 404:
-                raise
+            # If the pod is already deleted, don't raise
+            # if e.status != 404:
+            #     raise
 
     def get_pod_status_v1(self):
         from requests import HTTPError
