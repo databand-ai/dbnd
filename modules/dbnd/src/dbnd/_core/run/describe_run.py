@@ -133,6 +133,9 @@ class DescribeRun(RunCtrl):
             f_msg = "\n\t".join(tr.task.task_id for tr in failed_task_runs)
             b.column("FAILED", f_msg)
 
+        if run.root_task_run:
+            b.column("TASK_BAND", run.root_task_run.task.task_band)
+
         b.new_line()
 
         return b.getvalue()

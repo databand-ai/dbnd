@@ -37,8 +37,6 @@ def safe_string(value, max_value_len=1000):
 
 
 class TextBanner(StringIO):
-    _hjson_optimizer = re.compile(r"^{\n?(.*)\n?}$", re.DOTALL)
-
     def __init__(self, msg, color="white"):
         StringIO.__init__(self)
 
@@ -62,16 +60,12 @@ class TextBanner(StringIO):
             else ("%s... (%s files)" % (x[:400], len(x.split(",")))),
         )
         dumped = json_utils.dumps(structure_str, indent=2)
-        if isinstance(structure_str, dict):
-            dumped = self._hjson_optimizer.sub("\g<1>", dumped)
         return dumped
 
     def f_struct(self, structure):
         # return p.pformat(_dump_struct(structure))
         structure_str = traverse_to_str(structure)
         dumped = json_utils.dumps(structure_str, indent=2)
-        if isinstance(structure_str, dict):
-            dumped = self._hjson_optimizer.sub("\g<1>", dumped)
         return dumped
 
     def f_simple_dict(self, params, skip_if_empty=False):
