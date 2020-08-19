@@ -13,7 +13,7 @@ _____________
 
 Fixed issues:
 _____________
-
+- #1178184224046201: Tracking is slowing down tasks when dbnd-web address is wrong
 
 
 
