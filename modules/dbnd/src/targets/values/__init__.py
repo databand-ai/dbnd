@@ -1,4 +1,3 @@
-from targets.values import numpy_values, pandas_values
 from targets.values.builtins_values import (
     BoolValueType,
     CallableValueType,
@@ -32,37 +31,7 @@ from targets.values.version_value import VersionValueType
 # isinstance(True, int) == True, so it's important to have bool check before int
 # isinstance(datetime.datetime.utc(), date) == True
 
-known_values = [
-    # simple
-    BoolValueType(),
-    IntValueType(),
-    FloatValueType(),
-    # data
-    pandas_values.DataFrameValueType(),
-    pandas_values.PandasSeriesValueType(),
-    pandas_values.DataFramesDictValueType(),
-    numpy_values.NumpyArrayValueType(),
-    # date/time
-    DateValueType(),
-    DateTimeValueType(),
-    TimeDeltaValueType(),
-    DateIntervalValueType(),
-    # structs,
-    ListValueType(),
-    DictValueType(),
-    SetValueType(),
-    TupleValueType(),
-    # targets, path
-    TargetValueType(),
-    TargetPathValueType(),
-    TargetPathLibValueType(),
-    TargetConfigValueType(),
-    CallableValueType(),
-    # str types
-    VersionValueType(),
-    StrValueType(),
-    NullableStrValueType(),
-]
+known_values = []
 try:
     import matplotlib
     from targets.values.matplotlib_values import MatplotlibFigureValueType
@@ -70,6 +39,59 @@ try:
     known_values.append(MatplotlibFigureValueType())
 except ImportError:
     pass
+
+try:
+    import pandas
+    import numpy
+    from targets.values.pandas_values import (
+        DataFrameValueType,
+        PandasSeriesValueType,
+        DataFramesDictValueType,
+    )
+
+    known_values.append(DataFrameValueType())
+    known_values.append(PandasSeriesValueType())
+    known_values.append(DataFramesDictValueType())
+except ImportError:
+    pass
+
+try:
+    import numpy
+    from targets.values.numpy_values import NumpyArrayValueType
+
+    known_values.append(NumpyArrayValueType())
+except ImportError:
+    pass
+
+known_values.extend(
+    [
+        # simple
+        BoolValueType(),
+        IntValueType(),
+        FloatValueType(),
+        # date/time
+        DateValueType(),
+        DateTimeValueType(),
+        TimeDeltaValueType(),
+        DateIntervalValueType(),
+        # structs,
+        ListValueType(),
+        DictValueType(),
+        SetValueType(),
+        TupleValueType(),
+        # targets, path
+        TargetValueType(),
+        TargetPathValueType(),
+        TargetPathLibValueType(),
+        TargetConfigValueType(),
+        CallableValueType(),
+        # str types
+        VersionValueType(),
+        StrValueType(),
+        NullableStrValueType(),
+    ]
+)
+
 
 # OBJECT VALUE is always the last
 known_values.append(ObjectValueType())

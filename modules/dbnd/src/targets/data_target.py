@@ -1,6 +1,5 @@
 import abc
 import logging
-import time
 
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils.basics.nothing import NOTHING, is_not_defined
@@ -8,7 +7,6 @@ from targets import Target
 from targets.caching import TARGET_CACHE, TargetCacheKey
 from targets.errors import NotADirectory
 from targets.extras.file_ctrl import ObjectMarshallingCtrl
-from targets.extras.pandas_ctrl import PandasMarshallingCtrl
 from targets.marshalling import get_marshaller_ctrl
 from targets.utils.performance import target_timeit_log
 
@@ -31,7 +29,14 @@ class DataTarget(Target):
         """
         super(DataTarget, self).__init__(properties=properties, source=source)
 
-        self.as_pandas = PandasMarshallingCtrl(self)
+        try:
+            import pandas
+            from targets.extras.pandas_ctrl import PandasMarshallingCtrl
+
+            self.as_pandas = PandasMarshallingCtrl(self)
+        except ImportError:
+            pass
+
         self.as_object = ObjectMarshallingCtrl(self)
 
     @abc.abstractmethod

@@ -23,8 +23,6 @@ from targets.values.custom_datetime_values import (
     MonthValueType,
     YearValueType,
 )
-from targets.values.numpy_values import NumpyArrayValueType
-from targets.values.pandas_values import DataFramesDictValueType, DataFrameValueType
 from targets.values.timedelta_value import DateIntervalValueType
 
 
@@ -66,11 +64,22 @@ YearParameter = parameter.type(YearValueType)
 # special parameters
 TaskParameter = parameter.type(TaskValueType)
 
-# pandas
-DataFrameParameter = parameter.type(DataFrameValueType)
-DataFramesDictParameter = parameter.type(DataFramesDictValueType)
+try:
+    import pandas
+    from targets.values.pandas_values import DataFramesDictValueType, DataFrameValueType
 
-NumpyArrayParameter = parameter.type(NumpyArrayValueType)
+    DataFrameParameter = parameter.type(DataFrameValueType)
+    DataFramesDictParameter = parameter.type(DataFramesDictValueType)
+except ImportError:
+    pass
+
+try:
+    import numpy
+    from targets.values.numpy_values import NumpyArrayValueType
+
+    NumpyArrayParameter = parameter.type(NumpyArrayValueType)
+except ImportError:
+    pass
 
 # backward compatibility
 # please don't use it,

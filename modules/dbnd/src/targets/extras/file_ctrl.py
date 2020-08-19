@@ -1,7 +1,5 @@
 from typing import List
 
-import numpy
-
 from targets.extras import DataTargetCtrl
 from targets.marshalling import get_marshaller_ctrl
 from targets.target_config import file
@@ -46,6 +44,8 @@ class ObjectMarshallingCtrl(DataTargetCtrl):
         self._dump(object, file.pickle, obj, **kwargs)
 
     def write_numpy_array(self, arr, **kwargs):
+        import numpy
+
         self._dump(numpy.ndarray, file.numpy, arr, **kwargs)
 
     def write_json(self, obj, **kwargs):

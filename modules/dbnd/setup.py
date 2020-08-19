@@ -22,8 +22,6 @@ setuptools.setup(
         # "marshmallow==2.18.0", -- Moved library to _vendor
         "jinja2>=2.10.1, <2.11.0",  # same versions as Airflow
         "gitpython",
-        "pandas<1.0.0,>=0.17.1",
-        "numpy",
         "pygments",
         # backward compatible python
         'typing;python_version<"3.7"',  # Standalone pkg is incompatible with 3.7 and not required
@@ -31,12 +29,15 @@ setuptools.setup(
         "pathlib2;python_version<='2.7'",
         "enum34;python_version<='2.7'",
         'contextlib2; python_version < "3"',
+        "python-dateutil",
         # "croniter>=0.3.30,<0.4", -- Moved library to _vendor
         # "psutil>=4.2.0,<5.7.0", -- Extracted use to vendorized_psutil.py
     ],
     extras_require={
         ':sys_platform=="win32"': ["colorama"],
         "tests": [
+            "pandas==0.24.2",
+            "numpy",
             "coverage",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov==2.9.0",

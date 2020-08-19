@@ -1,7 +1,8 @@
 from collections import Mapping
 
-import pandas as pd
 import six
+
+from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 
 
 class DatabandDict(object):
@@ -105,7 +106,7 @@ def traverse(
         list_obj_constructor = None
         if isinstance(obj, (list, tuple, set)):
             list_obj_constructor = obj.__class__
-        elif isinstance(obj, pd.DataFrame):
+        elif is_instance_by_class_name(obj, "DataFrame"):
             pass
         else:
             try:

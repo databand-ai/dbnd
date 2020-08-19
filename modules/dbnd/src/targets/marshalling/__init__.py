@@ -3,8 +3,6 @@ from __future__ import absolute_import
 import logging
 import typing
 
-import numpy as np
-import pandas as pd
 import six
 
 from dbnd._core.errors import friendly_error
@@ -16,19 +14,6 @@ from targets.marshalling.file import (
     StrMarshaller,
 )
 from targets.marshalling.marshaller_ctrl import MarshallerCtrl
-from targets.marshalling.numpy import NumpyArrayMarshaller, NumpyArrayPickleMarshaler
-from targets.marshalling.pandas import (
-    DataFrameDictToHdf5,
-    DataFrameToCsv,
-    DataFrameToExcel,
-    DataFrameToFeather,
-    DataFrameToHdf5,
-    DataFrameToJson,
-    DataFrameToParquet,
-    DataFrameToPickle,
-    DataFrameToTable,
-    DataFrameToTsv,
-)
 from targets.target_config import FileFormat
 from targets.types import DataList
 from targets.values import get_value_type_of_type
@@ -77,6 +62,31 @@ def register_basic_data_marshallers():
         MARSHALERS[t] = list_marshalers
 
     try:
+        import numpy
+        from targets.marshalling.numpy import (
+            NumpyArrayMarshaller,
+            NumpyArrayPickleMarshaler,
+        )
+    except ImportError:
+        pass
+
+    try:
+        import numpy as np
+        import pandas as pd
+
+        from targets.marshalling.pandas import (
+            DataFrameDictToHdf5,
+            DataFrameToCsv,
+            DataFrameToExcel,
+            DataFrameToFeather,
+            DataFrameToHdf5,
+            DataFrameToJson,
+            DataFrameToParquet,
+            DataFrameToPickle,
+            DataFrameToTable,
+            DataFrameToTsv,
+        )
+
         register_marshallers(
             pd.DataFrame,
             {

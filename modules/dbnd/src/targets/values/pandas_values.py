@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import is_bool_dtype, is_numeric_dtype, is_string
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._core.errors import friendly_error
-from dbnd._core.tracking.histograms import HistogramDataType, HistogramSpec
+from dbnd._core.tracking.histograms import HistogramDataType
 from dbnd._vendor import fast_hasher
 from targets.target_config import FileFormat
 from targets.value_meta import ValueMeta, ValueMetaConf

@@ -7,12 +7,11 @@ from collections import OrderedDict
 from typing import Mapping
 from uuid import UUID
 
-from numpy import int32, int64
-
 import dbnd._vendor.hjson as hjson
 
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.traversing import DatabandDict
+from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 
 
 class _FrozenOrderedDict(Mapping, DatabandDict):
@@ -71,7 +70,10 @@ def json_default(obj, safe=False):
         return obj.strftime("%Y-%m-%dT%H:%M:%SZ")
     elif isinstance(obj, datetime.date):
         return obj.strftime("%Y-%m-%d")
-    if isinstance(obj, int64) or isinstance(obj, int32):
+
+    if is_instance_by_class_name(obj, "int32") or is_instance_by_class_name(
+        obj, "int64"
+    ):
         return str(obj)
 
     if isinstance(obj, UUID):

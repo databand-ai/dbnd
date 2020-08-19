@@ -295,6 +295,7 @@ def _get_supported_hd5_storage_format(value):
         and value.select_dtypes(include=["category"]).empty
     ):
         return "fixed"
+
     if isinstance(value, pd.Series) and not is_categorical_dtype(value.dtypes):
         return "fixed"
 

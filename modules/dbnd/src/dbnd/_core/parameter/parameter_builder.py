@@ -1,8 +1,6 @@
 import logging
 
 import attr
-import numpy
-import pandas as pd
 
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.constants import OutputMode, _ConfigParamContainer
@@ -383,7 +381,9 @@ class ParameterFactory(object):
 
     @property
     def pandas_dataframe(self):
-        return self[pd.DataFrame]
+        import pandas
+
+        return self[pandas.DataFrame]
 
     @property
     def data_list_str(self):
@@ -395,6 +395,8 @@ class ParameterFactory(object):
 
     @property
     def numpy_array(self):
+        import numpy
+
         return self[numpy.ndarray]
 
     @property

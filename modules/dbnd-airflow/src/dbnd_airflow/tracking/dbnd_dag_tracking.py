@@ -1,12 +1,10 @@
 import logging
 
-from types import FunctionType, ModuleType
-
 from dbnd import task
 from dbnd._core.configuration.environ_config import get_dbnd_project_config
 from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy
-from dbnd._core.settings import CoreConfig
 from dbnd._core.tracking.no_tracking import should_not_track
+from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd_airflow.tracking.dbnd_spark_conf import (
     _get_databand_url,
     dbnd_wrap_spark_environment,
@@ -60,13 +58,6 @@ def track_spark_submit_operator(operator):
         operator._env_vars = dict()
     dbnd_env_vars = dbnd_wrap_spark_environment()
     operator._env_vars.update(dbnd_env_vars)
-
-
-def is_instance_by_class_name(obj, class_name):
-    for cls in obj.__class__.mro():
-        if cls.__name__ == class_name:
-            return True
-    return False
 
 
 def track_python_operator(operator):

@@ -16,6 +16,4 @@ class NumpyArrayValueType(DataValueType):
         return "%s:%s" % (shape, fast_hasher.hash(x))
 
     def merge_values(self, *values, **kwargs):
-        import numpy as np
-
-        return np.concatenate(values)
+        return numpy.concatenate(values)
