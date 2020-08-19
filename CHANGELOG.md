@@ -15,6 +15,9 @@ _____________
 - #1183936916078876: Retrieve Qubole traceback and exception when run fails
 - #1187615130069532: ci/cd deploy dbnd to quoble/emr from s3 bucket
 - #1184859956507691: airflow monitor: print proper error message on RBAC
+- #1187144661730497: Added airflow icon to DAG and Operator levels of the graph
+- #1187144661730508: Show recent metric values when selected anomaly detection alert
+- #1186620728186105: Link from alert list modal to specific run details page
 
 Fixed issues:
 _____________
@@ -23,7 +26,9 @@ _____________
 - #1188398439358980: Bring back loading of .dbnd/databand-test.cfg if exist
 - #1187836261701377: Fix kubernetes infinite loop on change_state -> delete_pod
 - #1188150247653234: support py-files with inline in all engines
-
+- #1189443575273132: Fixed spark and java task graph node icons
+- #1186213205378244: Run list table style alignment
+- #1187782447252866: Pandas fails to write parquet file to hdfs
 
 
 
