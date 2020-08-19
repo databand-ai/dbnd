@@ -25,7 +25,7 @@ class AwsEnvConfig(EnvConfig):
     update_env_with_boto_creds = parameter(
         description="Update environment of the current process with boto credentials, "
         "so third party libraries like pandas can access s3."
-    ).value(True)
+    ).value(False)
 
     def prepare_env(self):
         """
