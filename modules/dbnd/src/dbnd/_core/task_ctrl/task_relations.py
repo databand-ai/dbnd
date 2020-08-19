@@ -57,10 +57,30 @@ class TaskRelations(TaskSubCtrl):
         params = self.params.get_params_serialized(
             significant_only=True, input_only=True
         )
-        task_inputs_as_str = traverse(
-            self.task_inputs, convert_f=str, filter_none=True, filter_empty=True
-        )
-        params.append(("_task_inputs", task_inputs_as_str))
+
+        if "user" in self.task_inputs:
+            # TODO : why do we need to convert all "user side" inputs?
+            # what if the input is insignificant?
+            system_input = self.task_inputs.get("system")
+            if system_input and "band" in system_input:
+                band_input = system_input["band"]
+                task_inputs_user_only = {
+                    "user": self.task_inputs.get("user"),
+                    "system": {"band": band_input},
+                }
+            else:
+                task_inputs_user_only = {"user": self.task_inputs.get("user")}
+            task_inputs_as_str = traverse(
+                task_inputs_user_only,
+                convert_f=str,
+                filter_none=True,
+                filter_empty=True,
+            )
+
+            if task_inputs_as_str is None:
+                task_inputs_as_str = ""
+
+            params.append(("_task_inputs", task_inputs_as_str))
 
         # we do it again, now we have all inputs calculated
         self.task_meta.initialize_task_id(params)

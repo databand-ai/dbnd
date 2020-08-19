@@ -23,7 +23,9 @@ task_target_date = datetime.date(year=2012, month=1, day=1)
 
 def _sig(task):
     name = "signature %s" % task.task_name
-    with new_databand_run(context=get_databand_context(), task_or_task_name=task):
+    with new_databand_run(
+        context=get_databand_context(), task_or_task_name=task,
+    ):
         logger.info(task.ctrl.banner(name))
         for child in task.task_meta.get_children():
             logger.info(child.ctrl.banner(name))

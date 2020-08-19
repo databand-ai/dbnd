@@ -7,7 +7,7 @@ from typing import Dict, Union
 from dbnd._core.commands import get_spark_session
 from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
-from dbnd._core.current import get_databand_run
+from dbnd._core.current import get_databand_run, try_get_databand_context
 from dbnd._core.decorator.dbnd_func_proxy import _task_decorator
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
@@ -45,7 +45,10 @@ class _BaseSparkTask(Task):
         result = super(_BaseSparkTask, self).band()
 
         if self.spark_config.include_user_project:
-            self.spark_resources = {"user_project": fat_wheel_building_task()}
+            fat_wheel_task = fat_wheel_building_task(
+                task_version=try_get_databand_context().current_context_uid
+            )
+            self.spark_resources = {"user_project": fat_wheel_task}
 
         if self.spark_engine.disable_task_band:
             logger.debug("Task band is disabled due to disable_task_band flag")
