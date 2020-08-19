@@ -83,7 +83,7 @@ def json_default(obj, safe=False):
 
 
 def dumps(obj, default=json_default, sort_keys=True, **kwargs):
-    return hjson.dumps(obj, default=default, sort_keys=sort_keys, **kwargs)
+    return json.dumps(obj, default=default, sort_keys=sort_keys, **kwargs)
 
 
 def loads(s, **kwargs):
