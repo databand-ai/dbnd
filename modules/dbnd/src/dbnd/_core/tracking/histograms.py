@@ -26,6 +26,7 @@ class HistogramSpec(object):
         converter=lambda v: frozenset(v) if v else frozenset(), default=frozenset()
     )  # type: Union[set, frozenset]
     only_stats = attr.ib(default=False)  # type: bool
+    approx_distinct_count = attr.ib(default=False)  # type: bool
     none = attr.ib(default=False)  # type: bool
 
     @classmethod
@@ -62,7 +63,11 @@ class HistogramSpec(object):
                 if type_ == HistogramDataType.string
             }
         selected_columns -= set(histogram_request.exclude_columns)
-        return cls(columns=selected_columns, only_stats=histogram_request.only_stats)
+        return cls(
+            columns=selected_columns,
+            only_stats=histogram_request.only_stats,
+            approx_distinct_count=histogram_request.approx_distinct_count,
+        )
 
 
 def columns_converter(columns):

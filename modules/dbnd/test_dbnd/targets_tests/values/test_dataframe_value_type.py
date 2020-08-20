@@ -56,8 +56,7 @@ class TestDataFrameValueType(object):
         assert set(values) == set(expected_values)  # order changes in each run
         assert df_value_meta.histograms == expected_value_meta.histograms
 
-        assert isinstance(df_value_meta.histograms_calc_duration, float)
-        expected_value_meta.histograms_calc_duration = (
-            df_value_meta.histograms_calc_duration
+        expected_value_meta.histogram_system_metrics = (
+            df_value_meta.histogram_system_metrics
         )
         assert df_value_meta == expected_value_meta

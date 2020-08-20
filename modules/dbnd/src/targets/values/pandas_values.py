@@ -86,7 +86,7 @@ class DataFrameValueType(DataValueType):
         start_time = time.time()
         df_stats, histograms = self.get_histograms(value, meta_conf)
         end_time = time.time()
-        hist_calc_duration = end_time - start_time
+        histogram_system_metrics = dict(histograms_calc_time=end_time - start_time)
 
         return ValueMeta(
             value_preview=value_preview,
@@ -95,7 +95,7 @@ class DataFrameValueType(DataValueType):
             data_hash=data_hash,
             descriptive_stats=df_stats,
             histograms=histograms,
-            histograms_calc_duration=hist_calc_duration,
+            histogram_system_metrics=histogram_system_metrics,
         )
 
     def get_histograms(self, df, meta_conf):

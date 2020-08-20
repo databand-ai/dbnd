@@ -123,6 +123,14 @@ class ConsoleStore(TrackingStore):
                 logger.info(line)
         # TODO: Add more compact logging if user opts out
 
+        if not self.verbose:
+            return
+
+        for key, value in value_meta.histogram_system_metrics.items():
+            if isinstance(value, float):
+                value = round(value, 3)
+            logger.info("%s: %s", key, value)
+
     def log_metrics(self, task_run, metrics):
         # type: (TaskRun, List[Metric]) -> None
         logger.info("Metrics logged: {}".format([m.key for m in metrics]))

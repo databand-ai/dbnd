@@ -9,6 +9,7 @@ from pytest import fixture
 
 from dbnd._core.tracking.histograms import HistogramRequest, HistogramSpec
 from dbnd_spark.spark_targets import SparkDataFrameValueType
+from dbnd_spark.spark_targets.spark_histograms import SparkHistograms
 from targets.value_meta import ValueMetaConf
 from targets.values import get_value_type_of_obj
 from targets.values.pandas_values import DataFrameValueType
@@ -35,15 +36,13 @@ class TestHistograms:
         booleans = [(i,) for i in booleans]
         boolean_df = spark_session.createDataFrame(booleans, ["boolean_column"])
 
-        stats, histograms = SparkDataFrameValueType().get_histograms(
-            boolean_df, meta_conf
-        )
+        value_meta = SparkDataFrameValueType().get_value_meta(boolean_df, meta_conf)
 
-        histogram = histograms["boolean_column"]
+        histogram = value_meta.histograms["boolean_column"]
         assert histogram[0] == [30, 20, 10]
         assert histogram[1] == [True, False, None]
 
-        stats = stats["boolean_column"]
+        stats = value_meta.descriptive_stats["boolean_column"]
         assert set(stats.keys()) == set(
             ["type", "distinct", "null-count", "non-null", "count",]
         )
@@ -59,11 +58,11 @@ class TestHistograms:
         numbers = [(i,) for i in numbers]
         df = spark_session.createDataFrame(numbers, ["numerical_column"])
 
-        stats, histograms = SparkDataFrameValueType().get_histograms(df, meta_conf)
+        value_meta = SparkDataFrameValueType().get_value_meta(df, meta_conf)
         # pandas_df = df.toPandas()
         # pandas_stats, pandas_histograms = DataFrameValueType().get_histograms(pandas_df, meta_conf)
 
-        stats = stats["numerical_column"]
+        stats = value_meta.descriptive_stats["numerical_column"]
         assert list(stats.keys()) == [
             "count",
             "mean",
@@ -98,13 +97,13 @@ class TestHistograms:
         strings = [(i,) for i in strings]
         df = spark_session.createDataFrame(strings, ["string_column"])
 
-        stats, histograms = SparkDataFrameValueType().get_histograms(df, meta_conf)
+        value_meta = SparkDataFrameValueType().get_value_meta(df, meta_conf)
 
-        histogram = histograms["string_column"]
+        histogram = value_meta.histograms["string_column"]
         assert histogram[0] == [30, 20, 15, 5]
         assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!", None]
 
-        stats = stats["string_column"]
+        stats = value_meta.descriptive_stats["string_column"]
         assert set(stats.keys()) == set(
             ["type", "distinct", "null-count", "non-null", "count"]
         )
@@ -125,16 +124,16 @@ class TestHistograms:
         strings = [(i,) for i in strings]
         df = spark_session.createDataFrame(strings, ["string_column"])
 
-        stats, histograms = SparkDataFrameValueType().get_histograms(df, meta_conf)
+        value_meta = SparkDataFrameValueType().get_value_meta(df, meta_conf)
 
-        histogram = histograms["string_column"]
+        histogram = value_meta.histograms["string_column"]
         assert len(histogram[0]) == 50 and len(histogram[1]) == 50
         assert histogram[0][0] == 100 and histogram[1][0] == "str-100"
         assert histogram[0][10] == 90 and histogram[1][10] == "str-90"
         assert histogram[0][-2] == 52 and histogram[1][-2] == "str-52"
         assert histogram[0][-1] == sum(range(1, 52)) and histogram[1][-1] == "_others"
 
-        stats = stats["string_column"]
+        stats = value_meta.descriptive_stats["string_column"]
         assert stats["count"] == 5050 == sum(histogram[0])
         assert stats["non-null"] == 5050
         assert stats["null-count"] == 0

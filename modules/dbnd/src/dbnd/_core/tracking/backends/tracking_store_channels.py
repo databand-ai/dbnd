@@ -239,10 +239,10 @@ class TrackingStoreThroughChannel(TrackingStore):
 
     def _get_histogram_metrics(self, df_name, value_meta, timestamp):
         # type: (str, ValueMeta, datetime) -> Iterable[Metric]
-        if value_meta.histograms_calc_duration is not None:
+        if value_meta.histogram_system_metrics:
             yield Metric(
-                key="{}.histogram_calc_duration_sec".format(df_name),
-                value=value_meta.histograms_calc_duration,
+                key="{}.histogram_system_metrics".format(df_name),
+                value_json=value_meta.histogram_system_metrics,
                 source=MetricSource.histograms,
                 timestamp=timestamp,
             )
