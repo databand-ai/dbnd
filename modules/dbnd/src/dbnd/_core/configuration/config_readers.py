@@ -12,6 +12,7 @@ from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.environ_config import (
+    get_dbnd_custom_config,
     get_dbnd_environ_config_file,
     in_quiet_mode,
     is_unit_test_mode,
@@ -46,6 +47,7 @@ def _default_configuration_paths():
         databand_system_path("databand-system.cfg"),
         dbnd_project_config.dbnd_project_path("conf", "databand.cfg"),  # deprecated
         dbnd_project_config.dbnd_project_path("databand.cfg"),  # deprecated
+        get_dbnd_custom_config(),
         dbnd_project_config.dbnd_project_path("project.cfg"),
     ]
     env_config = get_dbnd_environ_config_file()
