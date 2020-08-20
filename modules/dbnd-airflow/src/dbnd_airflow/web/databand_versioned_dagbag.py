@@ -2,8 +2,11 @@ from __future__ import absolute_import
 
 import logging
 
+import airflow
+
 from airflow.models import DagBag, DagModel, DagPickle, TaskInstance
 from airflow.utils.db import provide_session
+from packaging import version
 
 from dbnd._vendor import pendulum
 
@@ -66,10 +69,14 @@ class DbndAirflowDagBag(DagBag):
                 if dag:
                     return dag
 
-        # we don't have specific dag/execution date, we are trying to get in-memory version
-        dag = super(DbndAirflowDagBag, self).get_dag(
-            dag_id, from_file_only=from_file_only
-        )
+        if version.parse(airflow.__version__) < version.parse("1.10.10"):
+            # get_dag function signature changed in airflow 1.10.10, ensure compatibility in parameters
+            # we don't have specific dag/execution date, we are trying to get in-memory version
+            dag = super(DbndAirflowDagBag, self).get_dag(
+                dag_id, from_file_only=from_file_only
+            )
+        else:
+            dag = super(DbndAirflowDagBag, self).get_dag(dag_id)
         if dag:
             return dag
 
