@@ -11,42 +11,22 @@ CFG_PATH = path.join(BASE_PATH, "setup.cfg")
 config = read_configuration(CFG_PATH)
 version = config["metadata"]["version"]
 
+requirements_for_airflow = [
+    "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+    "Werkzeug<1.0.0",
+    "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
+    "psycopg2>=2.7.4,<2.8",
+]
+
 setuptools.setup(
     name="dbnd-airflow",
     package_dir={"": "src"},
-    install_requires=[
-        "dbnd==" + version,
-        "future>=0.16.0, <0.17",
-        "sqlalchemy_utc",
-        "sqlalchemy_utils",
-        "argcomplete",
-        "psycopg2>=2.7.4,<2.8",
-    ],
+    install_requires=["dbnd==" + version],
     extras_require=dict(
-        airflow=[
-            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
-            "Werkzeug<1.0.0",
-            "apache-airflow==1.10.7",
-            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
-        ],
-        airflow_1_10_7=[
-            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
-            "Werkzeug<1.0.0",
-            "apache-airflow==1.10.7",
-            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
-        ],
-        airflow_1_10_8=[
-            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
-            "Werkzeug<1.0.0",
-            "apache-airflow==1.10.8",
-            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
-        ],
-        airflow_1_10_9=[
-            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
-            "Werkzeug<1.0.0",
-            "apache-airflow==1.10.9",
-            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
-        ],
+        airflow=requirements_for_airflow + ["apache-airflow==1.10.7"],
+        airflow_1_10_7=requirements_for_airflow + ["apache-airflow==1.10.7"],
+        airflow_1_10_8=requirements_for_airflow + ["apache-airflow==1.10.8"],
+        airflow_1_10_9=requirements_for_airflow + ["apache-airflow==1.10.9"],
         tests=[
             # airflow support
             "pandas<1.0.0,>=0.17.1",

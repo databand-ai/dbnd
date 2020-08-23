@@ -196,6 +196,7 @@ class Task(_BaseTask, _TaskParamContainer):
                 return self.task_band.exists()
 
         incomplete_outputs = [str(o) for o in outputs if not o.exists()]
+
         num_of_incomplete_outputs = len(incomplete_outputs)
 
         if 0 < num_of_incomplete_outputs < len(outputs):

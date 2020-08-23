@@ -142,11 +142,6 @@ class AirflowTaskExecutor(TaskExecutor):
     def _validate_airflow_db(self):
         from airflow import configuration, settings
 
-        try:
-            from sqlalchemy_utils.functions import database_exists
-        except ImportError:
-            return
-
         # getting url directly from airflow
         # it's possible that
         #  * user use _cmd to generate url ( we don't want to have an extra call there)
@@ -165,6 +160,9 @@ class AirflowTaskExecutor(TaskExecutor):
         err_msg = "You are running in Airflow mode (task_executor={}) with DB at {}".format(
             RunConfig().task_executor_type, conn_string_url.__repr__()
         )
+
+        from dbnd_airflow._vendor.database import database_exists
+
         try:
             database_exists(conn_string_url)
         except Exception as ex:

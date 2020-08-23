@@ -23,8 +23,6 @@ import os
 import subprocess
 import sys
 
-import argcomplete
-
 
 # DO NOT IMPORT ANYTHING FROM AIRFLOW
 # we need to initialize some config values first
@@ -90,6 +88,8 @@ def main(args=None):
     if conf.get("core", "security") == "kerberos":
         os.environ["KRB5CCNAME"] = conf.get("kerberos", "ccache")
         os.environ["KRB5_KTNAME"] = conf.get("kerberos", "keytab")
+
+    import argcomplete
 
     parser = CLIFactory.get_parser()
     argcomplete.autocomplete(parser)
