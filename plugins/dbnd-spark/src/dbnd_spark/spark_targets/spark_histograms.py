@@ -28,7 +28,6 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from dbnd._core.tracking.histograms import HistogramSpec
 from dbnd._core.utils import seven
 
 
@@ -44,7 +43,7 @@ class SparkHistograms(object):
         self.metrics = dict()
 
     def get_histograms(self, df):
-        # type: (spark.DataFrame, HistogramSpec) -> Tuple[Optional[Dict[Dict[str, Any]]], Optional[Dict[str, Tuple]]]
+        # type: (spark.DataFrame) -> Tuple[Optional[Dict[Dict[str, Any]]], Optional[Dict[str, Tuple]]]
         try:
             if self.histogram_spec.none:
                 return None, None

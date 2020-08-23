@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import time
 import typing
 
 import pyspark.sql as spark
@@ -41,7 +40,7 @@ class SparkDataFrameValueType(DataValueType):
 
     @staticmethod
     def __types_map(dataType):
-        if isinstance(dataType, (StringType, BooleanType)):
+        if isinstance(dataType, BooleanType):
             return HistogramDataType.boolean
         elif isinstance(dataType, NumericType):
             return HistogramDataType.numeric
@@ -90,9 +89,9 @@ class SparkDataFrameValueType(DataValueType):
             data_dimensions = None
 
         df_stats, histogram_dict, hist_calc_duration = None, None, 0
+        histogram_spec = meta_conf.get_histogram_spec(self, value)
+        spark_histograms = SparkHistograms(histogram_spec)
         if meta_conf.log_histograms:
-            histogram_spec = meta_conf.get_histogram_spec(self, value)
-            spark_histograms = SparkHistograms(histogram_spec)
             df_stats, histogram_dict = spark_histograms.get_histograms(value)
 
         return ValueMeta(
