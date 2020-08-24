@@ -70,6 +70,19 @@ def dbnd_system_bootstrap():
         raise
 
 
+def fix_pyspark_imports():
+    import sys
+
+    pyspark_libs, regular_libs = [], []
+    for p in sys.path:
+        if "spark-core" in p or "pyspark.zip" in p:
+            pyspark_libs.append(p)
+        else:
+            regular_libs.append(p)
+    regular_libs.extend(pyspark_libs)
+    sys.path = regular_libs
+
+
 _dbnd_bootstrap = False
 _dbnd_bootstrap_started = False
 

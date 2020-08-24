@@ -5,7 +5,10 @@ from typing import List
 import six
 
 from dbnd import current
-from dbnd._core.configuration.environ_config import DBND_TASK_RUN_ATTEMPT_UID
+from dbnd._core.configuration.environ_config import (
+    DBND_TASK_RUN_ATTEMPT_UID,
+    ENV_DBND_FIX_PYSPARK_IMPORTS,
+)
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_sync_ctrl import DisabledTaskSyncCtrl, TaskSyncCtrl
 from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
@@ -96,4 +99,6 @@ class SparkCtrl(TaskRunCtrl):
             conf_env_vars = self.config.env_vars
         if conf_env_vars:
             env_vars.update(conf_env_vars)
+        if self.config.fix_pyspark_imports:
+            env_vars[ENV_DBND_FIX_PYSPARK_IMPORTS] = True
         return env_vars

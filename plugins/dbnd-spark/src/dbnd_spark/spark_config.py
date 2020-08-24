@@ -126,6 +126,11 @@ class SparkConfig(Config):
         + " (configured in bdist_zip section) and upload it to Spark",
     )[bool]
 
+    fix_pyspark_imports = parameter(
+        description="Should databand reverse import resolution order when running within spark",
+        default=False,
+    )[bool]
+
 
 class SparkEngineConfig(Config):
     root = parameter(default=None, description="Data outputs location override")[
