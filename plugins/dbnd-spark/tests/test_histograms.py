@@ -51,7 +51,7 @@ class TestHistograms:
         # pandas_stats, pandas_histograms = DataFrameValueType().get_histograms(pandas_df, meta_conf)
 
         stats = value_meta.descriptive_stats["numerical_column"]
-        assert list(stats.keys()) == [
+        assert set(stats.keys()) == {
             "count",
             "mean",
             "stddev",
@@ -65,7 +65,7 @@ class TestHistograms:
             "distinct",
             "null-count",
             "non-null",
-        ]
+        }
         assert stats["count"] == 8
         assert stats["non-null"] == 8
         assert stats["distinct"] == 3
