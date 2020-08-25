@@ -30,7 +30,6 @@ ENV_DBND__VERBOSE = "DBND__VERBOSE"  # VERBOSE
 ENV_DBND__UNITTEST_MODE = "DBND__UNITTEST"
 ENV_DBND_QUIET = "DBND__QUIET"
 
-
 ENV_DBND_HOME = "DBND_HOME"
 ENV_DBND_SYSTEM = "DBND_SYSTEM"
 ENV_DBND_LIB = "DBND_LIB"
@@ -70,6 +69,8 @@ ENV_DBND__ENV_MACHINE = "DBND__ENV_MACHINE"
 ENV_DBND__ENV_IMAGE = "DBND__ENV_IMAGE"
 
 ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
+
+ENV_DBND_FIX_PYSPARK_IMPORTS = "DBND__FIX_PYSPARK_IMPORTS"
 
 DEFAULT_MAX_CALLS_PER_RUN = 100
 
@@ -117,6 +118,10 @@ def is_unit_test_mode():
 
 def spark_tracking_enabled():
     return environ_enabled("DBND__ENABLE__SPARK_CONTEXT_ENV")
+
+
+def should_fix_pyspark_imports():
+    return environ_enabled(ENV_DBND_FIX_PYSPARK_IMPORTS)
 
 
 _project_config = None  # type: Optional[DbndProjectConfig]
@@ -211,7 +216,7 @@ class DbndProjectConfig(object):
 
         return self._verbose
 
-    def dbnd_home(self,):
+    def dbnd_home(self):
         return os.environ.get(ENV_DBND_HOME) or os.curdir
 
     def dbnd_lib_path(self, *path):

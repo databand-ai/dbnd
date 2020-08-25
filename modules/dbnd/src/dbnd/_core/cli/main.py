@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import logging
 import os
 import shlex
@@ -17,7 +18,12 @@ from dbnd._core.cli.cmd_run import run
 from dbnd._core.cli.cmd_show import show_configs, show_tasks
 from dbnd._core.cli.cmd_tracker import tracker
 from dbnd._core.cli.cmd_utils import ipython
-from dbnd._core.context.bootstrap import _dbnd_exception_handling, dbnd_bootstrap
+from dbnd._core.configuration.environ_config import should_fix_pyspark_imports
+from dbnd._core.context.bootstrap import (
+    _dbnd_exception_handling,
+    dbnd_bootstrap,
+    fix_pyspark_imports,
+)
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.plugin.dbnd_plugins import pm
@@ -93,13 +99,14 @@ dbnd_schedule_cmd = partial(dbnd_cmd, "schedule")
 def main():
     _dbnd_exception_handling()
     configure_basic_logging(None)
+    if should_fix_pyspark_imports():
+        fix_pyspark_imports()
     register_dbnd_plugins()
 
     # adding all plugins cli commands
     for commands in pm.hook.dbnd_get_commands():
         for command in commands:
             cli.add_command(command)
-
     try:
         return cli(prog_name="dbnd")
 
