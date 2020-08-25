@@ -34,7 +34,7 @@ def generate_csv(rows, boolean_columns, str_columns, numerical_columns, output_f
     half_boolean_columns = int(boolean_columns / 2)
     column_names = ["boolean_" + str(i) for i in range(boolean_columns)]
     column_names += ["str_" + str(i) for i in range(str_columns)]
-    column_names += ["num"]
+    column_names += ["num_" + str(i) for i in range(numerical_columns)]
 
     with open(output_file, "w", newline="") as f:
         writer = csv.writer(f, delimiter=",")
