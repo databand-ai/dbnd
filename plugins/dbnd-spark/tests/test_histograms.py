@@ -2,17 +2,10 @@ from __future__ import print_function
 
 import logging
 
-import pytest
-
-from pyspark.sql import SparkSession
 from pytest import fixture
 
-from dbnd._core.tracking.histograms import HistogramRequest, HistogramSpec
 from dbnd_spark.spark_targets import SparkDataFrameValueType
-from dbnd_spark.spark_targets.spark_histograms import SparkHistograms
 from targets.value_meta import ValueMetaConf
-from targets.values import get_value_type_of_obj
-from targets.values.pandas_values import DataFrameValueType
 
 
 logger = logging.getLogger(__name__)
@@ -20,17 +13,9 @@ logger = logging.getLogger(__name__)
 
 class TestHistograms:
     @fixture
-    def spark_session(self):
-        spark = SparkSession.builder.appName(
-            "Spark dataframe histogram test"
-        ).getOrCreate()
-        return spark
-
-    @fixture
     def meta_conf(self):
         return ValueMetaConf.enabled()
 
-    @pytest.mark.skip
     def test_boolean_histogram(self, spark_session, meta_conf):
         booleans = [True] * 10 + [None] * 10 + [False] * 20 + [True] * 20
         booleans = [(i,) for i in booleans]
@@ -43,16 +28,19 @@ class TestHistograms:
         assert histogram[1] == [True, False, None]
 
         stats = value_meta.descriptive_stats["boolean_column"]
-        assert set(stats.keys()) == set(
-            ["type", "distinct", "null-count", "non-null", "count",]
-        )
+        assert set(stats.keys()) == {
+            "type",
+            "distinct",
+            "null-count",
+            "non-null",
+            "count",
+        }
         assert stats["count"] == 60
         assert stats["non-null"] == 50
         assert stats["null-count"] == 10
         assert stats["distinct"] == 2
         assert stats["type"] == "boolean"
 
-    @pytest.mark.skip
     def test_numerical_histogram(self, spark_session, meta_conf):
         numbers = [1, 3, 3, 1, 5, 1, 5, 5]
         numbers = [(i,) for i in numbers]
@@ -85,7 +73,6 @@ class TestHistograms:
         assert stats["max"] == 5
         assert stats["type"] == "long"
 
-    @pytest.mark.skip
     def test_strings_histogram(self, spark_session, meta_conf):
         strings = (
             ["Hello World!"] * 15
@@ -104,16 +91,19 @@ class TestHistograms:
         assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!", None]
 
         stats = value_meta.descriptive_stats["string_column"]
-        assert set(stats.keys()) == set(
-            ["type", "distinct", "null-count", "non-null", "count"]
-        )
+        assert set(stats.keys()) == {
+            "type",
+            "distinct",
+            "null-count",
+            "non-null",
+            "count",
+        }
         assert stats["count"] == 70
         assert stats["non-null"] == 65
         assert stats["null-count"] == 5
         assert stats["distinct"] == 3
         assert stats["type"] == "string"
 
-    @pytest.mark.skip
     def test_histogram_others(self, spark_session, meta_conf):
         strings = []
         for i in range(1, 101):

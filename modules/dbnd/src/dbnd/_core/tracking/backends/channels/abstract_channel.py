@@ -46,9 +46,6 @@ class TrackingChannel(object):
     def log_targets(self, data):
         return self._handle(TrackingChannel.log_targets.__name__, data)
 
-    def log_df_hist(self, data):
-        return self._handle(TrackingChannel.log_df_hist.__name__, data)
-
     def log_metric(self, data):
         return self._handle(TrackingChannel.log_metric.__name__, data)
 

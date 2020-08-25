@@ -1,8 +1,6 @@
 import logging
 import typing
 
-import attr
-
 from dbnd._core.constants import (
     DbndTargetOperationStatus,
     DbndTargetOperationType,
@@ -11,7 +9,7 @@ from dbnd._core.constants import (
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.tracking.histograms import HistogramRequest, HistogramSpec
+from dbnd._core.tracking.histograms import HistogramRequest
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 from targets import Target
@@ -126,13 +124,13 @@ class TaskRunTracker(TaskRunCtrl):
 
     def log_data(
         self,
-        key,
-        data,
-        meta_conf,
-        path=None,
-        operation_type=DbndTargetOperationType.read,
-        operation_status=DbndTargetOperationStatus.OK,
-    ):  # type: (str, Union[pd.DataFrame, spark.DataFrame, PostgresTable], ValueMetaConf, Union[Target,str], DbndTargetOperationType, DbndTargetOperationStatus) -> None
+        key,  # type: str
+        data,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable]
+        meta_conf,  # type: ValueMetaConf
+        path=None,  # type: Optional[Union[Target,str]]
+        operation_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType
+        operation_status=DbndTargetOperationStatus.OK,  # type: DbndTargetOperationStatus
+    ):  # type: (...) -> None
         try:
             # Combine meta_conf with the config settings
             meta_conf = self.settings.features.get_value_meta_conf(meta_conf)
@@ -143,13 +141,10 @@ class TaskRunTracker(TaskRunCtrl):
             ts = utcnow()
 
             if path:
-                target_meta = attr.evolve(
-                    value_meta, descriptive_stats=None, histograms=None
-                )
                 self.tracking_store.log_target(
                     task_run=self.task_run,
                     target=path,
-                    target_meta=target_meta,
+                    target_meta=value_meta,
                     operation_type=operation_type,
                     operation_status=operation_status,
                 )

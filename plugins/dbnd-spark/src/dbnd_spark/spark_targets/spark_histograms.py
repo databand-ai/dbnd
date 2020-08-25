@@ -32,7 +32,7 @@ from dbnd._core.utils import seven
 
 
 if typing.TYPE_CHECKING:
-    from typing import Tuple, Optional, Dict, Any
+    from typing import Tuple, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +43,10 @@ class SparkHistograms(object):
         self.metrics = dict()
 
     def get_histograms(self, df):
-        # type: (spark.DataFrame) -> Tuple[Optional[Dict[Dict[str, Any]]], Optional[Dict[str, Tuple]]]
+        # type: (spark.DataFrame) -> Tuple[Dict[str, Dict], Dict[str, Tuple]]
         try:
             if self.histogram_spec.none:
-                return None, None
+                return {}, {}
 
             df = self._filter_complex_columns(df).select(
                 list(self.histogram_spec.columns)
@@ -62,7 +62,7 @@ class SparkHistograms(object):
             return summary, histograms
         except Exception:
             logger.exception("Error occured during histograms calculation")
-            return None, None
+            return {}, {}
 
     def _filter_complex_columns(self, df):
         simple_columns = []
@@ -249,7 +249,8 @@ class SparkHistograms(object):
             column_value_counts = (
                 column_df.groupby(column_name)
                 .count()
-                .orderBy(desc("count"))
+                # Order by count AND column_name, otherwise histogram column order is unstable
+                .orderBy(desc("count"), column_name)
                 .withColumn("column_name", lit(column_name))
                 .limit(max_buckets - 1)
             )
@@ -283,8 +284,8 @@ class SparkHistograms(object):
 
     @seven.contextlib.contextmanager
     def _measure_time(self, metric_key):
+        start_time = time.time()
         try:
-            start_time = time.time()
             yield
         finally:
             end_time = time.time()

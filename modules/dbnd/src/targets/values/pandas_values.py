@@ -5,7 +5,7 @@ import logging
 import os
 import time
 
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -83,10 +83,14 @@ class DataFrameValueType(DataValueType):
             )
             data_hash = fast_hasher.hash(hash_pandas_object(value, index=True).values)
 
-        start_time = time.time()
-        df_stats, histograms = self.get_histograms(value, meta_conf)
-        end_time = time.time()
-        histogram_system_metrics = dict(histograms_calc_time=end_time - start_time)
+        if meta_conf.log_histograms:
+            histogram_spec = meta_conf.get_histogram_spec(self, value)
+            start_time = time.time()
+            df_stats, histograms = self.get_histograms(value, meta_conf)
+            hist_sys_metrics = {"histograms_calc_time": time.time() - start_time}
+        else:
+            df_stats, histograms = {}, {}
+            histogram_spec = hist_sys_metrics = None
 
         return ValueMeta(
             value_preview=value_preview,
@@ -94,12 +98,13 @@ class DataFrameValueType(DataValueType):
             data_schema=data_schema,
             data_hash=data_hash,
             descriptive_stats=df_stats,
+            histogram_spec=histogram_spec,
+            histogram_system_metrics=hist_sys_metrics,
             histograms=histograms,
-            histogram_system_metrics=histogram_system_metrics,
         )
 
     def get_histograms(self, df, meta_conf):
-        # type: (pd.DataFrame, ValueMetaConf) -> Tuple[Dict[Dict[str, Any]], Dict[str, Tuple]]
+        # type: (pd.DataFrame, ValueMetaConf) -> Tuple[Dict[str, Dict], Dict[str, Tuple]]
         histogram_spec = meta_conf.get_histogram_spec(self, df)
         if histogram_spec.none:
             return {}, {}

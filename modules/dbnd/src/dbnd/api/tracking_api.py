@@ -314,19 +314,6 @@ class LogTargetsSchema(_ApiCallSchema):
 log_targets_schema = LogTargetsSchema()
 
 
-class LogDataframeHistogramSchema(LogTargetSchema):
-    histograms = fields.Dict()
-    descriptive_stats = fields.Dict()
-    timestamp = fields.DateTime()
-
-
-class LogDataframeHistogramListSchema(_ApiCallSchema):
-    histograms_info = fields.Nested(LogDataframeHistogramSchema)
-
-
-log_df_hist_schema = LogDataframeHistogramListSchema()
-
-
 class HeartbeatSchema(_ApiCallSchema):
     run_uid = fields.UUID()
 

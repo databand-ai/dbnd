@@ -1,3 +1,5 @@
+import time
+
 from typing import Dict, Optional, Tuple
 
 import attr
@@ -48,14 +50,19 @@ class PostgresTableValueType(DataValueType):
 
     def get_value_meta(self, value, meta_conf):
         # type: (PostgresTable, ValueMetaConf) -> ValueMeta
-        stats, histograms, data_schema, data_preview, column_name_to_type = [None] * 5
+        data_schema = data_preview = None
 
         with PostgresController(value.connection_string, value.table_name) as postgres:
             if meta_conf.log_histograms:
                 histogram_spec = meta_conf.get_histogram_spec(
                     self, PostgresTable(postgres.table_name, postgres.connection_string)
                 )
+                start_time = time.time()
                 stats, histograms = postgres.get_histograms_and_stats(histogram_spec)
+                hist_sys_metrics = {"histograms_calc_time": time.time() - start_time}
+            else:
+                stats, histograms = {}, {}
+                histogram_spec = hist_sys_metrics = None
             if meta_conf.log_preview:
                 data_preview = postgres.to_preview()
             if meta_conf.log_schema:
@@ -70,6 +77,8 @@ class PostgresTableValueType(DataValueType):
             data_schema=data_schema,
             data_hash=self.to_signature(value),
             descriptive_stats=stats,
+            histogram_spec=histogram_spec,
+            histogram_system_metrics=hist_sys_metrics,
             histograms=histograms,
         )
 
@@ -111,7 +120,7 @@ class PostgresController:
         return self._column_types
 
     def get_histograms_and_stats(self, histogram_spec):
-        # type: (HistogramSpec) -> Tuple[Dict, Dict]
+        # type: (HistogramSpec) -> Tuple[Dict[str, Dict], Dict[str, Tuple]]
 
         if histogram_spec.none:
             return {}, {}

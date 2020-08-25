@@ -12,7 +12,6 @@ from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.timezone import utcnow
 from dbnd.api.tracking_api import (
-    LogDataframeHistogramsArgs,
     LogTargetArgs,
     TaskRunAttemptUpdateArgs,
     add_task_runs_schema,
@@ -20,7 +19,6 @@ from dbnd.api.tracking_api import (
     heartbeat_schema,
     init_run_schema,
     log_artifact_schema,
-    log_df_hist_schema,
     log_metrics_schema,
     log_targets_schema,
     save_external_links_schema,
@@ -31,7 +29,6 @@ from dbnd.api.tracking_api import (
     set_unfinished_tasks_state_schema,
     update_task_run_attempts_schema,
 )
-from targets import Target
 from targets.value_meta import ValueMeta
 
 
@@ -197,38 +194,13 @@ class TrackingStoreThroughChannel(TrackingStore):
             data_hash=target_meta.data_hash,
         )
         res = self.log_targets(targets_info=[target_info])
-        if getattr(target_meta, "descriptive_stats", None) and getattr(
-            target_meta, "histograms", None
-        ):
-            self.log_dataframe_histograms(target, target_meta, target_info)
+        if target_meta.histogram_spec:
+            self.log_histograms(
+                task_run, param_name, target_meta.histogram_spec, target_meta, utcnow()
+            )
         return res
 
-    def log_dataframe_histograms(self, target, target_meta, target_info):
-        # type: (Target, ValueMeta, LogTargetArgs) -> ...
-        df_hist_info = LogDataframeHistogramsArgs(
-            run_uid=target_info.run_uid,
-            task_run_uid=target_info.task_run_uid,
-            task_run_name=target_info.task_run_name,
-            task_run_attempt_uid=target_info.task_run_attempt_uid,
-            task_def_uid=target_info.task_def_uid,
-            param_name=target_info.param_name,
-            target_path=target_info.target_path,
-            operation_type=DbndTargetOperationType.log_hist,
-            operation_status=DbndTargetOperationStatus.OK,
-            value_preview=target_info.value_preview,
-            data_dimensions=target_info.data_dimensions,
-            data_schema=target_info.data_schema,
-            data_hash=target_info.data_hash,
-            descriptive_stats=target_meta.descriptive_stats,
-            histograms=target_meta.histograms,
-            timestamp=utcnow(),
-        )
-        return self._m(
-            self.channel.log_df_hist, log_df_hist_schema, histograms_info=df_hist_info
-        )
-
     def log_targets(self, targets_info):  # type: (List[LogTargetArgs]) -> None
-
         return self._m(
             self.channel.log_targets, log_targets_schema, targets_info=targets_info
         )
@@ -246,13 +218,6 @@ class TrackingStoreThroughChannel(TrackingStore):
                 source=MetricSource.histograms,
                 timestamp=timestamp,
             )
-        if value_meta.descriptive_stats:
-            yield Metric(
-                key="{}.stats".format(df_name),
-                value_json=value_meta.descriptive_stats,
-                source=MetricSource.histograms,
-                timestamp=timestamp,
-            )
         if value_meta.histograms:
             yield Metric(
                 key="{}.histograms".format(df_name),
@@ -260,14 +225,21 @@ class TrackingStoreThroughChannel(TrackingStore):
                 source=MetricSource.histograms,
                 timestamp=timestamp,
             )
-        for column, stats in value_meta.descriptive_stats.items():
-            for stat, value in stats.items():
-                yield Metric(
-                    key="{}.{}.{}".format(df_name, column, stat),
-                    value=value,
-                    source=MetricSource.histograms,
-                    timestamp=timestamp,
-                )
+        if value_meta.descriptive_stats:
+            yield Metric(
+                key="{}.stats".format(df_name),
+                value_json=value_meta.descriptive_stats,
+                source=MetricSource.histograms,
+                timestamp=timestamp,
+            )
+            for column, stats in value_meta.descriptive_stats.items():
+                for stat, value in stats.items():
+                    yield Metric(
+                        key="{}.{}.{}".format(df_name, column, stat),
+                        value=value,
+                        source=MetricSource.histograms,
+                        timestamp=timestamp,
+                    )
 
     def log_metrics(self, task_run, metrics):
         # type: (TaskRun, Iterable[Metric]) -> None

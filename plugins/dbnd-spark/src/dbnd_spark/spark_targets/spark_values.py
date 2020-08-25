@@ -8,7 +8,6 @@ import pyspark.sql as spark
 from pyspark.sql.types import BooleanType, NumericType, StringType
 
 from dbnd._core.tracking.histograms import HistogramDataType
-from dbnd._core.utils import seven
 from dbnd_spark.spark_targets.spark_histograms import SparkHistograms
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.builtins_values import DataValueType
@@ -88,11 +87,14 @@ class SparkDataFrameValueType(DataValueType):
         else:
             data_dimensions = None
 
-        df_stats, histogram_dict, hist_calc_duration = None, None, 0
-        histogram_spec = meta_conf.get_histogram_spec(self, value)
-        spark_histograms = SparkHistograms(histogram_spec)
         if meta_conf.log_histograms:
+            histogram_spec = meta_conf.get_histogram_spec(self, value)
+            spark_histograms = SparkHistograms(histogram_spec)
             df_stats, histogram_dict = spark_histograms.get_histograms(value)
+            hist_sys_metrics = spark_histograms.metrics
+        else:
+            df_stats, histogram_dict = {}, {}
+            histogram_spec = hist_sys_metrics = None
 
         return ValueMeta(
             value_preview=data_preview,
@@ -100,8 +102,9 @@ class SparkDataFrameValueType(DataValueType):
             data_schema=data_schema,
             data_hash=self.to_signature(value),
             descriptive_stats=df_stats,
+            histogram_spec=histogram_spec,
+            histogram_system_metrics=hist_sys_metrics,
             histograms=histogram_dict,
-            histogram_system_metrics=spark_histograms.metrics,
         )
 
     def support_fast_count(self, target):
