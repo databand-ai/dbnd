@@ -107,7 +107,7 @@ class MockFileSystem(FileSystem):
     def clear(self):
         self.get_all_data().clear()
 
-    def open_write(self, path, mode="w"):
+    def open_write(self, path, mode="w", **kwargs):
         return MockFile(path=path, fs=self, mode=mode)
 
     def open_read(self, path, mode="r"):

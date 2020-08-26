@@ -181,9 +181,11 @@ class Task(_BaseTask, _TaskParamContainer):
         However, you may freely override this method with custom logic.
         """
         # we check only user side task outputs
-        # all system tasks outputs are not important (if they exists or not)
-        # user doesn't see them
-        outputs = flatten(self.task_outputs)
+        # all system tasks outputs are not important (if the exists or not)
+        # user don't see them
+        outputs = [
+            o for o in flatten(self.task_outputs) if not o.config.overwrite_target
+        ]
         if len(outputs) == 0:
             if not self.task_band:
                 warnings.warn(

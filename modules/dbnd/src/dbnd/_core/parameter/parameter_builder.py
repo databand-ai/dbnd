@@ -182,6 +182,10 @@ class ParameterFactory(object):
         """
         return self.target_config(self._target_config.with_require_local_access())
 
+    @property
+    def overwrite(self):
+        return self.target_config(self._target_config.with_overwrite())
+
     def target_factory(self, target_factory, folder=False):
         tc = self.target_config(self._target_config.with_target_factory(target_factory))
         if folder:

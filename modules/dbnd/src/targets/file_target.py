@@ -86,7 +86,12 @@ class FileTarget(DataTarget):
         if "r" in mode:
             return io_pipe.pipe_reader(self.fs.open_read(self.path, mode=mode))
         elif "w" in mode:
-            return io_pipe.pipe_writer(self.fs.open_write(self.path, mode=mode))
+            overwrite = False
+            if self.config and self.config.overwrite_target:
+                overwrite = True
+            return io_pipe.pipe_writer(
+                self.fs.open_write(self.path, mode=mode, overwrite=overwrite)
+            )
         else:
             raise ValueError("Unsupported open mode '{}'".format(mode))
 
@@ -141,8 +146,8 @@ class FileTarget(DataTarget):
     def copy_from_local(self, local_path):
         self.fs.copy_from_local(local_path, self.path)
 
-    def download(self, local_path):
-        self.fs.download(self.path, local_path)
+    def download(self, local_path, **kwargs):
+        self.fs.download(self.path, local_path, **kwargs)
 
     def copy(self, new_path, raise_if_exists=False):
         self.fs.copy(self.path, str(new_path), raise_if_exists)

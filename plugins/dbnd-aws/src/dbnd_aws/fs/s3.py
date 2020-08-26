@@ -333,7 +333,7 @@ class S3Client(FileSystem):
             ExtraArgs=kwargs,
         )
 
-    def copy_from_local_file(self, local_path, dest):
+    def copy_from_local_file(self, local_path, dest, **kwargs):
         return self.put_multipart(local_path=local_path, destination_s3_path=dest)
 
     def copy(
@@ -426,7 +426,7 @@ class S3Client(FileSystem):
         # download the file
         self.s3.meta.client.download_file(bucket, key, destination_local_path)
 
-    def download_file(self, path, location):
+    def download_file(self, path, location, **kwargs):
         self.get(s3_path=path, destination_local_path=location)
 
     def get_as_string(self, s3_path):
@@ -578,8 +578,8 @@ class S3Client(FileSystem):
             raise FileNotFoundException("Could not find file at %s" % path)
         return ReadableS3File(s3_key)
 
-    def open_write(self, path, mode="w"):
-        return AtomicLocalFile(path, self, mode=mode)
+    def open_write(self, path, mode="w", **kwargs):
+        return AtomicLocalFile(path, self, mode=mode, **kwargs)
 
 
 class ReadableS3File(object):

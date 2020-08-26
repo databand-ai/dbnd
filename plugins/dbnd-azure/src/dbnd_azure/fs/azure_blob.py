@@ -266,7 +266,7 @@ class AzureBlobStorageClient(FileSystem):
                 container=container, blob=blob, location=location
             )
         )
-        return self.conn.get_blob_to_path(container, blob, location)
+        return self.conn.get_blob_to_path(container, blob, location, open_mode="w")
 
     def mkdir_parent(self, path):
         pass

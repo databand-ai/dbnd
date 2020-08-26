@@ -29,6 +29,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                 local_target = target(
                     self.task_run.attemp_folder_local_cache,
                     os.path.basename(p_val.path),
+                    config=p_val.config,
                 )
                 if p_def.kind == _ParameterKind.task_output:
                     # Output should be substituted for local path and synced post execution
@@ -44,7 +45,10 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                 try:
                     logger.info("Downloading  %s %s to %s", p_def, p_val, local_target)
                     local_target.mkdir_parent()
-                    p_val.download(local_target.path)
+                    p_val.download(
+                        local_target.path,
+                        overwrite=local_target.config.overwrite_target,
+                    )
                 except Exception as ex:
                     logger.exception(
                         "Failed to create local cache for %s %s at %s",

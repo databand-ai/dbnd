@@ -232,11 +232,11 @@ class HdfsPyox(FileSystem, Config):
 
         return _DeleteOnCloseFile(local_tmp_file, mode)
 
-    def copy_from_local_file(self, local_path, dest):
-        self.put(local_path, dest)
+    def copy_from_local_file(self, local_path, dest, overwrite=False):
+        self.put(local_path, dest, overwrite=overwrite)
 
-    def put(self, local_path, destination):
-        self.upload(destination, local_path)
+    def put(self, local_path, destination, overwrite=False):
+        self.upload(destination, local_path, overwrite=overwrite)
 
     def get(self, path, local_destination):
         self.download(self._remove_schema(path), local_destination)

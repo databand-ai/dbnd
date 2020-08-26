@@ -107,10 +107,10 @@ class LocalFileSystem(FileSystem):
             else:
                 raise err
 
-    def copy_from_local(self, local_path, dest):
-        self.copy(local_path, dest)
+    def copy_from_local(self, local_path, dest, **kwargs):
+        self.copy(local_path, dest, **kwargs)
 
-    def move_from_local(self, local_path, dest):
+    def move_from_local(self, local_path, dest, **kwargs):
         self.move(local_path, dest)
 
     def rename_dont_move(self, path, dest):
@@ -124,5 +124,5 @@ class LocalFileSystem(FileSystem):
     def open_read(self, path, mode="r"):
         return FileWrapper(io.BufferedReader(io.FileIO(path, mode)))
 
-    def open_write(self, path, mode="w"):
-        return AtomicLocalFile(path, fs=self, mode=mode)
+    def open_write(self, path, mode="w", **kwargs):
+        return AtomicLocalFile(path, fs=self, mode=mode, **kwargs)

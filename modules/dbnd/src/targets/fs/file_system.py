@@ -143,11 +143,11 @@ class FileSystem(object):
             "copy() not implemented on {0}".format(self.__class__.__name__)
         )
 
-    def move_from_local(self, local_path, dest):
-        self.copy_from_local(local_path, dest)
+    def move_from_local(self, local_path, dest, **kwargs):
+        self.copy_from_local(local_path, dest, **kwargs)
         os.remove(local_path)
 
-    def copy_from_local(self, local_path, dest):
+    def copy_from_local(self, local_path, dest, **kwargs):
         if os.path.isdir(local_path):
             for path, subdirs, files in os.walk(local_path):
                 for file in files:
@@ -155,18 +155,18 @@ class FileSystem(object):
                     local_file_path = os.path.join(local_path, path, file)
                     relative_path = os.path.relpath(local_file_path, local_path)
                     remote_path = os.path.join(dest, relative_path)
-                    self.copy_from_local_file(local_file_path, remote_path)
+                    self.copy_from_local_file(local_file_path, remote_path, **kwargs)
         else:
-            self.copy_from_local_file(local_path, dest)
+            self.copy_from_local_file(local_path, dest, **kwargs)
 
-    def copy_from_local_file(self, local_path, dest):
+    def copy_from_local_file(self, local_path, dest, **kwargs):
         raise NotImplementedError(
             "copy_from_local_file() not implemented on {0}".format(
                 self.__class__.__name__
             )
         )
 
-    def download(self, path, location):
+    def download(self, path, location, **kwargs):
         logger.info("download %s to %s", path, location)
         parent_location = os.path.dirname(location)
         if not os.path.exists(parent_location):
@@ -185,11 +185,11 @@ class FileSystem(object):
                 local_path = os.path.join(location, relative_path)
                 # prevent reference to the folder itself (.)
                 if f != path:
-                    self.download(f, local_path)
+                    self.download(f, local_path, **kwargs)
         else:
-            self.download_file(path, location)
+            self.download_file(path, location, **kwargs)
 
-    def download_file(self, path, location):
+    def download_file(self, path, location, **kwargs):
         raise NotImplementedError(
             "download_file() not implemented on {0}".format(self.__class__.__name__)
         )
@@ -199,5 +199,5 @@ class FileSystem(object):
             "open_read() not implemented on {0}".format(self.__class__.__name__)
         )
 
-    def open_write(self, path, mode="w"):
-        return AtomicLocalFile(path, self, mode=mode)
+    def open_write(self, path, mode="w", **kwargs):
+        return AtomicLocalFile(path, self, mode=mode, **kwargs)

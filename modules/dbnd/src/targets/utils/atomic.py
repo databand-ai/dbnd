@@ -13,11 +13,12 @@ class AtomicLocalFile(io.BufferedWriter):
     :class:`targets.file.FileTarget` for example
     """
 
-    def __init__(self, path, fs, mode="w"):
+    def __init__(self, path, fs, mode="w", overwrite=False):
         self.__tmp_path = self.generate_tmp_path(path)
         self.path = path
         self.fs = fs
         file_io = io.FileIO(self.__tmp_path, mode)
+        self.overwrite = overwrite
 
         super(AtomicLocalFile, self).__init__(file_io)
 
@@ -29,7 +30,7 @@ class AtomicLocalFile(io.BufferedWriter):
         return get_local_tempfile(os.path.basename(path))
 
     def move_to_final_destination(self):
-        self.fs.move_from_local(self.tmp_path, self.path)
+        self.fs.move_from_local(self.tmp_path, self.path, overwrite=self.overwrite)
 
     def __del__(self):
         # this is required on Windows, otherwise os.remove fails

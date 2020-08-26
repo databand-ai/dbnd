@@ -131,6 +131,7 @@ class TargetConfig(object):
     is_binary = attr.ib(default=False)
     target_factory = attr.ib(default=None)
     require_local_access = attr.ib(default=False)
+    overwrite_target = attr.ib(default=False)
 
     def with_compression(self, compression):
         return attr.evolve(self, compression=compression)
@@ -158,6 +159,9 @@ class TargetConfig(object):
 
     def with_require_local_access(self):
         return attr.evolve(self, require_local_access=True)
+
+    def with_overwrite(self):
+        return attr.evolve(self, overwrite_target=True)
 
     @property
     def gzip(self):
@@ -230,6 +234,10 @@ class TargetConfig(object):
     @property
     def tfhistory(self):
         return self.with_format(FileFormat.tfhistory)
+
+    @property
+    def overwrite(self):
+        return self.with_overwrite()
 
     def get_ext(self):  # type: (TargetConfig) -> str
         ext = ""
