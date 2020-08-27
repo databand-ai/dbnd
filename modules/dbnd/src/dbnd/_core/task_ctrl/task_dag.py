@@ -180,21 +180,16 @@ class _TaskDagNode(TaskSubCtrl):
         tasks = self.subdag_tasks()
         return topological_sort(tasks)
 
-    def select_by_task_ids(self, task_ids, tasks):
+    def select_by_task_names(self, tasks_regexes, tasks=None):
         tasks = tasks or self.subdag_tasks()
-        selected = [t for t in tasks if t.task_id in task_ids]
+        selected = []
+        for task_regex in tasks_regexes:
+            for t in tasks:
+                if re.findall(task_regex, t.task_id):
+                    selected.append(t)
         if not selected:
-            raise friendly_error.task_not_found_in_pipeline(
-                self, tasks, task_regex=task_ids
-            )
-        return selected
-
-    def select_by_task_names(self, task_regex, tasks=None):
-        tasks = tasks or self.subdag_tasks()
-        selected = [t for t in tasks if re.findall(task_regex, t.task_id)]
-        if not selected:
-            raise friendly_error.task_not_found_in_pipeline(
-                self, tasks=tasks, task_regex=task_regex
+            raise friendly_error.no_matching_tasks_in_pipeline(
+                tasks=tasks, tasks_regexes=tasks_regexes
             )
         return selected
 

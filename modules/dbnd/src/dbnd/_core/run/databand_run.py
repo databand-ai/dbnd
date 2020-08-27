@@ -771,13 +771,15 @@ class _DbndDriverTask(Task):
             if self.sends_heartbeat:
                 hearbeat = start_heartbeat_sender(driver_task_run)
 
+        task_runs_to_run = [tr for tr in task_runs if not tr.is_skipped]
+
         # create executor without driver task!
         task_executor = get_task_executor(
             run,
             task_executor_type=self.task_executor_type,
             host_engine=self.host_engine,
             target_engine=run.root_task_run.task_engine,
-            task_runs=task_runs,
+            task_runs=task_runs_to_run,
         )
 
         with nested(hearbeat):
