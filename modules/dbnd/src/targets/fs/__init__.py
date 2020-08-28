@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 import typing
 
 from dbnd._core.errors import DatabandRuntimeError
@@ -47,7 +48,8 @@ def reset_fs_cache():
 
 
 def get_file_system(fs_name):
-    fs = _cached_fs.get(fs_name)
+    current_thread_id = threading.current_thread().ident
+    fs = _cached_fs.get((fs_name, current_thread_id))
     if fs:
         return fs
 
@@ -55,7 +57,7 @@ def get_file_system(fs_name):
         raise Exception("Unknown file system '%s' " % fs_name)
 
     fs_builder = KNOWN_FILE_SYSTEMS[fs_name]
-    _cached_fs[fs_name] = fs = fs_builder()
+    _cached_fs[(fs_name, current_thread_id)] = fs = fs_builder()
     return fs
 
 

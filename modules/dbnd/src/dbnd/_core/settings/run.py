@@ -113,3 +113,11 @@ class RunConfig(config.Config):
     tracking_with_cache = parameter(default=False).help(
         "Should dbnd cache results during tracking"
     )[bool]
+
+    pipeline_band_only_check = parameter(default=False).help(
+        "When checking if pipeline is completed, check only if the band file exist (skip the tasks)"
+    )[bool]
+
+    task_complete_parallelism_level = parameter(default=1).help(
+        "Number of threads to use when checking if tasks are already complete"
+    )[int]

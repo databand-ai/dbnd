@@ -23,8 +23,13 @@ class PipelineTask(Task):
         return
 
     def _complete(self):
-        if self.task_band and not self.task_band.exists():
-            return False
+        if self.task_band:
+            if not self.task_band.exists():
+                return False
+            # With very large pipelines, checking all tasks might take a very long time
+            # so we might want to assume that if the band exist, probably all outputs also exist
+            if self.settings.run.pipeline_band_only_check:
+                return True
         return super(PipelineTask, self)._complete()
 
 

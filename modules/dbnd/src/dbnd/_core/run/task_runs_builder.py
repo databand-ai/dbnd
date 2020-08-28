@@ -1,8 +1,10 @@
 import logging
 import typing
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
+from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.settings import EngineConfig, RunConfig
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_build.task_registry import build_task_from_config
@@ -22,22 +24,68 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def find_tasks_to_skip_complete(root_tasks, all_tasks):
-    completed_status = {}  # if True = should run, if False or None - should not
+def check_if_completed_dfs(task):
+    completed_status = {}
+    task_id = task.task_id
+    if task_id in completed_status:
+        return
+    completed_status[task_id] = completed = task._complete()
+    if not completed:
+        for c in task.ctrl.task_dag.upstream:
+            completed_status.update(check_if_completed_dfs(c))
+    return completed_status
+
+
+def check_if_completed_bfs(root_task, number_of_threads):
+    completed_status = {}
+    tasks_to_check_list = [root_task]
+
+    with ThreadPoolExecutor(max_workers=number_of_threads) as executor:
+        while tasks_to_check_list:
+            new_task_to_check_list = []
+
+            task_results = {}
+            for task in tasks_to_check_list:
+                task_results[executor.submit(task._complete)] = task.task_id
+
+            for future in as_completed(task_results):
+                task_id = task_results[future]
+                try:
+                    data = future.result()
+                    completed_status[task_id] = data
+                except Exception as e:
+                    raise DatabandRuntimeError(
+                        "Failed to get completeness result of task_id {}".format(
+                            task_id
+                        ),
+                        nested_exceptions=e,
+                    )
+
+            for task in tasks_to_check_list:
+                if completed_status[task.task_id]:
+                    continue
+
+                for upstream_task in task.ctrl.task_dag.upstream:
+                    if upstream_task.task_id not in completed_status:
+                        new_task_to_check_list.append(upstream_task)
+
+            tasks_to_check_list = new_task_to_check_list
+
+    return completed_status
+
+
+def find_tasks_to_skip_complete(root_tasks, all_tasks, number_of_threads):
+    # if True = should run, if False or None - should notcheck_if_completed
+    completed_status = {}
 
     logger.info("Looking for completed tasks..")
 
-    def check_if_completed(task):
-        task_id = task.task_id
-        if task_id in completed_status:
-            return
-        completed_status[task_id] = completed = task._complete()
-        if not completed:
-            for c in task.ctrl.task_dag.upstream:
-                check_if_completed(c)
-
-    for t in root_tasks:
-        check_if_completed(t)
+    if number_of_threads > 1:
+        for t in root_tasks:
+            completed_status.update(check_if_completed_bfs(t, number_of_threads))
+    else:
+        for t in root_tasks:
+            completed_status.update(check_if_completed_dfs(t))
 
     # only if completed_status is False task is not skipped
     # otherwise - it wasn't discovered or it's completed
@@ -102,7 +150,7 @@ class TaskRunsBuilder(object):
         task_skipped_as_not_required = set()
         if run_config.skip_completed:
             tasks_completed, task_skipped_as_not_required = find_tasks_to_skip_complete(
-                roots, enabled_tasks
+                roots, enabled_tasks, run_config.task_complete_parallelism_level
             )
 
         # # if any of the tasks is spark add policy
