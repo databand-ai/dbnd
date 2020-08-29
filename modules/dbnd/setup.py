@@ -61,6 +61,7 @@ setuptools.setup(
             "openpyxl==2.6.4",
             "sklearn",
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            "wheel",  # for fat_wheel tests
         ],
     },
     entry_points={"console_scripts": ["dbnd = dbnd:dbnd_main"]},
