@@ -1,4 +1,5 @@
 # Dbnd Airflow Operator
+
 This plugin was written to provide an explicit way of declaratively passing messages between two airflow operators.
 
 This plugin was inspired by [AIP-31](https://cwiki.apache.org/confluence/display/AIRFLOW/AIP-31%3A+Airflow+functional+DAG+definition).
@@ -10,6 +11,7 @@ This plugin is fully functional, however as soon as AIP-31 is implemented it wil
 Fully tested on airflow 1.10.X.
 
 # Code Example
+
 Here is an example of how we achieve our goal:
 
 ```python
@@ -68,19 +70,22 @@ with DAG(dag_id="dbnd_operators", default_args=default_args) as dag_operators:
 ```
 
 As you can see, messages are passed explicitly between all three tasks:
-- t1, the result of the first task is passed to the next task my_multiple_outputs
-- t2 and t3 represent the results of my_multiple_outputs
-- some_python_function is wrapped with an operator
-- The new python operator is defined as dependent upon t3's execution (downstream) - explicitly.
 
->Note: If you run a function marked with the `@task` decorator without a DAG context, and without using the dbnd
-library to run it - it will execute absolutely normally!
+-   t1, the result of the first task is passed to the next task my_multiple_outputs
+-   t2 and t3 represent the results of my_multiple_outputs
+-   some_python_function is wrapped with an operator
+-   The new python operator is defined as dependent upon t3's execution (downstream) - explicitly.
+
+> Note: If you run a function marked with the `@task` decorator without a DAG context, and without using the dbnd
+> library to run it - it will execute absolutely normally!
 
 Using this method to pass arguments between tasks not only improves developer user-experience, but also allows
 for pipeline execution support for many use-cases. It does not break currently existing DAGs.
 
 # Using dbnd_config
+
 Let's look at the example again, but change the default_args defined at the very top:
+
 ```python
 default_args = {
     "owner": "airflow",

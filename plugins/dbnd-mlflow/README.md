@@ -1,7 +1,9 @@
 # Overview
+
 The `dbnd-mlflow` plugin allows storing [mlflow](https://github.com/mlflow/mlflow) metrics to DBND tracker together with duplicating them to the mlflow store.
 
 # Install
+
 ```bash
 pip install dbnd-mlflow
 # or
@@ -9,6 +11,7 @@ pip install databand[mlflow]
 ```
 
 # Config
+
 ```ini
 [core]
 # Databand store url should be defined
@@ -24,7 +27,9 @@ databand_tracking=True
 ```
 
 # Run example
+
 You might need to install examples at first `pip install dbnd-examples`.
+
 ```bash
 dbnd run dbnd_examples.mlflow_.run_mlflow_in_dbnd_task.mlflow_tracking_in_task_example
 
@@ -58,29 +63,30 @@ def mlflow_example():
 </details>
 
 ## Execution flow:
+
 1. Run `dbnd run mlflow_example --set-config mlflow_tracking.databand_tracking=True`
 2. dbnd creates a new dbnd context
 3. `dbnd_on_pre_init_context` hook from `dbnd_mlflow` is triggered
-    * a new uri is computed to be used by mlflow, e.g.:
-        * `dbnd://localhost:8080?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F`
-    * the new uri is set to be used with `mlflow.set_tracking_uri()`
+    - a new uri is computed to be used by mlflow, e.g.:
+        - `dbnd://localhost:8080?duplicate_tracking_to=http%253A%252F%252Fmlflow-store%253A80%252F`
+    - the new uri is set to be used with `mlflow.set_tracking_uri()`
 4. `mlflow_example` task starts:
     1. `mlflow.start_run()`
         1. `mlflow` reads `entry_points` for each installed package and finds:
-            * "dbnd = dbnd_mlflow.tracking_store:get_dbnd_store",
-            * "dbnd+s = dbnd_mlflow.tracking_store:get_dbnd_store",
-            * "databand = dbnd_mlflow.tracking_store:get_dbnd_store",
-            * "databand+s = dbnd_mlflow.tracking_store:get_dbnd_store",
+            - "dbnd = dbnd_mlflow.tracking_store:get_dbnd_store",
+            - "dbnd+s = dbnd_mlflow.tracking_store:get_dbnd_store",
+            - "databand = dbnd_mlflow.tracking_store:get_dbnd_store",
+            - "databand+s = dbnd_mlflow.tracking_store:get_dbnd_store",
         2. `mlflow` creates `TrackingStoreClient` using the new uri
         3. uri schema instructs to use `dbnd_mlflow.tracking_store:get_dbnd_store`
-            * `get_dbnd_store` creates dbnd `TrackingAPIClient`
-            * `get_dbnd_store` creates mlflow tracking store to duplicate tracking to
-            * `get_dbnd_store` returns `DatabandStore` instance
+            - `get_dbnd_store` creates dbnd `TrackingAPIClient`
+            - `get_dbnd_store` creates mlflow tracking store to duplicate tracking to
+            - `get_dbnd_store` returns `DatabandStore` instance
     2. `log_param()`/`log_metric()`
-        * calls to `DatabandStore`
-            * calls to `TrackingAPIClient`
-            * calls to mlflow tracking store to duplicate tracking to
+        - calls to `DatabandStore`
+            - calls to `TrackingAPIClient`
+            - calls to mlflow tracking store to duplicate tracking to
     3. `mlflow.end_run()`
 5. `mlflow_example` ends
 6. `dbnd_on_exit_context` hook from `dbnd_mlflow` is triggered
-    * restore original mlflow tracking uri
+    - restore original mlflow tracking uri

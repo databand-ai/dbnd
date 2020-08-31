@@ -22,7 +22,6 @@ variables:
   # Fix issue https://gitlab.com/gitlab-org/gitlab-runner/issues/3247
   FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: 0
 
-
 ### TESTS BASIC
 .template__except_defaults:
   except: &except_on_skip_message
@@ -72,7 +71,6 @@ variables:
   # TODO: new models - sqlalchemy_utils.UUID - not wokring on windows?
   when: manual
 
-
 empty_job:
   # workaround for gitlab not supporting empty `needs`
   # we want build jobs starting to run right away
@@ -95,7 +93,7 @@ pre_commit:
     KUBERNETES_MEMORY_LIMIT: 1Gi
   image: python:3.6
   script:
-#    - tox -e pre-commit,lint,docs,readme
+    #    - tox -e pre-commit,lint,docs,readme
     - tox -e pre-commit,lint
 
 manifest:
@@ -144,7 +142,6 @@ dbnd_py37:
   artifacts:
     reports:
       junit: modules/dbnd/build/junit-py37.xml
-
 
 dbnd_examples_py27:
   <<: *template__python_test_job
