@@ -11,6 +11,7 @@ from pyspark.sql import SparkSession
 import dbnd
 
 from dbnd import log_dataframe, task
+from dbnd._core.tracking.histograms import HistogramRequest
 from dbnd._core.utils.git import get_git_commit
 
 
@@ -28,15 +29,30 @@ def create_test_report(input_file, app_name, execution_time):
         writer.writerow(["datetime", current_datetime])
 
 
+def get_approx_distinct_histogram_request():
+    request = HistogramRequest.ALL()
+    request.approx_distinct_count = True
+    return request
+
+
 @task
 def histogram_test(input_file, app_name):
     execution_time = None
     app_name += "-" + os.path.basename(input_file)
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     try:
-        data = spark.read.csv(input_file, inferSchema=True, header=True, sep=",")
+        if input_file.endswith(".csv"):
+            df = spark.read.csv(input_file, inferSchema=True, header=True, sep=",")
+        elif input_file.endswith(".parquet"):
+            df = spark.read.parquet(input_file)
+        else:
+            print("not supported file type: {}".format(input_file))
+            return
+
         start_time = time.time()
-        log_dataframe("data", data, with_histograms=True)
+        log_dataframe("df", df, with_histograms=True)
+        # log_dataframe("df", df, with_histograms=HistogramRequest.ALL())
+        # log_dataframe("df", df, with_histograms=get_approx_distinct_histogram_request())
         execution_time = time.time() - start_time
     finally:
         spark.stop()

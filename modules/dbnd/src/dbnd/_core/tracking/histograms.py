@@ -27,6 +27,7 @@ class HistogramSpec(object):
     )  # type: Union[set, frozenset]
     only_stats = attr.ib(default=False)  # type: bool
     approx_distinct_count = attr.ib(default=False)  # type: bool
+    with_stats = attr.ib(default=False)  # type: bool
     none = attr.ib(default=False)  # type: bool
 
     @classmethod
@@ -67,6 +68,7 @@ class HistogramSpec(object):
             columns=selected_columns,
             only_stats=histogram_request.only_stats,
             approx_distinct_count=histogram_request.approx_distinct_count,
+            with_stats=histogram_request.with_stats,
         )
 
 
@@ -95,6 +97,7 @@ class HistogramRequest(object):
     include_all_numeric = attr.ib(default=False)  # type: bool
     include_all_string = attr.ib(default=False)  # type: bool
     only_stats = attr.ib(default=False)  # type: bool
+    with_stats = attr.ib(default=False)  # type: bool
     approx_distinct_count = attr.ib(default=False)  # type: bool
     none = attr.ib(default=False)  # type: bool
 
@@ -118,13 +121,18 @@ class HistogramRequest(object):
     def ALL(cls):
         """Calculate statistics and histograms for all columns"""
         return cls(
-            include_all_boolean=True, include_all_numeric=True, include_all_string=True
+            include_all_boolean=True,
+            include_all_numeric=True,
+            include_all_string=True,
+            with_stats=True,
         )
 
     @classmethod
     def DEFAULT(cls):
-        """Calculate statistics and histograms for all columns"""
-        return cls.ALL()
+        """Calculate histograms for all columns"""
+        return cls(
+            include_all_boolean=True, include_all_numeric=True, include_all_string=True
+        )
 
     @classmethod
     def NONE(cls):
@@ -144,7 +152,9 @@ class HistogramRequest(object):
             histogram_request = with_histograms
         elif isinstance(with_histograms, bool):
             histogram_request = (
-                HistogramRequest.ALL() if with_histograms else HistogramRequest.NONE()
+                HistogramRequest.DEFAULT()
+                if with_histograms
+                else HistogramRequest.NONE()
             )
         elif isinstance(with_histograms, (list, str)):
             histogram_request = HistogramRequest(include_columns=with_histograms)

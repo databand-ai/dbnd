@@ -4,6 +4,7 @@ import logging
 
 from pytest import fixture
 
+from dbnd._core.tracking.histograms import HistogramRequest
 from dbnd_spark.spark_targets import SparkDataFrameValueType
 from targets.value_meta import ValueMetaConf
 
@@ -14,7 +15,9 @@ logger = logging.getLogger(__name__)
 class TestHistograms:
     @fixture
     def meta_conf(self):
-        return ValueMetaConf.enabled()
+        conf = ValueMetaConf.enabled()
+        conf.log_histograms = HistogramRequest.ALL()
+        return conf
 
     def test_boolean_histogram(self, spark_session, meta_conf):
         booleans = [True] * 10 + [None] * 10 + [False] * 20 + [True] * 20

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import os
 import time
 import typing
 
@@ -8,12 +9,14 @@ from collections import defaultdict
 
 import pyspark.sql as spark
 
+from pyspark import Row
 from pyspark.sql.functions import (
     approx_count_distinct,
     col,
     count,
     countDistinct,
     desc,
+    floor,
     isnull,
     lit,
     when,
@@ -32,7 +35,7 @@ from dbnd._core.utils import seven
 
 
 if typing.TYPE_CHECKING:
-    from typing import Tuple, Dict
+    from typing import Tuple, Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +44,7 @@ class SparkHistograms(object):
     def __init__(self, histogram_spec):
         self.histogram_spec = histogram_spec
         self.metrics = dict()
+        self._temp_parquet_path = None
 
     def get_histograms(self, df):
         # type: (spark.DataFrame) -> Tuple[Dict[str, Dict], Dict[str, Tuple]]
@@ -51,18 +55,49 @@ class SparkHistograms(object):
             df = self._filter_complex_columns(df).select(
                 list(self.histogram_spec.columns)
             )
-            with self._measure_time("summary_calc_time"):
-                summary = self._calculate_summary(df)
+            df = self._save_as_parquet(df)
+
+            summary = None
+            if self.histogram_spec.only_stats or self.histogram_spec.with_stats:
+                with self._measure_time("summary_calc_time"):
+                    summary = self._calculate_summary(df)
 
             if self.histogram_spec.only_stats:
                 return summary, {}
 
             with self._measure_time("histograms_calc_time"):
-                histograms = self._calculate_histograms(df, summary)
+                histograms = self._calculate_histograms(df)
+
             return summary, histograms
         except Exception:
             logger.exception("Error occured during histograms calculation")
             return {}, {}
+        finally:
+            self._remove_parquet()
+
+    def _save_as_parquet(self, df):
+        """ save dataframe as column-based parquet file to allow fast column queries which histograms depend on """
+        from dbnd_spark.spark_targets import SparkDataFrameValueType
+
+        signature = SparkDataFrameValueType().to_signature(df)
+        temp_dir = os.environ.get("DBND__SPARK_TEMP_DIR")
+        if temp_dir is None:
+            logger.warning(
+                "Failed to get temp_dir from DBND__SPARK_TEMP_DIR, not creating parquet from dataframe"
+            )
+            return df
+
+        file_name = "dbnd_spark_dataframe_{}.parquet".format(signature)
+        path = os.path.join(temp_dir, file_name)
+        self._temp_parquet_path = path
+        df.write.parquet(path)
+        df = df.sql_ctx.sparkSession.read.parquet(path)
+        return df
+
+    def _remove_parquet(self):
+        if self._temp_parquet_path:
+            # TODO: remove parquet file
+            pass
 
     def _filter_complex_columns(self, df):
         simple_columns = []
@@ -77,7 +112,7 @@ class SparkHistograms(object):
             simple_columns.append(column_def.name)
         return df.select(simple_columns)
 
-    def _count_in_summary(self, dataframe, column_name):
+    def _is_count_in_summary(self, dataframe, column_name):
         """ dataframe.summary() returns count only for numeric and string types, otherwise we need to calculate it our own """
         column_field = [f for f in dataframe.schema.fields if f.name == column_name][0]
         return isinstance(column_field.dataType, (NumericType, StringType))
@@ -117,6 +152,7 @@ class SparkHistograms(object):
             count_distinct_function = approx_count_distinct
         else:
             count_distinct_function = countDistinct
+
         expressions = (
             [
                 count_distinct_function(col(c)).alias("%s_distinct" % c)
@@ -126,30 +162,30 @@ class SparkHistograms(object):
             + [
                 count(col(c)).alias("%s_count" % c)
                 for c in df.columns
-                if not self._count_in_summary(df, c)
+                if not self._is_count_in_summary(df, c)
             ]
         )
         counts = df.agg(*expressions).collect()[0]
         return counts
 
-    def _calculate_histograms(self, df, summary):
+    def _calculate_histograms(self, df):
         # type: (spark.DataFrame, Dict) -> Dict
         histograms = {column_name: None for column_name in df.columns}
 
         with self._measure_time("boolean_histograms_calc_time"):
             boolean_histograms = self._calculate_categorical_histograms_by_type(
-                df, BooleanType, summary
+                df, BooleanType
             )
         histograms.update(boolean_histograms)
 
         with self._measure_time("string_histograms_calc_time"):
             str_histograms = self._calculate_categorical_histograms_by_type(
-                df, StringType, summary
+                df, StringType
             )
         histograms.update(str_histograms)
 
         with self._measure_time("numerical_histograms_calc_time"):
-            numeric_histograms = self._calculate_numeric_histograms(df, summary)
+            numeric_histograms = self._calculate_numerical_histograms(df)
         histograms.update(numeric_histograms)
         return histograms
 
@@ -160,121 +196,119 @@ class SparkHistograms(object):
             if isinstance(f.dataType, column_type)
         ]
 
-    def _calculate_numeric_histograms(self, df, summary):
-        numeric_columns = [
-            f.name for f in df.schema.fields if isinstance(f.dataType, NumericType)
-        ]
-        result = {column_name: None for column_name in numeric_columns}
+    def _calculate_numerical_histograms(self, df):
+        column_df_list = self._get_columns_by_type(df, NumericType)
+        if not column_df_list:
+            return dict()
 
-        bucket_queries = []
-        column_to_buckets = {column_name: [] for column_name in numeric_columns}
-        for column_def in df.schema.fields:
-            column_type, column_name = column_def.dataType, column_def.name
-            if not isinstance(column_type, NumericType):
-                continue
+        value_counts = []
+        summary = dict()
+        for column_df in column_df_list:
+            column_name = column_df.schema.names[0]
+            column_df.cache()
 
-            column_buckets, column_bucket_queries = self._get_numerical_buckets(
-                column_name, column_type, summary
+            column_summary = column_df.summary("min", "max").collect()
+            summary[column_name] = dict()
+            for summary_row in column_summary:
+                summary[column_name][summary_row.summary] = float(
+                    summary_row[column_name]
+                )
+
+            column_value_counts = self._get_column_numerical_buckets_df(
+                column_df, summary[column_name]["min"], summary[column_name]["max"], 20
             )
-            bucket_queries.extend(column_bucket_queries)
-            column_to_buckets[column_name] = column_buckets
-
-        # For each 'bucket' (column with min/max values) we're performing
-        # "select count(column) from table where column >= min and column < max"
-        # then aggregating all values into single row with column aliases like "<column>_<bucket_number>"
-        # note that we're performing batch histograms calculation only for numeric columns
-        if len(bucket_queries):
-            histograms = df.select(numeric_columns).agg(*bucket_queries).collect()[0]
-        # Aggregating results into api-consumable form.
-        # We're taking all buckets and looking up for counts for each bucket.
-        for column in numeric_columns:
-            counts = [
-                histograms["%s_%s" % (column, i)]
-                for i in range(0, len(column_to_buckets[column]) - 1)
-            ]
-            result[column] = (counts, column_to_buckets[column])
-
-        return result
-
-    def _get_numerical_buckets(self, column_name, column_type, summary):
-        distinct = summary[column_name]["distinct"]
-        minv = summary[column_name]["min"]
-        maxv = summary[column_name]["max"]
-        buckets_count = min(distinct, 20)
-        if isinstance(column_type, IntegralType):
-            # buckets calculation is copied from rdd.histogram() code and adjusted to be integers
-            # for integral types bucket should be also integral that's why we're casting increment to int
-            inc = int((maxv - minv) / buckets_count)
-        else:
-            inc = (maxv - minv) * 1.0 / buckets_count
-        buckets = [i * inc + minv for i in range(buckets_count)]
-        buckets.append(maxv)
-
-        bucket_queries = []
-        for i in range(0, len(buckets) - 1):
-            bucket_queries.append(
-                count(
-                    when(
-                        (buckets[i] <= col(column_name))
-                        & (
-                            col(column_name) <= buckets[i + 1]
-                            if (i == len(buckets) - 2)
-                            else col(column_name) < buckets[i + 1]
-                        ),
-                        1,
-                    )
-                ).alias("%s_%s" % (column_name, i))
+            column_value_counts = column_value_counts.withColumn(
+                "column_name", lit(column_name)
             )
-        return buckets, bucket_queries
+            column_value_counts = column_value_counts.collect()
+            column_df.unpersist()
+            value_counts.extend(column_value_counts)
 
-    def _calculate_categorical_histograms_by_type(
-        self, dataframe, column_type, summary
+        histograms = self._convert_numerical_histogram_collect_to_dict(
+            value_counts, summary
+        )
+        return histograms
+
+    def _convert_numerical_histogram_collect_to_dict(self, value_counts, summary):
+        # type: (List[Row], Dict) -> Dict
+        """
+        histogram df is list of rows with each row representing a bucket.
+        each bucket has: bucket index, number of values, column name.
+        we convert it to a dict with column names as keys and histograms as values.
+        histogram is represented as a tuple of 2 lists: number of values in bucket and bucket boundaries.
+        """
+        histogram_dict = dict()
+        for row in value_counts:
+            bucket, count, column_name = row
+            if column_name not in histogram_dict:
+                bucket_count = 20
+                counts = [0] * bucket_count
+                min_value = summary[column_name]["min"]
+                max_value = summary[column_name]["max"]
+                bucket_size = (max_value - min_value) / bucket_count
+                values = [min_value + i * bucket_size for i in range(bucket_count + 1)]
+                histogram_dict[column_name] = (counts, values)
+            if bucket == bucket_count:
+                # handle edge of last bucket (values equal to max_value will be in bucket n+1 instead of n)
+                bucket = bucket - 1
+            histogram_dict[column_name][0][bucket] = count
+        return histogram_dict
+
+    def _get_column_numerical_buckets_df(
+        self, column_df, min_value, max_value, bucket_count
     ):
-        max_buckets = 50
+        min_value, max_value = float(min_value), float(max_value)
+        first_bucket = min_value
+        bucket_size = (max_value - min_value) / bucket_count
+        df_with_bucket = column_df.withColumn(
+            "bucket", floor((column_df[0] - first_bucket) / bucket_size)
+        )
+        counts_df = df_with_bucket.groupby("bucket").count()
+        return counts_df
 
+    def _calculate_categorical_histograms_by_type(self, dataframe, column_type):
         column_df_list = self._get_columns_by_type(dataframe, column_type)
         if not column_df_list:
             return dict()
 
-        value_counts = self._spark_categorical_histograms(column_df_list, max_buckets)
-        histograms = self._convert_histogram_df_to_dict(value_counts)
-        self._add_others(histograms, summary, max_buckets)
+        value_counts = self._spark_categorical_histograms(column_df_list)
+        histograms = self._convert_categorical_histogram_collect_to_dict(value_counts)
+        if column_type == StringType:
+            self._add_others(histograms, column_df_list)
         return histograms
 
-    def _spark_categorical_histograms(self, column_df_list, max_buckets):
+    def _spark_categorical_histograms(self, column_df_list):
         """ all columns in column_df_list should have the same type (e.g. all should be booleans or all strings) """
-        value_counts = None
+        max_buckets = 50
+        value_counts = []
         for column_df in column_df_list:
             column_name = column_df.schema.names[0]
             column_value_counts = (
                 column_df.groupby(column_name)
                 .count()
-                # Order by count AND column_name, otherwise histogram column order is unstable
-                .orderBy(desc("count"), column_name)
+                .orderBy(desc("count"))
                 .withColumn("column_name", lit(column_name))
                 .limit(max_buckets - 1)
             )
+            column_value_counts = column_value_counts.collect()
+            value_counts.extend(column_value_counts)
+        return value_counts
 
-            if value_counts is None:
-                value_counts = column_value_counts
-            else:
-                value_counts = value_counts.union(column_value_counts)
-        return value_counts.collect()
-
-    def _add_others(self, histograms, summary, max_buckets):
+    def _add_others(self, histograms, column_df_list):
         """ sum all least significant values (who left out of histogram) to one bucket """
-        for column_name, histogram in histograms.items():
-            distinct = summary[column_name]["distinct"]
-            if distinct < max_buckets:
-                continue
+        if not column_df_list:
+            return
 
-            total_count = summary[column_name]["count"]
+        total_count = column_df_list[0].count()
+        for column_name, histogram in histograms.items():
             histogram_sum_count = sum(histogram[0])
             others_count = total_count - histogram_sum_count
-            histogram[0].append(others_count)
-            histogram[1].append("_others")
+            if others_count > 0:
+                histogram[0].append(others_count)
+                histogram[1].append("_others")
 
-    def _convert_histogram_df_to_dict(self, value_counts):
+    def _convert_categorical_histogram_collect_to_dict(self, value_counts):
+        # type: (List[Row], Dict) -> Dict
         histogram_dict = defaultdict(lambda: ([], []))
         for row in value_counts:
             value, count, column_name = row
