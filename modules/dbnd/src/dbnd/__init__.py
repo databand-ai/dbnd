@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 
 
-from dbnd._core.cli.main import dbnd_cmd, dbnd_run_cmd, main as dbnd_main
+from dbnd._core.cli.main import (
+    dbnd_cmd,
+    dbnd_run_cmd,
+    dbnd_run_cmd_main,
+    main as dbnd_main,
+)
 from dbnd._core.commands import log_dataframe, log_duration, log_metric
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.configuration.config_readers import override
@@ -103,7 +108,7 @@ __all__ = [
     "dbnd_main",
     "dbnd_cmd",
     "dbnd_run_cmd",
-    "dbnd_handle_errors",
+    "dbnd_run_cmd_main" "dbnd_handle_errors",
     # metrics
     "log_dataframe",
     "log_metric",

@@ -96,6 +96,36 @@ dbnd_run_cmd = partial(dbnd_cmd, "run")
 dbnd_schedule_cmd = partial(dbnd_cmd, "schedule")
 
 
+def dbnd_run_cmd_main(task, env=None, args=None):
+    """
+    A wrapper for dbnd_cmd_run with error handling
+    """
+    from dbnd import Task
+
+    if isinstance(task, Task):
+        task_str = task.get_full_task_family()
+    else:
+        task_str = task
+
+    try:
+        cmd_args = [task_str]
+        if env is not None:
+            cmd_args = cmd_args + ["--env", env]
+        if args is not None:
+            cmd_args = cmd_args + args
+        return dbnd_run_cmd(cmd_args)
+    except KeyboardInterrupt:
+        logger.error("Keyboard interrupt, exiting...")
+        sys.exit(1)
+    except Exception as ex:
+        from dbnd._core.failures import get_databand_error_mesage
+
+        msg, code = get_databand_error_mesage(ex=ex, args=sys.argv[1:])
+        logger.error("dbnd cmd run failed with error: {}".format(msg))
+        if code is not None:
+            sys.exit(code)
+
+
 def main():
     _dbnd_exception_handling()
     configure_basic_logging(None)
