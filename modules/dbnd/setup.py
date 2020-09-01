@@ -54,6 +54,7 @@ setuptools.setup(
             "nbconvert",
             "nbformat",
             "jupyter",
+            "traitlets>=4.2,<5.0.0",  # required by jupyter, fix py37 compatibility
             "IPython>=4.0.0, <7.0",
             "jupyter_contrib_nbextensions",
             "idna<=2.7",  # conflict with requests (require 2.8 <)
