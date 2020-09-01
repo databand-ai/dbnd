@@ -68,7 +68,7 @@ class SparkHistograms(object):
                 df_cached = True
                 df.cache()
 
-            summary = None
+            summary = {}
             if self.histogram_spec.only_stats or self.histogram_spec.with_stats:
                 with self._measure_time("summary_calc_time"):
                     summary = self._calculate_summary(df)
