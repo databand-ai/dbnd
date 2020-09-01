@@ -50,7 +50,7 @@ def generate_data(
     """ Generate files with data for histogram tests """
     global _start_time
     _start_time = time()
-    half_boolean_columns = int(boolean_columns / 2)
+
     column_names = ["boolean_" + str(i) for i in range(boolean_columns)]
     column_names += ["str_" + str(i) for i in range(str_columns)]
     column_names += ["num_" + str(i) for i in range(numerical_columns)]
@@ -58,7 +58,7 @@ def generate_data(
     if output_format == "csv":
         generate_csv(
             rows,
-            half_boolean_columns,
+            boolean_columns,
             str_columns,
             numerical_columns,
             output_file,
@@ -67,7 +67,7 @@ def generate_data(
     elif output_format == "parquet":
         generate_parquet(
             rows,
-            half_boolean_columns,
+            boolean_columns,
             str_columns,
             numerical_columns,
             output_file,
@@ -81,12 +81,7 @@ def generate_data(
 
 
 def generate_parquet(
-    rows,
-    half_boolean_columns,
-    str_columns,
-    numerical_columns,
-    output_file,
-    column_names,
+    rows, boolean_columns, str_columns, numerical_columns, output_file, column_names,
 ):
     writer = None
     rows_per_write = int(rows / 50)
@@ -95,7 +90,7 @@ def generate_parquet(
         data_rows = generate_rows(
             i * rows_per_write,
             rows_per_write,
-            half_boolean_columns,
+            boolean_columns,
             numerical_columns,
             str_columns,
         )
@@ -110,12 +105,7 @@ def generate_parquet(
 
 
 def generate_csv(
-    rows,
-    half_boolean_columns,
-    str_columns,
-    numerical_columns,
-    output_file,
-    column_names,
+    rows, boolean_columns, str_columns, numerical_columns, output_file, column_names,
 ):
     with open(output_file, "w", newline="") as f:
         writer = csv.writer(f, delimiter=",")
@@ -123,30 +113,28 @@ def generate_csv(
 
         for i in range(rows):
             value_list = generate_row(
-                i, half_boolean_columns, numerical_columns, str_columns
+                i, boolean_columns, numerical_columns, str_columns
             )
             writer.writerow(value_list)
             print_progress(i, rows)
 
 
-def generate_rows(i, rows, half_boolean_columns, numerical_columns, str_columns):
-    columns = half_boolean_columns * 2 + numerical_columns + str_columns
+def generate_rows(i, rows, boolean_columns, numerical_columns, str_columns):
+    columns = boolean_columns + numerical_columns + str_columns
     data_rows = [[] for i in range(columns)]
     for j in range(rows):
         row = generate_row(
-            i * rows + j, half_boolean_columns, numerical_columns, str_columns
+            i * rows + j, boolean_columns, numerical_columns, str_columns
         )
         for k, value in enumerate(row):
             data_rows[k].append(value)
     return data_rows
 
 
-def generate_row(i, half_boolean_columns, numerical_columns, str_columns):
+def generate_row(i, boolean_columns, numerical_columns, str_columns):
     i_mod = i % 10000
     str_values = [f"str_{j}_{i_mod}" for j in range(str_columns)]
-    boolean_values = [bool(i % 2)] * half_boolean_columns + [
-        bool((i + 1) % 2)
-    ] * half_boolean_columns
+    boolean_values = [bool((i + j) % 2) for j in range(boolean_columns)]
     numerical_values = [i_mod + j for j in range(numerical_columns)]
     value_list = boolean_values + str_values + numerical_values
     return value_list
