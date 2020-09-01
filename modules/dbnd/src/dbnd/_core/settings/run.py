@@ -48,9 +48,9 @@ class RunConfig(config.Config):
 
     # Execution specific
     id = parameter(default=None, description="The list of task ids to run")[List[str]]
-    task = parameter(
+    selected_tasks_regex = parameter(
         default=None, description="Run only specified tasks (regular expresion)"
-    )[str]
+    )[List[str]]
 
     ignore_dependencies = parameter(
         description="The regex to filter specific task_ids"

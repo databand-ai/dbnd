@@ -123,11 +123,11 @@ def ambiguous_task(full_task_name):
     )
 
 
-def task_not_found_in_pipeline(task, tasks, task_regex):
+def no_matching_tasks_in_pipeline(tasks, tasks_regexes):
     all_tasks_names = ",".join([t.task_id for t in tasks])
     return DatabandConfigError(
-        "None of '%s' tasks have been found at current pipeline!" % task_regex,
-        help_msg="check your --run-task switch, "
+        "None of '%s' tasks have been found at current pipeline!" % tasks_regexes,
+        help_msg="check your run.selected_tasks_regex switch, "
         "select one of following tasks: %s" % all_tasks_names,
         show_exc_info=False,
     )

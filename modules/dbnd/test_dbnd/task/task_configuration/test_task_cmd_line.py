@@ -46,7 +46,7 @@ class TestTaskCmdLine(object):
         ).task  # type: TCmdPipe
         assert task.x == "foo"
         assert task.y == "bar"
-        t_cmd = task.task_dag.select_by_task_names("TCmdTask")[0]
+        t_cmd = task.task_dag.select_by_task_names(["TCmdTask"])[0]
         assert t_cmd.y == "xyz"
 
     def test_local_params(self):

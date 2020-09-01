@@ -139,14 +139,11 @@ class TaskRunsBuilder(object):
         roots = [root_task]
         tasks_skipped = set()
         # in case we need to run only part of the graph we mark all other tasks as skipped
-        if run_config.task or run_config.id:
+        if run_config.selected_tasks_regex:
             task_dag = root_task.ctrl.task_dag  # type: _TaskDagNode
-            if run_config.task:
-                roots = task_dag.select_by_task_names(
-                    run_config.task, tasks=tasks_to_run
-                )
-            elif run_config.id:
-                roots = task_dag.select_by_task_ids(run_config.id, tasks=tasks_to_run)
+            roots = task_dag.select_by_task_names(
+                run_config.selected_tasks_regex, tasks=tasks_to_run
+            )
 
             tasks_skipped = tasks_to_run.difference(all_subdags(roots))
 
