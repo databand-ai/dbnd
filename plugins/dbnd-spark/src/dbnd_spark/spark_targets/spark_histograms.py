@@ -31,6 +31,8 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from dbnd import config
+from dbnd._core.settings.histogram import HistogramConfig
 from dbnd._core.utils import seven
 
 
@@ -45,9 +47,11 @@ class SparkHistograms(object):
         self.histogram_spec = histogram_spec
         self.metrics = dict()
         self._temp_parquet_path = None
+        self.config = HistogramConfig()  # type: HistogramConfig
 
     def get_histograms(self, df):
         # type: (spark.DataFrame) -> Tuple[Dict[str, Dict], Dict[str, Tuple]]
+        df_cached = False
         try:
             if self.histogram_spec.none:
                 return {}, {}
@@ -55,7 +59,14 @@ class SparkHistograms(object):
             df = self._filter_complex_columns(df).select(
                 list(self.histogram_spec.columns)
             )
-            df = self._save_as_parquet(df)
+
+            if self.config.spark_parquet_cache_dir:
+                df = self._cache_df_with_parquet_store(
+                    df, spark_parquet_cache_dir=self.config.spark_parquet_cache_dir
+                )
+            if self.config.spark_cache_dataframe:
+                df_cached = True
+                df.cache()
 
             summary = None
             if self.histogram_spec.only_stats or self.histogram_spec.with_stats:
@@ -73,31 +84,31 @@ class SparkHistograms(object):
             logger.exception("Error occured during histograms calculation")
             return {}, {}
         finally:
-            self._remove_parquet()
+            if self._temp_parquet_path:
+                self._remove_parquet(df.sql_ctx.sparkSession)
+            if df_cached:
+                df.unpersist()
 
-    def _save_as_parquet(self, df):
+    def _cache_df_with_parquet_store(self, df, spark_parquet_cache_dir):
         """ save dataframe as column-based parquet file to allow fast column queries which histograms depend on """
         from dbnd_spark.spark_targets import SparkDataFrameValueType
 
         signature = SparkDataFrameValueType().to_signature(df)
-        temp_dir = os.environ.get("DBND__SPARK_TEMP_DIR")
-        if temp_dir is None:
-            logger.warning(
-                "Failed to get temp_dir from DBND__SPARK_TEMP_DIR, not creating parquet from dataframe"
-            )
-            return df
-
         file_name = "dbnd_spark_dataframe_{}.parquet".format(signature)
-        path = os.path.join(temp_dir, file_name)
+        path = os.path.join(spark_parquet_cache_dir, file_name)
+
         self._temp_parquet_path = path
+        logger.info("Caching spark dataframe into '%s'.", path)
         df.write.parquet(path)
+
+        logger.info("Reading spark dataframe from '%s'.", path)
         df = df.sql_ctx.sparkSession.read.parquet(path)
         return df
 
-    def _remove_parquet(self):
-        if self._temp_parquet_path:
-            # TODO: remove parquet file
-            pass
+    def _remove_parquet(self, spark_session):
+        # we are not able to delete generically files so we overwrite them with almost no data
+        empty_df = spark_session.createDataFrame([("",)], [""])
+        empty_df.write.parquet(self._temp_parquet_path, mode="overwrite")
 
     def _filter_complex_columns(self, df):
         simple_columns = []
@@ -204,24 +215,33 @@ class SparkHistograms(object):
         value_counts = []
         summary = dict()
         for column_df in column_df_list:
+            column_df_cached = False
+
             column_name = column_df.schema.names[0]
-            column_df.cache()
+            if self.config.spark_cache_dataframe_column:
+                column_df_cached = True
+                column_df.cache()
+            try:
+                column_summary = column_df.summary("min", "max").collect()
+                summary[column_name] = dict()
+                for summary_row in column_summary:
+                    summary[column_name][summary_row.summary] = float(
+                        summary_row[column_name]
+                    )
 
-            column_summary = column_df.summary("min", "max").collect()
-            summary[column_name] = dict()
-            for summary_row in column_summary:
-                summary[column_name][summary_row.summary] = float(
-                    summary_row[column_name]
+                column_value_counts = self._get_column_numerical_buckets_df(
+                    column_df,
+                    summary[column_name]["min"],
+                    summary[column_name]["max"],
+                    20,
                 )
-
-            column_value_counts = self._get_column_numerical_buckets_df(
-                column_df, summary[column_name]["min"], summary[column_name]["max"], 20
-            )
-            column_value_counts = column_value_counts.withColumn(
-                "column_name", lit(column_name)
-            )
-            column_value_counts = column_value_counts.collect()
-            column_df.unpersist()
+                column_value_counts = column_value_counts.withColumn(
+                    "column_name", lit(column_name)
+                )
+                column_value_counts = column_value_counts.collect()
+            finally:
+                if column_df_cached:
+                    column_df.unpersist()
             value_counts.extend(column_value_counts)
 
         histograms = self._convert_numerical_histogram_collect_to_dict(

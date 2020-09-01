@@ -8,6 +8,7 @@ from dbnd._core.configuration.environ_config import (
     _debug_init_print,
     spark_tracking_enabled,
 )
+from dbnd._core.settings.histogram import HistogramConfig
 from dbnd_spark.livy.livy_spark_config import LivySparkConfig
 from dbnd_spark.spark_session import has_pyspark_imported
 
