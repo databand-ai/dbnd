@@ -52,7 +52,9 @@ class TestHistograms:
         value_meta = SparkDataFrameValueType().get_value_meta(df, meta_conf)
         # pandas_df = df.toPandas()
         # pandas_stats, pandas_histograms = DataFrameValueType().get_histograms(pandas_df, meta_conf)
+        self.validate_numerical_stats(value_meta)
 
+    def validate_numerical_stats(self, value_meta):
         stats = value_meta.descriptive_stats["numerical_column"]
         assert set(stats.keys()) == {
             "count",
@@ -132,3 +134,15 @@ class TestHistograms:
         assert stats["null-count"] == 0
         assert stats["distinct"] == 100
         assert stats["type"] == "string"
+
+    def test_complex_type_histogram(self, spark_session, meta_conf):
+        numbers = [1, 3, 3, 1, 5, 1, 5, 5]
+        complex = [(i, [str(i), str(i + 1)]) for i in numbers]
+        df = spark_session.createDataFrame(
+            complex, ["numerical_column", "complex_column"]
+        )
+        value_meta = SparkDataFrameValueType().get_value_meta(df, meta_conf)
+
+        assert list(value_meta.histograms.keys()) == ["numerical_column"]
+        assert list(value_meta.descriptive_stats.keys()) == ["numerical_column"]
+        self.validate_numerical_stats(value_meta)
