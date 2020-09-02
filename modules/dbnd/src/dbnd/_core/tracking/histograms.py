@@ -18,6 +18,7 @@ class HistogramDataType(Enum):
     boolean = "boolean"
     numeric = "numeric"
     string = "string"
+    other = "other"
 
 
 @attr.s

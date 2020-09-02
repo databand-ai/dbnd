@@ -46,7 +46,7 @@ class SparkDataFrameValueType(DataValueType):
         elif isinstance(dataType, StringType):
             return HistogramDataType.string
         else:
-            return HistogramDataType.string
+            return HistogramDataType.other
 
     def get_all_data_columns(self, df):
         # type: (spark.DataFrame) -> Dict[str, HistogramDataType]
