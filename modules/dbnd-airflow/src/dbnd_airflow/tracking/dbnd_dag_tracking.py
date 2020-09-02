@@ -1,12 +1,14 @@
 import logging
 
+from collections import OrderedDict
+
 from dbnd import task
 from dbnd._core.configuration.environ_config import get_dbnd_project_config
 from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy
 from dbnd._core.tracking.no_tracking import should_not_track
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
+from dbnd_airflow.tracking.dbnd_airflow_conf import get_airflow_conf
 from dbnd_airflow.tracking.dbnd_spark_conf import (
-    _get_databand_url,
     dbnd_wrap_spark_environment,
     get_dbnd_tracking_spark_conf_dict,
     spark_submit_with_dbnd_tracking,
@@ -30,15 +32,7 @@ def track_databricks_submit_run_operator(operator):
         cluster = config["new_cluster"]
         if "spark_env_vars" not in cluster:
             cluster["spark_env_vars"] = {}
-        spark_vars = cluster["spark_env_vars"]
-        spark_vars["AIRFLOW_CTX_DAG_ID"] = "{{ dag.dag_id }}"
-        spark_vars["AIRFLOW_CTX_EXECUTION_DATE"] = "{{ ts }}"
-        spark_vars["AIRFLOW_CTX_TASK_ID"] = "{{ task.task_id }}"
-        spark_vars["AIRFLOW_CTX_TRY_NUMBER"] = "{{ task_instance._try_number }}"
-
-        databand_url = _get_databand_url()
-        if databand_url:
-            spark_vars["DBND__CORE__DATABAND_URL"] = databand_url
+        cluster["spark_env_vars"].update(get_airflow_conf())
 
 
 def track_data_proc_pyspark_operator(operator):
@@ -68,21 +62,43 @@ def track_python_operator(operator):
     operator.python_callable = task(operator.python_callable)
 
 
+def track_subdag(dag):
+    track_dag(dag.subdag)
+
+
+_TRACKING = OrderedDict(
+    [
+        ("SubDagOperator", track_subdag),
+        ("EmrAddStepsOperator", track_emr_add_steps_operator),
+        ("DatabricksSubmitRunOperator", track_databricks_submit_run_operator),
+        ("DataProcPySparkOperator", track_data_proc_pyspark_operator),
+        ("SparkSubmitOperator", track_spark_submit_operator),
+        ("PythonOperator", track_python_operator),
+    ]
+)
+
+
+def register_tracking(class_name, tracking_wrapper):
+    _TRACKING[class_name] = tracking_wrapper
+
+
+def get_tracking_wrapper(task):
+    for class_name, tracking_wrapper in _TRACKING.items():
+        if is_instance_by_class_name(task, class_name):
+            return tracking_wrapper
+    raise KeyError
+
+
 def _track_task(task):
     if should_not_track(task):
         return
-    if is_instance_by_class_name(task, "SubDagOperator"):
-        track_dag(task.subdag)
-    elif is_instance_by_class_name(task, "EmrAddStepsOperator"):
-        track_emr_add_steps_operator(task)
-    elif is_instance_by_class_name(task, "DatabricksSubmitRunOperator"):
-        track_databricks_submit_run_operator(task)
-    elif is_instance_by_class_name(task, "DataProcPySparkOperator"):
-        track_data_proc_pyspark_operator(task)
-    elif is_instance_by_class_name(task, "SparkSubmitOperator"):
-        track_spark_submit_operator(task)
-    elif is_instance_by_class_name(task, "PythonOperator"):
-        track_python_operator(task)
+
+    try:
+        tracking_wrapper = get_tracking_wrapper(task)
+    except KeyError:
+        return
+    else:
+        tracking_wrapper(task)
 
 
 def _is_verbose():
