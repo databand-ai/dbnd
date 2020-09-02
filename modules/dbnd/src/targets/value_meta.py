@@ -1,8 +1,11 @@
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import attr
 
+from dbnd._core.constants import MetricSource
 from dbnd._core.tracking.histograms import HistogramRequest, HistogramSpec
+from dbnd._core.tracking.schemas.metrics import Metric
+from dbnd._core.utils.timezone import utcnow
 
 
 # keep it below VALUE_PREVIEW_MAX_LEN at web
@@ -21,6 +24,86 @@ class ValueMeta(object):
     histograms = attr.ib(default=None)  # type: Optional[Dict[str, Tuple]]
     histogram_system_metrics = attr.ib(default=None)  # type: Optional[Dict]
     histogram_spec = attr.ib(default=None)  # type: Optional[HistogramSpec]
+
+    def build_metrics_for_key(self, key, meta_conf=None):
+        # type: (str, Optional[ValueMetaConf]) -> Dict[str, List[Metric]]
+        ts = utcnow()
+        dataframe_metric_value = {}
+        data_metrics, hist_metrics = [], []
+
+        if self.data_dimensions:
+            dataframe_metric_value["data_dimensions"] = self.data_dimensions
+            for dim, size in enumerate(self.data_dimensions):
+                data_metrics.append(
+                    Metric(
+                        key="{}.shape{}".format(key, dim),
+                        value=size,
+                        source=MetricSource.user,
+                        timestamp=ts,
+                    )
+                )
+
+        if meta_conf and meta_conf.log_schema:
+            dataframe_metric_value["schema"] = self.data_schema
+            data_metrics.append(
+                Metric(
+                    key="{}.schema".format(key),
+                    value_json=self.data_schema,
+                    source=MetricSource.user,
+                    timestamp=ts,
+                )
+            )
+
+        if meta_conf and meta_conf.log_preview:
+            dataframe_metric_value["value_preview"] = self.value_preview
+            dataframe_metric_value["type"] = "dataframe_metric"
+            data_metrics.append(
+                Metric(
+                    key=str(key),
+                    value_json=dataframe_metric_value,
+                    source=MetricSource.user,
+                    timestamp=ts,
+                )
+            )
+
+        if self.histogram_system_metrics:
+            hist_metrics.append(
+                Metric(
+                    key="{}.histogram_system_metrics".format(key),
+                    value_json=self.histogram_system_metrics,
+                    source=MetricSource.histograms,
+                    timestamp=ts,
+                )
+            )
+        if self.histograms:
+            hist_metrics.append(
+                Metric(
+                    key="{}.histograms".format(key),
+                    value_json=self.histograms,
+                    source=MetricSource.histograms,
+                    timestamp=ts,
+                )
+            )
+        if self.descriptive_stats:
+            hist_metrics.append(
+                Metric(
+                    key="{}.stats".format(key),
+                    value_json=self.descriptive_stats,
+                    source=MetricSource.histograms,
+                    timestamp=ts,
+                )
+            )
+            for column, stats in self.descriptive_stats.items():
+                for stat, value in stats.items():
+                    hist_metrics.append(
+                        Metric(
+                            key="{}.{}.{}".format(key, column, stat),
+                            value=value,
+                            source=MetricSource.histograms,
+                            timestamp=ts,
+                        )
+                    )
+        return {"user": data_metrics, "histograms": hist_metrics}
 
 
 @attr.s

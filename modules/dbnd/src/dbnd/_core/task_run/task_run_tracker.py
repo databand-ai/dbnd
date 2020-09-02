@@ -148,45 +148,12 @@ class TaskRunTracker(TaskRunCtrl):
                     operation_type=operation_type,
                     operation_status=operation_status,
                 )
-            data_metrics = []
-            dataframe_metric_value = {}
+            metrics = value_meta.build_metrics_for_key(key, meta_conf)
 
-            if value_meta.data_dimensions:
-                dataframe_metric_value["data_dimensions"] = value_meta.data_dimensions
-                for dim, size in enumerate(value_meta.data_dimensions):
-                    data_metrics.append(
-                        Metric(
-                            key="{}.shape{}".format(key, dim),
-                            value=size,
-                            source=MetricSource.user,
-                            timestamp=ts,
-                        )
-                    )
+            if metrics["user"]:
+                self._log_metrics(metrics["user"])
 
-            if meta_conf.log_schema:
-                dataframe_metric_value["schema"] = value_meta.data_schema
-                data_metrics.append(
-                    Metric(
-                        key="{}.schema".format(key),
-                        value_json=value_meta.data_schema,
-                        source=MetricSource.user,
-                        timestamp=ts,
-                    )
-                )
-
-            if meta_conf.log_preview:
-                dataframe_metric_value["value_preview"] = value_meta.value_preview
-                dataframe_metric_value["type"] = "dataframe_metric"
-                data_metrics.append(
-                    Metric(
-                        key=str(key),
-                        value_json=dataframe_metric_value,
-                        source=MetricSource.user,
-                        timestamp=ts,
-                    )
-                )
-
-            if meta_conf.log_histograms:
+            if metrics["histograms"]:
                 self.tracking_store.log_histograms(
                     task_run=self.task_run,
                     key=key,
@@ -194,9 +161,6 @@ class TaskRunTracker(TaskRunCtrl):
                     value_meta=value_meta,
                     timestamp=ts,
                 )
-
-            if data_metrics:
-                self._log_metrics(data_metrics)
 
         except Exception as ex:
             log_exception(
