@@ -56,6 +56,9 @@ class Metric(_DbndDataClass):
         else:
             self.value_str = value
 
+    def __repr__(self):
+        return "Metric(key={}, source={})".format(self.key, self.source)
+
 
 @attr.s
 class Artifact(_DbndDataClass):
