@@ -7,12 +7,12 @@ import flask_admin
 import flask_appbuilder
 import pendulum
 import pkg_resources
+import six
 
 from airflow.configuration import conf
 from airflow.jobs import BaseJob
 from airflow.models import BaseOperator, DagModel, DagRun
 from airflow.plugins_manager import AirflowPlugin
-from airflow.sensors.base_sensor_operator import BaseSensorOperator
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
@@ -21,6 +21,7 @@ from sqlalchemy import and_, or_
 
 
 DEFAULT_DAYS_PERIOD = 30
+TASK_ARG_TYPES = (str, float, bool, int, datetime.datetime)
 
 current_dags = {}
 
@@ -48,7 +49,13 @@ def _load_dags_models(session=None):
 
 
 def do_export_data(
-    dagbag, since, include_logs=False, dag_ids=None, tasks=None, session=None
+    dagbag,
+    since,
+    include_logs=False,
+    include_task_args=False,
+    dag_ids=None,
+    tasks=None,
+    session=None,
 ):
     """
     Get first task instances which have the largest amount of objects in DB.
@@ -98,7 +105,9 @@ def do_export_data(
         ],
         dag_runs=[EDagRun.from_dagrun(dr) for dr in dag_runs],
         dags=[
-            EDag.from_dag(dagbag.get_dag(dm.dag_id), dagbag.dag_folder)
+            EDag.from_dag(
+                dagbag.get_dag(dm.dag_id), dagbag.dag_folder, include_task_args
+            )
             for dm in dag_models
             if dagbag.get_dag(dm.dag_id)
         ],
@@ -189,7 +198,7 @@ class ETask(object):
         self.task_args = task_args
 
     @staticmethod
-    def from_task(t):
+    def from_task(t, include_task_args):
         # type: (BaseOperator) -> ETask
         return ETask(
             upstream_task_ids=t.upstream_task_ids,
@@ -201,7 +210,7 @@ class ETask(object):
             task_id=t.task_id,
             retries=t.retries,
             command=_get_command_from_operator(t),
-            task_args=_get_task_args(t),
+            task_args=_get_task_args(t) if include_task_args else None,
         )
 
     def as_dict(self):
@@ -338,13 +347,13 @@ class EDag(object):
         self.is_subdag = is_subdag
 
     @staticmethod
-    def from_dag(dag, dag_folder):
+    def from_dag(dag, dag_folder, include_task_args):
         # type: (DAG, str) -> EDag
         git_commit, git_committed = _get_git_status(dag_folder)
         return EDag(
             description=dag.description,
             root_task_ids=[t.task_id for t in dag.roots],
-            tasks=[ETask.from_task(t) for t in dag.tasks],
+            tasks=[ETask.from_task(t, include_task_args) for t in dag.tasks],
             owner=dag.owner,
             dag_id=dag.dag_id,
             schedule_interval=interval_to_str(dag.schedule_interval),
@@ -495,23 +504,12 @@ def _get_command_from_operator(t):
 def _get_task_args(t):
     # type: (BaseOperator) -> Dict[str]
     try:
-        from airflow.contrib.sensors.file_sensor import FileSensor
-
-        if isinstance(t, BaseSensorOperator):
-            # We currently handle input args for sensors only
-            args = {"interval": "", "wait_condition": ""}
-            if isinstance(t, FileSensor):
-                args["interval"] = t.poke_interval
-                args["wait_condition"] = t.filepath
-
-            # from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
-            # elif isinstance(t, EmrStepSensor):
-            #     args["interval"] = t.poke_interval
-            #     args["wait_condition"] = t.step_id
-
-            return args
-        return
-
+        # Return only numeric, bool and string attributes
+        return {
+            k: v
+            for k, v in six.iteritems(vars(t))
+            if v is None or isinstance(v, TASK_ARG_TYPES)
+        }
     except Exception as ex:
         logging.error("Could not collect task args for %s: %s", t.task_id, ex)
 
@@ -567,7 +565,13 @@ class ExportDataViewAdmin(flask_admin.BaseView):
 
 @provide_session
 def _handle_export_data(
-    dagbag, since, include_logs, dag_ids=None, tasks=None, session=None
+    dagbag,
+    since,
+    include_logs,
+    include_task_args,
+    dag_ids=None,
+    tasks=None,
+    session=None,
 ):
     include_logs = bool(include_logs)
     if since:
@@ -581,6 +585,7 @@ def _handle_export_data(
             dagbag=dagbag,
             since=since,
             include_logs=include_logs,
+            include_task_args=include_task_args,
             dag_ids=dag_ids,
             tasks=tasks,
             session=session,
@@ -599,6 +604,7 @@ def export_data_api(dagbag):
 
     since = flask.request.args.get("since")
     include_logs = flask.request.args.get("include_logs")
+    include_task_args = flask.request.args.get("include_task_args")
     dag_ids = flask.request.args.getlist("dag_ids")
     tasks = flask.request.args.get("tasks", type=int)
     rbac_enabled = conf.get("webserver", "rbac").lower() == "true"
@@ -616,7 +622,9 @@ def export_data_api(dagbag):
     # do_update = flask.request.args.get("do_update", "").lower() == "true"
     # verbose = flask.request.args.get("verbose", str(not do_update)).lower() == "true"
     return json_response(
-        _handle_export_data(dagbag, since, include_logs, dag_ids, tasks)
+        _handle_export_data(
+            dagbag, since, include_logs, include_task_args, dag_ids, tasks
+        )
     )
 
 
@@ -635,7 +643,7 @@ class DataExportAirflowPlugin(AirflowPlugin):
 
 
 def export_data_directly(
-    sql_alchemy_conn, dag_folder, since, include_logs, dag_ids, tasks
+    sql_alchemy_conn, dag_folder, since, include_logs, include_task_args, dag_ids, tasks
 ):
     from airflow import models, settings, conf
     from airflow.settings import STORE_SERIALIZED_DAGS
@@ -652,5 +660,11 @@ def export_data_directly(
     engine = create_engine(sql_alchemy_conn)
     session = sessionmaker(bind=engine)
     return _handle_export_data(
-        dagbag, since, include_logs, dag_ids, tasks, session=session()
+        dagbag,
+        since,
+        include_logs,
+        include_task_args,
+        dag_ids,
+        tasks,
+        session=session(),
     )
