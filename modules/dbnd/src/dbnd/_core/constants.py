@@ -165,6 +165,12 @@ class AlertStatus(EnumWithAll):
     ACKNOWLEDGED = "ACKNOWLEDGED"
 
 
+class AlertErrorPolicy(object):
+    none = ""
+    all = "all"
+    task_only = "task_only"
+
+
 class SystemTaskName(object):
     driver_submit = "dbnd_driver_submit"
     driver = "dbnd_driver"
