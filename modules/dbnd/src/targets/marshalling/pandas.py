@@ -115,7 +115,6 @@ class _PandasMarshaller(Marshaller):
         use_cache &= (
             "key" not in read_kwargs
         )  # support for hdf5, we don't support non default key
-
         if not use_cache:
             try:
                 logger.info("Loading data frame from target='%s'", target)
@@ -125,7 +124,6 @@ class _PandasMarshaller(Marshaller):
                     mode = _file_open_mode(target, "r")
                     with target.open(mode) as fp:
                         df = self._pd_read(fp, **read_kwargs)
-
             except Exception as ex:
                 raise friendly_error.failed_to_read_pandas(ex, target)
         else:

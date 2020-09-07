@@ -24,13 +24,15 @@ class MarshallerCtrl(object):
         return value
 
     def _load(self, **kwargs):
-        # dir target
         from targets.dir_target import DirTarget
         from targets.file_target import FileTarget
         from targets.multi_target import MultiTarget
 
         m = self.marshaller
         target = self.target
+        if isinstance(target, FileTarget) and target.fs.isdir(target.path):
+            target = DirTarget(target.path + "/", target.fs, config=target.config)
+
         if isinstance(target, MultiTarget):
             if m.support_multi_target_direct_read:
                 return m.target_to_value(target, **kwargs)
