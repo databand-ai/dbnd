@@ -138,9 +138,12 @@ class SparkHistograms(object):
             if isinstance(column_def.dataType, NumericType):
                 # summary (min, max, mean, std, etc.) make sense only for numeric types
                 for row in summary:
+                    if row[column_name] is None:
+                        continue
                     # zero cell contains summary metrics name
                     result[column_name][row[0]] = float(row[column_name])
-                result[column_name]["std"] = result[column_name]["stddev"]
+                if "stddev" in result[column_name]:
+                    result[column_name]["std"] = result[column_name]["stddev"]
             elif isinstance(column_def.dataType, StringType):
                 count_row = [row for row in summary if row[0] == "count"][0]
                 result[column_name]["count"] = int(count_row[column_name])
@@ -180,7 +183,7 @@ class SparkHistograms(object):
         return counts
 
     def _calculate_histograms(self, df):
-        # type: (spark.DataFrame, Dict) -> Dict
+        # type: (spark.DataFrame) -> Dict
         histograms = {column_name: None for column_name in df.columns}
 
         with self._measure_time("boolean_histograms_calc_time"):
@@ -225,9 +228,21 @@ class SparkHistograms(object):
                 column_summary = column_df.summary("min", "max").collect()
                 summary[column_name] = dict()
                 for summary_row in column_summary:
+                    if summary_row[column_name] is None:
+                        break
                     summary[column_name][summary_row.summary] = float(
                         summary_row[column_name]
                     )
+
+                if (
+                    "min" not in summary[column_name]
+                    or "max" not in summary[column_name]
+                ):
+                    logger.warning(
+                        "Failed to calculate min/max for column '%s', skipping histogram calculation",
+                        column_name,
+                    )
+                    continue
 
                 column_value_counts = self._get_column_numerical_buckets_df(
                     column_df,
@@ -268,6 +283,8 @@ class SparkHistograms(object):
                 bucket_size = (max_value - min_value) / bucket_count
                 values = [min_value + i * bucket_size for i in range(bucket_count + 1)]
                 histogram_dict[column_name] = (counts, values)
+            if bucket is None:
+                continue
             if bucket == bucket_count:
                 # handle edge of last bucket (values equal to max_value will be in bucket n+1 instead of n)
                 bucket = bucket - 1
