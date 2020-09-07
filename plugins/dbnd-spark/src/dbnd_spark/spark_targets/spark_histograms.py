@@ -268,6 +268,8 @@ class SparkHistograms(object):
                 bucket_size = (max_value - min_value) / bucket_count
                 values = [min_value + i * bucket_size for i in range(bucket_count + 1)]
                 histogram_dict[column_name] = (counts, values)
+            if bucket is None:
+                continue
             if bucket == bucket_count:
                 # handle edge of last bucket (values equal to max_value will be in bucket n+1 instead of n)
                 bucket = bucket - 1
