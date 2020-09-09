@@ -26,17 +26,17 @@ class TestHistograms:
 
     def validate_numerical_histogram_and_stats(self, value_meta, column_name):
         """ assuming numbers fixture is used """
-        stats = value_meta.descriptive_stats[column_name]
         assert column_name in value_meta.histograms
         histogram = value_meta.histograms[column_name]
         assert len(histogram) == 2
         assert len(histogram[0]) == 20
         assert len(histogram[1]) == 21
         assert sum(histogram[0]) == 8
+
+        stats = value_meta.descriptive_stats[column_name]
         assert set(stats.keys()) == {
             "count",
             "mean",
-            "stddev",
             "min",
             "25%",
             "50%",
@@ -50,7 +50,7 @@ class TestHistograms:
         }
         assert stats["count"] == 10
         assert stats["non-null"] == 8
-        assert stats["distinct"] == 3
+        assert stats["distinct"] == 4
         assert stats["min"] == 1
         assert stats["max"] == 5
 
@@ -66,17 +66,7 @@ class TestHistograms:
         assert histogram[1] == [True, False, None]
 
         stats = value_meta.descriptive_stats["boolean_column"]
-        assert set(stats.keys()) == {
-            "type",
-            "distinct",
-            "null-count",
-            "non-null",
-            "count",
-        }
         assert stats["count"] == 60
-        assert stats["non-null"] == 50
-        assert stats["null-count"] == 10
-        assert stats["distinct"] == 2
         assert stats["type"] == "boolean"
 
     def test_int_column(self, spark_session, meta_conf, numbers):
@@ -127,7 +117,7 @@ class TestHistograms:
         assert stats["count"] == 70
         assert stats["non-null"] == 65
         assert stats["null-count"] == 5
-        assert stats["distinct"] == 3
+        assert stats["distinct"] == 4
         assert stats["type"] == "string"
 
     def test_histogram_others(self, spark_session, meta_conf):
@@ -174,7 +164,8 @@ class TestHistograms:
         null_df = spark_session.createDataFrame(nulls, schema=schema)
         meta_conf.log_histograms = HistogramRequest.ALL()
         value_meta = SparkDataFrameValueType().get_value_meta(null_df, meta_conf)
-        assert value_meta.histograms[column_name] is None
+
+        assert value_meta.histograms == {}
         stats = value_meta.descriptive_stats[column_name]
         assert stats["type"] == "integer"
 
