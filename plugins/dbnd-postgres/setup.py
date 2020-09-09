@@ -12,6 +12,11 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-postgres",
     package_dir={"": "src"},
-    install_requires=["psycopg2-binary", "pyyaml", "dbnd==" + version],
+    install_requires=[
+        "psycopg2-binary",
+        "pyyaml",
+        "pyrsistent<0.15.6",
+        "dbnd==" + version,
+    ],
     entry_points={},
 )
