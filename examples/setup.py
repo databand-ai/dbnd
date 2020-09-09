@@ -16,7 +16,7 @@ INSTALL_REQUIRES = [
     "sklearn==0.0",
     "matplotlib==2.2.5;python_version<'3.5'",
     "matplotlib==3.3.0;python_version>='3.5'",
-    "pandas<1.0.0,>=0.17.1",
+    "pandas<2.0.0,>=0.17.1",
 ]
 setup(
     name="dbnd-examples",
