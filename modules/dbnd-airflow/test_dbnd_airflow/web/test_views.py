@@ -45,7 +45,7 @@ class TestAirflowBaseViews(WebAppTest):
 
         self.task = task
         self.task_af_id = run.get_task_run_by_id(task.task_id).task_af_id
-        self.dag_id = task.task_name
+        self.dag_id = run.dag_id
         self.task_execution_date_str = airflow_datetime_str(run.execution_date)
 
     def _set_defaults(self, **kwargs):

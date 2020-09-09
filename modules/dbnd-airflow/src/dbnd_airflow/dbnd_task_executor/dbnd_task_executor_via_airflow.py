@@ -10,6 +10,7 @@ from airflow.executors import LocalExecutor, SequentialExecutor
 from airflow.models import DagPickle, DagRun, TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import create_session, provide_session
+from airflow.utils.net import get_hostname
 from airflow.utils.state import State
 from sqlalchemy.orm import Session
 
@@ -110,6 +111,11 @@ def create_dagrun_from_dbnd_run(
             session.add(ti)
         task_run = databand_run.get_task_run_by_af_id(af_task.task_id)
         # all tasks part of the backfill are scheduled to dagrun
+
+        # Set log file path to expected airflow log file path
+        task_run.log.local_log_file.path = ti.log_filepath.replace(
+            ".log", "/{0}.log".format(ti.try_number)
+        )
         if task_run.is_reused:
             # this task is completed and we don't need to run it anymore
             ti.state = State.SUCCESS

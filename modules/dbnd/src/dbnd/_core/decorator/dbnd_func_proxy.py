@@ -184,6 +184,8 @@ class DbndFuncProxy(object):
         user_code_called = False  # whether we got to executing of user code
         user_code_finished = False  # whether we passed executing of user code
         try:
+            # 1. check that we don't have too many calls
+            # 2. Start or reuse existing "inplace_task" that is root for tracked tasks
             if not self._call_count_limit_exceeded() and _get_or_create_inplace_task():
                 task_run = _create_dynamic_task_run(func_call)
                 with task_run.runner.task_run_execution_context(handle_sigterm=True):

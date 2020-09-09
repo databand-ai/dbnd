@@ -20,9 +20,11 @@
 import logging
 import subprocess
 
+from airflow.configuration import conf as airflow_conf
 from airflow.executors.base_executor import BaseExecutor
 from airflow.utils.dag_processing import SimpleTaskInstance
 from airflow.utils.db import provide_session
+from airflow.utils.net import get_hostname
 from airflow.utils.state import State
 
 from dbnd._core import current
@@ -152,6 +154,8 @@ class InProcessExecutor(BaseExecutor):
             ti = TaskInstance(task, ti.execution_date)
         ti.state = State.RUNNING
         ti._try_number += 1
+        # Update hostname to allow runtime logging across all environments
+        ti.hostname = get_hostname()
         # let save state
         session.merge(ti)
         session.commit()
@@ -166,3 +170,39 @@ class InProcessExecutor(BaseExecutor):
             for handler in logging.root.handlers:
                 if handler.name == "task":
                     handler.close()
+            self._sync_remote_logs(ti)
+
+    def _sync_remote_logs(self, ti):
+        if not airflow_conf.getboolean("core", "remote_logging"):
+            return
+        logging.info("Syncing remote logs...")
+        try:
+            # Decrease try number to ensure we receive correct path within handler functions
+            # Without this we will receive the next attempt's log path
+            ti._try_number -= 1
+            ti.raw = True
+            logger = logging.getLogger("airflow.task")
+            task_log_reader = airflow_conf.get("core", "task_log_reader")
+            handler = next(
+                (
+                    handler
+                    for handler in logger.handlers
+                    if handler.name == task_log_reader
+                ),
+                None,
+            )
+            if handler and hasattr(handler, "set_context"):
+                # Remote handlers always have set_context attribute
+                handler.set_context(ti)
+                handler.upload_on_close = True
+                handler.close()
+                handler.closed = False
+            else:
+                # Something seriously wrong
+                logging.warning(
+                    "Received airflow task log handler {0} without set_context method!".format(
+                        handler
+                    )
+                )
+        except Exception as e:
+            logging.error("Failed to sync remote log!", e)

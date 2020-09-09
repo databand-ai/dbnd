@@ -21,6 +21,8 @@ from airflow.version import version as airflow_version
 from flask import Response
 from sqlalchemy import and_, or_
 
+from dbnd._core.run.databand_run import AD_HOC_DAG_PREFIX
+
 
 DEFAULT_DAYS_PERIOD = 30
 TASK_ARG_TYPES = (str, float, bool, int, datetime.datetime)
@@ -46,8 +48,11 @@ class EmptyAirflowDatabase(Exception):
 
 def _load_dags_models(session=None):
     dag_models = session.query(DagModel).all()
+
     for dag_model in dag_models:
-        current_dags[dag_model.dag_id] = dag_model
+        # Exclude dbnd-run tagged runs
+        if not dag_model.dag_id.startswith(AD_HOC_DAG_PREFIX):
+            current_dags[dag_model.dag_id] = dag_model
 
 
 def do_export_data(
@@ -221,7 +226,7 @@ def _get_task_instance_xcom_dict(xcom_results, dag_id, task_id, execution_date):
 
 @provide_session
 def _get_current_dag_model(dag_id, session=None):
-    # Optimize old DagModel.get_current to try cache first
+    # MONKEY PATCH for old DagModel.get_current to try cache first
     if dag_id not in current_dags:
         current_dags[dag_id] = (
             session.query(DagModel).filter(DagModel.dag_id == dag_id).first()

@@ -75,6 +75,8 @@ from targets.caching import TARGET_CACHE
 
 logger = logging.getLogger(__name__)
 
+AD_HOC_DAG_PREFIX = "DBND_RUN."
+
 
 def _get_dbnd_run_relative_cmd():
     argv = list(sys.argv)
@@ -149,7 +151,7 @@ class DatabandRun(SingletonContext):
 
         # AIRFLOW, move into executor
         # dag_id , execution_date and run_id is used by airflow
-        self.dag_id = self.root_task_name
+        self.dag_id = AD_HOC_DAG_PREFIX + self.root_task_name
         self.execution_date = unique_execution_date()
         run_id = s.run.id
         if not run_id:
@@ -305,6 +307,9 @@ class DatabandRun(SingletonContext):
             task_executor_type = TaskExecutorType.local
         else:
             task_name = SystemTaskName.driver
+            # even if it's existing run, may be we are running from Airflow
+            # so the run is actually "submitted", ( the root airflow job has no info..,
+            # we want to capture "real" info of the run
             is_submitter = not self.existing_run or self.resubmit_run
             is_driver = True
             task_executor_type = self.task_executor_type
