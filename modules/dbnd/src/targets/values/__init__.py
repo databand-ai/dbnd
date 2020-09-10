@@ -1,3 +1,6 @@
+import logging
+
+from dbnd._core.errors.errors_utils import log_exception
 from targets.values.builtins_values import (
     BoolValueType,
     CallableValueType,
@@ -30,6 +33,9 @@ from targets.values.version_value import VersionValueType
 # Note: order matters. Examples:
 # isinstance(True, int) == True, so it's important to have bool check before int
 # isinstance(datetime.datetime.utc(), date) == True
+
+logger = logging.getLogger(__name__)
+
 
 known_values = []
 try:
@@ -117,3 +123,28 @@ def get_value_type_of_type(obj_type, inline_value_type=False):
 
 def register_value_type(value_type):
     return get_types_registry().register_value_type(value_type)
+
+
+def get_value_meta_from_value(
+    value_name, value, meta_conf
+):  # type: (str, Any, ValueMetaConf) -> Optional[ValueMeta]
+    if value is None:
+        return None
+
+    obj_value_type = get_value_type_of_obj(value)
+    if obj_value_type is None:
+        logger.info(
+            "Can't detect known type for '%s' with type='%s' ", value_name, type(value)
+        )
+        return None
+    try:
+        return obj_value_type.get_value_meta(value, meta_conf=meta_conf)
+
+    except Exception as ex:
+        log_exception(
+            "Failed to get value meta info for '%s' with type='%s'"
+            " ( detected as %s)" % (value_name, type(value), obj_value_type),
+            ex,
+            non_critical=True,
+        )
+    return None

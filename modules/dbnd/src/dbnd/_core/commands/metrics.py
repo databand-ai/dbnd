@@ -8,7 +8,7 @@ from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationT
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd._core.task_run.task_run_tracker import (
     TaskRunTracker,
-    get_value_meta_for_metric,
+    get_value_meta_from_value,
 )
 from dbnd._core.tracking.histograms import HistogramRequest
 from dbnd._core.utils import seven
