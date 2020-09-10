@@ -10,7 +10,9 @@ from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_airflow_conf
 from dbnd_airflow.tracking.dbnd_spark_conf import (
     dbnd_wrap_spark_environment,
+    get_databricks_java_agent_conf,
     get_dbnd_tracking_spark_conf_dict,
+    get_local_spark_java_agent_conf,
     spark_submit_with_dbnd_tracking,
 )
 
@@ -30,9 +32,14 @@ def track_databricks_submit_run_operator(operator):
     # passing env variables is only supported in new clusters
     if "new_cluster" in config:
         cluster = config["new_cluster"]
-        if "spark_env_vars" not in cluster:
-            cluster["spark_env_vars"] = {}
+        cluster.setdefault("spark_env_vars", {})
         cluster["spark_env_vars"].update(get_airflow_conf())
+
+        if "spark_jar_task" in config:
+            cluster.setdefault("spark_conf", {})
+            agent_conf = get_databricks_java_agent_conf()
+            if agent_conf is not None:
+                cluster["spark_conf"].update(agent_conf)
 
 
 def track_data_proc_pyspark_operator(operator):
@@ -52,6 +59,19 @@ def track_spark_submit_operator(operator):
         operator._env_vars = dict()
     dbnd_env_vars = dbnd_wrap_spark_environment()
     operator._env_vars.update(dbnd_env_vars)
+
+    if has_java_application(operator):
+        agent_conf = get_local_spark_java_agent_conf()
+        if agent_conf is not None:
+            operator._conf.update(agent_conf)
+
+
+def has_java_application(operator):
+    return (
+        operator._application.endswith(".jar")
+        or operator._jars
+        and operator._jars.ends_with(".jar")
+    )
 
 
 def track_python_operator(operator):

@@ -1,9 +1,12 @@
+import logging
 import os
 
 from functools import partial
 
 from dbnd_airflow.tracking.conf_operations import fix_keys, flat_conf
+from dbnd_airflow.tracking.config import TrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_airflow_conf
+from dbnd_airflow.utils import logger
 
 
 def spark_env(key):
@@ -92,3 +95,49 @@ def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
         raise Exception("Failed to find spark-submit in %s" % " ".join(command_as_list))
 
     return command_as_list[0 : index + 1] + dbnd_context + command_as_list[index + 1 :]
+
+
+logger = logging.getLogger(__name__)
+
+
+def get_local_spark_java_agent_conf():
+    config = TrackingConfig()
+    agent_jar = config.local_dbnd_java_agent
+    if agent_jar is None or not os.path.exists(agent_jar):
+        logger.warning("The wanted agents jar doesn't exists: %s", agent_jar)
+        agent_jar = None
+    agent_packages = get_agent_packages(config)
+    return create_spark_java_agent_conf(agent_jar, agent_packages)
+
+
+def get_databricks_java_agent_conf():
+    config = TrackingConfig()
+    agent_jar = config.databricks_dbnd_java_agent
+    if agent_jar is None:
+        logger.warning("No agent jar found")
+    agent_packages = get_agent_packages(config)
+    return create_spark_java_agent_conf(agent_jar, agent_packages)
+
+
+def get_agent_packages(config):
+    agent_packages = config.dbnd_tracking_packages
+    if not agent_packages:
+        logger.warning(
+            "Databand's java agents need one or more packages in order to work"
+        )
+        return
+
+    return agent_packages
+
+
+def create_spark_java_agent_conf(agent_jar, agent_packages):
+    if agent_jar is None or agent_packages is None:
+        return
+    packages = [
+        "packages={package}".format(package=package) for package in agent_packages
+    ]
+    return {
+        "spark.driver.extraJavaOptions": "-javaagent:{agent_jar}={packages}".format(
+            agent_jar=agent_jar, packages=",".join(packages)
+        )
+    }
