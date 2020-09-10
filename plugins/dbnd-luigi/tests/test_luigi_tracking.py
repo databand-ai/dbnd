@@ -1,3 +1,5 @@
+import os
+import shutil
 import sys
 
 import mock
@@ -8,11 +10,8 @@ from luigi import LuigiStatusCode
 from dbnd import dbnd_config
 from dbnd._core.parameter.parameter_definition import _ParameterKind
 from dbnd._core.settings import CoreConfig
-from dbnd_luigi.luigi_tracking import (
-    _luigi_task_to_dbnd_task,
-    dbnd_luigi_build,
-    dbnd_luigi_run,
-)
+from dbnd_luigi.luigi_task import wrap_luigi_task
+from dbnd_luigi.luigi_tracking import dbnd_luigi_build, dbnd_luigi_run
 from tests.conftest import delete_task_output
 from tests.luigi_examples.top_artists import LuigiTestException, MyPostgresQuery
 
@@ -24,10 +23,31 @@ class TestLuigiTaskExecution(object):
 
         os.system("rm -rf ./data/*")
 
-    def test_luigi_sanity(self, top10_artists):
+    def test_luigi_sanity_top_10_artists(self, top10_artists):
         with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
             with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
                 result = dbnd_luigi_build(tasks=[top10_artists])
+        assert result.status == LuigiStatusCode.SUCCESS
+
+    def test_luigi_sanity_foo(self, simple_foo):
+        with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
+            with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+                try:
+                    shutil.rmtree("/tmp/bar")
+                except FileNotFoundError:
+                    pass
+            result = dbnd_luigi_build(tasks=[simple_foo])
+        assert result.status == LuigiStatusCode.SUCCESS
+
+    @pytest.mark.skip
+    def test_luigi_sanity_complex_foo(self, complex_foo):
+        with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
+            with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+                try:
+                    shutil.rmtree("/tmp/bar")
+                except FileNotFoundError:
+                    pass
+                result = dbnd_luigi_build(tasks=[complex_foo])
         assert result.status == LuigiStatusCode.SUCCESS
 
     def test_luigi_orphan_task(self, streams):
@@ -46,24 +66,22 @@ class TestLuigiTaskExecution(object):
             str("tests.luigi_examples.top_artists"),
         ]
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            with mock.patch("dbnd_luigi.luigi_tracking.lrm") as lrm_patch:
-                lrm_patch.events_active = False
+            with mock.patch("dbnd_luigi.luigi_tracking.handler") as handler:
                 result = dbnd_luigi_run()
-                assert lrm_patch.on_failure.call_count == 1
-                assert lrm_patch.on_success.call_count == 2
-                assert lrm_patch.on_dependency_discovered.call_count == 2
-                assert lrm_patch.on_run_start.call_count == 3
+                assert handler.on_failure.call_count == 1
+                assert handler.on_success.call_count == 2
+                assert handler.on_dependency_discovered.call_count == 2
+                assert handler.on_run_start.call_count == 3
                 assert result.status == LuigiStatusCode.FAILED
 
     def test_luigi_build_exception(self, top10_artists_run_error):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            with mock.patch("dbnd_luigi.luigi_tracking.lrm") as lrm_patch:
-                lrm_patch.events_active = False
+            with mock.patch("dbnd_luigi.luigi_tracking.handler") as handler:
                 result = dbnd_luigi_build(tasks=[top10_artists_run_error])
-                assert lrm_patch.on_failure.call_count == 1
-                assert lrm_patch.on_success.call_count == 3
-                assert lrm_patch.on_dependency_discovered.call_count == 3
-                assert lrm_patch.on_run_start.call_count == 4
+                assert handler.on_failure.call_count == 1
+                assert handler.on_success.call_count == 3
+                assert handler.on_dependency_discovered.call_count == 3
+                assert handler.on_run_start.call_count == 4
                 assert result.status == LuigiStatusCode.FAILED
 
     def test_luigi_requires_exception(self, top10_artists_requires_error):
@@ -88,24 +106,23 @@ class TestLuigiWrapperTaskExecution(object):
     def test_luigi_wrapper_task_run_fail(self, wrapper_task_run_fail):
         delete_task_output(wrapper_task_run_fail)
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            with mock.patch("dbnd_luigi.luigi_tracking.lrm") as lrm_patch:
-                lrm_patch.events_active = False
+            with mock.patch("dbnd_luigi.luigi_tracking.handler") as handler:
                 result = dbnd_luigi_build(tasks=[wrapper_task_run_fail])
-                assert lrm_patch.on_failure.call_count == 1
-                assert lrm_patch.on_success.call_count == 1
-                assert lrm_patch.on_dependency_discovered.call_count == 1
-                assert lrm_patch.on_run_start.call_count == 2
+                assert handler.on_failure.call_count == 1
+                assert handler.on_success.call_count == 1
+                assert handler.on_dependency_discovered.call_count == 1
+                assert handler.on_run_start.call_count == 2
                 assert result.status == LuigiStatusCode.FAILED
 
 
 class TestLuigiWiring(object):
     def test_luigi_sanity_output_target_tracking(self, top10_artists):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            dbnd_task = _luigi_task_to_dbnd_task(top10_artists)
+            dbnd_task = wrap_luigi_task(top10_artists)
             assert dbnd_task
             assert dbnd_task.task_outputs
             # 'result' is our added output target
-            assert len(dbnd_task.task_outputs) == 1
+            assert len(dbnd_task.task_outputs) == 2
             dbnd_output = [
                 v for k, v in dbnd_task.task_outputs.items() if k != "task_band"
             ][0]
@@ -117,7 +134,7 @@ class TestLuigiWiring(object):
 
     def test_luigi_sanity_input_target_tracking(self, top10_artists):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            dbnd_task = _luigi_task_to_dbnd_task(top10_artists)
+            dbnd_task = wrap_luigi_task(top10_artists)
             assert dbnd_task
             dbnd_input_target = [
                 x for x in dbnd_task.task_meta.task_params if "artist_streams" in x.name
@@ -129,7 +146,7 @@ class TestLuigiWiring(object):
 
     def test_multiple_input_tracking(self, task_c):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            dbnd_task = _luigi_task_to_dbnd_task(task_c)
+            dbnd_task = wrap_luigi_task(task_c)
             assert dbnd_task
             # Output1 and 2 are actually inputs from TaskB, just badly named
             assert dbnd_task.output1
@@ -155,9 +172,9 @@ class TestLuigiWiring(object):
 
     def test_multiple_output_tracking(self, task_b):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-            dbnd_task = _luigi_task_to_dbnd_task(task_b)
+            dbnd_task = wrap_luigi_task(task_b)
             assert dbnd_task
-            assert len(dbnd_task.task_outputs) == 2
+            assert len(dbnd_task.task_outputs) == 3
             assert dbnd_task.output1
             assert dbnd_task.output2
             output1 = [

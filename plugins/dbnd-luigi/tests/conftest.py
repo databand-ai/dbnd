@@ -6,6 +6,8 @@ import pytest
 
 from luigi.date_interval import Custom
 
+from tests.luigi_examples.complex_foo import Foo as ComplexFoo
+from tests.luigi_examples.foo import Foo as SimpleFoo
 from tests.luigi_examples.multiple_input_output import (
     MyWrapperTask,
     MyWrapperTaskOutputFails,
@@ -57,6 +59,16 @@ def streams(date_a):
 @pytest.fixture(autouse=True)
 def top10_artists(date_interval):
     return Top10Artists(date_interval=date_interval)
+
+
+@pytest.fixture(autouse=True)
+def simple_foo():
+    return SimpleFoo()
+
+
+@pytest.fixture(autouse=True)
+def complex_foo():
+    return ComplexFoo()
 
 
 @pytest.fixture(autouse=True)
