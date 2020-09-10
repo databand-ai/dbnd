@@ -31,23 +31,28 @@ def target_timeit(method):
 
 @contextlib.contextmanager
 def target_timeit_log(target, operation):
+    from dbnd import log_metric
+
     log_level = get_target_logging_level()
 
-    name = target
+    path = target
     if hasattr(target, "target"):
-        name = target.target
+        path = target.target
     if hasattr(target, "path"):
-        name = target.path
+        path = target.path
+
+    name = target.source.name if target.source else path
 
     start_time = time.time()
     try:
         yield
     finally:
         end_time = time.time()
-        delta = end_time - start_time
+        delta_ms = (end_time - start_time) * 1000
         logger.log(
             level=log_level,
             msg="Total {} time for target {} is {} milliseconds".format(
-                operation, name, delta * 1000
+                operation, path, delta_ms
             ),
         )
+        log_metric("marshalling_{}".format(name), delta_ms, source="system")
