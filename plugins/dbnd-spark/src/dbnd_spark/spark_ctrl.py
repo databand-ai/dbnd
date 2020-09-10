@@ -27,7 +27,7 @@ class SparkCtrl(TaskRunCtrl):
             self.deploy = self._get_deploy_ctrl()
 
     def _get_deploy_ctrl(self):
-        return self.task_run.deploy  # type: TaskSyncCtrl
+        return self.task_run.deploy
 
     @property
     def config(self):
@@ -100,5 +100,5 @@ class SparkCtrl(TaskRunCtrl):
         if conf_env_vars:
             env_vars.update(conf_env_vars)
         if self.config.fix_pyspark_imports:
-            env_vars[ENV_DBND_FIX_PYSPARK_IMPORTS] = True
+            env_vars[ENV_DBND_FIX_PYSPARK_IMPORTS] = "True"
         return env_vars
