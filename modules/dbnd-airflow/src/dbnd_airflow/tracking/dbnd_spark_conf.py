@@ -103,41 +103,28 @@ logger = logging.getLogger(__name__)
 def get_local_spark_java_agent_conf():
     config = TrackingConfig()
     agent_jar = config.local_dbnd_java_agent
+    logger.debug("found agent_jar %s", agent_jar)
     if agent_jar is None or not os.path.exists(agent_jar):
         logger.warning("The wanted agents jar doesn't exists: %s", agent_jar)
-        agent_jar = None
-    agent_packages = get_agent_packages(config)
-    return create_spark_java_agent_conf(agent_jar, agent_packages)
+        return
+
+    return create_spark_java_agent_conf(agent_jar)
 
 
 def get_databricks_java_agent_conf():
     config = TrackingConfig()
     agent_jar = config.databricks_dbnd_java_agent
+    logger.debug("found agent_jar %s", agent_jar)
     if agent_jar is None:
         logger.warning("No agent jar found")
-    agent_packages = get_agent_packages(config)
-    return create_spark_java_agent_conf(agent_jar, agent_packages)
-
-
-def get_agent_packages(config):
-    agent_packages = config.dbnd_tracking_packages
-    if not agent_packages:
-        logger.warning(
-            "Databand's java agents need one or more packages in order to work"
-        )
         return
 
-    return agent_packages
+    return create_spark_java_agent_conf(agent_jar)
 
 
-def create_spark_java_agent_conf(agent_jar, agent_packages):
-    if agent_jar is None or agent_packages is None:
-        return
-    packages = [
-        "packages={package}".format(package=package) for package in agent_packages
-    ]
+def create_spark_java_agent_conf(agent_jar):
     return {
-        "spark.driver.extraJavaOptions": "-javaagent:{agent_jar}={packages}".format(
-            agent_jar=agent_jar, packages=",".join(packages)
+        "spark.driver.extraJavaOptions": "-javaagent:{agent_jar}".format(
+            agent_jar=agent_jar
         )
     }

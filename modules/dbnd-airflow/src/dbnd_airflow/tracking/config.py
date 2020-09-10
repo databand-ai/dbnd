@@ -16,8 +16,3 @@ class TrackingConfig(Config):
         default=None,
         description="A dbnd java agent jar which used to track a java application, located on remote machine",
     )[str]
-
-    dbnd_tracking_packages = parameter(
-        default=None,
-        description="A List of packages to track inside the jar application",
-    )[List[str]]
