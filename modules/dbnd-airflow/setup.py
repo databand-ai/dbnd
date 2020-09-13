@@ -29,7 +29,7 @@ setuptools.setup(
         airflow_1_10_9=requirements_for_airflow + ["apache-airflow==1.10.9"],
         tests=[
             # airflow support
-            "pandas<1.0.0,>=0.17.1",
+            "pandas<2.0.0,>=0.17.1",
             # azure
             "azure-storage-blob",
             # aws

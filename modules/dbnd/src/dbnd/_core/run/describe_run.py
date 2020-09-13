@@ -2,7 +2,13 @@ import typing
 
 from collections import Counter
 
-from dbnd._core.constants import RunState, SystemTaskName, TaskRunState, UpdateSource
+from dbnd._core.constants import (
+    DescribeFormat,
+    RunState,
+    SystemTaskName,
+    TaskRunState,
+    UpdateSource,
+)
 from dbnd._core.current import is_verbose
 from dbnd._core.run.run_ctrl import RunCtrl
 from dbnd._core.settings.core import CoreConfig
@@ -207,3 +213,13 @@ class DescribeRun(RunCtrl):
             )
         )
         return u"\n".join(err_banners)
+
+
+def print_tasks_tree(root_task, task_runs, describe_format=DescribeFormat.short):
+    from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
+
+    completed = {tr.task.task_id: tr.is_reused for tr in task_runs}
+    run_describe_dag = DescribeDagCtrl(
+        root_task, describe_format, complete_status=completed
+    )
+    run_describe_dag.tree_view(describe_format=describe_format)

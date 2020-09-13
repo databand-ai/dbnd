@@ -1,6 +1,6 @@
 import time
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import attr
 import psycopg2
@@ -54,9 +54,7 @@ class PostgresTableValueType(DataValueType):
 
         with PostgresController(value.connection_string, value.table_name) as postgres:
             if meta_conf.log_histograms:
-                histogram_spec = meta_conf.get_histogram_spec(
-                    self, PostgresTable(postgres.table_name, postgres.connection_string)
-                )
+                histogram_spec = meta_conf.get_histogram_spec(self, value)
                 start_time = time.time()
                 stats, histograms = postgres.get_histograms_and_stats(histogram_spec)
                 hist_sys_metrics = {"histograms_calc_time": time.time() - start_time}
@@ -149,7 +147,7 @@ class PostgresController:
     def _get_column_histogram_and_stats(
         self, pg_stats_row, count, column_type, histogram_spec
     ):
-        # type: (..., ..., ..., HistogramSpec) -> Tuple[Dict, Optional[Tuple]]
+        # type: (Dict, int, str, HistogramSpec) -> Tuple[Dict, Optional[Tuple]]
         stats = self._calculate_stats(count, pg_stats_row)
         stats["type"] = column_type
         if histogram_spec.only_stats:
@@ -196,13 +194,14 @@ class PostgresController:
         return stats, histogram
 
     def _get_row_count(self):
+        # type: () -> int
         result = self._query(
             "select * from pg_class where relname = %s", self.table_name
         )
         return int(result[0]["reltuples"])
 
     def _calculate_stats(self, count, pg_stats_row):
-        # type: (...) -> Dict
+        # type: (int, Dict) -> Dict
         stats = dict()
         stats["null-count"] = int(pg_stats_row["null_frac"] * count)
         stats["count"] = count
@@ -258,6 +257,7 @@ class PostgresController:
         return histogram
 
     def _pg_anyarray_to_list(self, value):
+        # type: (str) -> List
         """ postgres returns anyarray type as a string, this function converts it to a list """
         value = value.strip("{}")
         value = "[" + value + "]"

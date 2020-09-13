@@ -44,7 +44,7 @@ setuptools.setup(
             "pluggy==0.11.0",  # 0.12 has import_metadata, fails on py2
             "zope.interface",
             "mock",
-            "pandas<1.0.0,>=0.17.1",  # airflow supports only this version
+            "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
             "urllib3==1.23",  # otherwise we have 1.24 - conflict with 'requests'
             "tox==3.12.1",
             "matplotlib",

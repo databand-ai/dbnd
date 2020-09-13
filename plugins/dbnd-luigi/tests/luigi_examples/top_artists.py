@@ -28,10 +28,12 @@ import luigi.contrib.hdfs
 import luigi.contrib.postgres
 import luigi.contrib.spark
 
-from dbnd import dbnd_config, log_metric
-from dbnd._core.settings import CoreConfig
-from dbnd_luigi.luigi_tracking import dbnd_luigi_run
-from tests.luigi_examples import LuigiTestException
+from dbnd import log_metric
+from dbnd._vendor.namesgenerator import get_random_name
+
+
+class LuigiTestException(Exception):
+    pass
 
 
 logger = logging.getLogger("user_log")
@@ -57,7 +59,7 @@ class Streams(luigi.Task):
                 output.write(
                     "{} {} {}\n".format(
                         random.randint(0, 999),
-                        random.randint(0, 999),
+                        get_random_name(),
                         random.randint(0, 999),
                     )
                 )
@@ -208,10 +210,3 @@ class MyPostgresQuery(luigi.contrib.postgres.PostgresQuery):
 
     def run(self):
         return True
-
-
-if __name__ == "__main__":
-    # Example command line:
-    #  python top_artists.py  Streams --date 2020-02-03 --local-scheduler  --version $(date '+%Y-%m-%d__%H_%M_%S')
-    with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
-        dbnd_luigi_run()

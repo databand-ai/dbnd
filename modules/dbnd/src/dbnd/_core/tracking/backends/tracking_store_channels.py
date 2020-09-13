@@ -2,11 +2,7 @@ import datetime
 import logging
 import typing
 
-from dbnd._core.constants import (
-    DbndTargetOperationStatus,
-    DbndTargetOperationType,
-    MetricSource,
-)
+from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
 from dbnd._core.tracking.backends.abstract_tracking_store import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils import json_utils
@@ -206,40 +202,8 @@ class TrackingStoreThroughChannel(TrackingStore):
         )
 
     def log_histograms(self, task_run, key, histogram_spec, value_meta, timestamp):
-        hist_metrics = self._get_histogram_metrics(key, value_meta, timestamp)
-        self.log_metrics(task_run=task_run, metrics=hist_metrics)
-
-    def _get_histogram_metrics(self, df_name, value_meta, timestamp):
-        # type: (str, ValueMeta, datetime) -> Iterable[Metric]
-        if value_meta.histogram_system_metrics:
-            yield Metric(
-                key="{}.histogram_system_metrics".format(df_name),
-                value_json=value_meta.histogram_system_metrics,
-                source=MetricSource.histograms,
-                timestamp=timestamp,
-            )
-        if value_meta.histograms:
-            yield Metric(
-                key="{}.histograms".format(df_name),
-                value_json=value_meta.histograms,
-                source=MetricSource.histograms,
-                timestamp=timestamp,
-            )
-        if value_meta.descriptive_stats:
-            yield Metric(
-                key="{}.stats".format(df_name),
-                value_json=value_meta.descriptive_stats,
-                source=MetricSource.histograms,
-                timestamp=timestamp,
-            )
-            for column, stats in value_meta.descriptive_stats.items():
-                for stat, value in stats.items():
-                    yield Metric(
-                        key="{}.{}.{}".format(df_name, column, stat),
-                        value=value,
-                        source=MetricSource.histograms,
-                        timestamp=timestamp,
-                    )
+        value_meta_metrics = value_meta.build_metrics_for_key(key)
+        self.log_metrics(task_run=task_run, metrics=value_meta_metrics["histograms"])
 
     def log_metrics(self, task_run, metrics):
         # type: (TaskRun, Iterable[Metric]) -> None

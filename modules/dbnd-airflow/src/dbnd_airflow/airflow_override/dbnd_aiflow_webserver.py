@@ -2,7 +2,7 @@ import logging
 import os
 
 from dbnd._core.configuration.environ_config import in_quiet_mode
-from dbnd._core.log import dbnd_log_info_error
+from dbnd._core.errors.friendly_error.versioned_dagbag import failed_to_load_versioned_dagbag_plugin
 from dbnd._core.utils.object_utils import patch_module_attr
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,6 @@ def _use_databand_airflow_dagbag():
     Overriding Airflow Dagbag, so versioned dags can be used
     :return:
     """
-
     import airflow
     from airflow import settings
     if settings.RBAC:
@@ -45,8 +44,8 @@ def _use_databand_airflow_dagbag():
 def use_databand_airflow_dagbag():
     try:
         _use_databand_airflow_dagbag()
-    except Exception:
-        dbnd_log_info_error("Failed to switch to versioned dagbag")
+    except Exception as e:
+        raise failed_to_load_versioned_dagbag_plugin(e)
 
 
 def patch_airflow_create_app():

@@ -12,6 +12,7 @@ from dbnd._core.configuration.environ_config import (
     in_quiet_mode,
     is_unit_test_mode,
 )
+from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.plugin.dbnd_plugins_mng import (
     register_dbnd_plugins,
     register_dbnd_user_plugins,
@@ -97,6 +98,7 @@ def dbnd_bootstrap():
     dbnd_system_bootstrap()
 
     dbnd_project_config = get_dbnd_project_config()
+
     from targets.marshalling import register_basic_data_marshallers
 
     register_basic_data_marshallers()

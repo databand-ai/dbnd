@@ -21,6 +21,7 @@ def say_hello(name: str = "databand.ai") -> str:
     value = "Hello %s!" % name
     return value
 ```
+
 And makes it easy to track your critical pipeline metadata
 
 ```python
@@ -30,12 +31,16 @@ log_dataframe("my_dataset", my_dataset)
 log_metric("r2", r2)
 ```
 
-##  Getting Started
+## Getting Started
+
 See our [documentation](https://dbnd.readme.io/) with examples and quickstart guides to get up and running with DBND.
-##  The Latest and Greatest
+
+## The Latest and Greatest
+
 For using DBND, we recommend that you work with a virtual environment like [Virtualenv](https://virtualenv.pypa.io/en/latest/) or [Conda](https://docs.conda.io/en/latest/). Update to the latest and greatest:
 
 ```shell script
 pip install dbnd
 ```
+
 If you would like access to our latest features, or have any questions, feedback, or contributions we would love to here from you! Get in touch through contact@databand.ai

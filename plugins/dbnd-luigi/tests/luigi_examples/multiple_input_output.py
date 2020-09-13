@@ -1,9 +1,8 @@
 from datetime import datetime
-from random import randint
 
 import luigi
 
-from tests.luigi_examples import LuigiTestException
+from tests.luigi_examples.top_artists import LuigiTestException
 
 
 """

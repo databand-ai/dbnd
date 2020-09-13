@@ -9,11 +9,10 @@ from dbnd._core.constants import (
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.tracking.histograms import HistogramRequest
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 from targets import Target
-from targets.values import get_value_type_of_obj
+from targets.values import get_value_meta_from_value
 
 
 if typing.TYPE_CHECKING:
@@ -24,7 +23,7 @@ if typing.TYPE_CHECKING:
     import pandas as pd
     import pyspark.sql as spark
 
-    from targets.value_meta import ValueMetaConf, ValueMeta
+    from targets.value_meta import ValueMetaConf
 
 logger = logging.getLogger(__name__)
 
@@ -56,24 +55,25 @@ class TaskRunTracker(TaskRunCtrl):
         self, parameter, target, value, operation_type, operation_status
     ):
         # type: (TaskRunTracker, ParameterDefinition, Target, Any, DbndTargetOperationType, DbndTargetOperationStatus) -> None
-        """
-        Logs parameter data
-        """
         features_conf = self.settings.features
         if not features_conf.log_value_meta:
             return
-        try:
-            value_type = parameter.value_type
-            meta_conf = features_conf.get_value_meta_conf(
-                parameter.value_meta_conf, value_type=value_type, target=target
-            )
+        if value is None:
+            return
 
-            target_meta = value_type.get_value_meta(value, meta_conf)
-            target.target_meta = target_meta  # Do we actually need this?
+        try:
+            meta_conf = features_conf.get_value_meta_conf(
+                parameter.value_meta_conf,
+                value_type=parameter.value_type,
+                target=target,
+            )
+            key = "{}.{}".format(self.task_run.task.task_name, parameter.name)
+            target.target_meta = get_value_meta_from_value(key, value, meta_conf)
+
             self.tracking_store.log_target(
                 task_run=self.task_run,
                 target=target,
-                target_meta=target_meta,
+                target_meta=target.target_meta,
                 operation_type=operation_type,
                 operation_status=operation_status,
                 param_name=parameter.name,
@@ -134,7 +134,7 @@ class TaskRunTracker(TaskRunCtrl):
         try:
             # Combine meta_conf with the config settings
             meta_conf = self.settings.features.get_value_meta_conf(meta_conf)
-            value_meta = get_value_meta_for_metric(key, data, meta_conf=meta_conf)
+            value_meta = get_value_meta_from_value(key, data, meta_conf=meta_conf)
             if not value_meta:
                 return
 
@@ -148,45 +148,12 @@ class TaskRunTracker(TaskRunCtrl):
                     operation_type=operation_type,
                     operation_status=operation_status,
                 )
-            data_metrics = []
-            dataframe_metric_value = {}
+            metrics = value_meta.build_metrics_for_key(key, meta_conf)
 
-            if value_meta.data_dimensions:
-                dataframe_metric_value["data_dimensions"] = value_meta.data_dimensions
-                for dim, size in enumerate(value_meta.data_dimensions):
-                    data_metrics.append(
-                        Metric(
-                            key="{}.shape{}".format(key, dim),
-                            value=size,
-                            source=MetricSource.user,
-                            timestamp=ts,
-                        )
-                    )
+            if metrics["user"]:
+                self._log_metrics(metrics["user"])
 
-            if meta_conf.log_schema:
-                dataframe_metric_value["schema"] = value_meta.data_schema
-                data_metrics.append(
-                    Metric(
-                        key="{}.schema".format(key),
-                        value_json=value_meta.data_schema,
-                        source=MetricSource.user,
-                        timestamp=ts,
-                    )
-                )
-
-            if meta_conf.log_preview:
-                dataframe_metric_value["value_preview"] = value_meta.value_preview
-                dataframe_metric_value["type"] = "dataframe_metric"
-                data_metrics.append(
-                    Metric(
-                        key=str(key),
-                        value_json=dataframe_metric_value,
-                        source=MetricSource.user,
-                        timestamp=ts,
-                    )
-                )
-
-            if meta_conf.log_histograms:
+            if metrics["histograms"]:
                 self.tracking_store.log_histograms(
                     task_run=self.task_run,
                     key=key,
@@ -195,34 +162,9 @@ class TaskRunTracker(TaskRunCtrl):
                     timestamp=ts,
                 )
 
-            if data_metrics:
-                self._log_metrics(data_metrics)
-
         except Exception as ex:
             log_exception(
                 "Error occurred during log_dataframe for %s" % (key,),
                 ex,
                 non_critical=True,
             )
-
-
-def get_value_meta_for_metric(
-    key, value, meta_conf, histogram_request=HistogramRequest.NONE
-):  # type: (str, Any, ValueMetaConf, HistogramRequest) -> Optional[ValueMeta]
-    value_type = get_value_type_of_obj(value)
-    if value_type is None:
-        logger.info(
-            "Can't detect known type for '%s' with type='%s' ", key, type(value)
-        )
-        return None
-    try:
-        return value_type.get_value_meta(value, meta_conf=meta_conf)
-
-    except Exception as ex:
-        log_exception(
-            "Failed to get value meta info for '%s' with type='%s'"
-            " ( detected as %s)" % (key, type(value), value_type,),
-            ex,
-            non_critical=True,
-        )
-    return None

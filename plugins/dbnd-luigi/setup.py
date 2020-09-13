@@ -14,7 +14,8 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-luigi",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version,],
-    extras_require=dict(tests=["luigi",]),
-    # entry_points={"dbnd": ["dbnd-luigi = dbnd_luigi._plugin"]},
+    install_requires=["dbnd==" + version, "luigi"],
+    entry_points={
+        "console_scripts": ["dbnd-luigi = dbnd_luigi.luigi_tracking:dbnd_luigi_run",],
+    },
 )

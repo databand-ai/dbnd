@@ -41,7 +41,7 @@ from dbnd._core.errors.base import (
 )
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
-from dbnd._core.run.describe_run import DescribeRun
+from dbnd._core.run.describe_run import DescribeRun, print_tasks_tree
 from dbnd._core.run.run_tracker import RunTracker
 from dbnd._core.run.target_identity_source_map import TargetIdentitySourceMap
 from dbnd._core.run.task_runs_builder import TaskRunsBuilder
@@ -757,13 +757,8 @@ class _DbndDriverTask(Task):
                 color="cyan",
                 task_run=root_task_run,
             )
-            from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
 
-            completed = {tr.task.task_id: tr.is_reused for tr in task_runs}
-            run_describe_dag = DescribeDagCtrl(
-                root_task_run.task, DescribeFormat.short, complete_status=completed
-            )
-            run_describe_dag.tree_view(describe_format=DescribeFormat.short)
+            print_tasks_tree(root_task_run.task, task_runs)
 
             if self.is_save_run(run, task_runs):
                 run.save_run()
