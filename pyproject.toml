@@ -3,4 +3,4 @@ requires = ["setuptools", "wheel"]
 
 
 [tool.black]
-exclude = "dbnd/_vendor|.tox|dist|build|__pycache__|airflow_override"
+exclude = "dbnd/_vendor|dbnd_spark/_vendor|.tox|dist|build|__pycache__|airflow_override"
