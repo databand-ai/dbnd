@@ -10,7 +10,6 @@ from dbnd._core.tracking.backends.tracking_store_file import (
     FileTrackingStore,
     TaskRunMetricsFileStoreReader,
 )
-from dbnd._core.tracking.histograms import HistogramRequest
 from targets import target
 from targets.value_meta import ValueMetaConf
 
@@ -74,6 +73,11 @@ class TestFileMetricsStore(object):
         df_births_std = hist_metrics["df.Births.std"]
         assert df_births_std == pytest.approx(428.4246)
         hist_metrics["df.histograms"].pop("Names")
+        hist_metrics["df.histograms"].pop("Births")
+        hist_metrics.pop("df.Married.top")
+        hist_metrics.pop("df.Names.top")
+        hist_metrics["df.stats"]["Names"].pop("top")
+        hist_metrics["df.stats"]["Married"].pop("top")
         assert hist_metrics == {
             "df.Births.type": "int64",
             "df.Births.25%": 155.0,
@@ -101,10 +105,7 @@ class TestFileMetricsStore(object):
             "df.Names.null-count": 0,
             "df.Names.type": "object",
             "df.Names.unique": 5,
-            "df.histograms": {
-                "Births": [[2, 0, 1, 2], [77.0, 301.0, 525.0, 749.0, 973.0]],
-                "Married": [[3, 2], [True, False]],
-            },
+            "df.histograms": {"Married": [[3, 2], [True, False]],},
             "df.preview": expected_preview,
             "df.schema": {
                 "columns": ["Names", "Births", "Married"],

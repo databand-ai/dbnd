@@ -114,7 +114,7 @@ class ConsoleStore(TrackingStore):
     def is_ready(self):
         return True
 
-    def log_histograms(self, task_run, key, histogram_spec, value_meta, timestamp):
+    def log_histograms(self, task_run, key, value_meta, timestamp):
         for hist_name, hist_values in value_meta.histograms.items():
             for line in self.ascii_graph.graph(
                 "Histogram logged: {}.{}".format(key, hist_name),

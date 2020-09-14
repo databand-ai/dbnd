@@ -2,21 +2,16 @@ import logging
 import time
 import typing
 
-from functools import wraps
-
-from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
+from dbnd._core.constants import DbndTargetOperationType
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
-from dbnd._core.task_run.task_run_tracker import (
-    TaskRunTracker,
-    get_value_meta_from_value,
-)
-from dbnd._core.tracking.histograms import HistogramRequest
+from dbnd._core.task_run.task_run_tracker import TaskRunTracker
+from dbnd._core.tracking.log_data_reqeust import LogDataRequest
 from dbnd._core.utils import seven
-from targets.value_meta import ValueMeta, ValueMetaConf
+from targets.value_meta import ValueMetaConf
 
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Optional, Union, List
+    from typing import Optional, Union, List
     import pandas as pd
     import pyspark.sql as spark
 
@@ -43,8 +38,8 @@ def log_data(
     with_preview=True,  # type: Optional[bool]
     with_size=True,  # type: Optional[bool]
     with_schema=True,  # type: Optional[bool]
-    with_stats=False,  # type: Optional[bool]
-    with_histograms=HistogramRequest.NONE(),  # type: Optional[Union[bool, str, List[str], HistogramRequest]]
+    with_stats=False,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
+    with_histograms=False,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
 ):  # type: (...) -> None
     tracker = _get_tracker()
     if not tracker:
@@ -71,7 +66,7 @@ def log_pg_table(
     connection_string,
     with_preview=True,
     with_schema=True,
-    with_histograms=HistogramRequest.NONE(),  # type: Union[HistogramRequest, bool, str, List[str]]
+    with_histograms=False,  # type: Union[LogDataRequest, bool, str, List[str]]
 ):
 
     try:

@@ -1,6 +1,3 @@
-import attr
-
-from dbnd._core.tracking.histograms import HistogramRequest, HistogramSpec
 from dbnd_spark.spark_targets import SparkDataFrameValueType
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.pandas_values import DataFrameValueType
@@ -19,14 +16,13 @@ class TestSparkDataFrameValueType(object):
         }
 
         expected_hist_sys_metrics = {
-            "boolean_histograms_calc_time",
-            "histograms_calc_time",
-            "numeric_histograms_calc_time",
-            "string_histograms_calc_time",
+            "boolean_histograms_and_stats_calc_time",
+            "histograms_and_stats_calc_time",
+            "numeric_histograms_and_stats_calc_time",
+            "string_histograms_and_stats_calc_time",
         }
 
         meta_conf = ValueMetaConf.enabled()
-        meta_conf.log_histograms = HistogramRequest.ALL()
         expected_value_meta = ValueMeta(
             value_preview=SparkDataFrameValueType().to_preview(
                 spark_data_frame, meta_conf.get_preview_size()
@@ -35,13 +31,6 @@ class TestSparkDataFrameValueType(object):
             data_hash=SparkDataFrameValueType().to_signature(spark_data_frame),
             data_schema=expected_data_schema,
             descriptive_stats=spark_data_frame_stats,
-            histogram_spec=HistogramSpec(
-                approx_distinct_count=False,
-                columns=frozenset(spark_data_frame.columns),
-                none=False,
-                only_stats=False,
-                with_stats=True,
-            ),
             histograms=spark_data_frame_histograms,
         )
 
@@ -55,7 +44,6 @@ class TestSparkDataFrameValueType(object):
         assert df_value_meta.data_schema == expected_value_meta.data_schema
         # it changes all the time, it has different formats, and it's already tested in histogram tests
         # assert df_value_meta.descriptive_stats == expected_value_meta.descriptive_stats
-        assert df_value_meta.histogram_spec == expected_value_meta.histogram_spec
 
         # histogram_system_metrics values are too dynamic, so checking only keys, but not values
         assert (

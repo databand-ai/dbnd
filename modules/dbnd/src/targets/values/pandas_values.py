@@ -1,28 +1,29 @@
 from __future__ import absolute_import
 
-import json
 import logging
 import os
 import time
+import typing
 
-from typing import Dict, List, Mapping, Optional, Tuple
+from typing import Dict
 
-import numpy as np
 import pandas as pd
 import six
 
-from pandas.core.dtypes.common import is_bool_dtype, is_numeric_dtype, is_string_dtype
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._core.errors import friendly_error
-from dbnd._core.tracking.histograms import HistogramDataType
 from dbnd._vendor import fast_hasher
 from targets.target_config import FileFormat
-from targets.value_meta import ValueMeta, ValueMetaConf
+from targets.value_meta import ValueMeta
 from targets.values.builtins_values import DataValueType
+from targets.values.pandas_histograms import PandasHistograms
 from targets.values.structure import DictValueType
 from targets.values.value_type import _isinstances
 
+
+if typing.TYPE_CHECKING:
+    from targets.value_meta import ValueMetaConf
 
 logger = logging.getLogger(__name__)
 
@@ -40,25 +41,6 @@ class DataFrameValueType(DataValueType):
 
     def to_preview(self, df, preview_size):  # type: (pd.DataFrame, int) -> str
         return df.to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
-
-    def get_all_data_columns(self, df):
-        # type: (pd.DataFrame) -> Dict[str, HistogramDataType]
-        types_map = {
-            "float64": HistogramDataType.numeric,
-            "float32": HistogramDataType.numeric,
-            "float16": HistogramDataType.numeric,
-            "int64": HistogramDataType.numeric,
-            "int32": HistogramDataType.numeric,
-            "int8": HistogramDataType.numeric,
-            "uint64": HistogramDataType.numeric,
-            "uint32": HistogramDataType.numeric,
-            "uint8": HistogramDataType.numeric,
-            "bool": HistogramDataType.boolean,
-        }
-        return {
-            col: types_map.get(type_.name, HistogramDataType.string)
-            for col, type_ in df.dtypes.items()
-        }
 
     def get_value_meta(self, value, meta_conf):
         # type: (pd.DataFrame, ValueMetaConf) -> ValueMeta
@@ -84,110 +66,26 @@ class DataFrameValueType(DataValueType):
             data_hash = fast_hasher.hash(hash_pandas_object(value, index=True).values)
 
         if meta_conf.log_histograms:
-            histogram_spec = meta_conf.get_histogram_spec(self, value)
             start_time = time.time()
-            df_stats, histograms = self.get_histograms(value, meta_conf)
-            hist_sys_metrics = {"histograms_calc_time": time.time() - start_time}
+            stats, histograms = PandasHistograms(
+                value, meta_conf
+            ).get_histograms_and_stats()
+            hist_sys_metrics = {
+                "histograms_and_stats_calc_time": time.time() - start_time
+            }
         else:
-            df_stats, histograms = {}, {}
-            histogram_spec = hist_sys_metrics = None
+            stats, histograms = {}, {}
+            hist_sys_metrics = None
 
         return ValueMeta(
             value_preview=value_preview,
             data_dimensions=value.shape,
             data_schema=data_schema,
             data_hash=data_hash,
-            descriptive_stats=df_stats,
-            histogram_spec=histogram_spec,
+            descriptive_stats=stats,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histograms,
         )
-
-    def get_histograms(self, df, meta_conf):
-        # type: (pd.DataFrame, ValueMetaConf) -> Tuple[Dict[str, Dict], Dict[str, Tuple]]
-        histogram_spec = meta_conf.get_histogram_spec(self, df)
-        if histogram_spec.none:
-            return {}, {}
-
-        df = df.filter(items=histogram_spec.columns)
-        if df.empty:
-            return {}, {}
-
-        if histogram_spec.only_stats:
-            return self._calculate_stats(df), {}
-
-        # TODO: df.describe(include="all") .to_dict() returns pandas dtypes which are not JSON serializable
-        histograms = df.apply(
-            self._calculate_histograms, args=(self._calculate_stats(df), df)
-        )
-        hist_dict, stats_dict = {}, {}
-        for column, hist_stats in histograms.to_dict().items():
-            if hist_stats:
-                hist, bins, stats = hist_stats
-                hist_dict[column] = (hist, bins)
-                stats_dict[column] = stats
-        return stats_dict, hist_dict
-
-    def _calculate_stats(self, df):
-        # type: (pd.DataFrame) -> Dict[str, Dict]
-        stats = df.describe(include="all").to_json()
-        stats = json.loads(stats)
-        stats = self._remove_none_values(stats)
-        for col in stats.keys():
-            stats[col]["null-count"] = np.count_nonzero(pd.isnull(df[col]))
-            stats[col]["non-null"] = df[col].size - stats[col]["null-count"]
-            stats[col]["distinct"] = len(df[col].unique())
-            stats[col]["type"] = df[col].dtype.name
-        return stats
-
-    def _remove_none_values(self, input_dict):
-        """ remove none values from dict recursively """
-        for key, value in list(input_dict.items()):
-            if value is None:
-                input_dict.pop(key)
-            elif isinstance(value, dict):
-                self._remove_none_values(value)
-        return input_dict
-
-    def _calculate_histograms(self, df_column, df_stats, df):
-        # type: (pd.Series, Dict, pd.DataFrame) -> Optional[Tuple[List, List, Mapping]]
-        column_stats = df_stats.get(df_column.name, None)  # type: Dict
-        if column_stats is None:
-            return
-
-        try:
-            # TODO: check efficiency
-            df_type = df[df_column.name]
-            column_stats["type"] = df_type.dtype.name
-            if is_bool_dtype(df_type) or is_string_dtype(df_type):
-                # it's random for strings and booleans
-                if "top" in column_stats:
-                    column_stats.pop("top")
-
-                column_stats["count"] = int(column_stats["count"])
-                column_stats["freq"] = int(column_stats["freq"])
-
-                hist = df_column.value_counts()
-                if column_stats["distinct"] > 50:
-                    hist, tail = hist[:49], hist[49:]
-                    tail_sum = pd.Series([tail.sum()], index=["_others"])
-                    hist = hist.append(tail_sum)
-                bin_edges = hist.index
-
-            # For some reason is_numeric_dtype(df_column) returns different result
-            elif is_numeric_dtype(df_type):
-                bins = int(min(20, max(column_stats["distinct"] - 1, 1)))
-                hist, bin_edges = np.histogram(
-                    df_column, bins=bins
-                )  # type: np.array, np.array
-            else:
-                return
-
-            return hist.tolist(), bin_edges.tolist(), column_stats
-        except Exception as ex:
-            logger.exception(
-                "log_histogram: Something went wrong for column '%s'", df_column.name
-            )
 
     def merge_values(self, *values, **kwargs):
         # Concatenate all data into one DataFrame

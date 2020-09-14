@@ -23,7 +23,6 @@ class TestTargetValueType(object):
             data_dimensions=None,
             data_schema={"type": "Path"},
             data_hash=fast_hasher.hash(v),
-            histogram_spec=target_value_meta.histogram_spec,
         )
 
         assert target_value_meta == expected_value_meta

@@ -190,10 +190,8 @@ class TrackingStoreThroughChannel(TrackingStore):
             data_hash=target_meta.data_hash,
         )
         res = self.log_targets(targets_info=[target_info])
-        if target_meta.histogram_spec:
-            self.log_histograms(
-                task_run, param_name, target_meta.histogram_spec, target_meta, utcnow()
-            )
+        if target_meta.histograms:
+            self.log_histograms(task_run, param_name, target_meta, utcnow())
         return res
 
     def log_targets(self, targets_info):  # type: (List[LogTargetArgs]) -> None
@@ -201,7 +199,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             self.channel.log_targets, log_targets_schema, targets_info=targets_info
         )
 
-    def log_histograms(self, task_run, key, histogram_spec, value_meta, timestamp):
+    def log_histograms(self, task_run, key, value_meta, timestamp):
         value_meta_metrics = value_meta.build_metrics_for_key(key)
         self.log_metrics(task_run=task_run, metrics=value_meta_metrics["histograms"])
 
