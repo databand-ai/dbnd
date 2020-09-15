@@ -1,7 +1,6 @@
 import logging
 
 from dbnd._core.constants import TaskRunState
-from dbnd._core.errors import DatabandError
 from dbnd._core.errors.base import DatabandRunError, DatabandSigTermError
 from dbnd._core.task_ctrl.task_dag import topological_sort
 from dbnd._core.task_executor.task_executor import TaskExecutor
@@ -23,6 +22,23 @@ class LocalTaskExecutor(TaskExecutor):
                 continue
 
             if fail_fast and task_failed:
+                logger.info(
+                    "Setting %s to %s", task.task_id, TaskRunState.UPSTREAM_FAILED
+                )
+                tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED, track=False)
+                task_runs_to_update_state.append(tr)
+                continue
+
+            upstream_task_runs = [
+                self.run.get_task_run_by_id(t.task_id)
+                for t in task.ctrl.task_dag.upstream
+            ]
+            failed_upstream = [
+                tr
+                for tr in upstream_task_runs
+                if tr.task_run_state in TaskRunState.fail_states()
+            ]
+            if failed_upstream:
                 logger.info(
                     "Setting %s to %s", task.task_id, TaskRunState.UPSTREAM_FAILED
                 )
