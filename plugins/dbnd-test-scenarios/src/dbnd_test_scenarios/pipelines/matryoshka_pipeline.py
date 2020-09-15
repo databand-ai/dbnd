@@ -20,4 +20,24 @@ def b(param):
 
 @task
 def c(param):
+    return d(param)
+
+
+@task
+def d(param):
+    return e(param)
+
+
+@task
+def e(param):
+    return f(param)
+
+
+@task
+def f(param):
+    return g(param)
+
+
+@task
+def g(param):
     return param + 1
