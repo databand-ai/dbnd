@@ -17,6 +17,11 @@ class SparkLocalEngineConfig(SparkEngineConfig):
         default=False, description="Do not spawn new spark, use in memory"
     )
 
+    conn_uri = parameter(
+        default="docker://local?master=local",
+        description="Airflow connection URI to use",
+    )
+
     def get_spark_ctrl(self, task_run):
         from dbnd_spark.local.local_spark import LocalSparkExecutionCtrl
 

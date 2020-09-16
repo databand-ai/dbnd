@@ -1,6 +1,8 @@
-import pytest
+import os
 
-from pytest import mark
+from unittest import mock
+
+import pytest
 
 from dbnd import config, parameter
 from dbnd._core.errors import DatabandRunError
@@ -17,29 +19,40 @@ from targets import target
 
 
 class LocalSparkTestConfig(Config):
-    spark_home = parameter[str]
+    spark_home = parameter()[str]
+    host = parameter(default="local")
+    conn_uri = parameter(
+        default="docker://local?master=local&spark-home=%s" % spark_home,
+        description="Airflow connection URI to use",
+    )
 
 
 @pytest.fixture()
 def spark_config(databand_test_context):
     config = LocalSparkTestConfig()
-
     set_connection(
         conn_id="spark_default",
         host="local",
         conn_type="docker",
         extra='{"master":"local","spark-home": "%s"}' % config.spark_home,
     )
+
     return config
 
 
-@mark.spark
+@pytest.mark.spark
 class TestSparkTasksLocally(object):
     @pytest.fixture(autouse=True)
     def spark_conn(self, spark_config):
         self.config = spark_config
 
     def test_word_count_pyspark(self):
+        actual = WordCountPySparkTask(text=__file__)
+        actual.dbnd_run()
+        print(target(actual.counters.path, "part-00000").read())
+
+    @mock.patch("dbnd_spark.local.local_spark.is_airflow_enabled", return_value=False)
+    def test_word_count_pyspark_local_spark(self, _):
         actual = WordCountPySparkTask(text=__file__)
         actual.dbnd_run()
         print(target(actual.counters.path, "part-00000").read())
@@ -80,3 +93,50 @@ class TestSparkTasksLocally(object):
         from dbnd_test_scenarios.spark.spark_io_inline import dataframes_io_pandas_spark
 
         assert_run_task(dataframes_io_pandas_spark.t(text=__file__))
+
+    @mock.patch("dbnd_spark.local.local_spark.SparkSubmitHook")
+    @mock.patch("dbnd_spark.spark._InlineSparkTask.current_task_run")
+    @mock.patch("dbnd_spark.spark.get_databand_run")
+    @mock.patch(
+        "dbnd._core.task_run.task_run_logging.TaskRunLogManager.capture_task_log"
+    )
+    @mock.patch("dbnd._core.task_run.task_run.TaskRun.set_task_run_state")
+    @mock.patch("dbnd._core.task_ctrl.task_ctrl.TaskCtrl.save_task_band")
+    @mock.patch(
+        "dbnd._core.task_ctrl.task_validator.TaskValidator.validate_task_is_complete"
+    )
+    @mock.patch("dbnd._core.run.databand_run.DatabandRun.save_run")
+    def test_spark_hook(
+        self, _, __, ___, ____, _____, ______, current_task_run, mock_hook
+    ):
+        _config = current_task_run.task.spark_config
+
+        from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
+
+        word_count_inline.t(text=__file__).dbnd_run()
+
+        mock_hook.assert_called_once_with(
+            application_args=[],
+            conf=_config.conf,
+            conn_id="spark_default",
+            driver_class_path=_config.driver_class_path,
+            driver_memory=_config.driver_memory,
+            env_vars={
+                "DBND_TASK_RUN_ATTEMPT_UID": str(current_task_run.task_run_attempt_uid)
+            },
+            exclude_packages=_config.exclude_packages,
+            executor_cores=_config.executor_cores,
+            executor_memory=_config.executor_memory,
+            files="",
+            jars=str(_config.main_jar),
+            java_class=current_task_run.task.main_class,
+            keytab=_config.keytab,
+            name=current_task_run.job_id,
+            num_executors=_config.num_executors,
+            packages=_config.packages,
+            principal=_config.principal,
+            py_files="",
+            repositories=_config.repositories,
+            total_executor_cores=_config.total_executor_cores,
+            verbose=_config.verbose,
+        )
