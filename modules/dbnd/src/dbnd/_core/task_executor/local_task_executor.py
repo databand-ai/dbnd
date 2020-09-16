@@ -34,9 +34,9 @@ class LocalTaskExecutor(TaskExecutor):
                 for t in task.ctrl.task_dag.upstream
             ]
             failed_upstream = [
-                tr
-                for tr in upstream_task_runs
-                if tr.task_run_state in TaskRunState.fail_states()
+                upstream_task_run
+                for upstream_task_run in upstream_task_runs
+                if upstream_task_run.task_run_state in TaskRunState.fail_states()
             ]
             if failed_upstream:
                 logger.info(
