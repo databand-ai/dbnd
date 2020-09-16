@@ -100,12 +100,12 @@ class QuboleCtrl(SparkCtrl):
         while True:
             cmd = SparkCommand.find(cmd_id)
             status = cmd.status
-            self._qubole_banner(status)
 
             log, err_ptr, log_ptr, received_log = self._print_partial_log(
                 cmd, err_ptr, log_ptr
             )
             if self.qubole_config.show_spark_log:
+                self._qubole_banner(status)
                 if received_log > 0:
                     logger.info("Spark LOG:")
                     logger.info(log)
