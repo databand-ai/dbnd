@@ -46,6 +46,10 @@ class SparkMarshaller(Marshaller):
         path = _target_to_path(target)
         value.write.options(**kwargs).save(path=path, format=self.file_format)
 
+    def support_direct_access(self, target):
+        # Spark supports direct access to all file systems
+        return True
+
 
 class SparkDataFrameToCsv(SparkMarshaller):
     @target_timeit
