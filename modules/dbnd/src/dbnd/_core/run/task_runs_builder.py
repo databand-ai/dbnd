@@ -30,20 +30,16 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def check_if_completed_dfs(root_task):
+def check_if_completed_dfs(task):
     completed_status = {}
-
-    def check_if_completed(task):
-        task_id = task.task_id
-        if task_id in completed_status:
-            return
-        completed_status[task_id] = completed = task._complete()
-        if not completed:
-            for c in task.ctrl.task_dag.upstream:
-                check_if_completed(c)
-        return completed_status
-
-    return check_if_completed(root_task)
+    task_id = task.task_id
+    if task_id in completed_status:
+        return
+    completed_status[task_id] = completed = task._complete()
+    if not completed:
+        for c in task.ctrl.task_dag.upstream:
+            completed_status.update(check_if_completed_dfs(c))
+    return completed_status
 
 
 def check_if_completed_bfs(root_task, number_of_threads):
