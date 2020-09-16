@@ -15,6 +15,10 @@ from dbnd_luigi.luigi_tracking import dbnd_luigi_build, dbnd_luigi_run
 from tests.conftest import delete_task_output
 from tests.luigi_examples.top_artists import LuigiTestException, MyPostgresQuery
 
+from dbnd import dbnd_config
+from dbnd._core.parameter.parameter_definition import _ParameterKind
+from dbnd._core.settings import CoreConfig
+
 
 class TestLuigiTaskExecution(object):
     @pytest.fixture(autouse=True)

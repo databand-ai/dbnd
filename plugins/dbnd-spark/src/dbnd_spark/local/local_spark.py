@@ -8,7 +8,7 @@ from dbnd._core.errors.friendly_error.task_execution import (
     failed_spark_status,
     failed_to_run_spark_script,
 )
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_package_installed
+from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark._core.spark_error_parser import parse_spark_log_safe
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
@@ -29,14 +29,21 @@ class LocalSparkExecutionCtrl(SparkCtrl):
         return self._run_spark_submit(application=application, jars=self.config.jars)
 
     def _run_spark_submit(self, application, jars):
-        assert_airflow_package_installed()
-        from airflow.contrib.hooks.spark_submit_hook import SparkSubmitHook
-        from airflow.exceptions import AirflowException
-
         # task_env = get_cloud_config(Clouds.local)
         spark_local_config = SparkLocalEngineConfig()
         _config = self.config
         deploy = self.deploy
+
+        AIRFLOW_ON = is_airflow_enabled()
+
+        if AIRFLOW_ON:
+            from airflow.contrib.hooks.spark_submit_hook import SparkSubmitHook
+            from airflow.exceptions import AirflowException as SparkException
+        else:
+            from dbnd_spark._vendor.airflow.spark_hook import (
+                SparkException,
+                SparkSubmitHook,
+            )
 
         spark = SparkSubmitHook(
             conf=_config.conf,
@@ -61,13 +68,17 @@ class LocalSparkExecutionCtrl(SparkCtrl):
             env_vars=self._get_env_vars(),
             verbose=_config.verbose,
         )
+        if not AIRFLOW_ON:
+            # If there's no Airflow then there's no Connection so we
+            # take conn information from spark config
+            spark.set_connection(spark_local_config.conn_uri)
 
         log_buffer = StringIO()
         with log_buffer as lb:
             dbnd_log_handler = self._capture_submit_log(spark, lb)
             try:
                 spark.submit(application=application)
-            except AirflowException as ex:
+            except SparkException as ex:
                 return_code = self._get_spark_return_code_from_exception(ex)
                 if return_code != "0":
                     error_snippets = parse_spark_log_safe(
