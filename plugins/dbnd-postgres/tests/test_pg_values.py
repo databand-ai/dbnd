@@ -1,12 +1,8 @@
 import mock
 
-from dbnd_postgres.postgres_values import (
-    PostgresController,
-    PostgresTable,
-    PostgresTableValueType,
-)
+from dbnd_postgres.postgres_contreoller import PostgresController
+from dbnd_postgres.postgres_values import PostgresTable, PostgresTableValueType
 
-from dbnd._core.tracking.histograms import HistogramSpec
 from targets.value_meta import ValueMetaConf
 
 
@@ -66,8 +62,6 @@ class TestPostgresController:
                 information_schema_columns_data,
             ]
 
-            histogram_spec = HistogramSpec(columns=frozenset(["customer"]))
-
             expected_stats = {
                 "customer": {
                     "count": 10,
@@ -82,9 +76,8 @@ class TestPostgresController:
 
             # Act
             postgres = PostgresController("user@database", "data_table")
-            stats, histograms = postgres.get_histograms_and_stats(
-                histogram_spec=histogram_spec
-            )
+            meta_conf = ValueMetaConf.enabled()
+            stats, histograms = postgres.get_histograms_and_stats(meta_conf)
 
             # Assert
             assert stats == expected_stats

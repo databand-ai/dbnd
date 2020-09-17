@@ -4,19 +4,18 @@ import logging
 import re
 import typing
 
-from typing import Any, Dict, Optional, Union
-
 import six
 
 from dbnd._core.errors import friendly_error
-from dbnd._core.tracking.histograms import HistogramDataType, HistogramSpec
 from dbnd._core.utils.basics.load_python_module import run_user_func
 from dbnd._vendor import fast_hasher
-from targets.value_meta import ValueMeta, ValueMetaConf
+from targets.value_meta import ValueMeta
 
 
 if typing.TYPE_CHECKING:
+    from typing import Any, Dict, Optional, Union
     from targets.base_target import Target
+    from targets.value_meta import ValueMetaConf
 
 
 logger = logging.getLogger(__name__)
@@ -103,9 +102,6 @@ class ValueType(object):
 
     def _generate_empty_default(self):
         return None
-
-    def get_all_data_columns(self, x):  # type: (T) -> Dict[str, HistogramDataType]
-        return {}
 
     # dump
 
@@ -326,7 +322,6 @@ class ValueType(object):
             data_dimensions=None,
             data_schema=data_schema,
             data_hash=data_hash,
-            histogram_spec=meta_conf.get_histogram_spec(self, value),
         )
 
     def support_fast_count(self, target):

@@ -144,6 +144,14 @@ class TaskRunState(EnumWithAll):
         return {TaskRunState.FAILED, TaskRunState.CANCELLED}
 
     @staticmethod
+    def fail_states():
+        return {
+            TaskRunState.FAILED,
+            TaskRunState.CANCELLED,
+            TaskRunState.UPSTREAM_FAILED,
+        }
+
+    @staticmethod
     def states_lower_case():
         return [state.name.lower() for state in TaskRunState]
 

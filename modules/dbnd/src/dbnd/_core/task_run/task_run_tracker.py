@@ -155,11 +155,7 @@ class TaskRunTracker(TaskRunCtrl):
 
             if metrics["histograms"]:
                 self.tracking_store.log_histograms(
-                    task_run=self.task_run,
-                    key=key,
-                    histogram_spec=value_meta.histogram_spec,
-                    value_meta=value_meta,
-                    timestamp=ts,
+                    task_run=self.task_run, key=key, value_meta=value_meta, timestamp=ts
                 )
 
         except Exception as ex:

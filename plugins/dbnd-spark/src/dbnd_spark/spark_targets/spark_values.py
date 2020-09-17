@@ -5,16 +5,13 @@ import typing
 
 import pyspark.sql as spark
 
-from pyspark.sql.types import BooleanType, NumericType, StringType
-
-from dbnd._core.tracking.histograms import HistogramDataType
 from dbnd_spark.spark_targets.spark_histograms import SparkHistograms
-from targets.value_meta import ValueMeta, ValueMetaConf
+from targets.value_meta import ValueMeta
 from targets.values.builtins_values import DataValueType
 
 
 if typing.TYPE_CHECKING:
-    from typing import Dict
+    from targets.value_meta import ValueMetaConf
 
 logger = logging.getLogger(__name__)
 
@@ -37,21 +34,6 @@ class SparkDataFrameValueType(DataValueType):
             .to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
         )
 
-    @staticmethod
-    def __types_map(dataType):
-        if isinstance(dataType, BooleanType):
-            return HistogramDataType.boolean
-        elif isinstance(dataType, NumericType):
-            return HistogramDataType.numeric
-        elif isinstance(dataType, StringType):
-            return HistogramDataType.string
-        else:
-            return HistogramDataType.other
-
-    def get_all_data_columns(self, df):
-        # type: (spark.DataFrame) -> Dict[str, HistogramDataType]
-        return {f.name: self.__types_map(f.dataType) for f in df.schema.fields}
-
     def get_value_meta(self, value, meta_conf):
         # type: (spark.DataFrame, ValueMetaConf) -> ValueMeta
 
@@ -69,11 +51,6 @@ class SparkDataFrameValueType(DataValueType):
         else:
             data_preview = None
 
-        if meta_conf.log_stats:
-            data_schema["stats"] = self.to_preview(
-                value.summary(), meta_conf.get_preview_size()
-            )
-
         if meta_conf.log_size:
             data_schema = data_schema or {}
             rows = value.count()
@@ -87,14 +64,13 @@ class SparkDataFrameValueType(DataValueType):
         else:
             data_dimensions = None
 
-        if meta_conf.log_histograms:
-            histogram_spec = meta_conf.get_histogram_spec(self, value)
-            spark_histograms = SparkHistograms(histogram_spec)
-            df_stats, histogram_dict = spark_histograms.get_histograms(value)
-            hist_sys_metrics = spark_histograms.metrics
+        if meta_conf.log_histograms or meta_conf.log_stats:
+            spark_histograms = SparkHistograms(value, meta_conf)
+            df_stats, histogram_dict = spark_histograms.get_histograms_and_stats()
+            hist_sys_metrics = spark_histograms.system_metrics
         else:
             df_stats, histogram_dict = {}, {}
-            histogram_spec = hist_sys_metrics = None
+            hist_sys_metrics = None
 
         return ValueMeta(
             value_preview=data_preview,
@@ -102,7 +78,6 @@ class SparkDataFrameValueType(DataValueType):
             data_schema=data_schema,
             data_hash=self.to_signature(value),
             descriptive_stats=df_stats,
-            histogram_spec=histogram_spec,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histogram_dict,
         )

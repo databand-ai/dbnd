@@ -30,15 +30,15 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def check_if_completed_dfs(task):
-    completed_status = {}
+def check_if_completed_dfs(task, existing_completed_status=None):
+    completed_status = existing_completed_status or dict()
     task_id = task.task_id
-    if task_id in completed_status:
-        return
     completed_status[task_id] = completed = task._complete()
     if not completed:
         for c in task.ctrl.task_dag.upstream:
-            completed_status.update(check_if_completed_dfs(c))
+            if c.task_id in completed_status:
+                continue
+            completed_status.update(check_if_completed_dfs(c, completed_status))
     return completed_status
 
 

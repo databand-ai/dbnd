@@ -5,7 +5,6 @@ import logging
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 from pytest import fixture
 
-from dbnd._core.tracking.histograms import HistogramRequest
 from dbnd_spark.spark_targets import SparkDataFrameValueType
 from targets.value_meta import ValueMetaConf
 
@@ -17,7 +16,6 @@ class TestHistograms:
     @fixture
     def meta_conf(self):
         conf = ValueMetaConf.enabled()
-        conf.log_histograms = HistogramRequest.ALL()
         return conf
 
     @fixture
@@ -162,7 +160,6 @@ class TestHistograms:
         nulls = [(None,) for _ in range(20)]
         schema = StructType([StructField(column_name, IntegerType(), True)])
         null_df = spark_session.createDataFrame(nulls, schema=schema)
-        meta_conf.log_histograms = HistogramRequest.ALL()
         value_meta = SparkDataFrameValueType().get_value_meta(null_df, meta_conf)
 
         assert value_meta.histograms == {}

@@ -1,7 +1,6 @@
 import luigi
 
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
-from dbnd._core.tracking.histograms import HistogramRequest
 
 
 def handle_postgres_histogram_logging(luigi_task):
@@ -23,7 +22,7 @@ def handle_postgres_histogram_logging(luigi_task):
             postgres_target.port,
             postgres_target.database,
         ),
-        with_histograms=HistogramRequest.DEFAULT(),
+        with_histograms=True,
     )
 
 

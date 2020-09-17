@@ -6,9 +6,8 @@ import pandas as pd
 
 from pytest import fixture
 
-from dbnd._core.tracking.histograms import HistogramSpec
 from targets.value_meta import ValueMetaConf
-from targets.values.pandas_values import DataFrameValueType
+from targets.values.pandas_histograms import PandasHistograms
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ class TestHistograms:
     def test_boolean_histogram(self, meta_conf):
         d = {"boolean_column": [True] * 10 + [None] * 10 + [False] * 20 + [True] * 20}
         df = pd.DataFrame(d)
-        stats, histograms = DataFrameValueType().get_histograms(df, meta_conf)
+        stats, histograms = PandasHistograms(df, meta_conf).get_histograms_and_stats()
 
         histogram = histograms["boolean_column"]
         assert histogram[0] == [30, 20]
@@ -34,12 +33,12 @@ class TestHistograms:
         assert stats["null-count"] == 10
         assert stats["distinct"] == 3
 
-    def test_numerical_histogram(self, meta_conf):
-        d = {"numerical_column": [1, 3, 3, 1, 5, 1, 5, 5]}
+    def test_numeric_histogram(self, meta_conf):
+        d = {"numeric_column": [1, 3, 3, 1, 5, 1, 5, 5]}
         df = pd.DataFrame(d)
-        stats, histograms = DataFrameValueType().get_histograms(df, meta_conf)
+        stats, histograms = PandasHistograms(df, meta_conf).get_histograms_and_stats()
 
-        stats = stats["numerical_column"]
+        stats = stats["numeric_column"]
         assert stats["count"] == 8
         assert stats["non-null"] == 8
         assert stats["distinct"] == 3
@@ -55,7 +54,7 @@ class TestHistograms:
             + ["Ola Mundo!"] * 15
         }
         df = pd.DataFrame(d)
-        stats, histograms = DataFrameValueType().get_histograms(df, meta_conf)
+        stats, histograms = PandasHistograms(df, meta_conf).get_histograms_and_stats()
 
         histogram = histograms["string_column"]
         assert histogram[0] == [30, 20, 10]
@@ -76,7 +75,7 @@ class TestHistograms:
 
         d = {"string_column": values}
         df = pd.DataFrame(d)
-        stats, histograms = DataFrameValueType().get_histograms(df, meta_conf)
+        stats, histograms = PandasHistograms(df, meta_conf).get_histograms_and_stats()
 
         histogram = histograms["string_column"]
         assert len(histogram[0]) == 50 and len(histogram[1]) == 50

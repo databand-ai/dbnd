@@ -589,21 +589,45 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         return executed_run_dates
 
     def _update_databand_task_run_states(self, run):
-        # we are going to update UPSTREAM_FAILED only
+        """
+        Sync states between DBND and Airflow
+        we need to sync state into Tracker,
+        if we use "remote" executors (parallel/k8s) we need to copy state into
+        current process (scheduler)
+        """
+
         # this is the only state we want to propogate into Databand
         # all other state changes are managed by databand itself by it's own state machine
         dr = get_databand_run()
 
         task_runs = []
+
+        # sync all states
         for ti in run.get_task_instances():
-            if ti.state != State.UPSTREAM_FAILED:
-                continue
             task_run = dr.get_task_run_by_af_id(ti.task_id)  # type: TaskRun
             if not task_run:
                 continue
-            if task_run.task_run_state != State.UPSTREAM_FAILED:
+
+            # UPSTREAM FAILED tasks are not going to "run" , so no code will update their state
+            if (
+                ti.state == State.UPSTREAM_FAILED
+                and task_run.task_run_state != TaskRunState.UPSTREAM_FAILED
+            ):
                 task_run.set_task_run_state(TaskRunState.UPSTREAM_FAILED, track=False)
                 task_runs.append(task_run)
+            # update only in memory state
+            if (
+                ti.state == State.SUCCESS
+                and task_run.task_run_state != TaskRunState.SUCCESS
+            ):
+                task_run.set_task_run_state(TaskRunState.SUCCESS, track=False)
+            if (
+                ti.state == State.FAILED
+                and task_run.task_run_state != TaskRunState.FAILED
+            ):
+                task_run.set_task_run_state(TaskRunState.FAILED, track=False)
+
+        # optimization to write all updates in batch
         if task_runs:
             dr.tracker.set_task_run_states(task_runs)
 

@@ -31,6 +31,5 @@ class TestValueType(object):
             data_dimensions=None,
             data_schema={"type": "str"},
             data_hash=fast_hasher.hash("foo"),
-            histogram_spec=str_value_meta.histogram_spec,
         )
         assert str_value_meta == expected_value_meta

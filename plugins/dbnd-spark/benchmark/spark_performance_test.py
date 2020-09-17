@@ -11,7 +11,6 @@ from pyspark.sql import SparkSession
 import dbnd
 
 from dbnd import log_dataframe, task
-from dbnd._core.tracking.histograms import HistogramRequest
 from dbnd._core.utils.git import get_git_commit
 
 
@@ -28,12 +27,6 @@ def create_test_report(input_file, app_name, execution_time):
         writer.writerow(["execution_time", execution_time])
         writer.writerow(["databand_commit", get_git_commit(dbnd.__file__)])
         writer.writerow(["datetime", current_datetime])
-
-
-def get_approx_distinct_histogram_request():
-    request = HistogramRequest.ALL()
-    request.approx_distinct_count = True
-    return request
 
 
 @task
@@ -54,12 +47,7 @@ def histogram_test(input_file, app_name, stats):
             return
 
         start_time = time.time()
-        if stats:
-            log_dataframe("df", df, with_histograms=HistogramRequest.ALL())
-        else:
-            log_dataframe("df", df, with_histograms=True)
-
-        # log_dataframe("df", df, with_histograms=get_approx_distinct_histogram_request())
+        log_dataframe("df", df, with_histograms=True, with_stats=stats)
         execution_time = time.time() - start_time
     finally:
         spark.stop()
