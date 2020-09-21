@@ -4,8 +4,9 @@ from typing import Dict
 
 import luigi
 
-from dbnd import parameter
 from dbnd_luigi import luigi_parameters
+
+from dbnd import parameter
 
 
 logger = logging.getLogger(__name__)

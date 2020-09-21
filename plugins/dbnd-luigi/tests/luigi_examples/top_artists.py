@@ -28,15 +28,13 @@ import luigi.contrib.hdfs
 import luigi.contrib.postgres
 import luigi.contrib.spark
 
-from dbnd import log_metric
+from dbnd import dbnd_config, log_metric
+from dbnd._core.settings import CoreConfig
 from dbnd._vendor.namesgenerator import get_random_name
 
 
 class LuigiTestException(Exception):
     pass
-
-from dbnd import dbnd_config, log_metric
-from dbnd._core.settings import CoreConfig
 
 
 logger = logging.getLogger("user_log")

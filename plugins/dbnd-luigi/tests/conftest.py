@@ -5,7 +5,6 @@ import luigi
 import pytest
 
 from luigi.date_interval import Custom
-
 from tests.luigi_examples.complex_foo import Foo as ComplexFoo
 from tests.luigi_examples.foo import Foo as SimpleFoo
 from tests.luigi_examples.multiple_input_output import (

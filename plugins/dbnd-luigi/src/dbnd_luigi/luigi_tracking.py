@@ -6,10 +6,9 @@ import luigi
 import luigi.scheduler
 import luigi.worker
 
-from luigi.interface import _WorkerSchedulerFactory
-
 from dbnd_luigi.luigi_handlers import LuigiEventsHandler
 from dbnd_luigi.luigi_run_manager import LuigiRunManager
+from luigi.interface import _WorkerSchedulerFactory
 
 
 logger = logging.getLogger(__name__)

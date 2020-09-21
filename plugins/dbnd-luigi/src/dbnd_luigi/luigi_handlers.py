@@ -1,11 +1,12 @@
 import logging
 
-from dbnd._core.constants import TaskRunState
 from dbnd_luigi.luigi_postgres import (
     handle_postgres_histogram_logging,
     should_log_pg_histogram,
 )
 from dbnd_luigi.luigi_run_manager import LuigiRunManager
+
+from dbnd._core.constants import TaskRunState
 
 
 logger = logging.getLogger(__name__)

@@ -1,12 +1,12 @@
 import logging
 
+from dbnd_luigi.luigi_task import wrap_luigi_task
 from more_itertools import first
 
 from dbnd._core.constants import DescribeFormat, RunState, TaskRunState
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.run.describe_run import print_tasks_tree
-from dbnd_luigi.luigi_task import wrap_luigi_task
 
 
 logger = logging.getLogger(__name__)
