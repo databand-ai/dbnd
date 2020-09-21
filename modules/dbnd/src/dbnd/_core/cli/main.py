@@ -31,6 +31,8 @@ from dbnd._core.plugin.dbnd_plugins_mng import register_dbnd_plugins
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
+from dbnd.cli.cmd_alerts import alerts
+from dbnd.cli.cmd_scheduler_management import schedule
 
 
 logger = logging.getLogger(__name__)
@@ -66,6 +68,10 @@ cli.add_command(tracker)
 
 # heartbeat sender
 cli.add_command(send_heartbeat)
+
+# clients for the web-api
+cli.add_command(alerts)
+cli.add_command(schedule)
 
 
 @dbnd_handle_errors(exit_on_error=False)

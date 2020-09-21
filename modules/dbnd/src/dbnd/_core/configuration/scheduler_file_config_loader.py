@@ -29,7 +29,6 @@ class InvalidConfigException(Exception):
 
 DeltaResult = namedtuple("DeltaResult", "to_create to_update to_enable to_disable")
 
-
 # this horrible hack is because otherwise the yaml loader will decide to be "helpful" and convert anything that looks like a datetime
 # to a datetime object. This later collides with marshmallow trying to parse and validate what it expects to be a datetime strings
 NoDatesSafeLoader = yaml.SafeLoader
@@ -79,7 +78,7 @@ class SchedulerFileConfigLoader(object):
 
         from_db = [
             s["DbndScheduledJob"]
-            for s in get_scheduled_jobs(from_file_only=True, include_deleted=True)
+            for s in get_scheduled_jobs(from_file_only=True, include_deleted=None)
         ]
         return self.delta(from_db, from_file, file_modified_time)
 

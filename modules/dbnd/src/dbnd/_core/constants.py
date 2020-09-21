@@ -269,3 +269,14 @@ class MetricSource(object):
     @classmethod
     def default_sources_str(cls):
         return ",".join(cls.default_sources())
+
+
+class AlertSeverity(object):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+    @classmethod
+    def values(cls):
+        return [cls.CRITICAL, cls.HIGH, cls.MEDIUM, cls.LOW]
