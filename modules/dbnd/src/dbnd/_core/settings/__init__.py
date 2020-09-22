@@ -9,6 +9,7 @@ from dbnd._core.settings.core import (
     DatabandSystemConfig,
     DynamicTaskConfig,
     FeaturesConfig,
+    TrackingConfig,
 )
 from dbnd._core.settings.describe import DescribeConfig
 from dbnd._core.settings.engine import EngineConfig
@@ -34,6 +35,7 @@ class DatabandSettings(object):
 
         self.core = CoreConfig()
         self.features = FeaturesConfig()  # type: FeaturesConfig
+        self.tracking = TrackingConfig()  # type: TrackingConfig
         self.dynamic_task = DynamicTaskConfig()
 
         self.run = RunConfig()

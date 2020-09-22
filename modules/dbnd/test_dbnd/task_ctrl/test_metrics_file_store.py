@@ -22,7 +22,7 @@ class TestFileMetricsStore(object):
         task_run.meta_files = TaskRunMetaFiles(metrics_folder)
         t = FileTrackingStore()
         tr_tracker = TaskRunTracker(task_run=task_run, tracking_store=t)
-        tr_tracker.settings.features.get_value_meta_conf = Mock(
+        tr_tracker.settings.tracking.get_value_meta_conf = Mock(
             return_value=ValueMetaConf.enabled()
         )
         tr_tracker.log_metric("a", 1)
@@ -49,7 +49,7 @@ class TestFileMetricsStore(object):
         task_run.meta_files = TaskRunMetaFiles(metrics_folder)
         t = FileTrackingStore()
         tr_tracker = TaskRunTracker(task_run=task_run, tracking_store=t)
-        tr_tracker.settings.features.get_value_meta_conf = Mock(
+        tr_tracker.settings.tracking.get_value_meta_conf = Mock(
             return_value=ValueMetaConf.enabled()
         )
         tr_tracker.log_data(

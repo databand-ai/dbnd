@@ -3,8 +3,9 @@ import os
 
 from functools import partial
 
+from dbnd._core.errors import DatabandError
 from dbnd_airflow.tracking.conf_operations import fix_keys, flat_conf
-from dbnd_airflow.tracking.config import TrackingConfig
+from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_airflow_conf
 from dbnd_airflow.utils import logger
 
@@ -100,23 +101,30 @@ def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
 logger = logging.getLogger(__name__)
 
 
-def get_local_spark_java_agent_conf():
-    config = TrackingConfig()
-    agent_jar = config.local_dbnd_java_agent
+def get_spark_submit_java_agent_conf():
+    config = AirflowTrackingConfig()
+    agent_jar = config.spark_submit_dbnd_java_agent
+    if agent_jar is None:
+        logger.warning("You are not using the dbnd java agent")
+        return
     logger.debug("found agent_jar %s", agent_jar)
-    if agent_jar is None or not os.path.exists(agent_jar):
-        logger.warning("The wanted agents jar doesn't exists: %s", agent_jar)
+    if not os.path.exists(agent_jar):
+        logger.warning(
+            "The wanted dbnd java agent is not found: {agent_path}".format(
+                agent_path=agent_jar
+            )
+        )
         return
 
     return create_spark_java_agent_conf(agent_jar)
 
 
 def get_databricks_java_agent_conf():
-    config = TrackingConfig()
+    config = AirflowTrackingConfig()
     agent_jar = config.databricks_dbnd_java_agent
     logger.debug("found agent_jar %s", agent_jar)
     if agent_jar is None:
-        logger.warning("No agent jar found")
+        logger.warning("You are not using the dbnd java agent")
         return
 
     return create_spark_java_agent_conf(agent_jar)

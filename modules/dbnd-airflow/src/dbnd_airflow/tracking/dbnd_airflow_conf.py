@@ -1,4 +1,4 @@
-from dbnd._core.settings import CoreConfig
+from dbnd._core.settings import CoreConfig, TrackingConfig
 
 
 def get_airflow_conf(
@@ -30,6 +30,9 @@ def get_airflow_conf(
 
 def _get_databand_url():
     try:
-        return CoreConfig().databand_external_url
+        external = TrackingConfig().databand_external_url
+        if external:
+            return external
+        return CoreConfig().databand_url
     except Exception:
         pass
