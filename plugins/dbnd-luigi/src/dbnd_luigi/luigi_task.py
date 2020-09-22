@@ -5,14 +5,13 @@ from typing import Type
 
 import luigi
 
-from dbnd_luigi.luigi_params import extract_luigi_params
-from dbnd_luigi.luigi_target import extract_targets
-
 from dbnd import Task, parameter
 from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
 from dbnd._core.errors import TaskClassNotFoundException
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
+from dbnd_luigi.luigi_params import extract_luigi_params
+from dbnd_luigi.luigi_target import extract_targets
 
 
 logger = logging.getLogger(__name__)
