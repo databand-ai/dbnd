@@ -69,11 +69,6 @@ class CoreConfig(Config):
         description="Tracker URL to be used for creating links in console logs",
     )[str]
 
-    databand_external_url = parameter(
-        default=None,
-        description="Tracker URL to be used for tracking from external systems",
-    )[str]
-
     # Backward compatibility
     tracker_url = parameter(
         default=None,
@@ -155,8 +150,6 @@ class CoreConfig(Config):
                 "it should not contain '/' at the end, auto-fix has been applied."
             )
             self.databand_url = self.databand_url[:-1]
-        if not self.databand_external_url:
-            self.databand_external_url = self.databand_url
 
         # automatically disabling tracking if databand_url is not set
         if not self.databand_url:
@@ -209,6 +202,15 @@ class FeaturesConfig(Config):
     in_memory_cache_target_value = parameter(
         default=True, description="Cache targets values in memory during execution"
     )[bool]
+
+
+class TrackingConfig(Config):
+    _conf__task_family = "tacking"
+
+    databand_external_url = parameter(
+        default=None,
+        description="Tracker URL to be used for tracking from external systems",
+    )[str]
 
     log_value_size = parameter(
         default=True,

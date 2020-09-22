@@ -12,7 +12,7 @@ from dbnd_airflow.tracking.dbnd_spark_conf import (
     dbnd_wrap_spark_environment,
     get_databricks_java_agent_conf,
     get_dbnd_tracking_spark_conf_dict,
-    get_local_spark_java_agent_conf,
+    get_spark_submit_java_agent_conf,
     spark_submit_with_dbnd_tracking,
 )
 
@@ -61,7 +61,7 @@ def track_spark_submit_operator(operator):
     operator._env_vars.update(dbnd_env_vars)
 
     if has_java_application(operator):
-        agent_conf = get_local_spark_java_agent_conf()
+        agent_conf = get_spark_submit_java_agent_conf()
         if agent_conf is not None:
             operator._conf.update(agent_conf)
 
