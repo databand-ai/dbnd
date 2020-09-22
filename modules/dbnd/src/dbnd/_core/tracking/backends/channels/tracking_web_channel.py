@@ -1,9 +1,10 @@
 from dbnd._core.current import get_databand_context
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
+from dbnd._core.tracking.backends.channels.marshmallow_mixin import MarshmallowMixin
 from dbnd._core.utils.basics.memoized import cached
 
 
-class TrackingWebChannel(TrackingChannel):
+class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
     """Json API client implementation."""
 
     @property

@@ -1,6 +1,20 @@
 import setuptools
 
 
+# A list of vendored packages
+dbnd_vendors_list = [
+    "cachetools",
+    "hjson",
+    "cloudpickle",
+    "pendulum==1.4.4",
+    "tabulate",
+    "marshmallow==2.18.0",
+    "croniter>=0.3.30,<0.4",
+    "protobuf==3.13.0",
+    "psutil>=4.2.0,<5.7.0",  # extracted use to vendorized_psutil.py
+]
+
+
 setuptools.setup(
     name="dbnd",
     package_dir={"": "src"},
@@ -8,18 +22,12 @@ setuptools.setup(
         "tzlocal>=1.0.0,<2.0.0",
         "six",
         "more_itertools",
-        # "cachetools", -- Moved library to _vendor
         "attrs",
-        # "hjson", -- Moved library to _vendor
         "pyyaml",  # yaml support in targets
         "pytz",  # python time zone for pendulum library
         "pytzdata",  # python time zone for pendulum library
-        # "cloudpickle",  # serializing pipelines -- Moved library to _vendor
         "requests>=2.18.0",  # API TRACKING
-        # "pendulum==1.4.4", -- Moved library to _vendor
         "configparser<3.6.0,>=3.5.0",  # same versions as Airflow -- Moved library to _vendor
-        # "tabulate", -- Moved library to _vendor
-        # "marshmallow==2.18.0", -- Moved library to _vendor
         "jinja2>=2.10.1, <2.11.0",  # same versions as Airflow
         "gitpython",
         "pygments",
@@ -30,8 +38,6 @@ setuptools.setup(
         "enum34;python_version<='2.7'",
         'contextlib2; python_version < "3"',
         "python-dateutil",
-        # "croniter>=0.3.30,<0.4", -- Moved library to _vendor
-        # "psutil>=4.2.0,<5.7.0", -- Extracted use to vendorized_psutil.py
     ],
     extras_require={
         ':sys_platform=="win32"': ["colorama"],

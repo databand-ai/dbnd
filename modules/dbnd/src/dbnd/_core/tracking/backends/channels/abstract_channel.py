@@ -63,3 +63,6 @@ class TrackingChannel(object):
 
     def is_ready(self):
         return self._handle(TrackingChannel.is_ready.__name__, None)
+
+    def get_schema_by_handler_name(self, handler_name):
+        raise NotImplementedError()

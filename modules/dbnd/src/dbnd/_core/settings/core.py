@@ -68,6 +68,10 @@ class CoreConfig(Config):
         default=None,
         description="Tracker URL to be used for creating links in console logs",
     )[str]
+    databand_personal_access_token = parameter(
+        description="Personall access token to connect to the dbnd web server",
+        default=None,
+    )[str]
 
     # Backward compatibility
     tracker_url = parameter(

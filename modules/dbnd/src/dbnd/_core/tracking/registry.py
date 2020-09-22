@@ -15,12 +15,6 @@ from dbnd._core.tracking.backends import (
     TrackingStore,
     TrackingStoreThroughChannel,
 )
-from dbnd._core.tracking.backends.channels import (
-    ConsoleDebugTrackingChannel,
-    DisabledTrackingChannel,
-    TrackingChannel,
-    TrackingWebChannel,
-)
 
 
 logger = logging.getLogger(__name__)
@@ -29,11 +23,10 @@ logger = logging.getLogger(__name__)
 _BACKENDS_REGISTRY = {
     "file": FileTrackingStore,
     "console": ConsoleStore,
-    "debug": lambda: TrackingStoreThroughChannel(channel=ConsoleDebugTrackingChannel()),
-    ("api", "web"): lambda: TrackingStoreThroughChannel(channel=TrackingWebChannel()),
-    ("api", "disabled"): lambda: TrackingStoreThroughChannel(
-        channel=DisabledTrackingChannel()
-    ),
+    "debug": TrackingStoreThroughChannel.build_with_console_debug_channel,
+    ("api", "web"): TrackingStoreThroughChannel.build_with_web_channel,
+    ("api", "proto"): TrackingStoreThroughChannel.build_with_proto_web_channel,
+    ("api", "disabled"): TrackingStoreThroughChannel.build_with_disabled_channel,
 }
 
 
