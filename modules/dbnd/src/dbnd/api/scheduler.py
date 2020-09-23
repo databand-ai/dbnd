@@ -95,6 +95,10 @@ def get_scheduled_job_by_name(job_name):
         return None
 
 
+def is_scheduled_job_exists(job_name):
+    return bool(get_scheduled_job_by_name(job_name))
+
+
 build_scheduled_job_filter = create_filters_builder(
     job_name=("name", "eq"),
     name_pattern=("name", "like"),

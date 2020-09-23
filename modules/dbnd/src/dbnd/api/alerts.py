@@ -1,25 +1,45 @@
 import logging
 
 from dbnd._core.current import get_databand_context
+from dbnd.api.jobs import is_job_exists
 from dbnd.api.query_params import build_query_api_params, create_filters_builder
-from dbnd.api.scheduler import get_scheduled_job_by_name
+from dbnd.api.scheduler import is_scheduled_job_exists
 from dbnd.api.shared_schemas.alerts_def_schema import AlertDefsSchema
 
 
 logger = logging.getLogger(__name__)
 
 
-def _build_alert(alert_class, scheduled_job, severity, operator, value, label):
+def not_none_dict(d):
+    return {key: value for key, value in d.items() if value is not None}
+
+
+def _build_alert(
+    job_name, task_name, alert_class, severity, operator, value, user_metric
+):
     """build alert for scheduled job"""
 
-    return {
-        "type": alert_class,
-        "scheduled_job_uid": scheduled_job["uid"],
-        "operator": operator,
-        "value": str(value),
-        "severity": severity,
-        "user_metric": label,
-    }
+    return not_none_dict(
+        {
+            "type": alert_class,
+            "job_name": job_name,
+            "task_name": task_name,
+            "operator": operator,
+            "value": str(value),
+            "severity": severity,
+            "user_metric": user_metric,
+        }
+    )
+
+
+def run_if_job_exists(func):
+    def inner(job_name, *args, **kwargs):
+        if is_job_exists(job_name) or is_scheduled_job_exists(job_name):
+            return func(job_name, *args, **kwargs)
+        else:
+            raise LookupError("Job named '%s' is not found" % job_name)
+
+    return inner
 
 
 def _post_alert(client, alert):
@@ -27,17 +47,34 @@ def _post_alert(client, alert):
     return alert_uid
 
 
-def upsert_alert(alert_class, scheduled_job_name, severity, operator, value, label):
-    """add/edit alert for existing scheduled job"""
-    scheduled_job = get_scheduled_job_by_name(scheduled_job_name)
-    if scheduled_job:
-        alert = _build_alert(
-            alert_class, scheduled_job, severity, operator, value, label
-        )
-        alert_def_uid = _post_alert(get_databand_context().databand_api_client, alert)
-        logger.info("Created/updated alert %s", alert_def_uid["uid"])
+def create_alert(
+    job_name, task_name, alert_class, severity, operator, value, user_metric
+):
+    """add alert for existing job or scheduled job"""
+    alert = _build_alert(
+        job_name, task_name, alert_class, severity, operator, value, user_metric
+    )
+    alert_def_uid = _post_alert(get_databand_context().databand_api_client, alert)
+    return alert_def_uid
+
+
+@run_if_job_exists
+def delete_alerts_filtered(job_name, alert):
+    alerts = get_alerts_filtered(job_name=job_name, alert_type=alert)
+    if alerts:
+        uids = [alert["uid"] for alert in alerts]
+        delete_alerts(uids)
     else:
-        logger.error("scheduled job with name '%s' not found" % scheduled_job_name)
+        raise LookupError(
+            "Alert {alert} is not configured for scheduled job {job_name}".format(
+                alert=alert, job_name=job_name
+            )
+        )
+
+
+@run_if_job_exists
+def list_job_alerts(job_name):
+    return get_alerts_filtered(job_name=job_name)
 
 
 def _get_alerts(client, query_api_args):
@@ -67,7 +104,3 @@ def delete_alerts(uids):
     get_databand_context().databand_api_client.api_request(
         endpoint="alert_defs/delete", data=uids, method="POST"
     )
-
-
-if __name__ == "__main__":
-    print(get_alerts_filtered(scheduled_job_uid="41f2b236-f696-11ea-b2cb-acde48001122"))

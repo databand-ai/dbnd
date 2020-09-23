@@ -12,7 +12,7 @@ def get_job_by_name(job_name):
     return first(job_result, None)
 
 
-def is_job_exits(job_name):
+def is_job_exists(job_name):
     return bool(get_job_by_name(job_name))
 
 
