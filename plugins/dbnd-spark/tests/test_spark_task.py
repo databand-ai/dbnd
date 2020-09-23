@@ -1,7 +1,4 @@
-import os
-
-from unittest import mock
-
+import mock
 import pytest
 
 from dbnd import config, parameter
