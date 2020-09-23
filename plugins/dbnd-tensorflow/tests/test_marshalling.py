@@ -1,7 +1,6 @@
 import os
 import tempfile
 
-import numpy as np
 import pytest
 import tensorflow as tf
 
@@ -93,7 +92,9 @@ class TestTensorflowMarshalling:
     @pytest.fixture(autouse=True)
     def temp_target(self):
         tempdir = tempfile.gettempdir()
-        return target(os.path.join(tempdir, "tf_object.tfmodel"))
+        target_path = os.path.join(tempdir, "tf_object.tfmodel")
+        yield target(target_path)
+        os.system("rm -rf {0}".format(target_path))
 
     @pytest.fixture(autouse=True)
     def history(self, model):
@@ -124,9 +125,13 @@ class TestTensorflowMarshalling:
         assert len(loaded_model.variables) == len(model.variables)
         assert len(loaded_model.layers) == len(model.layers)
 
-    @pytest.mark.importorskip("dbnd_aws")
     def test_model_marshalling_target_to_value_remote_target(self, model):
+        pytest.importorskip("dbnd_aws")
         model_marshaller = TensorflowKerasModelMarshaller()
+        from targets.fs import FileSystems, register_file_system
+        from dbnd_aws.fs import build_s3_fs_client
+
+        register_file_system(FileSystems.s3, build_s3_fs_client)
         t = target("s3://path_to/my_bucket")
         with pytest.raises(DatabandRuntimeError):
             model_marshaller.target_to_value(t)
