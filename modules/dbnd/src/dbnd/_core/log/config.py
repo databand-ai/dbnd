@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from logging.config import dictConfig
 from typing import Optional
 
+from dbnd._core.configuration.dbnd_config import config as dbnd_config
 from dbnd._core.log.logging_utils import setup_log_file
 
 
@@ -16,9 +17,6 @@ logger = logging.getLogger(__name__)
 FORMAT_FULL = "[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s"
 FORMAT_SIMPLE = "%(asctime)s %(levelname)s - %(message)s"
 FORMAT_COLORLOG = "[%(asctime)s] %(log_color)s%(levelname)s %(reset)s - %(message)s"
-
-ENV_SENTRY_URL = "DBND__LOG__SENTRY_URL"
-ENV_SENTRY_ENV = "DBND__LOG__SENTRY_ENV"
 
 
 def basic_logging_config(
@@ -61,9 +59,9 @@ def basic_logging_config(
         }
         config["root"]["handlers"].append("file")
 
-    sentry_url = os.environ.get(ENV_SENTRY_URL)
+    sentry_url = dbnd_config.get("log", "sentry_url")
     if sentry_url:
-        sentry_env = os.environ.get(ENV_SENTRY_ENV) or "dev"
+        sentry_env = dbnd_config.get("log", "sentry_env", default="dev")
 
         config["handlers"]["sentry"] = get_sentry_logging_config(
             sentry_url=sentry_url, sentry_env=sentry_env
