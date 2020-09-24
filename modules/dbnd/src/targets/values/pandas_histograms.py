@@ -37,7 +37,7 @@ class PandasHistograms(object):
                 self.df, self.meta_conf.log_histograms
             )
             df_histograms = self.df.filter(hist_column_names)
-            histograms = df_histograms.apply(self._calculate_histograms)
+            histograms = df_histograms.apply(self._calculate_histograms, args=(stats,))
             histograms = histograms.to_dict()
 
         return stats, histograms
@@ -71,9 +71,10 @@ class PandasHistograms(object):
         stats = self._remove_none_values(stats)
         for col in stats.keys():
             stats[col]["null-count"] = np.count_nonzero(pd.isnull(df[col]))
-            stats[col]["non-null"] = df[col].size - stats[col]["null-count"]
+            stats[col]["count"] = df[col].size
+            stats[col]["non-null"] = stats[col]["count"] - stats[col]["null-count"]
             stats[col]["distinct"] = len(df[col].unique())
-            stats[col]["type"] = df[col].dtype.name
+            stats[col]["type"] = self._get_column_type(df[col])
         return stats
 
     def _remove_none_values(self, input_dict):
@@ -85,15 +86,32 @@ class PandasHistograms(object):
                 self._remove_none_values(value)
         return input_dict
 
-    def _calculate_histograms(self, df_column):
-        # type: (pd.Series) -> Optional[Tuple[List, List]]
+    def _get_column_type(self, column):
+        # type: (pd.Series) -> str
+        first_index = column.first_valid_index()
+        if first_index is None:
+            return column.dtype.name
+        first_value = column[first_index]
+        return type(first_value).__name__
+
+    def _calculate_histograms(self, df_column, stats):
+        # type: (pd.Series, Dict) -> Optional[Tuple[List, List]]
         try:
             if len(df_column) == 0:
                 return
 
-            column_type = type(df_column[0])
+            column_type = self._get_column_type(df_column)
             if is_bool_dtype(column_type) or is_string_dtype(column_type):
                 counts = df_column.value_counts()  # type: pd.Series
+                if (
+                    stats
+                    and df_column.name in stats
+                    and "null-count" in stats[df_column.name]
+                ):
+                    null_count = stats[df_column.name]["null-count"]
+                    null_column = pd.Series([null_count], index=[None])
+                    counts = counts.append(null_column)
+                    counts = counts.sort_values(ascending=False)
                 if len(counts) > 50:
                     counts, tail = counts[:49], counts[49:]
                     tail_sum = pd.Series([tail.sum()], index=["_others"])

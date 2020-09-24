@@ -9,9 +9,7 @@ from targets.values.pandas_values import DataFrameValueType
 
 
 class TestDataFrameValueType(object):
-    def test_df_value_meta(
-        self, pandas_data_frame, pandas_data_frame_histograms, pandas_data_frame_stats
-    ):
+    def test_df_value_meta(self, pandas_data_frame):
         expected_data_schema = {
             "type": DataFrameValueType.type_str,
             "columns": list(pandas_data_frame.columns),
@@ -32,8 +30,6 @@ class TestDataFrameValueType(object):
             data_hash=fast_hasher.hash(
                 hash_pandas_object(pandas_data_frame, index=True).values
             ),
-            descriptive_stats=pandas_data_frame_stats,
-            histograms=pandas_data_frame_histograms,
         )
 
         df_value_meta = DataFrameValueType().get_value_meta(
@@ -46,22 +42,8 @@ class TestDataFrameValueType(object):
             expected_value_meta.data_schema
         )
         assert df_value_meta.data_dimensions == expected_value_meta.data_dimensions
-
-        std = df_value_meta.descriptive_stats["Births"].pop("std")
-        expected_std = expected_value_meta.descriptive_stats["Births"].pop("std")
-        assert round(std, 2) == expected_std
-        df_value_meta.descriptive_stats["Names"].pop("top")
-        assert df_value_meta.descriptive_stats == expected_value_meta.descriptive_stats
-
-        counts, values = df_value_meta.histograms.pop("Names")
-        expected_counts, expected_values = expected_value_meta.histograms.pop("Names")
-        assert counts == expected_counts
-        assert set(values) == set(expected_values)  # order changes in each run
-        # histograms are tested in histogram tests and they change a lot, no need to test also here
-        df_value_meta.histograms = expected_value_meta.histograms = None
-
-        expected_value_meta.histogram_system_metrics = (
-            df_value_meta.histogram_system_metrics
-        )
         assert df_value_meta.data_schema == expected_value_meta.data_schema
-        assert attr.asdict(df_value_meta) == attr.asdict(expected_value_meta)
+
+        # histograms and stats are tested in histogram tests and they change a lot, no need to test also here
+        assert set(df_value_meta.descriptive_stats.keys()) == {"Names", "Births"}
+        assert set(df_value_meta.histograms.keys()) == {"Names", "Births"}
