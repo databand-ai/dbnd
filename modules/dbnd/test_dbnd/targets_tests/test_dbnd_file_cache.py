@@ -7,9 +7,9 @@ from tempfile import NamedTemporaryFile
 import mock
 import pytest
 
-from backports.tempfile import TemporaryDirectory
 from mock import MagicMock
 
+from dbnd._vendor.backports_tempfile.tempfile import TemporaryDirectory
 from targets import DbndFileCache
 
 

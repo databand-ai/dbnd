@@ -39,7 +39,6 @@ setuptools.setup(
             "pandas==0.24.2",
             "numpy",
             "coverage",
-            "backports.tempfile==1.0",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov==2.9.0",
             "pluggy==0.11.0",  # 0.12 has import_metadata, fails on py2
