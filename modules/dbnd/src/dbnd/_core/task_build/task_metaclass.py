@@ -1,5 +1,6 @@
 import abc
 import logging
+import typing
 
 import six
 
@@ -12,8 +13,12 @@ from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     is_in_airflow_dag_build_context,
 )
 from dbnd._core.task_build.task_definition import TaskDefinition
-from dbnd._core.task_build.task_factory import TaskFactory
+from dbnd._core.task_build.task_factory import TaskFactory, TrackedTaskFactory
 from dbnd._core.task_build.task_registry import get_task_registry
+
+
+if typing.TYPE_CHECKING:
+    from dbnd._core.task.base_task import _BaseTask
 
 
 logger = logging.getLogger(__name__)
@@ -33,19 +38,23 @@ class TaskMetaclass(abc.ABCMeta):
         When the set or inherited namespace evaluates to ``None``, set the task namespace to
         whatever the currently declared namespace is.
         """
-        cls = super(TaskMetaclass, mcs).__new__(mcs, classname, bases, classdict)
+        cls = super(TaskMetaclass, mcs).__new__(
+            mcs, classname, bases, classdict
+        )  # type: typing.Type[_BaseTask]
 
         # we are starting from "not clean" classdict -> it's deserialization
         if classdict.get("task_definition") is not None:
             return cls
 
         r = get_task_registry()
-        cls.task_definition = TaskDefinition(
+
+        td = cls.task_definition = TaskDefinition(
             cls, classdict, namespace_at_class_time=r.get_namespace(cls.__module__)
-        )
+        )  # type: TaskDefinition
 
         # now we will assign all params
-        for k, v in six.iteritems(cls.task_definition.task_params):
+        set_params = td.class_params if cls.is_tracking_mode else td.all_task_params
+        for k, v in six.iteritems(set_params):
             setattr(cls, k, v)
 
         # every time we see new implementation, we want it to have an priority over old implementation
@@ -76,6 +85,9 @@ class TaskMetaclass(abc.ABCMeta):
                 task_cls=cls, call_args=args, call_kwargs=kwargs
             )
 
+        return cls._create_task(args, kwargs)
+
+    def _create_task(cls, args, kwargs):
         task_definition = cls.task_definition
         # we need to have context initialized before we start to run all logic in config() scope
         dbnd_context = get_databand_context()
@@ -86,7 +98,11 @@ class TaskMetaclass(abc.ABCMeta):
         ) as task_config:
             # update config with current class defaults
             # we apply them to config only if there are no values (this is defaults)
-            tmb = TaskFactory(
+            if cls.is_tracking_mode:
+                task_factory = TrackedTaskFactory
+            else:
+                task_factory = TaskFactory
+            tmb = task_factory(
                 dbnd_context=dbnd_context,
                 config=config,
                 new_task_factory=cls._build_task_obj,

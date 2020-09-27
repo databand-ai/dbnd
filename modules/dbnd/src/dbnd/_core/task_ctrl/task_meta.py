@@ -20,6 +20,7 @@ from dbnd._core.utils.platform.windows_compatible.getuser import dbnd_getuser
 if TYPE_CHECKING:
     from dbnd import Task
     from dbnd._core.task_build.task_definition import TaskDefinition
+    from dbnd._core.task_build.task_params import TaskValueParams
     from dbnd._core.context.databand_context import DatabandContext
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,11 @@ class TaskMeta(object):
     ):
         super(TaskMeta, self).__init__()
         # we should not use it directly, the value in object can outdated
-        self.task_params = task_params  # type: List[ ParameterValue]
+        self._task_params = task_params  # type: TaskValueParams
+        self.class_task_params = list(
+            task_params.class_params.values()
+        )  # type: List[ParameterValue]
+
         self.config_layer = config_layer  # type: _ConfigLayer
         self.task_name = task_name  # type: str
         self.task_family = task_family  # type: str
@@ -70,12 +75,15 @@ class TaskMeta(object):
 
         self.task_call_source = task_call_source
 
-        self.obj_key = self._calculate_task_meta_key()  # type: Signature
+        sign_task_params = list(
+            task_params.all_params.values()
+        )  # type: List[ParameterValue]
+        self.obj_key = self._calculate_task_meta_key(sign_task_params)
         # we want to have task id immediately
         self.initialize_task_id(
             [
                 (p_value.name, p_value.parameter.signature(p_value.value))
-                for p_value in self.task_params
+                for p_value in sign_task_params
                 if isinstance(p_value.parameter, ParameterDefinition)
                 and p_value.parameter.significant
             ]
@@ -112,10 +120,11 @@ class TaskMeta(object):
             children.append(child_task)
         return children
 
-    def _calculate_task_meta_key(self):
+    def _calculate_task_meta_key(self, sign_task_params):
+        # type: (List[ParameterValue]) -> Signature
         params = [
             (p_value.name, p_value.parameter.signature(p_value.value))
-            for p_value in self.task_params
+            for p_value in sign_task_params
             if not p_value.parameter.is_output() and p_value.parameter.significant
         ]
         override_signature = {}

@@ -2,19 +2,17 @@ from typing import Any, Dict, List, Tuple, Type
 
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
-from dbnd._core.utils.basics.text_banner import safe_string
+from dbnd._core.task_ctrl.task_meta import TaskMeta
 
 
 class TaskParameters(object):
     def __init__(self, task):
         self.task = task
-        self.task_meta = self.task.task_meta
-        self._params = [p_value.parameter for p_value in self.task_meta.task_params]
-
+        self.task_meta = self.task.task_meta  # type: TaskMeta
+        self._params = [
+            p_value.parameter for p_value in self.task_meta.class_task_params
+        ]
         self._param_obj_map = {p.name: p for p in self._params}
-        self._param_meta_map = {
-            p_value.name: p_value for p_value in self.task_meta.task_params
-        }
 
     def get_param(self, param_name):
         return self._param_obj_map.get(param_name, None)
@@ -30,7 +28,7 @@ class TaskParameters(object):
         return getattr(self.task, param_name)
 
     def get_param_meta(self, param_name):  # type: (str)->ConfigValue
-        return self._param_meta_map.get(param_name, None)
+        return self.task_meta._task_params.get_any_param(param_name, None)
 
     def get_params(
         self,
@@ -86,16 +84,6 @@ class TaskParameters(object):
                 input_only=input_only,
             )
         ]
-
-    def get_param_value_origin(self, param_name):
-        # type: (str) -> str
-        # Returns where param was created, e.g. ctor/CLI argument/env var/config
-        from dbnd._core.task_ctrl.task_visualiser import _MAX_VALUE_SIZE
-
-        param_meta = self.get_param_meta(param_name)
-        value_source = param_meta.source if param_meta else ""
-        value_origin = safe_string(value_source, _MAX_VALUE_SIZE)
-        return value_origin
 
     def to_env_map(self, *param_names):
         # type: (List[str]) -> Dict[str, str]

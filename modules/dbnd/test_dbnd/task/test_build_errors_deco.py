@@ -56,3 +56,5 @@ class TestBuildErrorsDecorators(object):
             def err_f_unknown_return_type(a=parameter[str]):
                 # type: (str) -> None
                 return a
+
+            err_f_unknown_return_type()  # ???

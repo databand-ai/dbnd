@@ -137,7 +137,9 @@ class TestLuigiWiring(object):
             dbnd_task = wrap_luigi_task(top10_artists)
             assert dbnd_task
             dbnd_input_target = [
-                x for x in dbnd_task.task_meta.task_params if "artist_streams" in x.name
+                x
+                for x in dbnd_task.task_meta.class_task_params
+                if "artist_streams" in x.name
             ][0].value
             assert dbnd_input_target
             luigi_target = top10_artists.input()
@@ -154,16 +156,16 @@ class TestLuigiWiring(object):
             assert dbnd_task.output2
             assert dbnd_task.output20
             output1 = [
-                x for x in dbnd_task.task_meta.task_params if x.name == "output1"
+                x for x in dbnd_task.task_meta.class_task_params if x.name == "output1"
             ][0]
             output10 = [
-                x for x in dbnd_task.task_meta.task_params if x.name == "output10"
+                x for x in dbnd_task.task_meta.class_task_params if x.name == "output10"
             ][0]
             output2 = [
-                x for x in dbnd_task.task_meta.task_params if x.name == "output2"
+                x for x in dbnd_task.task_meta.class_task_params if x.name == "output2"
             ][0]
             output20 = [
-                x for x in dbnd_task.task_meta.task_params if x.name == "output20"
+                x for x in dbnd_task.task_meta.class_task_params if x.name == "output20"
             ][0]
             assert output1.parameter.kind == _ParameterKind.task_input
             assert output10.parameter.kind == _ParameterKind.task_input
@@ -178,10 +180,10 @@ class TestLuigiWiring(object):
             assert dbnd_task.output1
             assert dbnd_task.output2
             output1 = [
-                x for x in dbnd_task.task_meta.task_params if x.name == "output1"
+                x for x in dbnd_task.task_meta.class_task_params if x.name == "output1"
             ][0]
             output2 = [
-                x for x in dbnd_task.task_meta.task_params if x.name == "output2"
+                x for x in dbnd_task.task_meta.class_task_params if x.name == "output2"
             ][0]
             assert output1.parameter.kind == _ParameterKind.task_output
             assert output2.parameter.kind == _ParameterKind.task_output

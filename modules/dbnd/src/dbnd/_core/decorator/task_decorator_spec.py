@@ -29,8 +29,6 @@ class _TaskDecoratorSpec(object):
     name = attr.ib()
     doc_annotations = attr.ib()
 
-    params = attr.ib(default=None)
-
 
 # Extracts arg types and return type from doc string
 # # type: (str, dict) -> int
@@ -40,15 +38,15 @@ class _TaskDecoratorSpec(object):
 # "str, dict(str, bool), list[str]" => ["str", "dict(str, bool)", "list[str]"]
 
 
-def build_task_decorator_spec(item, decorator_kwargs, default_result):
+def build_task_decorator_spec(class_or_func, decorator_kwargs, default_result):
     # type: (callable, ... ) -> _TaskDecoratorSpec
-    is_class = inspect.isclass(item)
+    is_class = inspect.isclass(class_or_func)
     if is_class:
-        f = item.__init__
+        f = class_or_func.__init__
     else:
-        f = item
+        f = class_or_func
 
-    name = item.__name__
+    name = class_or_func.__name__
     if six.PY3:
         # python 3 https://docs.python.org/3/library/inspect.html#inspect.getfullargspec
         f_spec = inspect.getfullargspec(f)
@@ -68,7 +66,7 @@ def build_task_decorator_spec(item, decorator_kwargs, default_result):
     defaults_start_at = len(f_spec.args) - len(f_defaults)
 
     return _TaskDecoratorSpec(
-        item=item,
+        item=class_or_func,
         is_class=is_class,
         decorator_kwargs=decorator_kwargs,
         default_result=default_result,
