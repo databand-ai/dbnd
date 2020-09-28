@@ -1,5 +1,6 @@
 from dbnd import parameter
 from dbnd_spark.spark_config import SparkEngineConfig
+from dbnd._core.utils.http.constants import NO_AUTH
 
 
 class LivySparkConfig(SparkEngineConfig):
@@ -11,7 +12,15 @@ class LivySparkConfig(SparkEngineConfig):
         str
     ]
 
-    auth = parameter(description="livy auth , support list are None, Kerberos, Basic_Access")[
+    auth = parameter(description="livy auth , support list are None, Kerberos, Basic_Access", default=NO_AUTH)[
+        str
+    ]
+
+    user = parameter(description="livy auth , user", default="")[
+        str
+    ]
+
+    password = parameter(description="livy auth , password", default="")[
         str
     ]
 
