@@ -21,6 +21,9 @@ class _LivySparkCtrl(SparkCtrl):
     def get_livy_endpoint(self):
         raise NotImplementedError("This engine should implement get_livy_endpoint")
 
+    def get_livy_ignore_ssl_errors(self) -> bool:
+        raise NotImplementedError("This engine should implement get_livy_ignore_ssl_errors")
+
     def _run_spark_submit(self, file, jars):
         """
         Request Body	Description	Type
@@ -69,7 +72,7 @@ class _LivySparkCtrl(SparkCtrl):
         livy_endpoint = self.get_livy_endpoint()
         self.task_run.set_external_resource_urls({"Livy url": livy_endpoint.url})
         logger.info("Connecting to: %s", livy_endpoint)
-        livy = LivyBatchClient.from_endpoint(livy_endpoint)
+        livy = LivyBatchClient.from_endpoint(livy_endpoint, self.get_livy_ignore_ssl_errors())
         batch = livy.post_batch(data)
         livy.track_batch_progress(
             batch["id"], status_reporter=self._report_livy_batch_status
@@ -139,3 +142,7 @@ class LivySparkCtrl(_LivySparkCtrl):
         livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
         livy_auth = livy_config.auth if livy_config.auth in AUTHS_SUPPORTED else NO_AUTH
         return Endpoint(livy_config.url, auth=livy_auth, username=livy_config.user, password=livy_config.password)
+    
+    def get_livy_ignore_ssl_errors(self):
+        livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
+        return livy_config.ignore_ssl_errors
