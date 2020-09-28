@@ -138,4 +138,4 @@ class LivySparkCtrl(_LivySparkCtrl):
     def get_livy_endpoint(self):
         livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
         livy_auth = livy_config.auth if livy_config.auth in AUTHS_SUPPORTED else NO_AUTH
-        return Endpoint(livy_config.url, auth=livy_auth)
+        return Endpoint(livy_config.url, auth=livy_auth, username=livy_config.user, password=livy_config.password)
