@@ -5,6 +5,7 @@ import six
 from dbnd._core.current import current_task_run
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.http.endpoint import Endpoint
+from dbnd._core.utils.http.constants import AUTHS_SUPPORTED, NO_AUTH
 from dbnd._core.utils.structures import list_of_strings
 from dbnd._vendor.termcolor import colored
 from dbnd_spark.livy.livy_batch import LivyBatchClient
@@ -136,4 +137,5 @@ class LivySparkCtrl(_LivySparkCtrl):
 
     def get_livy_endpoint(self):
         livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
-        return Endpoint(livy_config.url)
+        livy_auth = livy_config.auth if livy_config.auth in AUTHS_SUPPORTED else NO_AUTH
+        return Endpoint(livy_config.url, auth=livy_auth)

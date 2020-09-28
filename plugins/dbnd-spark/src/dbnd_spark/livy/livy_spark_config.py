@@ -11,6 +11,10 @@ class LivySparkConfig(SparkEngineConfig):
         str
     ]
 
+    auth = parameter(description="livy auth , support list are None, Kerberos, Basic_Access")[
+        str
+    ]
+
     def get_spark_ctrl(self, task_run):
         from dbnd_spark.livy.livy_spark import LivySparkCtrl
 
