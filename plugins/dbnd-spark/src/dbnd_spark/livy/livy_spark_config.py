@@ -24,6 +24,10 @@ class LivySparkConfig(SparkEngineConfig):
         str
     ]
 
+    ignore_ssl_errors = parameter(description="ignore ssl error", default=False)[
+        bool
+    ]
+
     def get_spark_ctrl(self, task_run):
         from dbnd_spark.livy.livy_spark import LivySparkCtrl
 
