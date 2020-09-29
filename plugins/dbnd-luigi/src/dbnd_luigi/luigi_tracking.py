@@ -6,6 +6,7 @@ import luigi
 import luigi.scheduler
 import luigi.worker
 
+from luigi import LuigiStatusCode
 from luigi.interface import _WorkerSchedulerFactory
 
 from dbnd_luigi.luigi_handlers import LuigiEventsHandler
@@ -23,11 +24,13 @@ def register_luigi_tracking():
     global lrm
     global handler
 
-    if lrm.active:
-        lrm = LuigiRunManager()
-
     if handler is None:
         handler = LuigiEventsHandler()
+
+    if lrm.active:
+        del lrm
+        lrm = LuigiRunManager()
+        clear_events()
 
     handler.set_run_manager(lrm)
     register(handler)
@@ -49,7 +52,24 @@ def register(handler):
     )
 
 
+def clear_events():
+    events = [event for event in luigi.Task._event_callbacks.get(luigi.Task, {}).keys()]
+
+    for event in events:
+        luigi.Task._event_callbacks[luigi.Task][event] = set()
+
+
 class _DbndWorkerSchedulerFactory(_WorkerSchedulerFactory):
+    def __init__(self):
+        super(_DbndWorkerSchedulerFactory, self).__init__()
+        # I think that the best way is to initialize the run manager when the scheduler starts but this would
+        # make us change the way test_luigi_tracking.py works.
+
+        # self.lrm = LuigiRunManager()
+        # self.handler = LuigiEventsHandler()
+        # self.handler.set_run_manager(self.lrm)
+        # register(self.handler)
+
     def create_worker(self, scheduler, worker_processes, assistant=False):
         return _DbndWorker(
             scheduler=scheduler, worker_processes=worker_processes, assistant=assistant
@@ -81,7 +101,9 @@ def dbnd_luigi_run(**kwargs):
     register_luigi_tracking()
     kwargs = _set_luigi_kwargs(kwargs)
     run_result = luigi.run(**kwargs)  # this is deprecated, should consider change it
-    return run_result
+    if run_result.status != LuigiStatusCode.SUCCESS:
+        return 1
+    return 0
 
 
 def dbnd_luigi_build(tasks, **kwargs):
