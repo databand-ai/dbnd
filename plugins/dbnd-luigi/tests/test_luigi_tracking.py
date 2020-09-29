@@ -67,12 +67,12 @@ class TestLuigiTaskExecution(object):
         ]
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
             with mock.patch("dbnd_luigi.luigi_tracking.handler") as handler:
-                result = dbnd_luigi_run()
+                status_code = dbnd_luigi_run()
                 assert handler.on_failure.call_count == 1
                 assert handler.on_success.call_count == 2
                 assert handler.on_dependency_discovered.call_count == 2
                 assert handler.on_run_start.call_count == 3
-                assert result.status == LuigiStatusCode.FAILED
+                assert status_code == 1
 
     def test_luigi_build_exception(self, top10_artists_run_error):
         with dbnd_config({CoreConfig.tracker: ["file", "console"]}):

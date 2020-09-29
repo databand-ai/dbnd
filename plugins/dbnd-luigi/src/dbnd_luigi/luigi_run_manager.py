@@ -35,7 +35,7 @@ class LuigiRunManager:
 
         if scheduled_tasks and not self.root_dbnd_task:
             # This code is reached only when an orphaned task is executed
-            self._root_dbnd_task = self.get_dbnd_task(first(scheduled_tasks.values()))
+            self.root_dbnd_task = self.get_dbnd_task(first(scheduled_tasks.values()))
 
         self._databand_run = self._enter_cm(
             new_databand_run(
@@ -134,7 +134,7 @@ class LuigiRunManager:
         if self.root_dbnd_task == dbnd_task:
             self.finish_run(status, error=err)
 
-        if not self.get_non_finished_sub_tasks():
+        elif not self.get_non_finished_sub_tasks():
             self.finish_run(TaskRunState.FAILED)
 
     def finish_run(self, task_run_state, error=None):
