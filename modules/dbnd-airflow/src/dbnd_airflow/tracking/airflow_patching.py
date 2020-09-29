@@ -12,6 +12,8 @@ def _wrap_policy(policy):
 
 
 def _patch_policy(module):
+    if not hasattr(module, "policy"):
+        return
     new_policy = _wrap_policy(module.policy)
     module.policy = new_policy
 
