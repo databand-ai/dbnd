@@ -100,3 +100,6 @@ class TrackingStore(object):
     def is_ready(self):
         # type: () -> bool
         pass
+
+    def save_airflow_monitor_data(self, **kwargs):
+        pass

@@ -129,3 +129,8 @@ class CompositeTrackingStore(TrackingStore):
 
     def is_ready(self, **kwargs):
         return all(store.is_ready() for store in self._stores)
+
+    def save_airflow_monitor_data(self, **kwargs):
+        return self._invoke(
+            CompositeTrackingStore.save_airflow_monitor_data.__name__, kwargs
+        )

@@ -439,3 +439,12 @@ class AirflowTaskInfo(object):
             task_run_attempt_uid=self.task_run_attempt_uid,
             retry_number=self.retry_number,
         )
+
+
+class AirflowMonitorDataSchema(ApiObjectSchema):
+    airflow_export_data = fields.Str()
+    airflow_base_url = fields.Str()
+    last_sync_time = fields.DateTime()
+
+
+airflow_monitor_data_schema = AirflowMonitorDataSchema()

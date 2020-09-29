@@ -164,9 +164,7 @@ def _get_task_instances(start_date, dag_ids, quantity, session):
             (TaskInstance.dag_id == DagRun.dag_id)
             & (TaskInstance.execution_date == DagRun.execution_date),
         )
-        .filter(
-            or_(TaskInstance.end_date.is_(None), TaskInstance.end_date > start_date)
-        )
+        .filter(or_(DagRun.end_date.is_(None), TaskInstance.end_date > start_date))
     )
 
     if dag_ids:
@@ -787,7 +785,7 @@ def export_data_directly(
 
     engine = create_engine(sql_alchemy_conn)
     session = sessionmaker(bind=engine)
-    return _handle_export_data(
+    result = _handle_export_data(
         dagbag=dagbag,
         since=since,
         include_logs=include_logs,
@@ -797,6 +795,7 @@ def export_data_directly(
         task_quantity=task_quantity,
         session=session(),
     )
+    return json.loads(json.dumps(result, indent=4, cls=JsonEncoder))
 
 
 ### Experimental API:
