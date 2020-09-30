@@ -17,7 +17,9 @@ class TestImportPackage(object):
 
         project_dir = os.path.join(os.path.dirname(__file__), "..", "..", "src")
         good_modules = import_all_modules(
-            src_dir=project_dir, package="dbnd", excluded=["airflow_operators"]
+            src_dir=project_dir,
+            package="dbnd",
+            excluded=["airflow_operators", "_vendor_package"],
         )
 
         assert len(good_modules) > 20
@@ -26,11 +28,12 @@ class TestImportPackage(object):
         """
         Test that the top databand package can be imported and contains the usual suspects.
         """
-        import dbnd
         import databand
+        import dbnd
+        import targets
+
         from databand import parameters
         from dbnd import tasks
-        import targets
 
         # These should exist (if not, this will cause AttributeErrors)
         expected = [

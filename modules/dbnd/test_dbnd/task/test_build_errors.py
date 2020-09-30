@@ -24,9 +24,9 @@ class TestCommonBuildErrors(object):
 
         with new_dbnd_context(conf={"core": {"recheck_circle_dependencies": "True"}}):
             with pytest.raises(
-                DatabandBuildError, message="A cyclic dependency occurred"
+                DatabandBuildError, match="A cyclic dependency occurred"
             ):
                 task_circle.task()
 
-        with pytest.raises(DatabandRunError, message="A cyclic dependency occurred"):
+        with pytest.raises(DatabandRunError, match="A cyclic dependency occurred"):
             task_circle.dbnd_run()

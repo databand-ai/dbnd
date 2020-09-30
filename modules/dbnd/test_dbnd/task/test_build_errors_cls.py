@@ -39,7 +39,7 @@ class TestTaskBuildErrors(object):
             p2 = parameter[int]
             p3 = parameter[int]
 
-        with pytest.raises(DatabandBuildError, message="Failed to create task"):
+        with pytest.raises(DatabandBuildError, match="Failed to create task"):
             TMissingParamsMultiple()
 
     def test_unknown_param_root(self):
@@ -73,7 +73,13 @@ class TestTaskBuildErrors(object):
             ForgotParam()
 
     def test_no_value_type(self):
-        with pytest.raises(DatabandBuildError, message="doesn't have type"):
+        with pytest.raises(
+            DatabandBuildError,
+            match=(
+                "Failed to build parameter 'MyPTWithError\.wrong_param' defined "
+                "as '\._unknown_\(parameter\[unknown\]\)':"
+            ),
+        ):
 
             class MyPTWithError(PipelineTask):
                 wrong_param = parameter
@@ -82,7 +88,13 @@ class TestTaskBuildErrors(object):
                     return None
 
     def test_no_value_from_default(self):
-        with pytest.raises(DatabandBuildError, message="has default value"):
+        with pytest.raises(
+            DatabandBuildError,
+            match=(
+                "Failed to build parameter 'MyPTWithError\.wrong_param' defined "
+                "as '\._unknown_\(parameter\[unknown\]\)':"
+            ),
+        ):
 
             class MyT(object):
                 pass
@@ -94,9 +106,7 @@ class TestTaskBuildErrors(object):
                     return None
 
     def test_subtype_not_in_simpletype(self):
-        with pytest.raises(
-            DatabandBuildError, message="is not supported by main value"
-        ):
+        with pytest.raises(DatabandBuildError, match="is not supported by main value"):
 
             class MyPTWithError(PipelineTask):
                 wrong_param = parameter.sub_type(bool)[int]

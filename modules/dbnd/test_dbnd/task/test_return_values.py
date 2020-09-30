@@ -113,9 +113,7 @@ class TestTaskDecoReturnValues(TargetTestBase):
         assert t.result is None
 
     def test_fails_on_same_names(self):
-        with pytest.raises(
-            DatabandBuildError, message="have same keys in result schema"
-        ):
+        with pytest.raises(DatabandBuildError, match="have same keys in result schema"):
 
             @task(result=(output(name="same_name").csv[List[str]], "o_b"))
             def t_f(same_name=3, a=5):
@@ -125,7 +123,8 @@ class TestTaskDecoReturnValues(TargetTestBase):
 
     def test_fails_on_dict_spec(self):
         with pytest.raises(
-            DatabandBuildError, message="have same keys in result schema"
+            DatabandBuildError,
+            match=r"Result definition should be tuple\/list, we don't support dict in definition, got: {'a': typing\.List\[str\]}",
         ):
 
             @task(result={"a": List[str]})
@@ -140,7 +139,7 @@ class TestTaskDecoReturnValues(TargetTestBase):
             # type: ()->(str, str)
             return ""
 
-        with pytest.raises(DatabandRunError, message="have same keys in result schema"):
+        with pytest.raises(DatabandRunError, match="Failed tasks are:"):
             t_f.dbnd_run()
 
     def test_fails_on_wrong_ret_len(self):
@@ -149,7 +148,7 @@ class TestTaskDecoReturnValues(TargetTestBase):
             # type: ()->(str, str)
             return ("",)
 
-        with pytest.raises(DatabandRunError, message="have same keys in result schema"):
+        with pytest.raises(DatabandRunError, match="Failed tasks are:"):
             t_f.dbnd_run()
 
     def test_one_result(self):
