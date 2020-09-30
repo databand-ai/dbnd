@@ -268,7 +268,7 @@ class ETask(object):
             task_id=t.task_id,
             retries=t.retries,
             command=_get_command_from_operator(t),
-            task_args=_get_task_args(t) if include_task_args else None,
+            task_args=_extract_args_from_dict(vars(t)) if include_task_args else {},
         )
 
     def as_dict(self):
@@ -342,13 +342,16 @@ class ETaskInstance(object):
 
 
 class EDagRun(object):
-    def __init__(self, dag_id, dagrun_id, start_date, state, end_date, execution_date):
+    def __init__(
+        self, dag_id, dagrun_id, start_date, state, end_date, execution_date, task_args
+    ):
         self.dag_id = dag_id
         self.dagrun_id = dagrun_id
         self.start_date = start_date
         self.state = state
         self.end_date = end_date
         self.execution_date = execution_date
+        self.task_args = task_args
 
     @staticmethod
     def from_dagrun(dr):
@@ -360,6 +363,7 @@ class EDagRun(object):
             state=dr.state,
             end_date=dr.end_date,
             execution_date=dr.execution_date,
+            task_args=_extract_args_from_dict(dr.conf) if dr.conf else {},
         )
 
     def as_dict(self):
@@ -370,6 +374,7 @@ class EDagRun(object):
             state=self.state,
             end_date=self.end_date,
             execution_date=self.execution_date,
+            task_args=self.task_args,
         )
 
 
@@ -391,6 +396,8 @@ class EDag(object):
         hostname,
         source_code,
         is_subdag,
+        task_type,
+        task_args,
     ):
         self.description = description
         self.root_task_ids = root_task_ids  # type: List[str]
@@ -407,6 +414,8 @@ class EDag(object):
         self.hostname = hostname
         self.source_code = source_code
         self.is_subdag = is_subdag
+        self.task_type = task_type
+        self.task_args = task_args
 
     @staticmethod
     def from_dag(dag, dag_folder, include_task_args):
@@ -428,6 +437,8 @@ class EDag(object):
             hostname=get_hostname(),
             source_code=_read_dag_file(dag.fileloc),
             is_subdag=dag.is_subdag,
+            task_type="DAG",
+            task_args=_extract_args_from_dict(vars(dag)) if include_task_args else {},
         )
 
     def as_dict(self):
@@ -447,6 +458,8 @@ class EDag(object):
             hostname=self.hostname,
             source_code=self.source_code,
             is_subdag=self.is_subdag,
+            task_type=self.task_type,
+            task_args=self.task_args,
         )
 
 
@@ -563,17 +576,24 @@ def _get_command_from_operator(t):
         )
 
 
-def _get_task_args(t):
-    # type: (BaseOperator) -> Dict[str]
+def _extract_args_from_dict(t_dict):
+    # type: (Dict) -> Dict[str]
     try:
         # Return only numeric, bool and string attributes
-        return {
-            k: v
-            for k, v in six.iteritems(vars(t))
-            if v is None or isinstance(v, TASK_ARG_TYPES)
-        }
+        res = {}
+        for k, v in six.iteritems(t_dict):
+            if v is None or isinstance(v, TASK_ARG_TYPES):
+                res[k] = v
+            elif isinstance(v, list):
+                res[k] = [
+                    val for val in v if val is None or isinstance(val, TASK_ARG_TYPES)
+                ]
+            elif isinstance(v, dict):
+                res[k] = _extract_args_from_dict(v)
+        return res
     except Exception as ex:
-        logging.error("Could not collect task args for %s: %s", t.task_id, ex)
+        task_id = t_dict.get("task_id") or t_dict.get("_dag_id")
+        logging.error("Could not collect task args for %s: %s", task_id, ex)
 
 
 def _read_dag_file(dag_file):
