@@ -25,14 +25,17 @@ class LivyBatchClient(object):
         self._http_client = http_client
 
     @staticmethod
-    def from_endpoint(endpoint):
+    def from_endpoint(endpoint, ignore_ssl_errors=False):
         headers = {"Content-Type": "application/json"}
         custom_headers = {}
 
         headers.update(custom_headers)
         retry_policy = LivyBatchClient._get_retry_policy()
         return LivyBatchClient(
-            ReliableHttpClient(endpoint, headers, retry_policy), endpoint
+            ReliableHttpClient(
+                endpoint, headers, retry_policy, ignore_ssl_errors=ignore_ssl_errors
+            ),
+            endpoint,
         )
 
     def post_batch(self, properties):
