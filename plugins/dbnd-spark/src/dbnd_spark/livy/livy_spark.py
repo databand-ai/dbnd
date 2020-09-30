@@ -4,8 +4,8 @@ import six
 
 from dbnd._core.current import current_task_run
 from dbnd._core.utils.basics.text_banner import TextBanner
-from dbnd._core.utils.http.endpoint import Endpoint
 from dbnd._core.utils.http.constants import AUTHS_SUPPORTED, NO_AUTH
+from dbnd._core.utils.http.endpoint import Endpoint
 from dbnd._core.utils.structures import list_of_strings
 from dbnd._vendor.termcolor import colored
 from dbnd_spark.livy.livy_batch import LivyBatchClient
@@ -22,7 +22,7 @@ class _LivySparkCtrl(SparkCtrl):
         raise NotImplementedError("This engine should implement get_livy_endpoint")
 
     def get_livy_ignore_ssl_errors(self) -> bool:
-        raise NotImplementedError("This engine should implement get_livy_ignore_ssl_errors")
+        return False
 
     def _run_spark_submit(self, file, jars):
         """
@@ -72,7 +72,9 @@ class _LivySparkCtrl(SparkCtrl):
         livy_endpoint = self.get_livy_endpoint()
         self.task_run.set_external_resource_urls({"Livy url": livy_endpoint.url})
         logger.info("Connecting to: %s", livy_endpoint)
-        livy = LivyBatchClient.from_endpoint(livy_endpoint, self.get_livy_ignore_ssl_errors())
+        livy = LivyBatchClient.from_endpoint(
+            livy_endpoint, ignore_ssl_errors=self.get_livy_ignore_ssl_errors()
+        )
         batch = livy.post_batch(data)
         livy.track_batch_progress(
             batch["id"], status_reporter=self._report_livy_batch_status
@@ -141,8 +143,13 @@ class LivySparkCtrl(_LivySparkCtrl):
     def get_livy_endpoint(self):
         livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
         livy_auth = livy_config.auth if livy_config.auth in AUTHS_SUPPORTED else NO_AUTH
-        return Endpoint(livy_config.url, auth=livy_auth, username=livy_config.user, password=livy_config.password)
-    
+        return Endpoint(
+            livy_config.url,
+            auth=livy_auth,
+            username=livy_config.user,
+            password=livy_config.password,
+        )
+
     def get_livy_ignore_ssl_errors(self):
         livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
         return livy_config.ignore_ssl_errors
