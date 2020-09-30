@@ -24,18 +24,16 @@ class TestLuigiTaskExecution(object):
         os.system("rm -rf ./data/*")
 
     def test_luigi_sanity_top_10_artists(self, top10_artists):
-        with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
-            with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-                result = dbnd_luigi_build(tasks=[top10_artists])
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
+            result = dbnd_luigi_build(tasks=[top10_artists])
         assert result.status == LuigiStatusCode.SUCCESS
 
     def test_luigi_sanity_foo(self, simple_foo):
-        with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
-            with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
-                try:
-                    shutil.rmtree("/tmp/bar")
-                except FileNotFoundError:
-                    pass
+        try:
+            shutil.rmtree("/tmp/bar")
+        except FileNotFoundError:
+            pass
+        with dbnd_config({CoreConfig.tracker: ["file", "console"]}):
             result = dbnd_luigi_build(tasks=[simple_foo])
         assert result.status == LuigiStatusCode.SUCCESS
 
