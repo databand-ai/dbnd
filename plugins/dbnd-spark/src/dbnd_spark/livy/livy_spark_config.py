@@ -1,6 +1,6 @@
 from dbnd import parameter
-from dbnd_spark.spark_config import SparkEngineConfig
 from dbnd._core.utils.http.constants import NO_AUTH
+from dbnd_spark.spark_config import SparkEngineConfig
 
 
 class LivySparkConfig(SparkEngineConfig):
@@ -12,21 +12,16 @@ class LivySparkConfig(SparkEngineConfig):
         str
     ]
 
-    auth = parameter(description="livy auth , support list are None, Kerberos, Basic_Access", default=NO_AUTH)[
-        str
-    ]
+    auth = parameter(
+        description="livy auth , support list are None, Kerberos, Basic_Access",
+        default=NO_AUTH,
+    )[str]
 
-    user = parameter(description="livy auth , user", default="")[
-        str
-    ]
+    user = parameter(description="livy auth , user", default="")[str]
 
-    password = parameter(description="livy auth , password", default="")[
-        str
-    ]
+    password = parameter(description="livy auth , password", default="")[str]
 
-    ignore_ssl_errors = parameter(description="ignore ssl error", default=False)[
-        bool
-    ]
+    ignore_ssl_errors = parameter(description="ignore ssl error", default=False)[bool]
 
     def get_spark_ctrl(self, task_run):
         from dbnd_spark.livy.livy_spark import LivySparkCtrl
