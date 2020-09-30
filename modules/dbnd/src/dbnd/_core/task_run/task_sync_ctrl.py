@@ -8,7 +8,7 @@ import six
 
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.task_utils import targets_to_str
-from targets import DbndFileCache, Target, target
+from targets import DbndLocalFileMetadataRegistry, Target, target
 from targets.fs import FileSystems
 
 
@@ -55,14 +55,12 @@ class TaskSyncCtrl(TaskRunCtrl):
             checksum = hashlib.md5(f.read())
         return checksum.hexdigest()
 
-    def remote_file(self, local_file):
+    def remote_file(self, local_file, md5_hash):
         if self.is_remote(local_file):
             return local_file
 
         file_name = path.basename(local_file.path)
-        date = datetime.datetime.now().strftime("%Y-%m-%d")
-        md5_hash = self._md5(local_file.path)
-        remote_file_name = "{}/{}/{}".format(date, md5_hash, file_name)
+        remote_file_name = "{}/{}".format(md5_hash, file_name)
         return self.remote_sync_root.partition(remote_file_name)
 
     def _sync_remote(self, remote_file):
@@ -75,30 +73,11 @@ class TaskSyncCtrl(TaskRunCtrl):
         """
         Synchronizes local fs -> remote fs
         """
-        remote_file = self.remote_file(local_file)
+        md5_hash = self._md5(local_file.path)
+        remote_file = self.remote_file(local_file, md5_hash)
 
-        # Check if cache exists for the file if not create one
-        cache_existed = DbndFileCache.exists(local_file)
-        if cache_existed:
-            file_cache = DbndFileCache.read(local_file)
-        else:
-            file_cache = DbndFileCache(file_path=local_file.path)
-            file_cache.save()
-
-        # If file does not exist or there was no cache upload it to remote fs
-        if not self._exists(remote_file) or not cache_existed:
-            logger.info("Uploading: %s -> %s", local_file, remote_file)
+        if not remote_file.exists():
             self._upload(local_file, remote_file)
-        elif file_cache.expired:
-            # If file exists but cache expired upload the file once more
-            logger.info(
-                "Cache expired, uploading: '%s' -> '%s'", local_file, remote_file
-            )
-            self._upload(local_file, remote_file)
-            # Remove the cache as it is no longer valid
-            file_cache.delete()
-        else:
-            logger.info("File exists: %s -> %s", local_file, remote_file)
 
         return remote_file
 

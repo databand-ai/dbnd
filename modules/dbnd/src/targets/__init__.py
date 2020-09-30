@@ -1,7 +1,7 @@
 import os
 
 from targets.base_target import Target
-from targets.caching import DbndFileCache
+from targets.caching import DbndLocalFileMetadataRegistry
 from targets.data_target import DataTarget
 from targets.dir_target import DirTarget
 from targets.errors import (

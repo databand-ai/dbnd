@@ -3,7 +3,7 @@ import os
 
 from dbnd._core.parameter.parameter_definition import _ParameterKind
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from targets import DirTarget, FileTarget, target
+from targets import DbndLocalFileMetadataRegistry, DirTarget, FileTarget, target
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
         super(TaskRunLocalSyncer, self).__init__(task_run=task_run)
         self.inputs_to_sync = []
         self.outputs_to_sync = []
+        self.local_sync_root = self.task_env.dbnd_local_root.partition("local_sync")
 
         for p_def, p_val in self.task._params.get_param_values(user_only=True):
             if (
@@ -27,16 +28,24 @@ class TaskRunLocalSyncer(TaskRunCtrl):
             ):
                 # Target requires local access, it points to a remote path that must be synced-to from a local path
                 local_target = target(
-                    self.task_run.attemp_folder_local_cache,
+                    self.local_sync_root,
                     os.path.basename(p_val.path),
                     config=p_val.config,
                 )
                 if p_def.kind == _ParameterKind.task_output:
                     # Output should be substituted for local path and synced post execution
                     self.outputs_to_sync.append((p_def, p_val, local_target))
+
                 else:
-                    # Input should be synced to local path and substituted
-                    self.inputs_to_sync.append((p_def, p_val, local_target))
+                    # Use DbndLocalFileMetadataRegistry to sync inputs only when necessary
+                    dbnd_meta_cache = DbndLocalFileMetadataRegistry.get_or_create(
+                        local_target
+                    )
+
+                    # When syncing remote to local -> We can't use MD5, so use TTL instead
+                    if dbnd_meta_cache.expired or not local_target.exists():
+                        # If TTL is invalid, or local file doesn't exist -> Sync to local
+                        self.inputs_to_sync.append((p_def, p_val, local_target))
 
     def sync_pre_execute(self):
         if self.inputs_to_sync:
