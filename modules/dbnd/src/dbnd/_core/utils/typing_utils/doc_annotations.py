@@ -10,7 +10,7 @@ class InvalidTypeHint(Exception):
 
 
 # re:   Tuple[ Type1, Type2]
-_TUPLE_TYPE_RE = re.compile(r"^Tuple\[(.+)\]$")
+_TUPLE_TYPE_RE = re.compile(r"^Tuple\[(.+)]$")
 
 
 def get_Tuple_params(type_str):
@@ -42,7 +42,7 @@ def _split(type_str):
     result = []
     current_part = parts.pop(0)
     while parts:
-        if len(re.findall("\[", current_part)) > len(re.findall("\]", current_part)):
+        if len(re.findall(r"\[", current_part)) > len(re.findall("]", current_part)):
             current_part += "," + parts.pop(0)
         else:
             result.append(current_part)

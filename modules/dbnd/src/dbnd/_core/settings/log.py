@@ -27,7 +27,7 @@ class LoggingConfig(config.Config):
     _conf__task_family = "log"
     disabled = parameter(description="Should logging be disabled").value(False)
     capture_stdout_stderr = parameter(
-        description="Should logger retransmit all output wrtten to stdout\stderr"
+        description="Should logger retransmit all output wrtten to stdout/stderr"
     ).value(True)
     capture_task_run_log = parameter.help("Capture task output into log").value(True)
 
@@ -38,7 +38,7 @@ class LoggingConfig(config.Config):
         description="Support logging output to Jupiter UI"
     ).value(False)
 
-    level = parameter(description="Logging level. DEBUG\INFO\WARN\ERROR").value("INFO")
+    level = parameter(description="Logging level. DEBUG/INFO/WARN/ERROR").value("INFO")
     formatter = parameter(
         description="Log formatting string (logging library convention)"
     )[str]

@@ -7,42 +7,42 @@ from .._compat import decode
 from .formatter import Formatter
 
 
-_MATCH_1 = re.compile('\d')
-_MATCH_2 = re.compile('\d\d')
-_MATCH_3 = re.compile('\d{3}')
-_MATCH_4 = re.compile('\d{4}')
-_MATCH_6 = re.compile('[+-]?\d{6}')
-_MATCH_1_TO_2 = re.compile('\d\d?')
-_MATCH_1_TO_3 = re.compile('\d{1,3}')
-_MATCH_1_TO_4 = re.compile('\d{1,4}')
-_MATCH_1_TO_6 = re.compile('[+-]?\d{1,6}')
-_MATCH_3_TO_4 = re.compile('\d{3}\d?')
-_MATCH_5_TO_6 = re.compile('\d{5}\d?')
-_MATCH_UNSIGNED = re.compile('\d+')
-_MATCH_SIGNED = re.compile('[+-]?\d+')
-_MATCH_OFFSET = re.compile('(?i)Z|[+-]\d\d:?\d\d')
-_MATCH_SHORT_OFFSET = re.compile('(?i)Z|[+-]\d\d(?::?\d\d)?')
-_MATCH_TIMESTAMP = re.compile('[+-]?\d+(\.\d{1,3})?')
-_MATCH_WORD = re.compile("[0-9]*['a-z\u00A0-\u05FF\u0700-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+|[\u0600-\u06FF\/]+(\s*?[\u0600-\u06FF]+){1,2}")
+_MATCH_1 = re.compile(r'\d')
+_MATCH_2 = re.compile(r'\d\d')
+_MATCH_3 = re.compile(r'\d{3}')
+_MATCH_4 = re.compile(r'\d{4}')
+_MATCH_6 = re.compile(r'[+-]?\d{6}')
+_MATCH_1_TO_2 = re.compile(r'\d\d?')
+_MATCH_1_TO_3 = re.compile(r'\d{1,3}')
+_MATCH_1_TO_4 = re.compile(r'\d{1,4}')
+_MATCH_1_TO_6 = re.compile(r'[+-]?\d{1,6}')
+_MATCH_3_TO_4 = re.compile(r'\d{3}\d?')
+_MATCH_5_TO_6 = re.compile(r'\d{5}\d?')
+_MATCH_UNSIGNED = re.compile(r'\d+')
+_MATCH_SIGNED = re.compile(r'[+-]?\d+')
+_MATCH_OFFSET = re.compile(r'(?i)Z|[+-]\d\d:?\d\d')
+_MATCH_SHORT_OFFSET = re.compile(r'(?i)Z|[+-]\d\d(?::?\d\d)?')
+_MATCH_TIMESTAMP = re.compile(r'[+-]?\d+(\.\d{1,3})?')
+_MATCH_WORD = re.compile(r"[0-9]*['a-z\u00A0-\u05FF\u0700-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+|[\u0600-\u06FF/]+(\s*?[\u0600-\u06FF]+){1,2}")
 
 
 
 class AlternativeFormatter(Formatter):
 
-    _TOKENS = '\[([^\[]*)\]|\\\(.)|' \
-              '(' \
-              'Mo|MM?M?M?' \
-              '|Do|DDDo|DD?D?D?|ddd?d?|do?' \
-              '|w[o|w]?|W[o|W]?|Qo?' \
-              '|YYYY|YY|Y' \
-              '|gg(ggg?)?|GG(GGG?)?' \
-              '|e|E|a|A' \
-              '|hh?|HH?|kk?' \
-              '|mm?|ss?|S{1,9}' \
-              '|x|X' \
-              '|zz?|ZZ?' \
-              '|LTS|LT|LL?L?L?' \
-              ')'
+    _TOKENS = r'\[([^\[]*)\]|\\(.)|' \
+              r'(' \
+              r'Mo|MM?M?M?' \
+              r'|Do|DDDo|DD?D?D?|ddd?d?|do?' \
+              r'|w[o|w]?|W[o|W]?|Qo?' \
+              r'|YYYY|YY|Y' \
+              r'|gg(ggg?)?|GG(GGG?)?' \
+              r'|e|E|a|A' \
+              r'|hh?|HH?|kk?' \
+              r'|mm?|ss?|S{1,9}' \
+              r'|x|X' \
+              r'|zz?|ZZ?' \
+              r'|LTS|LT|LL?L?L?' \
+              r')'
 
     _FORMAT_RE = re.compile(_TOKENS)
 
@@ -151,7 +151,7 @@ class AlternativeFormatter(Formatter):
         'SSSSSS': _MATCH_UNSIGNED,
         'a': None,
         'x': _MATCH_SIGNED,
-        'X': re.compile('[+-]?\d+(\.\d{1,3})?')
+        'X': re.compile(r'[+-]?\d+(\.\d{1,3})?')
     }
 
     _PARSE_TOKENS = {

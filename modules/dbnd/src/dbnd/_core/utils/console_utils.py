@@ -11,7 +11,7 @@ def bold(value):
     return colored(value, attrs=["bold"])
 
 
-COLOR_REGEX = re.compile("""\x1b?\[(\d;)?\d*m""")
+COLOR_REGEX = re.compile(r"\x1b?\[(\d;)?\d*m")
 
 
 def uncolor(text):
