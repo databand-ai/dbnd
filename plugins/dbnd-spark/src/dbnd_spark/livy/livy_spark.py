@@ -13,7 +13,6 @@ from dbnd_spark.livy.livy_spark_config import LivySparkConfig
 from dbnd_spark.spark import SparkTask
 from dbnd_spark.spark_ctrl import SparkCtrl
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,7 +20,7 @@ class _LivySparkCtrl(SparkCtrl):
     def get_livy_endpoint(self):
         raise NotImplementedError("This engine should implement get_livy_endpoint")
 
-    def get_livy_ignore_ssl_errors(self) -> bool:
+    def get_livy_ignore_ssl_errors(self):
         return False
 
     def _run_spark_submit(self, file, jars):
