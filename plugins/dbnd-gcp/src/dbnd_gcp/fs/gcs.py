@@ -509,7 +509,7 @@ class GCSClient(FileSystem):
 
         return return_fp
 
-    def download_file(self, path, location=None):
+    def download_file(self, path, location=None, **kwargs):
         """
         Download file to local filesystem
         :param path: remote path
@@ -523,7 +523,7 @@ class GCSClient(FileSystem):
     def mkdir_parent(self, path):
         pass
 
-    def copy_from_local_file(self, local_path, dest):
+    def copy_from_local_file(self, local_path, dest, **kwargs):
         self.put(local_path, dest)
 
     def open_read(self, path, mode="r"):
