@@ -13,6 +13,7 @@ from dbnd_spark.livy.livy_spark_config import LivySparkConfig
 from dbnd_spark.spark import SparkTask
 from dbnd_spark.spark_ctrl import SparkCtrl
 
+
 logger = logging.getLogger(__name__)
 
 
