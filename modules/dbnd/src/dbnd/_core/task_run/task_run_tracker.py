@@ -18,6 +18,8 @@ from targets.values import get_value_meta_from_value
 if typing.TYPE_CHECKING:
     from dbnd._core.tracking.backends import TrackingStore
     from dbnd_postgres.postgres_values import PostgresTable
+    from dbnd_snowflake.snowflake_values import SnowflakeTable
+
     from datetime import datetime
     from typing import Any, Optional, Union, List
     import pandas as pd
@@ -125,7 +127,7 @@ class TaskRunTracker(TaskRunCtrl):
     def log_data(
         self,
         key,  # type: str
-        data,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable]
+        data,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable, SnowflakeTable]
         meta_conf,  # type: ValueMetaConf
         path=None,  # type: Optional[Union[Target,str]]
         operation_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType

@@ -7,7 +7,7 @@ from dbnd._core.cli.main import (
     dbnd_run_cmd_main,
     main as dbnd_main,
 )
-from dbnd._core.commands import log_dataframe, log_duration, log_metric
+from dbnd._core.commands import log_dataframe, log_duration, log_metric, log_metrics
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.configuration.config_readers import override
 from dbnd._core.configuration.config_store import ConfigMergeSettings
@@ -115,6 +115,7 @@ __all__ = [
     "log_dataframe",
     "LogDataRequest",
     "log_metric",
+    "log_metrics",
     "log_duration",
     # project paths
     "project_path",

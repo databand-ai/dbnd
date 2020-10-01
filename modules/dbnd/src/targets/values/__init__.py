@@ -1,4 +1,5 @@
 import logging
+import typing
 
 from dbnd._core.errors.errors_utils import log_exception
 from targets.values.builtins_values import (
@@ -28,6 +29,11 @@ from targets.values.target_values import (
 from targets.values.timedelta_value import DateIntervalValueType, TimeDeltaValueType
 from targets.values.value_type import InlineValueType
 from targets.values.version_value import VersionValueType
+
+
+if typing.TYPE_CHECKING:
+    from typing import Any, Optional
+    from targets.value_meta import ValueMetaConf, ValueMeta
 
 
 # Note: order matters. Examples:
