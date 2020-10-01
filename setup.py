@@ -56,6 +56,7 @@ EXTRAS_REQUIRE = {
     "postgres": [dbnd_package("dbnd-postgres")],
     "redshift": [dbnd_package("dbnd-redshift")],
     "tensorflow": [dbnd_package("dbnd-tensorflow")],
+    "luigi": [dbnd_package("dbnd-luigi")],
 }
 
 # Aliases:
