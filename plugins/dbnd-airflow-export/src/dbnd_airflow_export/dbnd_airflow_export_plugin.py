@@ -625,6 +625,7 @@ class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
     endpoint = "data_export_plugin"
     default_view = "export_data"
 
+    @flask_appbuilder.has_access
     @flask_appbuilder.expose("/export_data")
     def export_data(self):
         from airflow.www_rbac.views import dagbag
@@ -651,7 +652,7 @@ def _handle_export_data(
     since,
     include_logs,
     include_task_args,
-    inclue_xcom,
+    include_xcom,
     dag_ids=None,
     task_quantity=None,
     session=None,
@@ -668,7 +669,7 @@ def _handle_export_data(
             dagbag=dagbag,
             since=since,
             include_logs=include_logs,
-            include_xcom=inclue_xcom,
+            include_xcom=include_xcom,
             include_task_args=include_task_args,
             dag_ids=dag_ids,
             task_quantity=task_quantity,
@@ -730,7 +731,7 @@ def export_data_api(dagbag):
         since=since,
         include_logs=include_logs,
         include_task_args=include_task_args,
-        inclue_xcom=include_xcom,
+        include_xcom=include_xcom,
         dag_ids=dag_ids,
         task_quantity=task_quantity,
     )
@@ -780,7 +781,7 @@ def export_data_directly(
         since=since,
         include_logs=include_logs,
         include_task_args=include_task_args,
-        inclue_xcom=include_xcom,
+        include_xcom=include_xcom,
         dag_ids=dag_ids,
         task_quantity=task_quantity,
         session=session(),
