@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 
@@ -11,12 +12,13 @@ import six
 
 from airflow.configuration import conf
 from airflow.jobs import BaseJob
-from airflow.models import BaseOperator, DagModel, DagRun
+from airflow.models import BaseOperator, DagModel, DagRun, XCom
 from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.timezone import utcnow
 from airflow.version import version as airflow_version
+from flask import Response
 from sqlalchemy import and_, or_
 
 
@@ -53,8 +55,9 @@ def do_export_data(
     since,
     include_logs=False,
     include_task_args=False,
+    include_xcom=False,
     dag_ids=None,
-    tasks=None,
+    task_quantity=None,
     session=None,
 ):
     """
@@ -71,13 +74,15 @@ def do_export_data(
         since,
     )
 
-    task_instances, dag_runs = _get_task_instances(since, dag_ids, tasks, session)
+    task_instances, dag_runs = _get_task_instances(
+        since, dag_ids, task_quantity, session
+    )
     logging.info("%d task instances were found." % len(task_instances))
 
     task_end_dates = [
         task.end_date for task, job in task_instances if task.end_date is not None
     ]
-    if not task_end_dates or not tasks or len(task_instances) < tasks:
+    if not task_end_dates or not task_quantity or len(task_instances) < task_quantity:
         dag_run_end_date = pendulum.datetime.max
     else:
         dag_run_end_date = max(task_end_dates)
@@ -92,17 +97,31 @@ def do_export_data(
     if dag_ids:
         dag_models = [dag for dag in dag_models if dag.dag_id in dag_ids]
 
-    ed = ExportData(
-        task_instances=[
-            ETaskInstance.from_task_instance(
+    xcom_results = (
+        _get_full_xcom_dict(session, dag_ids, task_instances) if include_xcom else None
+    )
+
+    task_instances_result = []
+    for ti, job in task_instances:
+        if ti is None:
+            continue
+        for dag in [dagbag.get_dag(ti.dag_id)]:
+            if dag is None:
+                continue
+            result = ETaskInstance.from_task_instance(
                 ti,
-                job,
                 include_logs,
                 dag.get_task(ti.task_id) if dag and dag.has_task(ti.task_id) else None,
+                _get_task_instance_xcom_dict(
+                    xcom_results, dag.dag_id, ti.task_id, ti.execution_date
+                )
+                if include_xcom
+                else {},
             )
-            for ti, job in task_instances
-            for dag in [dagbag.get_dag(ti.dag_id)]
-        ],
+            task_instances_result.append(result)
+
+    ed = ExportData(
+        task_instances=task_instances_result,
         dag_runs=[EDagRun.from_dagrun(dr) for dr in dag_runs],
         dags=[
             EDag.from_dag(
@@ -141,7 +160,7 @@ def _get_task_instances(start_date, dag_ids, quantity, session):
             & (TaskInstance.execution_date == DagRun.execution_date),
         )
         .filter(
-            or_(TaskInstance.end_date.is_(None), TaskInstance.end_date >= start_date)
+            or_(TaskInstance.end_date.is_(None), TaskInstance.end_date > start_date)
         )
     )
 
@@ -159,6 +178,45 @@ def _get_task_instances(start_date, dag_ids, quantity, session):
     tasks_and_jobs = [(task, job) for task, job, dag_run in results]
     dag_runs = {dag_run for task, job, dag_run in results}
     return tasks_and_jobs, dag_runs
+
+
+def _get_full_xcom_dict(session, dag_ids, task_instances):
+    xcom_query = session.query(XCom)
+    if dag_ids:
+        xcom_query = xcom_query.filter(XCom.dag_id.in_(dag_ids))
+
+    task_ids = [ti.task_id for ti, job in task_instances]
+    xcom_query = xcom_query.filter(XCom.task_id.in_(task_ids))
+
+    results = xcom_query.all()
+    if not results:
+        return None
+
+    xcom_results = {}
+    for result in results:
+        if result.dag_id not in xcom_results:
+            xcom_results[result.dag_id] = {}
+        if result.task_id not in xcom_results[result.dag_id]:
+            xcom_results[result.dag_id][result.task_id] = {}
+        if result.execution_date not in xcom_results[result.dag_id][result.task_id]:
+            xcom_results[result.dag_id][result.task_id][result.execution_date] = {}
+        xcom_results[result.dag_id][result.task_id][result.execution_date][
+            result.key
+        ] = str(result.value)
+
+    return xcom_results
+
+
+def _get_task_instance_xcom_dict(xcom_results, dag_id, task_id, execution_date):
+    if not xcom_results:
+        return {}
+
+    if dag_id in xcom_results:
+        if task_id in xcom_results[dag_id]:
+            if execution_date in xcom_results[dag_id][task_id]:
+                return xcom_results[dag_id][task_id][execution_date]
+
+    return {}
 
 
 @provide_session
@@ -210,7 +268,7 @@ class ETask(object):
             task_id=t.task_id,
             retries=t.retries,
             command=_get_command_from_operator(t),
-            task_args=_get_task_args(t) if include_task_args else None,
+            task_args=_extract_args_from_dict(vars(t)) if include_task_args else {},
         )
 
     def as_dict(self):
@@ -239,6 +297,7 @@ class ETaskInstance(object):
         start_date,
         end_date,
         log_body,
+        xcom_dict,
     ):
         self.execution_date = execution_date
         self.dag_id = dag_id
@@ -248,10 +307,11 @@ class ETaskInstance(object):
         self.start_date = start_date
         self.end_date = end_date
         self.log_body = log_body
+        self.xcom_dict = xcom_dict
 
     @staticmethod
-    def from_task_instance(ti, job, include_logs=False, task=None):
-        # type: (TaskInstance, BaseJob, bool, BaseOperator) -> ETaskInstance
+    def from_task_instance(ti, include_logs=False, task=None, xcom_dict=None):
+        # type: (TaskInstance, bool, BaseOperator, dict) -> ETaskInstance
         return ETaskInstance(
             execution_date=ti.execution_date,
             dag_id=ti.dag_id,
@@ -261,6 +321,7 @@ class ETaskInstance(object):
             start_date=ti.start_date,
             end_date=ti.end_date,
             log_body=_get_log(ti, task) if include_logs else None,
+            xcom_dict=xcom_dict,
         )
 
     def as_dict(self):
@@ -273,6 +334,7 @@ class ETaskInstance(object):
             start_date=self.start_date,
             end_date=self.end_date,
             log_body=self.log_body,
+            xcom_dict=self.xcom_dict,
         )
 
 
@@ -280,13 +342,16 @@ class ETaskInstance(object):
 
 
 class EDagRun(object):
-    def __init__(self, dag_id, dagrun_id, start_date, state, end_date, execution_date):
+    def __init__(
+        self, dag_id, dagrun_id, start_date, state, end_date, execution_date, task_args
+    ):
         self.dag_id = dag_id
         self.dagrun_id = dagrun_id
         self.start_date = start_date
         self.state = state
         self.end_date = end_date
         self.execution_date = execution_date
+        self.task_args = task_args
 
     @staticmethod
     def from_dagrun(dr):
@@ -298,6 +363,7 @@ class EDagRun(object):
             state=dr.state,
             end_date=dr.end_date,
             execution_date=dr.execution_date,
+            task_args=_extract_args_from_dict(dr.conf) if dr.conf else {},
         )
 
     def as_dict(self):
@@ -308,6 +374,7 @@ class EDagRun(object):
             state=self.state,
             end_date=self.end_date,
             execution_date=self.execution_date,
+            task_args=self.task_args,
         )
 
 
@@ -329,6 +396,8 @@ class EDag(object):
         hostname,
         source_code,
         is_subdag,
+        task_type,
+        task_args,
     ):
         self.description = description
         self.root_task_ids = root_task_ids  # type: List[str]
@@ -345,6 +414,8 @@ class EDag(object):
         self.hostname = hostname
         self.source_code = source_code
         self.is_subdag = is_subdag
+        self.task_type = task_type
+        self.task_args = task_args
 
     @staticmethod
     def from_dag(dag, dag_folder, include_task_args):
@@ -366,6 +437,8 @@ class EDag(object):
             hostname=get_hostname(),
             source_code=_read_dag_file(dag.fileloc),
             is_subdag=dag.is_subdag,
+            task_type="DAG",
+            task_args=_extract_args_from_dict(vars(dag)) if include_task_args else {},
         )
 
     def as_dict(self):
@@ -385,6 +458,8 @@ class EDag(object):
             hostname=self.hostname,
             source_code=self.source_code,
             is_subdag=self.is_subdag,
+            task_type=self.task_type,
+            task_args=self.task_args,
         )
 
 
@@ -501,17 +576,24 @@ def _get_command_from_operator(t):
         )
 
 
-def _get_task_args(t):
-    # type: (BaseOperator) -> Dict[str]
+def _extract_args_from_dict(t_dict):
+    # type: (Dict) -> Dict[str]
     try:
         # Return only numeric, bool and string attributes
-        return {
-            k: v
-            for k, v in six.iteritems(vars(t))
-            if v is None or isinstance(v, TASK_ARG_TYPES)
-        }
+        res = {}
+        for k, v in six.iteritems(t_dict):
+            if v is None or isinstance(v, TASK_ARG_TYPES):
+                res[k] = v
+            elif isinstance(v, list):
+                res[k] = [
+                    val for val in v if val is None or isinstance(val, TASK_ARG_TYPES)
+                ]
+            elif isinstance(v, dict):
+                res[k] = _extract_args_from_dict(v)
+        return res
     except Exception as ex:
-        logging.error("Could not collect task args for %s: %s", t.task_id, ex)
+        task_id = t_dict.get("task_id") or t_dict.get("_dag_id")
+        logging.error("Could not collect task args for %s: %s", task_id, ex)
 
 
 def _read_dag_file(dag_file):
@@ -543,6 +625,7 @@ class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
     endpoint = "data_export_plugin"
     default_view = "export_data"
 
+    @flask_appbuilder.has_access
     @flask_appbuilder.expose("/export_data")
     def export_data(self):
         from airflow.www_rbac.views import dagbag
@@ -569,8 +652,9 @@ def _handle_export_data(
     since,
     include_logs,
     include_task_args,
+    include_xcom,
     dag_ids=None,
-    tasks=None,
+    task_quantity=None,
     session=None,
 ):
     include_logs = bool(include_logs)
@@ -585,9 +669,10 @@ def _handle_export_data(
             dagbag=dagbag,
             since=since,
             include_logs=include_logs,
+            include_xcom=include_xcom,
             include_task_args=include_task_args,
             dag_ids=dag_ids,
-            tasks=tasks,
+            task_quantity=task_quantity,
             session=session,
         )
     finally:
@@ -599,17 +684,36 @@ def _handle_export_data(
     return result
 
 
-def export_data_api(dagbag):
-    from airflow.www.utils import json_response
+class JsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        # convert dates and numpy objects in a json serializable format
+        if isinstance(obj, datetime.datetime):
+            return obj.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        elif isinstance(obj, datetime.date):
+            return obj.strftime("%Y-%m-%d")
 
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
+
+def json_response(obj):
+    return Response(
+        response=json.dumps(obj, indent=4, cls=JsonEncoder),
+        status=200,
+        mimetype="application/json",
+    )
+
+
+def export_data_api(dagbag):
     since = flask.request.args.get("since")
     include_logs = flask.request.args.get("include_logs")
     include_task_args = flask.request.args.get("include_task_args")
+    include_xcom = flask.request.args.get("include_xcom")
     dag_ids = flask.request.args.getlist("dag_ids")
-    tasks = flask.request.args.get("tasks", type=int)
+    task_quantity = flask.request.args.get("tasks", type=int)
     rbac_enabled = conf.get("webserver", "rbac").lower() == "true"
 
-    if not since and not include_logs and not dag_ids and not tasks:
+    if not since and not include_logs and not dag_ids and not task_quantity:
         new_since = datetime.datetime.utcnow().replace(
             tzinfo=pendulum.timezone("UTC")
         ) - datetime.timedelta(days=1)
@@ -621,11 +725,17 @@ def export_data_api(dagbag):
 
     # do_update = flask.request.args.get("do_update", "").lower() == "true"
     # verbose = flask.request.args.get("verbose", str(not do_update)).lower() == "true"
-    return json_response(
-        _handle_export_data(
-            dagbag, since, include_logs, include_task_args, dag_ids, tasks
-        )
+
+    export_data = _handle_export_data(
+        dagbag=dagbag,
+        since=since,
+        include_logs=include_logs,
+        include_task_args=include_task_args,
+        include_xcom=include_xcom,
+        dag_ids=dag_ids,
+        task_quantity=task_quantity,
     )
+    return json_response(export_data)
 
 
 ### Plugin ###
@@ -643,7 +753,14 @@ class DataExportAirflowPlugin(AirflowPlugin):
 
 
 def export_data_directly(
-    sql_alchemy_conn, dag_folder, since, include_logs, include_task_args, dag_ids, tasks
+    sql_alchemy_conn,
+    dag_folder,
+    since,
+    include_logs,
+    include_task_args,
+    include_xcom,
+    dag_ids,
+    task_quantity,
 ):
     from airflow import models, settings, conf
     from airflow.settings import STORE_SERIALIZED_DAGS
@@ -660,11 +777,12 @@ def export_data_directly(
     engine = create_engine(sql_alchemy_conn)
     session = sessionmaker(bind=engine)
     return _handle_export_data(
-        dagbag,
-        since,
-        include_logs,
-        include_task_args,
-        dag_ids,
-        tasks,
+        dagbag=dagbag,
+        since=since,
+        include_logs=include_logs,
+        include_task_args=include_task_args,
+        include_xcom=include_xcom,
+        dag_ids=dag_ids,
+        task_quantity=task_quantity,
         session=session(),
     )

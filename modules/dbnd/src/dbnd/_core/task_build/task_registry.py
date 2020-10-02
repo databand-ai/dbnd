@@ -179,7 +179,7 @@ class DbndTaskRegistry(SingletonContext):
                     setattr(task_module, possible_root_task, decorated_task)
                     logger.warning(
                         "Found non-decorated task: %s. "
-                        "Please decorate this task with the proper symbol @pipeline \ @task.\n"
+                        "Please decorate this task with the proper symbol @pipeline / @task.\n"
                         "Auto-decorating and treating it as @task ...",
                         task_name,
                     )

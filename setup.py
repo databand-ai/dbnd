@@ -55,6 +55,7 @@ EXTRAS_REQUIRE = {
     "spark": [dbnd_package("dbnd-spark")],
     "postgres": [dbnd_package("dbnd-postgres")],
     "redshift": [dbnd_package("dbnd-redshift")],
+    "snowflake": [dbnd_package("dbnd-snowflake")],
     "tensorflow": [dbnd_package("dbnd-tensorflow")],
     "luigi": [dbnd_package("dbnd-luigi")],
 }

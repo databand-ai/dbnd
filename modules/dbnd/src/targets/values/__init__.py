@@ -31,6 +31,11 @@ from targets.values.value_type import InlineValueType
 from targets.values.version_value import VersionValueType
 
 
+if typing.TYPE_CHECKING:
+    from typing import Any, Optional
+    from targets.value_meta import ValueMetaConf, ValueMeta
+
+
 # Note: order matters. Examples:
 # isinstance(True, int) == True, so it's important to have bool check before int
 # isinstance(datetime.datetime.utc(), date) == True

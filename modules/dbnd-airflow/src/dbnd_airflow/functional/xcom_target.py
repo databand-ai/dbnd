@@ -103,7 +103,7 @@ class AirflowXComFileSystem(FileSystem):
     def open_read(self, path, mode="r"):
         return FileWrapper(io.BufferedReader(io.FileIO(path, mode)))
 
-    def open_write(self, path, mode="w"):
+    def open_write(self, path, mode="w", **kwargs):
         return AtomicLocalFile(path, fs=self, mode=mode)
 
 

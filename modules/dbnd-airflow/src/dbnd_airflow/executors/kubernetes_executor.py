@@ -17,6 +17,7 @@
 
 import logging
 import signal
+import time
 import typing
 
 from airflow.contrib.executors.kubernetes_executor import (
@@ -364,6 +365,9 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                         "last resource_version: %s",
                         self.resource_version,
                     )
+                    time.sleep(
+                        self.kube_dbnd.engine_config.watcher_recreation_interval_seconds
+                    )
         except (KeyboardInterrupt, DatabandSigTermError):
             pass
 
@@ -377,48 +381,71 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
         watcher = watch.Watch()
 
-        kwargs = {"label_selector": "airflow-worker={}".format(worker_uuid)}
+        kwargs = {
+            "label_selector": "airflow-worker={}".format(worker_uuid),
+            "_request_timeout": (
+                kube_client.engine_config.watcher_event_listener_timeout_seconds,
+            )
+            * 2,
+        }
         if resource_version:
             kwargs["resource_version"] = resource_version
         if kube_config.kube_client_request_args:
             for key, value in kube_config.kube_client_request_args.items():
                 kwargs[key] = value
 
-        last_resource_version = None
-        for event in watcher.stream(
-            kube_client.list_namespaced_pod, self.namespace, **kwargs
-        ):
-            # DBND PATCH
-            # we want to process the message
-            task = event["object"]
-            self.log.debug(
-                "Event: %s had an event of type %s", task.metadata.name, event["type"]
+        try:
+            for event in watcher.stream(
+                kube_client.list_namespaced_pod, self.namespace, **kwargs
+            ):
+                is_event_queue_empty = False
+                try:
+                    # DBND PATCH
+                    # we want to process the message
+                    task = event["object"]
+                    self.log.debug(
+                        "Event: %s had an event of type %s",
+                        task.metadata.name,
+                        event["type"],
+                    )
+
+                    if event["type"] == "ERROR":
+                        return self.process_error(event)
+
+                    pod_data = event["object"]
+                    pod_name = pod_data.metadata.name
+                    phase = pod_data.status.phase
+
+                    if self.processed_events.get(pod_name):
+                        self.log.debug(
+                            "Event: %s at %s - skipping as seen", phase, pod_name
+                        )
+                        continue
+                    status = self.kube_dbnd.process_pod_event(event)
+
+                    self._update_node_name(pod_name, pod_data)
+
+                    if status in ["Succeeded", "Failed"]:
+                        self.processed_events[pod_name] = status
+
+                    self.process_status_quite(
+                        task.metadata.name,
+                        status,
+                        task.metadata.labels,
+                        task.metadata.resource_version,
+                    )
+                    self.resource_version = task.metadata.resource_version
+
+                except Exception as e:
+                    self.log.warning(
+                        "Event: Exception raised on specific event: %s, Exception: %s",
+                        event,
+                        e,
+                    )
+        except Exception as e:
+            self.log.warning(
+                "Event: Exception raised when watching for events! Exception: %s", e,
             )
-
-            if event["type"] == "ERROR":
-                return self.process_error(event)
-
-            pod_data = event["object"]
-            pod_name = pod_data.metadata.name
-            phase = pod_data.status.phase
-
-            if self.processed_events.get(pod_name):
-                self.log.debug("Event: %s at %s - skipping as seen", phase, pod_name)
-                continue
-            status = self.kube_dbnd.process_pod_event(event)
-
-            self._update_node_name(pod_name, pod_data)
-
-            if status in ["Succeeded", "Failed"]:
-                self.processed_events[pod_name] = status
-
-            self.process_status_quite(
-                task.metadata.name,
-                status,
-                task.metadata.labels,
-                task.metadata.resource_version,
-            )
-            self.resource_version = task.metadata.resource_version
 
         return self.resource_version
 

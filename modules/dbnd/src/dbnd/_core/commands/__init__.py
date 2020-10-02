@@ -3,6 +3,7 @@ from dbnd._core.commands.metrics import (
     log_dataframe,
     log_duration,
     log_metric,
+    log_metrics,
 )
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 
