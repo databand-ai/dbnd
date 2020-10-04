@@ -90,7 +90,7 @@ class TaskRunTracker(TaskRunCtrl):
 
     def _log_metrics(self, metrics):
         # type: (List[Metric]) -> None
-        self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
+        return self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
 
     def log_artifact(self, name, artifact):
         try:

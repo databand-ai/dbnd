@@ -1,3 +1,7 @@
+from dbnd._core.configuration.environ_config import (
+    DBND_PARENT_TASK_RUN_ATTEMPT_UID,
+    DBND_PARENT_TASK_RUN_UID,
+)
 from dbnd._core.settings import CoreConfig, TrackingConfig
 
 
@@ -14,18 +18,14 @@ def get_airflow_conf(
         AIRFLOW_CTX_TASK_ID - name of the Airflow Task to associate a run with
         AIRFLOW_CTX_TRY_NUMBER - try number of the Airflow Task to associate a run with
     """
-    airflow_conf = [
-        ("AIRFLOW_CTX_DAG_ID", dag_id),
-        ("AIRFLOW_CTX_EXECUTION_DATE", execution_date),
-        ("AIRFLOW_CTX_TASK_ID", task_id),
-        ("AIRFLOW_CTX_TRY_NUMBER", try_number),
-    ]
+    airflow_conf = {
+        "AIRFLOW_CTX_DAG_ID": dag_id,
+        "AIRFLOW_CTX_EXECUTION_DATE": execution_date,
+        "AIRFLOW_CTX_TASK_ID": task_id,
+        "AIRFLOW_CTX_TRY_NUMBER": try_number,
+    }
 
-    databand_url = _get_databand_url()
-    if databand_url:
-        return airflow_conf + [("DBND__CORE__DATABAND_URL", databand_url)]
-
-    return airflow_conf
+    return {**airflow_conf, **get_databand_url_conf()}
 
 
 def _get_databand_url():
@@ -36,3 +36,46 @@ def _get_databand_url():
         return CoreConfig().databand_url
     except Exception:
         pass
+
+
+def get_databand_url_conf():
+    databand_url = _get_databand_url()
+    if databand_url:
+        return {"DBND__CORE__DATABAND_URL": databand_url}
+    return {}
+
+
+def extract_airflow_tracking_conf(context):
+    return {**extract_airflow_conf(context), **get_databand_url_conf()}
+
+
+def extract_airflow_conf(context):
+    task_instance = context.get("task_instance")
+    if task_instance is None:
+        return {}
+
+    dag_id = task_instance.dag_id
+    task_id = task_instance.task_id
+    execution_date = str(task_instance.execution_date)
+    try_number = str(task_instance.try_number)
+
+    if dag_id and task_id and execution_date:
+        return {
+            "AIRFLOW_CTX_DAG_ID": dag_id,
+            "AIRFLOW_CTX_EXECUTION_DATE": execution_date,
+            "AIRFLOW_CTX_TASK_ID": task_id,
+            "AIRFLOW_CTX_TRY_NUMBER": try_number,
+        }
+    return {}
+
+
+def get_env_dbnd_track(context, task_run):
+    envs = extract_airflow_conf(context)
+    return extend_airflow_ctx_env_with_dbnd(task_run, envs)
+
+
+def extend_airflow_ctx_env_with_dbnd(task_run, airflow_ctx_env):
+    envs = airflow_ctx_env.copy()
+    envs[DBND_PARENT_TASK_RUN_UID] = str(task_run.task_run_uid)
+    envs[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = str(task_run.task_run_attempt_uid)
+    return envs

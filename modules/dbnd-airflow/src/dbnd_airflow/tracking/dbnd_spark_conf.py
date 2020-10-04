@@ -6,7 +6,10 @@ from functools import partial
 from dbnd._core.errors import DatabandError
 from dbnd_airflow.tracking.conf_operations import fix_keys, flat_conf
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
-from dbnd_airflow.tracking.dbnd_airflow_conf import get_airflow_conf
+from dbnd_airflow.tracking.dbnd_airflow_conf import (
+    extract_airflow_tracking_conf,
+    get_airflow_conf,
+)
 from dbnd_airflow.utils import logger
 
 
@@ -17,12 +20,12 @@ def spark_env(key):
 add_spark_env_fields = partial(fix_keys, spark_env)
 
 
-def _filter_vars(key, bypass_dbnd, bypass_airflow, bypass_rest):
+def _filter_vars(key, bypass_dbnd=True, bypass_airflow=True, bypass_rest=True):
     if key.startswith("AIRFLOW_"):
-        return True if bypass_airflow else False
-    if key.startswith("DBND_"):
-        return True if bypass_dbnd else False
-    return True if bypass_rest else False
+        return bypass_airflow
+    elif key.startswith("DBND_"):
+        return bypass_dbnd
+    return bypass_rest
 
 
 def dbnd_tracking_env(
@@ -45,16 +48,16 @@ def dbnd_wrap_spark_environment(environment=None):
 
 
 def with_dbnd_tracking_spark_conf(user_dict):
-    dbnd_dict = get_dbnd_tracking_spark_conf_dict()
+    dbnd_dict = get_dbnd_tracking_spark_conf()
     user_dict.update(dbnd_dict)
     return user_dict
 
 
-def get_dbnd_tracking_spark_conf_dict(**kwargs):
-    return dict(add_spark_env_fields(get_airflow_conf(**kwargs)))
-
-
 def get_dbnd_tracking_spark_conf(**kwargs):
+    return add_spark_env_fields(get_airflow_conf(**kwargs))
+
+
+def get_dbnd_tracking_spark_flat_conf(**kwargs):
     return flat_conf(add_spark_env_fields(get_airflow_conf(**kwargs)))
 
 
@@ -80,9 +83,10 @@ def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
         An updated spark-submit command including dbnd context.
 
     """
-
-    if not dbnd_context:
-        dbnd_context = get_dbnd_tracking_spark_conf()
+    if dbnd_context:
+        context = dbnd_context
+    else:
+        context = get_dbnd_tracking_spark_flat_conf()
 
     index = next(
         (
@@ -95,7 +99,7 @@ def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
     if index == -1:
         raise Exception("Failed to find spark-submit in %s" % " ".join(command_as_list))
 
-    return command_as_list[0 : index + 1] + dbnd_context + command_as_list[index + 1 :]
+    return command_as_list[0 : index + 1] + context + command_as_list[index + 1 :]
 
 
 logger = logging.getLogger(__name__)

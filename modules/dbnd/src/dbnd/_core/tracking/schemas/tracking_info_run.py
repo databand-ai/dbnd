@@ -15,9 +15,14 @@ from dbnd._core.configuration.environ_config import (
     SCHEDULED_DAG_RUN_ID_ENV,
     SCHEDULED_DATE_ENV,
     SCHEDULED_JOB_UID_ENV,
+    spark_tracking_enabled,
 )
 from dbnd._core.constants import RunState, _DbndDataClass
 from dbnd._core.current import try_get_current_task_run, try_get_databand_run
+from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
+    _SPARK_ENV_FLAG,
+    _is_dbnd_spark_installed,
+)
 from dbnd._core.utils import timezone
 
 
@@ -117,8 +122,10 @@ class RootRunInfo(_DbndDataClass):
         # take from env
         root_run_uid = os.environ.get(DBND_ROOT_RUN_UID)
         root_run_url = os.environ.get(DBND_ROOT_RUN_TRACKER_URL)
-        root_task_run_uid = os.environ.get(DBND_PARENT_TASK_RUN_UID)
-        root_task_run_attempt_uid = os.environ.get(DBND_PARENT_TASK_RUN_ATTEMPT_UID)
+        root_task_run_uid = get_from_env_or_spark_env(DBND_PARENT_TASK_RUN_UID)
+        root_task_run_attempt_uid = get_from_env_or_spark_env(
+            DBND_PARENT_TASK_RUN_ATTEMPT_UID
+        )
 
         if not root_run_uid:
             # current run is the main run
@@ -131,3 +138,26 @@ class RootRunInfo(_DbndDataClass):
             root_task_run_uid=root_task_run_uid,
             root_task_run_attempt_uid=root_task_run_attempt_uid,
         )
+
+
+def get_from_env_or_spark_env(key):
+    value = os.environ.get(key)
+    if value:
+        return value
+
+    # spark guards
+    if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
+        return None
+
+    if not _is_dbnd_spark_installed():
+        return None
+
+    try:
+        from pyspark import SparkContext
+
+        conf = SparkContext.getOrCreate().getConf()
+        value = conf.get("spark.env." + key)
+        if value:
+            return value
+    except:
+        return None

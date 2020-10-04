@@ -160,7 +160,6 @@ class DbndProjectConfig(object):
     def __init__(self):
         # IF FALSE  - we will not modify decorated @task code
         self._disabled = environ_enabled(ENV_DBND__DISABLED, False)
-
         self.unit_test_mode = environ_enabled(ENV_DBND__UNITTEST_MODE)
 
         self.max_calls_per_run = environ_int(
@@ -198,7 +197,7 @@ class DbndProjectConfig(object):
         self._disabled = value
 
     def airflow_context(self):
-        if self._airflow_context is False:
+        if not self._airflow_context:
             from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
                 try_get_airflow_context,
             )

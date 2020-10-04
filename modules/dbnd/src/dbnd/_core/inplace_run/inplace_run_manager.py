@@ -14,7 +14,7 @@ from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
-    AirflowOperatorRuntimeTask,
+    build_run_time_airflow_task,
     override_airflow_log_system_for_tracking,
     try_get_airflow_context,
 )
@@ -88,35 +88,24 @@ class _DbndInplaceRunManager(object):
             cm = self._context_managers.pop()
             cm.__exit__(None, None, None)
 
-    def start(self, root_task_name, job_name=None):
+    def start(self, root_task_name=None, airflow_context=None):
         if self._run or self._active or try_get_databand_run():
             return
 
-        airflow_context = try_get_airflow_context()
-        set_tracking_config_overide(use_dbnd_log=True, airflow_context=airflow_context)
-
-        # 1. create proper DatabandContext so we can create other objects
         dc = self._enter_cm(new_dbnd_context())  # type: DatabandContext
 
+        airflow_context = airflow_context or try_get_airflow_context()
         if airflow_context:
-            root_task_or_task_name = AirflowOperatorRuntimeTask.build_from_airflow_context(
-                airflow_context
-            )
-            source = UpdateSource.airflow_tracking
-            job_name = "{}.{}".format(airflow_context.dag_id, airflow_context.task_id)
+            root_task, job_name, source = build_run_time_airflow_task(airflow_context)
         else:
-            root_task_or_task_name = _build_inline_root_task(root_task_name)
+            root_task = _build_inline_root_task(root_task_name)
+            job_name = None
             source = UpdateSource.dbnd
 
-        # create databand run
-        # this will create databand run with driver and root tasks.
-
-        # create databand run
-        # we will want to preserve
         self._run = self._enter_cm(
             new_databand_run(
                 context=dc,
-                task_or_task_name=root_task_or_task_name,
+                task_or_task_name=root_task,
                 job_name=job_name,
                 existing_run=False,
                 source=source,
@@ -133,10 +122,10 @@ class _DbndInplaceRunManager(object):
 
         # now we send data to DB
         self._run._init_without_run()
-
         self._start_taskrun(self._run.driver_task_run)
         self._start_taskrun(self._run.root_task_run)
         self._task_run = self._run.root_task_run
+
         return self._task_run
 
     def _start_taskrun(self, task_run):
@@ -246,7 +235,7 @@ def try_get_inplace_task_run():
 _dbnd_inline_manager = None  # type: Optional[_DbndInplaceRunManager]
 
 
-def dbnd_run_start(name=None):
+def dbnd_run_start(name=None, airflow_context=None):
     if get_dbnd_project_config().disabled:
         return None
 
@@ -254,10 +243,12 @@ def dbnd_run_start(name=None):
     if not _dbnd_inline_manager:
         dsm = _DbndInplaceRunManager()
         try:
-            dsm.start(root_task_name=name)
+            dsm.start(name, airflow_context)
+
             if dsm._active:
                 _dbnd_inline_manager = dsm
-        except Exception:
+        except Exception as e:
+            logger.error(e, exc_info=True)
             _handle_inline_run_error("inline-start")
             get_dbnd_project_config().disabled = True
             return None

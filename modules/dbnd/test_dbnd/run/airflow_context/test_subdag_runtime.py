@@ -24,7 +24,8 @@ def fake_task_inside_dag():
 
     # Validate regular subdag properties
     assert run.job_name == "%s.%s.fake_task_inside_dag" % (PARENT_DAG, CHILD_DAG)
-    assert root_task.task_name == "fake_task_inside_dag__execute"
+    # this test got problematic cause airflow_inplace task named as the script that ran it
+    assert root_task.task_name.endswith(".py")
 
     return "Regular test"
 

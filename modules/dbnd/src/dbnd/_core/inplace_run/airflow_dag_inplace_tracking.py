@@ -4,12 +4,10 @@ Here we create dbnd objects to represent them and send to webserver through trac
 """
 import datetime
 import logging
-import operator
 import os
+import sys
 
-from collections import Callable
-from types import FrameType
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import attr
 
@@ -20,8 +18,11 @@ from dbnd._core.configuration.environ_config import (
     _debug_init_print,
     spark_tracking_enabled,
 )
+from dbnd._core.constants import UpdateSource
+from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
+from dbnd._core.task_build.dynamic import build_dynamic_task_class
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
 
@@ -50,6 +51,7 @@ class AirflowTaskContext(object):
     execution_date = attr.ib()  # type: str
     task_id = attr.ib()  # type: str
     try_number = attr.ib(default=1)
+    context = attr.ib(default=None)  # type: Optional[dict]
 
     root_dag_id = attr.ib(init=False, repr=False)  # type: str
     is_subdag = attr.ib(init=False, repr=False)  # type: bool
@@ -72,44 +74,6 @@ class AirflowTaskContext(object):
             self.parent_dags = []
 
 
-# after py35 inspect.stack() return a numbed tuple FrameInfo, and before that it is just a tuple
-# those functions save backward compatibility and still understandable
-FrameInfo = Tuple[FrameType, str, int, str, Optional[List[str]], Optional[int]]
-get_frame = operator.itemgetter(0)  # type: Callable[[FrameInfo], FrameType]
-get_filename = operator.itemgetter(1)  # type: Callable[[FrameInfo], str]
-get_function = operator.itemgetter(3)  # type: Callable[[FrameInfo], str]
-
-
-def get_frame_info(file_name, func_name):
-    # type: (str, str) -> Optional[FrameInfo]
-    """Find the first frame in the stack by file name and function name"""
-    from more_itertools import first
-    import inspect
-
-    return first(
-        filter(
-            lambda frame: file_name in get_filename(frame).lower()
-            and get_function(frame) == func_name,
-            inspect.stack(),
-        ),
-        None,
-    )
-
-
-def try_get_airflow_context_inspect():
-    # type: () -> Optional[AirflowTaskContext]
-    """Trying to extract the airflow_context using `inspect` to get the frame in which the context sent to `execute`"""
-    frame_info = get_frame_info(file_name="taskinstance", func_name="_run_raw_task")
-    if frame_info is None:
-        return None
-
-    airflow_context = get_frame(frame_info).f_locals.get("context")
-    if airflow_context is None:
-        return None
-
-    return extract_airflow_context(airflow_context)
-
-
 def extract_airflow_context(airflow_context):
     # type: (Dict[str, Any]) -> Optional[AirflowTaskContext]
     """Create AirflowTaskContext for airflow_context dict"""
@@ -129,6 +93,7 @@ def extract_airflow_context(airflow_context):
             execution_date=execution_date,
             task_id=task_id,
             try_number=try_number,
+            context=airflow_context,
         )
 
     logger.debug(
@@ -146,7 +111,6 @@ def try_get_airflow_context():
     try:
         for func in [
             try_get_airflow_context_from_spark_conf,
-            try_get_airflow_context_inspect,
             try_get_airflow_context_env,
         ]:
             context = func()
@@ -173,7 +137,7 @@ def try_get_airflow_context_env():
             dag_id=dag_id,
             execution_date=execution_date,
             task_id=task_id,
-            try_number=try_number,
+            try_number=int(try_number) if try_number else None,
         )
 
     logger.debug(
@@ -240,7 +204,7 @@ def try_get_airflow_context_from_spark_conf():
                 try_number=try_number,
             )
     except Exception as ex:
-        logger.info("Failed to get airlfow context info from spark job: %s", ex)
+        logger.info("Failed to get airflow context info from spark job: %s", ex)
 
     return None
 
@@ -263,15 +227,59 @@ class AirflowOperatorRuntimeTask(Task):
             is_root_task=False,
         )
 
-    @classmethod
-    def build_from_airflow_context(self, af_context):
-        # we can't actually run it, we even don't know when it's going to finish
-        # current execution is inside the operator, this is the only thing we know
 
-        # AIRFLOW OPERATOR RUNTIME
-        return AirflowOperatorRuntimeTask(
-            task_family="%s__execute" % (af_context.task_id),
-            dag_id=af_context.dag_id,
-            execution_date=af_context.execution_date,
-            task_version="%s:%s" % (af_context.task_id, af_context.execution_date),
+def build_run_time_airflow_task(af_context):
+    # type: (AirflowTaskContext) -> (AirflowOperatorRuntimeTask, str, UpdateSource)
+    if af_context.context:
+        # we are in the execute entry point and therefore that task name is <task>__execute
+        task_family = "%s__execute" % af_context.task_id
+
+        airflow_operator = af_context.context["task_instance"].task
+
+        # find the template fields of the operators
+        user_params = {
+            attr_name: getattr(airflow_operator, attr_name)
+            for attr_name in airflow_operator.template_fields
+        }
+
+        # create params definitions for the operator's fields
+        params_def = {
+            name: parameter[type(value)].build_parameter("inline")
+            for name, value in user_params.items()
+        }
+        task_class = build_dynamic_task_class(
+            AirflowOperatorRuntimeTask, task_family, params_def
         )
+
+    else:
+        # if this is an inline run-time task, we name it after the script which ran it
+        task_family = sys.argv[0].split(os.path.sep)[-1]
+        task_class = build_dynamic_task_class(AirflowOperatorRuntimeTask, task_family)
+        module_code = get_user_module_code()
+        task_class.task_definition.task_module_code = module_code
+        task_class.task_definition.task_source_code = module_code
+        user_params = {}
+
+    root_task = task_class(
+        task_name=task_family,
+        dag_id=af_context.dag_id,
+        execution_date=af_context.execution_date,
+        task_version="%s:%s" % (af_context.task_id, af_context.execution_date),
+        **user_params
+    )
+
+    job_name = "{}.{}".format(af_context.dag_id, af_context.task_id)
+    source = UpdateSource.airflow_tracking
+    return root_task, job_name, source
+
+
+def get_user_module_code():
+    try:
+        user_frame = UserCodeDetector.build_code_detector().find_user_side_frame(
+            user_side_only=True
+        )
+        if user_frame:
+            module_code = open(user_frame.filename).read()
+            return module_code
+    except Exception as ex:
+        return

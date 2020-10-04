@@ -67,6 +67,9 @@ class TaskRunsInfoSchema(ApiObjectSchema):
     task_definitions = fields.Nested(TaskDefinitionInfoSchema, many=True)
     af_context = fields.Nested(AirflowTaskContextSchema, allow_none=True)
 
+    parent_task_run_uid = fields.UUID(allow_none=True)
+    parent_task_run_attempt_uid = fields.UUID(allow_none=True)
+
     @post_load
     def make_run_info(self, data, **kwargs):
         return _as_dotted_dict(**data)
@@ -358,6 +361,9 @@ class TaskRunsInfo(object):
     upstreams_map = attr.ib(default=None)
     dynamic_task_run_update = attr.ib(default=False)
     af_context = attr.ib(default=None)  # type: Optional[AirflowTaskContext]
+
+    parent_task_run_uid = attr.ib(default=None)  # type: Optional[UUID]
+    parent_task_run_attempt_uid = attr.ib(default=None)  # type: Optional[UUID]
 
 
 @attr.s

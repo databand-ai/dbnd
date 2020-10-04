@@ -1,6 +1,7 @@
 import airflow.utils.operator_helpers
 
-from dbnd._core.current import try_get_databand_run
+from dbnd._core.current import try_get_current_task_run
+from dbnd_airflow.tracking.dbnd_airflow_conf import extend_airflow_ctx_env_with_dbnd
 
 
 def context_to_airflow_vars(context, in_env_var_format=False):
@@ -9,9 +10,9 @@ def context_to_airflow_vars(context, in_env_var_format=False):
         context=context, in_env_var_format=in_env_var_format
     )
     if in_env_var_format:
-        dbnd_run = try_get_databand_run()
-        if dbnd_run:
-            params.update(dbnd_run.get_context_spawn_env())
+        task_run = try_get_current_task_run()  # type: TaskRun
+        if task_run:
+            params = extend_airflow_ctx_env_with_dbnd(task_run, params)
 
     try_number = str(context['task_instance'].try_number)
     params.update({"AIRFLOW_CTX_TRY_NUMBER": try_number})

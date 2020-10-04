@@ -144,6 +144,8 @@ class TrackingInfoBuilder(object):
             upstreams_map=upstreams_map,
             dynamic_task_run_update=dynamic_task_run_update,
             af_context=run.af_context,
+            parent_task_run_uid=run.root_run_info.root_task_run_uid,
+            parent_task_run_attempt_uid=run.root_run_info.root_task_run_attempt_uid,
         )
 
     def task_to_targets(self, task, targets):
