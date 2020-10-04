@@ -380,11 +380,10 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         from kubernetes import watch
 
         watcher = watch.Watch()
-
         kwargs = {
             "label_selector": "airflow-worker={}".format(worker_uuid),
             "_request_timeout": (
-                kube_client.engine_config.watcher_event_listener_timeout_seconds,
+                self.kube_dbnd.engine_config.watcher_event_listener_timeout_seconds,
             )
             * 2,
         }
@@ -394,59 +393,52 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             for key, value in kube_config.kube_client_request_args.items():
                 kwargs[key] = value
 
-        try:
-            for event in watcher.stream(
-                kube_client.list_namespaced_pod, self.namespace, **kwargs
-            ):
-                is_event_queue_empty = False
-                try:
-                    # DBND PATCH
-                    # we want to process the message
-                    task = event["object"]
+        for event in watcher.stream(
+            kube_client.list_namespaced_pod, self.namespace, **kwargs
+        ):
+            try:
+                # DBND PATCH
+                # we want to process the message
+                task = event["object"]
+                self.log.debug(
+                    "Event: %s had an event of type %s",
+                    task.metadata.name,
+                    event["type"],
+                )
+
+                if event["type"] == "ERROR":
+                    return self.process_error(event)
+
+                pod_data = event["object"]
+                pod_name = pod_data.metadata.name
+                phase = pod_data.status.phase
+
+                if self.processed_events.get(pod_name):
                     self.log.debug(
-                        "Event: %s had an event of type %s",
-                        task.metadata.name,
-                        event["type"],
+                        "Event: %s at %s - skipping as seen", phase, pod_name
                     )
+                    continue
+                status = self.kube_dbnd.process_pod_event(event)
 
-                    if event["type"] == "ERROR":
-                        return self.process_error(event)
+                self._update_node_name(pod_name, pod_data)
 
-                    pod_data = event["object"]
-                    pod_name = pod_data.metadata.name
-                    phase = pod_data.status.phase
+                if status in ["Succeeded", "Failed"]:
+                    self.processed_events[pod_name] = status
 
-                    if self.processed_events.get(pod_name):
-                        self.log.debug(
-                            "Event: %s at %s - skipping as seen", phase, pod_name
-                        )
-                        continue
-                    status = self.kube_dbnd.process_pod_event(event)
+                self.process_status_quite(
+                    task.metadata.name,
+                    status,
+                    task.metadata.labels,
+                    task.metadata.resource_version,
+                )
+                self.resource_version = task.metadata.resource_version
 
-                    self._update_node_name(pod_name, pod_data)
-
-                    if status in ["Succeeded", "Failed"]:
-                        self.processed_events[pod_name] = status
-
-                    self.process_status_quite(
-                        task.metadata.name,
-                        status,
-                        task.metadata.labels,
-                        task.metadata.resource_version,
-                    )
-                    self.resource_version = task.metadata.resource_version
-
-                except Exception as e:
-                    self.log.warning(
-                        "Event: Exception raised on specific event: %s, Exception: %s",
-                        event,
-                        e,
-                    )
-        except Exception as e:
-            self.log.warning(
-                "Event: Exception raised when watching for events! Exception: %s", e,
-            )
-
+            except Exception as e:
+                self.log.warning(
+                    "Event: Exception raised on specific event: %s, Exception: %s",
+                    event,
+                    e,
+                )
         return self.resource_version
 
     def _update_node_name(self, pod_name, pod_data):
