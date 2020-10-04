@@ -1,0 +1,5 @@
+logs/
+data/
+dbnd.db
+unittests.db
+airflow-webserver.pid
