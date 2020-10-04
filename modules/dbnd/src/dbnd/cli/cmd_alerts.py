@@ -5,8 +5,15 @@ import logging
 from dbnd._core.cli.utils import with_fast_dbnd_context
 from dbnd._core.constants import AlertSeverity, RunState, TaskRunState
 from dbnd._core.errors.base import DatabandApiError
+from dbnd._core.utils.basics.text_banner import TextBanner, safe_tabulate
+from dbnd._core.utils.cli import options_dependency, requierd_mutually_exclude_options
 from dbnd._vendor import click
-from dbnd.api.alerts import create_alert, delete_alerts_filtered, list_job_alerts
+from dbnd.api.alerts import (
+    create_alert,
+    delete_alerts,
+    get_alerts_filtered,
+    list_job_alerts,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -147,17 +154,30 @@ def alerts(ctx):
     pass
 
 
-@alerts.group()
+CREATE_HELP_MSG = """
+Create alert for given job\n
+\n
+EXAMPLES\n
+    dbnd alerts create --job my_job --severity HIGH maximum-duration -v 100\n
+    dbnd alerts create --job my_job --severity LOW maximum-retries -v 6\n
+    dbnd alerts create --job my_job --severity CRITICAL ran-last-x-seconds -v 600\n
+    dbnd alerts create --job my_job --severity MEDIUM run-state -v failed\n
+    dbnd alerts create --job my_job --severity MEDIUM --task my_job_task task-state -v cancelled\n
+    dbnd alerts create --job my_job --severity CRITICAL --task my_job_task custom-metric --metric-name my_metric -v 100 --op "<="\n
+"""
+
+
+@alerts.group(help=CREATE_HELP_MSG)
 @click.option("--severity", "-s", help="Alert severity", type=Severity(), required=True)
 @click.option("--job", "-j", help="Job name", type=click.STRING, required=True)
 @click.option("--task", "-t", help="Task name", type=click.STRING, required=False)
 @click.pass_context
 def create(ctx, job, severity, task):
-    """Manage alerts for given job."""
+    """Create alerts for given job."""
     ctx.obj = {"job": job, "severity": severity, "task": task}
 
 
-# Registering the manage commands
+# Registering the create commands
 for name, values in supported_alerts.items():
     f = bind_function(name, **values)
     create.command(name=name.replace("_", "-"))(f)
@@ -173,25 +193,43 @@ def list_jobs(job):
     except LookupError as e:
         logger.error(e)
     else:
-        logger.info(
-            "{amount} Alerts configured for {job}:".format(
-                job=job, amount=len(alerts_list)
-            )
-        )
-        for alert in alerts_list:
-            show_alert(alert)
+        print_table("Alerts configured for {job}".format(job=job), alerts_list)
 
 
-def show_alert(alert):
-    alert.setdefault("value", "")
-    try:
-        logger.info(
-            "user_metric: {user_metric}\t| alert_type: {type} {operator} {value}\t| severity: {severity}".format(
-                **alert
-            )
-        )
-    except KeyError:
-        logger.error("error while parsing alert {alert}".format(alert=alert))
+def print_table(header, alerts_list):
+    banner = TextBanner(header)
+    banner.write(build_alerts_table(alerts_list))
+    logger.info(banner.get_banner_str())
+
+
+def build_alerts_table(alerts_data):
+    extract_keys = (
+        "uid",
+        "job_name",
+        "task_name",
+        "custom_name",
+        "type",
+        "severity",
+        "operator",
+        "value",
+        "user_metric",
+    )
+    headers = (
+        "uid",
+        "job",
+        "task",
+        "name",
+        "severity",
+        "type",
+        "op",
+        "value",
+        "metric",
+    )
+    table_data = []
+    for alert in alerts_data:
+        alert_row = [alert.get(key, "") for key in extract_keys]
+        table_data.append(alert_row)
+    return safe_tabulate(table_data, headers)
 
 
 def cmd_create_alert(manage_ctx, alert, operator, value, user_metric):
@@ -213,21 +251,23 @@ def cmd_create_alert(manage_ctx, alert, operator, value, user_metric):
 
 @alerts.command()
 @with_fast_dbnd_context
-@click.option("--job", "-j", help="Job name", type=click.STRING, required=True)
-@click.option(
-    "--alert",
-    "-a",
-    help="Alert name",
-    type=click.Choice(
-        [alerts_dict["alert"] for alerts_dict in supported_alerts.values()],
-        case_sensitive=False,
-    ),
-    required=True,
-)
-def delete(job, alert):
-    """Delete alert from the given job"""
-    try:
-        delete_alerts_filtered(job, alert)
-        logger.info("Alert %s deleted from scheduled job %s", alert, job)
-    except LookupError as e:
-        logger.error(e)
+@options_dependency("job", "name")
+@requierd_mutually_exclude_options("uid", "wipe", "job")
+@click.option("--uid", "-u", help="alert uid", type=click.STRING)
+@click.option("--wipe", help="delete all alerts", is_flag=True)
+@click.option("--job", "-j", help="job name", type=click.STRING)
+@click.option("--name", "-n", help="alert custom name", type=click.STRING)
+def delete(uid, wipe, job, name):
+    """Delete alerts"""
+    if wipe:
+        alerts_list = get_alerts_filtered()
+    elif uid:
+        alerts_list = get_alerts_filtered(alert_uid=uid)
+    else:
+        alerts_list = get_alerts_filtered(job_name=job, custom_name=name)
+    if alerts_list:
+        uids = [alert["uid"] for alert in alerts_list]
+        delete_alerts(uids)
+        print_table("deleted", alerts_list)
+    else:
+        logger.error("alerts not found to delete")
