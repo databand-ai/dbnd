@@ -17,7 +17,7 @@ def not_none_dict(d):
 def _build_alert(
     job_name, task_name, alert_class, severity, operator, value, user_metric
 ):
-    """build alert for scheduled job"""
+    """build alert for job"""
 
     return not_none_dict(
         {
@@ -59,20 +59,6 @@ def create_alert(
 
 
 @run_if_job_exists
-def delete_alerts_filtered(job_name, alert):
-    alerts = get_alerts_filtered(job_name=job_name, alert_type=alert)
-    if alerts:
-        uids = [alert["uid"] for alert in alerts]
-        delete_alerts(uids)
-    else:
-        raise LookupError(
-            "Alert {alert} is not configured for scheduled job {job_name}".format(
-                alert=alert, job_name=job_name
-            )
-        )
-
-
-@run_if_job_exists
 def list_job_alerts(job_name):
     return get_alerts_filtered(job_name=job_name)
 
@@ -90,6 +76,8 @@ build_alerts_filter = create_filters_builder(
     alert_type=("type", "eq"),
     task_name=("task_name", "eq"),
     scheduled_job_uid=("scheduled_job_uid", "eq"),
+    alert_uid=("uid", "eq"),
+    custom_name=("custom_name", "eq"),
 )
 
 
