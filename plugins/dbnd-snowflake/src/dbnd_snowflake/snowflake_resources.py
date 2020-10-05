@@ -2,6 +2,7 @@ import logging
 
 from decimal import Decimal
 from textwrap import dedent
+from typing import Optional
 
 from dbnd import log_duration, log_metrics
 from dbnd_snowflake.snowflake_values import SnowflakeController
@@ -17,7 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 def log_snowflake_resource_usage(
-    query_text, database, user, connection_string, session_id=None
+    query_text,  # type: str
+    database,  # type: str
+    user,  # type: str
+    connection_string,  # type: str
+    session_id=None,  # type: Optional[str]
+    key="snowflake_query",  # type: str
 ):
     """
     get and log cpu time, run time, disk read, and processed rows.
@@ -26,19 +32,19 @@ def log_snowflake_resource_usage(
     try:
         with log_duration("log_snowflake_resource_usage__time_seconds", "system"):
             _log_snowflake_resource_usage(
-                query_text, database, user, connection_string, session_id
+                query_text, database, user, connection_string, session_id, key
             )
     except Exception as exc:
         conn_without_pass = _censor_password(connection_string)
         logger.exception(
-            "Failed to log_redshift_resource_usage (query_text=%s, connection_string=%s)",
+            "Failed to log_snowflake_resource_usage (query_text=%s, connection_string=%s)",
             query_text,
             conn_without_pass,
         )
 
 
 def _log_snowflake_resource_usage(
-    query_text, database, user, connection_string, session_id=None,
+    query_text, database, user, connection_string, session_id=None, key=None,
 ):
     # Quick and dirty way to handle optional clause element.
     # Might be better to use SQLAlchemy expression language here
@@ -73,19 +79,18 @@ def _log_snowflake_resource_usage(
                 "snowflake_query_warning": "No resources info found",
                 "snowflake_query_text": query_text,
             },
-            source="system",
+            source="user",
         )
         return
 
     metrics = result[0]
-    key = "snowflake_query_{}".format(
-        metrics["QUERY_TAG"] if metrics["QUERY_TAG"] else metrics["QUERY_ID"]
-    )
+    key = key or "snowflake_query"
     snowflake_metric_to_ui_name = {
         "BYTES_SCANNED": "bytes_scanned",
         "COMPILATION_TIME": "compilation_time_milliseconds",
         "CREDITS_USED_CLOUD_SERVICES": "credits_used_cloud_services",
         "EXECUTION_TIME": "execution_time_milliseconds",
+        "QUERY_ID": "query_id",
         "QUERY_TEXT": "query_text",
         "ROWS_PRODUCED": "rows_produced",
         "TOTAL_ELAPSED_TIME": "total_elapsed_time_milliseconds",
@@ -99,7 +104,7 @@ def _log_snowflake_resource_usage(
             if isinstance(value, Decimal):
                 value = float(value)
             metrics_to_log[key + "." + ui_name] = value
-    log_metrics(metrics_to_log, source="system")
+    log_metrics(metrics_to_log, source="user")
 
 
 def _connect_and_query(connection_string, query, *params):

@@ -14,6 +14,7 @@ def _log_snowflake_table(
     role=None,
     schema=None,
     account=None,
+    key=None,
 ):
     hook = SnowflakeHook(
         snowflake_conn_id=snowflake_conn_id,
@@ -24,7 +25,7 @@ def _log_snowflake_table(
         schema=schema,
     )
     connection_string = hook.get_uri()
-    return log_snowflake_table(table, connection_string, database, schema)
+    return log_snowflake_table(table, connection_string, database, schema, key=key)
 
 
 def _log_snowflake_resources(
@@ -36,6 +37,7 @@ def _log_snowflake_resources(
     role=None,
     schema=None,
     account=None,
+    key=None,
 ):
     hook = SnowflakeHook(
         snowflake_conn_id,
@@ -53,6 +55,7 @@ def _log_snowflake_resources(
         user=conn_params["user"],
         connection_string=conn,
         session_id=session_id,
+        key=key,
     )
 
 
@@ -64,6 +67,7 @@ def LogSnowflakeTableOperator(
     role=None,
     schema=None,
     account=None,
+    key=None,
     *args,
     **kwargs
 ):
@@ -78,6 +82,7 @@ def LogSnowflakeTableOperator(
             database=database,
             role=role,
             schema=schema,
+            key=key,
         ),
         **kwargs
     )
@@ -106,6 +111,7 @@ def LogSnowflakeResourceOperator(
     role=None,
     schema=None,
     account=None,
+    key=None,
     *args,
     **kwargs
 ):
@@ -121,6 +127,7 @@ def LogSnowflakeResourceOperator(
             database=database,
             role=role,
             schema=schema,
+            key=key,
         ),
         **kwargs
     )
