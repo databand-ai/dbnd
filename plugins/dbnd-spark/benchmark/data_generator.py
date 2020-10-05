@@ -4,7 +4,6 @@ from time import time
 
 import click
 import pandas
-
 import pyarrow
 
 from pyarrow.parquet import ParquetWriter
