@@ -23,6 +23,7 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     is_sync_enabled = fields.Boolean(allow_none=True)
     fetcher = fields.String(allow_none=True)
     composer_client_id = fields.String(allow_none=True)
+    active_dags = fields.Dict(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -51,3 +52,4 @@ class AirflowServerInfo(object):
     is_sync_enabled = attr.ib(default=None)  # type: Optional[bool]
     fetcher = attr.ib(default=None)  # type: Optional[str]
     composer_client_id = attr.ib(default=None)  # type: Optional[str]
+    active_dags = attr.ib(default=None)  # type: Dict[str, List[str]]

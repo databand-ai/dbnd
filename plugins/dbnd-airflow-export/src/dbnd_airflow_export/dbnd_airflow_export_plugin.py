@@ -130,7 +130,7 @@ def do_export_data(
         dag_runs=[EDagRun.from_dagrun(dr) for dr in dag_runs],
         dags=[
             EDag.from_dag(
-                dagbag.get_dag(dm.dag_id), dagbag.dag_folder, include_task_args
+                dagbag.get_dag(dm.dag_id), dm, dagbag.dag_folder, include_task_args
             )
             for dm in dag_models
             if dagbag.get_dag(dm.dag_id)
@@ -262,7 +262,7 @@ class ETask(object):
 
     @staticmethod
     def from_task(t, include_task_args):
-        # type: (BaseOperator) -> ETask
+        # type: (BaseOperator, bool) -> ETask
         return ETask(
             upstream_task_ids=t.upstream_task_ids,
             downstream_task_ids=t.downstream_task_ids,
@@ -403,6 +403,8 @@ class EDag(object):
         is_subdag,
         task_type,
         task_args,
+        is_active,
+        is_paused,
     ):
         self.description = description
         self.root_task_ids = root_task_ids  # type: List[str]
@@ -421,10 +423,12 @@ class EDag(object):
         self.is_subdag = is_subdag
         self.task_type = task_type
         self.task_args = task_args
+        self.is_active = is_active
+        self.is_paused = is_paused
 
     @staticmethod
-    def from_dag(dag, dag_folder, include_task_args):
-        # type: (DAG, str) -> EDag
+    def from_dag(dag, dm, dag_folder, include_task_args):
+        # type: (DAG, DagModel, str, bool) -> EDag
         git_commit, git_committed = _get_git_status(dag_folder)
         return EDag(
             description=dag.description,
@@ -444,6 +448,8 @@ class EDag(object):
             is_subdag=dag.is_subdag,
             task_type="DAG",
             task_args=_extract_args_from_dict(vars(dag)) if include_task_args else {},
+            is_active=dm.is_active,
+            is_paused=dm.is_paused,
         )
 
     def as_dict(self):
