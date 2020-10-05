@@ -1,15 +1,14 @@
 from typing import Dict
 
 import attr
+import snowflake.connector
 
 from six.moves.urllib_parse import urlparse
-
-import snowflake.connector
+from snowflake.connector import DictCursor
 
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.string_utils import humanize_bytes
 from dbnd._vendor.tabulate import tabulate
-from snowflake.connector import DictCursor
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType

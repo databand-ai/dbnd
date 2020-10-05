@@ -14,7 +14,7 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-tensorflow",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version, "tensorflow",],
+    install_requires=["dbnd==" + version, "tensorflow"],
     extras_require=dict(tests=[]),
     entry_points={"dbnd": ["dbnd-tensorflow = dbnd_tensorflow._plugin"]},
 )
