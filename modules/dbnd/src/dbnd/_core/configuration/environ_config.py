@@ -67,10 +67,12 @@ ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD = "DBND_DISABLE_SCHEDULED_DAGS_LOAD"
 
 ENV_DBND__ENV_MACHINE = "DBND__ENV_MACHINE"
 ENV_DBND__ENV_IMAGE = "DBND__ENV_IMAGE"
+ENV_DBND__CORE__PLUGINS = "DBND__CORE__PLUGINS"
 
 ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
 
 ENV_DBND_FIX_PYSPARK_IMPORTS = "DBND__FIX_PYSPARK_IMPORTS"
+ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING = "DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING"
 
 DEFAULT_MAX_CALLS_PER_RUN = 100
 
@@ -172,6 +174,9 @@ class DbndProjectConfig(object):
         )
 
         self.is_no_modules = environ_enabled(ENV_DBND__NO_MODULES)
+        self.disable_pluggy_entrypoint_loading = environ_enabled(
+            ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING
+        )
         self.is_sigquit_handler_on = environ_enabled(ENV_DBND__SHOW_STACK_ON_SIGQUIT)
 
         self._verbose = environ_enabled(ENV_DBND__VERBOSE)

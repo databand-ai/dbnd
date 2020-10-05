@@ -131,6 +131,14 @@ class SparkConfig(Config):
         default=False,
     )[bool]
 
+    # This config value is used to minimize spark startup time. Due to spark's filesystem layout, pluggy
+    # loading entrypoints takes <30 seconds, this config disables that and speeds up run duration
+    disable_pluggy_entrypoint_loading = parameter(
+        description="When set to true databand will not load any plugins within spark execution, other than the "
+        "plugins loaded during spark submission",
+        default=False,
+    )[bool]
+
 
 class SparkEngineConfig(Config):
     root = parameter(default=None, description="Data outputs location override")[

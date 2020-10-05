@@ -83,7 +83,11 @@ def is_plugin_enabled(module, module_import=None):
             return True
         except import_errors:
             pass
-
+    if "-" in module:
+        # Workaround for manually loaded plugins (contain `_` instead of `-`)
+        # Occurs when 'disable_pluggy_entrypoint_loading' is turned on in spark-config. All plugins are loaded
+        # manually (spark_ctrl.py:107), so we must fix `plugin` syntax ('-') to python module syntax ('_')
+        return is_plugin_enabled(module.replace("-", "_"), module_import)
     return False
 
 

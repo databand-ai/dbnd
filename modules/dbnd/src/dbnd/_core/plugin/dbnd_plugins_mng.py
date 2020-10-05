@@ -17,9 +17,9 @@ def register_dbnd_plugins():
     _dbnd_plugins_registered = True
 
     fix_sys_path_str()
-
-    pm.load_setuptools_entrypoints("dbnd")
-    pm.check_pending()
+    if not get_dbnd_project_config().disable_pluggy_entrypoint_loading:
+        pm.load_setuptools_entrypoints("dbnd")
+        pm.check_pending()
 
 
 def register_dbnd_user_plugins(user_plugin_modules):

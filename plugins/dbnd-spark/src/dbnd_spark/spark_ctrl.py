@@ -7,8 +7,11 @@ import six
 from dbnd import current
 from dbnd._core.configuration.environ_config import (
     DBND_TASK_RUN_ATTEMPT_UID,
+    ENV_DBND__CORE__PLUGINS,
+    ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING,
     ENV_DBND_FIX_PYSPARK_IMPORTS,
 )
+from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_sync_ctrl import DisabledTaskSyncCtrl, TaskSyncCtrl
 from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
@@ -101,4 +104,12 @@ class SparkCtrl(TaskRunCtrl):
             env_vars.update(conf_env_vars)
         if self.config.fix_pyspark_imports:
             env_vars[ENV_DBND_FIX_PYSPARK_IMPORTS] = "True"
+        if self.config.disable_pluggy_entrypoint_loading:
+            # Disable pluggy loading for spark-submitted run
+            env_vars[ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING] = "True"
+            plugin_modules = [p[0].replace("-", "_") for p in pm.list_name_plugin()]
+            plugin_modules_formatted = ",".join(plugin_modules)
+            # Attach all loaded plugins to be manually loaded in submitted run
+            env_vars[ENV_DBND__CORE__PLUGINS] = plugin_modules_formatted
+
         return env_vars
