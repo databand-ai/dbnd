@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import datetime
 import logging
-import pickle
 
 from airflow import executors, models
 from airflow.jobs import BackfillJob, BaseJob
@@ -12,7 +11,6 @@ from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
-from sqlalchemy import or_
 from sqlalchemy.orm.session import make_transient
 
 from dbnd._core import current
@@ -31,6 +29,7 @@ from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
 logger = logging.getLogger(__name__)
 
 SCHEDUALED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
+END_STATES = (State.SUCCESS, State.FAILED, State.UPSTREAM_FAILED)
 
 
 # based on airflow BackfillJob
@@ -696,11 +695,6 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         Initializes all components required to run a dag for a specified date range and
         calls helper method to execute the tasks.
         """
-        try:
-            self._find_and_kill_zombies()
-        except:
-            self.log.debug("Clean up of zombies failed")
-
         ti_status = BackfillJob._DagRunTaskStatus()
 
         # picklin'
@@ -718,14 +712,15 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         ti_status.total_runs = 1  # total dag runs in backfill
 
-        dag_run = self._get_dag_run(session=session)
-
-        # Create relation DagRun <> Job
-        dag_run.conf = {"job_id": self.id}
-        session.merge(dag_run)
-        session.commit()
-
+        dag_run = None
         try:
+            dag_run = self._get_dag_run(session=session)
+
+            # Create relation DagRun <> Job
+            dag_run.conf = {"job_id": self.id}
+            session.merge(dag_run)
+            session.commit()
+
             run_date = dag_run.execution_date
             if dag_run is None:
                 raise DatabandSystemError("Can't build dagrun")
@@ -766,21 +761,36 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 executor.end()
             except Exception:
                 logger.exception("Failed to terminate executor")
-            if dag_run.state not in (State.SUCCESS, State.FAILED):
-                # Remove zombies
-                # If the job ends but the DagRun is still not finished then
-                # fail the DR and related unfinished TIs
-                session.query(TI).filter(
-                    TI.dag_id == self.dag_id,
-                    TI.execution_date == self.execution_date,
-                    TI.state != State.SUCCESS,
-                ).update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
-                dag_run.state = State.FAILED
-                session.merge(dag_run)
-
+            if dag_run:
+                self._validate_dag_run_completed_state(dag_run, session)
             session.commit()
 
         self.log.info("Run is completed. Exiting.")
+
+    def _validate_dag_run_completed_state(self, dag_run, session):
+        if dag_run.state in (State.SUCCESS, State.FAILED):
+            # If DagRun has finished do nothing
+            return
+
+        # Remove zombies
+        # If the job ended but the DagRun is still not finished then
+        # fail the DR and related unfinished TIs
+        self.log.info(
+            "Job has ended but the related DagRun is still in state %s - marking it as failed",
+            dag_run.state,
+        )
+        qry = session.query(TI).filter(
+            TI.dag_id == self.dag_id,
+            TI.execution_date == self.execution_date,
+            TI.state.notin_(END_STATES),
+        )
+
+        tis = qry.all()
+        self.log.info("Marking %s related TaskInstance as failed", len(tis))
+
+        qry.update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
+        dag_run.state = State.FAILED
+        session.merge(dag_run)
 
     @provide_session
     def heartbeat_callback(self, session=None):
@@ -792,37 +802,44 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             return
         self.terminating = True
 
-    @provide_session
-    def _find_and_kill_zombies(self, session):
-        """
-        Find zombie task instances, which are tasks haven't heartbeated for too long
-        and update the current zombie list.
-        """
-        self.log.info("Finding 'running' DagRuns without a running BackfillJob")
 
-        failed_jobs_id_qry = (
-            session.query(BaseJob.id)
-            .filter(BaseJob.state == State.FAILED, BaseJob.job_type == "BackfillJob")
-            .all()
+@provide_session
+def find_and_kill_zombies(args, session=None):
+    """
+    Find zombie DagRuns and TaskInstances that are in not end state and for which related
+    BackfillJob has failed.
+    """
+    print("Cleaning zombie tasks")
+    failed_jobs_id_qry = (
+        session.query(BaseJob.id)
+        .filter(BaseJob.state == State.FAILED, BaseJob.job_type == "BackfillJob")
+        .all()
+    )
+    failed_jobs_id = set(r[0] for r in failed_jobs_id_qry)
+
+    print("Found {} failed jobs".format(len(failed_jobs_id)))
+
+    running_dag_runs = session.query(DagRun).filter(DagRun.state == State.RUNNING).all()
+
+    for dr in running_dag_runs:
+        if not isinstance(dr.conf, dict):
+            continue
+
+        job_id = dr.conf.get("job_id")
+        if job_id not in failed_jobs_id:
+            continue
+
+        print(
+            "- DagRun {} is in state {} but related job has failed\n".format(
+                dr, dr.state
+            )
         )
-        failed_jobs_id = set(r[0] for r in failed_jobs_id_qry)
-
-        running_dag_runs = (
-            session.query(DagRun).filter(DagRun.state == State.RUNNING).all()
-        )
-        for dr in running_dag_runs:
-            if not isinstance(dr.conf, dict):
-                continue
-
-            job_id = dr.conf.get("job_id")
-            if job_id not in failed_jobs_id:
-                continue
-
-            # Now the DR is running but job running it has failed
-            dr.state = State.FAILED
-            session.query(TI).filter(
-                TI.dag_id == dr.dag_id,
-                TI.execution_date == dr.execution_date,
-                TI.state != State.SUCCESS,
-            ).update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
-            session.merge(dr)
+        # Now the DR is running but job running it has failed
+        dr.state = State.FAILED
+        session.query(TI).filter(
+            TI.dag_id == dr.dag_id,
+            TI.execution_date == dr.execution_date,
+            TI.state != State.SUCCESS,
+        ).update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
+        session.merge(dr)
+    print("Cleaning done!")
