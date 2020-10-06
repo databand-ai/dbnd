@@ -4,9 +4,12 @@ Here we create dbnd objects to represent them and send to webserver through trac
 """
 import datetime
 import logging
+import operator
 import os
 
-from typing import Optional
+from collections import Callable
+from types import FrameType
+from typing import Any, Dict, List, Optional, Tuple
 
 import attr
 
@@ -20,7 +23,6 @@ from dbnd._core.configuration.environ_config import (
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
-from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.seven import import_errors
 
 
@@ -70,66 +72,117 @@ class AirflowTaskContext(object):
             self.parent_dags = []
 
 
-def _get_try_number():
+# after py35 inspect.stack() return a numbed tuple FrameInfo, and before that it is just a tuple
+# those functions save backward compatibility and still understandable
+FrameInfo = Tuple[FrameType, str, int, str, Optional[List[str]], Optional[int]]
+get_frame = operator.itemgetter(0)  # type: Callable[[FrameInfo], FrameType]
+get_filename = operator.itemgetter(1)  # type: Callable[[FrameInfo], str]
+get_function = operator.itemgetter(3)  # type: Callable[[FrameInfo], str]
+
+
+def get_frame_info(file_name, func_name):
+    # type: (str, str) -> Optional[FrameInfo]
+    """Find the first frame in the stack by file name and function name"""
+    from more_itertools import first
     import inspect
 
-    is_python_operator_exec = list(
+    return first(
         filter(
-            lambda frame: "python_operator" in frame.filename.lower()
-            and frame.function == "execute",
+            lambda frame: file_name in get_filename(frame).lower()
+            and get_function(frame) == func_name,
             inspect.stack(),
-        )
+        ),
+        None,
     )
 
-    if is_python_operator_exec:
-        # We are in python operator execution flow
-        # let's get real airflow context from stack trace
-        try:
-            frame = is_python_operator_exec[0].frame
-            if "context" in frame.f_locals and "ti" in frame.f_locals["context"]:
-                return frame.f_locals["context"]["ti"].try_number
-            else:
-                raise Exception("Could not find airflow context inside PythonOperator.")
-        except Exception as e:
-            logging.error("Could not get try number from airflow context")
-            raise e
 
-    else:
-        # We are in bash operator execution flow
-        # TODO: generate try_number mechanism for bash operator
-        try_number = os.environ.get("AIRFLOW_CTX_TRY_NUMBER")
-        return try_number
+def try_get_airflow_context_inspect():
+    # type: () -> Optional[AirflowTaskContext]
+    """Trying to extract the airflow_context using `inspect` to get the frame in which the context sent to `execute`"""
+    frame_info = get_frame_info(file_name="taskinstance", func_name="_run_raw_task")
+    if frame_info is None:
+        return None
+
+    airflow_context = get_frame(frame_info).f_locals.get("context")
+    if airflow_context is None:
+        return None
+
+    return extract_airflow_context(airflow_context)
+
+
+def extract_airflow_context(airflow_context):
+    # type: (Dict[str, Any]) -> Optional[AirflowTaskContext]
+    """Create AirflowTaskContext for airflow_context dict"""
+
+    task_instance = airflow_context.get("task_instance")
+    if task_instance is None:
+        return None
+
+    dag_id = task_instance.dag_id
+    task_id = task_instance.task_id
+    execution_date = str(task_instance.execution_date)
+    try_number = task_instance.try_number
+
+    if dag_id and task_id and execution_date:
+        return AirflowTaskContext(
+            dag_id=dag_id,
+            execution_date=execution_date,
+            task_id=task_id,
+            try_number=try_number,
+        )
+
+    logger.debug(
+        "airflow context from inspect, at least one of those params is missing"
+        "dag_id: {}, execution_date: {}, task_id: {}".format(
+            dag_id, execution_date, task_id
+        )
+    )
+    return None
 
 
 def try_get_airflow_context():
     # type: ()-> Optional[AirflowTaskContext]
-    # first try to get from spark
+    # first try to get from spark, then from call stack and then from airflow env
     try:
-        from_spark = try_get_airflow_context_from_spark_conf()
-        if from_spark:
-            return from_spark
-        else:
-            _debug_init_print("couldn't get airflow context from spark")
+        for func in [
+            try_get_airflow_context_from_spark_conf,
+            try_get_airflow_context_inspect,
+            try_get_airflow_context_env,
+        ]:
+            context = func()
+            if context:
+                return context
+            else:
+                msg = func.__name__.replace("_", " ").replace("try", "couldn't")
+                logger.debug(msg)
 
-        # Those env vars are set by airflow before running the operator
-        dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
-        execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
-        task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")
-        try:
-            try_number = _get_try_number()
-        except Exception:
-            try_number = None
-
-        if dag_id and task_id and execution_date:
-            return AirflowTaskContext(
-                dag_id=dag_id,
-                execution_date=execution_date,
-                task_id=task_id,
-                try_number=try_number,
-            )
-        return None
     except Exception:
         return None
+
+
+def try_get_airflow_context_env():
+    # type: ()-> Optional[AirflowTaskContext]
+    # Those env vars are set by airflow before running the operator
+    dag_id = os.environ.get("AIRFLOW_CTX_DAG_ID")
+    execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
+    task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")
+    try_number = os.environ.get("AIRFLOW_CTX_TRY_NUMBER")
+
+    if dag_id and task_id and execution_date:
+        return AirflowTaskContext(
+            dag_id=dag_id,
+            execution_date=execution_date,
+            task_id=task_id,
+            try_number=try_number,
+        )
+
+    logger.debug(
+        "airflow context from env, at least one of those environment var is missing"
+        "dag_id: {}, execution_date: {}, task_id: {}".format(
+            dag_id, execution_date, task_id
+        )
+    )
+    return None
 
 
 _IS_SPARK_INSTALLED = None
@@ -158,6 +211,7 @@ def _is_dbnd_spark_installed():
 
 
 def try_get_airflow_context_from_spark_conf():
+    # type: ()-> Optional[AirflowTaskContext]
     if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
         _debug_init_print(
             "DBND__ENABLE__SPARK_CONTEXT_ENV or SPARK_ENV_LOADED are not set"
