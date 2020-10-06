@@ -711,9 +711,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         ti_status.total_runs = 1  # total dag runs in backfill
 
+        dag_run = self._get_dag_run(session=session)
         try:
-
-            dag_run = self._get_dag_run(session=session)
             run_date = dag_run.execution_date
             if dag_run is None:
                 raise DatabandSystemError("Can't build dagrun")
@@ -753,6 +752,16 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 executor.end()
             except Exception:
                 logger.exception("Failed to terminate executor")
+            if dag_run.state == State.RUNNING:
+                TI = TaskInstance
+                session.query(TI).filter(
+                    TI.dag_id == self.dag_id, TI.execution_date == self.execution_date,
+                ).update(
+                    {TI.state: State.FAILED, TI.end_date: timezone.utcnow(),}
+                )
+                dag_run.state = State.FAILED
+                session.merge(dag_run)
+
             session.commit()
 
         self.log.info("Run is completed. Exiting.")
