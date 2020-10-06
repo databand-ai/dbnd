@@ -744,7 +744,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                     ti_status.executed_dag_run_dates,
                 )
         finally:
-            # in sequential executor a keyboard interrupt would reach here and then executor.end() -> heartbeat() -> sync() will cause the queued commands
+            # in sequential executor a keyboard interrupt would reach here and
+            # then executor.end() -> heartbeat() -> sync() will cause the queued commands
             # to be run again before exiting
             if hasattr(executor, "commands_to_run"):
                 executor.commands_to_run = []
@@ -752,10 +753,12 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 executor.end()
             except Exception:
                 logger.exception("Failed to terminate executor")
-            if dag_run.state == State.RUNNING:
+            if dag_run.state not in (State.SUCCESS, State.FAILED):
                 TI = TaskInstance
                 session.query(TI).filter(
-                    TI.dag_id == self.dag_id, TI.execution_date == self.execution_date,
+                    TI.dag_id == self.dag_id,
+                    TI.execution_date == self.execution_date,
+                    TI.state != State.SUCCESS,
                 ).update(
                     {TI.state: State.FAILED, TI.end_date: timezone.utcnow(),}
                 )
