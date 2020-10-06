@@ -30,8 +30,9 @@ class ApiClient(object):
         self.session = None
 
     def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
-        if headers is None:
-            headers = {}
+        default_headers = {"Accept": "application/json"}
+        headers = dict(default_headers, **(headers or {}))
+
         if not self.session:
             self._init_session()
 
@@ -89,7 +90,7 @@ class ApiClient(object):
 
     def is_ready(self):
         try:
-            self.api_request("/", None, method="HEAD", no_prefix=True)
+            self.api_request("auth/ping", None, method="GET")
             return True
         except (DatabandConnectionException, DatabandApiError):
             return False
