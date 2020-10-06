@@ -1,5 +1,6 @@
-from dbnd._core.commands.metrics import log_snowflake_table
 from dbnd_snowflake.snowflake_resources import log_snowflake_resource_usage
+
+from dbnd._core.commands.metrics import log_snowflake_table
 
 
 __all__ = [

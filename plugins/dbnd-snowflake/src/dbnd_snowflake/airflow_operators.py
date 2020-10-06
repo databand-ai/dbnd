@@ -1,9 +1,9 @@
 from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 from airflow.contrib.operators.snowflake_operator import SnowflakeOperator
 from airflow.operators.python_operator import PythonOperator
+from dbnd_snowflake import log_snowflake_resource_usage
 
 from dbnd._core.commands.metrics import log_snowflake_table
-from dbnd_snowflake import log_snowflake_resource_usage
 
 
 def _log_snowflake_table(
