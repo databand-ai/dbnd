@@ -55,7 +55,6 @@ variables:
     - apt-get update -y -qq
     - apt-get install -y -qq graphviz bzip2
     - export VIRTUALENV_NO_DOWNLOAD=yes
-  only: *on_significant_branch
   except: *except_on_skip_message
 
 .template__test_windows: &template__windows_tests_job
@@ -245,6 +244,16 @@ dbnd_airflow 0 1_10_9_py36:
     reports:
       junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_9.xml
   only: *on_significant_branch
+
+dbnd_tensorflow 1 py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd plugins/dbnd-tensorflow
+    - tox -e py27-tensorflow1
+  artifacts:
+    reports:
+      junit: plugins/dbnd-tensorflow/build/junit-py27-tensorflow1.xml
 
 build_pypi_org_whl:
   stage: build-base
