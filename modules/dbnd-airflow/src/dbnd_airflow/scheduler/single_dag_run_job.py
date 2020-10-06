@@ -839,7 +839,7 @@ def find_and_kill_zombies(args, session=None):
         session.query(TI).filter(
             TI.dag_id == dr.dag_id,
             TI.execution_date == dr.execution_date,
-            TI.state != State.SUCCESS,
+            TI.state.notin_(END_STATES),
         ).update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
         session.merge(dr)
     print("Cleaning done!")
