@@ -91,6 +91,16 @@ Ready to contribute? Here's how to set up `databand` for local development.
 
 7. Submit a pull request through the GitHub website.
 
+### Using Docker for development
+
+You can take advantage of Docker containers isolation and reproducibility by using our development
+docker compose:
+```
+docker-compose -f docker-compose.yaml up -d postgres
+docker-compose -f docker-compose-dev.yaml run -p 8080:8080 dbnd /bin/bash
+```
+In this way you will enter a container with installed DBND modules installed in editable way.
+
 ## Pull Request Guidelines
 
 Before you submit a pull request, check that it meets these guidelines:
