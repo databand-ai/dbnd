@@ -11,6 +11,7 @@ from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
+from sqlalchemy import or_
 from sqlalchemy.orm.session import make_transient
 
 from dbnd._core import current
@@ -30,6 +31,28 @@ logger = logging.getLogger(__name__)
 
 SCHEDUALED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
 END_STATES = (State.SUCCESS, State.FAILED, State.UPSTREAM_FAILED)
+
+
+def _kill_zombie_tis(dag_run, session):
+    # Remove zombies
+    # If the job ended but the DagRun is still not finished then
+    # fail the DR and related unfinished TIs
+    logger.info(
+        "Job has ended but the related DagRun is still in state %s - marking it as failed",
+        dag_run.state,
+    )
+    qry = session.query(TI).filter(
+        TI.dag_id == dag_run.dag_id,
+        TI.execution_date == dag_run.execution_date,
+        TI.state.notin_(END_STATES),
+    )
+
+    tis = qry.all()
+    logger.info("Marking %s related TaskInstance as failed", len(tis))
+
+    qry.update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
+    dag_run.state = State.FAILED
+    session.merge(dag_run)
 
 
 # based on airflow BackfillJob
@@ -761,36 +784,11 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 executor.end()
             except Exception:
                 logger.exception("Failed to terminate executor")
-            if dag_run:
-                self._validate_dag_run_completed_state(dag_run, session)
+            if dag_run and dag_run.state in (State.SUCCESS, State.FAILED):
+                _kill_zombie_tis(dag_run, session)
             session.commit()
 
         self.log.info("Run is completed. Exiting.")
-
-    def _validate_dag_run_completed_state(self, dag_run, session):
-        if dag_run.state in (State.SUCCESS, State.FAILED):
-            # If DagRun has finished do nothing
-            return
-
-        # Remove zombies
-        # If the job ended but the DagRun is still not finished then
-        # fail the DR and related unfinished TIs
-        self.log.info(
-            "Job has ended but the related DagRun is still in state %s - marking it as failed",
-            dag_run.state,
-        )
-        qry = session.query(TI).filter(
-            TI.dag_id == self.dag_id,
-            TI.execution_date == self.execution_date,
-            TI.state.notin_(END_STATES),
-        )
-
-        tis = qry.all()
-        self.log.info("Marking %s related TaskInstance as failed", len(tis))
-
-        qry.update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
-        dag_run.state = State.FAILED
-        session.merge(dag_run)
 
     @provide_session
     def heartbeat_callback(self, session=None):
@@ -809,10 +807,25 @@ def find_and_kill_zombies(args, session=None):
     Find zombie DagRuns and TaskInstances that are in not end state and for which related
     BackfillJob has failed.
     """
-    print("Cleaning zombie tasks")
+    seconds_from_last_heartbeat = 30
+    print(
+        "Cleaning zombie tasks with heartbeat older than: {}".format(
+            seconds_from_last_heartbeat
+        )
+    )
+
+    last_expected_heartbeat = timezone.utcnow() - datetime.timedelta(
+        seconds=seconds_from_last_heartbeat
+    )
     failed_jobs_id_qry = (
         session.query(BaseJob.id)
-        .filter(BaseJob.state == State.FAILED, BaseJob.job_type == "BackfillJob")
+        .filter(BaseJob.job_type == "BackfillJob")
+        .filter(
+            or_(
+                BaseJob.state == State.FAILED,
+                BaseJob.latest_heartbeat < last_expected_heartbeat,
+            )
+        )
         .all()
     )
     failed_jobs_id = set(r[0] for r in failed_jobs_id_qry)
@@ -830,16 +843,13 @@ def find_and_kill_zombies(args, session=None):
             continue
 
         print(
-            "- DagRun {} is in state {} but related job has failed\n".format(
+            "- DagRun {} is in state {} but related job has failed. Cleaning zombies.\n".format(
                 dr, dr.state
             )
         )
         # Now the DR is running but job running it has failed
         dr.state = State.FAILED
-        session.query(TI).filter(
-            TI.dag_id == dr.dag_id,
-            TI.execution_date == dr.execution_date,
-            TI.state.notin_(END_STATES),
-        ).update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
         session.merge(dr)
+        _kill_zombie_tis(dag_run=dr, session=session)
+
     print("Cleaning done!")
