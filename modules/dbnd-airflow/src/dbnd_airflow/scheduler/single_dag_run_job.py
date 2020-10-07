@@ -11,7 +11,7 @@ from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm.session import make_transient
 
 from dbnd._core import current
@@ -33,10 +33,12 @@ SCHEDUALED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
 END_STATES = (State.SUCCESS, State.FAILED, State.UPSTREAM_FAILED)
 
 
-def _kill_zombie_tis(dag_run, session):
-    # Remove zombies
-    # If the job ended but the DagRun is still not finished then
-    # fail the DR and related unfinished TIs
+def _kill_zombies(dag_run, session):
+    """
+    Remove zombies DagRuns and TaskInstances.
+    If the job ended but the DagRun is still not finished then
+    fail the DR and related unfinished TIs
+    """
     logger.info(
         "Job has ended but the related DagRun is still in state %s - marking it as failed",
         dag_run.state,
@@ -50,7 +52,10 @@ def _kill_zombie_tis(dag_run, session):
     tis = qry.all()
     logger.info("Marking %s related TaskInstance as failed", len(tis))
 
-    qry.update({TI.state: State.FAILED, TI.end_date: timezone.utcnow()})
+    qry.update(
+        {TI.state: State.FAILED, TI.end_date: timezone.utcnow()},
+        synchronize_session=False,
+    )
     dag_run.state = State.FAILED
     session.merge(dag_run)
 
@@ -784,8 +789,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 executor.end()
             except Exception:
                 logger.exception("Failed to terminate executor")
-            if dag_run and dag_run.state in (State.SUCCESS, State.FAILED):
-                _kill_zombie_tis(dag_run, session)
+            if dag_run and dag_run.state == State.RUNNING:
+                _kill_zombies(dag_run, session)
             session.commit()
 
         self.log.info("Run is completed. Exiting.")
@@ -808,29 +813,33 @@ def find_and_kill_zombies(args, session=None):
     BackfillJob has failed.
     """
     seconds_from_last_heartbeat = 30
-    print(
-        "Cleaning zombie tasks with heartbeat older than: {}".format(
-            seconds_from_last_heartbeat
-        )
-    )
-
     last_expected_heartbeat = timezone.utcnow() - datetime.timedelta(
         seconds=seconds_from_last_heartbeat
     )
+    logger.info(
+        "Cleaning zombie tasks with heartbeat older than: %s",
+        last_expected_heartbeat,
+    )
+
+    # Select BackfillJob that failed or are still running
+    # but have stalled heartbeat
     failed_jobs_id_qry = (
         session.query(BaseJob.id)
         .filter(BaseJob.job_type == "BackfillJob")
         .filter(
             or_(
                 BaseJob.state == State.FAILED,
-                BaseJob.latest_heartbeat < last_expected_heartbeat,
+                and_(
+                    BaseJob.state == State.RUNNING,
+                    BaseJob.latest_heartbeat < last_expected_heartbeat,
+                ),
             )
         )
         .all()
     )
     failed_jobs_id = set(r[0] for r in failed_jobs_id_qry)
 
-    print("Found {} failed jobs".format(len(failed_jobs_id)))
+    logger.info("Found %s failed jobs", len(failed_jobs_id))
 
     running_dag_runs = session.query(DagRun).filter(DagRun.state == State.RUNNING).all()
 
@@ -842,14 +851,12 @@ def find_and_kill_zombies(args, session=None):
         if job_id not in failed_jobs_id:
             continue
 
-        print(
-            "- DagRun {} is in state {} but related job has failed. Cleaning zombies.\n".format(
-                dr, dr.state
-            )
+        logger.info(
+            "DagRun %s is in state %s but related job has failed. Cleaning zombies.",
+            dr,
+            dr.state,
         )
         # Now the DR is running but job running it has failed
-        dr.state = State.FAILED
-        session.merge(dr)
-        _kill_zombie_tis(dag_run=dr, session=session)
+        _kill_zombies(dag_run=dr, session=session)
 
-    print("Cleaning done!")
+    logger.info("Cleaning done!")
