@@ -1,7 +1,14 @@
+import json
+import os
+import re
+
+from datetime import datetime, timedelta
 from typing import Any, Dict
 
 import attr
+import six
 
+from dbnd._core.current import try_get_databand_run
 from targets.config import is_in_memory_cache_target_value
 
 
@@ -77,3 +84,145 @@ class TargetCache(object):
 
 
 TARGET_CACHE = TargetCache()
+
+
+class DbndLocalFileMetadataRegistry(object):
+    """
+    :type file_path: str
+    :type local_md5: str
+    :type remote_md5: str
+    :type created_at: datetime.datetime
+    :type ttl: str
+    """
+
+    ext = ".dbnd-meta"
+    _date_format = "%Y-%m-%d %H:%M:%S"
+    default_ttl = "1d"
+
+    def __init__(
+        self, file_path, local_md5=None, remote_md5=None, created_at=None, ttl=None,
+    ):
+        self._file_path = file_path
+        self._cache_file_path = self._resolve_cache_file_name(file_path)
+        self._local_md5 = local_md5
+        self._remote_md5 = remote_md5
+        self._created_at = self._resolve_created_at(created_at)
+
+        self._ttl = ttl or DbndLocalFileMetadataRegistry.default_ttl
+        if not self.is_valid_ttl(self._ttl):
+            raise Exception(
+                "Valid ttl should be inf form of 1-9*d|1-9*h, is %s".format(self._ttl)
+            )
+
+    def __eq__(self, other):
+        return all(
+            [
+                self._file_path == other._file_path,
+                self._cache_file_path == other._cache_file_path,
+                self._local_md5 == other._local_md5,
+                self._remote_md5 == other._remote_md5,
+                self._created_at == other._created_at,
+            ]
+        )
+
+    def __repr__(self):
+        return "DbndFileCache<{}:{}:{}>".format(
+            self._file_path, self._created_at, self._ttl
+        )
+
+    @staticmethod
+    def _resolve_created_at(created_at):
+        if not created_at:
+            return datetime.now()
+        if six.PY2:
+            created_at = str(created_at)
+        if isinstance(created_at, str):
+            return datetime.strptime(
+                created_at, DbndLocalFileMetadataRegistry._date_format
+            )
+        if isinstance(created_at, datetime):
+            return created_at
+
+        raise Exception(
+            "`created_at` parameter must be either datetime object or isoformat date string"
+        )
+
+    @staticmethod
+    def is_valid_ttl(ttl):
+        """Check if provided ttl value is in supported format i.e 1h, 12h, 2d"""
+        return bool(re.match(r"\d*d$|\d*h$", ttl))
+
+    @staticmethod
+    def _resolve_cache_file_name(file_path):
+        run = try_get_databand_run()
+        if not run:
+            raise Exception("No databand run found to when creating cache file")
+        dbnd_local_root = run.get_current_dbnd_local_root()
+
+        # Create cache directory in dbnd_local_root
+        cache_dir = os.path.join(dbnd_local_root, "cache")
+        if not os.path.isdir(cache_dir):
+            os.makedirs(cache_dir)
+
+        file_name = os.path.basename(file_path) + DbndLocalFileMetadataRegistry.ext
+        return os.path.join(cache_dir, file_name)
+
+    @classmethod
+    def read(cls, file_target):
+        """Read file cache and create new instance of DbndFileCache"""
+        cache_file_path = cls._resolve_cache_file_name(file_target.path)
+        with open(cache_file_path, "r+") as f:
+            kwargs = json.loads(f.read())
+        return cls(**kwargs)
+
+    def save(self):
+        """Save DbndFileCache instance to json-like cache file"""
+        data = {
+            "file_path": self._file_path,
+            "local_md5": self._local_md5,
+            "remote_md5": self._remote_md5,
+            "created_at": self._created_at.strftime(
+                DbndLocalFileMetadataRegistry._date_format
+            ),
+            "ttl": self._ttl,
+        }
+        with open(self._cache_file_path, "w+") as f:
+            f.write(json.dumps(data))
+
+    @staticmethod
+    def exists(file_target):
+        """Read existing cache file, if it not exists then return None"""
+        cache_file_path = DbndLocalFileMetadataRegistry._resolve_cache_file_name(
+            file_target.path
+        )
+        return os.path.exists(cache_file_path)
+
+    def delete(self):
+        """Remove cache file"""
+        if os.path.isfile(self._cache_file_path):
+            os.remove(self._cache_file_path)
+
+    @property
+    def expired(self):
+        """Check if cache file is still valid"""
+        time_map = {
+            "d": timedelta(days=1),
+            "h": timedelta(hours=1),
+        }
+        interval_type = self._ttl[-1]
+        interval_value = int(self._ttl[:-1])
+        expired_at = self._created_at + interval_value * time_map[interval_type]
+        return expired_at < datetime.now()
+
+    def validate_local_md5(self, md5_hash):
+        return self._local_md5 == md5_hash
+
+    @staticmethod
+    def get_or_create(file_target):
+        dbnd_meta_cache_exists = DbndLocalFileMetadataRegistry.exists(file_target)
+        if dbnd_meta_cache_exists:
+            return DbndLocalFileMetadataRegistry.read(file_target)
+        else:
+            dbnd_meta_cache = DbndLocalFileMetadataRegistry(file_path=file_target.path)
+            dbnd_meta_cache.save()
+            return dbnd_meta_cache

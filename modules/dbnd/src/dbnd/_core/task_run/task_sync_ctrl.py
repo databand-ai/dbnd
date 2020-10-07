@@ -1,3 +1,5 @@
+import datetime
+import hashlib
 import logging
 
 from os import path
@@ -6,7 +8,7 @@ import six
 
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.task_utils import targets_to_str
-from targets import Target, target
+from targets import DbndLocalFileMetadataRegistry, Target, target
 from targets.fs import FileSystems
 
 
@@ -48,27 +50,42 @@ class TaskSyncCtrl(TaskRunCtrl):
             return None
         return file.fs.name != FileSystems.local
 
-    def remote_file(self, local_file):
+    def _md5(self, local_path):
+        with open(local_path, "rb+") as f:
+            checksum = hashlib.md5(f.read())
+        return checksum.hexdigest()
+
+    def remote_file(self, local_file, md5_hash):
         if self.is_remote(local_file):
             return local_file
 
         file_name = path.basename(local_file.path)
-        deploy_id = self.task.settings.output.deploy_id
-        remote_file_name = "{}/{}".format(deploy_id, file_name)
+        remote_file_name = "{}/{}".format(md5_hash, file_name)
         return self.remote_sync_root.partition(remote_file_name)
+
+    def _sync_remote(self, remote_file):
+        """
+        Synchronizes remote fs -> local fs
+        """
+        return remote_file
+
+    def _sync_local(self, local_file):
+        """
+        Synchronizes local fs -> remote fs
+        """
+        md5_hash = self._md5(local_file.path)
+        remote_file = self.remote_file(local_file, md5_hash)
+
+        if not remote_file.exists():
+            self._upload(local_file, remote_file)
+
+        return remote_file
 
     def _sync(self, local_file):
         if self.is_remote(local_file):
-            return local_file
-
-        remote_file = self.remote_file(local_file)
-        if self._exists(remote_file):
-            logger.info("File exists: '%s' -> '%s'.", local_file, remote_file)
-            return remote_file
-
-        logger.info("Uploading: '%s' -> '%s'", local_file, remote_file)
-        self._upload(local_file, remote_file)
-
+            remote_file = self._sync_remote(local_file)
+        else:
+            remote_file = self._sync_local(local_file)
         return remote_file
 
     def _upload(self, local_file, remote_file):

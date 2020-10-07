@@ -5,6 +5,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Cache files
+*.dbnd-meta
+
 .dbnd/airflow/data/
 .dbnd/airflow/logs/
 .dbnd/airflow/keys/*

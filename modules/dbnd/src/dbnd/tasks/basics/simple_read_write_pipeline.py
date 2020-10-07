@@ -45,7 +45,11 @@ def read_dir(loc):
 
 @task
 def write_dir(data, res=output.data.require_local_access[PathStr]):
-    os.mkdir(res)
+    try:
+        # Ensure dir exists
+        os.mkdir(res)
+    except Exception:
+        pass
     for i in range(3):
         file_path = os.path.join(res, str(i) + ".data")
         save_my_custom_object(file_path, data)
