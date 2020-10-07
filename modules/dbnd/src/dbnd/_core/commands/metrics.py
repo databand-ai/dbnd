@@ -93,34 +93,31 @@ def log_snowflake_table(
     connection_string,  # type: str
     database,  # type: str
     schema,  # type: str
-    with_preview=True,
-    with_schema=True,
+    key=None,  # type: str
+    with_preview=True,  # type: bool
+    with_schema=True,  # type: bool
 ):
 
-    try:
-        if not is_plugin_enabled("dbnd-snowflake", module_import="dbnd_snowflake"):
-            return
-        from dbnd_snowflake import snowflake_values
+    if not is_plugin_enabled("dbnd-snowflake", module_import="dbnd_snowflake"):
+        return
+    from dbnd_snowflake import snowflake_values
 
-        with log_duration("log_snowflake_table__time_seconds", source="system"):
-            conn_params = snowflake_values.conn_str_to_conn_params(connection_string)
-            account = conn_params["account"]
-            user = conn_params["user"]
-            password = conn_params["password"]
+    with log_duration("log_snowflake_table__time_seconds", source="system"):
+        conn_params = snowflake_values.conn_str_to_conn_params(connection_string)
+        account = conn_params["account"]
+        user = conn_params["user"]
+        password = conn_params["password"]
 
-            snowflake_table = snowflake_values.SnowflakeTable(
-                account, user, password, database, schema, table_name
-            )
-
+        snowflake_table = snowflake_values.SnowflakeTable(
+            account, user, password, database, schema, table_name
+        )
         log_data(
-            table_name,
+            key or table_name,
             snowflake_table,
             with_preview=with_preview,
             with_schema=with_schema,
             with_histograms=False,
         )
-    except Exception as ex:
-        logger.exception("Failed to log_snowflake_table")
 
 
 def log_metric(key, value, source="user"):

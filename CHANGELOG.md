@@ -1,5 +1,85 @@
 # History
 
+DBND v.0.28.26
+
+New features:
+
+---
+- #1195944991344117: add dbnd-snowflake module for tracking snowflake data and metrics
+- #1196277825236673: support RBAC for export_plugin
+
+Improvements:
+
+---
+- #1176447682585577: support basic authentication with livy
+- #1194347540945401: add rendered xcom to task params
+- #1194347540945407: report Airflow DAG params
+- #1195924719351296: report Airflow operator params
+
+
+Fixed issues:
+
+---
+- #1193537416358473: column type not shown when histograms = true but statistics=False
+- #1188126160239994: histograms for pandas on empty column produce an error in a log
+
+
+DBND v.0.28.20
+
+New features:
+
+---
+- #1191658141334873: Make dbnd-luigi workable
+
+Improvements:
+
+---
+- #1191868676285987: calculate spark descriptive statistics efficiently
+- #1192562605942417: Logging in Jupyter Notebok
+- #1187220511775489: report target load/save/download time as a metric
+- #1192948860705935: fat_build_task inherits target_date from parent
+- #1164673115500855: simplifying DBND spark implementation ( no airflow)
+
+Fixed issues:
+
+---
+- #1193537416358473: column type not shown when histograms = true but statistics=False
+- #1188126160239994: histograms for pandas on empty column produce an error in a log
+
+DBND v.0.28.13
+
+New features:
+
+---
+- #1190345801510096: report user params for Airflow operators
+
+Improvements:
+
+---
+- #1191658141334875: Better exception handling to prevent failing DAG retireval from versioned-dag
+- #1188403453583067: HDFS local folder open after pyspark
+
+Fixed issues:
+
+---
+
+- #1190536560972406: airflow skipped task has two run attempts in databand db
+- #1192515450649121: spark histogram error: list indices must be integers or slices, not NoneType
+- #1191864220891825: histogram calculation fails on complex type
+- #1190570128931897: Solve compatibility errors of versioned dag and airflow 1.10.10
+
+
+DBND v.0.28.6
+
+Improvements:
+
+---
+- #1171185232799219: support  --set run.task
+- #1184271040807809: Parallelize checking if tasks are complete
+- #1189508556532473: support airflow 1.10.10
+- #1183936916078880: Retrieve spark exception when running spark locally
+
+
 DBND v.0.28.05
 
 New features:

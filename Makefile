@@ -20,6 +20,7 @@ prj_plugins = 	plugins/dbnd-aws  \
           	plugins/dbnd-tensorflow \
           	plugins/dbnd-postgres \
           	plugins/dbnd-redshift \
+          	plugins/dbnd-snowflake \
           	plugins/dbnd-test-scenarios \
           	plugins/dbnd-luigi
 
