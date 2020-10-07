@@ -2,7 +2,6 @@ import mock
 
 from dbnd_postgres.postgres_contreoller import PostgresController
 from dbnd_postgres.postgres_values import PostgresTable, PostgresTableValueType
-
 from targets.value_meta import ValueMetaConf
 
 

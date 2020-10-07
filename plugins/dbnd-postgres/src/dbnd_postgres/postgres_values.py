@@ -4,7 +4,6 @@ import typing
 import attr
 
 from dbnd_postgres.postgres_contreoller import PostgresController
-
 from targets.value_meta import ValueMeta
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType

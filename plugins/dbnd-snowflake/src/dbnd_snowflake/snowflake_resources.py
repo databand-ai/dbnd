@@ -4,9 +4,8 @@ from decimal import Decimal
 from textwrap import dedent
 from typing import Optional
 
-from dbnd_snowflake.snowflake_values import SnowflakeController
-
 from dbnd import log_duration, log_metrics
+from dbnd_snowflake.snowflake_values import SnowflakeController
 
 
 logger = logging.getLogger(__name__)

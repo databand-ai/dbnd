@@ -4,13 +4,12 @@ import tempfile
 import pytest
 import tensorflow as tf
 
+from dbnd import output, pipeline, task
+from dbnd._core.errors import DatabandRuntimeError
 from dbnd_tensorflow.marshalling.tensorflow_marshaller import (
     TensorflowKerasHistoryMarshaller,
     TensorflowKerasModelMarshaller,
 )
-
-from dbnd import output, pipeline, task
-from dbnd._core.errors import DatabandRuntimeError
 from targets import target
 
 

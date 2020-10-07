@@ -3,13 +3,13 @@ from textwrap import dedent
 
 import mock
 
+from pytest import fixture
+
 from dbnd_snowflake.snowflake_values import (
     SnowflakeController,
     SnowflakeTable,
     SnowflakeTableValueType,
 )
-from pytest import fixture
-
 from targets.value_meta import ValueMetaConf
 
 
