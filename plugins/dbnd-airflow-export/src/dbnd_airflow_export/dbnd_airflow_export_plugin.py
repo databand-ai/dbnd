@@ -786,3 +786,27 @@ def export_data_directly(
         task_quantity=task_quantity,
         session=session(),
     )
+
+
+### Experimental API:
+try:
+    # this import is critical for loading `requires_authentication`
+    from airflow import api
+
+    api.load_auth()
+
+    from airflow.www_rbac.api.experimental.endpoints import (
+        api_experimental,
+        requires_authentication,
+    )
+
+    @api_experimental.route("/export_data", methods=["GET"])
+    @requires_authentication
+    def export_data():
+        from airflow.www_rbac.views import dagbag
+
+        return export_data_api(dagbag)
+
+
+except Exception as e:
+    logging.error("Export data could not be added to experimental api: %s", e)

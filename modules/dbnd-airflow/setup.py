@@ -54,7 +54,10 @@ setuptools.setup(
         ],
     ),
     entry_points={
-        "console_scripts": ["dbnd-airflow = dbnd_airflow.dbnd_airflow_main:main"],
+        "console_scripts": [
+            "dbnd-airflow = dbnd_airflow.dbnd_airflow_main:main",
+            "dbnd-airflow-create-api-user = dbnd_airflow.utils:create_user",
+        ],
         "dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],
     },
 )
