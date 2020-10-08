@@ -27,6 +27,7 @@ setuptools.setup(
         airflow_1_10_7=requirements_for_airflow + ["apache-airflow==1.10.7"],
         airflow_1_10_8=requirements_for_airflow + ["apache-airflow==1.10.8"],
         airflow_1_10_9=requirements_for_airflow + ["apache-airflow==1.10.9"],
+        airflow_1_10_10=requirements_for_airflow + ["apache-airflow==1.10.10"],
         tests=[
             # airflow support
             "pandas<2.0.0,>=0.17.1",

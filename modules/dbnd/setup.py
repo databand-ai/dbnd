@@ -30,7 +30,8 @@ setuptools.setup(
         "configparser<3.6.0,>=3.5.0",  # same versions as Airflow -- Moved library to _vendor
         "jinja2>=2.10.1, <2.11.0",  # same versions as Airflow
         "gitpython",
-        "pygments==2.5.2",
+        'pygments==2.5.2 ; python_version < "3.0"',
+        'pygments==2.6.1 ; python_version >= "3.0"',
         # backward compatible python
         'typing;python_version<"3.7"',  # Standalone pkg is incompatible with 3.7 and not required
         'pathlib2; python_version < "3.0"',  # pathlib support in python 2

@@ -40,6 +40,7 @@ EXTRAS_REQUIRE = {
     "airflow_1_10_7": [dbnd_package("dbnd-airflow", ["airflow_1_10_7"])],
     "airflow_1_10_8": [dbnd_package("dbnd-airflow", ["airflow_1_10_8"])],
     "airflow_1_10_9": [dbnd_package("dbnd-airflow", ["airflow_1_10_9"])],
+    "airflow_1_10_10": [dbnd_package("dbnd-airflow", ["airflow_1_10_10"])],
     "airflow-export": [dbnd_package("dbnd-airflow-export")],
     "airflow-auto-tracking": [dbnd_package("dbnd-airflow-auto-tracking")],
     "airflow-operator": [dbnd_package("dbnd-airflow-operator")],
