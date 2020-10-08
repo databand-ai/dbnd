@@ -380,12 +380,11 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         from kubernetes import watch
 
         watcher = watch.Watch()
+        request_timeout = self.kube_dbnd.engine_config.watcher_request_timeout_seconds
         kwargs = {
             "label_selector": "airflow-worker={}".format(worker_uuid),
-            "_request_timeout": (
-                self.kube_dbnd.engine_config.watcher_event_listener_timeout_seconds,
-            )
-            * 2,
+            "_request_timeout": (request_timeout, request_timeout),
+            "timeout_seconds": self.kube_dbnd.engine_config.watcher_client_timeout_seconds,
         }
         if resource_version:
             kwargs["resource_version"] = resource_version

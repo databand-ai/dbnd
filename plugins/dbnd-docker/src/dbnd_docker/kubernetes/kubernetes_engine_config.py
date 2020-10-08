@@ -149,7 +149,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         description="timedelta to let the submitted pod enter a final state"
     )[datetime.timedelta]
 
-    watcher_event_listener_timeout_seconds = parameter(
+    watcher_request_timeout_seconds = parameter(
         default=300,
         description="How many seconds watcher should wait "
         "for events "
@@ -159,6 +159,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     watcher_recreation_interval_seconds = parameter(
         default=30,
         description="How many seconds to wait before resurrecting watcher after it dies",
+    )[int]
+
+    watcher_client_timeout_seconds = parameter(
+        default=50,
+        description="How many seconds to wait before timeout occurs in watcher on client side (read)",
     )[int]
 
     def _initialize(self):
