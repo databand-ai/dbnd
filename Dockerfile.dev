@@ -1,0 +1,26 @@
+FROM python:3.6
+
+USER root
+RUN apt-get update
+RUN apt-get install -y gcc unzip
+
+COPY ./plugins /dbnd/plugins/
+COPY ./modules /dbnd/modules/
+COPY ./examples /dbnd/examples/
+
+COPY ./setup.cfg /dbnd/modules/dbnd
+COPY ./setup.cfg /dbnd/modules/dbnd-airflow
+COPY ./setup.cfg /dbnd/examples
+
+COPY ./project.cfg /dbnd/
+
+RUN pip install --upgrade pip
+RUN pip install apache-airflow
+
+RUN pip install -e /dbnd/modules/dbnd
+RUN pip install -e /dbnd/modules/dbnd-airflow
+RUN pip install -e /dbnd/examples
+
+WORKDIR /dbnd
+
+ENTRYPOINT "/bin/bash"
