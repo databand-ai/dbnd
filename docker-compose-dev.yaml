@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  dbnd:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:airflow@postgres/airflow
+      - AIRFLOW__CORE__PARALLELISM=4
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    expose:
+      - 8080
+    ports:
+      - 8080:8080
+    volumes:
+      - ./modules/:/dbnd/modules/
+      - ./plugins/:/dbnd/plugins/
+      - ./.dbnd/airflow/dags/:/root/airflow/dags/
+
+  postgres:
+    image: postgres:10
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - /dev/urandom:/dev/random   # Required to get non-blocking entropy source
+      - database-data:/var/lib/postgresql/data/ # persist data even if container shuts down
+    ports:
+      - "5432:5432"
+
+volumes:
+  database-data: # named volumes can be managed easier using docker-compose
