@@ -1,5 +1,5 @@
 from dbnd._core.tracking.schemas.base import ApiObjectSchema
-from dbnd._vendor.marshmallow import fields
+from dbnd._vendor.marshmallow import fields, validate
 
 
 class JobSchemaV2(ApiObjectSchema):
@@ -21,3 +21,11 @@ class JobSchemaV2(ApiObjectSchema):
     latest_run_env = fields.Str()
 
     scheduled_job_count = fields.Number()
+
+
+class JobsSetArchiveSchema(ApiObjectSchema):
+    ids = fields.List(fields.Integer(), required=True, validate=validate.Length(min=1))
+    is_archived = fields.Boolean(required=True)
+
+
+jobs_set_archive_schema = JobsSetArchiveSchema()

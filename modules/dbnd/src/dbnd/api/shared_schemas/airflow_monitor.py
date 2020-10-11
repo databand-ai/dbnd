@@ -1,3 +1,7 @@
+import datetime
+
+from typing import Dict, List, Optional
+
 import attr
 
 from dbnd._core.tracking.schemas.base import _ApiCallSchema
