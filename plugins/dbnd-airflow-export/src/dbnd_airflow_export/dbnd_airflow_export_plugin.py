@@ -1,7 +1,9 @@
 import datetime
+import itertools
 import json
 import logging
 import os
+import sys
 
 import flask
 import flask_admin
@@ -26,6 +28,10 @@ DEFAULT_DAYS_PERIOD = 30
 TASK_ARG_TYPES = (str, float, bool, int, datetime.datetime)
 
 current_dags = {}
+
+MAX_LOGS_SIZE_IN_BYTES = 10000
+MAX_XCOM_SIZE_IN_BYTES = 10000
+MAX_XCOM_LENGTH = 10
 
 try:
     # in dbnd it might be overridden
@@ -101,35 +107,67 @@ def do_export_data(
         _get_full_xcom_dict(session, dag_ids, task_instances) if include_xcom else None
     )
 
-    task_instances_result = []
+    number_of_task_instances_not_in_dag_bag = 0
+    task_instances_list = []
     for ti, job in task_instances:
         if ti is None:
-            continue
-        for dag in [dagbag.get_dag(ti.dag_id)]:
-            if dag is None:
-                continue
-            result = ETaskInstance.from_task_instance(
-                ti,
-                include_logs,
-                dag.get_task(ti.task_id) if dag and dag.has_task(ti.task_id) else None,
-                _get_task_instance_xcom_dict(
-                    xcom_results, dag.dag_id, ti.task_id, ti.execution_date
-                )
-                if include_xcom
-                else {},
+            logging.info("Received task instance that is None")
+        dag_from_dag_bag = dagbag.get_dag(ti.dag_id)
+        if not dag_from_dag_bag:
+            number_of_task_instances_not_in_dag_bag += 1
+        task_from_dag_bag = (
+            dag_from_dag_bag.get_task(ti.task_id)
+            if dag_from_dag_bag and dag_from_dag_bag.has_task(ti.task_id)
+            else None
+        )
+        # Don't fetch xcom of task instance from dag that is not in the DagBag, this can cause bugs
+        xcom_dict = (
+            _get_task_instance_xcom_dict(
+                xcom_results, ti.dag_id, ti.task_id, ti.execution_date
             )
-            task_instances_result.append(result)
+            if include_xcom and dag_from_dag_bag
+            else {}
+        )
+        result = ETaskInstance.from_task_instance(
+            ti, include_logs, task_from_dag_bag, xcom_dict,
+        )
+        task_instances_list.append(result)
+
+    if number_of_task_instances_not_in_dag_bag > 0:
+        logging.info(
+            "Found {} task instances from dag not in DagBag".format(
+                number_of_task_instances_not_in_dag_bag
+            )
+        )
+
+    number_of_dags_not_in_dag_bag = 0
+    dags_list = []
+    for dag_model in dag_models:
+        dag_from_dag_bag = dagbag.get_dag(dag_model.dag_id)
+        if dagbag.get_dag(dag_model.dag_id):
+            dag = EDag.from_dag(dag_from_dag_bag, dagbag.dag_folder, include_task_args)
+        else:
+            dag = EDag.from_dag(dag_model, dagbag.dag_folder, include_task_args)
+            number_of_dags_not_in_dag_bag += 1
+        dags_list.append(dag)
+
+    if number_of_dags_not_in_dag_bag > 0:
+        logging.info(
+            "Found {} dags not in dagbag".format(number_of_dags_not_in_dag_bag)
+        )
+
+    dag_runs_list = [EDagRun.from_dagrun(dr) for dr in dag_runs]
+
+    logging.info(
+        "Returning {} task instances, {} dag runs, {} dags".format(
+            len(task_instances_list), len(dag_runs_list), len(dags_list)
+        )
+    )
 
     ed = ExportData(
-        task_instances=task_instances_result,
-        dag_runs=[EDagRun.from_dagrun(dr) for dr in dag_runs],
-        dags=[
-            EDag.from_dag(
-                dagbag.get_dag(dm.dag_id), dagbag.dag_folder, include_task_args
-            )
-            for dm in dag_models
-            if dagbag.get_dag(dm.dag_id)
-        ],
+        task_instances=task_instances_list,
+        dag_runs=dag_runs_list,
+        dags=dags_list,
         since=since,
     )
 
@@ -211,12 +249,33 @@ def _get_task_instance_xcom_dict(xcom_results, dag_id, task_id, execution_date):
     if not xcom_results:
         return {}
 
+    xcom_dict = {}
+
     if dag_id in xcom_results:
         if task_id in xcom_results[dag_id]:
             if execution_date in xcom_results[dag_id][task_id]:
-                return xcom_results[dag_id][task_id][execution_date]
+                xcom_dict = xcom_results[dag_id][task_id][execution_date]
 
-    return {}
+    if not xcom_dict:
+        return {}
+
+    sliced_xcom = (
+        dict(itertools.islice(xcom_dict.items(), MAX_XCOM_LENGTH))
+        if len(xcom_dict) > MAX_XCOM_LENGTH
+        else xcom_dict
+    )
+    for key, value in six.iteritems(sliced_xcom):
+        sliced_xcom[key] = shorten_xcom_value(value)
+
+    return sliced_xcom
+
+
+def shorten_xcom_value(xcom_value):
+    if sys.getsizeof(xcom_value) <= MAX_XCOM_SIZE_IN_BYTES:
+        return xcom_value
+
+    diff = len(xcom_value) - MAX_XCOM_SIZE_IN_BYTES
+    return xcom_value[-diff:]
 
 
 @provide_session
@@ -320,7 +379,7 @@ class ETaskInstance(object):
             task_id=ti.task_id,
             start_date=ti.start_date,
             end_date=ti.end_date,
-            log_body=_get_log(ti, task) if include_logs else None,
+            log_body=_get_log(ti, task) if include_logs and task else None,
             xcom_dict=xcom_dict,
         )
 
@@ -419,18 +478,24 @@ class EDag(object):
 
     @staticmethod
     def from_dag(dag, dag_folder, include_task_args):
-        # type: (DAG, str) -> EDag
         git_commit, git_committed = _get_git_status(dag_folder)
+        # Can be Dag from DagBag or from DB, therefore not all attributes may exist
         return EDag(
             description=dag.description,
-            root_task_ids=[t.task_id for t in dag.roots],
-            tasks=[ETask.from_task(t, include_task_args) for t in dag.tasks],
-            owner=dag.owner,
+            root_task_ids=[t.task_id for t in dag.roots]
+            if hasattr(dag, "roots")
+            else [],
+            tasks=[ETask.from_task(t, include_task_args) for t in dag.tasks]
+            if hasattr(dag, "tasks")
+            else [],
+            owner=dag.owner if hasattr(dag, "owner") else dag.owners,
             dag_id=dag.dag_id,
             schedule_interval=interval_to_str(dag.schedule_interval),
-            catchup=dag.catchup,
-            start_date=dag.start_date or utcnow(),
-            end_date=dag.end_date,
+            catchup=dag.catchup if hasattr(dag, "catchup") else "",
+            start_date=dag.start_date or utcnow()
+            if hasattr(dag, "start_date")
+            else utcnow(),
+            end_date=dag.end_date if hasattr(dag, "start_date") else utcnow(),
             is_committed=git_committed,
             git_commit=git_commit or "",
             dag_folder=dag_folder,
@@ -511,7 +576,16 @@ def _get_log(ti, task):
             None,
         )
         logs, metadatas = handler.read(ti, ti._try_number, metadata={})
-        return logs[0] if logs else None
+        if not logs:
+            return None
+        all_logs = logs[0]
+        logs_size = sys.getsizeof(all_logs)
+        if logs_size < MAX_LOGS_SIZE_IN_BYTES:
+            return all_logs
+
+        diff = logs_size - MAX_LOGS_SIZE_IN_BYTES
+        result = all_logs[-diff:] + "... ({} of {})".format(diff, len(all_logs))
+        return result
     except Exception as e:
         pass
     finally:
