@@ -40,7 +40,8 @@ def _kill_zombies(dag_run, session):
     fail the DR and related unfinished TIs
     """
     logger.info(
-        "Job has ended but the related DagRun is still in state %s - marking it as failed",
+        "Job has ended but the related %s is still in state %s - marking it as failed",
+        dag_run,
         dag_run.state,
     )
     qry = session.query(TI).filter(
