@@ -10,7 +10,7 @@ import pytest
 from mock import MagicMock
 
 from dbnd._vendor.backports_tempfile.tempfile import TemporaryDirectory
-from targets import DbndLocalFileMetadataRegistry
+from targets import DbndLocalFileMetadataRegistry, target
 
 
 class TestDbndFileCache(object):
@@ -49,7 +49,9 @@ class TestDbndFileCache(object):
     def test_resolve_cache_file_name(self, mock_get_run):
         file_path = "/path/to/file.py"
         with TemporaryDirectory() as dir:
-            mock_get_run.return_value.get_current_dbnd_local_root.return_value = dir
+            mock_get_run.return_value.get_current_dbnd_local_root.return_value = target(
+                dir
+            )
             cache_file_path = DbndLocalFileMetadataRegistry._resolve_cache_file_name(
                 file_path
             )

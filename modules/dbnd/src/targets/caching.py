@@ -160,7 +160,7 @@ class DbndLocalFileMetadataRegistry(object):
         dbnd_local_root = run.get_current_dbnd_local_root()
 
         # Create cache directory in dbnd_local_root
-        cache_dir = os.path.join(dbnd_local_root, "cache")
+        cache_dir = os.path.join(dbnd_local_root.path, "cache")
         if not os.path.isdir(cache_dir):
             os.makedirs(cache_dir)
 
