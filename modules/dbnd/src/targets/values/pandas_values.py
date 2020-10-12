@@ -63,7 +63,14 @@ class DataFrameValueType(DataValueType):
             value_preview = self.to_preview(
                 value, preview_size=meta_conf.get_preview_size()
             )
-            data_hash = fast_hasher.hash(hash_pandas_object(value, index=True).values)
+            try:
+                data_hash = fast_hasher.hash(
+                    hash_pandas_object(value, index=True).values
+                )
+            except Exception as e:
+                logger.warning(
+                    "Could not hash dataframe object %s! Exception: %s", value, e
+                )
 
         if meta_conf.log_histograms:
             start_time = time.time()
