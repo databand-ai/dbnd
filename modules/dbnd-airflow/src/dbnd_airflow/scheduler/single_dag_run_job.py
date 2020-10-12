@@ -817,8 +817,7 @@ def find_and_kill_zombies(args, session=None):
         seconds=seconds_from_last_heartbeat
     )
     logger.info(
-        "Cleaning zombie tasks with heartbeat older than: %s",
-        last_expected_heartbeat,
+        "Cleaning zombie tasks with heartbeat older than: %s", last_expected_heartbeat,
     )
 
     # Select BackfillJob that failed or are still running
