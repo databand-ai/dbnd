@@ -1,5 +1,3 @@
-import pickle
-
 from typing import Any
 
 import attr
@@ -37,8 +35,9 @@ class ResultProxyTarget(MultiTarget):
         return "result(%s)" % ",".join(self.names)
 
     def __getitem__(self, item):
-        # Returns file target
-        return self.as_dict()[item]
+        if isinstance(item, int):  # handle p[0]
+            item = self.names[item]
+        return self.get_sub_result(item)
 
     def as_dict(self):
         return {name: self.get_sub_result(name) for name in self.names}
