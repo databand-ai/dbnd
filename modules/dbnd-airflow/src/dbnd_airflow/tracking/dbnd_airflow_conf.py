@@ -24,8 +24,8 @@ def get_airflow_conf(
         "AIRFLOW_CTX_TASK_ID": task_id,
         "AIRFLOW_CTX_TRY_NUMBER": try_number,
     }
-
-    return {**airflow_conf, **get_databand_url_conf()}
+    airflow_conf.update(get_databand_url_conf())
+    return airflow_conf
 
 
 def _get_databand_url():
@@ -46,7 +46,9 @@ def get_databand_url_conf():
 
 
 def extract_airflow_tracking_conf(context):
-    return {**extract_airflow_conf(context), **get_databand_url_conf()}
+    conf = extract_airflow_conf(context)
+    conf.update(get_databand_url_conf())
+    return conf
 
 
 def extract_airflow_conf(context):
