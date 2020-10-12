@@ -212,7 +212,7 @@ class FeaturesConfig(Config):
 
 
 class TrackingConfig(Config):
-    _conf__task_family = "tacking"
+    _conf__task_family = "tracking"
 
     databand_external_url = parameter(
         default=None,
@@ -249,6 +249,11 @@ class TrackingConfig(Config):
         default=True,
         description="Auto disable slow preview for Spark DF with text formats",
     )[bool]
+
+    flatten_operator_fields = parameter(
+        default={},
+        description="Control which of the operator's fields would be flatten when tracked",
+    )[Dict[str, str]]
 
     def get_value_meta_conf(
         self, parameter_value_meta_conf, value_type=None, target=None

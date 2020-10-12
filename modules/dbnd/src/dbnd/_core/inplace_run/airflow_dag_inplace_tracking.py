@@ -7,9 +7,11 @@ import logging
 import os
 import sys
 
+from collections import Mapping
 from typing import Any, Dict, Optional
 
 import attr
+import six
 
 import dbnd._core.utils.basics.environ_utils
 
@@ -19,12 +21,14 @@ from dbnd._core.configuration.environ_config import (
     spark_tracking_enabled,
 )
 from dbnd._core.constants import UpdateSource
+from dbnd._core.current import get_settings
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.dynamic import build_dynamic_task_class
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
+from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 
 
 logger = logging.getLogger(__name__)
@@ -237,10 +241,7 @@ def build_run_time_airflow_task(af_context):
         airflow_operator = af_context.context["task_instance"].task
 
         # find the template fields of the operators
-        user_params = {
-            attr_name: getattr(airflow_operator, attr_name)
-            for attr_name in airflow_operator.template_fields
-        }
+        user_params = get_flatten_operator_params(airflow_operator)
 
         # create params definitions for the operator's fields
         params_def = {
@@ -283,3 +284,59 @@ def get_user_module_code():
             return module_code
     except Exception as ex:
         return
+
+
+DEFAULT_FLATTEN = {
+    "PythonOperator": {"op_kwargs", "op_args"},
+    "SparkSubmitOperator": {"conf"},
+}
+
+
+def should_flatten(operator, attr_name):
+    flatten_config = get_flatten_config()
+    for op_name in flatten_config:
+        if is_instance_by_class_name(operator, op_name):
+            return attr_name in flatten_config[op_name]
+    return False
+
+
+def get_flatten_config():
+    flatten_config = DEFAULT_FLATTEN.copy()
+    user_config = get_settings().tracking.flatten_operator_fields
+    for op_name, args in six.iteritems(user_config):
+        if op_name in flatten_config:
+            flatten_config[op_name] |= set(args)
+        else:
+            flatten_config[op_name] = set(args)
+    return flatten_config
+
+
+def flatten_param(attr_name, value):
+    if isinstance(value, (dict, Mapping)):
+        for name, value in value.items():
+            yield "%s.%s" % (attr_name, name), value
+
+    elif isinstance(value, list):
+        for i, value in enumerate(value):
+            yield "%s.%s" % (attr_name, i), value
+
+    else:
+        yield attr_name, value
+
+
+def get_flatten_operator_params(operator):
+    return {name: repr(value) for name, value in _flatten_operator_params(operator)}
+
+
+def _flatten_operator_params(operator):
+    params = []
+    for attr_name in operator.template_fields:
+        value = getattr(operator, attr_name)
+
+        if should_flatten(operator, attr_name):
+            params.extend(flatten_param(attr_name, value))
+
+        else:
+            params.append((attr_name, value))
+
+    return params
