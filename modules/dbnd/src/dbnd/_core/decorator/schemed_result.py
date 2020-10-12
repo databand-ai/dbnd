@@ -1,3 +1,5 @@
+import pickle
+
 from typing import Any
 
 import attr
@@ -33,6 +35,12 @@ class ResultProxyTarget(MultiTarget):
 
     def __repr__(self):
         return "result(%s)" % ",".join(self.names)
+
+    def __getitem__(self, item):
+        path_to_pickle = self.as_dict()[item]
+        with open(path_to_pickle, "r") as p:
+            value = pickle.load(p)
+        return value
 
     def as_dict(self):
         return {name: self.get_sub_result(name) for name in self.names}
