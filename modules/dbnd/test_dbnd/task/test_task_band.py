@@ -137,7 +137,7 @@ class TestTaskBand(object):
         @pipeline
         def uber_wiring():
             p = prepare_data()
-            assert p["test_set"] == 17
+            assert p["test_set"].path.endswith("test_set.pickle")
 
         uber_wiring.dbnd_run()
 

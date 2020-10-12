@@ -37,10 +37,8 @@ class ResultProxyTarget(MultiTarget):
         return "result(%s)" % ",".join(self.names)
 
     def __getitem__(self, item):
-        path_to_pickle = self.as_dict()[item]
-        with open(path_to_pickle, "r") as p:
-            value = pickle.load(p)
-        return value
+        # Returns file target
+        return self.as_dict()[item]
 
     def as_dict(self):
         return {name: self.get_sub_result(name) for name in self.names}
