@@ -110,6 +110,10 @@ class RunConfig(config.Config):
         "Should dbnd task check that all outputs exist after task has been executed"
     )[bool]
 
+    validate_task_outputs_on_build = parameter(default=False).help(
+        "Should dbnd task check that there are no incomplete outputs before task executes"
+    )[bool]
+
     tracking_with_cache = parameter(default=False).help(
         "Should dbnd cache results during tracking"
     )[bool]

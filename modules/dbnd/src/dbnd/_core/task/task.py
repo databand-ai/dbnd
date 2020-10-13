@@ -8,6 +8,7 @@ from typing import Dict
 
 from dbnd._core.constants import OutputMode, _TaskParamContainer
 from dbnd._core.current import get_databand_run
+from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.parameter.parameter_definition import (
@@ -203,17 +204,14 @@ class Task(_BaseTask, _TaskParamContainer):
 
         if 0 < num_of_incomplete_outputs < len(outputs):
             complete_outputs = [str(o) for o in outputs if o.exists()]
-            logger.warning(
-                "Task {} has incomplete outputs! "
-                "This means the task might fail every time. "
-                "Complete outputs: {} "
-                "Incomplete outputs: {} "
-                "Hint: clean the environment or overwrite the output".format(
-                    self.task_meta.task_name,
-                    ", ".join(complete_outputs),
-                    ", ".join(incomplete_outputs),
-                )
+            exc = incomplete_output_found_for_task(
+                self.task_meta.task_name, complete_outputs, incomplete_outputs
             )
+
+            if self.task_env.settings.run.validate_task_outputs_on_build:
+                raise exc
+            else:
+                logger.warning(str(exc))
 
         return num_of_incomplete_outputs == 0
 

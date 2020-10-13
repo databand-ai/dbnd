@@ -157,3 +157,16 @@ def failed_to_access_dbnd_home(dbnd_home, ex):
             "Exception: {ex}"
         ).format(dbnd_home=dbnd_home, ex=ex)
     )
+
+
+def incomplete_output_found_for_task(task_name, complete_outputs, incomplete_outputs):
+    return DatabandBuildError(
+        "Task {} has incomplete outputs! "
+        "This means the task might fail every time. "
+        "Complete outputs: {} "
+        "Incomplete outputs: {} "
+        "Hint: clean the environment or overwrite the output. "
+        "To ignore this error, turn off 'validate_task_outputs_on_build' in the '[run]' configuration section".format(
+            task_name, ", ".join(complete_outputs), ", ".join(incomplete_outputs),
+        )
+    )
