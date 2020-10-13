@@ -7,7 +7,7 @@ import sys
 import zipfile
 
 from tempfile import mkdtemp
-from typing import List, Optional
+from typing import Optional
 
 from dbnd._core.current import is_verbose
 from targets import DirTarget

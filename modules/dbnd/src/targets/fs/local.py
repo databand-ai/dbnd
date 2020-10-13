@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import shutil
+import zipfile
 
 from targets.errors import FileAlreadyExists, MissingParentDirectory, NotADirectory
 from targets.fs.file_system import FileSystem
@@ -122,7 +123,8 @@ class LocalFileSystem(FileSystem):
         self.move(path, dest, raise_if_exists=True)
 
     def open_read(self, path, mode="r"):
-        return FileWrapper(io.BufferedReader(io.FileIO(path, mode)))
+        file_io = io.FileIO(path, mode)
+        return FileWrapper(io.BufferedReader(file_io))
 
     def open_write(self, path, mode="w", **kwargs):
         return AtomicLocalFile(path, fs=self, mode=mode, **kwargs)

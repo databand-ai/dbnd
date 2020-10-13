@@ -24,7 +24,8 @@ from dbnd._core.utils.project.project_fs import (
     databand_system_path,
 )
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
-from targets import target
+from targets import LocalFileSystem, target
+from targets.pipes import Text
 
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,32 @@ def read_from_config_file(config_file_target):
     Read config from config file (.ini, .cfg)
     """
 
+    # Check if config files are inside zip first - can happen if we run in fat wheel
+    if (
+        isinstance(config_file_target.fs, LocalFileSystem)
+        and ".zip/" in config_file_target.path
+    ):
+        zip_file_path, config_path_inside_zip = config_file_target.path.split(".zip/")
+        if os.path.exists(zip_file_path + ".zip"):
+            import zipfile
+
+            archive = zipfile.ZipFile(zip_file_path + ".zip", "r")
+            if config_path_inside_zip not in archive.namelist():
+                raise DatabandConfigError(
+                    "Failed to read configuration file at %s, file not found!"
+                    % config_file_target
+                )
+            archive = zipfile.ZipFile(zip_file_path + ".zip", "r")
+            with archive.open(config_path_inside_zip) as file_io:
+                return read_from_config_stream(
+                    Text.pipe_reader(file_io), str(config_file_target)
+                )
+
+    if not config_file_target.exists():
+        raise DatabandConfigError(
+            "Failed to read configuration file at %s, file not found!"
+            % config_file_target
+        )
     with config_file_target.open("r") as fp:
         return read_from_config_stream(fp, str(config_file_target))
 
@@ -108,12 +135,10 @@ def read_from_config_files(config_files):
         )
 
     for f in files_to_load:
-        if not f.exists():
-            raise DatabandConfigError(
-                "Failed to read configuration file at %s, file not found!" % f
-            )
         try:
             configs.append(read_from_config_file(f))
+        except DatabandConfigError:
+            raise
         except Exception as ex:
             raise DatabandConfigError(
                 "Failed to read configuration file at %s: %s" % (f, ex),
