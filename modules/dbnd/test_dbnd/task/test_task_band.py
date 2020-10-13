@@ -1,7 +1,7 @@
 import logging
 import os
 
-from typing import Any
+from typing import Any, Tuple
 
 import pytest
 import six
@@ -126,6 +126,29 @@ class TestTaskBand(object):
             return v
 
         t_pipe.dbnd_run()
+
+    def test_dereference_values_from_pipeline(self):
+        @task(result="training_set, test_set, validation_set")
+        def prepare_data():
+            # type: () -> Tuple[int, int, int]
+            train_df, test_df, validation_df = 13, 17, 19
+            return train_df, test_df, validation_df
+
+        @pipeline
+        def uber_wiring():
+            p = prepare_data()
+            assert p[0].path.endswith("training_set.pickle")
+            assert p["test_set"].path.endswith("test_set.pickle")
+
+            with pytest.raises(IndexError) as e:
+                p[42]
+            assert "target" in str(e.value)
+
+            with pytest.raises(AttributeError) as e:
+                p["makaron"]
+            assert "target" in str(e.value)
+
+        uber_wiring.dbnd_run()
 
     def test_task_band_override_with_publisher(self):
         @task

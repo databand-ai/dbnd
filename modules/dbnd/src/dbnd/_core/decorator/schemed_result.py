@@ -34,6 +34,21 @@ class ResultProxyTarget(MultiTarget):
     def __repr__(self):
         return "result(%s)" % ",".join(self.names)
 
+    def __getitem__(self, item):
+        if isinstance(item, int):  # handle p[0]
+            try:
+                item = self.names[item]
+            except IndexError:
+                raise IndexError(
+                    "ResultProxyTarget index out fo the range. This target has only {} elements".format(
+                        len(self.names)
+                    )
+                )
+        try:
+            return self.get_sub_result(item)
+        except AttributeError:
+            raise AttributeError("ResultProxyTarget has no `{}` target".format(item))
+
     def as_dict(self):
         return {name: self.get_sub_result(name) for name in self.names}
 
