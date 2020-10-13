@@ -140,6 +140,14 @@ class TestTaskBand(object):
             assert p[0].path.endswith("training_set.pickle")
             assert p["test_set"].path.endswith("test_set.pickle")
 
+            with pytest.raises(IndexError) as e:
+                p[42]
+            assert "target" in str(e.value)
+
+            with pytest.raises(AttributeError) as e:
+                p["makaron"]
+            assert "target" in str(e.value)
+
         uber_wiring.dbnd_run()
 
     def test_task_band_override_with_publisher(self):
