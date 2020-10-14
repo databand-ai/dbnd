@@ -503,7 +503,7 @@ class EDag(object):
             owner=dag.owner if hasattr(dag, "owner") else dag.owners,
             dag_id=dag.dag_id,
             schedule_interval=interval_to_str(dag.schedule_interval),
-            catchup=dag.catchup if hasattr(dag, "catchup") else "",
+            catchup=dag.catchup if hasattr(dag, "catchup") else False,
             start_date=dag.start_date or utcnow()
             if hasattr(dag, "start_date")
             else utcnow(),
@@ -695,7 +695,7 @@ def _read_dag_file(dag_file):
             except Exception as e:
                 pass
 
-    return None
+    return ""
 
 
 def _get_export_plugin_version():
