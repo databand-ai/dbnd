@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import functools
 import logging
-import sys
 
 import attr
 import six
@@ -10,11 +9,9 @@ import six
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
-from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
-from dbnd._core.plugin.dbnd_plugins import is_web_enabled
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
@@ -137,6 +134,7 @@ def build_dynamic_task(original_cls, new_cls_name):
     "--disable-web-tracker", help="Disable web tracking", is_flag=True,
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
+@click.option("--open-web-tab", help="Open tracker url in Databand UI", is_flag=True)
 @click.pass_context
 def run(
     ctx,
@@ -164,6 +162,7 @@ def run(
     submit_driver,
     submit_tasks,
     disable_web_tracker,
+    open_web_tab,
 ):
     """
     Run a task or a DAG
@@ -295,6 +294,9 @@ def run(
         if is_help or not task_name:
             print_help(ctx, task_cls)
             return
+
+        if open_web_tab:
+            config.set_values({"run": {"open_web_tracker_in_browser": "True"}})
 
         return context.dbnd_run_task(
             task_or_task_name=task_name,

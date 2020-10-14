@@ -2,6 +2,7 @@ import logging
 
 from dbnd._core.utils.traversing import flatten
 from targets.data_target import DataTarget
+from targets.target_config import TargetConfig
 from targets.utils.open_multiple import MultiTargetOpen
 
 
@@ -16,7 +17,7 @@ class MultiTarget(DataTarget):
         if targets and len({t.config for t in targets if hasattr(t, "config")}) == 1:
             self.config = targets[0].config
         else:
-            self.config = None
+            self.config = TargetConfig()
 
     @property
     def targets(self):

@@ -23,7 +23,7 @@ def _auto_complete(use_fast_subprocess=False):
             "COMP_WORDS": "dbnd ",
             "COMP_CWORD": "1",
             "_DBND_COMPLETE": "complete_zsh",
-            "LANG": os.environ["LANG"],
+            "LANG": os.environ.get("LANG", "en_US.UTF8"),
         },
         **kwargs
     )

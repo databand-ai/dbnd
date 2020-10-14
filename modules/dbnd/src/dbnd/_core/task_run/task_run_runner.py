@@ -1,6 +1,7 @@
 import logging
 import signal
 import typing
+import webbrowser
 
 from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.errors import friendly_error, show_error_once
@@ -55,6 +56,8 @@ class TaskRunRunner(TaskRunCtrl):
                 env=task.task_env, task_name=SystemTaskName.task_submit, args=args
             )
             submit_task.task_meta.add_child(task.task_id)
+            if run_config.open_web_tracker_in_browser:
+                webbrowser.open_new_tab(task_run.task_tracker_url)
             run.run_dynamic_task(submit_task)
             return
 

@@ -88,6 +88,9 @@ class RunConfig(config.Config):
     heartbeat_sender_log_to_file = parameter(
         description="create a separate log file for the heartbeat sender and don't log the run process stdout"
     )[bool]
+    open_web_tracker_in_browser = parameter(
+        description="If True, open web tracker in browser during task run."
+    ).value(False)
 
     enable_concurent_sqlite = parameter(
         description="Enable concurrent execution with sqlite db (use only for debug!)"
