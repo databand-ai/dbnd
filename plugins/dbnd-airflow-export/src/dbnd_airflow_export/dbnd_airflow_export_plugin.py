@@ -150,9 +150,13 @@ def do_export_data(
     for dag_model in dag_models:
         dag_from_dag_bag = dagbag.get_dag(dag_model.dag_id)
         if dagbag.get_dag(dag_model.dag_id):
-            dag = EDag.from_dag(dag_from_dag_bag, dag_model,dagbag.dag_folder, include_task_args)
+            dag = EDag.from_dag(
+                dag_from_dag_bag, dag_model, dagbag.dag_folder, include_task_args
+            )
         else:
-            dag = EDag.from_dag(dag_model, dag_model, dagbag.dag_folder, include_task_args)
+            dag = EDag.from_dag(
+                dag_model, dag_model, dagbag.dag_folder, include_task_args
+            )
             number_of_dags_not_in_dag_bag += 1
         dags_list.append(dag)
 

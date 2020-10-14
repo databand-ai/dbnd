@@ -54,7 +54,8 @@ setuptools.setup(
             "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
             "urllib3==1.23",  # otherwise we have 1.24 - conflict with 'requests'
             "tox==3.12.1",
-            "matplotlib",
+            "matplotlib==2.2.5;python_version<'3.5'",
+            "matplotlib==3.3.0;python_version>='3.5'",
             "tables==3.5.1",
             "feather-format",
             "pyarrow",
