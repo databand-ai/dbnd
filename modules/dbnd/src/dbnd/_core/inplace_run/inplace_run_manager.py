@@ -110,6 +110,7 @@ class _DbndInplaceRunManager(object):
                 existing_run=False,
                 source=source,
                 af_context=airflow_context,
+                send_heartbeat=False,
             )
         )  # type: DatabandRun
 
