@@ -682,6 +682,7 @@ def _extract_args_from_dict(t_dict):
     except Exception as ex:
         task_id = t_dict.get("task_id") or t_dict.get("_dag_id")
         logging.error("Could not collect task args for %s: %s", task_id, ex)
+        return {}
 
 
 def _read_dag_file(dag_file):
