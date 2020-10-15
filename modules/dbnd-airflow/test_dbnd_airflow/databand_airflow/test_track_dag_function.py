@@ -12,7 +12,7 @@ from mock import Mock
 from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
-from dbnd_airflow.tracking.execute_tracking import track_operator
+from dbnd_airflow.tracking.execute_tracking import add_tracking_to_submit_task
 
 
 dbnd_spark_env_vars = (
@@ -65,18 +65,6 @@ class TestTrackOperator(object):
         return dag_object
 
     @pytest.fixture
-    def python_operator(self, dag):
-        def task1():
-            return "output"
-
-        operator = PythonOperator(task_id="python_task", python_callable=task1, dag=dag)
-        track_operator({}, operator)
-        return operator
-
-    def test_python_operator(self, python_operator):
-        assert isinstance(python_operator.python_callable, DbndFuncProxy)
-
-    @pytest.fixture
     def emr_operator(self, dag):
         spark_submit_command = [
             "spark-submit",
@@ -105,7 +93,7 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_TRY_NUMBER": "1",
         }
 
-        track_operator(env, operator)
+        add_tracking_to_submit_task(env, operator)
         return operator
 
     def test_emr_add_steps_operator(self, emr_operator):
@@ -131,7 +119,7 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_TRY_NUMBER": "1",
         }
 
-        track_operator(env, operator)
+        add_tracking_to_submit_task(env, operator)
         return operator
 
     def test_spark_submit_operator(self, spark_submit_operator):

@@ -2,14 +2,14 @@ import logging
 
 from collections import OrderedDict
 
-from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy, task
+from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy, _log_result, task
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import extract_airflow_context
-from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start
+from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd_airflow.tracking.conf_operations import flat_conf
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
     get_databand_url_conf,
-    get_env_dbnd_track,
+    get_tracking_information,
 )
 from dbnd_airflow.tracking.dbnd_spark_conf import (
     add_spark_env_fields,
@@ -23,8 +23,8 @@ from dbnd_airflow.tracking.dbnd_spark_conf import (
 logger = logging.getLogger(__name__)
 
 
-def track_emr_add_steps_operator(operator, envs):
-    flat_spark_envs = flat_conf(add_spark_env_fields(envs))
+def track_emr_add_steps_operator(operator, tracking_info):
+    flat_spark_envs = flat_conf(add_spark_env_fields(tracking_info))
     for step in operator.steps:
         args = step["HadoopJarStep"]["Args"]
         if args and "spark-submit" in args[0]:
@@ -33,13 +33,13 @@ def track_emr_add_steps_operator(operator, envs):
             )
 
 
-def track_databricks_submit_run_operator(operator, envs):
+def track_databricks_submit_run_operator(operator, tracking_info):
     config = operator.json
     # passing env variables is only supported in new clusters
     if "new_cluster" in config:
         cluster = config["new_cluster"]
         cluster.setdefault("spark_env_vars", {})
-        cluster["spark_env_vars"].update(envs)
+        cluster["spark_env_vars"].update(tracking_info)
         cluster["spark_env_vars"].update(get_databand_url_conf())
 
         if "spark_jar_task" in config:
@@ -49,17 +49,17 @@ def track_databricks_submit_run_operator(operator, envs):
                 cluster["spark_conf"].update(agent_conf)
 
 
-def track_data_proc_pyspark_operator(operator, envs):
+def track_data_proc_pyspark_operator(operator, tracking_info):
     if operator.dataproc_properties is None:
         operator.dataproc_properties = dict()
-    spark_envs = add_spark_env_fields(envs)
+    spark_envs = add_spark_env_fields(tracking_info)
     operator.dataproc_properties.update(spark_envs)
 
 
-def track_spark_submit_operator(operator, envs):
+def track_spark_submit_operator(operator, tracking_info):
     if operator._conf is None:
         operator._conf = dict()
-    spark_envs = add_spark_env_fields(envs)
+    spark_envs = add_spark_env_fields(tracking_info)
     operator._conf.update(spark_envs)
 
     if operator._env_vars is None:
@@ -81,20 +81,12 @@ def _has_java_application(operator):
     )
 
 
-def track_python_operator(operator, envs):
-    # we can set up the env here but the python operator will replace them so we patched this
-    # function context_to_airflow_vars
-    if not isinstance(operator.python_callable, DbndFuncProxy):
-        operator.python_callable = task(operator.python_callable)
-
-
 _EXECUTE_TRACKING = OrderedDict(
     [
         ("EmrAddStepsOperator", track_emr_add_steps_operator),
         ("DatabricksSubmitRunOperator", track_databricks_submit_run_operator),
         ("DataProcPySparkOperator", track_data_proc_pyspark_operator),
         ("SparkSubmitOperator", track_spark_submit_operator),
-        ("PythonOperator", track_python_operator),
     ]
 )
 
@@ -109,27 +101,32 @@ def new_execute(context):
     # Then, only the copy_task (=copy_operator) is changed or called (render jinja, signal_handler,
     # pre_execute, execute, etc..).
     copied_operator = context["task_instance"].task
-
     try:
         # start operator execute run with current airflow context
         task_context = extract_airflow_context(context)
         task_run = dbnd_run_start(airflow_context=task_context)
 
         # custom manipulation for each operator
-        envs = get_env_dbnd_track(context, task_run)
-        track_operator(envs, copied_operator)
+        if task_run:
+            tracking_info = get_tracking_information(context, task_run)
+            add_tracking_to_submit_task(tracking_info, copied_operator)
 
     except Exception as e:
+        task_run = None
         logger.error(
             "exception caught will running on dbnd new execute {}".format(e),
             exc_info=True,
         )
-    # run the original execute
-    copied_operator.__class__.execute(copied_operator, context)
+
+    result = copied_operator.__class__.execute(copied_operator, context)
+    if task_run:
+        _log_result(task_run, result)
+    dbnd_run_stop()
+    return result
 
 
-def track_operator(envs, operator):
+def add_tracking_to_submit_task(tracking_info, operator):
     for class_name, tracking_wrapper in _EXECUTE_TRACKING.items():
         if is_instance_by_class_name(operator, class_name):
-            tracking_wrapper(operator, envs)
+            tracking_wrapper(operator, tracking_info)
             break

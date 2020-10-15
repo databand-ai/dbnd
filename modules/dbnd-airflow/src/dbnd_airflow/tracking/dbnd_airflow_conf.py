@@ -71,13 +71,13 @@ def extract_airflow_conf(context):
     return {}
 
 
-def get_env_dbnd_track(context, task_run):
-    envs = extract_airflow_conf(context)
-    return extend_airflow_ctx_env_with_dbnd(task_run, envs)
+def get_tracking_information(context, task_run):
+    info = extract_airflow_conf(context)
+    return extend_airflow_ctx_with_dbnd_tracking_info(task_run, info)
 
 
-def extend_airflow_ctx_env_with_dbnd(task_run, airflow_ctx_env):
-    envs = airflow_ctx_env.copy()
-    envs[DBND_PARENT_TASK_RUN_UID] = str(task_run.task_run_uid)
-    envs[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = str(task_run.task_run_attempt_uid)
-    return envs
+def extend_airflow_ctx_with_dbnd_tracking_info(task_run, airflow_ctx_env):
+    info = airflow_ctx_env.copy()
+    info[DBND_PARENT_TASK_RUN_UID] = str(task_run.task_run_uid)
+    info[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = str(task_run.task_run_attempt_uid)
+    return info

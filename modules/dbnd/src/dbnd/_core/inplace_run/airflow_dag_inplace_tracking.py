@@ -240,17 +240,34 @@ def build_run_time_airflow_task(af_context):
 
         airflow_operator = af_context.context["task_instance"].task
 
+        tracked_function = None
+        if is_instance_by_class_name(airflow_operator, "PythonOperator"):
+            tracked_function = airflow_operator.python_callable
+
         # find the template fields of the operators
         user_params = get_flatten_operator_params(airflow_operator)
+        if tracked_function:
+            user_params["function_name"] = tracked_function.__name__
 
         # create params definitions for the operator's fields
         params_def = {
             name: parameter[type(value)].build_parameter("inline")
             for name, value in user_params.items()
         }
+
         task_class = build_dynamic_task_class(
-            AirflowOperatorRuntimeTask, task_family, params_def
+            AirflowOperatorRuntimeTask, task_family, params_def,
         )
+
+        if tracked_function:
+            import inspect
+
+            task_class.task_definition.task_source_code = inspect.getsource(
+                tracked_function
+            )
+            task_class.task_definition.task_module_code = inspect.getsource(
+                inspect.getmodule(tracked_function)
+            )
 
     else:
         # if this is an inline run-time task, we name it after the script which ran it

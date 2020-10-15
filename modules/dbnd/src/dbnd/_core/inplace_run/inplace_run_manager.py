@@ -92,9 +92,11 @@ class _DbndInplaceRunManager(object):
         if self._run or self._active or try_get_databand_run():
             return
 
+        airflow_context = airflow_context or try_get_airflow_context()
+        set_tracking_config_overide(use_dbnd_log=True, airflow_context=airflow_context)
+
         dc = self._enter_cm(new_dbnd_context())  # type: DatabandContext
 
-        airflow_context = airflow_context or try_get_airflow_context()
         if airflow_context:
             root_task, job_name, source = build_run_time_airflow_task(airflow_context)
         else:
