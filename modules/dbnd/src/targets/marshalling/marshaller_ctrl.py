@@ -62,7 +62,7 @@ class MarshallerCtrl(object):
 
         if isinstance(self.marshaller, StrMarshaller):
             mode = kwargs.get("mode")
-            if not mode or "b" not in mode:
+            if (not mode or "b" not in mode) and value is not None:
                 # TODO: sometimes we write to strmarshaller binary format.
                 value = self.value_type.to_str(value)
         elif isinstance(self.marshaller, StrLinesMarshaller):

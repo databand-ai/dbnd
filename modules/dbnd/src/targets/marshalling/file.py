@@ -21,6 +21,8 @@ class StrMarshaller(Marshaller):
             return fp.read()
 
     def value_to_target(self, value, target, mode="w"):
+        if value is None:
+            value = ""
         with target.open(mode) as fp:
             fp.write(value)
             fp.flush()
@@ -40,7 +42,9 @@ class StrLinesMarshaller(Marshaller):
             return fp.readlines()
 
     def value_to_target(self, value, target, mode="w", newline=True):
-        if newline:
+        if value is None:
+            value = ""
+        elif newline:
             value = ("%s\n" % s for s in value)
         with target.open(mode) as fp:
             fp.writelines(str(v) for v in value)
