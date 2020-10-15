@@ -174,13 +174,12 @@ class ParameterFactory(object):
     def file_numpy(self):
         return self.target_config(self._target_config.numpy)
 
-    @property
-    def require_local_access(self):
+    def require_local_access(self, require_local_access=True):
         """
         Write parameter to local filesystem before syncing to remote filesystem
         :return: ParameterFactory
         """
-        return self.target_config(self._target_config.with_require_local_access())
+        return self.modify(require_local_access=require_local_access)
 
     @property
     def overwrite(self):
