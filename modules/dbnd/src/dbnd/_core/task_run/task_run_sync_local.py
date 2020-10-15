@@ -25,13 +25,10 @@ class TaskRunLocalSyncer(TaskRunCtrl):
         self.inputs_to_sync = []
         self.outputs_to_sync = []
         self.local_sync_root = self.task_env.dbnd_local_root.partition("local_sync")
-
         for p_def, p_val in self.task._params.get_param_values(user_only=True):
-            if (
-                isinstance(p_val, FileTarget)
-                and p_val.config.require_local_access
-                and not p_val.fs.local
-            ):
+            if not p_def.require_local_access:
+                continue
+            if isinstance(p_val, FileTarget) and not p_val.fs.local:
                 # Target requires local access, it points to a remote path that must be synced-to from a local path
                 local_target = self._local_cache_target(p_val)
 
@@ -41,7 +38,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                 local_multitarget = MultiTarget(
                     [
                         self._local_cache_target(target_)
-                        if target_.config.require_local_access and not target_.fs.local
+                        if not target_.fs.local
                         else target_
                         for target_ in p_val.targets
                     ]
@@ -77,10 +74,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                         for remote_subtarget, local_subtarget in zip(
                             remote_target.targets, local_target.targets
                         ):
-                            if (
-                                remote_subtarget.config.require_local_access
-                                and not remote_subtarget.fs.local
-                            ):
+                            if not remote_subtarget.fs.local:
                                 self._sync_remote_to_local(
                                     remote_subtarget, local_subtarget
                                 )
@@ -108,10 +102,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                 for remote_subtarget, local_subtarget in zip(
                     remote_target.targets, local_target.targets
                 ):
-                    if (
-                        remote_subtarget.config.require_local_access
-                        and not remote_subtarget.fs.local
-                    ):
+                    if not remote_subtarget.fs.local:
                         local_subtarget.mkdir_parent()
             else:
                 local_target.mkdir_parent()
@@ -131,10 +122,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                     for remote_subtarget, local_subtarget in zip(
                         remote_target.targets, local_target.targets
                     ):
-                        if (
-                            remote_subtarget.config.require_local_access
-                            and not remote_subtarget.fs.local
-                        ):
+                        if not remote_subtarget.fs.local:
                             remote_subtarget.copy_from_local(
                                 local_path=local_subtarget.path
                             )

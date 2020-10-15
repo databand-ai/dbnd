@@ -33,9 +33,7 @@ class TestTaskRunSyncLocal(TargetTestBase):
     @pytest.fixture
     def my_target(self, pandas_data_frame):
         _target = self.target(
-            "file.parquet",
-            fs=PseudoLocalFileSystem(),
-            config=TargetConfig().with_require_local_access(),
+            "file.parquet", fs=PseudoLocalFileSystem(), config=TargetConfig(),
         )
         _target.write_df(pandas_data_frame)
         return _target
@@ -43,9 +41,7 @@ class TestTaskRunSyncLocal(TargetTestBase):
     @pytest.fixture
     def my_second_target(self, pandas_data_frame):
         _target = self.target(
-            "other_file.parquet",
-            fs=PseudoLocalFileSystem(),
-            config=TargetConfig().with_require_local_access(),
+            "other_file.parquet", fs=PseudoLocalFileSystem(), config=TargetConfig()
         )
         _target.write_df(pandas_data_frame)
         return _target
@@ -57,7 +53,7 @@ class TestTaskRunSyncLocal(TargetTestBase):
     @pytest.fixture
     def test_task(self, my_target):
         @task
-        def t_f(input_=parameter[pandas.DataFrame]):
+        def t_f(input_=parameter.require_local_access()[pandas.DataFrame]):
             return input_
 
         return t_f
