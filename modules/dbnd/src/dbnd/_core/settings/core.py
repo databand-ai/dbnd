@@ -228,7 +228,7 @@ class TrackingConfig(Config):
         default=True, description="Calculate and log value schema "
     )[bool]
     log_value_stats = parameter(
-        default=True,
+        default=False,
         description="Calculate and log value stats(expensive to calculate, better use log_stats on parameter level)",
     )[bool]
     log_value_preview = parameter(
@@ -243,7 +243,10 @@ class TrackingConfig(Config):
         default=True, description="Calculate and log value meta "
     )[bool]
 
-    log_histograms = parameter(default=True, description="Enable log_histogram")[bool]
+    log_histograms = parameter(
+        default=False,
+        description="Enable calculation and tracking of histograms. Can be expensive",
+    )[bool]
 
     auto_disable_slow_size = parameter(
         default=True,

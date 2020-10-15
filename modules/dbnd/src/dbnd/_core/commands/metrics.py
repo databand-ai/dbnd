@@ -37,11 +37,11 @@ def log_data(
     value=None,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable, SnowflakeTable]
     path=None,  # type: Optional[str]
     operation_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType
-    with_preview=True,  # type: Optional[bool]
-    with_size=True,  # type: Optional[bool]
-    with_schema=True,  # type: Optional[bool]
-    with_stats=False,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
-    with_histograms=False,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
+    with_preview=None,  # type: Optional[bool]
+    with_size=None,  # type: Optional[bool]
+    with_schema=None,  # type: Optional[bool]
+    with_stats=None,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
+    with_histograms=None,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
 ):  # type: (...) -> None
     tracker = _get_tracker()
     if not tracker:
@@ -66,9 +66,9 @@ log_dataframe = log_data
 def log_pg_table(
     table_name,
     connection_string,
-    with_preview=True,
-    with_schema=True,
-    with_histograms=False,  # type: Union[LogDataRequest, bool, str, List[str]]
+    with_preview=None,  # type: Optional[bool]
+    with_schema=None,  # type: Optional[bool]
+    with_histograms=None,  # type: Union[LogDataRequest, bool, str, List[str]]
 ):
 
     try:
@@ -94,8 +94,8 @@ def log_snowflake_table(
     database,  # type: str
     schema,  # type: str
     key=None,  # type: str
-    with_preview=True,  # type: bool
-    with_schema=True,  # type: bool
+    with_preview=None,  # type: Optional[bool]
+    with_schema=None,  # type: Optional[bool]
 ):
 
     if not is_plugin_enabled("dbnd-snowflake", module_import="dbnd_snowflake"):

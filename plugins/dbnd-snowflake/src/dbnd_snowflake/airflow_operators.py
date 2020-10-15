@@ -18,6 +18,8 @@
 # under the License.
 
 # Based on SnoflakeOperator
+from typing import Optional
+
 from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 from airflow.contrib.operators.snowflake_operator import SnowflakeOperator
 from airflow.utils.decorators import apply_defaults
@@ -33,6 +35,8 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
 
     :param str table: name of a table we want to track
     :param str key: Optional key for dbnd metrics. Defaults to table name
+    :param with_preview: Set `True` to track table preview (first 20 rows)
+    :param with_schema: Set `True` to track table schema, i.e. columns names, types and table dimensions
     :param str snowflake_conn_id: reference to specific snowflake connection id
     :param str warehouse: name of warehouse (will overwrite any warehouse
         defined in the connection's extra JSON)
@@ -45,11 +49,22 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
     """
 
     @apply_defaults
-    def __init__(self, table, key=None, account=None, *args, **kwargs):
+    def __init__(
+        self,
+        table,
+        key=None,
+        account=None,
+        with_preview: Optional[bool] = None,
+        with_schema: Optional[bool] = None,
+        *args,
+        **kwargs
+    ):
         super(LogSnowflakeTableOperator, self).__init__(*args, sql=None, **kwargs)
 
         self.table = table
         self.key = key
+        self.with_preview = with_preview
+        self.with_schema = with_schema
 
         # TODO: deprecate
         self.account = account
@@ -70,11 +85,23 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
 
         connection_string = hook.get_uri()
         return log_snowflake_table(
-            self.table, connection_string, hook.database, hook.schema, key=self.key
+            self.table,
+            connection_string,
+            hook.database,
+            hook.schema,
+            key=self.key,
+            with_preview=self.with_preview,
+            with_schema=self.with_schema,
         )
 
 
-def log_snowflake_operator(op: SnowflakeOperator, table, **kwargs):
+def log_snowflake_operator(
+    op: SnowflakeOperator,
+    table: str,
+    with_preview: Optional[bool] = None,
+    with_schema: Optional[bool] = None,
+    **kwargs
+):
     task_id = kwargs.pop("task_id", "log_table_%s_%s" % (op.task_id, table))
     return LogSnowflakeTableOperator(
         table=table,
@@ -84,6 +111,8 @@ def log_snowflake_operator(op: SnowflakeOperator, table, **kwargs):
         role=kwargs.pop("role", op.role),
         schema=kwargs.pop("schema", op.schema),
         task_id=task_id,
+        with_preview=with_preview,
+        with_schema=with_schema,
         **kwargs
     )
 
