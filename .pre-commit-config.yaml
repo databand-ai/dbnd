@@ -15,12 +15,6 @@ repos:
         # override until resolved: https://github.com/psf/black/issues/402
         types: []
 
-  - repo: https://github.com/asottile/seed-isort-config
-    rev: v2.1.1
-    hooks:
-      - id: seed-isort-config
-        language_version: python3.6
-
   - repo: https://github.com/timothycrosley/isort
     rev: 4.3.20
     hooks:
