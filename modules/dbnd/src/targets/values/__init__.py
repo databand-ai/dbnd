@@ -120,7 +120,7 @@ def get_types_registry():
 
 
 def get_value_type_of_obj(obj, default_value_type=None):
-    # type: (object, ValueType)->ValueType
+    # type: (object, Optional[ValueType]) -> Optional[ValueType]
     return get_types_registry().get_value_type_of_obj(obj, default_value_type)
 
 
@@ -140,7 +140,7 @@ def get_value_meta_from_value(
     if value is None:
         return None
 
-    obj_value_type = get_value_type_of_obj(value)
+    obj_value_type = get_value_type_of_obj(value, default_value_type=ObjectValueType())
     if obj_value_type is None:
         logger.info(
             "Can't detect known type for '%s' with type='%s' ", value_name, type(value)

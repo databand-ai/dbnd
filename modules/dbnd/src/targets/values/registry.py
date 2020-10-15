@@ -4,7 +4,7 @@ import logging
 import re
 import typing
 
-from typing import Optional
+from typing import List, Optional
 
 from dbnd._vendor.pytypes.type_utils import get_Union_params, is_Union
 from targets.types import EagerLoad, LazyLoad
@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 class ValueTypeRegistry(object):
     def __init__(self, known_value_types):
-        self.value_types = []
-        self.discoverable_value_types = []
+        self.value_types = []  # type: List[ValueType]
+        self.discoverable_value_types = []  # type: List[ValueType]
         self.default = DefaultObjectValueType()
 
         # now for every parameter we also have text representation of the type
@@ -59,6 +59,7 @@ class ValueTypeRegistry(object):
         return value_type
 
     def get_value_type_of_obj(self, value, default=None):
+        # type: (object, Optional[ValueType]) -> Optional[ValueType]
         # do we want to automatically parse str_list?
         # right now we do that, but as for obj_list
         # we can keep deterministic conversion only
