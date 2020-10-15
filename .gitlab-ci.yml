@@ -344,7 +344,9 @@ build_pypi_org_whl:
   artifacts:
     paths:
       - dist/*
-  only: *on_significant_branch
+  only:
+    - tags
+  when: manual
 
 #downstream:
 #  stage: staging
