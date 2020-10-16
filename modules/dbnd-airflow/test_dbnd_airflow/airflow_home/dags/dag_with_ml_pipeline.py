@@ -31,9 +31,8 @@ def _split(data):
 
 
 @task(result=("training_set", "test_set", "validation_set", "good_alpha"))
-def create_data_sets(
-    data: DataFrame = None,
-) -> Tuple[DataFrame, DataFrame, DataFrame, bool]:
+def create_data_sets(data=None):
+    # type: (DataFrame) -> Tuple[DataFrame, DataFrame, DataFrame, bool]
     train_df, test_df = _split(data)
     test_df, validation_df = _split(test_df)
 
@@ -41,13 +40,15 @@ def create_data_sets(
 
 
 @task
-def calculate_alpha(alpha: float = 0.5) -> float:
+def calculate_alpha(alpha=0.5):
+    # type: (float) -> float
     alpha -= 0.1
     return alpha
 
 
 @task
-def train_model(sets: Tuple[DataFrame, DataFrame], alpha: float = 0.5):
+def train_model(sets, alpha=0.5):
+    # type: (Tuple[DataFrame, DataFrame], float) -> int
     logging.info("Training the model...")
     time.sleep(2)
 
@@ -55,12 +56,14 @@ def train_model(sets: Tuple[DataFrame, DataFrame], alpha: float = 0.5):
 
 
 @task
-def validate_model(model: str, validation_dataset: DataFrame) -> bool:
+def validate_model(model, validation_dataset):
+    # type: (str, DataFrame) -> bool
     return not validation_dataset.is_copy and model is not None
 
 
 @task
-def get_data_frame(data: DataFrame = None):
+def get_data_frame(data=None):
+    # type: (DataFrame) -> DataFrame
     logging.info("I found the data!")
     return data
 
