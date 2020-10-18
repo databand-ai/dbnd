@@ -166,6 +166,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         description="How many seconds to wait before timeout occurs in watcher on client side (read)",
     )[int]
 
+    log_all_pod_events = parameter(
+        default=False,
+        description="When set to True, logs all events received from Kubernetes API server (including MODIFIED-type events)",
+    )[bool]
+
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
 

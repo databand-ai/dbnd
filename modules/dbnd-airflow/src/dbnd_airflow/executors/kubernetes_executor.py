@@ -399,11 +399,19 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 # DBND PATCH
                 # we want to process the message
                 task = event["object"]
-                self.log.debug(
-                    "Event: %s had an event of type %s",
-                    task.metadata.name,
-                    event["type"],
-                )
+                if self.kube_dbnd.engine_config.log_all_pod_events:
+                    self.log.info(
+                        " %s had an event of type %s. Data: %s",
+                        task.metadata.name,
+                        event["type"],
+                        event,
+                    )
+                else:
+                    self.log.debug(
+                        " %s had an event of type %s",
+                        task.metadata.name,
+                        event["type"],
+                    )
 
                 if event["type"] == "ERROR":
                     return self.process_error(event)
