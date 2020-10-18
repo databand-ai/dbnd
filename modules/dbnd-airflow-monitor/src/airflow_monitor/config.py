@@ -76,13 +76,3 @@ class AirflowMonitorConfig(Config):
     debug_sync_log_dir_path = parameter(default=None)[str]
 
     allow_duplicates = parameter(default=False)[bool]
-
-    rbac_username = parameter(
-        default={},
-        description="Username credentials to use when monitoring airflow with rbac enabled",
-    )[str]
-
-    rbac_password = parameter(
-        default={},
-        description="Password credentials to use when monitoring airflow with rbac enabled",
-    )[str]
