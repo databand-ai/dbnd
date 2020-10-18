@@ -175,6 +175,7 @@ def do_fetching_iteration(
                 "Sleeping for {} seconds on error".format(airflow_config.interval)
             )
             sleep(airflow_config.interval)
+            return 0
         airflow_instance_detail.exception_traceback = None
 
 

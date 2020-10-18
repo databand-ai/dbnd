@@ -18,7 +18,6 @@ from airflow.models import BaseOperator, DagModel, DagRun, XCom
 from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
-from airflow.utils.timezone import utcnow
 from airflow.version import version as airflow_version
 from flask import Response
 from sqlalchemy import and_, or_
@@ -52,7 +51,7 @@ class EmptyAirflowDatabase(Exception):
 ### Plugin Business Logic ###
 
 
-def _load_dags_models(session=None):
+def _load_dags_models(session):
     dag_models = session.query(DagModel).all()
 
     for dag_model in dag_models:
@@ -61,7 +60,8 @@ def _load_dags_models(session=None):
             current_dags[dag_model.dag_id] = dag_model
 
 
-def do_export_data(
+def _get_airflow_data(
+    session,
     dagbag,
     since,
     include_logs=False,
@@ -69,7 +69,6 @@ def do_export_data(
     include_xcom=False,
     dag_ids=None,
     quantity=None,
-    session=None,
 ):
     """
     Get first task instances that ended after since.
@@ -148,15 +147,27 @@ def do_export_data(
 
     number_of_dags_not_in_dag_bag = 0
     dags_list = []
+    git_commit, is_committed = _get_git_status(dagbag.dag_folder)
+
     for dag_model in dag_models:
         dag_from_dag_bag = dagbag.get_dag(dag_model.dag_id)
         if dagbag.get_dag(dag_model.dag_id):
             dag = EDag.from_dag(
-                dag_from_dag_bag, dag_model, dagbag.dag_folder, include_task_args
+                dag_from_dag_bag,
+                dag_model,
+                dagbag.dag_folder,
+                include_task_args,
+                git_commit,
+                is_committed,
             )
         else:
             dag = EDag.from_dag(
-                dag_model, dag_model, dagbag.dag_folder, include_task_args
+                dag_model,
+                dag_model,
+                dagbag.dag_folder,
+                include_task_args,
+                git_commit,
+                is_committed,
             )
             number_of_dags_not_in_dag_bag += 1
         dags_list.append(dag)
@@ -470,8 +481,6 @@ class EDag(object):
         catchup,
         start_date,
         end_date,
-        is_committed,
-        git_commit,
         dag_folder,
         hostname,
         source_code,
@@ -480,6 +489,8 @@ class EDag(object):
         task_args,
         is_active,
         is_paused,
+        git_commit,
+        is_committed,
     ):
         self.description = description
         self.root_task_ids = root_task_ids  # type: List[str]
@@ -490,8 +501,6 @@ class EDag(object):
         self.catchup = catchup
         self.start_date = start_date
         self.end_date = end_date
-        self.is_committed = is_committed
-        self.git_commit = git_commit
         self.dag_folder = dag_folder
         self.hostname = hostname
         self.source_code = source_code
@@ -500,30 +509,25 @@ class EDag(object):
         self.task_args = task_args
         self.is_active = is_active
         self.is_paused = is_paused
+        self.git_commit = git_commit
+        self.is_committed = is_committed
 
     @staticmethod
-    def from_dag(dag, dm, dag_folder, include_task_args):
-        # type: (DAG, DagModel, str, bool) -> EDag
-        git_commit, git_committed = _get_git_status(dag_folder)
+    def from_dag(dag, dm, dag_folder, include_task_args, git_commit, is_committed):
+        # type: (DAG, DagModel, str, bool, str, bool) -> EDag
         # Can be Dag from DagBag or from DB, therefore not all attributes may exist
         return EDag(
             description=dag.description,
-            root_task_ids=[t.task_id for t in dag.roots]
-            if hasattr(dag, "roots")
-            else [],
-            tasks=[ETask.from_task(t, include_task_args) for t in dag.tasks]
-            if hasattr(dag, "tasks")
-            else [],
-            owner=dag.owner if hasattr(dag, "owner") else dag.owners,
+            root_task_ids=[t.task_id for t in getattr(dag, "roots", [])],
+            tasks=[
+                ETask.from_task(t, include_task_args) for t in getattr(dag, "tasks", [])
+            ],
+            owner=resolve_attribute_or_default_attribute(dag, ["owner", "owners"]),
             dag_id=dag.dag_id,
             schedule_interval=interval_to_str(dag.schedule_interval),
-            catchup=dag.catchup if hasattr(dag, "catchup") else False,
-            start_date=dag.start_date or utcnow()
-            if hasattr(dag, "start_date")
-            else utcnow(),
-            end_date=dag.end_date if hasattr(dag, "start_date") else utcnow(),
-            is_committed=git_committed,
-            git_commit=git_commit or "",
+            catchup=resolve_attribute_or_default_value(dag, "catchup", False),
+            start_date=resolve_attribute_or_default_value(dag, "start_date", None),
+            end_date=resolve_attribute_or_default_value(dag, "end_date", None),
             dag_folder=dag_folder,
             hostname=get_hostname(),
             source_code=_read_dag_file(dag.fileloc),
@@ -532,6 +536,8 @@ class EDag(object):
             task_args=_extract_args_from_dict(vars(dag)) if include_task_args else {},
             is_active=dm.is_active,
             is_paused=dm.is_paused,
+            git_commit=git_commit,
+            is_committed=is_committed,
         )
 
     def as_dict(self):
@@ -585,6 +591,19 @@ class ExportData(object):
 ### Helpers ###
 
 
+def resolve_attribute_or_default_value(obj, attribute, default_value):
+    if hasattr(obj, attribute):
+        return getattr(obj, attribute)
+    return default_value
+
+
+def resolve_attribute_or_default_attribute(obj, attributes_list, default_value=None):
+    for attribute in attributes_list:
+        if hasattr(obj, attribute):
+            return getattr(obj, attribute)
+    return default_value
+
+
 def interval_to_str(schedule_interval):
     if isinstance(schedule_interval, datetime.timedelta):
         if schedule_interval == datetime.timedelta(days=1):
@@ -631,7 +650,7 @@ def _get_git_status(path):
         commit = repo.head.commit.hexsha
         return commit, not repo.is_dirty()
     except Exception as ex:
-        return None, False
+        return "", False
 
 
 def _get_source_code(t):
@@ -750,7 +769,7 @@ class ExportDataViewAdmin(flask_admin.BaseView):
 
 
 @provide_session
-def _handle_export_data(
+def get_airflow_data(
     dagbag,
     since,
     include_logs,
@@ -768,7 +787,7 @@ def _handle_export_data(
     old_get_current_dag = DagModel.get_current
     try:
         DagModel.get_current = _get_current_dag_model
-        result = do_export_data(
+        result = _get_airflow_data(
             dagbag=dagbag,
             since=since,
             include_logs=include_logs,
@@ -829,7 +848,7 @@ def export_data_api(dagbag):
     # do_update = flask.request.args.get("do_update", "").lower() == "true"
     # verbose = flask.request.args.get("verbose", str(not do_update)).lower() == "true"
 
-    export_data = _handle_export_data(
+    export_data = get_airflow_data(
         dagbag=dagbag,
         since=since,
         include_logs=include_logs,
@@ -850,46 +869,6 @@ class DataExportAirflowPlugin(AirflowPlugin):
     appbuilder_views = [
         {"category": "Admin", "name": "Export Data", "view": ExportDataViewAppBuilder()}
     ]
-
-
-### Direct API ###
-
-
-def export_data_directly(
-    sql_alchemy_conn,
-    dag_folder,
-    since,
-    include_logs,
-    include_task_args,
-    include_xcom,
-    dag_ids,
-    quantity,
-):
-    from airflow import models, settings, conf
-    from airflow.settings import STORE_SERIALIZED_DAGS
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
-    conf.set("core", "sql_alchemy_conn", value=sql_alchemy_conn)
-    dagbag = models.DagBag(
-        dag_folder if dag_folder else settings.DAGS_FOLDER,
-        include_examples=True,
-        store_serialized_dags=STORE_SERIALIZED_DAGS,
-    )
-
-    engine = create_engine(sql_alchemy_conn)
-    session = sessionmaker(bind=engine)
-    result = _handle_export_data(
-        dagbag=dagbag,
-        since=since,
-        include_logs=include_logs,
-        include_task_args=include_task_args,
-        include_xcom=include_xcom,
-        dag_ids=dag_ids,
-        quantity=quantity,
-        session=session(),
-    )
-    return json.loads(json.dumps(result, indent=4, cls=JsonEncoder))
 
 
 ### Experimental API:

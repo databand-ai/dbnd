@@ -171,12 +171,8 @@ class DbFetcher(DataFetcher):
     def get_data(
         self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
     ):
-        from dbnd_airflow_export.dbnd_airflow_export_plugin import export_data_directly
-
         try:
-            data = export_data_directly(
-                sql_alchemy_conn=self.sql_conn_string,
-                dag_folder=self.dag_folder,
+            data = self.export_data_directly(
                 since=since,
                 include_logs=include_logs,
                 include_task_args=include_task_args,
@@ -191,6 +187,36 @@ class DbFetcher(DataFetcher):
 
     def get_source(self):
         return self.sql_conn_string
+
+    def export_data_directly(
+        self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
+    ):
+        from airflow import models, settings, conf
+        from airflow.settings import STORE_SERIALIZED_DAGS
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from dbnd_airflow_export.dbnd_airflow_export_plugin import get_airflow_data
+
+        conf.set("core", "sql_alchemy_conn", value=self.sql_conn_string)
+        dagbag = models.DagBag(
+            self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
+            include_examples=True,
+            store_serialized_dags=STORE_SERIALIZED_DAGS,
+        )
+
+        engine = create_engine(self.sql_conn_string)
+        session = sessionmaker(bind=engine)
+        result = get_airflow_data(
+            dagbag=dagbag,
+            since=since,
+            include_logs=include_logs,
+            include_task_args=include_task_args,
+            include_xcom=include_xcom,
+            dag_ids=dag_ids,
+            quantity=quantity,
+            session=session(),
+        )
+        return result
 
 
 class FileFetcher(DataFetcher):
