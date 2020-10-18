@@ -34,6 +34,19 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+def _log_recieved_tasks(fetched_data):
+    try:
+        logger.info(
+            "Parsing received data with: {tasks: %d, dags: %d, dag_runs: %d, since: %s}",
+            len(fetched_data.get("task_instances", [])),
+            len(fetched_data.get("dags", [])),
+            len(fetched_data.get("dag_runs", [])),
+            fetched_data.get("since"),
+        )
+    except Exception as e:
+        logging.error("Could not log received data. %s", e)
+
+
 def set_airflow_server_info_started(airflow_server_info):
     airflow_server_info.last_sync_time = utcnow()
     airflow_server_info.monitor_start_time = (
@@ -59,11 +72,9 @@ def do_fetching_iteration(
             logger.warning("Didn't receive any data")
             return
 
+        _log_recieved_tasks(data)
+
         airflow_instance_detail.tasks_received = len(data.get("task_instances", []))
-        logger.info(
-            "Parsing received data with %s tasks",
-            airflow_instance_detail.tasks_received,
-        )
 
         export_data = _as_dotted_dict(**data)
 
