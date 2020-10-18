@@ -1,10 +1,15 @@
 import logging
 
 from collections import OrderedDict
+from typing import Optional
 
+import six
+
+from dbnd._core.constants import TaskRunState
 from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy, _log_result, task
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import extract_airflow_context
 from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
+from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd_airflow.tracking.conf_operations import flat_conf
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
@@ -81,12 +86,21 @@ def _has_java_application(operator):
     )
 
 
+def track_with_env_variables(operator, tracking_info):
+    import os
+
+    os.environ.update(tracking_info)
+
+
 _EXECUTE_TRACKING = OrderedDict(
     [
         ("EmrAddStepsOperator", track_emr_add_steps_operator),
         ("DatabricksSubmitRunOperator", track_databricks_submit_run_operator),
         ("DataProcPySparkOperator", track_data_proc_pyspark_operator),
         ("SparkSubmitOperator", track_spark_submit_operator),
+        # we can't be sure that the auto-tracking will patch `context_to_airflow_vars`
+        ("PythonOperator", track_with_env_variables),
+        ("BashOperator", track_with_env_variables),
     ]
 )
 
@@ -104,7 +118,9 @@ def new_execute(context):
     try:
         # start operator execute run with current airflow context
         task_context = extract_airflow_context(context)
-        task_run = dbnd_run_start(airflow_context=task_context)
+        task_run = dbnd_run_start(
+            airflow_context=task_context
+        )  # type: Optional[TaskRun]
 
         # custom manipulation for each operator
         if task_run:
@@ -118,9 +134,25 @@ def new_execute(context):
             exc_info=True,
         )
 
-    result = copied_operator.__class__.execute(copied_operator, context)
-    if task_run:
-        _log_result(task_run, result)
+    # running the operator's original execute function
+    try:
+        if hasattr(copied_operator, "_tracked_instance"):
+            result = copied_operator.__execute__(copied_operator, context)
+        elif hasattr(copied_operator, "_tracked_class"):
+            result = copied_operator.__class__.__execute__(copied_operator, context)
+        else:
+            raise AttributeError("tracked failed to run original operator.execute")
+
+    except Exception:
+        if task_run:
+            task_run.set_task_run_state(state=TaskRunState.FAILED)
+        dbnd_run_stop()
+        raise
+
+    else:
+        if task_run:
+            _log_result(task_run, result)
+
     dbnd_run_stop()
     return result
 

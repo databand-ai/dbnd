@@ -120,8 +120,8 @@ class RootRunInfo(_DbndDataClass):
             return root_run_info
 
         # take from env
-        root_run_uid = os.environ.get(DBND_ROOT_RUN_UID)
-        root_run_url = os.environ.get(DBND_ROOT_RUN_TRACKER_URL)
+        root_run_uid = get_from_env_or_spark_env(DBND_ROOT_RUN_UID)
+        root_run_url = get_from_env_or_spark_env(DBND_ROOT_RUN_TRACKER_URL)
         root_task_run_uid = get_from_env_or_spark_env(DBND_PARENT_TASK_RUN_UID)
         root_task_run_attempt_uid = get_from_env_or_spark_env(
             DBND_PARENT_TASK_RUN_ATTEMPT_UID

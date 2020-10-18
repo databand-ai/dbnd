@@ -17,14 +17,63 @@ def _track_task(task):
         # we do not track the execute of a SubDag, only its tasks
         track_dag(task.subdag)
     else:
-        execute_wrapper(task)
+        track_operator(task)
 
 
-def execute_wrapper(operator):
-    if hasattr(operator, "prev_execute"):
-        return
-    operator.prev_execute = operator.execute
-    operator.execute = new_execute
+def new_execute_for_class(self, context):
+    return new_execute(context)
+
+
+def track_operator(operator):
+    import inspect
+
+    if inspect.isclass(operator):
+        from airflow.models import BaseOperator
+        from airflow.operators.subdag_operator import SubDagOperator
+
+        # we only track operators which base on Airflow BaseOperator
+        if not issubclass(operator, BaseOperator):
+            return operator
+
+        # we are not tracking sub dags through this mechanism
+        if issubclass(operator, SubDagOperator):
+            return operator
+
+        # the operator class is already tracked
+        if (
+            hasattr(operator, "_tracked_class")
+            and operator.__name__ == operator._tracked_class
+        ):
+            return operator
+
+        # this is the first time we encounter this class so we mark it
+        operator._tracked_class = operator.__name__
+        operator.__execute__ = operator.execute
+        operator.execute = new_execute_for_class
+        return operator
+
+    else:
+        # the operator instance is already tracked
+        if hasattr(operator, "_tracked_instance"):
+            return operator
+
+        # this is the first time we encounter this instance so we mark it
+        operator._tracked_instance = True
+
+        # if the operator's class is tracked, we can't used `operator.__class__.execute`
+        # need to use the original execute (__execute__)
+        if (
+            hasattr(operator, "_tracked_class")
+            and operator.__class__.__name__ == operator._tracked_class
+        ):
+            operator.__execute__ = operator.__class__.__execute__
+        else:
+            # this can be a problem when the operator class doesn't implement it's own execute
+            operator.__execute__ = operator.__class__.execute
+
+        operator.execute = new_execute
+
+    return operator
 
 
 def _is_verbose():
