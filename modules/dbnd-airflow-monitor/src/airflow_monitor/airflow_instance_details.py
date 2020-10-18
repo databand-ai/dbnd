@@ -125,6 +125,7 @@ def create_airflow_instance_details_with_existing(
             since_value = calculate_since_value(
                 monitor_args.since_now,
                 monitor_args.since,
+                monitor_args.sync_history,
                 monitor_args.history_only,
                 api_client,
                 airflow_server_info,
