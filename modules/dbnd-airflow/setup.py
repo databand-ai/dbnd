@@ -13,7 +13,7 @@ version = config["metadata"]["version"]
 
 requirements_for_airflow = [
     "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
-    "Werkzeug<1.0.0",
+    "Werkzeug<1.0.0,>=0.15.0",
     "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
     "psycopg2>=2.7.4,<2.8",
 ]
@@ -21,7 +21,7 @@ requirements_for_airflow = [
 setuptools.setup(
     name="dbnd-airflow",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version],
+    install_requires=["dbnd==" + version, "packaging"],
     extras_require=dict(
         airflow=requirements_for_airflow + ["apache-airflow==1.10.7"],
         airflow_1_10_7=requirements_for_airflow + ["apache-airflow==1.10.7"],

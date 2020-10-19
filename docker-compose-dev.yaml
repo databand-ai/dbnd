@@ -9,10 +9,11 @@ services:
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:airflow@postgres/airflow
       - AIRFLOW__CORE__PARALLELISM=4
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__DAGS_FOLDER=/dbnd/examples/src/dbnd_examples/dbnd_airflow
     expose:
       - 8080
     ports:
-      - 8080:8080
+      - "8080:8080"
     volumes:
       - ./modules/:/dbnd/modules/
       - ./plugins/:/dbnd/plugins/
