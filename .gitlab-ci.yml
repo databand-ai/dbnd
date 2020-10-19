@@ -287,6 +287,7 @@ dbnd_airflow_monitor 0 1_10_9_py36:
   artifacts:
     reports:
       junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_9.xml
+  when: manual
 
 dbnd_airflow_monitor 0 1_10_10_py36:
   <<: *template__python_test_job
@@ -298,6 +299,7 @@ dbnd_airflow_monitor 0 1_10_10_py36:
     reports:
       junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_10.xml
   only: *on_significant_branch
+  when: manual
 
 dbnd_airflow_monitor 0 1_10_11_py36:
   <<: *template__python_test_job
@@ -309,6 +311,7 @@ dbnd_airflow_monitor 0 1_10_11_py36:
     reports:
       junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_11.xml
   only: *on_significant_branch
+  when: manual
 
 dbnd_tensorflow 1 py27:
   <<: *template__test_tensorflow
