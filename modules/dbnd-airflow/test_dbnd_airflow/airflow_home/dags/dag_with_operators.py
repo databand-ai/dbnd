@@ -32,13 +32,15 @@ if airflow.version.version == "1.10.0":
 
 
 @task
-def my_task(p_int=3, p_str="check", p_int_with_default=0) -> str:
+def my_task(p_int=3, p_str="check", p_int_with_default=0):
+    # type: (int, str, int) -> str
     logging.info("I am running")
     return "success"
 
 
 @task
-def my_multiple_outputs(p_str="some_string") -> Tuple[int, str]:
+def my_multiple_outputs(p_str="some_string"):
+    # type: (str) -> Tuple[int, str]
     return 1, p_str + "_extra_postfix"
 
 

@@ -19,18 +19,21 @@ default_args = {
 
 
 @task
-def my_task(p_int=3, p_str="check", p_int_with_default=0) -> str:
+def my_task(p_int=3, p_str="check", p_int_with_default=0):
+    # type: (int, str, int) -> str
     logging.info("I am running")
     return "success"
 
 
 @task
-def my_multiple_outputs(p_str="some_string") -> Tuple[int, str]:
+def my_multiple_outputs(p_str="some_string"):
+    # type: (str) -> Tuple[int, str]
     return 1, p_str + "_extra_postfix"
 
 
 @pipeline
-def my_pipeline(p_str="some_string") -> Tuple[int, str]:
+def my_pipeline(p_str="some_string"):
+    # type: (str) -> Tuple[int, str]
     # native_input_op = BashOperator(
     #     task_id="native_input_op", bash_command="echo hello_airflow", xcom_push=True
     # )

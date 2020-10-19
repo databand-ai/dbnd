@@ -188,18 +188,6 @@ dbnd_examples_py36:
 #    reports:
 #      junit: plugins/dbnd-databricks/build/junit-py36.xml
 
-dbnd_airflow 0 1_10_1_py27:
-  <<: *template__python_test_job
-  image: python:2.7
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py27-airflow_1_10_1
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_1.xml
-  only: *on_significant_branch
-  when: manual
-
 dbnd_airflow 0 1_10_7_py27:
   <<: *template__python_test_job
   image: python:2.7
@@ -222,15 +210,27 @@ dbnd_airflow 0 1_10_9_py27:
       junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_9.xml
   only: *on_significant_branch
 
-dbnd_airflow 0 1_10_1_py36:
+dbnd_airflow 0 1_10_10_py27:
   <<: *template__python_test_job
-  image: python:3.6
+  image: python:2.7
   script:
     - cd modules/dbnd-airflow
-    - tox -e py36-airflow_1_10_1
+    - tox -e py27-airflow_1_10_10
   artifacts:
     reports:
-      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_1.xml
+      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_10.xml
+  only: *on_significant_branch
+  when: manual
+
+dbnd_airflow 0 1_10_12_py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py27-airflow_1_10_12
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_12.xml
   only: *on_significant_branch
   when: manual
 
@@ -256,6 +256,28 @@ dbnd_airflow 0 1_10_9_py36:
       junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_9.xml
   only: *on_significant_branch
 
+dbnd_airflow 0 1_10_10_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py36-airflow_1_10_10
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_10.xml
+  only: *on_significant_branch
+
+dbnd_airflow 0 1_10_12_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py36-airflow_1_10_12
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_12.xml
+  only: *on_significant_branch
+
 dbnd_airflow_monitor 0 1_10_9_py36:
   <<: *template__python_test_job
   image: ${DOCKER_IMAGE_BASE_CICD_PY36}
@@ -265,6 +287,7 @@ dbnd_airflow_monitor 0 1_10_9_py36:
   artifacts:
     reports:
       junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_9.xml
+  when: manual
 
 dbnd_airflow_monitor 0 1_10_10_py36:
   <<: *template__python_test_job
@@ -276,6 +299,7 @@ dbnd_airflow_monitor 0 1_10_10_py36:
     reports:
       junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_10.xml
   only: *on_significant_branch
+  when: manual
 
 dbnd_airflow_monitor 0 1_10_11_py36:
   <<: *template__python_test_job
@@ -287,6 +311,7 @@ dbnd_airflow_monitor 0 1_10_11_py36:
     reports:
       junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_11.xml
   only: *on_significant_branch
+  when: manual
 
 dbnd_tensorflow 1 py27:
   <<: *template__test_tensorflow

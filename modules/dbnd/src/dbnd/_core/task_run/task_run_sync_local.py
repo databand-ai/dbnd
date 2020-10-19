@@ -64,7 +64,6 @@ class TaskRunLocalSyncer(TaskRunCtrl):
 
         else:
             self.inputs_to_sync.append((param_definition, old_target, new_target))
-            setattr(self.task, param_definition.name, new_target)
 
     def sync_pre_execute(self):
         if self.inputs_to_sync:
