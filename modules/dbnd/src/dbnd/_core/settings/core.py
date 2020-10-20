@@ -165,6 +165,13 @@ class CoreConfig(Config):
             )
             self.tracker = [t for t in self.tracker if t != "api"]
 
+        if self.databand_personal_access_token and (
+            self.dbnd_user or self.dbnd_password
+        ):
+            logger.warning(
+                "core.databand_personal_access_token is used instead of defined dbnd_user and dbnd_password."
+            )
+
     def build_tracking_store(self, remove_failed_store=True):
         from dbnd._core.tracking.registry import get_tracking_store
 
@@ -178,12 +185,13 @@ class CoreConfig(Config):
     def build_databand_api_client(self):
         from dbnd.utils.api_client import ApiClient
 
-        return ApiClient(
-            self.databand_url,
-            auth=True,
-            user=self.dbnd_user,
-            password=self.dbnd_password,
+        credentials = (
+            {"token": self.databand_personal_access_token}
+            if self.databand_personal_access_token
+            else {"username": self.dbnd_user, "password": self.dbnd_password}
         )
+
+        return ApiClient(self.databand_url, credentials=credentials)
 
 
 class DynamicTaskConfig(Config):

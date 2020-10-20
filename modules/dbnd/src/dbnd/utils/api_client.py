@@ -21,20 +21,20 @@ class ApiClient(object):
     """Json API client implementation."""
 
     api_prefix = "/api/v1/"
+    default_headers = None
 
-    def __init__(self, api_base_url, auth=None, user="databand", password="databand"):
+    def __init__(self, api_base_url, credentials=None):
         self._api_base_url = api_base_url
-        self.auth = auth
-        self.user = user
-        self.password = password
+        self.is_auth_required = bool(credentials)
+        self.credentials = credentials
         self.session = None
+        self.default_headers = {"Accept": "application/json"}
 
     def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
-        default_headers = {"Accept": "application/json"}
-        headers = dict(default_headers, **(headers or {}))
+        headers = dict(self.default_headers, **(headers or {}))
 
         if not self.session:
-            self._init_session()
+            self._init_session(self.credentials)
 
         url = urljoin(self._api_base_url, endpoint)
         try:
@@ -56,22 +56,32 @@ class ApiClient(object):
                 return None
         return resp.json() if resp.content else None
 
-    def _init_session(self):
+    def _init_session(self, credentials):
         try:
             self.session = requests.session()
+
+            if not self.is_auth_required:
+                return
+
+            token = credentials.get("token")
+            if token:
+                self.default_headers["Authorization"] = "Bearer {}".format(token)
+                return
 
             # get the csrf token cookie (if enabled on the server)
             self.session.get(urljoin(self._api_base_url, "/app"))
             csrf_token = self.session.cookies.get("dbnd_csrftoken")
             if csrf_token:
-                self.session.headers["X-CSRFToken"] = csrf_token
+                self.default_headers["X-CSRFToken"] = csrf_token
 
-            if self.auth:
+            if "username" in credentials and "password" in credentials:
                 self.api_request(
-                    "auth/login",
-                    method="POST",
-                    data={"username": self.user, "password": self.password},
-                )  # TODO ...you know what to do
+                    "auth/login", method="POST", data=credentials,
+                )
+            else:
+                logger.warning(
+                    "ApiClient._init_session: username or password is not provided"
+                )
         except Exception:
             self.session = None
             raise
@@ -90,10 +100,14 @@ class ApiClient(object):
 
     def is_ready(self):
         try:
+            is_auth_required = self.is_auth_required
+            self.is_auth_required = False
             self.api_request("auth/ping", None, method="GET")
             return True
         except (DatabandConnectionException, DatabandApiError):
             return False
+        finally:
+            self.is_auth_required = is_auth_required
 
 
 def dict_dump(obj_dict, value_schema):
