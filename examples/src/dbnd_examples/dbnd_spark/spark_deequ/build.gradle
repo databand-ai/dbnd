@@ -1,0 +1,60 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+    }
+}
+
+plugins {
+    id 'java'
+    id 'application'
+    id 'scala'
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+group 'ai.databand'
+version = '0.29.0'
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://dbnd-dev-maven-repository.s3.us-east-2.amazonaws.com"
+    }
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+    implementation("ai.databand:dbnd-api:${version}") { changing = true }
+    implementation("ai.databand:dbnd-api-spark:${version}") { changing = true }
+    implementation("ai.databand:dbnd-api-deequ:${version}") { changing = true }
+    implementation 'org.scala-lang:scala-library:2.11.12'
+    implementation 'com.amazon.deequ:deequ:1.0.4'
+
+    implementation 'org.slf4j:slf4j-api:1.7.16'
+
+    implementation 'org.apache.spark:spark-sql_2.11:2.4.5'
+}
+
+mainClassName = "ai.databand.examples.Showcase"
+
+compileJava {
+    options.compilerArgs << '-parameters'
+}
+
+compileScala {
+    options.compilerArgs << '-parameters'
+}
+
+shadowJar {
+    dependencies {
+        exclude(dependency {
+            !it.moduleGroup.contains('databand')
+        })
+    }
+}
