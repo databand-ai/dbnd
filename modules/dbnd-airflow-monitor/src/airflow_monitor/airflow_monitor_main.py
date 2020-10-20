@@ -96,11 +96,19 @@ def do_fetching_iteration(
             if dag.get("is_active", True)
         }
 
-        end_dates = [
-            pendulum.parse(str(t["end_date"]))
-            for t in export_data.task_instances
-            if t["end_date"] is not None
-        ]
+        if len(export_data.task_instances) == 0:
+            end_dates = [
+                pendulum.parse(str(dr["end_date"]))
+                for dr in export_data.dag_runs
+                if dr["end_date"] is not None
+            ]
+        else:
+            end_dates = [
+                pendulum.parse(str(t["end_date"]))
+                for t in export_data.task_instances
+                if t["end_date"] is not None
+            ]
+
         airflow_instance_detail.airflow_server_info.synced_to = (
             max(end_dates) if end_dates else utcnow()
         )

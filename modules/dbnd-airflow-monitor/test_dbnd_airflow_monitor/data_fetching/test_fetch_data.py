@@ -24,7 +24,7 @@ def test_sanity():
         include_logs=True,
         include_task_args=True,
         dag_ids=None,
-        task_quantity=None,
+        quantity=None,
         include_xcom=True,
     )
 

@@ -21,13 +21,7 @@ class DataFetcher(object):
         self.env = None
 
     def get_data(
-        self,
-        since,
-        include_logs,
-        include_task_args,
-        include_xcom,
-        dag_ids,
-        task_quantity,
+        self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
     ):
         pass
 
@@ -57,13 +51,7 @@ class WebFetcher(DataFetcher):
             )
 
     def get_data(
-        self,
-        since,
-        include_logs,
-        include_task_args,
-        include_xcom,
-        dag_ids,
-        task_quantity,
+        self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
     ):
         params = {}
         if since:
@@ -76,8 +64,8 @@ class WebFetcher(DataFetcher):
             params["include_xcom"] = True
         if dag_ids:
             params["dag_ids"] = dag_ids
-        if task_quantity:
-            params["tasks"] = task_quantity
+        if quantity:
+            params["tasks"] = quantity
 
         try:
             data = self._make_request(params)
@@ -181,13 +169,7 @@ class DbFetcher(DataFetcher):
         self.env = "AirflowDB"
 
     def get_data(
-        self,
-        since,
-        include_logs,
-        include_task_args,
-        include_xcom,
-        dag_ids,
-        task_quantity,
+        self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
     ):
         from dbnd_airflow_export.dbnd_airflow_export_plugin import export_data_directly
 
@@ -200,7 +182,7 @@ class DbFetcher(DataFetcher):
                 include_task_args=include_task_args,
                 include_xcom=include_xcom,
                 dag_ids=dag_ids,
-                task_quantity=task_quantity,
+                quantity=quantity,
             )
             return data
         except Exception as ex:

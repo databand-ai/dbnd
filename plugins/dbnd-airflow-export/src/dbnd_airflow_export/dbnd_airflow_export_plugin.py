@@ -68,14 +68,14 @@ def do_export_data(
     include_task_args=False,
     include_xcom=False,
     dag_ids=None,
-    task_quantity=None,
+    quantity=None,
     session=None,
 ):
     """
-    Get first task instances which have the largest amount of objects in DB.
-    Then get related DAG runs and DAG runs in the same time frame.
+    Get first task instances that ended after since.
+    Then get related DAG runs in the same time frame, DAG runs with no end date, or DAG runs with no tasks
     All DAGs are always exported since their amount is low.
-    Amount of exported data is limited by tasks parameter which limits the number to task instances to export.
+    Amount of exported data is limited by quantity parameter which limits the number of task instances and DAG runs.
     """
     since = since or pendulum.datetime.min
     _load_dags_models(session)
@@ -85,20 +85,21 @@ def do_export_data(
         since,
     )
 
-    task_instances, dag_runs = _get_task_instances(
-        since, dag_ids, task_quantity, session
-    )
+    task_instances, dag_runs = _get_task_instances(since, dag_ids, quantity, session)
     logging.info("%d task instances were found." % len(task_instances))
 
     task_end_dates = [
         task.end_date for task, job in task_instances if task.end_date is not None
     ]
-    if not task_end_dates or not task_quantity or len(task_instances) < task_quantity:
+    if not task_end_dates or not quantity or len(task_instances) < quantity:
         dag_run_end_date = pendulum.datetime.max
     else:
         dag_run_end_date = max(task_end_dates)
 
-    dag_runs |= _get_dag_runs(since, dag_run_end_date, dag_ids, session)
+    dag_runs |= _get_dag_runs_without_date(dag_ids, session)
+    dag_runs |= _get_dag_runs_without_tasks(
+        since, dag_run_end_date, dag_ids, quantity, session
+    )
     logging.info("%d dag runs were found." % len(dag_runs))
 
     if not task_instances and not dag_runs:
@@ -183,16 +184,29 @@ def do_export_data(
     return ed
 
 
-def _get_dag_runs(start_date, end_date, dag_ids, session):
+def _get_dag_runs_without_date(dag_ids, session):
+    # Bring all dag runs with end date which is None
+    dagruns_query = session.query(DagRun).filter(DagRun.end_date.is_(None))
+
+    if dag_ids:
+        dagruns_query = dagruns_query.filter(DagRun.dag_id.in_(dag_ids))
+
+    return set(dagruns_query.all())
+
+
+def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session):
+    # Bring all dag runs with no tasks (limit the number)
     dagruns_query = session.query(DagRun).filter(
-        or_(
-            DagRun.end_date.is_(None),
-            and_(DagRun.end_date >= start_date, DagRun.end_date <= end_date),
-        )
+        and_(DagRun.end_date >= start_date, DagRun.end_date <= end_date)
     )
 
     if dag_ids:
         dagruns_query = dagruns_query.filter(DagRun.dag_id.in_(dag_ids))
+
+    # We reached a point where there are no more task, but can have potentially large number of dag runs with no tasks
+    # so let's limit them. In the next fetch we'll get the next runs.
+    if quantity is not None and end_date == pendulum.datetime.max:
+        dagruns_query = dagruns_query.order_by(DagRun.end_date).limit(quantity)
 
     return set(dagruns_query.all())
 
@@ -743,7 +757,7 @@ def _handle_export_data(
     include_task_args,
     include_xcom,
     dag_ids=None,
-    task_quantity=None,
+    quantity=None,
     session=None,
 ):
     include_logs = bool(include_logs)
@@ -761,7 +775,7 @@ def _handle_export_data(
             include_xcom=include_xcom,
             include_task_args=include_task_args,
             dag_ids=dag_ids,
-            task_quantity=task_quantity,
+            quantity=quantity,
             session=session,
         )
     finally:
@@ -799,10 +813,10 @@ def export_data_api(dagbag):
     include_task_args = flask.request.args.get("include_task_args")
     include_xcom = flask.request.args.get("include_xcom")
     dag_ids = flask.request.args.getlist("dag_ids")
-    task_quantity = flask.request.args.get("tasks", type=int)
+    quantity = flask.request.args.get("tasks", type=int)
     rbac_enabled = conf.get("webserver", "rbac").lower() == "true"
 
-    if not since and not include_logs and not dag_ids and not task_quantity:
+    if not since and not include_logs and not dag_ids and not quantity:
         new_since = datetime.datetime.utcnow().replace(
             tzinfo=pendulum.timezone("UTC")
         ) - datetime.timedelta(days=1)
@@ -822,7 +836,7 @@ def export_data_api(dagbag):
         include_task_args=include_task_args,
         include_xcom=include_xcom,
         dag_ids=dag_ids,
-        task_quantity=task_quantity,
+        quantity=quantity,
     )
     return json_response(export_data)
 
@@ -849,7 +863,7 @@ def export_data_directly(
     include_task_args,
     include_xcom,
     dag_ids,
-    task_quantity,
+    quantity,
 ):
     from airflow import models, settings, conf
     from airflow.settings import STORE_SERIALIZED_DAGS
@@ -872,7 +886,7 @@ def export_data_directly(
         include_task_args=include_task_args,
         include_xcom=include_xcom,
         dag_ids=dag_ids,
-        task_quantity=task_quantity,
+        quantity=quantity,
         session=session(),
     )
     return json.loads(json.dumps(result, indent=4, cls=JsonEncoder))
