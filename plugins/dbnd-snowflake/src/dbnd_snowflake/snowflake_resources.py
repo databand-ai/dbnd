@@ -27,7 +27,7 @@ SNOWFLAKE_METRIC_TO_UI_NAME = {
     "TOTAL_ELAPSED_TIME": "total_elapsed_time_milliseconds",
 }
 RESOURCE_METRICS = ",".join(
-    "'{}'".format(m) for m in SNOWFLAKE_METRIC_TO_UI_NAME.keys()
+    '"{}"'.format(m) for m in SNOWFLAKE_METRIC_TO_UI_NAME.keys()
 )
 
 
