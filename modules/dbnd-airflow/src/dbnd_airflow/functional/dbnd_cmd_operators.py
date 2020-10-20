@@ -1,10 +1,11 @@
-def dbnd_task_as_bash_operator(task_cls, name=None, cmd_line=None, **kwargs):
+def dbnd_task_as_bash_operator(dbnd_func_proxy, name=None, cmd_line=None, **kwargs):
     from airflow.operators.bash_operator import BashOperator
 
-    task_id = name or "run_%s" % task_cls.task_definition.task_family
+    task_id = name or "run_%s" % dbnd_func_proxy.task_definition.task_family
     cmd_line = cmd_line or ""
     templated_command = "dbnd run {full_task_family} {cmd_line}".format(
-        full_task_family=task_cls.task_definition.full_task_family, cmd_line=cmd_line
+        full_task_family=dbnd_func_proxy.task_cls.task_definition.full_task_family,
+        cmd_line=cmd_line,
     )
     return BashOperator(task_id=task_id, bash_command=templated_command, **kwargs)
 
