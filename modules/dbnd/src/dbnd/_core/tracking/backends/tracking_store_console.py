@@ -133,4 +133,9 @@ class ConsoleStore(TrackingStore):
 
     def log_metrics(self, task_run, metrics):
         # type: (TaskRun, List[Metric]) -> None
-        logger.info("Metrics logged: {}".format([m.key for m in metrics]))
+        if len(metrics) == 1:
+            m = metrics[0]
+            logger.info("Metric logged: {}={}".format(m.key, m.value))
+        else:
+            metrics_str = "\n\t".join(["{}={}".format(m.key, m.value) for m in metrics])
+            logger.info("Metrics logged:\n\t%s", metrics_str)
