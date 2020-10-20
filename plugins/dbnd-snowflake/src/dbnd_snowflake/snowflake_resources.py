@@ -109,8 +109,8 @@ def _log_snowflake_resource_usage(
 
     result = _connect_and_query(connection_string, query_history, *query_params)
     if not result:
-        logger.info(
-            "resource metrics were not found for query '%s', query_params=%s",
+        logger.error(
+            "Resource metrics were not found for query '%s', query_params=%s",
             query_text,
             query_params,
         )
@@ -139,11 +139,8 @@ def _log_snowflake_resource_usage(
 
 def _connect_and_query(connection_string, query, *params):
     """ connect if needed, then query. """
-    # if (connection is None) and (connection_string is None):
-    if connection_string is None:
-        logger.error(
-            "connection and connection string are None, one of them is required to query redshift"
-        )
+    if not connection_string:
+        logger.error("Connection string is empty, don't know where to connect")
         return
 
     with SnowflakeController(connection_string) as snowflake:

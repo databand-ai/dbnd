@@ -1,3 +1,4 @@
+from textwrap import dedent
 from typing import Dict
 
 import attr
@@ -7,7 +8,7 @@ from six.moves.urllib_parse import urlparse
 from snowflake.connector import DictCursor
 
 from dbnd import __version__
-from dbnd._core.errors import DatabandConfigError
+from dbnd._core.errors import DatabandConfigError, DatabandRuntimeError
 from dbnd._core.utils.string_utils import humanize_bytes
 from dbnd._vendor.tabulate import tabulate
 from targets.value_meta import ValueMeta, ValueMetaConf
@@ -115,9 +116,7 @@ class SnowflakeController:
             password=self.password,
             account=self.account,
             session_parameters={"QUERY_TAG": self._query_tag},
-            application="DBND Snowflake {}/SnowflakeConnector {}".format(
-                __version__, snowflake.connector.SNOWFLAKE_CONNECTOR_VERSION
-            ),
+            application="DBND Snowflake plugin {}".format(__version__),
         )
         self._cursor = self._connection.cursor(DictCursor)
 
@@ -152,7 +151,13 @@ class SnowflakeController:
                 table
             )
         )
-        # TODO: Assert len(table_meta) == 1 ??
+        if len(table_meta) != 1:
+            raise DatabandRuntimeError(
+                "Failed to fetch Snowflake metadata for DB: '{0.database}', table '{0.table_name}'".format(
+                    table
+                )
+            )
+
         cols = len(self.get_column_types(table))
         return {
             "rows": table_meta[0]["rows"],
@@ -166,10 +171,21 @@ class SnowflakeController:
             return self._column_types
 
         results = self._query(
-            "SELECT column_name, data_type FROM {0.database}.information_schema.columns WHERE LOWER(table_name) = LOWER('{0.table_name}') and LOWER(table_schema) = LOWER('{0.schema}')".format(
-                table
-            ),
+            dedent(
+                """\
+                SELECT column_name, data_type
+                FROM {0.database}.information_schema.columns
+                WHERE LOWER(table_name) = LOWER('{0.table_name}')
+                    and LOWER(table_schema) = LOWER('{0.schema}')"""
+            ).format(table),
         )
+        if not results:
+            raise DatabandRuntimeError(
+                "Failed to fetch columns metadata for Snowflake DB: '{0.database}', table: '{0.table_name}'".format(
+                    table
+                )
+            )
+
         self._column_types = {row["COLUMN_NAME"]: row["DATA_TYPE"] for row in results}
         return self._column_types
 

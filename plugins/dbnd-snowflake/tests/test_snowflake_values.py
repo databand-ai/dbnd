@@ -134,7 +134,7 @@ class TestSnowflakeController:
             query_patch.assert_has_calls(
                 [
                     mock.call(
-                        "SELECT column_name, data_type FROM SNOWFLAKE_SAMPLE_DATA.information_schema.columns WHERE LOWER(table_name) = LOWER('CUSTOMER') and LOWER(table_schema) = LOWER('TPCDS_SF100TCL')"
+                        "SELECT column_name, data_type\nFROM SNOWFLAKE_SAMPLE_DATA.information_schema.columns\nWHERE LOWER(table_name) = LOWER('CUSTOMER')\n    and LOWER(table_schema) = LOWER('TPCDS_SF100TCL')"
                     ),
                 ],
                 any_order=True,
