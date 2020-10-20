@@ -158,7 +158,9 @@ class _TaskBannerBuilder(TaskSubCtrl):
             relevant_params.append(p)
 
         for p in relevant_params:
-            value = self.params.get_value(p.name)
+            # TODO: change it to param_meta.value_to_track when we make sure
+            # it'll return correct runtime value
+            value = self.params.get_value(p.name) if not p.hidden else "***"
             param_meta = self.params.get_param_meta(p.name)
             target_config = p.target_config
             if isinstance(value, InMemoryTarget):

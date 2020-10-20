@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Tuple, Type
 
-from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
+from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.task_ctrl.task_meta import TaskMeta
 
 
@@ -27,7 +27,7 @@ class TaskParameters(object):
 
         return getattr(self.task, param_name)
 
-    def get_param_meta(self, param_name):  # type: (str)->ConfigValue
+    def get_param_meta(self, param_name):  # type: (str) -> ParameterValue
         return self.task_meta._task_params.get_any_param(param_name, None)
 
     def get_params(
