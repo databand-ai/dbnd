@@ -48,6 +48,8 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
         connection's extra JSON)
     """
 
+    template_fields = ("table", "key")
+
     @apply_defaults
     def __init__(
         self,
@@ -125,6 +127,7 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
     :param str session_id: Optional id of a Snowflake session used to execute query.
         Can be used if the same query is executed
     :param str key: Optional key for dbnd metrics. Defaults to table name
+    :param float history_window: How deep to search in QUERY_HISTORY for a query. Set in minutes.
     :param sql: Exact sql query executed previously.
     :param str warehouse: name of warehouse (will overwrite any warehouse
         defined in the connection's extra JSON)
@@ -136,12 +139,23 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
         connection's extra JSON)
     """
 
+    template_fields = ("sql", "key")
+
     @apply_defaults
-    def __init__(self, session_id=None, key=None, account=None, *args, **kwargs):
+    def __init__(
+        self,
+        session_id=None,
+        key=None,
+        account=None,
+        history_window=15,
+        *args,
+        **kwargs
+    ):
         super(LogSnowflakeResourceOperator, self).__init__(*args, **kwargs)
 
         self.session_id = session_id
         self.key = key
+        self.history_window = history_window
         # TODO: deprecate
         self.account = account
 
@@ -169,6 +183,7 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
             connection_string=hook.get_uri(),
             session_id=self.session_id,
             key=self.key,
+            history_window=self.history_window,
         )
 
 

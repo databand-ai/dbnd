@@ -6,6 +6,7 @@ import snowflake.connector
 from six.moves.urllib_parse import urlparse
 from snowflake.connector import DictCursor
 
+from dbnd import __version__
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.string_utils import humanize_bytes
 from dbnd._vendor.tabulate import tabulate
@@ -114,6 +115,9 @@ class SnowflakeController:
             password=self.password,
             account=self.account,
             session_parameters={"QUERY_TAG": self._query_tag},
+            application="DBND Snowflake {}/SnowflakeConnector {}".format(
+                __version__, snowflake.connector.SNOWFLAKE_CONNECTOR_VERSION
+            ),
         )
         self._cursor = self._connection.cursor(DictCursor)
 
@@ -129,7 +133,7 @@ class SnowflakeController:
         # hence this fillding with encode/decode
         column_types = self.get_column_types(table)
         columns = ",".join(
-            "TRY_HEX_DECODE_STRING(HEX_ENCODE({0})) AS {0}".format(column)
+            'TRY_HEX_DECODE_STRING(HEX_ENCODE("{0}")) AS {0}'.format(column)
             for column in column_types.keys()
         )
 
@@ -162,7 +166,7 @@ class SnowflakeController:
             return self._column_types
 
         results = self._query(
-            "SELECT column_name, data_type FROM {0.database}.information_schema.columns WHERE table_name = '{0.table_name}' and table_schema = '{0.schema}'".format(
+            "SELECT column_name, data_type FROM {0.database}.information_schema.columns WHERE LOWER(table_name) = LOWER('{0.table_name}') and LOWER(table_schema) = LOWER('{0.schema}')".format(
                 table
             ),
         )

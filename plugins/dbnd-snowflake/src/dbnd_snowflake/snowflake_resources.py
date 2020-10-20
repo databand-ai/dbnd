@@ -16,6 +16,20 @@ logger = logging.getLogger(__name__)
 # See https://community.snowflake.com/s/article/How-We-Controlled-and-Reduced-Snowflake-Compute-Cost
 # https://github.com/snowflakedb/snowflake-connector-python/issues/203
 
+SNOWFLAKE_METRIC_TO_UI_NAME = {
+    "BYTES_SCANNED": "bytes_scanned",
+    "COMPILATION_TIME": "compilation_time_milliseconds",
+    "CREDITS_USED_CLOUD_SERVICES": "credits_used_cloud_services",
+    "EXECUTION_TIME": "execution_time_milliseconds",
+    "QUERY_ID": "query_id",
+    "QUERY_TEXT": "query_text",
+    "ROWS_PRODUCED": "rows_produced",
+    "TOTAL_ELAPSED_TIME": "total_elapsed_time_milliseconds",
+}
+RESOURCE_METRICS = ",".join(
+    "'{}'".format(m) for m in SNOWFLAKE_METRIC_TO_UI_NAME.keys()
+)
+
 
 def log_snowflake_resource_usage(
     query_text,  # type: str
@@ -24,6 +38,7 @@ def log_snowflake_resource_usage(
     connection_string,  # type: str
     session_id=None,  # type: Optional[str]
     key="snowflake_query",  # type: str
+    history_window=15,  # type: float
 ):
     """
     get and log cpu time, run time, disk read, and processed rows.
@@ -32,7 +47,13 @@ def log_snowflake_resource_usage(
     try:
         with log_duration("log_snowflake_resource_usage__time_seconds", "system"):
             _log_snowflake_resource_usage(
-                query_text, database, user, connection_string, session_id, key
+                query_text,
+                database,
+                user,
+                connection_string,
+                session_id,
+                key,
+                history_window,
             )
     except Exception as exc:
         conn_without_pass = _censor_password(connection_string)
@@ -44,28 +65,47 @@ def log_snowflake_resource_usage(
 
 
 def _log_snowflake_resource_usage(
-    query_text, database, user, connection_string, session_id=None, key=None,
-):
+    query_text,  # type: str
+    database,  # type: str
+    user,  # type: str
+    connection_string,  # type: str
+    session_id=None,  # type: Optional[int]
+    key=None,  # type: Optional[str]
+    history_window=15,  # type: float
+):  # type: (...) -> None
     # Quick and dirty way to handle optional clause element.
     # Might be better to use SQLAlchemy expression language here
     if session_id:
         query_history = dedent(
             """\
-            select *
-            from table({}.information_schema.query_history(dateadd('minutes',-15,current_timestamp()),current_timestamp()))
-            where LOWER(query_text)=LOWER(%s) and LOWER(user_name)=LOWER(%s) and session_id=%s
+            select {metrics}
+            from table({database}.information_schema.query_history_by_session(
+                SESSION_ID => {session_id},
+                END_TIME_RANGE_START => dateadd('minutes', -{minutes}, current_timestamp()),
+                END_TIME_RANGE_END => current_timestamp()
+            ))
+            where LOWER(user_name)=LOWER(%s) and LOWER(REGEXP_REPLACE(TRIM(query_text), ' |\t|\n'))=LOWER(REGEXP_REPLACE(TRIM(%s), ' |\t|\n'))
             order by start_time desc limit 1;"""
-        ).format(database, session_id)
-        query_params = (query_text, user, session_id)
+        ).format(
+            metrics=RESOURCE_METRICS,
+            database=database,
+            minutes=history_window,
+            session_id=session_id,
+        )
+        query_params = (user, query_text)
     else:
         query_history = dedent(
             """\
-            select *
-            from table({}.information_schema.query_history(dateadd('minutes',-15,current_timestamp()),current_timestamp()))
-            where LOWER(query_text)=LOWER(%s) and LOWER(user_name)=LOWER(%s)
+            select {metrics}
+            from table({database}.information_schema.query_history_by_user(
+                USER_NAME => %s,
+                END_TIME_RANGE_START => dateadd('minutes', -{minutes}, current_timestamp()),
+                END_TIME_RANGE_END => current_timestamp())
+            )
+            where LOWER(REGEXP_REPLACE(TRIM(query_text), ' |\t|\n'))=LOWER(REGEXP_REPLACE(TRIM(%s), ' |\t|\n'))
             order by start_time desc limit 1;"""
-        ).format(database)
-        query_params = (query_text, user)
+        ).format(metrics=RESOURCE_METRICS, database=database, minutes=history_window)
+        query_params = (user, query_text)
 
     result = _connect_and_query(connection_string, query_history, *query_params)
     if not result:
@@ -85,19 +125,9 @@ def _log_snowflake_resource_usage(
 
     metrics = result[0]
     key = key or "snowflake_query"
-    snowflake_metric_to_ui_name = {
-        "BYTES_SCANNED": "bytes_scanned",
-        "COMPILATION_TIME": "compilation_time_milliseconds",
-        "CREDITS_USED_CLOUD_SERVICES": "credits_used_cloud_services",
-        "EXECUTION_TIME": "execution_time_milliseconds",
-        "QUERY_ID": "query_id",
-        "QUERY_TEXT": "query_text",
-        "ROWS_PRODUCED": "rows_produced",
-        "TOTAL_ELAPSED_TIME": "total_elapsed_time_milliseconds",
-    }
 
     metrics_to_log = {}
-    for metric, ui_name in snowflake_metric_to_ui_name.items():
+    for metric, ui_name in SNOWFLAKE_METRIC_TO_UI_NAME.items():
         if metric in metrics:
             value = metrics[metric]
             # Quick hack to track decimal values. probably should be handled on a serialization level
@@ -123,9 +153,9 @@ def _connect_and_query(connection_string, query, *params):
 def _censor_password(connection_string):
     """
     example connection string:
-        postgres://user:password@host.com:5439/dev
+        snowflake://user:password@account.europe-west4.gcp/database
     returns:
-        postgres://user:*****@host.com:5439/dev
+        snowflake://user:*****@account.europe-west4.gcp/database
     """
     if (not connection_string) or ("@" not in connection_string):
         return connection_string

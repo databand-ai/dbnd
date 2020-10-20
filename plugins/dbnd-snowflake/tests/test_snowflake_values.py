@@ -134,7 +134,7 @@ class TestSnowflakeController:
             query_patch.assert_has_calls(
                 [
                     mock.call(
-                        "SELECT column_name, data_type FROM SNOWFLAKE_SAMPLE_DATA.information_schema.columns WHERE table_name = 'CUSTOMER' and table_schema = 'TPCDS_SF100TCL'"
+                        "SELECT column_name, data_type FROM SNOWFLAKE_SAMPLE_DATA.information_schema.columns WHERE LOWER(table_name) = LOWER('CUSTOMER') and LOWER(table_schema) = LOWER('TPCDS_SF100TCL')"
                     ),
                 ],
                 any_order=True,
@@ -160,7 +160,7 @@ class TestSnowflakeController:
             prewview_query_patch.assert_has_calls(
                 [
                     mock.call(
-                        "select TRY_HEX_DECODE_STRING(HEX_ENCODE(foo)) AS foo,TRY_HEX_DECODE_STRING(HEX_ENCODE(bar)) AS bar from SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.CUSTOMER limit 20"
+                        'select TRY_HEX_DECODE_STRING(HEX_ENCODE("foo")) AS foo,TRY_HEX_DECODE_STRING(HEX_ENCODE("bar")) AS bar from SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.CUSTOMER limit 20'
                     ),
                 ],
                 any_order=True,
