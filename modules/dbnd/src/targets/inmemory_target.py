@@ -1,6 +1,7 @@
 from typing import Any
 
 from targets import Target
+from targets.target_config import TargetConfig
 from targets.values import (
     ObjectValueType,
     ValueType,
@@ -27,6 +28,7 @@ class InMemoryTarget(Target):
             self.value_type,
             self.value_type.to_signature(self._obj),
         )
+        self.config = TargetConfig()
 
     def exists(self):
         return self._obj is not _NOTHING
