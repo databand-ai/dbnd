@@ -36,7 +36,7 @@ setuptools.setup(
             "azure-storage-blob",
             # aws
             "httplib2>=0.9.2",
-            "boto3",
+            "boto3<=1.15.18",
             "s3fs",
             # gcs
             "httplib2>=0.9.2",
