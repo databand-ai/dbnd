@@ -1,5 +1,37 @@
 # History
 
+DBND v 0.29.00
+
+New features:
+
+---
+- #1198182294540228: Add Deeque support
+- #1196095832101313: Define alerts cli
+- #1198215411158397: Standalone tracking and track_operator method
+
+Improvements:
+
+---
+- #1196565777511077: Live logging for all ad-hoc tasks
+- #1189443575273138: JVM SDK Logging
+- #1189866958488326: Add separate config section for tracking
+- #1195079839215316: Support tensorflow 2.0
+- #1195941695824501: Support Airflow DAG changes / deletions
+- #1198172260918388: Helm - support any env variables  block( common for all our services)
+- #1125138619443457: Command li  Add flag to command line
+- #1198199342753981: move require local sync to parameter from target config
+- #1194785058398298: track airflow templated parameters
+
+
+Fixed issues:
+
+---
+- #1198178723258493: Task-level Airflow link leads to the wrong destination.
+- #1179311676368701: Too old resource version on k8s
+- #1177515786548674: support MultiTarget with require_local_access=true
+- #1194826730548337: Handle incomplete output scenario
+
+
 DBND v.0.28.26
 
 New features:
