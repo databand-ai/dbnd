@@ -6,6 +6,7 @@ from time import sleep
 import prometheus_client
 
 from dbnd._core.errors.base import DatabandConnectionException
+from dbnd._core.utils.http.retry_policy import get_retry_policy
 from dbnd.api.shared_schemas.airflow_monitor import airflow_server_info_schema
 
 
@@ -27,22 +28,30 @@ def save_airflow_server_info(airflow_server_info, api_client):
     logging.info("Updating airflow server info.")
     marshalled = airflow_server_info_schema.dump(airflow_server_info.__dict__)
 
-    while True:
-        try:
-            api_client.api_request(
-                "airflow_monitor/save_airflow_server_info", marshalled.data
+    def failure_handler(exc, retry_policy, retry_number):
+        logger.error(
+            "Could not connect to databand api server on host: %s",
+            api_client._api_base_url,
+        )
+        if retry_policy.should_retry(500, None, retry_number):
+            logger.info(
+                "Trying again in %d seconds",
+                retry_policy.seconds_to_sleep(retry_number),
             )
-            return
-        except DatabandConnectionException as e:
-            logger.error(
-                "Could not connect to databand api server on host: %s",
-                api_client._api_base_url,
-            )
-            logger.info("Trying again in %d seconds", 5)
-            sleep(5)
-        except Exception as e:
-            logger.exception("Failed to update airflow server info.", exc_info=e)
-            return
+
+    retry_policy = get_retry_policy("save_airflow_server_info", max_retries=-1)
+
+    try:
+        api_client.api_request(
+            "airflow_monitor/save_airflow_server_info",
+            marshalled.data,
+            retry_policy=retry_policy,
+            failure_handler=failure_handler,
+        )
+        return
+    except Exception as e:
+        logger.exception("Failed to update airflow server info.", exc_info=e)
+        return
 
 
 @prometheus_dbnd_api.time()

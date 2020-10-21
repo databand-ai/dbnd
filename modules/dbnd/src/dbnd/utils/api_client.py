@@ -1,5 +1,7 @@
 import logging
 
+from time import sleep
+
 import requests
 import six
 
@@ -7,6 +9,7 @@ from six.moves.urllib_parse import urljoin
 
 from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 from dbnd._core.errors.friendly_error.api import api_connection_refused
+from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
 
 
 logger = logging.getLogger(__name__)
@@ -87,16 +90,33 @@ class ApiClient(object):
             raise
 
     def api_request(
-        self, endpoint, data, method="POST", headers=None, query=None, no_prefix=False
+        self,
+        endpoint,
+        data,
+        method="POST",
+        headers=None,
+        query=None,
+        no_prefix=False,
+        retry_policy=None,
+        failure_handler=None,
     ):
+        retry_number = 0
+        retry_policy = retry_policy or LinearRetryPolicy(0, 1)  # single chance
         url = endpoint if no_prefix else urljoin(self.api_prefix, endpoint)
-        try:
-            resp = self._request(
-                url, method=method, data=data, headers=headers, query=query
-            )
-        except requests.ConnectionError as ex:
-            raise api_connection_refused(self._api_base_url + url, ex)
-        return resp
+        while True:
+            retry_number += 1
+            try:
+                resp = self._request(
+                    url, method=method, data=data, headers=headers, query=query
+                )
+            except requests.ConnectionError as ex:
+                if failure_handler:
+                    failure_handler(ex, retry_policy, retry_number)
+                if retry_policy.should_retry(500, None, retry_number):
+                    sleep(retry_policy.seconds_to_sleep(retry_number))
+                    continue
+                raise api_connection_refused(self._api_base_url + url, ex)
+            return resp
 
     def is_ready(self):
         try:

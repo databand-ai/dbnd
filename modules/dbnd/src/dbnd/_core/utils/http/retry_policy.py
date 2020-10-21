@@ -12,12 +12,14 @@ conf_retry_seconds_to_sleep_list = [0.2, 0.5, 1, 3, 5]
 conf_retry_policy_max_retries = 5
 
 
-def get_retry_policy(name):
+def get_retry_policy(name, policy=None, seconds_to_sleep=5, max_retries=5):
     # provide policy per name
-    policy = LINEAR_RETRY
+    policy = policy or LINEAR_RETRY
 
     if policy == LINEAR_RETRY:
-        return LinearRetryPolicy(seconds_to_sleep=5, max_retries=5)
+        return LinearRetryPolicy(
+            seconds_to_sleep=seconds_to_sleep, max_retries=max_retries
+        )
     elif policy == CONFIGURABLE_RETRY:
         return ConfigurableRetryPolicy(
             retry_seconds_to_sleep_list=conf_retry_seconds_to_sleep_list,
@@ -38,7 +40,11 @@ class LinearRetryPolicy(object):
     def should_retry(self, status_code, error, retry_count):
         if None in (status_code, retry_count):
             return False
-        return (status_code >= 500 and retry_count <= self.max_retries) or error
+        if status_code < 500 or error:
+            return False
+        if self.max_retries != -1 and retry_count >= self.max_retries:
+            return False
+        return True
 
     def seconds_to_sleep(self, retry_count):
         return self._seconds_to_sleep
