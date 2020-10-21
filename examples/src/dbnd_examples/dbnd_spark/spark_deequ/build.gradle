@@ -58,3 +58,13 @@ shadowJar {
         })
     }
 }
+
+task shadowJarLatest(type: Copy) {
+    from shadowJar
+    into 'build/libs'
+    rename { String fileName ->
+        fileName.replace("$project.version", "latest")
+    }
+}
+
+shadowJar.finalizedBy shadowJarLatest
