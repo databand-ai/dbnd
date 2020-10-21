@@ -3,6 +3,7 @@ from dbnd._vendor.marshmallow import fields, validate
 
 
 class JobSchemaV2(ApiObjectSchema):
+    id = fields.Int()
     name = fields.Str()
     user = fields.Str()
     ui_hidden = fields.Boolean()
