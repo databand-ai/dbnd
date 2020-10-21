@@ -9,7 +9,6 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 from mock import Mock
 
-from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
 from dbnd_airflow.tracking.execute_tracking import add_tracking_to_submit_task

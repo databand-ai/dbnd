@@ -3,8 +3,9 @@ import functools
 import logging
 import typing
 
-from typing import Type
+from typing import Any, Type
 
+import attr
 import six
 
 from dbnd._core.configuration import get_dbnd_project_config
@@ -16,26 +17,33 @@ from dbnd._core.constants import (
     TaskRunState,
 )
 from dbnd._core.current import current_task_run, get_databand_run, try_get_current_task
-from dbnd._core.decorator.decorated_task import (
-    DecoratedPipelineTask,
-    DecoratedPythonTask,
-    _DecoratedTask,
-)
+from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.dynamic_tasks import (
     _handle_dynamic_error,
-    create_dynamic_task,
+    create_and_run_dynamic_task_safe,
 )
 from dbnd._core.decorator.func_task_call import FuncCall
+from dbnd._core.decorator.lazy_object_proxy import CallableLazyObjectProxy
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.decorator.task_decorator_spec import (
+    _TaskDecoratorSpec,
     args_to_kwargs,
     build_task_decorator_spec,
 )
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, user_side_code
 from dbnd._core.failures import dbnd_handle_errors
-from dbnd._core.parameter.parameter_builder import parameter
+from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
+    build_task_at_airflow_dag_context,
+    is_in_airflow_dag_build_context,
+)
 from dbnd._core.task.task import Task
+from dbnd._core.task_build.task_context import (
+    TaskContextPhase,
+    current_phase,
+    try_get_current_task,
+)
+from dbnd._core.task_build.task_definition import TaskFamilyData
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.task_run.task_run_error import TaskRunError
@@ -48,91 +56,68 @@ if typing.TYPE_CHECKING:
     from dbnd._core.run.databand_run import DatabandRun
 
 logger = logging.getLogger(__name__)
-T = typing.TypeVar("T")
-
-_default_output = parameter.output.pickle[object]
 
 
-def task(*args, **kwargs):
-    kwargs.setdefault("_task_type", DecoratedPythonTask)
-    kwargs.setdefault("_task_default_result", _default_output)
-    return _task_decorator(*args, **kwargs)
+@attr.s
+class FuncCallWithResult(FuncCall):
+    result = attr.ib(default=None)
+
+    def set_result(self, value):
+        self.result = value
+        return value
 
 
-def pipeline(*args, **kwargs):
-    kwargs.setdefault("_task_type", DecoratedPipelineTask)
-    kwargs.setdefault("_task_default_result", parameter.output)
-    return _task_decorator(*args, **kwargs)
-
-
-band = pipeline
-
-
-class DbndFuncProxy(object):
-    def __call__(self, *args, **kwargs):
-        if _is_tracking_mode():
-            with self.tracking_context(args, kwargs) as track_result_callback:
-                return track_result_callback(self.task_func(*args, **kwargs))
-
-        return self.task_cls._call_handler(
-            call_user_code=self.task_func, call_args=args, call_kwargs=kwargs
-        )
-
+class TaskClsBuilder(object):
     def __init__(self, func_spec, task_type, task_defaults):
-        # type: (_TaskDecoratorSpec, Type[_DecoratedTask], Any) -> None
+        # type: (TaskClsBuilder, _TaskDecoratorSpec, Type[_DecoratedTask], Any) -> None
         self.func_spec = func_spec
         self.task_type = task_type
         self.task_defaults = task_defaults
 
-        self._task_cls = None
         self._normal_task_cls = None
         self._tracking_task_cls = None
         # self.task_cls = task_cls  # type: Type[Task]
         # this will make class look like a origin function
-        functools.update_wrapper(self, self.task_func)
+        functools.update_wrapper(self, self.func)
         self._call_count = 0
         self._call_as_func = False
         self._max_call_count = get_dbnd_project_config().max_calls_per_run
 
-    @property
-    def task_func(self):
-        return self.func_spec.item
+        self._callable_item = None
 
     @property
     def func(self):
-        return self.task_func
+        return self.func_spec.item
 
-    @property
-    def task_cls(self):
-        if self._task_cls is None:
-            self._task_cls = self._build_task_cls()
-        return self._task_cls
+    def get_task_cls(self):
+        if _is_tracking_mode():
+            if not self._tracking_task_cls:
+                self._tracking_task_cls = self._build_task_cls(is_tracking_mode=True)
+            return self._tracking_task_cls
+        else:
+            if self._normal_task_cls is None:
+                self._normal_task_cls = self._build_task_cls(is_tracking_mode=False)
+            return self._normal_task_cls
 
-    def _build_task_cls(self, is_tracking_mode=False):
-        class_or_func = self.task_func
+    def get_task_definition(self):
+        return self.get_task_cls().task_definition
+
+    def _build_task_cls(self, is_tracking_mode):
+        class_or_func = self.func
         bases = (self.task_type,)
         task_cls = TaskMetaclass(
             str(class_or_func.__name__),
             bases,
             dict(
                 _conf__decorator_spec=self.func_spec,
-                _callable_item=None,
+                _callable_item=self._callable_item or class_or_func,
                 __doc__=class_or_func.__doc__,
                 __module__=class_or_func.__module__,
                 defaults=self.task_defaults,
                 is_tracking_mode=is_tracking_mode,
             ),
         )
-        # should we assign it to self._task_cls here?
         return task_cls
-
-    @property
-    def task(self):
-        return self.task_cls
-
-    @property
-    def t(self):
-        return self.task_cls
 
     def _call_count_limit_exceeded(self):
         if not self._call_as_func:
@@ -157,33 +142,22 @@ class DbndFuncProxy(object):
 
     @dbnd_handle_errors(exit_on_error=False)
     def _build_task(self, *args, **kwargs):
-        return self.task_cls(*args, **kwargs)
+        task_cls = self.get_task_cls()
+        return task_cls(*args, **kwargs)
 
     @contextlib.contextmanager
     def tracking_context(self, call_args, call_kwargs):
-        if not self._tracking_task_cls:
-            self._tracking_task_cls = self._build_task_cls(is_tracking_mode=True)
-
-        # switch task_cls
-        self._normal_task_cls = self._task_cls
-        self._task_cls = self._tracking_task_cls
-
-        func_call = FuncCall(
-            task_cls=self.task_cls,
-            call_user_code=self.task_func,
-            call_args=tuple(call_args),  # prevent original call_args modification
-            call_kwargs=dict(call_kwargs),  # prevent original call_kwargs modification
-        )
-
-        # this will be returned by context manager to store function result
-        # for later tracking
-        def result_tracker(result):
-            func_call.result = result
-            return result
-
         user_code_called = False  # whether we got to executing of user code
         user_code_finished = False  # whether we passed executing of user code
+        func_call = None
         try:
+            func_call = FuncCallWithResult(
+                task_cls=self.get_task_cls(),
+                call_user_code=self.func,
+                call_args=tuple(call_args),  # prevent original call_args modification
+                call_kwargs=dict(call_kwargs),  # prevent original kwargs modification
+            )
+
             # 1. check that we don't have too many calls
             # 2. Start or reuse existing "inplace_task" that is root for tracked tasks
             if not self._call_count_limit_exceeded() and _get_or_create_inplace_task():
@@ -199,7 +173,7 @@ class DbndFuncProxy(object):
 
                     try:
                         # tracking_context is context manager - user code will run on yield
-                        yield result_tracker
+                        yield func_call.set_result
 
                         # if we reached this line, this means that user code finished
                         # successfully without any exceptions
@@ -224,16 +198,14 @@ class DbndFuncProxy(object):
                 raise
             # else it's either we didn't reached calling user code, or already passed it
             # then it's some dbnd tracking error - just log it
-            _handle_dynamic_error("tracking-init", func_call)
-        finally:
-            # switch task_cls back
-            self._task_cls = self._normal_task_cls
+            if func_call:
+                _handle_dynamic_error("tracking-init", func_call)
 
         # if we didn't reached user_code_called=True line - there was an error during
         # dbnd tracking initialization, so nothing is done - user function wasn't called yet
         if not user_code_called:
             # tracking_context is context manager - user code will run on yield
-            yield result_tracker
+            yield _passthrough_decorator
 
 
 class _DecoratedUserClassMeta(type):
@@ -241,14 +213,88 @@ class _DecoratedUserClassMeta(type):
         """
         wrap user class ,so on user_class() we run _item_call first and if required we return task object inplace
         """
-        return cls.task_cls._call_handler(
+        return _call_handler(
+            cls.task_cls,
             call_user_code=super(_DecoratedUserClassMeta, cls).__call__,
             call_args=args,
             call_kwargs=kwargs,
         )
 
 
-def __passthrough_decorator(f):
+def _call_handler(task_cls, call_user_code, call_args, call_kwargs):
+    """
+    -= Use "Step into My Code"" to get back from Databand code! =-
+
+    decorated object call/creation  ( my_func(), MyDecoratedTask()
+    """
+    force_invoke = call_kwargs.pop("__force_invoke", False)
+    dbnd_project_config = get_dbnd_project_config()
+
+    if force_invoke or dbnd_project_config.disabled:
+        # 1. Databand is not enabled
+        # 2. we have this call coming from Task.run / Task.band direct invocation
+        return call_user_code(*call_args, **call_kwargs)
+    func_call = FuncCall(
+        task_cls=task_cls,
+        call_args=call_args,
+        call_kwargs=call_kwargs,
+        call_user_code=call_user_code,
+    )
+
+    if is_in_airflow_dag_build_context():  # we are in Airflow DAG building mode
+        return build_task_at_airflow_dag_context(
+            task_cls=task_cls, call_args=call_args, call_kwargs=call_kwargs
+        )
+
+    current = try_get_current_task()
+    if not current:
+        from dbnd._core.inplace_run.inplace_run_manager import try_get_inplace_task_run
+
+        task_run = try_get_inplace_task_run()
+        if task_run:
+            current = task_run.task
+
+    if not current:  # direct call to the function
+        return func_call.invoke()
+
+    ######
+    # DBND HANDLING OF CALL
+    # now we can make some decisions what we do with the call
+    # it's not coming from _invoke_func
+    # but from   user code ...   some_func()  or SomeTask()
+    phase = current_phase()
+    if phase is TaskContextPhase.BUILD:
+        # we are in the @pipeline context, we are building execution plan
+        t = task_cls(*call_args, **call_kwargs)
+
+        # we are in inline debug mode -> we are going to execute the task
+        # we are in the band
+        # and want to return result of the object
+        if t.task_definition.single_result_output:
+            return t.result
+
+        # we have multiple outputs ( result, another output.. )
+        # -> just return task object
+        return t
+
+    if phase is TaskContextPhase.RUN:
+        # we are in the run function!
+        if (
+            current.settings.dynamic_task.enabled
+            and current.task_supports_dynamic_tasks
+        ):
+            # isinstance() check required to prevent infinite recursion when @task is on
+            # class and not on func (example: see test_task_decorated_class.py)
+            # and the current task supports inline calls
+            # that's extra mechanism in addition to __force_invoke
+            # on pickle/unpickle isinstance fails to run.
+            return create_and_run_dynamic_task_safe(func_call=func_call)
+
+    # we can not call it in"databand" way, fallback to normal execution
+    return func_call.invoke()
+
+
+def _passthrough_decorator(f):
     return f
 
 
@@ -390,7 +436,7 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
         # simple `@task` decorator, no options were (probably) given.
         if len(decorator_args) == 1 and callable(decorator_args[0]):
             return decorator_args[0]
-        return __passthrough_decorator
+        return _passthrough_decorator
 
     task_type = decorator_kwargs.pop("_task_type")  # type: Type[_DecoratedTask]
     task_default_result = decorator_kwargs.pop(
@@ -400,16 +446,11 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
 
     def decorated(class_or_func):
         try:
-
             func_spec = build_task_decorator_spec(
                 class_or_func=class_or_func,
                 decorator_kwargs=decorator_kwargs,
                 default_result=task_default_result,
             )
-
-            # we can't create class dynamically because of python2/3
-            # __name__ is not overridable
-
         except Exception as ex:
             logger.error(
                 "Failed to create task %s: %s\n%s\n",
@@ -420,37 +461,54 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
             )
             raise
 
-        if func_spec.is_class:
-            # TODO: reuse DbndFuncProxy as well! (or similar)
-            task_cls = TaskMetaclass(
-                str(class_or_func.__name__),
-                (task_type,),
-                dict(
-                    _conf__decorator_spec=func_spec,
-                    _callable_item=None,
-                    __doc__=class_or_func.__doc__,
-                    __module__=class_or_func.__module__,
-                    defaults=task_defaults,
-                ),
-            )
-            callable_item = six.add_metaclass(_DecoratedUserClassMeta)(class_or_func)
-            callable_item.func = class_or_func
-            callable_item.task_cls = task_cls
-            callable_item.task = task_cls
-            callable_item.t = task_cls
-            task_cls._callable_item = callable_item
-        else:
-            callable_item = DbndFuncProxy(func_spec, task_type, task_defaults)
-            # TODO
-            r = get_task_registry()
-            r.register_task_cls_factory(
-                task_cls_factory=callable_item._build_task_cls,
-                full_task_family="%s.%s"
-                % (class_or_func.__module__, class_or_func.__name__),
-                task_family=class_or_func.__name__,  # TODO: use same functionality as TaskDefinition
-            )
+        fp = TaskClsBuilder(func_spec, task_type, task_defaults)
 
-        return callable_item
+        if func_spec.is_class:
+            wrapper = six.add_metaclass(_DecoratedUserClassMeta)(class_or_func)
+            fp._callable_item = wrapper
+        else:
+
+            @functools.wraps(class_or_func)
+            def wrapper(*args, **kwargs):
+                if _is_tracking_mode():
+                    with fp.tracking_context(args, kwargs) as track_result_callback:
+                        return track_result_callback(fp.func(*args, **kwargs))
+
+                return _call_handler(
+                    fp.get_task_cls(),
+                    call_user_code=fp.func,
+                    call_args=args,
+                    call_kwargs=kwargs,
+                )
+
+            wrapper.dbnd_run = fp.dbnd_run
+
+        wrapper.__is_dbnd_task__ = True
+        wrapper.func = class_or_func
+
+        # we're using CallableLazyObjectProxy to have lazy evaluation for creating task_cls
+        task_cls = CallableLazyObjectProxy(fp.get_task_cls)
+        wrapper.task_cls = task_cls
+        wrapper.task = task_cls
+        wrapper.t = task_cls
+
+        # we need lazy task_definition here, for example for dbnd_task_as_bash_operator
+        wrapper.task_definition = CallableLazyObjectProxy(fp.get_task_definition)
+
+        # we need to manually register the task here, since in regular flow
+        # this happens in TaskMetaclass, but it's not invoked here due to lazy
+        # evaluation using CallableLazyObjectProxy
+        tf = TaskFamilyData.from_func_spec(func_spec, decorator_kwargs)
+
+        # TODO: we can use CallableLazyObjectProxy object (task_cls) instead of task_cls_factory
+        r = get_task_registry()
+        r.register_task_cls_factory(
+            task_cls_factory=fp.get_task_cls,
+            full_task_family=tf.full_task_family,
+            task_family=tf.task_family,
+        )
+
+        return wrapper
 
     # simple `@task` decorator, no options were (probably) given.
     if len(decorator_args) == 1 and callable(decorator_args[0]):

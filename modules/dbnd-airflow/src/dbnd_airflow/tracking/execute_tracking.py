@@ -6,7 +6,7 @@ from typing import Optional
 import six
 
 from dbnd._core.constants import TaskRunState
-from dbnd._core.decorator.dbnd_func_proxy import DbndFuncProxy, _log_result, task
+from dbnd._core.decorator.task_cls_builder import _log_result
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import extract_airflow_context
 from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
 from dbnd._core.task_run.task_run import TaskRun

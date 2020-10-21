@@ -4,7 +4,6 @@ import typing
 from typing import Any, Union
 
 from dbnd._core.current import current_task_run, get_databand_run, is_verbose
-from dbnd._core.decorator.func_task_call import FuncCall
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from targets.inline_target import InlineTarget
 
@@ -12,6 +11,7 @@ from targets.inline_target import InlineTarget
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
+    from dbnd._core.decorator.func_task_call import FuncCall
     from dbnd._core.task.task import Task
 
 
@@ -23,7 +23,7 @@ def create_dynamic_task(func_call):
         func_call.call_kwargs,
     )
     from dbnd import pipeline, PipelineTask
-    from dbnd._core.decorator.dbnd_func_proxy import _default_output
+    from dbnd._core.decorator.dbnd_decorator import _default_output
 
     parent_task = current_task_run().task
     dbnd_run = get_databand_run()

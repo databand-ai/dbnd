@@ -14,8 +14,12 @@ def _is_function(obj):
     return isinstance(obj, FunctionType)
 
 
+def _is_task(obj):
+    return hasattr(obj, "__is_dbnd_task__")
+
+
 def _track_function(function):
-    if not _is_function(function) or should_not_track(function):
+    if not _is_function(function) or should_not_track(function) or _is_task(function):
         return
 
     decorated_function = task(function)

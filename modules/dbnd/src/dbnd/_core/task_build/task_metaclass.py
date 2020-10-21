@@ -46,11 +46,7 @@ class TaskMetaclass(abc.ABCMeta):
         if classdict.get("task_definition") is not None:
             return cls
 
-        r = get_task_registry()
-
-        td = cls.task_definition = TaskDefinition(
-            cls, classdict, namespace_at_class_time=r.get_namespace(cls.__module__)
-        )  # type: TaskDefinition
+        td = cls.task_definition = TaskDefinition(cls, classdict)
 
         # now we will assign all params
         set_params = td.class_params if cls.is_tracking_mode else td.all_task_params
@@ -59,6 +55,7 @@ class TaskMetaclass(abc.ABCMeta):
 
         # every time we see new implementation, we want it to have an priority over old implementation
         # we need to switch to dict() and store history else where
+        r = get_task_registry()
         r.register_task(cls)
 
         return cls

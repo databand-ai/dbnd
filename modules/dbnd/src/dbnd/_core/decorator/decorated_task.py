@@ -2,25 +2,15 @@ import logging
 
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import TaskType
-from dbnd._core.decorator.dynamic_tasks import create_and_run_dynamic_task_safe
-from dbnd._core.decorator.func_task_call import FuncCall, TaskCallState
+from dbnd._core.decorator.func_task_call import TaskCallState
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.errors.friendly_error.task_execution import (
     failed_to_assign_result,
     failed_to_process_non_empty_result,
 )
-from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
-    build_task_at_airflow_dag_context,
-    is_in_airflow_dag_build_context,
-)
 from dbnd._core.task.pipeline_task import PipelineTask
 from dbnd._core.task.python_task import PythonTask
 from dbnd._core.task.task import Task
-from dbnd._core.task_build.task_context import (
-    TaskContextPhase,
-    current_phase,
-    try_get_current_task,
-)
 
 
 logger = logging.getLogger(__name__)
@@ -29,81 +19,6 @@ logger = logging.getLogger(__name__)
 class _DecoratedTask(Task):
     _dbnd_decorated_task = True
     result = None
-
-    @classmethod
-    def _call_handler(cls, call_user_code, call_args, call_kwargs):
-        """
-        -= Use "Step into My Code"" to get back from Databand code! =-
-
-        decorated object call/creation  ( my_func(), MyDecoratedTask()
-        """
-        force_invoke = call_kwargs.pop("__force_invoke", False)
-        dbnd_project_config = get_dbnd_project_config()
-
-        if force_invoke or dbnd_project_config.disabled:
-            # 1. Databand is not enabled
-            # 2. we have this call coming from Task.run / Task.band direct invocation
-            return call_user_code(*call_args, **call_kwargs)
-        func_call = FuncCall(
-            task_cls=cls,
-            call_args=call_args,
-            call_kwargs=call_kwargs,
-            call_user_code=call_user_code,
-        )
-
-        if is_in_airflow_dag_build_context():  # we are in Airflow DAG building mode
-            return build_task_at_airflow_dag_context(
-                task_cls=cls, call_args=call_args, call_kwargs=call_kwargs
-            )
-
-        current = try_get_current_task()
-        if not current:
-            from dbnd._core.inplace_run.inplace_run_manager import (
-                try_get_inplace_task_run,
-            )
-
-            task_run = try_get_inplace_task_run()
-            if task_run:
-                current = task_run.task
-
-        if not current:  # direct call to the function
-            return func_call.invoke()
-
-        ######
-        # DBND HANDLING OF CALL
-        # now we can make some decisions what we do with the call
-        # it's not coming from _invoke_func
-        # but from   user code ...   some_func()  or SomeTask()
-        phase = current_phase()
-        if phase is TaskContextPhase.BUILD:
-            # we are in the @pipeline context, we are building execution plan
-            t = cls(*call_args, **call_kwargs)
-
-            # we are in inline debug mode -> we are going to execute the task
-            # we are in the band
-            # and want to return result of the object
-            if t.task_definition.single_result_output:
-                return t.result
-
-            # we have multiple outputs ( result, another output.. )
-            # -> just return task object
-            return t
-
-        if phase is TaskContextPhase.RUN:
-            # we are in the run function!
-            if (
-                current.settings.dynamic_task.enabled
-                and current.task_supports_dynamic_tasks
-            ):
-                # isinstance() check required to prevent infinite recursion when @task is on
-                # class and not on func (example: see test_task_decorated_class.py)
-                # and the current task supports inline calls
-                # that's extra mechanism in addition to __force_invoke
-                # on pickle/unpickle isinstance fails to run.
-                return create_and_run_dynamic_task_safe(func_call=func_call)
-
-        # we can not call it in"databand" way, fallback to normal execution
-        return func_call.invoke()
 
     def _invoke_func(self, extra_kwargs=None, force_invoke=False):
         # this function is in charge of calling user defined code (decorated function) call

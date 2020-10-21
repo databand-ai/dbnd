@@ -18,7 +18,7 @@ from mlflow import (
 )
 
 from dbnd import new_dbnd_context
-from dbnd._core.decorator.dbnd_func_proxy import task
+from dbnd._core.decorator.dbnd_decorator import task
 
 
 logger = logging.getLogger(__name__)

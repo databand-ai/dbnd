@@ -15,7 +15,7 @@ from mlflow import (
 )
 from mlflow.tracking import MlflowClient
 
-from dbnd._core.decorator.dbnd_func_proxy import task
+from dbnd import task
 
 
 logger = logging.getLogger(__name__)

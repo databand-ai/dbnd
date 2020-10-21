@@ -3,7 +3,7 @@ import logging
 import random
 
 from dbnd._core.commands import log_metric
-from dbnd._core.decorator.dbnd_func_proxy import task
+from dbnd._core.decorator.dbnd_decorator import task
 
 
 logger = logging.getLogger(__name__)

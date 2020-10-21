@@ -13,12 +13,12 @@ class TestSignature(object):
         def a():
             pass
 
-        td = TaskDefinition(a.task, {}, "td")
+        td = TaskDefinition(a.task, {})
         assert td
 
     def test_task_definition_as_class(self):
         class TdTask(Task):
             pass
 
-        td = TaskDefinition(TdTask, {}, "td")
+        td = TaskDefinition(TdTask, {})
         assert td

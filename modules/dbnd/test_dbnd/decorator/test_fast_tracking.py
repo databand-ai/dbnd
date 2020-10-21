@@ -1,4 +1,5 @@
 import datetime
+import pickle
 
 from collections import Counter
 
@@ -116,6 +117,11 @@ def _check_tracking_calls(mock_store, tracking_calls_counter):
     # assert tracking_calls_counter == store_calls would also work, but this
     # will make it easier to compare visually
     assert sorted(tracking_calls_counter.items()) == sorted(store_calls.items())
+
+
+def test_pickle():
+    pickled = pickle.dumps(task_pass_through_default)
+    assert task_pass_through_default == pickle.loads(pickled)
 
 
 @pytest.mark.usefixtures("set_af_context")

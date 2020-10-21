@@ -173,9 +173,9 @@ class DbndTaskRegistry(SingletonContext):
                 user_func = getattr(task_module, possible_root_task)
                 if callable(user_func):
                     # Non-decorated function was found - decorate and return it
-                    from dbnd._core.decorator import dbnd_func_proxy
+                    from dbnd._core.decorator import dbnd_decorator
 
-                    decorated_task = dbnd_func_proxy.task(user_func)
+                    decorated_task = dbnd_decorator.task(user_func)
                     setattr(task_module, possible_root_task, decorated_task)
                     logger.warning(
                         "Found non-decorated task: %s. "

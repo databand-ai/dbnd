@@ -5,6 +5,7 @@ import typing
 from collections import OrderedDict
 from typing import Any, Dict, Type
 
+import attr
 import six
 
 from six import iteritems
@@ -20,12 +21,14 @@ from dbnd._core.parameter.parameter_definition import (
 )
 from dbnd._core.task_build.task_const import _SAME_AS_PYTHON_MODULE
 from dbnd._core.task_build.task_params import TaskDefinitionParams
-from dbnd._core.utils.basics.nothing import is_defined
+from dbnd._core.task_build.task_registry import get_task_registry
+from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 from dbnd._core.utils.structures import combine_mappings
 from dbnd._core.utils.uid_utils import get_uuid
 
 
 if typing.TYPE_CHECKING:
+    from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
     from dbnd._core.task import Task
     from dbnd._core.task_build.task_metaclass import TaskMetaclass
 
@@ -44,37 +47,90 @@ def _short_name(name):
     return ".".join(n[0] if n else n for n in name.split("."))
 
 
+@attr.s
+class TaskFamilyData(object):
+    full_task_family = attr.ib()
+    full_task_family_short = attr.ib()
+    task_family = attr.ib()
+    task_config_section = attr.ib()
+
+    @classmethod
+    def from_task_cls(cls, task_class):
+        # type: (Type[Task]) -> TaskFamilyData
+        if task_class._conf__decorator_spec:
+            cls_name = task_class._conf__decorator_spec.name
+        else:
+            cls_name = task_class.__name__
+
+        return cls._build(
+            cls_name=cls_name,
+            module_name=task_class.__module__,
+            task_namespace=task_class.task_namespace,
+            conf__task_family=task_class._conf__task_family,
+        )
+
+    @classmethod
+    def from_func_spec(cls, func_spec, decorator_kwargs):
+        # type: (_TaskDecoratorSpec, Dict) -> TaskFamilyData
+        return cls._build(
+            cls_name=func_spec.name,
+            module_name=func_spec.item.__module__,
+            task_namespace=decorator_kwargs.get("task_namespace", NOTHING),
+            conf__task_family=decorator_kwargs.get("_conf__task_family"),
+        )
+
+    @classmethod
+    def _build(
+        cls, cls_name, module_name, task_namespace, conf__task_family,
+    ):
+        full_task_family = "%s.%s" % (module_name, cls_name)
+        full_task_family_short = "%s.%s" % (_short_name(module_name), cls_name)
+
+        if not is_defined(task_namespace):
+            namespace_at_class_time = get_task_registry().get_namespace(module_name)
+            if namespace_at_class_time == _SAME_AS_PYTHON_MODULE:
+                task_namespace = module_name
+            else:
+                task_namespace = namespace_at_class_time
+
+        if conf__task_family:
+            task_family = conf__task_family
+            task_config_section = task_family
+        elif task_namespace:
+            task_family = "{}.{}".format(task_namespace, cls_name)
+            task_config_section = task_family
+        else:
+            task_family = cls_name
+            task_config_section = full_task_family
+
+        return TaskFamilyData(
+            full_task_family=full_task_family,
+            full_task_family_short=full_task_family_short,
+            task_family=task_family,
+            task_config_section=task_config_section,
+        )
+
+
 class TaskDefinition(object):
     """
     This task represents Task Definition
 
     """
 
-    def __init__(self, task_class, classdict, namespace_at_class_time):
+    def __init__(self, task_class, classdict):
         super(TaskDefinition, self).__init__()
 
         self.task_definition_uid = get_uuid()
         self.hidden = False
 
         self.task_class = task_class  # type: Type[Task]
-        self.namespace_at_class_time = namespace_at_class_time
-        if self.task_class._conf__decorator_spec:
-            cls_name = self.task_class._conf__decorator_spec.name
-        else:
-            cls_name = self.task_class.__name__
 
-        self.full_task_family = "%s.%s" % (task_class.__module__, cls_name)
-        self.full_task_family_short = "%s.%s" % (
-            _short_name(task_class.__module__),
-            cls_name,
-        )
+        tf = TaskFamilyData.from_task_cls(task_class)
 
-        self.task_family = self._build_user_task_family()
-        if not self.task_family:
-            self.task_family = cls_name
-            self.task_config_section = self.full_task_family
-        else:
-            self.task_config_section = self.task_family
+        self.full_task_family = tf.full_task_family
+        self.full_task_family_short = tf.full_task_family_short
+        self.task_family = tf.task_family
+        self.task_config_section = tf.task_config_section
 
         # the defaults attribute
         self.defaults = dict()  # type: Dict[ParameterDefinition, Any]
@@ -178,21 +234,6 @@ class TaskDefinition(object):
             for name, param in six.iteritems(params)
         }
         return _ordered_params(evolved)
-
-    def _build_user_task_family(self):
-        if self.task_class._conf__task_family:
-            return self.task_class._conf__task_family
-
-        if is_defined(self.task_class.task_namespace):
-            namespace = self.task_class.task_namespace
-        elif self.namespace_at_class_time == _SAME_AS_PYTHON_MODULE:
-            namespace = self.task_class.__module__
-        else:
-            namespace = self.namespace_at_class_time
-
-        if namespace:
-            return "{}.{}".format(namespace, self.task_class.__name__)
-        return None
 
     def _discover_base_attributes(self):
         # type: ()-> (Dict[str,ParameterDefinition], Dict[str, Any])
