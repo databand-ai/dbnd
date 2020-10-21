@@ -242,7 +242,10 @@ def build_task_run_info(task_run):
                 parameter_name=tdp.name,
                 value_origin=safe_short_string(str(value_source), max_value_len=5000),
                 value=safe_short_string(
-                    str(task_params_values.get(tdp.name, value)), max_value_len=5000,
+                    str(task_params_values.get(tdp.name, value))
+                    if not tdp.hidden
+                    else "***",
+                    max_value_len=5000,
                 ),
             )
         )

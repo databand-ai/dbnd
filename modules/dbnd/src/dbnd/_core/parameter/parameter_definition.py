@@ -170,6 +170,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     parameter_id = attr.ib(default=1)
 
     value_meta_conf = attr.ib(default=None)  # type: ValueMetaConf
+    hidden = attr.ib(default=False)  # type: bool
 
     @property
     def group(self):
