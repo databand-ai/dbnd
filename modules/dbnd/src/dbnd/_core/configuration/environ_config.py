@@ -74,6 +74,8 @@ ENV_SHELL_COMPLETION = "_DBND_COMPLETE"
 ENV_DBND_FIX_PYSPARK_IMPORTS = "DBND__FIX_PYSPARK_IMPORTS"
 ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING = "DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING"
 
+ENV_DBND__AUTO_TRACKING = "DBND__AUTO_TRACKING"
+
 DEFAULT_MAX_CALLS_PER_RUN = 100
 
 _DBND_DEBUG_INIT = environ_enabled(ENV_DBND__DEBUG_INIT)
@@ -186,6 +188,9 @@ class DbndProjectConfig(object):
         self._inline_tracking = None
 
         self.disable_inline = False
+        self.airflow_auto_tracking = environ_enabled(
+            ENV_DBND__AUTO_TRACKING, default=True
+        )
 
     @property
     def disabled(self):
