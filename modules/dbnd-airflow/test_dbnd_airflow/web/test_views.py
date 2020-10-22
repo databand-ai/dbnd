@@ -23,7 +23,7 @@ import logging
 import airflow
 
 from airflow.utils import timezone
-from packaging import version
+from pkg_resources import parse_version
 from pytest import fixture
 
 from dbnd._core.utils.date_utils import airflow_datetime_str
@@ -134,21 +134,21 @@ class TestAirflowBaseViews(WebAppTest):
 
     def test_blocked(self):
         url = "blocked"
-        if version.parse(airflow.version.version) >= version.parse("1.10.10"):
+        if parse_version(airflow.version.version) >= parse_version("1.10.10"):
             resp = self.client.post(url, follow_redirects=True)
         else:
             resp = self.client.get(url, follow_redirects=True)
         assert_ok(resp)
 
     def test_dag_stats(self):
-        if version.parse(airflow.version.version) >= version.parse("1.10.10"):
+        if parse_version(airflow.version.version) >= parse_version("1.10.10"):
             resp = self.client.post("dag_stats", follow_redirects=True)
         else:
             resp = self.client.get("dag_stats", follow_redirects=True)
         assert_ok(resp)
 
     def test_task_stats(self):
-        if version.parse(airflow.version.version) >= version.parse("1.10.10"):
+        if parse_version(airflow.version.version) >= parse_version("1.10.10"):
             resp = self.client.post("task_stats", follow_redirects=True)
         else:
             resp = self.client.get("task_stats", follow_redirects=True)
