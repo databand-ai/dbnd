@@ -43,8 +43,8 @@ from dbnd._core.task_build.task_context import (
     current_phase,
     try_get_current_task,
 )
-from dbnd._core.task_build.task_definition import TaskFamilyData
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
+from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
@@ -498,14 +498,14 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
         # we need to manually register the task here, since in regular flow
         # this happens in TaskMetaclass, but it's not invoked here due to lazy
         # evaluation using CallableLazyObjectProxy
-        tf = TaskFamilyData.from_func_spec(func_spec, decorator_kwargs)
+        tp = TaskPassport.from_func_spec(func_spec, decorator_kwargs)
 
         # TODO: we can use CallableLazyObjectProxy object (task_cls) instead of task_cls_factory
         r = get_task_registry()
         r.register_task_cls_factory(
             task_cls_factory=fp.get_task_cls,
-            full_task_family=tf.full_task_family,
-            task_family=tf.task_family,
+            full_task_family=tp.full_task_family,
+            task_family=tp.task_family,
         )
 
         return wrapper

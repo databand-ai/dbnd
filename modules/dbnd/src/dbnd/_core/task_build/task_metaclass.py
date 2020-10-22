@@ -96,7 +96,7 @@ class TaskMetaclass(abc.ABCMeta):
         # we need to have context initialized before we start to run all logic in config() scope
         with config(
             config_values=task_definition.task_defaults_config_store,
-            source="%s[defaults]" % task_definition.full_task_family_short,
+            source=task_definition.task_passport.format_source_name("defaults"),
             merge_settings=ConfigMergeSettings.on_non_exists_only,
         ) as task_config:
             # update config with current class defaults

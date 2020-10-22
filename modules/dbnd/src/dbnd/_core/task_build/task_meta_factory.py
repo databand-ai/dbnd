@@ -25,6 +25,7 @@ from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.task_build.multi_section_config import MultiSectionConfig
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_params import TaskValueParams
+from dbnd._core.task_build.task_passport import format_source_suffix
 from dbnd._core.task_build.task_signature import TASK_ID_INVALID_CHAR_REGEX
 from dbnd._core.task_ctrl.task_meta import TaskMeta
 from dbnd._core.utils.basics.nothing import NOTHING
@@ -226,14 +227,8 @@ class BaseTaskMetaFactory(object):
             source=self._source_name("env[%s]" % task_env.task_name),
         )
 
-    def _source_suffix(self, name):
-        return "[%s]" % name
-
     def _source_name(self, name):
-        return "%s%s" % (
-            self.task_definition.full_task_family_short,
-            self._source_suffix(name),
-        )
+        return self.task_definition.task_passport.format_source_name(name)
 
     # should refactored out
     def _get_task_multi_section_config(self, config, task_kwargs):
@@ -427,7 +422,7 @@ class TaskMetaFactory(BaseTaskMetaFactory):
                 if (
                     key not in task_param_names
                     and not value.source.endswith(
-                        self._source_suffix(ParameterScope.children.value)
+                        format_source_suffix(ParameterScope.children.value)
                     )
                     and key not in ["_type", "_from"]
                     and not key.endswith("__target")
