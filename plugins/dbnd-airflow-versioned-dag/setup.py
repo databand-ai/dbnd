@@ -14,7 +14,7 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-airflow-versioned-dag",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version, "dbnd-airflow==" + version, "packaging"],
+    install_requires=["dbnd==" + version, "dbnd-airflow==" + version],
     entry_points={
         "airflow.plugins": [
             "dbnd_webserver_plugin = dbnd_airflow.plugins.dbnd_airflow_webserver_plugin:DatabandAirflowWebserverPlugin"
