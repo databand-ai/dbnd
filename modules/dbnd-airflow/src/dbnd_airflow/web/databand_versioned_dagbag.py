@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import logging
 
 import airflow
+import pkg_resources
 
 from airflow.models import DagBag, DagModel, DagPickle, TaskInstance
 from airflow.utils.db import provide_session
-from packaging import version
 
 from dbnd._core.errors.friendly_error.versioned_dagbag import (
     failed_to_retrieve_dag_via_dbnd_versioned_dagbag,
@@ -75,7 +75,9 @@ class DbndAirflowDagBag(DagBag):
                     if dag:
                         return dag
 
-            if version.parse(airflow.__version__) < version.parse("1.10.10"):
+            if pkg_resources.parse_version(
+                airflow.__version__
+            ) < pkg_resources.parse_version("1.10.10"):
                 # get_dag function signature changed in airflow 1.10.10, ensure compatibility in parameters
                 # we don't have specific dag/execution date, we are trying to get in-memory version
                 dag = super(DbndAirflowDagBag, self).get_dag(
