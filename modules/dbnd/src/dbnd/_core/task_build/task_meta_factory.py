@@ -1,7 +1,4 @@
 import logging
-import typing
-
-from typing import Any, List, Type
 
 import six
 
@@ -13,27 +10,20 @@ from dbnd._core.configuration.config_path import (
     CONF_TASK_ENV_SECTION,
     CONF_TASK_SECTION,
 )
-from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue
-from dbnd._core.configuration.dbnd_config import DbndConfig
-from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd._core.constants import ParamValidation, _TaskParamContainer
+from dbnd._core.current import get_databand_context
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
 from dbnd._core.parameter import build_parameter, get_parameter_for_value_type
 from dbnd._core.parameter.parameter_definition import (
-    ParameterDefinition,
     ParameterScope,
     build_parameter_value,
     infer_parameter_value_type,
 )
 from dbnd._core.parameter.parameter_value import ParameterValue
-from dbnd._core.task_build.task_context import (
-    TaskContextPhase,
-    task_context,
-    try_get_current_task,
-)
-from dbnd._core.task_build.task_definition import TaskDefinition
+from dbnd._core.task_build.multi_section_config import MultiSectionConfig
+from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_params import TaskValueParams
 from dbnd._core.task_build.task_signature import TASK_ID_INVALID_CHAR_REGEX
 from dbnd._core.task_ctrl.task_meta import TaskMeta
@@ -44,13 +34,7 @@ from targets.target_config import parse_target_config
 from targets.values.builtins_values import DefaultObjectValueType
 
 
-if typing.TYPE_CHECKING:
-    from dbnd._core.task.base_task import _BaseTask
-    from dbnd._core.settings import EnvConfig
-    from dbnd import DatabandContext
-
 TASK_BAND_PARAMETER_NAME = "task_band"
-
 logger = logging.getLogger(__name__)
 
 
@@ -76,24 +60,37 @@ class TaskFactoryConfig(object):
         )
 
 
-class BaseTaskFactory(object):
-    def __init__(
-        self, dbnd_context, config, new_task_factory, task_cls, task_args, task_kwargs
-    ):
-        # type:(DatabandContext, DbndConfig, Any, Type[_BaseTask], Any, Any)->None
+def get_task_from_sections(config, task_name):
+    extra_sections = []
+    while task_name:
+        # "pseudo" recursive call
+        # we check if we have something  for current task_name, and if we do - that's a from
+        task_from = config.get(task_name, "_from", None)
+        if task_from == task_name:
+            # let not throw exception, as it's not a critical error.
+            task_from = None
+
+        if task_from:
+            extra_sections.append(task_from)
+        task_name = task_from
+
+    return extra_sections
+
+
+class BaseTaskMetaFactory(object):
+    def __init__(self, config, task_cls, task_args, task_kwargs):
+        # type:(DbndConfig, Type[_BaseTask], Any, Any)->None
         self.task_cls = task_cls
         self.task_definition = task_cls.task_definition  # type: TaskDefinition
-        self.new_task_factory = new_task_factory
 
         # keep copy of user inputs
         self.task_kwargs__ctor = task_kwargs.copy()
         self.task_args__ctor = list(task_args)
-        self.config = config
 
         self.parent_task = try_get_current_task()
 
         # let find if we are running this constructor withing another Databand Task
-        self.dbnd_context = dbnd_context
+        self.dbnd_context = get_databand_context()
         self.task_call_source = [
             self.dbnd_context.user_code_detector.find_user_side_frame(2)
         ]
@@ -103,7 +100,7 @@ class BaseTaskFactory(object):
         self.task_family = self.task_definition.task_family
         self.task_name = self.task_family
 
-        self.task_config_sections = []
+        self.multi_sec_conf = MultiSectionConfig(config, [])
 
         self._task_params = self.task_definition._task_params.clone()
 
@@ -127,7 +124,7 @@ class BaseTaskFactory(object):
         if param_task_config:
             param_task_config_value = self.build_parameter_value(param_task_config)
             if param_task_config_value.value:
-                self.config.set_values(
+                self.multi_sec_conf.set_values(
                     param_task_config_value.value,
                     source=self._source_name("task_config"),
                 )
@@ -163,10 +160,11 @@ class BaseTaskFactory(object):
         # change param_def definition based on config state
         param_def = self._update_param_def_target_config(param_def=param_def)
         param_name = param_def.name
-        p_config_value = self._get_param_config_value(param_def)
+        p_config_value = self.multi_sec_conf.get_param_config_value(param_def)
 
         if p_config_value and p_config_value.override:
             cf_value = p_config_value
+
         elif param_name in self.ctor_kwargs:
             cf_value = ConfigValue(
                 self.ctor_kwargs.get(param_name), source=self._source_name("ctor")
@@ -183,47 +181,15 @@ class BaseTaskFactory(object):
             raise MissingParameterError(
                 err_msg,
                 help_msg=param_def._get_help_message(
-                    sections=self.task_config_sections
+                    sections=self.multi_sec_conf.sections
                 ),
             )
         return build_parameter_value(param_def, cf_value)
 
-    def _get_param_config_value(self, param_def):
-        try:
-            cf_value = self._get_task_config_value(key=param_def.name)
-            if cf_value:
-                return cf_value
-
-            if param_def.config_path:
-                return self.config.get_config_value(
-                    section=param_def.config_path.section, key=param_def.config_path.key
-                )
-            return None
-        except Exception as ex:
-            raise param_def.parameter_exception("read configuration value", ex)
-
-    def _get_task_config_value(self, key):
-        """
-        If we have any override in the config -> use them!
-        otherwise, return first value
-        in case we have value in better section, but override in low priority section
-        override wins!
-        """
-        best_config_value = None
-        for section in self.task_config_sections:
-            config_value = self.config.get_config_value(section, key)
-            # first override win!
-            if config_value:
-                if config_value.override:
-                    return config_value
-                if best_config_value is None:
-                    best_config_value = config_value
-        return best_config_value
-
     def _update_param_def_target_config(self, param_def):
         """calculates parameter.target_config based on extra config at parameter__target value"""
         target_option = "%s__target" % param_def.name
-        target_config = self._get_task_config_value(key=target_option)
+        target_config = self.multi_sec_conf.get_config_value(key=target_option)
         if not target_config:
             return param_def
 
@@ -238,21 +204,6 @@ class BaseTaskFactory(object):
 
         param_def = param_def.modify(target_config=target_config)
         return param_def
-
-    def _update_shared_config_section(self, section, param_values, source):
-        # we take values using names only
-        defaults_store = _ConfigStore()
-        for key, value in param_values:
-            previous_value = self.config.get(section, key)
-            if previous_value != value:
-                cf = ConfigValue(value=value, source=source)
-                defaults_store.set_config_value(section, key, cf)
-
-        # we apply set on change only in the for loop, so we can optimize and not run all these code
-        if not defaults_store:
-            return
-
-        self.config.set_values(config_values=defaults_store, source=source)
 
     def _apply_task_env_config(self, task_env):
         # type: (EnvConfig)-> None
@@ -269,7 +220,7 @@ class BaseTaskFactory(object):
             param_values.append(
                 (param_def.name, task_env._params.get_value(param_def.name))
             )
-        self._update_shared_config_section(
+        self.multi_sec_conf.update_section(
             CONF_TASK_ENV_SECTION,
             param_values=param_values,
             source=self._source_name("env[%s]" % task_env.task_name),
@@ -284,11 +235,12 @@ class BaseTaskFactory(object):
             self._source_suffix(name),
         )
 
-    def _get_task_config_sections(self, config, task_kwargs):
+    # should refactored out
+    def _get_task_multi_section_config(self, config, task_kwargs):
         # there is priority of task name over task family, as name is more specific
         sections = [self.task_name]
         # _from at config files
-        sections.extend(self._get_task_from_sections(config, self.task_name))
+        sections.extend(get_task_from_sections(config, self.task_name))
         sections.extend([self.task_family, self.task_definition.full_task_family])
         kwargs_task_config_sections = task_kwargs.pop("task_config_sections", None)
         if kwargs_task_config_sections:
@@ -301,48 +253,8 @@ class BaseTaskFactory(object):
         if issubclass(self.task_definition.task_class, Config):
             sections += [CONF_CONFIG_SECTION]
         sections = list(unique_everseen(filter(None, sections)))
-        return sections
 
-    def _get_task_from_sections(self, config, task_name):
-        extra_sections = []
-        while task_name:
-            # "pseudo" recursive call
-            # we check if we have something  for current task_name, and if we do - that's a from
-            task_from = config.get(task_name, "_from", None)
-            if task_from == task_name:
-                # let not throw exception, as it's not a critical error.
-                task_from = None
-
-            if task_from:
-                extra_sections.append(task_from)
-            task_name = task_from
-
-        return extra_sections
-
-    def _init_task(self, task):
-        with task_context(task, TaskContextPhase.BUILD):
-            task._initialize()
-            task._validate()
-            task.task_meta.config_layer = self.config.config_layer
-
-    def _get_cached_or_create_task(self, task_meta, no_cache=False):
-        # If a Task has already been instantiated with the same parameters,
-        # the previous instance is returned to reduce number of object instances.
-        tic = self.dbnd_context.task_instance_cache
-        task = tic.get_task_obj_by_id(task_meta.obj_key.id)
-        if not task or no_cache or hasattr(task, "_dbnd_no_cache"):
-            task = self.new_task_factory(task_meta)
-            tic.task_obj_instances[task.task_meta.obj_key.id] = task
-
-            # now the task is created - all nested constructors will see it as parent
-            self._init_task(task)
-            tic.register_task_object(task)
-
-        if self.parent_task and hasattr(task, "task_id"):
-            if isinstance(task, _TaskParamContainer):
-                self.parent_task.task_meta.add_child(task.task_id)
-
-        return task
+        return MultiSectionConfig(config, sections)
 
 
 def _build_param(name):
@@ -352,7 +264,7 @@ def _build_param(name):
     return param
 
 
-class TaskFactory(BaseTaskFactory):
+class TaskMetaFactory(BaseTaskMetaFactory):
     """
      we have current config at  dbnd_config
      every tasks checks:
@@ -375,14 +287,10 @@ class TaskFactory(BaseTaskFactory):
 
     """
 
-    def __init__(
-        self, dbnd_context, config, new_task_factory, task_cls, task_args, task_kwargs
-    ):
-        # type:(DatabandContext, DbndConfig, Any, Type[_BaseTask], Any, Any)->None
-        super(TaskFactory, self).__init__(
-            dbnd_context=dbnd_context,
+    def __init__(self, config, task_cls, task_args, task_kwargs):
+        # type:(DbndConfig, Type[_BaseTask], Any, Any)->None
+        super(TaskMetaFactory, self).__init__(
             config=config,
-            new_task_factory=new_task_factory,
             task_cls=task_cls,
             task_args=task_args,
             task_kwargs=task_kwargs,
@@ -409,7 +317,7 @@ class TaskFactory(BaseTaskFactory):
         if self.task_name is None:
             self.task_name = self.task_family
 
-        self.task_config_sections = self._get_task_config_sections(config, task_kwargs)
+        self.multi_sec_conf = self._get_task_multi_section_config(config, task_kwargs)
 
         self.ctor_kwargs = None
         # utilities section
@@ -425,15 +333,15 @@ class TaskFactory(BaseTaskFactory):
         )
         self.task_errors = []
 
-    def create_dbnd_task(self):
+    def create_dbnd_task_meta(self):
         # create task meta
         self._log_build_step(
-            "Resolving task params with %s" % self.task_config_sections
+            "Resolving task params with %s" % self.multi_sec_conf.sections
         )
 
         # let apply all "override" values in Task(override={})
         if self.task_config_override:
-            self.config.set_values(
+            self.multi_sec_conf.set_values(
                 source=self._source_name("override"),
                 config_values=self.task_config_override,
                 override=True,
@@ -454,8 +362,7 @@ class TaskFactory(BaseTaskFactory):
                 self._log_config(force_log=True)
             raise
         self._log_build_step("Task Meta with obj_id = %s" % str(task_meta.obj_key))
-        task = self._get_cached_or_create_task(task_meta)
-        return task
+        return task_meta
 
     def build_task_meta(self):
         # build list of all possible values
@@ -499,11 +406,11 @@ class TaskFactory(BaseTaskFactory):
             task_name=self.task_name,
             task_params=TaskValueParams(task_param_values),
             task_config_override=self.task_config_override,
-            config_layer=self.config.config_layer,
+            config_layer=self.multi_sec_conf.layer,
             task_enabled=task_enabled,
             build_warnings=self.build_warnings,
             dbnd_context=self.dbnd_context,
-            task_sections=self.task_config_sections,
+            task_sections=self.multi_sec_conf.sections,
             task_call_source=self.task_call_source,
         )
 
@@ -515,11 +422,7 @@ class TaskFactory(BaseTaskFactory):
         task_param_names = [
             tp.name.lower() for tp in self._task_params.all_params.values()
         ]
-        for section_name in self.task_config_sections:
-            section = self.config.config_layer.config.get(section_name)
-            if not section:
-                continue
-
+        for _, section in self.multi_sec_conf.iter_sections():
             for key, value in section.items():
                 if (
                     key not in task_param_names
@@ -551,7 +454,7 @@ class TaskFactory(BaseTaskFactory):
             #  we want only parameters of the right scope -- children
             if p_val.parameter.scope == ParameterScope.children:
                 param_values.append((p_val.parameter.name, p_val.value))
-        self._update_shared_config_section(
+        self.multi_sec_conf.update_section(
             CONF_TASK_SECTION,
             param_values=param_values,
             source=self._source_name(ParameterScope.children.value),
@@ -638,12 +541,7 @@ class TaskFactory(BaseTaskFactory):
             logger.info("[%s] %s", self.task_name, msg)
 
     def _log_config(self, force_log=False):
-        msg = "config for sections({config_sections}): {config}".format(
-            config=pformat_current_config(
-                self.config, sections=self.task_config_sections, as_table=True
-            ),
-            config_sections=self.task_config_sections,
-        )
+        msg = self.multi_sec_conf.config_log
         self._log_build_step(msg, force_log=force_log)
 
     def _assert_no_task_build_error(self):
@@ -677,23 +575,19 @@ class TaskFactory(BaseTaskFactory):
         logger.warning(w)
 
 
-class TrackedTaskFactory(BaseTaskFactory):
-    def __init__(
-        self, dbnd_context, config, new_task_factory, task_cls, task_args, task_kwargs
-    ):
-        # type:(DatabandContext, DbndConfig, Any, Type[_BaseTask], Any, Any)->None
-        super(TrackedTaskFactory, self).__init__(
-            dbnd_context=dbnd_context,
+class TrackedTaskMetaFactory(BaseTaskMetaFactory):
+    def __init__(self, config, task_cls, task_args, task_kwargs):
+        # type:(DbndConfig, Type[_BaseTask], Any, Any)->None
+        super(TrackedTaskMetaFactory, self).__init__(
             config=config,
-            new_task_factory=new_task_factory,
             task_cls=task_cls,
             task_args=task_args,
             task_kwargs=task_kwargs,
         )
 
-        self.task_config_sections = self._get_task_config_sections(config, task_kwargs)
+        self.multi_sec_conf = self._get_task_multi_section_config(config, task_kwargs)
 
-    def _build_tracked_task_meta(self):
+    def create_dbnd_task_meta(self):
         task_args, task_kwargs = self.task_args__ctor, self.task_kwargs__ctor
         if self.task_cls._conf__decorator_spec is not None:
             task_args, task_kwargs = args_to_kwargs(
@@ -718,9 +612,9 @@ class TrackedTaskFactory(BaseTaskFactory):
                 user_result_params=user_results,
             ),
             task_config_override={},
-            config_layer=self.config.config_layer,
+            config_layer=self.multi_sec_conf.layer,
             dbnd_context=self.dbnd_context,
-            task_sections=self.task_config_sections,
+            task_sections=self.multi_sec_conf.sections,
             task_call_source=self.task_call_source,
         )
 
@@ -767,10 +661,3 @@ class TrackedTaskFactory(BaseTaskFactory):
             parsed=False,
             warnings=warnings,
         )
-
-    def create_dbnd_task(self):
-        # create task meta
-        task_meta = self._build_tracked_task_meta()
-        # we still want task to be registered in cache, since some code expects it to
-        task = self._get_cached_or_create_task(task_meta, no_cache=True)
-        return task

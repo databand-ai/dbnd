@@ -20,7 +20,9 @@ class TaskInstanceCache(object):
         # type: (str) -> Task
         return self.task_instances.get(task_id, None)
 
-    def register_task_object(self, task):
-        # type: (Task) -> Task
+    def register_task_instance(self, task):
+        # type: (Task) -> None
         self.task_instances[task.task_id] = task
-        return task
+
+    def register_task_obj_instance(self, task):
+        self.task_obj_instances[task.task_meta.obj_key.id] = task
