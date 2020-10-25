@@ -1,20 +1,25 @@
 import logging
 
 from collections import OrderedDict
+from itertools import islice
 from typing import Optional
 
 import six
 
+from dbnd._core.commands import log_metric, log_metrics
 from dbnd._core.constants import TaskRunState
+from dbnd._core.current import get_settings
 from dbnd._core.decorator.task_cls_builder import _log_result
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import extract_airflow_context
 from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd_airflow.tracking.conf_operations import flat_conf
+from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
     get_databand_url_conf,
     get_tracking_information,
+    get_xcoms,
 )
 from dbnd_airflow.tracking.dbnd_spark_conf import (
     add_spark_env_fields,
@@ -105,6 +110,10 @@ _EXECUTE_TRACKING = OrderedDict(
 )
 
 
+def will_result_push_to_xcom(copied_operator, result):
+    return copied_operator.do_xcom_push and result is not None
+
+
 def new_execute(context):
     """
     This function replaces the operator's original `execute` function
@@ -136,25 +145,70 @@ def new_execute(context):
 
     # running the operator's original execute function
     try:
-        if hasattr(copied_operator, "_tracked_instance"):
-            result = copied_operator.__execute__(copied_operator, context)
-        elif hasattr(copied_operator, "_tracked_class"):
-            result = copied_operator.__class__.__execute__(copied_operator, context)
-        else:
-            raise AttributeError("tracked failed to run original operator.execute")
+        execute = get_execute_function(copied_operator)
+        result = execute(copied_operator, context)
 
+    # catch if the original execute failed
     except Exception:
         if task_run:
             task_run.set_task_run_state(state=TaskRunState.FAILED)
         dbnd_run_stop()
         raise
 
-    else:
-        if task_run:
-            _log_result(task_run, result)
+    # if we have a task run here we want to log results and xcoms
+    if task_run:
+        try:
+            track_config = AirflowTrackingConfig()
+            if track_config.track_xcom_values:
+                log_xcom(context, track_config)
 
+            if track_config.track_airflow_execute_result:
+                log_operator_result(
+                    task_run, result, copied_operator, track_config.track_xcom_values
+                )
+
+        except Exception as e:
+            logger.error(
+                "exception caught will tracking airflow operator {}".format(e),
+                exc_info=True,
+            )
+
+    # make sure we close and return the original results
     dbnd_run_stop()
     return result
+
+
+def log_xcom(context, track_config):
+    task_instance = context["task_instance"]
+    xcoms = get_xcoms(task_instance)
+    if xcoms:
+        # get only the first xcoms
+        xcoms_head = islice(xcoms, track_config.max_xcom_length)
+        # cut the size of too long xcom values
+        shortened_xcoms = {
+            key: value[: track_config.max_xcom_size] for key, value in xcoms_head
+        }
+        log_metrics(shortened_xcoms)
+
+
+def log_operator_result(task_run, result, operator, track_xcom):
+    _log_result(task_run, result)
+
+    # after airflow runs the operator it xcom_push the result, so we log it
+    if track_xcom and operator.do_xcom_push and result is not None:
+        from airflow.models import XCOM_RETURN_KEY
+
+        log_metric(key=XCOM_RETURN_KEY, value=result)
+
+
+def get_execute_function(copied_operator):
+    if hasattr(copied_operator, "_tracked_instance"):
+        return copied_operator.__execute__
+
+    if hasattr(copied_operator, "_tracked_class"):
+        return copied_operator.__class__.__execute__
+
+    raise AttributeError("tracked failed to run original operator.execute")
 
 
 def add_tracking_to_submit_task(tracking_info, operator):

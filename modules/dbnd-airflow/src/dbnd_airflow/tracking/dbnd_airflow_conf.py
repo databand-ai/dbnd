@@ -1,3 +1,5 @@
+from itertools import islice
+
 import six
 
 from dbnd._core.configuration.environ_config import (
@@ -88,3 +90,14 @@ def extend_airflow_ctx_with_dbnd_tracking_info(task_run, airflow_ctx_env):
     info[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = str(task_run.task_run_attempt_uid)
     info = {n: str(v) for n, v in six.iteritems(info) if v is not None}
     return info
+
+
+def get_xcoms(task_instance):
+    from airflow.models.xcom import XCom
+
+    execution_date = task_instance.execution_date
+    task_id = task_instance.task_id
+    dag_id = task_instance.dag_id
+
+    results = XCom.get_many(execution_date, task_ids=task_id, dag_ids=dag_id)
+    return [(xcom.key, str(xcom.value)) for xcom in results]
