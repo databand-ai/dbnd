@@ -23,7 +23,6 @@ class AirflowInstanceDetails(object):
         self.airflow_server_info = server_info
         self.data_fetcher = fetcher
         self.exception_traceback = None
-        self.tasks_received = 0
 
 
 def create_airflow_server_info(airflow_url, interval):

@@ -74,8 +74,6 @@ def do_fetching_iteration(
 
         _log_recieved_tasks(data)
 
-        airflow_instance_detail.tasks_received = len(data.get("task_instances", []))
-
         export_data = _as_dotted_dict(**data)
 
         airflow_instance_detail.airflow_server_info.airflow_version = (
@@ -124,9 +122,13 @@ def do_fetching_iteration(
             airflow_instance_detail.airflow_server_info, api_client
         )
 
-        airflow_instance_detail.since = (
-            airflow_instance_detail.airflow_server_info.synced_to
-        )
+        # If synced_to was set to utcnow(), keep since as it was
+        if end_dates:
+            airflow_instance_detail.since = (
+                airflow_instance_detail.airflow_server_info.synced_to
+            )
+
+        return max(len(data.get("task_instances", [])), len(data.get("dag_runs", [])))
     except JSONDecodeError:
         logger.exception("Could not decode the received data, error in json format.")
         (
@@ -209,13 +211,10 @@ def fetch_one_server_until_synced(
 ):
     # Fetch continuously until we are up to date
     while True:
-        do_fetching_iteration(
+        fetch_count = do_fetching_iteration(
             airflow_config, airflow_instance_detail, api_client, tracking_store,
         )
-        if (
-            airflow_instance_detail.tasks_received < airflow_config.tasks_per_fetch
-            or airflow_instance_detail.tasks_received == 1
-        ):
+        if fetch_count < airflow_config.tasks_per_fetch:
             break
 
 
@@ -240,10 +239,6 @@ def sync_all_servers(
                 )
             )
             details_to_remove.append(airflow_instance_detail)
-        else:
-            airflow_instance_detail.since = (
-                airflow_instance_detail.airflow_server_info.synced_to
-            ) or pendulum.datetime.min
 
     if len(details_to_remove) > 0:
         for detail in details_to_remove:
