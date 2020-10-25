@@ -11,7 +11,6 @@ from collections import Mapping
 from typing import Any, Dict, Iterable, Optional, Tuple
 
 import attr
-import six
 
 import dbnd._core.utils.basics.environ_utils
 
@@ -259,6 +258,13 @@ def build_run_time_airflow_task(af_context):
             AirflowOperatorRuntimeTask, task_family, params_def,
         )
 
+        try:
+            task_class.airflow_log_file = get_airflow_logger_file(af_context.context)
+        except Exception:
+            logger.warning(
+                "couldn't get the airflow's log_file for task {}".format(task_family)
+            )
+
         if tracked_function:
             import inspect
 
@@ -344,3 +350,11 @@ def get_flatten_operator_params(operator):
 
     # we want to make sure that the value is str
     return {name: repr(value) for name, value in params}
+
+
+def get_airflow_logger_file(context):
+    log_path = context["task_instance"].log_filepath
+    try_number = str(context["task_instance"].try_number)
+    path, extension = os.path.splitext(log_path)
+    file_name = try_number + extension
+    return os.path.join(path, file_name)

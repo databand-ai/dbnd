@@ -21,6 +21,7 @@ def af_context_w_context():
     task_instance.execution_date = "1970-01-01T00:00:00.000000+00:00"
     task_instance.task_id = "test_task"
     task_instance.try_number = 6
+    task_instance.log_filepath = "mylog.log"
 
     context = {"task_instance": task_instance}
     return AirflowTaskContext(

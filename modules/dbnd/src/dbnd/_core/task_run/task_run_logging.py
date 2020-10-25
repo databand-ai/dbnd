@@ -1,3 +1,4 @@
+import io
 import logging
 import os
 import typing
@@ -11,6 +12,7 @@ from dbnd._core.settings import LocalEnvConfig
 from dbnd._core.settings.log import _safe_is_typeof
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.string_utils import merge_dbnd_and_spark_logs, safe_short_string
+from targets import target
 
 
 if typing.TYPE_CHECKING:
@@ -24,9 +26,12 @@ class TaskRunLogManager(TaskRunCtrl):
     def __init__(self, task_run):
         super(TaskRunLogManager, self).__init__(task_run)
 
-        self.local_log_file = self.task_run.local_task_run_root.partition(
-            name="%s.log" % task_run.attempt_number
-        )
+        if hasattr(task_run.task, "airflow_log_file"):
+            self.local_log_file = target(task_run.task.airflow_log_file)
+        else:
+            self.local_log_file = self.task_run.local_task_run_root.partition(
+                name="%s.log" % task_run.attempt_number
+            )
 
         if os.getenv("DBND__LOG_SPARK"):
             self.local_spark_log_file = self.task_run.local_task_run_root.partition(
@@ -168,16 +173,24 @@ class TaskRunLogManager(TaskRunCtrl):
 
     def read_log_body(self):
         try:
-            log_body = self.local_log_file.readlines()
+            # we convert the config for disable the reading to the function way to disable the reading
+            max_size = self.task.settings.log.send_body_to_server_max_size
+            max_size = None if max_size == -1 else max_size
+
+            log_body = safe_short_read_lines(self.local_log_file.path, max_size)
             if os.getenv("DBND__LOG_SPARK"):
-                spark_log_body = self.local_spark_log_file.readlines()
-                merged_logs = merge_dbnd_and_spark_logs(log_body, spark_log_body)
-                log_body = "\n".join(merged_logs)
-            else:
-                log_body = "\n".join(log_body)
+                spark_log_body = safe_short_read_lines(
+                    self.local_spark_log_file.path, max_size
+                )
+                log_body = merge_dbnd_and_spark_logs(log_body, spark_log_body)
+
+            log_body = "\n".join(log_body)
+
             if six.PY2:
                 log_body = log_body.decode("utf-8")
+
             return log_body
+
         except Exception as ex:
             logger.error(
                 "Failed to read log (%s) for %s: %s",
@@ -199,19 +212,47 @@ class TaskRunLogManager(TaskRunCtrl):
 
     def save_log_preview(self, log_body):
         max_size = self.task.settings.log.send_body_to_server_max_size
-        if max_size == 0:  # use 0 for unlimited
-            log_preview = log_body
-        elif max_size == -1:  # use -1 to disable
-            log_preview = None
-        else:
-            log_preview = self._extract_log_preivew(
-                log_body=log_body, max_size=max_size
-            )
+        log_preview = get_safe_short_text(log_body, max_size)
         if log_preview:
             self.task_run.tracker.save_task_run_log(log_preview)
 
-    def _extract_log_preivew(self, log_body=None, max_size=1000):
-        is_tail_preview = (
-            max_size > 0
-        )  # pass negative to get log's 'head' instead of 'tail'
-        return safe_short_string(log_body, abs(max_size), tail=is_tail_preview)
+
+def get_safe_short_text(text, max_size):
+    if max_size == 0:  # use 0 for unlimited
+        return text
+
+    if max_size == -1:  # use -1 to disable
+        return None
+
+    is_tail_preview = (
+        max_size > 0
+    )  # pass negative to get log's 'head' instead of 'tail'
+    return safe_short_string(text, abs(max_size), tail=is_tail_preview)
+
+
+def safe_short_read_lines(path, max_size):
+    """
+    Read the file while making sure the output is shorter than max_size.
+    To disable the reading set max_size to None.
+    """
+    if max_size is not None:
+        return get_file_tail(path, max_size)
+    return ""
+
+
+def get_file_tail(path, max_size):
+    """
+    Read the file and making sure not to get more bytes than given `max_size`.
+    If the file is longer than max_size (in bytes), we will read only the last bytes (amount equal to max_size).
+    If the file is shorter then the max_size (int bytes) we will just read the whole file.
+    """
+    file_size = os.path.getsize(path)
+    with open(path, "rb") as file_:
+        if 0 < max_size < file_size and file_.seekable():
+            file_.seek(-max_size, io.SEEK_END)
+
+        if six.PY2:
+            return file_.read().split("\n")
+
+        # on py3 we need to decode the bytes first
+        return file_.read().decode("utf-8").split("\n")

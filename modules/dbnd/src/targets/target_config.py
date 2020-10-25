@@ -101,7 +101,7 @@ register_compression(FileCompressions.xz)
 register_compression(FileCompressions.snappy)
 
 register_file_extension(FileFormat.csv)
-register_file_extension(FileFormat.txt, ["txt", "py"])
+register_file_extension(FileFormat.txt, ["txt", "py", "log"])
 register_file_extension(FileFormat.table)
 register_file_extension(FileFormat.parquet)
 register_file_extension(FileFormat.feather)

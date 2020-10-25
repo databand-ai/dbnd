@@ -1,4 +1,5 @@
 import logging
+import os
 
 from collections import OrderedDict
 from itertools import islice
@@ -7,7 +8,11 @@ from typing import Optional
 import six
 
 from dbnd._core.commands import log_metric, log_metrics
-from dbnd._core.constants import TaskRunState
+from dbnd._core.constants import (
+    DbndTargetOperationStatus,
+    DbndTargetOperationType,
+    TaskRunState,
+)
 from dbnd._core.current import get_settings
 from dbnd._core.decorator.task_cls_builder import _log_result
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import extract_airflow_context
@@ -28,6 +33,8 @@ from dbnd_airflow.tracking.dbnd_spark_conf import (
     get_spark_submit_java_agent_conf,
     spark_submit_with_dbnd_tracking,
 )
+from targets import target
+from targets.value_meta import ValueMetaConf
 
 
 logger = logging.getLogger(__name__)
@@ -124,6 +131,7 @@ def new_execute(context):
     # Then, only the copy_task (=copy_operator) is changed or called (render jinja, signal_handler,
     # pre_execute, execute, etc..).
     copied_operator = context["task_instance"].task
+
     try:
         # start operator execute run with current airflow context
         task_context = extract_airflow_context(context)
