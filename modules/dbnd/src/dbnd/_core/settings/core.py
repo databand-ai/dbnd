@@ -6,6 +6,7 @@ from dbnd._core.constants import CloudType
 from dbnd._core.log import dbnd_log_debug
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.task import Config
+from dbnd._core.utils.function_args import first_not_none
 from targets import Target
 from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
 from targets.values import ValueType
@@ -276,18 +277,13 @@ class TrackingConfig(Config):
         if target and self.auto_disable_slow_size and log_value_size:
             log_value_size = value_type.support_fast_count(target)
 
-        log_histograms = False if not self.log_histograms else mc.log_histograms
         return ValueMetaConf(
-            log_preview=mc.log_preview
-            if mc.log_preview is not None
-            else self.log_value_preview,
-            log_preview_size=mc.log_preview_size
-            if mc.log_preview_size is not None
-            else self.log_value_preview_max_len,
-            log_schema=mc.log_schema
-            if mc.log_schema is not None
-            else self.log_value_schema,
-            log_size=mc.log_size if mc.log_size is not None else log_value_size,
-            log_stats=mc.log_stats,
-            log_histograms=log_histograms,
+            log_preview=first_not_none(mc.log_preview, self.log_value_preview),
+            log_preview_size=first_not_none(
+                mc.log_preview_size, self.log_value_preview_max_len
+            ),
+            log_schema=first_not_none(mc.log_schema, self.log_value_schema),
+            log_size=first_not_none(mc.log_size, log_value_size),
+            log_stats=first_not_none(mc.log_stats, self.log_value_stats),
+            log_histograms=first_not_none(mc.log_histograms, self.log_histograms),
         )

@@ -1,4 +1,12 @@
+from typing import Any, Optional
+
 from dbnd._core.utils.basics.nothing import NOTHING, is_defined
+
+
+def first_not_none(*args):
+    # type: (*Any) -> Optional[Any]
+    """Returns first non None arg."""
+    return next((arg for arg in args if arg is not None), None)
 
 
 def passthrough_kwargs(current_locals):
