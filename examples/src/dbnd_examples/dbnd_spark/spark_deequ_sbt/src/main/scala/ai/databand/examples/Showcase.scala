@@ -17,7 +17,6 @@ object Showcase {
 
     /**
      * @Task annotation marks method as a part of pipeline
-     *
      * @param args
      */
     @Task("showcase")

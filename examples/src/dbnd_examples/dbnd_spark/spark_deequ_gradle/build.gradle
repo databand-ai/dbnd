@@ -33,19 +33,16 @@ dependencies {
     implementation("ai.databand:dbnd-api:${version}") { changing = true }
     implementation("ai.databand:dbnd-api-spark:${version}") { changing = true }
     implementation("ai.databand:dbnd-api-deequ:${version}") { changing = true }
-    implementation 'org.scala-lang:scala-library:2.11.12'
-    implementation 'com.amazon.deequ:deequ:1.0.4'
+    implementation("ai.databand:dbnd-client:${version}") { changing = true }
+    implementation("ai.databand:deequ:1.1.0")
+    implementation("org.scala-lang:scala-library:2.12.8")
 
-    implementation 'org.slf4j:slf4j-api:1.7.16'
+    implementation("org.slf4j:slf4j-api:1.7.16")
 
-    implementation 'org.apache.spark:spark-sql_2.11:2.4.5'
+    implementation("org.apache.spark:spark-sql_2.12:2.4.2")
 }
 
 mainClassName = "ai.databand.examples.Showcase"
-
-compileJava {
-    options.compilerArgs << '-parameters'
-}
 
 compileScala {
     options.compilerArgs << '-parameters'
@@ -54,7 +51,19 @@ compileScala {
 shadowJar {
     dependencies {
         exclude(dependency {
-            !it.moduleGroup.contains('databand')
+            !it.moduleGroup.contains('databand') \
+          && !it.moduleGroup.contains('deequ') \
+          && !it.moduleGroup.contains('squareup')
         })
     }
 }
+
+task shadowJarLatest(type: Copy) {
+    from shadowJar
+    into 'build/libs'
+    rename { String fileName ->
+        fileName.replace("$project.version", "latest")
+    }
+}
+
+shadowJar.finalizedBy shadowJarLatest
