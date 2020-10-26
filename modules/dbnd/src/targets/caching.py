@@ -158,11 +158,7 @@ class DbndLocalFileMetadataRegistry(object):
         if not run:
             raise Exception("No databand run found to when creating cache file")
         dbnd_local_root = run.get_current_dbnd_local_root()
-
-        # Create cache directory in dbnd_local_root
-        cache_dir = os.path.join(dbnd_local_root.path, "cache")
-        if not os.path.isdir(cache_dir):
-            os.makedirs(cache_dir)
+        cache_dir = get_or_create_folder_in_dir("cache", dbnd_local_root.path)
 
         file_name = os.path.basename(file_path) + DbndLocalFileMetadataRegistry.ext
         return os.path.join(cache_dir, file_name)
@@ -226,3 +222,18 @@ class DbndLocalFileMetadataRegistry(object):
             dbnd_meta_cache = DbndLocalFileMetadataRegistry(file_path=file_target.path)
             dbnd_meta_cache.save()
             return dbnd_meta_cache
+
+    @staticmethod
+    def refresh(file_target):
+        dbnd_meta_cache = DbndLocalFileMetadataRegistry.get_or_create(file_target)
+        if dbnd_meta_cache.expired:
+            dbnd_meta_cache.delete()
+            return DbndLocalFileMetadataRegistry.get_or_create(file_target)
+
+
+def get_or_create_folder_in_dir(folder_name, dir_):
+    # type: (str, Task) -> str
+    folder_path = os.path.join(dir_, folder_name)
+    if not os.path.isdir(folder_path):
+        os.makedirs(folder_path)
+    return folder_path

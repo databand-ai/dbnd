@@ -1,6 +1,7 @@
 import logging
 import os
 
+from tempfile import mkstemp
 from typing import Type
 
 from dbnd._core.parameter.parameter_definition import (
@@ -8,11 +9,15 @@ from dbnd._core.parameter.parameter_definition import (
     _ParameterKind,
 )
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from targets import DbndLocalFileMetadataRegistry, FileTarget, target
+from dbnd._vendor._marshmallow.compat import urlparse
+from targets import DbndLocalFileMetadataRegistry, FileAlreadyExists, FileTarget, target
+from targets.caching import get_or_create_folder_in_dir
 from targets.multi_target import MultiTarget
 
 
 logger = logging.getLogger(__name__)
+
+LOCAL_SYNC_CACHE_NAME = "local_sync_cache"
 
 
 class TaskRunLocalSyncer(TaskRunCtrl):
@@ -32,79 +37,89 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                 and p_val.config.require_local_access
                 and not p_val.fs.local
             ):
-                # Target requires local access, it points to a remote path that must be synced-to from a local path
-                local_target = self._local_cache_target(p_val)
 
-                self._sync_input_or_output(p_def, p_val, local_target)
+                self._sync_input_or_output(p_def, p_val)
 
             elif isinstance(p_val, MultiTarget):
-                local_multitarget = MultiTarget(
-                    [
-                        self._local_cache_target(target_)
-                        if target_.config.require_local_access and not target_.fs.local
-                        else target_
-                        for target_ in p_val.targets
-                    ]
-                )
-                self._sync_input_or_output(p_def, p_val, local_multitarget)
+                self._sync_input_or_output(p_def, p_val)
 
     def _local_cache_target(self, target_):
         # type: (FileTarget) -> FileTarget
-        return target(
-            self.task_run.attemp_folder_local_cache,
-            os.path.basename(target_.path),
-            config=target_.config,
+        # urlparse is needed to strip filesystem prefixes like `s3://`
+        path = urlparse.urlparse(target_.path)
+        path = path.netloc + path.path
+        path = path.lstrip("/")
+        local_sync_cache_path = get_or_create_folder_in_dir(
+            LOCAL_SYNC_CACHE_NAME, self.task.task_env.dbnd_local_root.path
+        )
+        return target(local_sync_cache_path, path, config=target_.config,)
+
+    def _local_cache_multitarget(self, multitarget):
+        return MultiTarget(
+            [
+                self._local_cache_target(target_)
+                if target_.config.require_local_access and not target_.fs.local
+                else target_
+                for target_ in multitarget.targets
+            ]
         )
 
-    def _sync_input_or_output(self, param_definition, old_target, new_target):
+    def _sync_input_or_output(self, param_definition, old_target):
         # type: (ParameterDefinition, Type[DataTarget], Type[DataTarget]) -> None
         if param_definition.kind == _ParameterKind.task_output:
             # Output should be substituted for local path and synced post execution
-            self.outputs_to_sync.append((param_definition, old_target, new_target))
+            self.outputs_to_sync.append((param_definition, old_target))
 
         else:
-            self.inputs_to_sync.append((param_definition, old_target, new_target))
+            self.inputs_to_sync.append((param_definition, old_target))
 
     def sync_pre_execute(self):
-        if self.inputs_to_sync:
-            for p_def, remote_target, local_target in self.inputs_to_sync:
-                # Input should be synced to local path and substituted
-                try:
+        for p_def, remote_target in self.inputs_to_sync:
+            # Input should be synced to local path and substituted
+            try:
+                if isinstance(remote_target, MultiTarget):
+                    local_target = self._local_cache_multitarget(remote_target)
+
                     logger.info(
                         "Downloading  %s %s to %s", p_def, remote_target, local_target,
                     )
-                    if isinstance(remote_target, MultiTarget):
-                        for remote_subtarget, local_subtarget in zip(
-                            remote_target.targets, local_target.targets
+
+                    for remote_subtarget, local_subtarget in zip(
+                        remote_target.targets, local_target.targets
+                    ):
+                        if (
+                            remote_subtarget.config.require_local_access
+                            and not remote_subtarget.fs.local
                         ):
-                            if (
-                                remote_subtarget.config.require_local_access
-                                and not remote_subtarget.fs.local
-                            ):
-                                self._sync_remote_to_local(
-                                    remote_subtarget, local_subtarget
-                                )
-                    else:
-                        self._sync_remote_to_local(remote_target, local_target)
+                            self._sync_remote_to_local(
+                                remote_subtarget, local_subtarget
+                            )
+                else:
+                    # Target requires local access, it points to a remote path that must be synced-to from a local path
+                    local_target = self._local_cache_target(remote_target)
 
-                except Exception as e:
-                    logger.exception(
-                        "Failed to create local cache for %s %s at %s",
-                        p_def,
-                        remote_target,
-                        local_target,
+                    logger.info(
+                        "Downloading  %s %s to %s", p_def, remote_target, local_target,
                     )
-                    raise
 
-                setattr(self.task, p_def.name, local_target)
+                    self._sync_remote_to_local(remote_target, local_target)
 
-            logger.info(
-                "All required task inputs are downloaded to %s",
-                self.task_run.attemp_folder_local_cache,
-            )
+            except Exception as e:
+                logger.exception(
+                    "Failed to create local cache for %s %s", p_def, remote_target,
+                )
+                raise
 
-        for p_def, remote_target, local_target in self.outputs_to_sync:
-            if isinstance(local_target, MultiTarget):
+            setattr(self.task, p_def.name, local_target)
+
+        logger.info(
+            "All required task inputs are downloaded to %s",
+            self.task_run.attemp_folder_local_cache,
+        )
+
+        for p_def, remote_target in self.outputs_to_sync:
+            if isinstance(remote_target, MultiTarget):
+                local_target = self._local_cache_multitarget(remote_target)
                 for remote_subtarget, local_subtarget in zip(
                     remote_target.targets, local_target.targets
                 ):
@@ -114,20 +129,24 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                     ):
                         local_subtarget.mkdir_parent()
             else:
+                local_target = self._local_cache_target(remote_target)
                 local_target.mkdir_parent()
             # Output should be substituted for local path and synced post execution
             setattr(self.task, p_def.name, local_target)
 
     def sync_post_execute(self):
-        for p_def, remote_target, local_target in self.inputs_to_sync:
+        for p_def, remote_target in self.inputs_to_sync:
             setattr(self.task, p_def.name, remote_target)
 
-        for p_def, remote_target, local_target in self.outputs_to_sync:
+        for p_def, remote_target in self.outputs_to_sync:
             try:
-                logger.info(
-                    "Uploading  %s %s from %s", p_def, remote_target, local_target
-                )
                 if isinstance(remote_target, MultiTarget):
+                    local_target = self._local_cache_multitarget(remote_target)
+
+                    logger.info(
+                        "Uploading  %s %s from %s", p_def, remote_target, local_target
+                    )
+
                     for remote_subtarget, local_subtarget in zip(
                         remote_target.targets, local_target.targets
                     ):
@@ -142,6 +161,12 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                                 remote_subtarget.mark_success()
 
                 else:
+                    local_target = self._local_cache_target(remote_target)
+
+                    logger.info(
+                        "Uploading  %s %s from %s", p_def, remote_target, local_target
+                    )
+
                     remote_target.copy_from_local(local_path=local_target.path)
                     if remote_target.config.flag:
                         remote_target.mark_success()
@@ -164,6 +189,18 @@ class TaskRunLocalSyncer(TaskRunCtrl):
         if dbnd_meta_cache.expired or not local_target.exists():
             # If TTL is invalid, or local file doesn't exist -> Sync to local
             local_target.mkdir_parent()
+            _, tmp_file_path = mkstemp()
             remote_target.download(
-                local_target.path, overwrite=local_target.config.overwrite_target,
+                tmp_file_path, overwrite=local_target.config.overwrite_target,
             )
+            try:
+                local_target.move_from(tmp_file_path)
+            except FileAlreadyExists as e:
+                logger.warning(
+                    "Moving file from %s to %s failed. File already exist! | Error: %s"
+                    % (tmp_file_path, local_target.path, e)
+                )
+                os.remove(tmp_file_path)
+                return
+
+        DbndLocalFileMetadataRegistry.refresh(local_target)
