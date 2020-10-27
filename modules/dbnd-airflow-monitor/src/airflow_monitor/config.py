@@ -44,8 +44,9 @@ class AirflowMonitorConfig(Config):
 
     sql_alchemy_conn = parameter(default=None, description="db url")[str]
 
-    rbac_enabled = parameter(
-        default=True, description="Is rbac mode enabled in the server"
+    api_mode = parameter(
+        default="rbac",
+        description="Airflow server api mode (flask-admin, rbac, experimental)",
     )[str]
 
     rbac_username = parameter(
@@ -57,11 +58,6 @@ class AirflowMonitorConfig(Config):
         default={},
         description="Password credentials to use when monitoring airflow with rbac enabled",
     )[str]
-
-    use_experimental_api = parameter(
-        default=False,
-        description="Use export data api from via airflow experimental api. When false, web fetcher will use flask regular api",
-    )
 
     # Used by file fetcher
     json_file_path = parameter(

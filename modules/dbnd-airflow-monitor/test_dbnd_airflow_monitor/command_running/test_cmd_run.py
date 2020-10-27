@@ -32,7 +32,7 @@ def test_command_running():
         composer_client_id=airflow_config.composer_client_id,
         sql_alchemy_conn=airflow_config.sql_alchemy_conn,
         local_dag_folder=airflow_config.local_dag_folder,
-        rbac_enabled=airflow_config.local_dag_folder,
+        api_mode=airflow_config.api_mode,
     )
 
     # We need this mock, because otherwise we are going to enter an infinite loop in CI/CD

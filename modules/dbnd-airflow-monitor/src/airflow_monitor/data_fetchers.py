@@ -45,12 +45,11 @@ class WebFetcher(DataFetcher):
         self.env = "Airflow"
         self.base_url = config.base_url
         self.endpoint_url = config.url
-        self.rbac_enabled = config.rbac_enabled
+        self.api_mode = config.api_mode
         self.rbac_username = config.rbac_username
         self.rbac_password = config.rbac_password
-        self.use_experimental_api = config.use_experimental_api
         self.client = requests.session()
-        self.is_rbac_logged_in = False
+        self.is_logged_in = False
 
         if WebFetcher.prometheus_af_response_time_metrics is None:
             WebFetcher.prometheus_af_response_time_metrics = prometheus_client.Summary(
@@ -93,7 +92,7 @@ class WebFetcher(DataFetcher):
             else:
                 logger.error(
                     "Could not fetch data from url {}, error code: {}. Hint: If the IP address is correct"
-                    " but the full path is not, check the configuration of rbac_enabled variable".format(
+                    " but the full path is not, check the configuration of api_mode variable".format(
                         self.endpoint_url, data.status_code,
                     ),
                 )
@@ -132,22 +131,16 @@ class WebFetcher(DataFetcher):
         # validate login succeeded
         soup = bs(resp.text, "html.parser")
         if "/logout/" in [a.get("href") for a in soup.find_all("a")]:
-            self.is_rbac_logged_in = True
+            self.is_logged_in = True
             logger.info("Succesfully logged in to %s.", login_url)
         else:
             logger.warning("Could not login to %s.", login_url)
 
     def _make_request(self, params):
         auth = ()
-        if self.use_experimental_api:
-            if not self.rbac_enabled:
-                logger.warning(
-                    "Experimental api is supported only when rbac is enabled. "
-                    "We will assume rbac is enabled and continue."
-                )
+        if self.api_mode == "experimental":
             auth = (self.rbac_username, self.rbac_password)
-
-        elif self.rbac_enabled and not self.is_rbac_logged_in:
+        elif self.api_mode == "rbac" and not self.is_logged_in:
             # In RBAC mode, we need to login with admin credentials first
             self._try_login()
 

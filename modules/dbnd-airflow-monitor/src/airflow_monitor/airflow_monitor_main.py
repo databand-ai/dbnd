@@ -263,7 +263,7 @@ def update_airflow_servers_with_local_config(api_client, config):
             "is_sync_enabled": True,
             "fetcher": config.fetcher,
             "composer_client_id": config.composer_client_id,
-            "rbac_enabled": config.rbac_enabled,
+            "api_mode": config.api_mode,
             "source": "config",
             "external_url": external_url,
         },

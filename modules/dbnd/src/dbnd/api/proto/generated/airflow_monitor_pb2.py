@@ -22,7 +22,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     syntax="proto3",
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_pb=b'\n\x15\x61irflow_monitor.proto\x12\x1d\x64\x62nd.services.airflow_monitor\x1a\x1fgoogle/protobuf/timestamp.proto"\xa1\x07\n\x11\x41irflowServerInfo\x12\x10\n\x08\x62\x61se_url\x18\x01 \x01(\t\x12\x1c\n\x0f\x61irflow_version\x18\x02 \x01(\tH\x00\x88\x01\x01\x12#\n\x16\x61irflow_export_version\x18\x03 \x01(\tH\x01\x88\x01\x01\x12$\n\x17\x61irflow_monitor_version\x18\x04 \x01(\tH\x02\x88\x01\x01\x12\x16\n\tdags_path\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\x16\n\tlogs_path\x18\x06 \x01(\tH\x04\x88\x01\x01\x12\x37\n\x0elast_sync_time\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x05\x88\x01\x01\x12\x1b\n\x0emonitor_status\x18\x08 \x01(\tH\x06\x88\x01\x01\x12"\n\x15monitor_error_message\x18\t \x01(\tH\x07\x88\x01\x01\x12;\n\x12monitor_start_time\x18\n \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x08\x88\x01\x01\x12\x34\n\x0bsynced_from\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.TimestampH\t\x88\x01\x01\x12\x32\n\tsynced_to\x18\x0c \x01(\x0b\x32\x1a.google.protobuf.TimestampH\n\x88\x01\x01\x12\x19\n\x0crbac_enabled\x18\r \x01(\x08H\x0b\x88\x01\x01\x12\x1a\n\rsync_interval\x18\x0e \x01(\rH\x0c\x88\x01\x01\x12\x1c\n\x0fis_sync_enabled\x18\x0f \x01(\x08H\r\x88\x01\x01\x12\x14\n\x07\x66\x65tcher\x18\x10 \x01(\tH\x0e\x88\x01\x01\x12\x1f\n\x12\x63omposer_client_id\x18\x11 \x01(\tH\x0f\x88\x01\x01\x42\x12\n\x10_airflow_versionB\x19\n\x17_airflow_export_versionB\x1a\n\x18_airflow_monitor_versionB\x0c\n\n_dags_pathB\x0c\n\n_logs_pathB\x11\n\x0f_last_sync_timeB\x11\n\x0f_monitor_statusB\x18\n\x16_monitor_error_messageB\x15\n\x13_monitor_start_timeB\x0e\n\x0c_synced_fromB\x0c\n\n_synced_toB\x0f\n\r_rbac_enabledB\x10\n\x0e_sync_intervalB\x12\n\x10_is_sync_enabledB\n\n\x08_fetcherB\x15\n\x13_composer_client_id"\x83\x01\n\x1cPostAirflowServerInfoRequest\x12M\n\x13\x61irflow_server_info\x18\x01 \x01(\x0b\x32\x30.dbnd.services.airflow_monitor.AirflowServerInfo\x12\x14\n\x0c\x65xternal_url\x18\x02 \x01(\t"\x1f\n\x1dPostAirflowServerInfoResponse2\xac\x01\n\x15\x41irflowMonitorService\x12\x92\x01\n\x15PostAirflowServerInfo\x12;.dbnd.services.airflow_monitor.PostAirflowServerInfoRequest\x1a<.dbnd.services.airflow_monitor.PostAirflowServerInfoResponseb\x06proto3',
+    serialized_pb=b'\n\x15\x61irflow_monitor.proto\x12\x1d\x64\x62nd.services.airflow_monitor\x1a\x1fgoogle/protobuf/timestamp.proto"\x99\x07\n\x11\x41irflowServerInfo\x12\x10\n\x08\x62\x61se_url\x18\x01 \x01(\t\x12\x1c\n\x0f\x61irflow_version\x18\x02 \x01(\tH\x00\x88\x01\x01\x12#\n\x16\x61irflow_export_version\x18\x03 \x01(\tH\x01\x88\x01\x01\x12$\n\x17\x61irflow_monitor_version\x18\x04 \x01(\tH\x02\x88\x01\x01\x12\x16\n\tdags_path\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\x16\n\tlogs_path\x18\x06 \x01(\tH\x04\x88\x01\x01\x12\x37\n\x0elast_sync_time\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x05\x88\x01\x01\x12\x1b\n\x0emonitor_status\x18\x08 \x01(\tH\x06\x88\x01\x01\x12"\n\x15monitor_error_message\x18\t \x01(\tH\x07\x88\x01\x01\x12;\n\x12monitor_start_time\x18\n \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x08\x88\x01\x01\x12\x34\n\x0bsynced_from\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.TimestampH\t\x88\x01\x01\x12\x32\n\tsynced_to\x18\x0c \x01(\x0b\x32\x1a.google.protobuf.TimestampH\n\x88\x01\x01\x12\x15\n\x08\x61pi_mode\x18\r \x01(\tH\x0b\x88\x01\x01\x12\x1a\n\rsync_interval\x18\x0e \x01(\rH\x0c\x88\x01\x01\x12\x1c\n\x0fis_sync_enabled\x18\x0f \x01(\x08H\r\x88\x01\x01\x12\x14\n\x07\x66\x65tcher\x18\x10 \x01(\tH\x0e\x88\x01\x01\x12\x1f\n\x12\x63omposer_client_id\x18\x11 \x01(\tH\x0f\x88\x01\x01\x42\x12\n\x10_airflow_versionB\x19\n\x17_airflow_export_versionB\x1a\n\x18_airflow_monitor_versionB\x0c\n\n_dags_pathB\x0c\n\n_logs_pathB\x11\n\x0f_last_sync_timeB\x11\n\x0f_monitor_statusB\x18\n\x16_monitor_error_messageB\x15\n\x13_monitor_start_timeB\x0e\n\x0c_synced_fromB\x0c\n\n_synced_toB\x0b\n\t_api_modeB\x10\n\x0e_sync_intervalB\x12\n\x10_is_sync_enabledB\n\n\x08_fetcherB\x15\n\x13_composer_client_id"\x83\x01\n\x1cPostAirflowServerInfoRequest\x12M\n\x13\x61irflow_server_info\x18\x01 \x01(\x0b\x32\x30.dbnd.services.airflow_monitor.AirflowServerInfo\x12\x14\n\x0c\x65xternal_url\x18\x02 \x01(\t"\x1f\n\x1dPostAirflowServerInfoResponse2\xac\x01\n\x15\x41irflowMonitorService\x12\x92\x01\n\x15PostAirflowServerInfo\x12;.dbnd.services.airflow_monitor.PostAirflowServerInfoRequest\x1a<.dbnd.services.airflow_monitor.PostAirflowServerInfoResponseb\x06proto3',
     dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,],
 )
 
@@ -264,15 +264,15 @@ _AIRFLOWSERVERINFO = _descriptor.Descriptor(
             create_key=_descriptor._internal_create_key,
         ),
         _descriptor.FieldDescriptor(
-            name="rbac_enabled",
-            full_name="dbnd.services.airflow_monitor.AirflowServerInfo.rbac_enabled",
+            name="api_mode",
+            full_name="dbnd.services.airflow_monitor.AirflowServerInfo.api_mode",
             index=12,
             number=13,
-            type=8,
-            cpp_type=7,
+            type=9,
+            cpp_type=9,
             label=1,
             has_default_value=False,
-            default_value=False,
+            default_value=b"".decode("utf-8"),
             message_type=None,
             enum_type=None,
             containing_type=None,
@@ -456,8 +456,8 @@ _AIRFLOWSERVERINFO = _descriptor.Descriptor(
             fields=[],
         ),
         _descriptor.OneofDescriptor(
-            name="_rbac_enabled",
-            full_name="dbnd.services.airflow_monitor.AirflowServerInfo._rbac_enabled",
+            name="_api_mode",
+            full_name="dbnd.services.airflow_monitor.AirflowServerInfo._api_mode",
             index=11,
             containing_type=None,
             create_key=_descriptor._internal_create_key,
@@ -497,7 +497,7 @@ _AIRFLOWSERVERINFO = _descriptor.Descriptor(
         ),
     ],
     serialized_start=90,
-    serialized_end=1019,
+    serialized_end=1011,
 )
 
 
@@ -556,8 +556,8 @@ _POSTAIRFLOWSERVERINFOREQUEST = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1022,
-    serialized_end=1153,
+    serialized_start=1014,
+    serialized_end=1145,
 )
 
 
@@ -577,8 +577,8 @@ _POSTAIRFLOWSERVERINFORESPONSE = _descriptor.Descriptor(
     syntax="proto3",
     extension_ranges=[],
     oneofs=[],
-    serialized_start=1155,
-    serialized_end=1186,
+    serialized_start=1147,
+    serialized_end=1178,
 )
 
 _AIRFLOWSERVERINFO.fields_by_name[
@@ -659,12 +659,12 @@ _AIRFLOWSERVERINFO.oneofs_by_name["_synced_to"].fields.append(
 _AIRFLOWSERVERINFO.fields_by_name[
     "synced_to"
 ].containing_oneof = _AIRFLOWSERVERINFO.oneofs_by_name["_synced_to"]
-_AIRFLOWSERVERINFO.oneofs_by_name["_rbac_enabled"].fields.append(
-    _AIRFLOWSERVERINFO.fields_by_name["rbac_enabled"]
+_AIRFLOWSERVERINFO.oneofs_by_name["_api_mode"].fields.append(
+    _AIRFLOWSERVERINFO.fields_by_name["api_mode"]
 )
 _AIRFLOWSERVERINFO.fields_by_name[
-    "rbac_enabled"
-].containing_oneof = _AIRFLOWSERVERINFO.oneofs_by_name["_rbac_enabled"]
+    "api_mode"
+].containing_oneof = _AIRFLOWSERVERINFO.oneofs_by_name["_api_mode"]
 _AIRFLOWSERVERINFO.oneofs_by_name["_sync_interval"].fields.append(
     _AIRFLOWSERVERINFO.fields_by_name["sync_interval"]
 )
@@ -742,8 +742,8 @@ _AIRFLOWMONITORSERVICE = _descriptor.ServiceDescriptor(
     index=0,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_start=1189,
-    serialized_end=1361,
+    serialized_start=1181,
+    serialized_end=1353,
     methods=[
         _descriptor.MethodDescriptor(
             name="PostAirflowServerInfo",
