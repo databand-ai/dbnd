@@ -38,7 +38,10 @@ def prepare_docker_for_executor(run, docker_engine):
         )
 
     if docker_engine.docker_build:
-        auto_tag = docker_engine.docker_build_tag + "_" + CURRENT_TIME_STR
+        if docker_engine.docker_build_tag:
+            auto_tag = docker_engine.docker_build_tag
+        else:
+            auto_tag = docker_engine.docker_build_tag_base + "_" + CURRENT_TIME_STR
         _set_config(config_cls.container_tag, auto_tag)
 
         if (

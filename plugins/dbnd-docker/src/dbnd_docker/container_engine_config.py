@@ -18,9 +18,12 @@ class ContainerEngineConfig(EngineConfig):
         VersionStr
     ]
 
-    docker_build_tag = parameter.help("Auto build docker container tag").value(
+    docker_build_tag_base = parameter.help("Auto build docker container tag").value(
         "dbnd_build"
     )
+    docker_build_tag = parameter.help(
+        "Docker build tag for the docker image dbnd will build"
+    ).default(None)[str]
     docker_build = parameter(default=True).help(
         "Automatically build docker image. "
         "If container_repository is unset it will be taken (along with the tag) from the docker build settings"

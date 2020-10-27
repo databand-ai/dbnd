@@ -135,6 +135,10 @@ def build_dynamic_task(original_cls, new_cls_name):
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.option("--open-web-tab", help="Open tracker url in Databand UI", is_flag=True)
+@click.option(
+    "--docker-build-tag",
+    help="Define custom docker image tag for docker image that will be built",
+)
 @click.pass_context
 def run(
     ctx,
@@ -163,6 +167,7 @@ def run(
     submit_tasks,
     disable_web_tracker,
     open_web_tab,
+    docker_build_tag,
 ):
     """
     Run a task or a DAG
@@ -297,6 +302,9 @@ def run(
 
         if open_web_tab:
             config.set_values({"run": {"open_web_tracker_in_browser": "True"}})
+
+        if docker_build_tag:
+            config.set_values({"kubernetes": {"docker_build_tag": docker_build_tag}})
 
         return context.dbnd_run_task(
             task_or_task_name=task_name,
