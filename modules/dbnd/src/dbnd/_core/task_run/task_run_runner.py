@@ -1,4 +1,5 @@
 import logging
+import os
 import signal
 import typing
 import webbrowser
@@ -6,7 +7,7 @@ import webbrowser
 from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.errors import friendly_error, show_error_once
 from dbnd._core.errors.base import DatabandSigTermError
-from dbnd._core.plugin.dbnd_plugins import pm
+from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled, pm
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
@@ -144,6 +145,20 @@ class TaskRunRunner(TaskRunCtrl):
 def handle_sigterm_at_dbnd_task_run():
     def signal_handler(signum, frame):
         logger.info("Task runner received signal. Exiting...")
+        if is_plugin_enabled("dbnd-docker") and is_plugin_enabled("dbnd-airflow"):
+            from dbnd_docker.kubernetes.kubernetes_engine_config import (
+                ENV_DBND_POD_NAME,
+            )
+
+            if ENV_DBND_POD_NAME in os.environ:
+                # We are running inside cluster
+                # We should log all events on sigterm for debugging when running inside cluster
+                from dbnd_airflow_contrib.kubernetes_metrics_logger import (
+                    log_pod_events_on_sigterm,
+                )
+
+                log_pod_events_on_sigterm(frame)
+
         raise DatabandSigTermError(
             "Task received signal", help_msg="Probably the job was canceled"
         )

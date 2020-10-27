@@ -31,7 +31,7 @@ from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.errors.base import DatabandSigTermError
+from dbnd._core.errors.base import DatabandRuntimeError, DatabandSigTermError
 from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 
@@ -122,9 +122,12 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         )
         self.kube_dbnd = kube_dbnd
 
-        # PATCH manage watcher
+        # PATCH watcher communication manager
+        # we want to wait for stop, instead of "exit" inplace, so we can get all "not" received messages
         from multiprocessing.managers import SyncManager
 
+        # Scheduler <-> (via _manager) KubeWatcher
+        # if _manager dies inplace, we will not get any "info" from KubeWatcher until shutdown
         self._manager = SyncManager()
         self._manager.start(mgr_init)
 
@@ -242,21 +245,37 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             self.failed_pods_to_ignore.append(pod_id)
 
     def terminate(self):
+        # we kill watcher and communication channel first
+        super(DbndKubernetesScheduler, self).terminate()
+
+        # now we need to clean after the run
         pods_to_delete = sorted(self.running_pods.keys())
         if pods_to_delete:
             logger.info(
-                "Deleting %d submitted pods: %s", len(pods_to_delete), pods_to_delete
+                "Terminating run, deleting all %d submitted pods that are still running: %s",
+                len(pods_to_delete),
+                pods_to_delete,
             )
             for pod_name in pods_to_delete:
                 try:
+                    pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
+                    pod_data = pod_ctrl.get_pod_status_v1()
+                    # We are terminating everything, no retries allowed
+                    self.kube_dbnd.dbnd_set_task_failed(pod_data, check_for_retry=False)
                     self.delete_pod(pod_name)
                 except Exception:
                     logger.exception("Failed to terminate pod %s", pod_name)
-        super(DbndKubernetesScheduler, self).terminate()
 
 
 def mgr_sig_handler(signal, frame):
     logger.error("Kubernetes python SyncManager got SIGINT (waiting for .stop command)")
+
+
+def watcher_sig_handler(signal, frame):
+    import sys
+
+    logger.info("Watcher received signal, exiting...")
+    sys.exit(0)
 
 
 def mgr_init():
@@ -340,9 +359,14 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
     def run(self):
         """Performs watching"""
-
-        # Must reset filesystem cache to avoid using out-of-cluster credentials within Kubernetes
+        # we are in the different process than Scheduler
+        # 1. Must reset filesystem cache to avoid using out-of-cluster credentials within Kubernetes
         self.reset_fs_cache()
+        # 2. Must reset handlers
+
+        signal.signal(signal.SIGINT, watcher_sig_handler)
+        signal.signal(signal.SIGTERM, watcher_sig_handler)
+        signal.signal(signal.SIGQUIT, watcher_sig_handler)
 
         kube_client = self.kube_dbnd.kube_client
         try:
@@ -360,10 +384,10 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                     self.log.exception("Unknown error in KubernetesJobWatcher. Failing")
                     raise
                 else:
-                    self.log.warning(
-                        "Watch died gracefully, starting back up with: "
-                        "last resource_version: %s",
+                    self.log.info(
+                        "KubernetesWatcher restarting with resource_version: %s in %s seconds",
                         self.resource_version,
+                        self.kube_dbnd.engine_config.watcher_recreation_interval_seconds,
                     )
                     time.sleep(
                         self.kube_dbnd.engine_config.watcher_recreation_interval_seconds
@@ -399,19 +423,9 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 # DBND PATCH
                 # we want to process the message
                 task = event["object"]
-                if self.kube_dbnd.engine_config.log_all_pod_events:
-                    self.log.info(
-                        " %s had an event of type %s. Data: %s",
-                        task.metadata.name,
-                        event["type"],
-                        event,
-                    )
-                else:
-                    self.log.debug(
-                        " %s had an event of type %s",
-                        task.metadata.name,
-                        event["type"],
-                    )
+                self.log.debug(
+                    " %s had an event of type %s", task.metadata.name, event["type"],
+                )
 
                 if event["type"] == "ERROR":
                     return self.process_error(event)
@@ -447,6 +461,22 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                     e,
                 )
         return self.resource_version
+
+    def process_error(self, event):
+        # Overriding airflow's order of operation to prevent redundant error logs (no actual error, just reset
+        # resource version)
+        raw_object = event["raw_object"]
+        if raw_object["code"] == 410:
+            self.log.info(
+                "Kubernetes resource version is too old, resetting to 0 => %s",
+                (raw_object["message"],),
+            )
+            # Return resource version 0
+            return "0"
+        raise DatabandRuntimeError(
+            "Kubernetes failure for %s with code %s and message: %s"
+            % (raw_object["reason"], raw_object["code"], raw_object["message"])
+        )
 
     def _update_node_name(self, pod_name, pod_data):
         if self.processed_pods.get(pod_name):

@@ -149,7 +149,7 @@ class DbndKubernetesClient(object):
             ),
         )
 
-    def dbnd_set_task_failed(self, pod_data):
+    def dbnd_set_task_failed(self, pod_data, check_for_retry=True):
         metadata = pod_data.metadata
         # noinspection PyBroadException
         logger.debug("Getting task run")
@@ -223,20 +223,26 @@ class DbndKubernetesClient(object):
                 ),
             )
         else:
-            if airflow_task_state == State.QUEUED:
-                # Special case - no airflow code has been run in the pod at all. Must increment try number and send
-                # to retry if exit code is matching
-                if not pod_ctrl.handle_pod_retry(
-                    pod_data, task_run, increment_try_number=True
-                ):
-                    # No retry was sent
-                    task_run.set_task_run_state(
-                        TaskRunState.FAILED, track=True, error=error
-                    )
-            elif airflow_task_state == State.RUNNING:
-                # Task was killed unexpectedly -- probably pod failure in K8s - Possible retry attempt
-                if not pod_ctrl.handle_pod_retry(pod_data, task_run):
-                    # No retry was sent
+            if check_for_retry:
+                if airflow_task_state == State.QUEUED:
+                    # Special case - no airflow code has been run in the pod at all. Must increment try number and send
+                    # to retry if exit code is matching
+                    if not pod_ctrl.handle_pod_retry(
+                        pod_data, task_run, increment_try_number=True
+                    ):
+                        # No retry was sent
+                        task_run.set_task_run_state(
+                            TaskRunState.FAILED, track=True, error=error
+                        )
+                elif airflow_task_state == State.RUNNING:
+                    # Task was killed unexpectedly -- probably pod failure in K8s - Possible retry attempt
+                    if not pod_ctrl.handle_pod_retry(pod_data, task_run):
+                        # No retry was sent
+                        task_run.set_task_run_state(
+                            TaskRunState.FAILED, track=True, error=error
+                        )
+                else:
+                    # Task is in an unexpected state, fail it
                     task_run.set_task_run_state(
                         TaskRunState.FAILED, track=True, error=error
                     )

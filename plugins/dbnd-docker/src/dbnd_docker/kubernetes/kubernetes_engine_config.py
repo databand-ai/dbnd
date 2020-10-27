@@ -166,10 +166,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         description="How many seconds to wait before timeout occurs in watcher on client side (read)",
     )[int]
 
-    log_all_pod_events = parameter(
+    log_pod_events_on_sigterm = parameter(
         default=False,
-        description="When set to True, logs all events received from Kubernetes API server (including MODIFIED-type events)",
-    )[bool]
+        description="When receiving sigterm log current pod state to debug why the pod was terminated",
+    )
 
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
@@ -320,6 +320,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             "dbnd"
         ] = "task_run"  # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
 
+        if task_run.task.task_is_system:
+            labels["dbnd"] = "dbnd_system_task_run"
         annotations = self.annotations.copy()
         if self.gcp_service_account_keys:
             annotations[
