@@ -1,8 +1,12 @@
-from dbnd._core.configuration import environ_config, get_dbnd_project_config
+import logging
+
+from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.utils.basics.load_python_module import _load_module
 from dbnd._core.utils.seven import fix_sys_path_str
 
+
+logger = logging.getLogger(__name__)
 
 _dbnd_plugins_registered = False
 
@@ -24,4 +28,11 @@ def register_dbnd_plugins():
 
 def register_dbnd_user_plugins(user_plugin_modules):
     for plugin_module in user_plugin_modules:
-        pm.register(_load_module(plugin_module, "plugin:%s" % plugin_module))
+        module = _load_module(plugin_module, "plugin:%s" % plugin_module)
+        pm.register(module)
+
+        base_msg = "Plugin %s" % plugin_module
+        if getattr(module, "__version__", None):
+            base_msg += " v%s" % module.__version__
+
+        logger.info(base_msg + " loaded...")
