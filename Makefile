@@ -134,6 +134,7 @@ dist-modules-dirty:
 	for m in $(prj_dist) ; do \
 		echo "Building '$$m'..." ;\
 		(cd $$m && python setup.py sdist bdist_wheel) ;\
+		python etc/scripts/generate_requirements.py  --wheel  $$m/dist/*.whl --output $$m/dist/$$(basename $$m).requirements.txt --third-party-only --extras airflow,airflow_1_10_7,airflow_1_10_8,airflow_1_10_9,airflow_1_10_10,tests,composer --separate-extras;\
 		mv $$m/dist/* dist;\
 	done
 
