@@ -15,7 +15,7 @@ def not_none_dict(d):
 
 
 def _build_alert(
-    job_name, task_name, alert_class, severity, operator, value, user_metric
+    job_name, task_name, uid, alert_class, severity, operator, value, user_metric
 ):
     """build alert for job"""
 
@@ -24,6 +24,7 @@ def _build_alert(
             "type": alert_class,
             "job_name": job_name,
             "task_name": task_name,
+            "uid": uid,
             "operator": operator,
             "value": str(value),
             "severity": severity,
@@ -48,11 +49,11 @@ def _post_alert(client, alert):
 
 
 def create_alert(
-    job_name, task_name, alert_class, severity, operator, value, user_metric
+    job_name, task_name, uid, alert_class, severity, operator, value, user_metric
 ):
     """add alert for existing job or scheduled job"""
     alert = _build_alert(
-        job_name, task_name, alert_class, severity, operator, value, user_metric
+        job_name, task_name, uid, alert_class, severity, operator, value, user_metric
     )
     alert_def_uid = _post_alert(get_databand_context().databand_api_client, alert)
     return alert_def_uid

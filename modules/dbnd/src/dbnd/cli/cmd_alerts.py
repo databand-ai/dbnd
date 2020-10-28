@@ -102,6 +102,10 @@ supported_alerts = {
 
 
 def bind_function(name, alert, with_task, value_help, value_type, operator, metric):
+    def get_task_option(ctx):
+        parent_params = ctx.parent.command.params
+        return [op for op in parent_params if op.name == "task"][0]
+
     @with_fast_dbnd_context
     @click.option(
         "--value", "-v", help=value_help, type=value_type, required=True,
@@ -110,11 +114,17 @@ def bind_function(name, alert, with_task, value_help, value_type, operator, metr
     def inner_function(ctx, value, metric_name=metric, op=operator):
         # xor is less readable
         if not with_task and ctx.obj.get("task"):
-            logger.error("Task is set but it is unavailable for this alert")
-            return
+            raise click.BadParameter(
+                "Task is set but it is unavailable for this alert",
+                param=get_task_option(ctx),
+                ctx=ctx,
+            )
         if with_task and not ctx.obj.get("task"):
-            logger.error("Task name is required for this alert")
-            return
+            raise click.MissingParameter(
+                ctx=ctx,
+                param=get_task_option(ctx),
+                message="Task name is required for this alert",
+            )
 
         cmd_create_alert(
             manage_ctx=ctx,
@@ -171,10 +181,18 @@ EXAMPLES\n
 @click.option("--severity", "-s", help="Alert severity", type=Severity(), required=True)
 @click.option("--job", "-j", help="Job name", type=click.STRING, required=True)
 @click.option("--task", "-t", help="Task name", type=click.STRING, required=False)
+@click.option(
+    "--update",
+    "-u",
+    "uid",
+    help="Uid of an existing alert to update",
+    type=click.STRING,
+    required=False,
+)
 @click.pass_context
-def create(ctx, job, severity, task):
-    """Create alerts for given job."""
-    ctx.obj = {"job": job, "severity": severity, "task": task}
+def create(ctx, job, severity, task, uid):
+    """Create or update alerts for given job."""
+    ctx.obj = {"job": job, "severity": severity, "task": task, "uid": uid}
 
 
 # Registering the create commands
@@ -208,8 +226,8 @@ def build_alerts_table(alerts_data):
         "job_name",
         "task_name",
         "custom_name",
-        "type",
         "severity",
+        "type",
         "operator",
         "value",
         "user_metric",
@@ -237,6 +255,7 @@ def cmd_create_alert(manage_ctx, alert, operator, value, user_metric):
         alert_def_uid = create_alert(
             job_name=manage_ctx.obj["job"],
             task_name=manage_ctx.obj.get("task", None),
+            uid=manage_ctx.obj.get("uid", None),
             alert_class=alert,
             severity=manage_ctx.obj["severity"],
             operator=operator,
