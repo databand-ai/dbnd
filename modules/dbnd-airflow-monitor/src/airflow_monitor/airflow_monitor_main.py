@@ -70,7 +70,7 @@ def do_fetching_iteration(
 
         if data is None:
             logger.warning("Didn't receive any data")
-            return
+            return 0
 
         _log_recieved_tasks(data)
 
