@@ -11,14 +11,18 @@ from dbnd._vendor.click import command
 logger = logging.getLogger(__name__)
 
 
-@click.group()
+@click.group(help="Tracker commands to ensure synchronization against webserver")
 def tracker():
     pass
 
 
-@tracker.command()
+@tracker.command(help="Wait for the webserver to initialize")
 @click.option(
-    "--timeout", "-t", type=int, default=120, help="Wait for tracker to be running"
+    "--timeout",
+    "-t",
+    type=int,
+    default=120,
+    help="Amount of seconds to wait for webserver until timing out",
 )
 def wait(timeout):
     with new_dbnd_context(name="new_context") as dbnd_ctx:
