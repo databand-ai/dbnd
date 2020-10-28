@@ -4,6 +4,7 @@ import typing
 
 import six
 
+from dbnd import config
 from dbnd._core.constants import SystemTaskName
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import get_help_msg, show_exc_info
@@ -39,8 +40,6 @@ _TASK_FIELDS = [
     "task_env",
     "task_band",
 ]
-
-_MAX_VALUE_SIZE = 1500
 
 
 class FormatterVerbosity(object):
@@ -194,7 +193,9 @@ class _TaskBannerBuilder(TaskSubCtrl):
             else:
                 p_kind = "param"
                 value_str = p.to_str(value)
-            value_str = safe_string(value_str, _MAX_VALUE_SIZE)
+            value_str = safe_string(
+                value_str, self.task.settings.describe.console_value_preview_size
+            )
 
             value_source = ""
             if param_meta:
@@ -215,7 +216,8 @@ class _TaskBannerBuilder(TaskSubCtrl):
             # add preview
             if isinstance(value, Target) and value.target_meta:
                 preview_value = safe_string(
-                    value.target_meta.value_preview, _MAX_VALUE_SIZE
+                    value.target_meta.value_preview,
+                    self.task.settings.describe.task_visualiser_max_value_size,
                 )
                 # we should add minimal preview
                 if len(preview_value) < 100:
