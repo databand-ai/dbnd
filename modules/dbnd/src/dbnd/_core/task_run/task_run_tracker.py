@@ -134,6 +134,7 @@ class TaskRunTracker(TaskRunCtrl):
         path=None,  # type: Optional[Union[Target,str]]
         operation_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType
         operation_status=DbndTargetOperationStatus.OK,  # type: DbndTargetOperationStatus
+        raise_on_error=False,  # type: bool
     ):  # type: (...) -> None
         try:
             # Combine meta_conf with the config settings
@@ -162,9 +163,14 @@ class TaskRunTracker(TaskRunCtrl):
                     task_run=self.task_run, key=key, value_meta=value_meta, timestamp=ts
                 )
 
+            if not (metrics["user"] or metrics["histograms"] or path):
+                logger.info("No metrics to log_data(key={}, data={})".format(key, data))
+
         except Exception as ex:
             log_exception(
                 "Error occurred during log_dataframe for %s" % (key,),
                 ex,
                 non_critical=True,
             )
+            if raise_on_error:
+                raise
