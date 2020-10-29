@@ -74,6 +74,9 @@ def build_dynamic_task(original_cls, new_cls_name):
     autocompletion=completer.root_param(),
 )
 @click.option("--verbose", "-v", count=True, help="Make logging output more verbose")
+@click.option(
+    "--print-task-band", is_flag=True, help="Print task_band in logging output."
+)
 @click.option("--describe", is_flag=True, help="Describe current run")
 @click.option(
     "--env",
@@ -146,6 +149,7 @@ def run(
     _sets_root,
     _overrides,
     verbose,
+    print_task_band,
     describe,
     env,
     parallel,
@@ -181,6 +185,7 @@ def run(
         databand=filter_dict_remove_false_values(
             dict(
                 verbose=verbose > 0,
+                task_band=print_task_band,
                 describe=describe,
                 env=env,
                 conf_file=conf_file,
