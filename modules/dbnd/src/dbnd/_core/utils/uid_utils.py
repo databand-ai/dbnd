@@ -18,8 +18,10 @@ NAMESPACE_DBND_RUN = uuid.uuid5(NAMESPACE_DBND, "run")
 NAMESPACE_DBND_TASK_DEF = uuid.uuid5(NAMESPACE_DBND, "task_definition")
 
 
-def get_task_def_uid(dag_id, task_id):
-    return uuid.uuid5(NAMESPACE_DBND_TASK_DEF, "{}.{}".format(dag_id, task_id))
+def get_task_def_uid(dag_id, task_id, code_hash):
+    return uuid.uuid5(
+        NAMESPACE_DBND_TASK_DEF, "{}.{}.{}".format(dag_id, task_id, code_hash)
+    )
 
 
 def get_task_run_uid(run_uid, dag_id, task_id):

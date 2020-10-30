@@ -208,7 +208,7 @@ def _get_dag_runs_without_date(dag_ids, session):
 def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session):
     # Bring all dag runs with no tasks (limit the number)
     dagruns_query = session.query(DagRun).filter(
-        and_(DagRun.end_date >= start_date, DagRun.end_date <= end_date)
+        and_(DagRun.end_date > start_date, DagRun.end_date <= end_date)
     )
 
     if dag_ids:
