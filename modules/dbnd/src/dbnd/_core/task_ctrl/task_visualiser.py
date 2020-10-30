@@ -67,7 +67,15 @@ class TaskVisualiser(TaskSubCtrl):
     def __init__(self, task):
         super(TaskVisualiser, self).__init__(task)
 
-    def banner(self, msg, color=None, verbose=False, task_run=None, exc_info=None):
+    def banner(
+        self,
+        msg,
+        color=None,
+        verbose=False,
+        print_task_band=False,
+        task_run=None,
+        exc_info=None,
+    ):
         try:
             b = TextBanner(msg, color)
 
@@ -76,7 +84,12 @@ class TaskVisualiser(TaskSubCtrl):
             else:
                 verbosity = FormatterVerbosity.NORMAL
 
-            builder = _TaskBannerBuilder(task=self.task, banner=b, verbosity=verbosity)
+            builder = _TaskBannerBuilder(
+                task=self.task,
+                banner=b,
+                verbosity=verbosity,
+                print_task_band=print_task_band,
+            )
 
             return builder.build_banner(
                 task_run=task_run, exc_info=exc_info
@@ -91,13 +104,14 @@ class TaskVisualiser(TaskSubCtrl):
 
 
 class _TaskBannerBuilder(TaskSubCtrl):
-    def __init__(self, task, banner, verbosity, task_run=None):
-        # type: (_TaskBannerBuilder, Task, TextBanner, int,  ...) -> None
+    def __init__(self, task, banner, verbosity, print_task_band, task_run=None):
+        # type: (_TaskBannerBuilder, Task, TextBanner, int, bool,  ...) -> None
         super(_TaskBannerBuilder, self).__init__(task)
         self.banner = banner
         self.task_run = task_run
 
         self.verbosity = verbosity
+        self.print_task_band = print_task_band
 
         self.is_driver_or_submitter = (
             self.task.task_name in SystemTaskName.driver_and_submitter
@@ -116,6 +130,9 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
         if self.verbosity >= FormatterVerbosity.HIGH:
             self._add_verbose_info()
+
+        elif self.print_task_band:
+            self._add_task_band_info()
 
         self.task._task_banner(self.banner, verbosity=self.verbosity)
 
@@ -371,6 +388,10 @@ class _TaskBannerBuilder(TaskSubCtrl):
         b.column(
             "TASK OUTPUTS SIGNATURE SOURCE", task_meta.task_outputs_signature_source
         )
+
+    def _add_task_band_info(self):
+        self.banner.new_section()
+        self.banner.column("TASK_BAND", self.task.task_band)
 
     def _add_spark_info(self):
         b = self.banner
