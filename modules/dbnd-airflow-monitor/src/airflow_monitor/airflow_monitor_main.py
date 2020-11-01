@@ -94,18 +94,21 @@ def do_fetching_iteration(
             if dag.get("is_active", True)
         }
 
-        if len(export_data.task_instances) == 0:
-            end_dates = [
-                pendulum.parse(str(dr["end_date"]))
-                for dr in export_data.dag_runs
-                if dr["end_date"] is not None
-            ]
-        else:
-            end_dates = [
-                pendulum.parse(str(t["end_date"]))
-                for t in export_data.task_instances
-                if t["end_date"] is not None
-            ]
+        task_instances_end_dates = [
+            pendulum.parse(str(t["end_date"]))
+            for t in export_data.task_instances
+            if t["end_date"] is not None
+        ]
+
+        dag_runs_end_dates = [
+            pendulum.parse(str(dr["end_date"]))
+            for dr in export_data.dag_runs
+            if dr["end_date"] is not None
+        ]
+
+        end_dates = (
+            task_instances_end_dates if task_instances_end_dates else dag_runs_end_dates
+        )
 
         airflow_instance_detail.airflow_server_info.synced_to = (
             max(end_dates) if end_dates else utcnow()
@@ -128,7 +131,10 @@ def do_fetching_iteration(
                 airflow_instance_detail.airflow_server_info.synced_to
             )
 
-        return max(len(data.get("task_instances", [])), len(data.get("dag_runs", [])))
+        # We don't count those who have end_date=None because there can be many of them - more than the limit, also
+        # the plugin will return them every time, so we don't want think we are fetching new stuff when it's really not
+        total_fetched = max(len(task_instances_end_dates), len(dag_runs_end_dates))
+        return total_fetched
     except JSONDecodeError:
         logger.exception("Could not decode the received data, error in json format.")
         (

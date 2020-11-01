@@ -85,10 +85,11 @@ def _get_airflow_data(
     )
 
     task_instances, dag_runs = _get_task_instances(since, dag_ids, quantity, session)
+    task_instances |= _get_task_instances_without_date(dag_ids, session)
     logging.info("%d task instances were found." % len(task_instances))
 
     task_end_dates = [
-        task.end_date for task, job in task_instances if task.end_date is not None
+        task.end_date for task in task_instances if task.end_date is not None
     ]
     if not task_end_dates or not quantity or len(task_instances) < quantity:
         dag_run_end_date = pendulum.datetime.max
@@ -114,7 +115,7 @@ def _get_airflow_data(
 
     number_of_task_instances_not_in_dag_bag = 0
     task_instances_list = []
-    for ti, job in task_instances:
+    for ti in task_instances:
         if ti is None:
             logging.info("Received task instance that is None")
         dag_from_dag_bag = dagbag.get_dag(ti.dag_id)
@@ -222,6 +223,20 @@ def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session
     return set(dagruns_query.all())
 
 
+def _get_task_instances_without_date(dag_ids, session):
+    task_instance_query = session.query(TaskInstance).filter(
+        TaskInstance.end_date.is_(None)
+    )
+
+    if dag_ids:
+        task_instance_query = task_instance_query.filter(
+            TaskInstance.dag_id.in_(dag_ids)
+        )
+
+    task_instances = task_instance_query.all()
+    return set(task_instances)
+
+
 def _get_task_instances(start_date, dag_ids, quantity, session):
     task_instances_query = (
         session.query(TaskInstance, BaseJob, DagRun)
@@ -231,7 +246,7 @@ def _get_task_instances(start_date, dag_ids, quantity, session):
             (TaskInstance.dag_id == DagRun.dag_id)
             & (TaskInstance.execution_date == DagRun.execution_date),
         )
-        .filter(or_(DagRun.end_date.is_(None), TaskInstance.end_date > start_date))
+        .filter(TaskInstance.end_date > start_date)
     )
 
     if dag_ids:
@@ -245,9 +260,9 @@ def _get_task_instances(start_date, dag_ids, quantity, session):
         ).limit(quantity)
 
     results = task_instances_query.all()
-    tasks_and_jobs = [(task, job) for task, job, dag_run in results]
+    task_instances = {task for task, job, dag_run in results}
     dag_runs = {dag_run for task, job, dag_run in results}
-    return tasks_and_jobs, dag_runs
+    return task_instances, dag_runs
 
 
 def _get_full_xcom_dict(session, dag_ids, task_instances):
@@ -255,7 +270,7 @@ def _get_full_xcom_dict(session, dag_ids, task_instances):
     if dag_ids:
         xcom_query = xcom_query.filter(XCom.dag_id.in_(dag_ids))
 
-    task_ids = [ti.task_id for ti, job in task_instances]
+    task_ids = [ti.task_id for ti in task_instances]
     xcom_query = xcom_query.filter(XCom.task_id.in_(task_ids))
 
     results = xcom_query.all()
