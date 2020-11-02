@@ -83,11 +83,14 @@ class LoggingConfig(config.Config):
         default=False, description="Simple mode of exception handling"
     )[bool]
 
+    send_body_to_server = parameter(
+        default=True, description="Enable or disable sending log file to server."
+    )[bool]
+
     send_body_to_server_max_size = parameter(
         default=16 * 1024 * 1024,  # 16MB
         description="Max log file size in bytes to be sent to server.\n"
-        "\t* use 0 for unlimited;"
-        "\t* use -1 to disable;"
+        "\t* use -1 for unlimited;"
         "\t* use negative (e.g. -1000) to get log's 'head' instead of 'tail'."
         "Default: 16MB.",
     )[int]
