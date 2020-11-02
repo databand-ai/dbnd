@@ -53,6 +53,7 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
     """
 
     template_fields = ("table", "key")
+    template_ext = ()
     ui_color = "#2B7BB3"
 
     @apply_defaults
@@ -89,9 +90,7 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
         )
 
     def execute(self, context):
-        self.log.info("Executing: %s", self.sql)
         hook = self.get_hook()
-
         connection_string = hook.get_uri()
         return log_snowflake_table(
             table_name=self.table,
@@ -152,13 +151,14 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
         connection's extra JSON)
     """
 
-    template_fields = ("sql", "key")
+    template_fields = ("session_id", "query_id", "key")
+    template_ext = ()
     ui_color = "#2B7BB3"
 
     @apply_defaults
     def __init__(
         self,
-        session_id: Optional[int] = None,
+        session_id: Optional[str] = None,
         query_id: Optional[str] = None,
         key: Optional[str] = None,
         account: Optional[str] = None,
@@ -170,7 +170,7 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
         *args,
         **kwargs
     ):
-        super(LogSnowflakeResourceOperator, self).__init__(*args, **kwargs)
+        super(LogSnowflakeResourceOperator, self).__init__(sql=None, *args, **kwargs)
 
         self.session_id = session_id
         self.query_id = query_id
@@ -194,22 +194,15 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
         )
 
     def execute(self, context):
-        from dbnd_snowflake.airflow_hooks import snowflake_run
-
-        self.log.info("Executing: %s", self.sql)
         hook = self.get_hook()
-
         conn_params = hook._get_conn_params()
-
-        session_id, query_ids = snowflake_run(hook, self.sql)
-        user = conn_params["user"]
 
         log_snowflake_resource_usage(
             database=hook.database,
-            user=user,
+            user=conn_params["user"],
             connection_string=hook.get_uri(),
-            query_id=query_ids[0],
-            session_id=session_id,
+            query_id=self.query_id,
+            session_id=int(self.session_id) if self.session_id else None,
             key=self.key,
             history_window=self.history_window,
             query_history_result_limit=self.query_history_result_limit,
@@ -222,7 +215,6 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
 def log_snowflake_resource_operator(op: SnowflakeOperator, **kwargs):
     task_id = kwargs.pop("task_id", "log_resources_%s" % (op.task_id))
     return LogSnowflakeResourceOperator(
-        sql=op.sql,
         snowflake_conn_id=kwargs.pop("snowflake_conn_id", op.snowflake_conn_id),
         database=kwargs.pop("database", op.database),
         warehouse=kwargs.pop("warehouse", op.warehouse),

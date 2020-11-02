@@ -135,8 +135,8 @@ def register_value_type(value_type):
 
 
 def get_value_meta_from_value(
-    value_name, value, meta_conf
-):  # type: (str, Any, ValueMetaConf) -> Optional[ValueMeta]
+    value_name, value, meta_conf, raise_on_error=False
+):  # type: (str, Any, ValueMetaConf, bool) -> Optional[ValueMeta]
     if value is None:
         return None
 
@@ -154,6 +154,8 @@ def get_value_meta_from_value(
             "Failed to get value meta info for '%s' with type='%s'"
             " ( detected as %s)" % (value_name, type(value), obj_value_type),
             ex,
-            non_critical=True,
+            non_critical=not raise_on_error,
         )
+        if raise_on_error:
+            raise
     return None

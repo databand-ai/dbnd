@@ -170,19 +170,19 @@ class SnowflakeController:
         if self._column_types is not None:
             return self._column_types
 
-        results = self._query(
-            dedent(
-                """\
-                SELECT column_name, data_type
-                FROM {0.database}.information_schema.columns
-                WHERE LOWER(table_name) = LOWER('{0.table_name}')
-                    and LOWER(table_schema) = LOWER('{0.schema}')"""
-            ).format(table),
-        )
+        query = dedent(
+            """\
+            SELECT column_name, data_type
+            FROM {0.database}.information_schema.columns
+            WHERE LOWER(table_name) = LOWER('{0.table_name}')
+                and LOWER(table_schema) = LOWER('{0.schema}')"""
+        ).format(table)
+        results = self._query(query)
         if not results:
             raise DatabandRuntimeError(
                 "Failed to fetch columns metadata for Snowflake DB: '{0.database}', "
-                "schema: {0.schema} table: '{0.table_name}'".format(table)
+                "schema: {0.schema} table: '{0.table_name}'\n"
+                "Query used: {1}".format(table, query)
             )
 
         self._column_types = {row["COLUMN_NAME"]: row["DATA_TYPE"] for row in results}
