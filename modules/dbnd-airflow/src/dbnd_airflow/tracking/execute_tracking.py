@@ -18,6 +18,7 @@ from dbnd._core.decorator.task_cls_builder import _log_result
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import extract_airflow_context
 from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
 from dbnd._core.task_run.task_run import TaskRun
+from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd_airflow.tracking.conf_operations import flat_conf
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
@@ -157,9 +158,10 @@ def new_execute(context):
         result = execute(copied_operator, context)
 
     # catch if the original execute failed
-    except Exception:
+    except Exception as ex:
         if task_run:
-            task_run.set_task_run_state(state=TaskRunState.FAILED)
+            error = TaskRunError.build_from_ex(ex, task_run)
+            task_run.set_task_run_state(state=TaskRunState.FAILED, error=error)
         dbnd_run_stop()
         raise
 

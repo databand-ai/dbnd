@@ -8,13 +8,12 @@ ThisBuild / organizationName := "databand"
 
 lazy val root = (project in file("."))
     .settings(
-        name := "spark_deequ_sbt",
+        name := "dbnd_jvm_sanity_check",
         libraryDependencies ++= Seq(
             "ai.databand" % "dbnd-api-deequ" % databandVersion,
-            "org.slf4j" % "slf4j-api" % "1.7.16",
-            "org.apache.spark" %% "spark-sql" % "2.4.2" % "provided"
+            "org.slf4j" % "slf4j-api" % "1.7.16"
         ),
-        mainClass in Compile := Some("ai.databand.examples.Showcase")
+        mainClass in Compile := Some("ai.databand.SanityCheck")
     )
 
-assemblyJarName in assembly := "spark_deequ_sbt-assembly-latest.jar"
+assemblyJarName in assembly := "dbnd_jvm_sanity_check-assembly-latest.jar"

@@ -181,9 +181,8 @@ class SnowflakeController:
         )
         if not results:
             raise DatabandRuntimeError(
-                "Failed to fetch columns metadata for Snowflake DB: '{0.database}', table: '{0.table_name}'".format(
-                    table
-                )
+                "Failed to fetch columns metadata for Snowflake DB: '{0.database}', "
+                "schema: {0.schema} table: '{0.table_name}'".format(table)
             )
 
         self._column_types = {row["COLUMN_NAME"]: row["DATA_TYPE"] for row in results}

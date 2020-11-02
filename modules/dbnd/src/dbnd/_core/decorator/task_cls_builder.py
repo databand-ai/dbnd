@@ -355,7 +355,7 @@ def _log_inputs(task_run):
             # we
             if isinstance(value, InMemoryTarget):
                 try:
-                    task_run.tracker.log_target(
+                    task_run.tracker.log_parameter_data(
                         parameter=param,
                         target=value,
                         value=value._obj,

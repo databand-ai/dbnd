@@ -8,6 +8,7 @@
       --conf "spark.env.DBND__TRACKING=True" \
       --conf "spark.env.DBND__TRACKING__DATA_PREVIEW=True" \
       --conf "spark.env.DBND__CORE__DATABAND_URL=http://localhost:8080" \
+      --conf "spark.env.DBND__RUN__NAME=pipeline_run" \
       build/libs/spark_deequ_gradle-latest-all.jar src/main/resources/data.csv```
 
 ## Run using application distribution

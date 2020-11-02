@@ -87,6 +87,32 @@ class TestSnowflakeTableValueType:
         assert snowflake.get_dimensions.called
         assert snowflake.to_preview.called
 
+    def test_get_value_meta_empty(self, snowflake_table):
+        # Arrange
+        with mock.patch(
+            "dbnd_snowflake.snowflake_values.SnowflakeController",
+            new_callable=snowflake_controller_mock,
+        ) as snowflake:
+            # Act
+            value_meta = SnowflakeTableValueType().get_value_meta(
+                snowflake_table,
+                meta_conf=(
+                    ValueMetaConf(log_preview=False, log_schema=False, log_size=False)
+                ),
+            )
+
+        # Assert
+        assert value_meta.value_preview is None
+        assert value_meta.data_dimensions is None
+        assert value_meta.data_schema == {}
+        assert (
+            value_meta.data_hash
+            == "snowflake://SNOWFLAKE_USER:***@SNOWFLAKE_ACCOUNT/SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL/CUSTOMER"
+        )
+        assert not snowflake.get_column_types.called
+        assert not snowflake.get_dimensions.called
+        assert not snowflake.to_preview.called
+
 
 class TestSnowflakeController:
     def test_get_dimensions(self, snowflake_conn_str, snowflake_table):
@@ -134,7 +160,10 @@ class TestSnowflakeController:
             query_patch.assert_has_calls(
                 [
                     mock.call(
-                        "SELECT column_name, data_type\nFROM SNOWFLAKE_SAMPLE_DATA.information_schema.columns\nWHERE LOWER(table_name) = LOWER('CUSTOMER')\n    and LOWER(table_schema) = LOWER('TPCDS_SF100TCL')"
+                        "SELECT column_name, data_type\n"
+                        "FROM SNOWFLAKE_SAMPLE_DATA.information_schema.columns\n"
+                        "WHERE LOWER(table_name) = LOWER('CUSTOMER')\n"
+                        "    and LOWER(table_schema) = LOWER('TPCDS_SF100TCL')"
                     ),
                 ],
                 any_order=True,
@@ -144,20 +173,20 @@ class TestSnowflakeController:
     def test_to_preview(self, snowflake_conn_str, snowflake_table):
         with mock.patch(
             "dbnd_snowflake.snowflake_values.SnowflakeController._query"
-        ) as prewview_query_patch, mock.patch(
+        ) as preview_query_patch, mock.patch(
             "dbnd_snowflake.snowflake_values.SnowflakeController.get_column_types"
         ) as get_column_types_patch:
             # Arrange
             get_column_types_patch.side_effect = [
                 OrderedDict(foo="varchar", bar="integer")
             ]
-            prewview_query_patch.side_effect = [[["1", "2"], ["2", "3"], ["3", "4"]]]
+            preview_query_patch.side_effect = [[["1", "2"], ["2", "3"], ["3", "4"]]]
             # Act
             snowflake = SnowflakeController(snowflake_conn_str)
             preview = snowflake.to_preview(snowflake_table)
 
             # Assert
-            prewview_query_patch.assert_has_calls(
+            preview_query_patch.assert_has_calls(
                 [
                     mock.call(
                         'select TRY_HEX_DECODE_STRING(HEX_ENCODE("foo")) AS foo,TRY_HEX_DECODE_STRING(HEX_ENCODE("bar")) AS bar from SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.CUSTOMER limit 20'

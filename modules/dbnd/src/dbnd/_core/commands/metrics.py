@@ -42,6 +42,7 @@ def log_data(
     with_schema=None,  # type: Optional[bool]
     with_stats=None,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
     with_histograms=None,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
+    raise_on_error=False,  # type: bool
 ):  # type: (...) -> None
     tracker = _get_tracker()
     if not tracker:
@@ -56,7 +57,12 @@ def log_data(
     )
 
     tracker.log_data(
-        key, value, meta_conf=meta_conf, path=path, operation_type=operation_type
+        key,
+        value,
+        meta_conf=meta_conf,
+        path=path,
+        operation_type=operation_type,
+        raise_on_error=raise_on_error,
     )
 
 
@@ -86,38 +92,6 @@ def log_pg_table(
         )
     except Exception:
         logger.exception("Failed to log_pg_table")
-
-
-def log_snowflake_table(
-    table_name,  # type: str
-    connection_string,  # type: str
-    database,  # type: str
-    schema,  # type: str
-    key=None,  # type: str
-    with_preview=None,  # type: Optional[bool]
-    with_schema=None,  # type: Optional[bool]
-):
-
-    if not is_plugin_enabled("dbnd-snowflake", module_import="dbnd_snowflake"):
-        return
-    from dbnd_snowflake import snowflake_values
-
-    with log_duration("log_snowflake_table__time_seconds", source="system"):
-        conn_params = snowflake_values.conn_str_to_conn_params(connection_string)
-        account = conn_params["account"]
-        user = conn_params["user"]
-        password = conn_params["password"]
-
-        snowflake_table = snowflake_values.SnowflakeTable(
-            account, user, password, database, schema, table_name
-        )
-        log_data(
-            key or table_name,
-            snowflake_table,
-            with_preview=with_preview,
-            with_schema=with_schema,
-            with_histograms=False,
-        )
 
 
 def log_metric(key, value, source="user"):

@@ -14,6 +14,6 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-snowflake",
     package_dir={"": "src"},
-    install_requires=["snowflake-connector-python", "dbnd==" + version],
+    install_requires=["snowflake-connector-python", "numpy", "dbnd==" + version],
     entry_points={},
 )
