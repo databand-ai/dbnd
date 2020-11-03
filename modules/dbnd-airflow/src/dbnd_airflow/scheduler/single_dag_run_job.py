@@ -726,7 +726,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         calls helper method to execute the tasks.
         """
         # Trigger cleaning
-        if dbnd_config.getboolean("airflow", "clean_zombies_during_backfill"):
+        if self.airflow_config.clean_zombies_during_backfill:
             ClearZombieJob().run()
 
         ti_status = BackfillJob._DagRunTaskStatus()

@@ -66,6 +66,17 @@ def subprocess_airflow_initdb():
     return subprocess_airflow(args=["initdb"])
 
 
+def create_dbnd_pool():
+    from airflow.utils.db import create_session
+    from airflow.models import Pool
+
+    print("Creating databand pool")
+    with create_session() as session:
+        pool_name = dbnd_config.get("airflow", "dbnd_pool")
+        dbnd_pool = Pool(pool=pool_name, slots=-1)
+        session.merge(dbnd_pool)
+
+
 def main(args=None):
     # from dbnd._core.log.config import configure_basic_logging
     # configure_basic_logging(None)
@@ -115,6 +126,9 @@ def main(args=None):
         setup_versioned_dags()
 
     args.func(args)
+
+    if func_name in ["resetdb", "initdb"]:
+        create_dbnd_pool()
 
 
 if __name__ == "__main__":

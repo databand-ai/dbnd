@@ -29,6 +29,10 @@ class AirflowConfig(Config):
         description="Enable all Airflow DB access optimizations"
     )[bool]
 
+    dbnd_pool = parameter(
+        description="Separate pool for Databand tasks", default="dbnd_pool"
+    )[str]
+
     # enabled by optimize_airflow_db_access
     disable_db_ping_on_connect = parameter(
         description="Optimize DB access performance by disabling starndard airflow ping "
