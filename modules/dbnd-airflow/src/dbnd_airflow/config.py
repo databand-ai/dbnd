@@ -50,6 +50,11 @@ class AirflowConfig(Config):
         "(redirect can cause crash due to loopback between streams",
     )[bool]
 
+    clean_zombies_during_backfill = parameter(
+        default=False,
+        description="Launches additional job during backfill to clean up stalled task (zombies).",
+    )[bool]
+
     # dbnd-airflow command
     auto_add_versioned_dags = parameter(
         default=True,

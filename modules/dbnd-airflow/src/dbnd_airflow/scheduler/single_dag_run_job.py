@@ -14,6 +14,7 @@ from airflow.utils.state import State
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.session import make_transient
 
+from databand import dbnd_config
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import get_databand_run
@@ -725,7 +726,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         calls helper method to execute the tasks.
         """
         # Trigger cleaning
-        ClearZombieJob().run()
+        if dbnd_config.getboolean("airflow", "clean_zombies_during_backfill"):
+            ClearZombieJob().run()
 
         ti_status = BackfillJob._DagRunTaskStatus()
 
