@@ -59,6 +59,8 @@ def do_fetching_iteration(
 ):
 
     try:
+        airflow_instance_detail.exception_traceback = None
+
         data = airflow_instance_detail.data_fetcher.get_data(
             airflow_instance_detail.since,
             airflow_config.include_logs,
@@ -182,7 +184,6 @@ def do_fetching_iteration(
             )
             sleep(airflow_config.interval)
             return 0
-        airflow_instance_detail.exception_traceback = None
 
 
 def create_instance_details(
