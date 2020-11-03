@@ -199,9 +199,9 @@ class TaskRunLogManager(TaskRunCtrl):
 
     def save_log_preview(self, log_body):
         max_size = self.task.settings.log.send_body_to_server_max_size
-        if max_size == 0:  # use 0 for unlimited
+        if max_size == -1:  # use -1 for unlimited
             log_preview = log_body
-        elif max_size == -1:  # use -1 to disable
+        elif not self.task.settings.log.send_body_to_server:
             log_preview = None
         else:
             log_preview = self._extract_log_preivew(
