@@ -2,7 +2,7 @@ import logging
 import sys
 
 from dbnd import task
-from dbnd._core.task_ctrl.task_visualiser import _MAX_VALUE_SIZE, TaskVisualiser
+from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser
 from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
@@ -31,8 +31,8 @@ class TestTaskVisualizer(object):
 
     def test_in_memory_dump(self):
         s = t_very_long_params.task(t_param="long_string" * 1000)
-        assert len(s.t_param) > _MAX_VALUE_SIZE * 3
+        assert len(s.t_param) > s.settings.describe.console_value_preview_size * 3
 
         actual = TaskVisualiser(s).banner("Running task")
         logger.warning(actual)
-        assert len(actual) < _MAX_VALUE_SIZE * 3
+        assert len(actual) < s.settings.describe.console_value_preview_size * 3

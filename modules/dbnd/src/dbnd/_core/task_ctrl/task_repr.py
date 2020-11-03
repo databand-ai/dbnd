@@ -26,7 +26,8 @@ def _parameter_value_to_argparse_str(p, p_value):
     formatted_value = p.as_str_input(p_value)
     if isinstance(p_value, list) or isinstance(p_value, dict):
         formatted_value = '"{}"'.format(formatted_value)
-
+    if p.name == "task_env":
+        return ["--env", "{}".format(formatted_value)]
     return ["--set", "{}={}".format(p.name, formatted_value)]
 
 
