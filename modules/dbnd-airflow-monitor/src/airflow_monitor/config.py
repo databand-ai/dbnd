@@ -29,8 +29,9 @@ class AirflowMonitorConfig(Config):
         description="Options: web, db, composer. web - uses the export plugin api, db - connects directly to AF DB.",
     )[str]
 
-    tasks_per_fetch = parameter(
-        default=None, description="Max number of tasks to retrieve at each fetch"
+    fetch_quantity = parameter(
+        default=None,
+        description="Max number of tasks or dag run to retrieve at each fetch",
     )[int]
 
     airflow_url = parameter(default=None)[str]
@@ -72,3 +73,8 @@ class AirflowMonitorConfig(Config):
     debug_sync_log_dir_path = parameter(default=None)[str]
 
     allow_duplicates = parameter(default=False)[bool]
+
+    oldest_incomplete_data_in_days = parameter(
+        default=14,
+        description="Max days ago to look for incomplete data. Incomplete data is fetched separately",
+    )[int]

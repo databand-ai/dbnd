@@ -21,7 +21,14 @@ class DataFetcher(object):
         self.env = None
 
     def get_data(
-        self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
+        self,
+        since,
+        include_logs,
+        include_task_args,
+        include_xcom,
+        dag_ids,
+        quantity,
+        offset,
     ):
         pass
 
@@ -51,7 +58,14 @@ class WebFetcher(DataFetcher):
             )
 
     def get_data(
-        self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
+        self,
+        since,
+        include_logs,
+        include_task_args,
+        include_xcom,
+        dag_ids,
+        quantity,
+        offset,
     ):
         params = {}
         if since:
@@ -65,7 +79,9 @@ class WebFetcher(DataFetcher):
         if dag_ids:
             params["dag_ids"] = dag_ids
         if quantity:
-            params["tasks"] = quantity
+            params["fetch_quantity"] = quantity
+        if offset is not None:
+            params["offset"] = offset
 
         try:
             data = self._make_request(params)
@@ -169,7 +185,14 @@ class DbFetcher(DataFetcher):
         self.env = "AirflowDB"
 
     def get_data(
-        self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
+        self,
+        since,
+        include_logs,
+        include_task_args,
+        include_xcom,
+        dag_ids,
+        quantity,
+        offset,
     ):
         try:
             data = self.export_data_directly(
@@ -179,6 +202,7 @@ class DbFetcher(DataFetcher):
                 include_xcom=include_xcom,
                 dag_ids=dag_ids,
                 quantity=quantity,
+                offset=offset,
             )
             return data
         except Exception as ex:
@@ -189,7 +213,14 @@ class DbFetcher(DataFetcher):
         return self.sql_conn_string
 
     def export_data_directly(
-        self, since, include_logs, include_task_args, include_xcom, dag_ids, quantity,
+        self,
+        since,
+        include_logs,
+        include_task_args,
+        include_xcom,
+        dag_ids,
+        quantity,
+        offset,
     ):
         from airflow import models, settings, conf
         from airflow.settings import STORE_SERIALIZED_DAGS
@@ -214,6 +245,7 @@ class DbFetcher(DataFetcher):
             include_xcom=include_xcom,
             dag_ids=dag_ids,
             quantity=quantity,
+            offset=offset,
             session=session(),
         )
         return result
@@ -227,7 +259,14 @@ class FileFetcher(DataFetcher):
         self.json_file_path = config.json_file_path
 
     def get_data(
-        self, since, include_logs, include_task_args, include_xcom, dag_ids, tasks
+        self,
+        since,
+        include_logs,
+        include_task_args,
+        include_xcom,
+        dag_ids,
+        quantity,
+        offset,
     ):
         import json
 

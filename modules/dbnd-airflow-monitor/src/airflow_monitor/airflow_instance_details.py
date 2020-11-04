@@ -22,7 +22,27 @@ class AirflowInstanceDetails(object):
         self.since = since
         self.airflow_server_info = server_info
         self.data_fetcher = fetcher
-        self.exception_traceback = None
+        self.offset = 0
+
+    def update_airflow_server(
+        self,
+        airflow_version,
+        dags_path,
+        logs_path,
+        airflow_export_version,
+        synced_from,
+        active_dags,
+    ):
+        self.airflow_server_info.airflow_version = airflow_version
+        self.airflow_server_info.dags_path = dags_path
+        self.airflow_server_info.logs_path = logs_path
+        self.airflow_server_info.airflow_export_version = airflow_export_version
+        self.airflow_server_info.synced_from = synced_from
+        self.airflow_server_info.active_dags = active_dags
+
+    @property
+    def url(self):
+        return self.airflow_server_info.base_url
 
 
 def create_airflow_server_info(airflow_url, interval):

@@ -24,7 +24,7 @@ from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.version import version as airflow_version
 from flask import Response
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 
 from dbnd._core.run.databand_run import AD_HOC_DAG_PREFIX
 
@@ -106,7 +106,6 @@ def _get_airflow_data(
     )
 
     task_instances, dag_runs = _get_task_instances(since, dag_ids, quantity, session)
-    task_instances |= _get_task_instances_without_date(dag_ids, session)
     logging.info("%d task instances were found." % len(task_instances))
 
     task_end_dates = [
@@ -117,7 +116,6 @@ def _get_airflow_data(
     else:
         dag_run_end_date = max(task_end_dates)
 
-    dag_runs |= _get_dag_runs_without_date(dag_ids, session)
     dag_runs |= _get_dag_runs_without_tasks(
         since, dag_run_end_date, dag_ids, quantity, session
     )
@@ -130,42 +128,9 @@ def _get_airflow_data(
     if dag_ids:
         dag_models = [dag for dag in dag_models if dag.dag_id in dag_ids]
 
-    xcom_results = (
-        _get_full_xcom_dict(session, dag_ids, task_instances) if include_xcom else None
+    task_instances_list = _get_final_task_instances_list(
+        task_instances, dagbag, include_xcom, include_logs
     )
-
-    number_of_task_instances_not_in_dag_bag = 0
-    task_instances_list = []
-    for ti in task_instances:
-        if ti is None:
-            logging.info("Received task instance that is None")
-        dag_from_dag_bag = dagbag.get_dag(ti.dag_id)
-        if not dag_from_dag_bag:
-            number_of_task_instances_not_in_dag_bag += 1
-        task_from_dag_bag = (
-            dag_from_dag_bag.get_task(ti.task_id)
-            if dag_from_dag_bag and dag_from_dag_bag.has_task(ti.task_id)
-            else None
-        )
-        # Don't fetch xcom of task instance from dag that is not in the DagBag, this can cause bugs
-        xcom_dict = (
-            _get_task_instance_xcom_dict(
-                xcom_results, ti.dag_id, ti.task_id, ti.execution_date
-            )
-            if include_xcom and dag_from_dag_bag
-            else {}
-        )
-        result = ETaskInstance.from_task_instance(
-            ti, include_logs, task_from_dag_bag, xcom_dict,
-        )
-        task_instances_list.append(result)
-
-    if number_of_task_instances_not_in_dag_bag > 0:
-        logging.info(
-            "Found {} task instances from dag not in DagBag".format(
-                number_of_task_instances_not_in_dag_bag
-            )
-        )
 
     number_of_dags_not_in_dag_bag = 0
     dags_list = []
@@ -217,13 +182,87 @@ def _get_airflow_data(
     return ed
 
 
+def _get_final_task_instances_list(task_instances, dagbag, include_xcom, include_logs):
+    number_of_task_instances_not_in_dag_bag = 0
+    task_instances_list = []
+
+    for ti in task_instances:
+        if ti is None:
+            logging.info("Received task instance that is None")
+        dag_from_dag_bag = dagbag.get_dag(ti.dag_id)
+        if not dag_from_dag_bag:
+            number_of_task_instances_not_in_dag_bag += 1
+        task_from_dag_bag = (
+            dag_from_dag_bag.get_task(ti.task_id)
+            if dag_from_dag_bag and dag_from_dag_bag.has_task(ti.task_id)
+            else None
+        )
+        # Don't fetch xcom of task instance from dag that is not in the DagBag, this can cause bugs
+        xcom_dict = {}
+        if include_xcom and dag_from_dag_bag:
+            xcom_dict = _get_task_instance_xcom_dict(
+                dag_id=ti.dag_id, task_id=ti.task_id, execution_date=ti.execution_date
+            )
+        result = ETaskInstance.from_task_instance(
+            ti, include_logs, task_from_dag_bag, xcom_dict,
+        )
+        task_instances_list.append(result)
+
+    if number_of_task_instances_not_in_dag_bag > 0:
+        logging.info(
+            "Found {} task instances from dag not in DagBag".format(
+                number_of_task_instances_not_in_dag_bag
+            )
+        )
+
+    return task_instances_list
+
+
 @measure_time
-def _get_dag_runs_without_date(dag_ids, session):
-    # Bring all dag runs with end date which is None
-    dagruns_query = session.query(DagRun).filter(DagRun.end_date.is_(None))
+def _get_airflow_incomplete_data(
+    session, dagbag, since, dag_ids, include_xcom, include_logs, offset=0, quantity=100
+):
+    since = since or pendulum.datetime.min
+    task_instances = _get_task_instances_without_date(
+        since=since, dag_ids=dag_ids, session=session, offset=offset, page_size=quantity
+    )
+    logging.info("Found {} task instances with no end_date".format(len(task_instances)))
+
+    dag_runs = _get_dag_runs_without_date(
+        since=since, dag_ids=dag_ids, session=session, offset=offset, page_size=quantity
+    )
+    logging.info("Found {} dag run with no end_date".format(len(task_instances)))
+
+    task_instances_list = _get_final_task_instances_list(
+        task_instances, dagbag, include_xcom, include_logs
+    )
+
+    dag_runs_list = [EDagRun.from_dagrun(dr) for dr in dag_runs]
+
+    ed = ExportData(
+        task_instances=task_instances_list,
+        dag_runs=dag_runs_list,
+        dags=[],
+        since=since,
+    )
+
+    return ed
+
+
+@measure_time
+def _get_dag_runs_without_date(since, dag_ids, session, page_size=100, offset=0):
+    dagruns_query = session.query(DagRun).filter(
+        and_(DagRun.end_date.is_(None)), DagRun.execution_date > since
+    )
 
     if dag_ids:
         dagruns_query = dagruns_query.filter(DagRun.dag_id.in_(dag_ids))
+
+    dagruns_query = (
+        dagruns_query.order_by(DagRun.dag_id, DagRun.run_id, DagRun.execution_date)
+        .limit(page_size)
+        .offset(offset)
+    )
 
     return set(dagruns_query.all())
 
@@ -247,15 +286,23 @@ def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session
 
 
 @measure_time
-def _get_task_instances_without_date(dag_ids, session):
+def _get_task_instances_without_date(since, dag_ids, session, page_size=100, offset=0):
     task_instance_query = session.query(TaskInstance).filter(
-        TaskInstance.end_date.is_(None)
+        and_(TaskInstance.end_date.is_(None), TaskInstance.execution_date > since)
     )
 
     if dag_ids:
         task_instance_query = task_instance_query.filter(
             TaskInstance.dag_id.in_(dag_ids)
         )
+
+    task_instance_query = (
+        task_instance_query.order_by(
+            TaskInstance.dag_id, TaskInstance.task_id, TaskInstance.execution_date
+        )
+        .limit(page_size)
+        .offset(offset)
+    )
 
     task_instances = task_instance_query.all()
     return set(task_instances)
@@ -291,56 +338,28 @@ def _get_task_instances(start_date, dag_ids, quantity, session):
 
 
 @measure_time
-def _get_full_xcom_dict(session, dag_ids, task_instances):
-    xcom_query = session.query(XCom)
-    if dag_ids:
-        xcom_query = xcom_query.filter(XCom.dag_id.in_(dag_ids))
+def _get_task_instance_xcom_dict(dag_id, task_id, execution_date):
+    try:
+        results = XCom.get_many(
+            dag_ids=dag_id, task_ids=task_id, execution_date=execution_date
+        )
+        if not results:
+            return {}
 
-    task_ids = [ti.task_id for ti in task_instances]
-    xcom_query = xcom_query.filter(XCom.task_id.in_(task_ids))
+        xcom_dict = {xcom.key: str(xcom.value) for xcom in results}
 
-    results = xcom_query.all()
-    if not results:
-        return None
+        sliced_xcom = (
+            dict(itertools.islice(xcom_dict.items(), MAX_XCOM_LENGTH))
+            if len(xcom_dict) > MAX_XCOM_LENGTH
+            else xcom_dict
+        )
+        for key, value in six.iteritems(sliced_xcom):
+            sliced_xcom[key] = shorten_xcom_value(value)
 
-    xcom_results = {}
-    for result in results:
-        if result.dag_id not in xcom_results:
-            xcom_results[result.dag_id] = {}
-        if result.task_id not in xcom_results[result.dag_id]:
-            xcom_results[result.dag_id][result.task_id] = {}
-        if result.execution_date not in xcom_results[result.dag_id][result.task_id]:
-            xcom_results[result.dag_id][result.task_id][result.execution_date] = {}
-        xcom_results[result.dag_id][result.task_id][result.execution_date][
-            result.key
-        ] = str(result.value)
-
-    return xcom_results
-
-
-def _get_task_instance_xcom_dict(xcom_results, dag_id, task_id, execution_date):
-    if not xcom_results:
+        return sliced_xcom
+    except Exception as e:
+        logging.info("Failed to get xcom dict. Exception: {}".format(e))
         return {}
-
-    xcom_dict = {}
-
-    if dag_id in xcom_results:
-        if task_id in xcom_results[dag_id]:
-            if execution_date in xcom_results[dag_id][task_id]:
-                xcom_dict = xcom_results[dag_id][task_id][execution_date]
-
-    if not xcom_dict:
-        return {}
-
-    sliced_xcom = (
-        dict(itertools.islice(xcom_dict.items(), MAX_XCOM_LENGTH))
-        if len(xcom_dict) > MAX_XCOM_LENGTH
-        else xcom_dict
-    )
-    for key, value in six.iteritems(sliced_xcom):
-        sliced_xcom[key] = shorten_xcom_value(value)
-
-    return sliced_xcom
 
 
 def shorten_xcom_value(xcom_value):
@@ -559,7 +578,7 @@ class EDag(object):
         # type: (DAG, DagModel, str, bool, str, bool) -> EDag
         # Can be Dag from DagBag or from DB, therefore not all attributes may exist
         return EDag(
-            description=dag.description,
+            description=dag.description or "",
             root_task_ids=[t.task_id for t in getattr(dag, "roots", [])],
             tasks=[
                 ETask.from_task(t, include_task_args) for t in getattr(dag, "tasks", [])
@@ -819,6 +838,7 @@ def get_airflow_data(
     include_xcom,
     dag_ids=None,
     quantity=None,
+    offset=None,
     session=None,
 ):
     include_logs = bool(include_logs)
@@ -829,16 +849,29 @@ def get_airflow_data(
     old_get_current_dag = DagModel.get_current
     try:
         DagModel.get_current = _get_current_dag_model
-        result = _get_airflow_data(
-            dagbag=dagbag,
-            since=since,
-            include_logs=include_logs,
-            include_xcom=include_xcom,
-            include_task_args=include_task_args,
-            dag_ids=dag_ids,
-            quantity=quantity,
-            session=session,
-        )
+
+        if offset is not None:
+            result = _get_airflow_incomplete_data(
+                session=session,
+                dagbag=dagbag,
+                since=since,
+                dag_ids=dag_ids,
+                offset=offset,
+                quantity=quantity,
+                include_xcom=include_xcom,
+                include_logs=include_logs,
+            )
+        else:
+            result = _get_airflow_data(
+                dagbag=dagbag,
+                since=since,
+                include_logs=include_logs,
+                include_xcom=include_xcom,
+                include_task_args=include_task_args,
+                dag_ids=dag_ids,
+                quantity=quantity,
+                session=session,
+            )
     finally:
         DagModel.get_current = old_get_current_dag
 
@@ -874,8 +907,9 @@ def export_data_api(dagbag):
     include_task_args = flask.request.args.get("include_task_args")
     include_xcom = flask.request.args.get("include_xcom")
     dag_ids = flask.request.args.getlist("dag_ids")
-    quantity = flask.request.args.get("tasks", type=int)
+    quantity = flask.request.args.get("fetch_quantity", type=int)
     rbac_enabled = conf.get("webserver", "rbac").lower() == "true"
+    offset = flask.request.args.get("offset", type=int)
 
     if not since and not include_logs and not dag_ids and not quantity:
         new_since = datetime.datetime.utcnow().replace(
@@ -899,6 +933,7 @@ def export_data_api(dagbag):
             include_xcom=include_xcom,
             dag_ids=dag_ids,
             quantity=quantity,
+            offset=offset,
         )
         export_data["metrics"] = {"performance": flask.g.perf_metrics}
         logging.info("Performance metrics %s", flask.g.perf_metrics)
