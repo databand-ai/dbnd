@@ -10,11 +10,9 @@ from airflow_monitor.airflow_data_saving import (
     save_airflow_monitor_data,
     save_airflow_server_info,
 )
-from airflow_monitor.airflow_instance_details import (
-    create_airflow_instance_details_with_existing,
-    create_instance_details_first_time,
-)
+from airflow_monitor.airflow_instance_details import create_airflow_instance_details
 from airflow_monitor.airflow_servers_fetching import AirflowServersGetter
+from prometheus_client import Summary
 
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.timezone import utcnow
@@ -34,7 +32,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def _log_recieved_tasks(fetched_data):
+def _log_received_tasks(fetched_data):
     try:
         logger.info(
             "Parsing received data with: {tasks: %d, dags: %d, dag_runs: %d, since: %s}",
@@ -45,6 +43,26 @@ def _log_recieved_tasks(fetched_data):
         )
     except Exception as e:
         logging.error("Could not log received data. %s", e)
+
+
+performance_metric = Summary(
+    "dbnd_af_plugin_query_duration_seconds",
+    "Airflow Export Plugin Query Run Time",
+    ["airflow_instance", "method_name"],
+)
+
+
+def _send_performance_metrics(airflow_instance_detail, fetched_data):
+    try:
+        perf_metrics = fetched_data.get("metrics").get("performance")
+        logger.info("Performance metrics from airflow plugin: %s", perf_metrics)
+        for metric_name, value in perf_metrics.items():
+            performance_metric.labels(
+                airflow_instance_detail.airflow_server_info.base_url,
+                metric_name.lstrip("_"),
+            ).observe(value)
+    except Exception as e:
+        logger.error("Failed to send plugin performance metrics. %s", e)
 
 
 def set_airflow_server_info_started(airflow_server_info):
@@ -74,7 +92,16 @@ def do_fetching_iteration(
             logger.warning("Didn't receive any data")
             return 0
 
-        _log_recieved_tasks(data)
+        if "error" in data:
+            logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
+            _save_error_message(
+                airflow_instance_detail, data["error"], api_client, airflow_config
+            )
+            return 0
+
+        _log_received_tasks(data)
+
+        _send_performance_metrics(airflow_instance_detail, data)
 
         export_data = _as_dotted_dict(**data)
 
@@ -166,24 +193,26 @@ def do_fetching_iteration(
         ) = sys.exc_info()
     finally:
         if airflow_instance_detail.exception_traceback is not None:
-            airflow_instance_detail.airflow_server_info.monitor_error_message = "".join(
+            message = "".join(
                 traceback.format_tb(airflow_instance_detail.exception_traceback)
             )
-            airflow_instance_detail.airflow_server_info.monitor_error_message += "{}: {}. ".format(
-                exception_type.__name__, exception
+            message += "{}: {}. ".format(exception_type.__name__, exception)
+            _save_error_message(
+                airflow_instance_detail, message, api_client, airflow_config
             )
-            airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
-                utcnow()
-            )
-            save_airflow_server_info(
-                airflow_instance_detail.airflow_server_info, api_client
-            )
-
-            logger.info(
-                "Sleeping for {} seconds on error".format(airflow_config.interval)
-            )
-            sleep(airflow_config.interval)
+            airflow_instance_detail.exception_traceback = None
             return 0
+
+
+def _save_error_message(airflow_instance_detail, message, api_client, airflow_config):
+    airflow_instance_detail.airflow_server_info.monitor_error_message = message
+    airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
+        utcnow()
+    )
+    save_airflow_server_info(airflow_instance_detail.airflow_server_info, api_client)
+
+    logger.info("Sleeping for {} seconds on error".format(airflow_config.interval))
+    sleep(airflow_config.interval)
 
 
 def create_instance_details(
@@ -198,18 +227,13 @@ def create_instance_details(
             return existing_airflow_instance_details
         return None
 
-    if not existing_airflow_instance_details:
-        airflow_instance_details = create_instance_details_first_time(
-            monitor_args, airflow_config, configs_fetched, api_client
-        )
-    else:
-        airflow_instance_details = create_airflow_instance_details_with_existing(
-            monitor_args,
-            airflow_config,
-            api_client,
-            configs_fetched,
-            existing_airflow_instance_details,
-        )
+    airflow_instance_details = create_airflow_instance_details(
+        monitor_args,
+        airflow_config,
+        api_client,
+        configs_fetched,
+        existing_airflow_instance_details,
+    )
 
     return airflow_instance_details
 

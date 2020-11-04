@@ -83,45 +83,16 @@ def calculate_since_value(
     return final_since_value
 
 
-def create_instance_details_first_time(
-    monitor_args, airflow_config, configs_fetched, api_client
-):
-    airflow_instance_details = []
-    for fetch_config in configs_fetched:
-        airflow_server_info = create_airflow_server_info(
-            fetch_config.base_url, airflow_config.interval
-        )
-        since_value = calculate_since_value(
-            monitor_args.since_now,
-            monitor_args.since,
-            monitor_args.sync_history,
-            monitor_args.history_only,
-            api_client,
-            airflow_server_info,
-        )
-        airflow_instance_details.append(
-            AirflowInstanceDetails(
-                fetch_config,
-                since_value,
-                airflow_server_info,
-                data_fetcher_factory(fetch_config),
-            )
-        )
-    return airflow_instance_details
-
-
-def create_airflow_instance_details_with_existing(
+def create_airflow_instance_details(
     monitor_args, airflow_config, api_client, configs_fetched, existing_details
 ):
     airflow_instance_details = []
     for fetch_config in configs_fetched:
-        was_found = False
         for existing_detail in existing_details:
             if existing_detail.config.url == fetch_config.url:
                 airflow_instance_details.append(existing_detail)
-                was_found = True
                 break
-        if not was_found:
+        else:
             airflow_server_info = create_airflow_server_info(
                 fetch_config.base_url, airflow_config.interval
             )

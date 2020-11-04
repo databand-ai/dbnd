@@ -4,6 +4,10 @@ import json
 import logging
 import os
 import sys
+import traceback
+
+from functools import wraps
+from timeit import default_timer
 
 import flask
 import flask_admin
@@ -51,6 +55,22 @@ class EmptyAirflowDatabase(Exception):
 ### Plugin Business Logic ###
 
 
+def measure_time(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        start = default_timer()
+        result = f(*args, **kwargs)
+        end = default_timer()
+        if flask._app_ctx_stack.top is not None:
+            if "perf_metrics" not in flask.g:
+                flask.g.perf_metrics = {}
+            flask.g.perf_metrics[f.__name__] = end - start
+        return result
+
+    return wrapped
+
+
+@measure_time
 def _load_dags_models(session):
     dag_models = session.query(DagModel).all()
 
@@ -60,6 +80,7 @@ def _load_dags_models(session):
             current_dags[dag_model.dag_id] = dag_model
 
 
+@measure_time
 def _get_airflow_data(
     session,
     dagbag,
@@ -196,6 +217,7 @@ def _get_airflow_data(
     return ed
 
 
+@measure_time
 def _get_dag_runs_without_date(dag_ids, session):
     # Bring all dag runs with end date which is None
     dagruns_query = session.query(DagRun).filter(DagRun.end_date.is_(None))
@@ -206,6 +228,7 @@ def _get_dag_runs_without_date(dag_ids, session):
     return set(dagruns_query.all())
 
 
+@measure_time
 def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session):
     # Bring all dag runs with no tasks (limit the number)
     dagruns_query = session.query(DagRun).filter(
@@ -223,6 +246,7 @@ def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session
     return set(dagruns_query.all())
 
 
+@measure_time
 def _get_task_instances_without_date(dag_ids, session):
     task_instance_query = session.query(TaskInstance).filter(
         TaskInstance.end_date.is_(None)
@@ -237,6 +261,7 @@ def _get_task_instances_without_date(dag_ids, session):
     return set(task_instances)
 
 
+@measure_time
 def _get_task_instances(start_date, dag_ids, quantity, session):
     task_instances_query = (
         session.query(TaskInstance, BaseJob, DagRun)
@@ -265,6 +290,7 @@ def _get_task_instances(start_date, dag_ids, quantity, session):
     return task_instances, dag_runs
 
 
+@measure_time
 def _get_full_xcom_dict(session, dag_ids, task_instances):
     xcom_query = session.query(XCom)
     if dag_ids:
@@ -325,6 +351,7 @@ def shorten_xcom_value(xcom_value):
     return xcom_value[-diff:]
 
 
+@measure_time
 @provide_session
 def _get_current_dag_model(dag_id, session=None):
     # MONKEY PATCH for old DagModel.get_current to try cache first
@@ -863,15 +890,24 @@ def export_data_api(dagbag):
     # do_update = flask.request.args.get("do_update", "").lower() == "true"
     # verbose = flask.request.args.get("verbose", str(not do_update)).lower() == "true"
 
-    export_data = get_airflow_data(
-        dagbag=dagbag,
-        since=since,
-        include_logs=include_logs,
-        include_task_args=include_task_args,
-        include_xcom=include_xcom,
-        dag_ids=dag_ids,
-        quantity=quantity,
-    )
+    try:
+        export_data = get_airflow_data(
+            dagbag=dagbag,
+            since=since,
+            include_logs=include_logs,
+            include_task_args=include_task_args,
+            include_xcom=include_xcom,
+            dag_ids=dag_ids,
+            quantity=quantity,
+        )
+        export_data["metrics"] = {"performance": flask.g.perf_metrics}
+        logging.info("Performance metrics %s", flask.g.perf_metrics)
+    except Exception:
+        exception_type, exception, exc_traceback = sys.exc_info()
+        message = "".join(traceback.format_tb(exc_traceback))
+        message += "{}: {}. ".format(exception_type.__name__, exception)
+        logging.error("Exception during data export: \n%s", message)
+        export_data = {"error": message}
     return json_response(export_data)
 
 
