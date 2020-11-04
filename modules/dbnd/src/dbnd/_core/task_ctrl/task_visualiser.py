@@ -217,7 +217,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
             if isinstance(value, Target) and value.target_meta:
                 preview_value = safe_string(
                     value.target_meta.value_preview,
-                    self.task.settings.describe.task_visualiser_max_value_size,
+                    self.task.settings.describe.console_value_preview_size,
                 )
                 # we should add minimal preview
                 if len(preview_value) < 100:
