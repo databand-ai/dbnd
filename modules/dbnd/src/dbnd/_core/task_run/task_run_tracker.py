@@ -139,7 +139,7 @@ class TaskRunTracker(TaskRunCtrl):
         try:
             # Combine meta_conf with the config settings
             meta_conf = self.settings.tracking.get_value_meta_conf(meta_conf)
-            value_meta = get_value_meta_from_value(key, data, meta_conf=meta_conf)
+            value_meta = get_value_meta_from_value(key, data, meta_conf, raise_on_error)
             if not value_meta:
                 return
 
@@ -170,7 +170,7 @@ class TaskRunTracker(TaskRunCtrl):
             log_exception(
                 "Error occurred during log_dataframe for %s" % (key,),
                 ex,
-                non_critical=True,
+                non_critical=not raise_on_error,
             )
             if raise_on_error:
                 raise

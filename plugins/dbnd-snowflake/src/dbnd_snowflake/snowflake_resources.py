@@ -7,6 +7,7 @@ from time import sleep
 from typing import Optional, Tuple
 
 from dbnd import log_duration, log_metrics
+from dbnd._core.errors import DatabandError
 from dbnd._core.utils.timezone import utcnow
 from dbnd_snowflake.snowflake_values import SnowflakeController
 
@@ -63,8 +64,17 @@ def log_snowflake_resource_usage(
     :param query_history_result_limit: Passed through directly to QUERY_HISTORY search function as `RESULT_LIMIT` param
     :param retries: How much times to search in QUERY_HISTORY.
         Each time search is widened by increasing `RESULT_LIMIT` param.
+    :param raise_on_error: By default all exceptions are muted so your task success status
+        is not affected by errors in tracking. Set to true to re-raise all exceptions.
     :param retry_pause: Set number of seconds to pause before next retry.
     """
+
+    if not query_id:
+        error_msg = "query_id cannot be empty"
+        if raise_on_error:
+            raise DatabandError(error_msg)
+        else:
+            logger.error(error_msg)
 
     result_limit = min(query_history_result_limit, SNOWFLAKE_RESULT_LIMIT_MAX_VALUE)
     tries, sf_query = 0, ""
@@ -84,7 +94,7 @@ def log_snowflake_resource_usage(
                 )
                 if metrics_logged:
                     return
-                logger.info(
+                logger.warning(
                     "Metadata not found for session_id '{}', query_id '{}'\n"
                     "Query used to search for resource usage: '{}'".format(
                         session_id, query_id, sf_query

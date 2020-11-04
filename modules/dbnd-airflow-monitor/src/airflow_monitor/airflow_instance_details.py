@@ -66,10 +66,14 @@ def calculate_since_value(
         try:
             get_sync_times_from_api(api_client, airflow_server_info)
             final_since_value = airflow_server_info.synced_to
-            logger.info(
-                "Resuming sync from latest stop at: %s",
-                airflow_server_info.last_sync_time,
-            )
+            if final_since_value:
+                logger.info(
+                    "Resuming sync from latest stop at: %s" % (final_since_value,)
+                )
+            else:
+                logger.info(
+                    "Latest sync stop not found. Starting sync from the beginning"
+                )
         except Exception:
             logger.info(
                 "Could not locate latest sync stop. Starting Airflow Monitor syncing from the beginning."
