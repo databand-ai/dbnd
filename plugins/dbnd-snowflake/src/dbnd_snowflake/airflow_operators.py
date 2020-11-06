@@ -22,11 +22,12 @@ import logging
 
 from typing import Optional
 
-from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 from airflow.contrib.operators.snowflake_operator import SnowflakeOperator
+from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
 from dbnd_snowflake import log_snowflake_resource_usage, log_snowflake_table
+from dbnd_snowflake.airflow_hooks import DbndSnowflakeHook
 
 
 logger = logging.getLogger(__name__)
@@ -80,7 +81,7 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
         self.account = account
 
     def get_hook(self):
-        return SnowflakeHook(
+        return DbndSnowflakeHook(
             snowflake_conn_id=self.snowflake_conn_id,
             account=self.account,
             warehouse=self.warehouse,
@@ -128,7 +129,7 @@ def log_snowflake_operator(
     )
 
 
-class LogSnowflakeResourceOperator(SnowflakeOperator):
+class LogSnowflakeResourceOperator(BaseOperator):
     """
     Queries Snowflake database for resources used to execute specific SQL query and tracks it into DBND
 
@@ -140,7 +141,6 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
     :param history_window: How deep to search in QUERY_HISTORY for a query. Set in minutes.
     :param retries: How deep to search in QUERY_HISTORY for a query. Set in minutes.
     :param retry_pause: How deep to search in QUERY_HISTORY for a query. Set in minutes.
-    :param sql: Exact sql query executed previously.
     :param str warehouse: name of warehouse (will overwrite any warehouse
         defined in the connection's extra JSON)
     :param str database: name of database (will overwrite database defined
@@ -158,10 +158,15 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
     @apply_defaults
     def __init__(
         self,
+        query_id: str,
         session_id: Optional[str] = None,
-        query_id: Optional[str] = None,
-        key: Optional[str] = None,
+        snowflake_conn_id: str = "snowflake_default",
+        warehouse: Optional[str] = None,
+        database: Optional[str] = None,
+        role: Optional[str] = None,
+        schema: Optional[str] = None,
         account: Optional[str] = None,
+        key: Optional[str] = "snowflake_query",
         history_window: float = 15,
         query_history_result_limit: int = 100,
         retries: int = 3,
@@ -172,6 +177,13 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
     ):
         super(LogSnowflakeResourceOperator, self).__init__(sql=None, *args, **kwargs)
 
+        self.snowflake_conn_id = snowflake_conn_id
+        self.warehouse = warehouse
+        self.database = database
+        self.role = role
+        self.schema = schema
+        self.account = account
+
         self.session_id = session_id
         self.query_id = query_id
         self.key = key
@@ -180,11 +192,9 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
         self.retries = retries
         self.retry_pause = retry_pause
         self.raise_on_error = raise_on_error
-        # TODO: deprecate
-        self.account = account
 
     def get_hook(self):
-        return SnowflakeHook(
+        return DbndSnowflakeHook(
             snowflake_conn_id=self.snowflake_conn_id,
             account=self.account,
             warehouse=self.warehouse,
@@ -195,13 +205,11 @@ class LogSnowflakeResourceOperator(SnowflakeOperator):
 
     def execute(self, context):
         hook = self.get_hook()
-        conn_params = hook._get_conn_params()
 
         log_snowflake_resource_usage(
             database=hook.database,
-            user=conn_params["user"],
             connection_string=hook.get_uri(),
-            query_id=self.query_id,
+            query_ids=[self.query_id],
             session_id=int(self.session_id) if self.session_id else None,
             key=self.key,
             history_window=self.history_window,

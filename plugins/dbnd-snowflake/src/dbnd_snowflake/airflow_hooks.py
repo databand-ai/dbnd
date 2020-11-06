@@ -20,6 +20,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 import sys
 
 from contextlib import closing
@@ -29,7 +30,8 @@ import six
 
 from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 
-from dbnd_snowflake.airflow_operators import logger
+
+logger = logging.getLogger(__name__)
 
 
 def snowflake_get_records(

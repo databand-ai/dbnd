@@ -1,3 +1,5 @@
+import logging
+
 from textwrap import dedent
 from typing import Dict
 
@@ -14,6 +16,13 @@ from dbnd._vendor.tabulate import tabulate
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType
+
+
+logger = logging.getLogger(__name__)
+
+
+class SnowflakeError(DatabandRuntimeError):
+    pass
 
 
 @attr.s
@@ -152,8 +161,8 @@ class SnowflakeController:
             )
         )
         if len(table_meta) != 1:
-            raise DatabandRuntimeError(
-                "Failed to fetch Snowflake metadata for DB: '{0.database}', table '{0.table_name}'".format(
+            raise SnowflakeError(
+                "Snowflake table not found: '{0.table_name}', DB: '{0.database}'".format(
                     table
                 )
             )
@@ -179,8 +188,8 @@ class SnowflakeController:
         ).format(table)
         results = self._query(query)
         if not results:
-            raise DatabandRuntimeError(
-                "Failed to fetch columns metadata for Snowflake DB: '{0.database}', "
+            raise SnowflakeError(
+                "Table columns not found. Snowflake DB: '{0.database}', "
                 "schema: {0.schema} table: '{0.table_name}'\n"
                 "Query used: {1}".format(table, query)
             )
@@ -189,9 +198,15 @@ class SnowflakeController:
         return self._column_types
 
     def _query(self, query, params=None):
-        self._cursor.execute(query, params)
-        result = self._cursor.fetchall()
-        return result
+        try:
+            self._cursor.execute(query, params)
+            result = self._cursor.fetchall()
+            return result
+        except Exception:
+            logger.exception(
+                "Error occurred during querying Snowflake, query: %s", query
+            )
+            raise
 
 
 def conn_str_to_conn_params(conn_str):

@@ -44,10 +44,9 @@ def process_customers_with_monitoring(**kwargs):
     customers, session_id, query_id = snowflake_hook.get_records(select_query)
     log_snowflake_resource_usage(
         database=database,
-        user=user,
         connection_string=snowflake_hook.get_uri(),
         session_id=session_id,
-        query_id=query_id,
+        query_ids=[query_id],
         key="DbndSnowflakeHook_get_records",
     )
     # Process records - Same code
@@ -64,10 +63,9 @@ def update_customers_with_monitoring(**kwargs):
     session_id, query_ids = snowflake_hook.run(update_query)
     log_snowflake_resource_usage(
         database=database,
-        user=user,
         connection_string=snowflake_hook.get_uri(),
         session_id=session_id,
-        query_id=query_ids[0],
+        query_ids=query_ids,
         key="DbndSnowflakeHook_get_records",
     )
 
