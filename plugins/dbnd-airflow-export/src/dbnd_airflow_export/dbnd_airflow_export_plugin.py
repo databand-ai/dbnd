@@ -70,6 +70,27 @@ def measure_time(f):
     return wrapped
 
 
+def save_result_size(*names):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            result = f(*args, **kwargs)
+            if flask._app_ctx_stack.top is not None:
+                values = result
+                if len(names) == 1:
+                    values = (result,)
+                for name, value_list in zip(names, values):
+                    if "size_metrics" not in flask.g:
+                        flask.g.size_metrics = {}
+                    flask.g.size_metrics[name] = len(value_list)
+            return result
+
+        return wrapped
+
+    return decorator
+
+
+@save_result_size("current_dags")
 @measure_time
 def _load_dags_models(session):
     dag_models = session.query(DagModel).all()
@@ -78,6 +99,7 @@ def _load_dags_models(session):
         # Exclude dbnd-run tagged runs
         if not dag_model.dag_id.startswith(AD_HOC_DAG_PREFIX):
             current_dags[dag_model.dag_id] = dag_model
+    return current_dags
 
 
 @measure_time
@@ -249,6 +271,7 @@ def _get_airflow_incomplete_data(
     return ed
 
 
+@save_result_size("dag_runs_without_data")
 @measure_time
 def _get_dag_runs_without_date(since, dag_ids, session, page_size=100, offset=0):
     dagruns_query = session.query(DagRun).filter(
@@ -267,6 +290,7 @@ def _get_dag_runs_without_date(since, dag_ids, session, page_size=100, offset=0)
     return set(dagruns_query.all())
 
 
+@save_result_size("dag_runs_without_tasks")
 @measure_time
 def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session):
     # Bring all dag runs with no tasks (limit the number)
@@ -285,6 +309,7 @@ def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session
     return set(dagruns_query.all())
 
 
+@save_result_size("task_instances_without_date")
 @measure_time
 def _get_task_instances_without_date(since, dag_ids, session, page_size=100, offset=0):
     task_instance_query = session.query(TaskInstance).filter(
@@ -308,6 +333,7 @@ def _get_task_instances_without_date(since, dag_ids, session, page_size=100, off
     return set(task_instances)
 
 
+@save_result_size("task_instances", "dag_runs")
 @measure_time
 def _get_task_instances(start_date, dag_ids, quantity, session):
     task_instances_query = (
@@ -935,7 +961,10 @@ def export_data_api(dagbag):
             quantity=quantity,
             offset=offset,
         )
-        export_data["metrics"] = {"performance": flask.g.perf_metrics}
+        export_data["metrics"] = {
+            "performance": flask.g.perf_metrics,
+            "sizes": flask.g.size_metrics,
+        }
         logging.info("Performance metrics %s", flask.g.perf_metrics)
     except Exception:
         exception_type, exception, exc_traceback = sys.exc_info()

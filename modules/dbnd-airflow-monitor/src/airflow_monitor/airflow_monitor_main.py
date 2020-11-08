@@ -39,23 +39,32 @@ def _log_received_tasks(fetched_data):
         logging.error("Could not log received data. %s", e)
 
 
-performance_metric = Summary(
-    "dbnd_af_plugin_query_duration_seconds",
-    "Airflow Export Plugin Query Run Time",
-    ["airflow_instance", "method_name"],
-)
+prometheus_metrics = {
+    "performance": Summary(
+        "dbnd_af_plugin_query_duration_seconds",
+        "Airflow Export Plugin Query Run Time",
+        ["airflow_instance", "method_name"],
+    ),
+    "sizes": Summary(
+        "dbnd_af_plugin_query_result_size",
+        "Airflow Export Plugin Query Result Size",
+        ["airflow_instance", "method_name"],
+    ),
+}
 
 
-def _send_performance_metrics(airflow_instance_detail, fetched_data):
+def _send_metrics(airflow_instance_detail, fetched_data):
     try:
-        perf_metrics = fetched_data.get("metrics").get("performance")
-        logger.info("Performance metrics from airflow plugin: %s", perf_metrics)
-        for metric_name, value in perf_metrics.items():
-            performance_metric.labels(
-                airflow_instance_detail.url, metric_name.lstrip("_"),
-            ).observe(value)
+        metrics = fetched_data.get("metrics")
+        logger.info("Metrics from airflow plugin: %s", metrics)
+        for key, metrics_dict in metrics.items():
+            for metric_name, value in metrics_dict.items():
+                prometheus_metrics[key].labels(
+                    airflow_instance_detail.airflow_server_info.base_url,
+                    metric_name.lstrip("_"),
+                ).observe(value)
     except Exception as e:
-        logger.error("Failed to send plugin performance metrics. %s", e)
+        logger.error("Failed to send plugin metrics. %s", e)
 
 
 def set_airflow_server_info_started(airflow_server_info):
@@ -119,7 +128,7 @@ def do_fetching_iteration(
             return 0
 
         _log_received_tasks(data)
-        _send_performance_metrics(airflow_instance_detail, data)
+        _send_metrics(airflow_instance_detail, data)
 
         export_data = _as_dotted_dict(**data)
 
@@ -248,7 +257,7 @@ def do_incomplete_data_fetching_iteration(
             return 0
 
         _log_received_tasks(data)
-        _send_performance_metrics(airflow_instance_detail, data)
+        _send_metrics(airflow_instance_detail, data)
 
         save_airflow_monitor_data(
             data,
