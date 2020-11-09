@@ -158,11 +158,6 @@ def do_fetching_iteration(
             for dr in export_data.dag_runs
             if dr["end_date"] is not None
         ]
-        logger.info(
-            "Received {} dag runs with end dates out of {}".format(
-                len(dag_runs_end_dates), len(export_data.dag_runs)
-            )
-        )
 
         end_dates = (
             task_instances_end_dates if task_instances_end_dates else dag_runs_end_dates
@@ -336,9 +331,10 @@ def fetch_one_server_until_synced(
         fetch_count = do_incomplete_data_fetching_iteration(
             airflow_config, airflow_instance_detail, api_client, tracking_store,
         )
-        airflow_instance_detail.offset += airflow_config.fetch_quantity
         if fetch_count < airflow_config.fetch_quantity:
             break
+        else:
+            airflow_instance_detail.offset += airflow_config.fetch_quantity
 
 
 def sync_all_servers(
