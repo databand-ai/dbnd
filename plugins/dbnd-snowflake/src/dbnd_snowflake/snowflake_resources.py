@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 from dbnd import log_duration, log_metrics
 from dbnd._core.utils.timezone import utcnow
+from dbnd_snowflake.snowflake_config import SnowflakeConfig
 from dbnd_snowflake.snowflake_values import SnowflakeController, SnowflakeError
 
 
@@ -29,7 +30,6 @@ SNOWFLAKE_METRIC_TO_UI_NAME = {
 RESOURCE_METRICS = ",".join(
     '"{}"'.format(m) for m in SNOWFLAKE_METRIC_TO_UI_NAME.keys()
 )
-SNOWFLAKE_RESULT_LIMIT_MAX_VALUE = 10000
 RESULT_LIMIT_INC = 10
 
 
@@ -40,7 +40,7 @@ def log_snowflake_resource_usage(
     session_id: Optional[int] = None,
     key: str = "snowflake_query",
     history_window: float = 15,
-    query_history_result_limit: int = 100,
+    query_history_result_limit: Optional[int] = None,
     retries: int = 3,
     retry_pause: float = 0,
     raise_on_error: bool = False,
@@ -64,6 +64,10 @@ def log_snowflake_resource_usage(
         is not affected by errors in tracking. Set to true to re-raise all exceptions.
     :param retry_pause: Set number of seconds to pause before next retry.
     """
+
+    snowflake_config = SnowflakeConfig()
+    if query_history_result_limit is None:
+        query_history_result_limit = snowflake_config.query_history_result_limit
 
     if not all(query_id for query_id in query_ids):
         error_msg = f"query_ids cannot be empty. You supplied: {query_ids}"
@@ -90,6 +94,7 @@ def log_snowflake_resource_usage(
                     retries,
                     retry_pause,
                     raise_on_error,
+                    snowflake_config,
                 )
             )
 
@@ -100,18 +105,24 @@ def _get_snowflake_resource_usage(
     database: str,
     connection_string: str,
     query_id: str,
-    session_id: Optional[int] = None,
-    key: str = "snowflake_query",
-    history_window: float = 15,
-    query_history_result_limit: int = 100,
-    retries: int = 3,
-    retry_pause: float = 0,
-    raise_on_error: bool = False,
+    session_id: Optional[int],
+    key: str,
+    history_window: float,
+    query_history_result_limit: int,
+    retries: int,
+    retry_pause: float,
+    raise_on_error: bool,
+    config: SnowflakeConfig,
 ) -> Dict:
-    result_limit = min(query_history_result_limit, SNOWFLAKE_RESULT_LIMIT_MAX_VALUE)
+    result_limit = min(
+        query_history_result_limit, config.query_history_result_limit_max_value
+    )
     tries, sf_query = 0, ""
     try:
-        while result_limit <= SNOWFLAKE_RESULT_LIMIT_MAX_VALUE and tries <= retries:
+        while (
+            result_limit <= config.query_history_result_limit_max_value
+            and tries <= retries
+        ):
             resource_metrics, sf_query = _query_snowflake_resource_usage(
                 database,
                 connection_string,
@@ -120,6 +131,7 @@ def _get_snowflake_resource_usage(
                 key=key,
                 history_window=history_window,
                 query_history_result_limit=result_limit,
+                config=config,
             )
             if resource_metrics:
                 return resource_metrics
@@ -130,7 +142,8 @@ def _get_snowflake_resource_usage(
                 )
             )
             result_limit = min(
-                result_limit * RESULT_LIMIT_INC, SNOWFLAKE_RESULT_LIMIT_MAX_VALUE
+                result_limit * RESULT_LIMIT_INC,
+                config.query_history_result_limit_max_value,
             )
             logger.info(
                 "Extending QUERY_HISTORY() search window: RESULT_LIMIT={}".format(
@@ -177,12 +190,16 @@ def _get_snowflake_resource_usage(
 def _build_snowflake_resource_usage_query(
     database: str,
     query_id: str,
-    session_id: int = None,
-    history_window: float = 15,
-    query_history_result_limit: int = 100,
+    session_id: int,
+    history_window: float,
+    query_history_result_limit: int,
+    config: SnowflakeConfig,
 ) -> str:
-    time_end = utcnow()
-    time_start = time_end - timedelta(minutes=history_window)
+
+    time_end = utcnow() - timedelta(minutes=config.query_history_end_time_range_end)
+    time_start = time_end - timedelta(
+        minutes=history_window or config.query_history_end_time_range_start
+    )
     if session_id:
         query_history = dedent(
             """\
@@ -234,10 +251,11 @@ def _query_snowflake_resource_usage(
     database,  # type: str
     connection_string,  # type: str
     query_id,  # type: str
-    session_id=None,  # type: Optional[int]
-    key=None,  # type: Optional[str]
-    history_window=15,  # type: float
-    query_history_result_limit=100,  # type: int
+    session_id,  # type: Optional[int]
+    key,  # type: Optional[str]
+    history_window,  # type: float
+    query_history_result_limit,  # type: int
+    config,  # type: SnowflakeConfig
 ):  # type: (...) -> Tuple[Dict, str]
     key = key or "snowflake_query"
     query_history = _build_snowflake_resource_usage_query(
@@ -246,6 +264,7 @@ def _query_snowflake_resource_usage(
         session_id=session_id,
         history_window=history_window,
         query_history_result_limit=query_history_result_limit,
+        config=config,
     )
 
     result = _connect_and_query(connection_string, query_history)

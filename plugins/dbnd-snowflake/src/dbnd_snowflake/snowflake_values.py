@@ -27,13 +27,13 @@ class SnowflakeError(DatabandRuntimeError):
 
 @attr.s
 class SnowflakeTable(object):
-    # connection_params = attr.ib()  # type: dict
     account = attr.ib()  # type: str
     user = attr.ib()  # type: str
     password = attr.ib()  # type: str
     database = attr.ib()  # type: str
     schema = attr.ib()  # type: str
     table_name = attr.ib()  # type: str
+    preview_rows = attr.ib(default=20)  # type: int
 
 
 class SnowflakeTableValueType(DataValueType):
@@ -98,8 +98,6 @@ register_value_type(SnowflakeTableValueType())
 class SnowflakeController:
     """ Interacts with Snowflake, queries it"""
 
-    preview_rows = 20
-
     def __init__(self, connection_string):
         conn_params = conn_str_to_conn_params(connection_string)
 
@@ -146,8 +144,8 @@ class SnowflakeController:
         )
 
         rows = self._query(
-            "select {0} from {1.database}.{1.schema}.{1.table_name} limit {2.preview_rows}".format(
-                columns, table, self
+            "select {0} from {1.database}.{1.schema}.{1.table_name} limit {1.preview_rows}".format(
+                columns, table
             )
         )
         preview_table = tabulate(rows, headers="keys") + "\n..."
