@@ -73,7 +73,7 @@ class TestFetchData(object):
             dag_ids=None,
             quantity=None,
             include_xcom=True,
-            offset=None,
+            incomplete_offset=None,
         )
 
         return result

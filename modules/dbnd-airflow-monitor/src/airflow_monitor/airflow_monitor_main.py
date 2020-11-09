@@ -74,7 +74,7 @@ def set_airflow_server_info_started(airflow_server_info):
     )
 
 
-def log_fetching_parameters(url, since, airflow_config, offset=None):
+def log_fetching_parameters(url, since, airflow_config, incomplete_offset=None):
     log_message = "Fetching from {} with since={} include_logs={}, include_task_args={}, include_xcom={}, fetch_quantity={}".format(
         url,
         since,
@@ -87,8 +87,8 @@ def log_fetching_parameters(url, since, airflow_config, offset=None):
     if airflow_config.dag_ids:
         log_message += ", dag_ids={}".format(airflow_config.dag_ids)
 
-    if offset is not None:
-        log_message += ", offset={}".format(offset)
+    if incomplete_offset is not None:
+        log_message += ", incomplete_offset={}".format(incomplete_offset)
 
     logger.info(log_message)
 
@@ -212,10 +212,14 @@ def do_fetching_iteration(
 
 
 def do_incomplete_data_fetching_iteration(
-    airflow_config, airflow_instance_detail, api_client, tracking_store
+    airflow_config,
+    airflow_instance_detail,
+    api_client,
+    tracking_store,
+    incomplete_offset,
 ):
     """
-    Fetch incomplete data from Airflow webserver, return number of items fetched
+    Fetch incomplete data from Airflow web server, return number of items fetched
     """
     exception_type, exception, exception_traceback = None, None, None
 
@@ -224,10 +228,7 @@ def do_incomplete_data_fetching_iteration(
 
     try:
         log_fetching_parameters(
-            airflow_instance_detail.url,
-            since,
-            airflow_config,
-            airflow_instance_detail.offset,
+            airflow_instance_detail.url, since, airflow_config, incomplete_offset,
         )
 
         data = airflow_instance_detail.data_fetcher.get_data(
@@ -237,7 +238,7 @@ def do_incomplete_data_fetching_iteration(
             airflow_config.include_xcom,
             airflow_config.dag_ids,
             airflow_config.fetch_quantity,
-            airflow_instance_detail.offset,
+            incomplete_offset,
         )
 
         if data is None:
@@ -327,14 +328,19 @@ def fetch_one_server_until_synced(
             break
 
     # Fetch separately incomplete data
+    incomplete_offset = 0
     while True:
         fetch_count = do_incomplete_data_fetching_iteration(
-            airflow_config, airflow_instance_detail, api_client, tracking_store,
+            airflow_config,
+            airflow_instance_detail,
+            api_client,
+            tracking_store,
+            incomplete_offset,
         )
         if fetch_count < airflow_config.fetch_quantity:
             break
         else:
-            airflow_instance_detail.offset += airflow_config.fetch_quantity
+            incomplete_offset += airflow_config.fetch_quantity
 
 
 def sync_all_servers(

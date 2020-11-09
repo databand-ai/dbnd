@@ -242,16 +242,24 @@ def _get_final_task_instances_list(task_instances, dagbag, include_xcom, include
 
 @measure_time
 def _get_airflow_incomplete_data(
-    session, dagbag, since, dag_ids, offset=0, quantity=100
+    session, dagbag, since, dag_ids, incomplete_offset=0, quantity=100
 ):
     since = since or pendulum.datetime.min
     task_instances = _get_task_instances_without_date(
-        since=since, dag_ids=dag_ids, session=session, offset=offset, page_size=quantity
+        since=since,
+        dag_ids=dag_ids,
+        session=session,
+        incomplete_offset=incomplete_offset,
+        page_size=quantity,
     )
     logging.info("Found {} task instances with no end_date".format(len(task_instances)))
 
     dag_runs = _get_dag_runs_without_date(
-        since=since, dag_ids=dag_ids, session=session, offset=offset, page_size=quantity
+        since=since,
+        dag_ids=dag_ids,
+        session=session,
+        incomplete_offset=incomplete_offset,
+        page_size=quantity,
     )
     logging.info("Found {} dag run with no end_date".format(len(task_instances)))
 
@@ -274,7 +282,9 @@ def _get_airflow_incomplete_data(
 
 @save_result_size("dag_runs_without_data")
 @measure_time
-def _get_dag_runs_without_date(since, dag_ids, session, page_size=100, offset=0):
+def _get_dag_runs_without_date(
+    since, dag_ids, session, page_size=100, incomplete_offset=0
+):
     dagruns_query = session.query(DagRun).filter(
         and_(DagRun.end_date.is_(None)), DagRun.execution_date > since
     )
@@ -285,7 +295,7 @@ def _get_dag_runs_without_date(since, dag_ids, session, page_size=100, offset=0)
     dagruns_query = (
         dagruns_query.order_by(DagRun.dag_id, DagRun.run_id, DagRun.execution_date)
         .limit(page_size)
-        .offset(offset)
+        .offset(incomplete_offset)
     )
 
     return set(dagruns_query.all())
@@ -312,7 +322,9 @@ def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session
 
 @save_result_size("task_instances_without_date")
 @measure_time
-def _get_task_instances_without_date(since, dag_ids, session, page_size=100, offset=0):
+def _get_task_instances_without_date(
+    since, dag_ids, session, page_size=100, incomplete_offset=0
+):
     task_instance_query = session.query(TaskInstance).filter(
         and_(TaskInstance.end_date.is_(None), TaskInstance.execution_date > since)
     )
@@ -327,7 +339,7 @@ def _get_task_instances_without_date(since, dag_ids, session, page_size=100, off
             TaskInstance.dag_id, TaskInstance.task_id, TaskInstance.execution_date
         )
         .limit(page_size)
-        .offset(offset)
+        .offset(incomplete_offset)
     )
 
     task_instances = task_instance_query.all()
@@ -865,7 +877,7 @@ def get_airflow_data(
     include_xcom,
     dag_ids=None,
     quantity=None,
-    offset=None,
+    incomplete_offset=None,
     session=None,
 ):
     include_logs = bool(include_logs)
@@ -877,13 +889,13 @@ def get_airflow_data(
     try:
         DagModel.get_current = _get_current_dag_model
 
-        if offset is not None:
+        if incomplete_offset is not None:
             result = _get_airflow_incomplete_data(
                 session=session,
                 dagbag=dagbag,
                 since=since,
                 dag_ids=dag_ids,
-                offset=offset,
+                incomplete_offset=incomplete_offset,
                 quantity=quantity,
             )
         else:
@@ -934,7 +946,7 @@ def export_data_api(dagbag):
     dag_ids = flask.request.args.getlist("dag_ids")
     quantity = flask.request.args.get("fetch_quantity", type=int)
     rbac_enabled = conf.get("webserver", "rbac").lower() == "true"
-    offset = flask.request.args.get("offset", type=int)
+    incomplete_offset = flask.request.args.get("incomplete_offset", type=int)
 
     if not since and not include_logs and not dag_ids and not quantity:
         new_since = datetime.datetime.utcnow().replace(
@@ -958,7 +970,7 @@ def export_data_api(dagbag):
             include_xcom=include_xcom,
             dag_ids=dag_ids,
             quantity=quantity,
-            offset=offset,
+            incomplete_offset=incomplete_offset,
         )
         export_data["metrics"] = {
             "performance": flask.g.perf_metrics,

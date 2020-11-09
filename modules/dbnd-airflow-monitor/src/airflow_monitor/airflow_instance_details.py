@@ -22,7 +22,6 @@ class AirflowInstanceDetails(object):
         self.since = since
         self.airflow_server_info = server_info
         self.data_fetcher = fetcher
-        self.offset = 0
 
     def update_airflow_server(
         self,

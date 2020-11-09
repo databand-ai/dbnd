@@ -28,7 +28,7 @@ class DataFetcher(object):
         include_xcom,
         dag_ids,
         quantity,
-        offset,
+        incomplete_offset,
     ):
         pass
 
@@ -65,7 +65,7 @@ class WebFetcher(DataFetcher):
         include_xcom,
         dag_ids,
         quantity,
-        offset,
+        incomplete_offset,
     ):
         params = {}
         if since:
@@ -80,8 +80,8 @@ class WebFetcher(DataFetcher):
             params["dag_ids"] = dag_ids
         if quantity:
             params["fetch_quantity"] = quantity
-        if offset is not None:
-            params["offset"] = offset
+        if incomplete_offset is not None:
+            params["incomplete_offset"] = incomplete_offset
 
         try:
             data = self._make_request(params)
@@ -192,7 +192,7 @@ class DbFetcher(DataFetcher):
         include_xcom,
         dag_ids,
         quantity,
-        offset,
+        incomplete_offset,
     ):
         try:
             data = self.export_data_directly(
@@ -202,7 +202,7 @@ class DbFetcher(DataFetcher):
                 include_xcom=include_xcom,
                 dag_ids=dag_ids,
                 quantity=quantity,
-                offset=offset,
+                incomplete_offset=incomplete_offset,
             )
             return data
         except Exception as ex:
@@ -220,7 +220,7 @@ class DbFetcher(DataFetcher):
         include_xcom,
         dag_ids,
         quantity,
-        offset,
+        incomplete_offset,
     ):
         from airflow import models, settings, conf
         from airflow.settings import STORE_SERIALIZED_DAGS
@@ -245,7 +245,7 @@ class DbFetcher(DataFetcher):
             include_xcom=include_xcom,
             dag_ids=dag_ids,
             quantity=quantity,
-            offset=offset,
+            incomplete_offset=incomplete_offset,
             session=session(),
         )
         return result
@@ -266,7 +266,7 @@ class FileFetcher(DataFetcher):
         include_xcom,
         dag_ids,
         quantity,
-        offset,
+        incomplete_offset,
     ):
         import json
 
