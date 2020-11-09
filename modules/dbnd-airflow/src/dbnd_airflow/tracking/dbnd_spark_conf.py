@@ -106,7 +106,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_spark_submit_java_agent_conf():
-    config = AirflowTrackingConfig()
+    config = AirflowTrackingConfig.current()
     agent_jar = config.spark_submit_dbnd_java_agent
     if agent_jar is None:
         logger.warning("You are not using the dbnd java agent")
@@ -124,7 +124,7 @@ def get_spark_submit_java_agent_conf():
 
 
 def get_databricks_java_agent_conf():
-    config = AirflowTrackingConfig()
+    config = AirflowTrackingConfig.current()
     agent_jar = config.databricks_dbnd_java_agent
     logger.debug("found agent_jar %s", agent_jar)
     if agent_jar is None:
