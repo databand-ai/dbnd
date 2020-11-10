@@ -225,7 +225,7 @@ def _get_airflow_incomplete_data(
         incomplete_offset=incomplete_offset,
         page_size=quantity,
     )
-    logging.info("Found {} dag run with no end_date".format(len(task_instances)))
+    logging.info("Found {} dag runs with no end_date".format(len(dag_runs)))
 
     ed = ExportData(
         task_instances=task_instances, dag_runs=dag_runs, dags=[], since=since,
