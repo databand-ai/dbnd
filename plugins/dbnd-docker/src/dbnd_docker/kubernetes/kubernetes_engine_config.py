@@ -39,6 +39,34 @@ ENV_DBND_DOCKER_IMAGE = "DBND__DOCKER_IMAGE"
 ENV_DBND_AUTO_REMOVE_POD = "DBND__AUTO_REMOVE_POD"
 
 
+class PodRetryConfiguration(object):
+    RETRY_COUNT = "retry_count"
+    RETRY_DELAY = "retry_delay"
+
+    def __init__(self, exit_codes_and_reasons_to_retry_info_map):
+        self.exit_codes_and_reasons_to_retry_info_map = (
+            exit_codes_and_reasons_to_retry_info_map
+        )
+
+    @classmethod
+    def from_kube_config(cls, kube_config):
+        return cls(kube_config.pod_error_cfg_source_dict)
+
+    def get_retry_count(self, exit_code_or_reason):
+        return self.exit_codes_and_reasons_to_retry_info_map[exit_code_or_reason][
+            self.RETRY_COUNT
+        ]
+
+    def get_retry_delay(self, exit_code_or_reason):
+        return self.exit_codes_and_reasons_to_retry_info_map[exit_code_or_reason][
+            self.RETRY_DELAY
+        ]
+
+    @property
+    def reasons_and_exit_codes(self):
+        return self.exit_codes_and_reasons_to_retry_info_map.keys()
+
+
 class KubernetesEngineConfig(ContainerEngineConfig):
     _conf__task_family = "kubernetes"
 
@@ -92,15 +120,13 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     requests = parameter.none()[Dict]
     limits = parameter.none()[Dict]
 
-    pod_exit_code_to_retry_count = parameter(empty_default=True).help(
-        "Mapping between pod exit code to amount of pod retry attempts"
+    pod_error_cfg_source_dict = parameter(
+        description="Values for pod error handling configuration"
     )[Dict]
-    pod_retry_delay = parameter.help(
-        "The delay between each pod retry attempt in time delta format. 1m, 5s, 1h, etc."
+
+    submit_termination_grace_period = parameter(
+        description="timedelta to let the submitted pod enter a final state"
     )[datetime.timedelta]
-    retry_on_image_pull_error_count = parameter.help(
-        "Describes the amount of retry attempts when a pod fails with " "'ErrImagePull'"
-    ).default(0)[int]
 
     startup_timeout_seconds = parameter.value(120)
     show_pod_log = parameter(default=False).help(
