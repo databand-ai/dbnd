@@ -150,6 +150,7 @@ def do_fetching_iteration(
             for dag in export_data.dags
             if dag.get("is_active", True)
         }
+        logger.info("Got %d active DAGs", len(active_dags))
 
         airflow_instance_detail.update_airflow_server(
             airflow_version=export_data.airflow_version,
@@ -166,19 +167,34 @@ def do_fetching_iteration(
             for t in export_data.task_instances
             if t["end_date"] is not None
         ]
+        logger.info(
+            "Got %d task end dates, the last is %s",
+            len(task_instances_end_dates),
+            max(task_instances_end_dates) if task_instances_end_dates else None,
+        )
 
         dag_runs_end_dates = [
             pendulum.parse(str(dr["end_date"]))
             for dr in export_data.dag_runs
             if dr["end_date"] is not None
         ]
+        logger.info(
+            "Got %d dag run end dates, the last is %s",
+            len(dag_runs_end_dates),
+            max(dag_runs_end_dates) if dag_runs_end_dates else None,
+        )
 
         end_dates = (
             task_instances_end_dates if task_instances_end_dates else dag_runs_end_dates
         )
+        logger.info("Using last end date %s", max(end_dates) if end_dates else None)
 
         airflow_instance_detail.airflow_server_info.synced_to = (
             max(end_dates) if end_dates else utcnow()
+        )
+        logger.info(
+            "New synced_to date is %s",
+            airflow_instance_detail.airflow_server_info.synced_to,
         )
 
         save_airflow_monitor_data(
@@ -315,12 +331,7 @@ def _save_error_message(airflow_instance_detail, message, api_client, airflow_co
     airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
         utcnow()
     )
-    try:
-        save_airflow_server_info(
-            airflow_instance_detail.airflow_server_info, api_client
-        )
-    except Exception as e:
-        logger.error("Failed to send error info to Databand Webserver: %s", e)
+    save_airflow_server_info(airflow_instance_detail.airflow_server_info, api_client)
 
     logger.info("Sleeping for {} seconds on error".format(airflow_config.interval))
     sleep(airflow_config.interval)
@@ -353,14 +364,26 @@ def fetch_one_server_until_synced(
     airflow_config, airflow_instance_detail, api_client, tracking_store
 ):
     # Fetch continuously until we are up to date
+    logger.info(
+        "Fetching completed tasks from %s",
+        airflow_instance_detail.airflow_server_info.base_url,
+    )
     while True:
         fetch_count = do_fetching_iteration(
             airflow_config, airflow_instance_detail, api_client, tracking_store,
         )
         if fetch_count < airflow_config.fetch_quantity:
+            logger.info(
+                "Finished syncing completed tasks from %s",
+                airflow_instance_detail.airflow_server_info.base_url,
+            )
             break
 
     # Fetch separately incomplete data
+    logger.info(
+        "Fetching incomplete tasks from %s",
+        airflow_instance_detail.airflow_server_info.base_url,
+    )
     incomplete_offset = 0
     while True:
         fetch_count = do_incomplete_data_fetching_iteration(
@@ -371,9 +394,18 @@ def fetch_one_server_until_synced(
             incomplete_offset,
         )
         if fetch_count < airflow_config.fetch_quantity:
+            logger.info(
+                "Finished syncing incomplete tasks from %s",
+                airflow_instance_detail.airflow_server_info.base_url,
+            )
             break
         else:
             incomplete_offset += airflow_config.fetch_quantity
+            logger.info(
+                "Fetched a batch of incomplete tasks from %s, new offset is %d",
+                airflow_instance_detail.airflow_server_info.base_url,
+                incomplete_offset,
+            )
 
 
 def sync_all_servers(
