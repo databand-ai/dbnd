@@ -214,7 +214,14 @@ def _get_airflow_incomplete_data(
     quantity=100,
 ):
     since = since or pendulum.datetime.min
-    task_instances = _get_task_instances_without_date(
+    _load_dags_models(session)
+    logging.info(
+        "Collected %d dags. Trying to query incomplete task instances and dagruns from %s",
+        len(current_dags),
+        since,
+    )
+
+    task_instances, dag_runs = _get_task_instances_without_date(
         since=since,
         dag_ids=dag_ids,
         dagbag=dagbag,
@@ -222,9 +229,13 @@ def _get_airflow_incomplete_data(
         incomplete_offset=incomplete_offset,
         page_size=quantity,
     )
-    logging.info("Found {} task instances with no end_date".format(len(task_instances)))
+    logging.info(
+        "Found {} task instances with no end_date from {} dag runs".format(
+            len(task_instances), len(dag_runs)
+        )
+    )
 
-    dag_runs = _get_dag_runs_without_date(
+    dag_runs_without_date = _get_dag_runs_without_date(
         since=since,
         dag_ids=dag_ids,
         session=session,
@@ -233,7 +244,15 @@ def _get_airflow_incomplete_data(
     )
     logging.info("Found {} dag runs with no end_date".format(len(dag_runs)))
 
+    dag_runs |= dag_runs_without_date
+
     dags_list = _get_dags(dagbag, include_task_args, dag_ids)
+
+    logging.info(
+        "Returning {} task instances, {} dag runs, {} dags".format(
+            len(task_instances), len(dag_runs), len(dags_list)
+        )
+    )
 
     ed = ExportData(
         task_instances=task_instances, dag_runs=dag_runs, dags=dags_list, since=since,
@@ -285,28 +304,43 @@ def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session
 def _get_task_instances_without_date(
     since, dag_ids, dagbag, session, page_size=100, incomplete_offset=0
 ):
-    task_instance_query = session.query(*ETaskInstance.query_fields()).filter(
-        and_(TaskInstance.end_date.is_(None), TaskInstance.execution_date > since)
+    task_instances_query = (
+        session.query(*ETaskInstance.query_fields(), *EDagRun.query_fields())
+        .join(
+            DagRun,
+            (TaskInstance.dag_id == DagRun.dag_id)
+            & (TaskInstance.execution_date == DagRun.execution_date),
+        )
+        .filter(
+            and_(TaskInstance.end_date.is_(None), TaskInstance.execution_date > since)
+        )
     )
 
     if dag_ids:
-        task_instance_query = task_instance_query.filter(
+        task_instances_query = task_instances_query.filter(
             TaskInstance.dag_id.in_(dag_ids)
         )
 
-    task_instance_query = (
-        task_instance_query.order_by(
+    task_instances_query = (
+        task_instances_query.order_by(
             TaskInstance.task_id, TaskInstance.dag_id, TaskInstance.execution_date
         )
         .limit(page_size)
         .offset(incomplete_offset)
     )
 
-    task_instances = [
-        _build_task_instance(fields, dagbag, False, False, session)
-        for fields in task_instance_query.all()
-    ]
-    return task_instances
+    results = task_instances_query.all()
+    task_instances = []
+    dag_runs = set()
+    for fields in results:
+        ti_fields = fields[: len(ETaskInstance.db_fields)]
+        dr_fields = fields[len(ETaskInstance.db_fields) :]
+        task_instances.append(
+            _build_task_instance(ti_fields, dagbag, False, False, session)
+        )
+        dag_runs.add(EDagRun.from_db_fields(*dr_fields))
+
+    return task_instances, dag_runs
 
 
 @save_result_size("task_instances", "dag_runs")
