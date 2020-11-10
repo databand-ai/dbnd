@@ -205,7 +205,13 @@ def _get_dags(dagbag, include_task_args, dag_ids):
 
 @measure_time
 def _get_airflow_incomplete_data(
-    session, dagbag, since, dag_ids, incomplete_offset=0, quantity=100
+    session,
+    dagbag,
+    since,
+    dag_ids,
+    include_task_args,
+    incomplete_offset=0,
+    quantity=100,
 ):
     since = since or pendulum.datetime.min
     task_instances = _get_task_instances_without_date(
@@ -227,8 +233,10 @@ def _get_airflow_incomplete_data(
     )
     logging.info("Found {} dag runs with no end_date".format(len(dag_runs)))
 
+    dags_list = _get_dags(dagbag, include_task_args, dag_ids)
+
     ed = ExportData(
-        task_instances=task_instances, dag_runs=dag_runs, dags=[], since=since,
+        task_instances=task_instances, dag_runs=dag_runs, dags=dags_list, since=since,
     )
 
     return ed
@@ -910,6 +918,7 @@ def get_airflow_data(
                 session=session,
                 dagbag=dagbag,
                 since=since,
+                include_task_args=include_task_args,
                 dag_ids=dag_ids,
                 incomplete_offset=incomplete_offset,
                 quantity=quantity,
