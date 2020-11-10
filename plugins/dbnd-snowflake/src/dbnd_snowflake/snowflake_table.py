@@ -3,6 +3,7 @@ from typing import Optional
 from dbnd import log_duration
 from dbnd._core.commands.metrics import log_data
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
+from dbnd_snowflake.snowflake_config import SnowflakeConfig
 
 
 def log_snowflake_table(
@@ -26,8 +27,15 @@ def log_snowflake_table(
         user = conn_params["user"]
         password = conn_params["password"]
 
+        config = SnowflakeConfig()
         snowflake_table = snowflake_values.SnowflakeTable(
-            account, user, password, database, schema, table_name
+            account,
+            user,
+            password,
+            database,
+            schema,
+            table_name,
+            config.table_preview_rows,
         )
         log_data(
             key or table_name,
