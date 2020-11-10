@@ -35,7 +35,6 @@ if typing.TYPE_CHECKING:
 
 DEFAULT_CLASS_VERSION = ""
 
-
 logger = logging.getLogger(__name__)
 
 

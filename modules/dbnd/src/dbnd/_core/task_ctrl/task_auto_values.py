@@ -32,25 +32,15 @@ class TaskAutoParamsReadWrite(object):
         task = self.task
         original_values = task._params.get_param_values()
 
-        # we don't support "nested" calls for now,
-        # let's not overcomplicate code for non existing scenario
-
-        if task._task_auto_read is not None:
-            logger.warning(
-                "You are running in {task} within already existing TaskAutoParamsReadWrite context".format(
-                    task=task
-                )
-            )
-
         if self.auto_read:
+            task.load_task_runtime_values()
+            original_values = task._params.get_param_values()
             task._task_auto_read_original = {p.name: v for p, v in original_values}
-            task._task_auto_read = set()
 
         dirty = self.save_on_change
         try:
             yield original_values
             # now we disable "auto read"
-            task._task_auto_read = None
             task._task_auto_read_original = None
             # from here we are going to read "the value" without autoresolving
 
@@ -96,7 +86,6 @@ class TaskAutoParamsReadWrite(object):
                             ex, p, current_value, task
                         )
         finally:
-            task._task_auto_read = None
             if dirty:
                 for p, original_value in original_values:
                     setattr(task, p.name, original_value)

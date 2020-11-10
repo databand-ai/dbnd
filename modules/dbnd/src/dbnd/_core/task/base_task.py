@@ -28,6 +28,7 @@ from typing import Dict, Optional
 import six
 
 from dbnd._core.constants import ParamValidation, TaskType
+from dbnd._core.decorator.lazy_object_proxy import CallableLazyObjectProxy
 from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter.parameter_builder import parameter
@@ -70,7 +71,6 @@ class _BaseTask(object):
 
     # this is the state of autoread
     _task_auto_read_original = None
-    _task_auto_read = None
     ####
     # execution
     # will be used by Registry
@@ -144,40 +144,6 @@ class _BaseTask(object):
             return "%s[%s]" % (self.task_name, self.task_meta.task_family)
         return self.task_name
 
-    def __getattribute__(self, name):
-        def _get(n):
-            return super(_BaseTask, self).__getattribute__(n)
-
-        value = _get(name)
-        try:
-            _task_auto_read = _get("_task_auto_read")
-        except Exception:
-            return value
-
-        # already cached
-        if _task_auto_read is None or name in _task_auto_read:
-            return value
-
-        parameter = _get("_params").get_param(name)
-
-        # we are not parameter
-        # or there is nothing to "deferefence"
-        # TODO: rebase  : value is None
-        if not parameter:
-            return value
-
-        runtime_value = parameter.calc_runtime_value(value, task=self)
-
-        if parameter.is_output():
-            # if it's outpus, we should not "cache" it
-            # otherwise we will try to save it on autosave ( as it was changed)
-            return runtime_value
-
-        # for the cache, so next time we don't need to calculate it
-        setattr(self, name, runtime_value)
-        _task_auto_read.add(name)
-        return runtime_value
-
     def _auto_load_save_params(
         self, auto_read=False, save_on_change=False, normalize_on_change=False
     ):
@@ -246,3 +212,8 @@ class _BaseTask(object):
 
     def simple_params_dict(self):
         return {p.name: p.value for p in self._params.task_meta.class_task_params}
+
+    def load_task_runtime_values(self):
+        for param, value in self._params.get_param_values():
+            runtime_value = param.calc_runtime_value(value, task=self)
+            setattr(self, param.name, runtime_value)
