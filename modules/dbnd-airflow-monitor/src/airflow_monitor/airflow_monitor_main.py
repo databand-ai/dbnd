@@ -1,8 +1,11 @@
+import json
 import logging
 import sys
 import traceback
 
 from datetime import timedelta
+from json import JSONDecodeError
+from tempfile import NamedTemporaryFile
 from time import sleep
 
 from airflow_monitor.airflow_data_saving import (
@@ -99,8 +102,6 @@ def do_fetching_iteration(
     """
     Fetch from Airflow webserver, return number of items fetched
     """
-    exception_type, exception, exception_traceback = None, None, None
-
     try:
         log_fetching_parameters(
             airflow_instance_detail.url, airflow_instance_detail.since, airflow_config
@@ -115,18 +116,30 @@ def do_fetching_iteration(
             airflow_config.fetch_quantity,
             None,
         )
+    except JSONDecodeError:
+        logger.exception("Could not decode the received data, error in json format.")
+        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        return 0
+    except (ConnectionError, OSError, IOError) as e:
+        logger.exception(
+            "An error occurred while trying to sync data from airflow to databand: %s",
+            e,
+        )
+        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        return 0
 
-        if data is None:
-            logger.warning("Didn't receive any data")
-            return 0
+    if data is None:
+        logger.warning("Didn't receive any data")
+        return 0
 
-        if "error" in data:
-            logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
-            _save_error_message(
-                airflow_instance_detail, data["error"], api_client, airflow_config
-            )
-            return 0
+    if "error" in data:
+        logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
+        _save_error_message(
+            airflow_instance_detail, data["error"], api_client, airflow_config
+        )
+        return 0
 
+    try:
         _log_received_tasks(data)
         _send_metrics(airflow_instance_detail, data)
 
@@ -137,6 +150,7 @@ def do_fetching_iteration(
             for dag in export_data.dags
             if dag.get("is_active", True)
         }
+
         airflow_instance_detail.update_airflow_server(
             airflow_version=export_data.airflow_version,
             dags_path=export_data.dags_path,
@@ -195,20 +209,13 @@ def do_fetching_iteration(
         logger.info("Total {} items fetched".format(total_fetched))
         return total_fetched
     except Exception as e:
-        logger.error(
-            "An error occurred while trying to sync data from airflow to databand: {}".format(
-                e
-            )
+        logger.exception(
+            "An error occurred while trying to sync data from airflow to databand: %s",
+            e,
         )
-        exception_type, exception, exception_traceback = sys.exc_info()
-    finally:
-        if exception_traceback is not None:
-            message = "".join(traceback.format_tb(exception_traceback))
-            message += "{}: {}. ".format(exception_type.__name__, exception)
-            _save_error_message(
-                airflow_instance_detail, message, api_client, airflow_config
-            )
-            return 0
+        _dump_unsent_data(data)
+        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        return 0
 
 
 def do_incomplete_data_fetching_iteration(
@@ -240,18 +247,30 @@ def do_incomplete_data_fetching_iteration(
             airflow_config.fetch_quantity,
             incomplete_offset,
         )
+    except JSONDecodeError:
+        logger.exception("Could not decode the received data, error in json format.")
+        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        return 0
+    except Exception as e:
+        logger.exception(
+            "An error occurred while trying to sync data from airflow to databand: %s",
+            e,
+        )
+        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        return 0
 
-        if data is None:
-            logger.warning("Didn't receive any incomplete data")
-            return 0
+    if data is None:
+        logger.warning("Didn't receive any incomplete data")
+        return 0
 
-        if "error" in data:
-            logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
-            _save_error_message(
-                airflow_instance_detail, data["error"], api_client, airflow_config
-            )
-            return 0
+    if "error" in data:
+        logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
+        _save_error_message(
+            airflow_instance_detail, data["error"], api_client, airflow_config
+        )
+        return 0
 
+    try:
         _log_received_tasks(data)
         _send_metrics(airflow_instance_detail, data)
 
@@ -266,20 +285,29 @@ def do_incomplete_data_fetching_iteration(
         logger.info("Total {} items fetched".format(total_fetched))
         return total_fetched
     except Exception as e:
-        logger.error(
-            "An error occurred while trying to sync data from airflow to databand: {}".format(
-                e
-            )
+        logger.exception(
+            "An error occurred while trying to sync data from airflow to databand: %s",
+            e,
         )
-        exception_type, exception, exception_traceback = sys.exc_info()
-    finally:
-        if exception_traceback is not None:
-            message = "".join(traceback.format_tb(exception_traceback))
-            message += "{}: {}. ".format(exception_type.__name__, exception)
-            _save_error_message(
-                airflow_instance_detail, message, api_client, airflow_config
-            )
-            return 0
+        _dump_unsent_data(data)
+        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        return 0
+
+
+def _dump_unsent_data(data):
+    logger.info("Dumping Airflow export data to disk")
+    with NamedTemporaryFile(
+        mode="w", suffix=".json", prefix="dbnd_export_data_", delete=False
+    ) as f:
+        json.dump(data, f)
+        logger.info("Dumped to %s", f.name)
+
+
+def _send_exception_info(airflow_instance_detail, api_client, airflow_config):
+    exception_type, exception, exception_traceback = sys.exc_info()
+    message = "".join(traceback.format_tb(exception_traceback))
+    message += "{}: {}. ".format(exception_type.__name__, exception)
+    _save_error_message(airflow_instance_detail, message, api_client, airflow_config)
 
 
 def _save_error_message(airflow_instance_detail, message, api_client, airflow_config):
@@ -287,7 +315,12 @@ def _save_error_message(airflow_instance_detail, message, api_client, airflow_co
     airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
         utcnow()
     )
-    save_airflow_server_info(airflow_instance_detail.airflow_server_info, api_client)
+    try:
+        save_airflow_server_info(
+            airflow_instance_detail.airflow_server_info, api_client
+        )
+    except Exception as e:
+        logger.error("Failed to send error info to Databand Webserver: %s", e)
 
     logger.info("Sleeping for {} seconds on error".format(airflow_config.interval))
     sleep(airflow_config.interval)
