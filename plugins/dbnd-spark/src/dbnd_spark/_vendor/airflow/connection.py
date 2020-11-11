@@ -118,7 +118,7 @@ class Connection:
                 pass
         return obj
 
-    def _parse_from_uri(self, uri: str):
+    def _parse_from_uri(self, uri):
         uri_parts = urlparse(uri)
         conn_type = uri_parts.scheme
         if conn_type == 'postgresql':
