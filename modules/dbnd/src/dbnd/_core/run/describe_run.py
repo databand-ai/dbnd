@@ -150,7 +150,7 @@ class DescribeRun(RunCtrl):
         if self.run._run_state == RunState.SUCCESS:
             root_task_run = self.run.root_task_run
             root_task = root_task_run.task
-            msg = "Your run has been successfully executed."
+            msg = "Your run has been successfully executed!"
             if self.run.duration:
                 msg = (
                     "Your run has been successfully executed in %s" % self.run.duration
