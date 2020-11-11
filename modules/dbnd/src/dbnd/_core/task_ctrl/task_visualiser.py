@@ -4,6 +4,7 @@ import typing
 
 import six
 
+from dbnd import config
 from dbnd._core.constants import SystemTaskName
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import get_help_msg, show_exc_info
@@ -40,8 +41,6 @@ _TASK_FIELDS = [
     "task_band",
 ]
 
-_MAX_VALUE_SIZE = 1500
-
 
 class FormatterVerbosity(object):
     LOW = 0
@@ -67,7 +66,15 @@ class TaskVisualiser(TaskSubCtrl):
     def __init__(self, task):
         super(TaskVisualiser, self).__init__(task)
 
-    def banner(self, msg, color=None, verbose=False, task_run=None, exc_info=None):
+    def banner(
+        self,
+        msg,
+        color=None,
+        verbose=False,
+        print_task_band=False,
+        task_run=None,
+        exc_info=None,
+    ):
         try:
             b = TextBanner(msg, color)
 
@@ -76,7 +83,12 @@ class TaskVisualiser(TaskSubCtrl):
             else:
                 verbosity = FormatterVerbosity.NORMAL
 
-            builder = _TaskBannerBuilder(task=self.task, banner=b, verbosity=verbosity)
+            builder = _TaskBannerBuilder(
+                task=self.task,
+                banner=b,
+                verbosity=verbosity,
+                print_task_band=print_task_band,
+            )
 
             return builder.build_banner(
                 task_run=task_run, exc_info=exc_info
@@ -91,13 +103,14 @@ class TaskVisualiser(TaskSubCtrl):
 
 
 class _TaskBannerBuilder(TaskSubCtrl):
-    def __init__(self, task, banner, verbosity, task_run=None):
-        # type: (_TaskBannerBuilder, Task, TextBanner, int,  ...) -> None
+    def __init__(self, task, banner, verbosity, print_task_band, task_run=None):
+        # type: (_TaskBannerBuilder, Task, TextBanner, int, bool,  ...) -> None
         super(_TaskBannerBuilder, self).__init__(task)
         self.banner = banner
         self.task_run = task_run
 
         self.verbosity = verbosity
+        self.print_task_band = print_task_band
 
         self.is_driver_or_submitter = (
             self.task.task_name in SystemTaskName.driver_and_submitter
@@ -116,6 +129,9 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
         if self.verbosity >= FormatterVerbosity.HIGH:
             self._add_verbose_info()
+
+        elif self.print_task_band:
+            self._add_task_band_info()
 
         self.task._task_banner(self.banner, verbosity=self.verbosity)
 
@@ -177,7 +193,9 @@ class _TaskBannerBuilder(TaskSubCtrl):
             else:
                 p_kind = "param"
                 value_str = p.to_str(value)
-            value_str = safe_string(value_str, _MAX_VALUE_SIZE)
+            value_str = safe_string(
+                value_str, self.task.settings.describe.console_value_preview_size
+            )
 
             value_source = ""
             if param_meta:
@@ -198,7 +216,8 @@ class _TaskBannerBuilder(TaskSubCtrl):
             # add preview
             if isinstance(value, Target) and value.target_meta:
                 preview_value = safe_string(
-                    value.target_meta.value_preview, _MAX_VALUE_SIZE
+                    value.target_meta.value_preview,
+                    self.task.settings.describe.console_value_preview_size,
                 )
                 # we should add minimal preview
                 if len(preview_value) < 100:
@@ -371,6 +390,10 @@ class _TaskBannerBuilder(TaskSubCtrl):
         b.column(
             "TASK OUTPUTS SIGNATURE SOURCE", task_meta.task_outputs_signature_source
         )
+
+    def _add_task_band_info(self):
+        self.banner.new_section()
+        self.banner.column("TASK_BAND", self.task.task_band)
 
     def _add_spark_info(self):
         b = self.banner

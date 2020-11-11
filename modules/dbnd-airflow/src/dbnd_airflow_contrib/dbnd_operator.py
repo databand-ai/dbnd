@@ -5,6 +5,8 @@ import logging
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
+from dbnd._core.configuration.dbnd_config import config as dbnd_config
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,8 @@ class DbndOperator(BaseOperator):
         super(DbndOperator, self).__init__(**kwargs)
         self._task_type = dbnd_task_type
         self.dbnd_task_id = dbnd_task_id
+        # Make sure that we run in separate pool
+        self.pool = dbnd_config.get("airflow", "dbnd_pool")
 
     @property
     def task_type(self):

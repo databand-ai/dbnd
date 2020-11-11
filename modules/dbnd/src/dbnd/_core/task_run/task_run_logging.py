@@ -211,6 +211,8 @@ class TaskRunLogManager(TaskRunCtrl):
             logger.warning("Failed to write remote log for %s: %s", self.task, ex)
 
     def save_log_preview(self, log_body):
+        if not self.task.settings.log.send_body_to_server:
+            return
         max_size = self.task.settings.log.send_body_to_server_max_size
         log_preview = get_safe_short_text(log_body, max_size)
         if log_preview:
@@ -218,10 +220,10 @@ class TaskRunLogManager(TaskRunCtrl):
 
 
 def get_safe_short_text(text, max_size):
-    if max_size == 0:  # use 0 for unlimited
+    if max_size == -1:  # use -1 for unlimited
         return text
 
-    if max_size == -1:  # use -1 to disable
+    if max_size == 0:  # use 0 to disable
         return None
 
     is_tail_preview = (

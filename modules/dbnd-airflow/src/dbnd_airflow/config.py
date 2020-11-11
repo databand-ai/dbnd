@@ -29,6 +29,10 @@ class AirflowConfig(Config):
         description="Enable all Airflow DB access optimizations"
     )[bool]
 
+    dbnd_pool = parameter(
+        description="Separate pool for Databand tasks", default="dbnd_pool"
+    )[str]
+
     # enabled by optimize_airflow_db_access
     disable_db_ping_on_connect = parameter(
         description="Optimize DB access performance by disabling starndard airflow ping "
@@ -48,6 +52,11 @@ class AirflowConfig(Config):
         default=False,
         description="Remove airflow stdout/stderr redirection into logger on DBND operator run "
         "(redirect can cause crash due to loopback between streams",
+    )[bool]
+
+    clean_zombies_during_backfill = parameter(
+        default=False,
+        description="Launches additional job during backfill to clean up stalled task (zombies).",
     )[bool]
 
     # dbnd-airflow command

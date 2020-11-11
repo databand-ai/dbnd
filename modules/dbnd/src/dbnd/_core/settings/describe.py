@@ -17,3 +17,7 @@ class DescribeConfig(Config):
     no_tree = parameter(
         default=False, description="Describe without showing tasks tree"
     )[bool]
+
+    console_value_preview_size = parameter(
+        description="Maximum length of string previewed in TaskVisualiser"
+    )[int]

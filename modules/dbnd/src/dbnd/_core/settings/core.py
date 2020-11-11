@@ -21,6 +21,9 @@ class DatabandSystemConfig(Config):
     _conf__task_family = "databand"
 
     verbose = parameter(description="Make logging output more verbose").value(False)
+    print_task_band = parameter(description="Print task_band in logging output.").value(
+        False
+    )
 
     describe = parameter.help("Describe current run").value(False)
 

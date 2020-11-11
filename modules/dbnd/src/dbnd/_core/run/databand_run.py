@@ -64,6 +64,7 @@ from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.date_utils import unique_execution_date
+from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import flatten
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.cloudpickle import cloudpickle
@@ -222,6 +223,8 @@ class DatabandRun(SingletonContext):
         self.sends_heartbeat = send_heartbeat
         self.dynamic_af_tasks_count = dict()
         self.af_context = af_context
+        self.start_time = None
+        self.finished_time = None
 
     def _get_engine_config(self, name):
         # type: ( Union[str, EngineConfig]) -> EngineConfig
@@ -418,7 +421,9 @@ class DatabandRun(SingletonContext):
         """
         # with captures_log_into_file_as_task_file(log_file=self.local_driver_log.path):
         try:
+            self.start_time = utcnow()
             self.driver_task_run.runner.execute()
+            self.finished_time = utcnow()
         except DatabandRunError as ex:
             self._dbnd_run_error(ex)
             raise
@@ -431,6 +436,12 @@ class DatabandRun(SingletonContext):
                 logger.exception("Failed to shutdown the current run, continuing")
 
         return self
+
+    @property
+    def duration(self):
+        if self.finished_time and self.start_time:
+            return self.finished_time - self.start_time
+        return None
 
     def _get_task_by_id(self, task_id):
         task = self.context.task_instance_cache.get_task_by_id(task_id)

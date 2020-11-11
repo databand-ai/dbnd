@@ -150,15 +150,18 @@ class DescribeRun(RunCtrl):
         if self.run._run_state == RunState.SUCCESS:
             root_task_run = self.run.root_task_run
             root_task = root_task_run.task
+            msg = "Your run has been successfully executed."
+            if self.run.duration:
+                msg = (
+                    "Your run has been successfully executed in %s" % self.run.duration
+                )
             return "\n%s\n%s\n" % (
                 root_task.ctrl.banner(
                     "Main task '%s' is ready!" % root_task.task_name,
                     color="green",
                     task_run=root_task_run,
                 ),
-                self.run_banner(
-                    "Your run has been successfully executed!", color="green"
-                ),
+                self.run_banner(msg, color="green",),
             )
 
         return self.run_banner("Your run has failed!", color="red", show_run_info=True)
