@@ -11,6 +11,7 @@ from dbnd._core.parameter.parameter_definition import (
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._vendor._marshmallow.compat import urlparse
 from targets import DbndLocalFileMetadataRegistry, FileAlreadyExists, FileTarget, target
+from targets.caching import get_or_create_folder_in_dir
 from targets.multi_target import MultiTarget
 
 
@@ -203,11 +204,3 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                 return
 
         DbndLocalFileMetadataRegistry.refresh(local_target)
-
-
-def get_or_create_folder_in_dir(folder_name, dir_):
-    # type: (str, Task) -> str
-    folder_path = os.path.join(dir_, folder_name)
-    if not os.path.isdir(folder_path):
-        os.makedirs(folder_path)
-    return folder_path

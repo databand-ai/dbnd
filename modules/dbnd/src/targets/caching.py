@@ -9,7 +9,6 @@ import attr
 import six
 
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.task_run.task_run_sync_local import get_or_create_folder_in_dir
 from targets.config import is_in_memory_cache_target_value
 
 
@@ -230,3 +229,11 @@ class DbndLocalFileMetadataRegistry(object):
         if dbnd_meta_cache.expired:
             dbnd_meta_cache.delete()
             return DbndLocalFileMetadataRegistry.get_or_create(file_target)
+
+
+def get_or_create_folder_in_dir(folder_name, dir_):
+    # type: (str, Task) -> str
+    folder_path = os.path.join(dir_, folder_name)
+    if not os.path.isdir(folder_path):
+        os.makedirs(folder_path)
+    return folder_path
