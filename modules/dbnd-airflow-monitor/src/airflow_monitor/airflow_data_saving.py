@@ -2,6 +2,7 @@ import json
 import logging
 
 from time import sleep
+from timeit import default_timer
 
 import prometheus_client
 
@@ -25,7 +26,7 @@ def _is_unique_constr_error(ex):
 
 @prometheus_dbnd_api.time()
 def save_airflow_server_info(airflow_server_info, api_client):
-    logging.info("Updating airflow server info.")
+    logging.info("Sending airflow server info to databand web server")
     marshalled = airflow_server_info_schema.dump(airflow_server_info.__dict__)
 
     def failure_handler(exc, retry_policy, retry_number):
@@ -42,11 +43,18 @@ def save_airflow_server_info(airflow_server_info, api_client):
     retry_policy = get_retry_policy("save_airflow_server_info", max_retries=-1)
 
     try:
+        start = default_timer()
         api_client.api_request(
             "airflow_monitor/save_airflow_server_info",
             marshalled.data,
             retry_policy=retry_policy,
             failure_handler=failure_handler,
+        )
+        end = default_timer()
+        logging.info(
+            "Finished sending airflow server info to databand web server. Total time: {}".format(
+                end - start
+            )
         )
         return
     except Exception as e:
@@ -82,12 +90,18 @@ def _call_tracking_store(tracking_store_function, **kwargs):
 
 
 def save_airflow_monitor_data(airflow_data, tracking_service, base_url, last_sync_time):
-    logger.info("Saving data received from Airflow plugin")
+    logger.info("Sending Airflow data to databand web server")
     json_data = json.dumps(airflow_data)
+    start = default_timer()
     _call_tracking_store(
         tracking_store_function=tracking_service.save_airflow_monitor_data,
         airflow_monitor_data=json_data,
         airflow_base_url=base_url,
         last_sync_time=last_sync_time,
     )
-    logger.debug("Finished saving Airflow data")
+    end = default_timer()
+    logger.info(
+        "Finished sending Airflow data to databand web server. Total time: {}".format(
+            end - start
+        )
+    )

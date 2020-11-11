@@ -29,10 +29,11 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def _log_received_tasks(fetched_data):
+def _log_received_tasks(url, fetched_data):
     try:
         logger.info(
-            "Parsing received data with: {tasks: %d, dags: %d, dag_runs: %d, since: %s}",
+            "Received data from %s with: {tasks: %d, dags: %d, dag_runs: %d, since: %s}",
+            url,
             len(fetched_data.get("task_instances", [])),
             len(fetched_data.get("dags", [])),
             len(fetched_data.get("dag_runs", [])),
@@ -59,7 +60,7 @@ prometheus_metrics = {
 def _send_metrics(airflow_instance_detail, fetched_data):
     try:
         metrics = fetched_data.get("metrics")
-        logger.info("Metrics from airflow plugin: %s", metrics)
+        logger.info("Received Grafana Metrics from airflow plugin: %s", metrics)
         for key, metrics_dict in metrics.items():
             for metric_name, value in metrics_dict.items():
                 prometheus_metrics[key].labels(
@@ -140,7 +141,7 @@ def do_fetching_iteration(
         return 0
 
     try:
-        _log_received_tasks(data)
+        _log_received_tasks(airflow_instance_detail.url, data)
         _send_metrics(airflow_instance_detail, data)
 
         export_data = _as_dotted_dict(**data)
@@ -167,11 +168,6 @@ def do_fetching_iteration(
             for t in export_data.task_instances
             if t["end_date"] is not None
         ]
-        logger.info(
-            "Got %d task end dates, the last is %s",
-            len(task_instances_end_dates),
-            max(task_instances_end_dates) if task_instances_end_dates else None,
-        )
 
         dag_runs_end_dates = [
             pendulum.parse(str(dr["end_date"]))
@@ -179,7 +175,9 @@ def do_fetching_iteration(
             if dr["end_date"] is not None
         ]
         logger.info(
-            "Got %d dag run end dates, the last is %s",
+            "Got %d task end dates, the last is %s and got %d dag run end dates, the last is %s",
+            len(task_instances_end_dates),
+            max(task_instances_end_dates) if task_instances_end_dates else None,
             len(dag_runs_end_dates),
             max(dag_runs_end_dates) if dag_runs_end_dates else None,
         )
@@ -187,13 +185,13 @@ def do_fetching_iteration(
         end_dates = (
             task_instances_end_dates if task_instances_end_dates else dag_runs_end_dates
         )
-        logger.info("Using last end date %s", max(end_dates) if end_dates else None)
 
         airflow_instance_detail.airflow_server_info.synced_to = (
             max(end_dates) if end_dates else utcnow()
         )
         logger.info(
-            "New synced_to date is %s",
+            "Using last end date %s, New synced_to date is %s",
+            max(end_dates) if end_dates else None,
             airflow_instance_detail.airflow_server_info.synced_to,
         )
 
@@ -204,25 +202,43 @@ def do_fetching_iteration(
             airflow_instance_detail.airflow_server_info.last_sync_time,
         )
 
+        logging.info(
+            "Sending airflow server info: url={}, synced_from={}, synced_to={}, last_sync_time={}".format(
+                airflow_instance_detail.airflow_server_info.base_url,
+                airflow_instance_detail.airflow_server_info.synced_from,
+                airflow_instance_detail.airflow_server_info.synced_to,
+                airflow_instance_detail.airflow_server_info.last_sync_time,
+            )
+        )
         save_airflow_server_info(
             airflow_instance_detail.airflow_server_info, api_client
         )
 
         # If synced_to was set to utcnow(), keep since as it was
         if end_dates:
+            logger.info(
+                "Updating since, old value: {}, new value: {}".format(
+                    airflow_instance_detail.since,
+                    airflow_instance_detail.airflow_server_info.synced_to,
+                )
+            )
             airflow_instance_detail.since = (
                 airflow_instance_detail.airflow_server_info.synced_to
             )
-            logger.info("Setting since to be {}".format(airflow_instance_detail.since))
         else:
             logger.info(
                 "Keeping since as it was {}".format(airflow_instance_detail.since)
             )
 
-        # We don't count those who have end_date=None because there can be many of them - more than the limit, also
-        # the plugin will return them every time, so we don't want think we are fetching new stuff when it's really not
+        logger.info(
+            "Total {} task instances, {} dag runs, {} dags saved to databand web server".format(
+                len(export_data.task_instances),
+                len(export_data.dag_runs),
+                len(export_data.dags),
+            )
+        )
+
         total_fetched = max(len(task_instances_end_dates), len(dag_runs_end_dates))
-        logger.info("Total {} items fetched".format(total_fetched))
         return total_fetched
     except Exception as e:
         logger.exception(
@@ -287,8 +303,10 @@ def do_incomplete_data_fetching_iteration(
         return 0
 
     try:
-        _log_received_tasks(data)
+        _log_received_tasks(airflow_instance_detail.url, data)
         _send_metrics(airflow_instance_detail, data)
+
+        export_data = _as_dotted_dict(**data)
 
         save_airflow_monitor_data(
             data,
@@ -297,8 +315,15 @@ def do_incomplete_data_fetching_iteration(
             airflow_instance_detail.airflow_server_info.last_sync_time,
         )
 
+        logger.info(
+            "Total {} task instances, {} dag runs, {} dags saved to databand web server".format(
+                len(export_data.task_instances),
+                len(export_data.dag_runs),
+                len(export_data.dags),
+            )
+        )
+
         total_fetched = max(len(data["task_instances"]), len(data["dag_runs"]))
-        logger.info("Total {} items fetched".format(total_fetched))
         return total_fetched
     except Exception as e:
         logger.exception(
@@ -330,6 +355,12 @@ def _save_error_message(airflow_instance_detail, message, api_client, airflow_co
     airflow_instance_detail.airflow_server_info.monitor_error_message = message
     airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
         utcnow()
+    )
+    logging.info(
+        "Sending airflow server info: url={}, error={}".format(
+            airflow_instance_detail.airflow_server_info.base_url,
+            airflow_instance_detail.airflow_server_info.monitor_error_message,
+        )
     )
     save_airflow_server_info(airflow_instance_detail.airflow_server_info, api_client)
 
@@ -365,10 +396,14 @@ def fetch_one_server_until_synced(
 ):
     # Fetch continuously until we are up to date
     logger.info(
-        "Fetching completed tasks from %s",
+        "Starting to fetch data from %s",
         airflow_instance_detail.airflow_server_info.base_url,
     )
+
     while True:
+        logger.info(
+            "Starting sync iteration for {}".format(airflow_instance_detail.url)
+        )
         fetch_count = do_fetching_iteration(
             airflow_config, airflow_instance_detail, api_client, tracking_store,
         )
@@ -378,14 +413,24 @@ def fetch_one_server_until_synced(
                 airflow_instance_detail.airflow_server_info.base_url,
             )
             break
+        logger.info(
+            "Finished sync iteration for {}".format(airflow_instance_detail.url)
+        )
 
     # Fetch separately incomplete data
     logger.info(
-        "Fetching incomplete tasks from %s",
+        "Starting to fetch incomplete data from %s",
         airflow_instance_detail.airflow_server_info.base_url,
     )
     incomplete_offset = 0
     while True:
+        logger.info(
+            "Starting sync iteration of incomplete data for {} with incomplete offset {}-{}".format(
+                airflow_instance_detail.url,
+                incomplete_offset,
+                incomplete_offset + airflow_config.fetch_quantity,
+            )
+        )
         fetch_count = do_incomplete_data_fetching_iteration(
             airflow_config,
             airflow_instance_detail,
@@ -395,17 +440,25 @@ def fetch_one_server_until_synced(
         )
         if fetch_count < airflow_config.fetch_quantity:
             logger.info(
-                "Finished syncing incomplete tasks from %s",
-                airflow_instance_detail.airflow_server_info.base_url,
+                "Finished syncing incomplete data from {} after receiving {} items which is less then fetch quantity {}".format(
+                    airflow_instance_detail.airflow_server_info.base_url,
+                    fetch_count,
+                    airflow_config.fetch_quantity,
+                )
             )
             break
         else:
             incomplete_offset += airflow_config.fetch_quantity
             logger.info(
-                "Fetched a batch of incomplete tasks from %s, new offset is %d",
+                "Fetched incomplete data from %s, new incomplete offset: %d",
                 airflow_instance_detail.airflow_server_info.base_url,
                 incomplete_offset,
             )
+        logger.info(
+            "Finished sync iteration of incomplete data for {}".format(
+                airflow_instance_detail.url
+            )
+        )
 
 
 def sync_all_servers(
@@ -414,7 +467,7 @@ def sync_all_servers(
     details_to_remove = []
 
     for airflow_instance_detail in airflow_instance_details:
-        logger.info("Syncing server {}".format(airflow_instance_detail.url))
+        logger.info("Starting to sync server {}".format(airflow_instance_detail.url))
 
         set_airflow_server_info_started(airflow_instance_detail.airflow_server_info)
 
@@ -432,8 +485,18 @@ def sync_all_servers(
 
     if len(details_to_remove) > 0:
         for detail in details_to_remove:
-            logger.info("Removing server {} from fetching list".format(detail.url))
             airflow_instance_details.remove(detail)
+
+    logger.info(
+        "Completed servers {} ".format(
+            ",".join([detail.url for detail in details_to_remove])
+        )
+    )
+    logger.info(
+        "Remaining servers {} ".format(
+            ",".join([detail.url for detail in airflow_instance_details])
+        )
+    )
 
 
 def update_airflow_servers_with_local_config(api_client, config):
