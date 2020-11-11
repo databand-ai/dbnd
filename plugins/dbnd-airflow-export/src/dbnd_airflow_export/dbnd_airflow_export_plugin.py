@@ -261,7 +261,7 @@ def _get_airflow_incomplete_data(
     return ed
 
 
-@save_result_size("dag_runs_without_data")
+@save_result_size("dag_runs_without_date")
 @measure_time
 def _get_dag_runs_without_date(
     since, dag_ids, session, page_size=100, incomplete_offset=0
