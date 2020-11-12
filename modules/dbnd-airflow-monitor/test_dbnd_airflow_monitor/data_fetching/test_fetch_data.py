@@ -54,7 +54,27 @@ class TestFetchData(object):
             assert task_instance["task_id"] in ("print_date", "sleep", "templated")
             assert task_instance["try_number"] == 1
 
-    def _fetch_data(self, db_name):
+    def test_incomplete_data(self, incomplete_data_db):
+        result = self._fetch_data(incomplete_data_db)
+        assert result is not None
+        self._validate_keys(result.keys())
+
+        assert len(result["task_instances"]) == 0
+
+        result = self._fetch_data(incomplete_data_db, incomplete_offset=0)
+        assert result is not None
+        self._validate_keys(result.keys())
+
+        # 14 runs each with 3 tasks
+        assert len(result["dag_runs"]) == 14
+        assert len(result["task_instances"]) == 42
+
+        task_instances_without_end_dates = [
+            t for t in result["task_instances"] if t["end_date"] is None
+        ]
+        assert len(task_instances_without_end_dates) == len(result["task_instances"])
+
+    def _fetch_data(self, db_name, quantity=100, incomplete_offset=None):
         db_path = "sqlite:///" + os.path.abspath(
             os.path.normpath(
                 os.path.join(os.path.join(os.path.dirname(__file__), db_name))
@@ -71,9 +91,9 @@ class TestFetchData(object):
             include_logs=True,
             include_task_args=True,
             dag_ids=None,
-            quantity=None,
+            quantity=quantity,
             include_xcom=True,
-            incomplete_offset=None,
+            incomplete_offset=incomplete_offset,
         )
 
         return result
