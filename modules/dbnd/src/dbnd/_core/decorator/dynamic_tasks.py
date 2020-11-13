@@ -20,7 +20,7 @@ def create_dynamic_task(func_call):
     task_cls, call_args, call_kwargs = (
         func_call.task_cls,
         func_call.call_args,
-        func_call.call_kwargs,
+        func_call.call_kwargs.copy(),
     )
     from dbnd import pipeline, PipelineTask
     from dbnd._core.decorator.dbnd_decorator import _default_output

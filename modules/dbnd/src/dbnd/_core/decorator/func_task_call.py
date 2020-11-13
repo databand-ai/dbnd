@@ -4,6 +4,7 @@ import typing
 from typing import Any, Dict, Tuple, Type
 
 import attr
+import six
 
 
 logger = logging.getLogger(__name__)
@@ -45,5 +46,13 @@ class FuncCall(object):
     call_user_code = attr.ib()
 
     def invoke(self):
+        # make sure to invoke only with original decorator spec
+        spec_args = self.task_cls._conf__decorator_spec.args
+        kwargs = {
+            key: value
+            for key, value in six.iteritems(self.call_kwargs)
+            if key in spec_args
+        }
+
         func = self.call_user_code
-        return func(*self.call_args, **self.call_kwargs)
+        return func(*self.call_args, **kwargs)
