@@ -201,3 +201,18 @@ class FileSystem(object):
 
     def open_write(self, path, mode="w", **kwargs):
         return AtomicLocalFile(path, self, mode=mode, **kwargs)
+
+    def move_dir(self, path, dest):
+        raise NotImplementedError(
+            "move_dir() not implemented on {0}".format(self.__class__.__name__)
+        )
+
+    def make_tmp(self):
+        raise NotImplementedError(
+            "make_tmp() not implemented on {0}".format(self.__class__.__name__)
+        )
+
+    def make_tmp_dir(self):
+        raise NotImplementedError(
+            "make_tmp_dir() not implemented on {0}".format(self.__class__.__name__)
+        )

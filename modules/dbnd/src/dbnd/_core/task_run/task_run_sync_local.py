@@ -1,7 +1,9 @@
 import logging
 import os
+import shutil
 
-from tempfile import mkstemp
+from contextlib import contextmanager
+from tempfile import mkdtemp, mkstemp
 from typing import Type
 
 from dbnd._core.parameter.parameter_definition import (
@@ -10,7 +12,14 @@ from dbnd._core.parameter.parameter_definition import (
 )
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._vendor._marshmallow.compat import urlparse
-from targets import DbndLocalFileMetadataRegistry, FileAlreadyExists, FileTarget, target
+from targets import (
+    DbndLocalFileMetadataRegistry,
+    DirTarget,
+    FileAlreadyExists,
+    FileTarget,
+    LocalFileSystem,
+    target,
+)
 from targets.caching import get_or_create_folder_in_dir
 from targets.multi_target import MultiTarget
 
@@ -189,18 +198,8 @@ class TaskRunLocalSyncer(TaskRunCtrl):
         if dbnd_meta_cache.expired or not local_target.exists():
             # If TTL is invalid, or local file doesn't exist -> Sync to local
             local_target.mkdir_parent()
-            _, tmp_file_path = mkstemp()
-            remote_target.download(
-                tmp_file_path, overwrite=local_target.config.overwrite_target,
-            )
-            try:
-                local_target.move_from(tmp_file_path)
-            except FileAlreadyExists as e:
-                logger.warning(
-                    "Moving file from %s to %s failed. File already exist! | Error: %s"
-                    % (tmp_file_path, local_target.path, e)
-                )
-                os.remove(tmp_file_path)
-                return
+
+            with local_target.tmp() as tmp_local_path:
+                remote_target.download(tmp_local_path)
 
         DbndLocalFileMetadataRegistry.refresh(local_target)

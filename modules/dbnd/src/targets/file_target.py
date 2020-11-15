@@ -1,11 +1,13 @@
 import os
 
+from contextlib import contextmanager
+
 import six
 
 from targets import pipes
 from targets.base_target import logger
 from targets.data_target import DataTarget
-from targets.errors import TargetError
+from targets.errors import FileAlreadyExists, TargetError
 from targets.fs import get_file_system, get_file_system_name
 from targets.pipes import Nop, Text
 from targets.target_config import FileCompressions, TargetConfig
@@ -166,6 +168,30 @@ class FileTarget(DataTarget):
 
     def __hash__(self):
         return hash(self.path)
+
+    def make_tmp(self):
+        return self.fs.make_tmp()
+
+    @contextmanager
+    def tmp(self):
+        """
+        Create a tmp path for usage and move the content from tmp to the local target at the end.
+        """
+        tmp_path = self.make_tmp()
+
+        yield tmp_path
+
+        try:
+            self.move_from(tmp_path)
+
+        except FileAlreadyExists as e:
+            logger.warning(
+                "Moving from %s to %s failed. File already exist! | Error: %s"
+                % (tmp_path, self.path, e)
+            )
+        finally:
+            if self.fs.exists(tmp_path):
+                self.fs.remove(tmp_path)
 
 
 FileSystemTarget = FileTarget

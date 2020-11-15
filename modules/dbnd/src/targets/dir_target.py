@@ -127,3 +127,10 @@ class DirTarget(FileTarget):
 
     def is_local(self):
         return self.fs_name == FileSystems.local
+
+    def move_from(self, from_path, raise_if_exists=False):
+        self.fs.move_dir(from_path, self.path, raise_if_exists)
+        self.mark_success()
+
+    def make_tmp(self):
+        return self.fs.make_tmp_dir()
