@@ -22,8 +22,10 @@ class TTaskWithInput(TTask):
 
 
 class TTaskThatFails(TTask):
+    msg = parameter.value("This is a drill")
+
     def run(self):
-        raise ValueError()
+        raise ValueError(self.msg)
 
 
 class CaseSensitiveParameterTask(PythonTask):
