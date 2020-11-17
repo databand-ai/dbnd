@@ -10,7 +10,7 @@ from dbnd._vendor.marshmallow import fields, post_load
 
 class AirflowServerInfoSchema(_ApiCallSchema):
     base_url = fields.String()
-    external_url = fields.String()
+    external_url = fields.String(allow_none=True)
     airflow_version = fields.String(allow_none=True)
     airflow_export_version = fields.String(allow_none=True)
     airflow_monitor_version = fields.String(allow_none=True)
