@@ -18,7 +18,7 @@ class AirflowMonitorArgs(object):
 
 
 def create_airflow_monitor_config_with_values(
-    interval, include_logs, include_task_args, include_xcom, url, sql_conn, dag_folder
+    interval, include_logs, include_task_args, include_xcom, sql_conn, dag_folder
 ):
     config = AirflowMonitorConfig()
 
@@ -30,8 +30,6 @@ def create_airflow_monitor_config_with_values(
         config.include_task_args = include_task_args
     if include_xcom:
         config.include_xcom = include_xcom
-    if url:
-        config.airflow_url = url
     if sql_conn:
         config.sql_alchemy_conn = sql_conn
     if dag_folder:
@@ -49,7 +47,6 @@ def create_airflow_monitor_config_with_values(
 @click.option(
     "--include-xcom", is_flag=True, help="Should include task xcom dictionary"
 )
-@click.option("--url", type=click.STRING, help="Url of airflow-export")
 @click.option("--sql-conn", type=click.STRING, help="Sql alchemy connetion string")
 @click.option(
     "--dag-folder", type=click.STRING, help="Folder where the dags are stored"
@@ -70,7 +67,6 @@ def airflow_monitor(
     include_logs,
     include_task_args,
     include_xcom,
-    url,
     sql_conn,
     dag_folder,
     since,
@@ -86,13 +82,7 @@ def airflow_monitor(
     )
 
     airflow_config = create_airflow_monitor_config_with_values(
-        interval,
-        include_logs,
-        include_task_args,
-        include_xcom,
-        url,
-        sql_conn,
-        dag_folder,
+        interval, include_logs, include_task_args, include_xcom, sql_conn, dag_folder,
     )
 
     airflow_monitor_main(monitor_args, airflow_config)

@@ -31,6 +31,7 @@ from dbnd._core.plugin.dbnd_plugins_mng import register_dbnd_plugins
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
+from dbnd.cli.cmd_airflow_sync import airflow_sync
 from dbnd.cli.cmd_alerts import alerts
 from dbnd.cli.cmd_scheduler_management import schedule
 
@@ -71,6 +72,7 @@ cli.add_command(send_heartbeat)
 
 # clients for the web-api
 cli.add_command(alerts)
+cli.add_command(airflow_sync)
 cli.add_command(schedule)
 
 

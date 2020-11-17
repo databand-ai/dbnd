@@ -499,34 +499,6 @@ def sync_all_servers(
     )
 
 
-def update_airflow_servers_with_local_config(api_client, config):
-    """
-    Update web server with the locally configured server
-    There can be several servers with source=config, but only one with source=config and is_sync_enabled=True
-    Therefore, if we restart monitor with different config url, the previous one will be set to is_sync_enabled=False
-    If user changes (via UI) is_sync_enabled to True, it will automatically change to source=db
-    """
-    external_url = (
-        config.airflow_external_url
-        if config.airflow_external_url
-        else config.airflow_url
-    )
-    api_client.api_request(
-        "airflow_web_servers/add_server",
-        {},
-        "GET",
-        query={
-            "url": config.airflow_url,
-            "is_sync_enabled": True,
-            "fetcher": config.fetcher,
-            "composer_client_id": config.composer_client_id,
-            "api_mode": config.api_mode,
-            "source": "config",
-            "external_url": external_url,
-        },
-    )
-
-
 def airflow_monitor_main(monitor_args, airflow_config):
     """Start Airflow Data Importer"""
     from dbnd import new_dbnd_context
@@ -537,26 +509,6 @@ def airflow_monitor_main(monitor_args, airflow_config):
         databand_url = dc.settings.core.databand_url
         api_client = dc.databand_api_client
         iteration_number = 0
-
-        try:
-            # we have implicit definition of airflow server (to sync with)
-            # in the config file/env
-            # we push it into the databand ,and fetch it back at get_fetching_configuration
-            if airflow_config.airflow_url:
-                update_airflow_servers_with_local_config(
-                    dc.databand_api_client, airflow_config
-                )
-            else:
-                logger.warning(
-                    "No airflow url was set in your local airflow monitor configuration."
-                )
-        except Exception as e:
-            logger.error(
-                "Could not update list of Airflow servers in the Databand server with local config. Error:{}".format(
-                    e
-                )
-            )
-            return
 
         servers_fetcher = AirflowServersGetter(databand_url, api_client)
 
@@ -587,7 +539,7 @@ def airflow_monitor_main(monitor_args, airflow_config):
             )
 
             # We are running in history_only mode and finished syncing all servers
-            if len(airflow_instance_details) == 0:
+            if monitor_args.history_only and len(airflow_instance_details) == 0:
                 logger.info("Finished syncing all servers")
                 break
 

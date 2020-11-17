@@ -40,6 +40,7 @@ airflow_server_info_schema = AirflowServerInfoSchema()
 @attr.s
 class AirflowServerInfo(object):
     base_url = attr.ib()  # type: str
+    external_url = attr.ib(default=None)  # type: Optional[str]
     airflow_version = attr.ib(default=None)  # type: Optional[str]
     airflow_export_version = attr.ib(default=None)  # type: Optional[str]
     airflow_monitor_version = attr.ib(default=None)  # type: Optional[str]
