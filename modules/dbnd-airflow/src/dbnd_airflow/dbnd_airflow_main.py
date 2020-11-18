@@ -23,6 +23,8 @@ import os
 import subprocess
 import sys
 
+from dbnd_airflow.utils import create_dbnd_pool
+
 
 # DO NOT IMPORT ANYTHING FROM AIRFLOW
 # we need to initialize some config values first
@@ -64,17 +66,6 @@ def subprocess_airflow(args):
 def subprocess_airflow_initdb():
     logging.info("Initializing Airflow DB")
     return subprocess_airflow(args=["initdb"])
-
-
-def create_dbnd_pool():
-    from airflow.utils.db import create_session
-    from airflow.models import Pool
-
-    print("Creating databand pool")
-    with create_session() as session:
-        pool_name = dbnd_config.get("airflow", "dbnd_pool")
-        dbnd_pool = Pool(pool=pool_name, slots=-1)
-        session.merge(dbnd_pool)
 
 
 def main(args=None):
@@ -128,7 +119,9 @@ def main(args=None):
     args.func(args)
 
     if func_name in ["resetdb", "initdb"]:
-        create_dbnd_pool()
+        pool_name = dbnd_config.get("airflow", "dbnd_pool")
+        if pool_name == "dbnd_pool":
+            create_dbnd_pool(pool_name)
 
 
 if __name__ == "__main__":

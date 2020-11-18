@@ -7,13 +7,14 @@ import typing
 from airflow import DAG
 from airflow.configuration import conf as airflow_conf
 from airflow.executors import LocalExecutor, SequentialExecutor
-from airflow.models import DagPickle, DagRun, TaskInstance
+from airflow.models import DagPickle, DagRun, Pool, TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import create_session, provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.state import State
 from sqlalchemy.orm import Session
 
+from dbnd import dbnd_config
 from dbnd._core.constants import UpdateSource
 from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
@@ -34,6 +35,7 @@ from dbnd_airflow.dbnd_task_executor.dbnd_task_to_airflow_operator import (
 from dbnd_airflow.executors import AirflowTaskExecutorType
 from dbnd_airflow.executors.simple_executor import InProcessExecutor
 from dbnd_airflow.scheduler.single_dag_run_job import SingleDagRunJob
+from dbnd_airflow.utils import create_dbnd_pool
 
 
 if typing.TYPE_CHECKING:
@@ -161,8 +163,12 @@ class AirflowTaskExecutor(TaskExecutor):
             configuration.AIRFLOW_HOME,
         )
 
-        help_msg = "Check that sql_alchemy_conn in airflow.cfg or environment variable "
-        "AIRFLOW__CORE__SQL_ALCHEMY_CONN is set correctly and that you run airflow initdb command"
+        not_exist_help_msg = (
+            "Check that sql_alchemy_conn in airflow.cfg or environment variable "
+            + "AIRFLOW__CORE__SQL_ALCHEMY_CONN is set correctly."
+        )
+        not_initialised_help_mdg = "Make sure that you run the command: airflow initdb"
+
         err_msg = "You are running in Airflow mode (task_executor={}) with DB at {}".format(
             RunConfig().task_executor_type, conn_string_url.__repr__()
         )
@@ -174,7 +180,7 @@ class AirflowTaskExecutor(TaskExecutor):
         except Exception as ex:
             raise DatabandError(
                 "Airflow DB is not found! %s : %s" % (err_msg, str(ex)),
-                help_msg=help_msg,
+                help_msg=not_exist_help_msg,
                 nested_exceptions=[],
             )
 
@@ -184,8 +190,29 @@ class AirflowTaskExecutor(TaskExecutor):
         except Exception as ex:
             raise DatabandError(
                 "Airflow DB is not initialized! %s : %s" % (err_msg, str(ex)),
-                help_msg=help_msg,
+                help_msg=not_initialised_help_mdg,
             )
+
+        pool_help_msg = (
+            "Check that you did not change dbnd_pool configuration in airflow.cfg "
+            + "and that you run the command: airflow initdb."
+        )
+
+        user_defined_pool = dbnd_config.get("airflow", "dbnd_pool")
+        is_defined_pool_dbnd = user_defined_pool == "dbnd_pool"
+        is_user_pool_in_db = (
+            session.query(Pool.pool).filter(Pool.pool == user_defined_pool).first()
+            is not None
+        )
+
+        if not is_user_pool_in_db:
+            if is_defined_pool_dbnd:
+                create_dbnd_pool(user_defined_pool)
+            else:
+                raise DatabandError(
+                    "Airflow DB does not have dbnd_pool entry in slots table",
+                    help_msg=pool_help_msg,
+                )
 
     def build_airflow_dag(self, task_runs):
         # create new dag from current tasks and tasks selected to run
