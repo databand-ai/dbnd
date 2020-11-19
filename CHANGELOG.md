@@ -15,7 +15,7 @@ Improvements:
 - #1199191096927422: snowflake: sleep for resource fetch
 - #1199109359508985: improve performance of airflow-monitor
 - #1199135775563013: add cli to manage airflow monitors
-
+- #1188613755173249: lazy read for task params
 
 Fixed issues:
 ---
@@ -23,7 +23,6 @@ Fixed issues:
 - #1199183015685020: fix nested run issue
 - #1198912139427114: fix airflow logging
 - #1198951004489095: task_visualizer banner - configurable max value size
-- #1188613755173249: remove auto_read/write in Task notation. (Zaligan)
 
 DBND v 0.29.00
 
