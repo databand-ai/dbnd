@@ -1,5 +1,30 @@
 # History
 
+DBND v 0.30.00
+
+New features:
+---
+- #1195948952063399: Azkaban support
+- #1198875598805805: Support dbnd_cache for multiple scenarios
+
+Improvements:
+
+---
+- #1199199113928119: Documentation for Snowflake Resources Operator
+- #1185230434439866: Mark task that received signal (sigterm?) with different color/state
+- #1199191096927422: snowflake: sleep for resource fetch
+- #1199109359508985: improve performance of airflow-monitor
+- #1199135775563013: add cli to manage airflow monitors
+
+
+Fixed issues:
+---
+- #1199195747557789: improve performance on relation fetching
+- #1199183015685020: fix nested run issue
+- #1198912139427114: fix airflow logging
+- #1198951004489095: task_visualizer banner - configurable max value size
+- #1188613755173249: remove auto_read/write in Task notation. (Zaligan)
+
 DBND v 0.29.00
 
 New features:
