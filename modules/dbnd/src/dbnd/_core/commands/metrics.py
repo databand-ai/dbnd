@@ -5,7 +5,7 @@ import typing
 from dbnd._core.constants import DbndTargetOperationType
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
-from dbnd._core.tracking.log_data_reqeust import LogDataRequest
+from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.utils import seven
 from targets.value_meta import ValueMetaConf
 

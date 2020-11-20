@@ -3,7 +3,7 @@ import typing
 import attr
 
 from dbnd._core.constants import MetricSource
-from dbnd._core.tracking.log_data_reqeust import LogDataRequest
+from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 
@@ -116,10 +116,10 @@ class ValueMetaConf(object):
     log_schema = attr.ib(default=None)  # type: Optional[bool]
     log_size = attr.ib(default=None)  # type: Optional[bool]
     log_histograms = attr.ib(
-        default=LogDataRequest.NONE(), converter=LogDataRequest.from_user_param
+        default=None, converter=LogDataRequest.from_user_param
     )  # type: Optional[Union[LogDataRequest, bool]]
     log_stats = attr.ib(
-        default=LogDataRequest.NONE(), converter=LogDataRequest.from_user_param
+        default=None, converter=LogDataRequest.from_user_param
     )  # type: Optional[Union[LogDataRequest, bool]]
 
     def get_preview_size(self):

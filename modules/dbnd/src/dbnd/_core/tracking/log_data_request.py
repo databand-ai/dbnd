@@ -79,12 +79,9 @@ class LogDataRequest(object):
         - boolean to calculate or not on all the data
         - list and str to specify specific column names
         """
-        data_request = cls.NONE()
         if isinstance(user_param, cls):
-            data_request = user_param
+            return user_param
         elif isinstance(user_param, bool):
-            data_request = cls.ALL() if user_param else cls.NONE()
+            return cls.ALL() if user_param else cls.NONE()
         elif isinstance(user_param, (list, str)):
-            data_request = cls(include_columns=user_param)
-
-        return data_request
+            return cls(include_columns=user_param)

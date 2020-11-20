@@ -69,7 +69,7 @@ def calculate_alpha(alpha: float = 0.5) -> float:
     return alpha
 
 
-@task(training_set=parameter[DataFrame](log_histograms=True))
+@task(training_set=parameter[DataFrame](log_histograms=True, log_stats=True))
 def train_model(
     test_set: DataFrame,
     training_set: DataFrame,

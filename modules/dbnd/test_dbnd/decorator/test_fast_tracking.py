@@ -344,7 +344,7 @@ def test_dbnd_pass_through_default(pandas_data_frame_on_disk, mock_channel_track
             "init_run": 1,
             "add_task_runs": 1,
             "update_task_run_attempts": 4,  # DAG start, driver start, task start, task finished
-            "log_metrics": 3,
+            "log_metrics": 4,  # 1 data metric call, 1 histograms call for DataFrame param, 2 marshalling data calls
             "log_targets": 2,  # read input "data" dataframe, write result
             "save_task_run_log": 2,  # task, driver
             "set_run_state": 2,  # running, success
