@@ -2,6 +2,7 @@ import logging
 import typing
 
 from datetime import timedelta
+from math import floor, log10
 
 import six
 
@@ -131,11 +132,31 @@ class ConsoleStore(TrackingStore):
                 value = round(value, 3)
             logger.info("%s: %s", key, value)
 
+    @staticmethod
+    def _format_value(value):
+        """
+        Convert value to string.
+        Additionally forces float values to NOT use scientific notation.
+        """
+        if isinstance(value, float):
+            value_width = abs(floor(log10(value)))
+            # default python precision threshold to switch to scientific representation of floats
+            if value > 1 or value_width < 4:
+                return str(value)
+            return "{:{width}.{prec}f}".format(
+                value, width=value_width, prec=value_width + 4
+            )
+        return str(value)
+
     def log_metrics(self, task_run, metrics):
         # type: (TaskRun, List[Metric]) -> None
         if len(metrics) == 1:
             m = metrics[0]
-            logger.info("Metric logged: {}={}".format(m.key, m.value))
+            logger.info(
+                "Metric logged: {}={}".format(m.key, self._format_value(m.value))
+            )
         else:
-            metrics_str = "\n\t".join(["{}={}".format(m.key, m.value) for m in metrics])
+            metrics_str = "\n\t".join(
+                ["{}={}".format(m.key, self._format_value(m.value)) for m in metrics]
+            )
             logger.info("Metrics logged:\n\t%s", metrics_str)

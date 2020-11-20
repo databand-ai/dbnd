@@ -6,6 +6,9 @@ from dbnd._core.constants import _DbndDataClass
 
 
 class Metric(_DbndDataClass):
+    MIN_INT = -(2 ** 31)
+    MAX_INT = -MIN_INT - 1
+
     def __init__(
         self,
         key,
@@ -51,7 +54,7 @@ class Metric(_DbndDataClass):
     def value(self, value):
         if isinstance(value, float):
             self.value_float = value
-        elif isinstance(value, int):
+        elif isinstance(value, int) and self.MIN_INT <= value <= self.MAX_INT:
             self.value_int = value
         else:
             self.value_str = value

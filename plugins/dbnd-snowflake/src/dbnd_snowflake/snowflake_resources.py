@@ -25,6 +25,7 @@ SNOWFLAKE_METRIC_TO_UI_NAME = {
     "QUERY_TAG": "query_tag",
     "QUERY_TEXT": "query_text",
     "ROWS_PRODUCED": "rows_produced",
+    "SESSION_ID": "session_id",
     "TOTAL_ELAPSED_TIME": "total_elapsed_time_milliseconds",
 }
 RESOURCE_METRICS = ",".join(
@@ -41,6 +42,7 @@ def log_snowflake_resource_usage(
     key: str = "snowflake_query",
     history_window: float = 15,
     query_history_result_limit: Optional[int] = None,
+    delay: int = 0,
     retries: int = 3,
     retry_pause: float = 0,
     raise_on_error: bool = False,
@@ -58,6 +60,8 @@ def log_snowflake_resource_usage(
     :param key: Override it if you call this function twice or more within the same task/Airflow Operator
     :param history_window: How deep to search into QUERY_HISTORY. Set in minutes
     :param query_history_result_limit: Passed through directly to QUERY_HISTORY search function as `RESULT_LIMIT` param
+    :param delay: Initial delay before looking in QUERY_HISTORY.
+        Metadata can appear there with some delay. Use this param for fine tuning
     :param retries: How much times to search in QUERY_HISTORY.
         Each time search is widened by increasing `RESULT_LIMIT` param.
     :param raise_on_error: By default all exceptions are muted so your task success status
@@ -91,6 +95,7 @@ def log_snowflake_resource_usage(
                     query_key,
                     history_window,
                     query_history_result_limit,
+                    delay,
                     retries,
                     retry_pause,
                     raise_on_error,
@@ -109,11 +114,15 @@ def _get_snowflake_resource_usage(
     key: str,
     history_window: float,
     query_history_result_limit: int,
+    delay: int,
     retries: int,
     retry_pause: float,
     raise_on_error: bool,
     config: SnowflakeConfig,
 ) -> Dict:
+    if delay > 0:
+        logger.info("Delaying search in QUERY_HISTORY for %s seconds", delay)
+        sleep(delay)
     result_limit = min(
         query_history_result_limit, config.query_history_result_limit_max_value
     )
@@ -151,8 +160,8 @@ def _get_snowflake_resource_usage(
                 )
             )
             tries += 1
-            if retry_pause:
-                logger.info("Sleeping for %s", retry_pause)
+            if retry_pause and retry_pause > 0:
+                logger.info("Sleeping for %s seconds", retry_pause)
                 sleep(retry_pause)
         else:
             logger.info(
