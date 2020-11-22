@@ -59,9 +59,6 @@ def get_airflow_data(
     incomplete_offset=None,
     session=None,
 ):
-    # Refresh to get the updated list of dags and their code
-    dagbag.collect_dags(dagbag.dag_folder)
-
     include_logs = bool(include_logs)
     if since:
         since = pendulum.parse(str(since).replace(" 00:00", "Z"))
