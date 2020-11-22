@@ -126,6 +126,7 @@ class TaskRunAttemptUpdateArgs(object):
     attempt_number = attr.ib(default=None)  # type: int
     source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
     start_date = attr.ib(default=None)  # type: datetime.datetime
+    external_links_dict = attr.ib(default=None)
 
 
 class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
@@ -137,6 +138,7 @@ class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
     attempt_number = fields.Number(allow_none=True)
     source = fields.Str(allow_none=True)
     start_date = fields.DateTime(allow_none=True)
+    external_links_dict = fields.Dict(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
