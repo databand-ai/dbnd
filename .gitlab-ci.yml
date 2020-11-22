@@ -36,7 +36,7 @@ variables:
     - develop
     - tags
 
-.template__on_significant_branch:
+.template__on_significant_branch_only:
   only: &on_significant_branch
     - master
     - merge_requests

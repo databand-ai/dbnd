@@ -40,7 +40,7 @@ from dbnd._core.task_build.task_context import current
 from dbnd._core.task_build.task_namespace import auto_namespace, namespace
 from dbnd._core.task_build.task_registry import register_config_cls, register_task
 from dbnd._core.task_ctrl.task_relations import as_task
-from dbnd._core.tracking.log_data_reqeust import LogDataRequest
+from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.tracking.python_tracking import (
     track_functions,
     track_module_functions,

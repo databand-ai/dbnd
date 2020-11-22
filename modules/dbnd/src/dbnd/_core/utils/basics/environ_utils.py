@@ -1,5 +1,7 @@
 import os
 
+from contextlib import contextmanager
+
 
 def environ_enabled(variable_name, default=False):
     # type: (str, bool) -> bool
@@ -33,3 +35,19 @@ def set_env_dir(key, value):
         os.environ[key] = os.path.abspath(value)
         return True
     return False
+
+
+@contextmanager
+def env(environment):
+    """
+    edit the environment variables only in the context scope
+    """
+    current = dict(os.environ)
+    difference = {key for key in environment if key not in current}
+
+    os.environ.update(environment)
+    yield
+
+    os.environ.update(current)
+    for key in difference:
+        os.environ.pop(key)

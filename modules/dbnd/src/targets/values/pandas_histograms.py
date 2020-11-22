@@ -11,7 +11,7 @@ from pandas.core.dtypes.common import is_bool_dtype, is_numeric_dtype, is_string
 if typing.TYPE_CHECKING:
     from typing import Tuple, Dict, Optional, List
     from targets.value_meta import ValueMetaConf
-    from dbnd._core.tracking.log_data_reqeust import LogDataRequest
+    from dbnd._core.tracking.log_data_request import LogDataRequest
 
 logger = logging.getLogger(__name__)
 

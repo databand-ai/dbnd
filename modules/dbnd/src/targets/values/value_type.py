@@ -13,9 +13,11 @@ from targets.value_meta import ValueMeta
 
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Dict, Optional, Union
-    from targets.base_target import Target
+    from typing import Any, Union
+    from targets import DataTarget, Target
     from targets.value_meta import ValueMetaConf
+
+    T = typing.TypeVar("T")
 
 
 logger = logging.getLogger(__name__)

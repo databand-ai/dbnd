@@ -158,7 +158,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     log_schema = attr.ib(default=None)  # type: Optional[bool]
     log_size = attr.ib(default=None)  # type: Optional[bool]
     log_stats = attr.ib(default=None)  # type: Optional[bool]
-    log_histograms = attr.ib(default=False)  # type: Optional[bool]
+    log_histograms = attr.ib(default=None)  # type: Optional[bool]
 
     log_meta = attr.ib(
         default=True

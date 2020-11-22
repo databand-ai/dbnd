@@ -11,7 +11,7 @@ from dbnd._vendor.tabulate import tabulate
 if typing.TYPE_CHECKING:
     from typing import Dict, Tuple, Optional, List
     from targets.value_meta import ValueMetaConf
-    from dbnd._core.tracking.log_data_reqeust import LogDataRequest
+    from dbnd._core.tracking.log_data_request import LogDataRequest
 
 
 class PostgresController(object):
