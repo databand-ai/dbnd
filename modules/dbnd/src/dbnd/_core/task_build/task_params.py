@@ -33,10 +33,14 @@ class _TaskParams(Generic[T]):
     _user_params = attr.ib(factory=dict, converter=_ensure_dict)
     _user_result_params = attr.ib(factory=dict, converter=_ensure_dict)
 
+    is_decorated = attr.ib(factory=bool)
+
     @property
     def result_param(self):
         # type: () -> Optional[T]
-        return self._user_result_params.get(RESULT_PARAM)
+        if self.is_decorated:
+            return self._user_result_params.get(RESULT_PARAM)
+        return self._class_params.get(RESULT_PARAM)
 
     @property
     def all_params(self):

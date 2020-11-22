@@ -76,6 +76,7 @@ class TaskDefinition(object):
             user_result_params=self._update_and_evolve_owner(
                 func_params_builder.result_params, {}
             ),
+            is_decorated=self.task_class._conf__decorator_spec is not None,
         )  # type: TaskDefinitionParams
 
         # if we have output params in function arguments, like   f(some_p=parameter.output)
