@@ -254,7 +254,7 @@ class UpdateSource(EnumWithAll):
 
     @classmethod
     def is_tracking(cls, source):
-        return source in [UpdateSource.dbnd, UpdateSource.azkaban_tracking]
+        return source in [UpdateSource.airflow_tracking, UpdateSource.azkaban_tracking]
 
 
 class MetricSource(object):
