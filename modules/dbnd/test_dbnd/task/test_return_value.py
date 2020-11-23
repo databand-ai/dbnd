@@ -22,7 +22,7 @@ class ConsumerTask(Task):
 
 class Pipeline(PipelineTask):
     def band(self):
-        ConsumerTask(p=[ResultTask(t_id=i).result for i in range(3)])
+        ConsumerTask(p=[ResultTask(t_id=i) for i in range(3)])
 
 
 class TestReturnValue(TargetTestBase):
