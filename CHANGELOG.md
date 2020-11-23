@@ -1,5 +1,13 @@
 # History
 
+DBND v 0.30.04
+
+Fixed Issues:
+---
+- #1196324185480705: make databand task return proper result
+- #1198935333953725: fix pickling compatibility issue for fat wheel.
+
+
 DBND v 0.30.00
 
 New features:
