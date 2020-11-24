@@ -52,6 +52,7 @@ setuptools.setup(
     extras_require={
         ':sys_platform=="win32"': ["colorama"],
         "tests": [
+            "qtconsole==4.7.7",  # 5.0 is not py 27 compatible
             "pandas==0.24.2",
             "numpy",
             "coverage",
