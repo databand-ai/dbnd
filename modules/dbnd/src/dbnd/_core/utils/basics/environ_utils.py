@@ -38,7 +38,7 @@ def set_env_dir(key, value):
 
 
 @contextmanager
-def env(environment):
+def env(**environment):
     """
     edit the environment variables only in the context scope
     """
