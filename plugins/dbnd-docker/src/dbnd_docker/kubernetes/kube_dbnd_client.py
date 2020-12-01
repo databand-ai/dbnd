@@ -6,7 +6,6 @@ import typing
 from datetime import datetime
 from typing import Optional
 
-from airflow.contrib.kubernetes.pod_launcher import PodStatus
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 
@@ -24,10 +23,10 @@ from dbnd_airflow.airflow_extensions.dal import (
 from dbnd_airflow_contrib.airflow_task_instance_retry_controller import (
     AirflowTaskInstanceRetryController,
 )
+from dbnd_docker.kubernetes.backports.pod_launcher import PodStatus
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
     KubernetesEngineConfig,
-    PodRetryConfiguration,
     readable_pod_request,
 )
 
@@ -272,7 +271,6 @@ class DbndPodCtrl(object):
         self.name = pod_name
         self.namespace = pod_namespace
         self.kube_client = kube_client
-        self.pod_retry_config = PodRetryConfiguration.from_kube_config(kube_config)
 
     def delete_pod(self):
         if self.kube_config.keep_finished_pods:
@@ -590,8 +588,10 @@ class DbndPodCtrl(object):
             logger.info(
                 "Found pod exit code %d for pod %s", pod_exit_code, metadata.name
             )
-            if self._should_pod_be_retried(pod_exit_code):
-                retry_count, retry_delay = self._get_pod_retry_parameters(pod_exit_code)
+            if self._should_pod_be_retried(pod_exit_code, self.kube_config):
+                retry_count, retry_delay = self._get_pod_retry_parameters(
+                    pod_exit_code, self.kube_config
+                )
                 task_instance = get_airflow_task_instance(task_run)
                 task_instance.max_tries = retry_count
                 """
@@ -615,12 +615,8 @@ class DbndPodCtrl(object):
                 )
                 return False
         elif reason == PodRetryReason.err_image_pull:
-            retry_count = self.pod_retry_config.get_retry_count(
-                PodRetryReason.err_image_pull
-            )
-            retry_delay = self.pod_retry_config.get_retry_delay(
-                PodRetryReason.err_image_pull
-            )
+            retry_count = self.kube_config.retry_on_image_pull_error_count
+            retry_delay = self.kube_config.pod_retry_delay
             task_instance = get_airflow_task_instance(task_run)
             task_instance.max_tries = retry_count
             return self._schedule_pod_for_retry(
@@ -632,17 +628,17 @@ class DbndPodCtrl(object):
                 increment_try_number,
             )
 
-    def _get_pod_retry_parameters(self, pod_exit_code):
-        # Configuration object stores exit_codes as strings under the hood,
-        # hence we call str() on the pod exit code
-        return (
-            self.pod_retry_config.get_retry_count(str(pod_exit_code)),
-            self.pod_retry_config.get_retry_delay(str(pod_exit_code)),
-        )
-
-    def _should_pod_be_retried(self, pod_exit_code):
+    @staticmethod
+    def _get_pod_retry_parameters(pod_exit_code, engine_config):
         # Configuration stores keys of dictionary as strings, hence we call str() on the pod exit code
-        return str(pod_exit_code) in self.pod_retry_config.reasons_and_exit_codes
+        retry_count = engine_config.pod_exit_code_to_retry_count[str(pod_exit_code)]
+        retry_delay = engine_config.pod_retry_delay
+        return retry_count, retry_delay
+
+    @staticmethod
+    def _should_pod_be_retried(pod_exit_code, engine_config):
+        # Configuration stores keys of dictionary as strings, hence we call str() on the pod exit code
+        return str(pod_exit_code) in engine_config.pod_exit_code_to_retry_count
 
     @staticmethod
     def _schedule_pod_for_retry(
