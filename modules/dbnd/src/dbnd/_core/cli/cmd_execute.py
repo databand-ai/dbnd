@@ -7,13 +7,51 @@ from dbnd._vendor import click
 logger = logging.getLogger(__name__)
 
 
+def get_dbnd_version():
+    import dbnd
+
+    return dbnd.__version__
+
+
+def get_python_version():
+    import sys
+
+    return sys.version.rsplit(" ")[0]  # string like '3.8.6'
+
+
+class DbndVersionsClashError(Exception):
+    pass
+
+
 @click.group()
 @click.option("--dbnd-run", required=True, type=click.Path())
 # option that disables the tracking store access.
 @click.option("--disable-tracking-api", is_flag=True, default=False)
+@click.option("--expected-dbnd-version", default=None)
+@click.option("--expected-python-version", default=None)
 @click.pass_context
-def execute(ctx, dbnd_run, disable_tracking_api):
+def execute(
+    ctx, dbnd_run, disable_tracking_api, expected_dbnd_version, expected_python_version
+):
     """Execute databand primitives"""
+    if expected_python_version and expected_dbnd_version:
+        spark_python_version = get_python_version()
+        spark_dbnd_version = get_dbnd_version()
+        if expected_python_version != spark_python_version:
+            raise DbndVersionsClashError(
+                "You submmited job using Python {} but the Spark cluster uses Python {}. To "
+                "assure execution consistency use the same version in both places.".format(
+                    expected_python_version, spark_python_version
+                )
+            )
+        if expected_dbnd_version != spark_dbnd_version:
+            raise DbndVersionsClashError(
+                "You submmited job using dbnd {} but the Spark cluster uses dbnd {}. To "
+                "assure execution consistency use the same version in both places.".format(
+                    expected_dbnd_version, spark_dbnd_version
+                )
+            )
+
     from dbnd._core.run.databand_run import DatabandRun
     from targets import target
 
