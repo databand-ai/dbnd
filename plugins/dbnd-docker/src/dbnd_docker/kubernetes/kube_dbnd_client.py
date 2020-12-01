@@ -6,7 +6,6 @@ import typing
 from datetime import datetime
 from typing import Optional
 
-from airflow.contrib.kubernetes.pod_launcher import PodStatus
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 
@@ -24,6 +23,7 @@ from dbnd_airflow.airflow_extensions.dal import (
 from dbnd_airflow_contrib.airflow_task_instance_retry_controller import (
     AirflowTaskInstanceRetryController,
 )
+from dbnd_docker.kubernetes.compat.pod_launcher import PodStatus
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
     KubernetesEngineConfig,

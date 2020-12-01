@@ -16,7 +16,6 @@ COPY ./setup.cfg /dbnd/plugins/*/setup.cfg
 COPY ./project.cfg /dbnd/
 
 RUN pip install --upgrade 'pip>=20,<20.3'
-RUN pip install apache-airflow
 
 RUN pip install -e /dbnd/modules/dbnd
 RUN pip install -e /dbnd/modules/dbnd-airflow[airflow_1_10_7]
