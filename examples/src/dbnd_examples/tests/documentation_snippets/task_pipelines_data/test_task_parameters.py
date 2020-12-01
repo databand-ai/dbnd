@@ -1,8 +1,10 @@
+import datetime
 import logging
 
 import pytest
 import six
 
+from dbnd import PythonTask, parameter
 from dbnd.testing.helpers_pytest import assert_run_task
 
 
@@ -10,17 +12,20 @@ if six.PY2:
     pytestmark = pytest.mark.skip()  # py2 styling
 else:
     from dbnd_examples.tutorial_syntax import T22_function_with_different_inputs
-    from dbnd_examples.tutorial_syntax.T11_tasks_pipeline import (
-        pipe_operations,
-        pipeline_into_pipeline,
-    )
-    from dbnd_examples.tutorial_syntax.T24_function_with_pandas_numpy import (
-        f_test_pandas_numpy_flow,
-    )
+
+
 logger = logging.getLogger(__name__)
 
 
-class TestTutorialSyntax(object):
+class DateTask(PythonTask):
+    date = parameter[datetime.date]
+
+
+class DateTask2(DateTask):
+    other = parameter(significant=False)[str]
+
+
+class TestTaskParameters(object):
     def test_run_all_as_regular_function(self):
         actual = T22_function_with_different_inputs.f_test_flow()
         # this was a normal execution of the function, no databand required!
@@ -48,21 +53,13 @@ class TestTutorialSyntax(object):
         # it changes from machine to machine :(
         assert "'2018-01-01' '1 day, 0:00:00'" in actual
 
-    def test_pipe_operations_pipe(self):
-        task = assert_run_task(pipe_operations.task("my_pipe"))
-        assert "operation_z(my_pipe) -> operation_x -> operation_y" == task.result.load(
-            str
-        )
+    def test_task_parameters(self):
+        a = datetime.date(2014, 1, 21)
+        b = datetime.date(2014, 1, 21)
 
-    def test_pipe_operations_pipelines(self):
-        task = assert_run_task(pipeline_into_pipeline.task())
+        c = DateTask2(date=a, other="foo")
+        d = DateTask2(date=b, other="bar")
 
-        actual = task.result.load(str)
-        print(actual)
-        assert (
-            "operation_z(operation_z(pipe) -> operation_x -> operation_y)"
-            " -> operation_x -> operation_y" == actual
-        )
-
-    def test_pandas_numpy(self):
-        assert_run_task(f_test_pandas_numpy_flow.task())
+        assert c.other == "foo"
+        assert d.other == "foo"
+        assert c is d

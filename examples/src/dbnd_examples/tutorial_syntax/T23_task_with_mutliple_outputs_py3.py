@@ -15,11 +15,6 @@ def func_returns_two_dataframes_v1(p: int) -> (DataFrame, DataFrame):
     )
 
 
-@task
-def func_returns_huge_dataframe(p: int) -> DataFrame:
-    return pd.DataFrame(data=[[p] * 100000])
-
-
 @task(result="features,scores")
 def func_returns_two_dataframes_v2(p: int) -> (DataFrame, DataFrame):
     return (
@@ -66,3 +61,8 @@ def func_multiple_outputs_py2():
         pd.DataFrame(data=[[1, 1]], columns=["c1", "c2"]),
         pd.DataFrame(data=[[1, 1]], columns=["c1", "c2"]),
     )
+
+
+@task
+def func_returns_huge_dataframe(p: int) -> DataFrame:
+    return pd.DataFrame(data=[[p] * 100000])

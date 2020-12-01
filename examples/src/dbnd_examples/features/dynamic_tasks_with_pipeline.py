@@ -5,9 +5,6 @@ from typing import Tuple
 from dbnd import dbnd_run_start, pipeline, task
 
 
-dbnd_run_start()
-
-
 @task
 def say_hello(text="sdfsd"):
     greeting = "Hey, {}!".format(text)
@@ -40,4 +37,5 @@ def say_hello_to_everybody(users_num=3) -> Tuple[str, str]:
 
 
 if __name__ == "__main__":
+    dbnd_run_start()
     say_hello_to_everybody()
