@@ -1,8 +1,9 @@
 import logging
+import os
 
 import pytest
 
-from dbnd import Task, config, task
+from dbnd import Task, config, dbnd_cmd, task
 from dbnd._core.task_build.task_registry import DbndTaskRegistry, get_task_registry
 
 
@@ -42,3 +43,14 @@ class TestDbndTaskRegistry(object):
                 {"unknown_task_with_from": {"_from": "unknown_task_with_from"}}
             ):
                 get_task_registry().build_dbnd_task("unknown_task_with_from")
+
+
+class TestRunDbndTaskRegistry(object):
+    def test_shortened_task_name_reference(self, capfd):
+        dbnd_cmd(
+            "run",
+            "dbnd_test_scenarios.complex_package_structure.complex_package.complex_structure_pipeline",
+        )
+        output = capfd.readouterr()
+        assert "Auto-decorating and treating it as @task" not in output.out
+        assert "Auto-decorating and treating it as @task" not in output.err
