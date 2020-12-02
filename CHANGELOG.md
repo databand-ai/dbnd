@@ -1,5 +1,11 @@
 # History
 
+DBND v 0.31.00
+
+Improvements:
+---
+- #1199222341211949: Allow log_metric() to store larger integers as integers.
+
 DBND v 0.30.04
 
 Fixed Issues:

@@ -6,8 +6,9 @@ from dbnd._core.constants import _DbndDataClass
 
 
 class Metric(_DbndDataClass):
-    MIN_INT = -(2 ** 31)
-    MAX_INT = -MIN_INT - 1
+    _int_precision = 16
+    MAX_INT = 10 ** _int_precision
+    MIN_INT = -MAX_INT
 
     def __init__(
         self,
@@ -38,7 +39,7 @@ class Metric(_DbndDataClass):
         if self.value_float is not None:
             return self.value_float
         if self.value_int is not None:
-            return self.value_int
+            return int(self.value_int)
         if self.value_json is not None:
             return self.value_json
         return self.value_str
