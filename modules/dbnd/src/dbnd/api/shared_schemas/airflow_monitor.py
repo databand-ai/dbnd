@@ -11,6 +11,7 @@ from dbnd._vendor.marshmallow import fields, post_load
 class AirflowServerInfoSchema(_ApiCallSchema):
     base_url = fields.String()
     external_url = fields.String(allow_none=True)
+    airflow_instance_uid = fields.String(allow_none=True)
     airflow_version = fields.String(allow_none=True)
     airflow_export_version = fields.String(allow_none=True)
     airflow_monitor_version = fields.String(allow_none=True)
@@ -28,6 +29,8 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     fetcher = fields.String(allow_none=True)
     composer_client_id = fields.String(allow_none=True)
     active_dags = fields.Dict(allow_none=True)
+    name = fields.String(allow_none=True)
+    env = fields.String(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -41,6 +44,7 @@ airflow_server_info_schema = AirflowServerInfoSchema()
 class AirflowServerInfo(object):
     base_url = attr.ib()  # type: str
     external_url = attr.ib(default=None)  # type: Optional[str]
+    airflow_instance_uid = attr.ib(default=None)  # type: str
     airflow_version = attr.ib(default=None)  # type: Optional[str]
     airflow_export_version = attr.ib(default=None)  # type: Optional[str]
     airflow_monitor_version = attr.ib(default=None)  # type: Optional[str]
@@ -58,3 +62,5 @@ class AirflowServerInfo(object):
     fetcher = attr.ib(default=None)  # type: Optional[str]
     composer_client_id = attr.ib(default=None)  # type: Optional[str]
     active_dags = attr.ib(default=None)  # type: Dict[str, List[str]]
+    name = fields.String(default=True)  # type: Optional[str]
+    env = fields.String(default=True)  # type: Optional[str]

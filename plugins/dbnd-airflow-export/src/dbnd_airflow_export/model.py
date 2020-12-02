@@ -6,6 +6,7 @@ from airflow.models import DagRun
 from airflow.utils.net import get_hostname
 from airflow.version import version as airflow_version
 
+from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow_export.helpers import (
     _extract_args_from_dict,
     _get_command_from_operator,
@@ -295,6 +296,7 @@ class ExportData(object):
         self.logs_path = conf.get("core", "base_log_folder")
         self.airflow_export_version = _get_export_plugin_version()
         self.rbac_enabled = conf.get("webserver", "rbac")
+        self.airflow_instance_uid = get_airflow_instance_uid()
 
     def as_dict(self):
         return dict(
@@ -307,4 +309,5 @@ class ExportData(object):
             logs_path=self.logs_path,
             airflow_export_version=self.airflow_export_version,
             rbac_enabled=self.rbac_enabled,
+            airflow_instance_uid=self.airflow_instance_uid,
         )

@@ -28,6 +28,7 @@ from dbnd._core.task_build.dynamic import build_dynamic_task_class
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
+from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,7 @@ class AirflowTaskContext(object):
     task_id = attr.ib()  # type: str
     try_number = attr.ib(default=1)
     context = attr.ib(default=None)  # type: Optional[dict]
+    airflow_instance_uid = attr.ib(default=None)  # type: Optional[UUID]
 
     root_dag_id = attr.ib(init=False, repr=False)  # type: str
     is_subdag = attr.ib(init=False, repr=False)  # type: bool
@@ -97,6 +99,7 @@ def extract_airflow_context(airflow_context):
             task_id=task_id,
             try_number=try_number,
             context=airflow_context,
+            airflow_instance_uid=get_airflow_instance_uid(),
         )
 
     logger.debug(
@@ -134,6 +137,7 @@ def try_get_airflow_context_env():
     execution_date = os.environ.get("AIRFLOW_CTX_EXECUTION_DATE")
     task_id = os.environ.get("AIRFLOW_CTX_TASK_ID")
     try_number = os.environ.get("AIRFLOW_CTX_TRY_NUMBER")
+    airflow_instance_uid = os.environ.get("AIRFLOW_CTX_UID")
 
     if dag_id and task_id and execution_date:
         return AirflowTaskContext(
@@ -141,6 +145,7 @@ def try_get_airflow_context_env():
             execution_date=execution_date,
             task_id=task_id,
             try_number=int(try_number) if try_number else None,
+            airflow_instance_uid=airflow_instance_uid,
         )
 
     logger.debug(
@@ -198,6 +203,7 @@ def try_get_airflow_context_from_spark_conf():
         execution_date = conf.get("spark.env.AIRFLOW_CTX_EXECUTION_DATE")
         task_id = conf.get("spark.env.AIRFLOW_CTX_TASK_ID")
         try_number = conf.get("spark.env.AIRFLOW_CTX_TRY_NUMBER")
+        airflow_instance_uid = os.environ.get("spark.env.AIRFLOW_CTX_UID")
 
         if dag_id and task_id and execution_date:
             return AirflowTaskContext(
@@ -205,6 +211,7 @@ def try_get_airflow_context_from_spark_conf():
                 execution_date=execution_date,
                 task_id=task_id,
                 try_number=try_number,
+                airflow_instance_uid=airflow_instance_uid,
             )
     except Exception as ex:
         logger.info("Failed to get airflow context info from spark job: %s", ex)

@@ -45,6 +45,7 @@ class AirflowTaskContextSchema(ApiObjectSchema):
     execution_date = fields.String()
     task_id = fields.String()
     try_number = fields.Integer(allow_none=True)
+    airflow_instance_uid = fields.UUID()
 
     @post_load
     def make_run_info(self, data, **kwargs):
