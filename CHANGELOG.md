@@ -4,7 +4,15 @@ DBND v 0.31.00
 
 Improvements:
 ---
-- #1199222341211949: Allow log_metric() to store larger integers as integers.
+- #1199351713607668: log collection - bring both head and tail
+- #1199222341211949: make log_metric() compatible with BIGINTs
+- #1199191513095141: remove git working from log
+- #1199352826744440: Better run name and job name for Azkaban
+
+Fixed issues:
+---
+- #1185047487019177: add dataframe name to target reporting with log_dataframe()
+- #1198956007770574: fix jvm tracking timeouts
 
 DBND v 0.30.04
 
