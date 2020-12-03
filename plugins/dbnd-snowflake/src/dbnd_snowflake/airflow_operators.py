@@ -17,17 +17,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Based on SnoflakeOperator
+# Based on SnowflakeOperator
 import logging
 
 from typing import Optional
 
 from airflow.contrib.operators.snowflake_operator import SnowflakeOperator
-from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
 from dbnd_snowflake import log_snowflake_resource_usage, log_snowflake_table
-from dbnd_snowflake.airflow_hooks import DbndSnowflakeHook
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +60,6 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
         self,
         table,
         key=None,
-        account=None,
         with_preview: Optional[bool] = None,
         with_schema: Optional[bool] = None,
         raise_on_error: bool = False,
@@ -77,25 +74,11 @@ class LogSnowflakeTableOperator(SnowflakeOperator):
         self.with_schema = with_schema
         self.raise_on_error = raise_on_error
 
-        # TODO: deprecate
-        self.account = account
-
-    def get_hook(self):
-        return DbndSnowflakeHook(
-            snowflake_conn_id=self.snowflake_conn_id,
-            account=self.account,
-            warehouse=self.warehouse,
-            database=self.database,
-            role=self.role,
-            schema=self.schema,
-        )
-
     def execute(self, context):
         hook = self.get_hook()
-        connection_string = hook.get_uri()
         return log_snowflake_table(
             table_name=self.table,
-            connection_string=connection_string,
+            connection_string=hook.get_conn(),
             database=hook.database,
             schema=hook.schema,
             key=self.key,
@@ -113,7 +96,6 @@ def log_snowflake_operator(
     raise_on_error: bool = False,
     **kwargs
 ):
-    task_id = kwargs.pop("task_id", "log_table_%s_%s" % (op.task_id, table))
     return LogSnowflakeTableOperator(
         table=table,
         snowflake_conn_id=kwargs.pop("snowflake_conn_id", op.snowflake_conn_id),
@@ -121,7 +103,7 @@ def log_snowflake_operator(
         warehouse=kwargs.pop("warehouse", op.warehouse),
         role=kwargs.pop("role", op.role),
         schema=kwargs.pop("schema", op.schema),
-        task_id=task_id,
+        task_id=kwargs.pop("task_id", "log_table_{}_{}".format(op.task_id, table)),
         with_preview=with_preview,
         with_schema=with_schema,
         raise_on_error=raise_on_error,
@@ -129,7 +111,7 @@ def log_snowflake_operator(
     )
 
 
-class LogSnowflakeResourceOperator(BaseOperator):
+class LogSnowflakeResourceOperator(SnowflakeOperator):
     """
     Queries Snowflake database for resources used to execute specific SQL query and tracks it into DBND
 
@@ -160,12 +142,6 @@ class LogSnowflakeResourceOperator(BaseOperator):
         self,
         query_id: str,
         session_id: Optional[str] = None,
-        snowflake_conn_id: str = "snowflake_default",
-        warehouse: Optional[str] = None,
-        database: Optional[str] = None,
-        role: Optional[str] = None,
-        schema: Optional[str] = None,
-        account: Optional[str] = None,
         key: Optional[str] = "snowflake_query",
         history_window: float = 15,
         query_history_result_limit: int = 100,
@@ -177,13 +153,6 @@ class LogSnowflakeResourceOperator(BaseOperator):
     ):
         super(LogSnowflakeResourceOperator, self).__init__(sql=None, *args, **kwargs)
 
-        self.snowflake_conn_id = snowflake_conn_id
-        self.warehouse = warehouse
-        self.database = database
-        self.role = role
-        self.schema = schema
-        self.account = account
-
         self.session_id = session_id
         self.query_id = query_id
         self.key = key
@@ -193,22 +162,12 @@ class LogSnowflakeResourceOperator(BaseOperator):
         self.retry_pause = retry_pause
         self.raise_on_error = raise_on_error
 
-    def get_hook(self):
-        return DbndSnowflakeHook(
-            snowflake_conn_id=self.snowflake_conn_id,
-            account=self.account,
-            warehouse=self.warehouse,
-            database=self.database,
-            role=self.role,
-            schema=self.schema,
-        )
-
     def execute(self, context):
         hook = self.get_hook()
 
         log_snowflake_resource_usage(
             database=hook.database,
-            connection_string=hook.get_uri(),
+            connection_string=hook.get_conn(),
             query_ids=[self.query_id],
             session_id=int(self.session_id) if self.session_id else None,
             key=self.key,
@@ -221,13 +180,12 @@ class LogSnowflakeResourceOperator(BaseOperator):
 
 
 def log_snowflake_resource_operator(op: SnowflakeOperator, **kwargs):
-    task_id = kwargs.pop("task_id", "log_resources_%s" % (op.task_id))
     return LogSnowflakeResourceOperator(
         snowflake_conn_id=kwargs.pop("snowflake_conn_id", op.snowflake_conn_id),
         database=kwargs.pop("database", op.database),
         warehouse=kwargs.pop("warehouse", op.warehouse),
         role=kwargs.pop("role", op.role),
         schema=kwargs.pop("schema", op.schema),
-        task_id=task_id,
+        task_id=kwargs.pop("task_id", "log_resources_{}".format(op.task_id)),
         **kwargs
     )
