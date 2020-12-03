@@ -87,12 +87,16 @@ class LoggingConfig(config.Config):
         default=True, description="Enable or disable sending log file to server."
     )[bool]
 
-    send_body_to_server_max_size = parameter(
-        default=16 * 1024 * 1024,  # 16MB
-        description="Max log file size in bytes to be sent to server.\n"
-        "\t* use -1 for unlimited;"
-        "\t* use negative (e.g. -1000) to get log's 'head' instead of 'tail'."
-        "Default: 16MB.",
+    preview_head_bytes = parameter(
+        default=8 * 1024 * 1024,  # 8MB
+        description="Max head size of the log file, bytes to be sent to server.\n"
+        "Default: 8MB.",
+    )[int]
+
+    preview_tail_bytes = parameter(
+        default=8 * 1024 * 1024,  # 8MB
+        description="Max tail size of the log file, bytes to be sent to server.\n"
+        "Default: 8MB.",
     )[int]
 
     remote_logging_disabled = parameter.help(

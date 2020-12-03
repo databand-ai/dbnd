@@ -11,7 +11,7 @@ from targets.utils.path import safe_mkdirs
 logger = logging.getLogger(__name__)
 
 
-def _eset_handlers():
+def _reset_handlers():
     root = logging.root
     map(root.removeHandler, root.handlers[:])
     map(root.removeFilter, root.filters[:])
