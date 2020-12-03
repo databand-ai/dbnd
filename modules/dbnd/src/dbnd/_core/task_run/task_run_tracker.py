@@ -152,6 +152,7 @@ class TaskRunTracker(TaskRunCtrl):
                     target_meta=value_meta,
                     operation_type=operation_type,
                     operation_status=operation_status,
+                    param_name=key,
                 )
             metrics = value_meta.build_metrics_for_key(key, meta_conf)
 
