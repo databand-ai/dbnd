@@ -179,7 +179,8 @@ EXAMPLES\n
 
 @alerts.group(help=CREATE_HELP_MSG)
 @click.option("--severity", "-s", help="Alert severity", type=Severity(), required=True)
-@click.option("--job", "-j", help="Job name", type=click.STRING, required=True)
+@click.option("--job", "-j", help="Job name", type=click.STRING, required=False)
+@click.option("--job-id", type=click.STRING, required=False)
 @click.option("--task", "-t", help="Task name", type=click.STRING, required=False)
 @click.option(
     "--update",
@@ -190,9 +191,15 @@ EXAMPLES\n
     required=False,
 )
 @click.pass_context
-def create(ctx, job, severity, task, uid):
+def create(ctx, job, job_id, severity, task, uid):
     """Create or update alerts for given job."""
-    ctx.obj = {"job": job, "severity": severity, "task": task, "uid": uid}
+    ctx.obj = {
+        "job": job,
+        "job_id": job_id,
+        "severity": severity,
+        "task": task,
+        "uid": uid,
+    }
 
 
 # Registering the create commands
@@ -253,7 +260,8 @@ def build_alerts_table(alerts_data):
 def cmd_create_alert(manage_ctx, alert, operator, value, user_metric):
     try:
         alert_def_uid = create_alert(
-            job_name=manage_ctx.obj["job"],
+            job_name=manage_ctx.obj.get("job"),
+            job_id=manage_ctx.obj.get("job_id"),
             task_name=manage_ctx.obj.get("task", None),
             uid=manage_ctx.obj.get("uid", None),
             alert_class=alert,
