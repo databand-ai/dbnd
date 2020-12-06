@@ -197,6 +197,7 @@ set_unfinished_tasks_state_schema = SetUnfinishedTasksStateShcmea()
 class SaveTaskRunLogSchema(_ApiCallSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     log_body = fields.String(allow_none=True)
+    local_log_path = fields.String(allow_none=True)
 
 
 save_task_run_log_schema = SaveTaskRunLogSchema()

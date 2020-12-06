@@ -16,6 +16,7 @@ import dbnd._core.utils.basics.environ_utils
 
 from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.environ_config import (
+    ENV_DBND_TRACKING_ATTEMPT_UID,
     _debug_init_print,
     spark_tracking_enabled,
 )
@@ -265,13 +266,6 @@ def build_run_time_airflow_task(af_context):
             AirflowOperatorRuntimeTask, task_family, params_def,
         )
 
-        try:
-            task_class.airflow_log_file = get_airflow_logger_file(af_context.context)
-        except Exception:
-            logger.warning(
-                "couldn't get the airflow's log_file for task {}".format(task_family)
-            )
-
         if tracked_function:
             import inspect
 
@@ -359,9 +353,32 @@ def get_flatten_operator_params(operator):
     return {name: repr(value) for name, value in params}
 
 
-def get_airflow_logger_file(context):
-    log_path = context["task_instance"].log_filepath
-    try_number = str(context["task_instance"].try_number)
-    path, extension = os.path.splitext(log_path)
-    file_name = try_number + extension
-    return os.path.join(path, file_name)
+def calc_task_run_attempt_key_from_af_ti(ti):
+    """
+    Creates a key from airflow TaskInstance, for communicating task_run_attempt_uid
+    """
+    return ":".join(
+        [ENV_DBND_TRACKING_ATTEMPT_UID, ti.dag_id, "%s__execute" % ti.task_id]
+    )
+
+
+def calc_task_run_attempt_key_from_dbnd_task(task):
+    """
+    Creates a key from dbnd Task, for communicating task_run_attempt_uid
+    """
+    return ":".join(
+        [ENV_DBND_TRACKING_ATTEMPT_UID, task.dag_id, task.get_task_family()]
+    )
+
+
+def try_pop_attempt_id_from_env(task):
+    """
+    if the task is an airflow execute task we try to pop the attempt id from environ
+    """
+    if isinstance(task, AirflowOperatorRuntimeTask):
+        key = calc_task_run_attempt_key_from_dbnd_task(task)
+        attempt_id = os.environ.get(key, None)
+        if attempt_id:
+            del os.environ[key]
+
+        return attempt_id

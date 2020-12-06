@@ -10,10 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 def _track_task(task):
+    from airflow.operators.subdag_operator import SubDagOperator
+
     if should_not_track(task):
         return
 
-    if is_instance_by_class_name(task, "SubDagOperator"):
+    if is_instance_by_class_name(task, SubDagOperator.__name__):
         # we do not track the execute of a SubDag, only its tasks
         track_dag(task.subdag)
     else:

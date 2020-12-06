@@ -1,6 +1,9 @@
 import logging
+import os
 
+from dbnd._core.configuration.environ_config import ENV_DBND__TRACKING
 from dbnd._core.task_build.task_context import TaskContextPhase, task_context
+from dbnd._core.utils.basics.environ_utils import env as env_context
 from dbnd._vendor import click
 
 
@@ -17,10 +20,11 @@ def execute(ctx, dbnd_run, disable_tracking_api):
     from dbnd._core.run.databand_run import DatabandRun
     from targets import target
 
-    run = DatabandRun.load_run(
-        dump_file=target(dbnd_run), disable_tracking_api=disable_tracking_api
-    )
-    ctx.obj = {"run": run, "disable_tracking_api": disable_tracking_api}
+    with env_context(**{ENV_DBND__TRACKING: "False"}):
+        run = DatabandRun.load_run(
+            dump_file=target(dbnd_run), disable_tracking_api=disable_tracking_api
+        )
+        ctx.obj = {"run": run, "disable_tracking_api": disable_tracking_api}
 
 
 @execute.command(name="task")

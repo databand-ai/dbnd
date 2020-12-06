@@ -26,12 +26,9 @@ class TaskRunLogManager(TaskRunCtrl):
     def __init__(self, task_run):
         super(TaskRunLogManager, self).__init__(task_run)
 
-        if hasattr(task_run.task, "airflow_log_file"):
-            self.local_log_file = target(task_run.task.airflow_log_file)
-        else:
-            self.local_log_file = self.task_run.local_task_run_root.partition(
-                name="%s.log" % task_run.attempt_number
-            )
+        self.local_log_file = self.task_run.local_task_run_root.partition(
+            name="%s.log" % task_run.attempt_number
+        )
 
         if os.getenv("DBND__LOG_SPARK"):
             self.local_spark_log_file = self.task_run.local_task_run_root.partition(
@@ -84,6 +81,14 @@ class TaskRunLogManager(TaskRunCtrl):
             self._log_task_run_into_file_active
             or not log_settings.capture_task_run_log
             or not log_file
+        ):
+            yield None
+            return
+
+        if (
+            # there is no really any good way to find if this is runtime tracking for airflow operator
+            # should be refactored as soon as possible
+            self.task.get_task_family().endswith("_execute")
         ):
             yield None
             return
@@ -198,4 +203,4 @@ class TaskRunLogManager(TaskRunCtrl):
             logger.warning("Failed to write remote log for %s: %s", self.task, ex)
 
     def save_log_preview(self, log_body):
-        self.task_run.tracker.save_task_run_log(log_body)
+        self.task_run.tracker.save_task_run_log(log_body, self.local_log_file)

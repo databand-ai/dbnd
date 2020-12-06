@@ -15,7 +15,6 @@ if six.PY2:
 else:
     from itertools import zip_longest
 
-# todo: add to tracking the same functions
 
 LINE_BRAKE = "\r\n"
 MERGE_MSG = "\r\n...\r\n\r\nThe log body is truncated by databand, fetched {head_size} bytes for the `head` and {tail_size} bytes for the `tail` from the whole {file_size} bytes of the file.\r\nFor full log access the log path {log_path} .\r\nControl the log preview length with LoggingConfig.preview_head_bytes and LoggingConfig.preview_tail_bytes \r\n\r\n...\r\n"
@@ -38,7 +37,7 @@ def read_dbnd_log_preview(log_path, spark_log_path=None):
         # we need to read and than merge the content of dbnd log and spark long
         # using half of the max_bytes for each of the logs to make sure we are not exceeding the max after merging
         parts = merge_read_log_files(
-            log_path, spark_log_path, max_head_size / 2, max_tail_size / 2,
+            log_path, spark_log_path, max_head_size // 2, max_tail_size // 2,
         )
 
     else:

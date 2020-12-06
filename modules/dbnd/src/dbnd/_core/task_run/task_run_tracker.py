@@ -48,9 +48,9 @@ class TaskRunTracker(TaskRunCtrl):
         )
 
     # Task Handlers
-    def save_task_run_log(self, log_preview):
+    def save_task_run_log(self, log_preview, local_log_path=None):
         self.tracking_store.save_task_run_log(
-            task_run=self.task_run, log_body=log_preview
+            task_run=self.task_run, log_body=log_preview, local_log_path=local_log_path
         )
 
     def log_parameter_data(

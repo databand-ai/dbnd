@@ -78,6 +78,8 @@ ENV_DBND__AUTO_TRACKING = "DBND__AUTO_TRACKING"
 
 DEFAULT_MAX_CALLS_PER_RUN = 100
 
+ENV_DBND_TRACKING_ATTEMPT_UID = "DBND__TRACKING_ATTEMPT_UID"
+
 _DBND_DEBUG_INIT = environ_enabled(ENV_DBND__DEBUG_INIT)
 _databand_package = relative_path(__file__, "..", "..")
 
@@ -182,7 +184,7 @@ class DbndProjectConfig(object):
 
         self._verbose = environ_enabled(ENV_DBND__VERBOSE)
 
-        self._dbnd_tracking = environ_enabled(ENV_DBND__TRACKING)
+        self._dbnd_tracking = environ_enabled(ENV_DBND__TRACKING, default=None)
 
         self._airflow_context = False
         self._inline_tracking = None
@@ -213,7 +215,11 @@ class DbndProjectConfig(object):
     def is_tracking_mode(self):
         if self.disabled:
             return False
-        return self._dbnd_tracking or self.airflow_context()
+
+        if self._dbnd_tracking is None:
+            return bool(self.airflow_context())
+
+        return self._dbnd_tracking
 
     def is_verbose(self):
         from dbnd._core.current import try_get_databand_context

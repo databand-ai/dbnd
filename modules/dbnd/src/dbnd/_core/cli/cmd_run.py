@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import functools
 import logging
+import os
 
 import attr
 import six
@@ -9,6 +10,7 @@ import six
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.environ_config import ENV_DBND__TRACKING
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
@@ -16,6 +18,7 @@ from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.basics.dict_utils import filter_dict_remove_false_values
+from dbnd._core.utils.basics.environ_utils import env as env_context
 from dbnd._vendor import click
 from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
@@ -311,11 +314,12 @@ def run(
         if docker_build_tag:
             config.set_values({"kubernetes": {"docker_build_tag": docker_build_tag}})
 
-        return context.dbnd_run_task(
-            task_or_task_name=task_name,
-            run_uid=run_driver,
-            scheduled_run_info=scheduled_run_info,
-        )
+        with env_context(**{ENV_DBND__TRACKING: "False"}):
+            return context.dbnd_run_task(
+                task_or_task_name=task_name,
+                run_uid=run_driver,
+                scheduled_run_info=scheduled_run_info,
+            )
 
 
 def is_running_in_direct_db_mode(ctx):

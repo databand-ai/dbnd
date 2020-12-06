@@ -4,7 +4,7 @@ from contextlib import contextmanager
 
 
 def environ_enabled(variable_name, default=False):
-    # type: (str, bool) -> bool
+    # type: (str, Optional[bool]) -> Optional[bool]
     env_value = os.environ.get(variable_name, None)
     if env_value is None:
         return default
@@ -46,8 +46,9 @@ def env(**environment):
     difference = {key for key in environment if key not in current}
 
     os.environ.update(environment)
-    yield
-
-    os.environ.update(current)
-    for key in difference:
-        os.environ.pop(key)
+    try:
+        yield
+    finally:
+        os.environ.update(current)
+        for key in difference:
+            os.environ.pop(key)
