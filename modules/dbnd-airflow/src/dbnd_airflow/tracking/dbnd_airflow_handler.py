@@ -136,7 +136,7 @@ class DbndAirflowHandler(logging.Handler):
 
 
 @attr.s
-class FakeTaskRun:
+class FakeTaskRun(object):
     """
     This is a workaround for using `tracking_store.save_task_run_log`
     cause it require a TaskRun with task_run_attempt_uid attr.
