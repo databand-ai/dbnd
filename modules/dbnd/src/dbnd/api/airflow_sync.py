@@ -27,3 +27,9 @@ def archive_airflow_instance(url):
     client = get_databand_context().databand_api_client
     endpoint = "airflow_monitor/archive"
     client.api_request(endpoint, url, method="POST")
+
+
+def unarchive_airflow_instance(url):
+    client = get_databand_context().databand_api_client
+    endpoint = "airflow_monitor/unarchive"
+    client.api_request(endpoint, url, method="POST")
