@@ -15,7 +15,7 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.task_run.task_sync_ctrl import DisabledTaskSyncCtrl, TaskSyncCtrl
+from dbnd._core.task_run.task_sync_ctrl import DisabledTaskSyncCtrl
 from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
 from dbnd_spark import SparkConfig
 

@@ -86,12 +86,12 @@ class TestTaskSignature(object):
 
         expected = {
             "TData": "29c9aa51d4",
-            "TSpark": "2d9da6ad2d",
-            "TPySpark": "49a709d191",
+            "TSpark": "ea290932b5",
+            "TPySpark": "6b58f6e5a0",
         }
         assert_signatures(tasks, expected)
 
     def test_signatures_pipeline(self):
         tasks = [TPipeline(task_target_date=task_target_date)]
-        expected = {"TPipeline": "2eddcc454b"}
+        expected = {"TPipeline": "43e6a49607"}
         assert_signatures(tasks, expected)

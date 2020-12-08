@@ -39,6 +39,13 @@ class _BaseSparkTask(Task):
     python_script = None
     main_class = None
 
+    spark_conf_extension = parameter(
+        default={},
+        description="This is an extension for SparkConfig.conf dict, "
+        "every config added to this dict will be merged to spark_config.conf",
+        significant=False,
+    )[dict]
+
     spark_resources = parameter.c(default=None, system=True)[Dict[str, FileTarget]]
 
     def band(self):
@@ -90,6 +97,13 @@ class _BaseSparkTask(Task):
     def get_root(self):
         return self.spark_engine.root or super(_BaseSparkTask, self).get_root()
 
+    def _initialize(self):
+        super(_BaseSparkTask, self)._initialize()
+
+        if self.spark_conf_extension:
+            # adds the last layer for SparkConfig.conf
+            self.spark_config.conf.update(self.spark_conf_extension)
+
 
 spark_output = output.folder
 
@@ -124,7 +138,6 @@ class PySparkTask(_BaseSparkTask):
 
 
 class PySparkInlineTask(_BaseSparkTask):
-
     _application_args = ["defined_at_runtime"]
 
     def application_args(self):
