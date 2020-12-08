@@ -10,7 +10,10 @@ import six
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
-from dbnd._core.configuration.environ_config import ENV_DBND__TRACKING
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND__TRACKING,
+    new_dbnd_project_config_context,
+)
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
@@ -276,7 +279,9 @@ def run(
             scheduled_job_name=scheduled_job_name, scheduled_date=scheduled_date
         )
 
-    with new_dbnd_context(
+    with new_dbnd_project_config_context(
+        **{ENV_DBND__TRACKING: "False"}
+    ), new_dbnd_context(
         name="run", module=module
     ) as context:  # type: DatabandContext
         task_registry = get_task_registry()
@@ -296,13 +301,12 @@ def run(
 
         # --set-root
         # now we can get it config, as it's not main task, we can load config after the configuration is loaded
-        if task_cls is not None:
-            if root_task_config:
-                # adding root task to configuration
-                config.set_values(
-                    {task_cls.task_definition.task_config_section: root_task_config},
-                    source="--set-root",
-                )
+        if task_cls is not None and root_task_config:
+            # adding root task to configuration
+            config.set_values(
+                {task_cls.task_definition.task_config_section: root_task_config},
+                source="--set-root",
+            )
 
         if is_help or not task_name:
             print_help(ctx, task_cls)
@@ -314,12 +318,11 @@ def run(
         if docker_build_tag:
             config.set_values({"kubernetes": {"docker_build_tag": docker_build_tag}})
 
-        with env_context(**{ENV_DBND__TRACKING: "False"}):
-            return context.dbnd_run_task(
-                task_or_task_name=task_name,
-                run_uid=run_driver,
-                scheduled_run_info=scheduled_run_info,
-            )
+        return context.dbnd_run_task(
+            task_or_task_name=task_name,
+            run_uid=run_driver,
+            scheduled_run_info=scheduled_run_info,
+        )
 
 
 def is_running_in_direct_db_mode(ctx):

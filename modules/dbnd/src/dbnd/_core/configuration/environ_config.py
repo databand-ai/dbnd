@@ -5,12 +5,14 @@
 import os
 
 from configparser import ConfigParser
+from contextlib import contextmanager
 
 from dbnd._core.configuration.project_env import (
     _init_windows_python_path,
     _is_init_mode,
 )
 from dbnd._core.utils.basics.environ_utils import (
+    env,
     environ_enabled,
     environ_int,
     set_env_dir,
@@ -154,6 +156,18 @@ def get_dbnd_custom_config():
 def reset_dbnd_project_config():
     global _project_config
     _project_config = None
+
+
+@contextmanager
+def new_dbnd_project_config_context(**environment):
+    """
+    Create new environment context and reset the project int it.
+    """
+    with env(**environment):
+        reset_dbnd_project_config()
+        yield get_dbnd_project_config()
+
+    reset_dbnd_project_config()
 
 
 class DbndProjectConfig(object):
