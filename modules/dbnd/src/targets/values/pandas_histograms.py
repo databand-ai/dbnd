@@ -37,8 +37,12 @@ class PandasHistograms(object):
                 self.df, self.meta_conf.log_histograms
             )
             df_histograms = self.df.filter(hist_column_names)
-            histograms = df_histograms.apply(self._calculate_histograms, args=(stats,))
-            histograms = histograms.to_dict()
+            # retul_type="expand" and orient="list" are used to stabilize produced
+            # histograms data structure across pandas v0 & v1
+            histograms = df_histograms.apply(
+                self._calculate_histograms, result_type="expand", args=(stats,)
+            )
+            histograms = histograms.to_dict(orient="list")
 
         return stats, histograms
 
