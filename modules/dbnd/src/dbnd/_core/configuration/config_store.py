@@ -93,8 +93,8 @@ class _ConfigStore(OrderedDict):
                     section=section, key=key
                 )
                 old_value = current_section.get(key)
-                # if old value is override, we will "override" only if the new one is override
                 if old_value:
+                    # if old value is override, we will "override" only if the new one is override
                     if old_value.override and not value.override:
                         continue
                     if (
