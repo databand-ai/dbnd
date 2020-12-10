@@ -125,8 +125,8 @@ class ConsoleStore(TrackingStore):
     def log_histograms(self, task_run, key, value_meta, timestamp):
         for hist_name, hist_values in value_meta.histograms.items():
             for line in self.ascii_graph.graph(
-                "Histogram logged: {}.{}".format(key, hist_name),
-                list(zip(*reversed(hist_values))),
+                label="Histogram logged: {}.{}".format(key, hist_name),
+                data=list(zip(*reversed(hist_values))),
             ):
                 logger.info(line)
         # TODO: Add more compact logging if user opts out
