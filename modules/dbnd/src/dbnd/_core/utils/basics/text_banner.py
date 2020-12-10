@@ -45,7 +45,8 @@ class TextBanner(StringIO):
         self.write(self._banner_separator)
         self.write(self._banner_msg)
 
-    def f_io(self, structure):
+    @staticmethod
+    def f_io(structure):
 
         structure_str = traverse_to_str(structure)
         structure_str = traverse(

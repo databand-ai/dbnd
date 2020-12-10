@@ -626,6 +626,10 @@ class DatabandRun(SingletonContext):
         # it could be submit, driver or task engine
         return self.env.dbnd_local_root
 
+    @property
+    def is_orchestration(self):
+        return self.source == UpdateSource.dbnd
+
 
 class _DbndDriverTask(Task):
     _conf__no_child_params = True

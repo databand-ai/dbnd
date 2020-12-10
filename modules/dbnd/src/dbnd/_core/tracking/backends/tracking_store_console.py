@@ -6,7 +6,7 @@ from math import floor, log10
 
 import six
 
-from dbnd._core.constants import TaskRunState
+from dbnd._core.constants import TaskRunState, UpdateSource
 from dbnd._core.current import is_verbose
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
@@ -31,16 +31,17 @@ class ConsoleStore(TrackingStore):
         super(ConsoleStore, self).init_scheduled_job(scheduled_job, update_existing)
 
     def init_run(self, run):
-        logger.info(
-            run.describe.run_banner(
-                "Running Databand!", color="cyan", show_run_info=True
+        if run.is_orchestration:
+            logger.info(
+                run.describe.run_banner(
+                    "Running Databand!", color="cyan", show_run_info=True
+                )
             )
-        )
 
-        if run.context.name == "interactive":
-            from dbnd._core.tools import ipython
+            if run.context.name == "interactive":
+                from dbnd._core.tools import ipython
 
-            ipython.show_run_url(run.run_url)
+                ipython.show_run_url(run.run_url)
 
     def set_task_reused(self, task_run):
         task = task_run.task
@@ -57,31 +58,37 @@ class ConsoleStore(TrackingStore):
         task = task_run.task
 
         # optimize, don't print success banner for fast running tasks
+        start_time = task_run.start_time or utcnow()
         quick_task = task_run.finished_time and (
-            task_run.finished_time
-            - (task_run.start_time if task_run.start_time else utcnow())
+            task_run.finished_time - start_time
         ) < timedelta(seconds=5)
+
         show_simple_log = not self.verbose and (
             task_run.task.task_is_system or quick_task
         )
+
         level = logging.INFO
         color = "cyan"
         task_friendly_id = task_run.task_af_id
         if state in [TaskRunState.RUNNING, TaskRunState.QUEUED]:
             task_msg = "Running task %s" % task_friendly_id
+
         elif state == TaskRunState.SUCCESS:
-            task_msg = "Task %s has been completed!" % (task_friendly_id)
+            task_msg = "Task %s has been completed!" % task_friendly_id
             color = "green"
+
         elif state == TaskRunState.FAILED:
-            task_msg = "Task %s has failed!" % (task_friendly_id)
+            task_msg = "Task %s has failed!" % task_friendly_id
             color = "red"
             level = logging.ERROR
             if task_run.task.get_task_family() != "_DbndDriverTask":
                 show_simple_log = False
+
         elif state == TaskRunState.CANCELLED:
-            task_msg = "Task %s has been canceled!" % (task_friendly_id)
+            task_msg = "Task %s has been canceled!" % task_friendly_id
             color = "red"
             level = logging.ERROR
+
         else:
             task_msg = "Task %s at %s state" % (task_friendly_id, state)
 

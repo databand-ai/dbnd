@@ -69,11 +69,9 @@ class DescribeRun(RunCtrl):
         task_run_env = ctx.task_run_env  # type: TaskRunEnvInfo
         driver_task = run.driver_task_run.task
 
-        orchestration_mode = run.source == UpdateSource.dbnd
-
         b.column("TRACKER URL", run.run_url, skip_if_empty=True)
         b.column("TRACKERS", CoreConfig().tracker)
-        if show_tasks_info and orchestration_mode and driver_task.is_driver:
+        if show_tasks_info and run.is_orchestration and driver_task.is_driver:
             self._add_tasks_info(b)
 
         if run.root_run_info.root_run_uid != run.run_uid:
@@ -112,7 +110,7 @@ class DescribeRun(RunCtrl):
             b.column("USER CODE VERSION", task_run_env.user_code_version)
             b.column("CMD", task_run_env.cmd_line)
 
-            if orchestration_mode:
+            if run.is_orchestration:
                 b.column(
                     "EXECUTE",
                     b.f_simple_dict(
@@ -139,7 +137,7 @@ class DescribeRun(RunCtrl):
             f_msg = "\n\t".join(tr.task.task_id for tr in failed_task_runs)
             b.column("FAILED", f_msg)
 
-        if run.root_task_run:
+        if run.root_task_run and run.is_orchestration:
             b.column("TASK_BAND", run.root_task_run.task.task_band)
 
         b.new_line()
