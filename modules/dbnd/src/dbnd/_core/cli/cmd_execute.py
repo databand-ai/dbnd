@@ -21,7 +21,7 @@ def get_python_version():
     return sys.version.rsplit(" ")[0]  # string like '3.8.6'
 
 
-class DbndVersionsClashError(Exception):
+class DbndVersionsClashWarning(UserWarning):
     pass
 
 
@@ -40,11 +40,13 @@ def execute(
         spark_python_version = get_python_version()
         spark_dbnd_version = get_dbnd_version()
         if expected_python_version != spark_python_version:
-            raise DbndVersionsClashError(
+            warn(
                 "You submitted job using Python {} but the Spark cluster uses Python {}. To "
-                "assure execution consistency use the same version in both places.".format(
+                "assure execution consistency use the same version in both places. Execution will"
+                "continue but it may fail due to version mismatch.".format(
                     expected_python_version, spark_python_version
-                )
+                ),
+                DbndVersionsClashWarning,
             )
         if expected_dbnd_version != spark_dbnd_version:
             warn(
@@ -53,7 +55,7 @@ def execute(
                 "continue but it may fail due to version mismatch.".format(
                     expected_dbnd_version, spark_dbnd_version
                 ),
-                UserWarning,
+                DbndVersionsClashWarning,
             )
 
     from dbnd._core.run.databand_run import DatabandRun
