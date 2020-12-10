@@ -7,6 +7,8 @@ from airflow.operators.subdag_operator import SubDagOperator
 from airflow.utils.log.file_task_handler import FileTaskHandler
 from more_itertools import first_true
 
+import dbnd
+
 from dbnd import config, get_dbnd_project_config
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
@@ -84,6 +86,11 @@ class DbndAirflowHandler(logging.Handler):
 
         # make sure we are not polluting the airflow logs
         get_dbnd_project_config().quiet_mode = True
+
+        # tracking msg
+        self.airflow_logger.info(
+            "Tracked by Databand {version}".format(version=dbnd.__version__)
+        )
 
         # context with disabled logs
         self.dbnd_context_manage = new_dbnd_context(conf={"log": {"disabled": True}})
