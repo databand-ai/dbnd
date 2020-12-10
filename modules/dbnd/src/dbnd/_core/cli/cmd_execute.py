@@ -1,6 +1,8 @@
 import logging
 
-from dbnd._core.task_build.task_context import TaskContextPhase, task_context
+from warnings import warn
+
+from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._vendor import click
 
 
@@ -39,17 +41,19 @@ def execute(
         spark_dbnd_version = get_dbnd_version()
         if expected_python_version != spark_python_version:
             raise DbndVersionsClashError(
-                "You submmited job using Python {} but the Spark cluster uses Python {}. To "
+                "You submitted job using Python {} but the Spark cluster uses Python {}. To "
                 "assure execution consistency use the same version in both places.".format(
                     expected_python_version, spark_python_version
                 )
             )
         if expected_dbnd_version != spark_dbnd_version:
-            raise DbndVersionsClashError(
-                "You submmited job using dbnd {} but the Spark cluster uses dbnd {}. To "
-                "assure execution consistency use the same version in both places.".format(
+            warn(
+                "You submitted job using dbnd {} but the Spark cluster uses dbnd {}. To "
+                "assure execution consistency use the same version in both places. Execution will"
+                "continue but it may fail due to version mismatch.".format(
                     expected_dbnd_version, spark_dbnd_version
-                )
+                ),
+                UserWarning,
             )
 
     from dbnd._core.run.databand_run import DatabandRun
