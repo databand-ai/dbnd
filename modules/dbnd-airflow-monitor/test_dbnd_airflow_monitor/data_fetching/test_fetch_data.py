@@ -32,7 +32,6 @@ class TestFetchData(object):
 
         # validate dags
         assert len(result["dags"]) >= 1
-        dag = result["dags"][0]
 
         # validate dag runs
         assert len(result["dag_runs"]) == 2
