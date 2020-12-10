@@ -422,6 +422,7 @@ class DatabandRun(SingletonContext):
         # with captures_log_into_file_as_task_file(log_file=self.local_driver_log.path):
         try:
             self.start_time = utcnow()
+            logger.info("Running driver... Driver PID: %s", os.getpid())
             self.driver_task_run.runner.execute()
             self.finished_time = utcnow()
         except DatabandRunError as ex:

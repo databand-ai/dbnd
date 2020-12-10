@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+import os
 import signal
 import time
 import typing
@@ -285,13 +286,16 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
 
 def mgr_sig_handler(signal, frame):
-    logger.error("Kubernetes python SyncManager got SIGINT (waiting for .stop command)")
+    logger.error(
+        "Kubernetes python SyncManager got SIGINT (waiting for .stop command). PID: %s",
+        os.getpid(),
+    )
 
 
 def watcher_sig_handler(signal, frame):
     import sys
 
-    logger.info("Watcher received signal, exiting...")
+    logger.info("Watcher received signal, PID: %s. exiting...", os.getpid())
     sys.exit(0)
 
 
@@ -318,7 +322,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         )
 
     def start(self):
-        logger.info("Starting Kubernetes executor..")
+        logger.info("Starting Kubernetes executor... PID: %s", os.getpid())
         self._manager.start(mgr_init)
 
         dbnd_run = try_get_databand_run()
@@ -414,8 +418,9 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
     def _run(self, kube_client, resource_version, worker_uuid, kube_config):
         self.log.info(
-            "Event: and now my watch begins starting at resource_version: %s",
+            "Event: and now my watch begins starting at resource_version: %s. Watcher PID: %s",
             resource_version,
+            os.getpid(),
         )
 
         from kubernetes import watch

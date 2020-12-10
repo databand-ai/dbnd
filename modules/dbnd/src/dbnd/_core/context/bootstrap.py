@@ -43,7 +43,9 @@ def _dbnd_exception_handling():
     # Enables graceful shutdown when running inside docker/kubernetes and subprocess shutdown
     # By default the kill signal is SIGTERM while our code mostly expects SIGINT (KeyboardInterrupt)
     def sigterm_handler(sig, frame):
-        os.kill(os.getpid(), signal.SIGINT)
+        pid = os.getpid()
+        logger.info("Received signal in default signal handler. PID: %s", pid)
+        os.kill(pid, signal.SIGINT)
 
     safe_signal(signal.SIGTERM, sigterm_handler)
 
