@@ -203,7 +203,7 @@ def try_get_airflow_context_from_spark_conf():
         execution_date = conf.get("spark.env.AIRFLOW_CTX_EXECUTION_DATE")
         task_id = conf.get("spark.env.AIRFLOW_CTX_TASK_ID")
         try_number = conf.get("spark.env.AIRFLOW_CTX_TRY_NUMBER")
-        airflow_instance_uid = os.environ.get("spark.env.AIRFLOW_CTX_UID")
+        airflow_instance_uid = conf.get("spark.env.AIRFLOW_CTX_UID")
 
         if dag_id and task_id and execution_date:
             return AirflowTaskContext(
