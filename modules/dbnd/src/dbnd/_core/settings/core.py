@@ -72,7 +72,7 @@ class CoreConfig(Config):
         default=None,
         description="Tracker URL to be used for creating links in console logs",
     )[str]
-    databand_personal_access_token = parameter(
+    databand_access_token = parameter(
         description="Personall access token to connect to the dbnd web server",
         default=None,
     )[str]
@@ -169,11 +169,9 @@ class CoreConfig(Config):
             )
             self.tracker = [t for t in self.tracker if t != "api"]
 
-        if self.databand_personal_access_token and (
-            self.dbnd_user or self.dbnd_password
-        ):
+        if self.databand_access_token and (self.dbnd_user or self.dbnd_password):
             logger.warning(
-                "core.databand_personal_access_token is used instead of defined dbnd_user and dbnd_password."
+                "core.databand_access_token is used instead of defined dbnd_user and dbnd_password."
             )
 
     def build_tracking_store(self, remove_failed_store=True):
@@ -190,8 +188,8 @@ class CoreConfig(Config):
         from dbnd.utils.api_client import ApiClient
 
         credentials = (
-            {"token": self.databand_personal_access_token}
-            if self.databand_personal_access_token
+            {"token": self.databand_access_token}
+            if self.databand_access_token
             else {"username": self.dbnd_user, "password": self.dbnd_password}
         )
 
