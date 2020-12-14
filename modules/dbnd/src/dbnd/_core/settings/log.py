@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 from logging.config import DictConfigurator
@@ -6,11 +7,7 @@ from typing import Callable, List, Optional
 
 from dbnd._core.configuration.environ_config import in_quiet_mode
 from dbnd._core.log.config import configure_logging_dictConfig
-from dbnd._core.log.logging_utils import (
-    find_handler,
-    get_sentry_logging_config,
-    setup_log_file,
-)
+from dbnd._core.log.logging_utils import find_handler, setup_log_file, try_init_sentry
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
@@ -56,11 +53,16 @@ class LoggingConfig(config.Config):
         description="The name of the formatter logging to file output"
     )[str]
 
+    # sentry config
     sentry_url = parameter(
-        default=None, description="URL for setting up sentry logger"
+        default=None,
+        description="URL for setting up sentry logger. Notice - make sure the url is exposed to dbnd run environment",
     )[str]
-    sentry_env = parameter(default=None, description="Envrionment for sentry logger")[
+    sentry_env = parameter(default="dev", description="Environment for sentry logger")[
         str
+    ]
+    sentry_debug = parameter(default=False, description="Unable debug flag for sentry")[
+        bool
     ]
 
     file_log = parameter(default=None, description="Log to file (off by default)")[str]
@@ -107,6 +109,8 @@ class LoggingConfig(config.Config):
         default="DEBUG",
         description="Should log the time it takes for marshalling and unmarshalling targets",
     )[str]
+
+    disable_colors = parameter(default=False, description="Disabling any colored logs.")
 
     sqlalchemy_print = parameter(description="enable sqlalchemy logger").value(False)
     sqlalchemy_trace = parameter(description="trace sqlalchemy queries").value(False)
@@ -207,17 +211,17 @@ class LoggingConfig(config.Config):
         if log_settings.sqlalchemy_print:
             loggers["sqlalchemy.engine"] = {"level": logging.INFO, "propagate": True}
 
-        if log_settings.sentry_url:
-            config["handlers"]["sentry"] = get_sentry_logging_config(
-                sentry_url=log_settings.sentry_url, sentry_env=log_settings.sentry_env
-            )
-            config["root"]["handlers"].append("sentry")
-
         return config
 
     def configure_dbnd_logging(self):
         if self.disabled:
             return
+
+        # start by trying to initiate Sentry setup - has side effect of changing the logging config
+        try_init_sentry()
+
+        if self.disable_colors:
+            self.disable_color_logs()
 
         dict_config = self.get_dbnd_logging_config(filename=self.file_log)
 
@@ -290,6 +294,15 @@ class LoggingConfig(config.Config):
         handler.setFormatter(self.task_log_file_formatter)
         handler.setLevel(self.level)
         return handler
+
+    def disable_color_logs(self):
+        """ Removes colors from any console related config"""
+        logger.debug("disabling color logs")
+
+        os.environ["ANSI_COLORS_DISABLED"] = "True"  # disabling termcolor.colored
+        self.exception_no_color = True
+        if self.console_formatter_name == "formatter_colorlog":
+            self.console_formatter_name = "formatter"
 
 
 def _safe_is_typeof(value, name):

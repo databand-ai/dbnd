@@ -17,26 +17,6 @@ def _reset_handlers():
     map(root.removeFilter, root.filters[:])
 
 
-def get_sentry_logging_config(sentry_url, sentry_env):
-    import raven.breadcrumbs
-
-    for ignore in (
-        "sqlalchemy.orm.path_registry",
-        "sqlalchemy.pool.NullPool",
-        "raven.base.Client",
-    ):
-        raven.breadcrumbs.ignore_logger(ignore)
-
-    return {
-        "exception": {
-            "level": "ERROR",
-            "class": "raven.handlers.logging.SentryHandler",
-            "dsn": sentry_url,
-            "environment": sentry_env,
-        }
-    }
-
-
 def symlink_latest_log(log_file, latest_log=None):
     if windows_compatible_mode:
         # there is no symlinks in windows
@@ -219,3 +199,52 @@ def find_handler(logger, handler_name):
         if h.name == handler_name:
             return h
     return None
+
+
+SENTRY_TOUCHED = False
+
+
+def try_init_sentry():
+    """
+    Initiate the sentry sdk to track the errors in the system.
+    This function is idempotent - we allowed running it once in a single run.
+    """
+    global SENTRY_TOUCHED
+    if SENTRY_TOUCHED:
+        return
+
+    from dbnd._core.settings import LoggingConfig
+
+    logging_config = LoggingConfig.current()
+
+    sentry_url = logging_config.sentry_url
+
+    if sentry_url:
+        try:
+            import sentry_sdk
+        except ImportError:
+            logger.warning(
+                "sentry_sdk is not installed. "
+                "Trying to init Sentry because the LoggingConfig.sentry_url configuration is set. "
+                "Help: To use Sentry please run `pip install sentry_sdk`."
+            )
+
+        else:
+            # This is the function that initiate sentry with the config
+            # Add debug=True if you want to debug sentry
+            sentry_sdk.init(
+                dsn=sentry_url,
+                environment=logging_config.sentry_env,
+                debug=logging_config.sentry_debug,
+            )
+
+            # sentry doesn't work good with coloring - clearing the logs colors
+            logging_config.disable_colors = True
+
+            logger.debug(
+                "running with sentry. dsn={dsn}, environment={environment}".format(
+                    dsn=sentry_url, environment=logging_config.sentry_env
+                )
+            )
+
+    SENTRY_TOUCHED = True
