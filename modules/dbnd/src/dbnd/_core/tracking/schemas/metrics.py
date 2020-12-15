@@ -7,7 +7,8 @@ from dbnd._core.constants import _DbndDataClass
 
 class Metric(_DbndDataClass):
     _int_precision = 16
-    MAX_INT = 10 ** _int_precision
+    # Workaround for precission issues with large ints
+    MAX_INT = 10 ** (_int_precision - 1)
     MIN_INT = -MAX_INT
 
     def __init__(
