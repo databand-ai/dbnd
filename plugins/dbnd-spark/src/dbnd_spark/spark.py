@@ -4,6 +4,7 @@ import typing
 
 from typing import Dict, Union
 
+from dbnd._core.cli.cmd_execute import get_dbnd_version, get_python_version
 from dbnd._core.commands import get_spark_session
 from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
@@ -176,6 +177,10 @@ class PySparkInlineTask(_BaseSparkTask):
         driver_dump = self.current_task_run.run.driver_task.driver_dump
         self._application_args = [
             "execute",
+            "--expected-dbnd-version",
+            get_dbnd_version(),
+            "--expected-python-version",
+            get_python_version(),
             "--dbnd-run",
             spark_ctrl.sync(driver_dump),
             "task",

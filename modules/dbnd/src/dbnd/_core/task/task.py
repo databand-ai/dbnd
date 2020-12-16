@@ -386,6 +386,6 @@ TASK_PARAMS_COUNT = len(
     [
         v
         for k, v in Task.__dict__.items()
-        if isinstance(v, ParameterDefinition) and v.value_type_str is not "Target"
+        if isinstance(v, ParameterDefinition) and v.value_type_str != "Target"
     ]
 )
