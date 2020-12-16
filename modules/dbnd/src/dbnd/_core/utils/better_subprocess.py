@@ -6,6 +6,7 @@ import subprocess
 
 import six
 
+from dbnd._core.configuration.environ_config import ENV_DBND__TRACKING
 from dbnd._core.current import get_databand_context
 from dbnd._core.errors.friendly_error.task_execution import failed_to_run_cmd
 from dbnd._core.log.logging_utils import override_log_formatting, raw_log_formatting

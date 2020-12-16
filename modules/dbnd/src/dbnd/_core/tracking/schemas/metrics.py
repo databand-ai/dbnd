@@ -6,6 +6,11 @@ from dbnd._core.constants import _DbndDataClass
 
 
 class Metric(_DbndDataClass):
+    _int_precision = 16
+    # Workaround for precission issues with large ints
+    MAX_INT = 10 ** (_int_precision - 1)
+    MIN_INT = -MAX_INT
+
     def __init__(
         self,
         key,
@@ -35,7 +40,7 @@ class Metric(_DbndDataClass):
         if self.value_float is not None:
             return self.value_float
         if self.value_int is not None:
-            return self.value_int
+            return int(self.value_int)
         if self.value_json is not None:
             return self.value_json
         return self.value_str
@@ -51,7 +56,7 @@ class Metric(_DbndDataClass):
     def value(self, value):
         if isinstance(value, float):
             self.value_float = value
-        elif isinstance(value, int):
+        elif isinstance(value, int) and self.MIN_INT <= value <= self.MAX_INT:
             self.value_int = value
         else:
             self.value_str = value

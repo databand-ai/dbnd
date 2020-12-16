@@ -1,11 +1,12 @@
 import mock
 import pytest
 
-from dbnd import config, parameter
+from dbnd import config, dbnd_config, parameter
 from dbnd._core.errors import DatabandRunError
 from dbnd.tasks import Config
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_airflow_contrib.mng_connections import set_connection
+from dbnd_spark import SparkConfig
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_test_scenarios.spark.spark_tasks import (
     WordCountPySparkTask,
@@ -35,6 +36,23 @@ def spark_config(databand_test_context):
     )
 
     return config
+
+
+CONFIG_1 = "spark.sql.shuffle.partitions"
+CONFIG_2 = "spark.executor.cores"
+
+
+class TaskA(WordCountPySparkTask):
+    _conf__tracked = False
+    spark_conf_extension = {
+        CONFIG_1: "TaskA",
+    }
+
+
+class TaskB(TaskA):
+    spark_conf_extension = {
+        CONFIG_2: "TaskB",
+    }
 
 
 @pytest.mark.spark
@@ -137,3 +155,48 @@ class TestSparkTasksLocally(object):
             total_executor_cores=_config.total_executor_cores,
             verbose=_config.verbose,
         )
+
+    @pytest.mark.parametrize(
+        "task, expected",
+        [
+            (TaskA, {CONFIG_1: "TaskA", CONFIG_2: "config_layer"}),
+            (TaskB, {CONFIG_1: "config_layer", CONFIG_2: "TaskB"}),
+        ],
+    )
+    @mock.patch("airflow.contrib.hooks.spark_submit_hook.SparkSubmitHook")
+    @mock.patch("dbnd._core.settings.CoreConfig.build_tracking_store")
+    @mock.patch(
+        "dbnd._core.task_ctrl.task_validator.TaskValidator.validate_task_is_complete"
+    )
+    def test_spark_conf_merge(self, _, __, spark_submit_hook, task, expected):
+        with dbnd_config(
+            {
+                SparkConfig.disable_sync: True,
+                SparkConfig.disable_tracking_api: True,
+                SparkConfig.conf: {CONFIG_1: "config_layer", CONFIG_2: "config_layer"},
+            }
+        ):
+            task(text=__file__).dbnd_run()
+            spark_submit_hook.assert_called_once_with(
+                conf=expected,
+                application_args=mock.ANY,
+                conn_id=mock.ANY,
+                driver_class_path=mock.ANY,
+                driver_memory=mock.ANY,
+                env_vars=mock.ANY,
+                exclude_packages=mock.ANY,
+                executor_cores=mock.ANY,
+                executor_memory=mock.ANY,
+                files=mock.ANY,
+                jars=mock.ANY,
+                java_class=mock.ANY,
+                keytab=mock.ANY,
+                name=mock.ANY,
+                num_executors=mock.ANY,
+                packages=mock.ANY,
+                principal=mock.ANY,
+                py_files=mock.ANY,
+                repositories=mock.ANY,
+                total_executor_cores=mock.ANY,
+                verbose=mock.ANY,
+            )

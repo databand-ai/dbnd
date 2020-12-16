@@ -8,8 +8,7 @@ from airflow import DAG
 from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 from airflow.operators.python_operator import PythonOperator
 
-from dbnd_snowflake import log_snowflake_resource_usage
-from dbnd_snowflake.airflow_hooks import DbndSnowflakeHook
+from dbnd_snowflake import snowflake_query_tracker
 from dbnd_snowflake.airflow_operators import LogSnowflakeTableOperator
 
 
@@ -40,15 +39,9 @@ def process_customers(**kwargs):
 
 
 def process_customers_with_monitoring(**kwargs):
-    snowflake_hook = DbndSnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONNECTION_ID)
-    customers, session_id, query_id = snowflake_hook.get_records(select_query)
-    log_snowflake_resource_usage(
-        database=database,
-        connection_string=snowflake_hook.get_uri(),
-        session_id=session_id,
-        query_ids=[query_id],
-        key="DbndSnowflakeHook_get_records",
-    )
+    snowflake_hook = SnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONNECTION_ID)
+    with snowflake_query_tracker(log_tables=False, database=database):
+        customers = snowflake_hook.get_records(select_query)
     # Process records - Same code
     process_records(customers)
 
@@ -59,15 +52,9 @@ def update_customers(**kwargs):
 
 
 def update_customers_with_monitoring(**kwargs):
-    snowflake_hook = DbndSnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONNECTION_ID)
-    session_id, query_ids = snowflake_hook.run(update_query)
-    log_snowflake_resource_usage(
-        database=database,
-        connection_string=snowflake_hook.get_uri(),
-        session_id=session_id,
-        query_ids=query_ids,
-        key="DbndSnowflakeHook_get_records",
-    )
+    snowflake_hook = SnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONNECTION_ID)
+    with snowflake_query_tracker(log_tables=False, database=database):
+        snowflake_hook.run(update_query)
 
 
 dag_no_dbnd = DAG(

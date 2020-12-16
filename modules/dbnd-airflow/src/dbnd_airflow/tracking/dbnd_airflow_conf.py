@@ -9,6 +9,7 @@ from dbnd._core.configuration.environ_config import (
     DBND_ROOT_RUN_UID,
 )
 from dbnd._core.settings import CoreConfig, TrackingConfig
+from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
 
 def get_airflow_conf(
@@ -29,6 +30,7 @@ def get_airflow_conf(
         "AIRFLOW_CTX_EXECUTION_DATE": execution_date,
         "AIRFLOW_CTX_TASK_ID": task_id,
         "AIRFLOW_CTX_TRY_NUMBER": try_number,
+        "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
     }
     airflow_conf.update(get_databand_url_conf())
     return airflow_conf
@@ -73,6 +75,7 @@ def extract_airflow_conf(context):
             "AIRFLOW_CTX_EXECUTION_DATE": execution_date,
             "AIRFLOW_CTX_TASK_ID": task_id,
             "AIRFLOW_CTX_TRY_NUMBER": try_number,
+            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
     return {}
 

@@ -106,6 +106,8 @@ class TaskRunInfoSchema(ApiObjectSchema):
 
     task_run_params = fields.Nested(TaskRunParamSchema, many=True)
 
+    external_links = fields.Dict(allow_none=True)
+
     @post_load
     def make_task_run(self, data, **kwargs):
         return TaskRunInfo(**data)

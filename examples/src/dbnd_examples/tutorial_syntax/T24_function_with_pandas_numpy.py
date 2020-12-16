@@ -1,12 +1,7 @@
-import logging
-
 import numpy
 import pandas as pd
 
 from dbnd import pipeline, task
-
-
-logger = logging.getLogger(__name__)
 
 
 @task

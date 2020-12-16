@@ -1,6 +1,6 @@
 import logging
 
-from dbnd._core.current import get_databand_context
+from dbnd._core.current import get_databand_context, is_verbose
 from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 from dbnd._core.utils.git import get_git_commit
 from dbnd._core.utils.project.project_fs import project_path
@@ -55,5 +55,5 @@ def get_project_git():
     if is_defined(_project_git_version):
         return _project_git_version
 
-    _project_git_version = get_git_commit(project_path())
+    _project_git_version = get_git_commit(project_path(), verbose=is_verbose())
     return _project_git_version

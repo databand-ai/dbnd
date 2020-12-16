@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+import os
 import signal
 import time
 import typing
@@ -30,14 +31,18 @@ from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
+from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import DatabandRuntimeError, DatabandSigTermError
 from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
+from dbnd_docker.kubernetes.kube_dbnd_client import (
+    DbndKubernetesClient,
+    get_task_run_from_pod_data,
+)
 
 
 if typing.TYPE_CHECKING:
-    from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
     from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
 MAX_POD_ID_LEN = 253
@@ -256,25 +261,41 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 len(pods_to_delete),
                 pods_to_delete,
             )
+            pod_to_task_run = {}
             for pod_name in pods_to_delete:
                 try:
                     pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
                     pod_data = pod_ctrl.get_pod_status_v1()
-                    # We are terminating everything, no retries allowed
-                    self.kube_dbnd.dbnd_set_task_failed(pod_data, check_for_retry=False)
+                    task_run = get_task_run_from_pod_data(pod_data)
+                    if task_run:
+                        pod_to_task_run[pod_name] = task_run
                     self.delete_pod(pod_name)
                 except Exception:
                     logger.exception("Failed to terminate pod %s", pod_name)
+            try:
+                self.set_running_pods_to_cancelled(pod_to_task_run)
+            except Exception:
+                logger.exception("Could not set pods to cancelled!")
+
+    def set_running_pods_to_cancelled(self, pod_to_task_run):
+        # Wait for pods to be deleted and execute their own state management
+        logger.info("Scheduler: Setting all running pods to cancelled in 10 seconds...")
+        time.sleep(10)
+        for pod_name, task_run in pod_to_task_run.items():
+            self.kube_dbnd.dbnd_set_task_cancelled_on_termination(pod_name, task_run)
 
 
 def mgr_sig_handler(signal, frame):
-    logger.error("Kubernetes python SyncManager got SIGINT (waiting for .stop command)")
+    logger.error(
+        "Kubernetes python SyncManager got SIGINT (waiting for .stop command). PID: %s",
+        os.getpid(),
+    )
 
 
 def watcher_sig_handler(signal, frame):
     import sys
 
-    logger.info("Watcher received signal, exiting...")
+    logger.info("Watcher received signal, PID: %s. exiting...", os.getpid())
     sys.exit(0)
 
 
@@ -301,7 +322,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         )
 
     def start(self):
-        logger.info("Starting Kubernetes executor..")
+        logger.info("Starting Kubernetes executor... PID: %s", os.getpid())
         self._manager.start(mgr_init)
 
         dbnd_run = try_get_databand_run()
@@ -362,7 +383,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         # we are in the different process than Scheduler
         # 1. Must reset filesystem cache to avoid using out-of-cluster credentials within Kubernetes
         self.reset_fs_cache()
-        # 2. Must reset handlers
+        # 2. Must reset signal handlers to avoid driver and watcher sharing signal handlers
 
         signal.signal(signal.SIGINT, watcher_sig_handler)
         signal.signal(signal.SIGTERM, watcher_sig_handler)
@@ -397,8 +418,9 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
     def _run(self, kube_client, resource_version, worker_uuid, kube_config):
         self.log.info(
-            "Event: and now my watch begins starting at resource_version: %s",
+            "Event: and now my watch begins starting at resource_version: %s. Watcher PID: %s",
             resource_version,
+            os.getpid(),
         )
 
         from kubernetes import watch

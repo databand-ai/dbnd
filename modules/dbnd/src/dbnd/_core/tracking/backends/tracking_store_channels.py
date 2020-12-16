@@ -113,11 +113,12 @@ class TrackingStoreThroughChannel(TrackingStore):
             task_run_attempt_updates=task_run_attempt_updates,
         )
 
-    def save_task_run_log(self, task_run, log_body):
+    def save_task_run_log(self, task_run, log_body, local_log_path=None):
         return self._m(
             self.channel.save_task_run_log,
             task_run_attempt_uid=task_run.task_run_attempt_uid,
             log_body=log_body,
+            local_log_path=local_log_path,
         )
 
     def save_external_links(self, task_run, external_links_dict):

@@ -53,7 +53,7 @@ class TrackingStore(object):
     def set_unfinished_tasks_state(self, run_uid, state):
         pass
 
-    def save_task_run_log(self, task_run, log_body):
+    def save_task_run_log(self, task_run, log_body, local_log_path=None):
         pass
 
     def save_external_links(self, task_run, external_links_dict):

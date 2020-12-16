@@ -16,8 +16,10 @@ from dbnd import parameter
 from dbnd._core.configuration.environ_config import (
     ENV_DBND__ENV_IMAGE,
     ENV_DBND__ENV_MACHINE,
+    ENV_DBND__TRACKING,
     ENV_DBND_ENV,
     ENV_DBND_USER,
+    get_dbnd_project_config,
 )
 from dbnd._core.errors import DatabandConfigError, friendly_error
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
@@ -480,6 +482,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     def apply_env_vars_to_pod(self, pod):
         pod.envs["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
+        if not get_dbnd_project_config().is_tracking_mode():
+            pod.envs[ENV_DBND__TRACKING] = "False"
 
 
 def readable_pod_request(pod_req):

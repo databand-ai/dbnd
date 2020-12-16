@@ -48,9 +48,9 @@ class TaskRunTracker(TaskRunCtrl):
         )
 
     # Task Handlers
-    def save_task_run_log(self, log_preview):
+    def save_task_run_log(self, log_preview, local_log_path=None):
         self.tracking_store.save_task_run_log(
-            task_run=self.task_run, log_body=log_preview
+            task_run=self.task_run, log_body=log_preview, local_log_path=local_log_path
         )
 
     def log_parameter_data(
@@ -71,6 +71,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
             key = "{}.{}".format(self.task_run.task.task_name, parameter.name)
             target.target_meta = get_value_meta_from_value(key, value, meta_conf)
+            # FIXME If we failed to get target meta for some reason, target operation won't be logged!
             if target.target_meta is None:
                 return
 
@@ -152,6 +153,7 @@ class TaskRunTracker(TaskRunCtrl):
                     target_meta=value_meta,
                     operation_type=operation_type,
                     operation_status=operation_status,
+                    param_name=key,
                 )
             metrics = value_meta.build_metrics_for_key(key, meta_conf)
 

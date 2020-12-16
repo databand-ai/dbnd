@@ -2,6 +2,8 @@ import logging
 import os
 import shutil
 
+from contextlib import contextmanager
+
 import pandas
 import pytest
 
@@ -20,6 +22,11 @@ logger = logging.getLogger(__name__)
 
 TMP_FILE_PATH = "tmp/tmp_file"
 DBND_LOCAL_ROOT = "/tmp/test-dbnd/data/dbnd/"
+
+
+@contextmanager
+def mock_tmp(self):
+    yield TMP_FILE_PATH
 
 
 class PseudoLocalFileSystem(LocalFileSystem):
@@ -90,11 +97,6 @@ class TestTaskRunSyncLocal(TargetTestBase):
         return patch.object(FileTarget, "move_from")
 
     @pytest.fixture
-    def mock_mkstemp(self):
-        mocked_mkstemp = patch("dbnd._core.task_run.task_run_sync_local.mkstemp")
-        return mocked_mkstemp
-
-    @pytest.fixture
     def mock_file_metadata_registry(self):
         return patch(
             "dbnd._core.task_run.task_run_sync_local.DbndLocalFileMetadataRegistry"
@@ -102,13 +104,13 @@ class TestTaskRunSyncLocal(TargetTestBase):
 
     def test_task_run_sync_local_multi_target(
         self,
+        monkeypatch,
         my_multitarget,
         test_task,
         create_local_multitarget,
         mock_fs_download,
         mock_file_metadata_registry,
         mock_target_move_from,
-        mock_mkstemp,
     ):
         test_task = test_task.t(my_multitarget)
         task_run = test_task.dbnd_run().root_task_run
@@ -122,26 +124,19 @@ class TestTaskRunSyncLocal(TargetTestBase):
 
         local_multitarget = create_local_multitarget()
 
-        with mock_fs_download as mocked_fs_download, mock_file_metadata_registry, mock_target_move_from as mock_target_move_from, mock_mkstemp as mock_mkstemp:
-            mock_mkstemp.return_value = "ignore", TMP_FILE_PATH
+        with mock_fs_download as mocked_fs_download, mock_file_metadata_registry, mock_target_move_from as mock_target_move_from:
+            monkeypatch.setattr(FileTarget, "tmp", mock_tmp)
+
             # only pre_execute is checked because post_execute code is unreachable for MultiTargets
             sync_local.sync_pre_execute()
             assert mocked_fs_download.call_count == 2
             mocked_fs_download.assert_has_calls(
                 [
-                    call(
-                        remote_subtarget.path,
-                        TMP_FILE_PATH,
-                        overwrite=local_subtarget.config.overwrite_target,
-                    )
+                    call(remote_subtarget.path, TMP_FILE_PATH,)
                     for remote_subtarget, local_subtarget in zip(
                         my_multitarget.targets, local_multitarget.targets
                     )
                 ]
-            )
-            assert mock_target_move_from.call_count == 2
-            mock_target_move_from.assert_has_calls(
-                [call(TMP_FILE_PATH), call(TMP_FILE_PATH)]
             )
         # check if test_task.input_ was changed to local after sync_pre_execute
         self.compare_multitargets(test_task.input_, local_multitarget)
@@ -152,12 +147,12 @@ class TestTaskRunSyncLocal(TargetTestBase):
 
     def test_task_run_sync_local_file_target(
         self,
+        monkeypatch,
         test_task,
         my_target,
         mock_fs_download,
         mock_file_metadata_registry,
         mock_target_move_from,
-        mock_mkstemp,
     ):
         test_task = test_task.t(my_target)
         task_run = test_task.dbnd_run().root_task_run
@@ -173,16 +168,13 @@ class TestTaskRunSyncLocal(TargetTestBase):
             os.path.join(DBND_LOCAL_ROOT, LOCAL_SYNC_CACHE_NAME),
             my_target.path.lstrip("/"),
         )
-        with mock_fs_download as mocked_fs_download, mock_file_metadata_registry, mock_target_move_from as mock_target_move_from, mock_mkstemp as mock_mkstemp:
+        with mock_fs_download as mocked_fs_download, mock_file_metadata_registry, mock_target_move_from as mock_target_move_from:
+            monkeypatch.setattr(FileTarget, "tmp", mock_tmp)
 
-            mock_mkstemp.return_value = "ignore", TMP_FILE_PATH
             sync_local.sync_pre_execute()
             mocked_fs_download.assert_called_once_with(
-                my_target.path,
-                TMP_FILE_PATH,
-                overwrite=local_target.config.overwrite_target,
+                my_target.path, TMP_FILE_PATH,
             )
-            mock_target_move_from.assert_called_once_with(TMP_FILE_PATH)
 
         assert test_task.input_ == local_target
 

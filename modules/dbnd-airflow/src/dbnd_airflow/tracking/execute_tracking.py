@@ -1,19 +1,12 @@
 import logging
-import os
 
 from collections import OrderedDict
 from itertools import islice
 from typing import Optional
 
-import six
-
+from dbnd import Config, get_databand_context
 from dbnd._core.commands import log_metric, log_metrics
-from dbnd._core.constants import (
-    DbndTargetOperationStatus,
-    DbndTargetOperationType,
-    TaskRunState,
-)
-from dbnd._core.current import get_settings
+from dbnd._core.constants import TaskRunState
 from dbnd._core.decorator.task_cls_builder import _log_result
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import extract_airflow_context
 from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
@@ -34,8 +27,6 @@ from dbnd_airflow.tracking.dbnd_spark_conf import (
     get_spark_submit_java_agent_conf,
     spark_submit_with_dbnd_tracking,
 )
-from targets import target
-from targets.value_meta import ValueMetaConf
 
 
 logger = logging.getLogger(__name__)
@@ -168,7 +159,7 @@ def new_execute(context):
     # if we have a task run here we want to log results and xcoms
     if task_run:
         try:
-            track_config = AirflowTrackingConfig()
+            track_config = AirflowTrackingConfig.current()
             if track_config.track_xcom_values:
                 log_xcom(context, track_config)
 

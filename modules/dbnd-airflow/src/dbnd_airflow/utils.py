@@ -77,3 +77,13 @@ def create_user(username, password, email):
         print("User %s created successfully." % username)
     except Exception as e:
         print("Could not create user. %s" % e)
+
+
+def create_dbnd_pool(pool_name):
+    from airflow.utils.db import create_session
+    from airflow.models import Pool
+
+    print("Creating databand pool '%s'" % pool_name)
+    with create_session() as session:
+        dbnd_pool = Pool(pool=pool_name, slots=-1)
+        session.merge(dbnd_pool)

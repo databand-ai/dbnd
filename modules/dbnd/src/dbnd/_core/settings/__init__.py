@@ -3,6 +3,7 @@ import typing
 from typing import Union
 
 from dbnd._core.errors import DatabandConfigError
+from dbnd._core.errors.base import ConfigLookupError
 from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
 from dbnd._core.settings.core import (
     CoreConfig,
@@ -21,6 +22,7 @@ from dbnd._core.settings.output import OutputConfig
 from dbnd._core.settings.run import RunConfig
 from dbnd._core.settings.run_info import RunInfoConfig
 from dbnd._core.settings.scheduler import SchedulerConfig
+from dbnd._core.task import Config
 from dbnd._core.task_build.task_registry import build_task_from_config
 
 
@@ -47,6 +49,8 @@ class DatabandSettings(object):
         self.output = OutputConfig()
 
         self.scheduler = SchedulerConfig()
+
+        self.singleton_configs = {}
 
         self.user_configs = {}
         for user_config in self.core.user_configs:
@@ -80,3 +84,27 @@ class DatabandSettings(object):
                 % (name_or_env, self.core.environments)
             )
         return build_task_from_config(name_or_env, EnvConfig)
+
+    def get_config(self, name):
+        """
+        Retrieve a config by name, return existing instance or new one if not created yet.
+        The config lookup is using **only the directed subclass of Config object**.
+        """
+        if hasattr(self, name):
+            # dbnd-core configs are attributes of settings.
+            # we don't want 2 instances of each config per context.
+            config = getattr(self, name)
+            if isinstance(config, Config):
+                return config
+
+        if name in self.singleton_configs:
+            return self.singleton_configs[name]
+
+        # works only for a direct child of Config
+        for conf_cls in Config.__subclasses__():
+            if conf_cls._conf__task_family == name:
+                conf = conf_cls()
+                self.singleton_configs[name] = conf
+                return conf
+
+        raise ConfigLookupError("Couldn't found config - {}".format(name))

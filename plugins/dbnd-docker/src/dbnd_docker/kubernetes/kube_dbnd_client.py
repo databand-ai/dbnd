@@ -105,7 +105,7 @@ class DbndKubernetesClient(object):
     def dbnd_set_task_pending_fail(self, pod_data, ex):
         metadata = pod_data.metadata
 
-        task_run = _get_task_run_from_pod_data(pod_data)
+        task_run = get_task_run_from_pod_data(pod_data)
         if not task_run:
             return
         from dbnd._core.task_run.task_run_error import TaskRunError
@@ -129,7 +129,7 @@ class DbndKubernetesClient(object):
     def dbnd_set_task_success(self, pod_data):
         metadata = pod_data.metadata
         logger.debug("Getting task run")
-        task_run = _get_task_run_from_pod_data(pod_data)
+        task_run = get_task_run_from_pod_data(pod_data)
         if not task_run:
             logger.info("Can't find a task run for %s", metadata.name)
             return
@@ -154,7 +154,7 @@ class DbndKubernetesClient(object):
         metadata = pod_data.metadata
         # noinspection PyBroadException
         logger.debug("Getting task run")
-        task_run = _get_task_run_from_pod_data(pod_data)
+        task_run = get_task_run_from_pod_data(pod_data)
         if not task_run:
             logger.info("Can't find a task run for %s", metadata.name)
             return
@@ -248,11 +248,22 @@ class DbndKubernetesClient(object):
                         TaskRunState.FAILED, track=True, error=error
                     )
             else:
+                # This code is reached when check_for_retry is false, currently from terminate() only
                 task_run.set_task_run_state(
                     TaskRunState.FAILED, track=True, error=error
                 )
             if logs:
                 task_run.tracker.save_task_run_log("\n".join(logs))
+
+    def dbnd_set_task_cancelled_on_termination(self, pod_name, task_run):
+        if task_run.task_run_state == TaskRunState.SUCCESS:
+            logger.info("pod %s was successful, not setting to cancelled", pod_name)
+            return
+        if task_run.task_run_state == TaskRunState.FAILED:
+            logger.info("pod %s has failed, not setting to cancelled", pod_name)
+            return
+        logger.warning("Setting %s to canceled", pod_name)
+        task_run.set_task_run_state(TaskRunState.CANCELLED)
 
 
 class DbndPodCtrl(object):
@@ -408,7 +419,7 @@ class DbndPodCtrl(object):
                         )
                         > 0
                     ):
-                        task_run = _get_task_run_from_pod_data(pod_v1_resp)
+                        task_run = get_task_run_from_pod_data(pod_v1_resp)
                         if not self.handle_pod_retry(
                             pod_v1_resp,
                             task_run,
@@ -684,7 +695,7 @@ def _get_status_log_safe(pod_data):
         return "failed to get pod status log for %s: %s" % (pod_data.metadata.name, ex)
 
 
-def _get_task_run_from_pod_data(pod_data):
+def get_task_run_from_pod_data(pod_data):
     labels = pod_data.metadata.labels
     if "task_id" not in labels:
         return None

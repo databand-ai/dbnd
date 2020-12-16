@@ -22,3 +22,6 @@ class AlertDefsSchema(ApiObjectSchema):
     scheduled_job_uid = fields.Str()
     scheduled_job_name = fields.Str(attribute="scheduled_job.name")
     job_name = fields.Str()
+    job_id = fields.Int()
+    airflow_instance_name = fields.Str(attribute="job.airflow_server_info.name")
+    env = fields.Str(attribute="job.airflow_server_info.env")

@@ -114,6 +114,8 @@ class BaseTaskMetaFactory(object):
         param_task_env = None
         param_task_config = None
         param_def_regular = []
+        # we want to build task_env and task_config parameters value first
+        # so all others can use it
         for p in task_params.values():
             if p.name == "task_env":
                 param_task_env = p
@@ -125,6 +127,7 @@ class BaseTaskMetaFactory(object):
         if param_task_config:
             param_task_config_value = self.build_parameter_value(param_task_config)
             if param_task_config_value.value:
+                # merging `Task.task_config` into current configuration
                 self.multi_sec_conf.set_values(
                     param_task_config_value.value,
                     source=self._source_name("task_config"),

@@ -242,6 +242,7 @@ class UpdateSource(EnumWithAll):
     dbnd = "dbnd"
     airflow_monitor = "airflow_monitor"
     airflow_tracking = "airflow_tracking"
+    azkaban_tracking = "azkaban_tracking"
 
     def __eq__(self, other):
         if isinstance(other, UpdateSource):
@@ -250,6 +251,10 @@ class UpdateSource(EnumWithAll):
             return str(self) == other or str(self.value) == other
 
         return False
+
+    @classmethod
+    def is_tracking(cls, source):
+        return source in [UpdateSource.airflow_tracking, UpdateSource.azkaban_tracking]
 
 
 class MetricSource(object):

@@ -4,6 +4,7 @@ import uuid
 import pytz
 import six
 
+from dbnd._core.utils.basics.memoized import cached
 from dbnd._vendor import pendulum
 
 
@@ -32,15 +33,37 @@ def get_task_run_attempt_uid(run_uid, dag_id, task_id, try_number):
     return uuid.uuid5(run_uid, "{}.{}:{}".format(dag_id, task_id, try_number))
 
 
-def get_job_run_uid(dag_id, execution_date):
+def get_job_run_uid(airflow_instance_uid, dag_id, execution_date):
     if isinstance(execution_date, six.string_types):
         execution_date = pendulum.parse(execution_date)
     if isinstance(execution_date, datetime.datetime):
         execution_date = (
             execution_date.replace(microsecond=0).astimezone(pytz.utc).isoformat()
         )
-    return uuid.uuid5(NAMESPACE_DBND_RUN, "{}:{}".format(dag_id, execution_date))
+    if airflow_instance_uid is None:
+        return uuid.uuid5(NAMESPACE_DBND_RUN, "{}:{}".format(dag_id, execution_date))
+    else:
+        return uuid.uuid5(
+            NAMESPACE_DBND_RUN,
+            "{}:{}:{}".format(airflow_instance_uid, dag_id, execution_date),
+        )
 
 
-def get_job_uid(dag_id):
-    return uuid.uuid5(NAMESPACE_DBND_JOB, dag_id)
+def get_job_uid(airflow_server_info_uid, dag_id):
+    if airflow_server_info_uid:
+        return uuid.uuid5(
+            NAMESPACE_DBND_JOB, "{}:{}".format(airflow_server_info_uid, dag_id)
+        )
+    else:
+        return uuid.uuid5(NAMESPACE_DBND_JOB, dag_id)
+
+
+@cached()
+def get_airflow_instance_uid():
+    """ used to distinguish between jobs of different airflow instances """
+    import airflow
+
+    db_url = airflow.settings.Session.bind.engine.url
+    db_str = "{}:{}/{}".format(db_url.host, db_url.port, db_url.database)
+    airflow_instance_uid = uuid.uuid5(uuid.NAMESPACE_URL, db_str)
+    return str(airflow_instance_uid)

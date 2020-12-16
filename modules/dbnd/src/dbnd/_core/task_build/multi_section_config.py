@@ -8,6 +8,11 @@ from targets.target_config import parse_target_config
 
 
 class MultiSectionConfig(object):
+    """
+    Contains current config and the list of section names
+    that we need to look at when we calculate the value
+    """
+
     def __init__(self, config, sections):
         # type: (DbndConfig, List[str]) -> None
         self.config = config

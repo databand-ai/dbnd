@@ -111,6 +111,14 @@ class DatabandFailFastError(DatabandRunError):
     """
 
 
+class ConfigLookupError(DatabandConfigError):
+    """
+    Error signifying that the wanted configuration wasn't found
+    """
+
+    _default_show_exc_info = False
+
+
 class ParameterError(DatabandConfigError):
     """
     Base exception.

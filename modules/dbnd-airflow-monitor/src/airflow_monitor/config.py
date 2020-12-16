@@ -34,21 +34,10 @@ class AirflowMonitorConfig(Config):
         description="Max number of tasks or dag run to retrieve at each fetch",
     )[int]
 
-    airflow_url = parameter(default=None)[str]
-
-    airflow_external_url = parameter(default=None)[str]
-
-    composer_client_id = parameter(default=None)[str]
-
     # Used by db fetcher
     local_dag_folder = parameter(default=None)[str]
 
     sql_alchemy_conn = parameter(default=None, description="db url")[str]
-
-    api_mode = parameter(
-        default="rbac",
-        description="Airflow server api mode (flask-admin, rbac, experimental)",
-    )[str]
 
     rbac_username = parameter(
         default={},

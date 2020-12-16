@@ -12,21 +12,25 @@ class TestTaskMetrics(object):
     def test_task_metrics_simple(self, pandas_data_frame):
         class TTaskMetrics(TTask):
             def run(self):
+                self.metrics.log_metric("inner", 3)
                 self.log_metric("a", 1)
                 self.log_metric("a_string", "1")
                 self.log_metric("a_list", [1, 3])
                 self.log_metric("a_tuple", (1, 2))
                 self.log_dataframe("df", pandas_data_frame)
-
-                self.metrics.log_metric("inner", 3)
                 super(TTaskMetrics, self).run()
 
         task = TTaskMetrics()
         assert_run_task(task)
         actual = task._meta_output.list_partitions()
         actuals_strings = list(map(str, actual))
-        assert any(["a_tuple" in s for s in actuals_strings])
         assert any(["inner" in s for s in actuals_strings])
+        assert any(["a_string" in s for s in actuals_strings])
+        assert any(["a_list" in s for s in actuals_strings])
+        assert any(["a_tuple" in s for s in actuals_strings])
+        assert any(["df.schema" in s for s in actuals_strings])
+        assert any(["df.shape0" in s for s in actuals_strings])
+        assert any(["df.shape1" in s for s in actuals_strings])
 
     def test_task_artifacts(self, matplot_figure, tmpdir):
         lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt\n"

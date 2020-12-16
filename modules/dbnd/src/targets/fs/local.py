@@ -128,3 +128,26 @@ class LocalFileSystem(FileSystem):
 
     def open_write(self, path, mode="w", **kwargs):
         return AtomicLocalFile(path, fs=self, mode=mode, **kwargs)
+
+    def move_dir(self, path, dest, raise_if_exists=False):
+        if not self.exists(dest):
+            self.mkdir(dest)
+
+        elif not self.isdir(dest):
+            raise NotADirectory(dest)
+
+        for file in self.listdir(path):
+            old_path = os.path.join(path, file)
+            new_path = os.path.join(dest, file)
+            self.move(old_path, new_path, raise_if_exists)
+
+    def make_tmp(self):
+        from tempfile import mkstemp
+
+        _, tmp = mkstemp()
+        return tmp
+
+    def make_tmp_dir(self):
+        from tempfile import mkdtemp
+
+        return mkdtemp()

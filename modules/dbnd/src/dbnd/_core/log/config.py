@@ -59,15 +59,6 @@ def basic_logging_config(
         }
         config["root"]["handlers"].append("file")
 
-    sentry_url = dbnd_config.get("log", "sentry_url")
-    if sentry_url:
-        sentry_env = dbnd_config.get("log", "sentry_env", default="dev")
-
-        config["handlers"]["sentry"] = get_sentry_logging_config(
-            sentry_url=sentry_url, sentry_env=sentry_env
-        )
-        config["root"]["handlers"].append("sentry")
-
     return config
 
 

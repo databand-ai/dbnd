@@ -1,5 +1,51 @@
 # History
 
+DBND v 0.31.00
+
+Improvements:
+---
+- #1199351713607668: log collection - bring both head and tail
+- #1199222341211949: make log_metric() compatible with BIGINTs
+- #1199191513095141: remove git working from log
+- #1199352826744440: Better run name and job name for Azkaban
+
+Fixed issues:
+---
+- #1185047487019177: add dataframe name to target reporting with log_dataframe()
+- #1198956007770574: fix jvm tracking timeouts
+
+DBND v 0.30.04
+
+Fixed Issues:
+---
+- #1196324185480705: make databand task return proper result
+- #1198935333953725: fix pickling compatibility issue for fat wheel.
+
+
+DBND v 0.30.00
+
+New features:
+---
+- #1195948952063399: Azkaban support
+- #1198875598805805: Support dbnd_cache for multiple scenarios
+
+Improvements:
+
+---
+- #1199199113928119: Documentation for Snowflake Resources Operator
+- #1185230434439866: Mark task that received signal (sigterm?) with different color/state
+- #1199191096927422: snowflake: sleep for resource fetch
+- #1199109359508985: improve performance of airflow-monitor
+- #1199135775563013: add cli to manage airflow monitors
+- #1188613755173249: lazy read for task params
+
+Fixed issues:
+---
+- #1199195747557789: improve performance on relation fetching
+- #1199183015685020: fix nested run issue
+- #1198912139427114: fix airflow logging
+- #1198951004489095: task_visualizer banner - configurable max value size
+
 DBND v 0.29.00
 
 New features:

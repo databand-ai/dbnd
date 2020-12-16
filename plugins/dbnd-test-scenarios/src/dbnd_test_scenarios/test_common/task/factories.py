@@ -22,8 +22,10 @@ class TTaskWithInput(TTask):
 
 
 class TTaskThatFails(TTask):
+    msg = parameter.value("This is a drill")
+
     def run(self):
-        raise ValueError()
+        raise ValueError(self.msg)
 
 
 class CaseSensitiveParameterTask(PythonTask):
@@ -58,6 +60,8 @@ class SubTaskThatFails(TTask):
 class TTaskWithMetrics(TTask):
     def run(self):
         self.log_metric("metric_int", 1)
+        self.log_metric("metric_bigint", 1234567890123456)
+        self.log_metric("metric_float", 3.14)
         self.log_metric("metric_str", "str")
 
         current_task_run().set_external_resource_urls({"someurl": "http://localhost"})

@@ -1,5 +1,7 @@
 import logging
 
+from urllib.parse import urlparse
+
 import prometheus_client
 import requests
 import six
@@ -54,7 +56,9 @@ class WebFetcher(DataFetcher):
 
         if WebFetcher.prometheus_af_response_time_metrics is None:
             WebFetcher.prometheus_af_response_time_metrics = prometheus_client.Summary(
-                "af_monitor_export_response_time", "Airflow export plugin response time"
+                "af_monitor_export_response_time",
+                "Airflow export plugin response time",
+                ["airflow_instance"],
             )
 
     def get_data(
@@ -148,7 +152,11 @@ class WebFetcher(DataFetcher):
             # In RBAC mode, we need to login with admin credentials first
             self._try_login()
 
-        with WebFetcher.prometheus_af_response_time_metrics.time():
+        parsed_uri = urlparse(self.endpoint_url)
+        airflow_instance_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
+        with WebFetcher.prometheus_af_response_time_metrics.labels(
+            airflow_instance_url
+        ).time():
             return self.client.get(self.endpoint_url, params=params, auth=auth)
 
     def get_source(self):

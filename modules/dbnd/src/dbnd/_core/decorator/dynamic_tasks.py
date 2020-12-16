@@ -5,6 +5,7 @@ from typing import Any, Union
 
 from dbnd._core.current import current_task_run, get_databand_run, is_verbose
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
+from dbnd._core.errors import MissingParameterError
 from targets.inline_target import InlineTarget
 
 
@@ -20,7 +21,7 @@ def create_dynamic_task(func_call):
     task_cls, call_args, call_kwargs = (
         func_call.task_cls,
         func_call.call_args,
-        func_call.call_kwargs,
+        func_call.call_kwargs.copy(),
     )
     from dbnd import pipeline, PipelineTask
     from dbnd._core.decorator.dbnd_decorator import _default_output
@@ -131,6 +132,9 @@ def run_dynamic_task_safe(task, func_call):
 def create_and_run_dynamic_task_safe(func_call):
     try:
         task = create_dynamic_task(func_call)
+    except MissingParameterError:
+        # We can't handle MissingParameterError, function invocation will always fail
+        raise
     except Exception:
         _handle_dynamic_error("task-create", func_call)
         return func_call.invoke()

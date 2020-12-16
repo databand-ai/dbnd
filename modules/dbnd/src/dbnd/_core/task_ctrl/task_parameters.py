@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Type
+from typing import Any, Dict, Iterable, List, Tuple, Type
 
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterValue
@@ -95,3 +95,12 @@ class TaskParameters(object):
 
     def get_param_env_key(self, param_name):
         return self.get_param(param_name).get_env_key(self.task.task_name)
+
+    def __iter__(self):
+        # type: (TaskParameters) -> Iterable[ParameterDefinition, ParameterValue, ParameterValue]
+        """helper function to iterate all the params with it's definition, value and meta"""
+
+        for definition in self.get_params():
+            value = self.get_value(definition.name)
+            meta = self.get_param_meta(definition.name)
+            yield definition, value, meta

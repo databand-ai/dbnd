@@ -45,6 +45,7 @@ class AirflowTaskContextSchema(ApiObjectSchema):
     execution_date = fields.String()
     task_id = fields.String()
     try_number = fields.Integer(allow_none=True)
+    airflow_instance_uid = fields.UUID()
 
     @post_load
     def make_run_info(self, data, **kwargs):
@@ -126,6 +127,7 @@ class TaskRunAttemptUpdateArgs(object):
     attempt_number = attr.ib(default=None)  # type: int
     source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
     start_date = attr.ib(default=None)  # type: datetime.datetime
+    external_links_dict = attr.ib(default=None)
 
 
 class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
@@ -137,6 +139,7 @@ class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
     attempt_number = fields.Number(allow_none=True)
     source = fields.Str(allow_none=True)
     start_date = fields.DateTime(allow_none=True)
+    external_links_dict = fields.Dict(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -194,6 +197,7 @@ set_unfinished_tasks_state_schema = SetUnfinishedTasksStateShcmea()
 class SaveTaskRunLogSchema(_ApiCallSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     log_body = fields.String(allow_none=True)
+    local_log_path = fields.String(allow_none=True)
 
 
 save_task_run_log_schema = SaveTaskRunLogSchema()

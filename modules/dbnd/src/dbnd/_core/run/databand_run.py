@@ -422,6 +422,7 @@ class DatabandRun(SingletonContext):
         # with captures_log_into_file_as_task_file(log_file=self.local_driver_log.path):
         try:
             self.start_time = utcnow()
+            logger.info("Running driver... Driver PID: %s", os.getpid())
             self.driver_task_run.runner.execute()
             self.finished_time = utcnow()
         except DatabandRunError as ex:
@@ -625,6 +626,10 @@ class DatabandRun(SingletonContext):
         # we should return here the proper engine config, based in which context we run right now
         # it could be submit, driver or task engine
         return self.env.dbnd_local_root
+
+    @property
+    def is_orchestration(self):
+        return self.source == UpdateSource.dbnd
 
 
 class _DbndDriverTask(Task):

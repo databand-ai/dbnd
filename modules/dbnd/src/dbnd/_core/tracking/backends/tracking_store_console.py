@@ -2,10 +2,11 @@ import logging
 import typing
 
 from datetime import timedelta
+from math import floor, log10
 
 import six
 
-from dbnd._core.constants import TaskRunState
+from dbnd._core.constants import TaskRunState, UpdateSource
 from dbnd._core.current import is_verbose
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
@@ -30,16 +31,17 @@ class ConsoleStore(TrackingStore):
         super(ConsoleStore, self).init_scheduled_job(scheduled_job, update_existing)
 
     def init_run(self, run):
-        logger.info(
-            run.describe.run_banner(
-                "Running Databand!", color="cyan", show_run_info=True
+        if run.is_orchestration:
+            logger.info(
+                run.describe.run_banner(
+                    "Running Databand!", color="cyan", show_run_info=True
+                )
             )
-        )
 
-        if run.context.name == "interactive":
-            from dbnd._core.tools import ipython
+            if run.context.name == "interactive":
+                from dbnd._core.tools import ipython
 
-            ipython.show_run_url(run.run_url)
+                ipython.show_run_url(run.run_url)
 
     def set_task_reused(self, task_run):
         task = task_run.task
@@ -56,31 +58,37 @@ class ConsoleStore(TrackingStore):
         task = task_run.task
 
         # optimize, don't print success banner for fast running tasks
+        start_time = task_run.start_time or utcnow()
         quick_task = task_run.finished_time and (
-            task_run.finished_time
-            - (task_run.start_time if task_run.start_time else utcnow())
+            task_run.finished_time - start_time
         ) < timedelta(seconds=5)
+
         show_simple_log = not self.verbose and (
             task_run.task.task_is_system or quick_task
         )
+
         level = logging.INFO
         color = "cyan"
         task_friendly_id = task_run.task_af_id
         if state in [TaskRunState.RUNNING, TaskRunState.QUEUED]:
             task_msg = "Running task %s" % task_friendly_id
+
         elif state == TaskRunState.SUCCESS:
-            task_msg = "Task %s has been completed!" % (task_friendly_id)
+            task_msg = "Task %s has been completed!" % task_friendly_id
             color = "green"
+
         elif state == TaskRunState.FAILED:
-            task_msg = "Task %s has failed!" % (task_friendly_id)
+            task_msg = "Task %s has failed!" % task_friendly_id
             color = "red"
             level = logging.ERROR
             if task_run.task.get_task_family() != "_DbndDriverTask":
                 show_simple_log = False
+
         elif state == TaskRunState.CANCELLED:
-            task_msg = "Task %s has been canceled!" % (task_friendly_id)
+            task_msg = "Task %s has been canceled!" % task_friendly_id
             color = "red"
             level = logging.ERROR
+
         else:
             task_msg = "Task %s at %s state" % (task_friendly_id, state)
 
@@ -117,8 +125,8 @@ class ConsoleStore(TrackingStore):
     def log_histograms(self, task_run, key, value_meta, timestamp):
         for hist_name, hist_values in value_meta.histograms.items():
             for line in self.ascii_graph.graph(
-                "Histogram logged: {}.{}".format(key, hist_name),
-                list(zip(*reversed(hist_values))),
+                label="Histogram logged: {}.{}".format(key, hist_name),
+                data=list(zip(*reversed(hist_values))),
             ):
                 logger.info(line)
         # TODO: Add more compact logging if user opts out
@@ -131,11 +139,31 @@ class ConsoleStore(TrackingStore):
                 value = round(value, 3)
             logger.info("%s: %s", key, value)
 
+    @staticmethod
+    def _format_value(value):
+        """
+        Convert value to string.
+        Additionally forces float values to NOT use scientific notation.
+        """
+        if isinstance(value, float):
+            value_width = abs(floor(log10(value)))
+            # default python precision threshold to switch to scientific representation of floats
+            if value > 1 or value_width < 4:
+                return str(value)
+            return "{:{width}.{prec}f}".format(
+                value, width=value_width, prec=value_width + 4
+            )
+        return str(value)
+
     def log_metrics(self, task_run, metrics):
         # type: (TaskRun, List[Metric]) -> None
         if len(metrics) == 1:
             m = metrics[0]
-            logger.info("Metric logged: {}={}".format(m.key, m.value))
+            logger.info(
+                "Metric logged: {}={}".format(m.key, self._format_value(m.value))
+            )
         else:
-            metrics_str = "\n\t".join(["{}={}".format(m.key, m.value) for m in metrics])
+            metrics_str = "\n\t".join(
+                ["{}={}".format(m.key, self._format_value(m.value)) for m in metrics]
+            )
             logger.info("Metrics logged:\n\t%s", metrics_str)

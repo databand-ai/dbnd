@@ -9,7 +9,7 @@ class CallableLazyObjectProxy(object):
     wrapped object.
     """
 
-    __slots__ = "__wrapped__"
+    __slots__ = ["__wrapped__", "__weakref__"]
 
     def __init__(self, wrapped):
         self.__wrapped__ = wrapped

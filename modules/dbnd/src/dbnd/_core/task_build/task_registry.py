@@ -172,6 +172,10 @@ class DbndTaskRegistry(SingletonContext):
             if task_module and hasattr(task_module, possible_root_task):
                 user_func = getattr(task_module, possible_root_task)
                 if callable(user_func):
+                    from dbnd._core.tracking.python_tracking import _is_task
+
+                    if _is_task(user_func):
+                        return user_func.task_cls
                     # Non-decorated function was found - decorate and return it
                     from dbnd._core.decorator import dbnd_decorator
 

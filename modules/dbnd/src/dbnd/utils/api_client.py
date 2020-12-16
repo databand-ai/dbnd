@@ -34,10 +34,10 @@ class ApiClient(object):
         self.default_headers = {"Accept": "application/json"}
 
     def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
-        headers = dict(self.default_headers, **(headers or {}))
-
         if not self.session:
             self._init_session(self.credentials)
+
+        headers = dict(self.default_headers, **(headers or {}))
 
         url = urljoin(self._api_base_url, endpoint)
         try:

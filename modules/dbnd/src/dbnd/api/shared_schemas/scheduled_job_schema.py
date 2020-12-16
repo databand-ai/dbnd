@@ -59,12 +59,15 @@ class ScheduledJobSchemaV2(Schema):
     )
 
     job_name = fields.Str(dump_only=True, attribute="DbndScheduledJob.job_name")
+    job_id = fields.Str()
     last_run_uid = fields.UUID(dump_only=True)
     last_run_job = fields.Str(dump_only=True)
     last_job_date = fields.DateTime(dump_only=True)
     last_run_state = fields.Str(dump_only=True)
+    latest_run_env = fields.Str(dump_only=True)
     root_task_run_uid = fields.Str(dump_only=True)
     is_airflow_synced = fields.Bool(dump_only=True)
+    airflow_instance_name = fields.Str(allow_none=True)
     list_order = fields.Integer(
         attribute="DbndScheduledJob.list_order", allow_none=True
     )

@@ -24,3 +24,8 @@ def unittests_db():
 @fixture
 def empty_db():
     return "empty-unittests.db"
+
+
+@fixture
+def incomplete_data_db():
+    return "incomplete-unittests.db"

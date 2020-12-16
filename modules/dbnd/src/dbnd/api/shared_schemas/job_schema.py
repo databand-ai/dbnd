@@ -20,6 +20,7 @@ class JobSchemaV2(ApiObjectSchema):
     latest_run_root_task_run_uid = fields.UUID()
     latest_run_trigger = fields.Str()
     latest_run_env = fields.Str()
+    airflow_instance_name = fields.Str()
 
     scheduled_job_count = fields.Number()
 

@@ -3,6 +3,7 @@ import re
 from dbnd._vendor.termcolor import colored
 
 
+# todo: those are const - should be calculate at run time (so colored function could could be removed if needed)
 ERROR_SEPARATOR = colored("--------------------------------------", color="red")
 ERROR_SEPARATOR_SMALL = colored("- - -", on_color="on_red")
 

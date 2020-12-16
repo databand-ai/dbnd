@@ -16,4 +16,9 @@ def dbnd_setup_plugin():
     from dbnd_examples import feature_data
 
     str([wine_quality_decorators, feature_data])
-    config.set_from_config_file(dbnd_examples_data_path("examples_config.cfg"))
+    try:
+        config.set_from_config_file(dbnd_examples_data_path("examples_config.cfg"))
+    except Exception as e:
+        logger.warning(
+            "Could not load examples_config.cfg! Automatic data loading for dbnd-examples is disabled!"
+        )

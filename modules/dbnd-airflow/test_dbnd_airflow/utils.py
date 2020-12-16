@@ -39,13 +39,14 @@ def assert_content_in_response(text, resp, resp_code=200):
     return resp_html
 
 
-def assert_api_response(resp, resp_code=200, endpoint=None):
+def assert_api_response(resp, resp_code=200, endpoint=None, verbose=True):
     assert resp_code == resp.status_code, (
         "Endpoint: %s\nResponse code: %s\nResponse data: %s"
         % (str(endpoint), str(resp.status_code), str(resp.data))
     )
     resp_data = json.loads(resp.data.decode())
-    logger.info("Response: %s", resp_data)
+    if verbose:
+        logger.info("Response: %s", resp_data)
     return resp_data
 
 

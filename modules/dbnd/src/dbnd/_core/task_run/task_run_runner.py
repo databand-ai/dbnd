@@ -144,7 +144,7 @@ class TaskRunRunner(TaskRunCtrl):
 @seven.contextlib.contextmanager
 def handle_sigterm_at_dbnd_task_run():
     def signal_handler(signum, frame):
-        logger.info("Task runner received signal. Exiting...")
+        logger.info("Task runner received signal. PID: %s. Exiting...", os.getpid())
         if is_plugin_enabled("dbnd-docker") and is_plugin_enabled("dbnd-airflow"):
             from dbnd_docker.kubernetes.kubernetes_engine_config import (
                 ENV_DBND_POD_NAME,
