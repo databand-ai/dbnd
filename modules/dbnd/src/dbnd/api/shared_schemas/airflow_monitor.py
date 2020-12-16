@@ -62,5 +62,5 @@ class AirflowServerInfo(object):
     fetcher = attr.ib(default=None)  # type: Optional[str]
     composer_client_id = attr.ib(default=None)  # type: Optional[str]
     active_dags = attr.ib(default=None)  # type: Dict[str, List[str]]
-    name = fields.String(default=True)  # type: Optional[str]
-    env = fields.String(default=True)  # type: Optional[str]
+    name = attr.ib(default=None)  # type: Optional[str]
+    env = attr.ib(default=None)  # type: Optional[str]

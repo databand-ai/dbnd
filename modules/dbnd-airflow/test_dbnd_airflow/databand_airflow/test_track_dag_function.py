@@ -9,6 +9,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 from mock import Mock
 
+from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
 from dbnd_airflow.tracking.execute_tracking import add_tracking_to_submit_task
@@ -19,6 +20,7 @@ dbnd_spark_env_vars = (
     "spark.env.AIRFLOW_CTX_EXECUTION_DATE",
     "spark.env.AIRFLOW_CTX_TASK_ID",
     "spark.env.AIRFLOW_CTX_TRY_NUMBER",
+    "spark.env.AIRFLOW_CTX_UID",
 )
 
 
@@ -90,6 +92,7 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_EXECUTION_DATE": "emr_task",
             "AIRFLOW_CTX_TASK_ID": "1970-01-01T0000.000",
             "AIRFLOW_CTX_TRY_NUMBER": "1",
+            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
 
         add_tracking_to_submit_task(env, operator)
@@ -116,6 +119,7 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_EXECUTION_DATE": "spark_submit_task",
             "AIRFLOW_CTX_TASK_ID": "1970-01-01T0000.000",
             "AIRFLOW_CTX_TRY_NUMBER": "1",
+            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
 
         add_tracking_to_submit_task(env, operator)
