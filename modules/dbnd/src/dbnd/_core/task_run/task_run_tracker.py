@@ -71,6 +71,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
             key = "{}.{}".format(self.task_run.task.task_name, parameter.name)
             target.target_meta = get_value_meta_from_value(key, value, meta_conf)
+            # FIXME If we failed to get target meta for some reason, target operation won't be logged!
             if target.target_meta is None:
                 return
 

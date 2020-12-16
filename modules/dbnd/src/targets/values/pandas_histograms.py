@@ -27,7 +27,7 @@ class PandasHistograms(object):
         self.meta_conf = meta_conf
 
     def get_histograms_and_stats(self):
-        # type: () -> Tuple[Dict, Dict]
+        # type: () -> Tuple[Dict[str, Dict], Dict[str, List[List]]]
         stats, histograms = dict(), dict()
         if self.meta_conf.log_stats:
             stats = self._calculate_stats(self.df)
@@ -37,12 +37,17 @@ class PandasHistograms(object):
                 self.df, self.meta_conf.log_histograms
             )
             df_histograms = self.df.filter(hist_column_names)
-            # retul_type="expand" and orient="list" are used to stabilize produced
-            # histograms data structure across pandas v0 & v1
-            histograms = df_histograms.apply(
-                self._calculate_histograms, result_type="expand", args=(stats,)
-            )
-            histograms = histograms.to_dict(orient="list")
+            if pd.__version__ > "1":
+                # return_type="expand" and orient="list" are used to stabilize produced
+                # histograms data structure across pandas v0 & v1
+                histograms = df_histograms.apply(
+                    self._calculate_histograms, result_type="expand", args=(stats,)
+                ).to_dict(orient="list")
+            else:
+                histograms = df_histograms.apply(
+                    self._calculate_histograms, args=(stats,)
+                ).to_dict()
+                histograms = {k: list(v) for k, v in histograms.items()}
 
         return stats, histograms
 
@@ -95,7 +100,7 @@ class PandasHistograms(object):
         first_index = column.first_valid_index()
         if first_index is None:
             return column.dtype.name
-        first_value = column[first_index]
+        first_value = column.iat[first_index]
         return type(first_value).__name__
 
     def _calculate_histograms(self, df_column, stats):

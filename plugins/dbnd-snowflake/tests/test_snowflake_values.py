@@ -40,6 +40,7 @@ def snowflake_controller_mock(snowflake_conn_str):
     res.to_preview = mock.MagicMock(return_value="test preview")
     # res.return_value = res  # Mock constructor
     res.__enter__ = mock.MagicMock(return_value=res)  # mock context manager
+    res.__str__ = mock.Mock(return_value=ctrl.__str__())
     return res
 
 

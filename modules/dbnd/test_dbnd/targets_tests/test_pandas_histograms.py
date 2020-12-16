@@ -116,5 +116,61 @@ def test_pandas_v0_histograms():
     ]
     assert histograms["str_column"][0] == [22, 21, 20, 20, 17]
     # "str_column" calculation is unstable
-    assert set(histograms["str_column"][1]) == {'foo', None, '', 'baz', 'bar'}
+    assert set(histograms["str_column"][1]) == {"foo", None, "", "baz", "bar"}
+    # fmt: on
+
+
+def test_pandas_histograms_work_with_NaNs(pandas_data_frame):
+    pandas_data_frame = pandas_data_frame.drop(columns="Names").append([{"foo": 42}])
+    meta_conf = ValueMetaConf.enabled()
+    stats, histograms = PandasHistograms(
+        pandas_data_frame, meta_conf
+    ).get_histograms_and_stats()
+
+    assert sorted(stats.keys()) == sorted(["Births", "foo"])  # noqa
+    assert sorted(histograms.keys()) == sorted(["Births", "foo"])  # noqa
+    assert stats == {
+        "Births": {
+            "25%": 155.0,
+            "50%": 578.0,
+            "75%": 968.0,
+            "count": 6,
+            "distinct": 6,
+            "max": 973.0,
+            "mean": 550.2,
+            "min": 77.0,
+            "non-null": 5,
+            "null-count": 1,
+            "std": 428.4246724921,
+            "type": "float64",
+        },
+        "foo": {
+            "25%": 42.0,
+            "50%": 42.0,
+            "75%": 42.0,
+            "count": 6,
+            "distinct": 2,
+            "max": 42.0,
+            "mean": 42.0,
+            "min": 42.0,
+            "non-null": 1,
+            "null-count": 5,
+            "type": "float64",
+        },
+    }
+    # fmt: off
+    assert histograms == {
+        "Births": [
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2],
+            [77.0, 121.8, 166.6, 211.39999999999998, 256.2, 301.0, 345.79999999999995,
+             390.59999999999997, 435.4, 480.2, 525.0, 569.8, 614.5999999999999, 659.4,
+             704.1999999999999, 749.0, 793.8, 838.5999999999999, 883.4,
+             928.1999999999999, 973.0],
+        ],
+        "foo": [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [41.5, 41.55, 41.6, 41.65, 41.7, 41.75, 41.8, 41.85, 41.9, 41.95, 42.0,
+             42.05, 42.1, 42.15, 42.2, 42.25, 42.3, 42.35, 42.4, 42.45, 42.5]
+        ]
+    }
     # fmt: on
