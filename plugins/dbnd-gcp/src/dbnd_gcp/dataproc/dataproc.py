@@ -1,7 +1,6 @@
 import logging
 
 from airflow.contrib.hooks.gcp_dataproc_hook import DataProcHook
-from airflow.contrib.hooks.gcs_hook import GoogleCloudStorageHook
 
 from dbnd._core.constants import CloudType
 from dbnd._core.current import get_settings
