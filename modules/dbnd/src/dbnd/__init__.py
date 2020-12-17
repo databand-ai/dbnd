@@ -136,7 +136,7 @@ __all__ = [
 
 # shortcuts for useful objects
 str(_set_patches)  # NOQA
-__version__ = "0.31.2"
+__version__ = "0.32.0"
 
 __title__ = "databand"
 __description__ = "Machine Learning Orchestration"
