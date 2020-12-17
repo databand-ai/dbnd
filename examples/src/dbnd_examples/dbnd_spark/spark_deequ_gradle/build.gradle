@@ -30,11 +30,13 @@ configurations.all {
 }
 
 dependencies {
-    implementation("ai.databand:dbnd-api:${version}") { changing = true }
-    implementation("ai.databand:dbnd-api-spark:${version}") { changing = true }
-    implementation("ai.databand:dbnd-api-deequ:${version}") { changing = true }
-    implementation("ai.databand:dbnd-client:${version}") { changing = true }
-    implementation("ai.databand:deequ:1.1.0")
+    implementation("ai.databand:dbnd-api-deequ:${version}")
+    implementation("ai.databand:dbnd-client:${version}")
+    implementation("ai.databand:deequ:1.1.0") {
+        exclude(group: "org.apache.spark")
+        exclude(group: "org.scalanlp")
+    }
+
     implementation("org.scala-lang:scala-library:2.12.8")
 
     implementation("org.slf4j:slf4j-api:1.7.16")
