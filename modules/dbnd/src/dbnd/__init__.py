@@ -21,7 +21,12 @@ from dbnd._core.current import (
     get_databand_context,
     get_databand_run,
 )
-from dbnd._core.decorator.dbnd_decorator import band, pipeline, task
+from dbnd._core.decorator.dbnd_decorator import (
+    band,
+    data_source_pipeline,
+    pipeline,
+    task,
+)
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
 from dbnd._core.parameter.parameter_builder import data, output, parameter
@@ -85,6 +90,7 @@ __all__ = [
     # tasks
     "band",
     "pipeline",
+    "data_source_pipeline",
     "task",
     "Task",
     # class tasks
