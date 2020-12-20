@@ -55,8 +55,9 @@ def _get_log(ti, task):
         if logs_size < MAX_LOGS_SIZE_IN_BYTES:
             return all_logs
 
-        diff = logs_size - MAX_LOGS_SIZE_IN_BYTES
-        result = all_logs[-diff:] + "... ({} of {})".format(diff, len(all_logs))
+        result = all_logs[-MAX_LOGS_SIZE_IN_BYTES:] + "... ({} of {})".format(
+            MAX_LOGS_SIZE_IN_BYTES, len(all_logs)
+        )
         return result
     except Exception as e:
         pass
