@@ -287,7 +287,7 @@ def snowflake_query_tracker(
     log_tables_with_schema: Optional[bool] = None,
     log_resource_history_window: float = 15,
     log_resource_query_history_result_limit: Optional[int] = None,
-    log_resource_delay: int = 0,
+    log_resource_delay: int = 1,
     log_resource_retries: int = 3,
     log_resource_retry_pause: float = 0,
     raise_on_error: bool = False,

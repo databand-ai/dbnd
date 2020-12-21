@@ -20,7 +20,7 @@ def log_snowflake_resource_usage(
     key: str = "snowflake_query",
     history_window: float = 15,
     query_history_result_limit: Optional[int] = None,
-    delay: int = 0,
+    delay: int = 1,
     retries: int = 3,
     retry_pause: float = 0,
     raise_on_error: bool = False,

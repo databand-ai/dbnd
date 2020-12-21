@@ -3,7 +3,7 @@ import random
 import pytest
 import snowflake
 
-from mock import Mock, patch
+from mock import Mock, call, patch
 from snowflake.connector.cursor import SnowflakeCursor
 
 from dbnd.testing.helpers_mocks import set_airflow_context
@@ -76,7 +76,9 @@ def _snowflake_connect():
 
 def _run_simple_query_with_close_conn(mock_snowflake, log_tables, log_resource_usage):
     with snowflake_query_tracker(
-        log_tables=log_tables, log_resource_usage=log_resource_usage,
+        log_tables=log_tables,
+        log_resource_usage=log_resource_usage,
+        log_tables_with_preview=True,
     ) as st:
         query = "select * from " + TEST_TABLE_NAME
         with _snowflake_connect() as conn:
@@ -100,7 +102,7 @@ def _run_simple_query_with_close_conn(mock_snowflake, log_tables, log_resource_u
 
             # query
             assert len(mock_snowflake.mock_calls) == 1
-            assert mock_snowflake.mock_calls[0].args[0] == query
+            assert mock_snowflake.mock_calls[0] == call(query)
 
     if log_resource_usage:
         # should be cleaned
@@ -118,7 +120,9 @@ def _run_simple_query_with_close_conn(mock_snowflake, log_tables, log_resource_u
 
 def _run_simple_query_no_close_conn(mock_snowflake, log_tables, log_resource_usage):
     with snowflake_query_tracker(
-        log_tables=log_tables, log_resource_usage=log_resource_usage,
+        log_tables=log_tables,
+        log_resource_usage=log_resource_usage,
+        log_tables_with_preview=True,
     ) as st:
         query = "select * from " + TEST_TABLE_NAME
         # with self._snowflake_connect() as conn:
@@ -146,7 +150,7 @@ def _run_simple_query_no_close_conn(mock_snowflake, log_tables, log_resource_usa
 
         # query + COMMIT
         assert len(mock_snowflake.mock_calls) == 2
-        assert mock_snowflake.mock_calls[0].args[0] == query
+        assert mock_snowflake.mock_calls[0] == call(query)
 
     if log_resource_usage:
         # should be cleaned
@@ -184,7 +188,7 @@ class TestSnowflakeQueryTracker:
         #  + 1 for resource usage
         assert len(mock_snowflake.mock_calls) == 3
 
-        resource_query = mock_snowflake.mock_calls[-1].args[0]
+        resource_query = mock_snowflake.mock_calls[-1][1][0]
         assert str(session_id) in resource_query
         assert str(query_id) in resource_query
 
@@ -205,11 +209,13 @@ class TestSnowflakeQueryTracker:
             "SHOW TABLES",
         ):
             assert any(
-                pattern in call.args[0] and TEST_TABLE_NAME in call.args[0]
-                for call in mock_snowflake.mock_calls
-            )
+                [
+                    pattern in mock_call[1][0] or TEST_TABLE_NAME in mock_call[1][0]
+                    for mock_call in mock_snowflake.mock_calls
+                ]
+            ), mock_snowflake.mock_calls
 
-        resource_query = mock_snowflake.mock_calls[2].args[0]
+        resource_query = mock_snowflake.mock_calls[2][1][0]
         assert str(session_id) in resource_query
         assert str(query_id) in resource_query
 
@@ -229,9 +235,11 @@ class TestSnowflakeQueryTracker:
         ):
             for table_name in track_tables:
                 assert any(
-                    pattern in call.args[0] and table_name in call.args[0]
-                    for call in mock_snowflake.mock_calls
-                )
+                    [
+                        pattern in call[1][0] and table_name in call[1][0]
+                        for call in mock_snowflake.mock_calls
+                    ]
+                ), mock_snowflake.mock_calls
 
     def test_not_tracked_queries(self, mock_snowflake):
         with snowflake_query_tracker() as st:

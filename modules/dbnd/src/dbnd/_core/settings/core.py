@@ -254,7 +254,8 @@ class TrackingConfig(Config):
         description="Calculate and log value stats(expensive to calculate, better use log_stats on parameter level)",
     )[bool]
     log_value_preview = parameter(
-        default=True, description="Calculate and log value preview "
+        default=False,
+        description="Calculate and log value preview. Can be expensive on Spark.",
     )[bool]
 
     log_value_preview_max_len = parameter(

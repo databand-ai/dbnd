@@ -164,7 +164,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
             (tracking_config_empty, True, True, True),
             (tracking_config_empty, True, False, True),
             # Default config value
-            (tracking_config_empty, None, None, True),
+            (tracking_config_empty, None, None, False),
             (tracking_config_empty, False, None, False),
             (tracking_config_empty, True, None, True),
         ],
