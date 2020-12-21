@@ -142,6 +142,11 @@ class TaskRunTracker(TaskRunCtrl):
             meta_conf = self.settings.tracking.get_value_meta_conf(meta_conf)
             value_meta = get_value_meta_from_value(key, data, meta_conf, raise_on_error)
             if not value_meta:
+                logger.warning(
+                    "Couldn't log the wanted data {name}, reason - can't log objects of type {value_type} ".format(
+                        name=key, value_type=type(data)
+                    )
+                )
                 return
 
             ts = utcnow()
