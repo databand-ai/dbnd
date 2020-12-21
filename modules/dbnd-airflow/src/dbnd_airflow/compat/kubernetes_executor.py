@@ -1,5 +1,5 @@
-from dbnd_airflow.contants import AIRFLOW_ABOVE_9, AIRFLOW_ABOVE_10
-
+from dbnd_airflow.constants import AIRFLOW_ABOVE_9, AIRFLOW_ABOVE_10
+from dbnd_airflow._vendor import kubernetes_utils
 
 if AIRFLOW_ABOVE_10:
     from airflow.executors.kubernetes_executor import (
@@ -18,14 +18,7 @@ else:
 
 
 def make_safe_label_value(value):
-    if AIRFLOW_ABOVE_10:
-        from airflow.kubernetes.pod_generator import (
-            make_safe_label_value as airflow_make_safe_label_value,
-        )
-
-        return airflow_make_safe_label_value(value)
-
-    return AirflowKubernetesScheduler._make_safe_label_value(value)
+    return kubernetes_utils.make_safe_label_value(value)
 
 
 def get_tuple_for_watcher_queue(pod_id, namespace, state, labels, resource_version):
