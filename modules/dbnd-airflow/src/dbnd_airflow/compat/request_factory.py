@@ -1,4 +1,4 @@
-from dbnd_airflow.contants import AIRFLOW_ABOVE_10
+from dbnd_airflow.constants import AIRFLOW_ABOVE_10
 
 
 def serialize_pod(pod):
