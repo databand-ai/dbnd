@@ -120,6 +120,10 @@ def in_quiet_mode():
     return get_dbnd_project_config().quiet_mode
 
 
+def in_tracking_mode():
+    return get_dbnd_project_config().is_tracking_mode()
+
+
 def is_unit_test_mode():
     return get_dbnd_project_config().unit_test_mode
 

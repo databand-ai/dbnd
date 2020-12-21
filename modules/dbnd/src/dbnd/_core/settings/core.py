@@ -2,6 +2,7 @@ import logging
 
 from typing import Dict, List
 
+from dbnd._core.configuration.environ_config import in_tracking_mode
 from dbnd._core.constants import CloudType
 from dbnd._core.log import dbnd_log_debug
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
@@ -120,6 +121,10 @@ class CoreConfig(Config):
         str
     ]
 
+    silence_tracking_mode = parameter(
+        default=True, description="Silence console on tracking mode"
+    )[bool]
+
     always_save_pipeline = parameter(
         description="Boolean for always saving pipeline to pickle"
     ).value(False)
@@ -173,6 +178,13 @@ class CoreConfig(Config):
             logger.warning(
                 "core.databand_access_token is used instead of defined dbnd_user and dbnd_password."
             )
+
+        if not (in_tracking_mode() and "api" in self.tracker):
+            self.silence_tracking_mode = False
+
+        # in tracking mode we track to console only if we are not tracking to the api
+        if self.silence_tracking_mode:
+            self.tracker = [t for t in self.tracker if t != "console"]
 
     def build_tracking_store(self, remove_failed_store=True):
         from dbnd._core.tracking.registry import get_tracking_store

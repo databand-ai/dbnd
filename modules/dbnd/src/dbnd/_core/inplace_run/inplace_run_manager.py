@@ -19,6 +19,7 @@ from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
     try_get_airflow_context,
 )
 from dbnd._core.run.databand_run import new_databand_run
+from dbnd._core.settings import CoreConfig
 from dbnd._core.task.task import Task
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
@@ -160,9 +161,13 @@ class _DbndInplaceRunManager(object):
                 databand_run.set_run_state(RunState.SUCCESS)
             else:
                 databand_run.set_run_state(RunState.FAILED)
-            logger.info(databand_run.describe.run_banner_for_finished())
+
+            # todo: hard to control the console output if we printing to the console not from the console tracker
+            if not CoreConfig.current().silence_tracking_mode:
+                logger.info(databand_run.describe.run_banner_for_finished())
 
             self._close_all_context_managers()
+
         except Exception as ex:
             _handle_inline_run_error("dbnd-tracking-shutdown")
 
