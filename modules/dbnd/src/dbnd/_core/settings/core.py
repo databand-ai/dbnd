@@ -122,7 +122,7 @@ class CoreConfig(Config):
     ]
 
     silence_tracking_mode = parameter(
-        default=True, description="Silence console on tracking mode"
+        default=False, description="Silence console on tracking mode"
     )[bool]
 
     always_save_pipeline = parameter(
