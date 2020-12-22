@@ -14,6 +14,7 @@ from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
     calc_task_run_attempt_key_from_af_ti,
 )
+from dbnd._core.run.databand_run import AD_HOC_DAG_PREFIX
 from dbnd._core.task_run.log_preview import read_dbnd_log_preview
 from dbnd._core.utils.uid_utils import get_uuid
 
@@ -51,8 +52,8 @@ class DbndAirflowHandler(logging.Handler):
         We use this method to setup the dbnd context and communicate information to
         the `<airflow_operator>_execute` task, that we create in `execute_tracking.py`.
         """
-        # we setting up only on tracking mode
-        if not get_dbnd_project_config().is_tracking_mode():
+        # we setting up only when we are not in our own orchestration dag
+        if ti.dag_id.startswith(AD_HOC_DAG_PREFIX):
             return
 
         if config.getboolean("mlflow_tracking", "databand_tracking"):
