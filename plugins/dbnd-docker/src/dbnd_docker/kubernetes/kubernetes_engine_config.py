@@ -126,6 +126,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         description="Values for pod error handling configuration"
     )[Dict]
 
+    pod_default_retry_delay = parameter(
+        description="The default amount of time to wait between retries of pods",
+        default="5m",
+    )[datetime.timedelta]
+
     submit_termination_grace_period = parameter(
         description="timedelta to let the submitted pod enter a final state"
     )[datetime.timedelta]
