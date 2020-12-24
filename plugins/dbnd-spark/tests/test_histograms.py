@@ -4,6 +4,8 @@ import logging
 
 from collections import Iterable
 
+import pytest
+
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 from dbnd_spark import get_spark_session
@@ -15,6 +17,7 @@ from targets.values import get_value_meta_from_value
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.spark
 class TestSparkHistograms(BaseHistogramTests):
     def data_to_value(self, data):
         spark_session = get_spark_session()
