@@ -6,6 +6,7 @@ class JobSchemaV2(ApiObjectSchema):
     id = fields.Int()
     name = fields.Str()
     user = fields.Str()
+    is_archived = fields.Boolean()
     ui_hidden = fields.Boolean()
     is_airflow_synced = fields.Boolean()
 
