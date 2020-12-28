@@ -100,7 +100,7 @@ class PandasHistograms(object):
         first_index = column.first_valid_index()
         if first_index is None:
             return column.dtype.name
-        first_value = column.iat[first_index]
+        first_value = column.at[first_index]
         return type(first_value).__name__
 
     def _calculate_histograms(self, df_column, stats):

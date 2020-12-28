@@ -120,13 +120,21 @@ def test_pandas_v0_histograms():
     # fmt: on
 
 
-def test_pandas_histograms_work_with_NaNs(pandas_data_frame):
-    pandas_data_frame = pandas_data_frame.drop(columns="Names").append([{"foo": 42}])
+def test_pandas_histograms_work_with_NaNs_and_nonseq_index(pandas_data_frame):
+    # Arrange
+    pandas_data_frame = (
+        pandas_data_frame.drop(columns="Names")
+        .set_index([pd.Index([90, 30, 50, 70, 10])])  # emulate real world DF indices
+        .append([{"foo": 42}])
+    )
     meta_conf = ValueMetaConf.enabled()
+
+    # Act
     stats, histograms = PandasHistograms(
         pandas_data_frame, meta_conf
     ).get_histograms_and_stats()
 
+    # Assert
     assert sorted(stats.keys()) == sorted(["Births", "foo"])  # noqa
     assert sorted(histograms.keys()) == sorted(["Births", "foo"])  # noqa
     assert stats == {
