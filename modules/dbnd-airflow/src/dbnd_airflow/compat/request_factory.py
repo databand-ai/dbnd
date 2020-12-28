@@ -1,7 +1,7 @@
 from dbnd_airflow.constants import AIRFLOW_ABOVE_10
 
 
-def serialize_pod(pod):
+def serialize_pod(pod, engine_config):
     if AIRFLOW_ABOVE_10:
         pod = pod.to_v1_kubernetes_pod()
 
@@ -9,7 +9,7 @@ def serialize_pod(pod):
 
         # airflow>1.10.10 uses official kubernetes client (https://github.com/kubernetes-client/python/)
         # to create pod json request instead of custom SimplePodRequest class
-        kube_client = get_kube_client()
+        kube_client = get_kube_client(in_cluster=engine_config.in_cluster)
         return kube_client.api_client.sanitize_for_serialization(pod)
 
     from airflow.contrib.kubernetes.kubernetes_request_factory.pod_request_factory import (

@@ -20,7 +20,7 @@ class DbndPodRequestFactory(object):
 
     def create(self, pod):
 
-        req = serialize_pod(pod)
+        req = serialize_pod(pod, self.kubernetes_engine_config)
 
         self.extract_node_affinity(pod, req)
         self.extract_volume_secrets(pod, req)
