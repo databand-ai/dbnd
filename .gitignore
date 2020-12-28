@@ -13,6 +13,7 @@ __pycache__/
 .dbnd/airflow/keys/*
 .dbnd/airflow/airflow.cfg
 .dbnd/airflow/airflow-unittests.db
+.dbnd/airflow/unittests.cfg
 .dbnd/dbnd.db
 .dbnd/unittests.db
 .dbnd/airflow-webserver.pid
