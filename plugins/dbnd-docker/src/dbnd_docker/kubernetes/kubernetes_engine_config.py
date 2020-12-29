@@ -478,9 +478,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         )
 
         self.apply_env_vars_to_pod(pod)
-        kube_req_factory = DbndPodRequestFactory()
-        if hasattr(pod, "pod_yaml"):
-            kube_req_factory._yaml = pod.pod_yaml
+
+        pod_yaml = getattr(pod, "pod_yaml", "")
+        kube_req_factory = DbndPodRequestFactory(self, pod_yaml)
 
         req = kube_req_factory.create(pod)
         return req
