@@ -1,0 +1,9 @@
+version: "3.7"
+
+services:
+  databand_postgres:
+    image: postgres:10.5
+    environment:
+      - POSTGRES_USER=databand
+      - POSTGRES_PASSWORD=databand
+      - POSTGRES_DB=databand

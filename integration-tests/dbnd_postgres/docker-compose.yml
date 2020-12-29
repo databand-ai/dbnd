@@ -1,0 +1,24 @@
+# Requirements:
+# * make dist
+# * make kaniko/int-webserver
+
+version: "3.7"
+
+services:
+  inttest:
+    image: ${DOCKER_IMAGE_INT_WITH_PLUGINS:-gcr.io/dbnd-dev-260010/databand:dbnd-int-with-plugins-py36-local}
+    depends_on:
+      - databand_postgres
+    volumes:
+      - ../junit:/app/junit
+      - .:/app/integration-test
+      - ../airflow_monitor/dags:/root/airflow/dags
+    environment:
+      - PYTEST_ADDOPTS=--junit-xml junit/inttest-airflow-monitor-${IMAGE_EXTRA_TAG}.xml
+      - DBND__WEBSERVER__SQL_ALCHEMY_CONN=postgresql://databand:databand@databand_postgres:5432/databand
+    command:
+      - bash
+      - -c
+      - |
+        until nc -z databand_postgres 5432; do echo "Waiting for Postgres..." && sleep 1; done
+        pytest . -vv --log-cli-level=INFO
