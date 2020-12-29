@@ -6,7 +6,7 @@ from dbnd._core.cli.utils import with_fast_dbnd_context
 from dbnd._core.constants import AlertSeverity, RunState, TaskRunState
 from dbnd._core.errors.base import DatabandApiError
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_tabulate
-from dbnd._core.utils.cli import options_dependency, requierd_mutually_exclude_options
+from dbnd._core.utils.cli import options_dependency, required_mutually_exclusive_options
 from dbnd._vendor import click
 from dbnd.api.alerts import (
     create_alert,
@@ -279,7 +279,7 @@ def cmd_create_alert(manage_ctx, alert, operator, value, user_metric):
 @alerts.command()
 @with_fast_dbnd_context
 @options_dependency("job", "name")
-@requierd_mutually_exclude_options("uid", "wipe", "job")
+@required_mutually_exclusive_options("uid", "wipe", "job")
 @click.option("--uid", "-u", help="alert uid", type=click.STRING)
 @click.option("--wipe", help="delete all alerts", is_flag=True)
 @click.option("--job", "-j", help="job name", type=click.STRING)

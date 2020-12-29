@@ -17,7 +17,7 @@ from dbnd._core.cli.cmd_project import project_init
 from dbnd._core.cli.cmd_run import run
 from dbnd._core.cli.cmd_show import show_configs, show_tasks
 from dbnd._core.cli.cmd_tracker import tracker
-from dbnd._core.cli.cmd_utils import ipython
+from dbnd._core.cli.cmd_utils import collect_logs, ipython
 from dbnd._core.configuration.environ_config import should_fix_pyspark_imports
 from dbnd._core.context.bootstrap import (
     _dbnd_exception_handling,
@@ -74,6 +74,9 @@ cli.add_command(send_heartbeat)
 cli.add_command(alerts)
 cli.add_command(airflow_sync)
 cli.add_command(schedule)
+
+# error reporting
+cli.add_command(collect_logs)
 
 
 @dbnd_handle_errors(exit_on_error=False)

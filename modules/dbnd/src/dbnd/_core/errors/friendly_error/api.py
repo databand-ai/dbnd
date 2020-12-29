@@ -19,3 +19,11 @@ def run_uid_not_found_in_db(run_uid):
         help_msg="Please check your configuration files, may be you are using local DB\n "
         "Validate that you don't have reference to previous run via --run-driver [UID] ",
     )
+
+
+def couldnt_find_databand_run_in_db(name_or_uid, ex):
+    return DatabandConnectionException(
+        "Couldn't find the databand run '%s' in current database! Please validate that you are using the correct "
+        "connection string" % name_or_uid,
+        nested_exceptions=ex,
+    )

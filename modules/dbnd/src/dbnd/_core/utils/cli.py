@@ -35,7 +35,7 @@ def only_one(*args):
     return reduce(xor, map(bool, args))
 
 
-def requierd_mutually_exclude_options(*options):
+def required_mutually_exclusive_options(*options):
     """
     Creates a decorator for click commands that make sure that
     only one, and at least one, of `options` is set while calling the click command.
