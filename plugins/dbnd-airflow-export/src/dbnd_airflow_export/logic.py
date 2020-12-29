@@ -2,6 +2,7 @@ import itertools
 import logging
 import sys
 
+from copy import deepcopy
 from functools import wraps
 from timeit import default_timer
 
@@ -281,8 +282,9 @@ def _get_dag_runs_without_tasks(start_date, end_date, dag_ids, quantity, session
 def _get_task_instances_without_date(
     since, dag_ids, dagbag, session, page_size=100, incomplete_offset=0
 ):
+    query_fields = deepcopy(ETaskInstance.query_fields()).extend(EDagRun.query_fields())
     task_instances_query = (
-        session.query(*ETaskInstance.query_fields(), *EDagRun.query_fields())
+        session.query(*query_fields)
         .join(
             DagRun,
             (TaskInstance.dag_id == DagRun.dag_id)
@@ -325,8 +327,9 @@ def _get_task_instances_without_date(
 def _get_task_instances(
     since, dag_ids, quantity, dagbag, include_logs, include_xcom, session
 ):
+    query_fields = deepcopy(ETaskInstance.query_fields()).extend(EDagRun.query_fields())
     task_instances_query = (
-        session.query(*ETaskInstance.query_fields(), *EDagRun.query_fields())
+        session.query(*query_fields)
         .join(
             DagRun,
             (TaskInstance.dag_id == DagRun.dag_id)
