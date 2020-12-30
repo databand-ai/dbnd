@@ -69,7 +69,9 @@ def _call_tracking_store(tracking_store_function, **kwargs):
         try:
             tracking_store_function(**kwargs)
             return True
-        except DatabandConnectionException:
+        except DatabandConnectionException as dce:
+            logger.info("Exception happened: {}".format(dce))
+            logger.info("Inner exception: {}".format(dce.nested_exceptions))
             logger.info("Trying again in %d seconds", 5)
             sleep(5)
         except Exception as e:
