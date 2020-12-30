@@ -1,5 +1,6 @@
-from dbnd_airflow.constants import AIRFLOW_ABOVE_9, AIRFLOW_ABOVE_10
 from dbnd_airflow._vendor import kubernetes_utils
+from dbnd_airflow.constants import AIRFLOW_ABOVE_9, AIRFLOW_ABOVE_10
+
 
 if AIRFLOW_ABOVE_10:
     from airflow.executors.kubernetes_executor import (
