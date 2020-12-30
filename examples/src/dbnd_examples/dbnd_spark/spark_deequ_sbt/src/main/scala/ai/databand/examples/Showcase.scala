@@ -3,7 +3,6 @@ package ai.databand.examples
 import ai.databand.annotations.Task
 import ai.databand.deequ.{DbndMetricsRepository, DbndResultKey}
 import ai.databand.log.DbndLogger
-import ai.databand.spark.DbndSparkListener
 import com.amazon.deequ.VerificationSuite
 import com.amazon.deequ.checks.{Check, CheckLevel}
 import com.amazon.deequ.profiles.ColumnProfilerRunner
@@ -25,8 +24,6 @@ object Showcase {
             .appName("databand-showcase")
             .master("local[*]")
             .getOrCreate
-        // capture spark logs and metrics by adding DbndSparkListener
-        spark.sparkContext.addSparkListener(new DbndSparkListener)
         val sql = spark.sqlContext
         val filePath = if (args.length > 0) args(0) else getClass.getClassLoader.getResource("data.csv").getFile
         run(sql, filePath)
