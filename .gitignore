@@ -15,7 +15,7 @@ __pycache__/
 .dbnd/airflow/airflow-unittests.db
 .dbnd/airflow/unittests.cfg
 .dbnd/dbnd.db
-.dbnd/unittests.db
+.dbnd/airflow/unittests.db
 .dbnd/airflow-webserver.pid
 .dbnd/last_pipeline.pickle
 .dbnd/archive
