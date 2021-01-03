@@ -27,7 +27,7 @@ def _sig(task):
         context=get_databand_context(), task_or_task_name=task,
     ):
         logger.info(task.ctrl.banner(name))
-        for child in task.task_meta.get_children():
+        for child in task.descendants.get_children():
             logger.info(child.ctrl.banner(name))
 
     return task.task_signature

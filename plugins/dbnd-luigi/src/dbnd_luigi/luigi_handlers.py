@@ -53,7 +53,7 @@ class LuigiEventsHandler:
         child_dbnd_task = self.run_manager.get_dbnd_task(child_task)
 
         father_dbnd_task.set_upstream(child_dbnd_task)
-        father_dbnd_task.task_meta.add_child(child_dbnd_task.task_id)
+        father_dbnd_task.descendants.add_child(child_dbnd_task.task_id)
 
     def on_dependency_present(self, luigi_task):
         """
@@ -62,7 +62,7 @@ class LuigiEventsHandler:
         logger.warning("Dependency is present: %s", luigi_task.task_id)
 
         dbnd_task = self.run_manager.get_dbnd_task(luigi_task)
-        dbnd_task._luigi_task_completed = True
+        dbnd_task.mark_completed()
 
         self.run_manager.encounter_task(dbnd_task)
 

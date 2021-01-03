@@ -23,7 +23,7 @@ See :doc:`/tasks` for an overview.
 import logging
 import typing
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import six
 
@@ -75,10 +75,9 @@ class _BaseTask(object):
     # execution
     # will be used by Registry
     task_definition = None  # type: TaskDefinition
-    is_tracking_mode = False  # type: bool
 
     # user can override this with his configuration
-    defaults = None  # type: Dict[ParameterDefinition, any()]
+    defaults = None  # type: Dict[ParameterDefinition, Any]
 
     validate_no_extra_params = parameter.enum(ParamValidation).system(
         description="validate that all configured keys for a task have a matching parameter definition"
@@ -99,11 +98,12 @@ class _BaseTask(object):
         self.task_meta = kwargs["task_meta"]  # type: TaskMeta
         self._params = TaskParameters(self)
 
-        for p_value in self.task_meta.class_task_params:
-            setattr(self, p_value.name, p_value.value)
-
-        self._task_auto_read_current = None
-        self._task_auto_read_origin = None
+    def _get_param_value(self, param_name):
+        # type: (str) -> Any
+        """
+        Abstract method for the Task to implement, directing the TaskParameters how to access the param value
+        """
+        raise NotImplementedError
 
     @property
     def task_id(self):
@@ -172,9 +172,7 @@ class _BaseTask(object):
             cls = self.__class__
         output_params_to_clone = output_params_to_clone or []
         new_k = {}
-        for param_name, param_class in six.iteritems(
-            cls.task_definition.all_task_params
-        ):
+        for param_name, param_class in six.iteritems(cls.task_definition.task_params):
             if param_class.is_output() and param_name not in output_params_to_clone:
                 continue
             if param_name in kwargs:
@@ -211,7 +209,7 @@ class _BaseTask(object):
         return
 
     def simple_params_dict(self):
-        return {p.name: p.value for p in self._params.task_meta.class_task_params}
+        return dict(self.task_meta.task_params)
 
     def load_task_runtime_values(self):
         for param, value in self._params.get_param_values():

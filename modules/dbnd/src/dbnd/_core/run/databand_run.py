@@ -24,6 +24,7 @@ from dbnd._core.constants import (
     DescribeFormat,
     RunState,
     SystemTaskName,
+    TaskEssence,
     TaskExecutorType,
     TaskRunState,
     UpdateSource,
@@ -47,6 +48,7 @@ from dbnd._core.run.target_identity_source_map import TargetIdentitySourceMap
 from dbnd._core.run.task_runs_builder import TaskRunsBuilder
 from dbnd._core.settings import DatabandSettings, EngineConfig, RunConfig
 from dbnd._core.task import Task
+from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import current_task, has_current_task
 from dbnd._core.task_build.task_registry import (
     build_task_from_config,
@@ -117,7 +119,9 @@ class DatabandRun(SingletonContext):
         if isinstance(task_or_task_name, six.string_types):
             self.root_task_name = task_or_task_name
             self.root_task = None
-        elif isinstance(task_or_task_name, Task):
+        elif isinstance(task_or_task_name, Task) or isinstance(
+            task_or_task_name, TrackingTask
+        ):
             self.root_task_name = task_or_task_name.task_name
             self.root_task = task_or_task_name
         else:
@@ -689,7 +693,7 @@ class _DbndDriverTask(Task):
         else:
             if run.root_task:
                 # user has created DatabandRun with existing task
-                self.task_meta.add_child(run.root_task.task_id)
+                self.descendants.add_child(run.root_task.task_id)
                 return run.root_task
 
             logger.info("Building main task '%s'", run.root_task_name)

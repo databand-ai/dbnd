@@ -56,7 +56,7 @@ class TaskRunRunner(TaskRunCtrl):
             submit_task = self.task_run.task_engine.submit_to_engine_task(
                 env=task.task_env, task_name=SystemTaskName.task_submit, args=args
             )
-            submit_task.task_meta.add_child(task.task_id)
+            submit_task.descendants.add_child(task.task_id)
             if run_config.open_web_tracker_in_browser:
                 webbrowser.open_new_tab(task_run.task_tracker_url)
             run.run_dynamic_task(submit_task)

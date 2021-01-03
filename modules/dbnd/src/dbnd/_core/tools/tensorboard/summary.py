@@ -30,7 +30,7 @@ def tensorflow_graph(task):
     children = defaultdict(list)
     parents = defaultdict(list)
     for task in tasks:
-        children[task.task_id] = task.task_meta.get_children()
+        children[task.task_id] = task.descendants.get_children()
         for t_child in children[task.task_id]:
             parents[t_child.task_id].append(task)
     friendly_name = {t.task_id: t.task_af_id for t in tasks}

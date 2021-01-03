@@ -4,7 +4,7 @@ import typing
 import six
 
 from dbnd import get_dbnd_project_config
-from dbnd._core.constants import SystemTaskName
+from dbnd._core.constants import SystemTaskName, TaskEssence
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
@@ -90,7 +90,7 @@ class TaskVisualiser(TaskSubCtrl):
             )
 
             # different banners for tracking and orchestration
-            if get_dbnd_project_config().is_tracking_mode():
+            if TaskEssence.TRACKING.is_included(self.task):
                 builder.build_tracking_banner(task_run=task_run, exc_info=exc_info)
             else:
                 builder.build_orchestration_banner(task_run=task_run, exc_info=exc_info)

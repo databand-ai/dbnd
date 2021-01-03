@@ -4,6 +4,7 @@ import typing
 
 from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.task.task import Task
+from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.utils.task_utils import _try_get_task_from_airflow_op, to_tasks
 from dbnd._core.utils.traversing import flatten
@@ -30,7 +31,7 @@ def _task_list(task_or_task_list):
         airflow_task = _try_get_task_from_airflow_op(t)
         if airflow_task:
             t = airflow_task
-        if not isinstance(t, Task):
+        if not (isinstance(t, _TaskCtrlMixin)):
             raise DatabandError(
                 "Relationships can only be set between "
                 "Databand Tasks; received {}".format(t.__class__.__name__)
@@ -52,7 +53,7 @@ class _TaskDagNode(TaskSubCtrl):
         upstream = list(filter(None, upstream))
 
         # take care of orphant tasks
-        for child in self.task_meta.get_children():
+        for child in self.task.descendants.get_children():
             if not child.task_dag.downstream:
                 # it means there is no other tasks that are waiting for this task
                 # -> we add it to task upstream
@@ -72,7 +73,7 @@ class _TaskDagNode(TaskSubCtrl):
 
         children = {
             c
-            for c in self.task_meta.get_children()
+            for c in self.task.descendants.get_children()
             if not isinstance(c, DataSourceTask)
         }
         # do it only for leafs

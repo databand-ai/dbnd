@@ -106,7 +106,9 @@ def test_tracking_pass_through_default(pandas_data_frame_on_disk, mock_channel_t
     df, df_file = pandas_data_frame_on_disk
 
     # we'll pass string instead of defined expected DataFrame and it should work
-    some_date = utcnow().isoformat()
+    from targets.values import DateTimeValueType
+
+    some_date = DateTimeValueType().to_str(utcnow())
     task_result = task_pass_through_default(
         str(df_file), some_date, expect_pass_through=True
     )

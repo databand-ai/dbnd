@@ -1,4 +1,5 @@
 import logging
+import os
 
 from collections import OrderedDict
 from itertools import islice
@@ -217,3 +218,5 @@ def add_tracking_to_submit_task(tracking_info, operator):
         if is_instance_by_class_name(operator, class_name):
             tracking_wrapper(operator, tracking_info)
             break
+        else:
+            track_with_env_variables(operator, tracking_info)

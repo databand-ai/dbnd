@@ -25,6 +25,7 @@ from dbnd._core.current import get_settings
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task import Task
+from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.dynamic import build_dynamic_task_class
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
@@ -220,8 +221,7 @@ def try_get_airflow_context_from_spark_conf():
     return None
 
 
-class AirflowOperatorRuntimeTask(Task):
-    task_is_system = False
+class AirflowOperatorRuntimeTask(TrackingTask):
     _conf__track_source_code = False
 
     dag_id = parameter[str]
@@ -229,9 +229,9 @@ class AirflowOperatorRuntimeTask(Task):
 
     def _initialize(self):
         super(AirflowOperatorRuntimeTask, self)._initialize()
-        self.task_meta.task_functional_call = ""
+        self.ctrl.task_repr.task_functional_call = ""
 
-        self.task_meta.task_command_line = generate_airflow_cmd(
+        self.ctrl.task_repr.task_command_line = generate_airflow_cmd(
             dag_id=self.dag_id,
             task_id=self.task_id,
             execution_date=self.execution_date,
@@ -286,7 +286,6 @@ def build_run_time_airflow_task(af_context):
         user_params = {}
 
     root_task = task_class(
-        task_name=task_family,
         dag_id=af_context.dag_id,
         execution_date=af_context.execution_date,
         task_version="%s:%s" % (af_context.task_id, af_context.execution_date),

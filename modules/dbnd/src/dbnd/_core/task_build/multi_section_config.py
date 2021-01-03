@@ -1,5 +1,7 @@
 from typing import List
 
+from six import iteritems
+
 from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.dbnd_config import DbndConfig
@@ -84,8 +86,9 @@ class MultiSectionConfig(object):
     ):
         self.config.set_values(config_values, source, override, merge_settings)
 
-    def iter_sections(self):
+    def items(self):
         for section_name in self.sections:
             section = self.get_section(section_name)
             if section:
-                yield section_name, section
+                for key, value in iteritems(section):
+                    yield key, value

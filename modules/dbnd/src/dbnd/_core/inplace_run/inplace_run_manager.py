@@ -227,8 +227,8 @@ def _build_inline_root_task(root_task_name):
 
     root_task = InplaceTask(task_version="now", task_name=root_task_name)
 
-    root_task.task_meta.task_command_line = list2cmdline(sys.argv)
-    root_task.task_meta.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
+    root_task.ctrl.task_repr.task_command_line = list2cmdline(sys.argv)
+    root_task.ctrl.task_repr.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
 
     return root_task
 

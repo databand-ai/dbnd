@@ -27,7 +27,6 @@ from targets import FileTarget, target
 if typing.TYPE_CHECKING:
     from dbnd import Task
 
-
 try:
     from inspect import signature
 except ImportError:
@@ -131,7 +130,7 @@ class DagFuncOperatorCtrl(object):
         )
         # take only outputs that are coming from ctror ( based on ParameterValue in task.task_meta
         user_ctor_outputs_only = []
-        for p_val in task.task_meta.class_task_params:
+        for p_val in task.task_meta.task_params.values():
             if (
                 p_val.parameter.is_output()
                 and p_val.source

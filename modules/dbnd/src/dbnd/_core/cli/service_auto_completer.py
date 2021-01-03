@@ -72,10 +72,7 @@ class AutoCompleter(FastSingletonContext):
                 store.index(TASK_FAMILY, task_family, full_task_family)
                 store.index(TASK_FULL, full_task_family, full_task_family)
 
-            for (
-                param_name,
-                param_obj,
-            ) in task_cls.task_definition.all_task_params.items():
+            for param_name, param_obj in task_cls.task_definition.task_params.items():
                 if (
                     param_obj.system
                     or param_obj.kind == _ParameterKind.task_output

@@ -6,6 +6,7 @@ from functools import partial
 from itertools import chain
 
 from dbnd._core.constants import RunState, TaskRunState
+from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TargetInfo,
     TaskDefinitionInfo,
@@ -126,7 +127,7 @@ class TrackingInfoBuilder(object):
 
         for task_run in run.task_runs:
             task = task_run.task
-            for t_id in task.task_meta.children:
+            for t_id in task.descendants.children:
                 _add_rel(parent_child_map, task.task_id, t_id)
 
             task_dag = task.ctrl.task_dag
@@ -202,8 +203,7 @@ def task_to_task_def(ctx, task):
     # type: (DatabandContext, Task) -> TaskDefinitionInfo
     td = task.task_definition
 
-    tracked_params = td.user_params if task.is_tracking_mode else td.all_task_params
-    task_param_definitions = [value for key, value in sorted(tracked_params.items())]
+    task_param_definitions = [value for key, value in sorted(td.task_params.items())]
     task_family = task.task_meta.task_family
     task_definition = TaskDefinitionInfo(
         task_definition_uid=td.task_definition_uid,
@@ -230,8 +230,10 @@ def build_task_run_info(task_run):
     task_params_values = dict(t._params.get_params_serialized())
     td = t.task_definition
     task_run_params = []
-    tracked_params = td.user_params if t.is_tracking_mode else td.all_task_params
-    for key, tdp in sorted(tracked_params.items()):
+    for key, tdp in sorted(td.task_params.items()):
+        if isinstance(tdp, FuncResultParameter):
+            continue
+
         param_meta = t._params.get_param_meta(tdp.name)
         if param_meta:
             value_source, value = param_meta.source, param_meta.value
@@ -261,9 +263,9 @@ def build_task_run_info(task_run):
         task_signature=tm.task_signature,
         task_signature_source=tm.task_signature_source,
         output_signature=tm.task_outputs_signature,
-        command_line=tm.task_command_line,
+        command_line=t.ctrl.task_repr.task_command_line,
         env=t.task_env.name,
-        functional_call=tm.task_functional_call,
+        functional_call=t.ctrl.task_repr.task_functional_call,
         has_downstreams=bool(task_dag.downstream),
         has_upstreams=bool(task_dag.upstream),
         state=TaskRunState.SCHEDULED
