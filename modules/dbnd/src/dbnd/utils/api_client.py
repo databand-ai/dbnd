@@ -34,21 +34,20 @@ class ApiClient(object):
         self.default_headers = {"Accept": "application/json"}
 
     def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
-        logger.info("Sending request to endpoint {}".format(endpoint))
         if not self.session:
-            logger.info("Session does not exist, creating new one")
+            logger.info("Webserver session does not exist, creating new one")
             self._init_session(self.credentials)
 
         headers = dict(self.default_headers, **(headers or {}))
 
         url = urljoin(self._api_base_url, endpoint)
         try:
-            logger.info("Sending request to url {} method {}".format(url, method))
             resp = self.session.request(
                 method=method, url=url, json=data, headers=headers, params=query
             )
         except requests.exceptions.ConnectionError as ce:
             logger.info("Got connection error while sending request: {}".format(ce))
+            self.session.close()
             self.session = None
             raise
 
@@ -75,7 +74,6 @@ class ApiClient(object):
 
             token = credentials.get("token")
             if token:
-                logger.info("Using existing token")
                 self.default_headers["Authorization"] = "Bearer {}".format(token)
                 return
 
@@ -83,7 +81,7 @@ class ApiClient(object):
             self.session.get(urljoin(self._api_base_url, "/app"))
             csrf_token = self.session.cookies.get("dbnd_csrftoken")
             if csrf_token:
-                logger.info("Got csrg token from session")
+                logger.info("Got csrf token from session")
                 self.default_headers["X-CSRFToken"] = csrf_token
 
             if "username" in credentials and "password" in credentials:
@@ -96,9 +94,10 @@ class ApiClient(object):
                     "ApiClient._init_session: username or password is not provided"
                 )
         except Exception as e:
-            logger.info(
+            logger.warning(
                 "Exception occurred while initialising the session: {}".format(e)
             )
+            self.session.close()
             self.session = None
             raise
 
@@ -122,17 +121,12 @@ class ApiClient(object):
                 resp = self._request(
                     url, method=method, data=data, headers=headers, query=query
                 )
-                logger.info("Got response successfully!")
             except requests.ConnectionError as ex:
-                logger.info("Got ConnectionError!")
                 if failure_handler:
-                    logger.info("Using failure_handler")
                     failure_handler(ex, retry_policy, retry_number)
                 if retry_policy.should_retry(500, None, retry_number):
-                    logger.info("Using retry policy")
                     sleep(retry_policy.seconds_to_sleep(retry_number))
                     continue
-                logger.info("Raising api_connection_refused!")
                 raise api_connection_refused(self._api_base_url + url, ex)
             return resp
 
