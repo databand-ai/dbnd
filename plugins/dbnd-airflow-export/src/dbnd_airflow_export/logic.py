@@ -121,9 +121,6 @@ def get_airflow_regular_data(
     )
     logging.info("%d dag runs were found." % len(dag_runs))
 
-    if not task_instances and not dag_runs:
-        return ExportData(since=since)
-
     dags_list = _get_dags(dagbag, include_task_args, dag_ids)
 
     logging.info(
