@@ -11,6 +11,10 @@ from dbnd._core.configuration.config_path import (
     CONF_TASK_ENV_SECTION,
     CONF_TASK_SECTION,
 )
+from dbnd._core.configuration.config_readers import (
+    is_like_config_store,
+    parse_as_config_store,
+)
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.constants import RESULT_PARAM, ParamValidation, _TaskParamContainer
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
@@ -107,10 +111,12 @@ class BaseTaskMetaFactory(object):
         self.task_errors = []
 
     def build_task_env(self, param_task_env):
-        # find same parameters in the current task class and EnvConfig
-        # and take the value of that params from environment
-        # for example  spark_config in SparkTask  (defined by EnvConfig.spark_config)
-        # we take values using names only
+        """
+        find same parameters in the current task class and EnvConfig
+        and take the value of that params from environment
+        for example  spark_config in SparkTask  (defined by EnvConfig.spark_config)
+        we take values using names only
+        """
         value_task_env = self.build_parameter_value(param_task_env)
         env_config = value_task_env.value  # type: EnvConfig
 
@@ -129,8 +135,24 @@ class BaseTaskMetaFactory(object):
         return value_task_env
 
     def build_task_config(self, param_task_config):
+        """
+        calculate any task class level params and updates the config with thier values
+        @pipeline(task_config={CoreConfig.tracker: ["console"])
+        <or>
+        class a(Task):
+            task_config = {"core": {"tracker": ["console"]}}
+            <or>
+            task_config = {CoreConfig.tracker: ["console"]}
+        """
         param_task_config_value = self.build_parameter_value(param_task_config)
         if param_task_config_value.value:
+            # we want the ability to have dict of parameter definitions
+            # mapping to values - to set as config if needed.
+            # but parameters value which are dicts can't have non string as a key
+            value = param_task_config_value.value
+            if value and is_like_config_store(value):
+                param_task_config_value.value = parse_as_config_store(value)
+
             # merging `Task.task_config` into current configuration
             self.multi_sec_conf.set_values(
                 param_task_config_value.value, source=self._source_name("task_config"),
@@ -150,9 +172,11 @@ class BaseTaskMetaFactory(object):
         return result
 
     def build_parameter_value(self, param_def):
-        # This is the place we calculate param_def value
-        # based on Class(defaults, constructor, overrides, root)
-        # and Config(env, cmd line, config)  state
+        """
+        This is the place we calculate param_def value
+        based on Class(defaults, constructor, overrides, root)
+        and Config(env, cmd line, config)  state
+        """
 
         # used for target_format update
         # change param_def definition based on config state
@@ -216,19 +240,27 @@ class BaseTaskMetaFactory(object):
     def _get_task_multi_section_config(self, config, task_kwargs):
         # there is priority of task name over task family, as name is more specific
         sections = [self.task_name]
+
         # _from at config files
         sections.extend(get_task_from_sections(config, self.task_name))
+
+        # sections by family
         sections.extend([self.task_family, self.task_definition.full_task_family])
+
         kwargs_task_config_sections = task_kwargs.pop("task_config_sections", None)
         if kwargs_task_config_sections:
             sections.extend(kwargs_task_config_sections)
+
         # adding "default sections"  - LOWEST PRIORITY
         if issubclass(self.task_definition.task_class, _TaskParamContainer):
             sections += [CONF_TASK_SECTION]
+
         from dbnd._core.task.config import Config
 
         if issubclass(self.task_definition.task_class, Config):
             sections += [CONF_CONFIG_SECTION]
+
+        # dedup the values
         sections = list(unique_everseen(filter(None, sections)))
 
         return MultiSectionConfig(config, sections)
