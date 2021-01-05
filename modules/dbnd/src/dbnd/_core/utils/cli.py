@@ -92,11 +92,10 @@ def options_dependency(root, *dependents):
             relevant_options = [
                 value for name, value in kwargs.items() if name in dependents
             ]
-
-            if any(relevant_options) and kwargs.get(root) is None:
+            if any(relevant_options) and not kwargs.get(root):
                 raise click.UsageError(
-                    "Illegal usage: `in oprder to use any of this options {options}, "
-                    "the {root} option must be set".format(
+                    "Illegal usage: In-order to use any of those options {options}, "
+                    "the `{root}` option must be set".format(
                         root=root, options=dependents
                     )
                 )
