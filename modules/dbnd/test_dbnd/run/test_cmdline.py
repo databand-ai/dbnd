@@ -54,7 +54,7 @@ class TestCmdline(object):
 
     def test_describe_verbose(self):
         args = ["FooBaseTask", "-r", "t_param=hello", "--verbose", "--describe"]
-        assert dbnd_run_cmd(args)
+        dbnd_run_cmd(args)
 
     def test_describe_double_verbose(self):
         args = [
@@ -65,7 +65,7 @@ class TestCmdline(object):
             "--verbose",
             "--describe",
         ]
-        assert dbnd_run_cmd(args)
+        dbnd_run_cmd(args)
 
     def test_misspelled_task_suggestion(self):
         with pytest.raises(

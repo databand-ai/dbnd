@@ -15,6 +15,7 @@ import dbnd
 import dbnd._core.utils.basics.environ_utils
 
 from dbnd import get_dbnd_project_config, register_config_cls, register_task
+from dbnd._core.configuration.environ_config import reset_dbnd_project_config
 from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
 from dbnd.testing.test_config_setter import add_test_configuration
 from dbnd_test_scenarios.test_common.task.factories import FooConfig, TConfig
@@ -23,8 +24,9 @@ from targets import target
 
 # we want to test only this module
 get_dbnd_project_config().is_no_modules = True
-# disable DB tracking
-os.environ["DBND__CORE__TRACKER"] = "['file', 'console']"
+
+# if enabled will pring much better info on tests
+# os.environ["DBND__VERBOSE"] = "True"
 
 # DISABLE AIRFLOW, we don't test it in this module!
 disable_airflow_plugin()
@@ -122,3 +124,13 @@ def numpy_array():
 @fixture
 def partitioned_data_target_date():
     return datetime.date(year=2018, month=9, day=3)
+
+
+@pytest.fixture
+def set_tracking_context():
+    try:
+        reset_dbnd_project_config()
+        get_dbnd_project_config()._dbnd_tracking = True
+        yield
+    finally:
+        reset_dbnd_project_config()

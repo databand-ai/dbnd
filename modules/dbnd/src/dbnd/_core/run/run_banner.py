@@ -2,13 +2,7 @@ import typing
 
 from collections import Counter
 
-from dbnd._core.constants import (
-    DescribeFormat,
-    RunState,
-    SystemTaskName,
-    TaskRunState,
-    UpdateSource,
-)
+from dbnd._core.constants import DescribeFormat, RunState, SystemTaskName, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.run.run_ctrl import RunCtrl
 from dbnd._core.settings.core import CoreConfig
@@ -20,7 +14,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.run.databand_run import DatabandRun
 
 
-class DescribeRun(RunCtrl):
+class RunBanner(RunCtrl):
     @property
     def tracker(self):
         return self.run.tracker
@@ -67,12 +61,29 @@ class DescribeRun(RunCtrl):
         run = self.run  # type: DatabandRun
         ctx = run.context
         task_run_env = ctx.task_run_env  # type: TaskRunEnvInfo
-        driver_task = run.driver_task_run.task
 
         b.column("TRACKER URL", run.run_url, skip_if_empty=True)
         b.column("TRACKERS", CoreConfig().tracker)
-        if show_tasks_info and run.is_orchestration and driver_task.is_driver:
-            self._add_tasks_info(b)
+        if run.is_orchestration:
+            run_executor = run.run_executor
+            driver_task_run = run.driver_task_run
+
+            if (
+                show_tasks_info
+                and run_executor.run_executor_type == SystemTaskName.driver
+            ):
+                self._add_tasks_info(b)
+            if show_run_info and driver_task_run and driver_task_run.log:
+                b.column(
+                    "LOG",
+                    b.f_simple_dict(
+                        [
+                            ("local", driver_task_run.log.local_log_file),
+                            ("remote", driver_task_run.log.remote_log_file),
+                        ],
+                        skip_if_empty=True,
+                    ),
+                )
 
         if run.root_run_info.root_run_uid != run.run_uid:
             b.column(
@@ -98,27 +109,19 @@ class DescribeRun(RunCtrl):
                 ("env", run.env.name),
             ]
             b.column("RUN", b.f_simple_dict(run_params))
-            b.column(
-                "LOG",
-                b.f_simple_dict(
-                    [
-                        ("local", driver_task.local_driver_log),
-                        ("remote", driver_task.remote_driver_root),
-                    ]
-                ),
-            )
             b.column("USER CODE VERSION", task_run_env.user_code_version)
             b.column("CMD", task_run_env.cmd_line)
 
             if run.is_orchestration:
+                run_executor = run.run_executor
                 b.column(
                     "EXECUTE",
                     b.f_simple_dict(
                         [
-                            ("TASK_EXECUTOR", run.task_executor_type),
-                            ("PARALLEL", run.parallel),
-                            ("SUBMIT_DRIVER", run.submit_driver),
-                            ("SUBMIT_TASKS", run.submit_tasks),
+                            ("TASK_EXECUTOR", run_executor.task_executor_type),
+                            ("PARALLEL", run_executor.parallel),
+                            ("SUBMIT_DRIVER", run_executor.submit_driver),
+                            ("SUBMIT_TASKS", run_executor.submit_tasks),
                         ],
                         skip_if_empty=True,
                     ),

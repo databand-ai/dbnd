@@ -6,7 +6,7 @@ from typing import Any
 
 import six
 
-from dbnd._core.errors import friendly_error
+from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.traversing import traverse
 from targets.base_target import Target
@@ -132,3 +132,18 @@ def calculate_friendly_task_ids(tasks):
                 task_af_id = task.task_name
             task_friendly_ids[task.task_id] = task_af_id
     return task_friendly_ids
+
+
+def get_task_name_safe(task_or_task_name):
+    if task_or_task_name is None or isinstance(task_or_task_name, six.string_types):
+        return task_or_task_name
+
+    from dbnd._core.task.task import Task
+
+    if isinstance(task_or_task_name, Task):
+        return task_or_task_name.task_name
+    raise DatabandSystemError(
+        "Can't calculate task name from %s - %s",
+        task_or_task_name,
+        type(task_or_task_name),
+    )

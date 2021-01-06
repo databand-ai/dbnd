@@ -9,6 +9,7 @@ from dbnd import Task, dbnd_handle_errors
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task_build.task_context import TaskContextPhase
+from dbnd._core.task_executor.run_executor import RunExecutor
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid, get_job_run_uid
 from targets import target
@@ -108,13 +109,14 @@ class DbndFunctionalOperator(BaseOperator):
 
             # create databand run
             with new_databand_run(
-                context=dc,
-                task_or_task_name=dag_task,
-                run_uid=run_uid,
-                existing_run=False,
-                job_name=dag.dag_id,
+                context=dc, job_name=dag.dag_id, run_uid=run_uid, existing_run=False,
             ) as dr:  # type: DatabandRun
-                dr._init_without_run()
+                dr.run_executor = run_executor = RunExecutor(
+                    run=dr, root_task_or_task_name=dag_task, send_heartbeat=False
+                )
+                run_executor._init_task_runs_for_execution(
+                    task_engine=run_executor.local_engine
+                )
 
                 # dr.driver_task_run.set_task_run_state(state=TaskRunState.RUNNING)
                 # "make dag run"
@@ -123,7 +125,7 @@ class DbndFunctionalOperator(BaseOperator):
 
                 needs_databand_run_save = dbnd_task._conf__require_run_dump_file
                 if needs_databand_run_save:
-                    dr.save_run()
+                    run_executor.save_run_pickle()
 
                 logger.info(
                     dbnd_task.ctrl.banner(

@@ -124,7 +124,7 @@ class TaskRunsBuilder(object):
 
         return runnable_tasks, tasks_disabled
 
-    def build_task_runs(self, run, root_task, remote_engine):
+    def build_task_runs(self, run, root_task, task_run_engine):
         # type: (DatabandRun, Task, EngineConfig) -> List[TaskRun]
         run_config = run.context.settings.run  # type: RunConfig
 
@@ -176,9 +176,12 @@ class TaskRunsBuilder(object):
         for task in tasks_to_run:
 
             with task.ctrl.task_context(phase=TaskContextPhase.BUILD):
-                # we want to have configuration with task overrides
-                task_engine = build_task_from_config(task_name=remote_engine.task_name)
-                task_engine.require_submit = remote_engine.require_submit
+                # we want to have engine configuration with task overrides
+                task_engine = build_task_from_config(
+                    task_name=task_run_engine.task_name
+                )
+                task_engine.require_submit = task_run_engine.require_submit
+
                 task_af_id = friendly_ids[task.task_id]
                 task_run = TaskRun(
                     task=task, run=run, task_af_id=task_af_id, task_engine=task_engine

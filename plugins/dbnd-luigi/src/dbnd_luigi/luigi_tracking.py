@@ -20,6 +20,10 @@ lrm: Optional[LuigiRunManager] = LuigiRunManager()
 handler: Optional[LuigiEventsHandler] = None
 
 
+def get_luigi_run_manager():
+    return lrm
+
+
 def register_luigi_tracking():
     global lrm
     global handler
@@ -28,6 +32,8 @@ def register_luigi_tracking():
         handler = LuigiEventsHandler()
 
     if lrm.active:
+        logger.info("Found active dbnd-luigi tracking session, closing it.")
+        lrm.stop_tracking()
         del lrm
         lrm = LuigiRunManager()
         clear_events()

@@ -193,6 +193,14 @@ class DbndProjectConfig(object):
             os.environ.pop(ENV_DBND_QUIET, None) is not None
             or self.shell_cmd_complete_mode
         )
+        # external process can create "wrapper run"  (airflow scheduler)
+        # a run with partial information,
+        # when we have a subprocess,  only nested run will have all actual details
+        # so we are going to "resubmit" them
+        self.resubmit_run = (
+            DBND_RESUBMIT_RUN in os.environ
+            and os.environ.pop(DBND_RESUBMIT_RUN) == "true"
+        )
 
         self.is_no_modules = environ_enabled(ENV_DBND__NO_MODULES)
         self.disable_pluggy_entrypoint_loading = environ_enabled(
@@ -223,7 +231,7 @@ class DbndProjectConfig(object):
 
     def airflow_context(self):
         if not self._airflow_context:
-            from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
+            from dbnd._core.tracking.airflow_dag_inplace_tracking import (
                 try_get_airflow_context,
             )
 

@@ -12,7 +12,7 @@ from dbnd._core.constants import (
     TaskRunState,
     UpdateSource,
 )
-from dbnd._core.inplace_run.airflow_dag_inplace_tracking import AirflowTaskContext
+from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.tracking.schemas.base import ApiObjectSchema, _ApiCallSchema
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.tracking.schemas.tracking_info_run import RunInfo, ScheduledRunInfo

@@ -3,8 +3,8 @@ from typing import Optional, Union
 from snowflake.connector import SnowflakeConnection
 
 from dbnd import log_duration
-from dbnd._core.commands.metrics import log_data
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
+from dbnd._core.tracking.metrics import log_data
 from dbnd_snowflake.snowflake_config import SnowflakeConfig
 from dbnd_snowflake.snowflake_controller import SnowflakeController
 

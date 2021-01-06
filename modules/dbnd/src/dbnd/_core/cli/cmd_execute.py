@@ -1,10 +1,11 @@
 import logging
-import os
 
 from warnings import warn
 
 from dbnd._core.configuration.environ_config import ENV_DBND__TRACKING
-from dbnd._core.task_build.task_context import TaskContextPhase, task_context
+from dbnd._core.run.databand_run import DatabandRun
+from dbnd._core.task_build.task_context import TaskContextPhase
+from dbnd._core.task_executor.run_executor import RunExecutor, set_active_run_context
 from dbnd._core.utils.basics.environ_utils import env as env_context
 from dbnd._vendor import click
 
@@ -61,11 +62,10 @@ def execute(
                 DbndVersionsClashWarning,
             )
 
-    from dbnd._core.run.databand_run import DatabandRun
     from targets import target
 
     with env_context(**{ENV_DBND__TRACKING: "False"}):
-        run = DatabandRun.load_run(
+        run = RunExecutor.load_run(
             dump_file=target(dbnd_run), disable_tracking_api=disable_tracking_api
         )
         ctx.obj = {"run": run, "disable_tracking_api": disable_tracking_api}
@@ -77,8 +77,9 @@ def execute(
 def run_task(ctx, task_id):
     """(Internal) Run a task inline (task.run function)"""
 
-    with ctx.obj["run"].run_context() as dr:
-        task = dr._get_task_by_id(task_id)
+    run = ctx.obj["run"]  # type: DatabandRun
+    with set_active_run_context(run):
+        task = run._get_task_by_id(task_id)
         task_run = task.current_task_run
         # this tracking store should be the same object as the one in the context but they're actually
         # different.
@@ -93,8 +94,10 @@ def run_task(ctx, task_id):
 @click.pass_context
 def run_task_submit(ctx, task_id):
     """Submit a task"""
-    with ctx.obj["run"].run_context() as dr:
-        task = dr._get_task_by_id(task_id)
+
+    run = ctx.obj["run"]  # type: DatabandRun
+    with set_active_run_context(run):
+        task = run._get_task_by_id(task_id)
         task._task_submit()
 
 
@@ -103,15 +106,8 @@ def run_task_submit(ctx, task_id):
 @click.pass_context
 def run_task_execute(ctx, task_id):
     """Execute a task"""
-    with ctx.obj["run"].run_context() as dr:
-        task_run = dr.get_task_run_by_id(task_id)
+
+    run = ctx.obj["run"]  # type: DatabandRun
+    with set_active_run_context(run):
+        task_run = run.get_task_run_by_id(task_id)
         task_run.runner.execute(allow_resubmit=False)
-
-
-@execute.command(name="driver")
-@click.pass_context
-def run_driver(ctx):
-    """Run driver"""
-    with ctx.obj["run"].run_context() as dr:
-        # not really works
-        dr.run_driver()

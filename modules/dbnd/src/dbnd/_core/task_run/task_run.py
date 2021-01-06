@@ -5,15 +5,13 @@ from uuid import UUID
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
-    try_pop_attempt_id_from_env,
-)
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.task_run.task_run_runner import TaskRunRunner
 from dbnd._core.task_run.task_run_sync_local import TaskRunLocalSyncer
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
+from dbnd._core.tracking.airflow_dag_inplace_tracking import try_pop_attempt_id_from_env
 from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.utils.string_utils import clean_job_name, clean_job_name_dns1123
 from dbnd._core.utils.timezone import utcnow

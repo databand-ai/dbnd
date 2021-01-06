@@ -3,8 +3,7 @@ import typing
 
 from typing import Type
 
-from dbnd import dbnd_config, override
-from dbnd._core.commands import log_metric
+from dbnd import dbnd_config, log_metric, override
 from dbnd._core.constants import CURRENT_TIME_STR
 from dbnd._core.errors.friendly_error.executor_k8s import no_tag_on_no_build
 from dbnd._core.plugin.dbnd_plugins import pm

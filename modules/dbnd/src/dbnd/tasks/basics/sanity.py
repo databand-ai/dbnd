@@ -2,8 +2,8 @@ import datetime
 import logging
 import random
 
-from dbnd._core.commands import log_metric
 from dbnd._core.decorator.dbnd_decorator import task
+from dbnd._core.tracking.metrics import log_metric
 
 
 logger = logging.getLogger(__name__)

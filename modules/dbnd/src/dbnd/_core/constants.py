@@ -276,6 +276,9 @@ class MetricSource(object):
         return ",".join(cls.default_sources())
 
 
+AD_HOC_DAG_PREFIX = "DBND_RUN."
+
+
 class AlertSeverity(object):
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"

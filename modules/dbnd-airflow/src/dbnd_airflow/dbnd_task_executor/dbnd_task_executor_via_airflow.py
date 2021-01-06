@@ -35,7 +35,7 @@ from dbnd_airflow.dbnd_task_executor.dbnd_task_to_airflow_operator import (
 from dbnd_airflow.executors import AirflowTaskExecutorType
 from dbnd_airflow.executors.simple_executor import InProcessExecutor
 from dbnd_airflow.scheduler.single_dag_run_job import SingleDagRunJob
-from dbnd_airflow.utils import create_dbnd_pool
+from dbnd_airflow.utils import create_airflow_pool
 
 
 if typing.TYPE_CHECKING:
@@ -56,6 +56,7 @@ def create_dagrun_from_dbnd_run(
     databand_run,
     dag,
     execution_date,
+    run_id,
     state=State.RUNNING,
     external_trigger=False,
     conf=None,
@@ -71,7 +72,7 @@ def create_dagrun_from_dbnd_run(
     )
     if dagrun is None:
         dagrun = DagRun(
-            run_id=databand_run.run_id,
+            run_id=run_id,
             execution_date=execution_date,
             start_date=dag.start_date,
             _state=state,
@@ -84,7 +85,7 @@ def create_dagrun_from_dbnd_run(
         logger.warning("Running with existing airflow dag run %s", dagrun)
 
     dagrun.dag = dag
-    dagrun.run_id = databand_run.run_id
+    dagrun.run_id = run_id
     session.commit()
 
     # create the associated task instances
@@ -207,7 +208,7 @@ class AirflowTaskExecutor(TaskExecutor):
 
         if not is_user_pool_in_db:
             if is_defined_pool_dbnd:
-                create_dbnd_pool(user_defined_pool)
+                create_airflow_pool(user_defined_pool)
             else:
                 raise DatabandError(
                     "Airflow DB does not have dbnd_pool entry in slots table",
@@ -310,7 +311,7 @@ class AirflowTaskExecutor(TaskExecutor):
             if op.executor_config is None:
                 op.executor_config = {}
             op.executor_config["DatabandExecutor"] = {
-                "dbnd_driver_dump": str(self.run.driver_dump),
+                "dbnd_driver_dump": str(self.run.run_executor.driver_dump),
                 "dag_pickle_id": dag.pickle_id,
                 "remove_airflow_std_redirect": self.airflow_config.remove_airflow_std_redirect,
             }
@@ -333,6 +334,14 @@ class AirflowTaskExecutor(TaskExecutor):
         execution_date = databand_run.execution_date
         s = databand_context.settings  # type: DatabandSettings
         s_run = s.run  # type: RunConfig
+
+        run_id = s_run.id
+        if not run_id:
+            # we need this name, otherwise Airflow will try to manage our local jobs at scheduler
+            # ..zombies cleanup and so on
+            run_id = "backfill_{0}_{1}".format(
+                databand_run.name, databand_run.execution_date.isoformat()
+            )
 
         if self.airflow_config.disable_db_ping_on_connect:
             from airflow import settings as airflow_settings
@@ -363,6 +372,7 @@ class AirflowTaskExecutor(TaskExecutor):
         create_dagrun_from_dbnd_run(
             databand_run=databand_run,
             dag=af_dag,
+            run_id=run_id,
             execution_date=execution_date,
             session=session,
             state=State.RUNNING,

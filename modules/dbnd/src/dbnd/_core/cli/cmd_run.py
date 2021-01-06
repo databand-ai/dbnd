@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import functools
 import logging
-import os
 
 import attr
 import six
@@ -21,7 +20,6 @@ from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.basics.dict_utils import filter_dict_remove_false_values
-from dbnd._core.utils.basics.environ_utils import env as env_context
 from dbnd._vendor import click
 from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
@@ -328,6 +326,14 @@ def run(
 
         if docker_build_tag:
             config.set_values({"kubernetes": {"docker_build_tag": docker_build_tag}})
+
+        if context.settings.system.describe:
+            # we want to print describe without triggering real run
+            logger.info("Building main task '%s'", task_name)
+            root_task = get_task_registry().build_dbnd_task(task_name)
+            root_task.ctrl.describe_dag.describe_dag()
+            click.echo("Task %s has been described!" % task_name)
+            return root_task
 
         return context.dbnd_run_task(
             task_or_task_name=task_name,

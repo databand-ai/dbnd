@@ -3,7 +3,7 @@ import pytest
 from mock import Mock
 
 from dbnd._core.constants import UpdateSource
-from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
+from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     AirflowOperatorRuntimeTask,
     AirflowTaskContext,
     build_run_time_airflow_task,

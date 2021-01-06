@@ -4,6 +4,7 @@ import os
 import signal
 import subprocess
 import sys
+import typing
 
 from time import sleep, time
 
@@ -13,14 +14,21 @@ from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._vendor.psutil.vendorized_psutil import pid_exists
 
 
+if typing.TYPE_CHECKING:
+    from dbnd._core.task_executor.run_executor import RunExecutor
+
 logger = logging.getLogger(__name__)
 
 TERMINATE_WAIT_TIMEOUT = 5
 
 
 @contextlib.contextmanager
-def start_heartbeat_sender(task_run):
-    run = task_run.run
+def start_heartbeat_sender(run_executor):
+    # type: (RunExecutor)-> ...
+    """
+    Context that will run hearbeat sender on __enter__
+    """
+    run = run_executor.run
     settings = run.context.settings
     core = settings.core
     heartbeat_interval_s = settings.run.heartbeat_interval_s
@@ -50,7 +58,10 @@ def start_heartbeat_sender(task_run):
                     cmd += ["--databand-url", core.databand_url]
 
                 if settings.run.heartbeat_sender_log_to_file:
-                    heartbeat_log_file = task_run.log.local_heartbeat_log_file
+                    local_heartbeat_log_file = run.run_local_root.partition(
+                        name="heartbeat.log"
+                    )
+                    heartbeat_log_file = local_heartbeat_log_file
                     heartbeat_log_fp = heartbeat_log_file.open("w")
                     stdout = heartbeat_log_fp
                     logger.info(

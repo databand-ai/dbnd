@@ -11,7 +11,7 @@ def handle_postgres_histogram_logging(luigi_task):
     if not conf.auto_log_pg_histograms:
         return
     postgres_target = luigi_task.output()
-    from dbnd._core.commands.metrics import log_pg_table
+    from dbnd._core.tracking.metrics import log_pg_table
 
     log_pg_table(
         table_name=postgres_target.table,

@@ -4,14 +4,14 @@ from mock import patch
 
 from dbnd import dbnd_run_stop
 from dbnd._core.configuration.environ_config import reset_dbnd_project_config
-from dbnd._core.inplace_run.airflow_dag_inplace_tracking import AirflowTaskContext
+from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.utils.timezone import utcnow
 
 
 @pytest.fixture
 def set_airflow_context():
     with patch(
-        "dbnd._core.inplace_run.airflow_dag_inplace_tracking.try_get_airflow_context"
+        "dbnd._core.tracking.airflow_dag_inplace_tracking.try_get_airflow_context"
     ) as m:
         try:
             reset_dbnd_project_config()

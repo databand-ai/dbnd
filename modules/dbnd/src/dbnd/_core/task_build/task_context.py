@@ -18,6 +18,9 @@ class TaskContext(SingletonContext):
         self.stack = stack
         self.phase = phase
 
+    def __repr__(self):
+        return "TaskContext( [...%s], %s)" % (self.stack[-1], self.phase)
+
 
 def task_context(task, phase):
     # type: (dbnd.tasks.Task, TaskContextPhase) -> TaskContext

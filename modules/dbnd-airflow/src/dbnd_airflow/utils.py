@@ -79,11 +79,15 @@ def create_user(username, password, email):
         print("Could not create user. %s" % e)
 
 
-def create_dbnd_pool(pool_name):
+def create_airflow_pool(pool_name):
     from airflow.utils.db import create_session
     from airflow.models import Pool
 
     print("Creating databand pool '%s'" % pool_name)
     with create_session() as session:
-        dbnd_pool = Pool(pool=pool_name, slots=-1)
-        session.merge(dbnd_pool)
+        is_user_pool_in_db = (
+            session.query(Pool.pool).filter(Pool.pool == pool_name).first() is not None
+        )
+        if not is_user_pool_in_db:
+            dbnd_pool = Pool(pool=pool_name, slots=-1)
+            session.merge(dbnd_pool)

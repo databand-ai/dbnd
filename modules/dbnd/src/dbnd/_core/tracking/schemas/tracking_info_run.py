@@ -19,7 +19,7 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.constants import RunState, _DbndDataClass
 from dbnd._core.current import try_get_current_task_run, try_get_databand_run
-from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
+from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     _SPARK_ENV_FLAG,
     _is_dbnd_spark_installed,
 )

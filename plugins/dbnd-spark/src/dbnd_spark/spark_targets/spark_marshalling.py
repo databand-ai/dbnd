@@ -4,8 +4,8 @@ import logging
 
 import pyspark.sql as spark
 
-from dbnd._core.commands import get_spark_session
 from dbnd_spark.spark_config import SparkMarshallingConfig
+from dbnd_spark.spark_session import get_spark_session
 from targets.marshalling.marshaller import Marshaller
 from targets.target_config import FileFormat
 from targets.utils.performance import target_timeit

@@ -5,7 +5,6 @@ import typing
 from typing import Dict, Union
 
 from dbnd._core.cli.cmd_execute import get_dbnd_version, get_python_version
-from dbnd._core.commands import get_spark_session
 from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
 from dbnd._core.current import get_databand_run, try_get_databand_context
@@ -19,6 +18,7 @@ from dbnd._core.utils.structures import list_of_strings
 from dbnd.tasks.py_distribution.fat_wheel_tasks import fat_wheel_building_task
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_config import SparkConfig, SparkEngineConfig
+from dbnd_spark.spark_session import get_spark_session
 from targets.file_target import FileTarget
 
 
@@ -169,12 +169,11 @@ class PySparkInlineTask(_BaseSparkTask):
                 "due to spark_local.enable_spark_context_inplace"
             )
             return self._task_run()
-        dr = get_databand_run()
-        if not dr.driver_dump.exists():
+        driver_dump = self.current_task_run.run.run_executor.driver_dump
+        if not driver_dump:
             raise DatabandConfigError(
                 "Please configure your cloud to always_save_pipeline=True, we need to pickle pipeline first"
             )
-        driver_dump = self.current_task_run.run.driver_task.driver_dump
         self._application_args = [
             "execute",
             "--expected-dbnd-version",

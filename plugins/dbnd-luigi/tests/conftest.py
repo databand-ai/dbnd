@@ -6,6 +6,7 @@ import pytest
 
 from luigi.date_interval import Custom
 
+from dbnd.testing.test_config_setter import add_test_configuration
 from tests.luigi_examples.complex_foo import Foo as ComplexFoo
 from tests.luigi_examples.foo import Foo as SimpleFoo
 from tests.luigi_examples.multiple_input_output import (
@@ -23,6 +24,10 @@ from tests.luigi_examples.top_artists import (
     Top10ArtistsRequiresException,
     Top10ArtistsRunException,
 )
+
+
+def pytest_configure(config):
+    add_test_configuration(__file__)
 
 
 def delete_task_output(luigi_task):

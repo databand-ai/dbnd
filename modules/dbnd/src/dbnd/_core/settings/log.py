@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import logging
 import os
 import sys
@@ -228,9 +230,16 @@ class LoggingConfig(config.Config):
         airflow_task_log_handler = None
         if self.override_airflow_logging_on_task_run:
             airflow_task_log_handler = self.dbnd_override_airflow_logging_on_task_run()
-
-        configure_logging_dictConfig(dict_config=dict_config)
-
+        try:
+            configure_logging_dictConfig(dict_config=dict_config)
+        except Exception as e:
+            # we print it this way, as it could be that now "logging" is down!
+            print(
+                "Failed to load reload logging configuration with dbnd settings! Exception: %s"
+                % (e,),
+                file=sys.__stderr__,
+            )
+            raise
         if airflow_task_log_handler:
             logging.root.handlers.append(airflow_task_log_handler)
         logger.debug("Databand logging is up!")

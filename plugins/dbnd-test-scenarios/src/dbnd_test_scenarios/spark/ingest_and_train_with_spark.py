@@ -13,8 +13,8 @@ from pyspark.sql.functions import exp, udf
 from pyspark.sql.types import DoubleType
 
 from dbnd import log_metric, output, parameter, task
-from dbnd._core.commands.metrics import log_dataframe
 from dbnd._core.constants import DbndTargetOperationType
+from dbnd._core.tracking.metrics import log_dataframe
 from dbnd._vendor import click
 from dbnd_spark.spark import spark_task
 from dbnd_test_scenarios.data_chaos_monkey.chaos_utils import chaos_float, chaos_int

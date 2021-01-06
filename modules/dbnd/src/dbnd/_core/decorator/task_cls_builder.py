@@ -288,9 +288,11 @@ def _call_handler(task_cls, call_user_code, call_args, call_kwargs):
 
     current = try_get_current_task()
     if not current:
-        from dbnd._core.inplace_run.inplace_run_manager import try_get_inplace_task_run
+        from dbnd._core.tracking.script_tracking_manager import (
+            try_get_inplace_tracking_task_run,
+        )
 
-        task_run = try_get_inplace_task_run()
+        task_run = try_get_inplace_tracking_task_run()
         if task_run:
             current = task_run.task
 
@@ -298,10 +300,11 @@ def _call_handler(task_cls, call_user_code, call_args, call_kwargs):
         return func_call.invoke()
 
     ######
-    # DBND HANDLING OF CALL
-    # now we can make some decisions what we do with the call
-    # it's not coming from _invoke_func
-    # but from   user code ...   some_func()  or SomeTask()
+    # current is not None, and we are not in trackign/airflow/luigi
+    # DBND Orchestration mode
+    # we can be in the context of .run() or in .band()
+    # called from  user code using some_func()  or SomeTask()
+    # this call path is not coming from it's not coming from _invoke_func
     phase = current_phase()
     if phase is TaskContextPhase.BUILD:
         # we are in the @pipeline context, we are building execution plan
@@ -328,7 +331,9 @@ def _call_handler(task_cls, call_user_code, call_args, call_kwargs):
             # and the current task supports inline calls
             # that's extra mechanism in addition to __force_invoke
             # on pickle/unpickle isinstance fails to run.
-            return create_and_run_dynamic_task_safe(func_call=func_call)
+            return create_and_run_dynamic_task_safe(
+                func_call=func_call, parent_task_run=current
+            )
 
     # we can not call it in"databand" way, fallback to normal execution
     return func_call.invoke()
@@ -344,9 +349,11 @@ def _get_or_create_inplace_task():
     """
     current_task = try_get_current_task()
     if not current_task:
-        from dbnd._core.inplace_run.inplace_run_manager import try_get_inplace_task_run
+        from dbnd._core.tracking.script_tracking_manager import (
+            try_get_inplace_tracking_task_run,
+        )
 
-        inplace_task_run = try_get_inplace_task_run()
+        inplace_task_run = try_get_inplace_tracking_task_run()
         if inplace_task_run:
             current_task = inplace_task_run.task
     return current_task

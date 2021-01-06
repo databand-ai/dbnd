@@ -324,7 +324,7 @@ class TaskMetaFactory(BaseTaskMetaFactory):
         self.ctor_kwargs = None
         # utilities section
         self.build_warnings = []
-        self._exc_desc = "%s(%s)" % (
+        self._exc_desc = "%s(%s)@%s" % (
             self.task_family,
             ", ".join(
                 (
@@ -332,6 +332,7 @@ class TaskMetaFactory(BaseTaskMetaFactory):
                     for p, k in iteritems(self.task_kwargs__ctor)
                 )
             ),
+            str(self.task_cls),
         )
         self.task_errors = []
 

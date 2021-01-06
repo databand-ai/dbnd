@@ -7,7 +7,6 @@ from dbnd._core.cli.main import (
     dbnd_run_cmd_main,
     main as dbnd_main,
 )
-from dbnd._core.commands import log_dataframe, log_duration, log_metric, log_metrics
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.configuration.config_readers import override
 from dbnd._core.configuration.config_store import ConfigMergeSettings
@@ -28,7 +27,6 @@ from dbnd._core.decorator.dbnd_decorator import (
     task,
 )
 from dbnd._core.failures import dbnd_handle_errors
-from dbnd._core.inplace_run.inplace_run_manager import dbnd_run_start, dbnd_run_stop
 from dbnd._core.parameter.parameter_builder import data, output, parameter
 from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
@@ -46,11 +44,19 @@ from dbnd._core.task_build.task_namespace import auto_namespace, namespace
 from dbnd._core.task_build.task_registry import register_config_cls, register_task
 from dbnd._core.task_ctrl.task_relations import as_task
 from dbnd._core.tracking.log_data_request import LogDataRequest
+from dbnd._core.tracking.metrics import (
+    log_artifact,
+    log_dataframe,
+    log_duration,
+    log_metric,
+    log_metrics,
+)
 from dbnd._core.tracking.python_tracking import (
     track_functions,
     track_module_functions,
     track_modules,
 )
+from dbnd._core.tracking.script_tracking_manager import dbnd_run_start, dbnd_run_stop
 from dbnd._core.utils.project.project_fs import (
     databand_lib_path,
     databand_system_path,
@@ -120,6 +126,7 @@ __all__ = [
     # metrics
     "log_dataframe",
     "LogDataRequest",
+    "log_artifact",
     "log_metric",
     "log_metrics",
     "log_duration",

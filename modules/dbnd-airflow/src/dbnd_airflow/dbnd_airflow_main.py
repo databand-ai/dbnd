@@ -23,7 +23,7 @@ import os
 import subprocess
 import sys
 
-from dbnd_airflow.utils import create_dbnd_pool
+from dbnd_airflow.utils import create_airflow_pool
 
 
 # DO NOT IMPORT ANYTHING FROM AIRFLOW
@@ -121,7 +121,7 @@ def main(args=None):
     if func_name in ["resetdb", "initdb"]:
         pool_name = dbnd_config.get("airflow", "dbnd_pool")
         if pool_name == "dbnd_pool":
-            create_dbnd_pool(pool_name)
+            create_airflow_pool(pool_name)
 
 
 if __name__ == "__main__":

@@ -35,9 +35,6 @@ class TaskRunLogManager(TaskRunCtrl):
                 name="%s-spark.log" % task_run.attempt_number
             )
 
-        self.local_heartbeat_log_file = self.task_run.local_task_run_root.partition(
-            name="%s.heartbeat.log" % task_run.attempt_number
-        )
         self.remote_log_file = None
         if not isinstance(self.task.task_env, LocalEnvConfig):
             self.remote_log_file = self.task_run.attempt_folder.partition(

@@ -24,7 +24,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.context.databand_context import DatabandContext
     from typing import Dict, List
     from targets import Target
-    from dbnd import Task
+    from dbnd import Task, get_dbnd_project_config
     from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.task_run.task_run import TaskRun
 
@@ -38,6 +38,7 @@ class TrackingInfoBuilder(object):
     def _run_to_run_info(self):
         # type: () -> RunInfo
         run = self.run
+        run_executor = run.run_executor
         task = run.driver_task_run.task
         context = run.context
         env = run.env
@@ -65,8 +66,8 @@ class TrackingInfoBuilder(object):
             root_run=run.root_run_info,
             scheduled_run=run.scheduled_run_info,
             trigger="unknown",
-            sends_heartbeat=run.sends_heartbeat,
-            task_executor=run.task_executor_type,
+            sends_heartbeat=run_executor.send_heartbeat if run_executor else False,
+            task_executor=run_executor.task_executor_type if run_executor else "",
         )
 
     def build_init_args(self):
@@ -74,7 +75,6 @@ class TrackingInfoBuilder(object):
 
         run = self.run
         task_run_info = self.build_task_runs_info(run.task_runs)
-        driver_task = run.driver_task_run.task
         init_args = InitRunArgs(
             run_uid=run.run_uid,
             root_run_uid=run.root_run_info.root_run_uid,
@@ -85,7 +85,10 @@ class TrackingInfoBuilder(object):
             af_context=run.af_context,
         )
 
-        if driver_task.is_submitter:
+        if not run.existing_run or get_dbnd_project_config().resubmit_run:
+            # even if it's existing run, may be we are running from Airflow
+            # so the run is actually "submitted", ( the root airflow job has no info..,
+            # we want to capture "real" info of the run
             init_args.new_run_info = self._run_to_run_info()
 
         if run.scheduled_run_info:

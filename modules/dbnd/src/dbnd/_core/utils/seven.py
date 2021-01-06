@@ -43,6 +43,11 @@ def fix_sys_path_str():
         sys.path = [str(p) if type(p) != str else p for p in sys.path]
 
 
+try:
+    import urlparse
+except ImportError:
+    from urllib.parse import urlparse
+
 __all__ = [
     "contextlib",
     "qualname_func",
@@ -50,4 +55,5 @@ __all__ = [
     "Callable",
     "get_ident",
     "fix_sys_path_str",
+    "urlparse",
 ]

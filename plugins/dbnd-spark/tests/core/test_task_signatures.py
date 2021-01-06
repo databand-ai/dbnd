@@ -23,12 +23,10 @@ task_target_date = datetime.date(year=2012, month=1, day=1)
 
 def _sig(task):
     name = "signature %s" % task.task_name
-    with new_databand_run(
-        context=get_databand_context(), task_or_task_name=task,
-    ):
-        logger.info(task.ctrl.banner(name))
-        for child in task.descendants.get_children():
-            logger.info(child.ctrl.banner(name))
+
+    logger.info(task.ctrl.banner(name))
+    for child in task.descendants.get_children():
+        logger.info(child.ctrl.banner(name))
 
     return task.task_signature
 

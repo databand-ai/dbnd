@@ -40,9 +40,9 @@ class TaskRunTracker(TaskRunCtrl):
         if not run_tracker.databand_url:
             return None
 
-        return "{databand_url}/app/jobs/{root_task_name}/{run_uid}/{task_run_uid}".format(
+        return "{databand_url}/app/jobs/{job_name}/{run_uid}/{task_run_uid}".format(
             databand_url=run_tracker.databand_url,
-            root_task_name=self.run.job_name,
+            job_name=self.run.job_name,
             run_uid=self.run.run_uid,
             task_run_uid=self.task_run_uid,
         )

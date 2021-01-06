@@ -13,7 +13,7 @@ from airflow.models import DagModel, DagRun, XCom
 from airflow.utils.db import provide_session
 from sqlalchemy import and_
 
-from dbnd._core.run.databand_run import AD_HOC_DAG_PREFIX
+from dbnd._core.constants import AD_HOC_DAG_PREFIX
 from dbnd_airflow_export.helpers import _get_git_status, _get_log
 from dbnd_airflow_export.model import EDag, EDagRun, ETaskInstance, ExportData
 
