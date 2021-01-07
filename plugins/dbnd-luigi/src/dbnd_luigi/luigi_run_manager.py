@@ -110,7 +110,7 @@ class LuigiRunManager:
         self.init_context()
 
         if luigi_task.task_id in self.task_cache:
-            dbnd_task = self.task_cache[luigi_task.task_id][1]
+            _, dbnd_task = self.task_cache[luigi_task.task_id]
         else:
             dbnd_task = wrap_luigi_task(luigi_task)
             self.task_cache[luigi_task.task_id] = (luigi_task, dbnd_task)

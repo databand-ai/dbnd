@@ -5,14 +5,13 @@ import pytest
 from airflow import DAG
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
-from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 from mock import Mock
 
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
-from dbnd_airflow.tracking.execute_tracking import add_tracking_to_submit_task
+from dbnd_airflow.tracking.wrap_operators import add_tracking_to_submit_task
 
 
 dbnd_spark_env_vars = (

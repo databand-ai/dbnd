@@ -16,6 +16,7 @@ from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import CoreConfig
 from dbnd._core.task.task import Task
+from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
@@ -128,7 +129,10 @@ class _DbndScriptTrackingManager(object):
         self._active = True
 
         # now we send data to DB
-        run._build_and_add_task_run(root_task)
+        root_task_run = run._build_and_add_task_run(root_task)
+        root_task_run.is_root = True
+
+        # No need to track the state because we track in init_run
         run.root_task_run.set_task_run_state(TaskRunState.RUNNING, track=False)
         run.tracker.init_run()
 
@@ -208,7 +212,7 @@ def _build_inline_root_task(root_task_name):
     if not root_task_name:
         root_task_name = sys.argv[0].split(os.path.sep)[-1]
 
-    class InplaceTask(Task):
+    class InplaceTask(TrackingTask):
         _conf__task_family = root_task_name
 
     try:
@@ -248,6 +252,7 @@ def dbnd_run_start(name=None, airflow_context=None):
     global _dbnd_script_manager
     if not _dbnd_script_manager:
         dbnd_project_config._dbnd_tracking = True
+
         dsm = _DbndScriptTrackingManager()
         try:
             dsm.start(name, airflow_context)

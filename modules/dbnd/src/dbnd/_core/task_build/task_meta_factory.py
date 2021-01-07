@@ -611,7 +611,6 @@ class TrackedTaskMetaFactory(BaseTaskMetaFactory):
             task_args, task_kwargs = args_to_kwargs(
                 self.task_cls._conf__decorator_spec.args, task_args, task_kwargs
             )
-        self.ctor_kwargs = task_kwargs
 
         # build parameters which defined in the class
         params_to_build = self._task_params.copy()
@@ -628,8 +627,8 @@ class TrackedTaskMetaFactory(BaseTaskMetaFactory):
         user_param_values = self._build_user_parameter_values(task_args, task_kwargs)
 
         # merge class and user params
-        task_params = user_param_values.copy()
-        task_params.update({p.name: p for p in class_param_values})
+        task_params = {p.name: p for p in class_param_values}
+        task_params.update(user_param_values)
 
         return TaskMeta(
             task_definition=self.task_definition,

@@ -106,7 +106,6 @@ def test_pickle():
     assert task_pass_through_default == pickle.loads(pickled)
 
 
-@pytest.mark.skip("to be fixed on develop")
 @pytest.mark.usefixtures(set_airflow_context.__name__)
 def test_tracking_pass_through_default_airflow(
     pandas_data_frame_on_disk, mock_channel_tracker
@@ -159,7 +158,6 @@ def test_tracking_pass_through_default_airflow(
     )
 
 
-@pytest.mark.skip("to be fixed on develop")
 @pytest.mark.usefixtures(set_tracking_context.__name__)
 def test_tracking_pass_through_default_tracking(
     pandas_data_frame_on_disk, mock_channel_tracker
