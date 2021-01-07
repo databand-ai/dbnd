@@ -47,7 +47,6 @@ class ApiClient(object):
             )
         except requests.exceptions.ConnectionError as ce:
             logger.info("Got connection error while sending request: {}".format(ce))
-            self.session.close()
             self.session = None
             raise
 
@@ -97,7 +96,6 @@ class ApiClient(object):
             logger.warning(
                 "Exception occurred while initialising the session: {}".format(e)
             )
-            self.session.close()
             self.session = None
             raise
 
