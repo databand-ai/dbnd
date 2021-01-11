@@ -94,14 +94,14 @@ class TaskClsBuilder(object):
         return self.func_spec.item
 
     def get_task_cls(self):
-        if in_tracking_mode():
-            if not self._tracking_task_cls:
-                self._tracking_task_cls = self._build_task_cls(is_tracking_mode=True)
-            return self._tracking_task_cls
-        else:
-            if self._normal_task_cls is None:
-                self._normal_task_cls = self._build_task_cls(is_tracking_mode=False)
-            return self._normal_task_cls
+        if self._normal_task_cls is None:
+            self._normal_task_cls = self._build_task_cls(is_tracking_mode=False)
+        return self._normal_task_cls
+
+    def get_tracking_task_cls(self):
+        if not self._tracking_task_cls:
+            self._tracking_task_cls = self._build_task_cls(is_tracking_mode=True)
+        return self._tracking_task_cls
 
     def get_task_definition(self):
         return self.get_task_cls().task_definition
@@ -163,7 +163,7 @@ class TaskClsBuilder(object):
         func_call = None
         try:
             func_call = FuncCallWithResult(
-                task_cls=self.get_task_cls(),
+                task_cls=self.get_tracking_task_cls(),
                 call_user_code=self.func,
                 call_args=tuple(call_args),  # prevent original call_args modification
                 call_kwargs=dict(call_kwargs),  # prevent original kwargs modification
@@ -518,6 +518,7 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
         wrapper.func = class_or_func
 
         # we're using CallableLazyObjectProxy to have lazy evaluation for creating task_cls
+        # this is only orchestration scenarios
         task_cls = CallableLazyObjectProxy(fp.get_task_cls)
         wrapper.task_cls = task_cls
         wrapper.task = task_cls
