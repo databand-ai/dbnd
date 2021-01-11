@@ -7,7 +7,7 @@ from typing import List, Union
 from airflow import DAG
 from airflow.models import BaseOperator, DagModel
 
-from dbnd import new_dbnd_context, override, task
+from dbnd import PythonTask, new_dbnd_context, override, parameter, task
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
     DBND_RESUBMIT_RUN,
@@ -21,6 +21,7 @@ from dbnd._core.configuration.scheduler_file_config_loader import (
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.settings import LoggingConfig, RunConfig
+from dbnd._core.tracking.no_tracking import dont_track
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.string_utils import clean_job_name
@@ -123,6 +124,7 @@ class DbndSchedulerDBDagsProvider(object):
         return dag
 
 
+@dont_track
 class DbndSchedulerOperator(BaseOperator):
     template_fields = ("scheduled_cmd",)
     template_ext = (".sh", ".bash")
@@ -157,7 +159,7 @@ class DbndSchedulerOperator(BaseOperator):
                 LoggingConfig.disabled: override(True),
             },
         ) as dc:
-            launcher_task = launcher.task(
+            launcher_task = Launcher(
                 scheduled_cmd=self.scheduled_cmd,
                 task_name=context.get("dag").dag_id,
                 task_version="now",
@@ -172,12 +174,17 @@ class DbndSchedulerOperator(BaseOperator):
             )
 
 
-@task
-def launcher(scheduled_cmd, shell):
-    env = os.environ.copy()
-    env[DBND_RUN_UID] = str(DatabandRun.get_instance().run_uid)
-    env[DBND_RESUBMIT_RUN] = "true"
-    return bash_cmd.func(cmd=scheduled_cmd, env=env, dbnd_env=False, shell=shell)
+class Launcher(PythonTask):
+    scheduled_cmd = parameter[str]
+    shell = parameter[bool]
+
+    def run(self):
+        env = os.environ.copy()
+        env[DBND_RUN_UID] = str(DatabandRun.get_instance().run_uid)
+        env[DBND_RESUBMIT_RUN] = "true"
+        return bash_cmd.func(
+            cmd=self.scheduled_cmd, env=env, dbnd_env=False, shell=self.shell
+        )
 
 
 def get_dags():

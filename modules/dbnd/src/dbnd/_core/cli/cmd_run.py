@@ -9,10 +9,7 @@ import six
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
-from dbnd._core.configuration.environ_config import (
-    ENV_DBND__TRACKING,
-    new_dbnd_project_config_context,
-)
+from dbnd._core.configuration.environ_config import tracking_mode_context
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
@@ -288,9 +285,7 @@ def run(
             scheduled_job_name=scheduled_job_name, scheduled_date=scheduled_date
         )
 
-    with new_dbnd_project_config_context(
-        **{ENV_DBND__TRACKING: "False"}
-    ), new_dbnd_context(
+    with tracking_mode_context(tracking=False), new_dbnd_context(
         name="run", module=module
     ) as context:  # type: DatabandContext
         task_registry = get_task_registry()

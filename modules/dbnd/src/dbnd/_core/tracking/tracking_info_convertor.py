@@ -5,6 +5,7 @@ import typing
 from functools import partial
 from itertools import chain
 
+from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.tracking.schemas.tracking_info_objects import (
@@ -24,7 +25,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.context.databand_context import DatabandContext
     from typing import Dict, List
     from targets import Target
-    from dbnd import Task, get_dbnd_project_config
+    from dbnd._core.task import Task
     from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.task_run.task_run import TaskRun
 

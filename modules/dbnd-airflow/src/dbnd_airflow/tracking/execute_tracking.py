@@ -38,11 +38,6 @@ def new_execute(context):
             airflow_context=task_context
         )  # type: Optional[TaskRun]
 
-        # custom manipulation for each operator
-        if task_run:
-            tracking_info = get_tracking_information(context, task_run)
-            add_tracking_to_submit_task(tracking_info, copied_operator)
-
     except Exception as e:
         task_run = None
         logger.error(

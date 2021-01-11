@@ -51,4 +51,4 @@ def env(**environment):
     finally:
         os.environ.update(current)
         for key in difference:
-            os.environ.pop(key)
+            os.environ.pop(key, None)

@@ -163,15 +163,16 @@ def reset_dbnd_project_config():
 
 
 @contextmanager
-def new_dbnd_project_config_context(**environment):
+def tracking_mode_context(tracking=None):
     """
-    Create new environment context and reset the project int it.
+    change the tracking mode for the scope of the `with`
     """
-    with env(**environment):
-        reset_dbnd_project_config()
-        yield get_dbnd_project_config()
-
-    reset_dbnd_project_config()
+    is_current_tracking = get_dbnd_project_config()._dbnd_tracking
+    get_dbnd_project_config()._dbnd_tracking = tracking
+    try:
+        yield
+    finally:
+        get_dbnd_project_config()._dbnd_tracking = is_current_tracking
 
 
 class DbndProjectConfig(object):
