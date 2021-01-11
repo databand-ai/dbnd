@@ -93,6 +93,11 @@ class TaskRunInfo(_DbndDataClass):
 
     external_links = attr.ib(default=None)  # type: dict
 
+    # This property allows to separate info that was created from a real task instance from an info that was created
+    # for a task in the task graph when there was no task instance corresponding to it.
+    # See the use of _to_task_run_info in airflow_monitor_converting.py
+    is_dummy = attr.ib(default=False)  # type: bool
+
     def __repr__(self):
         return "TaskRunInfo(%s, %s)" % self.name, self.state
 
