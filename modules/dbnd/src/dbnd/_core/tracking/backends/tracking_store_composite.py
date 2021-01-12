@@ -1,6 +1,6 @@
 import logging
 
-from dbnd._core.errors.base import DatabandConnectionException
+from dbnd._core.errors.base import TrackerPanicError, TrackerRecoverError
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
 
@@ -25,15 +25,24 @@ class CompositeTrackingStore(TrackingStore):
                 handler_res = handler(**kwargs)
                 if handler_res:
                     res = handler_res
-            except DatabandConnectionException as ex:
-                logger.error(
-                    "Failed to store tracking information from %s at %s : %s"
+
+            except TrackerRecoverError as ex:
+                logger.warning(
+                    "Failed to store tracking information from %s at %s : %s."
                     % (name, str(store), str(ex))
                 )
+
+            except TrackerPanicError as ex:
+                logger.error(
+                    "Failed to store tracking information from %s at %s : %s."
+                    % (name, str(store), str(ex))
+                )
+
                 if self._remove_failed_store:
                     failed_stores.append(store)
                 if self._raise_on_error:
                     raise
+
             except Exception as ex:
                 if self._remove_failed_store:
                     failed_stores.append(store)

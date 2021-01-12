@@ -215,3 +215,33 @@ class DatabandApiError(DatabandError):
 
 class DatabandBadRequest(DatabandError):
     pass
+
+
+# Containers for trackers to communicate the inner error to an action about the errors:
+# Should we remove the containers? only for panic
+class TrackerErrorContainer(DatabandError):
+    """
+    Implementation for holding inner error - Error chaining is not supported for py 2.7
+    """
+
+    def __init__(self, message, cause):
+        super(TrackerErrorContainer, self).__init__(
+            message + u", caused by " + repr(cause)
+        )
+        self.cause = cause
+
+
+class TrackerRecoverError(TrackerErrorContainer):
+    """
+    Indicate that the error is not a reason to drop the tracker
+    """
+
+    pass
+
+
+class TrackerPanicError(TrackerErrorContainer):
+    """
+    Indicate that tracker panic and need to be removed
+    """
+
+    pass
