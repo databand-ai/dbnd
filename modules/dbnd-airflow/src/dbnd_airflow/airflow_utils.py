@@ -14,6 +14,8 @@ def safe_get_context_manager_dag():
         return DAG._CONTEXT_MANAGER_DAG
     elif hasattr(models, "_CONTEXT_MANAGER_DAG"):
         return models._CONTEXT_MANAGER_DAG
+    elif hasattr(models.dag, "DagContext"):
+        return models.dag.DagContext._context_managed_dag
     return None
 
 

@@ -135,13 +135,6 @@ class InProcessExecutor(BaseExecutor):
             ti.set_state(State.UPSTREAM_FAILED)
             self.change_state(key, State.UPSTREAM_FAILED)
         return
-        # self.heartbeat()
-
-    # overriding default implementation with better logging messages
-    def change_state(self, key, state):
-        logger.debug("popping: {}".format(key))
-        self.running.pop(key)
-        self.event_buffer[key] = state
 
     @provide_session
     def _run_task_instance(self, ti, mark_success, pool, session=None):

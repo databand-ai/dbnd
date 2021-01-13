@@ -3,10 +3,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import datetime
 import logging
 
-from airflow import executors, models
-from airflow.jobs import BackfillJob, BaseJob
+from airflow import models
+from airflow.jobs.backfill_job import BackfillJob
+from airflow.jobs.base_job import BaseJob
 from airflow.models import DagRun, TaskInstance as TI
-from airflow.ti_deps.dep_context import RUNNABLE_STATES, RUNNING_DEPS, DepContext
+from airflow.ti_deps.dep_context import DepContext
 from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy
 from airflow.utils.db import provide_session
@@ -14,7 +15,6 @@ from airflow.utils.state import State
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.session import make_transient
 
-from databand import dbnd_config
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import get_databand_run
@@ -22,6 +22,10 @@ from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
+from dbnd_airflow.compat.executors import LocalExecutor, SequentialExecutor
+from dbnd_airflow.compat.single_dag_run_job import AIRFLOW_BASE_JOB_CLASS
+from dbnd_airflow.compat.state import get_finished_states
+from dbnd_airflow.compat.ti_deps import RUNNABLE_STATES, RUNNING_DEPS
 from dbnd_airflow.config import AirflowConfig
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
@@ -63,7 +67,7 @@ def _kill_zombies(dag_run, session):
 
 
 # based on airflow BackfillJob
-class SingleDagRunJob(BaseJob, SingletonContext):
+class SingleDagRunJob(AIRFLOW_BASE_JOB_CLASS, SingletonContext):
     """
     A backfill job consists of a dag or subdag for a specific time range. It
     triggers a set of task instance runs, in the right order and lasts for
@@ -73,7 +77,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
     # ID_PREFIX should be based on BackfillJob
     # there is a lot of checks that are "not scheduled_job"
     # they uses run_name string
-    ID_PREFIX = BackfillJob.ID_PREFIX + "manual_    "
+    ID_PREFIX = "backfill_manual_    "
     ID_FORMAT_PREFIX = ID_PREFIX + "{0}"
 
     # if we use real name of the class we need to load it at Airflow Webserver
@@ -114,7 +118,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         self.ti_state_manager = AirflowTaskInstanceStateManager()
         self.airflow_config = airflow_config  # type: AirflowConfig
-        super(SingleDagRunJob, self).__init__(*args, **kwargs)
+        if isinstance(AIRFLOW_BASE_JOB_CLASS, BackfillJob):
+            super(SingleDagRunJob, self).__init__(dag, *args, **kwargs)
+        else:
+            super(SingleDagRunJob, self).__init__(*args, **kwargs)
 
     @property
     def _optimize(self):
@@ -522,8 +529,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
                                 cfg_path = None
                                 if executor.__class__ in (
-                                    executors.LocalExecutor,
-                                    executors.SequentialExecutor,
+                                    LocalExecutor,
+                                    SequentialExecutor,
                                 ):
                                     cfg_path = tmp_configuration_copy()
 
@@ -600,7 +607,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
                 self._update_databand_task_run_states(run)
 
-                if run.state in State.finished():
+                if run.state in get_finished_states():
                     ti_status.finished_runs += 1
                     ti_status.active_runs.remove(run)
                     executed_run_dates.append(run.execution_date)
@@ -733,13 +740,6 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         # picklin'
         pickle_id = self.dag.pickle_id
-        # We don't need to pickle our dag again as it already pickled on job creattion
-        # also this will save it into databand table, that have no use for the airflow
-        # if not self.donot_pickle and self.executor.__class__ not in (
-        #     executors.LocalExecutor,
-        #     executors.SequentialExecutor,
-        # ):
-        #     pickle_id = airflow_pickle(self.dag, session=session)
 
         executor = self.executor
         executor.start()
@@ -867,8 +867,8 @@ def find_and_kill_zombies(args, session=None):
     logger.info("Cleaning done!")
 
 
-class ClearZombieJob(BaseJob):
-    ID_PREFIX = BackfillJob.ID_PREFIX + "manual_    "
+class ClearZombieJob(AIRFLOW_BASE_JOB_CLASS):
+    ID_PREFIX = "backfill_manual_    "
     ID_FORMAT_PREFIX = ID_PREFIX + "{0}"
     __mapper_args__ = {"polymorphic_identity": "BackfillJob"}
     TYPE = "ZombieJob"
