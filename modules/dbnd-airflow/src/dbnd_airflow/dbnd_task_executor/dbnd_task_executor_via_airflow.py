@@ -6,7 +6,8 @@ import typing
 
 from airflow import DAG
 from airflow.configuration import conf as airflow_conf
-from airflow.executors import LocalExecutor, SequentialExecutor
+from airflow.executors.local_executor import LocalExecutor
+from airflow.executors.sequential_executor import SequentialExecutor
 from airflow.models import DagPickle, DagRun, Pool, TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import create_session, provide_session
@@ -21,6 +22,7 @@ from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
 from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
+from dbnd_airflow.compat.dag_run import get_kwargs_for_dag_run
 from dbnd_airflow.config import AirflowConfig, get_dbnd_default_args
 from dbnd_airflow.db_utils import remove_listener_by_name
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
@@ -72,13 +74,14 @@ def create_dagrun_from_dbnd_run(
     )
     if dagrun is None:
         dagrun = DagRun(
-            run_id=run_id,
-            execution_date=execution_date,
-            start_date=dag.start_date,
-            _state=state,
-            external_trigger=external_trigger,
-            dag_id=dag.dag_id,
-            conf=conf,
+            **get_kwargs_for_dag_run(
+                run_id=run_id,
+                execution_date=execution_date,
+                dag=dag,
+                state=state,
+                external_trigger=external_trigger,
+                conf=conf,
+            )
         )
         session.add(dagrun)
     else:
@@ -316,7 +319,6 @@ class AirflowTaskExecutor(TaskExecutor):
                 "remove_airflow_std_redirect": self.airflow_config.remove_airflow_std_redirect,
             }
 
-        # now we are ready to create real pickle for the dag
         with ready_for_pickle(dag, DAG_UNPICKABLE_PROPERTIES) as pickable_dag:
             dp.pickle = pickable_dag
             session.add(dp)
@@ -383,7 +385,6 @@ class AirflowTaskExecutor(TaskExecutor):
         # we don't want to be stopped by zombie jobs/tasks
         airflow_conf.set("core", "dag_concurrency", str(10000))
         airflow_conf.set("core", "max_active_runs_per_dag", str(10000))
-
         job = SingleDagRunJob(
             dag=af_dag,
             execution_date=databand_run.execution_date,

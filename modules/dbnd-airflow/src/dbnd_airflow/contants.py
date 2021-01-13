@@ -5,3 +5,4 @@ import airflow
 
 AIRFLOW_ABOVE_10 = LooseVersion(airflow.version.version) > LooseVersion("1.10.10")
 AIRFLOW_ABOVE_9 = LooseVersion(airflow.version.version) > LooseVersion("1.10.9")
+AIRFLOW_BELOW_2 = LooseVersion(airflow.version.version) < LooseVersion("2.0.0")
