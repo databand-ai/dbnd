@@ -42,9 +42,11 @@ class ApiClient(object):
 
         url = urljoin(self._api_base_url, endpoint)
         try:
-            resp = self.session.request(
+            request_params = dict(
                 method=method, url=url, json=data, headers=headers, params=query
             )
+            logger.debug("Sending the following request: %s", request_params)
+            resp = self.session.request(**request_params)
         except requests.exceptions.ConnectionError as ce:
             logger.info("Got connection error while sending request: {}".format(ce))
             self.session = None
