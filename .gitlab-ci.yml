@@ -289,6 +289,17 @@ dbnd_airflow_monitor 0 1_10_9_py36:
       junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_9.xml
   when: manual
 
+dbnd_airflow 0 2_0_0_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py36-airflow_2_0_0
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py36-airflow_2_0_0.xml
+  only: *on_significant_branch
+
 dbnd_airflow_monitor 0 1_10_10_py36:
   <<: *template__python_test_job
   image: ${DOCKER_IMAGE_BASE_CICD_PY36}
