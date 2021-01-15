@@ -180,7 +180,7 @@ class DbndKubernetesClient(object):
                 logger.error("failed to get log for %s: %s", metadata.name, ex)
 
         try:
-            short_log = "\n".join(["out:%s" % l for l in logs[:15]])
+            short_log = "\n".join(["out:%s" % l for l in logs[:-20]])
         except Exception as ex:
             logger.error(
                 "failed to build short log message for %s: %s", metadata.name, ex
