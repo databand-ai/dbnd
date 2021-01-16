@@ -31,9 +31,12 @@ from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
-from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.errors.base import DatabandRuntimeError, DatabandSigTermError
+from dbnd._core.errors.base import (
+    DatabandError,
+    DatabandRuntimeError,
+    DatabandSigTermError,
+)
 from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 from dbnd_docker.kubernetes.kube_dbnd_client import (
@@ -251,8 +254,15 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
     def terminate(self):
         # we kill watcher and communication channel first
-        super(DbndKubernetesScheduler, self).terminate()
 
+        # prevent watcher bug of being stacked on termination during event processing
+        try:
+            self.kube_watcher.safe_terminate()
+            super(DbndKubernetesScheduler, self).terminate()
+        finally:
+            self.clean_all_running_pods()
+
+    def clean_all_running_pods(self):
         # now we need to clean after the run
         pods_to_delete = sorted(self.running_pods.keys())
         if pods_to_delete:
@@ -457,9 +467,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 phase = pod_data.status.phase
 
                 if self.processed_events.get(pod_name):
-                    self.log.debug(
-                        "Event: %s at %s - skipping as seen", phase, pod_name
-                    )
+                    self.log.info("Event: %s at %s - skipping as seen", phase, pod_name)
                     continue
                 status = self.kube_dbnd.process_pod_event(event)
 
@@ -529,7 +537,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     def process_status_quite(self, pod_id, status, labels, resource_version):
         """Process status response"""
         if status == "Pending":
-            self.log.debug("Event: %s Pending", pod_id)
+            self.log.debug("Event: pod=%s Pending", pod_id)
         elif status == "Failed":
             self.log.debug("Event: %s Failed", pod_id)
             self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))
@@ -552,3 +560,29 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         from targets.fs import reset_fs_cache
 
         reset_fs_cache()
+
+    def safe_terminate(self):
+        """
+        This functions is a workaround for watcher is being alive,
+        after it's terminated by Executor. If termination happens
+        while watcher fetch data from k8s, `SIGTERM` might be handled by internal
+        kubeclient implementation, and the watcher will stay running forever.
+        Executor will be stacked at "kube_watcher.join()" call.
+
+        Workaround: try to kill watcher multiple times.
+        """
+        if self.is_alive():
+            logger.info("Terminating KubernetesJobWatcher process pid=%s", self.pid)
+            for x in range(10):
+                self.terminate()
+                # first wait 10 seconds to stop
+                self.join(timeout=10)
+                if not self.is_alive():
+                    logger.info("KubernetesJobWatcher has been succesfully terminated")
+                    return
+                logger.info(
+                    "KubernetesJobWatcher is still running after being terminated"
+                )
+            raise DatabandError(
+                "Failed to terminate KubernetesJobWatcher, the process is still alive"
+            )
