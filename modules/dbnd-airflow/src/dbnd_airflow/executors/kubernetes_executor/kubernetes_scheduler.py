@@ -49,8 +49,10 @@ logger = logging.getLogger(__name__)
 class DbndKubernetesScheduler(AirflowKubernetesScheduler):
     """
     Very serious override of AirflowKubernetesScheduler
-    1. we want better visability on errors, so we proceed Failures with much more info
-    2. handling of disappeared pods
+    1. better visability on errors, so we proceed Failures with much more info
+    2. tracking of all around "airflow run" events -> Pod Crashes, Pod Submission errors
+        a. in case of crash (OOM, evicted pod) -> error propogation to databand and retry
+    3. handling of disappeared pods ( every 10th iteration of .sync() validate all running_pods
     """
 
     def __init__(
@@ -65,6 +67,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         # we want to wait for stop, instead of "exit" inplace, so we can get all "not" received messages
         from multiprocessing.managers import SyncManager
 
+        # TODO: why can't we use original SyncManager?
         # Scheduler <-> (via _manager) KubeWatcher
         # if _manager dies inplace, we will not get any "info" from KubeWatcher until shutdown
         self._manager = SyncManager()
@@ -78,6 +81,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.running_pods = {}
         self.pod_to_task_run = {}
 
+        # sending data to databand tracker
         self.metrics_logger = KubernetesMetricsLogger()
 
         # disappeared pods mechanism
