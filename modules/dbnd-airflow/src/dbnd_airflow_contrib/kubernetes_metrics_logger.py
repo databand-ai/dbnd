@@ -25,7 +25,7 @@ class KubernetesMetricsLogger(object):
         timestamp = datetime.datetime.utcnow().isoformat()
         task.log_system_metric("pod_started_execution", timestamp)
 
-    def log_pod_deleted(self, task):
+    def log_pod_finished(self, task):
         import datetime
 
         timestamp = datetime.datetime.utcnow().isoformat()
