@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class PodRetryReason(object):
     exit_code = "exit_code"
     err_image_pull = "err_image_pull"
-    err_pod_disappeared = "err_pod_disappeared"
+    err_pod_deleted = "err_pod_deleted"
 
 
 class DbndKubernetesClient(object):
@@ -75,18 +75,15 @@ class DbndPodCtrl(object):
             )
             return
 
-        from airflow.utils.state import State
-
-        if (
-            self.kube_config.keep_failed_pods
-            and self.get_airflow_state() != State.RUNNING
-        ):
-            logger.warning(
-                "Keeping failed pod '%s' due to keep_failed_pods=True and state is %s",
-                self.name,
-                self.get_airflow_state(),
-            )
-            return
+        if self.kube_config.keep_failed_pods:
+            pod_phase = self.get_pod_phase()
+            if pod_phase not in {PodPhase.RUNNING, PodPhase.SUCCEEDED}:
+                logger.warning(
+                    "Keeping failed pod '%s' due to keep_failed_pods=True and state is %s",
+                    self.name,
+                    pod_phase,
+                )
+                return
 
         logger.info("Deleting pod: %s" % self.name)
 
@@ -106,25 +103,22 @@ class DbndPodCtrl(object):
             #     raise
 
     def get_pod_status_v1(self):
-        from requests import HTTPError
-
         try:
-            return self.kube_client.read_namespaced_pod(self.name, self.namespace)
-        except HTTPError as e:
-            raise DatabandRuntimeError(
-                "There was an error reading pod status for %s at namespace %s via kubernetes API: {}".format(
-                    e
-                )
+            return self.kube_client.read_namespaced_pod(
+                name=self.name, namespace=self.namespace
             )
+        except ApiException as e:
+            # If the pod can not be found
+            if e.status == 404:
+                return None
+            raise
 
-    def get_airflow_state(self):
-        """Process phase infomration for the JOB"""
-        try:
-            pod_resp = self.get_pod_status_v1()
-            return self._phase_to_airflow_state(pod_resp.status.phase)
-        except Exception as e:
-            logger.warning("failed to read pod state for %s: %s", self.name, e)
+    def get_pod_phase(self):
+        pod_resp = self.get_pod_status_v1()
+        if not pod_resp:
             return None
+
+        return pod_resp.status.phase
 
     def _wait_for_pod_started(self, _logger=logger):
         """
@@ -133,6 +127,8 @@ class DbndPodCtrl(object):
         start_time = datetime.now()
         while True:
             pod_status = self.get_pod_status_v1()
+            if not pod_status:
+                raise DatabandError("Can not find pod at k8s:%s")
             # PATCH:  validate deploy errors
             self.check_deploy_errors(pod_status)
 
@@ -214,25 +210,6 @@ class DbndPodCtrl(object):
                         container_waiting_state.message
                     )
 
-    def _phase_to_airflow_state(self, pod_phase):
-        """Process phase infomration for the JOB"""
-        phase = pod_phase.lower()
-        from airflow.utils.state import State
-
-        if phase == PodStatus.PENDING:
-            return State.QUEUED
-        elif phase == PodStatus.FAILED:
-            logger.info("Event with pod %s Failed", self.name)
-            return State.FAILED
-        elif phase == PodStatus.SUCCEEDED:
-            logger.info("Event with pod %s Succeeded", self.name)
-            return State.SUCCESS
-        elif phase == PodStatus.RUNNING:
-            return State.RUNNING
-        else:
-            logger.info("Event: Invalid state %s on job %s", phase, self.name)
-            return State.FAILED
-
     def wait(self):
         """
         Waits for pod completion
@@ -245,13 +222,13 @@ class DbndPodCtrl(object):
 
         from airflow.utils.state import State
 
-        final_state = self.get_airflow_state()
+        pod_phase = self.get_pod_phase()
         wait_start = utcnow()
-        while final_state not in {State.SUCCESS, State.FAILED}:
+        while pod_phase not in {PodPhase.SUCCEEDED, PodPhase.FAILED}:
             logger.debug(
                 "Pod '%s' is not completed with state %s, waiting..",
                 self.name,
-                final_state,
+                pod_phase,
             )
             if (
                 utcnow() - wait_start
@@ -259,15 +236,15 @@ class DbndPodCtrl(object):
                 raise DatabandRuntimeError(
                     "Pod is not in a final state after {grace_period}: {state}".format(
                         grace_period=self.kube_config.submit_termination_grace_period,
-                        state=final_state,
+                        state=pod_phase,
                     )
                 )
             time.sleep(5)
-            final_state = self.get_airflow_state()
+            pod_phase = self.get_pod_phase()
 
-        if final_state != State.SUCCESS:
+        if pod_phase != PodPhase.SUCCEEDED:
             raise DatabandRuntimeError(
-                "Pod returned a failure: {state}".format(state=final_state)
+                "Pod returned a failure: {pod_phase}".format(pod_phase=pod_phase)
             )
         return self
 
@@ -357,8 +334,6 @@ class DbndPodCtrl(object):
 
 
 def _get_status_log_safe(pod_data):
-    if not pod_data:
-        return "POD NOT FOUND"
     try:
         pp = pprint.PrettyPrinter(indent=4)
         logs = pp.pformat(pod_data.status)
@@ -392,3 +367,12 @@ def get_task_run_from_pod_data(pod_data):
         return None
 
     return dr.get_task_run_by_af_id(task_id)
+
+
+class PodPhase(object):
+    """Status of the PODs"""
+
+    PENDING = "Pending"
+    RUNNING = "Running"
+    FAILED = "Failed"
+    SUCCEEDED = "Succeeded"

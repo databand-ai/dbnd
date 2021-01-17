@@ -50,6 +50,12 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         signal.signal(signal.SIGTERM, watcher_sig_handler)
         signal.signal(signal.SIGQUIT, watcher_sig_handler)
 
+        self.log.info(
+            "Event: and now my watch begins starting at resource_version: %s. Watcher PID: %s",
+            self.resource_version,
+            os.getpid(),
+        )
+
         kube_client = self.kube_dbnd.kube_client
         try:
             while True:
@@ -144,10 +150,25 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             pod_data.metadata.labels,
             resource_version,
         )
+        if is_verbose():
+            logger.info("Event verbose:%s %s", pod_id, event)
 
         if event["type"] == "DELETED" and phase not in {"Succeeded", "Failed"}:
             # from Airflow 2.0 -> k8s may delete pods (preemption?)
-            self.log.info("Event: Pod has been deleted %s at phase %s", pod_id, phase)
+            self.log.info(
+                "Event: Pod has been deleted %s at phase %s at %s ",
+                pod_id,
+                phase,
+                pod_data.metadata.deletion_timestamp,
+            )
+            self.watcher_queue.put(_fail_event)
+        elif pod_data.metadata.deletion_timestamp:
+            self.log.info(
+                "Event: Pod is being deleted %s at phase %s at %s",
+                pod_id,
+                phase,
+                pod_data.metadata.deletion_timestamp,
+            )
             self.watcher_queue.put(_fail_event)
         elif phase == "Pending":
             pod_ctrl = self.kube_dbnd.get_pod_ctrl(
@@ -164,6 +185,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 self.watcher_queue.put(_fail_event)
 
         elif phase == "Running":
+
             self.log.info("Event: %s is Running", pod_id)
             self.watcher_queue.put(
                 (pod_id, State.RUNNING, pod_data.metadata.labels, resource_version)
