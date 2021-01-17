@@ -33,11 +33,7 @@ from airflow.utils.state import State
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.errors.base import (
-    DatabandError,
-    DatabandRuntimeError,
-    DatabandSigTermError,
-)
+from dbnd._core.errors.base import DatabandRuntimeError, DatabandSigTermError
 from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 from dbnd_docker.kubernetes.kube_dbnd_client import (
@@ -359,7 +355,7 @@ def mgr_sig_handler(signal, frame):
 def watcher_sig_handler(signal, frame):
     import sys
 
-    logger.info("Watcher received signal, PID: %s. exiting...", os.getpid())
+    logger.info("Watcher received signal %s, PID: %s. exiting...", signal, os.getpid())
     sys.exit(0)
 
 
@@ -682,6 +678,5 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 logger.info(
                     "KubernetesJobWatcher is still running after being terminated"
                 )
-            raise DatabandError(
-                "Failed to terminate KubernetesJobWatcher, the process is still alive"
-            )
+            logger.info("Killing KubernetesJobWatcher on pid %s with -9", self.pid)
+            os.kill(self.pid, signal.SIGKILL)
