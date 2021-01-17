@@ -36,6 +36,7 @@ from dbnd_airflow.executors.kubernetes_executor.kubernetes_watcher import (
 from dbnd_airflow.executors.kubernetes_executor.utils import mgr_init
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 from dbnd_docker.kubernetes.kube_dbnd_client import (
+    PodPhase,
     PodRetryReason,
     _get_status_log_safe,
     _try_get_pod_exit_code,
@@ -291,6 +292,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
     def _dbnd_set_task_running(self, task_run, pod_name):
 
         pod_data = self.get_pod_status(pod_name)
+        if not pod_data:
+            logger.error(
+                "Failed to proceed Running event for %s: can't find pod info", pod_name
+            )
+            return
         node_name = pod_data.spec.node_name
         if not node_name:
             return
@@ -331,14 +337,16 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         if failure_reason:
             error_msg_header += "%s: %s." % (failure_reason, failure_message)
 
-        pod_status_log = _get_status_log_safe(pod_data)
-        error_msg_header += "\n%s" % pod_status_log
-
         pod_logs = []
         if pod_data:
+            pod_status_log = _get_status_log_safe(pod_data)
             pod_phase = pod_data.status.phase
             if pod_phase != "Pending":
                 pod_logs = pod_ctrl.get_pod_logs()
+        else:
+            pod_status_log = "POD NOT FOUND"
+
+        error_msg_desc = "Please see full pod log for more details\n%s" % pod_status_log
 
         from dbnd._core.task_run.task_run_error import TaskRunError
 
@@ -347,15 +355,12 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             "k8s scheduler: current task airflow state: %s %s ", task_id, ti_state
         )
 
-        error_msg = error_msg_header
         if pod_logs:
-            error_msg += "\nLog:%s\n" % "\n".join(
-                ["out:%s" % l for l in pod_logs[:-20]]
+            error_msg_desc += "\nPod logs:\n%s\n" % "\n".join(
+                ["out: %s" % l for l in pod_logs[-20:]]
             )
         error = TaskRunError.build_from_message(
-            task_run=task_run,
-            msg=error_msg,
-            help_msg="Please see full pod log for more details",
+            task_run=task_run, msg=error_msg_header, help_msg=error_msg_desc,
         )
 
         if ti_state == State.FAILED:
@@ -378,10 +383,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         # (all kind of errors and exit codes)
 
         task_run_log = error_msg_header
+        task_run_log += pod_status_log
         task_run_log += "Airflow state at DB:%s\n" % ti_state
         if pod_logs:
             # let's upload it logs - we don't know what happen
-            task_run_log += "\nLog:%s\n\n" % "\n".join(pod_logs)
+            task_run_log += "\nPod logs:\n\n%s\n\n" % "\n".join(pod_logs)
         task_run.tracker.save_task_run_log(error_msg_header)
 
         retry_config = self.kube_dbnd.engine_config.pod_retry_config
@@ -408,8 +414,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
     ):
         if not pod_data:
             return (
-                PodRetryReason.err_pod_disappeared,
-                "Pod %s can not be found" % pod_name,
+                PodRetryReason.err_pod_deleted,
+                "Pod %s probably has been deleted (can not be found)" % pod_name,
             )
 
         pod_phase = pod_data.status.phase
@@ -427,6 +433,13 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             except Exception as ex:
                 pass
             return None, None
+
+        if pod_data.metadata.deletion_timestamp:
+            return (
+                PodRetryReason.err_pod_deleted,
+                "Pod %s has been deleted at %s"
+                % (pod_name, pod_data.metadata.deletion_timestamp),
+            )
 
         pod_exit_code = _try_get_pod_exit_code(pod_data)
         if pod_exit_code:

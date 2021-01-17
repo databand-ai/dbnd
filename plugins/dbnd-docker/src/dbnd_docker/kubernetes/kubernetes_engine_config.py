@@ -184,10 +184,6 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         default=False, description="Submit run only, do not wait for it completion."
     )[bool]
 
-    submit_termination_grace_period = parameter(
-        description="timedelta to let the submitted pod enter a final state"
-    )[datetime.timedelta]
-
     watcher_request_timeout_seconds = parameter(
         default=300,
         description="How many seconds watcher should wait "
@@ -197,11 +193,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     watcher_recreation_interval_seconds = parameter(
         default=30,
-        description="How many seconds to wait before resurrecting watcher after it dies",
+        description="How many seconds to wait before resurrecting watcher after the timeout",
     )[int]
 
     watcher_client_timeout_seconds = parameter(
-        default=50,
+        default=100,
         description="How many seconds to wait before timeout occurs in watcher on client side (read)",
     )[int]
 
@@ -423,6 +419,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             ]
             # we update cmd now
             cmds = ["/bin/bash", "-c"]
+
+        # uncomment to run debug command
+        # cmds = ["/bin/bash", "-c", "exit 255"]
 
         if not self.container_tag:
             raise DatabandConfigError(
