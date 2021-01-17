@@ -31,6 +31,7 @@ from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
+from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import (
     DatabandError,
@@ -41,6 +42,7 @@ from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 from dbnd_docker.kubernetes.kube_dbnd_client import (
     DbndKubernetesClient,
+    PodRetryReason,
     get_task_run_from_pod_data,
 )
 
@@ -142,11 +144,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.watcher_queue = self._manager.Queue()
         self.current_resource_version = 0
         self.kube_watcher = self._make_kube_watcher_dbnd()
-        # will be used to low level pod interactions
-        self.failed_pods_to_ignore = []
         self.running_pods = {}
-        self.pod_to_task = {}
+        self.pod_to_task_run = {}
         self.metrics_logger = KubernetesMetricsLogger()
+        self.last_disappeared_pods = {}
+        self.current_iteration = 1
 
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
@@ -222,35 +224,34 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         )
 
         pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
-        self.running_pods[pod.name] = self.namespace
-        self.pod_to_task[pod.name] = task_run.task
+        self.running_pods[pod.name] = key
+        self.pod_to_task_run[pod.name] = task_run
 
         pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
         self.metrics_logger.log_pod_started(task_run.task)
 
     def delete_pod(self, pod_id):
-        if pod_id in self.failed_pods_to_ignore:
-            logger.warning(
-                "Received request to delete pod %s that is ignored! Ignoring...", pod_id
-            )
+        # we will try to delete pod only once
+
+        self.running_pods.pop(pod_id, None)
+        task_run = self.pod_to_task_run.pop(pod_id, None)
+        if not task_run:
             return
+
         try:
-            found_pod = self.running_pods.pop(pod_id, None)
-            if found_pod:
-                result = self.kube_dbnd.delete_pod(pod_id, self.namespace)
-
-                if pod_id in self.pod_to_task:
-                    self.metrics_logger.log_pod_deleted(self.pod_to_task[pod_id])
-                    self.pod_to_task.pop(pod_id)  # Keep the cache clean
-
-                return result
-        except Exception as e:
+            self.metrics_logger.log_pod_finished(task_run.task)
+        except Exception:
             # Catch all exceptions to prevent any delete loops, best effort
-            logger.warning(
-                "Exception raised when trying to delete pod %s! Adding to ignored list...",
-                pod_id,
+            logger.exception("Failed to save pod finish info: pod_id=%s.!", pod_id)
+
+        try:
+            result = self.kube_dbnd.delete_pod(pod_id, self.namespace)
+            return result
+        except Exception:
+            # Catch all exceptions to prevent any delete loops, best effort
+            logger.exception(
+                "Exception raised when trying to delete pod: pod_id=%s.", pod_id
             )
-            self.failed_pods_to_ignore.append(pod_id)
 
     def terminate(self):
         # we kill watcher and communication channel first
@@ -263,36 +264,89 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             self.clean_all_running_pods()
 
     def clean_all_running_pods(self):
+        """
+        Clean up of all running pods on terminate:
+        """
         # now we need to clean after the run
         pods_to_delete = sorted(self.running_pods.keys())
-        if pods_to_delete:
-            logger.info(
-                "Terminating run, deleting all %d submitted pods that are still running: %s",
-                len(pods_to_delete),
-                pods_to_delete,
-            )
-            pod_to_task_run = {}
-            for pod_name in pods_to_delete:
-                try:
-                    pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
-                    pod_data = pod_ctrl.get_pod_status_v1()
-                    task_run = get_task_run_from_pod_data(pod_data)
-                    if task_run:
-                        pod_to_task_run[pod_name] = task_run
-                    self.delete_pod(pod_name)
-                except Exception:
-                    logger.exception("Failed to terminate pod %s", pod_name)
-            try:
-                self.set_running_pods_to_cancelled(pod_to_task_run)
-            except Exception:
-                logger.exception("Could not set pods to cancelled!")
+        if not pods_to_delete:
+            return
 
-    def set_running_pods_to_cancelled(self, pod_to_task_run):
+        logger.info(
+            "Terminating run, deleting all %d submitted pods that are still running: %s",
+            len(pods_to_delete),
+            pods_to_delete,
+        )
+        pod_to_task_run = {}
+        for pod_name in pods_to_delete:
+            try:
+                pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
+                pod_data = pod_ctrl.get_pod_status_v1()
+                task_run = get_task_run_from_pod_data(pod_data)
+                if task_run:
+                    pod_to_task_run[pod_name] = task_run
+                self.delete_pod(pod_name)
+            except Exception:
+                logger.exception("Failed to terminate pod %s", pod_name)
+
         # Wait for pods to be deleted and execute their own state management
         logger.info("Scheduler: Setting all running pods to cancelled in 10 seconds...")
         time.sleep(10)
-        for pod_name, task_run in pod_to_task_run.items():
-            self.kube_dbnd.dbnd_set_task_cancelled_on_termination(pod_name, task_run)
+        try:
+            for pod_name, task_run in pod_to_task_run.items():
+                self.kube_dbnd.dbnd_set_task_cancelled_on_termination(
+                    pod_name, task_run
+                )
+        except Exception:
+            logger.exception("Could not set pods to cancelled!")
+
+    def check_disappeared_pods(self):
+        """
+        We will want to check on pod status.
+        K8s may have pods disappeared from it because of preemptable/spot nodes
+         without proper event sent to KubernetesJobWatcher
+        We will do a check on all running pods every 10th iteration
+        :return:
+        """
+        if not self.running_pods:
+            self.last_disappeared_pods = {}
+            logger.info(
+                "Skipping on checking on disappeared pods - no pods are running"
+            )
+            return
+
+        logger.info(
+            "Checking on disappeared pods for currently %s running tasks",
+            len(self.running_pods),
+        )
+
+        previously_disappeared_pods = self.last_disappeared_pods
+        currently_disappeared_pods = {}
+        running_pods = list(
+            self.running_pods.items()
+        )  # need a copy, will be modified on delete
+        disapeared_pods = []
+        for pod_name, pod_key in running_pods:
+            from kubernetes.client.rest import ApiException
+
+            try:
+                self.kube_client.read_namespaced_pod(
+                    name=pod_name, namespace=self.namespace
+                )
+            except ApiException as e:
+                # If the pod can not be found
+                if e.status == 404:
+                    logger.info("Pod %s has disappeared...", pod_name)
+                    if pod_name in previously_disappeared_pods:
+                        disapeared_pods.append(pod_name)
+                    currently_disappeared_pods[pod_name] = pod_key
+            except Exception:
+                logger.exception("Failed to get status of pod_id=%s", pod_name)
+        self.last_disappeared_pods = currently_disappeared_pods
+
+        if disapeared_pods:
+            logger.info("Disappeared pods: %s ", disapeared_pods)
+        return disapeared_pods
 
 
 def mgr_sig_handler(signal, frame):
@@ -330,6 +384,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         _update_airflow_kube_config(
             airflow_kube_config=self.kube_config, engine_config=kube_dbnd.engine_config
         )
+        self.current_iteration = 1
 
     def start(self):
         logger.info("Starting Kubernetes executor... PID: %s", os.getpid())
@@ -378,6 +433,50 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     def clear_not_launched_queued_tasks(self, *args, **kwargs):
         # we don't clear kubernetes tasks from previous run
         pass
+
+    def sync(self):
+        super(DbndKubernetesExecutor, self).sync()
+
+        # DBND EXTENSION
+        self.current_iteration += 1
+
+        if self.current_iteration % 10 == 0:
+            try:
+                self.handle_disappeared_pods()
+            except Exception:
+                logger.exception("Failed to find disappeared pods")
+
+    def handle_disappeared_pods(self):
+        ks = self.kube_scheduler
+        pods = ks.check_disappeared_pods()
+        if not pods:
+            return
+        logger.info(
+            "Pods %s can not be found for the last 2 iterations of disappeared pods recovery. "
+            "Trying to recover..",
+            pods,
+        )
+        for pod_name in pods:
+            task_run = ks.pod_to_task_run.get(pod_name)
+            pod_ctrl = self.kube_dbnd.get_pod_ctrl(
+                name=pod_name, namespace=ks.namespace
+            )
+            pod_key = ks.running_pods.get(pod_name)
+            ks.delete_pod(pod_name)
+
+            if pod_ctrl.handle_pod_failure_with_retry(
+                task_run=task_run,
+                retry_reason=PodRetryReason.err_pod_disappeared,
+                increment_try_number=True,
+            ):
+                self._change_state(pod_key, State.UP_FOR_RETRY, pod_name)
+            else:
+                # pod wasn't resubmitted
+                error = None
+                task_run.set_task_run_state(
+                    TaskRunState.FAILED, track=True, error=error
+                )
+                self._change_state(pod_key, State.FAILED, pod_name)
 
 
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
