@@ -79,10 +79,12 @@ class DbndPodCtrl(object):
 
         if (
             self.kube_config.keep_failed_pods
-            and self.get_airflow_state() == State.FAILED
+            and self.get_airflow_state() != State.RUNNING
         ):
             logger.warning(
-                "Keeping failed pod '%s' due to keep_failed_pods=True.", self.name
+                "Keeping failed pod '%s' due to keep_failed_pods=True and state is %s",
+                self.name,
+                self.get_airflow_state(),
             )
             return
 
@@ -201,15 +203,10 @@ class DbndPodCtrl(object):
             container_waiting_state = pod_status.container_statuses[0].state.waiting
             if pod_status.phase == "Pending" and container_waiting_state:
                 if container_waiting_state.reason == "ErrImagePull":
-                    logger.info(
-                        "Found problematic condition at %s :%s %s",
-                        self.name,
-                        container_waiting_state.reason,
-                        container_waiting_state.message,
-                    )
                     raise friendly_error.executor_k8s.kubernetes_image_not_found(
                         pod_status.container_statuses[0].image,
                         container_waiting_state.message,
+                        long_msg=container_waiting_state.reason,
                     )
 
                 if container_waiting_state.reason == "CreateContainerConfigError":
@@ -350,21 +347,24 @@ class DbndPodCtrl(object):
                 print_func=log_printer, tail_lines=tail_lines, follow=False
             )
             return logs
-        except Exception as ex:
-            # when deleting pods we get extra failure events so we will have lots of this in the log
-            if isinstance(ex, ApiException) and ex.status == 404:
+        except ApiException as ex:
+            if ex.status == 404:
                 logger.info("failed to get log for pod %s: pod not found", self.name)
             else:
-                logger.error("failed to get log for %s: %s", self.name, ex)
+                logger.exception("failed to get log for %s: %s", self.name, ex)
+        except Exception as ex:
+            logger.error("failed to get log for %s: %s", self.name, ex)
 
 
 def _get_status_log_safe(pod_data):
+    if not pod_data:
+        return "POD NOT FOUND"
     try:
         pp = pprint.PrettyPrinter(indent=4)
         logs = pp.pformat(pod_data.status)
-        return logs
+        return "Pod Status: %s" % logs
     except Exception as ex:
-        return "failed to get pod status log for %s: %s" % (pod_data.metadata.name, ex)
+        return "Pod Status: failed to get %s: %s" % (pod_data.metadata.name, ex)
 
 
 def _try_get_pod_exit_code(pod_data):

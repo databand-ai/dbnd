@@ -114,13 +114,6 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                     return self.process_error(event)
 
                 self._extended_process_state(event)
-
-                self.process_status(
-                    task.metadata.name,
-                    task.status.phase,
-                    task.metadata.labels,
-                    task.metadata.resource_version,
-                )
                 self.resource_version = task.metadata.resource_version
 
             except Exception as e:
@@ -135,48 +128,52 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         return self.resource_version
 
     def _extended_process_state(self, event):
+        """
+        check more types of events
+        :param event:
+        :return:
+        """
         pod_data = event["object"]
         pod_id = pod_data.metadata.name
         phase = pod_data.status.phase
         resource_version = pod_data.metadata.resource_version
-        if phase == "Pending":
+
+        _fail_event = (
+            pod_id,
+            State.FAILED,
+            pod_data.metadata.labels,
+            resource_version,
+        )
+
+        if event["type"] == "DELETED" and phase not in {"Succeeded", "Failed"}:
             # from Airflow 2.0 -> k8s may delete pods (preemption?)
-            if event["type"] == "DELETED":
+            self.log.info("Event: Pod has been deleted %s at phase %s", pod_id, phase)
+            self.watcher_queue.put(_fail_event)
+        elif phase == "Pending":
+            pod_ctrl = self.kube_dbnd.get_pod_ctrl(
+                pod_id, namespace=pod_data.metadata.namespace
+            )
+            try:
+                # now we only fail, we will use the same code to try to rerun at scheduler code
+                pod_ctrl.check_deploy_errors(pod_data)
+                self.log.info("Event: %s Pending", pod_id)
+            except Exception as ex:
                 self.log.info(
-                    "Event: Failed to start pod %s: deleted, will reschedule", pod_id
+                    "Event: %s Pending: failing with %s", pod_id, str(ex),
                 )
-                self.watcher_queue.put(
-                    (
-                        pod_id,
-                        State.UP_FOR_RESCHEDULE,
-                        pod_data.metadata.labels,
-                        resource_version,
-                    )
-                )
-            else:
-                pod_ctrl = self.kube_dbnd.get_pod_ctrl(
-                    pod_id, namespace=pod_data.metadata.namespace
-                )
-                try:
-                    # now we only fail, we will use the same code to try to rerun at scheduler code
-                    pod_ctrl.check_deploy_errors(pod_data)
-                except Exception as ex:
-                    self.log.info(
-                        "Event: Failed to start pod %s: %s, will reschedule",
-                        pod_id,
-                        str(ex),
-                    )
-                    self.watcher_queue.put(
-                        (
-                            pod_id,
-                            State.FAILED,
-                            pod_data.metadata.labels,
-                            resource_version,
-                        )
-                    )
+                self.watcher_queue.put(_fail_event)
+
         elif phase == "Running":
+            self.log.info("Event: %s is Running", pod_id)
             self.watcher_queue.put(
                 (pod_id, State.RUNNING, pod_data.metadata.labels, resource_version)
+            )
+        else:
+            self.process_status(
+                pod_data.metadata.name,
+                pod_data.status.phase,
+                pod_data.metadata.labels,
+                pod_data.metadata.resource_version,
             )
 
     def process_error(self, event):

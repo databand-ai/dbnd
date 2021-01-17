@@ -14,7 +14,6 @@ from airflow.utils.state import State
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.session import make_transient
 
-from databand import dbnd_config
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import get_databand_run
@@ -577,7 +576,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 and len(ti_status.running) == 0
             ):
                 self.log.warning(
-                    "Deadlock discovered for ti_status.to_run=%s",
+                    "scheduler: Deadlock discovered for ti_status.to_run=%s",
                     ti_status.to_run.values(),
                 )
                 ti_status.deadlocked.update(ti_status.to_run.values())
@@ -608,12 +607,13 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             self._log_progress(ti_status)
 
             if self.fail_fast and ti_status.failed:
+                msg = ",".join([t[1] for t in ti_status.failed])
                 logger.error(
-                    "terminating executor because a task failed and fail_fast mode is enabled"
+                    "scheduler: Terminating executor because a task failed and fail_fast mode is enabled %s",
+                    msg,
                 )
                 raise DatabandFailFastError(
-                    "Failing whole pipeline as it has failed/canceled tasks %s"
-                    % [t for t in ti_status.failed],
+                    "Failing whole pipeline as it has failed/canceled tasks %s" % msg,
                 )
 
         # return updated status

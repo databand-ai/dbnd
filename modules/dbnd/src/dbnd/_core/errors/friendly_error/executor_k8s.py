@@ -22,12 +22,14 @@ class KubernetesImageNotFoundError(DatabandConfigError):
     pass
 
 
-def kubernetes_image_not_found(image_name, message):
+def kubernetes_image_not_found(image_name, message, long_msg):
     return KubernetesImageNotFoundError(
         "Failed to start Kubernetes pod because the configured image (%s) could not be pulled by Kubernetes: %s"
         % (image_name, message),
         help_msg="Make sure you built and pushed your image. If the image is in a private repository make sure you "
-        "configured image pull secrets for it in the Kubernetes cluster and configured image_pull_secrets in the Kubernetes engine config.",
+        "configured image pull secrets for it in the Kubernetes cluster "
+        "and configured image_pull_secrets in the Kubernetes engine config. Details %s"
+        % long_msg,
     )
 
 

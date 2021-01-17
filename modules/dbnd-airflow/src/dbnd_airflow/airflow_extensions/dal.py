@@ -1,8 +1,10 @@
+import logging
+
 from airflow.models import TaskInstance
 from airflow.utils.db import provide_session
-from airflow.utils.state import State
 
-from dbnd._core.utils.timezone import utcnow
+
+logger = logging.getLogger(__name__)
 
 
 @provide_session
@@ -21,6 +23,7 @@ def get_airflow_task_instance_state(task_run, session=None):
 
 @provide_session
 def get_airflow_task_instance(task_run, session=None):
+    # type: (...)->TaskInstance
     ti = (
         session.query(TaskInstance)
         .filter(
@@ -37,24 +40,3 @@ def get_airflow_task_instance(task_run, session=None):
 def update_airflow_task_instance_in_db(ti, session=None):
     session.merge(ti)
     session.commit()
-
-
-@provide_session
-def schedule_task_instance_for_retry(
-    task_run, retry_count, retry_delay, increment_try_number, session=None
-):
-    task_instance = get_airflow_task_instance(task_run, session=session)
-    task_instance.max_tries = retry_count
-
-    if task_instance.try_number <= task_instance.max_tries:
-        task_run.task.task_retries = retry_count
-        task_run.task.task_retry_delay = retry_delay
-        task_instance.state = State.UP_FOR_RETRY
-        # Ensure that end date has a value. If it does not - airflow crashes when calculating next retry datetime
-        task_instance.end_date = task_instance.end_date or utcnow()
-        if increment_try_number:
-            task_instance._try_number += 1
-        update_airflow_task_instance_in_db(task_instance, session=session)
-        return True
-    else:
-        return False

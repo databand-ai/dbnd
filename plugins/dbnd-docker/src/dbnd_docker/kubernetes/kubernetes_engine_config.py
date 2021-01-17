@@ -55,11 +55,17 @@ class PodRetryConfiguration(object):
         return cls(kube_config.pod_error_cfg_source_dict)
 
     def get_retry_count(self, exit_code_or_reason):
+        if exit_code_or_reason not in self.exit_codes_and_reasons_to_retry_info_map:
+            return 0
+
         return self.exit_codes_and_reasons_to_retry_info_map[exit_code_or_reason][
             self.RETRY_COUNT
         ]
 
     def get_retry_delay(self, exit_code_or_reason):
+        if exit_code_or_reason not in self.exit_codes_and_reasons_to_retry_info_map:
+            return 0
+
         return self.exit_codes_and_reasons_to_retry_info_map[exit_code_or_reason][
             self.RETRY_DELAY
         ]
@@ -128,7 +134,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     pod_default_retry_delay = parameter(
         description="The default amount of time to wait between retries of pods",
-        default="5m",
+        default="10s",
     )[datetime.timedelta]
 
     submit_termination_grace_period = parameter(
