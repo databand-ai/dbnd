@@ -28,6 +28,7 @@ from airflow.utils.db import provide_session
 from kubernetes.client.rest import ApiException
 
 from dbnd._core.current import try_get_databand_run
+from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_scheduler import (
     DbndKubernetesScheduler,
 )
@@ -43,8 +44,6 @@ if typing.TYPE_CHECKING:
     pass
 
 MAX_POD_ID_LEN = 253
-
-logger = logging.getLogger(__name__)
 
 
 class DbndKubernetesExecutor(KubernetesExecutor):
@@ -70,9 +69,10 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         _update_airflow_kube_config(
             airflow_kube_config=self.kube_config, engine_config=kube_dbnd.engine_config
         )
+        self._log = PrefixLoggerAdapter("k8s-executor", self.log)
 
     def start(self):
-        logger.info("Starting Kubernetes executor... PID: %s", os.getpid())
+        self.log.info("Starting Kubernetes executor... PID: %s", os.getpid())
         self._manager.start(mgr_init)
 
         dbnd_run = try_get_databand_run()
@@ -170,7 +170,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
                         "Message: %s" % json.loads(e.body)["message"]
                     )
                     # DBND-AIRFLOW: if we have some "mis configuration" - nothing will probably run, better abort.
-                    if e.status == 404:
+                    if e.status in {403, 404}:
                         raise
                     self.task_queue.put(task)
                 except HTTPError as e:

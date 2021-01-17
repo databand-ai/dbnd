@@ -12,8 +12,8 @@ FAIL_MAIN = "fail_main"
 USE_DBND_START = "use_dbnd_start"
 USE_DBND_STOP = "use_dbnd_stop"
 
-RE_TASK_COMPLETED = r"Task {}[_\w]* has been completed!"
-RE_TASK_FAILED = r"Task {}[_\w]* has failed!"
+RE_TASK_COMPLETED = r"Task {}[_\w]*.+ has been completed!"
+RE_TASK_FAILED = r"Task {}[_\w]*.+ has failed!"
 RE_F_RUNNING = r"Running {} function"
 
 CURRENT_PY_FILE = __file__.replace(".pyc", ".py")
