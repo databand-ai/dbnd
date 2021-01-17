@@ -418,7 +418,7 @@ class AirflowTaskExecutor(TaskExecutor):
         if self.task_executor_type == AirflowTaskExecutorType.airflow_kubernetes:
             assert_plugin_enabled("dbnd-docker")
 
-            from dbnd_airflow.executors.kubernetes_executor import (
+            from dbnd_airflow.executors.kubernetes_executor.kubernetes_executor import (
                 DbndKubernetesExecutor,
             )
             from dbnd_docker.kubernetes.kubernetes_engine_config import (

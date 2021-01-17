@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Optional
 
 from airflow.contrib.kubernetes.pod_launcher import PodStatus
-from airflow.utils.state import State
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 
@@ -17,18 +16,9 @@ from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_erro
 from dbnd._core.log.logging_utils import override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
-from dbnd_airflow.airflow_extensions.dal import (
-    get_airflow_task_instance,
-    get_airflow_task_instance_state,
-    update_airflow_task_instance_in_db,
-)
-from dbnd_airflow_contrib.airflow_task_instance_retry_controller import (
-    AirflowTaskInstanceRetryController,
-)
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
     KubernetesEngineConfig,
-    PodRetryConfiguration,
     readable_pod_request,
 )
 
@@ -70,227 +60,6 @@ class DbndKubernetesClient(object):
     def delete_pod(self, name, namespace):
         self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()
 
-    def process_pod_event(self, event):
-        pod_data = event["object"]
-
-        pod_name = pod_data.metadata.name
-        phase = pod_data.status.phase
-        if phase == "Pending":
-            logger.info("Event: %s is Pending", pod_name)
-            pod_ctrl = self.get_pod_ctrl(name=pod_name)
-            try:
-                pod_ctrl.check_deploy_errors(pod_data)
-            except Exception as ex:
-                self.dbnd_set_task_pending_fail(pod_data, ex)
-                return "Failed"
-        elif phase == "Failed":
-            logger.info("Event: %s Failed", pod_name)
-            self.dbnd_set_task_failed(pod_data)
-
-        elif phase == "Succeeded":
-            logger.info("Event: %s Succeeded", pod_name)
-            self.dbnd_set_task_success(pod_data)
-        elif phase == "Running":
-            logger.info("Event: %s is Running", pod_name)
-        else:
-            logger.info(
-                "Event: Invalid state: %s on pod: %s with labels: %s with "
-                "resource_version: %s",
-                phase,
-                pod_name,
-                pod_data.metadata.labels,
-                pod_data.metadata.resource_version,
-            )
-
-        return phase
-
-    def dbnd_set_task_pending_fail(self, pod_data, ex):
-        metadata = pod_data.metadata
-
-        task_run = get_task_run_from_pod_data(pod_data)
-        if not task_run:
-            return
-        from dbnd._core.task_run.task_run_error import TaskRunError
-
-        task_run_error = TaskRunError.build_from_ex(ex, task_run)
-
-        status_log = _get_status_log_safe(pod_data)
-        logger.info(
-            "Pod '%s' is Pending with exception, marking it as failed. Pod Status:\n%s",
-            metadata.name,
-            status_log,
-        )
-        task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
-        task_instance = get_airflow_task_instance(task_run)
-        from airflow.utils.state import State
-
-        task_instance.state = State.FAILED
-        update_airflow_task_instance_in_db(task_instance)
-        task_run.tracker.save_task_run_log(status_log)
-
-    def dbnd_set_task_success(self, pod_data):
-        metadata = pod_data.metadata
-        logger.debug("Getting task run")
-        task_run = get_task_run_from_pod_data(pod_data)
-        if not task_run:
-            logger.info("Can't find a task run for %s", metadata.name)
-            return
-        if task_run.task_run_state == TaskRunState.SUCCESS:
-            logger.info("Skipping 'success' event from %s", metadata.name)
-            return
-
-        # let just notify the success, so we can show it in summary it
-        # we will not send it to databand tracking store
-        task_run.set_task_run_state(TaskRunState.SUCCESS, track=False)
-        logger.info(
-            "%s",
-            task_run.task.ctrl.banner(
-                "Task %s has been completed at pod '%s'!"
-                % (task_run.task.task_name, metadata.name),
-                color="green",
-                task_run=task_run,
-            ),
-        )
-
-    def dbnd_set_task_failed(self, pod_data, check_for_retry=True):
-        metadata = pod_data.metadata
-        # noinspection PyBroadException
-        logger.debug("Getting task run")
-        task_run = get_task_run_from_pod_data(pod_data)
-        if not task_run:
-            logger.info("Can't find a task run for %s", metadata.name)
-            return
-        if task_run.task_run_state == TaskRunState.FAILED:
-            logger.info("Skipping 'failure' event from %s", metadata.name)
-            return
-
-        pod_ctrl = self.get_pod_ctrl(metadata.name, metadata.namespace)
-        logs = []
-        try:
-            log_printer = lambda x: logs.append(x)
-            pod_ctrl.stream_pod_logs(
-                print_func=log_printer, tail_lines=100, follow=False
-            )
-            pod_ctrl.stream_pod_logs(print_func=log_printer, follow=False)
-        except Exception as ex:
-            # when deleting pods we get extra failure events so we will have lots of this in the log
-            if isinstance(ex, ApiException) and ex.status == 404:
-                logger.info(
-                    "failed to get log for pod %s: pod not found", metadata.name
-                )
-            else:
-                logger.error("failed to get log for %s: %s", metadata.name, ex)
-
-        try:
-            short_log = "\n".join(["out:%s" % l for l in logs[:-20]])
-        except Exception as ex:
-            logger.error(
-                "failed to build short log message for %s: %s", metadata.name, ex
-            )
-            short_log = None
-
-        status_log = _get_status_log_safe(pod_data)
-
-        from dbnd._core.task_run.task_run_error import TaskRunError
-
-        # work around to build an error object
-        try:
-            err_msg = "Pod %s at %s has failed!" % (metadata.name, metadata.namespace)
-            if short_log:
-                err_msg += "\nLog:%s" % short_log
-            if status_log:
-                err_msg += "\nPod Status:%s" % status_log
-            raise DatabandError(
-                err_msg,
-                show_exc_info=False,
-                help_msg="Please see full pod log for more details",
-            )
-        except DatabandError as ex:
-            error = TaskRunError.build_from_ex(ex, task_run)
-
-        airflow_task_state = get_airflow_task_instance_state(task_run=task_run)
-        logger.debug("task airflow state: %s ", airflow_task_state)
-        from airflow.utils.state import State
-
-        if airflow_task_state == State.FAILED:
-            # let just notify the error, so we can show it in summary it
-            # we will not send it to databand tracking store
-            task_run.set_task_run_state(TaskRunState.FAILED, track=False, error=error)
-            logger.info(
-                "%s",
-                task_run.task.ctrl.banner(
-                    "Task %s has failed at pod '%s'!"
-                    % (task_run.task.task_name, metadata.name),
-                    color="red",
-                    task_run=task_run,
-                ),
-            )
-        else:
-            if check_for_retry and self.handle_pod_failure(
-                pod_ctrl, pod_data, task_run, airflow_task_state=airflow_task_state
-            ):
-                logger.info("Pod %s is restarted!", task_run)
-            else:
-                # This code is reached when check_for_retry is false, currently from terminate() only
-                task_run.set_task_run_state(
-                    TaskRunState.FAILED, track=True, error=error
-                )
-            if logs:
-                task_run.tracker.save_task_run_log("\n".join(logs))
-
-    def handle_pod_failure(
-        self, pod_ctrl, pod_data, task_run, airflow_task_state,
-    ):
-        metadata = pod_data.metadata
-        pod_id = metadata.name
-
-        increment_try_number = False
-        if airflow_task_state == State.QUEUED:
-            # Special case - no airflow code has been run in the pod at all. Must increment try number and send
-            # to retry if exit code is matching
-            increment_try_number = True
-        elif airflow_task_state == State.RUNNING:
-            # Task was killed unexpectedly -- probably pod failure in K8s - Possible retry attempt
-            pass
-        else:
-            return False
-
-        pod_exit_code = self._try_get_pod_exit_code(pod_data)
-        if not pod_exit_code:
-            # Couldn't find an exit code - container is still alive - wait for the next event
-            logger.debug("No exit code found for pod %s, doing nothing", pod_id)
-            return False
-        logger.info("Found pod exit code %d for pod %s", pod_exit_code, pod_id)
-        return pod_ctrl.handle_pod_failure_with_retry(
-            retry_reason=str(pod_exit_code),
-            task_run=task_run,
-            increment_try_number=increment_try_number,
-        )
-
-    @staticmethod
-    def _try_get_pod_exit_code(pod_data):
-        # TODO: look at base container only
-        found_exit_code = False
-        pod_exit_code = None
-        if pod_data.status.container_statuses:
-            for container_status in pod_data.status.container_statuses:
-                # Searching for the container that was terminated
-                if container_status.state.terminated:
-                    pod_exit_code = container_status.state.terminated.exit_code
-                    found_exit_code = True
-            if found_exit_code:
-                return pod_exit_code
-
-    def dbnd_set_task_cancelled_on_termination(self, pod_name, task_run):
-        if task_run.task_run_state == TaskRunState.SUCCESS:
-            logger.info("pod %s was successful, not setting to cancelled", pod_name)
-            return
-        if task_run.task_run_state == TaskRunState.FAILED:
-            logger.info("pod %s has failed, not setting to cancelled", pod_name)
-            return
-        logger.warning("Setting %s to canceled", pod_name)
-        task_run.set_task_run_state(TaskRunState.CANCELLED)
-
 
 class DbndPodCtrl(object):
     def __init__(self, pod_name, pod_namespace, kube_config, kube_client):
@@ -298,7 +67,6 @@ class DbndPodCtrl(object):
         self.name = pod_name
         self.namespace = pod_namespace
         self.kube_client = kube_client
-        self.pod_retry_config = PodRetryConfiguration.from_kube_config(kube_config)
 
     def delete_pod(self):
         if self.kube_config.keep_finished_pods:
@@ -439,16 +207,10 @@ class DbndPodCtrl(object):
                         container_waiting_state.reason,
                         container_waiting_state.message,
                     )
-                    task_run = get_task_run_from_pod_data(pod_v1_resp)
-                    if not self.handle_pod_failure_with_retry(
-                        task_run=task_run,
-                        retry_reason=PodRetryReason.err_image_pull,
-                        increment_try_number=True,
-                    ):
-                        raise friendly_error.executor_k8s.kubernetes_image_not_found(
-                            pod_status.container_statuses[0].image,
-                            container_waiting_state.message,
-                        )
+                    raise friendly_error.executor_k8s.kubernetes_image_not_found(
+                        pod_status.container_statuses[0].image,
+                        container_waiting_state.message,
+                    )
 
                 if container_waiting_state.reason == "CreateContainerConfigError":
                     raise friendly_error.executor_k8s.kubernetes_pod_config_error(
@@ -580,42 +342,20 @@ class DbndPodCtrl(object):
         self.wait()
         return self
 
-    def handle_pod_failure_with_retry(
-        self, retry_reason, task_run, increment_try_number,
-    ):
-        if str(retry_reason) not in self.pod_retry_config.reasons_and_exit_codes:
-            return False
-        retry_count = self.pod_retry_config.get_retry_count(retry_reason)
-        retry_delay = self.pod_retry_config.get_retry_delay(retry_reason)
-
-        if not retry_count:
-            return False
-        pod_id = self.name
-        logger.info(
-            "Reached handle pod retry for pod %s for reason %s!", pod_id, retry_reason
-        )
-
-        task_instance = get_airflow_task_instance(task_run)
-        task_instance.max_tries = retry_count
-
-        task_instance_retry_controller = AirflowTaskInstanceRetryController(
-            task_instance, task_run
-        )
-        if task_instance_retry_controller.schedule_task_instance_for_retry(
-            retry_count, retry_delay, increment_try_number
-        ):
-            logger.info(
-                "Scheduling the pod %s for %s retries with delay of %s",
-                pod_id,
-                retry_count,
-                retry_delay,
+    def get_pod_logs(self, tail_lines=100):
+        try:
+            logs = []
+            log_printer = lambda x: logs.append(x)
+            self.stream_pod_logs(
+                print_func=log_printer, tail_lines=tail_lines, follow=False
             )
-            return True
-        else:
-            logger.warning(
-                "Pod %s was not scheduled for retry because it reached the maximum retry limit"
-            )
-            return False
+            return logs
+        except Exception as ex:
+            # when deleting pods we get extra failure events so we will have lots of this in the log
+            if isinstance(ex, ApiException) and ex.status == 404:
+                logger.info("failed to get log for pod %s: pod not found", self.name)
+            else:
+                logger.error("failed to get log for %s: %s", self.name, ex)
 
 
 def _get_status_log_safe(pod_data):
@@ -625,6 +365,20 @@ def _get_status_log_safe(pod_data):
         return logs
     except Exception as ex:
         return "failed to get pod status log for %s: %s" % (pod_data.metadata.name, ex)
+
+
+def _try_get_pod_exit_code(pod_data):
+    # TODO: look at base container only
+    found_exit_code = False
+    pod_exit_code = None
+    if pod_data.status.container_statuses:
+        for container_status in pod_data.status.container_statuses:
+            # Searching for the container that was terminated
+            if container_status.state.terminated:
+                pod_exit_code = container_status.state.terminated.exit_code
+                found_exit_code = True
+        if found_exit_code:
+            return pod_exit_code
 
 
 def get_task_run_from_pod_data(pod_data):

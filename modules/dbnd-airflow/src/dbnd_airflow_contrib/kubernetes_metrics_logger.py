@@ -15,7 +15,7 @@ class KubernetesMetricsLogger(object):
     def __init__(self):
         pass
 
-    def log_pod_information(self, task, pod_name, node_name):
+    def log_pod_running(self, task, pod_name, node_name):
         task.log_system_metric("pod_name", pod_name)
         task.log_system_metric("node_name", node_name)
 
