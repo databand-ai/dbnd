@@ -48,6 +48,12 @@ logger = logging.getLogger(__name__)
 
 
 class DbndKubernetesExecutor(KubernetesExecutor):
+    """
+    Use custom dbdn implementation for scheduler and watcher
+    Better handling of errors at pod submission
+    Enables multiinstance run of KubernetesExecutor
+    """
+
     def __init__(self, kube_dbnd=None):
         # type: (DbndKubernetesExecutor, DbndKubernetesClient) -> None
         from os import environ
@@ -163,6 +169,9 @@ class DbndKubernetesExecutor(KubernetesExecutor):
                         "ApiException when attempting to run task, re-queueing. "
                         "Message: %s" % json.loads(e.body)["message"]
                     )
+                    # DBND-AIRFLOW: if we have some "mis configuration" - nothing will probably run, better abort.
+                    if e.status == 404:
+                        raise
                     self.task_queue.put(task)
                 except HTTPError as e:
                     self.log.warning(

@@ -33,19 +33,30 @@ def watcher_sig_handler(signal, frame):
 
 
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
+    """
+
+    """
+
     def __init__(self, kube_dbnd, **kwargs):
         super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
         self.kube_dbnd = kube_dbnd  # type: DbndKubernetesClient
 
     def run(self):
-        """Performs watching"""
-        # we are in the different process than Scheduler
-        # 1. Must reset filesystem cache to avoid using out-of-cluster credentials within Kubernetes
+        """
+        Performs watching
+        This code runs in separate process, while being forked form the main one
+        Whatever clients we had in the main process they might require reset before we use them
+        """
+
         from targets.fs import reset_fs_cache
 
+        # we are in the different process than Scheduler
+        # 1. Must reset filesystem cache to avoid using out-of-cluster credentials within Kubernetes
         reset_fs_cache()
-        # 2. Must reset signal handlers to avoid driver and watcher sharing signal handlers
 
+        # DBND-AIRFLOW: thses code might run as part of dbnd task and
+        # this process is spown from context of the task
+        # Must reset signal handlers to avoid driver and watcher sharing signal handlers
         signal.signal(signal.SIGINT, watcher_sig_handler)
         signal.signal(signal.SIGTERM, watcher_sig_handler)
         signal.signal(signal.SIGQUIT, watcher_sig_handler)
