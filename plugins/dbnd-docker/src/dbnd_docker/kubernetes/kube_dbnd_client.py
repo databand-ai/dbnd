@@ -13,7 +13,7 @@ from kubernetes.client.rest import ApiException
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_error
-from dbnd._core.log.logging_utils import override_log_formatting
+from dbnd._core.log.logging_utils import PrefixLoggerAdapter, override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
@@ -30,8 +30,7 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class PodRetryReason(object):
-    exit_code = "exit_code"
+class PodFailureReason(object):
     err_image_pull = "err_image_pull"
     err_pod_deleted = "err_pod_deleted"
 
@@ -67,36 +66,30 @@ class DbndPodCtrl(object):
         self.name = pod_name
         self.namespace = pod_namespace
         self.kube_client = kube_client
+        self.log = PrefixLoggerAdapter("pod %s" % self.name, logger)
 
     def delete_pod(self):
         if self.kube_config.keep_finished_pods:
-            logger.warning(
-                "Will not delete pod '%s' due to keep_finished_pods=True.", self.name
-            )
+            self.log.warning("Will not delete pod due to keep_finished_pods=True.")
             return
 
         if self.kube_config.keep_failed_pods:
             pod_phase = self.get_pod_phase()
             if pod_phase not in {PodPhase.RUNNING, PodPhase.SUCCEEDED}:
-                logger.warning(
-                    "Keeping failed pod '%s' due to keep_failed_pods=True and state is %s",
-                    self.name,
+                self.log.warning(
+                    "Keeping failed pod due to keep_failed_pods=True and state is %s",
                     pod_phase,
                 )
                 return
-
-        logger.info("Deleting pod: %s" % self.name)
 
         try:
             self.kube_client.delete_namespaced_pod(
                 self.name, self.namespace, body=client.V1DeleteOptions()
             )
-            logger.info("Pod '%s' has been deleted", self.name)
+            self.log.info("Pod has been deleted.")
         except ApiException as e:
-            logger.info(
-                "Failed to delete pod '%s': %s",
-                self.name,
-                e if e.status != 404 else "pod not found",
+            self.log.info(
+                "Failed to delete pod: %s", e if e.status != 404 else "pod not found",
             )
             # If the pod is already deleted, don't raise
             # if e.status != 404:
@@ -120,10 +113,11 @@ class DbndPodCtrl(object):
 
         return pod_resp.status.phase
 
-    def _wait_for_pod_started(self, _logger=logger):
+    def _wait_for_pod_started(self, _logger=None):
         """
         will try to raise an exception if the pod fails to start (see DbndPodLauncher.check_deploy_errors)
         """
+        _logger = _logger or self.log
         start_time = datetime.now()
         while True:
             pod_status = self.get_pod_status_v1()
@@ -165,7 +159,7 @@ class DbndPodCtrl(object):
                 for line in logs:
                     print_func(line[:-1].decode("utf-8"))
         except Exception as ex:
-            logger.error("Failed to stream logs for %s:  %s", self.name, ex)
+            self.log.error("Failed to stream logs:  %s", self.name, ex)
 
     def check_deploy_errors(self, pod_v1_resp):
         pod_status = pod_v1_resp.status
@@ -189,7 +183,9 @@ class DbndPodCtrl(object):
                                 condition.message
                             )
 
-                        logger.warning("pod is pending because %s" % condition.message)
+                        self.log.warning(
+                            "pod is pending because %s" % condition.message
+                        )
                     else:
                         raise friendly_error.executor_k8s.kubernetes_pod_unschedulable(
                             condition.message
@@ -216,11 +212,9 @@ class DbndPodCtrl(object):
         :return:
         """
         self._wait_for_pod_started()
-        logger.info("Pod '%s' is running, reading logs..", self.name)
+        self.log.info("Pod is running, reading logs..")
         self.stream_pod_logs(follow=True)
-        logger.info("Successfully read %s pod logs", self.name)
-
-        from airflow.utils.state import State
+        self.log.info("Successfully read %s pod logs")
 
         pod_phase = self.get_pod_phase()
         wait_start = utcnow()
@@ -293,9 +287,10 @@ class DbndPodCtrl(object):
                 body=req, namespace=pod.namespace
             )
             logger.info(
-                "Started pod '%s' in namespace '%s'" % (pod.name, pod.namespace)
+                "%s has been submitted at pod '%s' at namespace '%s'"
+                % (task_run, pod.name, pod.namespace)
             )
-            logger.debug("Pod Creation Response: %s", resp)
+            self.log.debug("Pod Creation Response: %s", resp)
         except ApiException as ex:
             task_run_error = TaskRunError.build_from_ex(ex, task_run)
             task_run.set_task_run_state(TaskRunState.FAILED, error=task_run_error)
@@ -304,11 +299,6 @@ class DbndPodCtrl(object):
                 readable_req_str,
             )
             raise
-        logging.debug("Kubernetes Job created!")
-
-        # TODO this is pretty dirty.
-        #  Better to extract the deploy error checking logic out of the pod launcher and have the watcher
-        #   pass an exception through the watcher queue if needed. Current airflow implementation doesn't implement that, so we will stick with the current flow
 
         if detach_run:
             return self
@@ -326,11 +316,11 @@ class DbndPodCtrl(object):
             return logs
         except ApiException as ex:
             if ex.status == 404:
-                logger.info("failed to get log for pod %s: pod not found", self.name)
+                self.log.info("failed to get log for pod: pod not found")
             else:
-                logger.exception("failed to get log for %s: %s", self.name, ex)
+                self.log.exception("failed to get log: %s", ex)
         except Exception as ex:
-            logger.error("failed to get log for %s: %s", self.name, ex)
+            self.log.error("failed to get log for %s: %s", ex)
 
 
 def _get_status_log_safe(pod_data):

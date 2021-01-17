@@ -17,6 +17,7 @@ from airflow.utils.state import State
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import DatabandSigTermError
+from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 
 
 if typing.TYPE_CHECKING:
@@ -28,7 +29,11 @@ logger = logging.getLogger(__name__)
 def watcher_sig_handler(signal, frame):
     import sys
 
-    logger.info("Watcher received signal %s, PID: %s. exiting...", signal, os.getpid())
+    logger.info(
+        "[k8s-watcher] Watcher received signal %s, PID: %s. exiting...",
+        signal,
+        os.getpid(),
+    )
     sys.exit(0)
 
 
@@ -47,7 +52,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         This code runs in separate process, while being forked form the main one
         Whatever clients we had in the main process they might require reset before we use them
         """
-
+        self._log = PrefixLoggerAdapter("k8s-watcher", self.log)
         from targets.fs import reset_fs_cache
 
         # we are in the different process than Scheduler
@@ -95,12 +100,6 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             pass
 
     def _run(self, kube_client, resource_version, worker_uuid, kube_config):
-        self.log.info(
-            "Event: and now my watch begins starting at resource_version: %s. Watcher PID: %s",
-            resource_version,
-            os.getpid(),
-        )
-
         from kubernetes import watch
 
         watcher = watch.Watch()
@@ -154,6 +153,16 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         pod_id = pod_data.metadata.name
         phase = pod_data.status.phase
         resource_version = pod_data.metadata.resource_version
+        labels = pod_data.metadata.labels
+        task_id = labels.get("task_id")
+        event_msg = "Event from %s(%s)" % (pod_id, task_id)
+
+        try:
+            try_num = int(labels.get("try_number", "1"))
+            if try_num > 1:
+                event_msg += " (try %s)" % try_num
+        except ValueError:
+            pass
 
         _fail_event = (
             pod_id,
@@ -162,21 +171,21 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             resource_version,
         )
         if is_verbose():
-            logger.info("Event verbose:%s %s", pod_id, event)
+            self.log.info("Event verbose:%s %s", pod_id, event_msg)
 
-        if event["type"] == "DELETED" and phase not in {"Succeeded", "Failed"}:
+        if event.get("type") == "DELETED" and phase not in {"Succeeded", "Failed"}:
             # from Airflow 2.0 -> k8s may delete pods (preemption?)
             self.log.info(
-                "Event: Pod has been deleted %s at phase %s at %s ",
-                pod_id,
+                "%s: pod has been deleted: phase=%s deletion_timestamp=%s",
+                event_msg,
                 phase,
                 pod_data.metadata.deletion_timestamp,
             )
             self.watcher_queue.put(_fail_event)
         elif pod_data.metadata.deletion_timestamp:
             self.log.info(
-                "Event: Pod is being deleted %s at phase %s at %s",
-                pod_id,
+                "%s: pod is being deleted: phase=%s deletion_timestamp=%s ",
+                event_msg,
                 phase,
                 pod_data.metadata.deletion_timestamp,
             )
@@ -188,7 +197,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             try:
                 # now we only fail, we will use the same code to try to rerun at scheduler code
                 pod_ctrl.check_deploy_errors(pod_data)
-                self.log.info("Event: %s Pending", pod_id)
+                self.log.info("%s: Pending", event_msg)
             except Exception as ex:
                 self.log.info(
                     "Event: %s Pending: failing with %s", pod_id, str(ex),
@@ -197,16 +206,24 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
 
         elif phase == "Running":
 
-            self.log.info("Event: %s is Running", pod_id)
+            self.log.info("%s: pod is Running", event_msg)
             self.watcher_queue.put(
                 (pod_id, State.RUNNING, pod_data.metadata.labels, resource_version)
             )
+        elif phase == "Failed":
+            self.log.info("%s: pod has Failed", event_msg)
+            self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))
+        elif phase == "Succeeded":
+            self.log.info("%s: pod has Succeeded", event_msg)
+            self.watcher_queue.put((pod_id, None, labels, resource_version))
         else:
-            self.process_status(
-                pod_data.metadata.name,
-                pod_data.status.phase,
-                pod_data.metadata.labels,
-                pod_data.metadata.resource_version,
+            self.log.warning(
+                "Event: Invalid state: %s on pod: %s with labels: %s with "
+                "resource_version: %s",
+                phase,
+                pod_id,
+                labels,
+                resource_version,
             )
 
     def process_error(self, event):
@@ -240,18 +257,20 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         Workaround: try to kill watcher multiple times.
         """
         if self.is_alive():
-            logger.info("Terminating KubernetesJobWatcher process pid=%s", self.pid)
+            self.log.info("Terminating KubernetesJobWatcher process pid=%s", self.pid)
             for x in range(10):
                 self.terminate()
                 # first wait 10 seconds to stop
                 self.join(timeout=10)
                 if not self.is_alive():
-                    logger.info("KubernetesJobWatcher has been succesfully terminated")
+                    self.log.info(
+                        "KubernetesJobWatcher has been succesfully terminated"
+                    )
                     return
-                logger.info(
+                self.log.info(
                     "KubernetesJobWatcher is still running after being terminated"
                 )
-            logger.info(
+            self.log.info(
                 "Killing KubernetesJobWatcher on pid %s with -9 and wait for 3 seconds",
                 self.pid,
             )

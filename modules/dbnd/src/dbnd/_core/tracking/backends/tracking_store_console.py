@@ -6,7 +6,7 @@ from math import floor, log10
 
 import six
 
-from dbnd._core.constants import TaskRunState, UpdateSource
+from dbnd._core.constants import TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
@@ -70,27 +70,29 @@ class ConsoleStore(TrackingStore):
         level = logging.INFO
         color = "cyan"
         task_friendly_id = task_run.task_af_id
+        task_id_str = "%s(%s)" % (task.task_id, task_friendly_id)
         if state in [TaskRunState.RUNNING, TaskRunState.QUEUED]:
-            task_msg = "Running task %s" % task_friendly_id
+            task_msg = "Running task %s" % task_id_str
 
         elif state == TaskRunState.SUCCESS:
-            task_msg = "Task %s has been completed!" % task_friendly_id
+            task_msg = "Task %s has been completed!" % task_id_str
             color = "green"
 
         elif state == TaskRunState.FAILED:
-            task_msg = "Task %s has failed!" % task_friendly_id
+            task_msg = "Task %s has failed!" % task_id_str
             color = "red"
             level = logging.ERROR
             if task_run.task.get_task_family() != "_DbndDriverTask":
                 show_simple_log = False
 
         elif state == TaskRunState.CANCELLED:
-            task_msg = "Task %s has been canceled!" % task_friendly_id
+            task_msg = "Task %s has been canceled!" % task_id_str
             color = "red"
             level = logging.ERROR
+            show_simple_log = True
 
         else:
-            task_msg = "Task %s at %s state" % (task_friendly_id, state)
+            task_msg = "Task %s moved to %s state" % (task_friendly_id, state)
 
         if show_simple_log:
             logger.log(level, task_msg)
@@ -111,10 +113,10 @@ class ConsoleStore(TrackingStore):
         attempt_uid = task_run.task_run_attempt_uid
 
         logger.info(
-            "%s %s has URLs to external resources: \n\t%s",
+            "%s %s has registered URLs to external resources: \n\t%s",
             task,
             attempt_uid,
-            "\t\n".join(
+            "\n\t".join(
                 "%s: %s" % (k, v) for k, v in six.iteritems(external_links_dict)
             ),
         )

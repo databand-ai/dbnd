@@ -1,5 +1,6 @@
 import datetime
 import logging
+import shlex
 import subprocess
 import textwrap
 
@@ -148,6 +149,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     debug = parameter(default=False).help(
         "Equalent to show_pod_log=True + show all debug information"
     )[bool]
+    debug_with_command = parameter(default="").help(
+        "Use this command as a pod command instead of the original, can help debug complicated issues"
+    )[str]
 
     prefix_remote_log = parameter(default=True).help(
         "Adds [driver] or [<task_name>] prefix to logs streamed from Kubernetes to the local log"
@@ -420,9 +424,21 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             # we update cmd now
             cmds = ["/bin/bash", "-c"]
 
-        # uncomment to run debug command
-        # cmds = ["/bin/bash", "-c", "exit 255"]
+        if self.debug_with_command:
+            logger.warning(
+                "%s replacing pod %s command with '%s', original command=`%s`",
+                task_run,
+                pod_name,
+                self.debug_with_command,
+                subprocess.list2cmdline(cmds),
+            )
+            cmds = shlex.split(self.debug_with_command)
 
+        if not self.container_tag:
+            raise DatabandConfigError(
+                "Your container tag is None, please check your configuration",
+                help_msg="Container tag should be assigned",
+            )
         if not self.container_tag:
             raise DatabandConfigError(
                 "Your container tag is None, please check your configuration",
