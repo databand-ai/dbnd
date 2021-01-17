@@ -227,6 +227,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             )
             self.auto_remove = False
 
+        self.pod_retry_config = PodRetryConfiguration.from_kube_config(self)
+
     def get_docker_ctrl(self, task_run):
         from dbnd_docker.kubernetes.kubernetes_task_run_ctrl import (
             KubernetesTaskRunCtrl,

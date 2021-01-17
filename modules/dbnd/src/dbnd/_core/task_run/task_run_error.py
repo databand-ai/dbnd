@@ -45,6 +45,28 @@ class TaskRunError(object):
             airflow_context=task_run.airflow_context,
         )
 
+    @classmethod
+    def build_from_message(cls, task_run, msg, help_msg):
+        """
+        Builds TaskRunErrror from string
+        TODO: very ugly hack, we need to support TaskRunError without exc_info
+        :param task_run:
+        :param msg:
+        :param help_msg:
+        :return: TaskRunError
+        """
+        try:
+            raise DatabandError(
+                msg, show_exc_info=False, help_msg=help_msg,
+            )
+        except DatabandError as ex:
+            return TaskRunError(
+                exc_info=sys.exc_info(),
+                traceback=traceback.format_exc(),
+                task_run=task_run,
+                airflow_context=task_run.airflow_context,
+            )
+
     def as_error_info(self):
         ex = self.exception
         task = self.task_run.task
