@@ -46,11 +46,13 @@ class TrackingProtoWebChannel(ProtobufMixin, TrackingChannel):
         post_event_request.events.append(event)
         post_event_request.timestamp.GetCurrentTime()
 
-        data = post_event_request.SerializeToString()
+        raw_bytes = post_event_request.SerializeToString()
+        encoded_str = base64.b64encode(raw_bytes).decode("utf-8")
+        data = {"data": encoded_str}
 
-        encoded_response_str = self.client.api_request("tracking/proto", data)
-        b64encoded_response_bytes = encoded_response_str.encode("utf-8")
-        raw_bytes = base64.b64decode(b64encoded_response_bytes)
+        response = self.client.api_request("tracking/proto", data)
+        encoded_str = response.get("result")
+        raw_bytes = base64.b64decode(encoded_str.encode("utf-8"))
 
         post_event_response = PostEventsResponse()
         post_event_response.ParseFromString(raw_bytes)
