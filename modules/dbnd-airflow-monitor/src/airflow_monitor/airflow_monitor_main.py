@@ -1,20 +1,24 @@
-import json
 import logging
-import sys
-import traceback
 
 from datetime import timedelta
 from json import JSONDecodeError
-from tempfile import NamedTemporaryFile
 from time import sleep
 
 from airflow_monitor.airflow_data_saving import (
     save_airflow_monitor_data,
     save_airflow_server_info,
 )
-from airflow_monitor.airflow_instance_details import create_airflow_instance_details
+from airflow_monitor.airflow_instance_details import create_instance_details
+from airflow_monitor.airflow_monitor_utils import (
+    dump_unsent_data,
+    log_fetching_parameters,
+    log_received_tasks,
+    save_error_message,
+    send_exception_info,
+    send_metrics,
+    set_airflow_server_info_started,
+)
 from airflow_monitor.airflow_servers_fetching import AirflowServersGetter
-from prometheus_client import Summary
 
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.timezone import utcnow
@@ -29,72 +33,56 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def _log_received_tasks(url, fetched_data):
+def try_fetching_from_airflow(
+    airflow_instance_detail,
+    airflow_config,
+    since,
+    incomplete_offset,
+    api_client,
+    dags_only,
+):
     try:
-        logger.info(
-            "Received data from %s with: {tasks: %d, dags: %d, dag_runs: %d, since: %s}",
-            url,
-            len(fetched_data.get("task_instances", [])),
-            len(fetched_data.get("dags", [])),
-            len(fetched_data.get("dag_runs", [])),
-            fetched_data.get("since"),
+        log_fetching_parameters(
+            airflow_instance_detail.url, since, airflow_config, incomplete_offset,
         )
-    except Exception as e:
-        logging.error("Could not log received data. %s", e)
+
+        data = airflow_instance_detail.data_fetcher.get_data(
+            since,
+            airflow_config.include_logs,
+            airflow_config.include_task_args,
+            airflow_config.include_xcom,
+            airflow_config.dag_ids,
+            airflow_config.fetch_quantity,
+            incomplete_offset,
+            dags_only,
+        )
+        return data
+    except JSONDecodeError:
+        logger.exception("Could not decode the received data, error in json format.")
+        send_exception_info(airflow_instance_detail, api_client, airflow_config)
+    except (ConnectionError, OSError, IOError) as e:
+        logger.exception(
+            "An error occurred while trying to sync data from airflow to databand: %s",
+            e,
+        )
+        send_exception_info(airflow_instance_detail, api_client, airflow_config)
+    return None
 
 
-prometheus_metrics = {
-    "performance": Summary(
-        "dbnd_af_plugin_query_duration_seconds",
-        "Airflow Export Plugin Query Run Time",
-        ["airflow_instance", "method_name"],
-    ),
-    "sizes": Summary(
-        "dbnd_af_plugin_query_result_size",
-        "Airflow Export Plugin Query Result Size",
-        ["airflow_instance", "method_name"],
-    ),
-}
+def validate_airflow_monitor_data(
+    data, airflow_instance_detail, airflow_config, api_client
+):
+    if data is None:
+        logger.warning("Didn't receive any data")
+        return False
 
-
-def _send_metrics(airflow_instance_detail, fetched_data):
-    try:
-        metrics = fetched_data.get("metrics")
-        logger.info("Received Grafana Metrics from airflow plugin: %s", metrics)
-        for key, metrics_dict in metrics.items():
-            for metric_name, value in metrics_dict.items():
-                prometheus_metrics[key].labels(
-                    airflow_instance_detail.airflow_server_info.base_url,
-                    metric_name.lstrip("_"),
-                ).observe(value)
-    except Exception as e:
-        logger.error("Failed to send plugin metrics. %s", e)
-
-
-def set_airflow_server_info_started(airflow_server_info):
-    airflow_server_info.last_sync_time = utcnow()
-    airflow_server_info.monitor_start_time = (
-        airflow_server_info.monitor_start_time or airflow_server_info.last_sync_time
-    )
-
-
-def log_fetching_parameters(url, since, airflow_config, incomplete_offset=None):
-    log_message = "Fetching from {} with since={} include_logs={}, include_task_args={}, include_xcom={}, fetch_quantity={}".format(
-        url,
-        since,
-        airflow_config.include_logs,
-        airflow_config.include_task_args,
-        airflow_config.include_xcom,
-        airflow_config.fetch_quantity,
-    )
-
-    if airflow_config.dag_ids:
-        log_message += ", dag_ids={}".format(airflow_config.dag_ids)
-
-    if incomplete_offset is not None:
-        log_message += ", incomplete_offset={}".format(incomplete_offset)
-
-    logger.info(log_message)
+    if "error" in data:
+        logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
+        save_error_message(
+            airflow_instance_detail, data["error"], api_client, airflow_config
+        )
+        return False
+    return True
 
 
 def do_fetching_iteration(
@@ -103,46 +91,23 @@ def do_fetching_iteration(
     """
     Fetch from Airflow webserver, return number of items fetched
     """
-    try:
-        log_fetching_parameters(
-            airflow_instance_detail.url, airflow_instance_detail.since, airflow_config
-        )
+    data = try_fetching_from_airflow(
+        airflow_instance_detail,
+        airflow_config,
+        airflow_instance_detail.since,
+        None,
+        api_client,
+        False,
+    )
 
-        data = airflow_instance_detail.data_fetcher.get_data(
-            airflow_instance_detail.since,
-            airflow_config.include_logs,
-            airflow_config.include_task_args,
-            airflow_config.include_xcom,
-            airflow_config.dag_ids,
-            airflow_config.fetch_quantity,
-            None,
-        )
-    except JSONDecodeError:
-        logger.exception("Could not decode the received data, error in json format.")
-        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
-        return 0
-    except (ConnectionError, OSError, IOError) as e:
-        logger.exception(
-            "An error occurred while trying to sync data from airflow to databand: %s",
-            e,
-        )
-        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
-        return 0
-
-    if data is None:
-        logger.warning("Didn't receive any data")
-        return 0
-
-    if "error" in data:
-        logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
-        _save_error_message(
-            airflow_instance_detail, data["error"], api_client, airflow_config
-        )
+    if not validate_airflow_monitor_data(
+        data, airflow_instance_detail, airflow_config, api_client
+    ):
         return 0
 
     try:
-        _log_received_tasks(airflow_instance_detail.url, data)
-        _send_metrics(airflow_instance_detail, data)
+        log_received_tasks(airflow_instance_detail.url, data)
+        send_metrics(airflow_instance_detail, data)
 
         export_data = _as_dotted_dict(**data)
 
@@ -245,8 +210,8 @@ def do_fetching_iteration(
             "An error occurred while trying to sync data from airflow to databand: %s",
             e,
         )
-        _dump_unsent_data(data)
-        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        dump_unsent_data(data)
+        send_exception_info(airflow_instance_detail, api_client, airflow_config)
         return 0
 
 
@@ -260,51 +225,26 @@ def do_incomplete_data_fetching_iteration(
     """
     Fetch incomplete data from Airflow web server, return number of items fetched
     """
-    exception_type, exception, exception_traceback = None, None, None
-
     # Max time to look for incomplete data, we do not update this but use pagination instead
     since = utcnow() - timedelta(days=airflow_config.oldest_incomplete_data_in_days)
 
-    try:
-        log_fetching_parameters(
-            airflow_instance_detail.url, since, airflow_config, incomplete_offset,
-        )
+    data = try_fetching_from_airflow(
+        airflow_instance_detail,
+        airflow_config,
+        since,
+        incomplete_offset,
+        api_client,
+        False,
+    )
 
-        data = airflow_instance_detail.data_fetcher.get_data(
-            since,
-            airflow_config.include_logs,
-            airflow_config.include_task_args,
-            airflow_config.include_xcom,
-            airflow_config.dag_ids,
-            airflow_config.fetch_quantity,
-            incomplete_offset,
-        )
-    except JSONDecodeError:
-        logger.exception("Could not decode the received data, error in json format.")
-        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
-        return 0
-    except Exception as e:
-        logger.exception(
-            "An error occurred while trying to sync data from airflow to databand: %s",
-            e,
-        )
-        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
-        return 0
-
-    if data is None:
-        logger.warning("Didn't receive any incomplete data")
-        return 0
-
-    if "error" in data:
-        logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
-        _save_error_message(
-            airflow_instance_detail, data["error"], api_client, airflow_config
-        )
+    if not validate_airflow_monitor_data(
+        data, airflow_instance_detail, airflow_config, api_client
+    ):
         return 0
 
     try:
-        _log_received_tasks(airflow_instance_detail.url, data)
-        _send_metrics(airflow_instance_detail, data)
+        log_received_tasks(airflow_instance_detail.url, data)
+        send_metrics(airflow_instance_detail, data)
 
         export_data = _as_dotted_dict(**data)
 
@@ -330,75 +270,66 @@ def do_incomplete_data_fetching_iteration(
             "An error occurred while trying to sync data from airflow to databand: %s",
             e,
         )
-        _dump_unsent_data(data)
-        _send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        dump_unsent_data(data)
+        send_exception_info(airflow_instance_detail, api_client, airflow_config)
         return 0
 
 
-def _dump_unsent_data(data):
-    logger.info("Dumping Airflow export data to disk")
-    with NamedTemporaryFile(
-        mode="w", suffix=".json", prefix="dbnd_export_data_", delete=False
-    ) as f:
-        json.dump(data, f)
-        logger.info("Dumped to %s", f.name)
-
-
-def _send_exception_info(airflow_instance_detail, api_client, airflow_config):
-    exception_type, exception, exception_traceback = sys.exc_info()
-    message = "".join(traceback.format_tb(exception_traceback))
-    message += "{}: {}. ".format(exception_type.__name__, exception)
-    _save_error_message(airflow_instance_detail, message, api_client, airflow_config)
-
-
-def _save_error_message(airflow_instance_detail, message, api_client, airflow_config):
-    airflow_instance_detail.airflow_server_info.monitor_error_message = message
-    airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
-        utcnow()
-    )
-    logging.info(
-        "Sending airflow server info: url={}, error={}".format(
-            airflow_instance_detail.airflow_server_info.base_url,
-            airflow_instance_detail.airflow_server_info.monitor_error_message,
+def fetch_dags_only(
+    airflow_instance_detail, airflow_config, api_client, tracking_store
+):
+    logger.info(
+        "Bringing dags list from {}".format(
+            airflow_instance_detail.airflow_server_info.base_url
         )
     )
-    save_airflow_server_info(airflow_instance_detail.airflow_server_info, api_client)
-
-    logger.info("Sleeping for {} seconds on error".format(airflow_config.interval))
-    sleep(airflow_config.interval)
-
-
-def create_instance_details(
-    monitor_args,
-    airflow_config,
-    api_client,
-    configs_fetched,
-    existing_airflow_instance_details,
-):
-    if configs_fetched is None:
-        if existing_airflow_instance_details:
-            return existing_airflow_instance_details
-        return None
-
-    airflow_instance_details = create_airflow_instance_details(
-        monitor_args,
-        airflow_config,
-        api_client,
-        configs_fetched,
-        existing_airflow_instance_details,
+    data = airflow_instance_detail.data_fetcher.get_data(
+        airflow_instance_detail.since,
+        airflow_config.include_logs,
+        airflow_config.include_task_args,
+        airflow_config.include_xcom,
+        airflow_config.dag_ids,
+        airflow_config.fetch_quantity,
+        None,
+        True,
     )
 
-    return airflow_instance_details
+    try:
+        logger.info(
+            "Received data from %s with: {dags: %d}",
+            airflow_instance_detail.url,
+            len(data["dags"]),
+        )
+        save_airflow_monitor_data(
+            data,
+            tracking_store,
+            airflow_instance_detail.url,
+            airflow_instance_detail.airflow_server_info.last_sync_time,
+        )
+        logger.info(
+            "Total {} dags saved to databand web server".format(len(data["dags"]))
+        )
+    except Exception as e:
+        logger.exception(
+            "An error occurred while trying to sync data from airflow to databand: %s",
+            e,
+        )
+        dump_unsent_data(data)
+        send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        return 0
 
 
 def fetch_one_server_until_synced(
     airflow_config, airflow_instance_detail, api_client, tracking_store
 ):
+
     # Fetch continuously until we are up to date
     logger.info(
         "Starting to fetch data from %s",
         airflow_instance_detail.airflow_server_info.base_url,
     )
+
+    fetch_dags_only(airflow_instance_detail, airflow_config, api_client, tracking_store)
 
     while True:
         logger.info(

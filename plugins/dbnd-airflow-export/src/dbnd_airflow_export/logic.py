@@ -14,6 +14,7 @@ from airflow.utils.db import provide_session
 from sqlalchemy import and_
 
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
+from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow_export.helpers import _get_git_status, _get_log
 from dbnd_airflow_export.model import EDag, EDagRun, ETaskInstance, ExportData
 
@@ -78,6 +79,22 @@ def _load_dags_models(session):
     return current_dags
 
 
+def get_dags_list_only(session, dagbag, dag_ids):
+    """
+    This function brings only the raw dags from Airflow - No tasks or source code is attached
+    Please do not use it in cases where either tasks or source code is required
+    """
+    _load_dags_models(session)
+    dags_list = _get_dags(
+        dagbag=dagbag, include_task_args=False, dag_ids=dag_ids, raw_data_only=True
+    )
+    ed = ExportData(
+        task_instances=[], dag_runs=[], dags=dags_list, since=str(utcnow()),
+    )
+
+    return ed
+
+
 @measure_time
 def get_airflow_regular_data(
     session,
@@ -121,10 +138,15 @@ def get_airflow_regular_data(
     )
     logging.info("%d dag runs were found." % len(dag_runs))
 
-    if not task_instances and not dag_runs:
-        return ExportData(since=since)
+    if not dag_ids:
+        dag_ids = set(dag_run.dag_id for dag_run in dag_runs)
 
-    dags_list = _get_dags(dagbag, include_task_args, dag_ids)
+    dags_list = _get_dags(
+        dagbag=dagbag,
+        include_task_args=include_task_args,
+        dag_ids=dag_ids,
+        raw_data_only=False,
+    )
 
     logging.info(
         "Returning {} task instances, {} dag runs, {} dags".format(
@@ -141,9 +163,9 @@ def get_airflow_regular_data(
 
 @save_result_size("dags")
 @measure_time
-def _get_dags(dagbag, include_task_args, dag_ids):
+def _get_dags(dagbag, include_task_args, dag_ids, raw_data_only=False):
     dag_models = [d for d in current_dags.values() if d]
-    if dag_ids:
+    if dag_ids is not None:
         dag_models = [dag for dag in dag_models if dag.dag_id in dag_ids]
 
     number_of_dags_not_in_dag_bag = 0
@@ -160,6 +182,7 @@ def _get_dags(dagbag, include_task_args, dag_ids):
                 include_task_args,
                 git_commit,
                 is_committed,
+                raw_data_only,
             )
         else:
             dag = EDag.from_dag(
@@ -169,6 +192,7 @@ def _get_dags(dagbag, include_task_args, dag_ids):
                 include_task_args,
                 git_commit,
                 is_committed,
+                raw_data_only,
             )
             number_of_dags_not_in_dag_bag += 1
         dags_list.append(dag)
@@ -223,7 +247,15 @@ def get_airflow_incomplete_data(
 
     dag_runs |= dag_runs_without_date
 
-    dags_list = _get_dags(dagbag, include_task_args, dag_ids)
+    if not dag_ids:
+        dag_ids = set(dag_run.dag_id for dag_run in dag_runs)
+
+    dags_list = _get_dags(
+        dagbag=dagbag,
+        include_task_args=include_task_args,
+        dag_ids=dag_ids,
+        raw_data_only=False,
+    )
 
     logging.info(
         "Returning {} task instances, {} dag runs, {} dags".format(
