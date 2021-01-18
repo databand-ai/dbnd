@@ -31,7 +31,7 @@ class ApiClient(object):
         self.is_auth_required = bool(credentials)
         self.credentials = credentials
         self.session = None
-        self.default_headers = {"Accept": "application/json", "Connection": "close"}
+        self.default_headers = {"Accept": "application/json"}
 
     def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
         if not self.session:
