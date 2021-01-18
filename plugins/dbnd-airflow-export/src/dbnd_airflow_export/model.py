@@ -236,15 +236,25 @@ class EDag(object):
         self.is_committed = is_committed
 
     @staticmethod
-    def from_dag(dag, dm, dag_folder, include_task_args, git_commit, is_committed):
-        # type: (DAG, DagModel, str, bool, str, bool) -> EDag
+    def from_dag(
+        dag,
+        dm,
+        dag_folder,
+        include_task_args,
+        git_commit,
+        is_committed,
+        raw_data_only=False,
+    ):
+        # type: (DAG, DagModel, str, bool, str, bool, bool) -> EDag
         # Can be Dag from DagBag or from DB, therefore not all attributes may exist
         return EDag(
             description=dag.description or "",
             root_task_ids=[t.task_id for t in getattr(dag, "roots", [])],
             tasks=[
                 ETask.from_task(t, include_task_args) for t in getattr(dag, "tasks", [])
-            ],
+            ]
+            if not raw_data_only
+            else [],
             owner=resolve_attribute_or_default_attribute(dag, ["owner", "owners"]),
             dag_id=dag.dag_id,
             schedule_interval=interval_to_str(dag.schedule_interval),
@@ -253,7 +263,7 @@ class EDag(object):
             end_date=resolve_attribute_or_default_value(dag, "end_date", None),
             dag_folder=dag_folder,
             hostname=get_hostname(),
-            source_code=_read_dag_file(dag.fileloc),
+            source_code=_read_dag_file(dag.fileloc) if not raw_data_only else "",
             is_subdag=dag.is_subdag,
             task_type="DAG",
             task_args=_extract_args_from_dict(vars(dag)) if include_task_args else {},

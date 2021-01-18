@@ -93,6 +93,7 @@ class TestFetchData(object):
             quantity=quantity,
             include_xcom=True,
             incomplete_offset=incomplete_offset,
+            dags_only=False,
         )
 
         return result

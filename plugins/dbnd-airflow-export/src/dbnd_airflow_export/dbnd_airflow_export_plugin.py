@@ -19,6 +19,7 @@ from dbnd_airflow_export.logic import (
     get_airflow_incomplete_data,
     get_airflow_regular_data,
     get_current_dag_model,
+    get_dags_list_only,
 )
 
 
@@ -57,9 +58,9 @@ def get_airflow_data(
     dag_ids=None,
     quantity=None,
     incomplete_offset=None,
+    dags_only=False,
     session=None,
 ):
-    include_logs = bool(include_logs)
     if since:
         since = pendulum.parse(str(since).replace(" 00:00", "Z"))
 
@@ -68,7 +69,9 @@ def get_airflow_data(
     try:
         DagModel.get_current = get_current_dag_model
 
-        if incomplete_offset is not None:
+        if dags_only:
+            result = get_dags_list_only(session, dagbag, dag_ids)
+        elif incomplete_offset is not None:
             result = get_airflow_incomplete_data(
                 session=session,
                 dagbag=dagbag,
@@ -121,12 +124,17 @@ def json_response(obj):
 def export_data_api(dagbag):
     since = flask.request.args.get("since")
     include_logs = flask.request.args.get("include_logs")
-    include_task_args = flask.request.args.get("include_task_args")
-    include_xcom = flask.request.args.get("include_xcom")
-    dag_ids = flask.request.args.getlist("dag_ids")
+    include_task_args = bool(flask.request.args.get("include_task_args"))
+    include_xcom = bool(flask.request.args.get("include_xcom"))
+    dag_ids = (
+        flask.request.args.getlist("dag_ids")
+        if "dag_ids" in flask.request.args
+        else None
+    )
     quantity = flask.request.args.get("fetch_quantity", type=int)
     rbac_enabled = conf.get("webserver", "rbac").lower() == "true"
     incomplete_offset = flask.request.args.get("incomplete_offset", type=int)
+    dags_only = bool(flask.request.args.get("dags_only"))
 
     if not since and not include_logs and not dag_ids and not quantity:
         new_since = datetime.datetime.utcnow().replace(
@@ -151,6 +159,7 @@ def export_data_api(dagbag):
             dag_ids=dag_ids,
             quantity=quantity,
             incomplete_offset=incomplete_offset,
+            dags_only=dags_only,
         )
         export_data["metrics"] = {
             "performance": flask.g.perf_metrics,

@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 
 from time import sleep
 from timeit import default_timer
@@ -92,8 +93,12 @@ def _call_tracking_store(tracking_store_function, **kwargs):
 
 
 def save_airflow_monitor_data(airflow_data, tracking_service, base_url, last_sync_time):
-    logger.info("Sending Airflow data to databand web server")
     json_data = json.dumps(airflow_data)
+    logger.info(
+        "Sending Airflow data to databand web server. Total size: {} kB".format(
+            sys.getsizeof(json_data) / 1000
+        )
+    )
     start = default_timer()
     _call_tracking_store(
         tracking_store_function=tracking_service.save_airflow_monitor_data,

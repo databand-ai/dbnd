@@ -31,6 +31,7 @@ class DataFetcher(object):
         dag_ids,
         quantity,
         incomplete_offset,
+        dags_only,
     ):
         pass
 
@@ -70,6 +71,7 @@ class WebFetcher(DataFetcher):
         dag_ids,
         quantity,
         incomplete_offset,
+        dags_only,
     ):
         params = {}
         if since:
@@ -86,6 +88,8 @@ class WebFetcher(DataFetcher):
             params["fetch_quantity"] = quantity
         if incomplete_offset is not None:
             params["incomplete_offset"] = incomplete_offset
+        if dags_only:
+            params["dags_only"] = dags_only
 
         try:
             data = self._make_request(params)
@@ -201,6 +205,7 @@ class DbFetcher(DataFetcher):
         dag_ids,
         quantity,
         incomplete_offset,
+        dags_only,
     ):
         try:
             data = self.export_data_directly(
@@ -211,6 +216,7 @@ class DbFetcher(DataFetcher):
                 dag_ids=dag_ids,
                 quantity=quantity,
                 incomplete_offset=incomplete_offset,
+                dags_only=dags_only,
             )
             return data
         except Exception as ex:
@@ -229,6 +235,7 @@ class DbFetcher(DataFetcher):
         dag_ids,
         quantity,
         incomplete_offset,
+        dags_only,
     ):
         from airflow import models, settings, conf
         from airflow.settings import STORE_SERIALIZED_DAGS
@@ -254,6 +261,7 @@ class DbFetcher(DataFetcher):
             dag_ids=dag_ids,
             quantity=quantity,
             incomplete_offset=incomplete_offset,
+            dags_only=dags_only,
             session=session(),
         )
         return result
@@ -275,6 +283,7 @@ class FileFetcher(DataFetcher):
         dag_ids,
         quantity,
         incomplete_offset,
+        dags_only,
     ):
         import json
 

@@ -135,3 +135,26 @@ def create_airflow_instance_details(
             )
 
     return airflow_instance_details
+
+
+def create_instance_details(
+    monitor_args,
+    airflow_config,
+    api_client,
+    configs_fetched,
+    existing_airflow_instance_details,
+):
+    if configs_fetched is None:
+        if existing_airflow_instance_details:
+            return existing_airflow_instance_details
+        return None
+
+    airflow_instance_details = create_airflow_instance_details(
+        monitor_args,
+        airflow_config,
+        api_client,
+        configs_fetched,
+        existing_airflow_instance_details,
+    )
+
+    return airflow_instance_details
