@@ -86,8 +86,8 @@ class TestTaskSignature(object):
 
         expected = {
             "TData": "29c9aa51d4",
-            "TSpark": "ea290932b5",
-            "TPySpark": "6b58f6e5a0",
+            "TSpark": "2d9da6ad2d",
+            "TPySpark": "49a709d191",
         }
         assert_signatures(tasks, expected)
 
