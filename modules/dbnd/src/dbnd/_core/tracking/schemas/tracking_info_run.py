@@ -65,6 +65,7 @@ class RunInfo(_DbndDataClass):
 
     sends_heartbeat = attr.ib()  # type: bool
     task_executor = attr.ib(default=None)  # type: str
+    project_name = attr.ib(default=None)  # type: Optional[str]
 
 
 @attr.s

@@ -10,6 +10,8 @@ class JobSchemaV2(ApiObjectSchema):
     is_archived = fields.Boolean()
     ui_hidden = fields.Boolean()
     is_airflow_synced = fields.Boolean()
+    project_id = fields.Int()
+    project_name = fields.Str()
 
     # computed
     run_states = fields.Dict()

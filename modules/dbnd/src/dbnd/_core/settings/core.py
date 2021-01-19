@@ -46,10 +46,6 @@ class DatabandSystemConfig(Config):
         description="JSON string/key=value that gets into the Task attribute",
     )[Dict[str, str]]
 
-    project_name = parameter(
-        default="databand_project", description="Name of this databand project"
-    )[str]
-
 
 class CoreConfig(Config):
     """Databand's core functionality behaviour"""
@@ -235,6 +231,12 @@ class FeaturesConfig(Config):
 
 class TrackingConfig(Config):
     _conf__task_family = "tracking"
+
+    project = parameter(
+        default=None,
+        description="Project to which run should be assigned. "
+        "If not set default project is used. Tracking server will select project with is_default == True.",
+    )[str]
 
     databand_external_url = parameter(
         default=None,

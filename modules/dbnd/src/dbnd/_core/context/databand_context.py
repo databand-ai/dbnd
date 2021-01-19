@@ -2,7 +2,7 @@ import logging
 import typing
 import uuid
 
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 
 from dbnd._core.configuration.config_readers import read_from_config_files
@@ -21,7 +21,7 @@ from dbnd._core.utils import seven
 from dbnd._core.utils.basics.load_python_module import load_python_module, run_user_func
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.singleton_context import SingletonContext
-from dbnd._core.utils.task_utils import get_task_name_safe
+from dbnd._core.utils.task_utils import get_project_name_safe, get_task_name_safe
 from dbnd._core.utils.timezone import utcnow
 from targets.target_config import FileFormat
 
@@ -186,26 +186,33 @@ class DatabandContext(SingletonContext):
 
     def dbnd_run_task(
         self,
-        task_or_task_name,
-        run_uid=None,
-        scheduled_run_info=None,
-        send_heartbeat=True,
-    ):  # type: (Optional[Task,str], Optional[UUID], ScheduledRunInfo, bool) -> DatabandRun
+        task_or_task_name,  # type: Union[Task, str]
+        project=None,  # type: Optional[str]
+        run_uid=None,  # type: Optional[UUID]
+        scheduled_run_info=None,  # type: Optional[ScheduledRunInfo]
+        send_heartbeat=True,  # type: bool
+    ):  # type: (...) -> DatabandRun
         """
         This is the main entry point to run task in "dbnd orchestration" mode
         called from `dbnd run`
         we create a new Run + RunExecutor and trigger the execution
 
         :param task_or_task_name task name to run or already built task object
+        :param project Project name for the run
         :return DatabandRun
         """
         job_name = get_task_name_safe(task_or_task_name)
+        project_name = get_project_name_safe(
+            project or self.settings.tracking.project, task_or_task_name
+        )
+
         with new_databand_run(
             context=self,
             job_name=job_name,
             run_uid=run_uid,
             scheduled_run_info=scheduled_run_info,
             is_orchestration=True,
+            project_name=project_name,
         ) as run:  # type: DatabandRun
             # this is the main entry point to run some task in "orchestration" mode
             run.run_executor = RunExecutor(

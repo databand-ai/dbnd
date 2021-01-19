@@ -105,7 +105,7 @@ def build_dynamic_task(original_cls, new_cls_name):
 @click.option("--parallel", is_flag=True, help="Run tasks in parallel")
 @click.option("--conf-file", help="List of files to read from")
 @click.option("--task-version", help="Task version directly affects the task signature")
-@click.option("--project-name", help="Name of this Databand project")
+@click.option("--project", help="Name of this Databand project")
 @click.option("--name", help="Name of this run")
 @click.option("--description", help="Description of this run")
 @click.option(
@@ -183,7 +183,7 @@ def run(
     parallel,
     conf_file,
     task_version,
-    project_name,
+    project,
     name,
     description,
     run_driver,
@@ -208,7 +208,7 @@ def run(
     from dbnd import config
 
     task_name = task
-    # --verbose, --describe, --env, --parallel, --conf-file and --project-name
+    # --verbose, --describe, --env, --parallel, --conf-file and --project
     # we filter out false flags since otherwise they will always override the config with their falseness
     main_switches = dict(
         databand=filter_dict_remove_false_values(
@@ -218,7 +218,7 @@ def run(
                 describe=describe,
                 env=env,
                 conf_file=conf_file,
-                project_name=project_name,
+                project=project,
             )
         ),
         run=filter_dict_remove_false_values(
@@ -355,6 +355,7 @@ def run(
             task_or_task_name=task_name,
             run_uid=run_driver,
             scheduled_run_info=scheduled_run_info,
+            project=project,
         )
 
 

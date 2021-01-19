@@ -107,6 +107,10 @@ class RunBanner(RunCtrl):
                 ("user", task_run_env.user),
                 ("run_uid", "%s" % run.run_uid),
                 ("env", run.env.name),
+                (
+                    "project",
+                    run.project_name or "Not set, default project will be used",
+                ),
             ]
             b.column("RUN", b.f_simple_dict(run_params))
             b.column("USER CODE VERSION", task_run_env.user_code_version)

@@ -32,6 +32,7 @@ class RunInfoSchema(ApiObjectSchema):
     run_uid = fields.UUID()
 
     job_name = fields.String()
+    project_name = fields.String(allow_none=True)
     user = fields.String()
 
     name = fields.String()

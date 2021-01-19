@@ -27,3 +27,6 @@ class AlertDefsSchema(ApiObjectSchema):
     env = fields.Str(attribute="job.tracking_source.env")
     # TODO_CORE: API: Deprecate airflow_server_info
     airflow_instance_name = fields.Str(attribute="job.tracking_source.name")
+
+    project_id = fields.Int(attribute="job.project_id")
+    project_name = fields.Str(attribute="job.project.name")

@@ -2,12 +2,13 @@ import logging
 
 from collections import Counter, defaultdict
 from functools import partial
-from typing import Any
+from typing import Any, Optional, Union
 
 import six
 
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
+from dbnd._core.task.task import Task
 from dbnd._core.utils.traversing import traverse
 from targets.base_target import Target
 from targets.multi_target import MultiTarget
@@ -26,8 +27,6 @@ def _try_get_task_from_airflow_op(value):
 
 
 def _to_task(value):
-    from dbnd._core.task.task import Task
-
     if isinstance(value, Task):
         return value
 
@@ -57,8 +56,6 @@ def to_tasks(obj_or_struct):
 def _to_target(value, from_string_kwargs=None):
     if value is None:
         return value
-
-    from dbnd._core.task import Task
 
     if isinstance(value, Target):
         return value
@@ -135,10 +132,9 @@ def calculate_friendly_task_ids(tasks):
 
 
 def get_task_name_safe(task_or_task_name):
+    # type: (Union[Task, str]) -> str
     if task_or_task_name is None or isinstance(task_or_task_name, six.string_types):
         return task_or_task_name
-
-    from dbnd._core.task.task import Task
 
     if isinstance(task_or_task_name, Task):
         return task_or_task_name.task_name
@@ -147,3 +143,16 @@ def get_task_name_safe(task_or_task_name):
         task_or_task_name,
         type(task_or_task_name),
     )
+
+
+def get_project_name_safe(project_name, task_or_task_name):
+    # type: (Union[Task, str], str) -> Optional[str]
+    if project_name:
+        return project_name
+
+    if task_or_task_name is None or isinstance(task_or_task_name, six.string_types):
+        return None
+
+    if isinstance(task_or_task_name, Task) and hasattr(task_or_task_name, "project"):
+        return task_or_task_name.project
+    return None

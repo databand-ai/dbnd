@@ -77,6 +77,8 @@ class ScheduledJobSchemaV2(Schema):
     validation_errors = fields.Str(
         allow_none=True, attribute="DbndScheduledJob.validation_errors"
     )
+    project_id = fields.Int(dump_only=True)
+    project_name = fields.Str(dump_only=True)
 
 
 SCHEDULE_INTERVAL_PRESETS = {

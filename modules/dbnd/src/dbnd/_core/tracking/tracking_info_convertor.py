@@ -45,6 +45,7 @@ class TrackingInfoBuilder(object):
         return RunInfo(
             run_uid=run.run_uid,
             job_name=run.job_name,
+            project_name=run.project_name,
             user=context.task_run_env.user,
             name=run.name,
             state=RunState.RUNNING,
@@ -156,7 +157,6 @@ class TrackingInfoBuilder(object):
     def task_to_targets(self, task, targets):
         # type: (Task, Dict[str, TargetInfo]) -> List[TargetInfo]
         """
-        :param run:
         :param task:
         :param targets: all known targets for current run, so we have uniq list of targets (by path)
         :return:

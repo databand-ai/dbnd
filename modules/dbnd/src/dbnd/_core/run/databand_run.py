@@ -22,7 +22,6 @@ from dbnd._core.settings import DatabandSettings
 from dbnd._core.settings.engine import build_engine_config
 from dbnd._core.task import Task
 from dbnd._core.task_build.task_context import current_task, has_current_task
-from dbnd._core.task_executor.results_view import RunResultBand
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils.basics.singleton_context import SingletonContext
@@ -30,7 +29,6 @@ from dbnd._core.utils.date_utils import unique_execution_date
 from dbnd._core.utils.traversing import flatten
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
-from targets import FileTarget, target
 from targets.caching import TARGET_CACHE
 
 
@@ -57,6 +55,7 @@ class DatabandRun(SingletonContext):
         self,
         context,  # type: DatabandContext
         job_name,
+        project_name=None,  # type: Optional[str]
         run_uid=None,  # type:  Optional[UUID]
         scheduled_run_info=None,  # type:  Optional[ScheduledRunInfo]
         existing_run=None,
@@ -69,6 +68,7 @@ class DatabandRun(SingletonContext):
         s = self.context.settings  # type: DatabandSettings
 
         self.job_name = job_name
+        self.project_name = project_name or s.tracking.project
 
         self.description = s.run.description
         self.is_archived = s.run.is_archived
