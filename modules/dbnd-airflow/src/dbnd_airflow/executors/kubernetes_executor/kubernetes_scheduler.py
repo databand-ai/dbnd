@@ -16,7 +16,6 @@
 # under the License.
 
 
-import logging
 import time
 
 from airflow.contrib.executors.kubernetes_executor import AirflowKubernetesScheduler
@@ -27,6 +26,7 @@ from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.friendly_error.executor_k8s import KubernetesImageNotFoundError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
+from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd_airflow.airflow_extensions.dal import (
     get_airflow_task_instance,
     get_airflow_task_instance_state,
@@ -41,9 +41,6 @@ from dbnd_docker.kubernetes.kube_dbnd_client import (
     _get_status_log_safe,
     _try_get_pod_exit_code,
 )
-
-
-logger = logging.getLogger(__name__)
 
 
 class DbndKubernetesScheduler(AirflowKubernetesScheduler):
@@ -168,7 +165,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.pod_to_task_run[pod.name] = task_run
 
         pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
-        self.metrics_logger.log_pod_started(task_run.task)
+        self.metrics_logger.log_pod_submitted(task_run.task, pod_name=pod.name)
 
     def delete_pod(self, pod_id):
         # we will try to delete pod only once
@@ -286,7 +283,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         if state == State.RUNNING:
             # we should get here only once -> when pod starts to run
-            self.log.info("Setting %s state to Running at %s", task_run, pod_name)
+
             self._process_pod_running(task_run, pod_name=pod_name)
             # we will not send event to executor (otherwise it will delete the running pod)
         elif state is None:
@@ -303,7 +300,14 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             self.result_queue.put((key, state, pod_id, resource_version))
 
     def _process_pod_running(self, task_run, pod_name):
+        if task_run.task_run_state == TaskRunState.RUNNING:
+            pod_data = self.get_pod_status(pod_name)
+            self.log.info(
+                "ZOMBIE_BUG:Got Running event for the second time: probably something happening!"
+            )
+            self.log.info("Second Running Event: %s", pod_data)
 
+        self.log.info("Setting %s state to Running at %s", task_run, pod_name)
         pod_data = self.get_pod_status(pod_name)
         if not pod_data:
             self.log.error(
@@ -314,9 +318,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         if not node_name:
             return
 
-        self.metrics_logger.log_pod_running(
-            task_run.task, pod_name, node_name=node_name
-        )
+        self.metrics_logger.log_pod_running(task_run.task, node_name=node_name)
 
     def _process_pod_success(self, task_run, pod_name):
         self.log.debug("Getting task run")
@@ -331,10 +333,26 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         if ti.state == State.SUCCESS:
             dbnd_state = TaskRunState.SUCCESS
-        elif ti.state == State.UP_FOR_RETRY:
+        elif ti.state in {State.UP_FOR_RETRY, State.UP_FOR_RESCHEDULE}:
             dbnd_state = TaskRunState.UP_FOR_RETRY
-        else:
+        elif ti.state in {State.FAILED, State.SHUTDOWN}:
             dbnd_state = TaskRunState.FAILED
+        else:
+            # we got a corruption here:
+            error_msg = (
+                "Pod %s has finished with SUCCESS, but task instance state is %s, failing the job."
+                % (pod_name, ti.state)
+            )
+            error_help = "Please check pod logs/eviction retry"
+            task_run_error = TaskRunError.build_from_message(
+                task_run, error_msg, help_msg=error_help
+            )
+            self._handle_crashed_task_instance(
+                failure_reason=PodFailureReason.err_pod_evicted,
+                task_run_error=task_run_error,
+                task_run=task_run,
+            )
+            return
 
         task_run.set_task_run_state(dbnd_state, track=False)
         self.log.info(
@@ -348,7 +366,12 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             return
 
         task_id = task_run.task_af_id
-        self.log.info("got crashed pod %s for %s", pod_name, task_id)
+        ti_state = get_airflow_task_instance_state(task_run=task_run)
+
+        self.log.info(
+            "got crashed pod %s for %s, airflow state: %s", pod_name, task_id, ti_state
+        )
+
         pod_data = self.get_pod_status(pod_name)
         pod_ctrl = self.kube_dbnd.get_pod_ctrl(pod_name, self.namespace)
 
@@ -361,24 +384,29 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         else:
             pod_status_log = "POD NOT FOUND"
 
-        error_msg_header = "Pod %s at %s has failed!" % (pod_name, self.namespace)
+        error_msg = "Pod %s at %s has failed (task state=%s)!" % (
+            pod_name,
+            self.namespace,
+            ti_state,
+        )
         failure_reason, failure_message = self._find_pod_failure_reason(
             task_run=task_run, pod_data=pod_data, pod_name=pod_name
         )
         if failure_reason:
-            error_msg_header += "%s: %s." % (failure_reason, failure_message)
-        error_msg_desc = "Please see full pod log for more details\n%s" % pod_status_log
+            error_msg += "Found reason for failure: %s - %s." % (
+                failure_reason,
+                failure_message,
+            )
+        error_help_msg = "Please see full pod log for more details."
+        if pod_logs:
+            error_help_msg += "\nPod logs:\n%s\n" % "\n".join(
+                ["out: %s" % l for l in pod_logs[-20:]]
+            )
 
         from dbnd._core.task_run.task_run_error import TaskRunError
 
-        ti_state = get_airflow_task_instance_state(task_run=task_run)
-
-        if pod_logs:
-            error_msg_desc += "\nPod logs:\n%s\n" % "\n".join(
-                ["out: %s" % l for l in pod_logs[-20:]]
-            )
-        error = TaskRunError.build_from_message(
-            task_run=task_run, msg=error_msg_header, help_msg=error_msg_desc,
+        task_run_error = TaskRunError.build_from_message(
+            task_run=task_run, msg=error_msg, help_msg=error_help_msg,
         )
 
         if ti_state == State.FAILED:
@@ -386,7 +414,9 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             # that means - all code (including dbnd) were executed
             # let just notify the error, so we can show it in summary it
             # we will not send it to databand tracking store
-            task_run.set_task_run_state(TaskRunState.FAILED, track=False, error=error)
+            task_run.set_task_run_state(
+                TaskRunState.FAILED, track=False, error=task_run_error
+            )
             self.log.info(
                 "%s",
                 task_run.task.ctrl.banner(
@@ -400,34 +430,18 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         # we got State.Failed from watcher, but at DB airflow instance in different state
         # that means the task has failed in the middle
         # (all kind of errors and exit codes)
-
-        self.log.info("%s is at state: %s ", task_run, ti_state)
-        task_run_log = error_msg_header
+        task_run_log = error_msg
         task_run_log += pod_status_log
-        task_run_log += "Airflow state at DB:%s\n" % ti_state
         if pod_logs:
             # let's upload it logs - we don't know what happen
             task_run_log += "\nPod logs:\n\n%s\n\n" % "\n".join(pod_logs)
-        task_run.tracker.save_task_run_log(error_msg_header)
+        task_run.tracker.save_task_run_log(task_run_log)
 
-        retry_config = self.kube_dbnd.engine_config.pod_retry_config
-        retry_count = retry_config.get_retry_count(failure_reason)
-
-        # update retry for the latest values (we don't have
-        task_run.task.task_retries = retry_count
-
-        error_msg = "Pod %s failed with %s: %s." % (
-            pod_name,
-            failure_reason,
-            failure_message,
+        self._handle_crashed_task_instance(
+            task_run=task_run,
+            task_run_error=task_run_error,
+            failure_reason=failure_reason,
         )
-        af_state = self._handle_crashed_task_failure(error=error_msg, task_run=task_run)
-        if af_state == State.UP_FOR_RETRY:
-            task_run.set_task_run_state(
-                TaskRunState.UP_FOR_RETRY, track=True, error=error
-            )
-        else:
-            task_run.set_task_run_state(TaskRunState.FAILED, track=True, error=error)
 
     def _find_pod_failure_reason(
         self, task_run, pod_name, pod_data,
@@ -469,115 +483,50 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         return None, None
 
     @provide_session
-    def _handle_crashed_task_failure(self, task_run, error, session=None):
+    def _handle_crashed_task_instance(
+        self, task_run, task_run_error, failure_reason, session=None
+    ):
+
         task_instance = get_airflow_task_instance(task_run, session=session)
         task_instance.task = task_run.task.ctrl.airflow_op
-        task_instance.task.retries = task_run.task.task_retries
-        task_instance.max_tries = task_run.task.task_retries
+
+        retry_config = self.kube_dbnd.engine_config.pod_retry_config
+        retry_count = retry_config.get_retry_count(failure_reason)
+        if retry_count is not None:
+            # update retry for the latest values (we don't have
+            task_run.task.task_retries = retry_count
+            task_instance.task.retries = retry_count
+            task_instance.max_tries = retry_count
 
         self.log.info(
-            "retries %s  task: %s", task_instance.max_tries, task_instance.task.retries,
+            "Retry %s  task: max_retries=%s, task.retries=%s, current:%s state:%s",
+            task_run,
+            task_instance.max_tries,
+            task_instance.task.retries,
+            task_instance._try_number,
+            task_instance.state,
         )
         # retry condition: self.task.retries and self.try_number <= self.max_tries
         increase_try_number = False
 
         if task_instance.state == State.QUEUED:
             # Special case - no airflow code has been run in the pod at all.
-            # Must increment try number
-            increase_try_number = True
-
-        task_instance.handle_failure(error, session=session)
-
-        if increase_try_number:
+            # usually its increased the momen state moved to Running. And while at running state -> it will be the same value
+            # Must increment try number,
             task_instance._try_number += 1
-            self.log.info(
-                "increasing try number for %s to %s",
-                task_instance.task_id,
-                task_instance._try_number,
-            )
             session.merge(task_instance)
             session.commit()
-        return task_instance.state
 
-    def sync(self):
-        super(DbndKubernetesScheduler, self).sync()
+        task_instance.handle_failure(str(task_run_error.exception), session=session)
 
-        # DBND-AIRFLOW: doing more validations during the sync
-        # we do it after kube_scheduler sync, so all "finished pods" are removed already
-        # but no new pod requests are submitted
-        self.current_iteration += 1
-
-        if self.current_iteration % 50 == 0:
-            try:
-                self.handle_disappeared_pods()
-            except Exception:
-                self.log.exception("Failed to find disappeared pods")
-
-    #######
-    # HANDLE DISAPPEARED PODS
-    #######
-    def handle_disappeared_pods(self):
-        pods = self.__find_disappeared_pods()
-        if not pods:
-            return
-        self.log.info(
-            "Pods %s can not be found for the last 2 iterations of disappeared pods recovery. "
-            "Trying to recover..",
-            pods,
-        )
-        for pod_name in pods:
-            task_run = self.pod_to_task_run.get(pod_name)
-            key = self.running_pods.get(pod_name)
-            self._process_pod_failed(task_run=task_run, pod_name=pod_name)
-            self.result_queue.put((key, State.FAILED, pod_name, None))
-
-    def __find_disappeared_pods(self):
-        """
-        We will want to check on pod status.
-        K8s may have pods disappeared from it because of preemptable/spot nodes
-         without proper event sent to KubernetesJobWatcher
-        We will do a check on all running pods every 10th iteration
-        :return:
-        """
-        if not self.running_pods:
-            self.last_disappeared_pods = {}
-            self.log.info(
-                "Skipping on checking on disappeared pods - no pods are running"
+        if task_instance.state == State.UP_FOR_RETRY:
+            task_run.set_task_run_state(
+                TaskRunState.UP_FOR_RETRY, track=True, error=task_run_error
             )
-            return
-
-        self.log.info(
-            "Checking on disappeared pods for currently %s running tasks",
-            len(self.running_pods),
-        )
-
-        previously_disappeared_pods = self.last_disappeared_pods
-        currently_disappeared_pods = {}
-        running_pods = list(
-            self.running_pods.items()
-        )  # need a copy, will be modified on delete
-        disapeared_pods = []
-        for pod_name, pod_key in running_pods:
-            from kubernetes.client.rest import ApiException
-
-            try:
-                self.kube_client.read_namespaced_pod(
-                    name=pod_name, namespace=self.namespace
-                )
-            except ApiException as e:
-                # If the pod can not be found
-                if e.status == 404:
-                    self.log.info("Pod %s has disappeared...", pod_name)
-                    if pod_name in previously_disappeared_pods:
-                        disapeared_pods.append(pod_name)
-                    currently_disappeared_pods[pod_name] = pod_key
-            except Exception:
-                self.log.exception("Failed to get status of pod_name=%s", pod_name)
-        self.last_disappeared_pods = currently_disappeared_pods
-
-        if disapeared_pods:
-            self.log.info("Disappeared pods: %s ", disapeared_pods)
-        return disapeared_pods
+        else:
+            task_run.set_task_run_state(
+                TaskRunState.FAILED, track=True, error=task_run_error
+            )
 
     def get_pod_status(self, pod_name):
         pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)

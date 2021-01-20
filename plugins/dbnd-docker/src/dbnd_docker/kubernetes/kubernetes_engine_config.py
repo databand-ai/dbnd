@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 
 import yaml
 
+from kubernetes.config import ConfigException
 from six import PY2
 
 import dbnd_docker
@@ -57,7 +58,7 @@ class PodRetryConfiguration(object):
 
     def get_retry_count(self, exit_code_or_reason):
         if exit_code_or_reason not in self.exit_codes_and_reasons_to_retry_info_map:
-            return 0
+            return None
 
         return self.exit_codes_and_reasons_to_retry_info_map[exit_code_or_reason][
             self.RETRY_COUNT
@@ -152,6 +153,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     debug_with_command = parameter(default="").help(
         "Use this command as a pod command instead of the original, can help debug complicated issues"
     )[str]
+    debug_phase = parameter(default="").help(
+        "Debug mode for speicific phase of pod events. All these events will be printed with the full response from k8s"
+    )[str]
 
     prefix_remote_log = parameter(default=True).help(
         "Adds [driver] or [<task_name>] prefix to logs streamed from Kubernetes to the local log"
@@ -201,7 +205,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     )[int]
 
     watcher_client_timeout_seconds = parameter(
-        default=100,
+        default=50,
         description="How many seconds to wait before timeout occurs in watcher on client side (read)",
     )[int]
 
@@ -305,11 +309,16 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         if in_cluster is None:
             in_cluster = self.in_cluster
-        if in_cluster:
-            config.load_incluster_config()
-        else:
-            config.load_kube_config(
-                config_file=self.config_file, context=self.cluster_context
+        try:
+            if in_cluster:
+                config.load_incluster_config()
+            else:
+                config.load_kube_config(
+                    config_file=self.config_file, context=self.cluster_context
+                )
+        except ConfigException as e:
+            raise friendly_error.executor_k8s.failed_to_connect_to_cluster(
+                self.in_cluster, e
             )
 
         if PY2:
@@ -323,15 +332,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     def build_kube_dbnd(self, in_cluster=None):
         from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
-        from kubernetes.config import ConfigException
 
-        try:
-            kube_client = self.get_kube_client(in_cluster=in_cluster)
-        except ConfigException as e:
-            raise friendly_error.executor_k8s.failed_to_connect_to_cluster(
-                self.in_cluster, e
-            )
-
+        kube_client = self.get_kube_client(in_cluster=in_cluster)
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 

@@ -71,8 +71,8 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.resource_version,
             os.getpid(),
         )
-
-        kube_client = self.kube_dbnd.kube_client
+        # we want a new refreshed client!
+        kube_client = self.kube_dbnd.engine_config.get_kube_client()
         try:
             while True:
                 try:
@@ -129,7 +129,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 if event["type"] == "ERROR":
                     return self.process_error(event)
 
-                self._extended_process_state(event)
+                # self._extended_process_state(event)
                 self.resource_version = task.metadata.resource_version
 
             except Exception as e:
@@ -170,8 +170,17 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             pod_data.metadata.labels,
             resource_version,
         )
-        if is_verbose():
-            self.log.info("Event verbose:%s %s", pod_id, event_msg)
+        debug_phase = (
+            self.kube_dbnd.engine_config.debug_phase
+        )  # print only if user defined debug phase
+        if is_verbose() or (debug_phase and phase == debug_phase):
+            self.log.info(
+                "Event verbose:%s %s %s: %s",
+                pod_id,
+                event_msg,
+                event.get("type"),
+                event.get("raw_object"),
+            )
 
         if event.get("type") == "DELETED" and phase not in {"Succeeded", "Failed"}:
             # from Airflow 2.0 -> k8s may delete pods (preemption?)
