@@ -59,6 +59,11 @@ class AirflowConfig(Config):
         description="Launches additional job during backfill to clean up stalled task (zombies).",
     )[bool]
 
+    clean_zombie_task_instances = parameter(
+        default=True,
+        description="Mark all zombi task_instances of the current run as FAILED(or UP_FOR_RETRY) ",
+    )[bool]
+
     # dbnd-airflow command
     auto_add_versioned_dags = parameter(
         default=True,

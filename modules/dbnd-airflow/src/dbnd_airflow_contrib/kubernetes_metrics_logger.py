@@ -15,21 +15,21 @@ class KubernetesMetricsLogger(object):
     def __init__(self):
         pass
 
-    def log_pod_running(self, task, pod_name, node_name):
-        task.log_system_metric("pod_name", pod_name)
+    def log_pod_running(self, task, node_name):
         task.log_system_metric("node_name", node_name)
 
-    def log_pod_started(self, task):
+    def log_pod_submitted(self, task, pod_name):
         import datetime
 
         timestamp = datetime.datetime.utcnow().isoformat()
-        task.log_system_metric("pod_started_execution", timestamp)
+        task.log_system_metric("pod_submitted_at", timestamp)
+        task.log_system_metric("pod_name", pod_name)
 
     def log_pod_finished(self, task):
         import datetime
 
         timestamp = datetime.datetime.utcnow().isoformat()
-        task.log_system_metric("pod_finished_execution", timestamp)
+        task.log_system_metric("pod_finished_at", timestamp)
 
 
 def log_pod_events_on_sigterm(stack_frame):

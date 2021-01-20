@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 class PodFailureReason(object):
     err_image_pull = "err_image_pull"
     err_pod_deleted = "err_pod_deleted"
+    err_pod_evicted = "err_pod_evicted"
 
 
 class DbndKubernetesClient(object):
