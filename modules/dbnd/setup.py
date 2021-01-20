@@ -23,7 +23,6 @@ dbnd_vendors_list = [
     "psutil>=4.2.0,<5.7.0",  # extracted use to vendorized_psutil.py
 ]
 
-
 setuptools.setup(
     name="dbnd",
     package_dir={"": "src"},

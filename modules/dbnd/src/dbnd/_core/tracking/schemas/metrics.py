@@ -59,7 +59,8 @@ class Metric(_DbndDataClass):
         elif isinstance(value, int) and self.MIN_INT <= value <= self.MAX_INT:
             self.value_int = value
         else:
-            self.value_str = value
+            # This object has to hold only serializable values
+            self.value_str = str(value)
 
     def __repr__(self):
         return "Metric(key={}, source={})".format(self.key, self.source)
