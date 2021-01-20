@@ -1,23 +1,55 @@
 import logging
 import typing
 
+from collections import Callable
 from datetime import timedelta
+from itertools import chain
 from math import floor, log10
 
 import six
+
+from more_itertools import collapse, partition
 
 from dbnd._core.constants import TaskRunState, UpdateSource
 from dbnd._core.current import is_verbose
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
+from dbnd._core.utils.basics.text_banner import safe_tabulate
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.ascii_graph import Pyasciigraph
 
 
+try:
+    from itertools import zip_longest
+except ImportError:
+    from itertools import izip_longest as zip_longest
+
+
 if typing.TYPE_CHECKING:
-    from typing import List
+    from typing import List, Dict, Tuple, Any, Iterable
     from dbnd._core.task_run.task_run import TaskRun
+    from targets.value_meta import ValueMeta
+
 logger = logging.getLogger(__name__)
+
+
+def is_describe_stat(item):
+    name, _ = item
+    return name in ["min", "25%", "50%", "75%", "max"]
+
+
+def two_columns_table(stats, split_by):
+    # type: (Dict, Callable[Tuple[Any,Any], bool]) -> str
+    """
+    Split the items by a filter function "split_by" and merge
+    Example:
+        two_columns_table({1: "a", 2: "b", 3: "c", 4: "d"}, is_odd)
+        [ 2 , b , 1 , a ]
+        [ 3 , d , 3 , c ]
+    """
+    splatted = partition(split_by, stats.items())
+    flatten_merged_rows = map(collapse, zip_longest(*splatted))
+    return safe_tabulate(flatten_merged_rows, headers=())
 
 
 class ConsoleStore(TrackingStore):
@@ -123,13 +155,12 @@ class ConsoleStore(TrackingStore):
         return True
 
     def log_histograms(self, task_run, key, value_meta, timestamp):
-        for hist_name, hist_values in value_meta.histograms.items():
-            for line in self.ascii_graph.graph(
-                label="Histogram logged: {}.{}".format(key, hist_name),
-                data=list(zip(*reversed(hist_values))),
-            ):
+        # type: (TaskRun, str, ValueMeta, datetime) -> None
+
+        for graph in self.get_console_histograms(key, value_meta):
+            for line in graph:
+                # we add one line at a time using the logger to keep the output aligned together
                 logger.info(line)
-        # TODO: Add more compact logging if user opts out
 
         if not self.verbose:
             return
@@ -138,6 +169,29 @@ class ConsoleStore(TrackingStore):
             if isinstance(value, float):
                 value = round(value, 3)
             logger.info("%s: %s", key, value)
+
+    def get_console_histograms(self, key, value_meta):
+        # type: (str, ValueMeta) -> Iterable[Iterable[str]]
+        """
+        Iterate over histograms and for each its build a all the lines to print to the console
+        """
+        for hist_name, hist_values in value_meta.histograms.items():
+            console_graph = self.ascii_graph.graph(
+                label="Histogram logged: {}.{}".format(key, hist_name),
+                data=list(zip(*reversed(hist_values))),
+            )
+
+            # not will exists, but when it does - we need to add the stats as a table to the console
+            if value_meta.descriptive_stats:
+                stats = value_meta.descriptive_stats.get(hist_name)
+                if stats:
+                    stats_table = two_columns_table(stats, is_describe_stat)
+                    # channing the printable graph and status table
+                    console_graph = chain(console_graph, stats_table.splitlines())
+
+            # separation line between one histogram and the other
+            console_graph = chain(console_graph, [""])
+            yield console_graph
 
     @staticmethod
     def _format_value(value):
