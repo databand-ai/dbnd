@@ -71,7 +71,7 @@ class TestSnowflakeTableValueType:
         assert value_meta.data_schema == {
             "type": "SnowflakeTable",
             "column_types": {"name": "varchar"},
-            "size": "500 B",
+            "size.bytes": 500,
         }
         assert value_meta.data_hash == EXPECTED_SNOWFLAKE_TABLE_SIGNATURE
         assert snowflake_table.snowflake_ctrl.get_column_types.called

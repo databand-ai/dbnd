@@ -13,7 +13,7 @@ class TestDataFrameValueType(object):
         expected_data_schema = {
             "type": DataFrameValueType.type_str,
             "columns": list(pandas_data_frame.columns),
-            "size": int(pandas_data_frame.size),
+            "size.bytes": int(pandas_data_frame.size),
             "shape": pandas_data_frame.shape,
             "dtypes": {
                 col: str(type_) for col, type_ in pandas_data_frame.dtypes.items()

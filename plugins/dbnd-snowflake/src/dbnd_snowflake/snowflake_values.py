@@ -3,7 +3,6 @@ import typing
 
 import attr
 
-from dbnd._core.utils.string_utils import humanize_bytes
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType
@@ -59,7 +58,7 @@ class SnowflakeTableValueType(DataValueType):
         if meta_conf.log_size:
             dimensions = value.snowflake_ctrl.get_dimensions(value)
             data_dimensions = [dimensions["rows"], dimensions["cols"]]
-            data_schema["size"] = humanize_bytes(dimensions["bytes"])
+            data_schema["size.bytes"] = dimensions["bytes"]
 
         return ValueMeta(
             value_preview=data_preview,

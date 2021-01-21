@@ -13,7 +13,7 @@ class TestSparkDataFrameValueType(object):
         expected_data_schema = {
             "type": SparkDataFrameValueType.type_str,
             "columns": list(spark_data_frame.schema.names),
-            "size": int(spark_data_frame.count() * len(spark_data_frame.columns)),
+            "size.bytes": int(spark_data_frame.count() * len(spark_data_frame.columns)),
             "shape": (spark_data_frame.count(), len(spark_data_frame.columns)),
             "dtypes": {f.name: str(f.dataType) for f in spark_data_frame.schema.fields},
         }
