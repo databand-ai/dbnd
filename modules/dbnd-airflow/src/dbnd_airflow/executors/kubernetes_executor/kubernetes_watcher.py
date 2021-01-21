@@ -129,7 +129,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 if event["type"] == "ERROR":
                     return self.process_error(event)
 
-                # self._extended_process_state(event)
+                self._extended_process_state(event)
                 self.resource_version = task.metadata.resource_version
 
             except Exception as e:
