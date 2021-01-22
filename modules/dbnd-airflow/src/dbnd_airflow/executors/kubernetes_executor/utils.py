@@ -9,7 +9,7 @@ from dbnd._core.utils.basics.signal_utils import safe_signal
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
-    from airflow.contrib.executors.kubernetes_executor import KubeConfig
+    from dbnd_airflow.compat.kubernetes_executor import KubeConfig
     from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
 
@@ -31,14 +31,8 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
                 else:
                     env_from_secret_ref.append(s.secret)
 
-        if kube_secrets:
-            airflow_kube_config.kube_secrets.update(kube_secrets)
-
         if env_from_secret_ref:
             airflow_kube_config.env_from_secret_ref = ",".join(env_from_secret_ref)
-
-    if ec.env_vars is not None:
-        airflow_kube_config.kube_env_vars.update(ec.env_vars)
 
     if ec.configmaps is not None:
         airflow_kube_config.env_from_configmap_ref = ",".join(ec.configmaps)
@@ -54,10 +48,6 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
 
     if ec.image_pull_policy is not None:
         airflow_kube_config.kube_image_pull_policy = ec.image_pull_policy
-    if ec.node_selectors is not None:
-        airflow_kube_config.kube_node_selectors.update(ec.node_selectors)
-    if ec.annotations is not None and airflow_kube_config.kube_annotations is not None:
-        airflow_kube_config.kube_annotations.update(ec.annotations)
 
     if ec.pods_creation_batch_size is not None:
         airflow_kube_config.worker_pods_creation_batch_size = (

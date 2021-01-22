@@ -17,10 +17,7 @@ def _use_databand_airflow_dagbag():
     """
     import airflow
     from airflow import settings
-    if settings.RBAC:
-        from airflow.www_rbac import views
-    else:
-        from airflow.www import views
+    from dbnd_airflow.compat.www import views
 
     from dbnd_airflow.web.databand_versioned_dagbag import DbndAirflowDagBag, DbndDagModel
 
@@ -60,8 +57,6 @@ def patch_airflow_create_app():
 
         return patched_create_app
 
-    from airflow.www_rbac import app as airflow_app_rbac
-    airflow_app_rbac.create_app = patch_create_app(airflow_app_rbac.create_app)
-
-    from airflow.www import app as airflow_app_no_rbac
-    airflow_app_no_rbac.create_app = patch_create_app(airflow_app_no_rbac.create_app)
+    from dbnd_airflow.compat.www import get_apps_to_patch
+    for app in get_apps_to_patch():
+        app.create_app = patch_create_app(app.create_app)

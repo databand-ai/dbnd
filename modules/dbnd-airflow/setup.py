@@ -16,6 +16,7 @@ requirements_for_airflow = [
     "Werkzeug<1.0.0,>=0.15.0",
     "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
     "psycopg2>=2.7.4,<2.8",
+    "Flask-Admin==1.5.4",
 ]
 
 setuptools.setup(

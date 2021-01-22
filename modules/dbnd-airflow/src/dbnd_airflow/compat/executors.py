@@ -1,3 +1,5 @@
+from airflow.utils.session import provide_session
+
 from dbnd_airflow.contants import AIRFLOW_BELOW_2
 
 

@@ -22,21 +22,14 @@ import typing
 
 from queue import Empty
 
-from airflow.contrib.executors.kubernetes_executor import KubernetesExecutor
-from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from kubernetes.client.rest import ApiException
 
-from dbnd._core.current import try_get_databand_run
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd_airflow.compat.kubernetes_executor import (
-    AirflowKubernetesScheduler,
-    KubeConfig,
     KubernetesExecutor,
-    KubernetesJobWatcher,
-    get_job_watcher_kwargs,
-    get_tuple_for_watcher_queue,
-    make_safe_label_value,
+    get_change_state_args,
+    get_worker_uuid_or_scheduler_job_id,
 )
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_scheduler import (
     DbndKubernetesScheduler,
@@ -84,14 +77,11 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         self.log.info("Starting Kubernetes executor... PID: %s", os.getpid())
         self._manager.start(mgr_init)
 
-        dbnd_run = try_get_databand_run()
-        if dbnd_run:
-            self.worker_uuid = str(dbnd_run.run_uid)
-        else:
-            self.worker_uuid = (
-                KubeWorkerIdentifier.get_or_create_current_kube_worker_uuid()
-            )
-        self.log.debug("Start with worker_uuid: %s", self.worker_uuid)
+        self.scheduler_job_id_or_worker_uuid = get_worker_uuid_or_scheduler_job_id(self)
+        self.log.debug(
+            "Start with scheduler_job_id or worker_uuid: %s",
+            self.scheduler_job_id_or_worker_uuid,
+        )
 
         # always need to reset resource version since we don't know
         # when we last started, note for behavior below
@@ -107,7 +97,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
             self.task_queue,
             self.result_queue,
             self.kube_client,
-            self.worker_uuid,
+            self.scheduler_job_id_or_worker_uuid,
             kube_dbnd=self.kube_dbnd,
         )
 
@@ -115,7 +105,6 @@ class DbndKubernetesExecutor(KubernetesExecutor):
             self.log.setLevel(logging.DEBUG)
             self.kube_scheduler.log.setLevel(logging.DEBUG)
 
-        self._inject_secrets()
         self.clear_not_launched_queued_tasks()
         self._flush_result_queue()
 
@@ -124,7 +113,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     # due to model override
     # + we don't want to change tasks statuses - maybe they are managed by other executors
     @provide_session
-    def clear_not_launched_queued_tasks(self, *args, **kwargs):
+    def clear_not_launched_queued_tasks(self, session, *args, **kwargs):
         # we don't clear kubernetes tasks from previous run
         pass
 
@@ -147,7 +136,11 @@ class DbndKubernetesExecutor(KubernetesExecutor):
                     last_resource_version = resource_version
                     self.log.info("Changing state of %s to %s", results, state)
                     try:
-                        self._change_state(key, state, pod_id)
+                        self._change_state(
+                            *get_change_state_args(
+                                key, state, pod_id, self.kube_scheduler.namespace
+                            )
+                        )
                     except Exception as e:
                         self.log.exception(
                             "Exception: %s when attempting "

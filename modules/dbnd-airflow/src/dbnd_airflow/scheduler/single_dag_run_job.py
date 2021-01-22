@@ -4,8 +4,6 @@ import datetime
 import logging
 
 from airflow import models
-from airflow.jobs.backfill_job import BackfillJob
-from airflow.jobs.base_job import BaseJob
 from airflow.models import DagRun, TaskInstance as TI
 from airflow.ti_deps.dep_context import DepContext
 from airflow.utils import timezone
@@ -23,10 +21,12 @@ from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd_airflow.compat.executors import LocalExecutor, SequentialExecutor
+from dbnd_airflow.compat.jobs import BackfillJob
 from dbnd_airflow.compat.single_dag_run_job import AIRFLOW_BASE_JOB_CLASS
 from dbnd_airflow.compat.state import get_finished_states
 from dbnd_airflow.compat.ti_deps import RUNNABLE_STATES, RUNNING_DEPS
 from dbnd_airflow.config import AirflowConfig
+from dbnd_airflow.contants import AIRFLOW_BELOW_2
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
 )
@@ -89,7 +89,10 @@ class SingleDagRunJob(AIRFLOW_BASE_JOB_CLASS, SingletonContext):
 
         self.terminating = False
 
-        super(SingleDagRunJob, self).__init__(*args, **kwargs)
+        if not AIRFLOW_BELOW_2:
+            super(SingleDagRunJob, self).__init__(dag, *args, **kwargs)
+        else:
+            super(SingleDagRunJob, self).__init__(*args, **kwargs)
 
         self._logged_count = 0  # counter for status update
         self._logged_status = ""  # last printed status
@@ -110,11 +113,6 @@ class SingleDagRunJob(AIRFLOW_BASE_JOB_CLASS, SingletonContext):
         else:
             self._zombie_cleaner = None
         self._log = PrefixLoggerAdapter("scheduler", self.log)
-
-        if isinstance(AIRFLOW_BASE_JOB_CLASS, BackfillJob):
-            super(SingleDagRunJob, self).__init__(dag, *args, **kwargs)
-        else:
-            super(SingleDagRunJob, self).__init__(*args, **kwargs)
 
     @property
     def _optimize(self):
@@ -741,6 +739,9 @@ class SingleDagRunJob(AIRFLOW_BASE_JOB_CLASS, SingletonContext):
 
         # picklin'
         pickle_id = self.dag.pickle_id
+
+        if not AIRFLOW_BELOW_2:
+            self.executor.job_id = self.id
 
         executor = self.executor
         executor.start()

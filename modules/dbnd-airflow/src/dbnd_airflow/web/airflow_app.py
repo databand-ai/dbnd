@@ -6,7 +6,9 @@ from dbnd_airflow.airflow_override.dbnd_aiflow_webserver import (
 
 
 def create_app(config=None, testing=False):
-    from airflow.www_rbac import app as airflow_app
+    from dbnd_airflow.compat.www import get_app_for_create_app
+
+    airflow_app = get_app_for_create_app()
 
     app, appbuilder = airflow_app.create_app(config=config, testing=testing)
 

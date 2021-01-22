@@ -4,6 +4,7 @@ import os.path
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._core.utils.project.project_fs import abs_join, relative_path
 from dbnd._vendor import click
+from dbnd_airflow.constants import CAMELCASE_TO_UNDERSCORE_PATTERN
 
 
 logger = logging.getLogger(__name__)
@@ -92,3 +93,19 @@ def create_airflow_pool(pool_name):
         dbnd_pool = Pool(pool=pool_name, slots=-1)
         session.merge(dbnd_pool)
         session.commit()
+
+
+def camelcase_to_underscore(value):
+    return CAMELCASE_TO_UNDERSCORE_PATTERN.sub("_", value).lower()
+
+
+def datetime_to_label_safe_datestring(datetime_obj):
+    """
+    Kubernetes doesn't like ":" in labels, since ISO datetime format uses ":" but
+    not "_" let's
+    replace ":" with "_"
+
+    :param datetime_obj: datetime.datetime object
+    :return: ISO-like string representing the datetime
+    """
+    return datetime_obj.isoformat().replace(":", "_").replace("+", "_plus_")

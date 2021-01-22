@@ -39,8 +39,10 @@ from dbnd_airflow.airflow_extensions.dal import (
 from dbnd_airflow.compat.kubernetes_executor import (
     AirflowKubernetesScheduler,
     get_job_watcher_kwargs,
+    get_safe_execution_datestring,
     make_safe_label_value,
 )
+from dbnd_airflow.compat.kubernetes_scheduler import unpack_next_job
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_watcher import (
     DbndKubernetesJobWatcher,
 )
@@ -89,12 +91,23 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
     """
 
     def __init__(
-        self, kube_config, task_queue, result_queue, kube_client, worker_uuid, kube_dbnd
+        self,
+        kube_config,
+        task_queue,
+        result_queue,
+        kube_client,
+        scheduler_job_id_or_worker_uuid,
+        kube_dbnd,
     ):
         super(DbndKubernetesScheduler, self).__init__(
-            kube_config, task_queue, result_queue, kube_client, worker_uuid
+            kube_config,
+            task_queue,
+            result_queue,
+            kube_client,
+            scheduler_job_id_or_worker_uuid,
         )
         self.kube_dbnd = kube_dbnd
+        self.scheduler_job_id_or_worker_uuid = scheduler_job_id_or_worker_uuid
 
         # PATCH watcher communication manager
         # we want to wait for stop, instead of "exit" inplace, so we can get all "not" received messages
@@ -160,7 +173,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         and store relevant info in the current_jobs map so we can track the job's
         status
         """
-        key, command, kube_executor_config = next_job
+        key, command, kube_executor_config, _ = unpack_next_job(next_job)
         dag_id, task_id, execution_date, try_number = key
         self.log.debug(
             "Kube POD to submit: image=%s with %s",
@@ -176,12 +189,18 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             task_run=task_run,
             cmds=pod_command,
             labels={
-                "airflow-worker": self.worker_uuid,
+                "airflow-worker": make_safe_label_value(
+                    self.scheduler_job_id_or_worker_uuid
+                ),
                 "dag_id": make_safe_label_value(dag_id),
                 "task_id": make_safe_label_value(task_run.task_af_id),
-                "execution_date": self._datetime_to_label_safe_datestring(
-                    execution_date
-                ),
+                "execution_date": get_safe_execution_datestring(execution_date),
+                "try_number": str(try_number),
+            },
+            annotations={
+                "dag_id": make_safe_label_value(dag_id),
+                "task_id": make_safe_label_value(task_run.task_af_id),
+                "execution_date": execution_date.isoformat(),
                 "try_number": str(try_number),
             },
             try_number=try_number,
@@ -189,15 +208,15 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         )
 
         pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
-        self.submitted_pods[pod.name] = SubmittedPodState(
-            pod_name=pod.name,
+        self.submitted_pods[pod.metadata.name] = SubmittedPodState(
+            pod_name=pod.metadata.name,
             task_run=task_run,
             scheduler_key=key,
             submitted_at=utcnow(),
         )
 
         pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
-        self.metrics_logger.log_pod_submitted(task_run.task, pod_name=pod.name)
+        self.metrics_logger.log_pod_submitted(task_run.task, pod_name=pod.metadata.name)
 
     # in airflow>1.10.10 delete_pod method takes additional "namespace" arg
     # we do not use it in our overridden method but still we need to adjust
@@ -281,13 +300,13 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
     def process_watcher_task(self, task):
         """Process the task event sent by watcher."""
-        pod_id, state, labels, resource_version = task
+        pod_id, namespace, state, annotations_or_labels, resource_version = task
         pod_name = pod_id
         self.log.debug(
-            "Attempting to process pod; pod_name: %s; state: %s; labels: %s",
+            "Attempting to process pod; pod_name: %s; state: %s; annotations_or_labels: %s",
             pod_id,
             state,
-            labels,
+            annotations_or_labels,
         )
 
         submitted_pod = self.submitted_pods.get(pod_name)
@@ -312,7 +331,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             "Attempting to process pod; pod_name: %s; state: %s; labels: %s",
             pod_id,
             state,
-            labels,
+            annotations_or_labels,
         )
 
         # we are not looking for key
@@ -321,9 +340,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         if submitted_pod.processed:
             # we already processed this kind of event, as in this process we have failed status already
             self.log.info(
-                "%s Skipping pod '%s' event from %s - already processed",
-                state,
-                pod_name,
+                "Skipping pod '%s' event from %s - already processed", state, pod_name,
             )
             return
 
@@ -339,7 +356,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 # simple case, pod has success - will be proceed by airflow main scheduler (Job)
                 # task can be failed or passed. Airflow exit with 0 if task has failed regular way.
                 self._process_pod_success(submitted_pod)
-                self.result_queue.put((key, state, pod_name, resource_version))
+                self.result_queue.put((key, state, pod_id, resource_version))
             elif state == State.FAILED:
                 # Pod crash, it was deleted, killed, evicted.. we need to give it extra treatment
                 self._process_pod_failed(submitted_pod)

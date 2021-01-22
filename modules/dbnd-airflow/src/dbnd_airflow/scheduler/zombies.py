@@ -3,16 +3,16 @@ import logging
 
 import airflow
 
-from airflow import LoggingMixin
 from airflow.configuration import conf
-from airflow.jobs import BackfillJob, BaseJob
 from airflow.models import DagRun, TaskInstance as TI
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
+from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.utils.state import State
 from sqlalchemy import and_, or_
 
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
+from dbnd_airflow.compat.jobs import BackfillJob, BaseJob
 
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,7 @@ def find_and_kill_dagrun_zombies(args, session=None):
 
 
 class ClearZombieJob(BaseJob):
-    ID_PREFIX = BackfillJob.ID_PREFIX + "manual_    "
+    ID_PREFIX = "backfill_manual_    "
     ID_FORMAT_PREFIX = ID_PREFIX + "{0}"
     __mapper_args__ = {"polymorphic_identity": "BackfillJob"}
     TYPE = "ZombieJob"
@@ -207,7 +207,7 @@ class ClearZombieTaskInstancesForDagRun(LoggingMixin):
         zombies = []
 
         # to avoid circular imports
-        from airflow.jobs import LocalTaskJob as LJ
+        from dbnd_airflow.compat.jobs import LocalTaskJob as LJ
 
         TI = airflow.models.TaskInstance
         limit_dttm = timezone.utcnow() - datetime.timedelta(

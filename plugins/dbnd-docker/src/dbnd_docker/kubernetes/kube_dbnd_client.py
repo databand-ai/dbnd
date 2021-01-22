@@ -6,7 +6,6 @@ import typing
 from datetime import datetime
 from typing import Optional
 
-from airflow.contrib.kubernetes.pod_launcher import PodStatus
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 
@@ -16,6 +15,7 @@ from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_erro
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter, override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
+from dbnd_docker.kubernetes.compat.pod_launcher import PodStatus
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
     KubernetesEngineConfig,
@@ -24,9 +24,8 @@ from dbnd_docker.kubernetes.kubernetes_engine_config import (
 
 
 if typing.TYPE_CHECKING:
-    from airflow.contrib.kubernetes.pod import Pod
     from dbnd._core.task_run.task_run import TaskRun
-    from kubernetes.client import CoreV1Api
+    from kubernetes.client import CoreV1Api, V1Pod
 logger = logging.getLogger(__name__)
 
 
@@ -54,8 +53,8 @@ class DbndKubernetesClient(object):
         )
 
     def get_pod_ctrl_for_pod(self, pod):
-        # type: (Pod)-> DbndPodCtrl
-        return self.get_pod_ctrl(pod.name, pod.namespace)
+        # type: (V1Pod)-> DbndPodCtrl
+        return self.get_pod_ctrl(pod.metadata.name, pod.metadata.namespace)
 
     def delete_pod(self, name, namespace):
         self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()
@@ -268,7 +267,7 @@ class DbndPodCtrl(object):
         return self
 
     def run_pod(self, task_run, pod, detach_run=False):
-        # type: (TaskRun, Pod, bool) -> DbndPodCtrl
+        # type: (TaskRun, V1Pod, bool) -> DbndPodCtrl
         kc = self.kube_config
 
         detach_run = detach_run or kc.detach_run
@@ -309,11 +308,11 @@ class DbndPodCtrl(object):
 
         try:
             resp = self.kube_client.create_namespaced_pod(
-                body=req, namespace=pod.namespace
+                body=req, namespace=pod.metadata.namespace
             )
             logger.info(
                 "%s has been submitted at pod '%s' at namespace '%s'"
-                % (task_run, pod.name, pod.namespace)
+                % (task_run, pod.metadata.name, pod.metadata.namespace)
             )
             self.log.debug("Pod Creation Response: %s", resp)
         except ApiException as ex:

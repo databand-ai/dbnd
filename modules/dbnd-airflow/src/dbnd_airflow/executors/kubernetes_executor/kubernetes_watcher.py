@@ -11,14 +11,17 @@ import signal
 import time
 import typing
 
-from airflow.contrib.executors.kubernetes_executor import KubernetesJobWatcher
 from airflow.utils.state import State
 
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
-from dbnd_airflow.compat.kubernetes_executor import get_tuple_for_watcher_queue
+from dbnd_airflow.compat.kubernetes_executor import (
+    KubernetesJobWatcher,
+    get_tuple_for_watcher_queue,
+)
+from dbnd_airflow.compat.kubernetes_watcher import get_run_watcher_args
 
 
 if typing.TYPE_CHECKING:
@@ -78,10 +81,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             while True:
                 try:
                     self.resource_version = self._run(
-                        kube_client,
-                        self.resource_version,
-                        self.worker_uuid,
-                        self.kube_config,
+                        *get_run_watcher_args(kube_client, self,)
                     )
                 except DatabandSigTermError:
                     break
@@ -155,6 +155,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         phase = pod_data.status.phase
         resource_version = pod_data.metadata.resource_version
         labels = pod_data.metadata.labels
+        annotations = pod_data.metadata.annotations
         task_id = labels.get("task_id")
         event_msg = "Event from %s(%s)" % (pod_id, task_id)
 
@@ -166,7 +167,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             pass
 
         _fail_event = get_tuple_for_watcher_queue(
-            pod_id, self.namespace, State.FAILED, labels, resource_version
+            pod_id, self.namespace, State.FAILED, labels, annotations, resource_version
         )
         debug_phase = (
             self.kube_dbnd.engine_config.debug_phase
@@ -221,7 +222,12 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 self.log.info("%s: pod is Running", event_msg)
                 self.watcher_queue.put(
                     get_tuple_for_watcher_queue(
-                        pod_id, self.namespace, State.RUNNING, labels, resource_version
+                        pod_id,
+                        self.namespace,
+                        State.RUNNING,
+                        labels,
+                        annotations,
+                        resource_version,
                     )
                 )
             except Exception as ex:
@@ -236,7 +242,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.log.info("%s: pod has Succeeded", event_msg)
             self.watcher_queue.put(
                 get_tuple_for_watcher_queue(
-                    pod_id, self.namespace, None, labels, resource_version
+                    pod_id, self.namespace, None, labels, annotations, resource_version
                 )
             )
         else:

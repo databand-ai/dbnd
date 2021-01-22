@@ -6,12 +6,9 @@ import typing
 
 from airflow import DAG
 from airflow.configuration import conf as airflow_conf
-from airflow.executors.local_executor import LocalExecutor
-from airflow.executors.sequential_executor import SequentialExecutor
 from airflow.models import DagPickle, DagRun, Pool, TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import create_session, provide_session
-from airflow.utils.net import get_hostname
 from airflow.utils.state import State
 from sqlalchemy.orm import Session
 
@@ -23,6 +20,7 @@ from dbnd._core.settings import DatabandSettings, RunConfig
 from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
 from dbnd_airflow.compat.dag_run import get_kwargs_for_dag_run
+from dbnd_airflow.compat.executors import LocalExecutor, SequentialExecutor
 from dbnd_airflow.config import AirflowConfig, get_dbnd_default_args
 from dbnd_airflow.db_utils import remove_listener_by_name
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (

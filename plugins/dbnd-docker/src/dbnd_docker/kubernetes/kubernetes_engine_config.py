@@ -9,6 +9,17 @@ from typing import Dict, List, Optional
 
 import yaml
 
+from kubernetes.client import (
+    V1Affinity,
+    V1Container,
+    V1EnvVar,
+    V1ObjectMeta,
+    V1Pod,
+    V1PodSecurityContext,
+    V1PodSpec,
+    V1Volume,
+    V1VolumeMount,
+)
 from kubernetes.config import ConfigException
 from six import PY2
 
@@ -30,6 +41,10 @@ from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.string_utils import clean_job_name_dns1123
 from dbnd._core.utils.structures import combine_mappings
+from dbnd_airflow.utils import (
+    camelcase_to_underscore,
+    datetime_to_label_safe_datestring,
+)
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_task import DockerRunTask
 from targets import target
@@ -227,9 +242,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             logger.warning(
                 "Running in debug mode, setting all k8s loggers to debug, waiting for every pod completion!"
             )
-            import airflow.contrib.kubernetes
+            from dbnd_docker.kubernetes.compat.kubernetes import kubernetes
 
-            set_module_logging_to_debug([dbnd_docker, airflow.contrib.kubernetes])
+            set_module_logging_to_debug([dbnd_docker, kubernetes])
             self.detach_run = False
         if self.show_pod_log:
             logger.warning(
@@ -355,10 +370,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         cmds,
         args=None,
         labels=None,
+        annotations=None,
         try_number=None,
         include_system_secrets=False,
     ):
-        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int]) ->Pod
+        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[Dict[str,str]], Optional[int]) -> V1Pod
         pod_name = self.get_pod_name(task_run=task_run, try_number=try_number)
 
         image = self.full_image
@@ -371,7 +387,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         if task_run.task.task_is_system:
             labels["dbnd"] = "dbnd_system_task_run"
-        annotations = self.annotations.copy()
+        annotations = combine_mappings(annotations, self.annotations)
         if self.gcp_service_account_keys:
             annotations[
                 "iam.cloud.google.com/service-account"
@@ -415,8 +431,6 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         secrets = self.get_secrets(include_system_secrets=include_system_secrets)
 
-        from airflow.contrib.kubernetes.pod import Pod
-
         if self.trap_exit_file_flag:
             args = [
                 textwrap.dedent(
@@ -453,28 +467,37 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                 help_msg="Container tag should be assigned",
             )
 
-        pod = Pod(
-            namespace=self.namespace,
-            name=pod_name,
-            envs=env_vars,
-            image=image,
-            cmds=cmds,
-            args=args,
-            labels=labels,
-            image_pull_policy=self.image_pull_policy,
-            image_pull_secrets=self.image_pull_secrets,
-            secrets=secrets,
-            service_account_name=self.service_account_name,
-            volumes=self.volumes,
-            volume_mounts=self.volume_mounts,
-            annotations=annotations,
-            node_selectors=self.node_selectors,
-            affinity=self.affinity,
-            tolerations=self.tolerations,
-            security_context=self.security_context,
-            configmaps=self.configmaps,
-            hostnetwork=self.hostnetwork,
-            resources=resources,
+        pod = V1Pod(
+            metadata=V1ObjectMeta(
+                namespace=self.namespace,
+                annotations=annotations,
+                name=pod_name,
+                labels=labels,
+            ),
+            spec=V1PodSpec(
+                containers=[
+                    V1Container(
+                        name="base",
+                        args=args,
+                        image=image,
+                        env=self.get_env(env_vars, secrets),
+                        command=cmds,
+                        image_pull_policy=self.image_pull_policy,
+                        volume_mounts=self.volume_mounts,
+                        resources=resources,
+                    )
+                ],
+                image_pull_secrets=self.image_pull_secrets,
+                service_account_name=self.service_account_name,
+                volumes=self.volumes,
+                node_selector=self.node_selectors,
+                affinity=self.dict_to_v1_object(V1Affinity, self.affinity),
+                tolerations=self.tolerations,
+                security_context=self.dict_to_v1_object(
+                    V1PodSecurityContext, self.security_context
+                ),
+                host_network=self.hostnetwork,
+            ),
         )
 
         if self.pod_yaml:
@@ -482,9 +505,59 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         return pod
 
+    def get_volumes(self, secrets):
+        if self.volumes is None:
+            return
+        v1_volumes = [
+            self.dict_to_v1_object(V1Volume, volume) for volume in self.volumes
+        ]
+        for volume_secret in self.get_volume_secrets(secrets):
+            # get volume secrets returns list of tuples of type (V1Volume, V1VolumeMount)
+            v1_volumes.append(volume_secret[0])
+        return v1_volumes
+
+    @staticmethod
+    def dict_to_v1_object(v1_object, dict_):
+        if dict_ is None:
+            return
+        kwargs = {camelcase_to_underscore(key): value for key, value in dict_.items()}
+        return v1_object(**kwargs)
+
+    def get_env(self, env_vars, secrets):
+        env = [V1EnvVar(name=key, value=value) for key, value in env_vars.items()]
+        env.extend(self.get_env_secrets(secrets))
+        return env
+
+    def get_volume_mounts(self, volume_mounts, secrets):
+        v1_volume_mounts = []
+        if volume_mounts is not None:
+            v1_volume_mounts = [
+                self.dict_to_v1_object(V1VolumeMount, volume_mount)
+                for volume_mount in volume_mounts
+            ]
+        for volume_secret in self.get_volume_secrets(secrets):
+            # get volume secrets returns list of tuples of type (V1Volume, V1VolumeMount)
+            v1_volume_mounts.append(volume_secret[1])
+
+        return v1_volume_mounts
+
+    @staticmethod
+    def get_volume_secrets(secrets):
+        return [
+            secret.to_volume_secret()
+            for secret in secrets
+            if secret.deploy_type == "volume"
+        ]
+
+    @staticmethod
+    def get_env_secrets(secrets):
+        return [
+            secret.to_env_secret() for secret in secrets if secret.deploy_type == "env"
+        ]
+
     def get_secrets(self, include_system_secrets=True):
         """Defines any necessary secrets for the pod executor"""
-        from airflow.contrib.kubernetes.secret import Secret
+        from dbnd_docker.kubernetes.compat.secret import Secret
 
         result = []
         if include_system_secrets:
@@ -503,6 +576,28 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         return result
 
+    def get_v1_security_context(self):
+        if self.security_context is None:
+            return
+        return V1PodSecurityContext(
+            fs_group=self.security_context.get("fsGroup"),
+            run_as_group=self.security_context.get("runAsGroup"),
+            run_as_non_root=self.security_context.get("runAsNonRoot"),
+            run_as_user=self.security_context.get("runAsUser"),
+            se_linux_options=self.security_context.get("seLinuxOptions"),
+            supplemental_groups=self.security_context.get("supplementalGroups"),
+            sysctls=self.security_context.get("sysctls"),
+        )
+
+    def get_v1_affinity(self):
+        if self.affinity is None:
+            return
+        return V1Affinity(
+            node_affinity=self.affinity.get("nodeAffinity"),
+            pod_affinity=self.affinity.get("podAffinity"),
+            pod_anti_affinity=self.affinity.get("podAntiAffinity"),
+        )
+
     def build_kube_pod_req(self, pod):
         from dbnd_airflow.airflow_extensions.request_factory import (
             DbndPodRequestFactory,
@@ -516,10 +611,15 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         req = kube_req_factory.create(pod)
         return req
 
-    def apply_env_vars_to_pod(self, pod):
-        pod.envs["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
+    @staticmethod
+    def apply_env_vars_to_pod(pod):
+        pod.spec.containers[0].env.append(
+            V1EnvVar(name="AIRFLOW__KUBERNETES__DAGS_IN_IMAGE", value="True")
+        )
         if not get_dbnd_project_config().is_tracking_mode():
-            pod.envs[ENV_DBND__TRACKING] = "False"
+            pod.spec.containers[0].env.append(
+                V1EnvVar(name=ENV_DBND__TRACKING, value="False")
+            )
 
 
 def readable_pod_request(pod_req):

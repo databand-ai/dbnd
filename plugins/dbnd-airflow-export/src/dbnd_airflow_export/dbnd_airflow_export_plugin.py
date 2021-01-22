@@ -15,6 +15,7 @@ from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.db import provide_session
 from flask import Response
 
+from dbnd_airflow.compat.dagbad import dagbag
 from dbnd_airflow_export.logic import (
     get_airflow_incomplete_data,
     get_airflow_regular_data,
@@ -30,8 +31,6 @@ class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
     @flask_appbuilder.has_access
     @flask_appbuilder.expose("/export_data")
     def export_data(self):
-        from airflow.www_rbac.views import dagbag
-
         return export_data_api(dagbag)
 
 
@@ -43,7 +42,6 @@ class ExportDataViewAdmin(flask_admin.BaseView):
     @flask_admin.expose("/")
     @flask_admin.expose("/export_data")
     def export_data(self):
-        from airflow.www.views import dagbag
 
         return export_data_api(dagbag)
 
@@ -189,7 +187,7 @@ try:
 
     api.load_auth()
 
-    from airflow.www_rbac.api.experimental.endpoints import (
+    from dbnd_airflow.compat.www import (
         api_experimental,
         requires_authentication,
     )
@@ -197,8 +195,6 @@ try:
     @api_experimental.route("/export_data", methods=["GET"])
     @requires_authentication
     def export_data():
-        from airflow.www_rbac.views import dagbag
-
         return export_data_api(dagbag)
 
 
