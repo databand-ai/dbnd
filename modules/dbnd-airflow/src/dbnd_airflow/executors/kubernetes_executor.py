@@ -21,15 +21,9 @@ import signal
 import time
 import typing
 
-from distutils.version import LooseVersion
-
-import airflow
-
-from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 
-from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import DatabandRuntimeError, DatabandSigTermError
 from dbnd._core.utils.basics.signal_utils import safe_signal
@@ -39,7 +33,9 @@ from dbnd_airflow.compat.kubernetes_executor import (
     KubernetesExecutor,
     KubernetesJobWatcher,
     get_job_watcher_kwargs,
+    get_safe_execution_datestring,
     get_tuple_for_watcher_queue,
+    get_worker_uuid_or_scheduler_job_id,
     make_safe_label_value,
 )
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
@@ -75,14 +71,14 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
                 else:
                     env_from_secret_ref.append(s.secret)
 
-        if kube_secrets:
-            airflow_kube_config.kube_secrets.update(kube_secrets)
+        # if kube_secrets:
+        #     airflow_kube_config.kube_secrets.update(kube_secrets)
 
         if env_from_secret_ref:
             airflow_kube_config.env_from_secret_ref = ",".join(env_from_secret_ref)
 
-    if ec.env_vars is not None:
-        airflow_kube_config.kube_env_vars.update(ec.env_vars)
+    # if ec.env_vars is not None:
+    #     airflow_kube_config.kube_env_vars.update(ec.env_vars)
 
     if ec.configmaps is not None:
         airflow_kube_config.env_from_configmap_ref = ",".join(ec.configmaps)
@@ -98,10 +94,10 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
 
     if ec.image_pull_policy is not None:
         airflow_kube_config.kube_image_pull_policy = ec.image_pull_policy
-    if ec.node_selectors is not None:
-        airflow_kube_config.kube_node_selectors.update(ec.node_selectors)
-    if ec.annotations is not None and airflow_kube_config.kube_annotations is not None:
-        airflow_kube_config.kube_annotations.update(ec.annotations)
+    # if ec.node_selectors is not None:
+    #     airflow_kube_config.kube_node_selectors.update(ec.node_selectors)
+    # if ec.annotations is not None and airflow_kube_config.kube_annotations is not None:
+    #     airflow_kube_config.kube_annotations.update(ec.annotations)
 
     if ec.pods_creation_batch_size is not None:
         airflow_kube_config.worker_pods_creation_batch_size = (
@@ -127,12 +123,24 @@ def _update_airflow_kube_config(airflow_kube_config, engine_config):
 
 class DbndKubernetesScheduler(AirflowKubernetesScheduler):
     def __init__(
-        self, kube_config, task_queue, result_queue, kube_client, worker_uuid, kube_dbnd
+        self,
+        kube_config,
+        task_queue,
+        result_queue,
+        kube_client,
+        scheduler_job_id_or_worker_uuid,
+        kube_dbnd,
     ):
         super(DbndKubernetesScheduler, self).__init__(
-            kube_config, task_queue, result_queue, kube_client, worker_uuid
+            kube_config,
+            task_queue,
+            result_queue,
+            kube_client,
+            scheduler_job_id_or_worker_uuid,
         )
         self.kube_dbnd = kube_dbnd
+
+        self.scheduler_job_id_or_worker_uuid = scheduler_job_id_or_worker_uuid
 
         # PATCH watcher communication manager
         # we want to wait for stop, instead of "exit" inplace, so we can get all "not" received messages
@@ -190,7 +198,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         and store relevant info in the current_jobs map so we can track the job's
         status
         """
-        key, command, kube_executor_config = next_job
+        key, command, kube_executor_config, pod_template_file = next_job
         dag_id, task_id, execution_date, try_number = key
         self.log.debug(
             "Kube POD to submit: image=%s with %s",
@@ -206,12 +214,18 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             task_run=task_run,
             cmds=pod_command,
             labels={
-                "airflow-worker": self.worker_uuid,
+                "airflow-worker": make_safe_label_value(
+                    self.scheduler_job_id_or_worker_uuid
+                ),
                 "dag_id": make_safe_label_value(dag_id),
                 "task_id": make_safe_label_value(task_run.task_af_id),
-                "execution_date": self._datetime_to_label_safe_datestring(
-                    execution_date
-                ),
+                "execution_date": get_safe_execution_datestring(execution_date),
+                "try_number": str(try_number),
+            },
+            annotations={
+                "dag_id": make_safe_label_value(dag_id),
+                "task_id": make_safe_label_value(task_run.task_af_id),
+                "execution_date": execution_date.isoformat(),
                 "try_number": str(try_number),
             },
             try_number=try_number,
@@ -219,8 +233,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         )
 
         pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
-        self.running_pods[pod.name] = self.namespace
-        self.pod_to_task[pod.name] = task_run.task
+        self.running_pods[pod.metadata.name] = self.namespace
+        self.pod_to_task[pod.metadata.name] = task_run.task
 
         pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
         self.metrics_logger.log_pod_started(task_run.task)
@@ -328,14 +342,12 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         logger.info("Starting Kubernetes executor... PID: %s", os.getpid())
         self._manager.start(mgr_init)
 
-        dbnd_run = try_get_databand_run()
-        if dbnd_run:
-            self.worker_uuid = str(dbnd_run.run_uid)
-        else:
-            self.worker_uuid = (
-                KubeWorkerIdentifier.get_or_create_current_kube_worker_uuid()
-            )
-        self.log.debug("Start with worker_uuid: %s", self.worker_uuid)
+        self.worker_uuid_or_scheduler_job_id = get_worker_uuid_or_scheduler_job_id(self)
+        self.scheduler_job_id = self.worker_uuid_or_scheduler_job_id
+        self.log.debug(
+            "Start with worker_uuid or scheduler_job_id: %s",
+            self.worker_uuid_or_scheduler_job_id,
+        )
 
         # always need to reset resource version since we don't know
         # when we last started, note for behavior below
@@ -351,7 +363,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
             self.task_queue,
             self.result_queue,
             self.kube_client,
-            self.worker_uuid,
+            self.worker_uuid_or_scheduler_job_id,
             kube_dbnd=self.kube_dbnd,
         )
 
@@ -359,7 +371,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
             self.log.setLevel(logging.DEBUG)
             self.kube_scheduler.log.setLevel(logging.DEBUG)
 
-        self._inject_secrets()
+        # self._inject_secrets()
         self.clear_not_launched_queued_tasks()
         self._flush_result_queue()
 
@@ -368,7 +380,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     # due to model override
     # + we don't want to change tasks statuses - maybe they are managed by other executors
     @provide_session
-    def clear_not_launched_queued_tasks(self, *args, **kwargs):
+    def clear_not_launched_queued_tasks(self, session, *args, **kwargs):
         # we don't clear kubernetes tasks from previous run
         pass
 
@@ -399,7 +411,8 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                     self.resource_version = self._run(
                         kube_client,
                         self.resource_version,
-                        self.worker_uuid,
+                        # fix compat issue here
+                        self.scheduler_job_id,
                         self.kube_config,
                     )
                 except DatabandSigTermError:
@@ -475,6 +488,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                     task.metadata.name,
                     status,
                     task.metadata.labels,
+                    task.metadata.annotations,
                     task.metadata.resource_version,
                 )
                 self.resource_version = task.metadata.resource_version
@@ -529,7 +543,9 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         finally:
             self.processed_pods[pod_name] = True
 
-    def process_status_quite(self, pod_id, status, labels, resource_version):
+    def process_status_quite(
+        self, pod_id, status, labels, annotations, resource_version
+    ):
         """Process status response"""
         if status == "Pending":
             self.log.debug("Event: %s Pending", pod_id)
@@ -537,14 +553,24 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.log.debug("Event: %s Failed", pod_id)
             self.watcher_queue.put(
                 get_tuple_for_watcher_queue(
-                    pod_id, self.namespace, State.FAILED, labels, resource_version
+                    pod_id,
+                    self.namespace,
+                    State.FAILED,
+                    labels,
+                    annotations,
+                    resource_version,
                 )
             )
         elif status == "Succeeded":
             self.log.debug("Event: %s Succeeded", pod_id)
             self.watcher_queue.put(
                 get_tuple_for_watcher_queue(
-                    pod_id, self.namespace, State.SUCCESS, labels, resource_version
+                    pod_id,
+                    self.namespace,
+                    State.SUCCESS,
+                    labels,
+                    annotations,
+                    resource_version,
                 )
             )
         elif status == "Running":

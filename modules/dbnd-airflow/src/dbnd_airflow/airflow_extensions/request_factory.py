@@ -5,7 +5,7 @@ from distutils.version import LooseVersion
 import airflow
 import yaml
 
-from airflow.contrib.kubernetes.secret import Secret
+from airflow.kubernetes.secret import Secret
 
 from dbnd_airflow.compat.request_factory import serialize_pod
 
@@ -23,7 +23,7 @@ class DbndPodRequestFactory(object):
         req = serialize_pod(pod, self.kubernetes_engine_config)
 
         self.extract_node_affinity(pod, req)
-        self.extract_volume_secrets(pod, req)
+        # self.extract_volume_secrets(pod, req)
         self.extract_extended_resources(req)
         self.extract_restart_policy(req)
 
@@ -54,30 +54,30 @@ class DbndPodRequestFactory(object):
 
     @staticmethod
     def extract_node_affinity(pod, req):
-        if not hasattr(pod, "node_affinity"):
+        if not hasattr(pod.spec, "node_affinity"):
             return
 
         nodeAffinity = req["spec"].setdefault("nodeSelector", {})
         nodeAffinity.update(pod.node_affinity)
 
-    @staticmethod
-    def extract_volume_secrets(pod, req):
-        vol_secrets = [s for s in pod.secrets if s.deploy_type == "volume"]
-        if any(vol_secrets):
-            req["spec"]["containers"][0]["volumeMounts"] = req["spec"]["containers"][
-                0
-            ].get("volumeMounts", [])
-            req["spec"]["volumes"] = req["spec"].get("volumes", [])
-        for idx, vol in enumerate(vol_secrets):  # type: Secret
-            vol_id = "secretvol" + str(idx)
-            volumeMount = {
-                "mountPath": vol.deploy_target,
-                "name": vol_id,
-                "readOnly": True,
-            }
-            if vol.key:
-                volumeMount["subPath"] = vol.key
-            req["spec"]["containers"][0]["volumeMounts"].append(volumeMount)
-            req["spec"]["volumes"].append(
-                {"name": vol_id, "secret": {"secretName": vol.secret}}
-            )
+    # @staticmethod
+    # def extract_volume_secrets(pod, req):
+    #     vol_secrets = [s for s in pod.secrets if s.deploy_type == "volume"]
+    #     if any(vol_secrets):
+    #         req["spec"]["containers"][0]["volumeMounts"] = req["spec"]["containers"][
+    #             0
+    #         ].get("volumeMounts", [])
+    #         req["spec"]["volumes"] = req["spec"].get("volumes", [])
+    #     for idx, vol in enumerate(vol_secrets):  # type: Secret
+    #         vol_id = "secretvol" + str(idx)
+    #         volumeMount = {
+    #             "mountPath": vol.deploy_target,
+    #             "name": vol_id,
+    #             "readOnly": True,
+    #         }
+    #         if vol.key:
+    #             volumeMount["subPath"] = vol.key
+    #         req["spec"]["containers"][0]["volumeMounts"].append(volumeMount)
+    #         req["spec"]["volumes"].append(
+    #             {"name": vol_id, "secret": {"secretName": vol.secret}}
+    #         )

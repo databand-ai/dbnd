@@ -33,9 +33,8 @@ from dbnd_docker.kubernetes.kubernetes_engine_config import (
 
 
 if typing.TYPE_CHECKING:
-    from airflow.contrib.kubernetes.pod import Pod
     from dbnd._core.task_run.task_run import TaskRun
-    from kubernetes.client import CoreV1Api
+    from kubernetes.client import CoreV1Api, V1Pod
 logger = logging.getLogger(__name__)
 
 
@@ -62,8 +61,8 @@ class DbndKubernetesClient(object):
         )
 
     def get_pod_ctrl_for_pod(self, pod):
-        # type: (Pod)-> DbndPodCtrl
-        return self.get_pod_ctrl(pod.name, pod.namespace)
+        # type: (V1Pod)-> DbndPodCtrl
+        return self.get_pod_ctrl(pod.metadata.name, pod.metadata.namespace)
 
     def delete_pod(self, name, namespace):
         self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()
@@ -501,7 +500,7 @@ class DbndPodCtrl(object):
         return self
 
     def run_pod(self, task_run, pod, detach_run=False):
-        # type: (TaskRun, Pod, bool) -> DbndPodCtrl
+        # type: (TaskRun, V1Pod, bool) -> DbndPodCtrl
         kc = self.kube_config
 
         detach_run = detach_run or kc.detach_run
@@ -542,10 +541,11 @@ class DbndPodCtrl(object):
 
         try:
             resp = self.kube_client.create_namespaced_pod(
-                body=req, namespace=pod.namespace
+                body=req, namespace=pod.metadata.namespace
             )
             logger.info(
-                "Started pod '%s' in namespace '%s'" % (pod.name, pod.namespace)
+                "Started pod '%s' in namespace '%s'"
+                % (pod.metadata.name, pod.metadata.namespace)
             )
             logger.debug("Pod Creation Response: %s", resp)
         except ApiException as ex:

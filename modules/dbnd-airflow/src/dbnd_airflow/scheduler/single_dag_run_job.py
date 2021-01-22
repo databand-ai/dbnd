@@ -27,6 +27,7 @@ from dbnd_airflow.compat.single_dag_run_job import AIRFLOW_BASE_JOB_CLASS
 from dbnd_airflow.compat.state import get_finished_states
 from dbnd_airflow.compat.ti_deps import RUNNABLE_STATES, RUNNING_DEPS
 from dbnd_airflow.config import AirflowConfig
+from dbnd_airflow.contants import AIRFLOW_BELOW_2
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
 )
@@ -118,7 +119,7 @@ class SingleDagRunJob(AIRFLOW_BASE_JOB_CLASS, SingletonContext):
 
         self.ti_state_manager = AirflowTaskInstanceStateManager()
         self.airflow_config = airflow_config  # type: AirflowConfig
-        if isinstance(AIRFLOW_BASE_JOB_CLASS, BackfillJob):
+        if not AIRFLOW_BELOW_2:
             super(SingleDagRunJob, self).__init__(dag, *args, **kwargs)
         else:
             super(SingleDagRunJob, self).__init__(*args, **kwargs)
@@ -740,6 +741,9 @@ class SingleDagRunJob(AIRFLOW_BASE_JOB_CLASS, SingletonContext):
 
         # picklin'
         pickle_id = self.dag.pickle_id
+
+        if not AIRFLOW_BELOW_2:
+            self.executor.job_id = self.id
 
         executor = self.executor
         executor.start()

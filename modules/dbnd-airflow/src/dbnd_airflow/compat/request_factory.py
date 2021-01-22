@@ -3,7 +3,7 @@ from dbnd_airflow.constants import AIRFLOW_ABOVE_10
 
 def serialize_pod(pod, engine_config):
     if AIRFLOW_ABOVE_10:
-        pod = pod.to_v1_kubernetes_pod()
+        # pod = pod.to_v1_kubernetes_pod()
 
         from airflow.kubernetes.kube_client import get_kube_client
 
