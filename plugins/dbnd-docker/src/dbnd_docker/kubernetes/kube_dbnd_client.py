@@ -63,7 +63,7 @@ class DbndKubernetesClient(object):
 
 class DbndPodCtrl(object):
     def __init__(self, pod_name, pod_namespace, kube_config, kube_client):
-        self.kube_config = kube_config
+        self.kube_config = kube_config  # type: KubernetesEngineConfig
         self.name = pod_name
         self.namespace = pod_namespace
         self.kube_client = kube_client
@@ -164,37 +164,36 @@ class DbndPodCtrl(object):
 
     def check_deploy_errors(self, pod_v1_resp):
         pod_status = pod_v1_resp.status
-        if pod_status.conditions:
+        if self.kube_config.check_unschedulable_condition and pod_status.conditions:
             for condition in pod_status.conditions:
+                if condition.reason != "Unschedulable":
+                    continue
+                logger.info("pod is pending because %s" % condition.message)
                 if (
-                    condition.reason == "Unschedulable"
-                    and self.kube_config.check_unschedulable_condition
+                    "Insufficient cpu" in condition.message
+                    or "Insufficient memory" in condition.message
                 ):
-                    logger.info("pod is pending because %s" % condition.message)
-                    if (
-                        "Insufficient cpu" in condition.message
-                        or "Insufficient memory" in condition.message
-                    ):
-                        if self.kube_config.check_cluster_resource_capacity:
-                            kube_resources_checker = DbndKubeResourcesChecker(
-                                kube_client=self.kube_client,
-                                kube_config=self.kube_config,
-                            )
-                            kube_resources_checker.check_if_resource_request_above_max_capacity(
-                                condition.message
-                            )
-
-                        self.log.warning(
-                            "pod is pending because %s" % condition.message
+                    if self.kube_config.check_cluster_resource_capacity:
+                        kube_resources_checker = DbndKubeResourcesChecker(
+                            kube_client=self.kube_client, kube_config=self.kube_config,
                         )
-                    else:
-                        raise friendly_error.executor_k8s.kubernetes_pod_unschedulable(
+                        kube_resources_checker.check_if_resource_request_above_max_capacity(
                             condition.message
                         )
 
+                    self.log.warning("pod is pending because %s" % condition.message)
+                else:
+                    raise friendly_error.executor_k8s.kubernetes_pod_unschedulable(
+                        condition.message
+                    )
+
         if pod_status.container_statuses:
             container_waiting_state = pod_status.container_statuses[0].state.waiting
-            if pod_status.phase == "Pending" and container_waiting_state:
+            if (
+                self.kube_config.check_image_pull_errors
+                and pod_status.phase == "Pending"
+                and container_waiting_state
+            ):
                 if container_waiting_state.reason == "ErrImagePull":
                     raise friendly_error.executor_k8s.kubernetes_image_not_found(
                         pod_status.container_statuses[0].image,
@@ -206,6 +205,31 @@ class DbndPodCtrl(object):
                     raise friendly_error.executor_k8s.kubernetes_pod_config_error(
                         container_waiting_state.message
                     )
+
+    def check_running_errors(self, pod_v1_resp):
+        """
+        Raise an error if pod in running state with Failed conditions
+        """
+        pod_status = pod_v1_resp.status
+        if not self.kube_config.check_running_pod_errors:
+            return
+        if pod_status.conditions:
+            for condition in pod_status.conditions:
+                if condition.type != "Ready":
+                    continue
+                # We are looking for
+                #  {
+                #   u"status": u"False",
+                #   u"lastProbeTime": None,
+                #   u"type": u"Ready",
+                #   u"lastTransitionTime": u"2021-01-22T04:54:13Z",
+                #  },
+                if not condition.status or condition.status == "False":
+                    raise friendly_error.executor_k8s.kubernetes_running_pod_fails_on_condition(
+                        condition, pod_name=pod_v1_resp.metadata.name
+                    )
+                return True
+        return False
 
     def wait(self):
         """

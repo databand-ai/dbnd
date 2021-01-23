@@ -26,10 +26,24 @@ def kubernetes_image_not_found(image_name, message, long_msg):
     return KubernetesImageNotFoundError(
         "Failed to start Kubernetes pod because the configured image (%s) could not be pulled by Kubernetes: %s"
         % (image_name, message),
-        help_msg="Make sure you built and pushed your image. If the image is in a private repository make sure you "
+        help_msg="Make sure you have built and pushed your image. "
+        "If the image is in a private repository make sure you "
         "configured image pull secrets for it in the Kubernetes cluster "
         "and configured image_pull_secrets in the Kubernetes engine config. Details %s"
         % long_msg,
+    )
+
+
+class KubernetesRunningPodConditionFailure(DatabandConfigError):
+    pass
+
+
+def kubernetes_running_pod_fails_on_condition(condition, pod_name):
+    return KubernetesRunningPodConditionFailure(
+        "Pod %s is failing at Running phase: %s" % (pod_name, condition),
+        help_msg="The pod is failing. Main reason for that is preemptible nodes, "
+        "you can disable this check at `kubernetes.check_running_pod_errors=False`. "
+        "See pod log for more details",
     )
 
 

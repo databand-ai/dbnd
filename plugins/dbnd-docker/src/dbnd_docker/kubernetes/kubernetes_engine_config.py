@@ -163,6 +163,12 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     check_unschedulable_condition = parameter(default=True).help(
         "Try to detect non-transient issues that prevent the pod from being scheduled and fail the run if needed"
     )
+    check_image_pull_errors = parameter(default=True).help(
+        "Try to detect image pull issues that prevent the pod from being scheduled and fail the run if needed"
+    )
+    check_running_pod_errors = parameter(default=False).help(
+        "Try to detect running pod issues like failed ContainersReady condition (pod is deleted)"
+    )
     check_cluster_resource_capacity = parameter(default=True).help(
         "When a pod can't be scheduled due to cpu or memory constraints, check if the constraints are possible to satisfy in the cluster"
     )

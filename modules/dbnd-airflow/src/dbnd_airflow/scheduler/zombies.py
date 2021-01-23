@@ -145,10 +145,10 @@ class ClearZombieTaskInstancesForDagRun(LoggingMixin):
 
     def __init__(self):
         super(ClearZombieTaskInstancesForDagRun, self).__init__()
-        self._zombie_threshold_secs = conf.getint(
+        self.zombie_threshold_secs = conf.getint(
             "scheduler", "scheduler_zombie_task_threshold"
         )
-        self._zombie_query_interval_seconds = 60
+        self.zombie_query_interval_secs = 60
         self._last_zombie_query_time = None
         self._log = PrefixLoggerAdapter("clear-zombies", self.log)
 
@@ -159,11 +159,11 @@ class ClearZombieTaskInstancesForDagRun(LoggingMixin):
         if (
             self._last_zombie_query_time
             and (now - self._last_zombie_query_time).total_seconds()
-            < self._zombie_query_interval_seconds
+            < self.zombie_query_interval_secs
         ):
             return
         self._last_zombie_query_time = timezone.utcnow()
-        self.log.info("Checking on possible zombie tasks")
+        self.log.debug("Checking on possible zombie tasks")
         zombies = self._find_task_instance_zombies(dag, execution_date, session=session)
         if not zombies:
             return
@@ -211,7 +211,7 @@ class ClearZombieTaskInstancesForDagRun(LoggingMixin):
 
         TI = airflow.models.TaskInstance
         limit_dttm = timezone.utcnow() - datetime.timedelta(
-            seconds=self._zombie_threshold_secs
+            seconds=self.zombie_threshold_secs
         )
 
         tis = (

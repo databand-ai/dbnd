@@ -17,10 +17,16 @@
 
 
 import time
+import typing
+
+from typing import Dict
+
+import attr
 
 from airflow.contrib.executors.kubernetes_executor import AirflowKubernetesScheduler
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
+from airflow.utils.timezone import utcnow
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
@@ -43,13 +49,39 @@ from dbnd_docker.kubernetes.kube_dbnd_client import (
 )
 
 
+if typing.TYPE_CHECKING:
+    from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
+
+
+@attr.s
+class SubmittedPodState(object):
+    pod_name = attr.ib()
+    submitted_at = attr.ib()
+
+    # key from airflow (task instance
+    scheduler_key = attr.ib()
+    # dbnd run
+    task_run = attr.ib()
+
+    # state
+    # returned to KubernetesExecutor -> Main Scheduler
+    # but probably is still not deleted
+    processed = attr.ib(default=False)
+
+    # set on running
+    node_name = attr.ib(default=None)
+
+    @property
+    def try_number(self):
+        return self.scheduler_key[1]
+
+
 class DbndKubernetesScheduler(AirflowKubernetesScheduler):
     """
     Very serious override of AirflowKubernetesScheduler
     1. better visability on errors, so we proceed Failures with much more info
     2. tracking of all around "airflow run" events -> Pod Crashes, Pod Submission errors
         a. in case of crash (OOM, evicted pod) -> error propogation to databand and retry
-    3. handling of disappeared pods ( every 10th iteration of .sync() validate all running_pods
     """
 
     def __init__(
@@ -75,8 +107,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.kube_watcher = self._make_kube_watcher_dbnd()
 
         # pod to airflow key (dag_id, task_id, execution_date)
-        self.running_pods = {}
-        self.pod_to_task_run = {}
+        self.submitted_pods = {}  # type: Dict[str,SubmittedPodState]
 
         # sending data to databand tracker
         self.metrics_logger = KubernetesMetricsLogger()
@@ -161,25 +192,32 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         )
 
         pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
-        self.running_pods[pod.name] = key
-        self.pod_to_task_run[pod.name] = task_run
+        self.submitted_pods[pod.name] = SubmittedPodState(
+            pod_name=pod.name,
+            task_run=task_run,
+            scheduler_key=key,
+            submitted_at=utcnow(),
+        )
 
         pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
         self.metrics_logger.log_pod_submitted(task_run.task, pod_name=pod.name)
 
     def delete_pod(self, pod_id):
-        # we will try to delete pod only once
-
-        self.running_pods.pop(pod_id, None)
-        task_run = self.pod_to_task_run.pop(pod_id, None)
-        if not task_run:
+        # we are going to delete pod only once.
+        # the moment it's removed from submitted_pods, we will not handle it event, neither delete it
+        submitted_pod = self.submitted_pods.pop(pod_id, None)
+        if not submitted_pod:
             return
 
         try:
-            self.metrics_logger.log_pod_finished(task_run.task)
+            self.metrics_logger.log_pod_finished(submitted_pod.task_run.task)
         except Exception:
             # Catch all exceptions to prevent any delete loops, best effort
-            self.log.exception("Failed to save pod finish info: pod_name=%s.!", pod_id)
+            self.log.exception(
+                "%s failed to save pod finish info: pod_name=%s.!",
+                submitted_pod.task_run,
+                pod_id,
+            )
 
         try:
             result = self.kube_dbnd.delete_pod(pod_id, self.namespace)
@@ -187,7 +225,9 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         except Exception:
             # Catch all exceptions to prevent any delete loops, best effort
             self.log.exception(
-                "Exception raised when trying to delete pod: pod_name=%s.", pod_id
+                "%s: Exception raised when trying to delete pod: pod_name=%s.",
+                submitted_pod.task_run,
+                pod_id,
             )
 
     def terminate(self):
@@ -205,7 +245,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         Clean up of all running pods on terminate:
         """
         # now we need to clean after the run
-        pods_to_delete = sorted(list(self.pod_to_task_run.items()))
+        pods_to_delete = sorted(list(self.submitted_pods.values()))
         if not pods_to_delete:
             return
 
@@ -213,11 +253,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             "Terminating run, deleting all %d submitted pods that are still running/not finalized",
             len(pods_to_delete),
         )
-        for pod_name, task_run in pods_to_delete:
+        for submitted_pod in pods_to_delete:
             try:
-                self.delete_pod(pod_name)
+                self.delete_pod(submitted_pod.pod_name)
             except Exception:
-                self.log.exception("Failed to terminate pod %s", pod_name)
+                self.log.exception("Failed to terminate pod %s", submitted_pod.pod_name)
 
         # Wait for pods to be deleted and execute their own state management
         self.log.info(
@@ -225,12 +265,13 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         )
         time.sleep(10)
         try:
-            for pod_name, task_run in pods_to_delete:
+            for submitted_pod in pods_to_delete:
+                task_run = submitted_pod.task_run
                 if task_run.task_run_state in TaskRunState.final_states():
                     self.log.info(
                         "%s with pod %s was %s, skipping",
                         task_run,
-                        pod_name,
+                        submitted_pod.pod_name,
                         task_run.task_run_state,
                     )
                     continue
@@ -249,30 +290,23 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             labels,
         )
 
-        if pod_name not in self.running_pods:
+        submitted_pod = self.submitted_pods.get(pod_name)
+        if submitted_pod is None:
             # this is deleted pod - on delete watcher will send event
             # 1. delete by scheduler - we skip here
             # 2. external delete -> we continue to process the event
             return
 
-        key = self._labels_to_key(labels=labels)
-        if not key:
-            self.log.info(
-                "Can't find a key for event from %s - %s from labels %s, skipping",
-                pod_name,
-                state,
-                labels,
-            )
-            return
-
-        task_run = self.pod_to_task_run.get(pod_name)
-        if not task_run:
-            self.log.info(
-                "Can't find a task run for event from %s - %s, skipping",
-                pod_name,
-                state,
-            )
-            return
+        # DBND-AIRFLOW we have it precached, we don't need to go to DB
+        # key = self._labels_to_key(labels=labels)
+        # if not key:
+        #     self.log.info(
+        #         "Can't find a key for event from %s - %s from labels %s, skipping",
+        #         pod_name,
+        #         state,
+        #         labels,
+        #     )
+        #     return
 
         self.log.debug(
             "Attempting to process pod; pod_name: %s; state: %s; labels: %s",
@@ -281,50 +315,73 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             labels,
         )
 
+        # we are not looking for key
+        task_run = submitted_pod.task_run
+        key = submitted_pod.scheduler_key
+        if submitted_pod.processed:
+            # we already processed this kind of event, as in this process we have failed status already
+            self.log.info(
+                "%s Skipping pod '%s' event from %s - already processed",
+                state,
+                pod_name,
+            )
+            return
+
         if state == State.RUNNING:
             # we should get here only once -> when pod starts to run
 
-            self._process_pod_running(task_run, pod_name=pod_name)
+            self._process_pod_running(submitted_pod)
             # we will not send event to executor (otherwise it will delete the running pod)
-        elif state is None:
-            # simple case, pod has success - will be proceed by airflow main scheduler (Job)
-            # task can be failed or passed. Airflow exit with 0 if task has failed regular way.
-            self._process_pod_success(pod_name=pod_name, task_run=task_run)
-            self.result_queue.put((key, state, pod_name, resource_version))
-        elif state == State.FAILED:
-            # Pod crash, it was deleted, killed, evicted.. we need to give it extra treatment
-            self._process_pod_failed(pod_name=pod_name, task_run=task_run)
-            self.result_queue.put((key, state, pod_id, resource_version))
-        else:
-            self.log.debug("finishing job %s - %s (%s)", key, state, pod_id)
-            self.result_queue.put((key, state, pod_id, resource_version))
+            return
 
-    def _process_pod_running(self, task_run, pod_name):
-        if task_run.task_run_state == TaskRunState.RUNNING:
-            pod_data = self.get_pod_status(pod_name)
+        try:
+            if state is None:
+                # simple case, pod has success - will be proceed by airflow main scheduler (Job)
+                # task can be failed or passed. Airflow exit with 0 if task has failed regular way.
+                self._process_pod_success(submitted_pod)
+                self.result_queue.put((key, state, pod_name, resource_version))
+            elif state == State.FAILED:
+                # Pod crash, it was deleted, killed, evicted.. we need to give it extra treatment
+                self._process_pod_failed(submitted_pod)
+                self.result_queue.put((key, state, pod_id, resource_version))
+            else:
+                self.log.debug("finishing job %s - %s (%s)", key, state, pod_id)
+                self.result_queue.put((key, state, pod_id, resource_version))
+        finally:
+            submitted_pod.processed = True
+
+    def _process_pod_running(self, submitted_pod):
+        task_run = submitted_pod.task_run
+        pod_name = submitted_pod.pod_name
+
+        if submitted_pod.node_name:
             self.log.info(
-                "ZOMBIE_BUG:Got Running event for the second time: probably something happening!"
+                "%s: Zombie bug: Seeing pod event again. "
+                "Probably something happening with pod and it's node: %s",
+                submitted_pod.task_run,
+                submitted_pod.pod_name,
             )
-            self.log.info("Second Running Event: %s", pod_data)
+            return
 
-        self.log.info("Setting %s state to Running at %s", task_run, pod_name)
         pod_data = self.get_pod_status(pod_name)
-        if not pod_data:
-            self.log.error(
-                "Failed to proceed Running event for %s: can't find pod info", pod_name
+        if not pod_data or not pod_data.spec.node_name:
+            self.log.error("%s: Failed to find pod data for %s", pod_name)
+            node_name = "failed_to_find"
+        else:
+            node_name = pod_data.spec.node_name
+            self.metrics_logger.log_pod_running(task_run.task, node_name=node_name)
+
+        submitted_pod.node_name = node_name
+        task_run.set_task_run_state(TaskRunState.RUNNING, track=False)
+
+    def _process_pod_success(self, submitted_pod):
+        task_run = submitted_pod.task_run
+        pod_name = submitted_pod.pod_name
+
+        if submitted_pod.processed:
+            self.log.info(
+                "%s Skipping pod 'success' event from %s: already processed", pod_name
             )
-            return
-        node_name = pod_data.spec.node_name
-        if not node_name:
-            return
-
-        self.metrics_logger.log_pod_running(task_run.task, node_name=node_name)
-
-    def _process_pod_success(self, task_run, pod_name):
-        self.log.debug("Getting task run")
-
-        if task_run.task_run_state == TaskRunState.finished_states():
-            self.log.info("Skipping pod 'success' event from %s", pod_name)
             return
         ti = get_airflow_task_instance(task_run=task_run)
 
@@ -360,16 +417,15 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             % (task_run, pod_name, ti.state, ti._try_number)
         )
 
-    def _process_pod_failed(self, task_run, pod_name):
-        if task_run.task_run_state in TaskRunState.finished_states():
-            self.log.info("Skipping pod 'failed' event from %s", pod_name)
-            return
+    def _process_pod_failed(self, submitted_pod):
+        task_run = submitted_pod.task_run
+        pod_name = submitted_pod.pod_name
 
         task_id = task_run.task_af_id
         ti_state = get_airflow_task_instance_state(task_run=task_run)
 
         self.log.info(
-            "got crashed pod %s for %s, airflow state: %s", pod_name, task_id, ti_state
+            "%s: pod %s has crashed, airflow state: %s", task_run, pod_name, ti_state
         )
 
         pod_data = self.get_pod_status(pod_name)

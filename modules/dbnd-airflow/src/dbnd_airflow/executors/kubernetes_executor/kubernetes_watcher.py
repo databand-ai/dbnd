@@ -206,7 +206,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             try:
                 # now we only fail, we will use the same code to try to rerun at scheduler code
                 pod_ctrl.check_deploy_errors(pod_data)
-                self.log.info("%s: Pending", event_msg)
+                self.log.info("%s: pod is Pending", event_msg)
             except Exception as ex:
                 self.log.info(
                     "Event: %s Pending: failing with %s", pod_id, str(ex),
@@ -214,11 +214,21 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 self.watcher_queue.put(_fail_event)
 
         elif phase == "Running":
-
-            self.log.info("%s: pod is Running", event_msg)
-            self.watcher_queue.put(
-                (pod_id, State.RUNNING, pod_data.metadata.labels, resource_version)
+            pod_ctrl = self.kube_dbnd.get_pod_ctrl(
+                pod_id, namespace=pod_data.metadata.namespace
             )
+            try:
+                # now we only fail, we will use the same code to try to rerun at scheduler code
+                pod_ctrl.check_running_errors(pod_data)
+                self.log.info("%s: pod is Running", event_msg)
+                self.watcher_queue.put(
+                    (pod_id, State.RUNNING, pod_data.metadata.labels, resource_version)
+                )
+            except Exception as ex:
+                self.log.info(
+                    "Event: %s Pending: failing with %s", pod_id, str(ex),
+                )
+                self.watcher_queue.put(_fail_event)
         elif phase == "Failed":
             self.log.info("%s: pod has Failed", event_msg)
             self.watcher_queue.put((pod_id, State.FAILED, labels, resource_version))

@@ -162,10 +162,14 @@ class ConsoleStore(TrackingStore):
         if len(metrics) == 1:
             m = metrics[0]
             logger.info(
-                "Metric logged: {}={}".format(m.key, self._format_value(m.value))
+                "Task {name} metric: {key}={value}".format(
+                    name=task_run.task_af_id,
+                    key=m.key,
+                    value=self._format_value(m.value),
+                )
             )
         else:
             metrics_str = "\n\t".join(
                 ["{}={}".format(m.key, self._format_value(m.value)) for m in metrics]
             )
-            logger.info("Metrics logged:\n\t%s", metrics_str)
+            logger.info("Task %s metrics:\n\t%s", task_run.task_af_id, metrics_str)

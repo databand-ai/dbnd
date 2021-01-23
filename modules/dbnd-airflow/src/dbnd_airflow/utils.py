@@ -83,7 +83,11 @@ def create_dbnd_pool(pool_name):
     from airflow.utils.db import create_session
     from airflow.models import Pool
 
-    print("Creating databand pool '%s'" % pool_name)
+    print("Creating Airlfow pool '%s'" % pool_name)
     with create_session() as session:
+        if session.query(Pool.pool).filter(Pool.pool == pool_name).scalar() is not None:
+            return
+
         dbnd_pool = Pool(pool=pool_name, slots=-1)
         session.merge(dbnd_pool)
+        session.commit()

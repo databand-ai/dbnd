@@ -96,6 +96,12 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             and "KubernetesExecutor" in self.executor_class
         ):
             self._zombie_cleaner = ClearZombieTaskInstancesForDagRun()
+            logger.info(
+                "Zombie cleaner is enabled. "
+                "It runs every %s seconds, threshold is %s seconds",
+                self._zombie_cleaner.zombie_query_interval_secs,
+                self._zombie_cleaner.zombie_threshold_secs,
+            )
         else:
             self._zombie_cleaner = None
         self._log = PrefixLoggerAdapter("scheduler", self.log)
