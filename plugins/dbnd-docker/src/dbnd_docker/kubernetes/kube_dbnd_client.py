@@ -6,6 +6,7 @@ import typing
 from datetime import datetime
 from typing import Optional
 
+from airflow.contrib.kubernetes.pod_launcher import PodStatus
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 
