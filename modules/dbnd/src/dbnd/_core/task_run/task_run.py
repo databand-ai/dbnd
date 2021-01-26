@@ -234,7 +234,7 @@ class TaskRun(object):
         self.log = TaskRunLogManager(task_run=self)
 
     def __repr__(self):
-        return "TaskRun(%s, %s)" % (self.task.task_name, self.task_run_state)
+        return "TaskRun(id=%s, af_id=%s)" % (self.task.task_id, self.task_af_id)
 
 
 class TaskRunUidGen(object):

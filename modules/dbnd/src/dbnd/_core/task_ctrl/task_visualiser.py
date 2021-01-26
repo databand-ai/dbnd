@@ -4,7 +4,7 @@ import typing
 import six
 
 from dbnd import get_dbnd_project_config
-from dbnd._core.constants import SystemTaskName, TaskEssence
+from dbnd._core.constants import SystemTaskName, TaskEssence, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
@@ -182,7 +182,11 @@ class _TaskBannerBuilder(TaskSubCtrl):
         return self.banner
 
     def add_stack_and_errors(self, exc_info, task_run, verbosity):
-        if task_run and task_run.last_error:
+        if (
+            task_run
+            and task_run.last_error
+            and task_run.task_run_state != TaskRunState.SUCCESS
+        ):
             self._task_create_stack()
             self._add_last_error_info(exc_info=task_run.last_error.exc_info)
 

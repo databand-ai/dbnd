@@ -248,3 +248,16 @@ def try_init_sentry():
             )
 
     SENTRY_TOUCHED = True
+
+
+class PrefixLoggerAdapter(logging.LoggerAdapter):
+    """
+    Adds [prefix] to every log message logged via this adapter
+    """
+
+    def __init__(self, prefix, logger):
+        super(PrefixLoggerAdapter, self).__init__(logger, {})
+        self.prefix = prefix
+
+    def process(self, msg, kwargs):
+        return "[%s] %s" % (self.prefix, msg), kwargs

@@ -74,14 +74,24 @@ class TPipeline(PipelineTask):
         self.t_o_pyspark = TPySpark(t_param=data, t_param2=1)
 
 
-class TestTaskSignature(object):
+class TestSparkTaskSignature(object):
+    """
+    This test checks that our signatures are not changed at different dbnd version
+    Signature is a base component of task output path, and task outputs are the way for us to check
+    if task is completed.
+    If we change the signature, all tasks ran by the user before the change are going to be invalidated
+    and if user re-run the pipeline/task - it will be executed again
+
+    !!!Change these signature only if you know what you are doing! (don't just fix the test)!!!
+    """
+
     def test_signatures_tasks(self):
         tasks = [
             TData(task_target_date=task_target_date),
             TSpark(t_param="a", t_param2=2, task_target_date=task_target_date),
             TPySpark(t_param="a", t_param2=2, task_target_date=task_target_date),
         ]
-
+        # !!!Change these signature only if you know what you are doing! (don't just fix the test)!!!
         expected = {
             "TData": "29c9aa51d4",
             "TSpark": "2d9da6ad2d",
@@ -91,5 +101,7 @@ class TestTaskSignature(object):
 
     def test_signatures_pipeline(self):
         tasks = [TPipeline(task_target_date=task_target_date)]
+
+        # !!!Change these signature only if you know what you are doing! (don't just fix the test)!!!
         expected = {"TPipeline": "2eddcc454b"}
         assert_signatures(tasks, expected)

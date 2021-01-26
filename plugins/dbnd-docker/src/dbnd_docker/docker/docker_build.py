@@ -58,11 +58,14 @@ class DockerBuild(Task):
                 ]
                 cmd = cmd + "".join(build_args_list)
 
-            logger.info("Running docker build: %s", cmd)
+            logger.info("Running docker build command: `%s`\n\n", cmd)
             cwd = self.working_dir or project_path()
             run_cmd(cmd, shell=True, cwd=cwd)
 
         except Exception as e:
+            logger.error(
+                "^^^^^^^^^^^^^^^ SEE DOCKER ERROR MESSAGE ABOVE THIS LINE ^^^^^^^^^^^^^^^\n\n"
+            )
             raise DatabandRuntimeError(
                 "failed building docker image {}".format(self.image_name_with_tag),
                 nested_exceptions=[e],
@@ -71,7 +74,7 @@ class DockerBuild(Task):
         if self.push:
             try:
                 cmd = "docker push {}".format(self.image_name_with_tag)
-                logger.info("Running docker push: '%s'", cmd)
+                logger.info("Running docker push command: '%s'", cmd)
                 run_cmd(cmd, shell=True)
 
             except Exception as e:
