@@ -92,10 +92,10 @@ def main(args=None):
         os.environ["KRB5_KTNAME"] = conf.get("kerberos", "keytab")
 
     import argcomplete
-    from dbnd_airflow.scheduler.single_dag_run_job import find_and_kill_zombies
+    from dbnd_airflow.scheduler.zombies import find_and_kill_dagrun_zombies
 
-    CLIFactory.subparsers_dict[find_and_kill_zombies.__name__] = {
-        "func": find_and_kill_zombies,
+    CLIFactory.subparsers_dict[find_and_kill_dagrun_zombies.__name__] = {
+        "func": find_and_kill_dagrun_zombies,
         "help": "Clean up BackfillJob zombie tasks",
         "args": tuple(),
     }
