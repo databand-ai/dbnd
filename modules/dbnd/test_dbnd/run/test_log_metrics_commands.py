@@ -5,6 +5,7 @@ from typing import Dict
 from dbnd import as_task, band, log_artifact, log_metric, task
 from dbnd._core.current import get_databand_run
 from dbnd._core.tracking.backends.tracking_store_file import read_task_metrics
+from dbnd._vendor.pendulum import utcnow
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 
@@ -20,6 +21,19 @@ class TestTaskMetricsCommands(TargetTestBase):
             t.ctrl.last_task_run.meta_files.get_metric_target("t_f").read().split()[1]
             == "5"
         )
+
+    def test_log_metric_pendulum(self):
+        now = utcnow()
+
+        @task
+        def t_f_metric():
+            log_metric("t_f", now)
+
+        t = assert_run_task(t_f_metric.t())
+        t.ctrl.last_task_run.meta_files.get_metric_target("t_f").read()
+        assert t.ctrl.last_task_run.meta_files.get_metric_target("t_f").read().split()[
+            1
+        ] == str(now)
 
     def test_log_artifact(self, tmpdir):
         lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt\n"

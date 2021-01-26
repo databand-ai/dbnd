@@ -1,5 +1,6 @@
 import datetime
 import logging
+import shlex
 import subprocess
 import textwrap
 
@@ -8,6 +9,7 @@ from typing import Dict, List, Optional
 
 import yaml
 
+from kubernetes.config import ConfigException
 from six import PY2
 
 import dbnd_docker
@@ -55,11 +57,17 @@ class PodRetryConfiguration(object):
         return cls(kube_config.pod_error_cfg_source_dict)
 
     def get_retry_count(self, exit_code_or_reason):
+        if exit_code_or_reason not in self.exit_codes_and_reasons_to_retry_info_map:
+            return None
+
         return self.exit_codes_and_reasons_to_retry_info_map[exit_code_or_reason][
             self.RETRY_COUNT
         ]
 
     def get_retry_delay(self, exit_code_or_reason):
+        if exit_code_or_reason not in self.exit_codes_and_reasons_to_retry_info_map:
+            return 0
+
         return self.exit_codes_and_reasons_to_retry_info_map[exit_code_or_reason][
             self.RETRY_DELAY
         ]
@@ -128,7 +136,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     pod_default_retry_delay = parameter(
         description="The default amount of time to wait between retries of pods",
-        default="5m",
+        default="10s",
     )[datetime.timedelta]
 
     submit_termination_grace_period = parameter(
@@ -142,12 +150,24 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     debug = parameter(default=False).help(
         "Equalent to show_pod_log=True + show all debug information"
     )[bool]
+    debug_with_command = parameter(default="").help(
+        "Use this command as a pod command instead of the original, can help debug complicated issues"
+    )[str]
+    debug_phase = parameter(default="").help(
+        "Debug mode for speicific phase of pod events. All these events will be printed with the full response from k8s"
+    )[str]
 
     prefix_remote_log = parameter(default=True).help(
         "Adds [driver] or [<task_name>] prefix to logs streamed from Kubernetes to the local log"
     )
     check_unschedulable_condition = parameter(default=True).help(
         "Try to detect non-transient issues that prevent the pod from being scheduled and fail the run if needed"
+    )
+    check_image_pull_errors = parameter(default=True).help(
+        "Try to detect image pull issues that prevent the pod from being scheduled and fail the run if needed"
+    )
+    check_running_pod_errors = parameter(default=False).help(
+        "Try to detect running pod issues like failed ContainersReady condition (pod is deleted)"
     )
     check_cluster_resource_capacity = parameter(default=True).help(
         "When a pod can't be scheduled due to cpu or memory constraints, check if the constraints are possible to satisfy in the cluster"
@@ -178,10 +198,6 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         default=False, description="Submit run only, do not wait for it completion."
     )[bool]
 
-    submit_termination_grace_period = parameter(
-        description="timedelta to let the submitted pod enter a final state"
-    )[datetime.timedelta]
-
     watcher_request_timeout_seconds = parameter(
         default=300,
         description="How many seconds watcher should wait "
@@ -191,7 +207,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     watcher_recreation_interval_seconds = parameter(
         default=30,
-        description="How many seconds to wait before resurrecting watcher after it dies",
+        description="How many seconds to wait before resurrecting watcher after the timeout",
     )[int]
 
     watcher_client_timeout_seconds = parameter(
@@ -226,6 +242,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                 "switching to auto_remove=False"
             )
             self.auto_remove = False
+
+        self.pod_retry_config = PodRetryConfiguration.from_kube_config(self)
 
     def get_docker_ctrl(self, task_run):
         from dbnd_docker.kubernetes.kubernetes_task_run_ctrl import (
@@ -297,11 +315,16 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         if in_cluster is None:
             in_cluster = self.in_cluster
-        if in_cluster:
-            config.load_incluster_config()
-        else:
-            config.load_kube_config(
-                config_file=self.config_file, context=self.cluster_context
+        try:
+            if in_cluster:
+                config.load_incluster_config()
+            else:
+                config.load_kube_config(
+                    config_file=self.config_file, context=self.cluster_context
+                )
+        except ConfigException as e:
+            raise friendly_error.executor_k8s.failed_to_connect_to_cluster(
+                self.in_cluster, e
             )
 
         if PY2:
@@ -315,15 +338,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     def build_kube_dbnd(self, in_cluster=None):
         from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
-        from kubernetes.config import ConfigException
 
-        try:
-            kube_client = self.get_kube_client(in_cluster=in_cluster)
-        except ConfigException as e:
-            raise friendly_error.executor_k8s.failed_to_connect_to_cluster(
-                self.in_cluster, e
-            )
-
+        kube_client = self.get_kube_client(in_cluster=in_cluster)
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 
@@ -416,6 +432,21 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             # we update cmd now
             cmds = ["/bin/bash", "-c"]
 
+        if self.debug_with_command:
+            logger.warning(
+                "%s replacing pod %s command with '%s', original command=`%s`",
+                task_run,
+                pod_name,
+                self.debug_with_command,
+                subprocess.list2cmdline(cmds),
+            )
+            cmds = shlex.split(self.debug_with_command)
+
+        if not self.container_tag:
+            raise DatabandConfigError(
+                "Your container tag is None, please check your configuration",
+                help_msg="Container tag should be assigned",
+            )
         if not self.container_tag:
             raise DatabandConfigError(
                 "Your container tag is None, please check your configuration",

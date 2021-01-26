@@ -11,55 +11,30 @@ from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
-from sqlalchemy import and_, or_
 from sqlalchemy.orm.session import make_transient
 
-from databand import dbnd_config
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import get_databand_run
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
+from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd_airflow.config import AirflowConfig
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
 )
+from dbnd_airflow.scheduler.zombies import (
+    ClearZombieJob,
+    ClearZombieTaskInstancesForDagRun,
+    _kill_dag_run_zombi,
+)
 
 
 logger = logging.getLogger(__name__)
 
 SCHEDUALED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
-END_STATES = (State.SUCCESS, State.FAILED, State.UPSTREAM_FAILED)
-
-
-def _kill_zombies(dag_run, session):
-    """
-    Remove zombies DagRuns and TaskInstances.
-    If the job ended but the DagRun is still not finished then
-    fail the DR and related unfinished TIs
-    """
-    logger.info(
-        "Job has ended but the related %s is still in state %s - marking it as failed",
-        dag_run,
-        dag_run.state,
-    )
-    qry = session.query(TI).filter(
-        TI.dag_id == dag_run.dag_id,
-        TI.execution_date == dag_run.execution_date,
-        TI.state.notin_(END_STATES),
-    )
-
-    tis = qry.all()
-    logger.info("Marking %s related TaskInstance as failed", len(tis))
-
-    qry.update(
-        {TI.state: State.FAILED, TI.end_date: timezone.utcnow()},
-        synchronize_session=False,
-    )
-    dag_run.state = State.FAILED
-    session.merge(dag_run)
 
 
 # based on airflow BackfillJob
@@ -109,12 +84,27 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         self.terminating = False
 
+        super(SingleDagRunJob, self).__init__(*args, **kwargs)
+
         self._logged_count = 0  # counter for status update
         self._logged_status = ""  # last printed status
 
         self.ti_state_manager = AirflowTaskInstanceStateManager()
         self.airflow_config = airflow_config  # type: AirflowConfig
-        super(SingleDagRunJob, self).__init__(*args, **kwargs)
+        if (
+            self.airflow_config.clean_zombie_task_instances
+            and "KubernetesExecutor" in self.executor_class
+        ):
+            self._zombie_cleaner = ClearZombieTaskInstancesForDagRun()
+            logger.info(
+                "Zombie cleaner is enabled. "
+                "It runs every %s seconds, threshold is %s seconds",
+                self._zombie_cleaner.zombie_query_interval_secs,
+                self._zombie_cleaner.zombie_threshold_secs,
+            )
+        else:
+            self._zombie_cleaner = None
+        self._log = PrefixLoggerAdapter("scheduler", self.log)
 
     @property
     def _optimize(self):
@@ -216,7 +206,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
             ti = running[key]
             # updated by StateManager
-            if not self._optimize or ti.state in [State.RUNNING, State.QUEUED]:
+            if ti.state in [State.RUNNING, State.QUEUED]:
                 # we refresh if we are not optimized
                 # or we have ti in running state, there could be a racing between
                 # our state manager sync and executor.get_event_buffer()
@@ -577,7 +567,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 and len(ti_status.running) == 0
             ):
                 self.log.warning(
-                    "Deadlock discovered for ti_status.to_run=%s",
+                    "scheduler: Deadlock discovered for ti_status.to_run=%s",
                     ti_status.to_run.values(),
                 )
                 ti_status.deadlocked.update(ti_status.to_run.values())
@@ -589,6 +579,13 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
             # check executor state
             self._manage_executor_state(ti_status.running, waiting_for_executor_result)
+
+            if self._zombie_cleaner:
+                # this code exists in airflow original scheduler
+                # clean zombies ( we don't need multiple runs here actually
+                self._zombie_cleaner.find_and_clean_dag_zombies(
+                    dag=self.dag, execution_date=self.execution_date
+                )
 
             # update the task counters
             self._update_counters(ti_status, waiting_for_executor_result)
@@ -608,12 +605,13 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             self._log_progress(ti_status)
 
             if self.fail_fast and ti_status.failed:
+                msg = ",".join([t[1] for t in ti_status.failed])
                 logger.error(
-                    "terminating executor because a task failed and fail_fast mode is enabled"
+                    "scheduler: Terminating executor because a task failed and fail_fast mode is enabled %s",
+                    msg,
                 )
                 raise DatabandFailFastError(
-                    "Failing whole pipeline as it has failed/canceled tasks %s"
-                    % [t for t in ti_status.failed],
+                    "Failing whole pipeline as it has failed/canceled tasks %s" % msg,
                 )
 
         # return updated status
@@ -796,7 +794,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             except Exception:
                 logger.exception("Failed to terminate executor")
             if dag_run and dag_run.state == State.RUNNING:
-                _kill_zombies(dag_run, session)
+                _kill_dag_run_zombi(dag_run, session)
             session.commit()
 
         self.log.info("Run is completed. Exiting.")
@@ -810,93 +808,3 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             # self.executor.terminate()
             return
         self.terminating = True
-
-
-@provide_session
-def find_and_kill_zombies(args, session=None):
-    """
-    Find zombie DagRuns and TaskInstances that are in not end state and for which related
-    BackfillJob has failed.
-    """
-    seconds_from_last_heartbeat = 60
-    last_expected_heartbeat = timezone.utcnow() - datetime.timedelta(
-        seconds=seconds_from_last_heartbeat
-    )
-    logger.info(
-        "Cleaning zombie tasks with heartbeat older than: %s", last_expected_heartbeat,
-    )
-
-    # Select BackfillJob that failed or are still running
-    # but have stalled heartbeat
-    failed_jobs_id_qry = (
-        session.query(BaseJob.id)
-        .filter(BaseJob.job_type == "BackfillJob")
-        .filter(
-            or_(
-                BaseJob.state == State.FAILED,
-                and_(
-                    BaseJob.state == State.RUNNING,
-                    BaseJob.latest_heartbeat < last_expected_heartbeat,
-                ),
-            )
-        )
-        .all()
-    )
-    failed_jobs_id = set(r[0] for r in failed_jobs_id_qry)
-
-    logger.info("Found %s stale jobs", len(failed_jobs_id))
-
-    running_dag_runs = session.query(DagRun).filter(DagRun.state == State.RUNNING).all()
-
-    for dr in running_dag_runs:
-        if not isinstance(dr.conf, dict):
-            continue
-
-        job_id = dr.conf.get("job_id")
-        if job_id not in failed_jobs_id:
-            continue
-
-        logger.info(
-            "DagRun %s is in state %s but related job has failed. Cleaning zombies.",
-            dr,
-            dr.state,
-        )
-        # Now the DR is running but job running it has failed
-        _kill_zombies(dag_run=dr, session=session)
-
-    logger.info("Cleaning done!")
-
-
-class ClearZombieJob(BaseJob):
-    ID_PREFIX = BackfillJob.ID_PREFIX + "manual_    "
-    ID_FORMAT_PREFIX = ID_PREFIX + "{0}"
-    __mapper_args__ = {"polymorphic_identity": "BackfillJob"}
-    TYPE = "ZombieJob"
-    TIME_BETWEEN_RUNS = 60 * 5
-
-    def __init__(self, *args, **kwargs):
-        super(ClearZombieJob, self).__init__(*args, **kwargs)
-        # Trick for distinguishing this job from other backfills
-        self.executor_class = self.TYPE
-
-    @provide_session
-    def _execute(self, session=None):
-        last_run_date = (
-            session.query(ClearZombieJob.latest_heartbeat)
-            .filter(ClearZombieJob.executor_class == self.TYPE)
-            .order_by(ClearZombieJob.end_date.asc())
-            .first()
-        )
-        if (
-            last_run_date
-            and last_run_date[0] + datetime.timedelta(seconds=self.TIME_BETWEEN_RUNS)
-            > timezone.utcnow()
-        ):
-            # If we cleaned zombies recently we can do nothing
-            return
-        try:
-            find_and_kill_zombies(None, session=session)
-        except Exception as err:
-            # Fail silently as this is not crucial process
-            session.rollback()
-            logging.warning("Cleaning zombies failed: %s", err)

@@ -1,5 +1,10 @@
+import logging
+
 from airflow.models import TaskInstance
 from airflow.utils.db import provide_session
+
+
+logger = logging.getLogger(__name__)
 
 
 @provide_session
@@ -18,6 +23,7 @@ def get_airflow_task_instance_state(task_run, session=None):
 
 @provide_session
 def get_airflow_task_instance(task_run, session=None):
+    # type: (...)->TaskInstance
     ti = (
         session.query(TaskInstance)
         .filter(

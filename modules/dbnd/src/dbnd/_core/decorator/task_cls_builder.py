@@ -402,6 +402,11 @@ def _log_result(task_run, result):
     """
     try:
         task_result_parameter = task_run.task._params.get_param(RESULT_PARAM)
+        if not task_result_parameter:
+            logger.debug(
+                "No result params to log for task {}".format(task_run.task_af_id)
+            )
+            return
 
         # spread result into relevant fields.
         if isinstance(task_result_parameter, FuncResultParameter):

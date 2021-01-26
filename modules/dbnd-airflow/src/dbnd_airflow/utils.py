@@ -83,11 +83,12 @@ def create_airflow_pool(pool_name):
     from airflow.utils.db import create_session
     from airflow.models import Pool
 
-    print("Creating databand pool '%s'" % pool_name)
+    print("Creating Airflow pool '%s'" % pool_name)
     with create_session() as session:
-        is_user_pool_in_db = (
-            session.query(Pool.pool).filter(Pool.pool == pool_name).first() is not None
-        )
-        if not is_user_pool_in_db:
-            dbnd_pool = Pool(pool=pool_name, slots=-1)
-            session.merge(dbnd_pool)
+        if session.query(Pool.pool).filter(Pool.pool == pool_name).scalar() is not None:
+            return
+
+        # -1 so we have endless pool
+        dbnd_pool = Pool(pool=pool_name, slots=-1)
+        session.merge(dbnd_pool)
+        session.commit()
