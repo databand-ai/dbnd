@@ -294,6 +294,11 @@ def fetch_dags_only(
         True,
     )
 
+    if not validate_airflow_monitor_data(
+        data, airflow_instance_detail, airflow_config, api_client
+    ):
+        return
+
     try:
         logger.info(
             "Received data from %s with: {dags: %d}",
