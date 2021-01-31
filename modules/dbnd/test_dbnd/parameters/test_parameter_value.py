@@ -1,5 +1,7 @@
 from typing import Dict, List
 
+import pytest
+
 from dbnd import parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from targets import Target, target
@@ -39,3 +41,22 @@ class TestParameterValue(object):
 
         for k, v in runtime_value.items():
             assert isinstance(v, Path)
+
+    @pytest.mark.parametrize(
+        "param_def, data, expected",
+        [
+            (parameter[List[List[int]]], [[1], [1, 2, 3]], [[1], [1, 2, 3]]),
+            (parameter[List[str]], [["a"], ["a", "b"]], [["a"], ["a", "b"]]),
+            (parameter[List[List[str]]], [["a"], ["a", "b"]], [["a"], ["a", "b"]]),
+            (parameter[Dict[str, str]], {"a": "A", "b": "B"}, {"a": "A", "b": "B"}),
+            (
+                parameter[Dict[str, Dict[str, str]]],
+                {"capitals": {"a": "A", "b": "B"}},
+                {"capitals": {"a": "A", "b": "B"}},
+            ),
+        ],
+    )
+    def test_parsing_sub_structure(self, param_def, data, expected):
+        p = param_def._p  # type: ParameterDefinition
+        actual = p.calc_init_value(data)
+        assert actual == expected

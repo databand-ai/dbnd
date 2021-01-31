@@ -46,7 +46,7 @@ class _TargetValueType(ValueType):  # extracted for generics support
     def target_to_value(self, target):
         return target
 
-    def parse_value(self, value, load_value=None, target_config=None):
+    def parse_value(self, value, load_value=None, target_config=None, sub_value=False):
         value = super(_TargetValueType, self).parse_value(
             value, load_value=load_value, target_config=target_config
         )

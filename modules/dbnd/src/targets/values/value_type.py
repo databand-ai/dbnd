@@ -157,7 +157,7 @@ class ValueType(object):
                     value = self.load_from_target(target(value))
         return value
 
-    def parse_value(self, value, load_value=None, target_config=None):
+    def parse_value(self, value, load_value=None, target_config=None, sub_value=False):
         """
         Parse an individual value from the input.
 

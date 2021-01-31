@@ -5,6 +5,7 @@ import typing
 
 from ast import literal_eval
 from collections import OrderedDict
+from functools import partial
 from typing import Iterable
 
 import six
@@ -13,6 +14,7 @@ from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.traversing import traverse
 from dbnd._vendor.splitter import split_args, unquote
+from targets.values import StrValueType
 from targets.values.value_type import ValueType
 
 
@@ -91,7 +93,7 @@ class _StructureValueType(ValueType):
             value = traverse(value, self.sub_value_type.normalize)
         return value
 
-    def parse_value(self, value, load_value=None, target_config=None):
+    def parse_value(self, value, load_value=None, target_config=None, sub_value=False):
         """
         parse structure first
         parse every element
@@ -99,15 +101,17 @@ class _StructureValueType(ValueType):
         if value is None:
             return value
 
-        if isinstance(value, six.string_types):
+        if not sub_value and isinstance(value, six.string_types):
             return super(_StructureValueType, self).parse_value(
                 value=value, load_value=load_value, target_config=target_config
             )
-        else:
-            if self.sub_value_type:
-                value = traverse(
-                    struct=value, convert_f=self.sub_value_type.parse_value
-                )
+
+        if self.sub_value_type:
+            return traverse(
+                struct=value,
+                convert_f=partial(self.sub_value_type.parse_value, sub_value=True),
+            )
+
         return value
 
     def load_runtime(self, value, **kwargs):
