@@ -2,7 +2,7 @@ import pytest
 
 from mock import patch
 
-from dbnd import dbnd_run_stop
+from dbnd import dbnd_tracking_stop
 from dbnd._core.configuration.environ_config import reset_dbnd_project_config
 from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.utils.timezone import utcnow
@@ -24,5 +24,5 @@ def set_airflow_context():
             yield
         finally:
             # ensure dbnd_run_stop() is called (normally should happen on exit() )
-            dbnd_run_stop()
+            dbnd_tracking_stop()
             reset_dbnd_project_config()

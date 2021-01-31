@@ -10,7 +10,10 @@ from dbnd._core.decorator.task_cls_builder import _log_result
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import extract_airflow_context
-from dbnd._core.tracking.script_tracking_manager import dbnd_run_start, dbnd_run_stop
+from dbnd._core.tracking.script_tracking_manager import (
+    dbnd_tracking_start,
+    dbnd_tracking_stop,
+)
 from dbnd._core.utils.basics.environ_utils import env
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_tracking_information, get_xcoms
@@ -34,7 +37,7 @@ def new_execute(context):
     try:
         # start operator execute run with current airflow context
         task_context = extract_airflow_context(context)
-        task_run = dbnd_run_start(
+        task_run = dbnd_tracking_start(
             airflow_context=task_context
         )  # type: Optional[TaskRun]
 
@@ -56,7 +59,7 @@ def new_execute(context):
         if task_run:
             error = TaskRunError.build_from_ex(ex, task_run)
             task_run.set_task_run_state(state=TaskRunState.FAILED, error=error)
-        dbnd_run_stop()
+        dbnd_tracking_stop()
         raise
 
     # if we have a task run here we want to log results and xcoms
@@ -80,7 +83,7 @@ def new_execute(context):
             )
 
     # make sure we close and return the original results
-    dbnd_run_stop()
+    dbnd_tracking_stop()
     return result
 
 

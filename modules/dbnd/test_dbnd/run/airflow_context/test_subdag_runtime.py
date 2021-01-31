@@ -6,7 +6,7 @@ from pytest import fixture
 
 import dbnd._core.configuration.environ_config
 
-from dbnd import dbnd_run_stop, log_metric, task
+from dbnd import dbnd_tracking_stop, log_metric, task
 from dbnd._core.current import try_get_databand_run
 
 
@@ -51,5 +51,5 @@ def with_airflow_tracking_env():
 class TestTaskInplaceRun(object):
     def test_sanity_with_airflow(self, with_airflow_tracking_env):
         fake_task_inside_dag()
-        dbnd_run_stop()
+        dbnd_tracking_stop()
         print("hey")

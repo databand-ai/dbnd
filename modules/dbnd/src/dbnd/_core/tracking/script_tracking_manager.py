@@ -237,38 +237,54 @@ def _build_inline_root_task(root_task_name):
 def try_get_inplace_tracking_task_run():
     # type: ()->Optional[TaskRun]
     if get_dbnd_project_config().is_tracking_mode():
-        return dbnd_run_start()
+        return dbnd_tracking_start()
 
 
 # there can be only one tracking manager
 _dbnd_script_manager = None  # type: Optional[_DbndScriptTrackingManager]
 
 
-def dbnd_run_start(name=None, airflow_context=None):
+def dbnd_tracking_start(name=None, airflow_context=None):
+    """
+    Starts handler for tracking the current running script.
+    Would not start a new one if script manager if already exists
+
+    @param name: Can be used to name the run
+    @param airflow_context: injecting the airflow context to the run, meaning we start tracking some airflow execution
+    """
     dbnd_project_config = get_dbnd_project_config()
     if dbnd_project_config.disabled:
+        # we are not tracking if dbnd is disabled
         return None
 
     global _dbnd_script_manager
     if not _dbnd_script_manager:
+        # setting the context to tracking to prevent conflicts from dbnd orchestration
         dbnd_project_config._dbnd_tracking = True
 
         dsm = _DbndScriptTrackingManager()
         try:
             dsm.start(name, airflow_context)
-
             if dsm._active:
                 _dbnd_script_manager = dsm
+
         except Exception as e:
             logger.error(e, exc_info=True)
             _handle_tracking_error("dbnd-tracking-start")
+
+            # disabling the project so we don't start any new handler in this execution
             dbnd_project_config.disabled = True
             return None
+
     if _dbnd_script_manager and _dbnd_script_manager._active:
+        # this is the root task run of the tracking, its representing the script context.
         return _dbnd_script_manager._task_run
 
 
-def dbnd_run_stop():
+def dbnd_tracking_stop():
+    """
+    Stops and clears the script tracking if exists
+    """
     global _dbnd_script_manager
     if _dbnd_script_manager:
         _dbnd_script_manager.stop()
@@ -280,10 +296,10 @@ def dbnd_tracking(name=None, conf=None):
     # type: (...) -> TaskRun
     try:
         with config(config_values=conf, source="tracking context"):
-            tr = dbnd_run_start(name=name)
+            tr = dbnd_tracking_start(name=name)
             yield tr
     finally:
-        dbnd_run_stop()
+        dbnd_tracking_stop()
 
 
 def _handle_tracking_error(msg):

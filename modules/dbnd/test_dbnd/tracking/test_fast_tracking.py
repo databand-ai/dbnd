@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 import six
 
-from dbnd import config, dbnd_run_stop, log_metric, task
+from dbnd import config, dbnd_tracking_stop, log_metric, task
 from dbnd._core.configuration.environ_config import get_max_calls_per_func
 from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.errors import DatabandRunError
@@ -142,7 +142,7 @@ def test_tracking_pass_through_default_airflow(
     )
 
     # this should happen on process exit in normal circumstances
-    dbnd_run_stop()
+    dbnd_tracking_stop()
 
     _check_tracking_calls(
         mock_channel_tracker,
@@ -171,7 +171,7 @@ def test_tracking_pass_through_default_tracking(
     )
     assert task_result == str(df_file)
     # this should happen on process exit in normal circumstances
-    dbnd_run_stop()
+    dbnd_tracking_stop()
 
     _check_tracking_calls(
         mock_channel_tracker,
@@ -248,7 +248,7 @@ def test_tracking_pass_through_nested_default(
     )
 
     # this should happen on process exit in normal circumstances
-    dbnd_run_stop()
+    dbnd_tracking_stop()
 
     _check_tracking_calls(
         mock_channel_tracker,
@@ -281,7 +281,7 @@ def test_tracking_user_exception(mock_channel_tracker):
     )
 
     # this should happen on process exit in normal circumstances
-    dbnd_run_stop()
+    dbnd_tracking_stop()
 
     _check_tracking_calls(
         mock_channel_tracker,

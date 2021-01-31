@@ -56,7 +56,10 @@ from dbnd._core.tracking.python_tracking import (
     track_module_functions,
     track_modules,
 )
-from dbnd._core.tracking.script_tracking_manager import dbnd_run_start, dbnd_run_stop
+from dbnd._core.tracking.script_tracking_manager import (
+    dbnd_tracking_start,
+    dbnd_tracking_stop,
+)
 from dbnd._core.utils.project.project_fs import (
     databand_lib_path,
     databand_system_path,
@@ -87,8 +90,8 @@ __all__ = [
     "get_databand_run",
     "get_databand_context",
     # inplace implementation
-    "dbnd_run_start",
-    "dbnd_run_stop",
+    "dbnd_tracking_start",
+    "dbnd_tracking_stop",
     "auto_namespace",
     "namespace",
     "task_namespace",

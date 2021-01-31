@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from dbnd import dbnd_run_start, dbnd_run_stop, task
+from dbnd import dbnd_tracking_start, dbnd_tracking_stop, task
 from dbnd.testing.helpers import run_dbnd_subprocess
 
 
@@ -96,8 +96,8 @@ def f1():
 
 if __name__ == "__main__":
     if USE_DBND_START in sys.argv:
-        dbnd_run_start()
-        dbnd_run_start()
+        dbnd_tracking_start()
+        dbnd_tracking_start()
 
     f1()
 
@@ -107,5 +107,5 @@ if __name__ == "__main__":
         raise Exception("main bummer!")
 
     if USE_DBND_STOP in sys.argv:
-        dbnd_run_stop()
-        dbnd_run_stop()
+        dbnd_tracking_stop()
+        dbnd_tracking_stop()

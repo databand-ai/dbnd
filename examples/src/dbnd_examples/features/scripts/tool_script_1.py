@@ -1,6 +1,6 @@
 import sys
 
-from dbnd import dbnd_run_start, task
+from dbnd import dbnd_tracking_start, task
 
 
 @task
@@ -14,7 +14,7 @@ def my_f():
 
 
 if __name__ == "__main__":
-    dbnd_run_start()
+    dbnd_tracking_start()
     print("Main script is running")
     print("Command lines are: {} ", sys.argv)
     with open(sys.argv[1], "w") as fp:
