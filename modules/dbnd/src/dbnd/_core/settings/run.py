@@ -132,3 +132,7 @@ class RunConfig(config.Config):
     dry = parameter(default=False).help(
         "Do not execute tasks, stop before sending them to the execution, and print their status"
     )[bool]
+
+    run_result_json_path = parameter(default=None).help(
+        "The path to save the task band of the run"
+    )[str]

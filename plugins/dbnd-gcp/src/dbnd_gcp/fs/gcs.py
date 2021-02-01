@@ -363,7 +363,7 @@ class GCSClient(FileSystem):
 
         self.put_string(b"", self._add_path_delimiter(path), mimetype="text/plain")
 
-    def copy(self, source_path, destination_path):
+    def copy(self, source_path, destination_path, **kwargs):
         src_bucket, src_obj = self._path_to_bucket_and_key(source_path)
         dest_bucket, dest_obj = self._path_to_bucket_and_key(destination_path)
 

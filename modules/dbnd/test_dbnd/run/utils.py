@@ -24,7 +24,9 @@ class DbndCmdTest(object):
         ] + run_args
         logging.info("Running command:%s", subprocess.list2cmdline(run_args))
 
-        dbnd_run_cmd(run_args)
+        result = dbnd_run_cmd(run_args)
         assert os.path.exists(local_file), (
             "Output file %s wasn't created by task!" % local_file
         )
+
+        return result

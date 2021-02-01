@@ -176,7 +176,7 @@ class AzureBlobStorageClient(FileSystem):
         #
         # self.conn.create_blob_from_bytes(container_name, prefix, b"")
 
-    def copy(self, source_path, destination_path):
+    def copy(self, source_path, destination_path, **kwargs):
 
         (
             source_account,

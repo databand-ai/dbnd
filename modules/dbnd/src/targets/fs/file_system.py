@@ -133,7 +133,7 @@ class FileSystem(object):
         """
         self.move(*args, **kwargs)
 
-    def copy(self, path, dest):
+    def copy(self, path, dest, **kwargs):
         """
         Copy a file or a directory with contents.
         Currently, LocalFileSystem and MockFileSystem support only single file

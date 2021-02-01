@@ -243,5 +243,5 @@ class HdfsPyox(FileSystem, Config):
     def get(self, path, local_destination):
         self.download(self._remove_schema(path), local_destination)
 
-    def copy(self, path, dest):
+    def copy(self, path, dest, **kwargs):
         self.move(path, dest)

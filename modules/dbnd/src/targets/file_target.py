@@ -152,7 +152,7 @@ class FileTarget(DataTarget):
         self.fs.download(self.path, local_path, **kwargs)
 
     def copy(self, new_path, raise_if_exists=False):
-        self.fs.copy(self.path, str(new_path), raise_if_exists)
+        self.fs.copy(self.path, str(new_path), raise_if_exists=raise_if_exists)
 
     def __fspath__(self):
         """

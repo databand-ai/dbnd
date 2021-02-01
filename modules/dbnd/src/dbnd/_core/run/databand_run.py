@@ -13,21 +13,7 @@ from dbnd._core.configuration.environ_config import (
     DBND_RUN_UID,
     ENV_DBND__USER_PRE_INIT,
 )
-from dbnd._core.constants import (
-    AD_HOC_DAG_PREFIX,
-    DescribeFormat,
-    RunState,
-    SystemTaskName,
-    TaskEssence,
-    TaskExecutorType,
-    TaskRunState,
-    UpdateSource,
-)
-from dbnd._core.current import (
-    current_task_run,
-    try_get_current_task,
-    try_get_databand_run,
-)
+from dbnd._core.constants import AD_HOC_DAG_PREFIX, TaskRunState, UpdateSource
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.run.run_banner import RunBanner
 from dbnd._core.run.run_tracker import RunTracker
@@ -35,8 +21,8 @@ from dbnd._core.run.target_identity_source_map import TargetIdentitySourceMap
 from dbnd._core.settings import DatabandSettings
 from dbnd._core.settings.engine import build_engine_config
 from dbnd._core.task import Task
-from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import current_task, has_current_task
+from dbnd._core.task_executor.results_view import RunResultBand
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils.basics.singleton_context import SingletonContext
@@ -44,6 +30,7 @@ from dbnd._core.utils.date_utils import unique_execution_date
 from dbnd._core.utils.traversing import flatten
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
+from targets import FileTarget, target
 from targets.caching import TARGET_CACHE
 
 
@@ -102,7 +89,9 @@ class DatabandRun(SingletonContext):
         # if user provided name - use it
         # otherwise - generate human friendly name for the run
         self.name = s.run.name or get_random_name(seed=self.run_uid)
-        self.execution_date = unique_execution_date()
+        self.execution_date = (
+            self.context.settings.run.execution_date or unique_execution_date()
+        )
 
         self.is_tracked = True
 
@@ -156,6 +145,7 @@ class DatabandRun(SingletonContext):
         self.af_context = af_context
         self.start_time = None
         self.finished_time = None
+        self._result_location = None
 
     @property
     def root_task_run(self):  # type: (...)->  Optional[TaskRun]

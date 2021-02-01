@@ -340,8 +340,8 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         from dbnd._core.current import get_databand_context
 
         ctx = get_databand_context()
-        result = ctx.dbnd_run_task(self)
-        return result
+        run = ctx.dbnd_run_task(self)
+        return run
 
     def _get_param_value(self, param_name):
         # we dont' want to autoread when we run this function

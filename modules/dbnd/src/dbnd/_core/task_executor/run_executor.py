@@ -5,6 +5,7 @@ import sys
 import threading
 import typing
 
+from operator import attrgetter
 from typing import Iterator
 
 import six
@@ -31,17 +32,18 @@ from dbnd._core.task_executor.factory import (
 )
 from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 from dbnd._core.task_executor.local_task_executor import LocalTaskExecutor
+from dbnd._core.task_executor.results_view import RunResultBand
 from dbnd._core.task_executor.task_runs_builder import TaskRunsBuilder
+from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils import console_utils
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.timezone import utcnow
+from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd.api.runs import kill_run
+from targets import FileTarget, target
 
-
-if typing.TYPE_CHECKING:
-    from targets import FileTarget
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +62,7 @@ class RunExecutor(object):
     """
 
     def __init__(self, run, root_task_or_task_name, send_heartbeat):
+
         self.run = run
         self.send_heartbeat = send_heartbeat
 
@@ -147,6 +150,7 @@ class RunExecutor(object):
             run_executor__task, driver_engine=self.host_engine
         )
 
+        self._result_location = None
         self.runtime_errors = []
 
     def run_execute(self):
@@ -420,6 +424,26 @@ class RunExecutor(object):
         # if we are in the driver, we want to print banner after executor__task banner
         run.set_run_state(RunState.SUCCESS)
         logger.info(run.describe.run_banner_for_finished())
+
+        # We need place the pipeline's task_band in the place we required to by outside configuration
+        if settings.run.run_result_json_path:
+            new_path = settings.run.run_result_json_path
+            try:
+                self.result_location.copy(new_path)
+            except Exception as e:
+                logger.exception(
+                    "Couldn't copy the task_band from {old_path} to {new_path}. Failed with this error: {error}".format(
+                        old_path=self.result_location.path, new_path=new_path, error=e
+                    )
+                )
+
+            else:
+                logger.info(
+                    "Copied the pipeline's task_band to {new_path}".format(
+                        new_path=new_path
+                    )
+                )
+
         return run
 
     def run_submitter(self):
@@ -439,8 +463,20 @@ class RunExecutor(object):
         # let prepare for remote execution
         remote_engine.prepare_for_run(run)
 
+        result_map_target = run.run_root.file("{}.json".format(get_uuid()))
         cmd_line_args = (
-            ["run"] + _get_dbnd_run_relative_cmd() + ["--run-driver", str(run.run_uid)]
+            ["run"]
+            + _get_dbnd_run_relative_cmd()
+            + [
+                "--run-driver",
+                str(run.run_uid),
+                "--set",
+                "run.run_result_json_path={}".format(result_map_target.path),
+                "--set",
+                "run.execution_date={}".format(
+                    run.execution_date.strftime("%Y-%m-%dT%H%M%S.%f")
+                ),
+            ]
         )
 
         args = remote_engine.dbnd_executable + cmd_line_args
@@ -473,8 +509,26 @@ class RunExecutor(object):
         )
 
         task_executor.do_run()
+        self.result_location = result_map_target
 
         logger.info(run.describe.run_banner_for_submitted())
+
+    @property
+    def result(self):
+        # type: () -> RunResultBand
+        return RunResultBand.from_target(self.result_location)
+
+    @property
+    def result_location(self):
+        # type: () -> FileTarget
+        if self._result_location:
+            return target(self._result_location)
+        return self.run.root_task.task_band
+
+    @result_location.setter
+    def result_location(self, path):
+        # type: (FileTarget) -> None
+        self._result_location = path
 
 
 @contextlib.contextmanager
