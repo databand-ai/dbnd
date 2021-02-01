@@ -35,9 +35,11 @@ from dbnd._core.utils import seven
 
 
 if typing.TYPE_CHECKING:
-    from typing import Tuple, Dict, List
-    from targets.value_meta import ValueMetaConf
+    from typing import Dict, List, Tuple
+
     from pyspark.sql.dataframe import DataFrame
+
+    from targets.value_meta import ValueMetaConf
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ class SparkHistograms(object):
 
             return self.stats, self.histograms
         except Exception:
-            logger.exception("Error occured during histograms calculation")
+            logger.exception("Error occurred during histograms calculation")
             return {}, {}
         finally:
             if self._temp_parquet_path and df:
