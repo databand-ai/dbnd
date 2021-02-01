@@ -132,9 +132,8 @@ class _DbndScriptTrackingManager(object):
         root_task_run = run._build_and_add_task_run(root_task)
         root_task_run.is_root = True
 
-        # No need to track the state because we track in init_run
-        run.root_task_run.set_task_run_state(TaskRunState.RUNNING, track=False)
         run.tracker.init_run()
+        run.root_task_run.set_task_run_state(TaskRunState.RUNNING)
 
         self._enter_cm(run.root_task_run.runner.task_run_execution_context())
         self._task_run = run.root_task_run

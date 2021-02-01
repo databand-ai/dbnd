@@ -126,7 +126,7 @@ def test_tracking_pass_through_default_airflow(
         {
             "init_run": 1,
             "add_task_runs": 1,  # real task only
-            "update_task_run_attempts": 2,  # DAG start(with task start), task finished
+            "update_task_run_attempts": 3,  # DAG start(with task start), task started running, task finished
             "log_metrics": 1,
             "log_targets": 1,
             "save_task_run_log": 1,
@@ -149,7 +149,7 @@ def test_tracking_pass_through_default_airflow(
         {
             "init_run": 1,
             "add_task_runs": 1,
-            "update_task_run_attempts": 3,  # as above +   airflow root stop
+            "update_task_run_attempts": 4,  # as above +   airflow root stop
             "log_metrics": 1,
             "log_targets": 1,
             "set_run_state": 1,
@@ -182,7 +182,7 @@ def test_tracking_pass_through_default_tracking(
             "log_targets": 1,
             "save_task_run_log": 2,
             "set_run_state": 1,
-            "update_task_run_attempts": 3,  # DAG start(with task start), task finished, dag stop
+            "update_task_run_attempts": 4,  # DAG start(with task start), task started running, task finished, dag stop
         },
     )
 
@@ -240,7 +240,7 @@ def test_tracking_pass_through_nested_default(
         {
             "init_run": 1,
             "add_task_runs": 2,
-            "update_task_run_attempts": 4,
+            "update_task_run_attempts": 5,
             "log_metrics": 1,
             "log_targets": 2,
             "save_task_run_log": 2,
@@ -255,7 +255,7 @@ def test_tracking_pass_through_nested_default(
         {
             "init_run": 1,
             "add_task_runs": 2,
-            "update_task_run_attempts": 5,
+            "update_task_run_attempts": 6,
             "log_metrics": 1,
             "log_targets": 2,
             "set_run_state": 1,
@@ -275,7 +275,7 @@ def test_tracking_user_exception(mock_channel_tracker):
         {
             "init_run": 1,
             "add_task_runs": 1,
-            "update_task_run_attempts": 2,
+            "update_task_run_attempts": 3,
             "save_task_run_log": 1,
         },
     )
@@ -288,7 +288,7 @@ def test_tracking_user_exception(mock_channel_tracker):
         {
             "init_run": 1,
             "add_task_runs": 1,
-            "update_task_run_attempts": 3,
+            "update_task_run_attempts": 4,
             "set_run_state": 1,
             "save_task_run_log": 2,
         },
@@ -301,6 +301,7 @@ def test_tracking_user_exception(mock_channel_tracker):
     ]
     assert [
         TaskRunState.RUNNING,  # DAG
+        TaskRunState.RUNNING,  # root_task
         TaskRunState.FAILED,  # task
         TaskRunState.UPSTREAM_FAILED,  # DAG
     ] == update_task_run_attempts_chain
