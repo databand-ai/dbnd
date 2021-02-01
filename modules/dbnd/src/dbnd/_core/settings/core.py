@@ -74,7 +74,7 @@ class CoreConfig(Config):
         description="Tracker URL to be used for creating links in console logs",
     )[str]
     databand_access_token = parameter(
-        description="Personall access token to connect to the dbnd web server",
+        description="Personal access token to connect to the dbnd web server",
         default=None,
     )[str]
 
