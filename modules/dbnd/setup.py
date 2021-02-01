@@ -53,7 +53,7 @@ setuptools.setup(
         "tests": [
             "qtconsole==4.7.7",  # 5.0 is not py 27 compatible
             "pandas==0.24.2",
-            "numpy",
+            "numpy==1.19.5",  # 1.20 has compatibility issue with HDF5 marshalling. Fix is in progress
             "coverage",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov==2.9.0",
