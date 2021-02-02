@@ -1,3 +1,4 @@
+import copy
 import logging
 import typing
 
@@ -132,6 +133,7 @@ class BaseTaskMetaFactory(object):
             param_values=param_values,
             source=self._source_name("env[%s]" % env_config.task_name),
         )
+
         return value_task_env
 
     def build_task_config(self, param_task_config):

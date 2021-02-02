@@ -58,8 +58,43 @@ class TaskB(TaskA):
     }
 
 
+class TaskC(WordCountPySparkTask):
+    _conf__tracked = False
+    spark_conf_extension = {
+        CONFIG_1: "TaskC",
+    }
+
+
+class TaskD(TaskA):
+    spark_conf_extension = {}
+
+
 @pytest.mark.spark
 class TestSparkTasksLocally(object):
+    def spark_hook_params(self):
+        return dict(
+            application_args=mock.ANY,
+            conn_id=mock.ANY,
+            driver_class_path=mock.ANY,
+            driver_memory=mock.ANY,
+            env_vars=mock.ANY,
+            exclude_packages=mock.ANY,
+            executor_cores=mock.ANY,
+            executor_memory=mock.ANY,
+            files=mock.ANY,
+            jars=mock.ANY,
+            java_class=mock.ANY,
+            keytab=mock.ANY,
+            name=mock.ANY,
+            num_executors=mock.ANY,
+            packages=mock.ANY,
+            principal=mock.ANY,
+            py_files=mock.ANY,
+            repositories=mock.ANY,
+            total_executor_cores=mock.ANY,
+            verbose=mock.ANY,
+        )
+
     @pytest.fixture(autouse=True)
     def spark_conn(self, spark_config):
         self.config = spark_config
@@ -195,25 +230,43 @@ class TestSparkTasksLocally(object):
         ):
             task(text=__file__).dbnd_run()
             spark_submit_hook.assert_called_once_with(
-                conf=expected,
-                application_args=mock.ANY,
-                conn_id=mock.ANY,
-                driver_class_path=mock.ANY,
-                driver_memory=mock.ANY,
-                env_vars=mock.ANY,
-                exclude_packages=mock.ANY,
-                executor_cores=mock.ANY,
-                executor_memory=mock.ANY,
-                files=mock.ANY,
-                jars=mock.ANY,
-                java_class=mock.ANY,
-                keytab=mock.ANY,
-                name=mock.ANY,
-                num_executors=mock.ANY,
-                packages=mock.ANY,
-                principal=mock.ANY,
-                py_files=mock.ANY,
-                repositories=mock.ANY,
-                total_executor_cores=mock.ANY,
-                verbose=mock.ANY,
+                conf=expected, **self.spark_hook_params()
+            )
+
+    @mock.patch("airflow.contrib.hooks.spark_submit_hook.SparkSubmitHook")
+    @mock.patch("dbnd._core.settings.CoreConfig.build_tracking_store")
+    @mock.patch(
+        "dbnd._core.task_ctrl.task_validator.TaskValidator.validate_task_is_complete"
+    )
+    def test_spark_conf_merge_not_overlap(self, _, __, spark_submit_hook):
+        with dbnd_config(
+            {
+                SparkConfig.disable_sync: True,
+                SparkConfig.disable_tracking_api: True,
+                SparkConfig.conf: {CONFIG_1: "config_layer", CONFIG_2: "config_layer"},
+            }
+        ):
+            TaskA(text=__file__).dbnd_run()
+
+            spark_submit_hook.assert_called_with(
+                conf={CONFIG_1: "TaskA", CONFIG_2: "config_layer"},
+                **self.spark_hook_params()
+            )
+
+            TaskB(text=__file__).dbnd_run()
+            spark_submit_hook.assert_called_with(
+                conf={CONFIG_1: "config_layer", CONFIG_2: "TaskB"},
+                **self.spark_hook_params()
+            )
+
+            TaskC(text=__file__).dbnd_run()
+            spark_submit_hook.assert_called_with(
+                conf={CONFIG_1: "TaskC", CONFIG_2: "config_layer"},
+                **self.spark_hook_params()
+            )
+
+            TaskD(text=__file__).dbnd_run()
+            spark_submit_hook.assert_called_with(
+                conf={CONFIG_1: "config_layer", CONFIG_2: "config_layer"},
+                **self.spark_hook_params()
             )

@@ -1,3 +1,4 @@
+import copy
 import logging
 import subprocess
 import typing
@@ -102,6 +103,7 @@ class _BaseSparkTask(Task):
         super(_BaseSparkTask, self)._initialize()
 
         if self.spark_conf_extension:
+            self.spark_config = copy.deepcopy(self.spark_config)
             # adds the last layer for SparkConfig.conf
             self.spark_config.conf.update(self.spark_conf_extension)
 
