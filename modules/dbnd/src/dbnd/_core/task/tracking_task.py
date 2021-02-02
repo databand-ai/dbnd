@@ -4,6 +4,7 @@ import typing
 
 from dbnd._core.constants import TaskEssence, _TaskParamContainer
 from dbnd._core.current import get_databand_run
+from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
@@ -15,8 +16,9 @@ from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task_ctrl.task_ctrl import TrackingTaskCtrl
 from dbnd._core.task_ctrl.task_output_builder import windows_drive_re
+from dbnd._core.task_ctrl.task_relations import traverse_and_set_target
 from dbnd._core.utils.basics.memoized import cached
-from dbnd._core.utils.basics.nothing import NOTHING
+from dbnd._core.utils.basics.nothing import NOTHING, is_not_defined
 from dbnd._core.utils.timezone import utcnow
 from targets import target
 from targets.target_config import folder
@@ -49,6 +51,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         self.task_version = utcnow().strftime("%Y%m%d_%H%M%S")
         self.task_target_date = utcnow().date()
 
+        self.task_outputs = dict()
         # used for setting up only parameter that defined at the class level.
         for name, attr in self.__class__.__dict__.items():
             if isinstance(attr, ParameterDefinition):
@@ -57,6 +60,28 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
 
     def _initialize(self):
         super(TrackingTask, self)._initialize()
+
+        in_params = self._params.get_params_serialized(
+            significant_only=True, input_only=True
+        )
+        self.task_meta.initialize_task_id(in_params)
+
+        for p, value in self._params.get_param_values(output_only=True):
+            if is_not_defined(value):
+                value = p.build_output(task=self)
+                setattr(self, p.name, value)
+
+            if isinstance(p, FuncResultParameter):
+                continue
+
+            # This is used to keep backward compatibility for tracking luigi behaviour
+            # This is not something we want to keep, at least not in this form
+            value = traverse_and_set_target(value, p._target_source(self))
+            self.task_outputs[p.name] = value
+
+        out_params = self._params.get_param_values(output_only=True)
+        self.task_meta.initialize_task_output_id(out_params)
+
         self.ctrl._initialize_task()
 
     def _get_param_value(self, param_name):
@@ -93,10 +118,6 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         return get_databand_run().get_task_run(self.task_id)
 
     @property
-    def task_outputs(self):
-        return self.ctrl.relations.task_outputs_user
-
-    @property
     def task_in_memory_outputs(self):
         return True
 
@@ -126,15 +147,6 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         path += sep
 
         return target(path, folder)
-
-    def _output(self):
-        return NOTHING
-
-    def band(self):
-        return None
-
-    def _requires(self):
-        return None
 
     def _complete(self):
         return None
