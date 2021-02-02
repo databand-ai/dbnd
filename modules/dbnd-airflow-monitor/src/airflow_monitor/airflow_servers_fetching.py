@@ -1,5 +1,7 @@
 import logging
 
+from dbnd import get_databand_context
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +50,10 @@ class AirflowFetchingConfiguration(object):
 class AirflowServersGetter(object):
     FETCH_API_URL = "airflow_web_servers"
 
-    def __init__(self, databand_url, api_client):
-        self._fetch_url = databand_url
-        self._api_client = api_client
+    def __init__(self):
+        context = get_databand_context()
+        self._fetch_url = context.settings.core.databand_url
+        self._api_client = context.databand_api_client
 
     def get_fetching_configuration(self, airflow_config):
         try:

@@ -7,6 +7,7 @@ from timeit import default_timer
 
 import prometheus_client
 
+from dbnd import get_databand_context
 from dbnd._core.errors.base import DatabandConnectionException
 from dbnd._core.utils.http.retry_policy import get_retry_policy
 from dbnd.api.shared_schemas.airflow_monitor import airflow_server_info_schema
@@ -26,9 +27,10 @@ def _is_unique_constr_error(ex):
 
 
 @prometheus_dbnd_api.time()
-def save_airflow_server_info(airflow_server_info, api_client):
+def save_airflow_server_info(airflow_server_info):
     logging.info("Sending airflow server info to databand web server")
     marshalled = airflow_server_info_schema.dump(airflow_server_info.__dict__)
+    api_client = get_databand_context().databand_api_client
 
     def failure_handler(exc, retry_policy, retry_number):
         logger.error(
@@ -92,13 +94,14 @@ def _call_tracking_store(tracking_store_function, **kwargs):
             return False
 
 
-def save_airflow_monitor_data(airflow_data, tracking_service, base_url, last_sync_time):
+def save_airflow_monitor_data(airflow_data, base_url, last_sync_time):
     json_data = json.dumps(airflow_data)
     logger.info(
         "Sending Airflow data to databand web server. Total size: {} kB".format(
             sys.getsizeof(json_data) / 1000
         )
     )
+    tracking_service = get_databand_context().tracking_store_allow_errors
     start = default_timer()
     _call_tracking_store(
         tracking_store_function=tracking_service.save_airflow_monitor_data,

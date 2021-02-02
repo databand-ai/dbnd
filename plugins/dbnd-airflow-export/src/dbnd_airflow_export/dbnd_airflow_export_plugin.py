@@ -15,11 +15,12 @@ from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.db import provide_session
 from flask import Response
 
+from dbnd_airflow_export.dag_processing import get_current_dag_model
 from dbnd_airflow_export.logic import (
-    get_airflow_incomplete_data,
-    get_airflow_regular_data,
-    get_current_dag_model,
+    get_complete_data,
     get_dags_list_only,
+    get_incomplete_data_type_1,
+    get_incomplete_data_type_2,
 )
 
 
@@ -55,42 +56,54 @@ def get_airflow_data(
     include_logs,
     include_task_args,
     include_xcom,
+    fetch_type,
     dag_ids=None,
     quantity=None,
     incomplete_offset=None,
-    dags_only=False,
     session=None,
 ):
     if since:
         since = pendulum.parse(str(since).replace(" 00:00", "Z"))
+    else:
+        since = pendulum.datetime.min
 
     # We monkey patch `get_current` to optimize sql querying
     old_get_current_dag = DagModel.get_current
     try:
         DagModel.get_current = get_current_dag_model
 
-        if dags_only:
+        if fetch_type == "dags_only":
             result = get_dags_list_only(session, dagbag, dag_ids)
-        elif incomplete_offset is not None:
-            result = get_airflow_incomplete_data(
-                session=session,
-                dagbag=dagbag,
-                since=since,
-                include_task_args=include_task_args,
-                dag_ids=dag_ids,
-                incomplete_offset=incomplete_offset,
-                quantity=quantity,
+        elif fetch_type == "incomplete_type1":
+            result = get_incomplete_data_type_1(
+                since,
+                dag_ids,
+                dagbag,
+                quantity,
+                include_task_args,
+                incomplete_offset,
+                session,
+            )
+        elif fetch_type == "incomplete_type2":
+            result = get_incomplete_data_type_2(
+                since,
+                dag_ids,
+                dagbag,
+                quantity,
+                include_task_args,
+                incomplete_offset,
+                session,
             )
         else:
-            result = get_airflow_regular_data(
-                dagbag=dagbag,
-                since=since,
-                include_logs=include_logs,
-                include_xcom=include_xcom,
-                include_task_args=include_task_args,
-                dag_ids=dag_ids,
-                quantity=quantity,
-                session=session,
+            result = get_complete_data(
+                since,
+                dag_ids,
+                dagbag,
+                quantity,
+                include_logs,
+                include_task_args,
+                include_xcom,
+                session,
             )
     finally:
         DagModel.get_current = old_get_current_dag
@@ -134,7 +147,7 @@ def export_data_api(dagbag):
     quantity = flask.request.args.get("fetch_quantity", type=int)
     rbac_enabled = conf.get("webserver", "rbac").lower() == "true"
     incomplete_offset = flask.request.args.get("incomplete_offset", type=int)
-    dags_only = bool(flask.request.args.get("dags_only"))
+    fetch_type = flask.request.args.get("fetch_type")
 
     if not since and not include_logs and not dag_ids and not quantity:
         new_since = datetime.datetime.utcnow().replace(
@@ -158,8 +171,8 @@ def export_data_api(dagbag):
             include_xcom=include_xcom,
             dag_ids=dag_ids,
             quantity=quantity,
+            fetch_type=fetch_type,
             incomplete_offset=incomplete_offset,
-            dags_only=dags_only,
         )
         export_data["metrics"] = {
             "performance": flask.g.perf_metrics,

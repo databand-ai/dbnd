@@ -64,18 +64,22 @@ def set_airflow_server_info_started(airflow_server_info):
     )
 
 
-def log_fetching_parameters(url, since, airflow_config, incomplete_offset=None):
+def log_fetching_parameters(
+    url, since, airflow_config, fetch_quantity, fetch_type, incomplete_offset
+):
     log_message = "Fetching from {} with since={} include_logs={}, include_task_args={}, include_xcom={}, fetch_quantity={}".format(
         url,
         since,
         airflow_config.include_logs,
         airflow_config.include_task_args,
         airflow_config.include_xcom,
-        airflow_config.fetch_quantity,
+        fetch_quantity,
     )
 
     if airflow_config.dag_ids:
         log_message += ", dag_ids={}".format(airflow_config.dag_ids)
+
+    log_message += ", fetch_type={}".format(fetch_type)
 
     if incomplete_offset is not None:
         log_message += ", incomplete_offset={}".format(incomplete_offset)
@@ -92,14 +96,14 @@ def dump_unsent_data(data):
         logger.info("Dumped to %s", f.name)
 
 
-def send_exception_info(airflow_instance_detail, api_client, airflow_config):
+def send_exception_info(airflow_instance_detail, airflow_config):
     exception_type, exception, exception_traceback = sys.exc_info()
     message = "".join(traceback.format_tb(exception_traceback))
     message += "{}: {}. ".format(exception_type.__name__, exception)
-    save_error_message(airflow_instance_detail, message, api_client, airflow_config)
+    save_error_message(airflow_instance_detail, message, airflow_config)
 
 
-def save_error_message(airflow_instance_detail, message, api_client, airflow_config):
+def save_error_message(airflow_instance_detail, message, airflow_config):
     airflow_instance_detail.airflow_server_info.monitor_error_message = message
     airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
         utcnow()
@@ -110,7 +114,7 @@ def save_error_message(airflow_instance_detail, message, api_client, airflow_con
             airflow_instance_detail.airflow_server_info.monitor_error_message,
         )
     )
-    save_airflow_server_info(airflow_instance_detail.airflow_server_info, api_client)
+    save_airflow_server_info(airflow_instance_detail.airflow_server_info)
 
     logger.info("Sleeping for {} seconds on error".format(airflow_config.interval))
     sleep(airflow_config.interval)

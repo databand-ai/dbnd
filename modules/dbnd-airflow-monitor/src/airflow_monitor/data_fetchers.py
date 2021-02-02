@@ -6,6 +6,8 @@ import prometheus_client
 import requests
 import six
 
+from airflow_monitor.airflow_servers_fetching import AirflowFetchingConfiguration
+
 from bs4 import BeautifulSoup as bs
 
 
@@ -30,8 +32,8 @@ class DataFetcher(object):
         include_xcom,
         dag_ids,
         quantity,
+        fetch_type,
         incomplete_offset,
-        dags_only,
     ):
         pass
 
@@ -70,8 +72,8 @@ class WebFetcher(DataFetcher):
         include_xcom,
         dag_ids,
         quantity,
+        fetch_type,
         incomplete_offset,
-        dags_only,
     ):
         params = {}
         if since:
@@ -88,8 +90,8 @@ class WebFetcher(DataFetcher):
             params["fetch_quantity"] = quantity
         if incomplete_offset is not None:
             params["incomplete_offset"] = incomplete_offset
-        if dags_only:
-            params["dags_only"] = dags_only
+        if fetch_type:
+            params["fetch_type"] = fetch_type
 
         try:
             data = self._make_request(params)
@@ -204,8 +206,8 @@ class DbFetcher(DataFetcher):
         include_xcom,
         dag_ids,
         quantity,
+        fetch_type,
         incomplete_offset,
-        dags_only,
     ):
         try:
             data = self.export_data_directly(
@@ -215,8 +217,8 @@ class DbFetcher(DataFetcher):
                 include_xcom=include_xcom,
                 dag_ids=dag_ids,
                 quantity=quantity,
+                fetch_type=fetch_type,
                 incomplete_offset=incomplete_offset,
-                dags_only=dags_only,
             )
             return data
         except Exception as ex:
@@ -234,8 +236,8 @@ class DbFetcher(DataFetcher):
         include_xcom,
         dag_ids,
         quantity,
+        fetch_type,
         incomplete_offset,
-        dags_only,
     ):
         from airflow import models, settings, conf
         from airflow.settings import STORE_SERIALIZED_DAGS
@@ -260,8 +262,8 @@ class DbFetcher(DataFetcher):
             include_xcom=include_xcom,
             dag_ids=dag_ids,
             quantity=quantity,
+            fetch_type=fetch_type,
             incomplete_offset=incomplete_offset,
-            dags_only=dags_only,
             session=session(),
         )
         return result
@@ -282,8 +284,8 @@ class FileFetcher(DataFetcher):
         include_xcom,
         dag_ids,
         quantity,
+        fetch_type,
         incomplete_offset,
-        dags_only,
     ):
         import json
 

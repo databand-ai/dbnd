@@ -1,10 +1,13 @@
 import logging
 
+from datetime import timedelta
+
 import pkg_resources
 import pytz
 
 from airflow_monitor.data_fetchers import data_fetcher_factory
 
+from dbnd import get_databand_context
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor import pendulum
 from dbnd.api.shared_schemas.airflow_monitor import (
@@ -17,9 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 class AirflowInstanceDetails(object):
-    def __init__(self, config, since, server_info, fetcher):
+    def __init__(self, config, since, incomplete_since, server_info, fetcher):
         self.config = config
         self.since = since
+        self.incomplete_since = incomplete_since
         self.airflow_server_info = server_info
         self.data_fetcher = fetcher
 
@@ -57,8 +61,9 @@ def create_airflow_server_info(airflow_url, interval):
     return airflow_server_info
 
 
-def get_sync_times_from_api(api_client, airflow_server_info):
+def get_sync_times_from_api(airflow_server_info):
     """ Update airflow server info with sync times retrieved from API """
+    api_client = get_databand_context().databand_api_client
     response = api_client.api_request(
         "airflow_monitor/get_synced_time_frame",
         {},
@@ -72,19 +77,35 @@ def get_sync_times_from_api(api_client, airflow_server_info):
 
 
 def calculate_since_value(
-    since_now, since, sync_history, history_only, api_client, airflow_server_info
+    since_now,
+    since,
+    sync_history,
+    history_only,
+    airflow_server_info,
+    config,
+    is_incomplete,
 ):
+    default_since = (
+        utcnow() - timedelta(days=config.oldest_incomplete_data_in_days)
+        if is_incomplete
+        else pendulum.datetime.min
+    )
+
     if since_now:
         final_since_value = utcnow()
     elif since:
         final_since_value = pendulum.parse(since, tz=pytz.UTC)
     elif sync_history or history_only:
-        final_since_value = pendulum.datetime.min
+        final_since_value = default_since
     else:
         # Default mode
         try:
-            get_sync_times_from_api(api_client, airflow_server_info)
-            final_since_value = airflow_server_info.synced_to
+            get_sync_times_from_api(airflow_server_info)
+            final_since_value = (
+                airflow_server_info.incomplete_synced_to
+                if is_incomplete
+                else airflow_server_info.synced_to
+            )
             if final_since_value:
                 logger.info(
                     "Resuming sync from latest stop at: %s" % (final_since_value,)
@@ -93,19 +114,20 @@ def calculate_since_value(
                 logger.info(
                     "Latest sync stop not found. Starting sync from the beginning"
                 )
+                final_since_value = default_since
         except Exception as e:
             logger.info(
                 "Could not locate latest sync stop. Exception: {}. Starting Airflow Monitor syncing from the beginning.".format(
                     e
                 )
             )
-            final_since_value = pendulum.datetime.min
+            final_since_value = default_since
 
     return final_since_value
 
 
 def create_airflow_instance_details(
-    monitor_args, airflow_config, api_client, configs_fetched, existing_details
+    monitor_args, airflow_config, configs_fetched, existing_details
 ):
     airflow_instance_details = []
     for fetch_config in configs_fetched:
@@ -122,13 +144,25 @@ def create_airflow_instance_details(
                 monitor_args.since,
                 monitor_args.sync_history,
                 monitor_args.history_only,
-                api_client,
                 airflow_server_info,
+                airflow_config,
+                False,
             )
+            incomplete_since_value = calculate_since_value(
+                monitor_args.since_now,
+                monitor_args.since,
+                monitor_args.sync_history,
+                monitor_args.history_only,
+                airflow_server_info,
+                airflow_config,
+                True,
+            )
+            # We currently use the same value for both since and incomplete_since
             airflow_instance_details.append(
                 AirflowInstanceDetails(
                     fetch_config,
                     since_value,
+                    incomplete_since_value,
                     airflow_server_info,
                     data_fetcher_factory(fetch_config),
                 )
@@ -138,11 +172,7 @@ def create_airflow_instance_details(
 
 
 def create_instance_details(
-    monitor_args,
-    airflow_config,
-    api_client,
-    configs_fetched,
-    existing_airflow_instance_details,
+    monitor_args, airflow_config, configs_fetched, existing_airflow_instance_details,
 ):
     if configs_fetched is None:
         if existing_airflow_instance_details:
@@ -152,7 +182,6 @@ def create_instance_details(
     airflow_instance_details = create_airflow_instance_details(
         monitor_args,
         airflow_config,
-        api_client,
         configs_fetched,
         existing_airflow_instance_details,
     )

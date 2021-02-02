@@ -25,25 +25,35 @@ from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor import pendulum
 
 
-try:
-    import urlparse
-except ImportError:
-    from urllib.parse import urlparse
-
 logger = logging.getLogger(__name__)
 
 
+# Fetch types
+COMPLETE = "complete"
+INCOMPLETE_TYPE1 = "incomplete_type1"
+INCOMPLETE_TYPE2 = "incomplete_type2"
+DAGS_ONLY = "dags_only"
+
+
+def is_incomplete(fetch_type):
+    return fetch_type in {INCOMPLETE_TYPE1, INCOMPLETE_TYPE2}
+
+
 def try_fetching_from_airflow(
-    airflow_instance_detail,
-    airflow_config,
-    since,
-    incomplete_offset,
-    api_client,
-    dags_only,
+    airflow_instance_detail, airflow_config, since, fetch_type, incomplete_offset,
 ):
+    """
+    Try fetching from Airflow and return the data that was fetched.
+    If Exception occurred, return None.
+    """
     try:
         log_fetching_parameters(
-            airflow_instance_detail.url, since, airflow_config, incomplete_offset,
+            airflow_instance_detail.url,
+            since,
+            airflow_config,
+            airflow_config.fetch_quantity,
+            fetch_type,
+            incomplete_offset,
         )
 
         data = airflow_instance_detail.data_fetcher.get_data(
@@ -53,335 +63,369 @@ def try_fetching_from_airflow(
             airflow_config.include_xcom,
             airflow_config.dag_ids,
             airflow_config.fetch_quantity,
+            fetch_type,
             incomplete_offset,
-            dags_only,
         )
         return data
     except JSONDecodeError:
         logger.exception("Could not decode the received data, error in json format.")
-        send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        send_exception_info(airflow_instance_detail, airflow_config)
     except (ConnectionError, OSError, IOError) as e:
         logger.exception(
             "An error occurred while trying to sync data from airflow to databand: %s",
             e,
         )
-        send_exception_info(airflow_instance_detail, api_client, airflow_config)
+        send_exception_info(airflow_instance_detail, airflow_config)
     return None
 
 
-def validate_airflow_monitor_data(
-    data, airflow_instance_detail, airflow_config, api_client
-):
+def validate_airflow_monitor_data(data, airflow_instance_detail, airflow_config):
     if data is None:
         logger.warning("Didn't receive any data")
         return False
 
     if "error" in data:
         logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
-        save_error_message(
-            airflow_instance_detail, data["error"], api_client, airflow_config
-        )
+        save_error_message(airflow_instance_detail, data["error"], airflow_config)
         return False
     return True
 
 
-def do_fetching_iteration(
-    airflow_config, airflow_instance_detail, api_client, tracking_store
-):
+def get_active_dags(export_data):
+    active_dags = {
+        dag["dag_id"]: [task["task_id"] for task in dag["tasks"]]
+        for dag in export_data.dags
+        if dag.get("is_active", True)
+    }
+
+    return active_dags
+
+
+def get_max_end_dates(export_data):
     """
-    Fetch from Airflow webserver, return number of items fetched
+    Return the max end date from all task instances.
+    If there are no task instances, return max end date from all dag_runs.
+    If there are no dag runs as well, return None.
     """
-    data = try_fetching_from_airflow(
-        airflow_instance_detail,
-        airflow_config,
-        airflow_instance_detail.since,
-        None,
-        api_client,
-        False,
+    task_instances_end_dates = [
+        pendulum.parse(str(t["end_date"]))
+        for t in export_data.task_instances
+        if t["end_date"] is not None
+    ]
+
+    dag_runs_end_dates = [
+        pendulum.parse(str(dr["end_date"]))
+        for dr in export_data.dag_runs
+        if dr["end_date"] is not None
+    ]
+    logger.info(
+        "Got %d task end dates, the last is %s and got %d dag run end dates, the last is %s",
+        len(task_instances_end_dates),
+        max(task_instances_end_dates) if task_instances_end_dates else None,
+        len(dag_runs_end_dates),
+        max(dag_runs_end_dates) if dag_runs_end_dates else None,
     )
 
-    if not validate_airflow_monitor_data(
-        data, airflow_instance_detail, airflow_config, api_client
-    ):
-        return 0
+    end_dates = (
+        task_instances_end_dates if task_instances_end_dates else dag_runs_end_dates
+    )
+
+    if not end_dates:
+        return None
+
+    return max(end_dates)
+
+
+def update_since(airflow_instance_detail, max_end_date, is_incomplete):
+    if not max_end_date:
+        if is_incomplete:
+            logger.info("Keeping since as it was %s", airflow_instance_detail.since)
+        else:
+            logger.info(
+                "Keeping incomplete since as it was %s",
+                airflow_instance_detail.incomplete_since,
+            )
+        return
+
+    if is_incomplete:
+        logger.info(
+            "Updating incomplete since, old value: %s, new value: %s",
+            airflow_instance_detail.incomplete_since,
+            max_end_date,
+        )
+        airflow_instance_detail.incomplete_since = max_end_date
+    else:
+        logger.info(
+            "Updating since, old value: %s, new value: %s",
+            airflow_instance_detail.since,
+            max_end_date,
+        )
+        airflow_instance_detail.since = max_end_date
+
+
+def process_and_update_airflow_server_info(
+    airflow_instance_detail, export_data, max_end_date, is_incomplete
+):
+    active_dags = get_active_dags(export_data)
+
+    airflow_instance_detail.update_airflow_server(
+        airflow_version=export_data.airflow_version,
+        dags_path=export_data.dags_path,
+        logs_path=export_data.logs_path,
+        airflow_export_version=export_data.airflow_export_version,
+        synced_from=airflow_instance_detail.airflow_server_info.synced_from
+        or airflow_instance_detail.since,
+        active_dags=active_dags,
+    )
+
+    if is_incomplete:
+        airflow_instance_detail.airflow_server_info.incomplete_synced_to = (
+            max_end_date if max_end_date else utcnow()
+        )
+    else:
+        airflow_instance_detail.airflow_server_info.synced_to = (
+            max_end_date if max_end_date else utcnow()
+        )
+
+    synced_to_name = "incomplete_synced_to" if is_incomplete else "synced_to"
+    synced_to = (
+        airflow_instance_detail.airflow_server_info.incomplete_synced_to
+        if is_incomplete
+        else airflow_instance_detail.airflow_server_info.synced_to,
+    )
+
+    logger.info(
+        "Using last end date %s, New %s date is %s",
+        max_end_date if max_end_date else None,
+        synced_to_name,
+        synced_to,
+    )
+
+    logging.info(
+        "Sending airflow server info: url=%s, synced_from=%s, %s=%s, last_sync_time=%s",
+        airflow_instance_detail.airflow_server_info.base_url,
+        airflow_instance_detail.airflow_server_info.synced_from,
+        synced_to_name,
+        synced_to,
+        airflow_instance_detail.airflow_server_info.last_sync_time,
+    )
+    save_airflow_server_info(airflow_instance_detail.airflow_server_info)
+
+
+def do_data_fetching_iteration(
+    since, fetch_type, incomplete_offset, airflow_config, airflow_instance_detail
+):
+    """
+    This function performs one fetching iteration from Airflow webserver to Databand.
+    This iteration can fetch complete/incomplete according to the parameters given.
+    It will fetch from Airflow, send to Databand and return the fetched data
+    """
+    logger.info(
+        "Running sync iteration with since=%s, fetch_type=%s, incomplete_offset=%s",
+        since,
+        fetch_type,
+        incomplete_offset,
+    )
+
+    data = try_fetching_from_airflow(
+        airflow_instance_detail=airflow_instance_detail,
+        airflow_config=airflow_config,
+        since=since,
+        fetch_type=fetch_type,
+        incomplete_offset=incomplete_offset,
+    )
+
+    if not validate_airflow_monitor_data(data, airflow_instance_detail, airflow_config):
+        return None
+
+    log_received_tasks(airflow_instance_detail.url, data)
+    send_metrics(airflow_instance_detail, data)
 
     try:
-        log_received_tasks(airflow_instance_detail.url, data)
-        send_metrics(airflow_instance_detail, data)
-
-        export_data = _as_dotted_dict(**data)
-
-        active_dags = {
-            dag["dag_id"]: [task["task_id"] for task in dag["tasks"]]
-            for dag in export_data.dags
-            if dag.get("is_active", True)
-        }
-        logger.info("Got %d active DAGs", len(active_dags))
-
-        airflow_instance_detail.update_airflow_server(
-            airflow_version=export_data.airflow_version,
-            dags_path=export_data.dags_path,
-            logs_path=export_data.logs_path,
-            airflow_export_version=export_data.airflow_export_version,
-            synced_from=airflow_instance_detail.airflow_server_info.synced_from
-            or airflow_instance_detail.since,
-            active_dags=active_dags,
-        )
-
-        task_instances_end_dates = [
-            pendulum.parse(str(t["end_date"]))
-            for t in export_data.task_instances
-            if t["end_date"] is not None
-        ]
-
-        dag_runs_end_dates = [
-            pendulum.parse(str(dr["end_date"]))
-            for dr in export_data.dag_runs
-            if dr["end_date"] is not None
-        ]
-        logger.info(
-            "Got %d task end dates, the last is %s and got %d dag run end dates, the last is %s",
-            len(task_instances_end_dates),
-            max(task_instances_end_dates) if task_instances_end_dates else None,
-            len(dag_runs_end_dates),
-            max(dag_runs_end_dates) if dag_runs_end_dates else None,
-        )
-
-        end_dates = (
-            task_instances_end_dates if task_instances_end_dates else dag_runs_end_dates
-        )
-
-        airflow_instance_detail.airflow_server_info.synced_to = (
-            max(end_dates) if end_dates else utcnow()
-        )
-        logger.info(
-            "Using last end date %s, New synced_to date is %s",
-            max(end_dates) if end_dates else None,
-            airflow_instance_detail.airflow_server_info.synced_to,
-        )
-
         save_airflow_monitor_data(
             data,
-            tracking_store,
             airflow_instance_detail.url,
             airflow_instance_detail.airflow_server_info.last_sync_time,
         )
 
-        logging.info(
-            "Sending airflow server info: url={}, synced_from={}, synced_to={}, last_sync_time={}".format(
-                airflow_instance_detail.airflow_server_info.base_url,
-                airflow_instance_detail.airflow_server_info.synced_from,
-                airflow_instance_detail.airflow_server_info.synced_to,
-                airflow_instance_detail.airflow_server_info.last_sync_time,
-            )
-        )
-        save_airflow_server_info(
-            airflow_instance_detail.airflow_server_info, api_client
-        )
-
-        # If synced_to was set to utcnow(), keep since as it was
-        if end_dates:
-            logger.info(
-                "Updating since, old value: {}, new value: {}".format(
-                    airflow_instance_detail.since,
-                    airflow_instance_detail.airflow_server_info.synced_to,
-                )
-            )
-            airflow_instance_detail.since = (
-                airflow_instance_detail.airflow_server_info.synced_to
-            )
-        else:
-            logger.info(
-                "Keeping since as it was {}".format(airflow_instance_detail.since)
-            )
-
         logger.info(
-            "Total {} task instances, {} dag runs, {} dags saved to databand web server".format(
-                len(export_data.task_instances),
-                len(export_data.dag_runs),
-                len(export_data.dags),
-            )
+            "Total %s task instances, %s dag runs, %s dags saved to databand web server",
+            len(data["task_instances"]),
+            len(data["dag_runs"]),
+            len(data["dags"]),
         )
 
-        total_fetched = max(len(task_instances_end_dates), len(dag_runs_end_dates))
-        return total_fetched
+        export_data = _as_dotted_dict(**data)
+        return export_data
     except Exception as e:
         logger.exception(
             "An error occurred while trying to sync data from airflow to databand: %s",
             e,
         )
         dump_unsent_data(data)
-        send_exception_info(airflow_instance_detail, api_client, airflow_config)
-        return 0
+        send_exception_info(airflow_instance_detail, airflow_config)
+        return None
 
 
-def do_incomplete_data_fetching_iteration(
-    airflow_config,
-    airflow_instance_detail,
-    api_client,
-    tracking_store,
-    incomplete_offset,
-):
+def sync_dags_only(airflow_instance_detail, airflow_config):
     """
-    Fetch incomplete data from Airflow web server, return number of items fetched
+    Sync only dags from Airflow in their raw form.
     """
+    logger.info(
+        "Syncing dags list from %s",
+        airflow_instance_detail.airflow_server_info.base_url,
+    )
+
+    do_data_fetching_iteration(
+        since=None,
+        fetch_type=DAGS_ONLY,
+        incomplete_offset=None,
+        airflow_config=airflow_config,
+        airflow_instance_detail=airflow_instance_detail,
+    )
+
+
+def sync_all_complete_data(airflow_instance_detail, airflow_config):
+    """
+    Sync all completed data (task instances and dag runs).
+    If the returned amount of data is less than fetch_quantity, we can stop.
+    """
+    logger.info("Starting to sync complete data from %s", airflow_instance_detail.url)
+
+    while True:
+        export_data = do_data_fetching_iteration(
+            since=airflow_instance_detail.since,
+            fetch_type=COMPLETE,
+            incomplete_offset=None,
+            airflow_config=airflow_config,
+            airflow_instance_detail=airflow_instance_detail,
+        )
+        if export_data is None:
+            return
+
+        max_end_date = get_max_end_dates(export_data)
+        process_and_update_airflow_server_info(
+            airflow_instance_detail, export_data, max_end_date, False
+        )
+        update_since(airflow_instance_detail, max_end_date, False)
+        fetch_count = max(len(export_data.task_instances), len(export_data.dag_runs))
+
+        if fetch_count < airflow_config.fetch_quantity:
+            break
+
+    logger.info(
+        "Finished syncing complete data from %s",
+        airflow_instance_detail.airflow_server_info.base_url,
+    )
+
+
+def sync_all_incomplete_data_type1(airflow_instance_detail, airflow_config):
+    """
+    Fetch all incomplete task instances from completed dag runs.
+    If the returned amount of data is less than fetch_quantity, we can stop.
+    """
+    logger.info(
+        "Starting to sync incomplete data from complete dag runs for %s",
+        airflow_instance_detail.url,
+    )
+
+    offset = 0
+
+    while True:
+        export_data = do_data_fetching_iteration(
+            since=airflow_instance_detail.incomplete_since,
+            fetch_type=INCOMPLETE_TYPE1,
+            incomplete_offset=offset,
+            airflow_config=airflow_config,
+            airflow_instance_detail=airflow_instance_detail,
+        )
+        if export_data is None:
+            return
+
+        fetch_count = len(export_data.task_instances)
+
+        # No more to fetch, we can stop now
+        if fetch_count < airflow_config.fetch_quantity:
+            if len(export_data.dag_runs) != 0:
+                new_since = pendulum.parse(str(export_data.dag_runs[0]["end_date"]))
+                update_since(airflow_instance_detail, new_since, True)
+            break
+
+        export_data.dag_runs.sort(key=lambda x: pendulum.parse(str(x["end_date"])))
+
+        last_full_dag_run = (
+            export_data.dag_runs[-2] if len(export_data.dag_runs) >= 2 else None
+        )
+        last_dag_run = export_data.dag_runs[-1]
+
+        number_of_task_instances_in_last_dag_run = len(
+            [
+                task_instance
+                for task_instance in export_data.task_instances
+                if task_instance["dag_id"] == last_dag_run["dag_id"]
+                and task_instance["execution_date"] == last_dag_run["execution_date"]
+            ]
+        )
+
+        # Here we assume that we received all task instances from all dag runs except for the last one.
+        # The last run may be full but it may be not.
+        if last_full_dag_run:
+            # Bump the since according to the last full dag run and change the offset to be the number of task instances
+            # that we received in the last dag run
+            max_end_date = pendulum.parse(str(last_full_dag_run["end_date"]))
+            update_since(airflow_instance_detail, max_end_date, True)
+            offset = number_of_task_instances_in_last_dag_run
+            process_and_update_airflow_server_info(
+                airflow_instance_detail, export_data, max_end_date, True
+            )
+        else:
+            # We received only one run and don't know if its full - keep the since and bump the offset
+            offset += number_of_task_instances_in_last_dag_run
+
+    logger.info(
+        "Finished syncing incomplete data from complete dag runs for %s",
+        airflow_instance_detail.url,
+    )
+
+
+def sync_all_incomplete_data_type2(airflow_instance_detail, airflow_config):
+    """
+    Sync all incomplete task instances (from incomplete dag runs) and incomplete dag runs.
+    Use offset to advance instead of since (because it uses pagination).
+    If the returned amount of data is less than fetch_quantity, we can stop.
+    """
+    logger.info(
+        "Starting to sync incomplete from incomplete dag runs for %s",
+        airflow_instance_detail.url,
+    )
+
+    incomplete_offset = 0
     # Max time to look for incomplete data, we do not update this but use pagination instead
     since = utcnow() - timedelta(days=airflow_config.oldest_incomplete_data_in_days)
 
-    data = try_fetching_from_airflow(
-        airflow_instance_detail,
-        airflow_config,
-        since,
-        incomplete_offset,
-        api_client,
-        False,
-    )
-
-    if not validate_airflow_monitor_data(
-        data, airflow_instance_detail, airflow_config, api_client
-    ):
-        return 0
-
-    try:
-        log_received_tasks(airflow_instance_detail.url, data)
-        send_metrics(airflow_instance_detail, data)
-
-        export_data = _as_dotted_dict(**data)
-
-        save_airflow_monitor_data(
-            data,
-            tracking_store,
-            airflow_instance_detail.url,
-            airflow_instance_detail.airflow_server_info.last_sync_time,
-        )
-
-        logger.info(
-            "Total {} task instances, {} dag runs, {} dags saved to databand web server".format(
-                len(export_data.task_instances),
-                len(export_data.dag_runs),
-                len(export_data.dags),
-            )
-        )
-
-        total_fetched = max(len(data["task_instances"]), len(data["dag_runs"]))
-        return total_fetched
-    except Exception as e:
-        logger.exception(
-            "An error occurred while trying to sync data from airflow to databand: %s",
-            e,
-        )
-        dump_unsent_data(data)
-        send_exception_info(airflow_instance_detail, api_client, airflow_config)
-        return 0
-
-
-def fetch_dags_only(
-    airflow_instance_detail, airflow_config, api_client, tracking_store
-):
-    logger.info(
-        "Bringing dags list from {}".format(
-            airflow_instance_detail.airflow_server_info.base_url
-        )
-    )
-    data = airflow_instance_detail.data_fetcher.get_data(
-        airflow_instance_detail.since,
-        airflow_config.include_logs,
-        airflow_config.include_task_args,
-        airflow_config.include_xcom,
-        airflow_config.dag_ids,
-        airflow_config.fetch_quantity,
-        None,
-        True,
-    )
-
-    if not validate_airflow_monitor_data(
-        data, airflow_instance_detail, airflow_config, api_client
-    ):
-        return
-
-    try:
-        logger.info(
-            "Received data from %s with: {dags: %d}",
-            airflow_instance_detail.url,
-            len(data["dags"]),
-        )
-        save_airflow_monitor_data(
-            data,
-            tracking_store,
-            airflow_instance_detail.url,
-            airflow_instance_detail.airflow_server_info.last_sync_time,
-        )
-        logger.info(
-            "Total {} dags saved to databand web server".format(len(data["dags"]))
-        )
-    except Exception as e:
-        logger.exception(
-            "An error occurred while trying to sync data from airflow to databand: %s",
-            e,
-        )
-        dump_unsent_data(data)
-        send_exception_info(airflow_instance_detail, api_client, airflow_config)
-        return 0
-
-
-def fetch_one_server_until_synced(
-    airflow_config, airflow_instance_detail, api_client, tracking_store
-):
-
-    # Fetch continuously until we are up to date
-    logger.info(
-        "Starting to fetch data from %s",
-        airflow_instance_detail.airflow_server_info.base_url,
-    )
-
-    fetch_dags_only(airflow_instance_detail, airflow_config, api_client, tracking_store)
-
     while True:
         logger.info(
-            "Starting sync iteration for {}".format(airflow_instance_detail.url)
-        )
-        fetch_count = do_fetching_iteration(
-            airflow_config, airflow_instance_detail, api_client, tracking_store,
-        )
-        if fetch_count < airflow_config.fetch_quantity:
-            logger.info(
-                "Finished syncing completed tasks from %s",
-                airflow_instance_detail.airflow_server_info.base_url,
-            )
-            break
-        logger.info(
-            "Finished sync iteration for {}".format(airflow_instance_detail.url)
-        )
-
-    # Fetch separately incomplete data
-    logger.info(
-        "Starting to fetch incomplete data from %s",
-        airflow_instance_detail.airflow_server_info.base_url,
-    )
-    incomplete_offset = 0
-    while True:
-        logger.info(
-            "Starting sync iteration of incomplete data for {} with incomplete offset {}-{}".format(
-                airflow_instance_detail.url,
-                incomplete_offset,
-                incomplete_offset + airflow_config.fetch_quantity,
-            )
-        )
-        fetch_count = do_incomplete_data_fetching_iteration(
-            airflow_config,
-            airflow_instance_detail,
-            api_client,
-            tracking_store,
+            "Starting sync iteration of incomplete data for %s with incomplete offset %s-%s",
+            airflow_instance_detail.url,
             incomplete_offset,
+            incomplete_offset + airflow_config.fetch_quantity,
         )
+        export_data = do_data_fetching_iteration(
+            since=since,
+            fetch_type=INCOMPLETE_TYPE2,
+            incomplete_offset=incomplete_offset,
+            airflow_config=airflow_config,
+            airflow_instance_detail=airflow_instance_detail,
+        )
+        if export_data is None:
+            return
+
+        max_end_date = get_max_end_dates(export_data)
+        update_since(airflow_instance_detail, max_end_date, True)
+
+        fetch_count = max(len(export_data.task_instances), len(export_data.dag_runs))
+
         if fetch_count < airflow_config.fetch_quantity:
-            logger.info(
-                "Finished syncing incomplete data from {} after receiving {} items which is less then fetch quantity {}".format(
-                    airflow_instance_detail.airflow_server_info.base_url,
-                    fetch_count,
-                    airflow_config.fetch_quantity,
-                )
-            )
             break
         else:
             incomplete_offset += airflow_config.fetch_quantity
@@ -390,32 +434,47 @@ def fetch_one_server_until_synced(
                 airflow_instance_detail.airflow_server_info.base_url,
                 incomplete_offset,
             )
-        logger.info(
-            "Finished sync iteration of incomplete data for {}".format(
-                airflow_instance_detail.url
-            )
-        )
+
+    logger.info(
+        "Finished syncing incomplete data from %s",
+        airflow_instance_detail.airflow_server_info.base_url,
+    )
 
 
-def sync_all_servers(
-    monitor_args, airflow_config, airflow_instance_details, api_client, tracking_store,
-):
+def fetch_one_server_until_synced(airflow_config, airflow_instance_detail):
+    """
+    Fetch continuously all types of data from one server until we are up to date.
+    """
+    # Sync all dags first
+    sync_dags_only(airflow_instance_detail, airflow_config)
+
+    # Sync all completed
+    sync_all_complete_data(airflow_instance_detail, airflow_config)
+
+    # Sync all completed task instances from completed dag runs (and their dag runs).
+    # Use the original since that we started with and not the one after we finished syncing all complete data.
+    sync_all_incomplete_data_type1(airflow_instance_detail, airflow_config)
+
+    # Sync all other incomplete data (incomplete task instances from incomplete dag runs)
+    # that can't be synced in any other way - using pagination
+    sync_all_incomplete_data_type2(airflow_instance_detail, airflow_config)
+
+
+def sync_all_servers(monitor_args, airflow_config, airflow_instance_details):
     details_to_remove = []
 
     for airflow_instance_detail in airflow_instance_details:
-        logger.info("Starting to sync server {}".format(airflow_instance_detail.url))
+        logger.info("Starting to sync server %s", airflow_instance_detail.url)
 
         set_airflow_server_info_started(airflow_instance_detail.airflow_server_info)
 
-        fetch_one_server_until_synced(
-            airflow_config, airflow_instance_detail, api_client, tracking_store,
-        )
+        fetch_one_server_until_synced(airflow_config, airflow_instance_detail)
+
+        logger.info("Finished syncing server %s", airflow_instance_detail.url)
 
         if monitor_args.history_only:
             logger.info(
-                "Finished syncing history of server {}".format(
-                    airflow_instance_detail.url
-                )
+                "Finished syncing history of server %s", airflow_instance_detail.url
             )
             details_to_remove.append(airflow_instance_detail)
 
@@ -424,70 +483,49 @@ def sync_all_servers(
             airflow_instance_details.remove(detail)
 
     logger.info(
-        "Completed servers {} ".format(
-            ",".join([detail.url for detail in details_to_remove])
-        )
+        "Completed servers %s ", ",".join([detail.url for detail in details_to_remove])
     )
     logger.info(
-        "Remaining servers {} ".format(
-            ",".join([detail.url for detail in airflow_instance_details])
-        )
+        "Remaining servers %s ",
+        ",".join([detail.url for detail in airflow_instance_details]),
     )
 
 
 def airflow_monitor_main(monitor_args, airflow_config):
-    """Start Airflow Data Importer"""
-    from dbnd import new_dbnd_context
-
     airflow_instance_details = []
+    iteration_number = 0
+    servers_fetcher = AirflowServersGetter()
 
-    with new_dbnd_context() as dc:
-        databand_url = dc.settings.core.databand_url
-        api_client = dc.databand_api_client
-        iteration_number = 0
+    while True:
+        configs_fetched = servers_fetcher.get_fetching_configuration(airflow_config)
+        airflow_instance_details = create_instance_details(
+            monitor_args, airflow_config, configs_fetched, airflow_instance_details,
+        )
 
-        servers_fetcher = AirflowServersGetter(databand_url, api_client)
+        if airflow_instance_details is None:
+            # Probably an error occurred
+            logger.info("Sleeping %d seconds on error", airflow_config.interval)
+            sleep(airflow_config.interval)
+            continue
 
-        while True:
-            configs_fetched = servers_fetcher.get_fetching_configuration(airflow_config)
-            airflow_instance_details = create_instance_details(
-                monitor_args,
-                airflow_config,
-                api_client,
-                configs_fetched,
-                airflow_instance_details,
-            )
+        sync_all_servers(
+            monitor_args, airflow_config, airflow_instance_details,
+        )
 
-            if airflow_instance_details is None:
-                # Probably an error occurred
+        # We are running in history_only mode and finished syncing all servers
+        if monitor_args.history_only and len(airflow_instance_details) == 0:
+            logger.info("Finished syncing all servers")
+            break
+
+        # Limit the total number of sync iterations, mostly for tests and debug
+        iteration_number += 1
+        if monitor_args.number_of_iterations is not None:
+            if iteration_number >= monitor_args.number_of_iterations:
                 logger.info(
-                    "Sleeping {} seconds on error".format(airflow_config.interval)
+                    "We are done with all required %d iterations", iteration_number
                 )
-                sleep(airflow_config.interval)
-                continue
-
-            sync_all_servers(
-                monitor_args,
-                airflow_config,
-                airflow_instance_details,
-                api_client,
-                dc.tracking_store_allow_errors,
-            )
-
-            # We are running in history_only mode and finished syncing all servers
-            if monitor_args.history_only and len(airflow_instance_details) == 0:
-                logger.info("Finished syncing all servers")
                 break
 
-            # Limit the total number of sync iterations, mostly for tests and debug
-            iteration_number += 1
-            if monitor_args.number_of_iterations is not None:
-                if iteration_number >= monitor_args.number_of_iterations:
-                    logger.info(
-                        "We are done with all required %s iterations", iteration_number
-                    )
-                    break
-
-            # Give servers some time to get filled with data
-            logger.info("Waiting for %d seconds", airflow_config.interval)
-            sleep(airflow_config.interval)
+        # Give servers some time to get filled with data
+        logger.info("Waiting for %d seconds", airflow_config.interval)
+        sleep(airflow_config.interval)
