@@ -195,7 +195,8 @@ class TrackingInfoBuilder(object):
                 )
             task_targets.append(dbnd_target)
 
-        for io_params in task.ctrl.io_params():
+        rels = task.ctrl.relations
+        for io_params in chain(rels.task_outputs.values(), rels.task_inputs.values()):
             for name, t in io_params.items():
                 traverse(t, convert_f=partial(process_target, name=name))
 

@@ -3,7 +3,6 @@ import logging
 import typing
 
 from abc import ABCMeta, abstractmethod
-from itertools import chain
 
 import six
 
@@ -16,7 +15,7 @@ from dbnd._core.utils.traversing import traverse_to_str
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, Dict, Any
+    from typing import Optional
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.settings import EnvConfig, DatabandSettings
     from dbnd._core.task_ctrl.task_meta import TaskMeta
@@ -100,12 +99,14 @@ class _BaseTaskCtrl(TaskSubCtrl):
     def __init__(self, task):
         super(_BaseTaskCtrl, self).__init__(task)
 
+        from dbnd._core.task_ctrl.task_relations import TaskRelations  # noqa: F811
         from dbnd._core.task_ctrl.task_dag import _TaskDagNode  # noqa: F811
         from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser  # noqa: F811
         from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
         from dbnd._core.task_ctrl.task_descendant import TaskDescendants
         from dbnd._core.task_ctrl.task_repr import TaskRepr
 
+        self._relations = TaskRelations(task)
         self._task_dag = _TaskDagNode(task)
         self.descendants = TaskDescendants(task)
 
@@ -119,6 +120,8 @@ class _BaseTaskCtrl(TaskSubCtrl):
         self.force_task_run_uid = None  # force task run uid
 
     def _initialize_task(self):
+        self.relations.initialize_relations()
+        self.task_dag.initialize_dag_node()
         # only at the end we can build the final version of "function call"
         self.task_repr.initialize()
 
@@ -144,21 +147,6 @@ class _BaseTaskCtrl(TaskSubCtrl):
     def should_run(self):
         pass
 
-    def io_params(self):
-        return chain(self.task_outputs.values(), self.task_inputs.values())
-
-    @property
-    @abstractmethod
-    def task_inputs(self):
-        # type: () -> Dict[str, Dict[str][Any]]
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def task_outputs(self):
-        # type: () -> Dict[str, Dict[str][Any]]
-        raise NotImplementedError()
-
 
 class TaskCtrl(_BaseTaskCtrl):
     def __init__(self, task):
@@ -168,19 +156,13 @@ class TaskCtrl(_BaseTaskCtrl):
 
         super(TaskCtrl, self).__init__(task)
 
-        from dbnd._core.task_ctrl.task_relations import TaskRelations  # noqa: F811
         from dbnd._core.task_ctrl.task_validator import TaskValidator
 
-        self._relations = TaskRelations(task)
         self.task_validator = TaskValidator(task)
 
         self._should_run = self.task_meta.task_enabled and self.task._should_run()
 
     def _initialize_task(self):
-        # target driven relations are relevant only for orchestration tasks
-        self.relations.initialize_relations()
-        self.task_dag.initialize_dag_node()
-
         super(TaskCtrl, self)._initialize_task()
 
         # validate circle dependencies
@@ -212,14 +194,6 @@ class TaskCtrl(_BaseTaskCtrl):
         ):
             yield
 
-    @property
-    def task_inputs(self):
-        return self.relations.task_inputs
-
-    @property
-    def task_outputs(self):
-        return self.relations.task_outputs
-
 
 class TrackingTaskCtrl(_BaseTaskCtrl):
     def __init__(self, task):
@@ -228,14 +202,6 @@ class TrackingTaskCtrl(_BaseTaskCtrl):
         assert isinstance(task, TrackingTask)
 
         super(TrackingTaskCtrl, self).__init__(task)
-
-    @property
-    def task_inputs(self):
-        return dict(dict())
-
-    @property
-    def task_outputs(self):
-        return dict(dict())
 
     def should_run(self):
         return True
