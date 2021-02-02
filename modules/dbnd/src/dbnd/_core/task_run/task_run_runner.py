@@ -98,7 +98,7 @@ class TaskRunRunner(TaskRunCtrl):
                     "Sig TERM! Killing the task '%s' via task.on_kill()",
                     task_run.task.task_id,
                 )
-                run._internal_kill()
+                run.run_executor._internal_kill()
 
                 error = TaskRunError.build_from_ex(ex, task_run)
                 try:
@@ -127,7 +127,7 @@ class TaskRunRunner(TaskRunCtrl):
                 except Exception:
                     logger.exception("Failed to kill task on user keyboard interrupt")
                 task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
-                run._internal_kill()
+                run.run_executor._internal_kill()
                 raise
             except SystemExit as ex:
                 error = TaskRunError.build_from_ex(ex, task_run)
