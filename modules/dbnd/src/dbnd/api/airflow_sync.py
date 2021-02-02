@@ -15,7 +15,7 @@ def create_airflow_instance(url, external_url, fetcher, api_mode, composer_clien
     endpoint = "airflow_monitor/add"
     request_data = {
         "base_url": url,
-        "ext_url": external_url,
+        "external_url": external_url,
         "fetcher": fetcher,
         "api_mode": api_mode,
         "composer_client_id": composer_client_id,
