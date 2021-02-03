@@ -330,6 +330,7 @@ def sync_all_incomplete_data_type1(airflow_instance_detail, airflow_config):
     )
 
     offset = 0
+    last_dag_run_in_previous_iteration = None
 
     while True:
         export_data = do_data_fetching_iteration(
@@ -352,6 +353,15 @@ def sync_all_incomplete_data_type1(airflow_instance_detail, airflow_config):
                 process_and_update_airflow_server_info(
                     airflow_instance_detail, export_data, new_since, True
                 )
+            else:
+                if last_dag_run_in_previous_iteration:
+                    new_since = pendulum.parse(
+                        str(last_dag_run_in_previous_iteration["end_date"])
+                    )
+                    update_since(airflow_instance_detail, new_since, True)
+                    process_and_update_airflow_server_info(
+                        airflow_instance_detail, export_data, new_since, True
+                    )
             break
 
         export_data.dag_runs.sort(key=lambda x: pendulum.parse(str(x["end_date"])))
@@ -382,8 +392,25 @@ def sync_all_incomplete_data_type1(airflow_instance_detail, airflow_config):
                 airflow_instance_detail, export_data, max_end_date, True
             )
         else:
-            # We received only one run and don't know if its full - keep the since and bump the offset
-            offset += number_of_task_instances_in_last_dag_run
+            if last_dag_run_in_previous_iteration and (
+                last_dag_run_in_previous_iteration["dag_id"] != last_dag_run["dag_id"]
+                or last_dag_run_in_previous_iteration["execution_date"]
+                != last_dag_run["execution_date"]
+            ):
+                # We received one run which is different than the previous one, bump the since and change the offset
+                max_end_date = pendulum.parse(
+                    str(last_dag_run_in_previous_iteration["end_date"])
+                )
+                update_since(airflow_instance_detail, max_end_date, True)
+                offset = number_of_task_instances_in_last_dag_run
+                process_and_update_airflow_server_info(
+                    airflow_instance_detail, export_data, max_end_date, True
+                )
+            else:
+                # We received only one run and don't know if its full - keep the since and bump the offset
+                offset += number_of_task_instances_in_last_dag_run
+
+        last_dag_run_in_previous_iteration = last_dag_run
 
     logger.info(
         "Finished syncing incomplete data from complete dag runs for %s",
