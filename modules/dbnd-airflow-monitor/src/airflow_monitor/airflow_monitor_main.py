@@ -349,6 +349,9 @@ def sync_all_incomplete_data_type1(airflow_instance_detail, airflow_config):
             if len(export_data.dag_runs) != 0:
                 new_since = pendulum.parse(str(export_data.dag_runs[0]["end_date"]))
                 update_since(airflow_instance_detail, new_since, True)
+                process_and_update_airflow_server_info(
+                    airflow_instance_detail, export_data, new_since, True
+                )
             break
 
         export_data.dag_runs.sort(key=lambda x: pendulum.parse(str(x["end_date"])))
