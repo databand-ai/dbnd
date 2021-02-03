@@ -1,9 +1,8 @@
 import typing
 
 from collections import OrderedDict
-from typing import Optional
+from typing import Optional, Set
 
-import attr
 import six
 
 from dbnd._core.configuration.config_value import ConfigValue
@@ -13,22 +12,17 @@ from dbnd._core.configuration.config_value import ConfigValue
 _config_dict_type = OrderedDict
 _config_id = 0
 
+# MARKERS:
+CONFIG_REPLACE_SECTION_MARKER = "__config_replace_section"
+
+
+def replace_section_with(dict_value):
+    dict_value[CONFIG_REPLACE_SECTION_MARKER] = True
+    return dict_value
+
 
 def _lower_config_name(v):
     return v.lower()
-
-
-@attr.s
-class _ConfigMergeSettings(object):
-    on_non_exists_only = attr.ib(default=False)
-    on_change_only = attr.ib(default=False)
-    replace_section = attr.ib(default=False)
-
-
-class ConfigMergeSettings(object):
-    default = _ConfigMergeSettings()
-    on_change_only = _ConfigMergeSettings(on_change_only=True)
-    on_non_exists_only = _ConfigMergeSettings(on_non_exists_only=True)
 
 
 # simple class that represents two level dict
@@ -54,55 +48,26 @@ class _ConfigStore(OrderedDict):
     def set_config_value(self, section, key, value):
         self[_lower_config_name(section)][_lower_config_name(key)] = value
 
-    def merge(self, config_values, merge_settings=None):
-        # type : (_ConfigStore, _ConfigMergeSettings)-> _ConfigStore
-        # known issue: non consisten copy on write
-        # for example  c1.merge()  -> return c2.   c1.update() will affect c2 as well
-
-        if not config_values:
-            return self
-        new_config = self.copy()
-        # we copy only section that are changed
-        for section in config_values.keys():
-            new_config[section] = self[section].copy()
-        new_config.update(config_values, merge_settings)
-        return new_config
-        # return original if no changes,
-        # copy on write
-
-    def update(self, config_values, merge_settings=None):
-        # type : (_ConfigStore, _ConfigMergeSettings) -> _ConfigStore
-        merge_settings = merge_settings or ConfigMergeSettings.default
+    def update(self, config_values):
+        # type : (_ConfigStore) -> _ConfigStore
         for section, section_values in six.iteritems(config_values):
             # shallow copy of configuration
             section = _lower_config_name(section)
-            replace_current_section = section_values.get(
-                "_replace_section", merge_settings.replace_section
+            replace_current_section = section_values.pop(
+                CONFIG_REPLACE_SECTION_MARKER, None
             )
 
             if replace_current_section:
+                # we can not just reuse section from right -> it's mutable objects
                 self[section] = current_section = _config_dict_type()
             else:
                 current_section = self[section]
 
             for key, value in six.iteritems(section_values):
                 key = _lower_config_name(key)
-                assert isinstance(
-                    value, ConfigValue
-                ), "{section}.{key} expected to be ConfigValue".format(
-                    section=section, key=key
-                )
                 old_value = current_section.get(key)
                 if old_value:
-                    # if old value is override, we will "override" only if the new one is override
-                    if old_value.override and not value.override:
-                        continue
-                    if (
-                        merge_settings.on_non_exists_only
-                        or value.set_if_not_exists_only
-                    ):
-                        continue
-                    if merge_settings.on_change_only and old_value.value == value.value:
+                    if old_value.priority > value.priority:
                         continue
                 current_section[key] = value
         return self
@@ -113,7 +78,7 @@ class _ConfigStore(OrderedDict):
             (
                 section,
                 _config_dict_type(
-                    (key, config_value.value)
+                    (key, str(config_value.value))
                     for key, config_value in six.iteritems(values)
                 ),
             )
@@ -128,3 +93,24 @@ if typing.TYPE_CHECKING:
     _TConfigStore = typing.Union[
         OrderedDict[str, OrderedDict[str, ConfigValue]], _ConfigStore
     ]
+
+
+def merge_config_stores(config_left, config_right):
+    # type : (_ConfigStore, _ConfigStore)-> _ConfigStore
+    # known issue: non consisten copy on write
+    # for example  c1.merge()  -> return c2.   c1.update() will affect c2 as well
+
+    if not config_right:
+        return config_left
+    if not config_left:
+        return config_right
+
+    new_config = config_left.copy()
+    # we copy only section that are changed
+    for section in config_right.keys():
+        new_config[section] = config_left[section].copy()
+
+    # return original if no changes,
+    # copy on write
+    new_config.update(config_right)
+    return new_config

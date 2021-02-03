@@ -8,6 +8,7 @@ from subprocess import list2cmdline
 from typing import Optional
 
 from dbnd._core.configuration import get_dbnd_project_config
+from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
@@ -64,7 +65,9 @@ def set_tracking_config_overide(airflow_context=None, use_dbnd_log=None):
     if use_dbnd_log is not None:
         config_for_tracking["log"] = {"disabled": not use_dbnd_log}
     return config.set_values(
-        config_values=config_for_tracking, override=True, source="dbnd_tracking_config"
+        config_values=config_for_tracking,
+        priority=ConfigValuePriority.OVERRIDE,
+        source="dbnd_tracking_config",
     )
 
 

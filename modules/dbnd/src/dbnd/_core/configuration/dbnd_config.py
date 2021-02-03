@@ -2,7 +2,6 @@ import contextlib
 import functools
 import logging
 import os
-import sys
 import typing
 
 from typing import Any, Mapping, Optional, Union
@@ -16,9 +15,9 @@ from dbnd._core.configuration.config_readers import (
     read_from_config_files,
 )
 from dbnd._core.configuration.config_store import (
-    _ConfigMergeSettings,
     _ConfigStore,
     _lower_config_name,
+    merge_config_stores,
 )
 from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.pprint_config import (
@@ -44,7 +43,11 @@ logger = logging.getLogger(__name__)
 @attr.s(str=False)
 class _ConfigLayer(object):
     name = attr.ib()  # type: str
+
+    # the final view of config (standard merge strategy - per section)
     config = attr.ib()  # type: _TConfigStore
+
+    # values of this layer only - the delta
     layer_config = attr.ib()  # type: _TConfigStore
     parent = attr.ib(default=None)  # type: Optional[_ConfigLayer]
 
@@ -55,15 +58,12 @@ class _ConfigLayer(object):
             return None
         return section.get(_lower_config_name(key))
 
-    def create_layer(
+    def merge_and_create_new_layer(
         self,
         name,  # type: str
         config_values,  # type: _TConfigStore
-        merge_settings=None,  # type: _ConfigMergeSettings
     ):
-        new_config = self.config.merge(
-            config_values=config_values, merge_settings=merge_settings
-        )
+        new_config = merge_config_stores(self.config, config_values)
         return _ConfigLayer(
             name=name, parent=self, layer_config=config_values, config=new_config
         )
@@ -94,9 +94,7 @@ class DbndConfig(object):
     # that means, we'll have to "replay his changes" on top of all this changes
     initialized_with_env = attr.ib(default=False)
 
-    def _new_config_layer(
-        self, config_values, source=None, override=False, merge_settings=None
-    ):
+    def _new_config_layer(self, config_values, source=None, priority=None):
         # let validate that we are initialized
         # user can call this function out of no-where, so we will create a layer, and will override it
         # the moment we create more layers on config.system_load
@@ -108,21 +106,19 @@ class DbndConfig(object):
             if not source:
                 source = "{sig}".format(sig=id(config_values))
             config_values = parse_and_build_config_store(
-                config_values=config_values, source=source, override=override
+                config_values=config_values, source=source, priority=priority
             )  # type: _ConfigStore
 
         source = source or config_values.source
         if not source:
             source = "{sig}".format(sig=id(config_values))
-        return self.config_layer.create_layer(
-            name=source, config_values=config_values, merge_settings=merge_settings
+        return self.config_layer.merge_and_create_new_layer(
+            name=source, config_values=config_values
         )
 
     @contextlib.contextmanager
-    def __call__(self, config_values=None, source=None, merge_settings=None):
-        new_layer = self._new_config_layer(
-            config_values, source=source, merge_settings=merge_settings
-        )
+    def __call__(self, config_values=None, source=None):
+        new_layer = self._new_config_layer(config_values, source=source)
         with self.config_layer_context(config_layer=new_layer):
             yield self
 
@@ -138,18 +134,13 @@ class DbndConfig(object):
             self.config_layer = current_layer
             self.initialized_with_env = current_initialized_with_env
 
-    def set_values(
-        self, config_values, source=None, override=False, merge_settings=None
-    ):
-        # type: (Union[ Mapping[str, Mapping[str, Any]], _ConfigStore], str, bool ,_ConfigMergeSettings)-> None
+    def set_values(self, config_values, source=None, priority=None):
+        # type: (Union[ Mapping[str, Mapping[str, Any]], _ConfigStore], str, int)-> _ConfigLayer
         """
         Global override, changing current layout
         """
         self.config_layer = self._new_config_layer(
-            config_values,
-            source=source,
-            merge_settings=merge_settings,
-            override=override,
+            config_values, source=source, priority=priority,
         )
         return self.config_layer
 
@@ -164,14 +155,9 @@ class DbndConfig(object):
             config_values=config_values, source=os.path.basename(str(config_path))
         )
 
-    def set(
-        self, section, key, value, override=False, source=None, merge_settings=None
-    ):
+    def set(self, section, key, value, priority=None, source=None):
         self.set_values(
-            {section: {key: value}},
-            source=source,
-            override=override,
-            merge_settings=merge_settings,
+            {section: {key: value}}, source=source, priority=priority,
         )
 
     def set_parameter(self, parameter, value, source=None):
@@ -187,6 +173,38 @@ class DbndConfig(object):
         Raises an exception if the default value is not None and doesn't match the expected_type.
         """
         return self.config_layer.config.get_config_value(section, key)
+
+    def get_multisection_config_value(self, sections, key):
+        """
+        If we have any override in the config -> use them!
+        otherwise, return first value
+        in case we have value in better section, but override in low priority section
+        override wins!
+        """
+        if len(sections) == 1:
+            # we have it precalculated
+            return self.get_config_value(sections[0], key)
+
+        best_config_value = None
+        layer = self.config_layer  # type: _ConfigLayer
+        # start to go from "child layers to parent"
+        # section by section
+        # Example:  ... -> layer.cmdline[MyTask] -> layer.cmdline[Task] -> layer.config[MyTask] -> ...
+        while layer:
+            for section in sections:
+                # look for the value with highest priority
+                # we are using "row" values from "delta"
+                # we need to take care of priorities
+                config_value = layer.layer_config.get_config_value(section, key)
+                if config_value:
+                    if (
+                        best_config_value is None
+                        or best_config_value.priority < config_value.priority
+                    ):
+                        # remember highest priority
+                        best_config_value = config_value
+            layer = layer.parent  # type: _ConfigLayer
+        return best_config_value
 
     def get(self, section, key, default=None, expand_env=True):
 

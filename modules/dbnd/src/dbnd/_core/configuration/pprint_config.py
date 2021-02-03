@@ -34,7 +34,7 @@ def pformat_current_config(config, as_table=False, sections=None):
 
 def pformat_config_store_as_table(config_store, sections=None):
     # type: (_ConfigStore, Optional[Iterable[str]]) -> str
-    header = ["Section", "Key", "Value", "Source", "Override"]
+    header = ["Section", "Key", "Value", "Source", "Priority"]
     data = []
     if sections:
         sections = [_lower_config_name(s) for s in sections]
@@ -52,7 +52,7 @@ def pformat_config_store_as_table(config_store, sections=None):
                     key,
                     safe_string(config_value.value, 300),
                     config_value.source,
-                    config_value.override,
+                    config_value.priority,
                 )
             )
 

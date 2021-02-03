@@ -2,6 +2,7 @@ import datetime
 
 from dbnd import Config, config, parameter
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.config_value import ConfigValuePriority
 
 
 class AutoloadedConfig(Config):
@@ -18,7 +19,9 @@ class AutoloadedConfig(Config):
             }
         }
         return parse_and_build_config_store(
-            config_values=override_values, override=True, source="user_config"
+            config_values=override_values,
+            priority=ConfigValuePriority.OVERRIDE,
+            source="user_config",
         )
 
 

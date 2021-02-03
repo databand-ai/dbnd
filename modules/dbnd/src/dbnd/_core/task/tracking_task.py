@@ -3,7 +3,7 @@ import os
 import typing
 
 from dbnd._core.constants import TaskEssence, _TaskParamContainer
-from dbnd._core.current import get_databand_run
+from dbnd._core.current import get_databand_context, get_databand_run
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.parameter.parameter_definition import (
@@ -11,7 +11,6 @@ from dbnd._core.parameter.parameter_definition import (
     ParameterScope,
 )
 from dbnd._core.parameter.parameter_value import ParameterValue
-from dbnd._core.settings.env import EnvConfig
 from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task_ctrl.task_ctrl import TrackingTaskCtrl
@@ -26,7 +25,6 @@ from targets.utils.path import no_trailing_slash
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_run.task_run import TaskRun
 
 logger = logging.getLogger(__name__)
@@ -39,10 +37,6 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
 
     task_essence = TaskEssence.TRACKING
 
-    task_env = parameter.value(
-        description="task environment name", scope=ParameterScope.children
-    )[EnvConfig]
-
     def __init__(self, **kwargs):
         super(TrackingTask, self).__init__(**kwargs)
         self.ctrl = TrackingTaskCtrl(self)
@@ -50,6 +44,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         # replace the appropriate parameters in the Task
         self.task_version = utcnow().strftime("%Y%m%d_%H%M%S")
         self.task_target_date = utcnow().date()
+        self.task_env = get_databand_context().env
 
         self.task_outputs = dict()
         # used for setting up only parameter that defined at the class level.

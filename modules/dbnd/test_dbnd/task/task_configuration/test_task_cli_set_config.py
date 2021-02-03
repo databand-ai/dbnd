@@ -23,6 +23,7 @@ class MyConfigTester(dbnd.Task):
     def run(self):
         config.log_current_config(sections=["MyConfig"], as_table=True)
         c = MyConfig()
+        logger.warning("_p=%s _q=%s", c.mc_p, c.mc_q)
         self.t_output = [c.mc_p, c.mc_q]
 
 

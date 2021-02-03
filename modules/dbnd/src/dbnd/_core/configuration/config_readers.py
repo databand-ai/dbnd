@@ -3,7 +3,7 @@ import logging
 import os
 import re
 
-from collections import Mapping, defaultdict
+from collections import Mapping
 from typing import Any
 
 import attr
@@ -11,7 +11,7 @@ import six
 
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_store import _ConfigStore
-from dbnd._core.configuration.config_value import ConfigValue
+from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriority
 from dbnd._core.configuration.environ_config import (
     get_dbnd_custom_config,
     get_dbnd_environ_config_file,
@@ -188,9 +188,9 @@ def get_environ_config_from_dict(env_dict, source_prefix):
 def parse_and_build_config_store(
     source,
     config_values,
-    override=False,
     auto_section_parse=False,
-    set_if_not_exists_only=False,
+    priority=None,
+    override=False,  # might be deprecated in favor of priority
 ):
     # type:(str, Mapping[str, Mapping[str, Any]], bool, bool , bool)->_ConfigStore
     """
@@ -204,6 +204,9 @@ def parse_and_build_config_store(
 
     new_config = _ConfigStore()
     new_config.source = source
+    if not config_values:
+        return new_config
+
     for section, section_values in six.iteritems(config_values):
         if isinstance(section, six.string_types):
             if auto_section_parse:
@@ -235,12 +238,14 @@ def parse_and_build_config_store(
             if isinstance(key, ParameterDefinition):
                 key = key.name
             if not isinstance(value, ConfigValue):
+                if priority is None:
+                    priority = (
+                        ConfigValuePriority.OVERRIDE
+                        if override
+                        else ConfigValuePriority.NORMAL
+                    )
                 value = ConfigValue(
-                    value=value,
-                    source=source,
-                    require_parse=False,
-                    override=override,
-                    set_if_not_exists_only=set_if_not_exists_only,
+                    value=value, source=source, require_parse=False, priority=priority,
                 )
             else:
                 # we can have override values without source
@@ -249,31 +254,3 @@ def parse_and_build_config_store(
             new_config.set_config_value(section, key, value)
 
     return new_config
-
-
-def override(value):
-    return ConfigValue(value=value, source=None, override=True)
-
-
-def is_like_config_store(obj):
-    """
-    Identify if an object is a config store like:
-        * map[ParamDef, Any]
-    """
-    return isinstance(obj, dict) and all(
-        isinstance(key, ParameterDefinition) for key in obj
-    )
-
-
-def parse_as_config_store(value):
-    # type:(Mapping[ParameterDefinition, Any])->Mapping[str, Mapping[str, Any]]
-    """
-    Converting map of parameter definition to a mapping of two level dict
-    which is expected as a config store
-    """
-    new_value = defaultdict(dict)
-    for k, v in value.items():
-        section_values = {k.name: v}
-        section = k.task_config_section
-        new_value[section].update(section_values)
-    return dict(new_value)

@@ -4,7 +4,8 @@ import typing
 
 import six
 
-from dbnd._core.configuration.config_store import ConfigMergeSettings
+from dbnd._core.configuration.config_store import _ConfigStore
+from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import TaskEssence
 from dbnd._core.current import get_databand_context
@@ -93,12 +94,11 @@ class TaskMetaclass(abc.ABCMeta):
     def _create_task(cls, args, kwargs):
         task_definition = cls.task_definition
         # we need to have context initialized before we start to run all logic in config() scope
-        # update config with current class defaults
-        # we apply them to config only if there are no values (this is defaults)
+
+        # create new config layer, so when we are out of this process -> config is back to the previous value
         with config(
-            config_values=task_definition.task_defaults_config_store,
-            source=task_definition.task_passport.format_source_name("defaults"),
-            merge_settings=ConfigMergeSettings.on_non_exists_only,
+            config_values={},
+            source=task_definition.task_passport.format_source_name("runtime"),
         ) as task_config:
 
             tracking_mode = TaskEssence.TRACKING.is_included(cls)

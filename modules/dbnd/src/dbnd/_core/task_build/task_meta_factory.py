@@ -4,6 +4,9 @@ import typing
 
 from itertools import chain
 
+import six
+
+from attr import NOTHING
 from more_itertools import unique_everseen
 from six import iteritems
 
@@ -12,11 +15,10 @@ from dbnd._core.configuration.config_path import (
     CONF_TASK_ENV_SECTION,
     CONF_TASK_SECTION,
 )
-from dbnd._core.configuration.config_readers import (
-    is_like_config_store,
-    parse_as_config_store,
-)
-from dbnd._core.configuration.config_value import ConfigValue
+from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.config_store import _ConfigStore
+from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriority
+from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd._core.constants import RESULT_PARAM, ParamValidation, _TaskParamContainer
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
@@ -26,7 +28,6 @@ from dbnd._core.parameter.parameter_definition import (
     build_parameter_value,
 )
 from dbnd._core.parameter.parameter_value import ParameterValue
-from dbnd._core.task_build.multi_section_config import MultiSectionConfig
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_passport import format_source_suffix
 from dbnd._core.task_build.task_signature import TASK_ID_INVALID_CHAR_REGEX
@@ -102,7 +103,8 @@ class BaseTaskMetaFactory(object):
         self.task_family = self.task_definition.task_family
         self.task_name = self.task_family
 
-        self.multi_sec_conf = MultiSectionConfig(config, [])
+        self.config = config
+        self.config_sections = []
 
         self._task_params = self.task_definition.task_params.copy()
 
@@ -110,57 +112,6 @@ class BaseTaskMetaFactory(object):
 
         self._exc_desc = self.task_family
         self.task_errors = []
-
-    def build_task_env(self, param_task_env):
-        """
-        find same parameters in the current task class and EnvConfig
-        and take the value of that params from environment
-        for example  spark_config in SparkTask  (defined by EnvConfig.spark_config)
-        we take values using names only
-        """
-        value_task_env = self.build_parameter_value(param_task_env)
-        env_config = value_task_env.value  # type: EnvConfig
-
-        param_values = []
-        #  we want only parameters of the right scope -- children
-        for param_def, param_value in env_config._params.get_param_values(
-            scope=ParameterScope.children
-        ):
-            param_values.append((param_def.name, param_value))
-
-        self.multi_sec_conf.update_section(
-            CONF_TASK_ENV_SECTION,
-            param_values=param_values,
-            source=self._source_name("env[%s]" % env_config.task_name),
-        )
-
-        return value_task_env
-
-    def build_task_config(self, param_task_config):
-        """
-        calculate any task class level params and updates the config with thier values
-        @pipeline(task_config={CoreConfig.tracker: ["console"])
-        <or>
-        class a(Task):
-            task_config = {"core": {"tracker": ["console"]}}
-            <or>
-            task_config = {CoreConfig.tracker: ["console"]}
-        """
-        param_task_config_value = self.build_parameter_value(param_task_config)
-        if param_task_config_value.value:
-            # we want the ability to have dict of parameter definitions
-            # mapping to values - to set as config if needed.
-            # but parameters value which are dicts can't have non string as a key
-            value = param_task_config_value.value
-            if value and is_like_config_store(value):
-                param_task_config_value.value = parse_as_config_store(value)
-
-            # merging `Task.task_config` into current configuration
-            self.multi_sec_conf.set_values(
-                param_task_config_value.value, source=self._source_name("task_config"),
-            )
-
-        return param_task_config_value
 
     def build_parameter_values(self, params):
         # type: (List[ParameterDefinition]) -> List[ParameterValue]
@@ -173,24 +124,39 @@ class BaseTaskMetaFactory(object):
                 self.task_errors.append(ex)
         return result
 
+    def _get_config_value(self, key):
+        # see get_multisection_config_value documentation
+        return self.config.get_multisection_config_value(self.config_sections, key)
+
+    def _get_config_value_for_param(self, param_def):
+        try:
+            cf_value = self._get_config_value(key=param_def.name)
+            if cf_value:
+                return cf_value
+
+            if param_def.config_path:
+                return self.config.get_config_value(
+                    section=param_def.config_path.section, key=param_def.config_path.key
+                )
+            return None
+        except Exception as ex:
+            raise param_def.parameter_exception("read configuration value", ex)
+
     def build_parameter_value(self, param_def):
         """
         This is the place we calculate param_def value
         based on Class(defaults, constructor, overrides, root)
         and Config(env, cmd line, config)  state
         """
-
-        # used for target_format update
-        # change param_def definition based on config state
-        param_def = self._update_param_def_target_config(param_def=param_def)
         param_name = param_def.name
-        p_config_value = self.multi_sec_conf.get_param_config_value(param_def)
+        p_config_value = self._get_config_value_for_param(param_def)
 
-        # first check for override
-        if p_config_value and p_config_value.override:
+        # first check for override (HIGHEST PRIORIOTY)
+        if p_config_value and p_config_value.priority >= ConfigValuePriority.OVERRIDE:
             cf_value = p_config_value
 
         # second using kwargs we received from the user
+        # do we need to do it for tracking?
         elif param_name in self.ctor_kwargs:
             cf_value = ConfigValue(
                 self.ctor_kwargs.get(param_name), source=self._source_name("ctor")
@@ -198,48 +164,34 @@ class BaseTaskMetaFactory(object):
 
         elif p_config_value:
             cf_value = p_config_value
-
-        elif param_def.is_output():
-            # outputs can be none, we "generate" their values later
+        elif param_name in self.task_definition.param_defaults:
+            # we can't "add" defaults to the current config and rely on configuration system
+            # we don't know what section name to use, and it my clash with current config
+            cf_value = ConfigValue(
+                self.task_definition.param_defaults.get(param_name),
+                source=self._source_name("default"),
+            )
+        else:
             cf_value = None
 
-        else:
+        if cf_value is None and not param_def.is_output():
+            # outputs can be none, we "generate" their values later
+
             err_msg = "No value defined for '{name}' at {context_str}".format(
                 name=param_name, context_str=self._exc_desc
             )
             raise MissingParameterError(
                 err_msg,
-                help_msg=param_def._get_help_message(
-                    sections=self.multi_sec_conf.sections
-                ),
+                help_msg=param_def._get_help_message(sections=self.config_sections),
             )
 
         return build_parameter_value(param_def, cf_value)
-
-    def _update_param_def_target_config(self, param_def):
-        """calculates parameter.target_config based on extra config at parameter__target value"""
-        target_option = "%s__target" % param_def.name
-        target_config = self.multi_sec_conf.get_config_value(key=target_option)
-        if not target_config:
-            return param_def
-
-        try:
-            target_config = parse_target_config(target_config.value)
-        except Exception as ex:
-            raise param_def.parameter_exception(
-                "Calculate target config for %s : target_config='%s'"
-                % (target_option, target_config.value),
-                ex,
-            )
-
-        param_def = param_def.modify(target_config=target_config)
-        return param_def
 
     def _source_name(self, name):
         return self.task_definition.task_passport.format_source_name(name)
 
     # should refactored out
-    def _get_task_multi_section_config(self, config, task_kwargs):
+    def _get_task_config_sections(self, config, task_kwargs):
         # there is priority of task name over task family, as name is more specific
         sections = [self.task_name]
 
@@ -265,7 +217,7 @@ class BaseTaskMetaFactory(object):
         # dedup the values
         sections = list(unique_everseen(filter(None, sections)))
 
-        return MultiSectionConfig(config, sections)
+        return sections
 
 
 class TaskMetaFactory(BaseTaskMetaFactory):
@@ -321,7 +273,9 @@ class TaskMetaFactory(BaseTaskMetaFactory):
         if self.task_name is None:
             self.task_name = self.task_family
 
-        self.multi_sec_conf = self._get_task_multi_section_config(config, task_kwargs)
+        self.config_sections = self._get_task_config_sections(
+            config=config, task_kwargs=task_kwargs
+        )
 
         self.ctor_kwargs = None
         # utilities section
@@ -340,9 +294,7 @@ class TaskMetaFactory(BaseTaskMetaFactory):
 
     def create_dbnd_task_meta(self):
         # create task meta
-        self._log_build_step(
-            "Resolving task params with %s" % self.multi_sec_conf.sections
-        )
+        self._log_build_step("Resolving task params with %s" % self.config_sections)
         try:
             task_meta = self.build_task_meta()
         except Exception:
@@ -350,6 +302,31 @@ class TaskMetaFactory(BaseTaskMetaFactory):
             raise
         self._log_build_step("Task Meta with obj_id = %s" % str(task_meta.obj_key))
         return task_meta
+
+    def _update_params_def_target_config(self, param_def):
+        """
+        calculates parameter.target_config based on extra config at parameter__target value
+        user might want to change the target_config for specific param using configuration
+        """
+
+        # used for target_format update
+        # change param_def definition based on config state
+        target_option = "%s__target" % param_def.name
+        target_config = self._get_config_value(key=target_option)
+        if not target_config:
+            return param_def
+
+        try:
+            target_config = parse_target_config(target_config.value)
+        except Exception as ex:
+            raise param_def.parameter_exception(
+                "Calculate target config for %s : target_config='%s'"
+                % (target_option, target_config.value),
+                ex,
+            )
+
+        param_def = param_def.modify(target_config=target_config)
+        return param_def
 
     def build_task_meta(self):
         """
@@ -359,40 +336,60 @@ class TaskMetaFactory(BaseTaskMetaFactory):
         3. Building from task_band if needed
         4. Editing the configuration again for child scope params
         """
-        # First magic: let apply all "override" values in Task(override={})
-        if self.task_config_override:
-            self.multi_sec_conf.set_values(
-                source=self._source_name("override"),
-                config_values=self.task_config_override,
-                override=True,
-            )
-
-        # log with the updated config
-        self._log_config()
-
-        # validate and update the kwargs used for building the param values
+        # STEP :validate and update the kwargs used for building the param values
         self.ctor_kwargs = self._build_task_ctor_kwargs(
             self.task_args__ctor, self.task_kwargs
         )
 
         # copy because we about to edit it
         params_to_build = self._task_params.copy()
+        # remove all "config related" params
+        param_task_env = params_to_build.pop("task_env", None)
+        param_task_config = params_to_build.pop("task_config", None)
         task_param_values = []
 
-        # Second magic: build and apply any Task class level config
-        param_task_config = params_to_build.pop("task_config", None)
-        if param_task_config:
-            task_config = self.build_task_config(param_task_config)
-            task_param_values.append(task_config)
+        # let's start to apply layers on current config
+        # at the end of the build we will save current layer and will make it "active" config
+        # during task execution/initializaiton
 
-        # Third magic: build and apply Environment level config
-        param_task_env = params_to_build.pop("task_env", None)
+        # STEP: Apply all "override" values in Task(override={})
+        if self.task_config_override:
+            self.config.set_values(
+                source=self._source_name("ctor[override]"),
+                config_values=self.task_config_override,
+                priority=ConfigValuePriority.OVERRIDE,
+            )
+
+        # STEP: Task may have TaskClass.defaults= {...}
+        # add these values, so task build or nested tasks/configs builds will see it
+        task_defaults = self.task_definition.task_defaults_config_store
+        if task_defaults:
+            self.config.set_values(
+                task_defaults, source=self._source_name("task.defaults")
+            )
+
+        # STEP: build and apply any Task class level config
+        # User has specified "task_config = ..."
+        # Only orchestration tasks has this property
+        if param_task_config:
+            task_param_values.append(
+                self.build_and_apply_task_config(param_task_config)
+            )
+
+        # STEP: build and apply Environment level config
         if param_task_env:
-            task_env = self.build_task_env(param_task_env)
-            task_param_values.append(task_env)
+            task_param_values.append(self.build_and_apply_task_env(param_task_env))
+
+        # STEP: log with the final config
+        self._log_config()
 
         # calculate configuration per parameter, and calculate parameter value
-        regular_params = self.build_parameter_values(params_to_build.values())
+        params_to_build_definitions = []
+        for param_def in params_to_build.values():
+            params_to_build_definitions.append(
+                self._update_params_def_target_config(param_def)
+            )
+        regular_params = self.build_parameter_values(params_to_build_definitions)
 
         task_param_values.extend(regular_params)
         task_param_values = {param.name: param for param in task_param_values}
@@ -423,7 +420,9 @@ class TaskMetaFactory(BaseTaskMetaFactory):
 
         # update [task] section with Scope.children params
         if not self.task_cls._conf__no_child_params:
-            self._apply_task_children_scope(task_param_values=task_param_values)
+            self.build_and_apply_task_children_config(
+                task_param_values=task_param_values
+            )
 
         return TaskMeta(
             task_definition=self.task_definition,
@@ -431,9 +430,9 @@ class TaskMetaFactory(BaseTaskMetaFactory):
             task_name=self.task_name,
             task_params=task_param_values,
             task_config_override=self.task_config_override,
-            config_layer=self.multi_sec_conf.layer,
+            config_layer=self.config.config_layer,
             task_enabled=task_enabled,
-            task_sections=self.multi_sec_conf.sections,
+            task_sections=self.config_sections,
         )
 
     def validate_no_extra_config_params(self, task_param_values):
@@ -447,7 +446,7 @@ class TaskMetaFactory(BaseTaskMetaFactory):
         # Must lower task parameter name to comply to case insensitivity of configuration
         task_param_names = {name.lower() for name in self._task_params}
 
-        for key, value in self.multi_sec_conf.items():
+        for key, value in _iterate_config_items(self.config, self.config_sections):
             if (
                 value.source.endswith(
                     format_source_suffix(ParameterScope.children.value)
@@ -474,7 +473,7 @@ class TaskMetaFactory(BaseTaskMetaFactory):
                 elif validate_no_extra_params == ParamValidation.error:
                     self.task_errors.append(exc)
 
-    def _apply_task_children_scope(self, task_param_values):
+    def build_and_apply_task_children_config(self, task_param_values):
         # type: (Dict[str,ParameterValue])-> None
 
         param_values = []
@@ -482,12 +481,17 @@ class TaskMetaFactory(BaseTaskMetaFactory):
             #  we want only parameters of the right scope -- children
             if p_val.parameter.scope == ParameterScope.children:
                 param_values.append((p_val.name, p_val.value))
-
-        self.multi_sec_conf.update_section(
-            CONF_TASK_SECTION,
-            param_values=param_values,
-            source=self._source_name(ParameterScope.children.value),
-        )
+        if param_values:
+            source = self._source_name("children")
+            config_store = parse_and_build_config_store(
+                source=source, config_values={CONF_TASK_SECTION: dict(param_values)},
+            )
+            update_config_section_on_change_only(
+                self.config,
+                config_store,
+                source=self._source_name(ParameterScope.children.value),
+                on_change_only=True,
+            )
 
     def _build_task_ctor_kwargs(self, task_args, task_kwargs):
         param_names = set(self._task_params)
@@ -521,6 +525,60 @@ class TaskMetaFactory(BaseTaskMetaFactory):
                     )
 
         return task_kwargs
+
+    def build_and_apply_task_config(self, param_task_config):
+        """
+        calculate any task class level params and updates the config with thier values
+        @pipeline(task_config={CoreConfig.tracker: ["console"])
+        <or>
+        class a(Task):
+            task_config = {"core": {"tracker": ["console"]}}
+            <or>
+            task_config = {CoreConfig.tracker: ["console"]}
+        """
+        # calculate the value of `Task.task_config` using it's definition
+        # (check for all inheritance and find value for `task_config`
+        param_task_config_value = self.build_parameter_value(param_task_config)
+        if param_task_config_value.value:
+            # Support two modes:
+            # 1. Task.param_name:333
+            # 2. {"section": {"key":"value"}}
+            # dict parameter value can't have non string as a key
+            param_task_config_value.value = parse_and_build_config_store(
+                config_values=param_task_config_value.value,
+                source=self._source_name("task_config"),
+            )
+            # merging `Task.task_config` into current configuration
+            # we are adding "ultimate" layer on top of all layers
+            self.config.set_values(param_task_config_value.value)
+
+        return param_task_config_value
+
+    # we apply them to config only if there are no values (this is defaults)
+    def build_and_apply_task_env(self, param_task_env):
+        """
+        find same parameters in the current task class and EnvConfig
+        and take the value of that params from environment
+        for example  spark_config in SparkTask  (defined by EnvConfig.spark_config)
+        we take values using names only
+        """
+        value_task_env = self.build_parameter_value(param_task_env)
+        env_config = value_task_env.value  # type: EnvConfig
+
+        param_values = []
+        #  we want only parameters of the right scope -- children
+        for param_def, param_value in env_config._params.get_param_values(
+            scope=ParameterScope.children
+        ):
+            param_values.append((param_def.name, param_value))
+        source = self._source_name("env[%s]" % env_config.task_name)
+        config_store = parse_and_build_config_store(
+            source=source, config_values={CONF_TASK_ENV_SECTION: dict(param_values)},
+        )
+        update_config_section_on_change_only(
+            self.config, config_store, source=source,
+        )
+        return value_task_env
 
     def __str__(self):
         if self.task_name == self.task_family:
@@ -561,7 +619,12 @@ class TaskMetaFactory(BaseTaskMetaFactory):
             logger.info("[%s] %s", self.task_name, msg)
 
     def _log_config(self, force_log=False):
-        msg = self.multi_sec_conf.config_log
+        msg = "config for sections({config_sections}): {config}".format(
+            config=pformat_current_config(
+                self.config, sections=self.config_sections, as_table=True
+            ),
+            config_sections=self.config_sections,
+        )
         self._log_build_step(msg, force_log=force_log)
 
     def _raise_task_build_errors(self):
@@ -604,7 +667,10 @@ class TrackedTaskMetaFactory(BaseTaskMetaFactory):
             task_kwargs=task_kwargs,
         )
 
-        self.multi_sec_conf = self._get_task_multi_section_config(config, task_kwargs)
+        # do not use task_kwargs
+        self.config_sections = self._get_task_config_sections(
+            config=config, task_kwargs={}
+        )
 
     def create_dbnd_task_meta(self):
         task_args, task_kwargs = self.task_args__ctor, self.task_kwargs__ctor
@@ -617,11 +683,6 @@ class TrackedTaskMetaFactory(BaseTaskMetaFactory):
         # build parameters which defined in the class
         params_to_build = self._task_params.copy()
         class_param_values = []
-        # we need to calculate task_env first
-        param_task_env = params_to_build.pop("task_env", None)
-        if param_task_env:
-            task_env = self.build_task_env(param_task_env)
-            class_param_values.append(task_env)
 
         class_param_values.extend(self.build_parameter_values(params_to_build.values()))
 
@@ -638,8 +699,8 @@ class TrackedTaskMetaFactory(BaseTaskMetaFactory):
             task_name=self.task_name,
             task_params=task_params,
             task_config_override={},
-            config_layer=self.multi_sec_conf.layer,
-            task_sections=self.multi_sec_conf.sections,
+            config_layer=self.config.config_layer,
+            task_sections=self.config_sections,
         )
 
     def _build_user_parameter_values(self, task_args, task_kwargs):
@@ -657,3 +718,31 @@ class TrackedTaskMetaFactory(BaseTaskMetaFactory):
             )
 
         return values
+
+
+def update_config_section_on_change_only(
+    config, config_store, source, on_change_only=False
+):
+    if on_change_only:
+        # we take values using names only
+        relevant_config_store = _ConfigStore()
+        for section, section_values in six.iteritems(config_store):
+            for key, value in six.iteritems(section_values):
+                previous_value = config.get_config_value(section, key)
+                if previous_value:
+                    if on_change_only and previous_value.value == value.value:
+                        continue
+                relevant_config_store.set_config_value(section, key, value)
+        config_store = relevant_config_store
+
+    # we apply set on change only in the for loop, so we can optimize and not run all these code
+    if config_store:
+        config.set_values(config_values=config_store, source=source)
+
+
+def _iterate_config_items(config, sections):
+    for section_name in sections:
+        section = config.config_layer.config.get(section_name)
+        if section:
+            for key, value in iteritems(section):
+                yield key, value

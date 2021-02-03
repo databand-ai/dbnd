@@ -6,7 +6,12 @@ import warnings
 
 from typing import Dict
 
-from dbnd._core.constants import OutputMode, TaskEssence, _TaskParamContainer
+from dbnd._core.constants import (
+    OutputMode,
+    ParamValidation,
+    TaskEssence,
+    _TaskParamContainer,
+)
 from dbnd._core.current import get_databand_run
 from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.failures import dbnd_handle_errors
@@ -36,6 +41,8 @@ if typing.TYPE_CHECKING:
 DEFAULT_CLASS_VERSION = ""
 
 logger = logging.getLogger(__name__)
+
+system_passthrough_param = parameter.system(scope=ParameterScope.children)
 
 
 class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
@@ -83,11 +90,13 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
     )
     task_band = output.json(output_name="band", system=True)
 
-    task_enabled = parameter.system(scope=ParameterScope.children)[bool]
-    task_enabled_in_prod = parameter.system(scope=ParameterScope.children)[bool]
+    task_enabled = system_passthrough_param(default=True)[bool]
+    task_enabled_in_prod = system_passthrough_param(default=True)[bool]
+    validate_no_extra_params = ParamValidation.error
 
     # for permanent bump of task version use Task.task_class_version
     task_version = parameter(
+        default="1",
         description="task version, directly affects task signature ",
         scope=ParameterScope.children,
     )[VersionStr]
@@ -100,11 +109,15 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
     )
 
     task_env = parameter.value(
-        description="task environment name", scope=ParameterScope.children
+        default="local",
+        description="task environment name",
+        scope=ParameterScope.children,
     )[EnvConfig]
 
     task_target_date = parameter(
-        description="task data target date", scope=ParameterScope.children
+        default="today",
+        description="task data target date",
+        scope=ParameterScope.children,
     )[datetime.date]
 
     task_airflow_op_kwargs = parameter.system(
@@ -114,10 +127,12 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
     task_config = parameter.system(empty_default=True)[Dict]
     task_is_system = parameter.system(default=False)[bool]
 
-    task_in_memory_outputs = parameter.system(
-        scope=ParameterScope.children, description="Store all task outputs in memory"
+    task_in_memory_outputs = system_passthrough_param(
+        default=False, description="Store all task outputs in memory"
     )[bool]
-    task_is_dynamic = parameter.system(
+
+    task_is_dynamic = system_passthrough_param(
+        default=False,
         scope=ParameterScope.children,
         description="task was executed from within another task",
     )[bool]
@@ -128,11 +143,13 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
     )[bool]
 
     task_retries = parameter.system(
-        description="Total number of attempts to run the task. So task_retries=3 -> task can fail 3 times before we give up"
+        default=0,
+        description="Total number of attempts to run the task. So task_retries=3 -> task can fail 3 times before we give up",
     )[int]
 
     task_retry_delay = parameter.system(
-        description="timedelta to wait before retrying a task. Example: 5s"
+        default="15s",
+        description="timedelta to wait before retrying a task. Example: 5s",
     )[datetime.timedelta]
 
     _dbnd_call_state = None  # type: TaskCallState

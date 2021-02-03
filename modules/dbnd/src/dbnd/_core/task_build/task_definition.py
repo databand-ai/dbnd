@@ -10,6 +10,7 @@ import six
 from six import iteritems
 
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.constants import RESULT_PARAM
 from dbnd._core.decorator.func_params_builder import FuncParamsBuilder
 from dbnd._core.decorator.schemed_result import FuncResultParameter
@@ -63,28 +64,27 @@ class TaskDefinition(object):
         # the defaults attribute
         self.defaults = dict()  # type: Dict[ParameterDefinition, Any]
 
-        self.task_params, self.defaults = self._calculate_task_class_values(classdict)
-
+        base_task_definitions = self._get_base_definitions()
+        self.task_params = self._calculate_task_class_values(
+            classdict, base_task_definitions
+        )
         # if we have output params in function arguments, like   f(some_p=parameter.output)
         # the new function can not return the result of return
         self.single_result_output = self._is_result_single_output(self.task_params)
 
-        defaults = {
+        self.param_defaults = {
             p.name: p.default
             for p in self.task_params.values()
             if is_defined(p.default)
         }
-        self.task_defaults_config_store = parse_and_build_config_store(
-            source=self.task_passport.format_source_name("defaults"),
-            config_values={self.task_config_section: defaults},
-            set_if_not_exists_only=True,
-        )
 
-        self.task_defaults_config_store.update(
-            parse_and_build_config_store(
-                source=self.task_passport.format_source_name("defaults_section"),
-                config_values=self.defaults,
-            )
+        # TODO: consider joining with task_config
+        # TODO: calculate defaults value as _ConfigStore and merge using standard mechanism
+        self.defaults = self._calculate_task_defaults(classdict, base_task_definitions)
+        self.task_defaults_config_store = parse_and_build_config_store(
+            source=self.task_passport.format_source_name("task.defaults"),
+            config_values=self.defaults,
+            priority=ConfigValuePriority.DEFAULT,
         )
         # now, if we have overloads in code ( calculated in task_definition):
         # class T(BaseT):
@@ -98,9 +98,12 @@ class TaskDefinition(object):
             self.task_module_code = ""
             self.task_source_file = None
 
-    def _calculate_task_class_values(self, classdict):
+    def _calculate_task_class_values(self, classdict, base_task_definitions):
         # reflect inherited attributes
-        params, base_defaults = self._discover_base_attributes()
+        params = dict()
+        # params will contain definition of param, even it's was overrided by the parent task
+        for base_schema in base_task_definitions:  # type: TaskDefinition
+            params = combine_mappings(params, base_schema.task_params)
 
         # let update params with new class attributes
         self._update_params_from_attributes(classdict, params)
@@ -118,8 +121,6 @@ class TaskDefinition(object):
 
             self._update_params_from_attributes(params_dict, params)
 
-        defaults = combine_mappings(base_defaults, classdict.get("defaults", None))
-
         # add parameters config
         params = {
             name: param.evolve_with_owner(task_cls=self.task_class, name=name)
@@ -127,14 +128,11 @@ class TaskDefinition(object):
         }
 
         params = _ordered_params(params)
-        return params, defaults
+        return params
 
-    def _discover_base_attributes(self):
-        # type: ()-> (Dict[str,ParameterDefinition], Dict[str, Any])
-        params = dict()
-        defaults = dict()
-        # we process only "direct" inheritance
-        # params will contain definition of param, even it's was overrided by the parent task
+    def _get_base_definitions(self):
+        task_definitions = []
+
         for c in reversed(self.task_class.__bases__):  # type: TaskMetaclass
             if not hasattr(c, "task_definition"):
                 logger.debug(
@@ -143,11 +141,17 @@ class TaskDefinition(object):
                     c,
                 )
                 continue
-            base_schema = c.task_definition  # type: TaskDefinition
-            defaults = combine_mappings(defaults, base_schema.defaults)
-            params = combine_mappings(params, c.task_definition.task_params)
+            task_definitions.append(c.task_definition)
+        return task_definitions
 
-        return params, defaults
+    def _calculate_task_defaults(self, classdict, base_task_definitions):
+        # type: (...)->  Dict[str, Any]
+        base_defaults = dict()
+        for base_schema in base_task_definitions:  # type: TaskDefinition
+            base_defaults = combine_mappings(base_defaults, base_schema.defaults)
+
+        defaults = combine_mappings(base_defaults, classdict.get("defaults", None))
+        return defaults
 
     def _update_params_from_attributes(self, classdict, params):
         class_values = dict()

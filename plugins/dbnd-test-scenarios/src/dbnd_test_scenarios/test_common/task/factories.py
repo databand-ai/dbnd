@@ -85,8 +85,8 @@ class FooBaseTask(TTask):
 
 
 class FooConfig(Config):
-    bar = parameter(default="from_config")[str]
-    quz = parameter(default="from_config")[str]
+    bar = parameter(default="from_constr")[str]
+    quz = parameter(default="from_constr")[str]
 
 
 class TConfig(Config):

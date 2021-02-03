@@ -42,8 +42,8 @@ class TestSubConfigOverride(object):
 
         assert t.foo
 
-        assert "from_config" == t.foo.bar
-        assert "from_config" == t.foo.quz
+        assert "from_constr" == t.foo.bar
+        assert "from_constr" == t.foo.quz
 
     def test_not_created(self):
         t = FirstTask(foo=None)
@@ -59,11 +59,13 @@ class TestSubConfigOverride(object):
     def test_pipeline(self):
         t = first_pipeline.t()
         t_result = t.result.task
-        assert "first_pipeline.defaults.bar" == t_result.foo.bar
-        assert "SecondTask.defaults.quz" == t_result.foo.quz
+        # secondtask defaults are applied later ->
+        # they will override defaults from first_pipeline
+        assert t_result.foo.bar == "SecondTask.defaults.bar"
+        assert t_result.foo.quz == "SecondTask.defaults.quz"
 
     def test_pipeline_2(self):
         first_pipeline, second = second_pipeline.t().result
 
-        assert "first_pipeline.defaults.bar" == first_pipeline.task.foo.bar
-        assert "second_pipeline.band.override.quz" == first_pipeline.task.foo.quz
+        assert first_pipeline.task.foo.bar == "SecondTask.defaults.bar"
+        assert first_pipeline.task.foo.quz == "second_pipeline.band.override.quz"

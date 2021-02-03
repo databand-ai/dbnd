@@ -3,7 +3,8 @@ from typing import Callable
 import pytest
 
 from dbnd import LogDataRequest, config
-from dbnd._core.configuration.config_store import _ConfigMergeSettings
+from dbnd._core.configuration.config_store import replace_section_with
+from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.settings import TrackingConfig
 from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
 
@@ -11,24 +12,30 @@ from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
 def tracking_config_empty():
     # Enforce "tracking" config section so that changes in config files won't affect tests
     with config(
-        {"tracking": {}},
-        source="dbnd_test_context",
-        merge_settings=_ConfigMergeSettings(replace_section=True),
+        {"tracking": replace_section_with({})}, source="dbnd_test_context",
     ):
         return TrackingConfig()
 
 
 def tracking_config_force_true():
     # Enforce "tracking" config section so that changes in config files won't affect tests
-    config.set("tracking", "log_value_stats", True, override=True)
-    config.set("tracking", "log_histograms", True, override=True)
+    config.set(
+        "tracking", "log_value_stats", True, priority=ConfigValuePriority.OVERRIDE
+    )
+    config.set(
+        "tracking", "log_histograms", True, priority=ConfigValuePriority.OVERRIDE
+    )
     return TrackingConfig()
 
 
 def tracking_config_force_false():
     # Enforce "tracking" config section so that changes in config files won't affect tests
-    config.set("tracking", "log_value_stats", False, override=True)
-    config.set("tracking", "log_histograms", False, override=True)
+    config.set(
+        "tracking", "log_value_stats", False, priority=ConfigValuePriority.OVERRIDE
+    )
+    config.set(
+        "tracking", "log_histograms", False, priority=ConfigValuePriority.OVERRIDE
+    )
     return TrackingConfig()
 
 

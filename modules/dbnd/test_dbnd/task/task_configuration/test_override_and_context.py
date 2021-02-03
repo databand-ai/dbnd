@@ -1,6 +1,6 @@
 import logging
 
-from dbnd import PipelineTask, config, parameter, pipeline, task
+from dbnd import Config, PipelineTask, config, parameter, pipeline, task
 from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd.tasks.basics.simplest import SimplestTask
 from dbnd_test_scenarios.test_common.task.factories import FooConfig, TTask
@@ -17,28 +17,29 @@ def task_from_config(parameter_from_config, expected):
 
 class FirstTask(TTask):
     foo = parameter(default="FooConfig")[FooConfig]
-    param = parameter(default="FirstTask.default")[str]
+    param = parameter(default="FirstTask.param.default")[str]
 
 
 class SecondTask(FirstTask):
     param = "SecondTask.inline"
 
-    defaults = {
-        FooConfig.bar: "SecondTask.foo.defaults",
-        FooConfig.quz: "SecondTask.foo.defaults",
+    task_config = {
+        FooConfig.bar: "SecondTask.task_config",
+        FooConfig.quz: "SecondTask.task_config",
     }
 
 
 class ThirdTask(FirstTask):
-    param = "ThirdTask.inline.param"
+    param = "ThirdTask.param_default.inline"
     defaults = {FooConfig.bar: "ThirdTask.defaults.foo.bar"}
 
 
 class FirstPipeTask(PipelineTask):
     defaults = {FooConfig.bar: "FirstPipeTask.defaults.foo.bar"}
+    task_config = {FooConfig.bar: "FirstPipeTask.task_config.foo.bar"}
 
     def band(self):
-        logger.info("FirstPipeTask.band : %s", pformat_current_config(config))
+        # logger.info("FirstPipeTask.band : %s", pformat_current_config(config))
         self.third = ThirdTask(param="FirstPipeTask.third.ctor")
 
 
@@ -59,15 +60,15 @@ class TestTaskOverrideAndContextConfig(object):
     def test_simple(self):
         t = FirstTask()
 
-        assert "FirstTask.default" == t.param
-        assert "from_config" == t.foo.bar
-        assert "from_config" == t.foo.quz
+        assert t.param == "FirstTask.param.default"
+        assert t.foo.bar == "from_constr"
+        assert t.foo.quz == "from_constr"
 
     def test_inheritance(self):
         t = SecondTask()
         # defaults should override this values
-        assert "SecondTask.foo.defaults" == t.foo.bar
-        assert "SecondTask.foo.defaults" == t.foo.quz
+        assert "SecondTask.task_config" == t.foo.bar
+        assert "SecondTask.task_config" == t.foo.quz
 
         # checking inline override
         assert "SecondTask.inline" == t.param
@@ -75,17 +76,17 @@ class TestTaskOverrideAndContextConfig(object):
     def test_inheritance_2(self):
         t = ThirdTask()
 
-        assert "ThirdTask.inline.param" == t.param
-        assert "ThirdTask.defaults.foo.bar" == t.foo.bar
-        assert "from_config" == t.foo.quz
+        assert t.param == "ThirdTask.param_default.inline"
+        assert t.foo.bar == "ThirdTask.defaults.foo.bar"
+        assert t.foo.quz == "from_constr"
 
     def test_pipeline(self):
         t = FirstPipeTask()
 
-        assert "FirstPipeTask.third.ctor" == t.third.param
+        assert t.third.param == "FirstPipeTask.third.ctor"
         # foo bar should be from pipe because of defaults
-        assert "FirstPipeTask.defaults.foo.bar" == t.third.foo.bar
-        assert "from_config" == t.third.foo.quz
+        assert t.third.foo.bar == "FirstPipeTask.task_config.foo.bar"
+        assert t.third.foo.quz == "from_constr"
 
     def test_pipeline_2(self):
         t = SecondPipeTask()
@@ -93,7 +94,7 @@ class TestTaskOverrideAndContextConfig(object):
         # pipeline defaults should not override task constructor
         third = t.third
         assert "FirstPipeTask.third.ctor" == third.param
-        assert "FirstPipeTask.defaults.foo.bar" == third.foo.bar
+        assert "FirstPipeTask.task_config.foo.bar" == third.foo.bar
         assert "SecondPipeTask.override.foo.quz" == third.foo.quz  # override section
 
     def test_override_simple(self):
@@ -106,16 +107,17 @@ class TestTaskOverrideAndContextConfig(object):
 
         assert "override.param" == t.param
         assert "override.foo.bar" == t.foo.bar
-        assert "from_config" == t.foo.quz
+        assert "from_constr" == t.foo.quz
 
     def test_override_inheritance_legacy(self):
         with config(
             {SecondTask.param: "config.context", FooConfig.bar: "config.context"}
         ):
             t = SecondTask()
-            assert "config.context" == t.param
-            assert "config.context" == t.foo.bar
-            assert "SecondTask.foo.defaults" == t.foo.quz
+            assert t.param == "config.context"
+            # it created in second task where task_config is applied.
+            assert t.foo.bar == "SecondTask.task_config"
+            assert t.foo.quz == "SecondTask.task_config"
 
     def test_override_inheritance_2(self):
         t = ThirdTask(
@@ -127,7 +129,7 @@ class TestTaskOverrideAndContextConfig(object):
 
         assert "override.third" == t.param
         assert "override.third" == t.foo.bar
-        assert "from_config" == t.foo.quz
+        assert "from_constr" == t.foo.quz
 
     def test_override_inheritance_config(self):
         with config(
@@ -137,9 +139,9 @@ class TestTaskOverrideAndContextConfig(object):
             }
         ):
             t = SecondTask()
-            assert "from_config_context" == t.param, "t.param"
-            assert "from_config_context" == t.foo.bar, "t.foo.bar"
-            assert "SecondTask.foo.defaults" == t.foo.quz, "t.foo.quz"
+            assert "from_config_context" == t.param
+            assert "SecondTask.task_config" == t.foo.bar
+            assert "SecondTask.task_config" == t.foo.quz
 
     def test_override_pipeline(self):
         t = FirstPipeTask(
@@ -148,13 +150,13 @@ class TestTaskOverrideAndContextConfig(object):
 
         assert "override.param" == t.third.param
         assert "override.bar" == t.third.foo.bar
-        assert "from_config" == t.third.foo.quz
+        assert "from_constr" == t.third.foo.quz
 
     def test_override_pipeline_2(self):
         t = SecondPipeTask(override={FooConfig.quz: "override.quz"})
 
         assert "FirstPipeTask.third.ctor" == t.third.param
-        assert "FirstPipeTask.defaults.foo.bar" == t.third.foo.bar
+        assert "FirstPipeTask.task_config.foo.bar" == t.third.foo.bar
 
         # we override here and inside band
         # most recent one should be taken
@@ -226,4 +228,5 @@ class TestTaskOverrideAndContextConfig(object):
         with config(
             config_values={task_from_config.task.parameter_from_config: "from_context"}
         ):
-            task_from_config.dbnd_run(expected="from_config")
+            # this layer is about config
+            task_from_config.dbnd_run(expected="from_context")

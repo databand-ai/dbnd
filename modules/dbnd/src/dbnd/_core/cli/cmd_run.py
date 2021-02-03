@@ -9,6 +9,7 @@ import six
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.environ_config import tracking_mode_context
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
@@ -257,7 +258,11 @@ def run(
         cmd_line_config.update(_parse_cli(_sets_config, source="--set-config"))
     if _overrides:
         cmd_line_config.update(
-            _parse_cli(_overrides, source="--set-override", override=True)
+            _parse_cli(
+                _overrides,
+                source="--set-override",
+                priority=ConfigValuePriority.OVERRIDE,
+            )
         )
     if interactive:
         cmd_line_config.update(
@@ -360,13 +365,13 @@ def print_help(ctx, task_cls):
     click.echo(formatter.getvalue().rstrip("\n"), color=ctx.color)
 
 
-def _parse_cli(configs, source, override=False):
+def _parse_cli(configs, source, priority=None):
     """
     Parse every item in configs , joining them into one big ConfigStore
     """
     config_values_list = [
         parse_and_build_config_store(
-            config_values=c, source=source, override=override, auto_section_parse=True
+            config_values=c, source=source, priority=priority, auto_section_parse=True
         )
         for c in configs
     ]

@@ -8,7 +8,7 @@ from dbnd._core.task_run.task_run import TaskRun
 
 
 def dynamically_calculated():
-    logging.error("Calculating!")
+    logging.error("Calculating config value for test! test_f_value")
     return "test_f_value"
 
 
@@ -23,6 +23,8 @@ def dynamically_calculated():
 )
 def dummy_nested_config_task(expected, config_name):
     # type: ( object, str)-> object
+
+    # explicitly build config for k8s
     actual = build_task_from_config(task_name=config_name)
 
     return (actual.limits, actual.cluster_context, actual.container_tag)

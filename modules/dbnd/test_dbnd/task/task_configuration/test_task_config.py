@@ -17,7 +17,7 @@ def dynamically_calculated():
     task_config=dict(
         tconfig=dict(
             config_value_s1=override("override_config_s1"),
-            config_value_s2="regular_config_s2",
+            config_value_s2="task_config_regular_s2",
         )
     )
 )
@@ -32,19 +32,17 @@ class TestTaskConfig(object):
         actual = dummy_nested_config_task.dbnd_run(config_name="tconfig")
         assert actual.task.result.load(object) == (
             "override_config_s1",
-            "regular_config_s2",
+            "task_config_regular_s2",
         )
 
     def test_task_sub_config_override(self):
         actual = dummy_nested_config_task.dbnd_run(config_name="sub_tconfig")
-        # we get "value_sub_from_databand_test_cfg_s2" as we are using sub_tconfig
-        # so task_config overrides only basic "tconfig"
-        # In this example:
-        #   override_config_s1  -- we use override -affect all configs ( derived also)
-        #   value_sub_from_databand_test_cfg_s2 -- nothing overrides it
+        # override_config_s1  -- we use override -affect all configs ( derived also)
+        # task_config at t applied on top of config files ->
+        # sub_tconfig is "_from" tconfig-> we get task_config_regular_s2
         assert actual.task.result.load(object) == (
             "override_config_s1",
-            "value_sub_from_databand_test_cfg_s2",
+            "task_config_regular_s2",
         )
 
     def test_task_runner_context(self):
@@ -57,7 +55,10 @@ class TestTaskConfig(object):
             with task_run.task.ctrl.task_context(phase=TaskContextPhase.BUILD):
                 actual = build_task_from_config(task_name="sub_tconfig")
                 assert actual.config_value_s1 == "override_config_s1"
-                assert actual.config_value_s2 == "value_sub_from_databand_test_cfg_s2"
+                # because we have task_config in dummy_nested_config_task that overrides config
+                # tconfig is higher than  value for [ sub_tconfig] at config file
+                # config layer is down..
+                assert actual.config_value_s2 == "task_config_regular_s2"
 
     def test_dynamically_calcualted_config(self):
         @task(
@@ -74,5 +75,5 @@ class TestTaskConfig(object):
         actual = t_f.dbnd_run()
         assert actual.task.result.load(object) == (
             "override_config_s1",
-            "regular_config_s2",
+            "task_config_regular_s2",
         )

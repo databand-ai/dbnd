@@ -6,7 +6,6 @@ from typing import Optional
 from uuid import UUID
 
 from dbnd._core.configuration.config_readers import read_from_config_files
-from dbnd._core.configuration.config_store import ConfigMergeSettings
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.context.bootstrap import dbnd_bootstrap
@@ -78,11 +77,7 @@ class DatabandContext(SingletonContext):
         # we are running from python notebook, let start to print to stdout
         if self.name == "interactive" or is_unit_test_mode():
             self.config.set(
-                "log",
-                "stream_stdout",
-                "True",
-                source="log",
-                merge_settings=ConfigMergeSettings.on_change_only,
+                "log", "stream_stdout", "True", source="log",
             )
 
         self.task_instance_cache = TaskInstanceCache()
