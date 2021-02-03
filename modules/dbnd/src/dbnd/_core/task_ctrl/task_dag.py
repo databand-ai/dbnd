@@ -49,7 +49,7 @@ class _TaskDagNode(TaskSubCtrl):
 
     def initialize_dag_node(self):
         # connect to all required tasks
-        upstream = flatten(to_tasks(self.relations.task_inputs))
+        upstream = flatten(to_tasks(self.ctrl.task_inputs))
         upstream = list(filter(None, upstream))
 
         # take care of orphant tasks
