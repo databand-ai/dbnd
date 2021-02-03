@@ -73,6 +73,7 @@ def get_sync_times_from_api(airflow_server_info):
     fetched_server_info = airflow_server_info_schema.load(response).data
     airflow_server_info.synced_from = fetched_server_info.synced_from
     airflow_server_info.synced_to = fetched_server_info.synced_to
+    airflow_server_info.incomplete_synced_to = fetched_server_info.incomplete_synced_to
     airflow_server_info.last_sync_time = fetched_server_info.last_sync_time
 
 
