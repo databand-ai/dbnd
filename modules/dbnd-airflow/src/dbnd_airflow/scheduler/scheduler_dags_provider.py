@@ -115,6 +115,7 @@ class DbndSchedulerDBDagsProvider(object):
         DbndSchedulerOperator(
             scheduled_cmd=job["cmd"],
             scheduled_job_name=job_name,
+            with_name=False,
             scheduled_job_uid=job.get("uid", None),
             shell=config.getboolean("scheduler", "shell_cmd"),
             task_id="launcher",
@@ -132,21 +133,28 @@ class DbndSchedulerOperator(BaseOperator):
     ui_color = "#f0ede4"
 
     def __init__(
-        self, scheduled_cmd, scheduled_job_name, scheduled_job_uid, shell, **kwargs
+        self,
+        scheduled_cmd,
+        scheduled_job_name,
+        scheduled_job_uid,
+        shell,
+        with_name=True,
+        **kwargs
     ):
-        # type: (str, str, Optional[UUID], bool, **Any) ->  DbndSchedulerOperator
+        # type: (str, str, Optional[UUID], bool, bool, **Any) ->  DbndSchedulerOperator
         super(DbndSchedulerOperator, self).__init__(**kwargs)
         self.scheduled_job_name = scheduled_job_name
         self.scheduled_job_uid = scheduled_job_uid
         self.scheduled_cmd = scheduled_cmd
         self.shell = shell
+        self.with_name = with_name
 
     def execute(self, context):
         scheduled_run_info = ScheduledRunInfo(
             scheduled_job_uid=self.scheduled_job_uid,
             scheduled_job_dag_run_id=context.get("dag_run").id,
             scheduled_date=context.get("task_instance").execution_date,
-            scheduled_job_name=self.scheduled_job_name,
+            scheduled_job_name=self.scheduled_job_name if self.with_name else None,
         )
 
         # disable heartbeat at this level,
