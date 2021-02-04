@@ -2,7 +2,8 @@ import logging
 import os
 import sys
 
-from typing import List, Union
+from typing import Any, List, Optional, Union
+from uuid import UUID
 
 from airflow import DAG
 from airflow.models import BaseOperator, DagModel
@@ -133,6 +134,7 @@ class DbndSchedulerOperator(BaseOperator):
     def __init__(
         self, scheduled_cmd, scheduled_job_name, scheduled_job_uid, shell, **kwargs
     ):
+        # type: (str, str, Optional[UUID], bool, **Any) ->  DbndSchedulerOperator
         super(DbndSchedulerOperator, self).__init__(**kwargs)
         self.scheduled_job_name = scheduled_job_name
         self.scheduled_job_uid = scheduled_job_uid
@@ -144,6 +146,7 @@ class DbndSchedulerOperator(BaseOperator):
             scheduled_job_uid=self.scheduled_job_uid,
             scheduled_job_dag_run_id=context.get("dag_run").id,
             scheduled_date=context.get("task_instance").execution_date,
+            scheduled_job_name=self.scheduled_job_name,
         )
 
         # disable heartbeat at this level,
