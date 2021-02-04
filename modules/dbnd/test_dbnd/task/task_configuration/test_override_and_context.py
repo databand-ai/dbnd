@@ -1,10 +1,9 @@
 import logging
 
 from dbnd import Config, PipelineTask, config, parameter, pipeline, task
-from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd.tasks.basics.simplest import SimplestTask
 from dbnd_test_scenarios.test_common.task.factories import FooConfig, TTask
-from test_dbnd.task_ctrl.test_task_log import WordCount, WordCountPipeline
+from test_dbnd.tracking.test_task_log import WordCount, WordCountPipeline
 
 
 logger = logging.getLogger()
