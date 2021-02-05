@@ -207,9 +207,7 @@ class DbndProjectConfig(object):
         self.disable_pluggy_entrypoint_loading = environ_enabled(
             ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING
         )
-        self.is_sigquit_handler_on = (
-            environ_enabled(ENV_DBND__SHOW_STACK_ON_SIGQUIT) and not self.unit_test_mode
-        )
+        self.is_sigquit_handler_on = environ_enabled(ENV_DBND__SHOW_STACK_ON_SIGQUIT)
 
         self._verbose = environ_enabled(ENV_DBND__VERBOSE)
 

@@ -100,7 +100,6 @@ def dbnd_operator__execute(dbnd_operator, context):
                 % (e,),
                 file=sys.__stderr__,
             )
-            dump_trace()
             raise
 
         with set_active_run_context(run):
