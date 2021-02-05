@@ -153,10 +153,3 @@ class TaskMeta(object):
         else:
             self.task_outputs_signature = self.task_signature
             self.task_outputs_signature_source = self.task_signature_source
-
-    def get_task_config_value(self, key):
-        for section in self.task_sections:
-            config_value = config.get_config_value(section, key)
-            if config_value:
-                return config_value
-        return None

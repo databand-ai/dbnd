@@ -1,5 +1,6 @@
 from typing import Type
 
+from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import Config
 from targets.target_config import TargetConfig, file, parse_target_config
@@ -28,12 +29,14 @@ class OutputConfig(Config):
         description="deploy prefix to use for remote deployments",
     )[VersionStr]
 
-    def get_config(self, value_type):
+    def get_value_target_config(self, value_type):
         # type: (Type) -> TargetConfig
 
         type_handler = get_value_type_of_type(value_type)
         for possible_option in [str(type_handler), type_handler.config_name]:
-            config_value = self.task_meta.get_task_config_value(key=possible_option)
+            config_value = config.get_config_value(
+                section=self._conf__task_family, key=possible_option
+            )
             if config_value:
                 return parse_target_config(config_value.value)
         return file.pickle
