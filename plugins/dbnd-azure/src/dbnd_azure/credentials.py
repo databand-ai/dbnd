@@ -23,4 +23,4 @@ def get_azure_credentials():
         return aws_storage_credentials.get_credentials()
     else:
         logger.debug("getting azure credentials from dbnd config")
-        return AzureCredentialsConfig().simple_params_dict()
+        return AzureCredentialsConfig().task_params.as_key_value_dict()

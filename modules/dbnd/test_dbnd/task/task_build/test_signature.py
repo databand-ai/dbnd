@@ -1,10 +1,19 @@
 import logging
 
+from pytest import fixture
+
 from dbnd._core.task_build.task_signature import build_signature
 from targets import Target, target
 
 
 logger = logging.getLogger(__name__)
+
+
+@fixture
+def databand_test_context():
+    # override,
+    # so we don't have all these logic running on setup phase
+    pass
 
 
 class TestSignature(object):

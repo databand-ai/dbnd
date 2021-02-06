@@ -19,8 +19,7 @@ if typing.TYPE_CHECKING:
     from typing import Optional, Dict, Any
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.settings import EnvConfig, DatabandSettings
-    from dbnd._core.task_ctrl.task_meta import TaskMeta
-    from dbnd._core.task_ctrl.task_parameters import TaskParameters
+    from dbnd._core.parameter.parameter_value import Parameters
     from dbnd._core.task_ctrl.task_relations import TaskRelations
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.context.databand_context import DatabandContext
@@ -37,7 +36,11 @@ class TaskSubCtrl(object):
         from dbnd._core.task.task import Task
 
         self.task = task  # type: Task
-        self.dbnd_context = self.task_meta.dbnd_context  # type: DatabandContext
+
+    @property
+    def dbnd_context(self):
+        # type: (TaskSubCtrl) -> DatabandContext
+        return self.task.dbnd_context
 
     @property
     def ctrl(self):
@@ -48,11 +51,6 @@ class TaskSubCtrl(object):
     def task_id(self):
         # type: (TaskSubCtrl) -> str
         return self.task.task_id
-
-    @property
-    def task_meta(self):
-        # type: (TaskSubCtrl) -> TaskMeta
-        return self.task.task_meta
 
     @property
     def task_dag(self):
@@ -68,7 +66,7 @@ class TaskSubCtrl(object):
         return self.ctrl._meta_info_serializer
 
     @property
-    def params(self):  # type: () -> TaskParameters
+    def params(self):  # type: () -> Parameters
         return self.task._params
 
     @property
@@ -174,7 +172,7 @@ class TaskCtrl(_BaseTaskCtrl):
         self._relations = TaskRelations(task)
         self.task_validator = TaskValidator(task)
 
-        self._should_run = self.task_meta.task_enabled and self.task._should_run()
+        self._should_run = self.task._should_run()
 
     def _initialize_task(self):
         # target driven relations are relevant only for orchestration tasks
@@ -208,7 +206,7 @@ class TaskCtrl(_BaseTaskCtrl):
         with nested(
             task_context(self.task, phase),
             TaskContextFilter.task_context(self.task.task_id),
-            config.config_layer_context(self.task.task_meta.config_layer),
+            config.config_layer_context(self.task.task_config_layer),
         ):
             yield
 

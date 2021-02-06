@@ -47,7 +47,7 @@ def _list_tasks(ctx, module, search, is_config):
             continue
 
         dl = []
-        for param_name, param_obj in td.task_params.items():
+        for param_name, param_obj in td.task_param_defs.items():
             if param_obj.system or param_obj.kind == _ParameterKind.task_output:
                 continue
             if not is_config and param_name in COMMON_PARAMS:

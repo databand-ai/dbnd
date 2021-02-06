@@ -3,7 +3,7 @@ import functools
 import logging
 import typing
 
-from typing import Any, Type
+from typing import Any, Dict, Tuple, Type
 
 import attr
 import six
@@ -19,7 +19,12 @@ from dbnd._core.constants import (
     DbndTargetOperationType,
     TaskRunState,
 )
-from dbnd._core.current import current_task_run, get_databand_run, try_get_current_task
+from dbnd._core.current import (
+    current_task_run,
+    get_databand_run,
+    is_verbose,
+    try_get_current_task,
+)
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.dynamic_tasks import (
     _handle_dynamic_error,
@@ -36,6 +41,7 @@ from dbnd._core.decorator.task_decorator_spec import (
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, user_side_code
 from dbnd._core.failures import dbnd_handle_errors
+from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     build_task_at_airflow_dag_context,
     is_in_airflow_dag_build_context,
@@ -46,6 +52,7 @@ from dbnd._core.task_build.task_context import (
     current_phase,
     try_get_current_task,
 )
+from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_registry import get_task_registry
@@ -63,23 +70,31 @@ logger = logging.getLogger(__name__)
 
 
 @attr.s
-class FuncCallWithResult(FuncCall):
+class TrackedFuncCallWithResult(object):
+    call_args = attr.ib()  # type:  Tuple[Any]
+    call_kwargs = attr.ib()  # type:  Dict[str,Any]
+    call_user_code = attr.ib()
     result = attr.ib(default=None)
 
     def set_result(self, value):
         self.result = value
         return value
 
+    def invoke(self):
+        func = self.call_user_code
+        return func(*self.call_args, **self.call_kwargs)
+
 
 class TaskClsBuilder(object):
-    def __init__(self, func_spec, task_type, task_defaults):
-        # type: (TaskClsBuilder, _TaskDecoratorSpec, Type[_DecoratedTask], Any) -> None
+    def __init__(self, func_spec, task_type, task_defaults, task_passport):
+        # type: (TaskClsBuilder, _TaskDecoratorSpec, Type[_DecoratedTask], Any, TaskPassport) -> None
         self.func_spec = func_spec
         self.task_type = task_type
+        self.task_passport = task_passport
         self.task_defaults = task_defaults
 
         self._normal_task_cls = None
-        self._tracking_task_cls = None
+        self._tracking_task_definition = None
         # self.task_cls = task_cls  # type: Type[Task]
         # this will make class look like a origin function
         functools.update_wrapper(self, self.func)
@@ -95,27 +110,33 @@ class TaskClsBuilder(object):
 
     def get_task_cls(self):
         if self._normal_task_cls is None:
-            self._normal_task_cls = self._build_task_cls(is_tracking_mode=False)
+            self._normal_task_cls = self._build_task_cls()
         return self._normal_task_cls
-
-    def get_tracking_task_cls(self):
-        if not self._tracking_task_cls:
-            self._tracking_task_cls = self._build_task_cls(is_tracking_mode=True)
-        return self._tracking_task_cls
 
     def get_task_definition(self):
         return self.get_task_cls().task_definition
 
-    def _build_task_cls(self, is_tracking_mode):
+    def get_tracking_task_definition(self):
+        if not self._tracking_task_definition:
+            self._tracking_task_definition = self._build_tracking_task_definition()
+        return self._tracking_task_definition
+
+    def _build_tracking_task_definition(self):
+        td = TaskDefinition.from_decorated_func(
+            func_spec=self.func_spec,
+            defaults=self.task_defaults,
+            task_passport=self.task_passport,
+        )
+        return td
+
+    def _build_task_cls(self):
+        """
+        Returns Runnable Task
+        """
         class_or_func = self.func
 
-        # Only can be sure about tracking mode when we about to build the task
-        if is_tracking_mode:
-            # In tracking mode we use the TrackingTask which behave as a Task for tracking scenarios only.
-            bases = (TrackingTask,)
-        else:
-            # Use the task_type we got from the decorator. check @task/@pipeline/@spark_task
-            bases = (self.task_type,)
+        # Use the task_type we got from the decorator. check @task/@pipeline/@spark_task
+        bases = (self.task_type,)
 
         task_cls = TaskMetaclass(
             str(class_or_func.__name__),
@@ -162,8 +183,8 @@ class TaskClsBuilder(object):
         user_code_finished = False  # whether we passed executing of user code
         func_call = None
         try:
-            func_call = FuncCallWithResult(
-                task_cls=self.get_tracking_task_cls(),
+            tracking_task_definition = self.get_tracking_task_definition()
+            func_call = TrackedFuncCallWithResult(
                 call_user_code=self.func,
                 call_args=tuple(call_args),  # prevent original call_args modification
                 call_kwargs=dict(call_kwargs),  # prevent original kwargs modification
@@ -172,17 +193,13 @@ class TaskClsBuilder(object):
             # 1. check that we don't have too many calls
             # 2. Start or reuse existing "inplace_task" that is root for tracked tasks
             if not self._call_count_limit_exceeded() and _get_or_create_inplace_task():
-                cls = func_call.task_cls
-
                 # replace any position argument with kwarg if it possible
                 args, kwargs = args_to_kwargs(
-                    cls._conf__decorator_spec.args,
-                    func_call.call_args,
-                    func_call.call_kwargs,
+                    self.func_spec.args, func_call.call_args, func_call.call_kwargs,
                 )
 
                 # instantiate inline task
-                task = cls._create_task(args, kwargs)
+                task = TrackingTask(tracking_task_definition, args, kwargs)
 
                 # update upstream/downstream relations - needed for correct tracking
                 # we can have the task as upstream , as it was executed already
@@ -240,12 +257,26 @@ class TaskClsBuilder(object):
             # else it's either we didn't reached calling user code, or already passed it
             # then it's some dbnd tracking error - just log it
             if func_call:
-                _handle_dynamic_error("tracking-init", func_call)
+                _handle_tracking_error("tracking-init", func_call)
         # if we didn't reached user_code_called=True line - there was an error during
         # dbnd tracking initialization, so nothing is done - user function wasn't called yet
         if not user_code_called:
             # tracking_context is context manager - user code will run on yield
             yield _passthrough_decorator
+
+
+def _handle_tracking_error(msg, func_call):
+    if is_verbose():
+        logger.warning(
+            "Failed during dbnd %s for %s, ignoring, and continue without tracking/orchestration"
+            % (msg, func_call.call_user_code),
+            exc_info=True,
+        )
+    else:
+        logger.info(
+            "Failed during dbnd %s for %s, ignoring, and continue without tracking"
+            % (msg, func_call.call_user_code)
+        )
 
 
 class _DecoratedUserClassMeta(type):
@@ -365,9 +396,7 @@ def _log_inputs(task_run):
     """
     try:
         params = task_run.task._params
-        for param in params.get_params(input_only=True):
-            value = params.get_value(param.name)
-
+        for param, value in params.get_params_with_value(ParameterFilters.INPUTS):
             if isinstance(value, InMemoryTarget):
                 try:
                     param = param.modify(
@@ -496,7 +525,8 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
             )
             raise
 
-        fp = TaskClsBuilder(func_spec, task_type, task_defaults)
+        tp = TaskPassport.from_func_spec(func_spec, decorator_kwargs)
+        fp = TaskClsBuilder(func_spec, task_type, task_defaults, task_passport=tp)
 
         if func_spec.is_class:
             wrapper = six.add_metaclass(_DecoratedUserClassMeta)(class_or_func)
@@ -535,8 +565,6 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
         # we need to manually register the task here, since in regular flow
         # this happens in TaskMetaclass, but it's not invoked here due to lazy
         # evaluation using CallableLazyObjectProxy
-        tp = TaskPassport.from_func_spec(func_spec, decorator_kwargs)
-
         # TODO: we can use CallableLazyObjectProxy object (task_cls) instead of task_cls_factory
         r = get_task_registry()
         r.register_task_cls_factory(

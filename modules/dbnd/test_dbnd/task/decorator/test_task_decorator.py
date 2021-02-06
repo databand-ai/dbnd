@@ -208,8 +208,7 @@ class TestTaskDecorators(TargetTestBase):
 
     def test_task_system_params_overrides_in_decorator(self):
         @task
-        def my_task(task_name="test_name"):
-            assert task_name == "test_name"
+        def my_task():
             assert current_task().task_name == "test_name"
 
-        my_task.dbnd_run()
+        my_task.dbnd_run(task_name="test_name")

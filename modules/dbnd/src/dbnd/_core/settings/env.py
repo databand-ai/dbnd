@@ -2,8 +2,8 @@ import logging
 
 from dbnd._core.constants import ApacheBeamClusterType, CloudType, EnvLabel
 from dbnd._core.errors import friendly_error
+from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.parameter.parameter_definition import ParameterScope
 from dbnd._core.task.config import Config
 from targets import DirTarget
 
@@ -102,11 +102,11 @@ class EnvConfig(Config):
 
     @property
     def name(self):
-        return self.task_meta.task_name
+        return self.task_name
 
     @property
     def cloud_type(self):
-        return self.task_meta.task_family
+        return self.task_family
 
     def prepare_env(self):
         pass

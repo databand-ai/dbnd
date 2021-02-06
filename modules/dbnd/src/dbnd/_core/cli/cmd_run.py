@@ -353,7 +353,7 @@ def print_help(ctx, task_cls):
     run.format_help(ctx, formatter)
     if task_cls:
         dl = []
-        for (param_name, param_obj) in task_cls.task_definition.task_params.items():
+        for (param_name, param_obj) in task_cls.task_definition.task_param_defs.items():
             if param_obj.system or param_obj.kind == _ParameterKind.task_output:
                 continue
 

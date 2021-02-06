@@ -22,11 +22,11 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.constants import UpdateSource
 from dbnd._core.current import get_settings
+from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.task.task import Task
 from dbnd._core.task.tracking_task import TrackingTask
-from dbnd._core.task_build.dynamic import build_dynamic_task_class
+from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
@@ -227,17 +227,6 @@ class AirflowOperatorRuntimeTask(TrackingTask):
     dag_id = parameter[str]
     execution_date = parameter[datetime.datetime]
 
-    def _initialize(self):
-        super(AirflowOperatorRuntimeTask, self)._initialize()
-        self.ctrl.task_repr.task_functional_call = ""
-
-        self.ctrl.task_repr.task_command_line = generate_airflow_cmd(
-            dag_id=self.dag_id,
-            task_id=self.task_id,
-            execution_date=self.execution_date,
-            is_root_task=False,
-        )
-
 
 def build_run_time_airflow_task(af_context):
     # type: (AirflowTaskContext) -> (AirflowOperatorRuntimeTask, str, UpdateSource)
@@ -291,10 +280,33 @@ def build_run_time_airflow_task(af_context):
         task_version="%s:%s" % (af_context.task_id, af_context.execution_date),
         **user_params
     )
+    root_task.ctrl.task_repr.task_functional_call = ""
+    root_task.ctrl.task_repr.task_command_line = generate_airflow_cmd(
+        dag_id=af_context.dag_id,
+        task_id=af_context.task_id,
+        execution_date=af_context.execution_date,
+        is_root_task=False,
+    )
 
     job_name = "{}.{}".format(af_context.dag_id, af_context.task_id)
     source = UpdateSource.airflow_tracking
     return root_task, job_name, source
+
+
+def build_dynamic_task_class(
+    task_class, task_family, user_params=None, track_source_code=False
+):
+    classdict = dict(
+        _conf__task_family=task_family,
+        _conf__decorator_spec=None,
+        __doc__=task_class.__doc__,
+        __module__=task_class.__module__,
+        _conf__track_source_code=track_source_code,
+    )
+    if user_params:
+        classdict.update(user_params)
+
+    return TaskMetaclass(task_family, (task_class,), classdict)
 
 
 def get_user_module_code():

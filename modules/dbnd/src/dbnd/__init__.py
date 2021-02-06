@@ -27,11 +27,9 @@ from dbnd._core.decorator.dbnd_decorator import (
     task,
 )
 from dbnd._core.failures import dbnd_handle_errors
+from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_builder import data, output, parameter
-from dbnd._core.parameter.parameter_definition import (
-    ParameterDefinition,
-    ParameterScope,
-)
+from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.plugin.dbnd_plugins import hookimpl
 from dbnd._core.task.config import Config
 from dbnd._core.task.data_source_task import DataSourceTask
@@ -117,7 +115,6 @@ __all__ = [
     "config",
     "config_deco",
     "ConfigPath",
-    "ParameterScope",
     "ParameterDefinition",
     # dbnd run
     "dbnd_main",

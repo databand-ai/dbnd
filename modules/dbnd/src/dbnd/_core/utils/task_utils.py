@@ -124,7 +124,7 @@ def calculate_friendly_task_ids(tasks):
         tasks_by_name[t.task_name].append(t)
     task_friendly_ids = {}
     for tasks in tasks_by_name.values():
-        sorted_tasks = sorted(tasks, key=lambda t: t.task_meta.task_creation_id)
+        sorted_tasks = sorted(tasks, key=lambda t: t.task_creation_id)
         for i, task in enumerate(sorted_tasks):
             if i > 0 or len(sorted_tasks) > 1:
                 task_af_id = "{}_{}".format(task.task_name, i)

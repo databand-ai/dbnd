@@ -4,31 +4,35 @@ import random
 import typing
 import warnings
 
-from typing import Dict
+from contextlib import contextmanager
+from typing import Any, Dict
 
 from dbnd._core.constants import (
+    DbndTargetOperationStatus,
+    DbndTargetOperationType,
     OutputMode,
     ParamValidation,
     TaskEssence,
     _TaskParamContainer,
 )
-from dbnd._core.current import get_databand_run
+from dbnd._core.current import get_databand_run, try_get_current_task_run
+from dbnd._core.errors import friendly_error
 from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.failures import dbnd_handle_errors
+from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_builder import output, parameter
-from dbnd._core.parameter.parameter_definition import (
-    ParameterDefinition,
-    ParameterScope,
-)
+from dbnd._core.parameter.parameter_definition import ParameterDefinition
+from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.settings.env import EnvConfig
-from dbnd._core.task.base_task import _BaseTask
+from dbnd._core.task.base_task import _TaskWithParams
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
 from dbnd._core.task_ctrl.task_output_builder import calculate_path
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.traversing import flatten
-from targets import target
+from targets import InMemoryTarget, target
 from targets.target_config import TargetConfig, folder
+from targets.values import get_value_type_of_obj
 from targets.values.version_value import VersionStr
 
 
@@ -45,7 +49,7 @@ logger = logging.getLogger(__name__)
 system_passthrough_param = parameter.system(scope=ParameterScope.children)
 
 
-class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
+class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
     """
     This is the base class of all dbnd Tasks, the base unit of work in databand.
 
@@ -78,6 +82,8 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         Note that setting this value with ``@property`` will not work, because this
         is a class level value.
     """
+    _conf_confirm_on_kill_msg = None  # get user confirmation on task kill if not empty
+    _conf__require_run_dump_file = False
 
     _task_band_result = output(default=None, system=True)
     _meta_output = output(
@@ -157,8 +163,6 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
 
     def __init__(self, **kwargs):
         super(Task, self).__init__(**kwargs)
-        for name, p_value in self.task_meta.task_params.items():
-            setattr(self, name, p_value.value)
 
         self.ctrl = TaskCtrl(self)
 
@@ -229,10 +233,10 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         if 0 < num_of_incomplete_outputs < len(outputs):
             complete_outputs = [str(o) for o in outputs if o.exists()]
             exc = incomplete_output_found_for_task(
-                self.task_meta.task_name, complete_outputs, incomplete_outputs
+                self.task_name, complete_outputs, incomplete_outputs
             )
 
-            if self.task_env.settings.run.validate_task_outputs_on_build:
+            if self.settings.run.validate_task_outputs_on_build:
                 raise exc
             else:
                 logger.warning(str(exc))
@@ -270,8 +274,9 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
     def _task_run(self):
         # bring all relevant files
         self.current_task_run.sync_local.sync_pre_execute()
-        with self._auto_load_save_params(
-            auto_read=self._conf_auto_read_params, save_on_change=True
+
+        with auto_load_save_params(
+            task=self, auto_read=self._conf_auto_read_params,
         ):
             result = self.run()
 
@@ -292,12 +297,12 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         # TODO: move to cached version, (after relations are built)
         base = {
             "task": self,
-            "task_family": self.task_meta.task_family,
-            "task_name": self.task_meta.task_name,
-            "task_signature": self.task_meta.task_signature,
-            "task_id": self.task_meta.task_id,
+            "task_family": self.task_family,
+            "task_name": self.task_name,
+            "task_signature": self.task_signature,
+            "task_id": self.task_id,
         }
-        base.update(self._params.get_params_serialized(input_only=True))
+        base.update(self._params.get_params_serialized(ParameterFilters.INPUTS))
         if self.task_target_date is None:
             base["task_target_date"] = "input"
         return base
@@ -347,6 +352,41 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
 
         return True
 
+    def _save_param(self, parameter, original_value, current_value):
+        # type: (ParameterDefinition, Any, Any) -> None
+        # it's output! we are going to save it.
+        # task run doesn't always exist
+        task_run = try_get_current_task_run()
+        access_status = DbndTargetOperationStatus.OK
+        try:
+            if isinstance(original_value, InMemoryTarget):
+                parameter.value_type = get_value_type_of_obj(
+                    current_value, parameter.value_type
+                )
+
+            parameter.dump_to_target(original_value, current_value)
+            # it's a workaround, we don't want to change parameter for outputs (dynamically)
+            # however, we need proper value type to "dump" preview an other meta.
+            # we will update it only for In memory targets only for now
+
+        except Exception as ex:
+            access_status = DbndTargetOperationStatus.NOK
+            raise friendly_error.task_execution.failed_to_save_value_to_target(
+                ex, self.task, parameter, original_value, current_value
+            )
+        finally:
+            if task_run:
+                try:
+                    task_run.tracker.log_parameter_data(
+                        parameter=parameter,
+                        target=original_value,
+                        value=current_value,
+                        operation_type=DbndTargetOperationType.write,
+                        operation_status=access_status,
+                    )
+                except Exception as ex:
+                    logger.warning("Failed to log target to tracking store. %s", ex)
+
     @dbnd_handle_errors(exit_on_error=False)
     def dbnd_run(self):
         # type: (...)-> DatabandRun
@@ -360,15 +400,58 @@ class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         run = ctx.dbnd_run_task(self)
         return run
 
-    def _get_param_value(self, param_name):
-        # we dont' want to autoread when we run this function
-        # most cases we are running it from "banner" print
-        # so if we are in the autoread we will use original values
-        task_auto_read_original = self._task_auto_read_original
-        if task_auto_read_original is not None:
-            return task_auto_read_original[param_name]
 
-        return getattr(self, param_name)
+@contextmanager
+def auto_load_save_params(task, auto_read):
+    task_params = task.task_params
+    param_values = task_params.get_param_values()
+    original_values = [(p, p.value) for p in param_values]
+    outputs_as_simple_objects = {}
+    if auto_read:
+        # in .run() we are going to pre-fetch all values
+        # * we do it eager loading for all parameters (not lazy)
+
+        for param_value in param_values:
+            runtime_value = param_value.parameter.calc_runtime_value(
+                param_value.value, task=task
+            )
+            if param_value.value is not runtime_value:  # only if different
+                if param_value.parameter.is_output():
+                    # outputs() are going to be processed as well,
+                    # we might change them to Path from Target
+                    # however, we don't need to consider this value  after that
+                    outputs_as_simple_objects[param_value.name] = runtime_value
+                param_value.update_param_value(runtime_value)
+
+    try:
+        yield original_values
+
+        # we are at the .__exit__ of run, let's save all changed fields
+        # no exception, still not good as atomic commit for all files, but less "garbage" left in case of failure
+        for param_value, original_value in original_values:
+            # TODO: implement Atomic commit
+            if not param_value.parameter.is_output():
+                continue
+            current_value = param_value.value
+            if current_value is original_value:
+                # nothing to do original_value is the same
+                continue
+            param_name = param_value.name
+            if (
+                param_name not in outputs_as_simple_objects
+                or outputs_as_simple_objects.get(param_value.name) is not current_value
+            ):
+                # only if it's user assigned value
+                # otherwise we will save Path/PathStr object to the output
+                task._save_param(param_value.parameter, original_value, current_value)
+            param_value.update_param_value(
+                original_value
+            )  # do it , so we know what we have processed
+    finally:
+        # we always want to revert values on .run() exit ( all read and outputs)
+        for param_value, original_value in original_values:
+            if param_value.value is not original_value:  # only if different
+                param_value.update_param_value(original_value)
 
 
 Task.task_definition.hidden = True

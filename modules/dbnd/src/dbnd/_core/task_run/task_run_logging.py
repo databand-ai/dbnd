@@ -85,7 +85,7 @@ class TaskRunLogManager(TaskRunCtrl):
         if (
             # there is no really any good way to find if this is runtime tracking for airflow operator
             # should be refactored as soon as possible
-            self.task.get_task_family().endswith("_execute")
+            self.task.task_family.endswith("_execute")
         ):
             yield None
             return

@@ -3,7 +3,9 @@ import typing
 
 import six
 
+from dbnd._core.constants import TaskEssence
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
+from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.utils.basics.nothing import is_defined
 from dbnd._core.utils.basics.text_banner import safe_string
@@ -43,7 +45,7 @@ class TaskRepr(TaskSubCtrl):
 
     def __get_relevant_params(self):
         relevant = []
-        for p, value in self.params.get_param_values(input_only=True, user_only=True):
+        for p, value in self.params.get_params_with_value(ParameterFilters.USER_INPUTS):
             if is_defined(p.default):
                 try:
                     same_value = value == p.default
@@ -55,18 +57,21 @@ class TaskRepr(TaskSubCtrl):
         return sorted(relevant, key=lambda x: x[0].name)
 
     def __get_override_repr(self):
-        if not self.task.task_meta.task_config_override:
+        if not TaskEssence.ORCHESTRATION.is_included(self.task):
+            # config and overrides are exists in orchestration mode only
+            return {}
+        if not self.task.task_config_override:
             return {}
         result = {}
-        for k, v in six.iteritems(self.task.task_meta.task_config_override):
+        for k, v in six.iteritems(self.task.task_config_override):
             if isinstance(k, ParameterDefinition):
-                k = "%s.%s" % (k.task_cls.task_definition.task_family, k.name)
+                k = "%s.%s" % (k.task_definition.task_family, k.name)
             result[k] = v
         return result
 
     def calculate_command_line_for_task(self):
 
-        task_name = self.task.get_full_task_family()
+        task_name = self.task.task_family
         base = "dbnd run {task_name} ".format(task_name=task_name)
 
         params = []
@@ -101,7 +106,9 @@ class TaskRepr(TaskSubCtrl):
                 )
                 params.append("overrides={ %s }" % overrides_str)
 
-        task_ref = "{task_name}".format(task_name=self.task.get_full_task_family())
+        task_ref = "{task_name}".format(
+            task_name=self.task.task_definition.full_task_family
+        )
         if self.task._conf__decorator_spec:
             task_ref += ".task"
         return "{task_ref}({params})".format(

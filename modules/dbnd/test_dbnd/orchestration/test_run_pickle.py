@@ -33,6 +33,7 @@ def ttask_g(tparam="1", tidx=0):
 
 
 def generate_huge_task(num_of_tasks):
+    # return chain of tasks 1->2->3->.. ->N
     cur_t = "start"
     for i in range(num_of_tasks):
         cur_t = ttask_g.task(tparam=cur_t, tidx=i)

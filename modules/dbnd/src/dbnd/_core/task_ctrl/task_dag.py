@@ -143,7 +143,12 @@ class _TaskDagNode(TaskSubCtrl):
             for t_connected_task_id in t_dag._direction(upstream):
                 if t_connected_task_id in seen:
                     continue
-                to_process.append(self.get_task_by_task_id(t_connected_task_id))
+                connected_task = self.get_task_by_task_id(t_connected_task_id)
+                if not connected_task:
+                    raise DatabandError(
+                        "Can't resolve task %s by it's id" % t_connected_task_id
+                    )
+                to_process.append(connected_task)
 
         return set(result)
 

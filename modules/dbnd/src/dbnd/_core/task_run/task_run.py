@@ -64,8 +64,7 @@ class TaskRun(object):
         # DNS-1123 subdomain name (k8s)
         self.job_id__dns1123 = clean_job_name_dns1123(
             "dbnd.{task_family}.{task_name}".format(
-                task_family=self.task.task_meta.task_family,
-                task_name=self.task.task_meta.task_name,
+                task_family=self.task.task_family, task_name=self.task.task_name,
             ),
             postfix=".%s" % str(self.task_run_uid)[:8],
         )

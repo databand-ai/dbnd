@@ -3,6 +3,7 @@ import time
 
 from collections import defaultdict
 
+from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.task_ctrl.task_relations import TaskRelations
 from dbnd._core.utils.traversing import flatten
 
@@ -95,7 +96,7 @@ def tensorflow_graph(task):
             nodes.append(node_info)
 
             attrs = {}
-        for k, v in task._params.get_params_serialized():
+        for k, v in task._params.get_params_serialized(ParameterFilters.INPUTS):
             attrs[k] = AttrValue(s=v.encode(encoding="utf_8"))
         node_info = {
             "name": op_name,

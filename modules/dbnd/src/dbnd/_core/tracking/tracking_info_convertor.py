@@ -3,7 +3,6 @@ import logging
 import typing
 
 from functools import partial
-from itertools import chain
 
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import RunState, TaskRunState
@@ -206,8 +205,10 @@ def task_to_task_def(ctx, task):
     # type: (DatabandContext, Task) -> TaskDefinitionInfo
     td = task.task_definition
 
-    task_param_definitions = [value for key, value in sorted(td.task_params.items())]
-    task_family = task.task_meta.task_family
+    task_param_definitions = [
+        value for key, value in sorted(td.task_param_defs.items())
+    ]
+    task_family = task.task_family
     task_definition = TaskDefinitionInfo(
         task_definition_uid=td.task_definition_uid,
         class_version=task.task_class_version,
@@ -217,7 +218,7 @@ def task_to_task_def(ctx, task):
         name=task_family,
         source=td.task_source_code,
         source_hash=source_md5(td.task_source_code),
-        type=task.task_meta.task_type,
+        type=task.task_type,
         task_param_definitions=task_param_definitions,
     )
     return task_definition
@@ -226,32 +227,31 @@ def task_to_task_def(ctx, task):
 def build_task_run_info(task_run):
     # type: (TaskRun) -> TaskRunInfo
     t = task_run.task
-    tm = task_run.task.task_meta
     task_dag = t.ctrl.task_dag
     log_local, log_remote = task_run._get_log_files()
 
     task_params_values = dict(t._params.get_params_serialized())
-    td = t.task_definition
     task_run_params = []
-    for key, tdp in sorted(td.task_params.items()):
-        if isinstance(tdp, FuncResultParameter):
+    for param_meta in t.task_params.get_param_values():
+        if isinstance(param_meta.parameter, FuncResultParameter):
             continue
 
-        param_meta = t._params.get_param_meta(tdp.name)
         if param_meta:
             value_source, value = param_meta.source, param_meta.value
         else:
             value_source, value = "", ""
+
+        if param_meta.parameter.hidden:
+            value = "***"
+        else:
+            value = safe_short_string(
+                param_meta.parameter.signature(value), max_value_len=5000,
+            )
         task_run_params.append(
             TaskRunParamInfo(
-                parameter_name=tdp.name,
+                parameter_name=param_meta.name,
                 value_origin=safe_short_string(str(value_source), max_value_len=5000),
-                value=safe_short_string(
-                    str(task_params_values.get(tdp.name, value))
-                    if not tdp.hidden
-                    else "***",
-                    max_value_len=5000,
-                ),
+                value=value,
             )
         )
 
@@ -263,9 +263,9 @@ def build_task_run_info(task_run):
         task_id=t.task_id,
         task_af_id=task_run.task_af_id,
         name=t.task_name,
-        task_signature=tm.task_signature,
-        task_signature_source=tm.task_signature_source,
-        output_signature=tm.task_outputs_signature,
+        task_signature=t.task_signature,
+        task_signature_source=t.task_signature_source,
+        output_signature=t.task_outputs_signature,
         command_line=t.ctrl.task_repr.task_command_line,
         env=t.task_env.name,
         functional_call=t.ctrl.task_repr.task_functional_call,

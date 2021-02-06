@@ -19,7 +19,6 @@ from dbnd._core.configuration.environ_config import (
     is_unit_test_mode,
 )
 from dbnd._core.errors import DatabandConfigError
-from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.utils.project.project_fs import (
     databand_config_path,
     databand_system_path,
@@ -201,6 +200,8 @@ def parse_and_build_config_store(
     """
     if isinstance(config_values, _ConfigStore):
         return config_values
+
+    from dbnd._core.parameter.parameter_definition import ParameterDefinition
 
     new_config = _ConfigStore()
     new_config.source = source

@@ -19,7 +19,7 @@ from dbnd._core.constants import (
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors import DatabandBuildError, friendly_error
 from dbnd._core.errors.errors_utils import log_exception
-from dbnd._core.parameter.parameter_value import ParameterValue
+from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.basics.text_banner import safe_string
 from dbnd._core.utils.traversing import traverse
@@ -48,11 +48,7 @@ from targets.values.target_values import _TargetValueType
 logger = logging.getLogger(__name__)
 if typing.TYPE_CHECKING:
     from dbnd._core.task.task import Task
-
-
-class ParameterScope(enum.Enum):
-    task = "task"  # do not propagate value
-    children = "children"  # propagate value to direct children
+    from dbnd._core.task_build.task_definition import TaskDefinition
 
 
 class _ParameterKind(enum.Enum):
@@ -165,7 +161,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     )  # type: bool  # log all (can disable whole value log)
 
     # ParameterDefinition ownership
-    task_cls = attr.ib(default=None)  # type: Type[Task]
+    task_definition = attr.ib(default=None)  # type: TaskDefinition
     parameter_origin = attr.ib(default=None)
     parameter_id = attr.ib(default=1)
 
@@ -178,21 +174,24 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
     @property
     def task_definition_uid(self):
-        if not self.task_cls:
+        if not self.task_definition:
             return None
-        return self.task_cls.task_definition.task_definition_uid
+        return self.task_definition.task_definition_uid
 
-    def evolve_with_owner(self, task_cls, name):
-        if self.task_cls and self.name != name:
+    def evolve_with_owner(self, task_definition, name):
+        if self.task_definition and self.name != name:
             logger.warning(
                 "Name of parameter has been changed from '%s' to '%s' at %s",
                 name,
                 self.name,
-                task_cls,
+                task_definition,
             )
-        parameter_origin = self.parameter_origin or task_cls
+        parameter_origin = self.parameter_origin or task_definition
         return attr.evolve(
-            self, task_cls=task_cls, name=name, parameter_origin=parameter_origin
+            self,
+            task_definition=task_definition,
+            name=name,
+            parameter_origin=parameter_origin,
         )
 
     def parse_from_str(self, x):  # type: (str) -> T
@@ -240,7 +239,8 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
         if isinstance(self.value_type, _TargetValueType):
             # if it "target" type, let read it into "user friendly" format
-            # regardless it's input or output
+            # regardless it's input or output,
+            # so if function has  param = output[Path] - it will get Path
 
             return traverse(value, self.value_type.target_to_value)
 
@@ -433,24 +433,24 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
     @property
     def task_family(self):
-        if self.task_cls:
-            return self.task_cls.task_definition.task_family
+        if self.task_definition:
+            return self.task_definition.task_family
         return None
 
     @property
     def task_config_section(self):
-        if self.task_cls:
-            return self.task_cls.task_definition.task_config_section
+        if self.task_definition:
+            return self.task_definition.task_config_section
         return None
 
     def __repr__(self):
         owned_by = ""
         parameter_origin = ""  # show it only if different
 
-        if self.task_cls:
-            owned_by = self.task_cls.get_task_family() if self.task_cls else ""
+        if self.task_definition:
+            owned_by = self.task_definition.task_family if self.task_definition else ""
             origin_cls_str = (
-                self.parameter_origin.get_task_family() if self.parameter_origin else ""
+                self.parameter_origin.task_family if self.parameter_origin else ""
             )
             if origin_cls_str and origin_cls_str != owned_by:
                 parameter_origin = " at %s" % origin_cls_str
@@ -542,7 +542,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
         return self.kind == _ParameterKind.task_output
 
     def __hash__(self):
-        return hash(self.name) ^ hash(self.task_cls)
+        return hash(self.name) ^ hash(self.task_definition)
 
     def modify(self, **kwargs):
         if not kwargs:
@@ -614,6 +614,9 @@ def _update_parameter_from_runtime_value_type(parameter, value):
 
 def build_parameter_value(parameter, cf_value):
     # type: (ParameterDefinition, ConfigValue) -> ParameterValue
+
+    from dbnd._core.parameter.parameter_value import ParameterValue
+
     if not cf_value:
         return ParameterValue(
             parameter=parameter,
@@ -653,7 +656,7 @@ def build_parameter_value(parameter, cf_value):
     except Exception as ex:
         # we don't want to fail user code on failed value discovery
         # we only print message from "friendly exception" and show real stack
-        logger.exception("Failed to discover runtime for %s", parameter)
+        logger.exception("Failed to discover runtime for %s" % parameter)
 
     try:
         p_val = parameter.calc_init_value(value)

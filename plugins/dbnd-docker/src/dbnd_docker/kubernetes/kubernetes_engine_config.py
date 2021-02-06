@@ -398,7 +398,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         }
         if self.auto_remove:
             env_vars[ENV_DBND_AUTO_REMOVE_POD] = "True"
-        env_vars[self._params.get_param_env_key("in_cluster")] = "True"
+        env_vars[self._params.get_param_env_key(self, "in_cluster")] = "True"
         env_vars["AIRFLOW__KUBERNETES__IN_CLUSTER"] = "True"
         env_vars[
             "DBND__RUN_INFO__SOURCE_VERSION"
@@ -407,7 +407,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         # we want that all next runs will be able to use the image that we have in our configuration
 
         env_vars.update(
-            self._params.to_env_map("container_repository", "container_tag")
+            self._params.to_env_map(self, "container_repository", "container_tag")
         )
 
         env_vars.update(self.env_vars)

@@ -163,10 +163,10 @@ def failed_to_import_user_module(ex, module, description):
     )
 
 
-def unknown_args_in_task_call(parent_task, cls, func_params):
+def unknown_args_in_task_call(parent_task, cls, call_args, call_repr):
     return DatabandBuildError(
-        "You are trying to create %s from %s with *args, please use named arguments only: args=%s"
-        % (_run_name(cls), _band_call_str(parent_task), func_params[0]),
+        "You are trying to create %s from %s with %s *args, please use named arguments only: %s"
+        % (_run_name(cls), _band_call_str(parent_task), len(call_args), call_repr),
         show_exc_info=True,
         help_msg="Check your %s logic" % _band_call_str(parent_task),
     )

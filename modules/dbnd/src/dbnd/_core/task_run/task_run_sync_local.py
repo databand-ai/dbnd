@@ -10,6 +10,7 @@ from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
     _ParameterKind,
 )
+from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._vendor._marshmallow.compat import urlparse
 from targets import (
@@ -40,7 +41,9 @@ class TaskRunLocalSyncer(TaskRunCtrl):
         self.outputs_to_sync = []
         self.local_sync_root = self.task_env.dbnd_local_root.partition("local_sync")
 
-        for p_def, p_val in self.task._params.get_param_values(user_only=True):
+        for p_def, p_val in self.task._params.get_params_with_value(
+            ParameterFilters.USER
+        ):
             if (
                 isinstance(p_val, FileTarget)
                 and p_val.config.require_local_access

@@ -5,6 +5,7 @@ import warnings
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.friendly_error import _band_call_str
+from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.utils.basics.nested_context import nested
@@ -54,9 +55,7 @@ class TaskRelations(TaskSubCtrl):
         # support for two phase build
         # will be called from MetaClass
 
-        params = self.params.get_params_serialized(
-            significant_only=True, input_only=True
-        )
+        params = self.params.get_params_serialized(ParameterFilters.SIGNIFICANT_INPUTS)
 
         if "user" in self.task_inputs:
             # TODO : why do we need to convert all "user side" inputs?
@@ -83,17 +82,17 @@ class TaskRelations(TaskSubCtrl):
             params.append(("_task_inputs", task_inputs_as_str))
 
         # we do it again, now we have all inputs calculated
-        self.task_meta.initialize_task_id(params)
+        self.task.initialize_task_id(params)
 
         # for airflow operator task handling:
         airflow_task_id_p = self.params.get_param("airflow_task_id")
         if airflow_task_id_p:
-            self.task_meta.task_id = self.task.airflow_task_id
+            self.task.task_id = self.task.airflow_task_id
 
         # STEP 3  - now let update outputs
         self.initialize_outputs()
 
-        self.task_meta.initialize_task_output_id(self._get_outputs_to_sign())
+        self.task.initialize_task_output_id(self._get_outputs_to_sign())
 
     def _get_outputs_to_sign(self):
         outputs_to_sign = self.task_outputs_user
@@ -107,11 +106,7 @@ class TaskRelations(TaskSubCtrl):
 
     def initialize_band(self):
         try:
-            band_context = [
-                self.task._auto_load_save_params(
-                    auto_read=False, normalize_on_change=True
-                )
-            ]
+            band_context = []
             if is_airflow_enabled():
                 from dbnd_airflow.dbnd_task_executor.airflow_operators_catcher import (
                     get_databand_op_catcher_dag,
@@ -119,11 +114,51 @@ class TaskRelations(TaskSubCtrl):
 
                 band_context.append(get_databand_op_catcher_dag())
 
+            original_param_values = []
+            for param_value in self.task.task_params.get_param_values(
+                ParameterFilters.OUTPUTS
+            ):
+                if param_value.name == "task_band" or isinstance(
+                    param_value.parameter, FuncResultParameter
+                ):
+                    continue
+                original_param_values.append((param_value, param_value.value))
+
             with nested(*band_context):
                 band = self.task.band()
                 # this one would be normalized
                 self.task._task_band_result = band
             self.task_band_result = band  # real value
+
+            from dbnd import PipelineTask
+
+            if isinstance(self.task, PipelineTask):
+                # after .band has finished, all user outputs of the .band should be defined
+                for param_value, _ in original_param_values:
+                    # we want to validate only user facing parameters
+                    # they should have assigned values by this moment,
+                    # pipeline task can not have None outputs, after band call
+                    if param_value.parameter.system:
+                        continue
+                    if is_not_defined(param_value.value):
+                        raise friendly_error.task_build.pipeline_task_has_unassigned_outputs(
+                            task=self.task, param=param_value.parameter
+                        )
+
+            # now let's normalize if user has changed outputs
+            for param_value, original_value in original_param_values:
+                if param_value.value is original_value:
+                    continue
+
+                try:
+                    from dbnd._core.utils.task_utils import to_targets
+
+                    normalized_value = to_targets(param_value.value)
+                    param_value.update_param_value(normalized_value)
+                except Exception as ex:
+                    raise friendly_error.task_build.failed_to_assign_param_value_at_band(
+                        ex, param_value.parameter, param_value.value, self.task
+                    )
 
         except Exception as ex:
             logger.error(
@@ -156,7 +191,7 @@ class TaskRelations(TaskSubCtrl):
         # however Primitive parameters are inputs only if they are Target (deferred)
         #           if isinstance(p, _TargetParameter) or isinstance(value, Target)
 
-        for p, value in self.params.get_param_values(input_only=True):
+        for p, value in self.params.get_params_with_value(ParameterFilters.INPUTS):
             if value is None:
                 continue
             value = traverse(
@@ -177,17 +212,14 @@ class TaskRelations(TaskSubCtrl):
 
         if isinstance(self.task, PipelineTask):
             task_output_values = {}
-            for p, value in self.params.get_param_values(
-                output_only=True, user_only=True
+            for p, value in self.params.get_params_with_value(
+                ParameterFilters.USER_OUTPUTS
             ):
-
                 if p.name == "task_band" or isinstance(p, FuncResultParameter):
                     continue
 
-                if is_not_defined(value):
-                    raise friendly_error.task_build.pipeline_task_has_unassigned_outputs(
-                        task=self.task, param=p
-                    )
+                # band outputs are going to be required as inputs!
+                # @pipeline can run only when all of it's "outputs" are ready
                 task_output_values[p.name] = value
 
             _extend_system_section("band", task_output_values)
@@ -209,7 +241,7 @@ class TaskRelations(TaskSubCtrl):
 
         outputs = {"user": {}, "system": {}}
 
-        for p, value in self.params.get_param_values(output_only=True):
+        for p, value in self.params.get_params_with_value(ParameterFilters.OUTPUTS):
             if is_not_defined(value):
                 value = p.build_output(task=task)
                 setattr(self.task, p.name, value)

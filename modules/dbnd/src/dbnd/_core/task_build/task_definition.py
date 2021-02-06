@@ -3,7 +3,7 @@ import logging
 import typing
 
 from collections import OrderedDict
-from typing import Any, Dict, Type
+from typing import Any, Dict, List
 
 import six
 
@@ -26,8 +26,7 @@ from dbnd._core.utils.uid_utils import get_uuid
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task import Task
-    from dbnd._core.task_build.task_metaclass import TaskMetaclass
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +41,73 @@ class TaskDefinition(object):
 
     """
 
-    def __init__(self, task_class, classdict):
+    @classmethod
+    def from_task_cls(cls, task_class, classdict):
+        base_task_definitions = get_base_task_definitions(task_class)
+
+        if task_class._conf__track_source_code:
+            if (
+                hasattr(task_class, "_conf__decorator_spec")
+                and task_class._conf__decorator_spec
+            ):
+                item = task_class._conf__decorator_spec.item
+                task_source_code = _get_task_source_code(item)
+            else:
+                task_source_code = _get_task_source_code(task_class)
+
+            task_module_code = _get_task_module_source_code(task_class)
+            task_source_file = _get_source_file(task_class.__class__)
+        else:
+            task_source_code = None
+            task_module_code = ""
+            task_source_file = None
+
+        return TaskDefinition(
+            classdict=classdict,
+            base_task_definitions=base_task_definitions,
+            task_passport=TaskPassport.from_task_cls(task_class),
+            defaults=classdict.get("defaults", None),
+            func_spec=task_class._conf__decorator_spec,
+            task_source_code=task_source_code,
+            task_module_code=task_module_code,
+            task_source_file=task_source_file,
+        )
+
+    @classmethod
+    def from_decorated_func(cls, func_spec, task_passport, defaults):
+        base_task_definitions = get_base_task_definitions(cls)
+
+        task_source_code = _get_task_source_code(func_spec.item)
+        task_module_code = _get_task_module_source_code(func_spec.item)
+        task_source_file = _get_source_file(func_spec.item)
+
+        return TaskDefinition(
+            task_passport=task_passport,
+            defaults=defaults,
+            func_spec=func_spec,
+            task_source_code=task_source_code,
+            task_module_code=task_module_code,
+            task_source_file=task_source_file,
+        )
+
+    def __init__(
+        self,
+        task_passport,
+        classdict=None,
+        base_task_definitions=None,
+        defaults=None,
+        func_spec=None,
+        task_source_code=None,
+        task_module_code="",
+        task_source_file=None,
+    ):
         super(TaskDefinition, self).__init__()
 
         self.task_definition_uid = get_uuid()
         self.hidden = False
 
-        self.task_class = task_class  # type: Type[Task]
-
-        self.task_passport = TaskPassport.from_task_cls(task_class)
+        self.base_task_definitions = base_task_definitions
+        self.task_passport = task_passport
 
         # TODO: maybe use properties or other way to delegate those...
         self.full_task_family = self.task_passport.full_task_family
@@ -59,59 +116,52 @@ class TaskDefinition(object):
         self.task_config_section = self.task_passport.task_config_section
 
         # all the attributes that points to_Parameter
-        self.task_params = dict()  # type: Dict[str, ParameterDefinition]
+        self.task_param_defs = dict()  # type: Dict[str, ParameterDefinition]
 
         # the defaults attribute
         self.defaults = dict()  # type: Dict[ParameterDefinition, Any]
 
-        base_task_definitions = self._get_base_definitions()
-        self.task_params = self._calculate_task_class_values(
-            classdict, base_task_definitions
-        )
+        self.base_task_definitions = (
+            base_task_definitions or []
+        )  # type: List[ TaskDefinition]
+        self.task_param_defs = self._calculate_task_class_values(classdict, func_spec)
         # if we have output params in function arguments, like   f(some_p=parameter.output)
         # the new function can not return the result of return
-        self.single_result_output = self._is_result_single_output(self.task_params)
+        self.single_result_output = self._is_result_single_output(self.task_param_defs)
 
         self.param_defaults = {
             p.name: p.default
-            for p in self.task_params.values()
+            for p in self.task_param_defs.values()
             if is_defined(p.default)
         }
 
         # TODO: consider joining with task_config
         # TODO: calculate defaults value as _ConfigStore and merge using standard mechanism
-        self.defaults = self._calculate_task_defaults(classdict, base_task_definitions)
+        self.defaults = self._calculate_task_defaults(defaults)
         self.task_defaults_config_store = parse_and_build_config_store(
             source=self.task_passport.format_source_name("task.defaults"),
             config_values=self.defaults,
             priority=ConfigValuePriority.DEFAULT,
         )
-        # now, if we have overloads in code ( calculated in task_definition):
-        # class T(BaseT):
-        #     some_base_t_property = new_value
-        if self.task_class._conf__track_source_code:
-            self.task_source_code = _get_task_source_code(self.task_class)
-            self.task_module_code = _get_task_module_source_code(self.task_class)
-            self.task_source_file = _get_source_file(self.task_class)
-        else:
-            self.task_source_code = None
-            self.task_module_code = ""
-            self.task_source_file = None
 
-    def _calculate_task_class_values(self, classdict, base_task_definitions):
+        self.task_source_code = task_source_code
+        self.task_module_code = task_module_code
+        self.task_source_file = task_source_file
+
+    def _calculate_task_class_values(self, classdict, decorator_spec):
         # reflect inherited attributes
         params = dict()
         # params will contain definition of param, even it's was overrided by the parent task
-        for base_schema in base_task_definitions:  # type: TaskDefinition
-            params = combine_mappings(params, base_schema.task_params)
+        for base_schema in self.base_task_definitions:
+            params = combine_mappings(params, base_schema.task_param_defs)
 
         # let update params with new class attributes
         self._update_params_from_attributes(classdict, params)
 
         # this is the place we add parameters from function definition
-        if self.task_class._conf__decorator_spec is not None:
+        if decorator_spec is not None:
             func_params_builder = FuncParamsBuilder(
-                base_params=params, decorator_spec=self.task_class._conf__decorator_spec
+                base_params=params, decorator_spec=decorator_spec
             )
 
             func_params_builder.build_func_params()
@@ -123,38 +173,25 @@ class TaskDefinition(object):
 
         # add parameters config
         params = {
-            name: param.evolve_with_owner(task_cls=self.task_class, name=name)
+            name: param.evolve_with_owner(task_definition=self, name=name)
             for name, param in six.iteritems(params)
         }
 
         params = _ordered_params(params)
         return params
 
-    def _get_base_definitions(self):
-        task_definitions = []
-
-        for c in reversed(self.task_class.__bases__):  # type: TaskMetaclass
-            if not hasattr(c, "task_definition"):
-                logger.debug(
-                    "you should inherit from Task objects only: %s -> %s ",
-                    self.task_class,
-                    c,
-                )
-                continue
-            task_definitions.append(c.task_definition)
-        return task_definitions
-
-    def _calculate_task_defaults(self, classdict, base_task_definitions):
+    def _calculate_task_defaults(self, defaults):
         # type: (...)->  Dict[str, Any]
         base_defaults = dict()
-        for base_schema in base_task_definitions:  # type: TaskDefinition
+        for base_schema in self.base_task_definitions:
             base_defaults = combine_mappings(base_defaults, base_schema.defaults)
 
-        defaults = combine_mappings(base_defaults, classdict.get("defaults", None))
-        return defaults
+        return combine_mappings(base_defaults, defaults)
 
     def _update_params_from_attributes(self, classdict, params):
         class_values = dict()
+        if not classdict:
+            return
 
         for a_name, a_obj in iteritems(classdict):
             context = "%s.%s" % (self.task_family, a_name)
@@ -169,6 +206,9 @@ class TaskDefinition(object):
                 logger.error("Failed to process %s" % context)
                 raise
 
+        # now, if we have overloads in code ( calculated in task_definition):
+        # class T(BaseT):
+        #     some_base_t_property = new_value
         for p_name, p_val in iteritems(class_values):
             if p_name not in params:
                 continue
@@ -183,7 +223,7 @@ class TaskDefinition(object):
         if not result:
             return False
         names = result.names if isinstance(result, FuncResultParameter) else []
-        for p in self.task_params.values():
+        for p in self.task_param_defs.values():
             if p.system or p.kind != _ParameterKind.task_output:
                 continue
             if p.name in [RESULT_PARAM, "task_band"]:
@@ -197,35 +237,49 @@ class TaskDefinition(object):
         return "TaskDefinition(%s)" % (self.full_task_family)
 
 
-def _get_task_source_code(task):
+def get_base_task_definitions(task_class):
+    """
+    only for task with inheritance
+    :param task_class:
+    :return:
+    """
+    task_definitions = []
+
+    for c in reversed(task_class.__bases__):  # type: TaskMetaclass
+        if not hasattr(c, "task_definition"):
+            logger.debug(
+                "you should inherit from Task objects only: %s -> %s ", task_class, c,
+            )
+            continue
+        task_definitions.append(c.task_definition)
+    return task_definitions
+
+
+def _get_task_source_code(item):
     try:
         import inspect
 
-        if hasattr(task, "_conf__decorator_spec") and task._conf__decorator_spec:
-            item = task._conf__decorator_spec.item
-            return inspect.getsource(item)
-        else:
-            return inspect.getsource(task)
+        return inspect.getsource(item)
     except (TypeError, OSError):
-        logger.debug("Failed to task source for %s", task)
+        logger.debug("Failed to task source for %s", item)
     except Exception:
         logger.debug("Error while getting task source")
-    return "Error while getting task source"
+    return "Error while getting source code"
 
 
-def _get_task_module_source_code(task):
+def _get_task_module_source_code(item):
     try:
-        return inspect.getsource(inspect.getmodule(task))
+        return inspect.getsource(inspect.getmodule(item))
     except TypeError:
-        logger.debug("Failed to module source for %s", task)
+        logger.debug("Failed to module source for %s", item)
     except Exception:
-        logger.exception("Error while getting task module source")
-    return "Error while getting task source"
+        logger.exception("Error while getting module source")
+    return "Error while getting source code"
 
 
-def _get_source_file(task):
+def _get_source_file(item):
     try:
-        return inspect.getfile(task.__class__).replace(".pyc", ".py")
+        return inspect.getfile(item).replace(".pyc", ".py")
     except Exception:
-        logger.warning("Failed find a path of source code for task {}".format(task))
+        logger.warning("Failed find a path of source code for task {}".format(item))
     return None

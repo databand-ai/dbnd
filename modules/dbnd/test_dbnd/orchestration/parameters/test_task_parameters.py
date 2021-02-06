@@ -69,7 +69,7 @@ class TestTaskParameters(object):
 
     def test_parameter_registration(self):
         # we have double time of params because of config
-        assert len(Foo.task_definition.task_params) == (
+        assert len(Foo.task_definition.task_param_defs) == (
             Foo._task_params_in_foo + TASK_PARAMS_COUNT
         )
 

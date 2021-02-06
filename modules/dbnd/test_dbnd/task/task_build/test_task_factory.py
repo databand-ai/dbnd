@@ -2,9 +2,11 @@ import logging
 
 import pytest
 
-from dbnd import Task, config, new_dbnd_context
+from pytest import fixture
+
+from dbnd import config, new_dbnd_context
 from dbnd._core.constants import ParamValidation
-from dbnd._core.errors import DatabandBuildError, DatabandError, UnknownParameterError
+from dbnd._core.errors import DatabandError, UnknownParameterError
 from dbnd._core.settings import CoreConfig
 from dbnd_test_scenarios.test_common.task.factories import (
     CaseSensitiveParameterTask,
@@ -16,7 +18,20 @@ from dbnd_test_scenarios.test_common.task.factories import (
 logger = logging.getLogger(__name__)
 
 
-class TestTaskMetaBuild(object):
+@fixture
+def databand_test_context():
+    # override,
+    # so we don't have all these logic running on setup phase
+    pass
+
+
+class TestTaskFactory(object):
+    def test_simple_build(self):
+        with new_dbnd_context():
+            task = TTask(t_param="test_driver")
+            assert task.t_param == "test_driver"
+            assert task.t_output
+
     def test_verbose_build(self):
         with new_dbnd_context(conf={"task_build": {"verbose": "True"}}):
             task = TTask(override={TTask.t_param: "test_driver"})
@@ -27,18 +42,18 @@ class TestTaskMetaBuild(object):
             conf={"task_build": {"sign_with_full_qualified_name": "True"}}
         ):
             task = TTask()
-            assert str(TTask.__module__) in task.task_meta.task_signature_source
+            assert str(TTask.__module__) in task.task_signature_source
 
     def test_task_call_source_class(self):
         task = TTask()
-        logger.info(task.task_meta.task_call_source)
-        assert task.task_meta.task_call_source
-        assert task.task_meta.task_call_source[0].filename in __file__
+        logger.info(task.task_call_source)
+        assert task.task_call_source
+        assert task.task_call_source[0].filename in __file__
 
     def test_task_call_source_func(self):
         task = ttask_simple.task()
-        logger.info("SOURCE:%s", task.task_meta.task_call_source)
-        assert task.task_meta.task_call_source[0].filename in __file__
+        logger.info("SOURCE:%s", task.task_call_source)
+        assert task.task_call_source[0].filename in __file__
 
     def test_case_insensitive_parameter_building(self):
         # First run with correct case
@@ -50,8 +65,8 @@ class TestTaskMetaBuild(object):
                 }
             }
         ):
-            dbnd_run = CaseSensitiveParameterTask().dbnd_run()
-        assert dbnd_run.task.TParam == 2
+            task = CaseSensitiveParameterTask()
+            assert task.TParam == 2
         # Second run with incorrect lower case
         with config(
             {
@@ -61,8 +76,8 @@ class TestTaskMetaBuild(object):
                 }
             }
         ):
-            dbnd_run = CaseSensitiveParameterTask().dbnd_run()
-        assert dbnd_run.task.TParam == 3
+            task = CaseSensitiveParameterTask()
+            assert task.TParam == 3
         # Third run with incorrect upper case
         with config(
             {
@@ -72,8 +87,8 @@ class TestTaskMetaBuild(object):
                 }
             }
         ):
-            dbnd_run = CaseSensitiveParameterTask().dbnd_run()
-        assert dbnd_run.task.TParam == 4
+            task = CaseSensitiveParameterTask()
+            assert task.TParam == 4
 
     def test_wrong_config_validation(self):
         # raise exception

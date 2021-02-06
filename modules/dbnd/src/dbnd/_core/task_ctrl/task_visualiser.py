@@ -3,7 +3,6 @@ import typing
 
 import six
 
-from dbnd import get_dbnd_project_config
 from dbnd._core.constants import SystemTaskName, TaskEssence, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import get_help_msg, show_exc_info
@@ -265,7 +264,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
         self.banner.column("TIME", self.banner.f_simple_dict(time_fields))
 
     def _task_create_stack(self):
-        task_call_source = task_call_source_to_str(self.task.task_meta.task_call_source)
+        task_call_source = task_call_source_to_str(self.task.task_call_source)
         if task_call_source and not self.is_driver_or_submitter:
             self.banner.column("CREATED BY", value=task_call_source)
 
@@ -326,10 +325,9 @@ class _TaskBannerBuilder(TaskSubCtrl):
         )
         self.banner.write("\n")
 
-        self.banner.column("SIGNATURE SOURCE", self.task_meta.task_signature_source)
+        self.banner.column("SIGNATURE SOURCE", self.task.task_signature_source)
         self.banner.column(
-            "TASK OUTPUTS SIGNATURE SOURCE",
-            self.task_meta.task_outputs_signature_source,
+            "TASK OUTPUTS SIGNATURE SOURCE", self.task.task_outputs_signature_source,
         )
 
     def _add_task_band_info(self):
@@ -384,7 +382,8 @@ class _ParamTableDirector(object):
         params_data = []
         params_warnings = []
         # iterating over the params and building the data for the table
-        for param_def, param_value, param_meta in self.task._params:
+        for param_value in self.task._params:
+            param_def = param_value.parameter
             # filter switches
             if not all_params:
                 if param_def.name in exclude:
@@ -393,12 +392,12 @@ class _ParamTableDirector(object):
                     continue
 
             # building a single row
-            param_row = self.build_record(param_def, param_meta, param_value)
+            param_row = self.build_record(param_def, param_value, param_value.value)
             params_data.append(param_row)
 
             # extract param warnings
-            if param_meta and param_meta.warnings:
-                params_warnings.extend(param_meta.warnings)
+            if param_value and param_value.warnings:
+                params_warnings.extend(param_value.warnings)
 
         if params_warnings:
             self.banner.column("BUILD WARNINGS:", "")

@@ -12,6 +12,7 @@ from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.current import try_get_databand_context
 from dbnd._core.decorator.schemed_result import ResultProxyTarget
+from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.object_utils import safe_isinstance
 from dbnd_airflow.airflow_utils import (
@@ -125,12 +126,12 @@ class DagFuncOperatorCtrl(object):
         # we will want to not cache "pipelines", as we need to run ".band()" per DAG
         setattr(task, "_dbnd_no_cache", True)
 
-        user_inputs_only = task._params.get_param_values(
-            user_only=True, input_only=True
+        user_inputs_only = task._params.get_params_with_value(
+            param_filter=ParameterFilters.USER_INPUTS
         )
-        # take only outputs that are coming from ctror ( based on ParameterValue in task.task_meta
+        # take only outputs that are coming from ctror
         user_ctor_outputs_only = []
-        for p_val in task.task_meta.task_params.values():
+        for p_val in task.task_params.get_param_values():
             if (
                 p_val.parameter.is_output()
                 and p_val.source

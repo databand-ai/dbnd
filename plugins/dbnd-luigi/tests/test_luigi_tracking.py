@@ -8,9 +8,11 @@ import pytest
 from luigi import LuigiStatusCode
 
 from dbnd import dbnd_config
+from dbnd._core.errors import DatabandError
 from dbnd._core.parameter import ParameterValue
 from dbnd._core.parameter.parameter_definition import _ParameterKind
 from dbnd._core.settings import CoreConfig
+from dbnd._core.task.base_task import _BaseTask
 from dbnd_luigi.luigi_task import wrap_luigi_task
 from dbnd_luigi.luigi_tracking import (
     dbnd_luigi_build,
@@ -21,9 +23,10 @@ from tests.conftest import delete_task_output
 from tests.luigi_examples.top_artists import LuigiTestException
 
 
-def _find_param(task, param_name):  # type: (...)->ParameterValue
-    found = task.task_meta.task_params.get(param_name)
-    assert found, "%s parameter not found at %s" % (param_name, task)
+def _find_param(task, param_name):  # type: (_BaseTask,str)->ParameterValue
+    found = task.task_params.get_param_value(param_name)
+    if not found:
+        raise DatabandError("%s parameter not found at %s" % (param_name, task))
     return found
 
 
@@ -135,12 +138,9 @@ class TestLuigiWiring(object):
     def test_luigi_sanity_input_target_tracking(self, top10_artists):
         dbnd_task = wrap_luigi_task(top10_artists)
         assert dbnd_task
-        dbnd_input_target = [
-            x
-            for x in dbnd_task.task_meta.task_params.values()
-            if "artist_streams" in x.name
-        ][0].value
-        assert dbnd_input_target
+        dbnd_input_target_p = dbnd_task.task_params.get_param_value("artist_streams")
+        assert dbnd_input_target_p
+        dbnd_input_target = dbnd_input_target_p.value
         luigi_target = top10_artists.input()
         assert luigi_target
         assert luigi_target.path in dbnd_input_target.path

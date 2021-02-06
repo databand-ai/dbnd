@@ -11,6 +11,7 @@ from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.task_cls_builder import _task_decorator
 from dbnd._core.errors import DatabandConfigError, friendly_error
+from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.settings.engine import EngineConfig
 from dbnd._core.task_ctrl.task_repr import _parameter_value_to_argparse_str
 from dbnd.tasks import Config, Task
@@ -115,7 +116,7 @@ class _ApacheBeamInlineTask(_BeamTask, _DecoratedTask):
         # workflow rely on global context (e.g., a module imported at module level).
         from apache_beam.options.pipeline_options import PipelineOptions
 
-        user_params = self._params.get_param_values(user_only=True)
+        user_params = self._params.get_params_with_value(ParameterFilters.USER)
 
         class TaskOptions(PipelineOptions):
             @classmethod

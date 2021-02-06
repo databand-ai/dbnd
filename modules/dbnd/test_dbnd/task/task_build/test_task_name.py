@@ -17,7 +17,8 @@ class TNamePipe(PipelineTask):
     second = output
 
     def band(self):
-        self.first = TTNFirstTask(task_name="First_%s" % self.child).t_output
+        f = TTNFirstTask(task_name="First_%s" % self.child).t_output
+        self.first = f
         self.second = TTNFirstTask(task_name="Second_%s" % self.child).t_output
 
 

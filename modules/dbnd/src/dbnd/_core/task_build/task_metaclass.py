@@ -4,25 +4,15 @@ import typing
 
 import six
 
-from dbnd._core.configuration.config_store import _ConfigStore
-from dbnd._core.configuration.config_value import ConfigValue
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import TaskEssence
-from dbnd._core.current import get_databand_context
 from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     build_task_at_airflow_dag_context,
     is_in_airflow_dag_build_context,
 )
-from dbnd._core.task_build.task_context import (
-    TaskContextPhase,
-    task_context,
-    try_get_current_task,
-)
+from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
-from dbnd._core.task_build.task_meta_factory import (
-    TaskMetaFactory,
-    TrackedTaskMetaFactory,
-)
+from dbnd._core.task_build.task_meta_factory import TaskFactory
 from dbnd._core.task_build.task_registry import get_task_registry
 
 
@@ -50,14 +40,19 @@ class TaskMetaclass(abc.ABCMeta):
             mcs, classname, bases, classdict
         )  # type: typing.Type[_BaseTask]
 
-        # we are starting from "not clean" classdict -> it's deserialization
+        # we are starting from "not clean" classdict ->
+        # A. it's deserialization
+        # B. it was calculated before
         if classdict.get("task_definition") is not None:
             return cls
 
-        td = cls.task_definition = TaskDefinition(cls, classdict)
+        cls.task_definition = TaskDefinition.from_task_cls(
+            task_class=cls, classdict=classdict
+        )
 
-        # now we will assign all params
-        for k, v in six.iteritems(td.task_params):
+        # now we will assign all calculated parameters
+        # so instead of ParameterFactory, we will have ParameterDefinition
+        for k, v in six.iteritems(cls.task_definition.task_param_defs):
             setattr(cls, k, v)
 
         # every time we see new implementation, we want it to have an priority over old implementation
@@ -67,8 +62,8 @@ class TaskMetaclass(abc.ABCMeta):
 
         return cls
 
-    def _build_task_obj(cls, task_meta):
-        return super(TaskMetaclass, cls).__call__(task_meta=task_meta)
+    def _build_task_obj(cls, **kwargs):
+        return super(TaskMetaclass, cls).__call__(**kwargs)
 
     def __call__(cls, *args, **kwargs):
         """
@@ -89,9 +84,6 @@ class TaskMetaclass(abc.ABCMeta):
                 task_cls=cls, call_args=args, call_kwargs=kwargs
             )
 
-        return cls._create_task(args, kwargs)
-
-    def _create_task(cls, args, kwargs):
         task_definition = cls.task_definition
         # we need to have context initialized before we start to run all logic in config() scope
 
@@ -100,40 +92,21 @@ class TaskMetaclass(abc.ABCMeta):
             config_values={},
             source=task_definition.task_passport.format_source_name("runtime"),
         ) as task_config:
-
-            tracking_mode = TaskEssence.TRACKING.is_included(cls)
-
-            # create task meta first
-            task_meta_factory = (
-                TrackedTaskMetaFactory if tracking_mode else TaskMetaFactory
+            factory = TaskFactory(
+                config=task_config,
+                task_cls=cls,
+                task_definition=cls.task_definition,
+                task_args=args,
+                task_kwargs=kwargs,
             )
-            factory = task_meta_factory(
-                config=task_config, task_cls=cls, task_args=args, task_kwargs=kwargs
-            )
-            task_meta = factory.create_dbnd_task_meta()
+            task_object = factory.build_task_object(cls)
 
-            # If a Task has already been instantiated with the same parameters,
-            # the previous instance is returned to reduce number of object instances.
-            tic = get_databand_context().task_instance_cache
-            task = tic.get_task_obj_by_id(task_meta.obj_key.id)
-            if not task or tracking_mode or hasattr(task, "_dbnd_no_cache"):
-                task = cls._build_task_obj(task_meta)
-                tic.register_task_obj_instance(task)
+        parent_task = try_get_current_task()
+        if (
+            parent_task
+            and hasattr(task_object, "task_id")
+            and (task_object.task_essence != TaskEssence.CONFIG)
+        ):
+            parent_task.descendants.add_child(task_object.task_id)
 
-                # now the task is created - all nested constructors will see it as parent
-                with task_context(task, TaskContextPhase.BUILD):
-                    task._initialize()
-                    task._validate()
-                    task.task_meta.config_layer = config.config_layer
-
-                tic.register_task_instance(task)
-
-            parent_task = try_get_current_task()
-            if (
-                parent_task
-                and hasattr(task, "task_id")
-                and (task.task_essence != TaskEssence.CONFIG)
-            ):
-                parent_task.descendants.add_child(task.task_id)
-
-            return task
+        return task_object

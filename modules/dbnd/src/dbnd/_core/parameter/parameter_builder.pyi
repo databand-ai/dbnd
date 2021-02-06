@@ -7,9 +7,9 @@ from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.constants import OutputMode
 from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
-    ParameterScope,
     _ParameterKind,
 )
+from dbnd import ParameterScope
 from dbnd._core.parameter.validators import Validator
 from targets import DataTarget, Target
 from targets.target_config import FileFormat, TargetConfig

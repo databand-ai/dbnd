@@ -67,7 +67,7 @@ class TrackingStoreThroughChannel(TrackingStore):
         return self._m(
             self.channel.set_task_reused,
             task_run_uid=task_run.task_run_uid,
-            task_outputs_signature=task_run.task.task_meta.task_outputs_signature,
+            task_outputs_signature=task_run.task.task_outputs_signature,
         )
 
     def set_task_run_state(self, task_run, state, error=None, timestamp=None):

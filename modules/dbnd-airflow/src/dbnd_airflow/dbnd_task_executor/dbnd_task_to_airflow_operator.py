@@ -15,7 +15,7 @@ def build_dbnd_operator_from_taskrun(task_run):
 
     task = task_run.task
     params = convert_to_safe_types(
-        {p.name: value for p, value in task._params.get_param_values()}
+        {p.name: value for p, value in task._params.get_params_with_value()}
     )
     op_kwargs = task.task_airflow_op_kwargs or {}
 
