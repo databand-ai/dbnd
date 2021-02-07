@@ -63,6 +63,7 @@ class TaskMetaclass(abc.ABCMeta):
         return cls
 
     def _build_task_obj(cls, **kwargs):
+        # called from TaskFactory to create object
         return super(TaskMetaclass, cls).__call__(**kwargs)
 
     def __call__(cls, *args, **kwargs):

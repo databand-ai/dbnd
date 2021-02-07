@@ -1,18 +1,17 @@
-import itertools
+import functools
 import logging
 
 from typing import Type
 
 import luigi
+import six
 
-from dbnd import Task, parameter
-from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
-from dbnd._core.errors import TaskClassNotFoundException
+from dbnd._core.parameter.parameter_value import Parameters, ParameterValue
 from dbnd._core.task.tracking_task import TrackingTask
-from dbnd._core.task_build.task_metaclass import TaskMetaclass
-from dbnd._core.task_build.task_registry import get_task_registry
+from dbnd._core.task_build.task_definition import TaskDefinition
+from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd_luigi.luigi_params import extract_luigi_params
-from dbnd_luigi.luigi_target import extract_targets
 
 
 logger = logging.getLogger(__name__)
@@ -34,78 +33,64 @@ def wrap_luigi_task(luigi_task):
     # type: ( luigi.Task)-> _LuigiTask
     """
     Wraps the original luigi task with the correct DBND Task
-    """
-    dbnd_task_cls = _get_task_cls(luigi_task)
-
-    return dbnd_task_cls(
-        task_name=luigi_task.get_task_family(), **luigi_task.param_kwargs
-    )
-
-
-def _get_task_cls(luigi_task):
-    # type: (luigi.Task) -> Type[_LuigiTask]
-    """
     Returns the right dbnd-luigi class wrapper base on existing relevant tracker or by creating new one
     """
     task_family = luigi_task.get_task_family()
 
-    registry = get_task_registry()
-    try:
-        dbnd_task_cls = registry.get_task_cls(str(task_family))
-    except TaskClassNotFoundException:
-        dbnd_task_cls = _build_new_task_cls(luigi_task)
-        logger.info("Creating new class %s", task_family)
-
-    return dbnd_task_cls
-
-
-def _build_new_task_cls(luigi_task):
-    # type: (luigi.Task) -> Type[_LuigiTask]
-    task_family = luigi_task.get_task_family()
-    _classdict = _build_luigi_classdict(luigi_task)
-    dbnd_task_cls = TaskMetaclass(str(task_family), (_LuigiTask,), _classdict)
-    return dbnd_task_cls
-
-
-def _build_luigi_classdict(luigi_task):
-    """
-    build a classdict as needed in the creation of TaskMetaclass
-    """
-    luigi_task_cls = luigi_task.__class__
-    task_family = luigi_task.get_task_family()
-
-    attributes = dict(
-        _conf__task_family=task_family,
-        _conf__decorator_spec=build_task_decorator_spec(
-            class_or_func=luigi_task_cls,
-            decorator_kwargs={},
-            default_result=parameter.output.pickle[object],
-        ),
-        __doc__=luigi_task_cls.__doc__,
-        __module__=luigi_task_cls.__module__,
+    dbnd_tracking_task_definition = getattr(
+        luigi_task, "_dbnd_tracking_task_definition", None
     )
-    attributes.update(extract_luigi_params(luigi_task))
-    attributes.update(_extract_targets_dedup(luigi_task, attributes))
-    return attributes
-
-
-def _extract_targets_dedup(luigi_task, attributes):
-    known_attribute = set(attributes.keys())
-    for name, target in extract_targets(luigi_task):
-        param_name = _get_available_name(
-            name, lambda suggested: suggested not in known_attribute
+    if not dbnd_tracking_task_definition:
+        logger.info("Creating new class %s", task_family)
+        dbnd_tracking_task_definition = _build_luigi_task_definition(
+            luigi_task.__class__
         )
-        known_attribute.add(param_name)
-        yield param_name, target
+        setattr(
+            luigi_task, "_dbnd_tracking_task_definition", dbnd_tracking_task_definition
+        )
+
+    param_values = []
+    luigi_param_value_builder = functools.partial(
+        ParameterValue, source="luigi_param", source_value=None,
+    )
+    for name, param_definition in six.iteritems(
+        dbnd_tracking_task_definition.task_param_defs
+    ):
+        pv = luigi_param_value_builder(
+            parameter=param_definition,
+            value=luigi_task.param_kwargs.get(param_definition.name),
+        )
+        param_values.append(pv)
+
+    task_params = Parameters(source=luigi_task.task_id, param_values=param_values)
+    dbnd_luigi_task = _LuigiTask(
+        task_name=luigi_task.task_id,
+        task_definition=dbnd_tracking_task_definition,
+        task_params=task_params,
+    )
+    return dbnd_luigi_task
 
 
-def _get_available_name(original, cond):
+def _build_luigi_task_definition(luigi_task_cls):
+    # type: (Type[luigi.Task]) -> Type[_LuigiTask]
     """
-    Iterate over possibles names for original string, adding a different number as suffix at each iteration.
-    The new name is available by checking if it pass the condition.
-    """
-    for c in itertools.chain([""], itertools.count()):
-        suffix = str(c)
-        suggested = original + suffix
-        if cond(suggested):
-            return suggested
+     build a classdict as needed in the creation of TaskMetaclass
+     """
+    task_family = luigi_task_cls.get_task_family()
+    task_passport = TaskPassport.build_task_passport(
+        task_family=task_family,
+        task_namespace=luigi_task_cls.get_task_namespace(),
+        cls_name=luigi_task_cls.__name__,
+        module_name=luigi_task_cls.__module__,
+    )
+    task_source = TaskSourceCode.from_callable(luigi_task_cls)
+
+    params_defs = extract_luigi_params(luigi_task_cls)
+    td = TaskDefinition(
+        task_passport=task_passport, source_code=task_source, classdict=params_defs
+    )
+
+    # we can't support outputs/inputs - they are dynamic per task
+    # params_defs.update(_extract_targets_dedup(luigi_task_cls, attributes))
+
+    return td

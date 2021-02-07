@@ -1,6 +1,6 @@
 import logging
 
-from typing import Dict
+from typing import Dict, Type
 
 import luigi
 
@@ -42,12 +42,12 @@ def _build_dbnd_parameter(luigi_param):
     return matching_dbnd_parameter
 
 
-def extract_luigi_params(luigi_task):
-    # type: ( luigi.Task)-> Dict[str,  parameter]
+def extract_luigi_params(luigi_task_cls):
+    # type: ( Type[luigi.Task])-> Dict[str,  parameter]
     """
     return the luigi params wrapped as dbnd params
     """
-    luigi_params = luigi_task.get_params()
+    luigi_params = luigi_task_cls.get_params()
     return {
         param_name: _build_dbnd_parameter(param_obj)
         for param_name, param_obj in luigi_params

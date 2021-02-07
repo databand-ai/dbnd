@@ -13,12 +13,13 @@ from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
-from dbnd._core.errors.errors_utils import UserCodeDetector
+from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import CoreConfig
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
@@ -212,29 +213,21 @@ def _set_process_exit_handler(handler):
 
 def _build_inline_root_task(root_task_name):
     # create "root task" with default name as current process executable file name
+
+    task_definition = TaskDefinition(
+        task_passport=TaskPassport.from_module(
+            TrackingTask.__module__
+        ),  # we need to fix that
+        source_code=TaskSourceCode.from_callstack(),
+    )
+
     if not root_task_name:
         root_task_name = sys.argv[0].split(os.path.sep)[-1]
 
-    module_code = None
-    try:
-        user_frame = UserCodeDetector.build_code_detector().find_user_side_frame(
-            user_side_only=True
-        )
-        if user_frame:
-            module_code = open(user_frame.filename).read()
-    except Exception as ex:
-        logger.info("Failed to find source code: %s", str(ex))
-
-    task_definition = TaskDefinition(
-        task_passport=TaskPassport.from_task_cls(TrackingTask),
-        task_module_code=module_code,
-        task_source_code=module_code,
-    )
     root_task = TrackingTask(
         task_name=root_task_name,
         task_definition=task_definition,
-        task_args=tuple(),
-        task_kwargs=dict(),
+        task_params=Parameters(source="inline_root_task", param_values=[]),
     )
 
     root_task.ctrl.task_repr.task_command_line = list2cmdline(sys.argv)

@@ -1,6 +1,6 @@
 import typing
 
-from typing import Dict, Type
+from typing import Type
 
 import attr
 
@@ -28,6 +28,11 @@ def format_source_suffix(name):
 
 @attr.s
 class TaskPassport(object):
+    """
+    Task passport represents "name" identifiers for the Task/func/callable
+    wrapped for Orchestration/Tracking by dbnd
+    """
+
     full_task_family = attr.ib()
     full_task_family_short = attr.ib()
     task_family = attr.ib()
@@ -40,27 +45,40 @@ class TaskPassport(object):
             cls_name = task_class._conf__decorator_spec.name
         else:
             cls_name = task_class.__name__
+        task_namespace = task_class.task_namespace
+        module_name = task_class.__module__
 
-        return cls._build(
+        return cls.build_task_passport(
             cls_name=cls_name,
-            module_name=task_class.__module__,
-            task_namespace=task_class.task_namespace,
-            conf__task_family=task_class._conf__task_family,
+            module_name=module_name,
+            task_namespace=task_namespace,
+            task_family=task_class._conf__task_family,
         )
 
     @classmethod
-    def from_func_spec(cls, func_spec, decorator_kwargs):
-        # type: (_TaskDecoratorSpec, Dict) -> TaskPassport
-        return cls._build(
+    def from_func_spec(cls, func_spec, task_namespace=NOTHING, task_family=None):
+        # type: (_TaskDecoratorSpec, str, str) -> TaskPassport
+        return cls.build_task_passport(
             cls_name=func_spec.name,
             module_name=func_spec.item.__module__,
-            task_namespace=decorator_kwargs.get("task_namespace", NOTHING),
-            conf__task_family=decorator_kwargs.get("_conf__task_family"),
+            task_namespace=task_namespace,
+            task_family=task_family,
         )
 
     @classmethod
-    def _build(
-        cls, cls_name, module_name, task_namespace, conf__task_family,
+    def from_module(cls, module):
+        full_task_family_short = "%s" % (_short_name(module))
+
+        return TaskPassport(
+            full_task_family=module,
+            full_task_family_short=full_task_family_short,
+            task_family=module,
+            task_config_section=None,
+        )
+
+    @classmethod
+    def build_task_passport(
+        cls, cls_name, module_name, task_namespace=NOTHING, task_family=None,
     ):
         full_task_family = "%s.%s" % (module_name, cls_name)
         full_task_family_short = "%s.%s" % (_short_name(module_name), cls_name)
@@ -72,8 +90,7 @@ class TaskPassport(object):
             else:
                 task_namespace = namespace_at_class_time
 
-        if conf__task_family:
-            task_family = conf__task_family
+        if task_family:
             task_config_section = task_family
         elif task_namespace:
             task_family = "{}.{}".format(task_namespace, cls_name)

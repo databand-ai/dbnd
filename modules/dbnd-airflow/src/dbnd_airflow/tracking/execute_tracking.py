@@ -6,10 +6,10 @@ from typing import Optional
 
 from dbnd import log_metric, log_metrics
 from dbnd._core.constants import TaskRunState
-from dbnd._core.decorator.task_cls_builder import _log_result
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import extract_airflow_context
+from dbnd._core.tracking.managers.callable_tracking import _log_result
 from dbnd._core.tracking.script_tracking_manager import (
     dbnd_tracking_start,
     dbnd_tracking_stop,

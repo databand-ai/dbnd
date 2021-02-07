@@ -209,15 +209,16 @@ def task_to_task_def(ctx, task):
         value for key, value in sorted(td.task_param_defs.items())
     ]
     task_family = task.task_family
+    source_code = td.source_code
     task_definition = TaskDefinitionInfo(
         task_definition_uid=td.task_definition_uid,
         class_version=task.task_class_version,
         family=task_family,
-        module_source=td.task_module_code,
-        module_source_hash=source_md5(td.task_module_code),
+        module_source=source_code.task_module_code,
+        module_source_hash=source_md5(source_code.task_module_code),
         name=task_family,
-        source=td.task_source_code,
-        source_hash=source_md5(td.task_source_code),
+        source=source_code.task_source_code,
+        source_hash=source_md5(source_code.task_source_code),
         type=task.task_type,
         task_param_definitions=task_param_definitions,
     )

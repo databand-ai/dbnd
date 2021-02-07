@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 
@@ -58,3 +59,25 @@ def _build_filesystem_target(luigi_target, task_id, is_output):
     if is_output:
         target_param = target_param.output()
     return target_param
+
+
+def _extract_targets_dedup(luigi_task, attributes):
+    known_attribute = set(attributes.keys())
+    for name, target in extract_targets(luigi_task):
+        param_name = _get_available_name(
+            name, lambda suggested: suggested not in known_attribute
+        )
+        known_attribute.add(param_name)
+        yield param_name, target
+
+
+def _get_available_name(original, cond):
+    """
+    Iterate over possibles names for original string, adding a different number as suffix at each iteration.
+    The new name is available by checking if it pass the condition.
+    """
+    for c in itertools.chain([""], itertools.count()):
+        suffix = str(c)
+        suggested = original + suffix
+        if cond(suggested):
+            return suggested

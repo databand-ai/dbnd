@@ -2,7 +2,6 @@
 Context: airflow operator/task is running a function with @task
 Here we create dbnd objects to represent them and send to webserver through tracking api.
 """
-import datetime
 import logging
 import os
 import sys
@@ -22,16 +21,16 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.constants import UpdateSource
 from dbnd._core.current import get_settings
-from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
-from dbnd._core.errors.errors_utils import UserCodeDetector
-from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.tracking_task import TrackingTask
-from dbnd._core.task_build.task_metaclass import TaskMetaclass
+from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCode
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
+
+AIRFLOW_TRACKING_ROOT_TASK_NAME = "AirflowTrackingRoot"
 
 logger = logging.getLogger(__name__)
 _SPARK_ENV_FLAG = "SPARK_ENV_LOADED"  # if set, we are in spark
@@ -221,65 +220,43 @@ def try_get_airflow_context_from_spark_conf():
     return None
 
 
-class AirflowOperatorRuntimeTask(TrackingTask):
-    _conf__track_source_code = False
-
-    dag_id = parameter[str]
-    execution_date = parameter[datetime.datetime]
-
-
 def build_run_time_airflow_task(af_context):
-    # type: (AirflowTaskContext) -> (AirflowOperatorRuntimeTask, str, UpdateSource)
+    # type: (AirflowTaskContext) -> (TrackingTask, str, UpdateSource)
     if af_context.context:
         # we are in the execute entry point and therefore that task name is <task>__execute
         task_family = "%s__execute" % af_context.task_id
 
         airflow_operator = af_context.context["task_instance"].task
 
-        tracked_function = None
-        if is_instance_by_class_name(airflow_operator, "PythonOperator"):
-            tracked_function = airflow_operator.python_callable
-
         # find the template fields of the operators
         user_params = get_flatten_operator_params(airflow_operator)
-        if tracked_function:
+
+        source_code = NO_SOURCE_CODE
+        if is_instance_by_class_name(airflow_operator, "PythonOperator"):
+            tracked_function = airflow_operator.python_callable
             user_params["function_name"] = tracked_function.__name__
-
-        # create params definitions for the operator's fields
-        params_def = {
-            name: parameter[type(value)].build_parameter("inline")
-            for name, value in user_params.items()
-        }
-
-        task_class = build_dynamic_task_class(
-            AirflowOperatorRuntimeTask, task_family, params_def,
-        )
-
-        if tracked_function:
-            import inspect
-
-            task_class.task_definition.task_source_code = inspect.getsource(
-                tracked_function
-            )
-            task_class.task_definition.task_module_code = inspect.getsource(
-                inspect.getmodule(tracked_function)
-            )
-
+            source_code = TaskSourceCode.from_callable(tracked_function)
     else:
         # if this is an inline run-time task, we name it after the script which ran it
         task_family = sys.argv[0].split(os.path.sep)[-1]
-        task_class = build_dynamic_task_class(AirflowOperatorRuntimeTask, task_family)
-        module_code = get_user_module_code()
-        task_class.task_definition.task_module_code = module_code
-        task_class.task_definition.task_source_code = module_code
+        source_code = TaskSourceCode.from_callstack()
         user_params = {}
 
-    root_task = task_class(
+    user_params.update(
         dag_id=af_context.dag_id,
         execution_date=af_context.execution_date,
         task_version="%s:%s" % (af_context.task_id, af_context.execution_date),
-        **user_params
     )
+
+    # just a placeholder name
+    task_passport = TaskPassport.from_module(AIRFLOW_TRACKING_ROOT_TASK_NAME)
+    root_task = TrackingTask.for_user_params(
+        task_name=task_family,
+        task_passport=task_passport,
+        source_code=source_code,
+        user_params=user_params,
+    )
+
     root_task.ctrl.task_repr.task_functional_call = ""
     root_task.ctrl.task_repr.task_command_line = generate_airflow_cmd(
         dag_id=af_context.dag_id,
@@ -291,34 +268,6 @@ def build_run_time_airflow_task(af_context):
     job_name = "{}.{}".format(af_context.dag_id, af_context.task_id)
     source = UpdateSource.airflow_tracking
     return root_task, job_name, source
-
-
-def build_dynamic_task_class(
-    task_class, task_family, user_params=None, track_source_code=False
-):
-    classdict = dict(
-        _conf__task_family=task_family,
-        _conf__decorator_spec=None,
-        __doc__=task_class.__doc__,
-        __module__=task_class.__module__,
-        _conf__track_source_code=track_source_code,
-    )
-    if user_params:
-        classdict.update(user_params)
-
-    return TaskMetaclass(task_family, (task_class,), classdict)
-
-
-def get_user_module_code():
-    try:
-        user_frame = UserCodeDetector.build_code_detector().find_user_side_frame(
-            user_side_only=True
-        )
-        if user_frame:
-            module_code = open(user_frame.filename).read()
-            return module_code
-    except Exception as ex:
-        return
 
 
 def should_flatten(operator, attr_name):
@@ -373,21 +322,21 @@ def calc_task_run_attempt_key_from_af_ti(ti):
     )
 
 
-def calc_task_run_attempt_key_from_dbnd_task(task):
+def calc_task_run_attempt_key_from_dbnd_task(dag_id, task_family):
     """
     Creates a key from dbnd Task, for communicating task_run_attempt_uid
     """
-    return ":".join(
-        [ENV_DBND_TRACKING_ATTEMPT_UID, task.dag_id, task.get_task_family()]
-    )
+    return ":".join([ENV_DBND_TRACKING_ATTEMPT_UID, dag_id, task_family])
 
 
 def try_pop_attempt_id_from_env(task):
     """
     if the task is an airflow execute task we try to pop the attempt id from environ
     """
-    if isinstance(task, AirflowOperatorRuntimeTask):
-        key = calc_task_run_attempt_key_from_dbnd_task(task)
+    if task.task_family == AIRFLOW_TRACKING_ROOT_TASK_NAME:
+        key = calc_task_run_attempt_key_from_dbnd_task(
+            task.task_params.get_value("dag_id"), task.task_family
+        )
         attempt_id = os.environ.get(key, None)
         if attempt_id:
             del os.environ[key]

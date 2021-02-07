@@ -48,7 +48,6 @@ from dbnd._core.utils.basics.nothing import NOTHING
 if TYPE_CHECKING:
     from dbnd._core.task_build.task_definition import TaskDefinition
     from dbnd._core.settings import DatabandSettings
-    from dbnd._core.context.databand_context import DatabandContext
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +83,6 @@ class _BaseTask(object):
     ):
 
         super(_BaseTask, self).__init__()
-        # we should not use it directly, the value in object can outdated
         self.task_params = task_params
         self.task_name = task_name  # type: str
 
@@ -122,7 +120,7 @@ class _BaseTask(object):
             extra["full_task_family"] = self.task_definition.full_task_family
         if config.getboolean("task_build", "sign_with_task_code"):
             extra["task_code_hash"] = user_friendly_signature(
-                self.task_definition.task_source_code
+                self.task_definition.source_code.task_source_code
             )
 
         signature = build_signature(name=name, params=params, extra=extra)
@@ -193,6 +191,7 @@ class _TaskWithParams(_BaseTask):
         task_config_override,
         task_enabled=True,
         task_sections=None,
+        task_call_source=None,
     ):
         super(_TaskWithParams, self).__init__(
             task_name=task_name,
@@ -206,6 +205,7 @@ class _TaskWithParams(_BaseTask):
         self.task_sections = task_sections
         self.task_config_override = task_config_override
         self.task_config_layer = task_config_layer
+        self.task_call_source = task_call_source
 
         for param_value in self.task_params.get_param_values():
             param_value.task = self

@@ -35,27 +35,24 @@ class TestLuigiTaskExecution(object):
     def clean_output(self):
         import os
 
-        os.system("rm -rf ./data/*")
+        # os.system("rm -rf ./data/*")
+        try:
+            shutil.rmtree("/tmp/bar")
+        except FileNotFoundError:
+            pass
 
     def test_luigi_sanity_top_10_artists(self, top10_artists):
         result = dbnd_luigi_build(tasks=[top10_artists])
         assert result.status == LuigiStatusCode.SUCCESS
 
     def test_luigi_sanity_foo(self, simple_foo):
-        try:
-            shutil.rmtree("/tmp/bar")
-        except FileNotFoundError:
-            pass
+
         result = dbnd_luigi_build(tasks=[simple_foo])
         assert result.status == LuigiStatusCode.SUCCESS
 
     @pytest.mark.skip
     def test_luigi_sanity_complex_foo(self, complex_foo):
         with dbnd_config({CoreConfig.databand_url: "http://localhost:8080"}):
-            try:
-                shutil.rmtree("/tmp/bar")
-            except FileNotFoundError:
-                pass
             result = dbnd_luigi_build(tasks=[complex_foo])
         assert result.status == LuigiStatusCode.SUCCESS
 

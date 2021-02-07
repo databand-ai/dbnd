@@ -4,7 +4,7 @@ from mock import Mock
 
 from dbnd._core.constants import UpdateSource
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
-    AirflowOperatorRuntimeTask,
+    AIRFLOW_TRACKING_ROOT_TASK_NAME,
     AirflowTaskContext,
     build_run_time_airflow_task,
 )
@@ -55,5 +55,5 @@ def test_build_run_time_airflow_task(context, expected_name, fields):
     assert source == UpdateSource.airflow_tracking
     assert expected_name in root_task.task_name
     for field in fields:
-        assert hasattr(root_task, field)
-    assert isinstance(root_task, AirflowOperatorRuntimeTask)
+        assert root_task.task_params.get_value(field)
+    assert root_task.task_family == AIRFLOW_TRACKING_ROOT_TASK_NAME

@@ -308,10 +308,9 @@ class TaskFactory(object):
             self.task_args__ctor, self.task_kwargs
         )
 
-        # create task meta
         self._log_build_step("Resolving task params with %s" % self.config_sections)
         try:
-            task_param_values = self._get_task_params_values()
+            task_param_values = self._build_task_param_values()
             task_params = Parameters(
                 source=self._ctor_as_str, param_values=task_param_values
             )
@@ -320,13 +319,15 @@ class TaskFactory(object):
             self._log_config(force_log=True)
             raise
 
+        if self.parent_task and not self.parent_task.ctrl.should_run():
+            self.task_enabled = False
+
         # load from task_band if exists
         task_band_param = task_params.get_param_value(TASK_BAND_PARAMETER_NAME)
         if task_band_param and task_band_param.value:
             task_band = task_band_param.value
 
-            # we are going to load task from band
-            self.task_enabled = False
+            # we are going to load all task parameters from task_band
             task_params = self.load_task_params_from_task_band(task_band, task_params)
 
         # update [task] section with Scope.children params
@@ -397,13 +398,11 @@ class TaskFactory(object):
         param_def = param_def.modify(target_config=target_config)
         return param_def
 
-    def _get_task_params_values(self):
+    def _build_task_param_values(self):
         """
         This process is composed from those parts:
         1. Editing the config while building params - depend on some magic params
         2. Validating the params
-        3. Building from task_band if needed
-        4. Editing the configuration again for child scope params
         """
         # copy because we about to edit it
         params_to_build = self.task_definition.task_param_defs.copy()
@@ -448,13 +447,8 @@ class TaskFactory(object):
         self._log_config()
 
         # calculate configuration per parameter, and calculate parameter value
-        params_to_build_definitions = []
         for param_def in params_to_build.values():
-            params_to_build_definitions.append(
-                self._update_params_def_target_config(param_def)
-            )
-
-        for param_def in params_to_build_definitions:
+            param_def = self._update_params_def_target_config(param_def)
             try:
                 p_value = self.build_parameter_value(param_def)
                 task_param_values.append(p_value)
@@ -469,9 +463,6 @@ class TaskFactory(object):
 
         if self.build_warnings:
             self._log_task_build_warnings()
-
-        if self.parent_task and not self.parent_task.ctrl.should_run():
-            self.task_enabled = False
 
         return task_param_values
 

@@ -186,11 +186,9 @@ class _TaskBannerBuilder(TaskSubCtrl):
             and task_run.last_error
             and task_run.task_run_state != TaskRunState.SUCCESS
         ):
-            self._task_create_stack()
             self._add_last_error_info(exc_info=task_run.last_error.exc_info)
 
         elif exc_info:
-            self._task_create_stack()
             self._add_last_error_info(exc_info=exc_info)
 
         elif verbosity >= FormatterVerbosity.HIGH:
@@ -264,9 +262,12 @@ class _TaskBannerBuilder(TaskSubCtrl):
         self.banner.column("TIME", self.banner.f_simple_dict(time_fields))
 
     def _task_create_stack(self):
+        if not hasattr(self.task, "task_call_source") or self.is_driver_or_submitter:
+            return
+
         task_call_source = task_call_source_to_str(self.task.task_call_source)
-        if task_call_source and not self.is_driver_or_submitter:
-            self.banner.column("CREATED BY", value=task_call_source)
+        if task_call_source:
+            self.banner.column("TASK CREATED AT", value=task_call_source)
 
     def _add_last_error_info(self, exc_info=None):
         ex = exc_info[1]
@@ -299,6 +300,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
             raw_name=True,
             skip_if_empty=True,
         )
+        self._task_create_stack()
         self.banner.column(
             colored("CAUSED BY", color="red", attrs=["bold"]),
             nested_exceptions_str(ex, limit=3),

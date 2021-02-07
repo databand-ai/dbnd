@@ -1,4 +1,3 @@
-import inspect
 import logging
 import typing
 
@@ -20,6 +19,7 @@ from dbnd._core.parameter.parameter_definition import (
     _ParameterKind,
 )
 from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCode
 from dbnd._core.utils.basics.nothing import is_defined
 from dbnd._core.utils.structures import combine_mappings
 from dbnd._core.utils.uid_utils import get_uuid
@@ -50,17 +50,13 @@ class TaskDefinition(object):
                 hasattr(task_class, "_conf__decorator_spec")
                 and task_class._conf__decorator_spec
             ):
-                item = task_class._conf__decorator_spec.item
-                task_source_code = _get_task_source_code(item)
+                source_code = TaskSourceCode.from_callable(
+                    task_class._conf__decorator_spec.item
+                )
             else:
-                task_source_code = _get_task_source_code(task_class)
-
-            task_module_code = _get_task_module_source_code(task_class)
-            task_source_file = _get_source_file(task_class.__class__)
+                source_code = TaskSourceCode.from_class(task_class)
         else:
-            task_source_code = None
-            task_module_code = ""
-            task_source_file = None
+            source_code = NO_SOURCE_CODE
 
         return TaskDefinition(
             classdict=classdict,
@@ -68,26 +64,18 @@ class TaskDefinition(object):
             task_passport=TaskPassport.from_task_cls(task_class),
             defaults=classdict.get("defaults", None),
             func_spec=task_class._conf__decorator_spec,
-            task_source_code=task_source_code,
-            task_module_code=task_module_code,
-            task_source_file=task_source_file,
+            source_code=source_code,
         )
 
     @classmethod
     def from_decorated_func(cls, func_spec, task_passport, defaults):
-        base_task_definitions = get_base_task_definitions(cls)
-
-        task_source_code = _get_task_source_code(func_spec.item)
-        task_module_code = _get_task_module_source_code(func_spec.item)
-        task_source_file = _get_source_file(func_spec.item)
+        source_code = TaskSourceCode.from_callable(func_spec.item)
 
         return TaskDefinition(
             task_passport=task_passport,
             defaults=defaults,
             func_spec=func_spec,
-            task_source_code=task_source_code,
-            task_module_code=task_module_code,
-            task_source_file=task_source_file,
+            source_code=source_code,
         )
 
     def __init__(
@@ -97,17 +85,19 @@ class TaskDefinition(object):
         base_task_definitions=None,
         defaults=None,
         func_spec=None,
-        task_source_code=None,
-        task_module_code="",
-        task_source_file=None,
+        source_code=None,
     ):
         super(TaskDefinition, self).__init__()
 
         self.task_definition_uid = get_uuid()
         self.hidden = False
 
-        self.base_task_definitions = base_task_definitions
         self.task_passport = task_passport
+        self.source_code = source_code
+        self.func_spec = func_spec
+        self.base_task_definitions = (
+            base_task_definitions or []
+        )  # type: List[ TaskDefinition]
 
         # TODO: maybe use properties or other way to delegate those...
         self.full_task_family = self.task_passport.full_task_family
@@ -121,9 +111,6 @@ class TaskDefinition(object):
         # the defaults attribute
         self.defaults = dict()  # type: Dict[ParameterDefinition, Any]
 
-        self.base_task_definitions = (
-            base_task_definitions or []
-        )  # type: List[ TaskDefinition]
         self.task_param_defs = self._calculate_task_class_values(classdict, func_spec)
         # if we have output params in function arguments, like   f(some_p=parameter.output)
         # the new function can not return the result of return
@@ -143,10 +130,6 @@ class TaskDefinition(object):
             config_values=self.defaults,
             priority=ConfigValuePriority.DEFAULT,
         )
-
-        self.task_source_code = task_source_code
-        self.task_module_code = task_module_code
-        self.task_source_file = task_source_file
 
     def _calculate_task_class_values(self, classdict, decorator_spec):
         # reflect inherited attributes
@@ -253,33 +236,3 @@ def get_base_task_definitions(task_class):
             continue
         task_definitions.append(c.task_definition)
     return task_definitions
-
-
-def _get_task_source_code(item):
-    try:
-        import inspect
-
-        return inspect.getsource(item)
-    except (TypeError, OSError):
-        logger.debug("Failed to task source for %s", item)
-    except Exception:
-        logger.debug("Error while getting task source")
-    return "Error while getting source code"
-
-
-def _get_task_module_source_code(item):
-    try:
-        return inspect.getsource(inspect.getmodule(item))
-    except TypeError:
-        logger.debug("Failed to module source for %s", item)
-    except Exception:
-        logger.exception("Error while getting module source")
-    return "Error while getting source code"
-
-
-def _get_source_file(item):
-    try:
-        return inspect.getfile(item).replace(".pyc", ".py")
-    except Exception:
-        logger.warning("Failed find a path of source code for task {}".format(item))
-    return None

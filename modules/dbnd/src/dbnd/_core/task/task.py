@@ -406,7 +406,11 @@ def auto_load_save_params(task, auto_read):
     task_params = task.task_params
     param_values = task_params.get_param_values()
     original_values = [(p, p.value) for p in param_values]
+
+    # keep all outputs that were "read" during pre-read phase
+    # we will not save this values on post-execute phase
     outputs_as_simple_objects = {}
+
     if auto_read:
         # in .run() we are going to pre-fetch all values
         # * we do it eager loading for all parameters (not lazy)
