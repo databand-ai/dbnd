@@ -265,7 +265,7 @@ class AirflowTaskExecutor(TaskExecutor):
                     if upstream_ops.task_id not in op.upstream_task_ids:
                         op.set_upstream(upstream_ops)
 
-        dag.fileloc = root_task.task_definition.task_source_file
+        dag.fileloc = root_task.task_definition.source_code.task_source_file
         set_af_doc_md(self.run, dag)
         return dag
 

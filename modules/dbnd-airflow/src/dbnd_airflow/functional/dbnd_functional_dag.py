@@ -9,6 +9,7 @@ from airflow.models import BaseOperator
 from databand import dbnd_config
 from dbnd import dbnd_handle_errors
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.config_store import merge_config_stores
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.current import try_get_databand_context
 from dbnd._core.decorator.schemed_result import ResultProxyTarget
@@ -169,7 +170,7 @@ class DagFuncOperatorCtrl(object):
         else:
             dbnd_xcom_outputs = [
                 p.name
-                for p in task._params.get_params(output_only=True, user_only=True)
+                for p in task._params.get_param_values(ParameterFilters.USER_OUTPUTS)
             ]
         dbnd_xcom_outputs = [n for n in dbnd_xcom_outputs]
 
@@ -268,7 +269,9 @@ class DagFuncOperatorCtrl(object):
         if dag.default_args:
             dag.default_args["dbnd_config"] = config_store
 
-        config_store = _default_dbnd_dag_context_config.merge(config_store)
+        config_store = merge_config_stores(
+            _default_dbnd_dag_context_config, config_store
+        )
         logger.debug("Config store for %s: %s", self.dag.dag_id, config_store)
         return config_store
 

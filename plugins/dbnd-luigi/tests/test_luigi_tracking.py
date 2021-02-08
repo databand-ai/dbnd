@@ -7,7 +7,7 @@ import pytest
 
 from luigi import LuigiStatusCode
 
-from dbnd import dbnd_config
+from dbnd import dbnd_config, relative_path
 from dbnd._core.errors import DatabandError
 from dbnd._core.parameter import ParameterValue
 from dbnd._core.parameter.parameter_definition import _ParameterKind
@@ -33,9 +33,12 @@ def _find_param(task, param_name):  # type: (_BaseTask,str)->ParameterValue
 class TestLuigiTaskExecution(object):
     @pytest.fixture(autouse=True)
     def clean_output(self):
-        import os
 
-        # os.system("rm -rf ./data/*")
+        try:
+            data_folder = relative_path(__file__, "data")
+            shutil.rmtree(data_folder)
+        except FileNotFoundError:
+            pass
         try:
             shutil.rmtree("/tmp/bar")
         except FileNotFoundError:
@@ -90,14 +93,12 @@ class TestLuigiTaskExecution(object):
 
     def test_luigi_requires_exception(self, top10_artists_requires_error):
         logging.info("STARTING TO RUN test_luigi_requires_exception")
-        with pytest.raises(LuigiTestException):
-            result = dbnd_luigi_build(tasks=[top10_artists_requires_error])
-            assert result.status == LuigiStatusCode.SCHEDULING_FAILED
+        result = dbnd_luigi_build(tasks=[top10_artists_requires_error])
+        assert result.status == LuigiStatusCode.SCHEDULING_FAILED
 
     def test_luigi_output_exception(self, top10_artists_output_error):
-        with pytest.raises(LuigiTestException):
-            result = dbnd_luigi_build(tasks=[top10_artists_output_error])
-            assert result.status == LuigiStatusCode.SCHEDULING_FAILED
+        result = dbnd_luigi_build(tasks=[top10_artists_output_error])
+        assert result.status == LuigiStatusCode.SCHEDULING_FAILED
 
 
 class TestLuigiWrapperTaskExecution(object):
@@ -116,6 +117,7 @@ class TestLuigiWrapperTaskExecution(object):
             assert result.status == LuigiStatusCode.FAILED
 
 
+@pytest.mark.skip(reason="currently luigi inputs/outputs are not supported")
 class TestLuigiWiring(object):
     def test_luigi_sanity_output_target_tracking(self, top10_artists):
         dbnd_task = wrap_luigi_task(top10_artists)
