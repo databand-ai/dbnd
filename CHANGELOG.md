@@ -6,9 +6,11 @@
 
 - \#1199382295296733: Projects support
 - \#1199503238625634: Support user access token
+
 ### Improvements:
 
 - \#1199410590823866: Using pipeline(=band) outputs in runtime
+
 ### Fixed issues:
 
 - \#1199512537243676: Enable pod logs collection with google logs
