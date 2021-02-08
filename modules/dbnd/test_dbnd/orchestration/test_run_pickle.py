@@ -7,12 +7,13 @@ from typing import List
 
 import pandas as pd
 import pytest
+import six
 
 from dbnd import new_dbnd_context, output, override, parameter, pipeline, task
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.settings import CoreConfig, RunConfig
 from dbnd._core.task_executor.run_executor import RunExecutor
-from dbnd._vendor.cloudpickle import cloudpickle
+from dbnd._core.utils.seven import cloudpickle
 from dbnd.tasks import PythonTask
 from dbnd_test_scenarios.test_common.task.factories import TTask
 
@@ -115,7 +116,12 @@ class TestRunPickle(object):
         s = TClassTask()
         self._save_graph(s)
 
+    @pytest.mark.skipif(not six.PY3, reason="fails on generics at tox")
     def test_dump_dagrun_generics1(self):
+        # this test fails if run from tox (all tests) with python2
+        # old version of cloudpickle doesn't support generics cache at ABC
+        # some tests from the test suite has dynamic tasks
+        # this test fails if runs after that ( pickling generics )
         s = pipeline_with_generics.task([1, 2])
         self._save_graph(s)
 

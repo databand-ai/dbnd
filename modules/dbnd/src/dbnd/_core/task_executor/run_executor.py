@@ -38,9 +38,9 @@ from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils import console_utils
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.nested_context import nested
+from dbnd._core.utils.seven import cloudpickle
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
-from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd.api.runs import kill_run
 from targets import FileTarget, target
 

@@ -6,9 +6,12 @@ import six
 if six.PY3:
     import contextlib
     from collections.abc import Callable
+    from dbnd._vendor import cloudpickle
 else:
     import contextlib2 as contextlib
     from collections import Callable
+
+    from dbnd._vendor.cloudpickle_py2 import cloudpickle
 
 
 def qualname_func(func):
@@ -50,6 +53,7 @@ except ImportError:
 
 __all__ = [
     "contextlib",
+    "cloudpickle",
     "qualname_func",
     "import_errors",
     "Callable",
