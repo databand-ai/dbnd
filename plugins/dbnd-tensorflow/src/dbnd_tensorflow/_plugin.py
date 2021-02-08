@@ -7,7 +7,7 @@ from targets.values import register_value_type
 
 @dbnd.hookimpl
 def dbnd_setup_plugin():
-    import tensorflow
+    from dbnd_tensorflow.seven import models, History
 
     from dbnd_tensorflow.marshalling.tensorflow_marshaller import (
         TensorflowKerasHistoryMarshaller,
@@ -19,14 +19,10 @@ def dbnd_setup_plugin():
     )
 
     register_marshaller(
-        tensorflow.python.keras.engine.training.Model,
-        FileFormat.tfmodel,
-        TensorflowKerasModelMarshaller(),
+        models.Model, FileFormat.tfmodel, TensorflowKerasModelMarshaller(),
     )
     register_marshaller(
-        tensorflow.python.keras.callbacks.History,
-        FileFormat.tfhistory,
-        TensorflowKerasHistoryMarshaller(),
+        History, FileFormat.tfhistory, TensorflowKerasHistoryMarshaller(),
     )
 
     register_value_type(TensorflowModelValueType())
