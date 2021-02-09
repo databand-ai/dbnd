@@ -428,7 +428,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         task_id = task_run.task_af_id
         ti_state = get_airflow_task_instance_state(task_run=task_run)
 
-        self.log.info(
+        self.log.error(
             "%s: pod %s has crashed, airflow state: %s", task_run, pod_name, ti_state
         )
 
@@ -516,7 +516,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
 
         if pod_phase == "Pending":
-            self.log.info(
+            self.log.error(
                 "Got pod %s at Pending state which is failing: looking for the reason..",
                 pod_name,
             )
