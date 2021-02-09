@@ -66,6 +66,7 @@ setuptools.setup(
             "tox==3.12.1",
             "matplotlib==2.2.5;python_version<'3.5'",
             "matplotlib==3.3.0;python_version>='3.5'",
+            'future==0.16.0 ; python_version < "3.0"',  # test newstr
             "tables==3.5.1",
             "feather-format",
             "pyarrow",
