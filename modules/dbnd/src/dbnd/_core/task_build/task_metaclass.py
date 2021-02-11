@@ -12,7 +12,7 @@ from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
 )
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
-from dbnd._core.task_build.task_meta_factory import TaskFactory
+from dbnd._core.task_build.task_factory import TaskFactory
 from dbnd._core.task_build.task_registry import get_task_registry
 
 

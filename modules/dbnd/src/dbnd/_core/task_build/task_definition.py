@@ -128,7 +128,7 @@ class TaskDefinition(object):
         self.task_defaults_config_store = parse_and_build_config_store(
             source=self.task_passport.format_source_name("task.defaults"),
             config_values=self.defaults,
-            priority=ConfigValuePriority.DEFAULT,
+            priority=ConfigValuePriority.FALLBACK,
         )
 
     def _calculate_task_class_values(self, classdict, decorator_spec):

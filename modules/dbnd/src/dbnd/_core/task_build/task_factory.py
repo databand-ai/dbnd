@@ -1,9 +1,10 @@
+import functools
 import logging
 import typing
 
 import six
 
-from more_itertools import unique_everseen
+from more_itertools import last, unique_everseen
 from six import iteritems
 
 from dbnd._core.configuration.config_path import (
@@ -15,7 +16,12 @@ from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriority
 from dbnd._core.configuration.pprint_config import pformat_current_config
-from dbnd._core.constants import RESULT_PARAM, ParamValidation, _TaskParamContainer
+from dbnd._core.constants import (
+    RESULT_PARAM,
+    ParamValidation,
+    TaskEssence,
+    _TaskParamContainer,
+)
 from dbnd._core.current import get_databand_context
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
@@ -28,6 +34,7 @@ from dbnd._core.parameter.parameter_value import (
     ParameterFilters,
     Parameters,
     ParameterValue,
+    fold_parameter_value,
 )
 from dbnd._core.task_build.task_context import (
     TaskContextPhase,
@@ -46,10 +53,10 @@ from targets.target_config import parse_target_config
 
 
 if typing.TYPE_CHECKING:
-    from typing import Type, Any
+    from typing import Type, Any, List, Optional
     from dbnd._core.configuration.dbnd_config import DbndConfig
     from dbnd._core.settings import EnvConfig
-    from dbnd._core.task.base_task import _BaseTask
+    from dbnd._core.task.base_task import _TaskWithParams
 
 TASK_BAND_PARAMETER_NAME = "task_band"
 logger = logging.getLogger(__name__)
@@ -96,29 +103,14 @@ def get_task_from_sections(config, task_name):
 
 class TaskFactory(object):
     """
-     we have current config at  dbnd_config
-     every tasks checks:
-     1. overrides
-     2. regular
-     for (1) and (2) we are going to check following sections:
-     A. it's own section    (task_family)
-     if task have some child properties - it can affect it by "task" section
-
-
-     1. overrides,
-     2. constructor
-     3. task_config
-     4. configuration
-
-     How to override specific task sub configs
-     task_config = {  "spark" : { "param" : "ss"  }
-     task_config = { spark.jars = some_jars ,
-                     kubernetes.gpu = some_gpu }
-
+    Create a TaskWithParam object by
+    1. Calculating its params
+    2. Register to cache
+    3. Calling Tasks initializing methods - _initialize and _validate
     """
 
     def __init__(self, config, task_cls, task_definition, task_args, task_kwargs):
-        # type:(DbndConfig, Type[_BaseTask],TaskDefinition, Any, Any)->None
+        # type:(DbndConfig, Type[_TaskWithParams],TaskDefinition, Any, Any)->None
         self.task_cls = task_cls
         self.task_definition = task_definition
 
@@ -173,36 +165,65 @@ class TaskFactory(object):
     def task_family(self):
         return self.task_definition.task_passport.task_family
 
-    def _get_config_value(self, key):
+    def _get_config_values_stack(self, key):
+        # type: (str) -> List[ConfigValue]
         # see get_multisection_config_value documentation
         return self.config.get_multisection_config_value(self.config_sections, key)
 
-    def _get_config_value_for_param(self, param_def):
+    def _get_config_value_stack_for_param(self, param_def):
+        # type: (ParameterDefinition) -> List[Optional[ConfigValue]]
+        """
+        Wrap the extracting the value of param_def from configuration or config_path
+        """
         try:
-            cf_value = self._get_config_value(key=param_def.name)
-            if cf_value:
-                return cf_value
+            config_values_stack = self._get_config_values_stack(key=param_def.name)
+            if config_values_stack:
+                return config_values_stack
 
             if param_def.config_path:
-                return self.config.get_config_value(
-                    section=param_def.config_path.section, key=param_def.config_path.key
-                )
-            return None
+                return [
+                    self.config.get_config_value(
+                        section=param_def.config_path.section,
+                        key=param_def.config_path.key,
+                    )
+                ]
+            return [None]
         except Exception as ex:
             raise param_def.parameter_exception("read configuration value", ex)
 
-    def build_parameter_value(self, param_def):
+    def _build_parameter_value(self, param_def):
         """
         This is the place we calculate param_def value
         based on Class(defaults, constructor, overrides, root)
         and Config(env, cmd line, config)  state
         """
+        # getting optionally multiple config values
+        config_values_stack = self._get_config_value_stack_for_param(param_def)
+        parameter_values = [
+            self._build_single_parameter_value(config_value, param_def)
+            for config_value in config_values_stack
+        ]
+
+        # after collecting the parameter values we need to reduce them to a single value
+        # if there is only one - reduce will get it
+        # other wise we need combine the values using `fold_parameter_value`
+        # may raise if can't fold two values together!!
+        return functools.reduce(fold_parameter_value, parameter_values)
+
+    def _build_single_parameter_value(self, param_config_value, param_def):
+        # type: (Optional[ConfigValue], ParameterDefinition) -> ParameterValue
+        """
+        Build parameter value from config_value and param_definition.
+        Considerate - priority, constructor values, param type and so on.
+        """
         param_name = param_def.name
-        p_config_value = self._get_config_value_for_param(param_def)
 
         # first check for override (HIGHEST PRIORIOTY)
-        if p_config_value and p_config_value.priority >= ConfigValuePriority.OVERRIDE:
-            cf_value = p_config_value
+        if (
+            param_config_value
+            and param_config_value.priority >= ConfigValuePriority.OVERRIDE
+        ):
+            cf_value = param_config_value
 
         # second using kwargs we received from the user
         # do we need to do it for tracking?
@@ -211,8 +232,9 @@ class TaskFactory(object):
                 self.task_kwargs.get(param_name), source=self._source_name("ctor")
             )
 
-        elif p_config_value:
-            cf_value = p_config_value
+        elif param_config_value:
+            cf_value = param_config_value
+
         elif param_name in self.task_definition.param_defaults:
             # we can't "add" defaults to the current config and rely on configuration system
             # we don't know what section name to use, and it my clash with current config
@@ -220,12 +242,12 @@ class TaskFactory(object):
                 self.task_definition.param_defaults.get(param_name),
                 source=self._source_name("default"),
             )
+
         else:
             cf_value = None
 
         if cf_value is None and not param_def.is_output():
             # outputs can be none, we "generate" their values later
-
             err_msg = "No value defined for '{name}' at {context_str}".format(
                 name=param_name, context_str=self._ctor_as_str
             )
@@ -304,7 +326,7 @@ class TaskFactory(object):
         databand_context = get_databand_context()
 
         # convert args to kwargs, validate values
-        self.task_kwargs = self._build_task_ctor_kwargs(
+        self.task_kwargs = self._build_and_validate_task_ctor_kwargs(
             self.task_args__ctor, self.task_kwargs
         )
 
@@ -337,12 +359,16 @@ class TaskFactory(object):
         obj_key = self._calculate_task_params_signature(task_params)
         self._log_build_step("Task id %s" % str(obj_key))
 
+        if TaskEssence.ORCHESTRATION.is_instance(self.task_cls):
+            pass
+
         # If a Task has already been instantiated with the same parameters,
         # the previous instance is returned to reduce number of object instances.
         tic = databand_context.task_instance_cache
         cached_task_object = tic.get_task_obj_by_id(obj_key.id)
         if cached_task_object and not hasattr(cached_task_object, "_dbnd_no_cache"):
             return cached_task_object
+
         task = task_metaclass._build_task_obj(
             task_definition=self.task_definition,
             task_name=self.task_name,
@@ -382,10 +408,12 @@ class TaskFactory(object):
         # used for target_format update
         # change param_def definition based on config state
         target_option = "%s__target" % param_def.name
-        target_config = self._get_config_value(key=target_option)
+        target_config = self._get_config_values_stack(key=target_option)
         if not target_config:
             return param_def
 
+        # the last is from a higher level
+        target_config = last(target_config)
         try:
             target_config = parse_target_config(target_config.value)
         except Exception as ex:
@@ -450,7 +478,7 @@ class TaskFactory(object):
         for param_def in params_to_build.values():
             param_def = self._update_params_def_target_config(param_def)
             try:
-                p_value = self.build_parameter_value(param_def)
+                p_value = self._build_parameter_value(param_def)
                 task_param_values.append(p_value)
             except MissingParameterError as ex:
                 self.task_errors.append(ex)
@@ -528,7 +556,7 @@ class TaskFactory(object):
                 on_change_only=True,
             )
 
-    def _build_task_ctor_kwargs(self, task_args, task_kwargs):
+    def _build_and_validate_task_ctor_kwargs(self, task_args, task_kwargs):
         param_names = set(self.task_definition.task_param_defs)
         has_varargs = False
         has_varkwargs = False
@@ -574,7 +602,7 @@ class TaskFactory(object):
         """
         # calculate the value of `Task.task_config` using it's definition
         # (check for all inheritance and find value for `task_config`
-        param_task_config_value = self.build_parameter_value(param_task_config)
+        param_task_config_value = self._build_parameter_value(param_task_config)
         if param_task_config_value.value:
             # Support two modes:
             # 1. Task.param_name:333
@@ -598,7 +626,7 @@ class TaskFactory(object):
         for example  spark_config in SparkTask  (defined by EnvConfig.spark_config)
         we take values using names only
         """
-        value_task_env = self.build_parameter_value(param_task_env)
+        value_task_env = self._build_parameter_value(param_task_env)
         env_config = value_task_env.value  # type: EnvConfig
 
         param_values = []
@@ -705,9 +733,12 @@ def update_config_section_on_change_only(
         for section, section_values in six.iteritems(config_store):
             for key, value in six.iteritems(section_values):
                 previous_value = config.get_config_value(section, key)
-                if previous_value:
-                    if on_change_only and previous_value.value == value.value:
-                        continue
+                if (
+                    previous_value
+                    and on_change_only
+                    and previous_value.value == value.value
+                ):
+                    continue
                 relevant_config_store.set_config_value(section, key, value)
         config_store = relevant_config_store
 

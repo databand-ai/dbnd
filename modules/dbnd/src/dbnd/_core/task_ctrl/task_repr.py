@@ -57,7 +57,7 @@ class TaskRepr(TaskSubCtrl):
         return sorted(relevant, key=lambda x: x[0].name)
 
     def __get_override_repr(self):
-        if not TaskEssence.ORCHESTRATION.is_included(self.task):
+        if not TaskEssence.ORCHESTRATION.is_instance(self.task):
             # config and overrides are exists in orchestration mode only
             return {}
         if not self.task.task_config_override:

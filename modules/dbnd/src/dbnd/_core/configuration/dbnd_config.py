@@ -4,7 +4,7 @@ import logging
 import os
 import typing
 
-from typing import Any, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 import attr
 
@@ -19,7 +19,7 @@ from dbnd._core.configuration.config_store import (
     _lower_config_name,
     merge_config_stores,
 )
-from dbnd._core.configuration.config_value import ConfigValue
+from dbnd._core.configuration.config_value import ConfigValue, fold_config_value
 from dbnd._core.configuration.pprint_config import (
     pformat_all_layers,
     pformat_current_config,
@@ -175,17 +175,20 @@ class DbndConfig(object):
         return self.config_layer.config.get_config_value(section, key)
 
     def get_multisection_config_value(self, sections, key):
+        # type: (List[str], str) -> List[ConfigValue]
         """
-        If we have any override in the config -> use them!
-        otherwise, return first value
-        in case we have value in better section, but override in low priority section
-        override wins!
+        Looking for the the relevant value to the given key by scan all given sections in the config layer
+         from top to bottom: where the current layer is the top and the parent layer is the bottom.
+
+        return a list of collected values through the sections
+        the list is ordered where the first value is from the lowest layer and the last is the highest layer
         """
+
         if len(sections) == 1:
             # we have it precalculated
-            return self.get_config_value(sections[0], key)
+            return [self.get_config_value(sections[0], key)]
 
-        best_config_value = None
+        config_value_stack = []
         layer = self.config_layer  # type: _ConfigLayer
         # start to go from "child layers to parent"
         # section by section
@@ -196,15 +199,11 @@ class DbndConfig(object):
                 # we are using "row" values from "delta"
                 # we need to take care of priorities
                 config_value = layer.layer_config.get_config_value(section, key)
-                if config_value:
-                    if (
-                        best_config_value is None
-                        or best_config_value.priority < config_value.priority
-                    ):
-                        # remember highest priority
-                        best_config_value = config_value
+                config_value_stack = fold_config_value(
+                    stack=config_value_stack, lower=config_value
+                )
             layer = layer.parent  # type: _ConfigLayer
-        return best_config_value
+        return config_value_stack
 
     def get(self, section, key, default=None, expand_env=True):
 

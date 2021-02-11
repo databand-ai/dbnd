@@ -49,7 +49,7 @@ class _ConfigStore(OrderedDict):
         self[_lower_config_name(section)][_lower_config_name(key)] = value
 
     def update(self, config_values):
-        # type : (_ConfigStore) -> _ConfigStore
+        # type: (_ConfigStore) -> _ConfigStore
         for section, section_values in six.iteritems(config_values):
             # shallow copy of configuration
             section = _lower_config_name(section)

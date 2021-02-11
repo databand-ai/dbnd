@@ -3,7 +3,7 @@ import os
 import mock
 import pytest
 
-from dbnd import config, dbnd_config, parameter
+from dbnd import config, dbnd_config, extend, parameter
 from dbnd._core.errors import DatabandRunError
 from dbnd.tasks import Config
 from dbnd.testing.helpers_pytest import assert_run_task
@@ -47,26 +47,16 @@ CONFIG_2 = "spark.executor.cores"
 
 class TaskA(WordCountPySparkTask):
     _conf__tracked = False
-    spark_conf_extension = {
-        CONFIG_1: "TaskA",
-    }
+    task_config = {SparkConfig.conf: extend({CONFIG_1: "TaskA"})}
 
 
 class TaskB(TaskA):
-    spark_conf_extension = {
-        CONFIG_2: "TaskB",
-    }
+    task_config = {SparkConfig.conf: extend({CONFIG_2: "TaskB"})}
 
 
 class TaskC(WordCountPySparkTask):
     _conf__tracked = False
-    spark_conf_extension = {
-        CONFIG_1: "TaskC",
-    }
-
-
-class TaskD(TaskA):
-    spark_conf_extension = {}
+    task_config = {SparkConfig.conf: extend({CONFIG_1: "TaskC"})}
 
 
 @pytest.mark.spark
@@ -262,11 +252,5 @@ class TestSparkTasksLocally(object):
             TaskC(text=__file__).dbnd_run()
             spark_submit_hook.assert_called_with(
                 conf={CONFIG_1: "TaskC", CONFIG_2: "config_layer"},
-                **self.spark_hook_params()
-            )
-
-            TaskD(text=__file__).dbnd_run()
-            spark_submit_hook.assert_called_with(
-                conf={CONFIG_1: "config_layer", CONFIG_2: "config_layer"},
                 **self.spark_hook_params()
             )

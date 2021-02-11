@@ -89,7 +89,7 @@ class TaskVisualiser(TaskSubCtrl):
             )
 
             # different banners for tracking and orchestration
-            if TaskEssence.TRACKING.is_included(self.task):
+            if TaskEssence.TRACKING.is_instance(self.task):
                 builder.build_tracking_banner(task_run=task_run, exc_info=exc_info)
             else:
                 builder.build_orchestration_banner(task_run=task_run, exc_info=exc_info)
@@ -496,7 +496,7 @@ class _ParamRecordBuilder(object):
         self.row.append(target_config)
 
     def add_section(self):
-        section = self.definition.parameter_origin.get_task_family()
+        section = self.definition.parameter_origin.task_family
         if section == self.task.get_task_family():
             section = ""
 

@@ -9,7 +9,7 @@ from dbnd._core.cli.main import (
 )
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.configuration.config_store import replace_section_with
-from dbnd._core.configuration.config_value import default, override
+from dbnd._core.configuration.config_value import default, extend, override
 from dbnd._core.configuration.dbnd_config import config, config_deco
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import new_dbnd_context
@@ -112,6 +112,7 @@ __all__ = [
     # config
     "dbnd_config",
     "override",
+    "extend",
     "config",
     "config_deco",
     "ConfigPath",

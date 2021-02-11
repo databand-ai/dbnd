@@ -258,7 +258,7 @@ class ParameterFactory(object):
 
     def __getitem__(self, type_):
         # we want special treatment for Config classes
-        if TaskEssence.CONFIG.is_included(type_):
+        if TaskEssence.CONFIG.is_instance(type_):
             return self.nested_config(type_)
 
         value_type = get_value_type_of_type(type_, inline_value_type=True)
@@ -368,7 +368,7 @@ class ParameterFactory(object):
         """
         config parameter
         """
-        return self.modify(empty_default=True, significant=False)
+        return self.modify(empty_default=True)
 
     @property
     def system(self):

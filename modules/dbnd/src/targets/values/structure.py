@@ -1,3 +1,4 @@
+import functools
 import itertools
 import json
 import logging
@@ -14,7 +15,6 @@ from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.traversing import traverse
 from dbnd._vendor.splitter import split_args, unquote
-from targets.values import StrValueType
 from targets.values.value_type import ValueType
 
 
@@ -203,6 +203,10 @@ class DictValueType(_StructureValueType):
     type = typing.Dict
 
     type_str_extras = ("dict",)
+    support_merge = True
+
+    def merge_values(self, *values, **kwargs):
+        return functools.reduce(lambda x, y: dict(x, **y), values)
 
     def _generate_empty_default(self):
         return dict()

@@ -305,10 +305,10 @@ class TaskEssence(enum.Enum):
             and getattr(cls, TASK_ESSENCE_ATTR) != self.CONFIG
         )
 
-    def is_included(self, obj):
+    def is_instance(self, obj):
         """
         Checks if the object is include in the essence group.
-        >>> TaskEssence.TRACKING.is_included(some_task)
+        >>> TaskEssence.TRACKING.is_instance(obj)
         """
         return (
             hasattr(obj, TASK_ESSENCE_ATTR) and getattr(obj, TASK_ESSENCE_ATTR) == self

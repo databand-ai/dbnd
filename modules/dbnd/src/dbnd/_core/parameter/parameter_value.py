@@ -15,14 +15,21 @@ if typing.TYPE_CHECKING:
 
 @attr.s(slots=True)
 class ParameterValue(object):
+    """Holds the runtime value of a parameter and information about its calculation"""
+
+    # reference to the parameter definition
     parameter = attr.ib()  # type: ParameterDefinition
+    # the calculated value
     value = attr.ib()  # type: Any
 
+    # name of all the information sources which used to calculate the value
     source = attr.ib()  # type: str
     source_value = attr.ib()  # type: Any
 
     task = attr.ib(default=None)  # type: _BaseTask
     parsed = attr.ib(default=True)  # type: bool
+
+    # any warnings caught while calculating the value
     warnings = attr.ib(factory=list)
 
     @property
@@ -39,6 +46,35 @@ class ParameterValue(object):
         # we should not call task here, otherwise, we get recursion
         # we assume that value is already set in task body
         self.value = value
+
+
+def fold_parameter_value(left, right):
+    # type: (ParameterValue, Optional[ParameterValue]) -> ParameterValue
+    """Merge the values of the two parameters and combine any information needed to identify this merge"""
+    if not right or right.value is None:
+        return left
+
+    if not left.parameter.value_type.support_merge:
+        raise ValueError(
+            "value type {} not supporting merge".format(left.parameter.value_type)
+        )
+
+    if left.parameter.value_type != right.parameter.value_type:
+        raise ValueError(
+            "can't merge two value with different types left={} right={}".format(
+                left.parameter.value_type, right.parameter.value_type
+            )
+        )
+
+    new_value = left.parameter.value_type.merge_values(left.value, right.value)
+
+    return ParameterValue(
+        parameter=left.parameter,
+        value=new_value,
+        source=",".join((left.source, right.source)),
+        source_value=left.source_value,
+        warnings=left.warnings + right.warnings,
+    )
 
 
 @attr.s(slots=True)
