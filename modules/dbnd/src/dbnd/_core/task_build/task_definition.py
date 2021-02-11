@@ -26,7 +26,7 @@ from dbnd._core.utils.uid_utils import get_uuid
 
 
 if typing.TYPE_CHECKING:
-    pass
+    from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +132,7 @@ class TaskDefinition(object):
         )
 
     def _calculate_task_class_values(self, classdict, decorator_spec):
+        # type: (Dict, _TaskDecoratorSpec) -> Dict[str, ParameterDefinition]
         # reflect inherited attributes
         params = dict()
         # params will contain definition of param, even it's was overrided by the parent task

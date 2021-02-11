@@ -23,7 +23,7 @@ from dbnd._core.parameter.parameter_value import (
 )
 from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
-from dbnd._core.task_build.task_definition import TaskDefinition
+from dbnd._core.task_build.task_definition import TaskDefinition, _ordered_params
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.task_ctrl.task_ctrl import TrackingTaskCtrl
@@ -89,6 +89,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         task_definition = TaskDefinition(
             task_passport=task_passport, source_code=source_code
         )
+
         param_values = []
         for key, value in six.iteritems(user_params):
             p = build_user_parameter_value(
@@ -98,6 +99,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         task_params = Parameters(
             source=task_definition.full_task_family_short, param_values=param_values
         )
+
         return cls(
             task_name=task_name,
             task_definition=task_definition,
@@ -111,6 +113,11 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
             task_definition=task_definition,
             task_params=task_params,
         )
+
+        task_definition.task_param_defs = _ordered_params(
+            {param.name: param for param in task_params.get_params()}
+        )
+
         self.task_definition = task_definition
         self.ctrl = TrackingTaskCtrl(self)
 
