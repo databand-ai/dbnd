@@ -12,14 +12,17 @@ from dbnd._core.current import get_databand_run, try_get_databand_context
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.task_cls_builder import _task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
+from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.task.task import Task
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
+from dbnd._core.utils.traversing import flatten
 from dbnd.tasks.py_distribution.fat_wheel_tasks import fat_wheel_building_task
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_config import SparkConfig, SparkEngineConfig
 from dbnd_spark.spark_session import get_spark_session
+from targets import DirTarget
 from targets.file_target import FileTarget
 
 
@@ -49,6 +52,31 @@ class _BaseSparkTask(Task):
     )[dict]
 
     spark_resources = parameter.c(default=None, system=True)[Dict[str, FileTarget]]
+
+    def _complete(self):
+        # We address targets as directories in spark task because spark creates success flags in directory.
+        # All FileTargets that run on spark actually create directories!
+        dir_outputs = [
+            DirTarget(target.path + "/", target.fs, config=target.config)
+            for target in flatten(self.task_outputs)
+            if target.fs.isdir(target.path) and not target.config.overwrite_target
+        ]  # All outputs that are directories and are NOT overwrite targets
+        incomplete_dir_outputs = [
+            str(target) for target in dir_outputs if not target.exists()
+        ]
+        if incomplete_dir_outputs:
+            complete_dir_outputs = [
+                str(target) for target in dir_outputs if target.exists()
+            ]
+            exc = incomplete_output_found_for_task(
+                self.task_meta.task_name, complete_dir_outputs, incomplete_dir_outputs
+            )
+            if self.task_env.settings.run.validate_task_outputs_on_build:
+                raise exc
+            else:
+                logger.warning(str(exc))
+            return False
+        return super(_BaseSparkTask, self)._complete()
 
     def band(self):
         result = super(_BaseSparkTask, self).band()
