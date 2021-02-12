@@ -3,13 +3,11 @@ import pickle
 
 from collections import Counter
 
-import mock
 import pandas as pd
 import pytest
 import six
 
-from dbnd import config, dbnd_tracking_stop, log_metric, task
-from dbnd._core.configuration.environ_config import get_max_calls_per_func
+from dbnd import dbnd_tracking_stop, log_metric, task
 from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.errors import DatabandRunError
 from dbnd._core.tracking.schemas.tracking_info_objects import (
@@ -17,8 +15,7 @@ from dbnd._core.tracking.schemas.tracking_info_objects import (
     TaskRunInfo,
 )
 from dbnd._core.utils.timezone import utcnow
-from dbnd.testing.helpers_mocks import set_airflow_context
-from test_dbnd.conftest import set_tracking_context
+from dbnd.testing.helpers_mocks import set_airflow_context, set_tracking_context
 
 
 @task
@@ -52,42 +49,38 @@ def task_pass_through_nested_default(data, dt, expect_pass_through):
 
 
 @task
-def task_pass_through_result_param(result):
-    assert isinstance(result, str)
-    return str(result)
-
-
-@task
 def task_pass_through_exception():
     # print needed to test that log is sent
     print("hello task_pass_through_exception")
     1 / 0
 
 
-@task
-def task_pass_through_args_kwargs(*args, **kwargs):
-    return {
-        "args": args,
-        "kwargs": kwargs,
-    }
+def _assert_tracked_params(mock_channel_tracker, task_func, **kwargs):
+    tdi, tri = _get_tracked_task_run_info(mock_channel_tracker, task_func)
+    tdi_params = {tpd.name: tpd for tpd in tdi.task_param_definitions}
+    tri_params = {tp.parameter_name: tp for tp in tri.task_run_params}
+    for name in kwargs.keys():
+        assert name in tdi_params
+
+    for k, v in six.iteritems(kwargs):
+        assert tri_params[k].value == str(v)
 
 
-@task
-def task_in_conf(param1="default_value", param2=None):
-    return param1, param2
+def _get_tracked_task_run_info(mock_channel_tracker, task_cls):
+    tdi_result, tri_result = None, None
+    for call in mock_channel_tracker.call_args_list:
+        if call.args[0].__name__ == "add_task_runs":
+            for tdi in call.kwargs[
+                "task_runs_info"
+            ].task_definitions:  # type: TaskDefinitionInfo
+                if tdi.name == task_cls.__name__:
+                    tdi_result = tdi
+            for tri in call.kwargs["task_runs_info"].task_runs:  # type: TaskRunInfo
+                if tri.name == task_cls.__name__:
+                    tri_result = tri
 
-
-@pytest.fixture
-def databand_context_kwargs():
-    return dict(conf={"core": {"tracker": ["console", "debug"]}})
-
-
-@pytest.fixture
-def mock_channel_tracker():
-    with mock.patch(
-        "dbnd._core.tracking.backends.tracking_store_channels.TrackingStoreThroughChannel._m"
-    ) as mock_store:
-        yield mock_store
+            if tdi_result and tri_result:
+                return tdi_result, tri_result
 
 
 def _check_tracking_calls(mock_store, expected_tracking_calls_counter):
@@ -99,11 +92,6 @@ def _check_tracking_calls(mock_store, expected_tracking_calls_counter):
     assert sorted(actual_store_calls.items()) == sorted(
         expected_tracking_calls_counter.items()
     )
-
-
-def test_pickle():
-    pickled = pickle.dumps(task_pass_through_default)
-    assert task_pass_through_default == pickle.loads(pickled)
 
 
 @pytest.mark.usefixtures(set_airflow_context.__name__)
@@ -193,34 +181,6 @@ def test_tracking_pass_through_default_tracking(
         dt=some_date,
         expect_pass_through=True,
     )
-
-
-def _assert_tracked_params(mock_channel_tracker, task_func, **kwargs):
-    tdi, tri = _get_tracked_task_run_info(mock_channel_tracker, task_func)
-    tdi_params = {tpd.name: tpd for tpd in tdi.task_param_definitions}
-    tri_params = {tp.parameter_name: tp for tp in tri.task_run_params}
-    for name in kwargs.keys():
-        assert name in tdi_params
-
-    for k, v in six.iteritems(kwargs):
-        assert tri_params[k].value == str(v)
-
-
-def _get_tracked_task_run_info(mock_channel_tracker, task_cls):
-    tdi_result, tri_result = None, None
-    for call in mock_channel_tracker.call_args_list:
-        if call.args[0].__name__ == "add_task_runs":
-            for tdi in call.kwargs[
-                "task_runs_info"
-            ].task_definitions:  # type: TaskDefinitionInfo
-                if tdi.name == task_cls.__name__:
-                    tdi_result = tdi
-            for tri in call.kwargs["task_runs_info"].task_runs:  # type: TaskRunInfo
-                if tri.name == task_cls.__name__:
-                    tri_result = tri
-
-            if tdi_result and tri_result:
-                return tdi_result, tri_result
 
 
 @pytest.mark.usefixtures(set_airflow_context.__name__)
@@ -314,43 +274,6 @@ def test_tracking_user_exception(mock_channel_tracker):
     assert [RunState.FAILED] == set_run_state_chain
 
 
-@pytest.mark.usefixtures(set_airflow_context.__name__)
-def test_tracking_pass_through_result_param(pandas_data_frame_on_disk):
-    df, df_file = pandas_data_frame_on_disk
-
-    assert task_pass_through_result_param(result=str(df_file)) == str(df_file)
-
-
-@pytest.mark.usefixtures(set_airflow_context.__name__)
-def test_tracking_pass_through_args_kwargs(pandas_data_frame_on_disk):
-    df, df_file = pandas_data_frame_on_disk
-
-    res = task_pass_through_args_kwargs(str(df_file), data=df, result=str(df_file))
-    assert res["args"] == (str(df_file),)
-    assert len(res["kwargs"]) == 2
-    assert res["kwargs"]["data"] is df
-    assert res["kwargs"]["result"] == str(df_file)
-
-
-@pytest.mark.usefixtures(set_airflow_context.__name__)
-def test_partial_params():
-    param1, param2 = task_in_conf(param2="param2_value")
-    assert param1 == "default_value"
-    assert param2 == "param2_value"
-
-
-@pytest.mark.usefixtures(set_airflow_context.__name__)
-def test_task_in_conf():
-    # in_conf - shouldn't affect anything
-    with config(
-        {"task_in_conf": {"param1": "conf_value", "param2": "conf_value"}},
-        source="test_source",
-    ):
-        param1, param2 = task_in_conf(param2="param2_value")
-        assert param1 == "default_value"
-        assert param2 == "param2_value"
-
-
 def test_dbnd_pass_through_default(pandas_data_frame_on_disk, mock_channel_tracker):
     df, df_file = pandas_data_frame_on_disk
     some_date = utcnow().isoformat()
@@ -401,28 +324,3 @@ def test_dbnd_exception(mock_channel_tracker):
             }
         ),
     )
-
-
-@pytest.mark.usefixtures(set_airflow_context.__name__)
-def test_tracking_limit(mock_channel_tracker):
-    @task
-    def inc_task(x):
-        return x + 1
-
-    max_calls_allowed = get_max_calls_per_func()
-    extra_func_calls = 10
-
-    n = 0
-    for i in range(max_calls_allowed + extra_func_calls):
-        n = inc_task(n)
-
-    # ensure that function was actually invoked all the times (max_calls_allowed + extra_func_calls)
-    assert max_calls_allowed + extra_func_calls == n
-
-    # check that there was only max_calls_allowed "tracked" calls
-    track_call = [
-        x
-        for x in mock_channel_tracker.call_args_list
-        if x.args[0].__name__ == "log_targets"
-    ]
-    assert max_calls_allowed == len(track_call)

@@ -14,7 +14,12 @@ from pytest import fixture
 import dbnd
 import dbnd._core.utils.basics.environ_utils
 
-from dbnd import get_dbnd_project_config, register_config_cls, register_task
+from dbnd import (
+    dbnd_tracking_stop,
+    get_dbnd_project_config,
+    register_config_cls,
+    register_task,
+)
 from dbnd._core.configuration.environ_config import reset_dbnd_project_config
 from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
 from dbnd.testing.test_config_setter import add_test_configuration
@@ -124,13 +129,3 @@ def numpy_array():
 @fixture
 def partitioned_data_target_date():
     return datetime.date(year=2018, month=9, day=3)
-
-
-@pytest.fixture
-def set_tracking_context():
-    try:
-        reset_dbnd_project_config()
-        get_dbnd_project_config()._dbnd_tracking = True
-        yield
-    finally:
-        reset_dbnd_project_config()

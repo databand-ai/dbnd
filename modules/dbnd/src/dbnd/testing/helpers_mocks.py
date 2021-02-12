@@ -3,9 +3,23 @@ import pytest
 from mock import patch
 
 from dbnd import dbnd_tracking_stop
-from dbnd._core.configuration.environ_config import reset_dbnd_project_config
+from dbnd._core.configuration.environ_config import (
+    get_dbnd_project_config,
+    reset_dbnd_project_config,
+)
 from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.utils.timezone import utcnow
+
+
+@pytest.fixture
+def set_tracking_context():
+    try:
+        reset_dbnd_project_config()
+        get_dbnd_project_config()._dbnd_tracking = True
+        yield
+    finally:
+        dbnd_tracking_stop()
+        reset_dbnd_project_config()
 
 
 @pytest.fixture
