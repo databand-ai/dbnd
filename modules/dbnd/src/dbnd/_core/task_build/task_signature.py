@@ -1,7 +1,7 @@
 import hashlib
 import re
 
-from collections import namedtuple
+import attr
 
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.traversing import flatten, traverse_frozen_set
@@ -13,7 +13,12 @@ TASK_ID_INCLUDE_PARAMS = 3
 TASK_ID_TRUNCATE_PARAMS = 16
 TASK_ID_INVALID_CHAR_REGEX = re.compile(r"[^A-Za-z0-9_.]")
 
-Signature = namedtuple("Signature", ["id", "signature", "signature_source"])
+
+@attr.s
+class Signature(object):
+    name = attr.ib()  # type: str
+    signature = attr.ib()  # type: str
+    signature_source = attr.ib()  # type: str
 
 
 def task_params_short(params):
@@ -49,25 +54,18 @@ def build_signature(name, params, extra=None):
     param_str = json_utils.dumps_canonical(signature_dict)
 
     signature = user_friendly_signature(param_str)
-    task_id = "{}__{}".format(name, signature)
 
-    return Signature(id=task_id, signature=signature, signature_source=param_str)
+    return Signature(name=name, signature=signature, signature_source=param_str)
 
 
 def build_signature_from_values(name, struct):
     values = set([str(value) for value in flatten(struct)])
     signature_str = "|".join(sorted(values))
     signature = hashlib.md5(signature_str.encode("utf-8")).hexdigest()
-    return Signature(id=name, signature=signature, signature_source=signature_str)
+    return Signature(name=name, signature=signature, signature_source=signature_str)
 
 
 def user_friendly_signature(str_value):
     hash_md5 = hashlib.md5(str_value.encode("utf-8")).hexdigest()
 
     return hash_md5[:SIGNATURE_ID_TRUNCATE_HASH]
-
-
-def build_user_friendly_signature_from_values(name, struct):
-    sig = build_signature_from_values(name, struct)
-
-    return sig.signature[:SIGNATURE_ID_TRUNCATE_HASH]

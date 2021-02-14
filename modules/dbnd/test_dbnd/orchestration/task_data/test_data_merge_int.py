@@ -1,8 +1,8 @@
 from typing import Any, List
 
 from dbnd import band, output, task
-from dbnd._core.task.data_combine_task import data_combine
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd.utils import data_combine
 
 
 @task

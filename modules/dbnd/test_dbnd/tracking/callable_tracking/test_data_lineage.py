@@ -41,5 +41,5 @@ class TestDataLineageTracking(object):
     def test_simple_type_tracking(self):
         task_3_wire_with_str("test_input")
 
-    # def test_df(self, pandas_data_frame):
-    #     result = task_3_wire_with_df(pandas_data_frame)
+    def test_df(self, pandas_data_frame):
+        task_3_wire_with_df(pandas_data_frame)

@@ -1,6 +1,6 @@
 from dbnd._core.constants import TaskEssence
 from dbnd._core.errors.base import ConfigLookupError
-from dbnd._core.task.base_task import _TaskWithParams
+from dbnd._core.task.task_with_params import _TaskWithParams
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 
 

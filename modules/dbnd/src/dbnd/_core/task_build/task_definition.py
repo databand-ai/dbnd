@@ -10,6 +10,7 @@ from six import iteritems
 
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.config_value import ConfigValuePriority
+from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import RESULT_PARAM
 from dbnd._core.decorator.func_params_builder import FuncParamsBuilder
 from dbnd._core.decorator.schemed_result import FuncResultParameter
@@ -19,6 +20,7 @@ from dbnd._core.parameter.parameter_definition import (
     _ParameterKind,
 )
 from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_build.task_signature import user_friendly_signature
 from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCode
 from dbnd._core.utils.basics.nothing import is_defined
 from dbnd._core.utils.structures import combine_mappings
@@ -130,6 +132,14 @@ class TaskDefinition(object):
             config_values=self.defaults,
             priority=ConfigValuePriority.FALLBACK,
         )
+
+        self.task_signature_extra = {}
+        if config.getboolean("task_build", "sign_with_full_qualified_name"):
+            self.task_signature_extra["full_task_family"] = self.full_task_family
+        if config.getboolean("task_build", "sign_with_task_code"):
+            self.task_signature_extra["task_code_hash"] = user_friendly_signature(
+                self.source_code.task_source_code
+            )
 
     def _calculate_task_class_values(self, classdict, decorator_spec):
         # type: (Dict, _TaskDecoratorSpec) -> Dict[str, ParameterDefinition]

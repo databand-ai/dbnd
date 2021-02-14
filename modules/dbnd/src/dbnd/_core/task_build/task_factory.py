@@ -16,12 +16,7 @@ from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriority
 from dbnd._core.configuration.pprint_config import pformat_current_config
-from dbnd._core.constants import (
-    RESULT_PARAM,
-    ParamValidation,
-    TaskEssence,
-    _TaskParamContainer,
-)
+from dbnd._core.constants import RESULT_PARAM, ParamValidation, _TaskParamContainer
 from dbnd._core.current import get_databand_context
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
@@ -56,7 +51,7 @@ if typing.TYPE_CHECKING:
     from typing import Type, Any, List, Optional
     from dbnd._core.configuration.dbnd_config import DbndConfig
     from dbnd._core.settings import EnvConfig
-    from dbnd._core.task.base_task import _TaskWithParams
+    from dbnd._core.task.task_with_params import _TaskWithParams
 
 TASK_BAND_PARAMETER_NAME = "task_band"
 logger = logging.getLogger(__name__)
@@ -292,9 +287,7 @@ class TaskFactory(object):
 
         return sections
 
-    def _calculate_task_params_signature(self, task_params):
-        # type: (Parameters) -> Signature
-        params = task_params.get_params_signatures(ParameterFilters.SIGNIFICANT_INPUTS)
+    def _get_override_params_signature(self):
         override_signature = {}
         for p_obj, p_val in six.iteritems(self.task_config_override):
             if isinstance(p_obj, ParameterDefinition):
@@ -309,18 +302,7 @@ class TaskFactory(object):
                 override_key = str(p_obj)
                 override_value = str(p_val)
             override_signature[override_key] = override_value
-
-        params.append(("task_override", override_signature))
-
-        # task schema id is unique per Class definition.
-        # so if we have new implementation - we will not a problem with rerunning it
-        full_task_name = "%s@%s(object=%s)" % (
-            self.task_name,
-            self.task_definition.full_task_family,
-            str(id(self.task_definition)),
-        )
-
-        return build_signature(name=full_task_name, params=params)
+        return override_signature
 
     def build_task_object(self, task_metaclass):
         databand_context = get_databand_context()
@@ -356,29 +338,56 @@ class TaskFactory(object):
         if not self.task_cls._conf__no_child_params:
             self.build_and_apply_task_children_config(task_params=task_params)
 
-        obj_key = self._calculate_task_params_signature(task_params)
-        self._log_build_step("Task id %s" % str(obj_key))
+        params = task_params.get_params_signatures(ParameterFilters.SIGNIFICANT_INPUTS)
 
-        if TaskEssence.ORCHESTRATION.is_instance(self.task_cls):
-            pass
+        # we add override to Object Cache signature
+        override_signature = self._get_override_params_signature()
+        # task schema id is unique per Class definition.
+        # so if we have new implementation - we will not a problem with rerunning it
+        full_task_name = "%s@%s(object=%s)" % (
+            self.task_name,
+            self.task_definition.full_task_family,
+            str(id(self.task_definition)),
+        )
+
+        # now we don't know the real signature - so we calculate signature based on all known params
+        cache_object_signature = build_signature(
+            name=full_task_name,
+            params=params,
+            extra={"task_override": override_signature},
+        )
+        self._log_build_step(
+            "Task task_signature %s" % str(cache_object_signature.signature)
+        )
 
         # If a Task has already been instantiated with the same parameters,
         # the previous instance is returned to reduce number of object instances.
         tic = databand_context.task_instance_cache
-        cached_task_object = tic.get_task_obj_by_id(obj_key.id)
+        cached_task_object = tic.get_cached_task_obj(cache_object_signature)
         if cached_task_object and not hasattr(cached_task_object, "_dbnd_no_cache"):
             return cached_task_object
+
+        # we want to have task id immediately, so we can initialize outputs/use by user
+        # we should switch to SIGNIFICANT_INPUT here
+        task_signature_obj = build_signature(
+            name=self.task_name,
+            params=params,
+            extra=self.task_definition.task_signature_extra,
+        )
 
         task = task_metaclass._build_task_obj(
             task_definition=self.task_definition,
             task_name=self.task_name,
             task_params=task_params,
+            task_signature_obj=task_signature_obj,
             task_config_override=self.task_config_override,
             task_config_layer=self.config.config_layer,
             task_enabled=self.task_enabled,
             task_sections=self.config_sections,
         )
-        tic.register_task_obj_instance(obj_key, task)
+        tic.register_task_obj_cache_instance(
+            task, task_obj_cache_signature=cache_object_signature
+        )
 
         task.task_call_source = [
             databand_context.user_code_detector.find_user_side_frame(2)

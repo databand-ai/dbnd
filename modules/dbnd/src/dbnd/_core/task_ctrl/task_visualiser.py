@@ -318,7 +318,8 @@ class _TaskBannerBuilder(TaskSubCtrl):
         )
         self.banner.new_section()
 
-        self.banner.column("TASK_BAND", self.task.task_band)
+        task = self.task
+        self.banner.column("TASK_BAND", task.task_band)
         self.banner.column(
             "OUTPUTS USER", self.banner.f_io(self.relations.task_outputs_user)
         )
@@ -327,10 +328,19 @@ class _TaskBannerBuilder(TaskSubCtrl):
         )
         self.banner.write("\n")
 
-        self.banner.column("SIGNATURE SOURCE", self.task.task_signature_source)
-        self.banner.column(
-            "TASK OUTPUTS SIGNATURE SOURCE", self.task.task_outputs_signature_source,
-        )
+        self.banner.column("SIGNATURE", task.task_signature_obj.signature)
+        self.banner.column("SIGNATURE SOURCE", task.task_signature_obj.signature_source)
+        if (
+            task.task_outputs_signature_obj
+            and task.task_outputs_signature_obj != task.task_signature_obj
+        ):
+            self.banner.column(
+                "TASK OUTPUTS SIGNATURE", task.task_outputs_signature_obj.signature
+            )
+            self.banner.column(
+                "TASK OUTPUTS SIGNATURE SOURCE",
+                task.task_outputs_signature_obj.signature_source,
+            )
 
     def _add_task_band_info(self):
         self.banner.new_section()

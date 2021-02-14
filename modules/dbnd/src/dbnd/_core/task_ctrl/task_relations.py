@@ -7,6 +7,10 @@ from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.friendly_error import _band_call_str
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
+from dbnd._core.task_build.task_signature import (
+    build_signature,
+    build_signature_from_values,
+)
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.nothing import is_not_defined
@@ -81,8 +85,18 @@ class TaskRelations(TaskSubCtrl):
 
             params.append(("_task_inputs", task_inputs_as_str))
 
+        # IMPORTANT PART: we initialize task_id here again
+        # after all values are calculated (all task_inputs are assigned)
         # we do it again, now we have all inputs calculated
-        self.task.initialize_task_id(params)
+        task = self.task
+        task.task_signature_obj = build_signature(
+            name=task.task_name,
+            params=params,
+            extra=task.task_definition.task_signature_extra,
+        )
+        task.task_id = "{}__{}".format(
+            task.task_name, task.task_signature_obj.signature
+        )
 
         # for airflow operator task handling:
         airflow_task_id_p = self.params.get_param("airflow_task_id")
@@ -92,7 +106,12 @@ class TaskRelations(TaskSubCtrl):
         # STEP 3  - now let update outputs
         self.initialize_outputs()
 
-        self.task.initialize_task_output_id(self._get_outputs_to_sign())
+        outputs_sig = self._get_outputs_to_sign()
+        if outputs_sig:
+            sig = build_signature_from_values("task_outputs", outputs_sig)
+            task.task_outputs_signature_obj = sig
+        else:
+            task.task_outputs_signature_obj = task.task_signature_obj
 
     def _get_outputs_to_sign(self):
         outputs_to_sign = self.task_outputs_user

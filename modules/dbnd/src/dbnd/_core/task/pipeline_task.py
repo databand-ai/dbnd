@@ -1,7 +1,7 @@
 import abc
 
 from dbnd._core.constants import TaskType
-from dbnd._core.task.data_task import Task
+from dbnd._core.task.task import Task
 
 
 class PipelineTask(Task):

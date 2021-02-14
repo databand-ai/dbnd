@@ -25,6 +25,7 @@ from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task_build.task_definition import TaskDefinition, _ordered_params
 from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_build.task_signature import Signature, user_friendly_signature
 from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.task_ctrl.task_ctrl import TrackingTaskCtrl
 from dbnd._core.task_ctrl.task_output_builder import windows_drive_re
@@ -32,6 +33,7 @@ from dbnd._core.task_ctrl.task_relations import traverse_and_set_target
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.timezone import utcnow
+from dbnd._core.utils.uid_utils import get_uuid
 from targets import target
 from targets.target_config import folder
 from targets.utils.path import no_trailing_slash
@@ -41,6 +43,12 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
 
 logger = logging.getLogger(__name__)
+
+
+def _generate_unique_tracking_signature():
+    return Signature(
+        "tracking", user_friendly_signature(str(get_uuid())), "unique tracking call"
+    )
 
 
 class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
@@ -106,35 +114,49 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
             task_params=task_params,
         )
 
-    def __init__(self, task_name, task_definition, task_params):
-
+    def __init__(
+        self,
+        task_name,
+        task_definition,
+        task_params,
+        task_signature_obj=None,
+        task_version=None,
+    ):
+        task_signature_obj = task_signature_obj or _generate_unique_tracking_signature()
         super(TrackingTask, self).__init__(
             task_name=task_name or task_definition.task_family,
             task_definition=task_definition,
+            task_signature_obj=task_signature_obj,
             task_params=task_params,
         )
-
         task_definition.task_param_defs = _ordered_params(
             {param.name: param for param in task_params.get_params()}
         )
 
-        self.task_definition = task_definition
+        self.task_definition = task_definition  # type: TaskDefinition
+        # we don't have signature for outputs
+        self.task_outputs_signature_obj = self.task_signature_obj
         self.ctrl = TrackingTaskCtrl(self)
-
-        # replace the appropriate parameters in the Task
-        self.task_version = utcnow().strftime("%Y%m%d_%H%M%S")
-        self.task_target_date = utcnow().date()
-        self.task_env = get_databand_context().env
 
         self.task_call_source = [
             self.dbnd_context.user_code_detector.find_user_side_frame(1)
         ]
+        parent_task = try_get_current_task()
+        if parent_task:
+            parent_task.descendants.add_child(self.task_id)
+            self.task_call_source.extend(parent_task.task_call_source)
+
+            # inherit from parent if it has it
+            self.task_version = task_version or parent_task.task_version
+            self.task_target_date = parent_task.task_target_date
+            self.task_env = parent_task.task_env
+        else:
+            # we need better definition of "what we use for tracking"
+            self.task_version = task_version or utcnow().strftime("%Y%m%d_%H%M%S")
+            self.task_target_date = utcnow().date()
+            self.task_env = get_databand_context().env
 
         self.task_outputs = dict()
-        self.initialize_task_id(
-            self.task_params.get_params_signatures(ParameterFilters.SIGNIFICANT_INPUTS)
-        )
-
         for parameter, value in self._params.get_params_with_value(
             ParameterFilters.OUTPUTS
         ):
@@ -146,14 +168,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
             value = traverse_and_set_target(value, parameter._target_source(self))
             self.task_outputs[parameter.name] = value
 
-        out_params = self._params.get_params_with_value(ParameterFilters.OUTPUTS)
-        self.initialize_task_output_id(out_params)
         self.ctrl._initialize_task()
-
-        parent_task = try_get_current_task()
-        if parent_task:
-            parent_task.descendants.add_child(self.task_id)
-            self.task_call_source.extend(parent_task.task_call_source)
 
         # so we can be found via task_id
         self.dbnd_context.task_instance_cache.register_task_instance(self)

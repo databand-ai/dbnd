@@ -41,8 +41,12 @@ class TestTaskFactory(object):
         with new_dbnd_context(
             conf={"task_build": {"sign_with_full_qualified_name": "True"}}
         ):
-            task = TTask()
-            assert str(TTask.__module__) in task.task_signature_source
+            # we need to recreate task definition with TTaskSigChange=True
+            class TTaskSigChange(TTask):
+                pass
+
+            task = TTaskSigChange()
+            assert str(TTaskSigChange.__module__) in task.task_signature_source
 
     def test_task_call_source_class(self):
         task = TTask()

@@ -24,8 +24,8 @@ from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.settings.env import EnvConfig
-from dbnd._core.task.base_task import _TaskWithParams
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
+from dbnd._core.task.task_with_params import _TaskWithParams
 from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
 from dbnd._core.task_ctrl.task_output_builder import calculate_path
 from dbnd._core.utils.basics.nothing import NOTHING
