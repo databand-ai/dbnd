@@ -231,7 +231,6 @@ def build_task_run_info(task_run):
     task_dag = t.ctrl.task_dag
     log_local, log_remote = task_run._get_log_files()
 
-    task_params_values = dict(t._params.get_params_serialized())
     task_run_params = []
     for param_meta in t.task_params.get_param_values():
         if isinstance(param_meta.parameter, FuncResultParameter):

@@ -1,6 +1,9 @@
+import logging
+
 import mock
 import pytest
 
+from dbnd import get_dbnd_project_config
 from dbnd.testing.helpers_mocks import set_airflow_context, set_tracking_context
 
 
@@ -19,3 +22,15 @@ def mock_channel_tracker():
         "dbnd._core.tracking.backends.tracking_store_channels.TrackingStoreThroughChannel._m"
     ) as mock_store:
         yield mock_store
+
+
+@pytest.fixture
+def set_verbose_mode():
+    logging.info("Setting verbose mode for unittest")
+    project_config = get_dbnd_project_config()
+    origin_verbose = project_config._verbose
+    try:
+        project_config._verbose = True
+        yield True
+    finally:
+        project_config._verbose = origin_verbose

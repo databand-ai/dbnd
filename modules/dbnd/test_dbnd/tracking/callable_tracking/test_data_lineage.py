@@ -35,7 +35,7 @@ def task_3_wire_with_df(df):
 
 class TestDataLineageTracking(object):
     @fixture(autouse=True)
-    def _tracking_context(self, set_tracking_context):
+    def _tracking_context(self, set_tracking_context, set_verbose_mode):
         pass
 
     def test_simple_type_tracking(self):

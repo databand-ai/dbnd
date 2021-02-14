@@ -27,15 +27,19 @@ class CompositeTrackingStore(TrackingStore):
                     res = handler_res
 
             except TrackerRecoverError as ex:
-                logger.warning(
-                    "Failed to store tracking information from %s at %s : %s."
-                    % (name, str(store), str(ex))
+                log_exception(
+                    "Failed to store tracking information from %s at %s"
+                    % (name, str(store)),
+                    ex,
+                    non_critical=True,
                 )
 
             except TrackerPanicError as ex:
-                logger.error(
-                    "Failed to store tracking information from %s at %s : %s."
-                    % (name, str(store), str(ex))
+                log_exception(
+                    "Failed to store tracking information from %s at %s"
+                    % (name, str(store)),
+                    ex,
+                    non_critical=True,
                 )
 
                 if self._remove_failed_store:
