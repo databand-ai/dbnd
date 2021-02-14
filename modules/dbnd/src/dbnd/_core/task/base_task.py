@@ -54,6 +54,7 @@ class _BaseTask(object):
         task_params,  # type: Parameters
     ):
         super(_BaseTask, self).__init__()
+        self.task_definition = task_definition
         self.task_params = task_params
         self.task_name = task_name  # type: str
 

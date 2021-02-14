@@ -1,11 +1,12 @@
 import inspect
 import logging
 
-from typing import Optional
+from typing import Callable, Optional, Type
 
 import attr
 
 from dbnd._core.errors.errors_utils import UserCodeDetector
+from dbnd._core.task.base_task import _BaseTask
 
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ class TaskSourceCode(object):
 
     @classmethod
     def from_callable(cls, callable):
+        # type: (Callable) -> TaskSourceCode
         task_source_code = _get_source_code(callable)
         task_module_code = _get_module_source_code(callable)
         task_source_file = _get_source_file(callable)
@@ -30,16 +32,32 @@ class TaskSourceCode(object):
         )
 
     @classmethod
-    def from_class(cls, task_class):
-        task_source_code = _get_source_code(task_class)
-        task_module_code = _get_module_source_code(task_class)
-        task_source_file = _get_source_file(task_class.__class__)
+    def from_class(cls, class_obj):
+        # type: (type) -> TaskSourceCode
+        task_source_code = _get_source_code(class_obj)
+        task_module_code = _get_module_source_code(class_obj)
+        task_source_file = _get_source_file(class_obj.__class__)
 
         return TaskSourceCode(
             task_source_code=task_source_code,
             task_module_code=task_module_code,
             task_source_file=task_source_file,
         )
+
+    @classmethod
+    def from_task_class(cls, task_class):
+        # type: (Type[_BaseTask]) -> TaskSourceCode
+        if task_class._conf__track_source_code:
+            if (
+                hasattr(task_class, "_conf__decorator_spec")
+                and task_class._conf__decorator_spec
+            ):
+                # this means we are inside a task_class of decorated function
+                return cls.from_callable(task_class._conf__decorator_spec.item)
+            else:
+                return cls.from_class(task_class)
+        else:
+            return NO_SOURCE_CODE
 
     @classmethod
     def from_callstack(cls):

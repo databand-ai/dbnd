@@ -335,7 +335,7 @@ def try_pop_attempt_id_from_env(task):
     """
     if task.task_family == AIRFLOW_TRACKING_ROOT_TASK_NAME:
         key = calc_task_run_attempt_key_from_dbnd_task(
-            task.task_params.get_value("dag_id"), task.task_family
+            task.task_params.get_value("dag_id"), task.task_name
         )
         attempt_id = os.environ.get(key, None)
         if attempt_id:

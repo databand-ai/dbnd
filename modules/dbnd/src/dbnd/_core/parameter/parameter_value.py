@@ -121,7 +121,7 @@ class Parameters(object):
         return pv
 
     def update_param_value(self, param_name, value):
-        self.get_param_value_safe(param_name).update_value(value)
+        self.get_param_value_safe(param_name).update_param_value(value)
 
     def get_param_value(self, param_name):  # type: (str) -> Optional[ParameterValue]
         return self._param_values_map.get(param_name, None)
@@ -160,7 +160,7 @@ class Parameters(object):
         return result
 
     def get_params(self, param_filter=None):
-        # type: (Optional[ParameterFilter])-> Iterable[ParameterDefinition]
+        # type: (Optional[ParameterFilter])-> List[ParameterDefinition]
         return [pv.parameter for pv in self._filter_params(param_filter=param_filter)]
 
     def get_param_values(self, param_filter=None):

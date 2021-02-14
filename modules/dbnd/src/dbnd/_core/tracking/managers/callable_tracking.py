@@ -23,14 +23,16 @@ from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec, args_to_kwargs
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
-from targets import InMemoryTarget
+from targets import InMemoryTarget, Target
 from targets.value_meta import ValueMetaConf
 from targets.values import get_value_type_of_obj
 
@@ -79,13 +81,9 @@ class CallableTrackingManager(object):
         return self._tracking_task_definition
 
     def _build_tracking_task_definition(self):
-        task_passport = TaskPassport.from_func_spec(self.func_spec)
-        td = TaskDefinition.from_decorated_func(
-            func_spec=self.func_spec,
-            defaults=self.task_defaults,
-            task_passport=task_passport,
+        return TaskDefinition.from_func_spec(
+            func_spec=self.func_spec, defaults=self.task_defaults,
         )
-        return td
 
     def _call_count_limit_exceeded(self):
         if not self._call_as_func:
@@ -227,8 +225,10 @@ def _log_inputs(task_run):
     """
     try:
         params = task_run.task._params
-        for param, value in params.get_params_with_value(ParameterFilters.INPUTS):
-            if isinstance(value, InMemoryTarget):
+        for param_value in params.get_param_values(ParameterFilters.INPUTS):
+            param, value = param_value.parameter, param_value.value
+
+            if isinstance(param_value, InMemoryTarget):
                 try:
                     param = param.modify(
                         value_meta_conf=ValueMetaConf(
@@ -238,8 +238,8 @@ def _log_inputs(task_run):
 
                     task_run.tracker.log_parameter_data(
                         parameter=param,
-                        target=value,
-                        value=value._obj,
+                        target=param_value,
+                        value=value,
                         operation_type=DbndTargetOperationType.read,
                         operation_status=DbndTargetOperationStatus.OK,
                     )
@@ -256,41 +256,49 @@ def _log_inputs(task_run):
 
 
 def _log_result(task_run, result):
+    # type: (TaskRun, Any) -> None
     """
     For tracking mode. Logs the task result and adds it to the target_origin map to support relationships between
     dynamic tasks.
     """
     try:
-        task_result_parameter = task_run.task._params.get_param(RESULT_PARAM)
-        if not task_result_parameter:
+        result_param = task_run.task.task_params.get_param_value(RESULT_PARAM)
+        if not result_param:
             logger.debug(
                 "No result params to log for task {}".format(task_run.task_af_id)
             )
             return
 
+        # we now the parameter value is a target because this is an output param
+        # the target is created in the task creation
+        result_param_def, result_target = result_param.parameter, result_param.value
+
         # spread result into relevant fields.
-        if isinstance(task_result_parameter, FuncResultParameter):
+        if isinstance(result_param_def, FuncResultParameter):
             # assign all returned values to relevant band Outputs
             if result is None:
                 return
 
-            for r_name, value in task_result_parameter.named_results(result):
-                param = task_run.task._params.get_param(r_name)
+            for result_name, value in result_param_def.named_results(result):
+                # we now the parameter value is a target because this is an output param
+                # the target is created in the task creation
+                parameter_value = task_run.task.task_params.get_param_value(result_name)
 
                 _log_parameter_value(
                     task_run,
-                    parameter_definition=param,
-                    target=task_run.task._params.get_value(r_name),
+                    parameter_definition=parameter_value.parameter,
+                    target=parameter_value.value,
                     value=value,
                 )
-        else:
 
+        else:
             _log_parameter_value(
                 task_run,
-                parameter_definition=task_result_parameter,
-                target=task_run.task.task_params.get_value(RESULT_PARAM),
+                parameter_definition=result_param_def,
+                target=result_target,
                 value=result,
             )
+
     except Exception as ex:
         log_exception(
             "Failed to log result to tracking store.", ex=ex, non_critical=True
@@ -298,9 +306,10 @@ def _log_result(task_run, result):
 
 
 def _log_parameter_value(task_run, parameter_definition, target, value):
+    # type: (TaskRun, ParameterDefinition, Target, Any) -> None
     # make sure it will be logged correctly
     parameter_definition = parameter_definition.modify(
-        value_meta_conf=ValueMetaConf(log_preview=True, log_schema=True,)
+        value_meta_conf=ValueMetaConf(log_preview=True, log_schema=True)
     )
 
     try:

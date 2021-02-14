@@ -3,7 +3,7 @@ import os
 import typing
 
 from itertools import chain
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
 import six
 
@@ -14,8 +14,10 @@ from dbnd._core.current import (
     try_get_current_task,
 )
 from dbnd._core.decorator.schemed_result import FuncResultParameter
-from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
+from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec, args_to_kwargs
 from dbnd._core.parameter import build_user_parameter_value
+from dbnd._core.parameter.parameter_builder import parameter
+from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import (
     ParameterFilters,
     Parameters,
@@ -23,7 +25,7 @@ from dbnd._core.parameter.parameter_value import (
 )
 from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
-from dbnd._core.task_build.task_definition import TaskDefinition, _ordered_params
+from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_signature import Signature, user_friendly_signature
 from dbnd._core.task_build.task_source_code import TaskSourceCode
@@ -31,10 +33,11 @@ from dbnd._core.task_ctrl.task_ctrl import TrackingTaskCtrl
 from dbnd._core.task_ctrl.task_output_builder import windows_drive_re
 from dbnd._core.task_ctrl.task_relations import traverse_and_set_target
 from dbnd._core.utils.basics.memoized import cached
-from dbnd._core.utils.basics.nothing import NOTHING
+from dbnd._core.utils.basics.nothing import NOTHING, is_not_defined
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
-from targets import target
+from targets import InMemoryTarget, target
+from targets.base_target import TargetSource
 from targets.target_config import folder
 from targets.utils.path import no_trailing_slash
 
@@ -68,44 +71,59 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
     @classmethod
     def for_func(cls, task_definition, task_args, task_kwargs, task_name=None):
         # type: (Type[TrackingTask], TaskDefinition, List[Any], Dict[str,Any], str) -> TrackingTask
+        """
+        Creating the task for a decorated function.
+        We use pre-created definition for the function definition.
+
+        Here we create the tasks params from runtime input
+        """
         param_values = build_func_parameter_values(
             task_definition, task_args, task_kwargs
         )
-
         # we need to add RESULT param
         if RESULT_PARAM in task_definition.task_param_defs:
-            parameter = task_definition.task_param_defs[RESULT_PARAM]
-            result_param_value = ParameterValue(
-                parameter=parameter,
-                source=task_definition.full_task_family_short,
-                source_value=None,
-                value=NOTHING,
-                parsed=False,
+            param = task_definition.task_param_defs[RESULT_PARAM]
+            result_param_value = build_result_param(
+                task_definition.task_passport, param_def=param
             )
             param_values.append(result_param_value)
 
+        task_params = Parameters(source="tracking_task", param_values=param_values)
+
         return cls(
-            task_name=task_name,
+            task_name=task_name or task_definition.task_family,
             task_definition=task_definition,
-            task_params=Parameters(source="tracking_task", param_values=param_values),
+            task_params=task_params,
         )
 
     @classmethod
-    def for_user_params(cls, task_name, user_params, task_passport, source_code=None):
-        # type: (Type[TrackingTask], str, Dict[str,Any], TaskPassport, TaskSourceCode) -> TrackingTask
-
-        task_definition = TaskDefinition(
-            task_passport=task_passport, source_code=source_code
-        )
-
+    def for_user_params(
+        cls, task_name, user_params, task_passport, source_code=None, result=True
+    ):
+        # type: (Type[TrackingTask], str, Dict[str,Any], TaskPassport, TaskSourceCode, Optional[bool]) -> TrackingTask
+        """
+        Creating a customize task from the required params.
+        Here we build the params from runtime values and use them to build the task definition.
+        """
         param_values = []
         for key, value in six.iteritems(user_params):
             p = build_user_parameter_value(
-                name=key, value=value, source=task_definition.full_task_family_short
+                name=key, value=value, source=task_passport.full_task_family_short
             )
             param_values.append(p)
+
+        if result:
+            result_param_value = build_result_param(task_passport)
+            param_values.append(result_param_value)
+
         task_params = Parameters(
-            source=task_definition.full_task_family_short, param_values=param_values
+            source=task_passport.full_task_family_short, param_values=param_values
+        )
+
+        task_definition = TaskDefinition(
+            task_passport=task_passport,
+            source_code=source_code,
+            external_parameters=task_params,
         )
 
         return cls(
@@ -123,14 +141,12 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         task_version=None,
     ):
         task_signature_obj = task_signature_obj or _generate_unique_tracking_signature()
+
         super(TrackingTask, self).__init__(
-            task_name=task_name or task_definition.task_family,
+            task_name=task_name,
             task_definition=task_definition,
             task_signature_obj=task_signature_obj,
             task_params=task_params,
-        )
-        task_definition.task_param_defs = _ordered_params(
-            {param.name: param for param in task_params.get_params()}
         )
 
         self.task_definition = task_definition  # type: TaskDefinition
@@ -160,6 +176,10 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         for parameter, value in self._params.get_params_with_value(
             ParameterFilters.OUTPUTS
         ):
+            if is_not_defined(value):
+                value_as_target = self.build_tracking_output(parameter)
+                task_params.update_param_value(parameter.name, value_as_target)
+
             if isinstance(parameter, FuncResultParameter):
                 continue
 
@@ -172,6 +192,14 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
 
         # so we can be found via task_id
         self.dbnd_context.task_instance_cache.register_task_instance(self)
+
+    def build_tracking_output(self, p):
+        return InMemoryTarget(
+            path="memory://{value_type}:{task}.{p_name}".format(
+                value_type=p.value_type, task=self.task_id, p_name=p.name
+            ),
+            source=TargetSource(task_id=self.task_id, parameter_name=p.name),
+        )
 
     def get_task_family(self):
         return self.task_definition.task_family
@@ -228,21 +256,47 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         return None
 
 
+def build_result_param(task_passport, param_def=None):
+    # type: (TaskPassport, Optional[ParameterDefinition]) -> ParameterValue
+    """
+    Build results parameter for the task definition, if parameter definition is not specify it will build a naive one.
+    """
+
+    if not param_def:
+        from targets.values import ObjectValueType
+
+        # naive creation of result param definition - named "result" and single value
+        param_def = parameter.modify(
+            name=RESULT_PARAM, value_type=ObjectValueType
+        ).output.build_parameter("inline")
+
+    return ParameterValue(
+        parameter=param_def,
+        source=task_passport.full_task_family_short,
+        source_value=None,
+        value=NOTHING,
+        parsed=False,
+    )
+
+
 def build_func_parameter_values(task_definition, task_args, task_kwargs):
+    # type: (TaskDefinition, List[Any], Dict[str, Any]) -> List[ParameterValue]
     """
     In tracking task we need to build params without definitions.
     Those params value need no calculations and therefore are very easy to construct
     """
 
-    task_args, task_kwargs = args_to_kwargs(
+    # convert any arg to kwarg if possible
+    _, task_kwargs = args_to_kwargs(
         task_definition.func_spec.args, task_args, task_kwargs
     )
 
-    args = ((str(i), value) for i, value in enumerate(task_args))
+    # todo: solve the problem with *args
+    # args = ((str(i), value) for i, value in enumerate(task_args))
     kwargs = six.iteritems(task_kwargs)
 
     values = []
-    for name, value in chain(args, kwargs):
+    for name, value in kwargs:
         param_value = build_user_parameter_value(
             name, value, source=task_definition.full_task_family_short
         )

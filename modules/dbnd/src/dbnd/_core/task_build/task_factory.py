@@ -566,6 +566,18 @@ class TaskFactory(object):
             )
 
     def _build_and_validate_task_ctor_kwargs(self, task_args, task_kwargs):
+        """
+        validate is required to handle with parameters with no definition
+
+        this can be caused by function declaration:
+        >>> def func(element, *args, k=None, **kwargs): ...
+
+        this cal will create undefined handle for the args
+         >>> func(1, problem_1,problem_2 ...)
+
+        this cal will create undefined handle for the kwargs
+        >>> func(1, s=value)
+        """
         param_names = set(self.task_definition.task_param_defs)
         has_varargs = False
         has_varkwargs = False
@@ -577,8 +589,8 @@ class TaskFactory(object):
             has_varargs = self.task_cls._conf__decorator_spec.varargs
             has_varkwargs = self.task_cls._conf__decorator_spec.varkw
 
-        # now we should not have any args, we don't know how to assign them
         if task_args and not has_varargs:
+            # we should not have any args, so we don't know how to assign them
             raise friendly_error.unknown_args_in_task_call(
                 self.parent_task,
                 self.task_cls,

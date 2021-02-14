@@ -2,7 +2,7 @@ import logging
 import typing
 
 from collections import OrderedDict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import six
 
@@ -19,6 +19,7 @@ from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
     _ParameterKind,
 )
+from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_signature import user_friendly_signature
 from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCode
@@ -39,26 +40,18 @@ def _ordered_params(x):
 
 class TaskDefinition(object):
     """
-    This task represents Task Definition
-
+    TaskDefinition contains all the information gathered and calculated, previous to the task creation.
     """
 
     @classmethod
     def from_task_cls(cls, task_class, classdict):
-        base_task_definitions = get_base_task_definitions(task_class)
+        """
+        Creating the task definition for a task defined as a class or orchestration decorated task
+        This is getting called from the creation of the class itself (by the meta-class)
+        """
 
-        if task_class._conf__track_source_code:
-            if (
-                hasattr(task_class, "_conf__decorator_spec")
-                and task_class._conf__decorator_spec
-            ):
-                source_code = TaskSourceCode.from_callable(
-                    task_class._conf__decorator_spec.item
-                )
-            else:
-                source_code = TaskSourceCode.from_class(task_class)
-        else:
-            source_code = NO_SOURCE_CODE
+        # collecting the definitions of the inherited task classes (if any).
+        base_task_definitions = get_base_task_definitions(task_class)
 
         return TaskDefinition(
             classdict=classdict,
@@ -66,28 +59,31 @@ class TaskDefinition(object):
             task_passport=TaskPassport.from_task_cls(task_class),
             defaults=classdict.get("defaults", None),
             func_spec=task_class._conf__decorator_spec,
-            source_code=source_code,
+            source_code=TaskSourceCode.from_task_class(task_class),
         )
 
     @classmethod
-    def from_decorated_func(cls, func_spec, task_passport, defaults):
-        source_code = TaskSourceCode.from_callable(func_spec.item)
-
+    def from_func_spec(cls, func_spec, defaults):
+        """
+        Creating the task definition from a decorated function.
+        This requires the information collected on the function signature
+        """
         return TaskDefinition(
-            task_passport=task_passport,
+            task_passport=TaskPassport.from_func_spec(func_spec),
             defaults=defaults,
             func_spec=func_spec,
-            source_code=source_code,
+            source_code=TaskSourceCode.from_callable(func_spec.item),
         )
 
     def __init__(
         self,
-        task_passport,
-        classdict=None,
-        base_task_definitions=None,
-        defaults=None,
-        func_spec=None,
-        source_code=None,
+        task_passport,  # type: TaskPassport
+        classdict=None,  # type: Optional[Dict[str, Any]]
+        base_task_definitions=None,  # type: Optional[List[TaskDefinition]]
+        defaults=None,  # type: Optional[Dict[ParameterDefinition, Any]]
+        func_spec=None,  # type: Optional[_TaskDecoratorSpec]
+        source_code=None,  # type: Optional[TaskSourceCode]
+        external_parameters=None,  # type: Optional[Parameters]
     ):
         super(TaskDefinition, self).__init__()
 
@@ -113,7 +109,9 @@ class TaskDefinition(object):
         # the defaults attribute
         self.defaults = dict()  # type: Dict[ParameterDefinition, Any]
 
-        self.task_param_defs = self._calculate_task_class_values(classdict, func_spec)
+        self.task_param_defs = self._calculate_task_class_values(
+            classdict, func_spec, external_parameters
+        )
         # if we have output params in function arguments, like   f(some_p=parameter.output)
         # the new function can not return the result of return
         self.single_result_output = self._is_result_single_output(self.task_param_defs)
@@ -141,8 +139,10 @@ class TaskDefinition(object):
                 self.source_code.task_source_code
             )
 
-    def _calculate_task_class_values(self, classdict, decorator_spec):
-        # type: (Dict, _TaskDecoratorSpec) -> Dict[str, ParameterDefinition]
+    def _calculate_task_class_values(
+        self, classdict, decorator_spec, external_parameters
+    ):
+        # type: (Optional[Dict], Optional[_TaskDecoratorSpec], Optional[Parameters]) -> Dict[str, ParameterDefinition]
         # reflect inherited attributes
         params = dict()
         # params will contain definition of param, even it's was overrided by the parent task
@@ -165,13 +165,26 @@ class TaskDefinition(object):
 
             self._update_params_from_attributes(params_dict, params)
 
-        # add parameters config
-        params = {
-            name: param.evolve_with_owner(task_definition=self, name=name)
-            for name, param in six.iteritems(params)
-        }
+        if external_parameters:
+            params.update(
+                {param.name: param for param in external_parameters.get_params()}
+            )
 
-        params = _ordered_params(params)
+        updated_params = {}
+        for name, param in six.iteritems(params):
+            # add parameters config
+            param_with_owner = param.evolve_with_owner(task_definition=self, name=name)
+
+            # updated the owner in the external parameters
+            param_value = external_parameters and external_parameters.get_param_value(
+                name
+            )
+            if param_value:
+                param_value.parameter = param_with_owner
+
+            updated_params[name] = param_with_owner
+
+        params = _ordered_params(updated_params)
         return params
 
     def _calculate_task_defaults(self, defaults):
