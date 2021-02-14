@@ -7,6 +7,17 @@ import requests
 import six
 
 from airflow_monitor.airflow_servers_fetching import AirflowFetchingConfiguration
+from airflow_monitor.errors import (
+    AirflowFetchingException,
+    failed_to_connect_to_airflow_server,
+    failed_to_connect_to_server_port,
+    failed_to_decode_data_From_airflow,
+    failed_to_fetch_from_airflow,
+    failed_to_get_csrf_token,
+    failed_to_login_to_airflow,
+)
+
+import simplejson
 
 from bs4 import BeautifulSoup as bs
 
@@ -93,29 +104,29 @@ class WebFetcher(DataFetcher):
         if fetch_type:
             params["fetch_type"] = fetch_type
 
+        data = None
+
         try:
             data = self._make_request(params)
             logger.info("Fetched from: {}".format(data.url))
-            if data.status_code == 200:
-                try:
-                    return data.json()
-                except JSONDecodeError:
-                    if data.text:
-                        logger.info("Failed to decode: %s...", data.text[:100])
-                    raise
-            else:
-                logger.error(
-                    "Could not fetch data from url {}, error code: {}. Hint: If the IP address is correct"
-                    " but the full path is not, check the configuration of api_mode variable".format(
-                        self.endpoint_url, data.status_code,
-                    ),
-                )
-        except ConnectionError as e:
-            logger.error(
-                "An error occurred while connecting to server: {}. Error: {}".format(
-                    self.endpoint_url, e
-                )
-            )
+        except AirflowFetchingException:
+            raise
+        except requests.exceptions.ConnectionError as ce:
+            raise failed_to_connect_to_airflow_server(self.base_url, ce)
+        except ValueError as ve:
+            raise failed_to_connect_to_server_port(self.base_url, ve)
+        except Exception as e:
+            raise failed_to_fetch_from_airflow(self.base_url, e)
+
+        if data.status_code != 200:
+            raise failed_to_fetch_from_airflow(self.base_url, None, data.status_code)
+
+        try:
+            json_data = data.json()
+            return json_data
+        except simplejson.JSONDecodeError as je:
+            data_sample = data.text[:100] if data and data.text else None
+            raise failed_to_decode_data_From_airflow(self.base_url, je, data_sample)
 
     def _try_login(self):
         login_url = self.base_url + "/login/"
@@ -124,8 +135,8 @@ class WebFetcher(DataFetcher):
         # IMPORTANT: when airflow uses RBAC (Flask-AppBuilder [FAB]) it doesn't return
         # the relevant csrf token in a cookie, but inside the login page html content.
         # therefore, we are extracting it, and attaching it to the session manually
-        try:
-            # extract csrf token
+        if self.api_mode == "rbac":
+            # extract csrf token, will raise ConnectionError if the server is is down
             logger.info(
                 "Trying to login to %s with username: %s.",
                 login_url,
@@ -133,11 +144,14 @@ class WebFetcher(DataFetcher):
             )
             resp = self.client.get(login_url)
             soup = bs(resp.text, "html.parser")
-            csrf_token = soup.find(id="csrf_token").get("value")
+            csrf_token_tag = soup.find(id="csrf_token")
+            if not csrf_token_tag:
+                raise failed_to_get_csrf_token(self.base_url)
+            csrf_token = csrf_token_tag.get("value")
             if csrf_token:
                 auth_params["csrf_token"] = csrf_token
-        except Exception as e:
-            logger.warning("Could not collect csrf token from %s. %s", login_url, e)
+            else:
+                raise failed_to_get_csrf_token(self.base_url)
 
         # login
         resp = self.client.post(login_url, data=auth_params)
@@ -149,6 +163,7 @@ class WebFetcher(DataFetcher):
             logger.info("Succesfully logged in to %s.", login_url)
         else:
             logger.warning("Could not login to %s.", login_url)
+            raise failed_to_login_to_airflow(self.base_url)
 
     def _make_request(self, params):
         auth = ()
@@ -317,10 +332,8 @@ def data_fetcher_factory(config):
         return GoogleComposerFetcher(config)
     elif config.fetcher == "file":
         return FileFetcher(config)
-
     else:
         err = "Unsupported fetcher_type: {}, use one of the following: web/db/composer/file".format(
             config.fetcher
         )
-        logging.error(err)
-        raise ConnectionError(err)
+        raise Exception(err)

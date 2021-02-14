@@ -96,24 +96,12 @@ def dump_unsent_data(data):
         logger.info("Dumped to %s", f.name)
 
 
-def send_exception_info(airflow_instance_detail, airflow_config):
-    exception_type, exception, exception_traceback = sys.exc_info()
-    message = "".join(traceback.format_tb(exception_traceback))
-    message += "{}: {}. ".format(exception_type.__name__, exception)
-    save_error_message(airflow_instance_detail, message, airflow_config)
-
-
 def save_error_message(airflow_instance_detail, message, airflow_config):
     airflow_instance_detail.airflow_server_info.monitor_error_message = message
     airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
         utcnow()
     )
-    logging.info(
-        "Sending airflow server info: url={}, error={}".format(
-            airflow_instance_detail.airflow_server_info.base_url,
-            airflow_instance_detail.airflow_server_info.monitor_error_message,
-        )
-    )
+    logging.error(message)
     save_airflow_server_info(airflow_instance_detail.airflow_server_info)
 
     logger.info("Sleeping for {} seconds on error".format(airflow_config.interval))

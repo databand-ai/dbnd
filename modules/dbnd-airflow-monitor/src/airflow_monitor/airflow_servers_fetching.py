@@ -82,3 +82,4 @@ class AirflowServersGetter(object):
                     self._fetch_url, e
                 )
             )
+            return []

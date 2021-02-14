@@ -1,24 +1,23 @@
 import logging
 
 from datetime import timedelta
-from json import JSONDecodeError
 from time import sleep
 
 from airflow_monitor.airflow_data_saving import (
     save_airflow_monitor_data,
     save_airflow_server_info,
 )
-from airflow_monitor.airflow_instance_details import create_instance_details
+from airflow_monitor.airflow_instance_details import create_instance_details_list
 from airflow_monitor.airflow_monitor_utils import (
     dump_unsent_data,
     log_fetching_parameters,
     log_received_tasks,
     save_error_message,
-    send_exception_info,
     send_metrics,
     set_airflow_server_info_started,
 )
 from airflow_monitor.airflow_servers_fetching import AirflowServersGetter
+from airflow_monitor.errors import AirflowFetchingException
 
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.timezone import utcnow
@@ -67,28 +66,18 @@ def try_fetching_from_airflow(
             incomplete_offset,
         )
         return data
-    except JSONDecodeError:
-        logger.exception("Could not decode the received data, error in json format.")
-        send_exception_info(airflow_instance_detail, airflow_config)
-    except (ConnectionError, OSError, IOError) as e:
-        logger.exception(
-            "An error occurred while trying to sync data from airflow to databand: %s",
-            e,
+    except AirflowFetchingException as afe:
+        message = "\n Error: {}. \n Nested exception: {} \n Help: {}".format(
+            afe, afe.nested_exceptions, afe.help_msg
         )
-        send_exception_info(airflow_instance_detail, airflow_config)
-    return None
-
-
-def validate_airflow_monitor_data(data, airflow_instance_detail, airflow_config):
-    if data is None:
-        logger.warning("Didn't receive any data")
-        return False
-
-    if "error" in data:
-        logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
-        save_error_message(airflow_instance_detail, data["error"], airflow_config)
-        return False
-    return True
+        save_error_message(airflow_instance_detail, message, airflow_config)
+        return None
+    except Exception as e:
+        message = "Exception occurred while trying to fetch data from Airflow url {}. Exception: {}".format(
+            e, airflow_instance_detail.url
+        )
+        save_error_message(airflow_instance_detail, message, airflow_config)
+        return None
 
 
 def get_active_dags(export_data):
@@ -235,7 +224,13 @@ def do_data_fetching_iteration(
         incomplete_offset=incomplete_offset,
     )
 
-    if not validate_airflow_monitor_data(data, airflow_instance_detail, airflow_config):
+    if data is None:
+        logger.warning("Didn't receive any data, probably an error occurred")
+        return None
+
+    if "error" in data:
+        logger.error("Error in Airflow Export Plugin: \n%s", data["error"])
+        save_error_message(airflow_instance_detail, data["error"], airflow_config)
         return None
 
     log_received_tasks(airflow_instance_detail.url, data)
@@ -263,7 +258,7 @@ def do_data_fetching_iteration(
             e,
         )
         dump_unsent_data(data)
-        send_exception_info(airflow_instance_detail, airflow_config)
+        save_error_message(airflow_instance_detail, e, airflow_config)
         return None
 
 
@@ -528,13 +523,13 @@ def airflow_monitor_main(monitor_args, airflow_config):
 
     while True:
         configs_fetched = servers_fetcher.get_fetching_configuration(airflow_config)
-        airflow_instance_details = create_instance_details(
+
+        airflow_instance_details = create_instance_details_list(
             monitor_args, airflow_config, configs_fetched, airflow_instance_details,
         )
 
-        if airflow_instance_details is None:
-            # Probably an error occurred
-            logger.info("Sleeping %d seconds on error", airflow_config.interval)
+        if len(airflow_instance_details) == 0:
+            logger.info("Waiting for %d seconds", airflow_config.interval)
             sleep(airflow_config.interval)
             continue
 

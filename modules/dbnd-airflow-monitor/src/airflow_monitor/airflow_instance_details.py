@@ -158,27 +158,32 @@ def create_airflow_instance_details(
                 airflow_config,
                 True,
             )
-            # We currently use the same value for both since and incomplete_since
-            airflow_instance_details.append(
-                AirflowInstanceDetails(
-                    fetch_config,
-                    since_value,
-                    incomplete_since_value,
-                    airflow_server_info,
-                    data_fetcher_factory(fetch_config),
+
+            try:
+                factory = data_fetcher_factory(fetch_config)
+                # We currently use the same value for both since and incomplete_since
+                airflow_instance_details.append(
+                    AirflowInstanceDetails(
+                        fetch_config,
+                        since_value,
+                        incomplete_since_value,
+                        airflow_server_info,
+                        factory,
+                    )
                 )
-            )
+            except Exception as e:
+                logging.error(e)
 
     return airflow_instance_details
 
 
-def create_instance_details(
+def create_instance_details_list(
     monitor_args, airflow_config, configs_fetched, existing_airflow_instance_details,
 ):
-    if configs_fetched is None:
+    if not configs_fetched:
         if existing_airflow_instance_details:
             return existing_airflow_instance_details
-        return None
+        return []
 
     airflow_instance_details = create_airflow_instance_details(
         monitor_args,
