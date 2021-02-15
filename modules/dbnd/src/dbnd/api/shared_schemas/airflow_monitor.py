@@ -36,6 +36,8 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     include_task_args = fields.Boolean(allow_none=True)
     fetch_quantity = fields.Integer(allow_none=True)
     oldest_incomplete_data_in_days = fields.Integer(allow_none=True)
+    include_xcom = fields.Boolean(allow_none=True)
+    dag_ids = fields.String(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -74,3 +76,5 @@ class AirflowServerInfo(object):
     include_task_args = attr.ib(default=None)  # type: Optional[bool]
     fetch_quantity = attr.ib(default=None)  # type: Optional[int]
     oldest_incomplete_data_in_days = attr.ib(default=None)  # type: Optional[int]
+    include_xcom = attr.ib(default=None)  # type: Optional[bool]
+    dag_ids = attr.ib(default=None)  # type: Optional[str]

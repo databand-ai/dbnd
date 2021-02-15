@@ -48,14 +48,13 @@ class AirflowInstanceDetails(object):
         return self.airflow_server_info.base_url
 
 
-def create_airflow_server_info(airflow_url, interval):
+def create_airflow_server_info(airflow_url):
     airflow_server_info = AirflowServerInfo(
         base_url=airflow_url,
         monitor_status="Running",
         airflow_monitor_version=pkg_resources.get_distribution(
             "dbnd_airflow_monitor"
         ).version,
-        sync_interval=interval,
     )
 
     return airflow_server_info
@@ -83,11 +82,11 @@ def calculate_since_value(
     sync_history,
     history_only,
     airflow_server_info,
-    config,
+    oldest_incomplete_data_in_days,
     is_incomplete,
 ):
     default_since = (
-        utcnow() - timedelta(days=config.oldest_incomplete_data_in_days)
+        utcnow() - timedelta(days=oldest_incomplete_data_in_days)
         if is_incomplete
         else pendulum.datetime.min
     )
@@ -118,18 +117,15 @@ def calculate_since_value(
                 final_since_value = default_since
         except Exception as e:
             logger.info(
-                "Could not locate latest sync stop. Exception: {}. Starting Airflow Monitor syncing from the beginning.".format(
-                    e
-                )
+                "Could not locate latest sync stop. Exception: {}. Starting Airflow Monitor syncing from the beginning.",
+                e,
             )
             final_since_value = default_since
 
     return final_since_value
 
 
-def create_airflow_instance_details(
-    monitor_args, airflow_config, configs_fetched, existing_details
-):
+def create_airflow_instance_details(monitor_args, configs_fetched, existing_details):
     airflow_instance_details = []
     for fetch_config in configs_fetched:
         for existing_detail in existing_details:
@@ -137,16 +133,14 @@ def create_airflow_instance_details(
                 airflow_instance_details.append(existing_detail)
                 break
         else:
-            airflow_server_info = create_airflow_server_info(
-                fetch_config.base_url, airflow_config.interval
-            )
+            airflow_server_info = create_airflow_server_info(fetch_config.base_url)
             since_value = calculate_since_value(
                 monitor_args.since_now,
                 monitor_args.since,
                 monitor_args.sync_history,
                 monitor_args.history_only,
                 airflow_server_info,
-                airflow_config,
+                fetch_config.oldest_incomplete_data_in_days,
                 False,
             )
             incomplete_since_value = calculate_since_value(
@@ -155,7 +149,7 @@ def create_airflow_instance_details(
                 monitor_args.sync_history,
                 monitor_args.history_only,
                 airflow_server_info,
-                airflow_config,
+                fetch_config.oldest_incomplete_data_in_days,
                 True,
             )
 
@@ -178,7 +172,7 @@ def create_airflow_instance_details(
 
 
 def create_instance_details_list(
-    monitor_args, airflow_config, configs_fetched, existing_airflow_instance_details,
+    monitor_args, configs_fetched, existing_airflow_instance_details,
 ):
     if not configs_fetched:
         if existing_airflow_instance_details:
@@ -186,10 +180,7 @@ def create_instance_details_list(
         return []
 
     airflow_instance_details = create_airflow_instance_details(
-        monitor_args,
-        airflow_config,
-        configs_fetched,
-        existing_airflow_instance_details,
+        monitor_args, configs_fetched, existing_airflow_instance_details,
     )
 
     return airflow_instance_details

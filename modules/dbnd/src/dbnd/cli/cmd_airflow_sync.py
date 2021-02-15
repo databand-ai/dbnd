@@ -105,11 +105,69 @@ def validate_composer_id(ctx, param, value):
     type=click.STRING,
     callback=validate_composer_id,
 )
-def add(url, external_url, instance_type, api_mode, composer_client_id):
+@click.option(
+    "--fetch-quantity",
+    help="How much data to fetch in each iteration",
+    type=click.INT,
+    default=100,
+)
+@click.option(
+    "--oldest-incomplete-data-in-days",
+    help="Number of days ago to look for incomplete data",
+    type=click.INT,
+    default=14,
+)
+@click.option(
+    "--include-logs",
+    help="Should monitor include logs for tasks",
+    type=click.BOOL,
+    is_flag=True,
+)
+@click.option(
+    "--include-task-args",
+    help="Should monitor include task args for tasks",
+    type=click.BOOL,
+    is_flag=True,
+)
+@click.option(
+    "--include-xcom",
+    help="Should monitor include xcom data for tasks",
+    type=click.BOOL,
+    is_flag=True,
+)
+@click.option(
+    "--dag-ids",
+    help="List of specific dag ids (separated with comma) that monitor will fetch only from them",
+    type=click.STRING,
+    default=None,
+)
+def add(
+    url,
+    external_url,
+    instance_type,
+    api_mode,
+    composer_client_id,
+    fetch_quantity,
+    oldest_incomplete_data_in_days,
+    include_logs,
+    include_task_args,
+    include_xcom,
+    dag_ids,
+):
     fetcher = "web" if instance_type == "airflow" else instance_type
     try:
         create_airflow_instance(
-            url, external_url, fetcher, api_mode, composer_client_id
+            url,
+            external_url,
+            fetcher,
+            api_mode,
+            composer_client_id,
+            fetch_quantity,
+            oldest_incomplete_data_in_days,
+            include_logs,
+            include_task_args,
+            include_xcom,
+            dag_ids,
         )
     except DatabandApiError as e:
         logger.error("failed with - {}".format(e.response))

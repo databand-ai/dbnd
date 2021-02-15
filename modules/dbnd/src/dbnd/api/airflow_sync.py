@@ -10,7 +10,19 @@ def list_synced_airflow_instances():
     return schema.load(data=response["data"], many=True).data
 
 
-def create_airflow_instance(url, external_url, fetcher, api_mode, composer_client_id):
+def create_airflow_instance(
+    url,
+    external_url,
+    fetcher,
+    api_mode,
+    composer_client_id,
+    fetch_quantity,
+    oldest_incomplete_data_in_days,
+    include_logs,
+    include_task_args,
+    include_xcom,
+    dag_ids,
+):
     client = get_databand_context().databand_api_client
     endpoint = "airflow_monitor/add"
     request_data = {
@@ -19,6 +31,12 @@ def create_airflow_instance(url, external_url, fetcher, api_mode, composer_clien
         "fetcher": fetcher,
         "api_mode": api_mode,
         "composer_client_id": composer_client_id,
+        "fetch_quantity": fetch_quantity,
+        "oldest_incomplete_data_in_days": oldest_incomplete_data_in_days,
+        "include_logs": include_logs,
+        "include_task_args": include_task_args,
+        "include_xcom": include_xcom,
+        "dag_ids": dag_ids,
     }
     client.api_request(endpoint, request_data, method="POST")
 

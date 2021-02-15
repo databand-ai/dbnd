@@ -39,14 +39,23 @@ expected_results_by_fetch_quantity = {
     ],
 }
 
-fetching_configuration = AirflowFetchingConfiguration(
-    url="http://localhost:8082",
-    fetcher="web",
-    composer_client_id=None,
-    sql_alchemy_conn=None,
-    local_dag_folder=None,
-    api_mode="rbac",
-)
+
+def get_fetching_configuration(fetch_quantity):
+    return AirflowFetchingConfiguration(
+        url="http://localhost:8082",
+        fetcher="web",
+        composer_client_id=None,
+        sql_alchemy_conn=None,
+        local_dag_folder=None,
+        api_mode="rbac",
+        fetch_quantity=fetch_quantity,
+        oldest_incomplete_data_in_days=14,
+        include_logs=False,
+        include_task_args=False,
+        include_xcom=False,
+        dag_ids=None,
+    )
+
 
 plugin_simulator = PluginSimulator("dummy_dag.json", 3)
 results = []
@@ -89,16 +98,15 @@ def run_tests_on_fetch_quantity(fetch_quantity):
     ) as p1, mock.patch(
         "airflow_monitor.airflow_monitor_main.save_airflow_server_info"
     ) as p2, mock.patch(
-        "airflow_monitor.airflow_servers_fetching.AirflowServersGetter.get_fetching_configuration",
-        return_value=[fetching_configuration],
+        "airflow_monitor.airflow_servers_fetching.AirflowServersGetter.get_fetching_configurations",
+        return_value=[get_fetching_configuration(fetch_quantity)],
     ) as p3, mock.patch.object(
         WebFetcher, "get_data", new=fake_get_data
     ) as p4:
-        with config({"airflow_monitor": {"fetch_quantity": fetch_quantity}}):
-            runner = CliRunner()
-            result = runner.invoke(
-                airflow_monitor, ["--number-of-iterations", 1, "--since", "2021-01-01"],
-            )
+        runner = CliRunner()
+        result = runner.invoke(
+            airflow_monitor, ["--number-of-iterations", 1, "--since", "2021-01-01"],
+        )
 
     assert result.exit_code == 0
     assert len(results) == len(expected_results_by_fetch_quantity[fetch_quantity])

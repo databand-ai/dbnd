@@ -7,6 +7,7 @@ from tempfile import NamedTemporaryFile
 from time import sleep
 
 from airflow_monitor.airflow_data_saving import save_airflow_server_info
+from airflow_monitor.config import AirflowMonitorConfig
 from prometheus_client import Summary
 
 from dbnd._core.utils.timezone import utcnow
@@ -65,19 +66,22 @@ def set_airflow_server_info_started(airflow_server_info):
 
 
 def log_fetching_parameters(
-    url, since, airflow_config, fetch_quantity, fetch_type, incomplete_offset
+    url,
+    since,
+    dag_ids,
+    fetch_quantity,
+    fetch_type,
+    incomplete_offset,
+    include_logs,
+    include_task_args,
+    include_xcom,
 ):
     log_message = "Fetching from {} with since={} include_logs={}, include_task_args={}, include_xcom={}, fetch_quantity={}".format(
-        url,
-        since,
-        airflow_config.include_logs,
-        airflow_config.include_task_args,
-        airflow_config.include_xcom,
-        fetch_quantity,
+        url, since, include_logs, include_task_args, include_xcom, fetch_quantity,
     )
 
-    if airflow_config.dag_ids:
-        log_message += ", dag_ids={}".format(airflow_config.dag_ids)
+    if dag_ids:
+        log_message += ", dag_ids={}".format(dag_ids)
 
     log_message += ", fetch_type={}".format(fetch_type)
 
@@ -96,7 +100,7 @@ def dump_unsent_data(data):
         logger.info("Dumped to %s", f.name)
 
 
-def save_error_message(airflow_instance_detail, message, airflow_config):
+def save_error_message(airflow_instance_detail, message):
     airflow_instance_detail.airflow_server_info.monitor_error_message = message
     airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
         utcnow()
@@ -104,5 +108,8 @@ def save_error_message(airflow_instance_detail, message, airflow_config):
     logging.error(message)
     save_airflow_server_info(airflow_instance_detail.airflow_server_info)
 
-    logger.info("Sleeping for {} seconds on error".format(airflow_config.interval))
-    sleep(airflow_config.interval)
+
+def wait_interval():
+    sleep_interval = AirflowMonitorConfig().interval
+    logger.info("Waiting for %d seconds", sleep_interval)
+    sleep(sleep_interval)

@@ -9,29 +9,7 @@ class AirflowMonitorConfig(Config):
     _conf__task_family = "airflow_monitor"
 
     interval = parameter(
-        default=10, description="Sleep time (in seconds) between fetches when not busy"
-    )[int]
-
-    dag_ids = parameter(default=None, description="Specific DAGs to monitor")[List[str]]
-
-    include_logs = parameter(default=False)[bool]
-
-    include_task_args = parameter(
-        default=False, description="Include all task arguments when fetching task data."
-    )[bool]
-
-    include_xcom = parameter(
-        default=False, description="Include all task xcom dictionary"
-    )[bool]
-
-    fetcher = parameter(
-        default="web",
-        description="Options: web, db, composer. web - uses the export plugin api, db - connects directly to AF DB.",
-    )[str]
-
-    fetch_quantity = parameter(
-        default=None,
-        description="Max number of tasks or dag run to retrieve at each fetch",
+        default=5, description="Sleep time (in seconds) between fetches when not busy"
     )[int]
 
     # Used by db fetcher
@@ -62,8 +40,3 @@ class AirflowMonitorConfig(Config):
     debug_sync_log_dir_path = parameter(default=None)[str]
 
     allow_duplicates = parameter(default=False)[bool]
-
-    oldest_incomplete_data_in_days = parameter(
-        default=14,
-        description="Max days ago to look for incomplete data. Incomplete data is fetched separately",
-    )[int]

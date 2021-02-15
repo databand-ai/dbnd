@@ -33,6 +33,12 @@ def test_command_running():
         sql_alchemy_conn=airflow_config.sql_alchemy_conn,
         local_dag_folder=airflow_config.local_dag_folder,
         api_mode="rbac",
+        fetch_quantity=100,
+        oldest_incomplete_data_in_days=14,
+        include_logs=False,
+        include_task_args=False,
+        include_xcom=False,
+        dag_ids=None,
     )
 
     # We need this mock, because otherwise we are going to enter an infinite loop in CI/CD
@@ -41,7 +47,7 @@ def test_command_running():
             "airflow_monitor.airflow_monitor_main.save_airflow_server_info"
         ):
             with mock.patch(
-                "airflow_monitor.airflow_servers_fetching.AirflowServersGetter.get_fetching_configuration",
+                "airflow_monitor.airflow_servers_fetching.AirflowServersGetter.get_fetching_configurations",
                 return_value=[fetching_configuration],
             ):
                 runner = CliRunner()

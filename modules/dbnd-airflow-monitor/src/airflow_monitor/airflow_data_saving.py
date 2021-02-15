@@ -55,9 +55,8 @@ def save_airflow_server_info(airflow_server_info):
         )
         end = default_timer()
         logging.info(
-            "Finished sending airflow server info to databand web server. Total time: {}".format(
-                end - start
-            )
+            "Finished sending airflow server info to databand web server. Total time: %s",
+            end - start,
         )
         return
     except Exception as e:
@@ -73,8 +72,8 @@ def _call_tracking_store(tracking_store_function, **kwargs):
             tracking_store_function(**kwargs)
             return True
         except DatabandConnectionException as dce:
-            logger.info("Exception happened: {}".format(dce))
-            logger.info("Inner exception: {}".format(dce.nested_exceptions))
+            logger.info("Exception happened: %s", dce)
+            logger.info("Inner exception: %s", dce.nested_exceptions)
             logger.info("Trying again in %d seconds", 5)
             sleep(5)
         except Exception as e:
@@ -97,9 +96,8 @@ def _call_tracking_store(tracking_store_function, **kwargs):
 def save_airflow_monitor_data(airflow_data, base_url, last_sync_time):
     json_data = json.dumps(airflow_data)
     logger.info(
-        "Sending Airflow data to databand web server. Total size: {} kB".format(
-            sys.getsizeof(json_data) / 1000
-        )
+        "Sending Airflow data to databand web server. Total size: %s kB",
+        sys.getsizeof(json_data) / 1000,
     )
     tracking_service = get_databand_context().tracking_store_allow_errors
     start = default_timer()
@@ -111,7 +109,6 @@ def save_airflow_monitor_data(airflow_data, base_url, last_sync_time):
     )
     end = default_timer()
     logger.info(
-        "Finished sending Airflow data to databand web server. Total time: {}".format(
-            end - start
-        )
+        "Finished sending Airflow data to databand web server. Total time: %s",
+        end - start,
     )

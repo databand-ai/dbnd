@@ -16,5 +16,5 @@ def airflow_init_db(db_path):
             _truncate_exc=False,
         )
     except sh.ErrorReturnCode as e:
-        logging.exception("Failed to populate db. Exception: {}".format(e.stderr))
+        logging.exception("Failed to populate db. Exception: %s", e.stderr)
         raise
