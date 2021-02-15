@@ -146,9 +146,9 @@ def get_value_meta_from_value(
             "Can't detect known type for '%s' with type='%s' ", value_name, type(value)
         )
         return None
+
     try:
         return obj_value_type.get_value_meta(value, meta_conf=meta_conf)
-
     except Exception as ex:
         log_exception(
             "Failed to get value meta info for '%s' with type='%s'"

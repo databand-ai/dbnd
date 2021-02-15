@@ -4,7 +4,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 
-from dbnd_airflow.scheduler.single_dag_run_job import find_and_kill_zombies
+from dbnd_airflow.scheduler.zombies import find_and_kill_dagrun_zombies
 
 
 default_args = {
@@ -20,5 +20,7 @@ with DAG(
     description="Maintenance DAG to remove staled task (zombies)",
 ) as dag:
     PythonOperator(
-        task_id="clear_zombies", python_callable=find_and_kill_zombies, op_args=(None,)
+        task_id="clear_zombies",
+        python_callable=find_and_kill_dagrun_zombies,
+        op_args=(None,),
     )

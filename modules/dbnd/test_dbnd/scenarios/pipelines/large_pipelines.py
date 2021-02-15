@@ -2,8 +2,7 @@ import logging
 
 from time import sleep
 
-from dbnd import pipeline, task
-from dbnd._core.commands import log_metric
+from dbnd import log_metric, pipeline, task
 from dbnd._core.current import current_task_run
 
 

@@ -3,18 +3,18 @@ import logging
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_task
 
 
-def _wrap_policy(policy):
-    def new_policy(task):
+def _wrap_policy_with_dbnd_track_task(policy):
+    def dbnd_track_task_policy(task):
         policy(task)
         track_task(task)
 
-    return new_policy
+    return dbnd_track_task_policy
 
 
 def _patch_policy(module):
     if not hasattr(module, "policy"):
         return
-    new_policy = _wrap_policy(module.policy)
+    new_policy = _wrap_policy_with_dbnd_track_task(module.policy)
     module.policy = new_policy
 
 

@@ -6,7 +6,7 @@ import warnings
 
 from typing import Dict
 
-from dbnd._core.constants import OutputMode, _TaskParamContainer
+from dbnd._core.constants import OutputMode, TaskEssence, _TaskParamContainer
 from dbnd._core.current import get_databand_run
 from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.failures import dbnd_handle_errors
@@ -17,13 +17,13 @@ from dbnd._core.parameter.parameter_definition import (
 )
 from dbnd._core.settings.env import EnvConfig
 from dbnd._core.task.base_task import _BaseTask
+from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
 from dbnd._core.task_ctrl.task_output_builder import calculate_path
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.traversing import flatten
 from targets import target
 from targets.target_config import TargetConfig, folder
-from targets.value_meta import ValueMetaConf
 from targets.values.version_value import VersionStr
 
 
@@ -31,14 +31,14 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd._core.decorator.safe_task_call import TaskCallState
+    from dbnd._core.decorator.func_task_call import TaskCallState
 
 DEFAULT_CLASS_VERSION = ""
 
 logger = logging.getLogger(__name__)
 
 
-class Task(_BaseTask, _TaskParamContainer):
+class Task(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
     """
     This is the base class of all dbnd Tasks, the base unit of work in databand.
 
@@ -136,9 +136,13 @@ class Task(_BaseTask, _TaskParamContainer):
     )[datetime.timedelta]
 
     _dbnd_call_state = None  # type: TaskCallState
+    task_essence = TaskEssence.ORCHESTRATION
 
     def __init__(self, **kwargs):
         super(Task, self).__init__(**kwargs)
+        for name, p_value in self.task_meta.task_params.items():
+            setattr(self, name, p_value.value)
+
         self.ctrl = TaskCtrl(self)
 
     def band(self):
@@ -172,6 +176,10 @@ class Task(_BaseTask, _TaskParamContainer):
     def task_dag(self):
         # type: (...)->_TaskDagNode
         return self.ctrl.task_dag
+
+    @property
+    def descendants(self):
+        return self.ctrl.descendants
 
     def _complete(self):
         """
@@ -254,58 +262,14 @@ class Task(_BaseTask, _TaskParamContainer):
         # publish all relevant files
         return result
 
-    def set_upstream(self, task_or_task_list):
-        self.task_dag.set_upstream(task_or_task_list)
-
-    def set_downstream(self, task_or_task_list):
-        self.task_dag.set_downstream(task_or_task_list)
-
-    def __lshift__(self, other):
-        return self.set_upstream(other)
-
-    def __rshift__(self, other):
-        return self.set_downstream(other)
-
-    def set_global_upstream(self, task_or_task_list):
-        self.task_dag.set_global_upstream(task_or_task_list)
+    @property
+    def tracker(self):
+        return self.current_task_run.tracker
 
     @property
     def metrics(self):
         # backward compatible code
-        return self.current_task_run.tracker
-
-    def log_dataframe(
-        self,
-        key,
-        df,
-        with_preview=True,
-        with_schema=True,
-        with_size=True,
-        with_stats=False,
-    ):
-        meta_conf = ValueMetaConf(
-            log_preview=with_preview,
-            log_schema=with_schema,
-            log_size=with_size,
-            log_stats=with_stats,
-        )
-        self.metrics.log_data(key, df, meta_conf=meta_conf)
-
-    def log_metric(self, key, value, source=None):
-        """
-        Logs the passed-in parameter under the current run, creating a run if necessary.
-        :param key: Parameter name (string)
-        :param value: Parameter value (string)
-        """
-        return self.metrics.log_metric(key, value, source=source)
-
-    def log_system_metric(self, key, value):
-        """Shortcut for log_metric(..., source="system") """
-        return self.log_metric(key, value, source="system")
-
-    def log_artifact(self, name, artifact):
-        """Log a local file or directory as an artifact of the currently active run."""
-        return self.metrics.log_artifact(name, artifact)
+        return self.tracker
 
     def get_template_vars(self):
         # TODO: move to cached version, (after relations are built)
@@ -379,6 +343,16 @@ class Task(_BaseTask, _TaskParamContainer):
         result = ctx.dbnd_run_task(self)
         return result
 
+    def _get_param_value(self, param_name):
+        # we dont' want to autoread when we run this function
+        # most cases we are running it from "banner" print
+        # so if we are in the autoread we will use original values
+        task_auto_read_original = self._task_auto_read_original
+        if task_auto_read_original is not None:
+            return task_auto_read_original[param_name]
+
+        return getattr(self, param_name)
+
 
 Task.task_definition.hidden = True
 
@@ -386,6 +360,6 @@ TASK_PARAMS_COUNT = len(
     [
         v
         for k, v in Task.__dict__.items()
-        if isinstance(v, ParameterDefinition) and v.value_type_str is not "Target"
+        if isinstance(v, ParameterDefinition) and v.value_type_str != "Target"
     ]
 )

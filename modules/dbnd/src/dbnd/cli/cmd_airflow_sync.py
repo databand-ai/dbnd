@@ -7,6 +7,7 @@ from dbnd.api.airflow_sync import (
     archive_airflow_instance,
     create_airflow_instance,
     list_synced_airflow_instances,
+    unarchive_airflow_instance,
 )
 
 
@@ -131,3 +132,20 @@ def archive(url):
         logger.error("failed with - {}".format(e.response))
     else:
         logger.info("Archived instance %s", url)
+
+
+@airflow_sync.command()
+@click.option(
+    "--url",
+    "-u",
+    help="base url of an instance to unarchive",
+    type=click.STRING,
+    required=True,
+)
+def unarchive(url):
+    try:
+        unarchive_airflow_instance(url)
+    except DatabandApiError as e:
+        logger.error("failed with - {}".format(e.response))
+    else:
+        logger.info("Unarchived instance %s", url)

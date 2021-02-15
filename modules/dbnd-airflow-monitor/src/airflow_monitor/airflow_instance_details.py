@@ -93,9 +93,11 @@ def calculate_since_value(
                 logger.info(
                     "Latest sync stop not found. Starting sync from the beginning"
                 )
-        except Exception:
+        except Exception as e:
             logger.info(
-                "Could not locate latest sync stop. Starting Airflow Monitor syncing from the beginning."
+                "Could not locate latest sync stop. Exception: {}. Starting Airflow Monitor syncing from the beginning.".format(
+                    e
+                )
             )
             final_since_value = pendulum.datetime.min
 
@@ -131,5 +133,28 @@ def create_airflow_instance_details(
                     data_fetcher_factory(fetch_config),
                 )
             )
+
+    return airflow_instance_details
+
+
+def create_instance_details(
+    monitor_args,
+    airflow_config,
+    api_client,
+    configs_fetched,
+    existing_airflow_instance_details,
+):
+    if configs_fetched is None:
+        if existing_airflow_instance_details:
+            return existing_airflow_instance_details
+        return None
+
+    airflow_instance_details = create_airflow_instance_details(
+        monitor_args,
+        airflow_config,
+        api_client,
+        configs_fetched,
+        existing_airflow_instance_details,
+    )
 
     return airflow_instance_details

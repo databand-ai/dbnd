@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Type
+from typing import Any, Dict, Iterable, List, Tuple, Type
 
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterValue
@@ -10,7 +10,7 @@ class TaskParameters(object):
         self.task = task
         self.task_meta = self.task.task_meta  # type: TaskMeta
         self._params = [
-            p_value.parameter for p_value in self.task_meta.class_task_params
+            p_value.parameter for p_value in self.task_meta.task_params.values()
         ]
         self._param_obj_map = {p.name: p for p in self._params}
 
@@ -18,17 +18,10 @@ class TaskParameters(object):
         return self._param_obj_map.get(param_name, None)
 
     def get_value(self, param_name):
-        # we dont' want to autoread when we run this function
-        # most cases we are running it from "banner" print
-        # so if we are in the autoread we will use original values
-        task_auto_read_original = self.task._task_auto_read_original
-        if task_auto_read_original is not None:
-            return task_auto_read_original[param_name]
-
-        return getattr(self.task, param_name)
+        return self.task._get_param_value(param_name)
 
     def get_param_meta(self, param_name):  # type: (str) -> ParameterValue
-        return self.task_meta._task_params.get_any_param(param_name, None)
+        return self.task_meta.task_params.get(param_name, None)
 
     def get_params(
         self,
@@ -37,6 +30,7 @@ class TaskParameters(object):
         input_only=False,
         output_only=False,
         user_only=False,
+        scope=None,
     ):
         # type: (...)-> List[ParameterDefinition]
         result = self._params
@@ -50,6 +44,8 @@ class TaskParameters(object):
             result = filter(lambda p: p.is_output(), result)
         if user_only:
             result = filter(lambda p: not p.system, result)
+        if scope:
+            result = filter(lambda p: p.scope == scope, result)
         return list(result)
 
     def get_param_values(
@@ -59,6 +55,7 @@ class TaskParameters(object):
         input_only=False,
         output_only=False,
         user_only=False,
+        scope=None,
     ):
         # type: (Type[ParameterDefinition], bool, bool, bool, bool) -> List[ Tuple[ParameterDefinition, Any]]
         result = self.get_params(
@@ -67,6 +64,7 @@ class TaskParameters(object):
             input_only=input_only,
             output_only=output_only,
             user_only=user_only,
+            scope=scope,
         )
 
         result = [(p, self.get_value(p.name)) for p in result]
@@ -95,3 +93,12 @@ class TaskParameters(object):
 
     def get_param_env_key(self, param_name):
         return self.get_param(param_name).get_env_key(self.task.task_name)
+
+    def __iter__(self):
+        # type: (TaskParameters) -> Iterable[ParameterDefinition, ParameterValue, ParameterValue]
+        """helper function to iterate all the params with it's definition, value and meta"""
+
+        for definition in self.get_params():
+            value = self.get_value(definition.name)
+            meta = self.get_param_meta(definition.name)
+            yield definition, value, meta

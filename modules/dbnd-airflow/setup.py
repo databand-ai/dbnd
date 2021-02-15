@@ -21,14 +21,15 @@ requirements_for_airflow = [
 setuptools.setup(
     name="dbnd-airflow",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version, "packaging"],
+    install_requires=["dbnd==" + version, "packaging", "psycopg2>=2.7.4,<2.8"],
     extras_require=dict(
-        airflow=requirements_for_airflow + ["apache-airflow==1.10.7"],
         airflow_1_10_7=requirements_for_airflow + ["apache-airflow==1.10.7"],
         airflow_1_10_8=requirements_for_airflow + ["apache-airflow==1.10.8"],
         airflow_1_10_9=requirements_for_airflow + ["apache-airflow==1.10.9"],
         airflow_1_10_10=requirements_for_airflow + ["apache-airflow==1.10.10"],
+        airflow_1_10_11=requirements_for_airflow + ["apache-airflow==1.10.11"],
         airflow_1_10_12=requirements_for_airflow + ["apache-airflow==1.10.12"],
+        airflow=requirements_for_airflow + ["apache-airflow==1.10.9"],
         tests=[
             # airflow support
             "pandas<2.0.0,>=0.17.1",

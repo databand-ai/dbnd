@@ -169,7 +169,10 @@ class FileSystem(object):
     def download(self, path, location, **kwargs):
         logger.info("download %s to %s", path, location)
         parent_location = os.path.dirname(location)
-        if not os.path.exists(parent_location):
+
+        # parent_location can be empty string if `location` has no dirname, e.g -
+        # "some_file_name.txt" or "some_whole_dir"
+        if parent_location and not os.path.exists(parent_location):
             try:
                 os.makedirs(parent_location)
             except OSError as err:

@@ -3,7 +3,7 @@ import logging
 import attr
 
 from dbnd._core.configuration.config_path import ConfigPath
-from dbnd._core.constants import OutputMode, _ConfigParamContainer
+from dbnd._core.constants import OutputMode, TaskEssence
 from dbnd._core.errors import friendly_error
 from dbnd._core.errors.friendly_error.task_parameters import (
     failed_to_build_parameter,
@@ -258,7 +258,7 @@ class ParameterFactory(object):
 
     def __getitem__(self, type_):
         # we want special treatment for Config classes
-        if _ConfigParamContainer.is_type_config(type_):
+        if TaskEssence.CONFIG.is_included(type_):
             return self.nested_config(type_)
 
         value_type = get_value_type_of_type(type_, inline_value_type=True)

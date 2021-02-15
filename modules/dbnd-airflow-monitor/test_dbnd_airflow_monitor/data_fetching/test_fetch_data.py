@@ -32,7 +32,6 @@ class TestFetchData(object):
 
         # validate dags
         assert len(result["dags"]) >= 1
-        dag = result["dags"][0]
 
         # validate dag runs
         assert len(result["dag_runs"]) == 2
@@ -94,6 +93,7 @@ class TestFetchData(object):
             quantity=quantity,
             include_xcom=True,
             incomplete_offset=incomplete_offset,
+            dags_only=False,
         )
 
         return result

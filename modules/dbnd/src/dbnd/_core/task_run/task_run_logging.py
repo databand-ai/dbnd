@@ -1,4 +1,3 @@
-import io
 import logging
 import os
 import typing
@@ -10,8 +9,9 @@ import six
 from dbnd._core.log.logging_utils import find_handler, redirect_stderr, redirect_stdout
 from dbnd._core.settings import LocalEnvConfig
 from dbnd._core.settings.log import _safe_is_typeof
+from dbnd._core.task_run.log_preview import read_dbnd_log_preview
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.utils.string_utils import merge_dbnd_and_spark_logs, safe_short_string
+from dbnd._core.utils.string_utils import merge_dbnd_and_spark_logs
 from targets import target
 
 
@@ -26,21 +26,15 @@ class TaskRunLogManager(TaskRunCtrl):
     def __init__(self, task_run):
         super(TaskRunLogManager, self).__init__(task_run)
 
-        if hasattr(task_run.task, "airflow_log_file"):
-            self.local_log_file = target(task_run.task.airflow_log_file)
-        else:
-            self.local_log_file = self.task_run.local_task_run_root.partition(
-                name="%s.log" % task_run.attempt_number
-            )
+        self.local_log_file = self.task_run.local_task_run_root.partition(
+            name="%s.log" % task_run.attempt_number
+        )
 
         if os.getenv("DBND__LOG_SPARK"):
             self.local_spark_log_file = self.task_run.local_task_run_root.partition(
                 name="%s-spark.log" % task_run.attempt_number
             )
 
-        self.local_heartbeat_log_file = self.task_run.local_task_run_root.partition(
-            name="%s.heartbeat.log" % task_run.attempt_number
-        )
         self.remote_log_file = None
         if not isinstance(self.task.task_env, LocalEnvConfig):
             self.remote_log_file = self.task_run.attempt_folder.partition(
@@ -84,6 +78,14 @@ class TaskRunLogManager(TaskRunCtrl):
             self._log_task_run_into_file_active
             or not log_settings.capture_task_run_log
             or not log_file
+        ):
+            yield None
+            return
+
+        if (
+            # there is no really any good way to find if this is runtime tracking for airflow operator
+            # should be refactored as soon as possible
+            self.task.get_task_family().endswith("_execute")
         ):
             yield None
             return
@@ -173,23 +175,10 @@ class TaskRunLogManager(TaskRunCtrl):
 
     def read_log_body(self):
         try:
-            # we convert the config for disable the reading to the function way to disable the reading
-            max_size = self.task.settings.log.send_body_to_server_max_size
-            max_size = None if max_size == -1 else max_size
-
-            log_body = safe_short_read_lines(self.local_log_file.path, max_size)
-            if os.getenv("DBND__LOG_SPARK"):
-                spark_log_body = safe_short_read_lines(
-                    self.local_spark_log_file.path, max_size
-                )
-                log_body = merge_dbnd_and_spark_logs(log_body, spark_log_body)
-
-            log_body = "\n".join(log_body)
-
-            if six.PY2:
-                log_body = log_body.decode("utf-8")
-
-            return log_body
+            spark_log_file = (
+                self.local_spark_log_file.path if os.getenv("DBND__LOG_SPARK") else None
+            )
+            return read_dbnd_log_preview(self.local_log_file.path, spark_log_file)
 
         except Exception as ex:
             logger.error(
@@ -211,50 +200,4 @@ class TaskRunLogManager(TaskRunCtrl):
             logger.warning("Failed to write remote log for %s: %s", self.task, ex)
 
     def save_log_preview(self, log_body):
-        if not self.task.settings.log.send_body_to_server:
-            return
-        max_size = self.task.settings.log.send_body_to_server_max_size
-        log_preview = get_safe_short_text(log_body, max_size)
-        if log_preview:
-            self.task_run.tracker.save_task_run_log(log_preview)
-
-
-def get_safe_short_text(text, max_size):
-    if max_size == -1:  # use -1 for unlimited
-        return text
-
-    if max_size == 0:  # use 0 to disable
-        return None
-
-    is_tail_preview = (
-        max_size > 0
-    )  # pass negative to get log's 'head' instead of 'tail'
-    return safe_short_string(text, abs(max_size), tail=is_tail_preview)
-
-
-def safe_short_read_lines(path, max_size):
-    """
-    Read the file while making sure the output is shorter than max_size.
-    To disable the reading set max_size to None.
-    """
-    if max_size is not None:
-        return get_file_tail(path, max_size)
-    return ""
-
-
-def get_file_tail(path, max_size):
-    """
-    Read the file and making sure not to get more bytes than given `max_size`.
-    If the file is longer than max_size (in bytes), we will read only the last bytes (amount equal to max_size).
-    If the file is shorter then the max_size (int bytes) we will just read the whole file.
-    """
-    file_size = os.path.getsize(path)
-    with open(path, "rb") as file_:
-        if 0 < max_size < file_size and file_.seekable():
-            file_.seek(-max_size, io.SEEK_END)
-
-        if six.PY2:
-            return file_.read().split("\n")
-
-        # on py3 we need to decode the bytes first
-        return file_.read().decode("utf-8").split("\n")
+        self.task_run.tracker.save_task_run_log(log_body, self.local_log_file)

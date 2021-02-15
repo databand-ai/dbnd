@@ -4,7 +4,7 @@ import typing
 
 from typing import Dict, Union
 
-from dbnd._core.commands import get_spark_session
+from dbnd._core.cli.cmd_execute import get_dbnd_version, get_python_version
 from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
 from dbnd._core.current import get_databand_run, try_get_databand_context
@@ -18,6 +18,7 @@ from dbnd._core.utils.structures import list_of_strings
 from dbnd.tasks.py_distribution.fat_wheel_tasks import fat_wheel_building_task
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_config import SparkConfig, SparkEngineConfig
+from dbnd_spark.spark_session import get_spark_session
 from targets.file_target import FileTarget
 
 
@@ -38,6 +39,13 @@ class _BaseSparkTask(Task):
 
     python_script = None
     main_class = None
+
+    spark_conf_extension = parameter(
+        default={},
+        description="This is an extension for SparkConfig.conf dict, "
+        "every config added to this dict will be merged to spark_config.conf",
+        significant=False,
+    )[dict]
 
     spark_resources = parameter.c(default=None, system=True)[Dict[str, FileTarget]]
 
@@ -90,6 +98,13 @@ class _BaseSparkTask(Task):
     def get_root(self):
         return self.spark_engine.root or super(_BaseSparkTask, self).get_root()
 
+    def _initialize(self):
+        super(_BaseSparkTask, self)._initialize()
+
+        if self.spark_conf_extension:
+            # adds the last layer for SparkConfig.conf
+            self.spark_config.conf.update(self.spark_conf_extension)
+
 
 spark_output = output.folder
 
@@ -124,7 +139,6 @@ class PySparkTask(_BaseSparkTask):
 
 
 class PySparkInlineTask(_BaseSparkTask):
-
     _application_args = ["defined_at_runtime"]
 
     def application_args(self):
@@ -155,14 +169,17 @@ class PySparkInlineTask(_BaseSparkTask):
                 "due to spark_local.enable_spark_context_inplace"
             )
             return self._task_run()
-        dr = get_databand_run()
-        if not dr.driver_dump.exists():
+        driver_dump = self.current_task_run.run.run_executor.driver_dump
+        if not driver_dump:
             raise DatabandConfigError(
                 "Please configure your cloud to always_save_pipeline=True, we need to pickle pipeline first"
             )
-        driver_dump = self.current_task_run.run.driver_task.driver_dump
         self._application_args = [
             "execute",
+            "--expected-dbnd-version",
+            get_dbnd_version(),
+            "--expected-python-version",
+            get_python_version(),
             "--dbnd-run",
             spark_ctrl.sync(driver_dump),
             "task",

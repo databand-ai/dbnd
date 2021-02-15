@@ -7,8 +7,7 @@ import pandas as pd
 
 from pandas import DataFrame
 
-from dbnd import PythonTask, band, output, parameter, task
-from dbnd._core.commands.metrics import log_dataframe
+from dbnd import PythonTask, band, log_dataframe, output, parameter, task
 from dbnd._core.parameter import register_custom_parameter
 from targets.values.builtins_values import DataValueType
 

@@ -1,9 +1,8 @@
 import logging
-import os
 
 from typing import Tuple
 
-from dbnd import dbnd_run_start, task
+from dbnd import task
 
 
 @task

@@ -9,8 +9,7 @@ from typing import Any, Dict, List, Optional
 
 import six
 
-from dbnd import parameter, task
-from dbnd._core.commands import log_metric
+from dbnd import log_metric, parameter, task
 from dbnd._core.current import try_get_current_task_run
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.friendly_error.task_execution import failed_to_run_cmd

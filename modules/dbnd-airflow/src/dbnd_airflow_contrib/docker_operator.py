@@ -26,7 +26,7 @@ from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from docker import APIClient, tls
 
-from dbnd._core.commands import log_metric
+from dbnd import log_metric
 
 
 class DockerOperator(BaseOperator):

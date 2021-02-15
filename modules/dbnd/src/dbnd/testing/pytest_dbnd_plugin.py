@@ -13,7 +13,10 @@ import pytest
 from _pytest.fixtures import fixture
 
 from dbnd import config
-from dbnd._core.configuration.environ_config import set_dbnd_unit_test_mode
+from dbnd._core.configuration.environ_config import (
+    reset_dbnd_project_config,
+    set_dbnd_unit_test_mode,
+)
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.log.config import configure_basic_logging
@@ -89,10 +92,18 @@ def databand_test_context(
         },
         "local": {"root": str(tmpdir.join("local_root"))},
     }
+    databand_context_kwargs.setdefault("name", "databand_test_context")
     with config(test_config, source="databand_test_context"), new_dbnd_context(
         **databand_context_kwargs
     ) as t:
         yield t
+
+
+@pytest.fixture
+def databand_clean_project_config_for_every_test():
+    reset_dbnd_project_config()
+    yield
+    reset_dbnd_project_config()
 
 
 @pytest.fixture
@@ -103,7 +114,10 @@ def databand_clean_register_for_every_test():
 
 @pytest.fixture(autouse=True)
 def databand_pytest_env(
-    databand_test_db, databand_test_context, databand_clean_register_for_every_test
+    databand_clean_project_config_for_every_test,
+    databand_test_db,
+    databand_test_context,
+    databand_clean_register_for_every_test,
 ):
     """
     all required fixtures to run datband related tests

@@ -8,6 +8,7 @@ import luigi
 from dbnd import Task, parameter
 from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
 from dbnd._core.errors import TaskClassNotFoundException
+from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd_luigi.luigi_params import extract_luigi_params
@@ -17,11 +18,16 @@ from dbnd_luigi.luigi_target import extract_targets
 logger = logging.getLogger(__name__)
 
 
-class _LuigiTask(Task):
-    _luigi_task_completed = parameter(system=True, default=False)[bool]
+class _LuigiTask(TrackingTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._completed = False
+
+    def mark_completed(self):
+        self._completed = True
 
     def _complete(self):
-        return self._luigi_task_completed
+        return self._completed
 
 
 def wrap_luigi_task(luigi_task):

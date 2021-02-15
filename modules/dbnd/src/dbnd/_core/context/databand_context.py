@@ -16,11 +16,13 @@ from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import DatabandSystemConfig, OutputConfig, RunInfoConfig
 from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_instance_cache import TaskInstanceCache
+from dbnd._core.task_executor.run_executor import RunExecutor
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.load_python_module import load_python_module, run_user_func
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.singleton_context import SingletonContext
+from dbnd._core.utils.task_utils import get_task_name_safe
 from dbnd._core.utils.timezone import utcnow
 from targets.target_config import FileFormat
 
@@ -193,16 +195,30 @@ class DatabandContext(SingletonContext):
         run_uid=None,
         scheduled_run_info=None,
         send_heartbeat=True,
-    ):
-        # type: (Optional[Task,str], Optional[UUID], ScheduledRunInfo, bool) -> DatabandRun
+    ):  # type: (Optional[Task,str], Optional[UUID], ScheduledRunInfo, bool) -> DatabandRun
+        """
+        This is the main entry point to run task in "dbnd orchestration" mode
+        called from `dbnd run`
+        we create a new Run + RunExecutor and trigger the execution
+
+        :param task_or_task_name task name to run or already built task object
+        :return DatabandRun
+        """
+        job_name = get_task_name_safe(task_or_task_name)
         with new_databand_run(
             context=self,
-            task_or_task_name=task_or_task_name,
+            job_name=job_name,
             run_uid=run_uid,
             scheduled_run_info=scheduled_run_info,
-            send_heartbeat=send_heartbeat,
+            is_orchestration=True,
         ) as run:  # type: DatabandRun
-            run.run_driver()
+            # this is the main entry point to run some task in "orchestration" mode
+            run.run_executor = RunExecutor(
+                run=run,
+                root_task_or_task_name=task_or_task_name,
+                send_heartbeat=send_heartbeat,
+            )
+            run.run_executor.run_execute()
             return run
 
     def __deepcopy__(self, memo):

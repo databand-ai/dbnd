@@ -2,6 +2,7 @@ import logging
 
 from typing import Dict, List
 
+from dbnd._core.configuration.environ_config import in_tracking_mode
 from dbnd._core.constants import CloudType
 from dbnd._core.log import dbnd_log_debug
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
@@ -72,7 +73,7 @@ class CoreConfig(Config):
         default=None,
         description="Tracker URL to be used for creating links in console logs",
     )[str]
-    databand_personal_access_token = parameter(
+    databand_access_token = parameter(
         description="Personall access token to connect to the dbnd web server",
         default=None,
     )[str]
@@ -119,6 +120,10 @@ class CoreConfig(Config):
     tracker_api = parameter(default="web", description="Tracking Stores to be used")[
         str
     ]
+
+    silence_tracking_mode = parameter(
+        default=False, description="Silence console on tracking mode"
+    )[bool]
 
     always_save_pipeline = parameter(
         description="Boolean for always saving pipeline to pickle"
@@ -169,12 +174,17 @@ class CoreConfig(Config):
             )
             self.tracker = [t for t in self.tracker if t != "api"]
 
-        if self.databand_personal_access_token and (
-            self.dbnd_user or self.dbnd_password
-        ):
+        if self.databand_access_token and (self.dbnd_user or self.dbnd_password):
             logger.warning(
-                "core.databand_personal_access_token is used instead of defined dbnd_user and dbnd_password."
+                "core.databand_access_token is used instead of defined dbnd_user and dbnd_password."
             )
+
+        if not (in_tracking_mode() and "api" in self.tracker):
+            self.silence_tracking_mode = False
+
+        # in tracking mode we track to console only if we are not tracking to the api
+        if self.silence_tracking_mode:
+            self.tracker = [t for t in self.tracker if t != "console"]
 
     def build_tracking_store(self, remove_failed_store=True):
         from dbnd._core.tracking.registry import get_tracking_store
@@ -190,8 +200,8 @@ class CoreConfig(Config):
         from dbnd.utils.api_client import ApiClient
 
         credentials = (
-            {"token": self.databand_personal_access_token}
-            if self.databand_personal_access_token
+            {"token": self.databand_access_token}
+            if self.databand_access_token
             else {"username": self.dbnd_user, "password": self.dbnd_password}
         )
 
@@ -244,7 +254,8 @@ class TrackingConfig(Config):
         description="Calculate and log value stats(expensive to calculate, better use log_stats on parameter level)",
     )[bool]
     log_value_preview = parameter(
-        default=True, description="Calculate and log value preview "
+        default=False,
+        description="Calculate and log value preview. Can be expensive on Spark.",
     )[bool]
 
     log_value_preview_max_len = parameter(

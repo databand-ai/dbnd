@@ -69,7 +69,7 @@ def calculate_alpha(alpha: float = 0.5) -> float:
     return alpha
 
 
-@task(training_set=parameter[DataFrame](log_histograms=True))
+@task(training_set=parameter[DataFrame](log_histograms=True, log_stats=True))
 def train_model(
     test_set: DataFrame,
     training_set: DataFrame,
@@ -99,18 +99,6 @@ def train_model(
     return lr
 
 
-def _create_scatter_plot(actual, predicted):
-    import matplotlib.pyplot as plt
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    ax.set_title("Actual vs. Predicted")
-    ax.set_xlabel("Actual Labels")
-    ax.set_ylabel("Predicted Values")
-    ax.scatter(actual, predicted)
-    return fig
-
-
 @task
 def validate_model(model: ElasticNet, validation_dataset: DataFrame) -> str:
     """ Calculates metrics of wine prediction model """
@@ -122,9 +110,6 @@ def validate_model(model: ElasticNet, validation_dataset: DataFrame) -> str:
 
     prediction = model.predict(validation_x)
     (rmse, mae, r2) = calculate_metrics(validation_y, prediction)
-    # log_artifact(
-    #     "prediction_scatter_plot", _create_scatter_plot(validation_y, prediction)
-    # )
 
     log_metric("rmse", rmse)
     log_metric("mae", rmse)
@@ -155,13 +140,6 @@ def predict_wine_quality(
     return model, validation
 
 
-@pipeline(result=("model", "validation", "serving"))
-def predict_wine_quality_package():
-    model, validation = predict_wine_quality()
-    serving = package_as_docker(model=model)
-    return model, validation, serving
-
-
 @pipeline
 def predict_wine_quality_parameter_search(
     alpha_step: float = 0.3, l1_ratio_step: float = 0.4
@@ -179,6 +157,13 @@ def predict_wine_quality_parameter_search(
 
         result[exp_name] = (model, validation)
     return result
+
+
+@pipeline(result=("model", "validation", "serving"))
+def predict_wine_quality_package():
+    model, validation = predict_wine_quality()
+    serving = package_as_docker(model=model)
+    return model, validation, serving
 
 
 # DATA FETCHING

@@ -11,6 +11,10 @@ class PipelineTask(Task):
 
     _conf__task_type_name = TaskType.pipeline
 
+    def _task_run(self):
+        result = self.run()
+        return result
+
     @abc.abstractmethod
     def band(self):
         """

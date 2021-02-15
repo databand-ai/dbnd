@@ -1,7 +1,6 @@
 import logging
 
-from dbnd import pipeline, task
-from dbnd._core.commands import log_metric
+from dbnd import log_metric, pipeline, task
 from targets.types import PathStr
 
 

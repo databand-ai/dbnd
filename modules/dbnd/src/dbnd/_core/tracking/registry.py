@@ -50,7 +50,7 @@ def get_tracking_store(
             )
         tracking_store_builder = _BACKENDS_REGISTRY.get(name)
         if tracking_store_builder is None:
-            friendly_error.config.wrong_store_name(name)
+            raise friendly_error.config.wrong_store_name(name)
         instance = tracking_store_builder()
         tracking_store_instances.append(instance)
 

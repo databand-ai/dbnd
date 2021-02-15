@@ -21,10 +21,10 @@ _original_mlflow_tracking_uri = None
 
 @hookimpl
 def dbnd_on_pre_init_context(ctx):
-    from mlflow import get_tracking_uri, set_tracking_uri
-
     if not config.getboolean("mlflow_tracking", "databand_tracking"):
         return
+
+    from mlflow import get_tracking_uri, set_tracking_uri
 
     databand_url = config.get("core", "databand_url")
     if not databand_url:
@@ -54,6 +54,9 @@ def dbnd_on_pre_init_context(ctx):
 
 @hookimpl
 def dbnd_on_exit_context(ctx):
+    if not config.getboolean("mlflow_tracking", "databand_tracking"):
+        return
+
     from mlflow import set_tracking_uri
 
     global _original_mlflow_tracking_uri

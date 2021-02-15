@@ -446,6 +446,11 @@ class Pyasciigraph:
             result.append(san_label)
             result.append(Pyasciigraph._u(self.titlebar) * real_line_length)
 
+        header_line = (Pyasciigraph._u(" ") * graph_length) + "count"
+        header_line += Pyasciigraph._u(" ") * (start_info_pos - len(header_line)) + "bin"
+
+        result.append(header_line)
+
         for info, value, color in san_data:
 
             graph_string = self._gen_graph_string(

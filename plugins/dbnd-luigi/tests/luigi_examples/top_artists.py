@@ -47,7 +47,7 @@ class Streams(luigi.Task):
 
     date = luigi.DateParameter(default=date.today())
 
-    version = luigi.Parameter(default=None)
+    version = luigi.Parameter(default="")
 
     def run(self):
         """

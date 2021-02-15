@@ -40,17 +40,17 @@ class TaskRunTracker(TaskRunCtrl):
         if not run_tracker.databand_url:
             return None
 
-        return "{databand_url}/app/jobs/{root_task_name}/{run_uid}/{task_run_uid}".format(
+        return "{databand_url}/app/jobs/{job_name}/{run_uid}/{task_run_uid}".format(
             databand_url=run_tracker.databand_url,
-            root_task_name=self.run.job_name,
+            job_name=self.run.job_name,
             run_uid=self.run.run_uid,
             task_run_uid=self.task_run_uid,
         )
 
     # Task Handlers
-    def save_task_run_log(self, log_preview):
+    def save_task_run_log(self, log_preview, local_log_path=None):
         self.tracking_store.save_task_run_log(
-            task_run=self.task_run, log_body=log_preview
+            task_run=self.task_run, log_body=log_preview, local_log_path=local_log_path
         )
 
     def log_parameter_data(
@@ -71,6 +71,7 @@ class TaskRunTracker(TaskRunCtrl):
             )
             key = "{}.{}".format(self.task_run.task.task_name, parameter.name)
             target.target_meta = get_value_meta_from_value(key, value, meta_conf)
+            # FIXME If we failed to get target meta for some reason, target operation won't be logged!
             if target.target_meta is None:
                 return
 
@@ -141,6 +142,11 @@ class TaskRunTracker(TaskRunCtrl):
             meta_conf = self.settings.tracking.get_value_meta_conf(meta_conf)
             value_meta = get_value_meta_from_value(key, data, meta_conf, raise_on_error)
             if not value_meta:
+                logger.warning(
+                    "Couldn't log the wanted data {name}, reason - can't log objects of type {value_type} ".format(
+                        name=key, value_type=type(data)
+                    )
+                )
                 return
 
             ts = utcnow()
@@ -152,6 +158,7 @@ class TaskRunTracker(TaskRunCtrl):
                     target_meta=value_meta,
                     operation_type=operation_type,
                     operation_status=operation_status,
+                    param_name=key,
                 )
             metrics = value_meta.build_metrics_for_key(key, meta_conf)
 

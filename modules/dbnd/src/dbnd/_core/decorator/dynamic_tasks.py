@@ -1,10 +1,11 @@
 import logging
 import typing
 
-from typing import Any, Union
+from typing import Any
 
 from dbnd._core.current import current_task_run, get_databand_run, is_verbose
 from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
+from dbnd._core.errors import MissingParameterError
 from targets.inline_target import InlineTarget
 
 
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 if typing.TYPE_CHECKING:
     from dbnd._core.decorator.func_task_call import FuncCall
     from dbnd._core.task.task import Task
+    from dbnd._core.task_run import TaskRun
 
 
 def create_dynamic_task(func_call):
@@ -80,8 +82,17 @@ def create_dynamic_task(func_call):
         return t
 
 
-def run_dynamic_task_safe(task, func_call):
-    # type: (Task, FuncCall) -> Union[Any]
+def create_and_run_dynamic_task_safe(func_call, parent_task_run):
+    # type: (FuncCall,TaskRun ) -> Any
+    try:
+        task = create_dynamic_task(func_call)  # type: Task
+    except MissingParameterError:
+        # We can't handle MissingParameterError, function invocation will always fail
+        raise
+    except Exception:
+        _handle_dynamic_error("task-create", func_call)
+        return func_call.invoke()
+
     try:
         from dbnd._core.decorator.func_task_call import TaskCallState, CALL_FAILURE_OBJ
 
@@ -96,7 +107,7 @@ def run_dynamic_task_safe(task, func_call):
             run = dbnd_run.context.dbnd_run_task(task)
             task_run = run.get_task_run(task.task_id)
         else:
-            task_run = dbnd_run.run_dynamic_task(
+            task_run = dbnd_run.run_executor.run_dynamic_task(
                 task, task_engine=current_task_run().task_engine
             )
             if task._dbnd_call_state.result_saved:
@@ -126,16 +137,6 @@ def run_dynamic_task_safe(task, func_call):
     finally:
         # we'd better clean _invoke_result to avoid memory leaks
         task._dbnd_call_state = None
-
-
-def create_and_run_dynamic_task_safe(func_call):
-    try:
-        task = create_dynamic_task(func_call)
-    except Exception:
-        _handle_dynamic_error("task-create", func_call)
-        return func_call.invoke()
-
-    return run_dynamic_task_safe(task=task, func_call=func_call)
 
 
 def _handle_dynamic_error(msg, func_call):

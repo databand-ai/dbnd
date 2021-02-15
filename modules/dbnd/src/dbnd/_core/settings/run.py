@@ -128,3 +128,7 @@ class RunConfig(config.Config):
     task_complete_parallelism_level = parameter(default=1).help(
         "Number of threads to use when checking if tasks are already complete"
     )[int]
+
+    dry = parameter(default=False).help(
+        "Do not execute tasks, stop before sending them to the execution, and print their status"
+    )[bool]

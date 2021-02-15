@@ -31,7 +31,16 @@ def _parameter_value_to_argparse_str(p, p_value):
     return ["--set", "{}={}".format(p.name, formatted_value)]
 
 
-class TaskReprBuilder(TaskSubCtrl):
+class TaskRepr(TaskSubCtrl):
+    def __init__(self, task):
+        super(TaskRepr, self).__init__(task)
+        self.task_command_line = None
+        self.task_functional_call = None
+
+    def initialize(self):
+        self.task_command_line = self.calculate_command_line_for_task()
+        self.task_functional_call = self.calculate_task_call()
+
     def __get_relevant_params(self):
         relevant = []
         for p, value in self.params.get_param_values(input_only=True, user_only=True):

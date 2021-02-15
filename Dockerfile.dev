@@ -15,12 +15,13 @@ COPY ./setup.cfg /dbnd/plugins/*/setup.cfg
 
 COPY ./project.cfg /dbnd/
 
-RUN pip install --upgrade pip
-RUN pip install apache-airflow
+RUN pip install --upgrade 'pip>=20,<20.3'
 
-RUN pip install -e /dbnd/modules/dbnd-airflow[airflow_1_10_12]
 RUN pip install -e /dbnd/modules/dbnd
+RUN pip install -e /dbnd/modules/dbnd-airflow[airflow_1_10_7]
 RUN pip install -e /dbnd/examples
+RUN pip install -e /dbnd/plugins/dbnd-aws
+RUN pip install -e /dbnd/plugins/dbnd-docker
 RUN pip install -e /dbnd/plugins/dbnd-airflow-auto-tracking
 RUN pip install -e /dbnd/plugins/dbnd-airflow-export
 RUN pip install -e /dbnd/plugins/dbnd-airflow-operator

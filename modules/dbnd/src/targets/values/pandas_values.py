@@ -56,7 +56,7 @@ class DataFrameValueType(DataValueType):
             )
 
         if meta_conf.log_size:
-            data_schema["size"] = int(value.size)
+            data_schema["size.bytes"] = int(value.size)
 
         value_preview, data_hash = None, None
         if meta_conf.log_preview:

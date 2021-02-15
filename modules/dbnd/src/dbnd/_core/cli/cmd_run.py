@@ -9,6 +9,7 @@ import six
 from dbnd._core.cli.click_utils import ConfigValueType, _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
+from dbnd._core.configuration.environ_config import tracking_mode_context
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
@@ -45,12 +46,16 @@ def build_dynamic_task(original_cls, new_cls_name):
 
 @click.command(context_settings=dict(help_option_names=[]))
 @click.argument("task", autocompletion=completer.task(), required=False)
-@click.option("--module", "-m", help="Used for dynamic loading of modules")
+@click.option(
+    "--module",
+    "-m",
+    help="Define a path of a module where DBND can search for a task or pipeline",
+)
 @click.option(
     "--set",
     "-s",
     "_sets",
-    help="Set configuration value (task_name.task_parameter=value)",
+    help="Set a configuration value (task_name.task_parameter=value)",
     type=ConfigValueType(),
     multiple=True,
     autocompletion=completer.task_param(),
@@ -59,7 +64,7 @@ def build_dynamic_task(original_cls, new_cls_name):
     "--set-config",
     "-c",
     "_sets_config",
-    help="Set configuration value (key=value)",
+    help="Set configuration a value (key=value). Example: --set run.name=my_run",
     type=ConfigValueType(),
     multiple=True,
     autocompletion=completer.config_param(),
@@ -68,16 +73,18 @@ def build_dynamic_task(original_cls, new_cls_name):
     "--set-root",
     "-r",
     "_sets_root",
-    help="Set TASK parameter value (task_parameter=value)",
+    help="Set or override a task parameter value (task_parameter=value)",
     type=ConfigValueType(),
     multiple=True,
     autocompletion=completer.root_param(),
 )
-@click.option("--verbose", "-v", count=True, help="Make logging output more verbose")
 @click.option(
-    "--print-task-band", is_flag=True, help="Print task_band in logging output."
+    "--verbose", "-v", count=True, help="Make the logging output more verbose"
 )
-@click.option("--describe", is_flag=True, help="Describe current run")
+@click.option(
+    "--print-task-band", is_flag=True, help="Print task_band in the logging output."
+)
+@click.option("--describe", is_flag=True, help="Describe the current run")
 @click.option(
     "--env",
     default="local",
@@ -86,8 +93,8 @@ def build_dynamic_task(original_cls, new_cls_name):
 )
 @click.option("--parallel", is_flag=True, help="Run tasks in parallel")
 @click.option("--conf-file", help="List of files to read from")
-@click.option("--task-version", help="task version, directly affects task signature")
-@click.option("--project-name", help="Name of this databand project")
+@click.option("--task-version", help="Task version directly affects the task signature")
+@click.option("--project-name", help="Name of this Databand project")
 @click.option("--name", help="Name of this run")
 @click.option("--description", help="Description of this run")
 @click.option(
@@ -106,26 +113,29 @@ def build_dynamic_task(original_cls, new_cls_name):
 @click.option(
     "--scheduled-job-name",
     "-sjn",
-    help="Associate this run with this scheduled job (will be created if needed)",
+    help="Associate this run with the scheduled job which will be created if needed",
 )
 @click.option(
     "--scheduled-date",
     "-sd",
-    help="For use when setting scheduled-job-name",
+    help="Should be used only when scheduled-job-name is set",
     type=TZAwareDateTime(),
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.option(
-    "--submit-driver", "submit_driver", flag_value=1, help="Run driver at remote engine"
+    "--submit-driver",
+    "submit_driver",
+    flag_value=1,
+    help="Run driver at a remote engine",
 )
 @click.option(
-    "--local-driver", "submit_driver", flag_value=0, help="Run driver locally"
+    "--local-driver", "submit_driver", flag_value=0, help="Run the driver locally"
 )
 @click.option(
     "--submit-tasks",
     "submit_tasks",
     flag_value=1,
-    help="Submit tasks from driver to remote engine",
+    help="Submit tasks from driver to a remote engine",
 )
 @click.option(
     "--no-submit-tasks",
@@ -137,7 +147,9 @@ def build_dynamic_task(original_cls, new_cls_name):
     "--disable-web-tracker", help="Disable web tracking", is_flag=True,
 )
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
-@click.option("--open-web-tab", help="Open tracker url in Databand UI", is_flag=True)
+@click.option(
+    "--open-web-tab", help="Open the tracker URL in the Databand UI", is_flag=True
+)
 @click.option(
     "--docker-build-tag",
     help="Define custom docker image tag for docker image that will be built",
@@ -273,7 +285,7 @@ def run(
             scheduled_job_name=scheduled_job_name, scheduled_date=scheduled_date
         )
 
-    with new_dbnd_context(
+    with tracking_mode_context(tracking=False), new_dbnd_context(
         name="run", module=module
     ) as context:  # type: DatabandContext
         task_registry = get_task_registry()
@@ -293,13 +305,12 @@ def run(
 
         # --set-root
         # now we can get it config, as it's not main task, we can load config after the configuration is loaded
-        if task_cls is not None:
-            if root_task_config:
-                # adding root task to configuration
-                config.set_values(
-                    {task_cls.task_definition.task_config_section: root_task_config},
-                    source="--set-root",
-                )
+        if task_cls is not None and root_task_config:
+            # adding root task to configuration
+            config.set_values(
+                {task_cls.task_definition.task_config_section: root_task_config},
+                source="--set-root",
+            )
 
         if is_help or not task_name:
             print_help(ctx, task_cls)
@@ -310,6 +321,14 @@ def run(
 
         if docker_build_tag:
             config.set_values({"kubernetes": {"docker_build_tag": docker_build_tag}})
+
+        if context.settings.system.describe:
+            # we want to print describe without triggering real run
+            logger.info("Building main task '%s'", task_name)
+            root_task = get_task_registry().build_dbnd_task(task_name)
+            root_task.ctrl.describe_dag.describe_dag()
+            click.echo("Task %s has been described!" % task_name)
+            return root_task
 
         return context.dbnd_run_task(
             task_or_task_name=task_name,
@@ -329,7 +348,7 @@ def print_help(ctx, task_cls):
     run.format_help(ctx, formatter)
     if task_cls:
         dl = []
-        for (param_name, param_obj) in task_cls.task_definition.all_task_params.items():
+        for (param_name, param_obj) in task_cls.task_definition.task_params.items():
             if param_obj.system or param_obj.kind == _ParameterKind.task_output:
                 continue
 

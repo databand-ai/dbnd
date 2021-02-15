@@ -75,4 +75,21 @@ def band(
     """
     ...
 
+def data_source_pipeline(
+    task_env: Optional[str] = None,
+    task_target_date: Optional[datetime.date] = None,
+    task_config: Optional[dict] = None,
+    **kwargs,
+):
+    """
+    :param task_env: defines data and compute environment for a task. By default, tasks run in local environment. Part of task signature
+    :param task_target_date: A date (data) associated with task execution. Part of task signature.
+    Example value is 'datetime.date.today()'.
+    :param task_config: A dictionary of arbitrary configuration params. How to override specific task sub configs
+     task_config = {  "spark" : { "param" : "ss"  }
+     task_config = { spark.jars = some_jars ,
+                     kubernetes.gpu = some_gpu }
+    """
+    ...
+
 _default_output: Union[ParameterFactory, object]

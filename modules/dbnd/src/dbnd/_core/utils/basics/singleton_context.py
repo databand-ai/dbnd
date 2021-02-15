@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from contextlib import contextmanager
 from typing import Any
@@ -92,17 +93,27 @@ class SingletonContext(object):
                 raise
 
         cls._instance = context
-
+        _track_context(context, "enter")
         try:
             cls._instance._on_enter()
             yield cls._instance
         finally:
+            _track_context(context, "exit")
             if cls._instance is not context:
-                raise DatabandSystemError(
+                msg = (
                     "Something wrong with %s context manager, "
                     "somebody has change context while we were running: "
-                    "actual=%s, expected=%s" % (cls.__name__, cls._instance, context)
+                    "actual=%s(%s), expected=%s(%s)"
+                    % (
+                        cls.__name__,
+                        cls._instance,
+                        id(cls._instance),
+                        context,
+                        id(context),
+                    )
                 )
+                logger.warning(msg)
+                raise DatabandSystemError(msg)
 
             cls._instance._on_exit()
             cls._instance = orig_value
@@ -121,3 +132,12 @@ class SingletonContext(object):
 
     def _on_exit(self):
         pass
+
+
+def _track_context(context, op):
+    # # uncomment it if we need to debug context before logging initialization
+    # print(
+    #     "\n\n-->CONTEXT: %s %s@%s" % (op, context, id(context)), file=sys.__stderr__
+    # )
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("%s@%s - %s", context, id(context), op)

@@ -9,7 +9,7 @@ import six
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.current import get_databand_context
-from dbnd._core.errors import friendly_error
+from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.seven import contextlib
@@ -172,6 +172,10 @@ class DbndTaskRegistry(SingletonContext):
             if task_module and hasattr(task_module, possible_root_task):
                 user_func = getattr(task_module, possible_root_task)
                 if callable(user_func):
+                    from dbnd._core.tracking.python_tracking import _is_task
+
+                    if _is_task(user_func):
+                        return user_func.task_cls
                     # Non-decorated function was found - decorate and return it
                     from dbnd._core.decorator import dbnd_decorator
 
@@ -289,6 +293,8 @@ _REGISTRY = DbndTaskRegistry.try_instance()
 
 
 def build_task_from_config(task_name, expected_type=None):
+    if not task_name:
+        raise DatabandError("Task name can not be None")
     tr = get_task_registry()
     return tr.build_dbnd_task(task_name=task_name, expected_type=expected_type)
 

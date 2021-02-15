@@ -57,7 +57,7 @@ class SparkDataFrameValueType(DataValueType):
             data_dimensions = (rows, len(value.columns))
             data_schema.update(
                 {
-                    "size": int(rows * len(value.columns)),
+                    "size.bytes": int(rows * len(value.columns)),
                     "shape": (rows, len(value.columns)),
                 }
             )

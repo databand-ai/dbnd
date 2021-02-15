@@ -32,7 +32,7 @@ class TargetIdentitySourceMap(object):
         # http://guilload.com/python-string-interning/
         if (
             runtime_value is None
-            or isinstance(runtime_value, six.integer_types)
+            or _is_cached_integer(runtime_value)
             or not isinstance(origin_target, Target)
         ):
             return
@@ -40,6 +40,7 @@ class TargetIdentitySourceMap(object):
         obj_id = id(runtime_value)
         if isinstance(origin_target, InMemoryTarget):
             value_type = origin_target.value_type
+
         self.id_map[obj_id].append(
             ValueOrigin(
                 obj_id=obj_id, origin_target=origin_target, value_type=value_type
@@ -52,4 +53,12 @@ class TargetIdentitySourceMap(object):
 
     def get_for_map(self, d):
         # type: (Dict[str, Any]) -> Dict[str, ValueOrigin]
-        return {k: self.id_map[id(v)][0] for k, v in d.items() if id(v) in self.id_map}
+        return {
+            key: self.id_map[id(value)][0]
+            for key, value in six.iteritems(d)
+            if id(value) in self.id_map
+        }
+
+
+def _is_cached_integer(value):
+    return isinstance(value, six.integer_types) and (-5 <= value <= 256)

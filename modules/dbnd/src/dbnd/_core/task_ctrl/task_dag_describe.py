@@ -66,7 +66,8 @@ class DescribeDagCtrl(TaskSubCtrl):
 
         messages = [indent(msg, "\t" * level) for level, msg in result]
         logger.info(
-            "Tasks Graph - (*) represent existing node in the graph, green is completed:\n%s",
+            "Tasks Graph - (*) represent existing node in the graph run "
+            "(green is completed, yellow is going to be submitted):\n%s",
             "\n".join(messages),
         )
 

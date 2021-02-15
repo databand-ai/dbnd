@@ -24,8 +24,8 @@ task_target_date = datetime.date(year=2012, month=1, day=1)
 
 
 def _sig(task):
-    with new_databand_run(context=get_databand_context(), task_or_task_name=task):
-        for child in [task] + list(task.task_meta.get_children()):
+    with new_databand_run(context=get_databand_context(), job_name=task.task_name):
+        for child in [task] + list(task.descendants.get_children()):
             name = "signature %s" % child.task_name
             logger.info(child.ctrl.banner(name))
 
@@ -64,6 +64,16 @@ class TPipeline(PipelineTask):
 
 
 class TestTaskSignature(object):
+    """
+    This test checks that our signatures are not changed at different dbnd version
+    Signature is a base component of task output path, and task outputs are the way for us to check
+    if task is completed.
+    If we change the signature, all tasks ran by the user before the change are going to be invalidated
+    and if user re-run the pipeline/task - it will be executed again
+
+    !!!Change these signature only if you know what you are doing! (don't just fix the test)!!!
+    """
+
     def test_task_id_stable(self):
         class TPython(PythonTask):
             t_param = parameter[Dict]
@@ -86,10 +96,13 @@ class TestTaskSignature(object):
             TPython(t_param="a", t_param2=2, task_target_date=task_target_date),
         ]
 
+        # !!!Change these signature only if you know what you are doing! (don't just fix the test)!!!
         expected = {"TData": "29c9aa51d4", "TPython": "4a13659ca5"}
         assert_signatures(tasks, expected)
 
     def test_signatures_pipeline(self):
         tasks = [TPipeline(task_target_date=task_target_date)]
+
+        # !!!Change these signature only if you know what you are doing! (don't just fix the test)!!!
         expected = {"TPipeline": "a14cf2517b"}
         assert_signatures(tasks, expected)

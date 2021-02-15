@@ -10,11 +10,10 @@ import pytest
 
 from dbnd import new_dbnd_context, output, override, parameter, pipeline, task
 from dbnd._core.constants import TaskExecutorType
-from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.settings import CoreConfig, RunConfig
+from dbnd._core.task_executor.run_executor import RunExecutor
 from dbnd._vendor.cloudpickle import cloudpickle
 from dbnd.tasks import PythonTask
-from dbnd.testing.helpers import initialized_run
 from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
@@ -69,14 +68,15 @@ class TestRunPickle(object):
         with new_dbnd_context(
             conf={
                 RunConfig.task_executor_type: override(TaskExecutorType.local),
+                RunConfig.dry: override(True),
                 CoreConfig.tracker: override(["console"]),
             }
         ) as dc:
             run = dc.dbnd_run_task(task_or_task_name=task)
-            run.save_run()
+            run.run_executor.save_run_pickle()
 
-        loaded_run = DatabandRun.load_run(
-            dump_file=run.driver_dump, disable_tracking_api=False
+        loaded_run = RunExecutor.load_run(
+            dump_file=run.run_executor.driver_dump, disable_tracking_api=False
         )
         assert loaded_run
         return run
@@ -85,7 +85,7 @@ class TestRunPickle(object):
         s = TTask()
         r = self._save_graph(s)
 
-        actual = DatabandRun.load_run(r.driver_dump, False)
+        actual = RunExecutor.load_run(r.run_executor.driver_dump, False)
         assert actual
 
     def test_save_huge_graph(self):
@@ -94,15 +94,15 @@ class TestRunPickle(object):
 
         # dill._dill._trace(True)
         r = self._save_graph(task)
-        actual = DatabandRun.load_run(r.driver_dump, False)
+        actual = RunExecutor.load_run(r.run_executor.driver_dump, False)
         assert actual
 
     def _benchmark_pipeline_save(
         self, benchmark, pipeline, pickle_func=cloudpickle.dumps
     ):
-        with initialized_run(task_or_task_name=pipeline) as r:  # type: DatabandRun
-            logger.warning("starting benchmark")
-            result = benchmark(pickle_func, r)
+        r = self._save_graph(pipeline)
+
+        result = benchmark(pickle_func, r)
         logger.warning("Pickeled result size %s", len(result))
         logger.warning("zlib result size %s", len(zlib.compress(result, 9)))
 

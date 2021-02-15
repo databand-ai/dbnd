@@ -66,6 +66,8 @@ class RunInfoSchema(ApiObjectSchema):
     scheduled_job_name = fields.String(allow_none=True)
     scheduled_date = fields.DateTime(allow_none=True)
 
+    external_links = fields.Dict(allow_none=True)
+
     @post_load
     def make_run_info(self, data, **kwargs):
         return _as_dotted_dict(**data)

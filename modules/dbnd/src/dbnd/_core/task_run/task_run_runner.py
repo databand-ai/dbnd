@@ -41,14 +41,15 @@ class TaskRunRunner(TaskRunCtrl):
         self.task_run.airflow_context = airflow_context
         task_run = self.task_run
         run = task_run.run
-        run_config = run.run_config
+        run_executor = run.run_executor
+        run_config = run_executor.run_config
         task = self.task  # type: Task
         task_engine = task_run.task_engine
         if allow_resubmit and task_engine._should_wrap_with_submit_task(task_run):
             args = task_engine.dbnd_executable + [
                 "execute",
                 "--dbnd-run",
-                str(run.driver_dump),
+                str(run_executor.driver_dump),
                 "task_execute",
                 "--task-id",
                 task_run.task.task_id,
@@ -56,10 +57,10 @@ class TaskRunRunner(TaskRunCtrl):
             submit_task = self.task_run.task_engine.submit_to_engine_task(
                 env=task.task_env, task_name=SystemTaskName.task_submit, args=args
             )
-            submit_task.task_meta.add_child(task.task_id)
+            submit_task.descendants.add_child(task.task_id)
             if run_config.open_web_tracker_in_browser:
                 webbrowser.open_new_tab(task_run.task_tracker_url)
-            run.run_dynamic_task(submit_task)
+            run_executor.run_dynamic_task(submit_task)
             return
 
         with self.task_run_execution_context(handle_sigterm=handle_sigterm):
@@ -144,7 +145,7 @@ class TaskRunRunner(TaskRunCtrl):
 @seven.contextlib.contextmanager
 def handle_sigterm_at_dbnd_task_run():
     def signal_handler(signum, frame):
-        logger.info("Task runner received signal. Exiting...")
+        logger.info("Task runner received signal. PID: %s. Exiting...", os.getpid())
         if is_plugin_enabled("dbnd-docker") and is_plugin_enabled("dbnd-airflow"):
             from dbnd_docker.kubernetes.kubernetes_engine_config import (
                 ENV_DBND_POD_NAME,

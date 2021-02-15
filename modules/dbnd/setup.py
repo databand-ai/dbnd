@@ -23,7 +23,6 @@ dbnd_vendors_list = [
     "psutil>=4.2.0,<5.7.0",  # extracted use to vendorized_psutil.py
 ]
 
-
 setuptools.setup(
     name="dbnd",
     package_dir={"": "src"},
@@ -52,6 +51,7 @@ setuptools.setup(
     extras_require={
         ':sys_platform=="win32"': ["colorama"],
         "tests": [
+            "qtconsole==4.7.7",  # 5.0 is not py 27 compatible
             "pandas==0.24.2",
             "numpy",
             "coverage",

@@ -25,7 +25,7 @@ def _section(parameter):
 class TaskRelations(TaskSubCtrl):
     def __init__(self, task):
         super(TaskRelations, self).__init__(task)
-        from dbnd._core.task.task import Task
+        from dbnd._core.task.task_mixin import _TaskCtrlMixin
 
         # map of required targets
         self.task_inputs = None
@@ -33,7 +33,7 @@ class TaskRelations(TaskSubCtrl):
 
         self.task_band_result = None  # real output of task_band
 
-        assert isinstance(task, Task)
+        assert isinstance(task, _TaskCtrlMixin)
 
     def initialize_relations(self):
         # STEP 0 - run band function
@@ -142,7 +142,7 @@ class TaskRelations(TaskSubCtrl):
         from dbnd import PipelineTask
 
         child_pipelines = []
-        for child in self.task_meta.children:
+        for child in self.task.descendants.children:
             child_task = self.get_task_by_task_id(child)
             if isinstance(child_task, PipelineTask):
                 child_pipelines.append(child_task)

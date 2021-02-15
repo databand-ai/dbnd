@@ -1,6 +1,8 @@
 import logging
 import typing
 
+from uuid import UUID
+
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
@@ -9,6 +11,7 @@ from dbnd._core.task_run.task_run_runner import TaskRunRunner
 from dbnd._core.task_run.task_run_sync_local import TaskRunLocalSyncer
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
+from dbnd._core.tracking.airflow_dag_inplace_tracking import try_pop_attempt_id_from_env
 from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.utils.string_utils import clean_job_name, clean_job_name_dns1123
 from dbnd._core.utils.timezone import utcnow
@@ -82,7 +85,7 @@ class TaskRun(object):
         self.attempt_folder = None
         self.meta_files = None
         self.log = None
-        self.init_attempt()
+        self.init_new_task_run_attempt()
 
         # TODO: inherit from parent task if disabled
         self.is_tracked = task._conf__tracked
@@ -194,7 +197,7 @@ class TaskRun(object):
 
         if value != self._attempt_number:
             self._attempt_number = value
-            self.init_attempt()
+            self.init_new_task_run_attempt()
             self.run.tracker.tracking_store.add_task_runs(
                 run=self.run, task_runs=[self]
             )
@@ -209,8 +212,15 @@ class TaskRun(object):
         if self._airflow_context:
             self.attempt_number = self._airflow_context["ti"].try_number
 
-    def init_attempt(self):
-        self.task_run_attempt_uid = get_uuid()
+    def init_new_task_run_attempt(self):
+        # trying to find if we should use attempt_uid that been set from external process.
+        # if so - the attempt_uid is uniquely for this task_run_attempt, and that why we pop.
+        attempt_id = try_pop_attempt_id_from_env(self.task)
+        if attempt_id:
+            self.task_run_attempt_uid = UUID(attempt_id)
+        else:
+            self.task_run_attempt_uid = get_uuid()
+
         self.attempt_folder = self.task._meta_output.folder(
             "attempt_%s_%s" % (self.attempt_number, self.task_run_attempt_uid),
             extension=None,
@@ -224,7 +234,7 @@ class TaskRun(object):
         self.log = TaskRunLogManager(task_run=self)
 
     def __repr__(self):
-        return "TaskRun(%s, %s)" % (self.task.task_name, self.task_run_state)
+        return "TaskRun(id=%s, af_id=%s)" % (self.task.task_id, self.task_af_id)
 
 
 class TaskRunUidGen(object):

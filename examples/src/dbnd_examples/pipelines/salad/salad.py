@@ -4,7 +4,7 @@ import logging
 from random import shuffle
 from typing import List
 
-from dbnd import band, log_metric, output, task
+from dbnd import log_metric, output, pipeline, task
 from dbnd.errors import TaskValidationError
 from dbnd_examples.data import data_repo
 from targets import Target
@@ -56,8 +56,6 @@ def cut(vegetables):
     for line in vegetables:
         chopped.extend(list(line.rstrip()))
 
-    # self.log_metric("chopped", len(chopped))
-
     shuffle(chopped)
 
     logging.info("Chopped vegetables:" + " ".join(chopped))
@@ -65,9 +63,9 @@ def cut(vegetables):
     return [x + "\n" for x in chopped]
 
 
-@band
+@pipeline
 def prepare_salad(vegetables=data_repo.vegetables, dressing="oil"):
-    # type: (Target, str) -> str
+    # type: (Target, str) -> List[str]
     return add_dressing(cut(vegetables), dressing)
 
 

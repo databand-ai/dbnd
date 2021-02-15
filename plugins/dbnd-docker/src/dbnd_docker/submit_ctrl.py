@@ -1,10 +1,9 @@
 import logging
 import typing
 
-from typing import Type
+from typing import Optional, Type
 
-from dbnd import dbnd_config, override
-from dbnd._core.commands import log_metric
+from dbnd import dbnd_config, log_metric, override
 from dbnd._core.constants import CURRENT_TIME_STR
 from dbnd._core.errors.friendly_error.executor_k8s import no_tag_on_no_build
 from dbnd._core.plugin.dbnd_plugins import pm
@@ -14,12 +13,13 @@ from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConf
 
 
 if typing.TYPE_CHECKING:
-    pass
+    from dbnd._core.run.databand_run import DatabandRun
 
 logger = logging.getLogger(__name__)
 
 
 def prepare_docker_for_executor(run, docker_engine):
+    # type: (DatabandRun, ContainerEngineConfig) -> Optional[DockerBuild]
     if docker_engine.container_tag:
         logger.info(
             "Omitting docker build due to existing container_tag=%s",
@@ -61,7 +61,7 @@ def prepare_docker_for_executor(run, docker_engine):
             task_is_system=True,
         )
 
-        run.run_dynamic_task(docker_build)
+        run.run_executor.run_dynamic_task(docker_build)
         pm.hook.dbnd_build_project_docker(
             docker_engine=docker_engine, docker_build_task=docker_build
         )

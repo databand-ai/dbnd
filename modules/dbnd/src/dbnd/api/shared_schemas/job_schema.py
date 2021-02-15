@@ -6,6 +6,7 @@ class JobSchemaV2(ApiObjectSchema):
     id = fields.Int()
     name = fields.Str()
     user = fields.Str()
+    is_archived = fields.Boolean()
     ui_hidden = fields.Boolean()
     is_airflow_synced = fields.Boolean()
 
@@ -20,6 +21,7 @@ class JobSchemaV2(ApiObjectSchema):
     latest_run_root_task_run_uid = fields.UUID()
     latest_run_trigger = fields.Str()
     latest_run_env = fields.Str()
+    airflow_instance_name = fields.Str()
 
     scheduled_job_count = fields.Number()
 

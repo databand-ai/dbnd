@@ -3,9 +3,6 @@ import sys
 from dbnd import dbnd_run_start, task
 
 
-dbnd_run_start()
-
-
 @task
 def some_function(x="my_default"):
     return x[0]
@@ -17,6 +14,7 @@ def my_f():
 
 
 if __name__ == "__main__":
+    dbnd_run_start()
     print("Main script is running")
     print("Command lines are: {} ", sys.argv)
     with open(sys.argv[1], "w") as fp:

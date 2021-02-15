@@ -9,7 +9,10 @@ import attr
 import six
 
 from dbnd._core.configuration import get_dbnd_project_config
-from dbnd._core.configuration.environ_config import is_databand_enabled
+from dbnd._core.configuration.environ_config import (
+    in_tracking_mode,
+    is_databand_enabled,
+)
 from dbnd._core.constants import (
     RESULT_PARAM,
     DbndTargetOperationStatus,
@@ -37,7 +40,7 @@ from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     build_task_at_airflow_dag_context,
     is_in_airflow_dag_build_context,
 )
-from dbnd._core.task.task import Task
+from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import (
     TaskContextPhase,
     current_phase,
@@ -49,6 +52,7 @@ from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
 from targets import InMemoryTarget
+from targets.value_meta import ValueMetaConf
 from targets.values import get_value_type_of_obj
 
 
@@ -90,21 +94,29 @@ class TaskClsBuilder(object):
         return self.func_spec.item
 
     def get_task_cls(self):
-        if _is_tracking_mode():
-            if not self._tracking_task_cls:
-                self._tracking_task_cls = self._build_task_cls(is_tracking_mode=True)
-            return self._tracking_task_cls
-        else:
-            if self._normal_task_cls is None:
-                self._normal_task_cls = self._build_task_cls(is_tracking_mode=False)
-            return self._normal_task_cls
+        if self._normal_task_cls is None:
+            self._normal_task_cls = self._build_task_cls(is_tracking_mode=False)
+        return self._normal_task_cls
+
+    def get_tracking_task_cls(self):
+        if not self._tracking_task_cls:
+            self._tracking_task_cls = self._build_task_cls(is_tracking_mode=True)
+        return self._tracking_task_cls
 
     def get_task_definition(self):
         return self.get_task_cls().task_definition
 
     def _build_task_cls(self, is_tracking_mode):
         class_or_func = self.func
-        bases = (self.task_type,)
+
+        # Only can be sure about tracking mode when we about to build the task
+        if is_tracking_mode:
+            # In tracking mode we use the TrackingTask which behave as a Task for tracking scenarios only.
+            bases = (TrackingTask,)
+        else:
+            # Use the task_type we got from the decorator. check @task/@pipeline/@spark_task
+            bases = (self.task_type,)
+
         task_cls = TaskMetaclass(
             str(class_or_func.__name__),
             bases,
@@ -114,7 +126,6 @@ class TaskClsBuilder(object):
                 __doc__=class_or_func.__doc__,
                 __module__=class_or_func.__module__,
                 defaults=self.task_defaults,
-                is_tracking_mode=is_tracking_mode,
             ),
         )
         return task_cls
@@ -152,7 +163,7 @@ class TaskClsBuilder(object):
         func_call = None
         try:
             func_call = FuncCallWithResult(
-                task_cls=self.get_task_cls(),
+                task_cls=self.get_tracking_task_cls(),
                 call_user_code=self.func,
                 call_args=tuple(call_args),  # prevent original call_args modification
                 call_kwargs=dict(call_kwargs),  # prevent original kwargs modification
@@ -161,7 +172,37 @@ class TaskClsBuilder(object):
             # 1. check that we don't have too many calls
             # 2. Start or reuse existing "inplace_task" that is root for tracked tasks
             if not self._call_count_limit_exceeded() and _get_or_create_inplace_task():
-                task_run = _create_dynamic_task_run(func_call)
+                cls = func_call.task_cls
+
+                # replace any position argument with kwarg if it possible
+                args, kwargs = args_to_kwargs(
+                    cls._conf__decorator_spec.args,
+                    func_call.call_args,
+                    func_call.call_kwargs,
+                )
+
+                # instantiate inline task
+                task = cls._create_task(args, kwargs)
+
+                # update upstream/downstream relations - needed for correct tracking
+                # we can have the task as upstream , as it was executed already
+                parent_task = current_task_run().task
+                if not parent_task.task_dag.has_upstream(task):
+                    parent_task.set_upstream(task)
+
+                # checking if any of the inputs are the outputs of previous task.
+                # we can add that task as upstream.
+                dbnd_run = get_databand_run()
+                call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(kwargs)
+                for value_origin in call_kwargs_as_targets.values():
+                    up_task = value_origin.origin_target.task
+                    task.set_upstream(up_task)
+
+                # creating task_run as a task we found mid-run
+                task_run = dbnd_run.create_dynamic_task_run(
+                    task, task_engine=current_task_run().task_engine
+                )
+
                 with task_run.runner.task_run_execution_context(handle_sigterm=True):
                     task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
@@ -200,7 +241,6 @@ class TaskClsBuilder(object):
             # then it's some dbnd tracking error - just log it
             if func_call:
                 _handle_dynamic_error("tracking-init", func_call)
-
         # if we didn't reached user_code_called=True line - there was an error during
         # dbnd tracking initialization, so nothing is done - user function wasn't called yet
         if not user_code_called:
@@ -248,9 +288,11 @@ def _call_handler(task_cls, call_user_code, call_args, call_kwargs):
 
     current = try_get_current_task()
     if not current:
-        from dbnd._core.inplace_run.inplace_run_manager import try_get_inplace_task_run
+        from dbnd._core.tracking.script_tracking_manager import (
+            try_get_inplace_tracking_task_run,
+        )
 
-        task_run = try_get_inplace_task_run()
+        task_run = try_get_inplace_tracking_task_run()
         if task_run:
             current = task_run.task
 
@@ -258,10 +300,11 @@ def _call_handler(task_cls, call_user_code, call_args, call_kwargs):
         return func_call.invoke()
 
     ######
-    # DBND HANDLING OF CALL
-    # now we can make some decisions what we do with the call
-    # it's not coming from _invoke_func
-    # but from   user code ...   some_func()  or SomeTask()
+    # current is not None, and we are not in trackign/airflow/luigi
+    # DBND Orchestration mode
+    # we can be in the context of .run() or in .band()
+    # called from  user code using some_func()  or SomeTask()
+    # this call path is not coming from it's not coming from _invoke_func
     phase = current_phase()
     if phase is TaskContextPhase.BUILD:
         # we are in the @pipeline context, we are building execution plan
@@ -288,7 +331,9 @@ def _call_handler(task_cls, call_user_code, call_args, call_kwargs):
             # and the current task supports inline calls
             # that's extra mechanism in addition to __force_invoke
             # on pickle/unpickle isinstance fails to run.
-            return create_and_run_dynamic_task_safe(func_call=func_call)
+            return create_and_run_dynamic_task_safe(
+                func_call=func_call, parent_task_run=current
+            )
 
     # we can not call it in"databand" way, fallback to normal execution
     return func_call.invoke()
@@ -298,49 +343,20 @@ def _passthrough_decorator(f):
     return f
 
 
-def _is_tracking_mode():
-    return get_dbnd_project_config().is_tracking_mode()
-
-
 def _get_or_create_inplace_task():
     """
     try to get existing task, and if not exists - try to get/create inplace_task_run
     """
     current_task = try_get_current_task()
     if not current_task:
-        from dbnd._core.inplace_run.inplace_run_manager import try_get_inplace_task_run
+        from dbnd._core.tracking.script_tracking_manager import (
+            try_get_inplace_tracking_task_run,
+        )
 
-        inplace_task_run = try_get_inplace_task_run()
+        inplace_task_run = try_get_inplace_tracking_task_run()
         if inplace_task_run:
             current_task = inplace_task_run.task
     return current_task
-
-
-def _create_dynamic_task_run(func_call):
-    task = _create_dynamic_task(func_call)
-    dbnd_run = get_databand_run()
-    task_run = dbnd_run.create_dynamic_task_run(
-        task, task_engine=current_task_run().task_engine
-    )
-    return task_run
-
-
-def _create_dynamic_task(func_call):
-    # type: (FuncCall) -> Task
-    task_cls = func_call.task_cls
-    call_args, call_kwargs = args_to_kwargs(
-        task_cls._conf__decorator_spec.args, func_call.call_args, func_call.call_kwargs
-    )
-
-    # instantiate inline task
-    t = task_cls._create_task(call_args, call_kwargs)
-
-    # update upstream/downstream relations - needed for correct tracking
-    # we can have the task as upstream , as it was executed already
-    parent_task = current_task_run().task
-    if not parent_task.task_dag.has_upstream(t):
-        parent_task.set_upstream(t)
-    return t
 
 
 def _log_inputs(task_run):
@@ -352,9 +368,14 @@ def _log_inputs(task_run):
         for param in params.get_params(input_only=True):
             value = params.get_value(param.name)
 
-            # we
             if isinstance(value, InMemoryTarget):
                 try:
+                    param = param.modify(
+                        value_meta_conf=ValueMetaConf(
+                            log_preview=True, log_schema=True,
+                        )
+                    )
+
                     task_run.tracker.log_parameter_data(
                         parameter=param,
                         target=value,
@@ -381,20 +402,29 @@ def _log_result(task_run, result):
     """
     try:
         task_result_parameter = task_run.task._params.get_param(RESULT_PARAM)
+        if not task_result_parameter:
+            logger.debug(
+                "No result params to log for task {}".format(task_run.task_af_id)
+            )
+            return
 
         # spread result into relevant fields.
         if isinstance(task_result_parameter, FuncResultParameter):
             # assign all returned values to relevant band Outputs
             if result is None:
                 return
+
             for r_name, value in task_result_parameter.named_results(result):
+                param = task_run.task._params.get_param(r_name)
+
                 _log_parameter_value(
                     task_run,
-                    parameter_definition=task_run.task._params.get_param(r_name),
+                    parameter_definition=param,
                     target=task_run.task._params.get_value(r_name),
                     value=value,
                 )
         else:
+
             _log_parameter_value(
                 task_run,
                 parameter_definition=task_result_parameter,
@@ -408,6 +438,11 @@ def _log_result(task_run, result):
 
 
 def _log_parameter_value(task_run, parameter_definition, target, value):
+    # make sure it will be logged correctly
+    parameter_definition = parameter_definition.modify(
+        value_meta_conf=ValueMetaConf(log_preview=True, log_schema=True,)
+    )
+
     try:
         # case what if result is Proxy
         value_type = get_value_type_of_obj(value, parameter_definition.value_type)
@@ -466,11 +501,12 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
         if func_spec.is_class:
             wrapper = six.add_metaclass(_DecoratedUserClassMeta)(class_or_func)
             fp._callable_item = wrapper
+
         else:
 
             @functools.wraps(class_or_func)
             def wrapper(*args, **kwargs):
-                if _is_tracking_mode():
+                if in_tracking_mode():
                     with fp.tracking_context(args, kwargs) as track_result_callback:
                         return track_result_callback(fp.func(*args, **kwargs))
 
@@ -487,6 +523,7 @@ def _task_decorator(*decorator_args, **decorator_kwargs):
         wrapper.func = class_or_func
 
         # we're using CallableLazyObjectProxy to have lazy evaluation for creating task_cls
+        # this is only orchestration scenarios
         task_cls = CallableLazyObjectProxy(fp.get_task_cls)
         wrapper.task_cls = task_cls
         wrapper.task = task_cls

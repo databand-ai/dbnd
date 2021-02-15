@@ -2,10 +2,11 @@ import logging
 
 from more_itertools import first
 
-from dbnd._core.constants import DescribeFormat, RunState, TaskRunState
+from dbnd import Task
+from dbnd._core.constants import RunState, SystemTaskName, TaskRunState
 from dbnd._core.context.databand_context import DatabandContext
-from dbnd._core.run.databand_run import new_databand_run
-from dbnd._core.run.describe_run import print_tasks_tree
+from dbnd._core.run.databand_run import DatabandRun, new_databand_run
+from dbnd._core.run.run_banner import print_tasks_tree
 from dbnd_luigi.luigi_task import wrap_luigi_task
 
 
@@ -37,27 +38,40 @@ class LuigiRunManager:
             # This code is reached only when an orphaned task is executed
             self.root_dbnd_task = self.get_dbnd_task(first(scheduled_tasks.values()))
 
-        self._databand_run = self._enter_cm(
+        self._databand_run = run = self._enter_cm(
             new_databand_run(
-                context=self._databand_context, task_or_task_name=self.root_dbnd_task
+                context=self._databand_context, job_name=self.root_dbnd_task.task_name
             )
+        )  # type: DatabandRun
+
+        self._driver_task_run = run.build_and_set_driver_task_run(
+            driver_task=Task(task_name=SystemTaskName.driver, task_is_system=True)
         )
+
+        self._driver_task_run.task.descendants.add_child(self.root_dbnd_task.task_id)
+
+        # assign root task
+        run.root_task = self.root_dbnd_task
         # Start the tracking process
-        self._databand_run._init_without_run()
-        self._driver_task_run = self._databand_run.driver_task_run
-        print_tasks_tree(
-            self._databand_run.root_task_run.task, self._databand_run.task_runs
+        for task in run.root_task.task_dag.subdag_tasks():
+            run._build_and_add_task_run(task)
+
+        # we only update states not submitting data
+        self._driver_task_run.set_task_run_state(
+            state=TaskRunState.RUNNING, track=False
         )
+        for task in self._missing_dep:
+            task.current_task_run.set_task_run_state(
+                state=TaskRunState.UPSTREAM_FAILED, track=False
+            )
+        run.tracker.init_run()
 
         self._enter_cm(self._driver_task_run.runner.task_run_execution_context())
-
-        for task in self._missing_dep:
-            task.current_task_run.set_task_run_state(state=TaskRunState.UPSTREAM_FAILED)
-
+        print_tasks_tree(run.root_task_run.task, run.task_runs)
         if not self.get_non_finished_sub_tasks():
+            # we have no more tasks to run.. probably it's a failure
             self.finish_run(TaskRunState.FAILED)
-        else:
-            self._driver_task_run.set_task_run_state(state=TaskRunState.RUNNING)
+            return
 
     def _enter_cm(self, cm):
         val = cm.__enter__()
@@ -96,7 +110,7 @@ class LuigiRunManager:
         self.init_context()
 
         if luigi_task.task_id in self.task_cache:
-            dbnd_task = self.task_cache[luigi_task.task_id][1]
+            _, dbnd_task = self.task_cache[luigi_task.task_id]
         else:
             dbnd_task = wrap_luigi_task(luigi_task)
             self.task_cache[luigi_task.task_id] = (luigi_task, dbnd_task)
@@ -144,6 +158,9 @@ class LuigiRunManager:
             if task_run_state != TaskRunState.SUCCESS
             else RunState.SUCCESS
         )
+        self.stop_tracking()
+
+    def stop_tracking(self):
         self._close_all_context_managers()
 
     def get_non_finished_sub_tasks(self):

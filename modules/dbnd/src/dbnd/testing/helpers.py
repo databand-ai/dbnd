@@ -6,9 +6,10 @@ import sys
 
 from subprocess import list2cmdline
 
+from dbnd import dbnd_config
 from dbnd._core.configuration.environ_config import ENV_DBND_HOME
 from dbnd._core.current import dbnd_context
-from dbnd._core.run.databand_run import new_databand_run
+from dbnd._core.settings import RunConfig
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tools.jupyter.notebook import notebook_run
 from dbnd._core.utils import seven
@@ -116,12 +117,9 @@ def build_task(root_task, **kwargs):
 
 
 @seven.contextlib.contextmanager
-def initialized_run(task_or_task_name):
-    with new_databand_run(
-        context=dbnd_context(), task_or_task_name=task_or_task_name
-    ) as r:
-        r._init_without_run()
-        yield r
+def initialized_run(task):
+    with dbnd_config({RunConfig.dry: True}):
+        dbnd_context().dbnd_run_task(task_or_task_name=task)
 
 
 def dbnd_module_path():

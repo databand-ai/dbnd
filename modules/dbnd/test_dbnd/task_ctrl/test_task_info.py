@@ -33,7 +33,7 @@ class TaskInfoParamsTask(TTask):
 class TestTaskInfo(object):
     def test_generated_command_line(self):
         t = TaskInfoParamsTask(str_param=15, num_param=12, list_param=[1, 2, 3])
-        cmd_line_as_str = t.task_meta.task_command_line
+        cmd_line_as_str = t.ctrl.task_repr.task_command_line
         cmd_line = shlex.split(cmd_line_as_str)
 
         assert cmd_line_as_str.startswith("dbnd run")
@@ -48,7 +48,7 @@ class TestTaskInfo(object):
         import test_dbnd
 
         t = TaskInfoParamsTask(str_param=15, num_param=12, list_param=[1, 2, 3])
-        func_call = t.task_meta.task_functional_call
+        func_call = t.ctrl.task_repr.task_functional_call
         logger.info("Func all : %s", func_call)
         task_run = eval(func_call)
         assert task_run.task == t

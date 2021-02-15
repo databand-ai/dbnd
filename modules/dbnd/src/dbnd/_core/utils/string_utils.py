@@ -1,9 +1,5 @@
 import re
 
-from numbers import Real
-
-import six
-
 
 MAX_CLEAN_NAME_DNS1123_LEN = 253
 
@@ -74,21 +70,6 @@ def clean_job_name_dns1123(
         max_size=max_size,
         postfix=postfix,
     )
-
-
-def humanize_bytes(number):
-    # type: (Real) -> str
-    if number > 10 ** 15:
-        return "{:.1f} PB".format(number / 10 ** 15)
-    if number > 10 ** 12:
-        return "{:.1f} TB".format(number / 10 ** 12)
-    if number > 10 ** 9:
-        return "{:.1f} GB".format(number / 10 ** 9)
-    if number > 10 ** 6:
-        return "{:.1f} MB".format(number / 10 ** 6)
-    if number > 10 ** 3:
-        return "{:.1f} kB".format(number / 10 ** 3)
-    return "{} B".format(number)
 
 
 def str_or_none(value):

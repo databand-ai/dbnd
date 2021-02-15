@@ -26,9 +26,11 @@ def try_get_or_create_task_run():
     if tra_uid:
         return _get_task_run_mock(tra_uid)
 
-    from dbnd._core.inplace_run.inplace_run_manager import try_get_inplace_task_run
+    from dbnd._core.tracking.script_tracking_manager import (
+        try_get_inplace_tracking_task_run,
+    )
 
-    return try_get_inplace_task_run()
+    return try_get_inplace_tracking_task_run()
 
 
 def _get_task_run_mock(tra_uid):

@@ -25,3 +25,4 @@ def pipeline(*args, **kwargs):
 
 
 band = pipeline
+data_source_pipeline = pipeline

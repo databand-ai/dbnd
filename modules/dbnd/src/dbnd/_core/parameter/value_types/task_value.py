@@ -1,5 +1,6 @@
-from dbnd._core.constants import _ConfigParamContainer, _TaskParamContainer
+from dbnd._core.constants import _TaskParamContainer
 from dbnd._core.current import get_databand_context, get_settings
+from dbnd._core.task import Config
 from dbnd._core.task_build.task_registry import (
     build_task_from_config,
     get_task_registry,
@@ -47,7 +48,7 @@ class TaskValueType(ValueType):
 
 
 class ConfigValueType(ValueType):
-    type = _ConfigParamContainer
+    type = Config
     support_from_str = True
 
     def __init__(self, config_cls):
@@ -73,7 +74,7 @@ class ConfigValueType(ValueType):
         return super(ConfigValueType, self).to_str(x)
 
     def is_type_of(self, value):
-        return isinstance(value, _ConfigParamContainer)
+        return isinstance(value, Config)
 
     def to_repr(self, x):
         if x:

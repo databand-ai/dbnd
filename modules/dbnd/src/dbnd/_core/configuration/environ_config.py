@@ -5,12 +5,14 @@
 import os
 
 from configparser import ConfigParser
+from contextlib import contextmanager
 
 from dbnd._core.configuration.project_env import (
     _init_windows_python_path,
     _is_init_mode,
 )
 from dbnd._core.utils.basics.environ_utils import (
+    env,
     environ_enabled,
     environ_int,
     set_env_dir,
@@ -78,6 +80,8 @@ ENV_DBND__AUTO_TRACKING = "DBND__AUTO_TRACKING"
 
 DEFAULT_MAX_CALLS_PER_RUN = 100
 
+ENV_DBND_TRACKING_ATTEMPT_UID = "DBND__TRACKING_ATTEMPT_UID"
+
 _DBND_DEBUG_INIT = environ_enabled(ENV_DBND__DEBUG_INIT)
 _databand_package = relative_path(__file__, "..", "..")
 
@@ -114,6 +118,10 @@ def in_quiet_mode():
     Don't want this flag to propagate into the actual scheduled cmd
     """
     return get_dbnd_project_config().quiet_mode
+
+
+def in_tracking_mode():
+    return get_dbnd_project_config().is_tracking_mode()
 
 
 def is_unit_test_mode():
@@ -154,6 +162,19 @@ def reset_dbnd_project_config():
     _project_config = None
 
 
+@contextmanager
+def tracking_mode_context(tracking=None):
+    """
+    change the tracking mode for the scope of the `with`
+    """
+    is_current_tracking = get_dbnd_project_config()._dbnd_tracking
+    get_dbnd_project_config()._dbnd_tracking = tracking
+    try:
+        yield
+    finally:
+        get_dbnd_project_config()._dbnd_tracking = is_current_tracking
+
+
 class DbndProjectConfig(object):
     """
     very basic environment config!
@@ -173,16 +194,26 @@ class DbndProjectConfig(object):
             os.environ.pop(ENV_DBND_QUIET, None) is not None
             or self.shell_cmd_complete_mode
         )
+        # external process can create "wrapper run"  (airflow scheduler)
+        # a run with partial information,
+        # when we have a subprocess,  only nested run will have all actual details
+        # so we are going to "resubmit" them
+        self.resubmit_run = (
+            DBND_RESUBMIT_RUN in os.environ
+            and os.environ.pop(DBND_RESUBMIT_RUN) == "true"
+        )
 
         self.is_no_modules = environ_enabled(ENV_DBND__NO_MODULES)
         self.disable_pluggy_entrypoint_loading = environ_enabled(
             ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING
         )
-        self.is_sigquit_handler_on = environ_enabled(ENV_DBND__SHOW_STACK_ON_SIGQUIT)
+        self.is_sigquit_handler_on = (
+            environ_enabled(ENV_DBND__SHOW_STACK_ON_SIGQUIT) and not self.unit_test_mode
+        )
 
         self._verbose = environ_enabled(ENV_DBND__VERBOSE)
 
-        self._dbnd_tracking = environ_enabled(ENV_DBND__TRACKING)
+        self._dbnd_tracking = environ_enabled(ENV_DBND__TRACKING, default=None)
 
         self._airflow_context = False
         self._inline_tracking = None
@@ -203,7 +234,7 @@ class DbndProjectConfig(object):
 
     def airflow_context(self):
         if not self._airflow_context:
-            from dbnd._core.inplace_run.airflow_dag_inplace_tracking import (
+            from dbnd._core.tracking.airflow_dag_inplace_tracking import (
                 try_get_airflow_context,
             )
 
@@ -213,7 +244,11 @@ class DbndProjectConfig(object):
     def is_tracking_mode(self):
         if self.disabled:
             return False
-        return self._dbnd_tracking or self.airflow_context()
+
+        if self._dbnd_tracking is None:
+            return bool(self.airflow_context())
+
+        return self._dbnd_tracking
 
     def is_verbose(self):
         from dbnd._core.current import try_get_databand_context

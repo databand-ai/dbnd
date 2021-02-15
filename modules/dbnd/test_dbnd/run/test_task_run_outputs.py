@@ -6,7 +6,6 @@ import dbnd._core.task_ctrl.task_validator
 import dbnd._core.task_run.task_run
 
 from dbnd import output, task
-from dbnd.testing.helpers import initialized_run
 from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import FileTarget
 
@@ -27,18 +26,17 @@ class TestTaskRunOutputs(object):
         from dbnd._core.task_run.task_run_runner import TaskRunRunner
 
         task = TTask()
-        with initialized_run(task):
-            validator = task.ctrl.validator
+        validator = task.ctrl.validator
 
-            with monkeypatch.context() as m:
-                m.setattr(FileTarget, "exist_after_write_consistent", lambda a: False)
-                m.setattr(FileTarget, "exists", lambda a: False)
-                m.setattr(
-                    dbnd._core.task_ctrl.task_validator,
-                    "EVENTUAL_CONSISTENCY_MAX_SLEEPS",
-                    1,
-                )
-                assert not validator.wait_for_consistency()
+        with monkeypatch.context() as m:
+            m.setattr(FileTarget, "exist_after_write_consistent", lambda a: False)
+            m.setattr(FileTarget, "exists", lambda a: False)
+            m.setattr(
+                dbnd._core.task_ctrl.task_validator,
+                "EVENTUAL_CONSISTENCY_MAX_SLEEPS",
+                1,
+            )
+            assert not validator.wait_for_consistency()
 
     def test_hdf5_output(self):
         t_f_hdf5.dbnd_run()

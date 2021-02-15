@@ -34,32 +34,39 @@ class ApiClient(object):
         self.default_headers = {"Accept": "application/json"}
 
     def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
-        headers = dict(self.default_headers, **(headers or {}))
-
         if not self.session:
+            logger.info("Webserver session does not exist, creating new one")
             self._init_session(self.credentials)
+
+        headers = dict(self.default_headers, **(headers or {}))
 
         url = urljoin(self._api_base_url, endpoint)
         try:
-            resp = self.session.request(
+            request_params = dict(
                 method=method, url=url, json=data, headers=headers, params=query
             )
-        except requests.exceptions.ConnectionError:
+            logger.debug("Sending the following request: %s", request_params)
+            resp = self.session.request(**request_params)
+        except requests.exceptions.ConnectionError as ce:
+            logger.info("Got connection error while sending request: {}".format(ce))
             self.session = None
             raise
 
         if not resp.ok:
+            logger.info("Response is not ok, Raising DatabandApiError")
             raise DatabandApiError(
                 method, url, resp.status_code, resp.content.decode("utf-8")
             )
         if resp.content:
             try:
                 return resp.json()
-            except Exception:
+            except Exception as e:
+                logger.info("Failed to get resp.json(). Exception: {}".format(e))
                 return None
         return resp.json() if resp.content else None
 
     def _init_session(self, credentials):
+        logger.info("Initialising session for webserver")
         try:
             self.session = requests.session()
 
@@ -75,9 +82,11 @@ class ApiClient(object):
             self.session.get(urljoin(self._api_base_url, "/app"))
             csrf_token = self.session.cookies.get("dbnd_csrftoken")
             if csrf_token:
+                logger.info("Got csrf token from session")
                 self.default_headers["X-CSRFToken"] = csrf_token
 
             if "username" in credentials and "password" in credentials:
+                logger.info("Attempting to login to webserver")
                 self.api_request(
                     "auth/login", method="POST", data=credentials,
                 )
@@ -85,7 +94,10 @@ class ApiClient(object):
                 logger.warning(
                     "ApiClient._init_session: username or password is not provided"
                 )
-        except Exception:
+        except Exception as e:
+            logger.warning(
+                "Exception occurred while initialising the session: {}".format(e)
+            )
             self.session = None
             raise
 

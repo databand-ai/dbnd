@@ -12,8 +12,8 @@ FAIL_MAIN = "fail_main"
 USE_DBND_START = "use_dbnd_start"
 USE_DBND_STOP = "use_dbnd_stop"
 
-RE_TASK_COMPLETED = r"Task {}[_\w]* has been completed!"
-RE_TASK_FAILED = r"Task {}[_\w]* has failed!"
+RE_TASK_COMPLETED = r"Task {}[_\w]*.+ has been completed!"
+RE_TASK_FAILED = r"Task {}[_\w]*.+ has failed!"
 RE_F_RUNNING = r"Running {} function"
 
 CURRENT_PY_FILE = __file__.replace(".pyc", ".py")
@@ -35,7 +35,7 @@ class TestManualDbndStart(object):
 
     def test_manual_dbnd_start(self):
         result = run_dbnd_subprocess__current_file([USE_DBND_START])
-        assert "Running Databand!" in result
+        assert "Your run has been successfully executed" in result
         assert "Run tracking info has been committed" in result
 
         for task_name, count in self.expected_task_names + ((self.auto_task_name, 1),):

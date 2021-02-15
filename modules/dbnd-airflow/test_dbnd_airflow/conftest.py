@@ -41,7 +41,21 @@ def dbnd_airflow_unittest_setup():
 
 @pytest.fixture(autouse=True)
 def dbnd_env_per_test(databand_pytest_env):
+    _clean_af_env()
     yield databand_pytest_env
+    _clean_af_env()
+
+
+def _clean_af_env():
+    for env_var in [
+        "AIRFLOW_CTX_DAG_ID",
+        "AIRFLOW_CTX_EXECUTION_DATE",
+        "AIRFLOW_CTX_TASK_ID",
+        "AIRFLOW_CTX_TRY_NUMBER",
+        "AIRFLOW_CTX_UID",
+    ]:
+        if env_var in os.environ:
+            del os.environ[env_var]
 
 
 @pytest.fixture

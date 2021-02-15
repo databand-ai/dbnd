@@ -2,6 +2,10 @@ import contextlib
 import logging
 import typing
 
+from abc import ABCMeta, abstractmethod
+
+import six
+
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.current import get_databand_run
 from dbnd._core.log.logging_utils import TaskContextFilter
@@ -20,7 +24,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.context.databand_context import DatabandContext
     from dbnd._core.task_ctrl.task_validator import TaskValidator
-
+    from dbnd._core.task_ctrl.task_descendant import TaskDescendants
 
 logger = logging.getLogger(__name__)
 
@@ -90,45 +94,76 @@ class TaskSubCtrl(object):
         return "%s.%s" % (self.task.task_id, self.__class__.__name__)
 
 
-class TaskCtrl(TaskSubCtrl):
+@six.add_metaclass(ABCMeta)
+class _BaseTaskCtrl(TaskSubCtrl):
     def __init__(self, task):
-        super(TaskCtrl, self).__init__(task)
+        super(_BaseTaskCtrl, self).__init__(task)
 
-        from dbnd._core.task.task import Task
-
-        assert isinstance(task, Task)
         from dbnd._core.task_ctrl.task_relations import TaskRelations  # noqa: F811
         from dbnd._core.task_ctrl.task_dag import _TaskDagNode  # noqa: F811
         from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser  # noqa: F811
         from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
-        from dbnd._core.task_ctrl.task_validator import TaskValidator
+        from dbnd._core.task_ctrl.task_descendant import TaskDescendants
+        from dbnd._core.task_ctrl.task_repr import TaskRepr
 
         self._relations = TaskRelations(task)
-        self.task_validator = TaskValidator(task)
         self._task_dag = _TaskDagNode(task)
+        self.descendants = TaskDescendants(task)
 
         self._visualiser = TaskVisualiser(task)
         self.describe_dag = DescribeDagCtrl(task)
 
-        self._should_run = self.task_meta.task_enabled and self.task._should_run()
+        self.task_repr = TaskRepr(self.task)
 
         # will be assigned by the latest Run
         self.last_task_run = None  # type: Optional[TaskRun]
         self.force_task_run_uid = None  # force task run uid
 
-    def banner(self, msg, color=None, task_run=None):
-        return self.visualiser.banner(msg=msg, color=color, task_run=task_run)
-
     def _initialize_task(self):
         self.relations.initialize_relations()
         self.task_dag.initialize_dag_node()
-
-        from dbnd._core.task_ctrl.task_repr import TaskReprBuilder
-
-        tb = TaskReprBuilder(self.task)
         # only at the end we can build the final version of "function call"
-        self.task_meta.task_command_line = tb.calculate_command_line_for_task()
-        self.task_meta.task_functional_call = tb.calculate_task_call()
+        self.task_repr.initialize()
+
+    def banner(self, msg, color=None, task_run=None):
+        return self.visualiser.banner(msg=msg, color=color, task_run=task_run)
+
+    @property
+    def task_run(self):
+        # type: ()-> TaskRun
+        run = get_databand_run()
+        return run.get_task_run(self.task.task_id)
+
+    @contextlib.contextmanager
+    def task_context(self, phase):
+        # we don't want logs/user wrappers at this stage
+        with nested(
+            task_context(self.task, phase),
+            TaskContextFilter.task_context(self.task.task_id),
+        ):
+            yield
+
+    @abstractmethod
+    def should_run(self):
+        pass
+
+
+class TaskCtrl(_BaseTaskCtrl):
+    def __init__(self, task):
+        from dbnd._core.task.task import Task
+
+        assert isinstance(task, Task)
+
+        super(TaskCtrl, self).__init__(task)
+
+        from dbnd._core.task_ctrl.task_validator import TaskValidator
+
+        self.task_validator = TaskValidator(task)
+
+        self._should_run = self.task_meta.task_enabled and self.task._should_run()
+
+    def _initialize_task(self):
+        super(TaskCtrl, self)._initialize_task()
 
         # validate circle dependencies
         # may be we should move it to global level because of performance issues
@@ -144,11 +179,10 @@ class TaskCtrl(TaskSubCtrl):
     def subdag_tasks(self):
         return self.task_dag.subdag_tasks()
 
-    @property
-    def task_run(self):
-        # type: ()-> TaskRun
-        run = get_databand_run()
-        return run.get_task_run(self.task.task_id)
+    def save_task_band(self):
+        if self.task.task_band:
+            task_outputs = traverse_to_str(self.task.task_outputs)
+            self.task.task_band.as_object.write_json(task_outputs)
 
     @contextlib.contextmanager
     def task_context(self, phase):
@@ -160,7 +194,14 @@ class TaskCtrl(TaskSubCtrl):
         ):
             yield
 
-    def save_task_band(self):
-        if self.task.task_band:
-            task_outputs = traverse_to_str(self.task.task_outputs)
-            self.task.task_band.as_object.write_json(task_outputs)
+
+class TrackingTaskCtrl(_BaseTaskCtrl):
+    def __init__(self, task):
+        from dbnd._core.task.tracking_task import TrackingTask
+
+        assert isinstance(task, TrackingTask)
+
+        super(TrackingTaskCtrl, self).__init__(task)
+
+    def should_run(self):
+        return True

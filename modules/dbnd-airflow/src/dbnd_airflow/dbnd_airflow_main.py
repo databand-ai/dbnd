@@ -23,6 +23,8 @@ import os
 import subprocess
 import sys
 
+from dbnd_airflow.utils import create_airflow_pool
+
 
 # DO NOT IMPORT ANYTHING FROM AIRFLOW
 # we need to initialize some config values first
@@ -66,17 +68,6 @@ def subprocess_airflow_initdb():
     return subprocess_airflow(args=["initdb"])
 
 
-def create_dbnd_pool():
-    from airflow.utils.db import create_session
-    from airflow.models import Pool
-
-    print("Creating databand pool")
-    with create_session() as session:
-        pool_name = dbnd_config.get("airflow", "dbnd_pool")
-        dbnd_pool = Pool(pool=pool_name, slots=-1)
-        session.merge(dbnd_pool)
-
-
 def main(args=None):
     # from dbnd._core.log.config import configure_basic_logging
     # configure_basic_logging(None)
@@ -101,10 +92,10 @@ def main(args=None):
         os.environ["KRB5_KTNAME"] = conf.get("kerberos", "keytab")
 
     import argcomplete
-    from dbnd_airflow.scheduler.single_dag_run_job import find_and_kill_zombies
+    from dbnd_airflow.scheduler.zombies import find_and_kill_dagrun_zombies
 
-    CLIFactory.subparsers_dict[find_and_kill_zombies.__name__] = {
-        "func": find_and_kill_zombies,
+    CLIFactory.subparsers_dict[find_and_kill_dagrun_zombies.__name__] = {
+        "func": find_and_kill_dagrun_zombies,
         "help": "Clean up BackfillJob zombie tasks",
         "args": tuple(),
     }
@@ -128,7 +119,9 @@ def main(args=None):
     args.func(args)
 
     if func_name in ["resetdb", "initdb"]:
-        create_dbnd_pool()
+        pool_name = dbnd_config.get("airflow", "dbnd_pool")
+        if pool_name == "dbnd_pool":
+            create_airflow_pool(pool_name)
 
 
 if __name__ == "__main__":

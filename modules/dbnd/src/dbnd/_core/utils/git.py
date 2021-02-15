@@ -26,7 +26,7 @@ def is_git_dirty(path=None):
     return len(lines) > 0
 
 
-def get_git_commit(path):
+def get_git_commit(path, verbose=False):
     env_commit = os.environ.get(GIT_ENV)
     if env_commit:
         return env_commit
@@ -41,5 +41,6 @@ def get_git_commit(path):
         commit = repo.head.commit.hexsha
         return commit
     except Exception as ex:
-        logger.warning("Failed to get GIT version of %s: %s", path, ex)
+        if verbose:
+            logger.warning("Failed to get GIT version of %s: %s", path, ex)
         return None

@@ -17,33 +17,33 @@ ENV LC_MESSAGES en_US.UTF-8
 # Common packages
 RUN set -ex \
     && buildDeps=' \
-        python-dev \
-        libkrb5-dev \
-        libsasl2-dev \
-        libssl-dev \
-        libffi-dev \
-        build-essential \
-        libblas-dev \
-        liblapack-dev \
-        libpq-dev \
-        git \
+    python-dev \
+    libkrb5-dev \
+    libsasl2-dev \
+    libssl-dev \
+    libffi-dev \
+    build-essential \
+    libblas-dev \
+    liblapack-dev \
+    libpq-dev \
+    git \
     ' \
     && apt-get update -yqq \
     && apt-get upgrade -yqq \
     && apt-get install -yqq --no-install-recommends \
-        $buildDeps \
-        python-pip \
-        python-requests \
-        apt-utils \
-        curl \
-        rsync \
-        netcat \
-        locales \
+    $buildDeps \
+    python-pip \
+    python-requests \
+    apt-utils \
+    curl \
+    rsync \
+    netcat \
+    locales \
     && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
     && useradd -ms /bin/bash -d ${DATABAND_USER_HOME} databand \
-    && pip install -U pip setuptools wheel \
+    && pip install -U 'pip>=20,<20.3' setuptools wheel \
     && pip install Cython \
     && pip install pytz \
     && pip install pyOpenSSL \
@@ -53,21 +53,21 @@ RUN set -ex \
 
 # Some optimizations
 RUN pip install \
-     "six" \
-     "psycopg2-binary" \
-     "hjson" \
-     "colorlog" \
-     "typing" \
-     "colorama" \
-     "termcolor" \
-     "cookiecutter" \
-     "more_itertools" \
-     "cryptography>=0.9.3" \
-     "numpy>=1.14,<1.15.0" \
-     "flask-appbuilder<2.0.0,>=1.11.1" \
-     "pandas" \
-     "scikit-learn" \
-     "dill"
+    "six" \
+    "psycopg2-binary" \
+    "hjson" \
+    "colorlog" \
+    "typing" \
+    "colorama" \
+    "termcolor" \
+    "cookiecutter" \
+    "more_itertools" \
+    "cryptography>=0.9.3" \
+    "numpy>=1.14,<1.15.0" \
+    "flask-appbuilder<2.0.0,>=1.11.1" \
+    "pandas" \
+    "scikit-learn" \
+    "dill"
 
 # Set up the program in the image
 WORKDIR ${WORK_DIR}

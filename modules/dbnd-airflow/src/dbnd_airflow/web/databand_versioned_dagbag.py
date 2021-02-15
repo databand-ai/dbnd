@@ -91,7 +91,7 @@ class DbndAirflowDagBag(DagBag):
             # let try to find it latest version in DB
             latest_execution = (
                 session.query(TaskInstance.execution_date)
-                .filter(TaskInstance.task_id == dag_id)
+                .filter(TaskInstance.dag_id == dag_id)
                 .order_by(TaskInstance.execution_date.desc())
                 .first()
             )

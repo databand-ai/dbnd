@@ -18,7 +18,6 @@ from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
     _ParameterKind,
 )
-from dbnd._core.task_build.task_params import TaskDefinitionParams
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.utils.basics.nothing import is_defined
 from dbnd._core.utils.structures import combine_mappings
@@ -58,39 +57,21 @@ class TaskDefinition(object):
         self.task_family = self.task_passport.task_family
         self.task_config_section = self.task_passport.task_config_section
 
+        # all the attributes that points to_Parameter
+        self.task_params = dict()  # type: Dict[str, ParameterDefinition]
+
         # the defaults attribute
         self.defaults = dict()  # type: Dict[ParameterDefinition, Any]
 
-        class_task_params, self.defaults = self._calculate_task_class_values(classdict)
-
-        func_params_builder = self._get_func_params(class_task_params)
-
-        # this is the place we add parameters from function definition
-        self._task_params = TaskDefinitionParams(
-            class_params=self._update_and_evolve_owner(
-                func_params_builder.decorator_kwargs_params, class_task_params
-            ),
-            user_params=self._update_and_evolve_owner(
-                func_params_builder.func_spec_params, {}
-            ),
-            user_result_params=self._update_and_evolve_owner(
-                func_params_builder.result_params, {}
-            ),
-        )  # type: TaskDefinitionParams
+        self.task_params, self.defaults = self._calculate_task_class_values(classdict)
 
         # if we have output params in function arguments, like   f(some_p=parameter.output)
         # the new function can not return the result of return
-        result_param = self._task_params.result_param
-        self.single_result_output = (
-            result_param is not None
-            and self._is_result_single_output(
-                self.all_task_params.values(), result_param
-            )
-        )
+        self.single_result_output = self._is_result_single_output(self.task_params)
 
         defaults = {
             p.name: p.default
-            for p in self.all_task_params.values()
+            for p in self.task_params.values()
             if is_defined(p.default)
         }
         self.task_defaults_config_store = parse_and_build_config_store(
@@ -117,49 +98,36 @@ class TaskDefinition(object):
             self.task_module_code = ""
             self.task_source_file = None
 
-    @property
-    def all_task_params(self):
-        return self._task_params.all_params
-
-    @property
-    def class_params(self):
-        return self._task_params.class_params
-
-    @property
-    def user_params(self):
-        return self._task_params.user_params
-
     def _calculate_task_class_values(self, classdict):
         # reflect inherited attributes
         params, base_defaults = self._discover_base_attributes()
 
+        # let update params with new class attributes
+        self._update_params_from_attributes(classdict, params)
+
+        # this is the place we add parameters from function definition
+        if self.task_class._conf__decorator_spec is not None:
+            func_params_builder = FuncParamsBuilder(
+                base_params=params, decorator_spec=self.task_class._conf__decorator_spec
+            )
+
+            func_params_builder.build_func_params()
+            params_dict = dict(func_params_builder.decorator_kwargs_params)
+            params_dict.update(func_params_builder.func_spec_params)
+            params_dict.update(func_params_builder.result_params)
+
+            self._update_params_from_attributes(params_dict, params)
+
         defaults = combine_mappings(base_defaults, classdict.get("defaults", None))
 
-        self._update_and_evolve_owner(classdict, params)
-
-        return params, defaults
-
-    def _update_and_evolve_owner(self, func_params, params):
-        # let update params with new class attributes
-        self._update_params_from_attributes(func_params, params)
         # add parameters config
-        evolved_params = self._evolve_with_owner(params)
-        return evolved_params
-
-    def _get_func_params(self, base_params):
-        func_params_builder = FuncParamsBuilder(
-            base_params=base_params,
-            decorator_spec=self.task_class._conf__decorator_spec,
-        )
-        func_params_builder.build_func_params()
-        return func_params_builder
-
-    def _evolve_with_owner(self, params):
-        evolved = {
+        params = {
             name: param.evolve_with_owner(task_cls=self.task_class, name=name)
             for name, param in six.iteritems(params)
         }
-        return _ordered_params(evolved)
+
+        params = _ordered_params(params)
+        return params, defaults
 
     def _discover_base_attributes(self):
         # type: ()-> (Dict[str,ParameterDefinition], Dict[str, Any])
@@ -177,7 +145,7 @@ class TaskDefinition(object):
                 continue
             base_schema = c.task_definition  # type: TaskDefinition
             defaults = combine_mappings(defaults, base_schema.defaults)
-            params = combine_mappings(params, c.task_definition.all_task_params)
+            params = combine_mappings(params, c.task_definition.task_params)
 
         return params, defaults
 
@@ -202,15 +170,16 @@ class TaskDefinition(object):
                 continue
             params[p_name] = params[p_name].modify(default=p_val)
 
-    def _is_result_single_output(self, params, result):
+    def _is_result_single_output(self, params):
         """
         check that task has only one output and it's output is result
          (there can be sub outputs that are part of result)
         """
+        result = params.get(RESULT_PARAM)
         if not result:
             return False
         names = result.names if isinstance(result, FuncResultParameter) else []
-        for p in params:
+        for p in self.task_params.values():
             if p.system or p.kind != _ParameterKind.task_output:
                 continue
             if p.name in [RESULT_PARAM, "task_band"]:

@@ -5,6 +5,7 @@ import sys
 import typing
 
 from dbnd import dbnd_bootstrap
+from dbnd._core.task_executor.run_executor import RunExecutor, set_active_run_context
 from dbnd._core.utils.basics.signal_utils import dump_trace
 from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
@@ -90,7 +91,7 @@ def dbnd_operator__execute(dbnd_operator, context):
 
             dbnd_bootstrap()
             dbnd_airflow_bootstrap()
-            run = DatabandRun.load_run(
+            run = RunExecutor.load_run(
                 dump_file=target(driver_dump), disable_tracking_api=False
             )
         except Exception as e:
@@ -102,7 +103,7 @@ def dbnd_operator__execute(dbnd_operator, context):
             dump_trace()
             raise
 
-        with run.run_context() as dr:
+        with set_active_run_context(run):
             task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
             ret_value = task_run.runner.execute(airflow_context=context)
     else:
@@ -139,6 +140,7 @@ def dbnd_operator__get_task_retry_delay(dbnd_operator):
 
     if task_run.task_engine.task_definition.task_family == "kubernetes":
         # If we are running in K8s - use pod retry delay instead of task retry delay
-        return task_run.task_engine.pod_retry_delay
+
+        return task_run.task_engine.pod_default_retry_delay
     else:
         return task_run.task.task_retry_delay

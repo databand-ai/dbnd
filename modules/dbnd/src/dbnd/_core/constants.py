@@ -254,7 +254,7 @@ class UpdateSource(EnumWithAll):
 
     @classmethod
     def is_tracking(cls, source):
-        return source in [UpdateSource.dbnd, UpdateSource.azkaban_tracking]
+        return source in [UpdateSource.airflow_tracking, UpdateSource.azkaban_tracking]
 
 
 class MetricSource(object):
@@ -276,6 +276,9 @@ class MetricSource(object):
         return ",".join(cls.default_sources())
 
 
+AD_HOC_DAG_PREFIX = "DBND_RUN."
+
+
 class AlertSeverity(object):
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"
@@ -285,3 +288,28 @@ class AlertSeverity(object):
     @classmethod
     def values(cls):
         return [cls.CRITICAL, cls.HIGH, cls.MEDIUM, cls.LOW]
+
+
+TASK_ESSENCE_ATTR = "task_essence"
+
+
+class TaskEssence(enum.Enum):
+    ORCHESTRATION = "orchestration"
+    TRACKING = "tracking"
+    CONFIG = "config"
+
+    @classmethod
+    def is_task_cls(self, cls):
+        return (
+            hasattr(cls, TASK_ESSENCE_ATTR)
+            and getattr(cls, TASK_ESSENCE_ATTR) != self.CONFIG
+        )
+
+    def is_included(self, obj):
+        """
+        Checks if the object is include in the essence group.
+        >>> TaskEssence.TRACKING.is_included(some_task)
+        """
+        return (
+            hasattr(obj, TASK_ESSENCE_ATTR) and getattr(obj, TASK_ESSENCE_ATTR) == self
+        )

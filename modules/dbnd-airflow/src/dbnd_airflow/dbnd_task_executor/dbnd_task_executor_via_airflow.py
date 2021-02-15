@@ -7,13 +7,14 @@ import typing
 from airflow import DAG
 from airflow.configuration import conf as airflow_conf
 from airflow.executors import LocalExecutor, SequentialExecutor
-from airflow.models import DagPickle, DagRun, TaskInstance
+from airflow.models import DagPickle, DagRun, Pool, TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import create_session, provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.state import State
 from sqlalchemy.orm import Session
 
+from dbnd import dbnd_config
 from dbnd._core.constants import UpdateSource
 from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
@@ -34,6 +35,7 @@ from dbnd_airflow.dbnd_task_executor.dbnd_task_to_airflow_operator import (
 from dbnd_airflow.executors import AirflowTaskExecutorType
 from dbnd_airflow.executors.simple_executor import InProcessExecutor
 from dbnd_airflow.scheduler.single_dag_run_job import SingleDagRunJob
+from dbnd_airflow.utils import create_airflow_pool
 
 
 if typing.TYPE_CHECKING:
@@ -54,6 +56,7 @@ def create_dagrun_from_dbnd_run(
     databand_run,
     dag,
     execution_date,
+    run_id,
     state=State.RUNNING,
     external_trigger=False,
     conf=None,
@@ -69,7 +72,7 @@ def create_dagrun_from_dbnd_run(
     )
     if dagrun is None:
         dagrun = DagRun(
-            run_id=databand_run.run_id,
+            run_id=run_id,
             execution_date=execution_date,
             start_date=dag.start_date,
             _state=state,
@@ -82,7 +85,7 @@ def create_dagrun_from_dbnd_run(
         logger.warning("Running with existing airflow dag run %s", dagrun)
 
     dagrun.dag = dag
-    dagrun.run_id = databand_run.run_id
+    dagrun.run_id = run_id
     session.commit()
 
     # create the associated task instances
@@ -161,8 +164,12 @@ class AirflowTaskExecutor(TaskExecutor):
             configuration.AIRFLOW_HOME,
         )
 
-        help_msg = "Check that sql_alchemy_conn in airflow.cfg or environment variable "
-        "AIRFLOW__CORE__SQL_ALCHEMY_CONN is set correctly and that you run airflow initdb command"
+        not_exist_help_msg = (
+            "Check that sql_alchemy_conn in airflow.cfg or environment variable "
+            + "AIRFLOW__CORE__SQL_ALCHEMY_CONN is set correctly."
+        )
+        not_initialised_help_mdg = "Make sure that you run the command: airflow initdb"
+
         err_msg = "You are running in Airflow mode (task_executor={}) with DB at {}".format(
             RunConfig().task_executor_type, conn_string_url.__repr__()
         )
@@ -174,7 +181,7 @@ class AirflowTaskExecutor(TaskExecutor):
         except Exception as ex:
             raise DatabandError(
                 "Airflow DB is not found! %s : %s" % (err_msg, str(ex)),
-                help_msg=help_msg,
+                help_msg=not_exist_help_msg,
                 nested_exceptions=[],
             )
 
@@ -184,8 +191,29 @@ class AirflowTaskExecutor(TaskExecutor):
         except Exception as ex:
             raise DatabandError(
                 "Airflow DB is not initialized! %s : %s" % (err_msg, str(ex)),
-                help_msg=help_msg,
+                help_msg=not_initialised_help_mdg,
             )
+
+        pool_help_msg = (
+            "Check that you did not change dbnd_pool configuration in airflow.cfg "
+            + "and that you run the command: airflow initdb."
+        )
+
+        user_defined_pool = dbnd_config.get("airflow", "dbnd_pool")
+        is_defined_pool_dbnd = user_defined_pool == "dbnd_pool"
+        is_user_pool_in_db = (
+            session.query(Pool.pool).filter(Pool.pool == user_defined_pool).first()
+            is not None
+        )
+
+        if not is_user_pool_in_db:
+            if is_defined_pool_dbnd:
+                create_airflow_pool(user_defined_pool)
+            else:
+                raise DatabandError(
+                    "Airflow DB does not have dbnd_pool entry in slots table",
+                    help_msg=pool_help_msg,
+                )
 
     def build_airflow_dag(self, task_runs):
         # create new dag from current tasks and tasks selected to run
@@ -283,7 +311,7 @@ class AirflowTaskExecutor(TaskExecutor):
             if op.executor_config is None:
                 op.executor_config = {}
             op.executor_config["DatabandExecutor"] = {
-                "dbnd_driver_dump": str(self.run.driver_dump),
+                "dbnd_driver_dump": str(self.run.run_executor.driver_dump),
                 "dag_pickle_id": dag.pickle_id,
                 "remove_airflow_std_redirect": self.airflow_config.remove_airflow_std_redirect,
             }
@@ -306,6 +334,14 @@ class AirflowTaskExecutor(TaskExecutor):
         execution_date = databand_run.execution_date
         s = databand_context.settings  # type: DatabandSettings
         s_run = s.run  # type: RunConfig
+
+        run_id = s_run.id
+        if not run_id:
+            # we need this name, otherwise Airflow will try to manage our local jobs at scheduler
+            # ..zombies cleanup and so on
+            run_id = "backfill_{0}_{1}".format(
+                databand_run.name, databand_run.execution_date.isoformat()
+            )
 
         if self.airflow_config.disable_db_ping_on_connect:
             from airflow import settings as airflow_settings
@@ -336,6 +372,7 @@ class AirflowTaskExecutor(TaskExecutor):
         create_dagrun_from_dbnd_run(
             databand_run=databand_run,
             dag=af_dag,
+            run_id=run_id,
             execution_date=execution_date,
             session=session,
             state=State.RUNNING,
@@ -391,7 +428,7 @@ class AirflowTaskExecutor(TaskExecutor):
         if self.task_executor_type == AirflowTaskExecutorType.airflow_kubernetes:
             assert_plugin_enabled("dbnd-docker")
 
-            from dbnd_airflow.executors.kubernetes_executor import (
+            from dbnd_airflow.executors.kubernetes_executor.kubernetes_executor import (
                 DbndKubernetesExecutor,
             )
             from dbnd_docker.kubernetes.kubernetes_engine_config import (
