@@ -53,6 +53,12 @@ class StrValueType(ValueType):
     def is_type_of(self, value):
         return isinstance(value, six.string_types)
 
+    def is_handler_of_type(self, type_):
+        # if user use future.str at py2, we still want to use this convertor
+        if type_.__name__ == "newstr":
+            return True
+        return super(StrValueType, self).is_handler_of_type(type_)
+
     def normalize(self, x):
         return str(x)
 

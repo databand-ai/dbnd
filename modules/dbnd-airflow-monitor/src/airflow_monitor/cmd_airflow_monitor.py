@@ -1,9 +1,14 @@
+import logging
+
 import prometheus_client
 
 from airflow_monitor.airflow_monitor_main import airflow_monitor_main
 from airflow_monitor.config import AirflowMonitorConfig
 
 from dbnd._vendor import click
+
+
+logger = logging.getLogger(__name__)
 
 
 class AirflowMonitorArgs(object):
@@ -75,7 +80,10 @@ def airflow_monitor(
     history_only,
     since_now,
 ):
-    prometheus_client.start_http_server(8000)
+    try:
+        prometheus_client.start_http_server(8000)
+    except Exception as e:
+        logger.warning("Failed to start prometheus on port 8000. Exception: ", e)
 
     monitor_args = AirflowMonitorArgs(
         since, since_now, sync_history, history_only, number_of_iterations,

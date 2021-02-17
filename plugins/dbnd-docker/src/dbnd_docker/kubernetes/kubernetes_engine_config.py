@@ -365,12 +365,17 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         labels = combine_mappings(labels, self.labels)
         labels["dbnd_run_uid"] = clean_job_name_dns1123(str(task_run.run.run_uid))
         labels["dbnd_task_run_uid"] = clean_job_name_dns1123(str(task_run.task_run_uid))
-        labels[
-            "dbnd"
-        ] = "task_run"  # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
+        labels["dbnd_task_family"] = clean_job_name_dns1123(
+            str(task_run.task.task_definition.task_family)
+        )
+        labels["dbnd_task_name"] = clean_job_name_dns1123(str(task_run.task.task_name))
+        labels["dbnd_task_af_id"] = clean_job_name_dns1123(str(task_run.task_af_id))
 
+        # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
         if task_run.task.task_is_system:
             labels["dbnd"] = "dbnd_system_task_run"
+        else:
+            labels["dbnd"] = "task_run"
         annotations = self.annotations.copy()
         if self.gcp_service_account_keys:
             annotations[

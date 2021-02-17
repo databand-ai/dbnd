@@ -41,6 +41,7 @@ from dbnd_airflow.compat.kubernetes_executor import (
     get_job_watcher_kwargs,
     make_safe_label_value,
 )
+from dbnd_airflow.constants import AIRFLOW_ABOVE_9
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_watcher import (
     DbndKubernetesJobWatcher,
 )
@@ -281,7 +282,10 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
     def process_watcher_task(self, task):
         """Process the task event sent by watcher."""
-        pod_id, state, labels, resource_version = task
+        if AIRFLOW_ABOVE_9:
+            pod_id, namespace, state, labels, resource_version = task
+        else:
+            pod_id, state, labels, resource_version = task
         pod_name = pod_id
         self.log.debug(
             "Attempting to process pod; pod_name: %s; state: %s; labels: %s",
@@ -424,7 +428,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         task_id = task_run.task_af_id
         ti_state = get_airflow_task_instance_state(task_run=task_run)
 
-        self.log.info(
+        self.log.error(
             "%s: pod %s has crashed, airflow state: %s", task_run, pod_name, ti_state
         )
 
@@ -512,7 +516,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
 
         if pod_phase == "Pending":
-            self.log.info(
+            self.log.error(
                 "Got pod %s at Pending state which is failing: looking for the reason..",
                 pod_name,
             )

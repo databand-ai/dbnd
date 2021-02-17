@@ -206,7 +206,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 pod_ctrl.check_deploy_errors(pod_data)
                 self.log.info("%s: pod is Pending", event_msg)
             except Exception as ex:
-                self.log.info(
+                self.log.error(
                     "Event: %s Pending: failing with %s", pod_id, str(ex),
                 )
                 self.watcher_queue.put(_fail_event)
@@ -225,7 +225,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                     )
                 )
             except Exception as ex:
-                self.log.info(
+                self.log.error(
                     "Event: %s Pending: failing with %s", pod_id, str(ex),
                 )
                 self.watcher_queue.put(_fail_event)
