@@ -64,7 +64,7 @@ class DbndAirflowHandler(logging.Handler):
             return
 
         # we are not tracking SubDagOperator
-        if ti.operator == SubDagOperator.__name__:
+        if ti.operator is None or ti.operator == SubDagOperator.__name__:
             return
 
         task_key = calc_task_run_attempt_key_from_af_ti(ti)
