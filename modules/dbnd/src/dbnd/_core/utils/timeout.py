@@ -18,7 +18,6 @@ def timeout(seconds, handler=None):
         raise TimeoutError()
 
     handler = handler or timeout_handler
-
     original_handler = signal.signal(signal.SIGALRM, timeout_handler)
 
     try:
@@ -28,16 +27,20 @@ def timeout(seconds, handler=None):
         start_time = time.time()
         yield
     finally:
-        original_alarm -= time.time() - start_time
-        signal.alarm(int(original_alarm))
+        if original_alarm:
+            original_alarm -= round(time.time() - start_time)
+        signal.alarm(original_alarm)
         signal.signal(signal.SIGALRM, original_handler)
 
 
 def wait_until(predicate, wait_timeout, period=1):
-    with timeout(wait_timeout, handler=lambda *args: None):
-        start_time = time.time()
-        while not predicate():
-            time.sleep(period)
-            logger.debug(round(time.time() - start_time))
-        return True
+    try:
+        with timeout(wait_timeout, handler=lambda *args: None):
+            start_time = time.time()
+            while not predicate():
+                time.sleep(period)
+                logger.debug(round(time.time() - start_time))
+            return round(time.time() - start_time) or 1
+    except TimeoutError:
+        pass
     return False
