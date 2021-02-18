@@ -4,7 +4,6 @@
 
 ### New features:
 
-- \#1199382295296733: Projects support
 - \#1199503238625634: Support user access token
 
 ### Improvements:
