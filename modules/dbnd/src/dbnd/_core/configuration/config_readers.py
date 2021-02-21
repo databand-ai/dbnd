@@ -190,8 +190,9 @@ def parse_and_build_config_store(
     auto_section_parse=False,
     priority=None,
     override=False,  # might be deprecated in favor of priority
+    extend=False,
 ):
-    # type:(str, Mapping[str, Mapping[str, Any]], bool, bool , bool)->_ConfigStore
+    # type:(str, Mapping[str, Mapping[str, Any]], bool, bool , bool, bool)->_ConfigStore
     """
     Read user defined values. Following format are supported:
         1. SomeTask.some_param [ParameterDefinition] : value
@@ -246,12 +247,20 @@ def parse_and_build_config_store(
                         else ConfigValuePriority.NORMAL
                     )
                 value = ConfigValue(
-                    value=value, source=source, require_parse=False, priority=priority,
+                    value=value,
+                    source=source,
+                    require_parse=False,
+                    priority=priority,
+                    extend=extend,
                 )
             else:
                 # we can have override values without source
                 if value.source is None:
                     value = attr.evolve(value, source=source)
+
+                if extend:
+                    value = attr.evolve(value, extend=extend)
+
             new_config.set_config_value(section, key, value)
 
     return new_config

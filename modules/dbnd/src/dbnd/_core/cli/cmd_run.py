@@ -71,6 +71,16 @@ def build_dynamic_task(original_cls, new_cls_name):
     autocompletion=completer.config_param(),
 )
 @click.option(
+    "--extend",
+    "-x",
+    "_extend",
+    help="extend configuration value. The configuration values must support extending. Example: --extend core.tracker='["
+    '"debug"]\'',
+    type=ConfigValueType(),
+    multiple=True,
+    autocompletion=completer.config_param(),
+)
+@click.option(
     "--set-root",
     "-r",
     "_sets_root",
@@ -165,6 +175,7 @@ def run(
     _sets_config,
     _sets_root,
     _overrides,
+    _extend,
     verbose,
     print_task_band,
     describe,
@@ -256,6 +267,11 @@ def run(
         cmd_line_config.update(_parse_cli(_sets, source="--set"))
     if _sets_config:
         cmd_line_config.update(_parse_cli(_sets_config, source="--set-config"))
+    if _extend:
+        cmd_line_config.update(
+            _parse_cli(_extend, source="--extend-config", extend=True,)
+        )
+
     if _overrides:
         cmd_line_config.update(
             _parse_cli(
@@ -365,13 +381,17 @@ def print_help(ctx, task_cls):
     click.echo(formatter.getvalue().rstrip("\n"), color=ctx.color)
 
 
-def _parse_cli(configs, source, priority=None):
+def _parse_cli(configs, source, priority=None, extend=False):
     """
     Parse every item in configs , joining them into one big ConfigStore
     """
     config_values_list = [
         parse_and_build_config_store(
-            config_values=c, source=source, priority=priority, auto_section_parse=True
+            config_values=c,
+            source=source,
+            priority=priority,
+            auto_section_parse=True,
+            extend=extend,
         )
         for c in configs
     ]
