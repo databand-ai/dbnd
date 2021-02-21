@@ -7,6 +7,7 @@ import textwrap
 from os import environ
 from typing import Dict, List, Optional
 
+import six
 import yaml
 
 from kubernetes.config import ConfigException
@@ -23,6 +24,7 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND_USER,
     get_dbnd_project_config,
 )
+from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandConfigError, friendly_error
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.task_run.task_run import TaskRun
@@ -363,19 +365,29 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         image = self.full_image
         labels = combine_mappings(labels, self.labels)
-        labels["dbnd_run_uid"] = clean_job_name_dns1123(str(task_run.run.run_uid))
-        labels["dbnd_task_run_uid"] = clean_job_name_dns1123(str(task_run.task_run_uid))
-        labels["dbnd_task_family"] = clean_job_name_dns1123(
-            str(task_run.task.task_definition.task_family)
-        )
-        labels["dbnd_task_name"] = clean_job_name_dns1123(str(task_run.task.task_name))
-        labels["dbnd_task_af_id"] = clean_job_name_dns1123(str(task_run.task_af_id))
+        labels["dbnd_run_uid"] = task_run.run.run_uid
+        labels["dbnd_task_run_uid"] = task_run.task_run_uid
+        labels[
+            "dbnd_task_family"
+        ] = task_run.task.task_definition.full_task_family_short
+        labels["dbnd_task_name"] = task_run.task.task_name
+        labels["dbnd_task_af_id"] = task_run.task_af_id
 
         # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
         if task_run.task.task_is_system:
             labels["dbnd"] = "dbnd_system_task_run"
         else:
             labels["dbnd"] = "task_run"
+
+        # we need to be sure that the values meet the dns label names RFC
+        # https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
+        labels = {
+            label_name: clean_job_name_label_dns1123(str(label_value))
+            for label_name, label_value in six.iteritems(labels)
+        }
+        if is_verbose():
+            logger.info("Build pod with kubernetes labels {}".format(labels))
+
         annotations = self.annotations.copy()
         if self.gcp_service_account_keys:
             annotations[
@@ -539,3 +551,12 @@ def readable_pod_request(pod_req):
     except Exception as ex:
         logger.info("Failed to create readable pod request representation: %s", ex)
         return dumps_safe(pod_req)
+
+
+MAX_CLEAN_LABEL_NAME_DNS1123_LEN = 63
+
+
+def clean_job_name_label_dns1123(value):
+    # https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
+
+    return clean_job_name_dns1123(value, max_size=MAX_CLEAN_LABEL_NAME_DNS1123_LEN)
