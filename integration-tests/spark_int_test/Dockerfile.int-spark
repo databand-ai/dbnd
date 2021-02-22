@@ -24,17 +24,18 @@ RUN (cd /app/spark_jvm && mvn install -q)
 
 RUN apt-get update -y -qq && apt-get install -y -qq netcat
 
+# instrumentation:
+RUN pip install -U pytest sh pyspark tox 'pip>=20,<20.3'
+
 # install dbnd packages:
 ADD ./dist/ /dist/
-RUN pip install pytest sh pyspark && \
-    pip install -r /dist/dbnd.requirements.txt && \
+RUN pip install -r /dist/dbnd.requirements.txt && \
     pip install -r /dist/dbnd-spark.requirements.txt && \
     pip install -r /dist/dbnd-test-scenarios.requirements.txt && \
     pip install -r /dist/dbnd-airflow.requirements.txt && \
     pip install -r /dist/dbnd-airflow[airflow_1_10_7].requirements.txt && \
     pip install -r /dist/examples.requirements.txt
 RUN pip install dbnd_airflow[airflow_1_10_7] dbnd_examples databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
-RUN pip install tox
 
 ENV DBND_EXAMPLES_PATH=/app/examples
 WORKDIR /app/

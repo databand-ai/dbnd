@@ -1,7 +1,68 @@
 from collections import defaultdict
 from zipfile import ZipFile
 
-from packaging.requirements import Requirement
+from packaging.markers import _format_marker
+from packaging.requirements import Requirement as BaseRequirement
+
+
+class Requirement(BaseRequirement):
+    """
+    Custom Requirement class with some shortcuts
+
+    # doctest: `python -m doctest -v dbnd-core/etc/scripts/generate_requirements.py`
+
+    >>> req = Requirement('Requires-Dist: future (==0.16.0) ; (python_version < "3.0") and extra == "tests"')
+    >>> req.is_dbnd_package()
+    False
+    >>> req.get_extra_marker()
+    'tests'
+    >>> req.get_markers_str_without_extra()
+    'python_version < "3.0"'
+    >>> req = Requirement('Requires-Dist: dbnd-airflow (<5.0.0,>=4.2) ; (python_version >= "3.0") and (python_version <= "3.6")')
+    >>> req.is_dbnd_package()
+    True
+    >>> req.get_extra_marker() is None
+    True
+    >>> req.get_markers_str_without_extra()
+    'python_version >= "3.0" and python_version <= "3.6"'
+    """
+
+    def __init__(self, requirement_string):
+        if requirement_string.startswith("Requires-Dist:"):
+            requirement_string = requirement_string[len("Requires-Dist:") :]
+        super(Requirement, self).__init__(requirement_string)
+
+    def is_dbnd_package(self):
+        return self.name.startswith("dbnd")
+
+    def get_extra_marker(self):
+        if self.marker:
+            for expr in self.marker._markers:
+                if not isinstance(expr, tuple):
+                    continue
+                variable, op, value = expr
+                if variable.value == "extra":
+                    return value.value
+        return None
+
+    def get_markers_str_without_extra(self):
+        if self.marker:
+            markers_without_extra = []
+            for expr in self.marker._markers:
+                if isinstance(expr, tuple):
+                    variable, op, value = expr
+                    if variable.value == "extra":
+                        # previous marker might be 'and' and now it's redundant
+                        if markers_without_extra:
+                            if markers_without_extra.pop(-1) == "and":
+                                pass  # everything as expected
+                            else:
+                                # we don't have such cases ATM but they might apper
+                                raise NotImplementedError()
+                        continue
+                markers_without_extra.append(expr)
+            return _format_marker(markers_without_extra)
+        return None
 
 
 def _get_metadata(wheel_file):
@@ -35,13 +96,13 @@ def generate_requirements(
         if not meta_field.startswith("Requires-Dist:"):
             continue
 
-        meta_field = meta_field[len("Requires-Dist:") :]
         req = Requirement(meta_field)
-        if third_party_only and req.name.startswith("dbnd"):
+        if third_party_only and req.is_dbnd_package():
             print("Skipping %s" % req.name)
             continue
 
         print(req)
+
         parts = [req.name]
         if req.extras:
             parts.append("[{0}]".format(",".join(sorted(req.extras))))
@@ -50,15 +111,17 @@ def generate_requirements(
             parts.append(str(req.specifier))
         req_str = "".join(parts)
         if req.marker:
-            if str(req.marker).startswith("extra"):
+            extra_marker = req.get_extra_marker()
+            if extra_marker:
                 print("Extras marker:", req.marker)
-                requirements_extras[str(req.marker)].append(req_str)
+                req_parts = filter(bool, [req_str, req.get_markers_str_without_extra()])
+                requirements_extras[extra_marker].append("; ".join(req_parts))
                 continue
             req_str = "; ".join([req_str, str(req.marker)])
         requirements.append(req_str)
 
     for extra_name in extra_packages:
-        extras = requirements_extras.get('extra == "%s"' % extra_name, [])
+        extras = requirements_extras.get(extra_name, [])
         if separate_extras and extras:
             extras_filename = requirements_file + "[%s]" % extra_name
             if ".requirements.txt" in requirements_file:

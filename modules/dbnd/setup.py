@@ -52,7 +52,6 @@ setuptools.setup(
         ':sys_platform=="win32"': ["colorama"],
         "tests": [
             "qtconsole==4.7.7",  # 5.0 is not py 27 compatible
-            "pandas==0.24.2",
             "numpy==1.16.6;python_version<'3.5'",  # Latest py2 compatible version
             "numpy==1.19.5;python_version>='3.5'",  # 1.20 has compatibility issue with HDF5 marshalling. Fix is in progress
             "coverage",
