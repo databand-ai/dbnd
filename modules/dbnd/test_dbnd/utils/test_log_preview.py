@@ -11,10 +11,7 @@ from mock import patch
 from dbnd._core.task_run.log_preview import merge_read_log_files, read_head_and_tail
 
 
-if six.PY2:
-    TARGET_OPEN = "__builtin__.open"
-else:
-    TARGET_OPEN = "builtins.open"
+TARGET_OPEN = "io.open"
 
 DBND_LOG_FILE = """[2020-01-01 00:00:01,000] first log line
 [2020-01-01 00:00:11,000] second log line

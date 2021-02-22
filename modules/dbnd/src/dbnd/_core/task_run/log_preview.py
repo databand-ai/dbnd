@@ -84,7 +84,7 @@ def read_head_and_tail(path, head_size, tail_size):
         raise ValueError("tail and head max size has to be non negative integers")
 
     file_size = os.path.getsize(path)
-    with open(path, "rb") as f:
+    with io.open(path, "rb") as f:
         if head_size + tail_size < file_size:
             # readlines(0) returns all the lines but in our case we need no lines
             head_content = f.readlines(head_size) if head_size else []
