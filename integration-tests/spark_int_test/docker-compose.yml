@@ -18,7 +18,7 @@ services:
   inttest:
     image: ${DOCKER_IMAGE_INT_SPARK:-gcr.io/dbnd-dev-260010/databand:dbnd-int-spark-py36-local}
     depends_on:
-      - databand_postgres
+      - databand_database
       - airflow_postgres
     volumes:
       - ../junit:/app/junit

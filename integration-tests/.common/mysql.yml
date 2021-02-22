@@ -5,7 +5,7 @@
 version: "3.7"
 
 services:
-  databand_mysql:
+  databand_database:
     image: mysql:8.0
     cap_add:
       - SYS_NICE  # CAP_SYS_NICE
@@ -15,7 +15,3 @@ services:
       MYSQL_USER: "mysqldataband"
       MYSQL_PASSWORD: "mysqldataband"
       MYSQL_ROOT_PASSWORD: "mysqldataband"
-
-  databand_webserver:
-    depends_on:
-      - databand_mysql

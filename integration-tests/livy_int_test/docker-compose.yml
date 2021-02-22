@@ -17,7 +17,7 @@ services:
   inttest:
     image: ${DOCKER_IMAGE_INT_MAVEN}
     depends_on:
-      - databand_postgres
+      - databand_database
       - livy
     volumes:
       - ../junit:/app/junit
