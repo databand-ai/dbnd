@@ -39,6 +39,31 @@ if typing.TYPE_CHECKING:
         TaskDefinitionInfo,
     )
 
+AIRFLOW_SOURCE_TYPE = "airflow"
+
+
+@attr.s
+class TrackingSource(object):
+    name = attr.ib()  # type: str
+    url = attr.ib()  # type: str
+    env = attr.ib()  # type: str
+
+    source_type = attr.ib(default=AIRFLOW_SOURCE_TYPE)  # type: str
+    source_instance_uid = attr.ib(default=None)  # type: Optional[UUID]
+
+
+class TrackingSourceSchema(ApiObjectSchema):
+    name = fields.String()
+    url = fields.String()
+    env = fields.String()
+
+    source_type = fields.String()
+    source_instance_uid = fields.UUID()
+
+    @post_load
+    def make_run_info(self, data, **kwargs):
+        return TrackingSource(**data)
+
 
 class AirflowTaskContextSchema(ApiObjectSchema):
     dag_id = fields.String()
@@ -92,6 +117,7 @@ class InitRunArgs(object):
     update_existing = attr.ib(default=False)  # type: bool
     source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
     af_context = attr.ib(default=None)  # type: Optional[AirflowTaskContext]
+    tracking_source = attr.ib(default=None)  # type: Optional[TrackingSourceSchema]
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
@@ -111,6 +137,7 @@ class InitRunArgsSchema(ApiObjectSchema):
     update_existing = fields.Boolean()
     source = fields.Str(allow_none=True)
     af_context = fields.Nested(AirflowTaskContextSchema, allow_none=True)
+    tracking_source = fields.Nested(TrackingSourceSchema, allow_none=True)
 
     @post_load
     def make_init_run_args(self, data, **kwargs):

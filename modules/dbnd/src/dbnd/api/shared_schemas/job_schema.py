@@ -13,7 +13,7 @@ class JobSchemaV2(ApiObjectSchema):
 
     # computed
     run_states = fields.Dict()
-    airflow_link = fields.Str()
+    source_link = fields.Str()
 
     # joined
     latest_run_start_time = fields.DateTime()
@@ -22,7 +22,9 @@ class JobSchemaV2(ApiObjectSchema):
     latest_run_root_task_run_uid = fields.UUID()
     latest_run_trigger = fields.Str()
     latest_run_env = fields.Str()
-    airflow_instance_name = fields.Str()
+    source_instance_name = fields.Str()
+    source_type = fields.Str()
+    airflow_instance_name = fields.Str()  # TODO_SERVER: API: Deprecate
 
     scheduled_job_count = fields.Number()
 

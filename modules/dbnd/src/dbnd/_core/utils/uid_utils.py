@@ -35,6 +35,7 @@ def get_task_run_attempt_uid(run_uid, dag_id, task_id, try_number):
 
 
 def get_job_run_uid(airflow_instance_uid, dag_id, execution_date):
+    # TODO_CORE: change to source_instance_uid
     if isinstance(execution_date, six.string_types):
         execution_date = pendulum.parse(execution_date)
     if isinstance(execution_date, datetime.datetime):
@@ -53,6 +54,8 @@ def get_job_run_uid(airflow_instance_uid, dag_id, execution_date):
 
 
 def get_job_uid(airflow_server_info_uid, dag_id):
+    # TODO_CORE: change to source_instance_uid
+
     if airflow_server_info_uid:
         return uuid.uuid5(
             NAMESPACE_DBND_JOB, "{}:{}".format(airflow_server_info_uid, dag_id)

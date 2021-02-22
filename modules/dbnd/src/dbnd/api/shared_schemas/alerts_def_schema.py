@@ -23,5 +23,7 @@ class AlertDefsSchema(ApiObjectSchema):
     scheduled_job_name = fields.Str(attribute="scheduled_job.name")
     job_name = fields.Str()
     job_id = fields.Int()
-    airflow_instance_name = fields.Str(attribute="job.airflow_server_info.name")
-    env = fields.Str(attribute="job.airflow_server_info.env")
+    source_instance_name = fields.Str(attribute="job.tracking_source.name")
+    env = fields.Str(attribute="job.tracking_source.env")
+    # TODO_CORE: API: Deprecate airflow_server_info
+    airflow_instance_name = fields.Str(attribute="job.tracking_source.name")

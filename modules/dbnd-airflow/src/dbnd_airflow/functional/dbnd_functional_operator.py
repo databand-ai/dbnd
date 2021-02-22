@@ -26,7 +26,7 @@ class DbndFunctionalOperator(BaseOperator):
     This is the Airflow operator that is created for every Databand Task
 
 
-    it assume all tasks inputs coming from other airlfow tasks are in the format
+    it assume all tasks inputs coming from other airflow tasks are in the format
 
     """
 

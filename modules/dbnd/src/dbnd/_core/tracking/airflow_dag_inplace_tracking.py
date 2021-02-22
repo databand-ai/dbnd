@@ -221,7 +221,7 @@ def try_get_airflow_context_from_spark_conf():
 
 
 def build_run_time_airflow_task(af_context):
-    # type: (AirflowTaskContext) -> (TrackingTask, str, UpdateSource)
+    # type: (AirflowTaskContext) -> Tuple(TrackingTask, str, UpdateSource)
     if af_context.context:
         # we are in the execute entry point and therefore that task name is <task>__execute
         task_family = "%s__execute" % af_context.task_id

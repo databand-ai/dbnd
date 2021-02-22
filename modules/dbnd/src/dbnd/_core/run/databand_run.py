@@ -62,6 +62,7 @@ class DatabandRun(SingletonContext):
         existing_run=None,
         source=UpdateSource.dbnd,  # type:Optional[UpdateSource]
         af_context=None,
+        tracking_source=None,
         is_orchestration=False,
     ):
         self.context = context
@@ -143,6 +144,7 @@ class DatabandRun(SingletonContext):
 
         self.dynamic_af_tasks_count = dict()
         self.af_context = af_context
+        self.tracking_source = tracking_source
         self.start_time = None
         self.finished_time = None
         self._result_location = None

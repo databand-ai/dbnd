@@ -115,6 +115,9 @@ class _DbndScriptTrackingManager(object):
             job_name = root_task.task_name
             source = UpdateSource.dbnd
 
+        tracking_source = (
+            None  # TODO_CORE build tracking_source -> typeof TrackingSourceSchema
+        )
         self._run = run = self._enter_cm(
             new_databand_run(
                 context=dc,
@@ -122,6 +125,7 @@ class _DbndScriptTrackingManager(object):
                 existing_run=False,
                 source=source,
                 af_context=airflow_context,
+                tracking_source=tracking_source,
             )
         )  # type: DatabandRun
         self._run.root_task = root_task

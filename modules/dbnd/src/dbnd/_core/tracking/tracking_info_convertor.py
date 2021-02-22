@@ -83,6 +83,7 @@ class TrackingInfoBuilder(object):
             task_run_env=run.context.task_run_env,
             source=run.source,
             af_context=run.af_context,
+            tracking_source=run.tracking_source,
         )
 
         if not run.existing_run or get_dbnd_project_config().resubmit_run:

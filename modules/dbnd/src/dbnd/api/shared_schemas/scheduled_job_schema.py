@@ -67,6 +67,9 @@ class ScheduledJobSchemaV2(Schema):
     latest_run_env = fields.Str(dump_only=True)
     root_task_run_uid = fields.Str(dump_only=True)
     is_airflow_synced = fields.Bool(dump_only=True)
+    source_instance_name = fields.Str(allow_none=True)
+    source_type = fields.Str(allow_none=True)
+    # TODO_API: depredate
     airflow_instance_name = fields.Str(allow_none=True)
     list_order = fields.Integer(
         attribute="DbndScheduledJob.list_order", allow_none=True
