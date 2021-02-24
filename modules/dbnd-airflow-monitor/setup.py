@@ -27,7 +27,6 @@ setuptools.setup(
             "mock",
             "WTForms<2.3.0",
             "apache-airflow==1.10.9",
-            "cattrs==1.0.0",  # airflow requires ~0.9 but it's py2 incompatible (bug)
             "sh",
         ],
         "composer": [
