@@ -44,18 +44,18 @@ class DbndKubernetesClient(object):
         self.kube_client = kube_client
         self.engine_config = engine_config
 
-    def get_pod_ctrl(self, name, namespace=None):
-        # type: (str, Optional[str])-> DbndPodCtrl
+    def get_pod_ctrl(self, name, namespace=None, config=None):
+        # type: (str, Optional[str], Optional[KubernetesEngineConfig])-> DbndPodCtrl
         return DbndPodCtrl(
             pod_name=name,
             pod_namespace=namespace or self.engine_config.namespace,
             kube_client=self.kube_client,
-            kube_config=self.engine_config,
+            kube_config=config or self.engine_config,
         )
 
-    def get_pod_ctrl_for_pod(self, pod):
-        # type: (Pod)-> DbndPodCtrl
-        return self.get_pod_ctrl(pod.name, pod.namespace)
+    def get_pod_ctrl_for_pod(self, pod, config=None):
+        # type: (Pod, Optional[KubernetesEngineConfig])-> DbndPodCtrl
+        return self.get_pod_ctrl(pod.name, namespace=pod.namespace, config=config)
 
     def delete_pod(self, name, namespace):
         self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()

@@ -6,7 +6,10 @@ from typing import Optional
 from dbnd._core.errors import ParseParameterError
 from dbnd_docker.docker_ctrl import DockerRunCtrl
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndPodCtrl
-from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
+from dbnd_docker.kubernetes.kubernetes_engine_config import (
+    KubernetesEngineConfig,
+    readable_pod_request,
+)
 
 
 logger = logging.getLogger(__name__)
