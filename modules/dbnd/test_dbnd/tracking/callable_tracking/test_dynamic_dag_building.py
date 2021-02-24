@@ -5,9 +5,9 @@ from dbnd.testing.helpers_mocks import set_tracking_context
 from test_dbnd.tracking.tracking_helpers import build_graph_from_calls
 
 
-@task
+@task(result=("first", "extend"))
 def first_step(fist_input):
-    return "first_output"
+    return "first_output", "extend_output"
 
 
 @task
@@ -16,15 +16,20 @@ def second_step(second_input):
 
 
 @task
-def third_step(third_input):
+def third_step(third_input, extend_input):
     return "third_output"
 
 
 @task
 def main_func():
-    a = first_step("input")
-    b = second_step(a)
-    return third_step(b)
+    #
+    #              --> second_step --> third_step
+    # first_step -|                |
+    #              ----------------
+    #
+    a, b = first_step("input")
+    c = second_step(a)
+    return third_step(c, b)
 
 
 @pytest.mark.usefixtures(set_tracking_context.__name__)
@@ -45,5 +50,9 @@ class TestDynamicDagBuilding(object):
         )
 
         assert downstream_connections.issuperset(
-            {("first_step", "second_step"), ("second_step", "third_step")}
+            {
+                ("first_step", "second_step"),
+                ("second_step", "third_step"),
+                ("first_step", "third_step"),
+            }
         )
