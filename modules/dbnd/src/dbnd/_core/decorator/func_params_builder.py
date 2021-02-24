@@ -17,6 +17,7 @@ from dbnd._core.parameter.parameter_builder import (
     PARAMETER_FACTORY,
     ParameterFactory,
     build_parameter,
+    parameter,
 )
 from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
@@ -85,6 +86,19 @@ class FuncParamsBuilder(object):
                 except Exception:
                     logger.exception("Failed to analyze function arg %s", context)
                     raise
+
+        if self.decorator_spec.varargs:
+            # create a param for with the name of *args
+            params[self.decorator_spec.varargs] = build_parameter(
+                parameter[list], context=self.decorator_spec.name
+            )
+
+        if self.decorator_spec.varkw:
+            # create a param for with the name of **kwargs
+            params[self.decorator_spec.varkw] = build_parameter(
+                parameter[typing.Dict[str, typing.Any]],
+                context=self.decorator_spec.name,
+            )
         return params
 
     def _build_decorator_kwargs_params(self):
@@ -125,6 +139,7 @@ class FuncParamsBuilder(object):
                 # we are going to build a new parameter
                 param = build_parameter(param, context=context)
             params[k] = param
+
         return params
 
     def _build_multiple_outputs_result(self, result_deco_spec):

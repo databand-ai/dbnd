@@ -1,8 +1,12 @@
 import inspect
+import itertools
+
+from typing import Any, Dict, List, Optional, Tuple
 
 import attr
 import six
 
+from dbnd._core.parameter import ParameterFactory
 from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 from dbnd._core.utils.typing_utils.doc_annotations import get_doc_annotaions
 from dbnd._vendor.pytypes.type_utils import get_Tuple_params, is_Tuple
@@ -11,23 +15,45 @@ from targets.values import get_types_registry
 
 @attr.s
 class _TaskDecoratorSpec(object):
-    item = attr.ib()
-    is_class = attr.ib()
+    """
+    Holding and describing the spec of callable that been decorated as a task.
 
-    decorator_kwargs = attr.ib()
-    default_result = attr.ib()
+    """
 
-    # func spec
-    args = attr.ib()
-    varargs = attr.ib()
-    varkw = attr.ib()
-    defaults = attr.ib()
-    kwonlyargs = attr.ib()
-    kwonlydefaults = attr.ib()
-    annotations = attr.ib()
-    defaults_values = attr.ib()
-    name = attr.ib()
-    doc_annotations = attr.ib()
+    # holding the callable
+    item = attr.ib()  # type: callable
+    is_class = attr.ib()  # type: bool
+
+    # inputs that came from the decorator
+    decorator_kwargs = attr.ib()  # type: Dict[str, Any]
+    default_result = attr.ib()  # type: ParameterFactory
+
+    # callable spec
+    # -------------
+    # arguments names
+    args = attr.ib()  # type: List[str]
+    # name of the * argument or None if there is no * argument
+    varargs = attr.ib()  # type: Optional[str]
+    # name of the ** argument or None if there is no ** argument
+    varkw = attr.ib()  # type: Optional[str]
+    # mapping for the kwargs with default values
+    defaults = attr.ib()  # type: Dict[str, Any]
+    # values that can be set only as kwargs
+    kwonlyargs = attr.ib()  # type: List[str]
+    # dictionary mapping parameter names from kwonlyargs to the default values used if no argument is supplied
+    kwonlydefaults = attr.ib()  # type: Dict[str, Any]
+    # dictionary mapping parameter names to annotations
+    annotations = attr.ib()  # type: Dict[str, Any]
+
+    defaults_values = attr.ib()  # type: Tuple[Any, ...]
+    # the callable name
+    name = attr.ib()  # type: str
+    # annotation made with docstring
+    doc_annotations = attr.ib()  # type: Dict[str,type ]
+
+    @property
+    def known_keywords_names(self):
+        return set(itertools.chain(self.args, self.decorator_kwargs))
 
 
 # Extracts arg types and return type from doc string
@@ -39,7 +65,7 @@ class _TaskDecoratorSpec(object):
 
 
 def build_task_decorator_spec(class_or_func, decorator_kwargs, default_result):
-    # type: (callable, ... ) -> _TaskDecoratorSpec
+    # type: (callable, Dict[str, Any], ParameterFactory ) -> _TaskDecoratorSpec
     is_class = inspect.isclass(class_or_func)
     if is_class:
         f = class_or_func.__init__
@@ -62,7 +88,7 @@ def build_task_decorator_spec(class_or_func, decorator_kwargs, default_result):
         kwonlydefaults = None
         annotations = None
 
-    f_defaults = f_spec.defaults or {}
+    f_defaults = f_spec.defaults or ()
     defaults_start_at = len(f_spec.args) - len(f_defaults)
 
     return _TaskDecoratorSpec(
@@ -176,6 +202,11 @@ def guess_func_return_type(f_spec):
 
 
 def args_to_kwargs(arg_names, args, kwargs):
+    # type: ( List[str], List[Any, ...], Dict[str, Any]) -> Tuple[List[str],Dict[str, Any]]
+    """
+    convert any arg to kwarg if possible.
+    return the unknown args that left, and all the kwargs include the converted.
+    """
     if not args:
         return args, kwargs
 

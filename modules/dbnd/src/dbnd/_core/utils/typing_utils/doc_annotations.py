@@ -1,6 +1,8 @@
 import inspect
 import re
 
+from typing import Callable, Dict, Iterable, Optional
+
 
 TYPE_HINT_RE = re.compile(r"#type:\((.*)\)->(.+)")
 
@@ -109,6 +111,7 @@ def parse_arg_types_for_callable(func):
 
 
 def get_doc_annotaions(f, arg_names):
+    # type: (Callable, Iterable[str]) -> Optional[Dict[str,type ]]
     arg_types_tuple, return_type = parse_arg_types_for_callable(f)
     if arg_types_tuple or return_type:
         types = dict(zip(arg_names, arg_types_tuple))
