@@ -521,14 +521,14 @@ def airflow_monitor_main(monitor_args):
     while True:
         configs_fetched = servers_fetcher.get_fetching_configurations()
 
-        airflow_instance_details = create_instance_details_list(
-            monitor_args, configs_fetched, airflow_instance_details,
-        )
-
-        if len(airflow_instance_details) == 0:
+        if configs_fetched is None:
             # Probably an error occurred
             wait_interval()
             continue
+
+        airflow_instance_details = create_instance_details_list(
+            monitor_args, configs_fetched, airflow_instance_details,
+        )
 
         sync_all_servers(monitor_args, airflow_instance_details)
 

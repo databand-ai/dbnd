@@ -175,8 +175,6 @@ def create_instance_details_list(
     monitor_args, configs_fetched, existing_airflow_instance_details,
 ):
     if not configs_fetched:
-        if existing_airflow_instance_details:
-            return existing_airflow_instance_details
         return []
 
     airflow_instance_details = create_airflow_instance_details(
