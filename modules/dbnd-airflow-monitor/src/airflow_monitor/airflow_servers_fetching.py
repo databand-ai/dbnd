@@ -13,6 +13,9 @@ AIRFLOW_API_MODE_TO_SUFFIX = {
     "experimental": "/api/experimental/export_data",
 }
 
+DEFAULT_FETCH_QUANTITY = 100
+DEFAULT_OLDEST_INCOMPLETE_DATA_IN_DAYS = 14
+
 
 class AirflowFetchingConfiguration(object):
     def __init__(
@@ -82,10 +85,14 @@ class AirflowServersGetter(object):
                     api_mode=server["api_mode"],
                     fetcher=server["fetcher"],
                     composer_client_id=server["composer_client_id"],
-                    fetch_quantity=int(server["fetch_quantity"]),
+                    fetch_quantity=int(server["fetch_quantity"])
+                    if server["fetch_quantity"]
+                    else DEFAULT_FETCH_QUANTITY,
                     oldest_incomplete_data_in_days=int(
                         server["oldest_incomplete_data_in_days"]
-                    ),
+                    )
+                    if server["oldest_incomplete_data_in_days"]
+                    else DEFAULT_OLDEST_INCOMPLETE_DATA_IN_DAYS,
                     include_logs=bool(server["include_logs"]),
                     include_task_args=bool(server["include_task_args"]),
                     include_xcom=bool(server["include_xcom"]),
