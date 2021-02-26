@@ -19,7 +19,7 @@ setuptools.setup(
         "dbnd-airflow==" + version,
         "docker~=3.0",
         # k8s
-        "kubernetes==9.0.0",
+        "kubernetes>=9.0.0",
         "cryptography>=2.0.0",
     ],
     entry_points={"dbnd": ["dbnd-docker = dbnd_docker._plugin"]},
