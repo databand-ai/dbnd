@@ -1,12 +1,21 @@
+import typing
+
 from abc import abstractmethod
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 from targets.value_meta import ValueMetaConf
+
+
+if typing.TYPE_CHECKING:
+    from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 
 
 class _TaskCtrlMixin(object):
     @property
     @abstractmethod
     def tracker(self):
+        # type: () -> TaskRunTracker
         """
         Abstract property for each task to describe how to access it's tracker.
         """
@@ -36,6 +45,18 @@ class _TaskCtrlMixin(object):
         :param value: Parameter value (string)
         """
         return self.tracker.log_metric(key, value, source=source)
+
+    def log_metrics(self, metrics_dict, source=None, timestamp=None):
+        # type: (Dict[str, Any], Optional[str], Optional[datetime]) -> None
+        """
+        Logs the all the metrics in the metrics dict to the task tracker.
+        @param metrics_dict: name-value pairs of metrics to log
+        @param source: optional name of the metrics source
+        @param timestamp: optional timestamp of the metrics
+        """
+        return self.tracker.log_metrics(
+            metrics_dict, source=source, timestamp=timestamp
+        )
 
     def log_system_metric(self, key, value):
         """Shortcut for log_metric(..., source="system") """

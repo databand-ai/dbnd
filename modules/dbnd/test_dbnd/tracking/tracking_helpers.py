@@ -44,6 +44,13 @@ def get_log_targets(mock_channel_tracker):
                 yield target_info
 
 
+def get_log_metrics(mock_channel_tracker):
+    for call in mock_channel_tracker.call_args_list:
+        if call.args[0].__name__ == "log_metrics":
+            for metric_info in call[1]["metrics_info"]:
+                yield metric_info
+
+
 def get_reported_params(mock_channel_tracker):
     param_definitions = defaultdict(list)
     run_time_params = defaultdict(list)

@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 
 def _get_tracker():
     # type: ()-> Optional[TaskRunTracker]
+    """
+    Look for a tracker of running task_run or initiate a task_run if nothing is running.
+    Will return a None if there is no exist task_run nor couldn't start one.
+    """
     from dbnd._core.task_run.current_task_run import try_get_or_create_task_run
 
     task_run = try_get_or_create_task_run()
@@ -44,8 +48,26 @@ def log_data(
     with_histograms=None,  # type: Optional[Union[bool, str, List[str], LogDataRequest]]
     raise_on_error=False,  # type: bool
 ):  # type: (...) -> None
+    """
+    Log data information to dbnd.
+
+    @param key: Name of the data.
+    @param value: Value of the data, currently supporting only dataframes and tables view.
+    @param path: Optional target or path representing a target to connect the data to.
+    @param operation_type: Type of the operation doing with the target - reading or writing the data?
+    @param with_preview: True if should log a preview of the data.
+    @param with_size: True if should log the size of the data.
+    @param with_schema: True if should log the schema of the data.
+    @param with_stats: True if should calculate and log stats of the data.
+    @param with_histograms: True if should calculate and log histogram of the data.
+    @param raise_on_error: raise if error occur.
+    """
+
     tracker = _get_tracker()
     if not tracker:
+        logger.warning(
+            "Couldn't log data - {key}. Tracker is not found".format(key=key)
+        )
         return
 
     meta_conf = ValueMetaConf(
@@ -66,6 +88,7 @@ def log_data(
     )
 
 
+# logging dataframe is the same as logging data
 log_dataframe = log_data
 
 
@@ -76,10 +99,23 @@ def log_pg_table(
     with_schema=None,  # type: Optional[bool]
     with_histograms=None,  # type: Union[LogDataRequest, bool, str, List[str]]
 ):
+    """
+    Log the data of postgres table to dbnd.
 
+    @param table_name: name of the table to log
+    @param connection_string: a connection string used to reach the table.
+    @param with_preview: True if should log a preview of the table.
+    @param with_schema: True if should log the schema of the table.
+    @param with_histograms: True if should calculate and log histogram of the table data.
+    """
     try:
         if not is_plugin_enabled("dbnd-postgres", module_import="dbnd_postgres"):
+            logger.warning(
+                "Can't log postgres table: dbnd-postgres package is not installed\n"
+                "Help: pip install dbnd-postgres"
+            )
             return
+
         from dbnd_postgres import postgres_values
 
         pg_table = postgres_values.PostgresTable(table_name, connection_string)
@@ -95,6 +131,14 @@ def log_pg_table(
 
 
 def log_metric(key, value, source="user"):
+    # type: (str, Any, Optional[str]) -> None
+    """
+    Log key-value pair as a metric to dbnd.
+
+    @param key: Name of the metric.
+    @param value: Value of the metric.
+    @param source: The source of the metric, default is user.
+    """
     tracker = _get_tracker()
     if tracker:
         tracker.log_metric(key, value, source=source)
@@ -105,16 +149,24 @@ def log_metric(key, value, source="user"):
 
 def log_metrics(metrics_dict, source="user", timestamp=None):
     # type: (Dict[str, Any], str, datetime) -> None
+    """
+    Log multiple key-value pairs as a metrics to dbnd.
+
+    @param metrics_dict: Key-value pairs of metrics to log.
+    @param source: Optional name of the metrics source, default is user.
+    @param timestamp: Optional timestamp of the metrics.
+    """
+
     tracker = _get_tracker()
     if tracker:
-        from dbnd._core.tracking.schemas.metrics import Metric
-        from dbnd._core.utils.timezone import utcnow
+        tracker.log_metrics(metrics_dict, source=source, timestamp=timestamp)
+        return
 
-        metrics = [
-            Metric(key=key, value=value, source=source, timestamp=timestamp or utcnow())
-            for key, value in metrics_dict.items()
-        ]
-        tracker._log_metrics(metrics)
+    logger.info(
+        "Log multiple metrics from {source}: {metrics}".format(
+            source=source.capitalize(), metrics=metrics_dict
+        )
+    )
 
 
 def log_artifact(key, artifact):

@@ -1,6 +1,8 @@
 import logging
 import typing
 
+import six
+
 from dbnd._core.constants import (
     DbndTargetOperationStatus,
     DbndTargetOperationType,
@@ -21,7 +23,7 @@ if typing.TYPE_CHECKING:
     from dbnd_snowflake.snowflake_values import SnowflakeTable
 
     from datetime import datetime
-    from typing import Any, Optional, Union, List
+    from typing import Any, Optional, Union, List, Dict
     import pandas as pd
     import pyspark.sql as spark
 
@@ -95,6 +97,21 @@ class TaskRunTracker(TaskRunCtrl):
         # type: (List[Metric]) -> None
         return self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
 
+    def log_metrics(self, metrics_dict, source=None, timestamp=None):
+        # type: (Dict[str, Any], Optional[str], Optional[datetime]) -> None
+        """
+        Logs all the metrics in the metrics dict to the tracker.
+        @param metrics_dict: name-value pairs of metrics to log
+        @param source: optional name of the metrics source
+        @param timestamp: optional timestamp of the metrics
+        """
+        metrics = [
+            Metric(key=key, value=value, source=source, timestamp=timestamp or utcnow())
+            for key, value in six.iteritems(metrics_dict)
+        ]
+
+        return self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
+
     def log_artifact(self, name, artifact):
         try:
             # file storage will save file
@@ -116,10 +133,7 @@ class TaskRunTracker(TaskRunCtrl):
     def log_metric(self, key, value, timestamp=None, source=None):
         # type: (str, Any, Optional[datetime], Optional[MetricSource]) -> None
         try:
-            metric = Metric(
-                key=key, value=value, source=source, timestamp=timestamp or utcnow(),
-            )
-            self._log_metrics([metric])
+            self.log_metrics({key: value}, source, timestamp)
         except Exception as ex:
             log_exception(
                 "Error occurred during log_metric for %s" % (key,),
