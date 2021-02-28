@@ -2,7 +2,6 @@ import os
 
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.data_fetchers import DbFetcher
-
 from test_dbnd_airflow_monitor.airflow_utils import airflow_init_db
 
 

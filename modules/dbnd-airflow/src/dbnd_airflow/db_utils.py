@@ -18,6 +18,7 @@ def remove_listener_by_name(target, identifier, name):
         remove_listener_by_name(target, "engine_connect", "ping_connection")
     """
     import ctypes
+
     from sqlalchemy import event
     from sqlalchemy.event.registry import _key_to_collection
 
@@ -102,7 +103,7 @@ def airflow_sql_conn_url():
     except:
         return "`pip install sqlalchemy` in order to get sql db url"
 
-    return make_url(airlow_sql_alchemy_conn())
+    return repr(make_url(airlow_sql_alchemy_conn()))
 
 
 def airlow_sql_alchemy_conn():

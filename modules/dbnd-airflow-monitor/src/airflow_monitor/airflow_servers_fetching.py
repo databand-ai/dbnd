@@ -1,7 +1,6 @@
 import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
-
 from dbnd import get_databand_context
 
 

@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import prometheus_client
 import requests
+import simplejson
 import six
 
 from airflow_monitor.airflow_servers_fetching import AirflowFetchingConfiguration
@@ -16,9 +17,6 @@ from airflow_monitor.errors import (
     failed_to_get_csrf_token,
     failed_to_login_to_airflow,
 )
-
-import simplejson
-
 from bs4 import BeautifulSoup as bs
 
 
@@ -237,7 +235,11 @@ class DbFetcher(DataFetcher):
             )
             return data
         except Exception as ex:
-            logger.exception("Failed to connect to db %s", self.sql_conn_string, ex)
+            from sqlalchemy.engine.url import make_url
+
+            logger.exception(
+                "Failed to connect to db %s", repr(make_url(self.sql_conn_string)), ex
+            )
             raise
 
     def get_source(self):
@@ -254,10 +256,11 @@ class DbFetcher(DataFetcher):
         fetch_type,
         incomplete_offset,
     ):
-        from airflow import models, settings, conf
+        from airflow import conf, models, settings
         from airflow.settings import STORE_SERIALIZED_DAGS
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
+
         from dbnd_airflow_export.dbnd_airflow_export_plugin import get_airflow_data
 
         conf.set("core", "sql_alchemy_conn", value=self.sql_conn_string)

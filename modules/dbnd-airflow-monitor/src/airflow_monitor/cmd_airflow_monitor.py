@@ -4,7 +4,6 @@ import prometheus_client
 
 from airflow_monitor.airflow_monitor_main import airflow_monitor_main
 from airflow_monitor.config import AirflowMonitorConfig
-
 from dbnd._vendor import click
 
 

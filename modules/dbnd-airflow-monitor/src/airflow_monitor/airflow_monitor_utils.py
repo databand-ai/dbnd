@@ -6,10 +6,10 @@ import traceback
 from tempfile import NamedTemporaryFile
 from time import sleep
 
-from airflow_monitor.airflow_data_saving import save_airflow_server_info
-from airflow_monitor.config import AirflowMonitorConfig
 from prometheus_client import Summary
 
+from airflow_monitor.airflow_data_saving import save_airflow_server_info
+from airflow_monitor.config import AirflowMonitorConfig
 from dbnd._core.utils.timezone import utcnow
 
 

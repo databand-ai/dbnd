@@ -19,7 +19,6 @@ from airflow_monitor.airflow_monitor_utils import (
 )
 from airflow_monitor.airflow_servers_fetching import AirflowServersGetter
 from airflow_monitor.errors import AirflowFetchingException
-
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor import pendulum

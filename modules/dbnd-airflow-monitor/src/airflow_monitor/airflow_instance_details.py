@@ -6,7 +6,6 @@ import pkg_resources
 import pytz
 
 from airflow_monitor.data_fetchers import data_fetcher_factory
-
 from dbnd import get_databand_context
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor import pendulum

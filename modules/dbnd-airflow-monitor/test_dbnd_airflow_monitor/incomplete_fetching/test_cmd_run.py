@@ -1,10 +1,10 @@
 import mock
 
+from click.testing import CliRunner
+
 from airflow_monitor.airflow_servers_fetching import AirflowFetchingConfiguration
 from airflow_monitor.cmd_airflow_monitor import airflow_monitor
 from airflow_monitor.data_fetchers import WebFetcher
-from click.testing import CliRunner
-
 from dbnd._core.configuration.dbnd_config import config
 from test_dbnd_airflow_monitor.incomplete_fetching.plugin_simulator import (
     PluginSimulator,

@@ -4,11 +4,11 @@ import mock
 
 # Do not remove this line
 from airflow.configuration import conf
+from click.testing import CliRunner
+
 from airflow_monitor.airflow_servers_fetching import AirflowFetchingConfiguration
 from airflow_monitor.cmd_airflow_monitor import airflow_monitor
 from airflow_monitor.config import AirflowMonitorConfig
-from click.testing import CliRunner
-
 from dbnd._core.configuration.dbnd_config import config
 from test_dbnd_airflow_monitor.airflow_utils import airflow_init_db
 
