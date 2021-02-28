@@ -224,9 +224,9 @@ class TrackerErrorContainer(DatabandError):
     Implementation for holding inner error - Error chaining is not supported for py 2.7
     """
 
-    def __init__(self, message, cause):
+    def __init__(self, message, cause, **kwargs):
         super(TrackerErrorContainer, self).__init__(
-            message + u", caused by " + repr(cause)
+            message + u", caused by " + repr(cause), **kwargs
         )
         self.cause = cause
 
