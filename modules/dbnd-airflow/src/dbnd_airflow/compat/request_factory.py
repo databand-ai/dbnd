@@ -2,6 +2,11 @@ from dbnd_airflow.constants import AIRFLOW_ABOVE_10
 
 
 def serialize_pod(pod, engine_config):
+    """
+    @param pod: Airflow pod definition
+    @param engine_config: KubernetesEngineConfig
+    @return:
+    """
     if AIRFLOW_ABOVE_10:
         pod = pod.to_v1_kubernetes_pod()
 

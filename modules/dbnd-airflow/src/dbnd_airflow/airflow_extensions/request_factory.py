@@ -5,6 +5,7 @@ from distutils.version import LooseVersion
 import airflow
 import yaml
 
+from airflow.contrib.kubernetes.pod import Pod
 from airflow.contrib.kubernetes.secret import Secret
 
 from dbnd_airflow.compat.request_factory import serialize_pod
@@ -24,7 +25,7 @@ class DbndPodRequestFactory(object):
 
         self.extract_node_affinity(pod, req)
         self.extract_volume_secrets(pod, req)
-        self.extract_extended_resources(req)
+        self.extract_extended_resources(req, pod)
         self.extract_restart_policy(req)
 
         return req
@@ -33,10 +34,12 @@ class DbndPodRequestFactory(object):
         restart_policy = self.yaml["spec"]["restartPolicy"]
         req["spec"].setdefault("restartPolicy", restart_policy)
 
-    def extract_extended_resources(self, req):
-        # type: (Dict) -> None
-        limits = self.kubernetes_engine_config.limits
-        requests = self.kubernetes_engine_config.requests
+    def extract_extended_resources(self, req, pod):
+        # type: (Dict, Pod) -> None
+        limits = getattr(pod.resources, "limits", self.kubernetes_engine_config.limits)
+        requests = getattr(
+            pod.resources, "requests", self.kubernetes_engine_config.requests
+        )
 
         if not any((limits, requests)):
             return
