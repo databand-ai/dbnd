@@ -47,7 +47,7 @@ def failed_to_fetch_from_airflow(url, nested_exception, error_code=None):
         message,
         show_exc_info=False,
         nested_exceptions=nested_exception,
-        help_msg="If the url is correct, check the configuration of api mode.",
+        help_msg="If the url is correct, this may be a problem in the network",
     )
 
 

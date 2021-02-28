@@ -42,6 +42,7 @@ class AirflowInstanceDetails(object):
         self.airflow_server_info.airflow_export_version = airflow_export_version
         self.airflow_server_info.synced_from = synced_from
         self.airflow_server_info.active_dags = active_dags
+        self.airflow_server_info.monitor_error_message = ""
 
     @property
     def url(self):
@@ -130,6 +131,7 @@ def create_airflow_instance_details(monitor_args, configs_fetched, existing_deta
     for fetch_config in configs_fetched:
         for existing_detail in existing_details:
             if existing_detail.config.url == fetch_config.url:
+                existing_detail.config = fetch_config
                 airflow_instance_details.append(existing_detail)
                 break
         else:
