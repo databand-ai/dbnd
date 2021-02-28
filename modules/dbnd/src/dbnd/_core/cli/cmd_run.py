@@ -348,7 +348,10 @@ def run(
             logger.info("Building main task '%s'", task_name)
             root_task = get_task_registry().build_dbnd_task(task_name)
             root_task.ctrl.describe_dag.describe_dag()
-            click.echo("Task %s has been described!" % task_name)
+            # currently there is bug with the click version we have when using python 2
+            # so we don't use the click.echo function
+            # https://github.com/pallets/click/issues/564
+            print("Task %s has been described!" % task_name)
             return root_task
 
         return context.dbnd_run_task(
