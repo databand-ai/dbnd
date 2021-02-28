@@ -71,12 +71,16 @@ class AirflowServersGetter(object):
         self._fetch_url = context.settings.core.databand_url
         self._api_client = context.databand_api_client
 
+    def fetch_airflow_servers_list(self):
+        response = self._api_client.api_request(
+            endpoint=AirflowServersGetter.FETCH_API_URL, method="GET", data=None
+        )
+        return response
+
     def get_fetching_configurations(self):
         try:
             airflow_config = AirflowMonitorConfig()
-            response = self._api_client.api_request(
-                endpoint=AirflowServersGetter.FETCH_API_URL, method="GET", data=None
-            )
+            response = self.fetch_airflow_servers_list()
             result_json = response["data"]
             servers = [
                 AirflowFetchingConfiguration(
