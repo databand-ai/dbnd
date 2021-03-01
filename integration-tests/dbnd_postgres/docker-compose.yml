@@ -15,10 +15,10 @@ services:
       - ../airflow_monitor/dags:/root/airflow/dags
     environment:
       - PYTEST_ADDOPTS=--junit-xml junit/inttest-airflow-monitor-${IMAGE_EXTRA_TAG}.xml
-      - DBND__WEBSERVER__SQL_ALCHEMY_CONN=postgresql://databand:databand@databand_postgres:5432/databand
+      - DBND__WEBSERVER__SQL_ALCHEMY_CONN=postgresql://databand:databand@databand_database:5432/databand
     command:
       - bash
       - -c
       - |
-        until nc -z databand_postgres 5432; do echo "Waiting for Postgres..." && sleep 1; done
+        until nc -z databand_database 5432; do echo "Waiting for Postgres..." && sleep 1; done
         pytest . -vv --log-cli-level=INFO

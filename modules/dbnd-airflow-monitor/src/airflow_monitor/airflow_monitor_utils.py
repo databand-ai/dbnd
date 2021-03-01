@@ -102,7 +102,7 @@ def dump_unsent_data(data):
 
 def save_error_message(airflow_instance_detail, message):
     airflow_instance_detail.airflow_server_info.monitor_error_message = message
-    airflow_instance_detail.airflow_server_info.monitor_error_message += "Timestamp: {}".format(
+    airflow_instance_detail.airflow_server_info.monitor_error_message += "\nTimestamp: {}".format(
         utcnow()
     )
     logging.error(message)

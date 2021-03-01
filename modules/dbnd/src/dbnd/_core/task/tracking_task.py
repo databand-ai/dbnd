@@ -84,6 +84,16 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         # we need to add RESULT param
         if RESULT_PARAM in task_definition.task_param_defs:
             param = task_definition.task_param_defs[RESULT_PARAM]
+            if isinstance(param, FuncResultParameter):
+                for param_name in param.names:
+                    # we want to get the parameter evolved with the task_definition as owner
+                    inner_param = task_definition.task_param_defs[param_name]
+                    result_param_value = build_result_param(
+                        task_definition.task_passport, param_def=inner_param,
+                    )
+
+                    param_values.append(result_param_value)
+
             result_param_value = build_result_param(
                 task_definition.task_passport, param_def=param
             )
@@ -257,8 +267,8 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         return None
 
 
-def build_result_param(task_passport, param_def=None):
-    # type: (TaskPassport, Optional[ParameterDefinition]) -> ParameterValue
+def build_result_param(task_passport, param_def=None, name=RESULT_PARAM):
+    # type: (TaskPassport, Optional[ParameterDefinition], str) -> ParameterValue
     """
     Build results parameter for the task definition, if parameter definition is not specify it will build a naive one.
     """
@@ -266,9 +276,9 @@ def build_result_param(task_passport, param_def=None):
     if not param_def:
         from targets.values import ObjectValueType
 
-        # naive creation of result param definition - named "result" and single value
+        # naive creation of result param definition - default named "result" and single value
         param_def = parameter.modify(
-            name=RESULT_PARAM, value_type=ObjectValueType
+            name=name, value_type=ObjectValueType
         ).output.build_parameter("inline")
 
     return ParameterValue(
