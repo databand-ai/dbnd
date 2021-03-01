@@ -188,8 +188,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             try_number=try_number,
             include_system_secrets=True,
         )
-
-        pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod)
+        pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod, config=task_engine)
         self.submitted_pods[pod.name] = SubmittedPodState(
             pod_name=pod.name,
             task_run=task_run,
