@@ -3,9 +3,7 @@ import logging
 import os
 import sys
 import threading
-import typing
 
-from operator import attrgetter
 from typing import Iterator
 
 import six
@@ -34,7 +32,6 @@ from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 from dbnd._core.task_executor.local_task_executor import LocalTaskExecutor
 from dbnd._core.task_executor.results_view import RunResultBand
 from dbnd._core.task_executor.task_runs_builder import TaskRunsBuilder
-from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils import console_utils
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.nested_context import nested
@@ -215,10 +212,14 @@ class RunExecutor(object):
             run_uid=self.run.run_uid, state=unfinished_task_state
         )
 
-        err_banner_msg = self.run.describe.get_error_banner()
         logger.error(
             u"\n\n{sep}\n{banner}\n{sep}".format(
-                sep=console_utils.ERROR_SEPARATOR, banner=err_banner_msg
+                sep=console_utils.ERROR_SEPARATOR,
+                banner=self.run.describe.run_banner(
+                    "Your run has failed! See more info above.",
+                    color="red",
+                    show_run_info=True,
+                ),
             )
         )
         return DatabandRunError(
@@ -421,10 +422,6 @@ class RunExecutor(object):
         with nested(hearbeat):
             task_executor.do_run()
 
-        # if we are in the driver, we want to print banner after executor__task banner
-        run.set_run_state(RunState.SUCCESS)
-        logger.info(run.describe.run_banner_for_finished())
-
         # We need place the pipeline's task_band in the place we required to by outside configuration
         if settings.run.run_result_json_path:
             new_path = settings.run.run_result_json_path
@@ -443,6 +440,23 @@ class RunExecutor(object):
                         new_path=new_path
                     )
                 )
+
+        # if we are in the driver, we want to print banner after executor__task banner
+        run.set_run_state(RunState.SUCCESS)
+
+        root_task = self.run.root_task_run.task
+        msg = "Your run has been successfully executed!"
+        if self.run.duration:
+            msg = "Your run has been successfully executed in %s" % self.run.duration
+        run_msg = "\n%s\n%s\n" % (
+            root_task.ctrl.banner(
+                "Main task '%s' is ready!" % root_task.task_name,
+                color="green",
+                task_run=self.run.root_task_run,
+            ),
+            run.describe.run_banner(msg, color="green",),
+        )
+        logger.info(run_msg)
 
         return run
 
@@ -556,16 +570,57 @@ class _RunExecutor_Task(Task):
     _conf__no_child_params = True
 
     def run(self):
-        run_executor = current_task_run().run.run_executor
+        executor_task_run = current_task_run()
+        run_executor = executor_task_run.run.run_executor
         run_executor_type = run_executor.run_executor_type
-        if run_executor_type == SystemTaskName.driver:
-            return run_executor.run_driver()
-        elif run_executor_type == SystemTaskName.driver_submit:
-            return run_executor.run_submitter()
-        else:
-            raise DatabandSystemError(
-                "Unsupported run executor type: %s", run_executor_type
+        try:
+            if run_executor_type == SystemTaskName.driver:
+                return run_executor.run_driver()
+            elif run_executor_type == SystemTaskName.driver_submit:
+                return run_executor.run_submitter()
+            else:
+                raise DatabandSystemError(
+                    "Unsupported run executor type: %s" % run_executor_type
+                )
+        except BaseException as ex:
+            # we print it on any exception
+            logger.error("Run failure: %s" % ex)
+            logger.error(
+                u"\n\n\n\n{sep}\n\n   -= Your run has failed, please review errors below =-\n\n{sep}\n".format(
+                    sep=console_utils.ERROR_SEPARATOR
+                )
             )
+
+            failed_msgs = []
+            canceled_msgs = []
+            for task_run in executor_task_run.run.get_task_runs():
+                if task_run.task_run_state == TaskRunState.FAILED:
+                    failed_msgs.append(
+                        task_run.task.ctrl.banner(
+                            msg="Task has failed!", color="red", task_run=task_run
+                        )
+                    )
+                elif task_run.task_run_state == TaskRunState.CANCELLED:
+                    canceled_msgs.append(
+                        task_run.task.ctrl.banner(
+                            msg="Task has failed!", color="yellow", task_run=task_run
+                        )
+                    )
+
+            if canceled_msgs:
+                logger.error(
+                    u"\nNumber of canceled tasks={count}:\n{banner}\n".format(
+                        banner=u"\n".join(canceled_msgs), count=len(canceled_msgs)
+                    )
+                )
+
+            if failed_msgs:
+                logger.error(
+                    u"\nNumber of failed tasks={count}:\n{banner}\n".format(
+                        banner=u"\n".join(failed_msgs), count=len(failed_msgs)
+                    )
+                )
+            raise
 
 
 def _get_dbnd_run_relative_cmd():

@@ -21,7 +21,11 @@ CURRENT_PY_FILE = __file__.replace(".pyc", ".py")
 
 def run_dbnd_subprocess__current_file(args, **kwargs):
     args = args or []
-    return run_dbnd_subprocess([sys.executable, CURRENT_PY_FILE] + args, **kwargs)
+    env = os.environ.copy()
+    env["DBND__CORE__TRACKER"] = "['file', 'console']"
+    return run_dbnd_subprocess(
+        [sys.executable, CURRENT_PY_FILE] + args, env=env, **kwargs
+    )
 
 
 def _assert_output(reg_exp, output, count=1):
@@ -35,7 +39,6 @@ class TestManualDbndStart(object):
 
     def test_manual_dbnd_start(self):
         result = run_dbnd_subprocess__current_file([USE_DBND_START])
-        assert "Your run has been successfully executed" in result
         assert "Run tracking info has been committed" in result
 
         for task_name, count in self.expected_task_names + ((self.auto_task_name, 1),):

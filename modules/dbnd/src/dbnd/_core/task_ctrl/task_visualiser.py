@@ -5,7 +5,7 @@ import six
 
 from dbnd._core.constants import SystemTaskName, TaskEssence, TaskRunState
 from dbnd._core.current import is_verbose
-from dbnd._core.errors import get_help_msg, show_exc_info
+from dbnd._core.errors import DatabandBuildError, get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
 from dbnd._core.settings import DescribeConfig
 from dbnd._core.task.task import Task
@@ -288,11 +288,12 @@ class _TaskBannerBuilder(TaskSubCtrl):
                 raw_name=True,
             )
 
-        self.banner.column(
-            colored("ERROR MESSAGE", color="red", attrs=["bold"]),
-            str(ex),
-            raw_name=True,
-        )
+        if str(ex):
+            self.banner.column(
+                colored("ERROR MESSAGE", color="red", attrs=["bold"]),
+                str(ex),
+                raw_name=True,
+            )
 
         self.banner.column(
             colored("HELP", attrs=["bold"]),
@@ -300,7 +301,8 @@ class _TaskBannerBuilder(TaskSubCtrl):
             raw_name=True,
             skip_if_empty=True,
         )
-        self._task_create_stack()
+        if isinstance(ex, DatabandBuildError):
+            self._task_create_stack()
         self.banner.column(
             colored("CAUSED BY", color="red", attrs=["bold"]),
             nested_exceptions_str(ex, limit=3),

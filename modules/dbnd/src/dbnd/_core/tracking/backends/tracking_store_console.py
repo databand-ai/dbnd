@@ -10,7 +10,7 @@ import six
 
 from more_itertools import collapse, partition
 
-from dbnd._core.constants import TaskRunState, UpdateSource
+from dbnd._core.constants import SystemTaskName, TaskRunState, UpdateSource
 from dbnd._core.current import is_verbose
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
@@ -114,8 +114,8 @@ class ConsoleStore(TrackingStore):
             task_msg = "Task %s has failed!" % task_id_str
             color = "red"
             level = logging.ERROR
-            if task_run.task.get_task_family() != "_DbndDriverTask":
-                show_simple_log = False
+            if task_run.task.task_name in SystemTaskName.driver_and_submitter:
+                show_simple_log = True
 
         elif state == TaskRunState.CANCELLED:
             task_msg = "Task %s has been canceled!" % task_id_str

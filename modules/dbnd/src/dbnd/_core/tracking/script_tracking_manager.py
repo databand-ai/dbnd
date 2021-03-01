@@ -173,10 +173,6 @@ class _DbndScriptTrackingManager(object):
             else:
                 databand_run.set_run_state(RunState.FAILED)
 
-            # todo: hard to control the console output if we printing to the console not from the console tracker
-            if not CoreConfig.current().silence_tracking_mode:
-                logger.info(databand_run.describe.run_banner_for_finished())
-
             self._close_all_context_managers()
 
         except Exception as ex:

@@ -2,7 +2,7 @@ import typing
 
 from collections import Counter
 
-from dbnd._core.constants import DescribeFormat, RunState, SystemTaskName, TaskRunState
+from dbnd._core.constants import DescribeFormat, SystemTaskName, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.run.run_ctrl import RunCtrl
 from dbnd._core.settings.core import CoreConfig
@@ -42,16 +42,16 @@ class RunBanner(RunCtrl):
         show_more = is_verbose()
         task_runs = run.task_runs
         if not show_more:  # show only non system
-            task_runs = [tr for tr in run.task_runs if not tr.task.task_is_system]
-            if not task_runs:
+            task_runs = run.get_task_runs(without_system=True)
+            if not task_runs:  # we have only system
                 task_runs = run.task_runs
 
         states = Counter(tr.task_run_state for tr in task_runs if tr.task_run_state)
 
-        tasks = [("total", len(task_runs))]
-        tasks += [(k.value, v) for k, v in states.items()]
+        b.column("TOTAL TASKS", len(task_runs))
 
-        b.column_properties("TASKS", tasks)
+        tasks = [(k.value, v) for k, v in states.items()]
+        b.column_properties("STATES", tasks)
         if optimizations:
             b.column("RUN OPTIMIZATION", " ".join(optimizations))
         return b
@@ -64,27 +64,6 @@ class RunBanner(RunCtrl):
 
         b.column("TRACKER URL", run.run_url, skip_if_empty=True)
         b.column("TRACKERS", CoreConfig().tracker)
-        if run.is_orchestration:
-            run_executor = run.run_executor
-            driver_task_run = run.driver_task_run
-
-            if (
-                show_tasks_info
-                and run_executor.run_executor_type == SystemTaskName.driver
-            ):
-                self._add_tasks_info(b)
-            if show_run_info and driver_task_run and driver_task_run.log:
-                b.column(
-                    "LOG",
-                    b.f_simple_dict(
-                        [
-                            ("local", driver_task_run.log.local_log_file),
-                            ("remote", driver_task_run.log.remote_log_file),
-                        ],
-                        skip_if_empty=True,
-                    ),
-                )
-
         if run.root_run_info.root_run_uid != run.run_uid:
             b.column(
                 "ROOT TRACKER URL", run.root_run_info.root_run_url, skip_if_empty=True
@@ -107,13 +86,10 @@ class RunBanner(RunCtrl):
                 ("user", task_run_env.user),
                 ("run_uid", "%s" % run.run_uid),
                 ("env", run.env.name),
-                (
-                    "project",
-                    run.project_name or "Not set, default project will be used",
-                ),
+                ("project", run.project_name or "'NOT DEFINED'",),
+                ("user_code_version", task_run_env.user_code_version),
             ]
             b.column("RUN", b.f_simple_dict(run_params))
-            b.column("USER CODE VERSION", task_run_env.user_code_version)
             b.column("CMD", task_run_env.cmd_line)
 
             if run.is_orchestration:
@@ -135,41 +111,37 @@ class RunBanner(RunCtrl):
                 b.column("USER DATA", task_run_env.user_data, skip_if_empty=True)
             b.new_line()
 
-        failed_task_runs = [
-            task_run
-            for task_run in run.task_runs
-            if task_run.task_run_state in TaskRunState.direct_fail_states()
-        ]
-        if failed_task_runs:
-            f_msg = "\n\t".join(tr.task.task_id for tr in failed_task_runs)
-            b.column("FAILED", f_msg)
+        if run.is_orchestration:
+            run_executor = run.run_executor
+            driver_task_run = run.driver_task_run
+            if show_run_info and driver_task_run and driver_task_run.log:
+                b.column(
+                    "LOG",
+                    b.f_simple_dict(
+                        [
+                            ("local", driver_task_run.log.local_log_file),
+                            ("remote", driver_task_run.log.remote_log_file),
+                        ],
+                        skip_if_empty=True,
+                    ),
+                )
+            if run_executor.run_executor_type == SystemTaskName.driver:
+                if run.root_task_run:
+                    b.column("TASK_BAND", run.root_task_run.task.task_band)
 
-        if run.root_task_run and run.is_orchestration:
-            b.column("TASK_BAND", run.root_task_run.task.task_band)
-
+                if show_tasks_info:
+                    self._add_tasks_info(b)
+                failed_task_runs = [
+                    task_run
+                    for task_run in run.get_task_runs()
+                    if task_run.task_run_state == TaskRunState.FAILED
+                ]
+                if failed_task_runs:
+                    f_msg = "\n".join(tr.task.task_id for tr in failed_task_runs)
+                    b.column("FAILED", f_msg)
         b.new_line()
 
         return b.getvalue()
-
-    def run_banner_for_finished(self):
-        if self.run._run_state == RunState.SUCCESS:
-            root_task_run = self.run.root_task_run
-            root_task = root_task_run.task
-            msg = "Your run has been successfully executed!"
-            if self.run.duration:
-                msg = (
-                    "Your run has been successfully executed in %s" % self.run.duration
-                )
-            return "\n%s\n%s\n" % (
-                root_task.ctrl.banner(
-                    "Main task '%s' is ready!" % root_task.task_name,
-                    color="green",
-                    task_run=root_task_run,
-                ),
-                self.run_banner(msg, color="green",),
-            )
-
-        return self.run_banner("Your run has failed!", color="red", show_run_info=True)
 
     def run_banner_for_submitted(self):
         msg = (
@@ -180,47 +152,6 @@ class RunBanner(RunCtrl):
         return self.run_banner(
             msg, color="green", show_run_info=False, show_tasks_info=False
         )
-
-    def get_error_banner(self):
-        # type: ()->str
-        err_banners = []
-        run = self.run
-        err_banners.append(self.run_banner_for_finished())
-
-        failed_task_runs = []
-        for task_run in run.task_runs:
-            if (
-                task_run.last_error
-                or task_run.task_run_state in TaskRunState.direct_fail_states()
-            ):
-                failed_task_runs.append(task_run)
-
-        if len(failed_task_runs) > 1:
-            # clear out driver task, we don't want to print it twice
-            failed_task_runs = [
-                tr
-                for tr in failed_task_runs
-                if tr.task.task_name not in SystemTaskName.driver_and_submitter
-            ]
-
-        for task_run in failed_task_runs:
-            if task_run.task_run_state == TaskRunState.CANCELLED:
-                msg_header = "Task has been terminated!"
-            else:
-                msg_header = "Task has failed!"
-            msg = task_run.task.ctrl.banner(
-                msg=msg_header, color="red", task_run=task_run
-            )
-            err_banners.append(msg)
-
-        err_banners.append(
-            self.run_banner(
-                "Your run has failed! See more info above.",
-                color="red",
-                show_run_info=False,
-            )
-        )
-        return u"\n".join(err_banners)
 
 
 def print_tasks_tree(root_task, task_runs, describe_format=DescribeFormat.short):
