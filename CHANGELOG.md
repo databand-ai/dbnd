@@ -1,5 +1,15 @@
 # History
 
+## DBND v 0.35.00
+
+### New features:
+
+- \#1199534085669848: Orchestration error Reporting
+- \#1199593388824808: dbnd run compatible with Airflow 2.0
+- \#1199382295296733: Project phase 1
+- \#1199695732795158: Add pip freeze to logs
+- \#1199562651279654: Support multiple Azkaban instances
+
 ## DBND v 0.34.00
 
 ### New features:
