@@ -112,6 +112,21 @@ class TaskRunTracker(TaskRunCtrl):
 
         return self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
 
+    def log_metrics(self, metrics_dict, source=None, timestamp=None):
+        # type: (Dict[str, Any], Optional[str], Optional[datetime]) -> None
+        """
+        Logs all the metrics in the metrics dict to the tracker.
+        @param metrics_dict: name-value pairs of metrics to log
+        @param source: optional name of the metrics source
+        @param timestamp: optional timestamp of the metrics
+        """
+        metrics = [
+            Metric(key=key, value=value, source=source, timestamp=timestamp or utcnow())
+            for key, value in six.iteritems(metrics_dict)
+        ]
+
+        return self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
+
     def log_artifact(self, name, artifact):
         try:
             # file storage will save file
