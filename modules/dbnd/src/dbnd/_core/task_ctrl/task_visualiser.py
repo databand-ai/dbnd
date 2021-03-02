@@ -288,10 +288,11 @@ class _TaskBannerBuilder(TaskSubCtrl):
                 raw_name=True,
             )
 
-        if str(ex):
+        # some errors are empty
+        if ex:
             self.banner.column(
-                colored("ERROR MESSAGE", color="red", attrs=["bold"]),
-                str(ex),
+                colored("ERROR:", color="red", attrs=["bold"]),
+                "%s: %s" % (type(ex), str(ex)),
                 raw_name=True,
             )
 

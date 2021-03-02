@@ -29,8 +29,10 @@ from airflow.utils.timezone import utcnow
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.errors import DatabandConfigError
-from dbnd._core.errors.friendly_error.executor_k8s import KubernetesImageNotFoundError
+from dbnd._core.errors.friendly_error.executor_k8s import (
+    KubernetesImageNotFoundError,
+    KubernetesPodConfigFailure,
+)
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd_airflow.airflow_extensions.dal import (
@@ -521,9 +523,10 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             )
             try:
                 pod_ctrl.check_deploy_errors(pod_data)
+            # we handle only known errors
             except KubernetesImageNotFoundError as ex:
                 return PodFailureReason.err_image_pull, str(ex)
-            except DatabandConfigError as ex:
+            except KubernetesPodConfigFailure as ex:  # pod config error
                 return PodFailureReason.err_config_error, str(ex)
             except Exception as ex:
                 # we don't want to handle that

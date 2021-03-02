@@ -155,6 +155,11 @@ class DatabandRun(SingletonContext):
         self._result_location = None
 
     def get_task_runs(self, without_executor=True, without_system=False):
+        """
+        :param without_executor: filter driver/submitter task runs
+        :param without_system:   filter task.is_system tasks
+        :return: List[TaskRun]
+        """
         task_runs = self.task_runs
         if without_executor:
             task_runs = [

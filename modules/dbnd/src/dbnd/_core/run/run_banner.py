@@ -92,8 +92,26 @@ class RunBanner(RunCtrl):
             b.column("RUN", b.f_simple_dict(run_params))
             b.column("CMD", task_run_env.cmd_line)
 
-            if run.is_orchestration:
-                run_executor = run.run_executor
+            if task_run_env.user_data and task_run_env.user_data != "None":
+                b.column("USER DATA", task_run_env.user_data, skip_if_empty=True)
+            b.new_line()
+
+        if run.is_orchestration:
+            run_executor = run.run_executor
+            driver_task_run = run.driver_task_run
+            if show_run_info:
+                if driver_task_run and driver_task_run.log:
+                    b.column(
+                        "LOG",
+                        b.f_simple_dict(
+                            [
+                                ("local", driver_task_run.log.local_log_file),
+                                ("remote", driver_task_run.log.remote_log_file),
+                            ],
+                            skip_if_empty=True,
+                        ),
+                    )
+
                 b.column(
                     "EXECUTE",
                     b.f_simple_dict(
@@ -106,24 +124,6 @@ class RunBanner(RunCtrl):
                         skip_if_empty=True,
                     ),
                     skip_if_empty=True,
-                )
-            if task_run_env.user_data and task_run_env.user_data != "None":
-                b.column("USER DATA", task_run_env.user_data, skip_if_empty=True)
-            b.new_line()
-
-        if run.is_orchestration:
-            run_executor = run.run_executor
-            driver_task_run = run.driver_task_run
-            if show_run_info and driver_task_run and driver_task_run.log:
-                b.column(
-                    "LOG",
-                    b.f_simple_dict(
-                        [
-                            ("local", driver_task_run.log.local_log_file),
-                            ("remote", driver_task_run.log.remote_log_file),
-                        ],
-                        skip_if_empty=True,
-                    ),
                 )
             if run_executor.run_executor_type == SystemTaskName.driver:
                 if run.root_task_run:

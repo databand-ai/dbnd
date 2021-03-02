@@ -18,7 +18,19 @@ def kubernetes_with_non_compatible_engine(task_engine):
     )
 
 
-class KubernetesImageNotFoundError(DatabandConfigError):
+class DatabandKubernetesError(DatabandConfigError):
+    pass
+
+
+class KubernetesImageNotFoundError(DatabandKubernetesError):
+    pass
+
+
+class KubernetesRunningPodConditionFailure(DatabandKubernetesError):
+    pass
+
+
+class KubernetesPodConfigFailure(DatabandKubernetesError):
     pass
 
 
@@ -32,10 +44,6 @@ def kubernetes_image_not_found(image_name, message, long_msg):
         "and configured image_pull_secrets in the Kubernetes engine config. Details %s"
         % long_msg,
     )
-
-
-class KubernetesRunningPodConditionFailure(DatabandConfigError):
-    pass
 
 
 def kubernetes_running_pod_fails_on_condition(condition, pod_name):
@@ -59,7 +67,7 @@ def kubernetes_pod_config_error(kub_message):
     elif kub_message.startswith("secret"):
         help_msg = "Check that the secret exsits in the cluster or remove it from the engine config"
 
-    return DatabandConfigError(
+    return KubernetesPodConfigFailure(
         "Failed to start Kubernetes pod because of a configuration error: %s"
         % kub_message,
         help_msg=help_msg,
