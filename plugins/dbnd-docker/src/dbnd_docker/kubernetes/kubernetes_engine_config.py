@@ -3,6 +3,7 @@ import logging
 import shlex
 import subprocess
 import textwrap
+import typing
 
 from os import environ
 from typing import Dict, List, Optional
@@ -30,12 +31,18 @@ from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.json_utils import dumps_safe
-from dbnd._core.utils.string_utils import clean_job_name_dns1123
 from dbnd._core.utils.structures import combine_mappings
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_task import DockerRunTask
+from dbnd_docker.kubernetes.dns1123_clean_names import (
+    clean_label_name_dns1123,
+    create_pod_id,
+)
 from targets import target
 
+
+if typing.TYPE_CHECKING:
+    from airflow.contrib.kubernetes.pod import Pod
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +353,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         return kube_dbnd
 
     def get_pod_name(self, task_run, try_number):
-        pod_name = task_run.job_id__dns1123
+        pod_name = create_pod_id(task_run)
         if try_number is not None:
             pod_name = "%s-%s" % (pod_name, try_number)
         return pod_name
@@ -360,7 +367,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         try_number=None,
         include_system_secrets=False,
     ):
-        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int]) ->Pod
+        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int], bool) ->Pod
         pod_name = self.get_pod_name(task_run=task_run, try_number=try_number)
 
         image = self.full_image
@@ -382,7 +389,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         # we need to be sure that the values meet the dns label names RFC
         # https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
         labels = {
-            label_name: clean_job_name_label_dns1123(str(label_value))
+            label_name: clean_label_name_dns1123(str(label_value))
             for label_name, label_value in six.iteritems(labels)
         }
         if is_verbose():
@@ -551,12 +558,3 @@ def readable_pod_request(pod_req):
     except Exception as ex:
         logger.info("Failed to create readable pod request representation: %s", ex)
         return dumps_safe(pod_req)
-
-
-MAX_CLEAN_LABEL_NAME_DNS1123_LEN = 63
-
-
-def clean_job_name_label_dns1123(value):
-    # https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
-
-    return clean_job_name_dns1123(value, max_size=MAX_CLEAN_LABEL_NAME_DNS1123_LEN)

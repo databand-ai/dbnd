@@ -47,6 +47,7 @@ from dbnd_airflow.executors.kubernetes_executor.kubernetes_watcher import (
 )
 from dbnd_airflow.executors.kubernetes_executor.utils import mgr_init
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
+from dbnd_docker.kubernetes.dns1123_clean_names import create_pod_id
 from dbnd_docker.kubernetes.kube_dbnd_client import (
     PodFailureReason,
     _get_status_log_safe,
@@ -141,7 +142,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
     @staticmethod
     def _create_pod_id(dag_id, task_id):
         task_run = try_get_databand_run().get_task_run(task_id)
-        return task_run.job_id__dns1123
+        return create_pod_id(task_run)
 
     def _health_check_kube_watcher(self):
         if self.kube_watcher.is_alive():
