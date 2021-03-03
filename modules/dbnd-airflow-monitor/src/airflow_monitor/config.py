@@ -8,6 +8,10 @@ class AirflowMonitorConfig(Config):
 
     _conf__task_family = "airflow_monitor"
 
+    prometheus_port = parameter(default=8000, description="Port for airflow-monitor")[
+        int
+    ]
+
     interval = parameter(
         default=5, description="Sleep time (in seconds) between fetches when not busy"
     )[int]

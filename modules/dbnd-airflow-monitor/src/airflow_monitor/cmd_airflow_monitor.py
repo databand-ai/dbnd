@@ -34,6 +34,12 @@ def override_airflow_monitor_config_with_values(interval, sql_conn, dag_folder):
 
 @click.command()
 @click.option(
+    "--prometheus-port",
+    type=click.INT,
+    help="The port on which to run prometheus server",
+    default=8000,
+)
+@click.option(
     "--interval", type=click.FLOAT, help="Sleep time (in seconds) between fetches"
 )
 @click.option("--sql-conn", type=click.STRING, help="Sql alchemy connection string")
@@ -52,6 +58,7 @@ def override_airflow_monitor_config_with_values(interval, sql_conn, dag_folder):
 @click.option("--history-only", is_flag=True, help="Sync only the history and exit")
 @click.option("--since-now", is_flag=True, help="Start syncing from utcnow - live mode")
 def airflow_monitor(
+    prometheus_port,
     interval,
     sql_conn,
     dag_folder,
@@ -61,10 +68,20 @@ def airflow_monitor(
     history_only,
     since_now,
 ):
+
     try:
-        prometheus_client.start_http_server(8000)
+        prometheus_port = (
+            prometheus_port
+            if prometheus_port
+            else AirflowMonitorConfig().prometheus_port
+        )
+        prometheus_client.start_http_server(prometheus_port)
     except Exception as e:
-        logger.warning("Failed to start prometheus on port 8000. Exception: ", e)
+        logger.warning(
+            "Failed to start prometheus on port {}. Exception: {}".format(
+                prometheus_port, e
+            )
+        )
 
     monitor_args = AirflowMonitorArgs(
         since, since_now, sync_history, history_only, number_of_iterations,
