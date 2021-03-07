@@ -19,10 +19,11 @@
 import time
 import typing
 
-from typing import Dict
+from typing import Dict, Optional
 
 import attr
 
+from airflow.utils.dag_processing import SimpleTaskInstance
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from airflow.utils.timezone import utcnow
@@ -67,7 +68,7 @@ class SubmittedPodState(object):
     pod_name = attr.ib()
     submitted_at = attr.ib()
 
-    # key from airflow (task instance
+    # task_instance key: dag_id, task_id, execution_date, try_number
     scheduler_key = attr.ib()
     # dbnd run
     task_run = attr.ib()
@@ -115,7 +116,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.current_resource_version = 0
         self.kube_watcher = self._make_kube_watcher_dbnd()
 
-        # pod to airflow key (dag_id, task_id, execution_date)
+        # pod_id to SubmittedPodState
         self.submitted_pods = {}  # type: Dict[str,SubmittedPodState]
 
         # sending data to databand tracker
@@ -328,7 +329,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         if submitted_pod.processed:
             # we already processed this kind of event, as in this process we have failed status already
             self.log.info(
-                "%s Skipping pod '%s' event - already processed", state, pod_name,
+                "Skipping pod '%s' event from %s - already processed", state, pod_name,
             )
             return
 
@@ -454,7 +455,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             task_run=task_run, pod_data=pod_data, pod_name=pod_name
         )
         if failure_reason:
-            error_msg += "Found reason for failure: %s - %s." % (
+            error_msg += " Discovered reason for failure is %s: %s." % (
                 failure_reason,
                 failure_message,
             )
@@ -510,7 +511,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         if not pod_data:
             return (
                 PodFailureReason.err_pod_deleted,
-                "Pod %s probably has been deleted (can not be found)" % pod_name,
+                "Pod %s is not found at cluster (deleted/spot/preemptible)" % pod_name,
             )
 
         pod_phase = pod_data.status.phase
@@ -592,6 +593,27 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             task_run.set_task_run_state(
                 TaskRunState.FAILED, track=True, error=task_run_error
             )
+
+    def handle_zombie_task_instance(self, zombie_task_instance):
+        # type: (SimpleTaskInstance)-> Optional[SubmittedPodState]
+        zombie_pod_state = [
+            pod_state
+            for pod_state in self.submitted_pods.values()
+            if pod_state.scheduler_key == zombie_task_instance.key
+        ]
+        if not zombie_pod_state:
+            self.log.info(
+                "Zombie task instance %s is not found at running pods, skipping",
+                zombie_task_instance.key,
+            )
+            return None
+
+        self.log.info(
+            "Processing zombie task instance %s as failed", zombie_task_instance,
+        )
+        zombie_pod_state = zombie_pod_state[0]
+        self._process_pod_failed(zombie_pod_state)
+        return zombie_pod_state
 
     def get_pod_status(self, pod_name):
         pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)

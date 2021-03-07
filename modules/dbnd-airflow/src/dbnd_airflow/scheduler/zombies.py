@@ -1,11 +1,12 @@
 import datetime
 import logging
+import typing
 
 import airflow
 
 from airflow import LoggingMixin
 from airflow.configuration import conf
-from airflow.jobs import BackfillJob, BaseJob
+from airflow.jobs import BaseJob
 from airflow.models import DagRun, TaskInstance as TI
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
@@ -15,12 +16,16 @@ from sqlalchemy import and_, or_
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 
 
+if typing.TYPE_CHECKING:
+    from airflow.contrib.executors.kubernetes_executor import KubernetesExecutor
+
 logger = logging.getLogger(__name__)
 
-END_STATES = (State.SUCCESS, State.FAILED, State.UPSTREAM_FAILED)
+END_STATES = [State.SUCCESS, State.FAILED, State.UPSTREAM_FAILED]
 
 
-def _kill_dag_run_zombi(dag_run, session):
+@provide_session
+def _kill_dag_run_zombies(dag_run, session=None):
     """
     Remove zombies DagRuns and TaskInstances.
     If the job ended but the DagRun is still not finished then
@@ -46,6 +51,7 @@ def _kill_dag_run_zombi(dag_run, session):
     )
     dag_run.state = State.FAILED
     session.merge(dag_run)
+    session.commit()
 
 
 @provide_session
@@ -98,58 +104,27 @@ def find_and_kill_dagrun_zombies(args, session=None):
             dr.state,
         )
         # Now the DR is running but job running it has failed
-        _kill_dag_run_zombi(dag_run=dr, session=session)
+        _kill_dag_run_zombies(dag_run=dr, session=session)
 
     logger.info("Cleaning done!")
-
-
-class ClearZombieJob(BaseJob):
-    ID_PREFIX = BackfillJob.ID_PREFIX + "manual_    "
-    ID_FORMAT_PREFIX = ID_PREFIX + "{0}"
-    __mapper_args__ = {"polymorphic_identity": "BackfillJob"}
-    TYPE = "ZombieJob"
-    TIME_BETWEEN_RUNS = 60 * 5
-
-    def __init__(self, *args, **kwargs):
-        super(ClearZombieJob, self).__init__(*args, **kwargs)
-        # Trick for distinguishing this job from other backfills
-        self.executor_class = self.TYPE
-
-    @provide_session
-    def _execute(self, session=None):
-        last_run_date = (
-            session.query(ClearZombieJob.latest_heartbeat)
-            .filter(ClearZombieJob.executor_class == self.TYPE)
-            .order_by(ClearZombieJob.end_date.asc())
-            .first()
-        )
-        if (
-            last_run_date
-            and last_run_date[0] + datetime.timedelta(seconds=self.TIME_BETWEEN_RUNS)
-            > timezone.utcnow()
-        ):
-            # If we cleaned zombies recently we can do nothing
-            return
-        try:
-            find_and_kill_dagrun_zombies(None, session=session)
-        except Exception as err:
-            # Fail silently as this is not crucial process
-            session.rollback()
-            logging.warning("Cleaning zombies failed: %s", err)
 
 
 class ClearZombieTaskInstancesForDagRun(LoggingMixin):
     """
     workaround for SingleDagRunJob to clean "missing" tasks
+    for now it works for kubernetes only,
+    as k8s executor requires "explicit" _clean_state for "zombie" tasks
+    otherwise, they will not be submitted (as they are still at executior.running tasks
     """
 
-    def __init__(self):
+    def __init__(self, k8s_executor):
         super(ClearZombieTaskInstancesForDagRun, self).__init__()
         self.zombie_threshold_secs = conf.getint(
             "scheduler", "scheduler_zombie_task_threshold"
         )
-        self.zombie_query_interval_secs = 60
+        self.zombie_query_interval_secs = 10
         self._last_zombie_query_time = None
+        self.k8s_executor = k8s_executor  # type: KubernetesExecutor
         self._log = PrefixLoggerAdapter("clear-zombies", self.log)
 
     @provide_session
@@ -175,24 +150,23 @@ class ClearZombieTaskInstancesForDagRun(LoggingMixin):
         """
         copy paste from airflow.models.dagbag.DagBag.kill_zombies
         """
-        from airflow.models.taskinstance import TaskInstance  # Avoid circular import
-
         for zombie in zombies:
-            if zombie.task_id in dag.task_ids:
-                task = dag.get_task(zombie.task_id)
-                ti = TaskInstance(task, zombie.execution_date)
-                # Get properties needed for failure handling from SimpleTaskInstance.
-                ti.start_date = zombie.start_date
-                ti.end_date = zombie.end_date
-                ti.try_number = zombie.try_number
-                ti.state = zombie.state
-                # ti.test_mode = self.UNIT_TEST_MODE
-                ti.handle_failure(
-                    "{} detected as zombie".format(ti),
-                    ti.test_mode,
-                    ti.get_template_context(),
-                )
-                self.log.info("Marked zombie job %s as %s", ti, ti.state)
+            if zombie.task_id not in dag.task_ids:
+                continue  # old implementation, can't happen in SingleJobRun
+
+            self.k8s_executor.clear_zombie_task_instance(zombie_task_instance=zombie)
+            # original zombie implementation,
+            # we just call zombie handling at k8s scheduler
+            #
+            # task = dag.get_task(zombie.task_id)
+            # ti = TaskInstance(task, zombie.execution_date)
+            # # Get properties needed for failure handling from SimpleTaskInstance.
+            # ti.start_date = zombie.start_date
+            # ti.end_date = zombie.end_date
+            # ti.try_number = zombie.try_number
+            # ti.state = zombie.state
+            # ti.test_mode = self.UNIT_TEST_MODE
+
         session.commit()
 
     @provide_session
@@ -229,10 +203,11 @@ class ClearZombieTaskInstancesForDagRun(LoggingMixin):
             # sti = SimpleTaskInstance(ti)
             sti = ti
             self.log.info(
-                "Detected zombie job with dag_id %s, task_id %s, and execution date %s",
+                "Detected zombie task instance: dag_id=%s task_id=%s execution_date= %s, try_number=%s",
                 sti.dag_id,
                 sti.task_id,
                 sti.execution_date.isoformat(),
+                sti.try_number,
             )
             zombies.append(ti)
 

@@ -26,9 +26,8 @@ from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
 )
 from dbnd_airflow.scheduler.zombies import (
-    ClearZombieJob,
     ClearZombieTaskInstancesForDagRun,
-    _kill_dag_run_zombi,
+    _kill_dag_run_zombies,
 )
 
 
@@ -95,7 +94,9 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             self.airflow_config.clean_zombie_task_instances
             and "KubernetesExecutor" in self.executor_class
         ):
-            self._zombie_cleaner = ClearZombieTaskInstancesForDagRun()
+            self._zombie_cleaner = ClearZombieTaskInstancesForDagRun(
+                k8s_executor=self.executor
+            )
             logger.info(
                 "Zombie cleaner is enabled. "
                 "It runs every %s seconds, threshold is %s seconds",
@@ -725,6 +726,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         """
         # Trigger cleaning
         if self.airflow_config.clean_zombies_during_backfill:
+            from dbnd_airflow.scheduler.clear_zombie_dagruns_job import ClearZombieJob
+
             ClearZombieJob().run()
 
         ti_status = BackfillJob._DagRunTaskStatus()
@@ -793,9 +796,13 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 executor.end()
             except Exception:
                 logger.exception("Failed to terminate executor")
-            if dag_run and dag_run.state == State.RUNNING:
-                _kill_dag_run_zombi(dag_run, session)
             session.commit()
+            try:
+                if dag_run and dag_run.state == State.RUNNING:
+                    # use clean SQL session
+                    _kill_dag_run_zombies(dag_run)
+            except Exception:
+                logger.exception("Failed to clean dag_run task instances")
 
         self.log.info("Run is completed. Exiting.")
 

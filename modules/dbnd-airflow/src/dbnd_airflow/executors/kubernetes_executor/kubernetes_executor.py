@@ -22,22 +22,13 @@ import typing
 
 from queue import Empty
 
-from airflow.contrib.executors.kubernetes_executor import KubernetesExecutor
 from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from kubernetes.client.rest import ApiException
 
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
-from dbnd_airflow.compat.kubernetes_executor import (
-    AirflowKubernetesScheduler,
-    KubeConfig,
-    KubernetesExecutor,
-    KubernetesJobWatcher,
-    get_job_watcher_kwargs,
-    get_tuple_for_watcher_queue,
-    make_safe_label_value,
-)
+from dbnd_airflow.compat.kubernetes_executor import KubernetesExecutor
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_scheduler import (
     DbndKubernetesScheduler,
 )
@@ -193,3 +184,20 @@ class DbndKubernetesExecutor(KubernetesExecutor):
                     self.task_queue.task_done()
             except Empty:
                 break
+
+    def clear_zombie_task_instance(self, zombie_task_instance):
+        if zombie_task_instance.key not in self.running:
+            self.log.info(
+                "Skipping zombie %s as not found at executor", zombie_task_instance
+            )
+            return
+
+        zombie_pod_state = self.kube_scheduler.handle_zombie_task_instance(
+            zombie_task_instance=zombie_task_instance
+        )
+        if not zombie_pod_state:
+            return
+
+        self._change_state(
+            zombie_pod_state.scheduler_key, None, zombie_pod_state.pod_name
+        )
