@@ -603,7 +603,9 @@ class _RunExecutor_Task(Task):
                 elif task_run.task_run_state == TaskRunState.CANCELLED:
                     canceled_msgs.append(
                         task_run.task.ctrl.banner(
-                            msg="Task has failed!", color="yellow", task_run=task_run
+                            msg="Task has been canceled!",
+                            color="yellow",
+                            task_run=task_run,
                         )
                     )
 

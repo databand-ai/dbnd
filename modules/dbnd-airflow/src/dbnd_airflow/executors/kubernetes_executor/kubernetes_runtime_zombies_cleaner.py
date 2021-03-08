@@ -1,115 +1,24 @@
 import datetime
-import logging
 import typing
 
 import airflow
 
-from airflow import LoggingMixin
-from airflow.configuration import conf
-from airflow.jobs import BaseJob
-from airflow.models import DagRun, TaskInstance as TI
+from airflow import LoggingMixin, conf
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
-from sqlalchemy import and_, or_
+from sqlalchemy import or_
 
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 
 
 if typing.TYPE_CHECKING:
-    from airflow.contrib.executors.kubernetes_executor import KubernetesExecutor
-
-logger = logging.getLogger(__name__)
-
-END_STATES = [State.SUCCESS, State.FAILED, State.UPSTREAM_FAILED]
-
-
-@provide_session
-def _kill_dag_run_zombies(dag_run, session=None):
-    """
-    Remove zombies DagRuns and TaskInstances.
-    If the job ended but the DagRun is still not finished then
-    fail the DR and related unfinished TIs
-    """
-    logger.info(
-        "ZOMBIE: Job has ended but the related %s is still in state %s - marking it as failed",
-        dag_run,
-        dag_run.state,
-    )
-    qry = session.query(TI).filter(
-        TI.dag_id == dag_run.dag_id,
-        TI.execution_date == dag_run.execution_date,
-        TI.state.notin_(END_STATES),
+    from dbnd_airflow.executors.kubernetes_executor.kubernetes_executor import (
+        DbndKubernetesExecutor,
     )
 
-    tis = qry.all()
-    logger.info("Marking %s related TaskInstance as failed", len(tis))
 
-    qry.update(
-        {TI.state: State.FAILED, TI.end_date: timezone.utcnow()},
-        synchronize_session=False,
-    )
-    dag_run.state = State.FAILED
-    session.merge(dag_run)
-    session.commit()
-
-
-@provide_session
-def find_and_kill_dagrun_zombies(args, session=None):
-    """
-    Find zombie DagRuns and TaskInstances that are in not end state and for which related
-    BackfillJob has failed.
-    """
-    seconds_from_last_heartbeat = 60
-    last_expected_heartbeat = timezone.utcnow() - datetime.timedelta(
-        seconds=seconds_from_last_heartbeat
-    )
-    logger.info(
-        "Cleaning zombie tasks with heartbeat older than: %s", last_expected_heartbeat,
-    )
-
-    # Select BackfillJob that failed or are still running
-    # but have stalled heartbeat
-    failed_jobs_id_qry = (
-        session.query(BaseJob.id)
-        .filter(BaseJob.job_type == "BackfillJob")
-        .filter(
-            or_(
-                BaseJob.state == State.FAILED,
-                and_(
-                    BaseJob.state == State.RUNNING,
-                    BaseJob.latest_heartbeat < last_expected_heartbeat,
-                ),
-            )
-        )
-        .all()
-    )
-    failed_jobs_id = set(r[0] for r in failed_jobs_id_qry)
-
-    logger.info("Found %s stale jobs", len(failed_jobs_id))
-
-    running_dag_runs = session.query(DagRun).filter(DagRun.state == State.RUNNING).all()
-
-    for dr in running_dag_runs:
-        if not isinstance(dr.conf, dict):
-            continue
-
-        job_id = dr.conf.get("job_id")
-        if job_id not in failed_jobs_id:
-            continue
-
-        logger.info(
-            "DagRun %s is in state %s but related job has failed. Cleaning zombies.",
-            dr,
-            dr.state,
-        )
-        # Now the DR is running but job running it has failed
-        _kill_dag_run_zombies(dag_run=dr, session=session)
-
-    logger.info("Cleaning done!")
-
-
-class ClearZombieTaskInstancesForDagRun(LoggingMixin):
+class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
     """
     workaround for SingleDagRunJob to clean "missing" tasks
     for now it works for kubernetes only,
@@ -118,13 +27,13 @@ class ClearZombieTaskInstancesForDagRun(LoggingMixin):
     """
 
     def __init__(self, k8s_executor):
-        super(ClearZombieTaskInstancesForDagRun, self).__init__()
+        super(ClearKubernetesRuntimeZombiesForDagRun, self).__init__()
         self.zombie_threshold_secs = conf.getint(
             "scheduler", "scheduler_zombie_task_threshold"
         )
         self.zombie_query_interval_secs = 10
         self._last_zombie_query_time = None
-        self.k8s_executor = k8s_executor  # type: KubernetesExecutor
+        self.k8s_executor = k8s_executor  # type: DbndKubernetesExecutor
         self._log = PrefixLoggerAdapter("clear-zombies", self.log)
 
     @provide_session

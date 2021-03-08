@@ -596,6 +596,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
     def handle_zombie_task_instance(self, zombie_task_instance):
         # type: (SimpleTaskInstance)-> Optional[SubmittedPodState]
+
+        # find a relevant submitted pod based on TaskInstance.key (dag,task,execution_date,try_number)
         zombie_pod_state = [
             pod_state
             for pod_state in self.submitted_pods.values()

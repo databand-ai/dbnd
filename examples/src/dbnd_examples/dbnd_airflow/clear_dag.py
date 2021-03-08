@@ -4,7 +4,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 
-from dbnd_airflow.scheduler.zombies import find_and_kill_dagrun_zombies
+from dbnd_airflow.scheduler.dagrun_zombies import find_and_kill_dagrun_zombies
 
 
 default_args = {
