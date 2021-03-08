@@ -28,11 +28,12 @@ def word_count_inline(text=parameter.txt[spark.DataFrame]):
         lines.flatMap(lambda x: x.split(" ")).map(lambda x: (x, 1)).reduceByKey(add)
     )
     # counts.saveAsTextFile(str(counters))
+    df = get_spark_session().createDataFrame(counts)
     output = counts.collect()
     for (word, count) in output:
         print("%s: %i" % (word, count))
 
-    return get_spark_session().createDataFrame(counts)
+    return df
 
 
 @spark_task(result=spark_output.csv[spark.DataFrame])
@@ -41,16 +42,17 @@ def word_count_inline_folder(text=parameter.folder.csv[spark.DataFrame]):
     from operator import add
     from dbnd_spark.spark import get_spark_session
 
-    lines = text.rdd.map(lambda r: r[0])
+    lines = text.rdd.filter(lambda r: r[0] is not None).map(lambda r: r[0])
     counts = (
         lines.flatMap(lambda x: x.split(" ")).map(lambda x: (x, 1)).reduceByKey(add)
     )
     # counts.saveAsTextFile(str(counters))
+    df = get_spark_session().createDataFrame(counts)
     output = counts.collect()
     for (word, count) in output:
         print("%s: %i" % (word, count))
 
-    return get_spark_session().createDataFrame(counts)
+    return df
 
 
 @task(result=output.csv[spark.DataFrame])

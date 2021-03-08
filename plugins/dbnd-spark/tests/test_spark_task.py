@@ -121,7 +121,7 @@ class TestSparkTasksLocally(object):
 
         # Solve "tests" module conflict on pickle loading after spark-submit
         parent_directory = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory}}):
+        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory,}}):
             assert_run_task(word_count_inline.t(text=__file__))
 
     def test_spark_inline_same_context(self):
@@ -141,18 +141,18 @@ class TestSparkTasksLocally(object):
                 inplace_df = sc.read.csv(__file__)
                 assert_run_task(word_count_inline.t(text=inplace_df))
 
-    @pytest.mark.skip("Broken because of user code in 'word_count_inline_folder'")
     def test_spark_io(self):
         from dbnd_test_scenarios.spark.spark_io_inline import dataframes_io_pandas_spark
 
         # Solve "tests" module conflict on pickle loading after spark-submit
         parent_directory = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory}}):
+        with dbnd_config(
+            {SparkConfig.env_vars: {"PYTHONPATH": parent_directory},}
+        ):
             assert_run_task(dataframes_io_pandas_spark.t(text=__file__))
 
-    @pytest.mark.skip("Broken on missing imports")
-    @mock.patch("dbnd_spark.local.local_spark.SparkSubmitHook")
-    @mock.patch("dbnd_spark.spark._InlineSparkTask.current_task_run")
+    @mock.patch("airflow.contrib.hooks.spark_submit_hook.SparkSubmitHook")
+    @mock.patch("dbnd_spark.spark.PySparkInlineTask.current_task_run")
     @mock.patch("dbnd_spark.spark.get_databand_run")
     @mock.patch(
         "dbnd._core.task_run.task_run_logging.TaskRunLogManager.capture_task_log"
@@ -162,25 +162,24 @@ class TestSparkTasksLocally(object):
     @mock.patch(
         "dbnd._core.task_ctrl.task_validator.TaskValidator.validate_task_is_complete"
     )
-    @mock.patch("dbnd._core.run.databand_run.DatabandRun.save_run")
+    @mock.patch("dbnd._core.task_executor.run_executor.RunExecutor.save_run_pickle")
     def test_spark_hook(
         self, _, __, ___, ____, _____, ______, current_task_run, mock_hook
     ):
-        _config = current_task_run.task.spark_config
-
         from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
 
         word_count_inline.t(text=__file__).dbnd_run()
 
+        _config = current_task_run.task.spark_config
+
+        # check that the call for the hook got the config matching the task_config
         mock_hook.assert_called_once_with(
             application_args=[],
             conf=_config.conf,
             conn_id="spark_default",
             driver_class_path=_config.driver_class_path,
             driver_memory=_config.driver_memory,
-            env_vars={
-                "DBND_TASK_RUN_ATTEMPT_UID": str(current_task_run.task_run_attempt_uid)
-            },
+            env_vars=mock.ANY,
             exclude_packages=_config.exclude_packages,
             executor_cores=_config.executor_cores,
             executor_memory=_config.executor_memory,
@@ -196,6 +195,12 @@ class TestSparkTasksLocally(object):
             repositories=_config.repositories,
             total_executor_cores=_config.total_executor_cores,
             verbose=_config.verbose,
+        )
+
+        # The env vars contain more information but we want to check only the "DBND_TASK_RUN_ATTEMPT_UID" env_var
+        called_with_env_vars = mock_hook.call_args_list[0].kwargs["env_vars"]
+        assert called_with_env_vars["DBND_TASK_RUN_ATTEMPT_UID"] == str(
+            current_task_run.task_run_attempt_uid
         )
 
     @pytest.mark.parametrize(

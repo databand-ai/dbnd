@@ -77,9 +77,8 @@ class LocalSparkExecutionCtrl(SparkCtrl):
         with log_buffer as lb:
             dbnd_log_handler = self._capture_submit_log(spark, lb)
             try:
-                # We use str because we can accept Target objects (in case of JAR files)
-                # or str objects (path to pyspark script)
-                spark.submit(application=str(application))
+                # sync the application file to remote if needed
+                spark.submit(application=deploy.sync(application))
             except SparkException as ex:
                 return_code = self._get_spark_return_code_from_exception(ex)
                 if return_code != "0":
