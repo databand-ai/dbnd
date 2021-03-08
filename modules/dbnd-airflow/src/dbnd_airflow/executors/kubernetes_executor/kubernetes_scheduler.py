@@ -325,9 +325,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         if submitted_pod.processed:
             # we already processed this kind of event, as in this process we have failed status already
             self.log.info(
-                "%s Skipping pod '%s' event from %s - already processed",
-                state,
-                pod_name,
+                "%s Skipping pod '%s' event - already processed", state, pod_name,
             )
             return
 

@@ -1,6 +1,6 @@
 import logging
 
-from dbnd._core.current import try_get_databand_run
+from dbnd._core.current import is_verbose, try_get_databand_run
 from dbnd_airflow_contrib.utils.system_utils import (
     print_cpu_memory_usage,
     print_dmesg,
@@ -36,13 +36,14 @@ def log_pod_events_on_sigterm(stack_frame):
     print_stack_trace(stack_frame)
     print_driver_events()
     print_cpu_memory_usage()
-    print_dmesg()
+    if is_verbose():
+        print_dmesg()
 
 
 def print_driver_events():
     try:
         dbnd_run = try_get_databand_run()
-        engine_config = dbnd_run.remote_engine
+        engine_config = dbnd_run.run_executor.remote_engine
         kube_client = engine_config.get_kube_client()
         from socket import gethostname
 
