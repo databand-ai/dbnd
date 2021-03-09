@@ -358,6 +358,8 @@ class S3Client(FileSystem):
         :param kwargs: Keyword arguments are passed to the boto function `copy` as ExtraArgs
         :returns tuple (number_of_files_copied, total_size_copied_in_bytes)
         """
+        # this is dbnd internal kwarg and its not supported by the S3
+        kwargs.pop("raise_if_exists", None)
 
         start = datetime.datetime.now()
 
