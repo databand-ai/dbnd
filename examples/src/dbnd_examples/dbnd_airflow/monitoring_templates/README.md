@@ -8,7 +8,7 @@ The files listed in this directory are template Airflow DAGs to easily integrate
     - Redshift Table Monitoring
 
 ## AWS Redshift
-- [Redshift Cluster Monitoring](./redshift_cluster_template_dag.py)
+- [Redshift Cluster Monitoring](./redshift_cluster_monitor_template.py)
     - Template includes the following metrics:
         - Number of tables in cluster
         - Minimum number of rows in cluster tables
@@ -26,7 +26,7 @@ The files listed in this directory are template Airflow DAGs to easily integrate
         # optional variable, default will be public schema:
         export REDSHIFT_SCHEMA="<target Redshift schema to monitor>"
         ```
-- [Redshift Table Monitoring](./redshift_table_template_dag.py)
+- [Redshift Table Monitoring](./redshift_table_monitor_template.py)
     - Template includes the following metrics:
         - Record count of the target table
         - `Null`/`NaN` record count for each column the target table
