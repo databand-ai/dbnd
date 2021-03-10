@@ -1,8 +1,15 @@
 import logging
 
+from typing import Any, Dict
+
 import six
 
 from dbnd._core.current import current_task_run
+from dbnd._core.errors import DatabandError
+from dbnd._core.utils.basics.load_python_module import (
+    load_python_callable,
+    run_user_func,
+)
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.http.constants import AUTHS_SUPPORTED, NO_AUTH
 from dbnd._core.utils.http.endpoint import Endpoint
@@ -76,9 +83,49 @@ class _LivySparkCtrl(SparkCtrl):
             livy_endpoint, ignore_ssl_errors=self.get_livy_ignore_ssl_errors()
         )
         batch = livy.post_batch(data)
+        self._run_post_submit_hook(batch)
         livy.track_batch_progress(
             batch["id"], status_reporter=self._report_livy_batch_status
         )
+
+    def _run_post_submit_hook(self, batch_response):
+        """running a callable after submitting the batch to Livy"""
+
+        livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
+        user_callable_path = livy_config.post_submit_hook
+        if user_callable_path is not None:
+            logger.debug(
+                "Executing Livy post submit hook callable at {callable}".format(
+                    callable=user_callable_path
+                )
+            )
+            try:
+                user_callable = load_python_callable(user_callable_path)
+            except DatabandError:
+                logger.error(
+                    "Failed to load callable at `{path}`".format(
+                        path=user_callable_path
+                    )
+                )
+            else:
+                try:
+                    # callable loaded successfully
+                    # user_callable interface:
+                    # (LivySparkCtrl, Dict[str, Any]) -> None
+                    user_callable(self, batch_response)
+                except Exception as e:
+                    logger.error(
+                        "Failed to execute callable at `{path}` with the fallowing error: {exception}".format(
+                            path=user_callable_path, exception=e
+                        )
+                    )
+                    raise
+
+                logger.debug(
+                    "Successfully executed Livy post submit hook callable at `{callable}`".format(
+                        callable=user_callable_path
+                    )
+                )
 
     def _report_livy_batch_status(self, batch_response):
         logger.info(self._get_batch_progresss_banner(batch_response))
@@ -97,7 +144,7 @@ class _LivySparkCtrl(SparkCtrl):
             '\nYARN Diagnostics: '
           ]
         }
-        :param response:
+        :param batch_response:
         :return:
         """
         t = self.task

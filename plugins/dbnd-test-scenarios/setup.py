@@ -12,6 +12,6 @@ config = read_configuration(CFG_PATH)
 setuptools.setup(
     name="dbnd-test-scenarios",
     package_dir={"": "src"},
-    install_requires=["pyrsistent<0.15.6",],
+    install_requires=["pyrsistent<0.15.6", "mock"],
     extras_require=dict(tests=[]),
 )

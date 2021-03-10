@@ -23,6 +23,12 @@ class LivySparkConfig(SparkEngineConfig):
 
     ignore_ssl_errors = parameter(description="ignore ssl error", default=False)[bool]
 
+    post_submit_hook = parameter(
+        description="User code to run after livy batch submit (a reference to a function)"
+        "expected interface (LivySparkCtrl, Dict[str, Any]) -> None",
+        default=None,
+    )[str]
+
     def get_spark_ctrl(self, task_run):
         from dbnd_spark.livy.livy_spark import LivySparkCtrl
 

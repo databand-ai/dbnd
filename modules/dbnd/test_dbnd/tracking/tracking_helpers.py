@@ -98,3 +98,9 @@ def get_reported_params(mock_channel_tracker, task_name=None):
     if task_name:
         return param_definitions[task_name], run_time_params[task_name]
     return param_definitions, run_time_params
+
+
+def get_save_external_links(mock_channel_tracker):
+    for call in mock_channel_tracker.call_args_list:
+        if call.args[0].__name__ == "save_external_links":
+            yield call.kwargs
