@@ -567,7 +567,7 @@ class _RunExecutor_Task(Task):
 
     task_is_system = True
     # we don't want child task (root task) to inherit anything from this one
-    _conf__no_child_params = True
+    _conf__scoped_params = False
 
     def run(self):
         executor_task_run = current_task_run()

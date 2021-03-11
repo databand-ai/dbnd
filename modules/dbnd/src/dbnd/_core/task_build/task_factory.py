@@ -48,7 +48,7 @@ from targets.target_config import parse_target_config
 
 
 if typing.TYPE_CHECKING:
-    from typing import Type, Any, List, Optional
+    from typing import Type, Any, List, Optional, Dict
     from dbnd._core.configuration.dbnd_config import DbndConfig
     from dbnd._core.settings import EnvConfig
     from dbnd._core.task.task_with_params import _TaskWithParams
@@ -230,6 +230,14 @@ class TaskFactory(object):
         elif param_config_value:
             cf_value = param_config_value
 
+        elif (
+            self.parent_task
+            and param_name in self.parent_task.task_children_scope_params
+        ):
+            parameter_value = self.parent_task.task_children_scope_params[param_name]
+            cf_value = ConfigValue(
+                value=parameter_value.value, source=parameter_value.source
+            )
         elif param_name in self.task_definition.param_defaults:
             # we can't "add" defaults to the current config and rely on configuration system
             # we don't know what section name to use, and it my clash with current config
@@ -334,10 +342,6 @@ class TaskFactory(object):
             # we are going to load all task parameters from task_band
             task_params = self.load_task_params_from_task_band(task_band, task_params)
 
-        # update [task] section with Scope.children params
-        if not self.task_cls._conf__no_child_params:
-            self.build_and_apply_task_children_config(task_params=task_params)
-
         params = task_params.get_params_signatures(ParameterFilters.SIGNIFICANT_INPUTS)
 
         # we add override to Object Cache signature
@@ -375,6 +379,10 @@ class TaskFactory(object):
             extra=self.task_definition.task_signature_extra,
         )
 
+        task_children_scope_params = self.calculate_task_children_scope_params(
+            task_params=task_params
+        )
+
         task = task_metaclass._build_task_obj(
             task_definition=self.task_definition,
             task_name=self.task_name,
@@ -384,6 +392,7 @@ class TaskFactory(object):
             task_config_layer=self.config.config_layer,
             task_enabled=self.task_enabled,
             task_sections=self.config_sections,
+            task_children_scope_params=task_children_scope_params,
         )
         tic.register_task_obj_cache_instance(
             task, task_obj_cache_signature=cache_object_signature
@@ -545,25 +554,23 @@ class TaskFactory(object):
                 elif validate_no_extra_params == ParamValidation.error:
                     self.task_errors.append(exc)
 
-    def build_and_apply_task_children_config(self, task_params):
-        # type: (Parameters)-> None
+    def calculate_task_children_scope_params(self, task_params):
+        # type: (Parameters)-> Dict[str, ParameterValue]
+        if not self.task_cls._conf__scoped_params:
+            return {}
 
-        param_values = []
+        if self.parent_task and self.parent_task.task_children_scope_params:
+            task_children_scope_params = (
+                self.parent_task.task_children_scope_params.copy()
+            )
+        else:
+            task_children_scope_params = {}
+
         for p_val in task_params.get_param_values():
             #  we want only parameters of the right scope -- children
             if p_val.parameter.scope == ParameterScope.children:
-                param_values.append((p_val.name, p_val.value))
-        if param_values:
-            source = self._source_name("children")
-            config_store = parse_and_build_config_store(
-                source=source, config_values={CONF_TASK_SECTION: dict(param_values)},
-            )
-            update_config_section_on_change_only(
-                self.config,
-                config_store,
-                source=self._source_name(ParameterScope.children.value),
-                on_change_only=True,
-            )
+                task_children_scope_params[p_val.name] = p_val
+        return task_children_scope_params
 
     def _build_and_validate_task_ctor_kwargs(self, task_args, task_kwargs):
         """

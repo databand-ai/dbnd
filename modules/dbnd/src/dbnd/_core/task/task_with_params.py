@@ -5,7 +5,7 @@ import six
 from dbnd._core.constants import ParamValidation
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
-from dbnd._core.parameter.parameter_value import Parameters
+from dbnd._core.parameter.parameter_value import Parameters, ParameterValue
 from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
@@ -13,8 +13,8 @@ from dbnd._core.task_build.task_metaclass import TaskMetaclass
 
 @six.add_metaclass(TaskMetaclass)
 class _TaskWithParams(_BaseTask):
-    _conf__no_child_params = False  # disable child scope params
-    _conf_auto_read_params = True  # enables autoread of params.
+    _conf__scoped_params = True  # enable/disable ParameterScope.CHILDREN scope params
+    _conf_auto_read_params = True  # enables auto-read value of data params.
 
     def __init__(
         self,
@@ -27,6 +27,7 @@ class _TaskWithParams(_BaseTask):
         task_enabled=True,
         task_sections=None,
         task_call_source=None,
+        task_children_scope_params=None,  # type: Dict[str, ParameterValue]
     ):
         super(_TaskWithParams, self).__init__(
             task_name=task_name,
@@ -41,6 +42,9 @@ class _TaskWithParams(_BaseTask):
         self.task_sections = task_sections
         self.task_config_override = task_config_override
         self.task_config_layer = task_config_layer
+
+        self.task_children_scope_params = task_children_scope_params
+
         self.task_call_source = task_call_source
 
         for param_value in self.task_params.get_param_values():

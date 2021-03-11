@@ -3,7 +3,15 @@ import logging
 from datetime import date
 from typing import Dict
 
-from dbnd import ParameterScope, PipelineTask, data, output, parameter, task
+from dbnd import (
+    ParameterScope,
+    PipelineTask,
+    data,
+    dbnd_config,
+    output,
+    parameter,
+    task,
+)
 from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 
 
@@ -63,3 +71,35 @@ class TestParameterScope(TargetTestBase):
 
         assert t_task.tdict == expected_tdict
         assert t_task.tdict_typed == expected_tdict_typed
+
+    def test_scope_and_defined_for_child_config(self):
+        @task
+        def simple_task(tdata, tstr):
+            pass
+
+        class TPipeline(PipelineTask):
+            tdata = data(scope=ParameterScope.children)
+            tstr = parameter(scope=ParameterScope.children)[str]
+
+            some_a = output
+
+            def band(self):
+                self.some_a = simple_task()
+
+        expected_task_target_date = date(2020, 1, 1)
+        expected_tstr = "teststr"
+        expected_tdata = __file__
+
+        # tstr is "scoped" from Tpipeline, however, that's default
+        # so the value should come from config
+        with dbnd_config(config_values={simple_task.task.tstr: expected_tstr}):
+            t_pipeline = TPipeline(
+                tdata=expected_tdata,
+                tstr="tpipeline_scope_value",
+                task_target_date=expected_task_target_date,
+            )
+        t_task = t_pipeline.some_a.task
+
+        assert t_task.task_target_date == expected_task_target_date
+        assert str(t_task.tdata) == expected_tdata
+        assert t_task.tstr == expected_tstr
