@@ -615,18 +615,9 @@ def _update_parameter_from_runtime_value_type(parameter, value):
 
 
 def build_parameter_value(parameter, cf_value):
-    # type: (ParameterDefinition, ConfigValue) -> ParameterValue
+    # type: (ParameterDefinition, Optional[ConfigValue]) -> ParameterValue
 
     from dbnd._core.parameter.parameter_value import ParameterValue
-
-    if not cf_value:
-        return ParameterValue(
-            parameter=parameter,
-            source=None,
-            source_value=NOTHING,
-            value=NOTHING,
-            parsed=False,
-        )
 
     warnings = []
     value = cf_value.value

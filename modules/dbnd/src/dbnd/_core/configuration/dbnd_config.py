@@ -186,7 +186,10 @@ class DbndConfig(object):
 
         if len(sections) == 1:
             # we have it precalculated
-            return [self.get_config_value(sections[0], key)]
+            v = self.get_config_value(sections[0], key)
+            if v:
+                return [v]
+            return []
 
         config_value_stack = []
         layer = self.config_layer  # type: _ConfigLayer
@@ -199,9 +202,10 @@ class DbndConfig(object):
                 # we are using "row" values from "delta"
                 # we need to take care of priorities
                 config_value = layer.layer_config.get_config_value(section, key)
-                config_value_stack = fold_config_value(
-                    stack=config_value_stack, lower=config_value
-                )
+                if config_value:
+                    config_value_stack = fold_config_value(
+                        stack=config_value_stack, lower=config_value
+                    )
             layer = layer.parent  # type: _ConfigLayer
         return config_value_stack
 

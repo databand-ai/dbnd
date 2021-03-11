@@ -88,6 +88,7 @@ from dbnd._core.task_build.task_signature import (
     TASK_ID_INVALID_CHAR_REGEX,
     build_signature,
 )
+from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.basics.text_banner import safe_string
 from targets import target
 from targets.target_config import parse_target_config
@@ -207,85 +208,87 @@ class TaskFactory(object):
     def task_family(self):
         return self.task_definition.task_passport.task_family
 
-    def _get_config_values_stack(self, key):
-        # type: (str) -> List[ConfigValue]
-        # see get_multisection_config_value documentation
-        return self.config.get_multisection_config_value(self.config_sections, key)
-
     def _get_config_value_stack_for_param(self, param_def):
         # type: (ParameterDefinition) -> List[Optional[ConfigValue]]
         """
         Wrap the extracting the value of param_def from configuration or config_path
         """
         try:
-            config_values_stack = self._get_config_values_stack(key=param_def.name)
+            config_values_stack = self.config.get_multisection_config_value(
+                self.config_sections, key=param_def.name
+            )
             if config_values_stack:
                 return config_values_stack
 
             if param_def.config_path:
-                return [
-                    self.config.get_config_value(
-                        section=param_def.config_path.section,
-                        key=param_def.config_path.key,
-                    )
-                ]
-            return [None]
+                config_path = self.config.get_config_value(
+                    section=param_def.config_path.section,
+                    key=param_def.config_path.key,
+                )
+                if config_path:
+                    return [config_path]
+            return []
         except Exception as ex:
             raise param_def.parameter_exception("read configuration value", ex)
 
     def _build_parameter_value(self, param_def):
+        # type: (ParameterDefinition) -> ParameterValue
         """
         This is the place we calculate param_def value
         based on Class(defaults, constructor, overrides, root)
         and Config(env, cmd line, config)  state
-        """
-        # getting optionally multiple config values
-        config_values_stack = self._get_config_value_stack_for_param(param_def)
-        parameter_values = [
-            self._build_single_parameter_value(config_value, param_def)
-            for config_value in config_values_stack
-        ]
 
-        # after collecting the parameter values we need to reduce them to a single value
-        # if there is only one - reduce will get it
-        # other wise we need combine the values using `fold_parameter_value`
-        # may raise if can't fold two values together!!
-        return functools.reduce(fold_parameter_value, parameter_values)
-
-    def _build_single_parameter_value(self, param_config_value, param_def):
-        # type: (Optional[ConfigValue], ParameterDefinition) -> ParameterValue
-        """
         Build parameter value from config_value and param_definition.
         Considerate - priority, constructor values, param type and so on.
         """
+        config_values_stack = self._get_config_value_stack_for_param(param_def)
         param_name = param_def.name
 
-        # first check for override (HIGHEST PRIORIOTY)
-        if (
-            param_config_value
-            and param_config_value.priority >= ConfigValuePriority.OVERRIDE
-        ):
-            cf_value = param_config_value
+        # if we will use config values we will need to reduce them to a single value
+        # if there is only one - reduce will get it
+        # other wise we need combine the values using `fold_parameter_value`
+        # may raise if can't fold two values together!!
+
+        has_overrides_in_config = any(
+            cf
+            for cf in config_values_stack
+            if cf and cf.priority >= ConfigValuePriority.OVERRIDE
+        )
+
+        # first check for override (HIGHEST PRIORITY)
+        if has_overrides_in_config:
+            config_values_as_param_values = [
+                build_parameter_value(param_def, cf) for cf in config_values_stack
+            ]
+            return functools.reduce(fold_parameter_value, config_values_as_param_values)
 
         # second using kwargs we received from the user
         # do we need to do it for tracking?
         elif param_name in self.task_kwargs:
-            cf_value = ConfigValue(
-                self.task_kwargs.get(param_name), source=self._source_name("ctor")
+            return build_parameter_value(
+                param_def,
+                ConfigValue(
+                    self.task_kwargs.get(param_name), source=self._source_name("ctor")
+                ),
             )
 
-        elif param_config_value:
-            cf_value = param_config_value
+        if config_values_stack:
+            config_values_as_param_values = [
+                build_parameter_value(param_def, cf) for cf in config_values_stack
+            ]
+            return functools.reduce(fold_parameter_value, config_values_as_param_values)
 
-        elif (
+        if (
             self.parent_task
             and param_name in self.parent_task.task_children_scope_params
         ):
             parameter_value = self.parent_task.task_children_scope_params[param_name]
-            cf_value = ConfigValue(
-                value=parameter_value.value, source=parameter_value.source
+            return build_parameter_value(
+                param_def,
+                ConfigValue(value=parameter_value.value, source=parameter_value.source),
             )
-        elif param_def.from_task_env_config:
+
+        if param_def.from_task_env_config:
             if not self.task_env_config:
                 raise friendly_error.task_parameters.task_env_param_with_no_env(
                     context=self._ctor_as_str, key=param_name
@@ -299,21 +302,26 @@ class TaskFactory(object):
                     key=param_name,
                     env_config=self.task_env_config,
                 )
-            cf_value = ConfigValue(
-                value=param_env_config_value.value, source=param_env_config_value.source
+            return build_parameter_value(
+                param_def,
+                ConfigValue(
+                    value=param_env_config_value.value,
+                    source=param_env_config_value.source,
+                ),
             )
-        elif param_name in self.task_definition.param_defaults:
+
+        if param_name in self.task_definition.param_defaults:
             # we can't "add" defaults to the current config and rely on configuration system
             # we don't know what section name to use, and it my clash with current config
-            cf_value = ConfigValue(
-                self.task_definition.param_defaults.get(param_name),
-                source=self._source_name("default"),
+            return build_parameter_value(
+                param_def,
+                ConfigValue(
+                    self.task_definition.param_defaults.get(param_name),
+                    source=self._source_name("default"),
+                ),
             )
 
-        else:
-            cf_value = None
-
-        if cf_value is None and not param_def.is_output():
+        if not param_def.is_output():
             # outputs can be none, we "generate" their values later
             err_msg = "No value defined for '{name}' at {context_str}".format(
                 name=param_name, context_str=self._ctor_as_str
@@ -323,7 +331,14 @@ class TaskFactory(object):
                 help_msg=param_def._get_help_message(sections=self.config_sections),
             )
 
-        return build_parameter_value(param_def, cf_value)
+        # returning empty Output value
+        return ParameterValue(
+            parameter=param_def,
+            source="",
+            source_value=NOTHING,
+            value=NOTHING,
+            parsed=False,
+        )
 
     def _source_name(self, name):
         return self.task_definition.task_passport.format_source_name(name)
@@ -333,7 +348,7 @@ class TaskFactory(object):
         # there is priority of task name over task family, as name is more specific
         sections = [self.task_name]
 
-        # _from at config files
+        # '_from=...' at config files
         sections.extend(get_task_from_sections(config, self.task_name))
 
         # sections by family
@@ -443,7 +458,7 @@ class TaskFactory(object):
             extra=self.task_definition.task_signature_extra,
         )
 
-        task_children_scope_params = self.calculate_task_children_scope_params(
+        task_children_scope_params = self._calculate_task_children_scope_params(
             task_params=task_params
         )
 
@@ -489,8 +504,10 @@ class TaskFactory(object):
 
         # used for target_format update
         # change param_def definition based on config state
-        target_option = "%s__target" % param_def.name
-        target_config = self._get_config_values_stack(key=target_option)
+        target_def_key = "%s__target" % param_def.name
+        target_config = self.config.get_multisection_config_value(
+            self.config_sections, key=target_def_key
+        )
         if not target_config:
             return param_def
 
@@ -501,7 +518,7 @@ class TaskFactory(object):
         except Exception as ex:
             raise param_def.parameter_exception(
                 "Calculate target config for %s : target_config='%s'"
-                % (target_option, target_config.value),
+                % (target_def_key, target_config.value),
                 ex,
             )
 
@@ -626,7 +643,7 @@ class TaskFactory(object):
                 elif validate_no_extra_params == ParamValidation.error:
                     self.task_errors.append(exc)
 
-    def calculate_task_children_scope_params(self, task_params):
+    def _calculate_task_children_scope_params(self, task_params):
         # type: (Parameters)-> Dict[str, ParameterValue]
         if not self.task_cls._conf__scoped_params:
             return {}
