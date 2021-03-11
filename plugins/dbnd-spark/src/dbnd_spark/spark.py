@@ -1,4 +1,3 @@
-import copy
 import logging
 import subprocess
 import typing
@@ -6,9 +5,8 @@ import typing
 from typing import Dict, Union
 
 from dbnd._core.cli.cmd_execute import get_dbnd_version, get_python_version
-from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.constants import TaskType
-from dbnd._core.current import get_databand_run, try_get_databand_context
+from dbnd._core.current import try_get_databand_context
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.task_cls_builder import _task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
@@ -36,8 +34,8 @@ class _BaseSparkTask(Task):
     _conf__task_type_name = TaskType.spark
 
     # will get it from env
-    spark_config = parameter(config_path=from_task_env("spark_config"))[SparkConfig]
-    spark_engine = parameter(config_path=from_task_env("spark_engine"))[
+    spark_config = parameter(from_task_env_config=True)[SparkConfig]
+    spark_engine = parameter(from_task_env_config=True)[
         SparkEngineConfig
     ]  # type: Union[EmrConfig]
 

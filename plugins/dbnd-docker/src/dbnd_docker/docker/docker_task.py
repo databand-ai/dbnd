@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 
 from dbnd import parameter
-from dbnd._core.configuration.config_path import from_task_env
 from dbnd.tasks import Task
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker_ctrl import DockerRunCtrl
@@ -23,9 +22,7 @@ class DockerRunTask(Task):
         str
     ]
 
-    docker_engine = parameter(config_path=from_task_env("docker_engine"))[
-        ContainerEngineConfig
-    ]
+    docker_engine = parameter(from_task_env_config=True)[ContainerEngineConfig]
 
     docker_ctrl = None  # type: DockerRunCtrl
 

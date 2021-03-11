@@ -129,6 +129,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     # parameter kind
     significant = attr.ib(default=True)  # type: bool
     scope = attr.ib(default=ParameterScope.task)
+    from_task_env_config = attr.ib(default=False)
     system = attr.ib(default=False)
     kind = attr.ib(default=_ParameterKind.task_input)
 

@@ -14,6 +14,10 @@ class Config(_TaskWithParams, SingletonContext):
 
     task_essence = TaskEssence.CONFIG
 
+    # we need this empty constructor, to support "any" parameters at the ctor auto-completion
+    def __init__(self, **kwargs):
+        super(Config, self).__init__(**kwargs)
+
     def __str__(self):
         return self.task_name
 

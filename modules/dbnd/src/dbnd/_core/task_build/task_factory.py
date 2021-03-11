@@ -1,3 +1,53 @@
+"""
+Task build process
+=================
+
+When a task is created:
+ * We calculate task_env and task_config first
+ * for every property, we look at all possible sections ( full task name, task name, and inherited tasks)
+ * Config Layers:
+     system layer ( starting point, contains Configuration, Environment, and Command-line
+     new layer from task.task_definition.defaults (Task.defaults)  merge_strategy=on_non_exist_only
+     updated with task_config
+
+Special properties of the Task
+    Task.defaults is the lowest level of config (DEFAULTS)
+     * definition: custom property of the Task object
+     * definition: all values are merged when TaskB inherits from TaskA (at TaskDefinition)
+     * task.defaults value is calculated at TaskDefinition during the "compilation of the Task class definition"
+     * usage: its value is merged into Current config (only updates nonexisting fields) at TaskMetaClass
+     * do not support override()!!!
+     * there is no "merge" behavior for values. (Dictionaries are going to be replaced)
+         class TaskA(...):
+            defaults = {SparkConf.conf : { 1:1} , SparkConf.jar : "taskajar }
+
+         class TaskB(TaskA):
+            defaults = {SparkConf.conf : { 1:2}  }
+        TaskB.defaults == {SparkConf.conf : { 1:2} , SparkConf.jar : "taskajar }
+
+    Task.task_config - overrides current config level
+     * definition: regular parameter of the task
+     * definition: it "replaces" inherited task_config from super class if exists
+     * its value is calculated every time we create Task at TaskMeta
+     * usage: it updates current config layer (
+     * supports override():  `task_config = {SparkConf.jar: override("my_jar")}`
+     * Usually, it's used with some basic "nested" config param: like SparkConfig.conf.
+     Task.task_config issues:
+       1.     task_config = {SparkConf.jar: "my_jar"}
+             [spark_remote]
+             jar=from_config
+        User will get my_jar when engine is [spark] and  "from_config" if engine is [spark_remote].
+        The reason is that engine looks for the value in most relevant section which is [spark_remote],
+        while SparkConf.jar provides a value for [spark] section
+        The only way to workaround it right now is to use:
+            task_config = {SparkConf.jar: override("my_jar")}
+        The system will look for override values and if it exists,
+        the override will be taken (despite best section match).
+
+    Task(overrides=conf_value...)
+     * uses the same system as task_config, but override is applied to all values
+
+"""
 import functools
 import logging
 import typing
@@ -7,11 +57,7 @@ import six
 from more_itertools import last, unique_everseen
 from six import iteritems
 
-from dbnd._core.configuration.config_path import (
-    CONF_CONFIG_SECTION,
-    CONF_TASK_ENV_SECTION,
-    CONF_TASK_SECTION,
-)
+from dbnd._core.configuration.config_path import CONF_CONFIG_SECTION, CONF_TASK_SECTION
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriority
@@ -113,8 +159,9 @@ class TaskFactory(object):
         self.task_kwargs__ctor = task_kwargs.copy()
         self.task_args__ctor = list(task_args)
 
-        self.parent_task = try_get_current_task()
+        self.task_env_config = None  # type: Optional[EnvConfig]
 
+        self.parent_task = try_get_current_task()
         self._ctor_as_str = "%s@%s" % (
             _get_call_repr(
                 self.task_passport.task_family,
@@ -237,6 +284,23 @@ class TaskFactory(object):
             parameter_value = self.parent_task.task_children_scope_params[param_name]
             cf_value = ConfigValue(
                 value=parameter_value.value, source=parameter_value.source
+            )
+        elif param_def.from_task_env_config:
+            if not self.task_env_config:
+                raise friendly_error.task_parameters.task_env_param_with_no_env(
+                    context=self._ctor_as_str, key=param_name
+                )
+            param_env_config_value = self.task_env_config.task_params.get_param_value(
+                param_name
+            )
+            if param_env_config_value is None:
+                raise friendly_error.task_parameters.task_env_param_not_exists_in_env(
+                    context=self._ctor_as_str,
+                    key=param_name,
+                    env_config=self.task_env_config,
+                )
+            cf_value = ConfigValue(
+                value=param_env_config_value.value, source=param_env_config_value.source
             )
         elif param_name in self.task_definition.param_defaults:
             # we can't "add" defaults to the current config and rely on configuration system
@@ -452,9 +516,6 @@ class TaskFactory(object):
         """
         # copy because we about to edit it
         params_to_build = self.task_definition.task_param_defs.copy()
-        # remove all "config related" params
-        param_task_env = params_to_build.pop("task_env", None)
-        param_task_config = params_to_build.pop("task_config", None)
         task_param_values = []
 
         # let's start to apply layers on current config
@@ -480,14 +541,25 @@ class TaskFactory(object):
         # STEP: build and apply any Task class level config
         # User has specified "task_config = ..."
         # Only orchestration tasks has this property
+        param_task_config = params_to_build.pop("task_config", None)
         if param_task_config:
             task_param_values.append(
                 self.build_and_apply_task_config(param_task_config)
             )
 
-        # STEP: build and apply Environment level config
+        # STEP: build and set EnvConfig
+        param_task_env = params_to_build.pop("task_env", None)
         if param_task_env:
-            task_param_values.append(self.build_and_apply_task_env(param_task_env))
+            # we apply them to config only if there are no values (this is defaults)
+            """
+            find same parameters in the current task class and EnvConfig
+            and take the value of that params from environment
+            for example  spark_config in SparkTask  (defined by EnvConfig.spark_config)
+            we take values using names only
+            """
+            value_task_env_config = self._build_parameter_value(param_task_env)
+            self.task_env_config = value_task_env_config.value  # type: EnvConfig
+            task_param_values.append(value_task_env_config)
 
         # STEP: log with the final config
         self._log_config()
@@ -645,32 +717,6 @@ class TaskFactory(object):
             self.config.set_values(param_task_config_value.value)
 
         return param_task_config_value
-
-    # we apply them to config only if there are no values (this is defaults)
-    def build_and_apply_task_env(self, param_task_env):
-        """
-        find same parameters in the current task class and EnvConfig
-        and take the value of that params from environment
-        for example  spark_config in SparkTask  (defined by EnvConfig.spark_config)
-        we take values using names only
-        """
-        value_task_env = self._build_parameter_value(param_task_env)
-        env_config = value_task_env.value  # type: EnvConfig
-
-        param_values = []
-        #  we want only parameters of the right scope -- children
-        for param_def, param_value in env_config._params.get_params_with_value(
-            param_filter=ParameterFilters.CHILDREN
-        ):
-            param_values.append((param_def.name, param_value))
-        source = self._source_name("env[%s]" % env_config.task_name)
-        config_store = parse_and_build_config_store(
-            source=source, config_values={CONF_TASK_ENV_SECTION: dict(param_values)},
-        )
-        update_config_section_on_change_only(
-            self.config, config_store, source=source,
-        )
-        return value_task_env
 
     def __str__(self):
         if self.task_name == self.task_passport.task_family:

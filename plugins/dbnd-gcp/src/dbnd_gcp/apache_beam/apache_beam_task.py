@@ -7,7 +7,6 @@ import typing
 from typing import Dict, List
 
 from dbnd import parameter
-from dbnd._core.configuration.config_path import from_task_env
 from dbnd._core.decorator.decorated_task import _DecoratedTask
 from dbnd._core.decorator.task_cls_builder import _task_decorator
 from dbnd._core.errors import DatabandConfigError, friendly_error
@@ -48,10 +47,8 @@ class LocalBeamEngineConfig(EngineConfig):
 
 
 class _BeamTask(Task):
-    beam_config = parameter(config_path=from_task_env("beam_config"))[ApacheBeamConfig]
-    beam_engine = parameter(config_path=from_task_env("beam_engine"))[
-        EngineConfig
-    ]  # type: DataflowConfig
+    beam_config = parameter(from_task_env_config=True)[ApacheBeamConfig]
+    beam_engine = parameter(from_task_env_config=True)[DataflowConfig]
 
     def get_beam_task_options(self):
         """

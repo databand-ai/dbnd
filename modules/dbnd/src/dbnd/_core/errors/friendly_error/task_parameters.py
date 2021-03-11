@@ -50,6 +50,27 @@ def result_and_params_have_same_keys(context, conflict_keys):
     )
 
 
+def task_env_param_with_no_env(context, key):
+    return DatabandBuildError(
+        "{context} can't calculate {key} and env is not defined".format(
+            context=context, key=key
+        ),
+        help_msg="Please, check that %s has task_env parameter" % context,
+    )
+
+
+def task_env_param_not_exists_in_env(context, key, env_config):
+    return DatabandBuildError(
+        "{context} can't calculate {key}, as it doesn't exists in {env_config}".format(
+            context=context, key=key, env_config=env_config
+        ),
+        help_msg="Please, check {context} definition, only parameters defined at {env_config} "
+        "can have 'from_task_env_config=True'".format(
+            context=context, env_config=env_config
+        ),
+    )
+
+
 def failed_to_build_parameter(context, parameter_state, ex):
     return DatabandBuildError(
         "Failed to build parameter '{context}' defined as '{parameter}': {ex}".format(
