@@ -1,7 +1,8 @@
 import re
 
+from typing import Callable, Optional
 
-MAX_CLEAN_NAME_DNS1123_LEN = 253
+import more_itertools
 
 
 def camel_to_snake(name, placeholder="_"):
@@ -21,6 +22,15 @@ def camel_to_snake(name, placeholder="_"):
 def clean_job_name(
     value, enabled_characters=r"\-_", placeholder="_", max_size=None, postfix=None
 ):
+    # type:(str,str,str, int, Optional[str]) -> str
+    """
+    @param value: the base value to transform
+    @param enabled_characters: all the allowed characters beside alphanumeric [white list]
+    @param placeholder: the char that would be used to replace any character that is not alphanumeric or in `enabled_characters`
+    @param max_size: the maximum length allowed for the output
+    @param postfix: optional string to add to end of the result value
+    @return: a transformation of the value, by all the configurations
+    """
     value = camel_to_snake(value, placeholder=placeholder)
     enabled_characters = re.escape(enabled_characters)
     # clean all garbage
@@ -38,6 +48,7 @@ def clean_job_name(
         if postfix:
             max_size -= len(postfix)
         value = value[:max_size]
+
     if postfix:
         postfix = clean_job_name(
             value=postfix,
@@ -54,22 +65,6 @@ def clean_job_name(
             value,
         )
     return value
-
-
-def clean_job_name_dns1123(
-    value,
-    enabled_characters="-.",
-    placeholder="-",
-    postfix=None,
-    max_size=MAX_CLEAN_NAME_DNS1123_LEN,
-):
-    return clean_job_name(
-        value=value,
-        enabled_characters=enabled_characters,
-        placeholder=placeholder,
-        max_size=max_size,
-        postfix=postfix,
-    )
 
 
 def str_or_none(value):
@@ -193,3 +188,12 @@ def merge_dbnd_and_spark_logs(dbnd, spark):
             dbnd_idx += 1
 
     return result
+
+
+def strip_by(predicate, string):
+    # type: (Callable[[str], bool], str) -> str
+    """
+    striping any characters in the beginning or the end matching the predicate
+    >>> strip_by(lambda c: not c.isalnum(), "...123123.123213.123..asd.22..") == "123123.123213.123..asd.22"
+    """
+    return "".join(more_itertools.strip(string, predicate))

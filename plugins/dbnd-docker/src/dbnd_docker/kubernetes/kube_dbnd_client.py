@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class PodFailureReason(object):
     err_image_pull = "err_image_pull"
+    err_config_error = "err_config_error"
     err_pod_deleted = "err_pod_deleted"
     err_pod_evicted = "err_pod_evicted"
 
@@ -239,7 +240,7 @@ class DbndPodCtrl(object):
         self._wait_for_pod_started()
         self.log.info("Pod is running, reading logs..")
         self.stream_pod_logs(follow=True)
-        self.log.info("Successfully read %s pod logs")
+        self.log.info("Successfully read pod logs")
 
         pod_phase = self.get_pod_phase()
         wait_start = utcnow()

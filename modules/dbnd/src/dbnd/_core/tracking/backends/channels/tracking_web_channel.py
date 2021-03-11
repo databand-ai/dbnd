@@ -22,7 +22,11 @@ class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
             return self.client.api_request("tracking/%s" % name, data)
         except DatabandConnectionException as e:
             # connection problems are not recoverable for web tracker
-            raise TrackerPanicError("Failed to connect the tracking api ", e)
+            raise TrackerPanicError(
+                "Failed to connect the tracking api",
+                e,
+                help_msg="As a temporal workaround you can disable WEB tracking using --disable-web-tracker",
+            )
         except TypeError as e:
             # probably problems with data trying to send - can recover
             raise TrackerRecoverError("Failed to send the data", e)

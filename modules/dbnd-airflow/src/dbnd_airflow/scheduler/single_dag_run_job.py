@@ -25,16 +25,15 @@ from dbnd_airflow.config import AirflowConfig
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
 )
-from dbnd_airflow.scheduler.zombies import (
-    ClearZombieJob,
-    ClearZombieTaskInstancesForDagRun,
-    _kill_dag_run_zombi,
+from dbnd_airflow.executors.kubernetes_executor.kubernetes_runtime_zombies_cleaner import (
+    ClearKubernetesRuntimeZombiesForDagRun,
 )
+from dbnd_airflow.scheduler.dagrun_zombies import fix_zombie_dagrun_task_instances
 
 
 logger = logging.getLogger(__name__)
 
-SCHEDUALED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
+SCHEDULED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
 
 
 # based on airflow BackfillJob
@@ -95,15 +94,17 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             self.airflow_config.clean_zombie_task_instances
             and "KubernetesExecutor" in self.executor_class
         ):
-            self._zombie_cleaner = ClearZombieTaskInstancesForDagRun()
+            self._runtime_k8s_zombie_cleaner = ClearKubernetesRuntimeZombiesForDagRun(
+                k8s_executor=self.executor
+            )
             logger.info(
                 "Zombie cleaner is enabled. "
                 "It runs every %s seconds, threshold is %s seconds",
-                self._zombie_cleaner.zombie_query_interval_secs,
-                self._zombie_cleaner.zombie_threshold_secs,
+                self._runtime_k8s_zombie_cleaner.zombie_query_interval_secs,
+                self._runtime_k8s_zombie_cleaner.zombie_threshold_secs,
             )
         else:
-            self._zombie_cleaner = None
+            self._runtime_k8s_zombie_cleaner = None
         self._log = PrefixLoggerAdapter("scheduler", self.log)
 
     @property
@@ -469,7 +470,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                         # from airflow.ti_deps.deps.pool_slots_available_dep import PoolSlotsAvailableDep
                         runtime_deps = {
                             # RunnableExecDateDep(),
-                            ValidStateDep(SCHEDUALED_OR_RUNNABLE),
+                            ValidStateDep(SCHEDULED_OR_RUNNABLE),
                             # DagTISlotsAvailableDep(),
                             # TaskConcurrencyDep(),
                             # PoolSlotsAvailableDep(),
@@ -580,10 +581,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             # check executor state
             self._manage_executor_state(ti_status.running, waiting_for_executor_result)
 
-            if self._zombie_cleaner:
+            if self._runtime_k8s_zombie_cleaner:
                 # this code exists in airflow original scheduler
                 # clean zombies ( we don't need multiple runs here actually
-                self._zombie_cleaner.find_and_clean_dag_zombies(
+                self._runtime_k8s_zombie_cleaner.find_and_clean_dag_zombies(
                     dag=self.dag, execution_date=self.execution_date
                 )
 
@@ -725,7 +726,11 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         """
         # Trigger cleaning
         if self.airflow_config.clean_zombies_during_backfill:
-            ClearZombieJob().run()
+            from dbnd_airflow.scheduler.dagrun_zombies_clean_job import (
+                DagRunZombiesCleanerJob,
+            )
+
+            DagRunZombiesCleanerJob().run()
 
         ti_status = BackfillJob._DagRunTaskStatus()
 
@@ -793,9 +798,17 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 executor.end()
             except Exception:
                 logger.exception("Failed to terminate executor")
-            if dag_run and dag_run.state == State.RUNNING:
-                _kill_dag_run_zombi(dag_run, session)
             session.commit()
+            try:
+                if dag_run and dag_run.state == State.RUNNING:
+                    # use clean SQL session
+                    fix_zombie_dagrun_task_instances(dag_run)
+
+                    dag_run.state = State.FAILED
+                    session.merge(dag_run)
+                    session.commit()
+            except Exception:
+                logger.exception("Failed to clean dag_run task instances")
 
         self.log.info("Run is completed. Exiting.")
 
