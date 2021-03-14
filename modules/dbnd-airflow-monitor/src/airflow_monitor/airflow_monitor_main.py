@@ -19,6 +19,7 @@ from airflow_monitor.airflow_monitor_utils import (
 )
 from airflow_monitor.airflow_servers_fetching import AirflowServersGetter
 from airflow_monitor.errors import AirflowFetchingException
+from dbnd._core.errors.friendly_error.tools import logger_format_for_databand_error
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor import pendulum
@@ -66,9 +67,7 @@ def try_fetching_from_airflow(
         )
         return data
     except AirflowFetchingException as afe:
-        message = "\n Error: {}. \n Nested exception: {} \n Help: {}".format(
-            afe, afe.nested_exceptions, afe.help_msg
-        )
+        message = logger_format_for_databand_error(afe)
         save_error_message(airflow_instance_detail, message)
         return None
     except Exception as e:

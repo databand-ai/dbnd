@@ -24,7 +24,8 @@ def failed_to_connect_to_airflow_server(url, nested_exception):
         "Could not connect to Airflow web server url %s" % (url,),
         show_exc_info=False,
         nested_exceptions=nested_exception,
-        help_msg="Make sure that the server is up and running and was configured correctly.",
+        help_msg="1. Make sure that Airflow server is up and running.\n"
+        "2. Make sure that airflow server was configured correctly in databand webserver.",
     )
 
 
@@ -47,7 +48,8 @@ def failed_to_fetch_from_airflow(url, nested_exception, error_code=None):
         message,
         show_exc_info=False,
         nested_exceptions=nested_exception,
-        help_msg="If the url is correct, this may be a problem in the network",
+        help_msg="1. Check that dbnd-airflow-export is installed on airflow webserver.\n"
+        "2. Check that airflow server is configured with the right API mode in databand webserver.",
     )
 
 
@@ -67,5 +69,5 @@ def failed_to_get_csrf_token(url):
     return AirflowFetchingException(
         message,
         show_exc_info=False,
-        help_msg="If the server url is correct, maybe the server was incorrectly configured with RBAC API mode.",
+        help_msg="If the Airflow server url is correct, maybe the Airflow server was incorrectly configured with RBAC API mode.",
     )

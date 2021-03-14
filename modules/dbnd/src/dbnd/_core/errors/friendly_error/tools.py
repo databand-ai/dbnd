@@ -1,5 +1,6 @@
-from dbnd._core.errors import DatabandConfigError, DatabandRuntimeError
+from dbnd._core.errors import DatabandError, DatabandRuntimeError
 from dbnd._core.errors.friendly_error.helpers import _run_name
+from dbnd._core.utils.console_utils import bold, cyan, red, underline
 
 
 def dataflow_pipeline_not_set(task):
@@ -11,3 +12,21 @@ def dataflow_pipeline_not_set(task):
             task=_run_name(task)
         ),
     )
+
+
+def logger_format_for_databand_error(error):
+    # type: (DatabandError) -> str
+
+    title_error = red(underline(bold("Error: ")))
+    title_exception = red(underline(bold("Nested exception: ")))
+    title_helper = cyan(underline(bold("Help: ")))
+
+    full_err_message = "\n\n {title_error}{msg_error} \n {title_exception}{msg_exception} \n {title_helper}\n{msg_helper}\n\n".format(
+        title_error=title_error,
+        msg_error=error,
+        title_exception=title_exception,
+        msg_exception=error.nested_exceptions,
+        title_helper=title_helper,
+        msg_helper=error.help_msg,
+    )
+    return full_err_message

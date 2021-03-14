@@ -2,6 +2,7 @@ import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
 from dbnd import get_databand_context
+from dbnd._core.errors.friendly_error.tools import logger_format_for_databand_error
 
 
 logger = logging.getLogger(__name__)
@@ -110,9 +111,6 @@ class AirflowServersGetter(object):
             ]
             return servers
         except Exception as e:
-            logger.error(
-                "An error occurred while connecting to server: {}. Error: {}".format(
-                    self._fetch_url, e
-                )
-            )
+            msg = logger_format_for_databand_error(e)
+            logger.error(msg)
             return None
