@@ -370,7 +370,8 @@ class TaskFactory(object):
             sections += [CONF_CONFIG_SECTION]
 
         # dedup the values
-        sections = list(unique_everseen(filter(None, sections)))
+        sections = map(lambda x: x.lower(), filter(None, sections))
+        sections = list(unique_everseen(sections))
 
         return sections
 
