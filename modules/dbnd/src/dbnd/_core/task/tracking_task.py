@@ -2,7 +2,6 @@ import logging
 import os
 import typing
 
-from itertools import chain
 from typing import Any, Dict, List, Optional, Type
 
 import more_itertools
@@ -177,11 +176,14 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
             self.task_version = task_version or parent_task.task_version
             self.task_target_date = parent_task.task_target_date
             self.task_env = parent_task.task_env
+            # pass-through parent children scope params
+            self.task_children_scope_params = parent_task.task_children_scope_params
         else:
             # we need better definition of "what we use for tracking"
             self.task_version = task_version or utcnow().strftime("%Y%m%d_%H%M%S")
             self.task_target_date = utcnow().date()
             self.task_env = get_databand_context().env
+            self.task_children_scope_params = {}
 
         self.task_outputs = dict()
         for parameter, value in self._params.get_params_with_value(
