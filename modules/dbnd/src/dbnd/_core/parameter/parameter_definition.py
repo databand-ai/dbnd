@@ -615,7 +615,7 @@ def _update_parameter_from_runtime_value_type(parameter, value):
 
 
 def build_parameter_value(parameter, cf_value):
-    # type: (ParameterDefinition, Optional[ConfigValue]) -> ParameterValue
+    # type: (ParameterDefinition, ConfigValue) -> ParameterValue
 
     from dbnd._core.parameter.parameter_value import ParameterValue
 

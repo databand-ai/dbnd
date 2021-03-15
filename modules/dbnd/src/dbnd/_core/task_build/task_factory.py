@@ -1,21 +1,38 @@
 """
 Task build process
 =================
+TaskFactory is the class that is responsible for Task/Config object creation
 
-When a task is created:
- * We calculate task_env and task_config first
- * for every property, we look at all possible sections ( full task name, task name, and inherited tasks)
- * Config Layers:
-     system layer ( starting point, contains Configuration, Environment, and Command-line
-     new layer from task.task_definition.defaults (Task.defaults)  merge_strategy=on_non_exist_only
-     updated with task_config
+Class.param is calculated with following rules (top to low priority):
+ 1. Config value with Override priority
+ 2. ctor(param=VALUE)             # regular ctor
+ 3. Config value
+ 4. Parent task parameter with the same name and defined as paramter(scope=ParameterScope.children)
+ 5. if paramter(task_from_env=True), VALUE := Task.task_env.parameter
+ 6. parameter(default=VALUE)
 
-Special properties of the Task
+We calculate task_env and task_config first as other parameters can be change based on their value
+Following config layers are added on top of existing config of configuration, environment,
+ cli and other parent tasks:
+     Task.defaults  with priority FALLBACK
+     Task.task_config or ctor(task_config=..)
+     override_config from ctor(override=override_config) with priority OVERRIDE
+
+Config Value are calculated based on following sections (top to low priority)
+  * task_name
+  * task_family
+  * full_task_family
+  * _from=SECTION pragma at configuration
+  * task for Task, config for Config
+
+TLDR:
+    Task.defaults
+    -------------
+
     Task.defaults is the lowest level of config (DEFAULTS)
-     * definition: custom property of the Task object
-     * definition: all values are merged when TaskB inherits from TaskA (at TaskDefinition)
+     * It's a property of the Task class. All values are merged when TaskB inherits from TaskA (at TaskDefinition)
      * task.defaults value is calculated at TaskDefinition during the "compilation of the Task class definition"
-     * usage: its value is merged into Current config (only updates nonexisting fields) at TaskMetaClass
+    Task.defaults value is merged into Current config (with FALLBACK priority)
      * do not support override()!!!
      * there is no "merge" behavior for values. (Dictionaries are going to be replaced)
          class TaskA(...):
@@ -25,11 +42,12 @@ Special properties of the Task
             defaults = {SparkConf.conf : { 1:2}  }
         TaskB.defaults == {SparkConf.conf : { 1:2} , SparkConf.jar : "taskajar }
 
-    Task.task_config - overrides current config level
-     * definition: regular parameter of the task
-     * definition: it "replaces" inherited task_config from super class if exists
-     * its value is calculated every time we create Task at TaskMeta
-     * usage: it updates current config layer (
+    Task.task_config
+    ----------------
+
+    Task.task_config - extra config level
+     * it "replaces" inherited task_config from super class if exists
+     * it is calculated every time we create Task
      * supports override():  `task_config = {SparkConf.jar: override("my_jar")}`
      * Usually, it's used with some basic "nested" config param: like SparkConfig.conf.
      Task.task_config issues:
@@ -45,7 +63,31 @@ Special properties of the Task
         the override will be taken (despite best section match).
 
     Task(overrides=conf_value...)
+    -----------------------------
      * uses the same system as task_config, but override is applied to all values
+
+
+    param = parameter(scope=ParameterScope.children)
+    ------------------------------------------------
+
+    Task Parameters Child Scoping - if task defined at
+    Task can get the value for some params from Parent task (parent of any level)
+
+    for example:
+      class ChildTask(Task):
+          my_p = parameter() # it doesn't have to be scoped
+      class ParentTask(Task):
+          my_p = parameter(scope=ParameterScope.children)
+        def band:
+          my_p_task = ChildTask() # no explicit "wiring" of my_p
+
+
+
+    param = parameter(task_from_env=True)
+    ------------------------------------------------
+
+    Task Parameters value default will be taken from Task.task_env[EnvConfig] object
+
 
 """
 import functools
@@ -185,28 +227,21 @@ class TaskFactory(object):
         self.task_factory_config = TaskFactoryConfig.from_dbnd_config(config)
         self.verbose_build = self.task_factory_config.verbose
 
+        # current config, NOTE: it's Singleton
         self.config = config
         self.config_sections = []
 
         self.task_errors = []
         self.build_warnings = []
 
-        # user gives explicit name, or it full_task_family
-        self.task_main_config_section = (
-            self.task_name or self.task_definition.task_config_section
-        )
+        # will be used for ConfigValue
         self.config_sections = self._get_task_config_sections(
             config=config, task_config_sections_extra=task_config_sections_extra
         )
-        self.task_enabled = True
 
     @property
     def task_passport(self):
         return self.task_definition.task_passport
-
-    @property
-    def task_family(self):
-        return self.task_definition.task_passport.task_family
 
     def _get_config_value_stack_for_param(self, param_def):
         # type: (ParameterDefinition) -> List[Optional[ConfigValue]]
@@ -234,6 +269,7 @@ class TaskFactory(object):
     def _build_parameter_value(self, param_def):
         # type: (ParameterDefinition) -> ParameterValue
         """
+               -= MAIN FUNCTION for Parameter Calculation =-
         This is the place we calculate param_def value
         based on Class(defaults, constructor, overrides, root)
         and Config(env, cmd line, config)  state
@@ -282,6 +318,9 @@ class TaskFactory(object):
             self.parent_task
             and param_name in self.parent_task.task_children_scope_params
         ):
+            # we have parent task with param = parameter(scope=ParameterScope.children)
+            # the priority is lower than config (as this one is more like "default" than "explicit config")
+            # see _calculate_task_children_scope_params implementation and ParameterScope.children
             parameter_value = self.parent_task.task_children_scope_params[param_name]
             return build_parameter_value(
                 param_def,
@@ -289,6 +328,8 @@ class TaskFactory(object):
             )
 
         if param_def.from_task_env_config:
+            # param = parameter(from_task_env_config=True)
+            # we check task.task_env.param for the value
             if not self.task_env_config:
                 raise friendly_error.task_parameters.task_env_param_with_no_env(
                     context=self._ctor_as_str, key=param_name
@@ -340,12 +381,9 @@ class TaskFactory(object):
             parsed=False,
         )
 
-    def _source_name(self, name):
-        return self.task_definition.task_passport.format_source_name(name)
-
     # should refactored out
     def _get_task_config_sections(self, config, task_config_sections_extra):
-        # there is priority of task name over task family, as name is more specific
+        # [HIGHEST PRIORITY, ... , LOWEST PRIORITY]
         sections = [self.task_name]
 
         # '_from=...' at config files
@@ -360,16 +398,15 @@ class TaskFactory(object):
         if task_config_sections_extra:
             sections.extend(task_config_sections_extra)
 
+        from dbnd._core.task.config import Config
+
         # adding "default sections"  - LOWEST PRIORITY
         if issubclass(self.task_cls, _TaskParamContainer):
             sections += [CONF_TASK_SECTION]
-
-        from dbnd._core.task.config import Config
-
-        if issubclass(self.task_cls, Config):
+        elif issubclass(self.task_cls, Config):
             sections += [CONF_CONFIG_SECTION]
 
-        # dedup the values
+        # dedup values and preserve order
         sections = map(lambda x: x.lower(), filter(None, sections))
         sections = list(unique_everseen(sections))
 
@@ -411,8 +448,9 @@ class TaskFactory(object):
             self._log_config(force_log=True)
             raise
 
+        task_enabled = True
         if self.parent_task and not self.parent_task.ctrl.should_run():
-            self.task_enabled = False
+            task_enabled = False
 
         # load from task_band if exists
         task_band_param = task_params.get_param_value(TASK_BAND_PARAMETER_NAME)
@@ -470,7 +508,7 @@ class TaskFactory(object):
             task_signature_obj=task_signature_obj,
             task_config_override=self.task_config_override,
             task_config_layer=self.config.config_layer,
-            task_enabled=self.task_enabled,
+            task_enabled=task_enabled,
             task_sections=self.config_sections,
             task_children_scope_params=task_children_scope_params,
         )
@@ -499,8 +537,9 @@ class TaskFactory(object):
 
     def _update_params_def_target_config(self, param_def):
         """
-        calculates parameter.target_config based on extra config at parameter__target value
-        user might want to change the target_config for specific param using configuration
+        calculates parameter.target_config based on extra config
+        at `parameter_name__target value
+        user might want to change the target_config for specific param using configuration/cli
         """
 
         # used for target_format update
@@ -540,7 +579,27 @@ class TaskFactory(object):
         # at the end of the build we will save current layer and will make it "active" config
         # during task execution/initializaiton
 
-        # STEP: Apply all "override" values in Task(override={})
+        # SETUP: Task may have TaskClass.defaults= {...} - LOWEST priority
+        # add these values, so task build or nested tasks/configs builds will see it
+        task_defaults = self.task_definition.task_defaults_config_store
+        if task_defaults:
+            # task_defaults are processed at TaskDefinition,
+            # it's ConfigStore with priority = ConfigValuePriority.FALLBACK,
+            self.config.set_values(
+                config_values=task_defaults, source=self._source_name("task.defaults")
+            )
+
+        # SETUP: build and apply any Task class level config
+        # User has specified "task_config = ..."
+        # Only orchestration tasks has this property
+        param_task_config = params_to_build.pop("task_config", None)
+        if param_task_config:
+            task_param_values.append(
+                self._calculate_and_add_layer_of_task_config(param_task_config)
+            )
+
+        # SETUP: Apply all "override" values in Task(override={})
+        # This is highest priority config, should deprecated in favor of "with config(..)"
         if self.task_config_override:
             self.config.set_values(
                 source=self._source_name("ctor[override]"),
@@ -548,24 +607,7 @@ class TaskFactory(object):
                 priority=ConfigValuePriority.OVERRIDE,
             )
 
-        # STEP: Task may have TaskClass.defaults= {...}
-        # add these values, so task build or nested tasks/configs builds will see it
-        task_defaults = self.task_definition.task_defaults_config_store
-        if task_defaults:
-            self.config.set_values(
-                task_defaults, source=self._source_name("task.defaults")
-            )
-
-        # STEP: build and apply any Task class level config
-        # User has specified "task_config = ..."
-        # Only orchestration tasks has this property
-        param_task_config = params_to_build.pop("task_config", None)
-        if param_task_config:
-            task_param_values.append(
-                self.build_and_apply_task_config(param_task_config)
-            )
-
-        # STEP: build and set EnvConfig
+        # SETUP: build and set EnvConfig
         param_task_env = params_to_build.pop("task_env", None)
         if param_task_env:
             # we apply them to config only if there are no values (this is defaults)
@@ -579,7 +621,7 @@ class TaskFactory(object):
             self.task_env_config = value_task_env_config.value  # type: EnvConfig
             task_param_values.append(value_task_env_config)
 
-        # STEP: log with the final config
+        # log with the final config
         self._log_config()
 
         # calculate configuration per parameter, and calculate parameter value
@@ -646,10 +688,26 @@ class TaskFactory(object):
 
     def _calculate_task_children_scope_params(self, task_params):
         # type: (Parameters)-> Dict[str, ParameterValue]
+        """
+        Task can get the value for some params from Parent task (parent of any level)
+        If param is defined at parent with scope=ParameterScope.children, it will be added to
+        task_children_scope_params and will be used at param calculation
+
+        for example:
+          class ChildTask(Task):
+              my_p = parameter() # it doesn't have to be scoped
+          class ParentTask(Task):
+              my_p = parameter(scope=ParameterScope.children)
+            def band:
+              my_p_task = ChildTask() # no explicit "wiring" of my_p
+
+
+        """
         if not self.task_cls._conf__scoped_params:
             return {}
 
         if self.parent_task and self.parent_task.task_children_scope_params:
+            # if we have parent - we need to use as a baseline
             task_children_scope_params = (
                 self.parent_task.task_children_scope_params.copy()
             )
@@ -708,7 +766,7 @@ class TaskFactory(object):
 
         return task_kwargs
 
-    def build_and_apply_task_config(self, param_task_config):
+    def _calculate_and_add_layer_of_task_config(self, param_task_config):
         """
         calculate any task class level params and updates the config with thier values
         @pipeline(task_config={CoreConfig.tracker: ["console"])
@@ -801,6 +859,9 @@ class TaskFactory(object):
             return "config"
         else:
             return "task"
+
+    def _source_name(self, name):
+        return self.task_definition.task_passport.format_source_name(name)
 
     def _log_task_build_warnings(self):
         w = "Build warnings for %s '%s': " % (

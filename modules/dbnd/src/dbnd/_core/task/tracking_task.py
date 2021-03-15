@@ -177,6 +177,8 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
             self.task_target_date = parent_task.task_target_date
             self.task_env = parent_task.task_env
             # pass-through parent children scope params
+            # task_children_scope_params will be used in case of any Task inside TrackedTask
+            # for example tracked task creates Config objects
             self.task_children_scope_params = parent_task.task_children_scope_params
         else:
             # we need better definition of "what we use for tracking"

@@ -186,9 +186,9 @@ class DbndConfig(object):
 
         if len(sections) == 1:
             # we have it precalculated
-            v = self.get_config_value(sections[0], key)
-            if v:
-                return [v]
+            config_value = self.get_config_value(sections[0], key)
+            if config_value:
+                return [config_value]
             return []
 
         config_value_stack = []

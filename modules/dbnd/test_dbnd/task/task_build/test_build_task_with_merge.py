@@ -87,7 +87,7 @@ class TestBuildTaskWithMergeOperator(object):
         with config(config_sections):
             example_task_with_task_config_override.task(
                 override={"dummy": {"dict_config": {"A": "b"}}},
-                expected_dict={"A": "a"},
+                expected_dict={"A": "b"},  # user override - highest priority
             ).dbnd_run()
 
     def test_with_task_config_extend(self, config_sections):
