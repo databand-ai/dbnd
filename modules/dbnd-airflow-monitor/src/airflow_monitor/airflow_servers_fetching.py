@@ -2,6 +2,7 @@ import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
 from dbnd import get_databand_context
+from dbnd._core.errors.base import DatabandApiError
 from dbnd._core.errors.friendly_error.tools import logger_format_for_databand_error
 
 
@@ -110,6 +111,9 @@ class AirflowServersGetter(object):
                 if server["is_sync_enabled"]
             ]
             return servers
+        except DatabandApiError as e:
+            logger.error(e)
+            return None
         except Exception as e:
             msg = logger_format_for_databand_error(e)
             logger.error(msg)

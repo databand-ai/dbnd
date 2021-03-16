@@ -25,8 +25,8 @@ def logger_format_for_databand_error(error):
         title_error=title_error,
         msg_error=error,
         title_exception=title_exception,
-        msg_exception=error.nested_exceptions,
+        msg_exception=getattr(error, "nested_exceptions", ""),
         title_helper=title_helper,
-        msg_helper=error.help_msg,
+        msg_helper=getattr(error, "help_msg", ""),
     )
     return full_err_message
