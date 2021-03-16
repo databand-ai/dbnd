@@ -15,6 +15,7 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.constants import (
     AD_HOC_DAG_PREFIX,
+    RESULT_PARAM,
     SystemTaskName,
     TaskRunState,
     UpdateSource,
@@ -376,6 +377,13 @@ class DatabandRun(SingletonContext):
         # we should return here the proper engine config, based in which context we run right now
         # it could be submit, driver or task engine
         return self.env.dbnd_local_root
+
+    def load_from_result(self, name=RESULT_PARAM, value_type=None):
+        # type: (Optional[str], Optional[str]) -> Any
+        """
+        Loads the result of the run by name, default is the default result name.
+        """
+        return self.run_executor.result.load(name, value_type)
 
 
 def new_databand_run(context, job_name, run_uid=None, **kwargs):

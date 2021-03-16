@@ -48,6 +48,9 @@ class TestSubmitterHasAccessToResult(DbndCmdTest):
         )
 
         assert run.run_executor.result.load("t_output") == "1"
+        assert run.load_from_result("t_output") == run.run_executor.result.load(
+            "t_output"
+        )
 
     @skip_on_windows
     def test_result_view_with_config(self):
@@ -66,3 +69,4 @@ class TestSubmitterHasAccessToResult(DbndCmdTest):
         assert run.run_executor.result.load("t_output") == "1"
         result = RunResultBand.from_target(new)
         assert result.load("t_output") == "1"
+        assert run.load_from_result("t_output") == result.load("t_output")

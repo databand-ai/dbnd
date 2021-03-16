@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict, Optional
 
 from targets import FileTarget, target
 from targets.errors import FileNotFoundException
@@ -12,6 +12,7 @@ class RunResultBand(object):
         self.paths = paths
 
     def load(self, name, value_type=None):
+        # type: (str, Optional[str]) -> Any
         return target(self.paths[name]).load(value_type)
 
     def __iter__(self):

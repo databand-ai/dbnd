@@ -16,6 +16,7 @@ from dbnd._core.utils.basics.nothing import NOTHING
 
 if TYPE_CHECKING:
     from dbnd._core.settings import DatabandSettings
+    from dbnd._core.task_build.task_definition import TaskDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class _BaseTask(object):
     def __init__(
         self,
         task_name,
-        task_definition,
+        task_definition,  # type: TaskDefinition
         task_signature_obj,
         task_params,  # type: Parameters
     ):

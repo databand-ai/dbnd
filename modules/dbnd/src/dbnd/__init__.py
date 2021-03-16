@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
 
+from dbnd._core.access import (
+    get_remote_engine_name,
+    get_task_params_defs,
+    get_task_params_values,
+)
 from dbnd._core.cli.main import (
     dbnd_cmd,
     dbnd_run_cmd,
@@ -72,7 +77,6 @@ from dbnd._core.configuration.environ_config import (  # isort:skip
     get_dbnd_project_config,
 )
 
-
 get_dbnd_project_config().validate_init()  # isort:skip
 
 
@@ -117,7 +121,7 @@ __all__ = [
     "config_deco",
     "ConfigPath",
     "ParameterDefinition",
-    # dbnd run
+    # dbnd run cmds functions
     "dbnd_main",
     "dbnd_cmd",
     "dbnd_run_cmd",
@@ -141,6 +145,10 @@ __all__ = [
     "track_modules",
     "track_module_functions",
     "track_functions",
+    # access helpers
+    "get_task_params_defs",
+    "get_task_params_values",
+    "get_remote_engine_name",
 ]
 
 # validate missing __all__
