@@ -53,6 +53,8 @@ setuptools.setup(
             "cryptography>=2.0.0",
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
             "dbnd_test_scenarios==" + version,
+            #
+            "SQLAlchemy==1.3.23",
         ],
     ),
     entry_points={
