@@ -32,6 +32,12 @@ class DataValueType(ValueType):
 class ObjectValueType(ValueType):
     type = object
 
+    def is_handler_of_type(self, type_):
+        # if user use future.str at py2, we still want to use this convertor
+        if six.PY2 and type_.__name__ == "newobject":
+            return True
+        return super(ObjectValueType, self).is_handler_of_type(type_)
+
 
 class DefaultObjectValueType(ObjectValueType):
     """
@@ -55,7 +61,7 @@ class StrValueType(ValueType):
 
     def is_handler_of_type(self, type_):
         # if user use future.str at py2, we still want to use this convertor
-        if type_.__name__ == "newstr":
+        if six.PY2 and type_.__name__ == "newstr":
             return True
         return super(StrValueType, self).is_handler_of_type(type_)
 
