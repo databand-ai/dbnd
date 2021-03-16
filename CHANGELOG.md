@@ -4,52 +4,52 @@
 
 ### New features:
 
-- \#1199534085669848: Orchestration error Reporting
-- \#1199593388824808: dbnd run compatible with Airflow 2.0
-- \#1199382295296733: Project phase 1
-- \#1199695732795158: Add pip freeze to logs
-- \#1199562651279654: Support multiple Azkaban instances
+-   \#1199534085669848: Orchestration error Reporting
+-   \#1199593388824808: dbnd run compatible with Airflow 2.0
+-   \#1199382295296733: Project phase 1
+-   \#1199695732795158: Add pip freeze to logs
+-   \#1199562651279654: Support multiple Azkaban instances
 
 ## DBND v 0.34.00
 
 ### New features:
 
-- \#1199503238625634: Support user access token
+-   \#1199503238625634: Support user access token
 
 ### Improvements:
 
-- \#1199410590823866: Using pipeline(=band) outputs in runtime
+-   \#1199410590823866: Using pipeline(=band) outputs in runtime
 
 ### Fixed issues:
 
-- \#1199512537243676: Enable pod logs collection with google logs
-- \#1199511121032309: Zombie Driver at GKE - unsynced state
-- \#1199538657255959: Link at Error banner at Details page looks broken
-- \#1199624982127115: Configuration per task run and not all pipeline run
-- \#1199560164027872: Zombie Drive at GKE - watcher process not dying on  driver termination
-- \#1199665645625989: fix Marshalling of nested lists
-- \#1199692629063013: log_dataframe(...,with_stats=True) does not print stats to CLI
+-   \#1199512537243676: Enable pod logs collection with google logs
+-   \#1199511121032309: Zombie Driver at GKE - unsynced state
+-   \#1199538657255959: Link at Error banner at Details page looks broken
+-   \#1199624982127115: Configuration per task run and not all pipeline run
+-   \#1199560164027872: Zombie Drive at GKE - watcher process not dying on driver termination
+-   \#1199665645625989: fix Marshalling of nested lists
+-   \#1199692629063013: log_dataframe(...,with_stats=True) does not print stats to CLI
 
 ## DBND v 0.33.00
 
 ### New features:
 
-- \#1199539989855853: silence logging on tracking in production
-- \#1199410183946263: [java sdk] log collection - bring both head and tail
-- \#1186815542031177: add @data_source_pipeline annotation
+-   \#1199539989855853: silence logging on tracking in production
+-   \#1199410183946263: [java sdk] log collection - bring both head and tail
+-   \#1186815542031177: add @data_source_pipeline annotation
 
 ### Improvements:
 
-- \#1199601902803965: Default delay is set to 1 for log_snowflake_resource_usage
-- \#1183486068581313: auto-add dbnd spark listener
-- \#1195941695830497: Clean console outputs in tracking scenario
+-   \#1199601902803965: Default delay is set to 1 for log_snowflake_resource_usage
+-   \#1183486068581313: auto-add dbnd spark listener
+-   \#1195941695830497: Clean console outputs in tracking scenario
 
 ### Fixed issues:
 
-- \#1199534865809603: fix DbndSchedulerDBDagsProvider retries
-- \#1199553897458772: Pendulum fix for log_metric
-- \#1199592885591350: EKS(AWS) submitter log read timeout after 4h
-- \#1199383391833788: Normalize
+-   \#1199534865809603: fix DbndSchedulerDBDagsProvider retries
+-   \#1199553897458772: Pendulum fix for log_metric
+-   \#1199592885591350: EKS(AWS) submitter log read timeout after 4h
+-   \#1199383391833788: Normalize
 
 ## DBND v 0.32.00
 
