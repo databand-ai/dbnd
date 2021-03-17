@@ -162,9 +162,7 @@ class TestSparkTasksLocally(object):
         "dbnd._core.task_ctrl.task_validator.TaskValidator.validate_task_is_complete"
     )
     @mock.patch("dbnd._core.task_executor.run_executor.RunExecutor.save_run_pickle")
-    def test_spark_hook(
-        self, _, __, ___, ____, _____, ______, current_task_run, mock_hook
-    ):
+    def test_spark_hook(self, _, __, ___, ____, _____, current_task_run, mock_hook):
         from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
 
         word_count_inline.t(text=__file__).dbnd_run()
