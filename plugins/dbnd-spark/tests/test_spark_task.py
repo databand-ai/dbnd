@@ -153,7 +153,6 @@ class TestSparkTasksLocally(object):
 
     @mock.patch("airflow.contrib.hooks.spark_submit_hook.SparkSubmitHook")
     @mock.patch("dbnd_spark.spark.PySparkInlineTask.current_task_run")
-    @mock.patch("dbnd_spark.spark.get_databand_run")
     @mock.patch(
         "dbnd._core.task_run.task_run_logging.TaskRunLogManager.capture_task_log"
     )
