@@ -153,7 +153,6 @@ class TestSparkTasksLocally(object):
 
     @mock.patch("airflow.contrib.hooks.spark_submit_hook.SparkSubmitHook")
     @mock.patch("dbnd_spark.spark.PySparkInlineTask.current_task_run")
-    @mock.patch("dbnd_spark.spark.get_databand_run")
     @mock.patch(
         "dbnd._core.task_run.task_run_logging.TaskRunLogManager.capture_task_log"
     )
@@ -163,9 +162,7 @@ class TestSparkTasksLocally(object):
         "dbnd._core.task_ctrl.task_validator.TaskValidator.validate_task_is_complete"
     )
     @mock.patch("dbnd._core.task_executor.run_executor.RunExecutor.save_run_pickle")
-    def test_spark_hook(
-        self, _, __, ___, ____, _____, ______, current_task_run, mock_hook
-    ):
+    def test_spark_hook(self, _, __, ___, ____, _____, current_task_run, mock_hook):
         from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
 
         word_count_inline.t(text=__file__).dbnd_run()
