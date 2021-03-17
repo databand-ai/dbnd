@@ -1,5 +1,4 @@
 import datetime
-import pickle
 
 from collections import Counter
 

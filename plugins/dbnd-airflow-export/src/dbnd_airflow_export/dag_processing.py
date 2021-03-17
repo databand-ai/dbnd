@@ -2,6 +2,7 @@ import logging
 
 from airflow.models import DagModel
 from airflow.utils.db import provide_session
+from sqlalchemy.orm import joinedload
 
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
 from dbnd_airflow_export.helpers import _get_git_status
@@ -58,9 +59,12 @@ def get_dags(dagbag, include_task_args, dag_ids, raw_data_only=False):
 @save_result_size("current_dags")
 @measure_time
 def load_dags_models(session):
-    dag_models = session.query(DagModel).all()
+    dag_models = session.query(DagModel)
+    if hasattr(DagModel, "tags"):
+        # For backward compatibility with AF < 1.10.8
+        dag_models = dag_models.options(joinedload(DagModel.tags))
 
-    for dag_model in dag_models:
+    for dag_model in dag_models.all():
         # Exclude dbnd-run tagged runs
         if not dag_model.dag_id.startswith(AD_HOC_DAG_PREFIX):
             current_dags[dag_model.dag_id] = dag_model
