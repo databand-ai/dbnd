@@ -2,6 +2,7 @@ import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
 from dbnd import get_databand_context
+from dbnd._core.errors.base import DatabandApiError
 from dbnd._core.errors.friendly_error.tools import logger_format_for_databand_error
 
 

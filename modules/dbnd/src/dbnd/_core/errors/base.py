@@ -193,6 +193,8 @@ class TaskValidationError(DatabandError):
 
 class DatabandApiError(DatabandError):
     def __init__(self, method, endpoint, resp_code, response):
+        super(DatabandApiError, self).__init__(method, endpoint, resp_code, response)
+
         self.method = method
         self.endpoint = endpoint
         self.resp_code = resp_code
