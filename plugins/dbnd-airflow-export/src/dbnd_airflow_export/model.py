@@ -1,6 +1,8 @@
-from datetime import datetime
-from typing import List
+import typing
 
+from datetime import datetime
+
+from airflow import DAG
 from airflow.configuration import conf
 from airflow.models import DagRun
 from airflow.utils.net import get_hostname
@@ -19,6 +21,10 @@ from dbnd_airflow_export.helpers import (
     resolve_attribute_or_default_value,
 )
 
+
+if typing.TYPE_CHECKING:
+    from typing import List
+    from airflow.models import DagModel, DagTag
 
 try:
     # in dbnd it might be overridden
@@ -214,10 +220,12 @@ class EDag(object):
         is_paused,
         git_commit,
         is_committed,
+        tags,
     ):
         self.description = description
         self.root_task_ids = root_task_ids  # type: List[str]
         self.tasks = tasks  # type: List[ETask]
+        self.tags = tags  # type: List[DagTag]
         self.owner = owner
         self.dag_id = dag_id
         self.schedule_interval = schedule_interval
@@ -265,6 +273,7 @@ class EDag(object):
             hostname=get_hostname(),
             source_code=_read_dag_file(dag.fileloc) if not raw_data_only else "",
             is_subdag=dag.is_subdag,
+            tags=getattr(dm, "tags", []),
             task_type="DAG",
             task_args=_extract_args_from_dict(vars(dag)) if include_task_args else {},
             is_active=dm.is_active,
@@ -278,6 +287,7 @@ class EDag(object):
             description=self.description,
             root_task_ids=self.root_task_ids,
             tasks=[t.as_dict() for t in self.tasks],
+            tags=[tag.name for tag in self.tags],
             owner=self.owner,
             dag_id=self.dag_id,
             schedule_interval=self.schedule_interval,
