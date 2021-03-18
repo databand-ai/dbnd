@@ -1,13 +1,27 @@
 # History
 
+## DBND v 0.36.00
+
+### New features:
+
+-   \#1199594880117673: Introducing the Cloud Environment of Databand Web server.
+-   \#1199643165776154: New Design and filters for Run List, including sticky filters.
+-   \#1199914881669553: Project filters now support Airflow tags.
+-   \#1199914881669552: Azkaban projects are now supported.
+-   \#1199371447621207: You can now track Log paths from Spark.
+-   \#1199674986608158: Extended tracking of Operational Health in the Dashboard: see Runs and Task Runs over time.
+
+### Improvements:
+
+-   \#1199965687445132: Added columns for the task table in the Dashboard.
+-   \#1199917986044517: Added Spark LogPath.
+
 ## DBND v 0.35.00
 
 ### New features:
 
 -   \#1199534085669848: Orchestration error Reporting
--   \#1199593388824808: dbnd run compatible with Airflow 2.0
 -   \#1199382295296733: Project phase 1
--   \#1199695732795158: Add pip freeze to logs
 -   \#1199562651279654: Support multiple Azkaban instances
 
 ## DBND v 0.34.00
