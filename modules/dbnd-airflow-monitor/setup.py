@@ -26,7 +26,7 @@ setuptools.setup(
             "pytest==4.5.0",
             "mock",
             "WTForms<2.3.0",
-            "apache-airflow==1.10.9",
+            "apache-airflow>=1.10.9,<=1.10.11",
             "sh",
             "SQLAlchemy~=1.3.23",
         ],
