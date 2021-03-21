@@ -290,6 +290,10 @@ def test_extract_tables():
             """,
             ["table3", "table4", "C"],
         ),
+        (
+            """select * from "SALES_DEMO"."PUBLIC"."SALES" limit 50;""",
+            ['"SALES_DEMO"."PUBLIC"."SALES"'],
+        ),
     )
     for query, expected_tables in queries:
         tables = try_extract_tables(query)

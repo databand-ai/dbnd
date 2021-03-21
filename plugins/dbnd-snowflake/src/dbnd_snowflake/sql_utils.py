@@ -16,7 +16,7 @@ def try_extract_tables(command):
     # insert into X ...
     # delete from X ...
     tables = re.findall(
-        r"\b(?:FROM|JOIN|UPDATE|INSERT\s+(?:\bINTO\b)?|DELETE\s+(?:\bFROM\b)?)[\s(]+([\"a-zA-Z._\d]+)\b",
+        r"\b(?:FROM|JOIN|UPDATE|INSERT\s+(?:\bINTO\b)?|DELETE\s+(?:\bFROM\b)?)[\s(]+([\"a-zA-Z._\d]+)",
         command,
         re.IGNORECASE,
     )
