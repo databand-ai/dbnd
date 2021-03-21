@@ -226,13 +226,14 @@ def log_all_snowflake_resource_usage(cd, reset=True, **kwargs):
     # type: (ConnectionData, bool, ...) -> Optional[Dict[int, List[str]]]
     # copy to prevent resource usage queries to appear in current history
     history = cd.get_all_session_queries()
-    for session_id, query_ids in history.items():
+    for i, (session_id, query_ids) in enumerate(history.items()):
         log_snowflake_resource_usage(
             database=cd.database,
             connection_string=cd.connection,
             session_id=session_id,
             query_ids=query_ids,
-            **kwargs
+            key=f"snowflake_query.{i}",
+            **kwargs,
         )
     if reset:
         cd.reset_session_queries()
@@ -269,7 +270,7 @@ def log_all_snowflake_tables(cd, tables, reset=True, **kwargs):
                 schema=schema,
                 database=database,
                 connection_string=cd.connection,
-                **kwargs
+                **kwargs,
             )
     if reset:
         cd.reset_tables()
