@@ -115,7 +115,7 @@ class SnowflakeController:
         )
 
         rows = self.query(
-            "select {0} from {1.db_with_schema}.{1.table_name} limit {1.preview_rows}".format(
+            "select {0} from {1.db_with_schema_q}.{1.table_name_q} limit {1.preview_rows}".format(
                 columns, table
             )
         )
@@ -125,9 +125,9 @@ class SnowflakeController:
     def get_dimensions(self, table):
         # type: (SnowflakeTable) -> Dict
         if table.schema:
-            in_cond = "in schema {0.db_with_schema}".format(table)
+            in_cond = "in schema {0.db_with_schema_q}".format(table)
         else:
-            in_cond = "in database {0.database}".format(table)
+            in_cond = "in database {0.database_q}".format(table)
         table_meta = self.query(
             "SHOW TABLES LIKE '{0}' {1}".format(table.table_name, in_cond)
         )
@@ -153,7 +153,7 @@ class SnowflakeController:
         query = dedent(
             """\
             SELECT column_name, data_type
-            FROM {0.database}.information_schema.columns
+            FROM {0.database_q}.information_schema.columns
             WHERE LOWER(table_name) = LOWER('{0.table_name}')"""
         ).format(table)
         if table.schema:

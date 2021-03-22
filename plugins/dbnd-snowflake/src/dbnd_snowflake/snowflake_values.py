@@ -15,12 +15,17 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _strip_quotes(v):
+    # type: (str) -> str
+    return v.strip('"') if v else v
+
+
 @attr.s
 class SnowflakeTable(object):
     snowflake_ctrl = attr.ib()  # type: SnowflakeController
-    database = attr.ib()  # type: str
-    schema = attr.ib()  # type: str
-    table_name = attr.ib()  # type: str
+    database = attr.ib(converter=_strip_quotes)  # type: str
+    schema = attr.ib(converter=_strip_quotes)  # type: str
+    table_name = attr.ib(converter=_strip_quotes)  # type: str
     preview_rows = attr.ib(default=20)  # type: int
 
     @property
@@ -28,6 +33,27 @@ class SnowflakeTable(object):
         if self.schema:
             return "{0}.{1}".format(self.database, self.schema)
         return self.database
+
+    @property
+    def database_q(self):
+        return '"{}"'.format(self.database) if self.database else self.database
+
+    @property
+    def schema_q(self):
+        return '"{}"'.format(self.schema) if self.schema else self.schema
+
+    @property
+    def table_name_q(self):
+        return '"{}"'.format(self.table_name) if self.table_name else self.table_name
+
+    @property
+    def db_with_schema_q(self):
+        if self.schema:
+            return "{0}.{1}".format(self.database_q, self.schema_q)
+        return self.database
+
+    def __str__(self):
+        return "{0}.{1}".format(self.db_with_schema, self.table_name)
 
 
 class SnowflakeTableValueType(DataValueType):
