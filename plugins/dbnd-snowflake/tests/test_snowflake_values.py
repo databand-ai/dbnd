@@ -49,8 +49,8 @@ def snowflake_table(snowflake_controller_mock):
     return SnowflakeTable(
         snowflake_ctrl=snowflake_controller_mock,
         database="SNOWFLAKE_SAMPLE_DATA",
-        schema="TPCDS_SF100TCL",
-        table_name="CUSTOMER",
+        schema='"TPCDS_SF100TCL"',
+        table_name='"CUSTOMER"',
     )
 
 
@@ -114,7 +114,7 @@ class TestSnowflakeController:
             query_patch.assert_has_calls(
                 [
                     mock.call(
-                        "SHOW TABLES LIKE 'CUSTOMER' in schema SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL"
+                        'SHOW TABLES LIKE \'CUSTOMER\' in schema "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF100TCL"'
                     ),
                 ],
                 any_order=True,
@@ -140,7 +140,7 @@ class TestSnowflakeController:
                 [
                     mock.call(
                         "SELECT column_name, data_type\n"
-                        "FROM SNOWFLAKE_SAMPLE_DATA.information_schema.columns\n"
+                        'FROM "SNOWFLAKE_SAMPLE_DATA".information_schema.columns\n'
                         "WHERE LOWER(table_name) = LOWER('CUSTOMER') and LOWER(table_schema) = LOWER('TPCDS_SF100TCL')"
                     ),
                 ],
@@ -165,7 +165,7 @@ class TestSnowflakeController:
             preview_query_patch.assert_has_calls(
                 [
                     mock.call(
-                        'select TRY_HEX_DECODE_STRING(HEX_ENCODE("foo")) AS foo,TRY_HEX_DECODE_STRING(HEX_ENCODE("bar")) AS bar from SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.CUSTOMER limit 20'
+                        'select TRY_HEX_DECODE_STRING(HEX_ENCODE("foo")) AS foo,TRY_HEX_DECODE_STRING(HEX_ENCODE("bar")) AS bar from "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF100TCL"."CUSTOMER" limit 20'
                     ),
                 ],
                 any_order=True,

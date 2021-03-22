@@ -34,6 +34,7 @@ class ConnectionData(object):
     connection = attr.ib(default=None)  # type: SnowflakeConnection
     tables = attr.ib(factory=set)  # type: Set[str]
     session_data = attr.ib(factory=OrderedDict)  # type: Dict[int, SessionData]
+    connection_number = attr.ib(default=0)  # type: int
 
     def get_session_data(self, session_id):
         # type: (int) -> SessionData
@@ -88,6 +89,8 @@ class SnowflakeQueryTracker(object):
         self.last_session_id = None
         self.last_session_query_ids = []
 
+        self.connection_counter = 0
+
     def __enter__(self):
         self.patch_snowflake()
         return self
@@ -137,7 +140,9 @@ class SnowflakeQueryTracker(object):
                 database=connection.database or self.database,
                 schema=connection.schema or self.schema,
                 connection=connection,
+                connection_number=self.connection_counter,
             )
+            self.connection_counter += 1
         return self._connection_data[conn_id]
 
     def get_all_tables(self):
@@ -226,13 +231,13 @@ def log_all_snowflake_resource_usage(cd, reset=True, **kwargs):
     # type: (ConnectionData, bool, ...) -> Optional[Dict[int, List[str]]]
     # copy to prevent resource usage queries to appear in current history
     history = cd.get_all_session_queries()
-    for i, (session_id, query_ids) in enumerate(history.items()):
+    for session_id, query_ids in history.items():
         log_snowflake_resource_usage(
             database=cd.database,
             connection_string=cd.connection,
             session_id=session_id,
             query_ids=query_ids,
-            key=f"snowflake_query.{i}",
+            key=f"snowflake_query.{cd.connection_number}",
             **kwargs,
         )
     if reset:
