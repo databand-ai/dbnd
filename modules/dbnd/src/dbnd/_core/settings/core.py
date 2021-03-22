@@ -283,6 +283,11 @@ class TrackingConfig(Config):
         description="Control which of the operator's fields would be flatten when tracked",
     )[Dict[str, str]]
 
+    track_source_code = parameter(
+        default=True,
+        description="Enable tracking of function, module and file source code",
+    )[bool]
+
     def get_value_meta_conf(
         self, parameter_value_meta_conf, value_type=None, target=None
     ):

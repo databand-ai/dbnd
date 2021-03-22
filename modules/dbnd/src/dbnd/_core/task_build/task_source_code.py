@@ -12,11 +12,45 @@ from dbnd._core.task.base_task import _BaseTask
 logger = logging.getLogger(__name__)
 
 
+def _hide_or_show_by_config(source):
+    from dbnd._core.settings.core import TrackingConfig
+
+    tracking_config = TrackingConfig.current()
+    if tracking_config.track_source_code:
+        return source
+    else:
+        return None
+
+
 @attr.s
 class TaskSourceCode(object):
-    task_source_code = attr.ib(default=None)  # type: Optional[str]
-    task_module_code = attr.ib(default=None)  # type: Optional[str]
-    task_source_file = attr.ib(default=None)  # type: Optional[str]
+    _task_source_code = attr.ib(default=None)  # type: Optional[str]
+    _task_module_code = attr.ib(default=None)  # type: Optional[str]
+    _task_source_file = attr.ib(default=None)  # type: Optional[str]
+
+    @property
+    def task_source_code(self):
+        return _hide_or_show_by_config(source=self._task_source_code)
+
+    @task_source_code.setter
+    def task_source_code(self, value):
+        self._task_source_code = value
+
+    @property
+    def task_module_code(self):
+        return _hide_or_show_by_config(source=self._task_module_code)
+
+    @task_module_code.setter
+    def task_module_code(self, value):
+        self._task_module_code = value
+
+    @property
+    def task_source_file(self):
+        return _hide_or_show_by_config(source=self._task_source_file)
+
+    @task_source_file.setter
+    def task_source_file(self, value):
+        self._task_source_file = value
 
     @classmethod
     def from_callable(cls, callable):

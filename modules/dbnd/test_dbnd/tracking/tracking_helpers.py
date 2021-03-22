@@ -104,3 +104,10 @@ def get_save_external_links(mock_channel_tracker):
     for call in mock_channel_tracker.call_args_list:
         if call.args[0].__name__ == "save_external_links":
             yield call.kwargs
+
+
+def get_reported_source_code(mock_channel_tracker):
+    task_source_code = defaultdict(dict)
+    for task_runs_info in get_task_runs_info(mock_channel_tracker):
+        task_source_code = task_runs_info.task_definitions[0].source
+    return task_source_code
