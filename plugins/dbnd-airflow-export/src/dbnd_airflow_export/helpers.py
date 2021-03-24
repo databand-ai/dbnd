@@ -11,6 +11,10 @@ import six
 from airflow.configuration import conf
 from airflow.models import BaseOperator
 
+import pygit2
+
+
+logger = logging.getLogger(__name__)
 
 MAX_LOGS_SIZE_IN_BYTES = 10000
 TASK_ARG_TYPES = (str, float, bool, int, datetime.datetime)
@@ -41,10 +45,14 @@ def interval_to_str(schedule_interval):
 def _get_log(ti, task):
     try:
         ti.task = task
-        logger = logging.getLogger("airflow.task")
+        af_logger = logging.getLogger("airflow.task")
         task_log_reader = conf.get("core", "task_log_reader")
         handler = next(
-            (handler for handler in logger.handlers if handler.name == task_log_reader),
+            (
+                handler
+                for handler in af_logger.handlers
+                if handler.name == task_log_reader
+            ),
             None,
         )
         logs, metadatas = handler.read(ti, ti._try_number, metadata={})
@@ -67,15 +75,15 @@ def _get_log(ti, task):
 
 def _get_git_status(path):
     try:
-        from git import Repo
-
         if os.path.isfile(path):
             path = os.path.dirname(path)
 
-        repo = Repo(path, search_parent_directories=True)
-        commit = repo.head.commit.hexsha
-        return commit, not repo.is_dirty()
+        repo_path = pygit2.discover_repository(path)
+        repo = pygit2.Repository(repo_path)
+        commit = repo.revparse_single("HEAD^")
+        return commit.hex, bool(repo.status())
     except Exception as ex:
+        logger.warning(("Failed to retrive git status: {0}").format(ex))
         return "", False
 
 
@@ -84,8 +92,8 @@ def _get_source_code(t):
     # TODO: add other "code" extractions
     # TODO: maybe return it with operator code as well
     try:
-        from airflow.operators.python_operator import PythonOperator
         from airflow.operators.bash_operator import BashOperator
+        from airflow.operators.python_operator import PythonOperator
 
         if isinstance(t, PythonOperator):
             import inspect
@@ -112,8 +120,8 @@ def _get_module_code(t):
 
 def _get_command_from_operator(t):
     # type: (BaseOperator) -> str
-    from airflow.operators.python_operator import PythonOperator
     from airflow.operators.bash_operator import BashOperator
+    from airflow.operators.python_operator import PythonOperator
 
     if isinstance(t, BashOperator):
         return "bash_command='{bash_command}'".format(bash_command=t.bash_command)
