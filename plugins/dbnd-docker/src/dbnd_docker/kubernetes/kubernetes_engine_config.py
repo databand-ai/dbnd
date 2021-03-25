@@ -372,8 +372,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         image = self.full_image
         labels = combine_mappings(labels, self.labels)
+        labels["pod_name"] = pod_name
         labels["dbnd_run_uid"] = task_run.run.run_uid
         labels["dbnd_task_run_uid"] = task_run.task_run_uid
+        labels["dbnd_task_run_attempt_uid"] = task_run.task_run_attempt_uid
         labels[
             "dbnd_task_family"
         ] = task_run.task.task_definition.full_task_family_short
