@@ -15,7 +15,7 @@ requirements_for_airflow = [
     "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
     "Werkzeug<1.0.0,>=0.15.0",
     "psycopg2>=2.7.4,<2.8",
-    "SQLAlchemy~=1.3.15",  # Make sure Airflow uses SQLAlchemy 1.3.15, Airflow is incompatible with SQLAlchemy 1.4.x
+    "SQLAlchemy==1.3.15",  # Make sure Airflow uses SQLAlchemy 1.3.15, Airflow is incompatible with SQLAlchemy 1.4.x
 ]
 
 setuptools.setup(
@@ -55,7 +55,7 @@ setuptools.setup(
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
             "dbnd_test_scenarios==" + version,
             #
-            "SQLAlchemy~=1.3.23",
+            "SQLAlchemy==1.3.15",
         ],
     ),
     entry_points={
