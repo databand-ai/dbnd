@@ -10,11 +10,11 @@ from dbnd._core.constants import (
 )
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
+from dbnd._core.settings.tracking_config import get_value_meta
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 from targets import Target
-from targets.values import get_value_meta_from_value
 
 
 if typing.TYPE_CHECKING:
@@ -66,13 +66,13 @@ class TaskRunTracker(TaskRunCtrl):
             return
 
         try:
-            meta_conf = tracking_conf.get_value_meta_conf(
+            target.target_meta = get_value_meta(
+                value,
                 parameter.value_meta_conf,
+                tracking_config=self.settings.tracking,
                 value_type=parameter.value_type,
                 target=target,
             )
-            key = "{}.{}".format(self.task_run.task.task_name, parameter.name)
-            target.target_meta = get_value_meta_from_value(key, value, meta_conf)
             # FIXME If we failed to get target meta for some reason, target operation won't be logged!
             if target.target_meta is None:
                 return
@@ -168,8 +168,9 @@ class TaskRunTracker(TaskRunCtrl):
     ):  # type: (...) -> None
         try:
             # Combine meta_conf with the config settings
-            meta_conf = self.settings.tracking.get_value_meta_conf(meta_conf)
-            value_meta = get_value_meta_from_value(key, data, meta_conf, raise_on_error)
+            value_meta = get_value_meta(
+                data, meta_conf, tracking_config=self.settings.tracking
+            )
             if not value_meta:
                 logger.warning(
                     "Couldn't log the wanted data {name}, reason - can't log objects of type {value_type} ".format(
@@ -196,7 +197,10 @@ class TaskRunTracker(TaskRunCtrl):
 
             if metrics["histograms"]:
                 self.tracking_store.log_histograms(
-                    task_run=self.task_run, key=key, value_meta=value_meta, timestamp=ts
+                    task_run=self.task_run,
+                    key=key,
+                    value_meta=value_meta,
+                    timestamp=ts,
                 )
 
             if not (metrics["user"] or metrics["histograms"] or path):

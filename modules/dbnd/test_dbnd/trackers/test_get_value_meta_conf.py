@@ -6,19 +6,32 @@ from dbnd import LogDataRequest, config
 from dbnd._core.configuration.config_store import replace_section_with
 from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.settings import TrackingConfig
+from dbnd._core.settings.tracking_config import ValueTrackingLevel
 from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
+from targets.values import ObjectValueType
 
 
 def tracking_config_empty():
     # Enforce "tracking" config section so that changes in config files won't affect tests
     with config(
-        {"tracking": replace_section_with({})}, source="dbnd_test_context",
+        {
+            "tracking": replace_section_with(
+                {"value_reporting_strategy": ValueTrackingLevel.ALL}
+            )
+        },
+        source="dbnd_test_context",
     ):
         return TrackingConfig()
 
 
 def tracking_config_force_true():
     # Enforce "tracking" config section so that changes in config files won't affect tests
+    config.set(
+        "tracking",
+        "value_reporting_strategy",
+        ValueTrackingLevel.ALL,
+        priority=ConfigValuePriority.OVERRIDE,
+    )
     config.set(
         "tracking", "log_value_stats", True, priority=ConfigValuePriority.OVERRIDE
     )
@@ -30,6 +43,13 @@ def tracking_config_force_true():
 
 def tracking_config_force_false():
     # Enforce "tracking" config section so that changes in config files won't affect tests
+    config.set(
+        "tracking",
+        "value_reporting_strategy",
+        ValueTrackingLevel.ALL,
+        priority=ConfigValuePriority.OVERRIDE,
+    )
+
     config.set(
         "tracking", "log_value_stats", False, priority=ConfigValuePriority.OVERRIDE
     )
@@ -51,7 +71,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
             (tracking_config_empty, True, True, True),
             (tracking_config_empty, True, False, True),
             # Default config value
-            (tracking_config_empty, None, None, False),
+            (tracking_config_empty, None, None, True),
             (tracking_config_empty, False, None, False),
             (tracking_config_empty, True, None, True),
             # Explicit config value
@@ -93,7 +113,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
         )
 
         # Act
-        actual_value_meta_conf = tc.get_value_meta_conf(param_mc)
+        actual_value_meta_conf = tc.get_value_meta_conf(param_mc, ObjectValueType())
 
         # Assert
         assert actual_value_meta_conf.log_stats == expected_log_stats
@@ -155,7 +175,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
         )
 
         # Act
-        actual_value_meta_conf = tc.get_value_meta_conf(param_mc)
+        actual_value_meta_conf = tc.get_value_meta_conf(param_mc, ObjectValueType())
 
         # Assert
         assert actual_value_meta_conf.log_histograms == expected_log_histograms
@@ -171,7 +191,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
             (tracking_config_empty, True, True, True),
             (tracking_config_empty, True, False, True),
             # Default config value
-            (tracking_config_empty, None, None, False),
+            (tracking_config_empty, None, None, True),
             (tracking_config_empty, False, None, False),
             (tracking_config_empty, True, None, True),
         ],
@@ -190,7 +210,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
             tc.log_value_preview = config_log_preview
 
         # Act
-        actual_value_meta_conf = tc.get_value_meta_conf(param_mc)
+        actual_value_meta_conf = tc.get_value_meta_conf(param_mc, ObjectValueType())
 
         # Assert
         assert actual_value_meta_conf.log_preview == expected_log_preview
@@ -218,7 +238,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
             tc.log_value_preview_max_len = config_log_preview_size
 
         # Act
-        actual_value_meta_conf = tc.get_value_meta_conf(param_mc)
+        actual_value_meta_conf = tc.get_value_meta_conf(param_mc, ObjectValueType())
 
         # Assert
         assert actual_value_meta_conf.log_preview_size == expected_log_preview_size
@@ -249,7 +269,9 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
             tracking_config.log_value_schema = config_log_schema
 
         # Act
-        actual_value_meta_conf = tracking_config.get_value_meta_conf(param_mc)
+        actual_value_meta_conf = tracking_config.get_value_meta_conf(
+            param_mc, ObjectValueType()
+        )
 
         # Assert
         assert actual_value_meta_conf.log_schema == expected_log_schema

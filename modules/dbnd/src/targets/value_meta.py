@@ -1,6 +1,7 @@
 import typing
 
 import attr
+import six
 
 from dbnd._core.constants import MetricSource
 from dbnd._core.tracking.log_data_request import LogDataRequest
@@ -134,3 +135,24 @@ class ValueMetaConf(object):
             log_stats=True,
             log_histograms=True,
         )
+
+    def merge_if_none(self, other):
+        # type: (ValueMetaConf, ValueMetaConf) -> ValueMetaConf
+        """
+        Merging the current meta config with the `other` by merging if None strategy.
+        which means - take they value from `other` only if the value in self is none.
+        """
+        if not isinstance(other, ValueMetaConf):
+            raise ValueError(
+                "Expected ValueMetaConf got instead {other_type}".format(
+                    other_type=type(other)
+                )
+            )
+
+        # collecting all the values from `other`, only if they are None in `self`
+        to_merge = {
+            key: value
+            for key, value in six.iteritems(other.__dict__)
+            if self.__dict__[key] is None
+        }
+        return attr.evolve(self, **to_merge)

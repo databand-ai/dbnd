@@ -40,6 +40,8 @@ class ValueType(object):
     load_on_build = True
     discoverable = True  # we can discover it from the object
 
+    is_lazy_evaluated = False
+
     @property
     @abc.abstractmethod
     def type(self):

@@ -10,7 +10,6 @@ from dbnd._core.settings.core import (
     DatabandSystemConfig,
     DynamicTaskConfig,
     FeaturesConfig,
-    TrackingConfig,
 )
 from dbnd._core.settings.describe import DescribeConfig
 from dbnd._core.settings.engine import EngineConfig
@@ -22,6 +21,7 @@ from dbnd._core.settings.output import OutputConfig
 from dbnd._core.settings.run import RunConfig
 from dbnd._core.settings.run_info import RunInfoConfig
 from dbnd._core.settings.scheduler import SchedulerConfig
+from dbnd._core.settings.tracking_config import TrackingConfig
 from dbnd._core.task import Config
 from dbnd._core.task_build.task_registry import build_task_from_config
 

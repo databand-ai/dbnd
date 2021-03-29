@@ -23,6 +23,8 @@ class SparkDataFrameValueType(DataValueType):
 
     config_name = "spark_dataframe"
 
+    is_lazy_evaluated = True
+
     def to_signature(self, x):
         id = "rdd-%s-at-%s" % (x.rdd.id(), x.rdd.context.applicationId)
         return id

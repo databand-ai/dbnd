@@ -7,10 +7,6 @@ from dbnd._core.constants import CloudType
 from dbnd._core.log import dbnd_log_debug
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.task import Config
-from dbnd._core.utils.function_args import first_not_none
-from targets import Target
-from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMetaConf
-from targets.values import ValueType
 
 
 logger = logging.getLogger()
@@ -227,84 +223,3 @@ class FeaturesConfig(Config):
     in_memory_cache_target_value = parameter(
         default=True, description="Cache targets values in memory during execution"
     )[bool]
-
-
-class TrackingConfig(Config):
-    _conf__task_family = "tracking"
-
-    project = parameter(
-        default=None,
-        description="Project to which run should be assigned. "
-        "If not set default project is used. Tracking server will select project with is_default == True.",
-    )[str]
-
-    databand_external_url = parameter(
-        default=None,
-        description="Tracker URL to be used for tracking from external systems",
-    )[str]
-
-    log_value_size = parameter(
-        default=True,
-        description="Calculate and log value size (can cause a full scan on not-indexable distributed memory objects) ",
-    )[bool]
-
-    log_value_schema = parameter(
-        default=True, description="Calculate and log value schema "
-    )[bool]
-    log_value_stats = parameter(
-        default=False,
-        description="Calculate and log value stats(expensive to calculate, better use log_stats on parameter level)",
-    )[bool]
-    log_value_preview = parameter(
-        default=False,
-        description="Calculate and log value preview. Can be expensive on Spark.",
-    )[bool]
-
-    log_value_preview_max_len = parameter(
-        description="Max size of value preview to be saved at DB, max value=50000"
-    ).value(_DEFAULT_VALUE_PREVIEW_MAX_LEN)
-
-    log_value_meta = parameter(
-        default=True, description="Calculate and log value meta "
-    )[bool]
-
-    log_histograms = parameter(
-        default=False,
-        description="Enable calculation and tracking of histograms. Can be expensive",
-    )[bool]
-
-    auto_disable_slow_size = parameter(
-        default=True,
-        description="Auto disable slow preview for Spark DF with text formats",
-    )[bool]
-
-    flatten_operator_fields = parameter(
-        default={},
-        description="Control which of the operator's fields would be flatten when tracked",
-    )[Dict[str, str]]
-
-    track_source_code = parameter(
-        default=True,
-        description="Enable tracking of function, module and file source code",
-    )[bool]
-
-    def get_value_meta_conf(
-        self, parameter_value_meta_conf, value_type=None, target=None
-    ):
-        # type: (ValueMetaConf, ValueType, Target) -> ValueMetaConf
-        mc = parameter_value_meta_conf
-
-        log_value_size = self.log_value_size
-        if target and self.auto_disable_slow_size and log_value_size:
-            log_value_size = value_type.support_fast_count(target)
-
-        return ValueMetaConf(
-            log_preview=first_not_none(mc.log_preview, self.log_value_preview),
-            log_preview_size=first_not_none(
-                mc.log_preview_size, self.log_value_preview_max_len
-            ),
-            log_schema=first_not_none(mc.log_schema, self.log_value_schema),
-            log_size=first_not_none(mc.log_size, log_value_size),
-            log_stats=first_not_none(mc.log_stats, self.log_value_stats),
-            log_histograms=first_not_none(mc.log_histograms, self.log_histograms),
-        )

@@ -2,16 +2,16 @@ from __future__ import print_function
 
 import logging
 
-from collections import Iterable
-
 import pytest
 
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 from dbnd_spark import get_spark_session
 from dbnd_spark.spark_targets import SparkDataFrameValueType
-from dbnd_test_scenarios.histograms.histogram_tests import BaseHistogramTests
-from targets.values import get_value_meta_from_value
+from dbnd_test_scenarios.histograms.histogram_tests import (
+    BaseHistogramTests,
+    get_value_meta_from_value,
+)
 
 
 logger = logging.getLogger(__name__)
