@@ -21,6 +21,7 @@ from dbnd._core.utils.basics.environ_utils import (
 from dbnd._core.utils.basics.path_utils import abs_join, relative_path
 
 
+DATABAND_AIRFLOW_CONN_ID = "dbnd_config"  # DBND connection ID for Airflow connections
 _MARKER_FILES = ["databand.cfg", "project.cfg", "databand-system.cfg"]
 PARAM_ENV_TEMPLATE = "DBND__{S}__{K}"
 

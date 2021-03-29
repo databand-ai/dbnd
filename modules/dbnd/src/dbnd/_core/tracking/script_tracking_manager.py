@@ -102,6 +102,9 @@ class _DbndScriptTrackingManager(object):
         # we probably should use only airlfow context via parameter.
         # also, there are mocks that cover only get_dbnd_project_config().airflow_context
         airflow_context = airflow_context or get_dbnd_project_config().airflow_context()
+        if airflow_context:
+            _set_dbnd_config_from_airflow_connections()
+
         set_tracking_config_overide(use_dbnd_log=True, airflow_context=airflow_context)
 
         dc = self._enter_cm(
@@ -315,4 +318,19 @@ def _handle_tracking_error(msg):
     else:
         logger.info(
             "Failed during dbnd %s, ignoring, and continue without tracking" % msg
+        )
+
+
+def _set_dbnd_config_from_airflow_connections():
+    """ Set Databand config from Extra section in Airflow dbnd_config connection. """
+    try:
+        from dbnd_airflow.tracking.dbnd_airflow_conf import (
+            set_dbnd_config_from_airflow_connections,
+        )
+
+        set_dbnd_config_from_airflow_connections()
+
+    except ImportError:
+        logger.info(
+            "dbnd_airflow is not installed. Config will not load from Airflow Connections"
         )
