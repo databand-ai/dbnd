@@ -59,7 +59,7 @@ class WebFetcher(DataFetcher):
         super(WebFetcher, self).__init__(config)
         self.env = "Airflow"
         self.base_url = config.base_url
-        self.endpoint_url = config.url
+        self.endpoint_url = config.url + "/export_data"
         self.api_mode = config.api_mode
         self.rbac_username = config.rbac_username
         self.rbac_password = config.rbac_password
@@ -261,7 +261,7 @@ class DbFetcher(DataFetcher):
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
 
-        from dbnd_airflow_export.dbnd_airflow_export_plugin import get_airflow_data
+        from dbnd_airflow_export.plugin_old.data_exporting import get_airflow_data
 
         conf.set("core", "sql_alchemy_conn", value=self.sql_conn_string)
         dagbag = models.DagBag(

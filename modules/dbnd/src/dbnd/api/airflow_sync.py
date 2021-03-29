@@ -22,6 +22,8 @@ def create_airflow_instance(
     include_task_args,
     include_xcom,
     dag_ids,
+    last_seen_dag_run_id,
+    last_seen_log_id,
 ):
     client = get_databand_context().databand_api_client
     endpoint = "airflow_monitor/add"
@@ -37,6 +39,8 @@ def create_airflow_instance(
         "include_task_args": include_task_args,
         "include_xcom": include_xcom,
         "dag_ids": dag_ids,
+        "last_seen_dag_run_id": last_seen_dag_run_id,
+        "last_seen_log_id": last_seen_log_id,
     }
     client.api_request(endpoint, request_data, method="POST")
 

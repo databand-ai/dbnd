@@ -9,7 +9,7 @@ from airflow.utils.net import get_hostname
 from airflow.version import version as airflow_version
 
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
-from dbnd_airflow_export.helpers import (
+from dbnd_airflow_export.plugin_old.helpers import (
     _extract_args_from_dict,
     _get_command_from_operator,
     _get_export_plugin_version,
@@ -149,6 +149,7 @@ class EDagRun(object):
         "end_date",
         "execution_date",
         "conf",
+        "run_id",
     ]
 
     @classmethod
@@ -156,7 +157,15 @@ class EDagRun(object):
         return [getattr(DagRun, key) for key in cls.db_fields]
 
     def __init__(
-        self, dag_id, dagrun_id, start_date, state, end_date, execution_date, task_args
+        self,
+        dag_id,
+        dagrun_id,
+        start_date,
+        state,
+        end_date,
+        execution_date,
+        task_args,
+        run_id,
     ):
         self.dag_id = dag_id
         self.dagrun_id = dagrun_id
@@ -165,10 +174,19 @@ class EDagRun(object):
         self.end_date = end_date
         self.execution_date = execution_date
         self.task_args = task_args
+        self.run_id = run_id
 
     @classmethod
     def from_db_fields(
-        cls, dag_id, dagrun_id, start_date, state, end_date, execution_date, conf
+        cls,
+        dag_id,
+        dagrun_id,
+        start_date,
+        state,
+        end_date,
+        execution_date,
+        conf,
+        run_id,
     ):
         return cls(
             dag_id,
@@ -178,6 +196,7 @@ class EDagRun(object):
             end_date,
             execution_date,
             (_extract_args_from_dict(conf) if conf else {}),
+            run_id,
         )
 
     def __hash__(self):
@@ -195,6 +214,7 @@ class EDagRun(object):
             end_date=self.end_date,
             execution_date=self.execution_date,
             task_args=self.task_args,
+            run_id=self.run_id,
         )
 
 

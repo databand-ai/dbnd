@@ -3,9 +3,9 @@ import pendulum
 from airflow.models import DagRun
 from sqlalchemy import and_
 
-from dbnd_airflow_export.metrics import measure_time, save_result_size
-from dbnd_airflow_export.model import EDagRun, ETaskInstance
-from dbnd_airflow_export.task_instance_building import build_task_instance
+from dbnd_airflow_export.plugin_old.metrics import measure_time, save_result_size
+from dbnd_airflow_export.plugin_old.model import EDagRun, ETaskInstance
+from dbnd_airflow_export.plugin_old.task_instance_building import build_task_instance
 
 
 try:

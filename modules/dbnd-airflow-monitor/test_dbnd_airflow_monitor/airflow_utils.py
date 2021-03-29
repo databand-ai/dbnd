@@ -1,6 +1,8 @@
 import logging
 import os
 
+from functools import wraps
+
 import sh
 
 
@@ -18,3 +20,17 @@ def airflow_init_db(db_path):
     except sh.ErrorReturnCode as e:
         logging.exception("Failed to populate db. Exception: %s", e.stderr)
         raise
+
+
+class TestConnectionError(ConnectionError):
+    pass
+
+
+def can_be_dead(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if not args[0].alive:
+            raise TestConnectionError()
+        return f(*args, **kwargs)
+
+    return wrapped

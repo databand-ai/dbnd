@@ -5,9 +5,9 @@ from airflow.utils.db import provide_session
 from sqlalchemy.orm import joinedload
 
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
-from dbnd_airflow_export.helpers import _get_git_status
-from dbnd_airflow_export.metrics import measure_time, save_result_size
-from dbnd_airflow_export.model import EDag
+from dbnd_airflow_export.plugin_old.helpers import _get_git_status
+from dbnd_airflow_export.plugin_old.metrics import measure_time, save_result_size
+from dbnd_airflow_export.plugin_old.model import EDag
 
 
 current_dags = {}

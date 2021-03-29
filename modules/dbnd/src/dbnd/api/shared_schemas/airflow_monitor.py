@@ -40,6 +40,7 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     name = fields.String(allow_none=True)
     env = fields.String(allow_none=True)
     monitor_status = fields.String(allow_none=True)
+    monitor_config = fields.Dict(allow_none=True)  # TODO: attrs schema
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -81,3 +82,4 @@ class AirflowServerInfo(object):
     oldest_incomplete_data_in_days = attr.ib(default=None)  # type: Optional[int]
     include_xcom = attr.ib(default=None)  # type: Optional[bool]
     dag_ids = attr.ib(default=None)  # type: Optional[str]
+    monitor_config = attr.ib(default=None)  # type: Optional[Dict]

@@ -141,6 +141,9 @@ class ApiClient(object):
         finally:
             self.is_auth_required = is_auth_required
 
+    def __str__(self):
+        return "{}({})".format(self.__class__.__name__, self._api_base_url)
+
 
 def dict_dump(obj_dict, value_schema):
     """

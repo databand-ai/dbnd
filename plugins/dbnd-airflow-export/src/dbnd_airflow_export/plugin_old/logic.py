@@ -4,15 +4,15 @@ import pendulum
 
 from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow_export.dag_processing import get_dags, load_dags_models
-from dbnd_airflow_export.db_queries import (
+from dbnd_airflow_export.plugin_old.db_queries import (
     get_completed_task_instances_and_dag_runs,
     get_dag_runs_within_time_window,
     get_dag_runs_without_end_date,
     get_incomplete_task_instances_from_completed_dag_runs,
     get_task_instances_without_end_date,
 )
-from dbnd_airflow_export.metrics import measure_time
-from dbnd_airflow_export.model import ExportData
+from dbnd_airflow_export.plugin_old.metrics import measure_time
+from dbnd_airflow_export.plugin_old.model import ExportData
 
 
 def get_dags_list_only(session, dagbag, dag_ids):

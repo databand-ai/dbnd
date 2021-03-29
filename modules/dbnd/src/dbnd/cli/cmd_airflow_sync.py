@@ -141,6 +141,18 @@ def validate_composer_id(ctx, param, value):
     type=click.STRING,
     default=None,
 )
+@click.option(
+    "--last-seen-dag-run-id",
+    help="Id of the last dag run seen in the Airflow database",
+    type=click.STRING,
+    default=None,
+)
+@click.option(
+    "--last-seen-log-id",
+    help="Id of the last log seen in the Airflow database",
+    type=click.STRING,
+    default=None,
+)
 def add(
     url,
     external_url,
@@ -153,6 +165,8 @@ def add(
     include_task_args,
     include_xcom,
     dag_ids,
+    last_seen_dag_run_id,
+    last_seen_log_id,
 ):
     fetcher = "web" if instance_type == "airflow" else instance_type
     try:
@@ -168,6 +182,8 @@ def add(
             include_task_args,
             include_xcom,
             dag_ids,
+            last_seen_dag_run_id,
+            last_seen_log_id,
         )
     except DatabandApiError as e:
         logger.error("failed with - {}".format(e.response))

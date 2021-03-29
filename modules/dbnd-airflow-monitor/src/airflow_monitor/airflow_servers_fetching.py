@@ -9,9 +9,9 @@ from dbnd._core.errors.friendly_error.tools import logger_format_for_databand_er
 logger = logging.getLogger(__name__)
 
 AIRFLOW_API_MODE_TO_SUFFIX = {
-    "flask-admin": "/admin/data_export_plugin/export_data",
-    "rbac": "/exportdataviewappbuilder/export_data",
-    "experimental": "/api/experimental/export_data",
+    "flask-admin": "/admin/data_export_plugin",
+    "rbac": "/exportdataviewappbuilder",
+    "experimental": "/api/experimental",
 }
 
 DEFAULT_FETCH_QUANTITY = 100

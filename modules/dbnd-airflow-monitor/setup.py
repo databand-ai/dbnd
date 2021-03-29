@@ -20,6 +20,7 @@ setuptools.setup(
         "setuptools",
         "prometheus_client",
         "beautifulsoup4==4.9.2",
+        "tenacity<7",
     ],
     extras_require={
         "tests": [

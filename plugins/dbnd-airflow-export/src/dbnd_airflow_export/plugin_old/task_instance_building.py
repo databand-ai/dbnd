@@ -6,9 +6,9 @@ import six
 
 from airflow.models import XCom
 
-from dbnd_airflow_export.helpers import _get_log
-from dbnd_airflow_export.metrics import measure_time
-from dbnd_airflow_export.model import ETaskInstance
+from dbnd_airflow_export.plugin_old.helpers import _get_log
+from dbnd_airflow_export.plugin_old.metrics import measure_time
+from dbnd_airflow_export.plugin_old.model import ETaskInstance
 
 
 try:

@@ -35,7 +35,7 @@ def test_airflow_servers_fetching():
         assert result
         assert len(result) == 1
         assert result[0].base_url == "localhost:8082"
-        assert result[0].url == "localhost:8082/exportdataviewappbuilder/export_data"
+        assert result[0].url == "localhost:8082/exportdataviewappbuilder"
         assert result[0].api_mode == "rbac"
         assert result[0].fetcher == "web"
         assert result[0].composer_client_id is None
