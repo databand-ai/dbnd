@@ -56,13 +56,18 @@ def get_dags(dagbag, include_task_args, dag_ids, raw_data_only=False):
     return dags_list
 
 
-@save_result_size("current_dags")
-@measure_time
-def load_dags_models(session):
+def _dag_query(session):
     dag_models = session.query(DagModel)
     if hasattr(DagModel, "tags"):
         # For backward compatibility with AF < 1.10.8
         dag_models = dag_models.options(joinedload(DagModel.tags))
+    return dag_models
+
+
+@save_result_size("current_dags")
+@measure_time
+def load_dags_models(session):
+    dag_models = _dag_query(session)
 
     for dag_model in dag_models.all():
         # Exclude dbnd-run tagged runs
@@ -79,7 +84,7 @@ def get_current_dag_model(dag_id, session=None):
     # MONKEY PATCH for old DagModel.get_current to try cache first
     if dag_id not in current_dags:
         current_dags[dag_id] = (
-            session.query(DagModel).filter(DagModel.dag_id == dag_id).first()
+            _dag_query(session).filter(DagModel.dag_id == dag_id).first()
         )
 
     return current_dags[dag_id]
