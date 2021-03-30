@@ -1,13 +1,12 @@
 from typing import List
 
-from airflow_monitor.common import (
-    AirflowServerConfig,
+from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
-    DbndDagRunsResponse,
     LastSeenValues,
-    MonitorConfig,
 )
+from airflow_monitor.common.config_data import AirflowServerConfig, MonitorConfig
+from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
 
 
 class DbndAirflowTrackingService(object):

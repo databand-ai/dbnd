@@ -1,25 +1,28 @@
 import logging
 
-from functools import wraps
-from multiprocessing import Process
 from time import sleep
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Type, Union
 from uuid import UUID
 
-from airflow_monitor.common import AirflowServerConfig, MultiServerMonitorConfig
+from airflow_monitor.common import capture_monitor_exception
+from airflow_monitor.common.config_data import (
+    AirflowServerConfig,
+    MultiServerMonitorConfig,
+)
 from airflow_monitor.data_fetcher import get_data_fetcher
-from airflow_monitor.syncer.base_syncer import BaseAirflowSyncer
+from airflow_monitor.multiserver.runners import (
+    RUNNER_FACTORY,
+    MultiProcessRunner,
+    SequentialRunner,
+)
+from airflow_monitor.multiserver.runners.base_runner import BaseRunner
 from airflow_monitor.syncer.runtime_syncer import start_runtime_syncer
 from airflow_monitor.tracking_service import get_servers_configuration_service
 from airflow_monitor.tracking_service.af_tracking_service import (
     DbndAirflowTrackingService,
     ServersConfigurationService,
 )
-from dbnd._core.errors.base import (
-    DatabandConfigError,
-    DatabandConnectionException,
-    DatabandError,
-)
+from dbnd._core.errors.base import DatabandConfigError, DatabandConnectionException
 from tenacity import (
     before_sleep_log,
     retry,
@@ -32,117 +35,12 @@ from urllib3.exceptions import HTTPError
 
 logger = logging.getLogger(__name__)
 
-
-class BaseRunner(object):
-    def __init__(self, target, **kwargs):
-        self.target = target
-        self.kwargs = kwargs
-
-    def start(self):
-        raise NotImplementedError()
-
-    def stop(self):
-        raise NotImplementedError()
-
-    def heartbeat(self):
-        raise NotImplementedError()
-
-    def is_alive(self):
-        raise NotImplementedError()
-
-
-class MultiProcessRunner(BaseRunner):
-    JOIN_TIMEOUT = 60
-
-    def __init__(self, target, **kwargs):
-        super(MultiProcessRunner, self).__init__(target, **kwargs)
-        self.process = None  # type: Process
-
-    def start(self):
-        self.process = Process(target=self.target, kwargs=self.kwargs)
-        self.process.start()
-
-    def stop(self):
-        if self.process and self.is_alive():
-            self.process.terminate()
-            self.process.join(MultiProcessRunner.JOIN_TIMEOUT)
-            if self.process.is_alive():
-                self.process.kill()
-
-    def heartbeat(self):
-        # do we want to do something here?
-        pass
-
-    def is_alive(self):
-        return self.process.is_alive()
-
-
-class SequentialRunner(BaseRunner):
-    def __init__(self, target, **kwargs):
-        super(SequentialRunner, self).__init__(target, **kwargs)
-
-        self._iteration = -1
-        self._running = None  # type: Optional[BaseAirflowSyncer]
-
-    def start(self):
-        if self._running:
-            logger.warning("Already running")
-            return
-
-        try:
-            self._iteration = -1
-            self._running = self.target(**self.kwargs, run=False)
-        except Exception as e:
-            logger.exception(
-                f"Failed to create component: {self.target}({self.kwargs})"
-            )
-
-    def stop(self):
-        self._running = None
-
-    def heartbeat(self):
-        if self._running:
-            self._iteration += 1
-            try:
-                self._running.sync_once()
-            except Exception as e:
-                logger.exception(
-                    f"Failed to run sync iteration {self._iteration}: {self.target}({self.kwargs}"
-                )
-                self._running = None
-
-    def is_alive(self):
-        return bool(self._running)
-
-
-RUNNER_FACTORY = {
-    "seq": SequentialRunner,
-    "mp": MultiProcessRunner,
-}
-
 KNOWN_COMPONENTS = {
     "state_sync": start_runtime_syncer,
     # "xcom_sync": Component,
     # "dag_sync": Component,
     # "fixer": Component,
 }
-
-
-def capture_monitor_exception(message):
-    def wrapper(f):
-        @wraps(f)
-        def wrapped(self, *args, **kwargs):
-            # type: (AirflowMonitor, Any, Any) -> None
-            label = f"[Server: {self.server_config.tracking_source_uid}]"
-            try:
-                logger.debug(f"{label} {message}")
-                return f(self, *args, **kwargs)
-            except Exception:
-                logger.exception(f"{label} Error during {message}")
-
-        return wrapped
-
-    return wrapper
 
 
 class AirflowMonitor(object):
@@ -193,16 +91,16 @@ class AirflowMonitor(object):
                 component.stop()
                 self.active_components.pop(name)
 
-    @capture_monitor_exception("stopping monitor")
+    @capture_monitor_exception(logger, "stopping monitor")
     def stop(self):
         self._is_stopping = True
         self._update_component_state()
 
-    @capture_monitor_exception("starting monitor")
+    @capture_monitor_exception(logger, "starting monitor")
     def start(self):
         self._update_component_state()
 
-    @capture_monitor_exception("updating monitor config")
+    @capture_monitor_exception(logger, "updating monitor config")
     def update_config(self, server_config: AirflowServerConfig):
         self.server_config = server_config
         self._update_component_state()
@@ -210,12 +108,15 @@ class AirflowMonitor(object):
     def is_airflow_server_alive(self):
         return get_data_fetcher(self.server_config).is_alive()
 
-    @capture_monitor_exception("heartbeat monitor")
+    @capture_monitor_exception(logger, "heartbeat monitor")
     def heartbeat(self):
         for component in self.active_components.values():
             component.heartbeat()
 
         self._clean_dead_components()
+
+    def __str__(self):
+        return f"AirflowMonitor({self.server_config.tracking_source_uid})"
 
 
 class MultiServerMonitor(object):

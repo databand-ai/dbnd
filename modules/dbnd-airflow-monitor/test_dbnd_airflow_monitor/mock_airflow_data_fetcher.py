@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import attr
 
-from airflow_monitor.common import (
+from airflow_monitor.common.airflow_data import (
     AirflowDagRun,
     AirflowDagRunsResponse,
     DagRunsFullData,

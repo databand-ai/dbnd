@@ -4,9 +4,12 @@ import pytest
 
 from mock import patch
 
-from airflow_monitor.common import AirflowServerConfig, MultiServerMonitorConfig
+from airflow_monitor.common.base_component import BaseAirflowComponent
+from airflow_monitor.common.config_data import (
+    AirflowServerConfig,
+    MultiServerMonitorConfig,
+)
 from airflow_monitor.multiserver.multiserver import KNOWN_COMPONENTS, MultiServerMonitor
-from airflow_monitor.syncer.base_syncer import BaseAirflowSyncer
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 
 
@@ -38,7 +41,7 @@ def count_logged_exceptions(caplog):
     return len(logged_exceptions)
 
 
-class MockSyncer(BaseAirflowSyncer):
+class MockSyncer(BaseAirflowComponent):
     def __init__(self, *args, **kwargs):
         super(MockSyncer, self).__init__(*args, **kwargs)
         self.sync_count = 0

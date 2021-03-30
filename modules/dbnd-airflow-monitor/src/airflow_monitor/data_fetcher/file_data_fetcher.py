@@ -4,13 +4,14 @@ import os
 
 from typing import List, Optional
 
-from airflow_monitor.common import (
+from airflow_monitor.common.airflow_data import (
     AirflowDagRun,
     AirflowDagRunsResponse,
-    AirflowServerConfig,
     DagRunsFullData,
     DagRunsStateData,
+    LastSeenValues,
 )
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 
 
@@ -18,8 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 class FileFetcher(AirflowDataFetcher):
-    def get_last_seen_values(self):
-        return self._get_data("get_last_seen_values")
+    def get_last_seen_values(self) -> LastSeenValues:
+        data = self._get_data("get_last_seen_values")
+        return LastSeenValues.from_dict(data)
 
     def get_airflow_dagruns_to_sync(
         self,
@@ -27,13 +29,16 @@ class FileFetcher(AirflowDataFetcher):
         last_seen_log_id: Optional[int],
         extra_dag_run_ids: Optional[List[int]],
     ) -> AirflowDagRunsResponse:
-        return self._get_data("get_airflow_dagruns_to_sync")
+        data = self._get_data("get_airflow_dagruns_to_sync")
+        return AirflowDagRunsResponse.from_dict(data)
 
     def get_full_dag_runs(self, dagruns: List[AirflowDagRun]) -> DagRunsFullData:
-        return self._get_data("get_full_dag_runs")
+        data = self._get_data("get_full_dag_runs")
+        return DagRunsFullData.from_dict(data)
 
     def get_dag_runs_state_data(self, dagruns: List[AirflowDagRun]) -> DagRunsStateData:
-        return self._get_data("get_dag_runs_state_data")
+        data = self._get_data("get_dag_runs_state_data")
+        return DagRunsStateData.from_dict(data)
 
     def is_alive(self):
         return True

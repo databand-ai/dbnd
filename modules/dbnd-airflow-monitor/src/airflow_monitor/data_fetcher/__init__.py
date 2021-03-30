@@ -1,4 +1,4 @@
-from airflow_monitor.common import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from airflow_monitor.data_fetcher.file_data_fetcher import FileFetcher

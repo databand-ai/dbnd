@@ -6,14 +6,14 @@ from urllib.parse import urlparse
 import prometheus_client
 import requests
 
-from airflow_monitor.common import (
+from airflow_monitor.common.airflow_data import (
     AirflowDagRun,
     AirflowDagRunsResponse,
-    AirflowServerConfig,
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
 )
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.errors import (
     AirflowFetchingException,

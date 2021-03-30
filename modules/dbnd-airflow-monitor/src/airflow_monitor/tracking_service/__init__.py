@@ -1,4 +1,4 @@
-from airflow_monitor.common import TrackingServiceConfig
+from airflow_monitor.common.config_data import TrackingServiceConfig
 from airflow_monitor.tracking_service.af_tracking_service import (
     DbndAirflowTrackingService,
 )

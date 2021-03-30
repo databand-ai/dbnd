@@ -1,7 +1,7 @@
 import random
 import string
 
-from airflow_monitor.common import AirflowDagRun
+from airflow_monitor.common.airflow_data import AirflowDagRun
 from airflow_monitor.syncer.runtime_syncer import categorize_dag_runs
 
 

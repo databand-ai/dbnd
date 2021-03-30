@@ -2,14 +2,13 @@ from copy import copy
 from functools import wraps
 from typing import List, Optional
 
-from airflow_monitor.common import (
-    AirflowServerConfig,
+from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
-    DbndDagRunsResponse,
     LastSeenValues,
-    MonitorConfig,
 )
+from airflow_monitor.common.config_data import AirflowServerConfig, MonitorConfig
+from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
 from airflow_monitor.tracking_service.af_tracking_service import (
     DbndAirflowTrackingService,
     ServersConfigurationService,

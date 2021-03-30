@@ -3,14 +3,14 @@ import logging
 
 from typing import List, Optional
 
-from airflow_monitor.common import (
+from airflow_monitor.common.airflow_data import (
     AirflowDagRun,
     AirflowDagRunsResponse,
-    AirflowServerConfig,
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
 )
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 
 

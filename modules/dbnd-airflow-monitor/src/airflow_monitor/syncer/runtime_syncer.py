@@ -2,8 +2,8 @@ import logging
 
 from typing import List
 
-from airflow_monitor.common import AirflowDagRun, AirflowDagRunsResponse
-from airflow_monitor.syncer.base_syncer import BaseAirflowSyncer, start_syncer
+from airflow_monitor.common.airflow_data import AirflowDagRun, AirflowDagRunsResponse
+from airflow_monitor.common.base_component import BaseAirflowComponent, start_syncer
 
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ def categorize_dag_runs(
     return dagruns_to_init, dagruns_to_update
 
 
-class AirflowRuntimeSyncer(BaseAirflowSyncer):
+class AirflowRuntimeSyncer(BaseAirflowComponent):
     def sync_once(self):
         dbnd_response = self.tracking_service.get_dbnd_dags_to_sync(
             max_execution_date_window=self.config.max_execution_date_window

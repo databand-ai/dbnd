@@ -4,7 +4,7 @@ import pytest
 
 from mock import Mock, patch
 
-from airflow_monitor.common import MonitorConfig
+from airflow_monitor.common.config_data import MonitorConfig
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 
 from ..mock_airflow_data_fetcher import MockDagRun, MockLog

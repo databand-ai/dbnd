@@ -4,15 +4,17 @@ import typing
 
 from typing import List
 
-from airflow_monitor.common import (
-    AirflowServerConfig,
+from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
-    DbndDagRunsResponse,
     LastSeenValues,
+)
+from airflow_monitor.common.config_data import (
+    AirflowServerConfig,
     MonitorConfig,
     TrackingServiceConfig,
 )
+from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.tracking_service.af_tracking_service import (
     DbndAirflowTrackingService,
