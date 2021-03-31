@@ -99,8 +99,8 @@ class MockDataFetcher(AirflowDataFetcher):
         )
 
     @can_be_dead
-    def get_full_dag_runs(self, dagruns: List[AirflowDagRun]) -> DagRunsFullData:
-        dag_run_ids = [dr.id for dr in dagruns]
+    def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
+        dag_run_ids = [dr_id for dr_id in dag_run_ids]
         return DagRunsFullData(
             dags=[],
             dag_runs=[dr for dr in self.dag_runs if dr.id in dag_run_ids],
@@ -113,8 +113,8 @@ class MockDataFetcher(AirflowDataFetcher):
         )
 
     @can_be_dead
-    def get_dag_runs_state_data(self, dagruns: List[AirflowDagRun]) -> DagRunsStateData:
-        dag_run_ids = {dr.id for dr in dagruns}
+    def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
+        dag_run_ids = {dr_id for dr_id in dag_run_ids}
         return DagRunsStateData(
             dag_runs=[dr for dr in self.dag_runs if dr.id in dag_run_ids],
             task_instances=[

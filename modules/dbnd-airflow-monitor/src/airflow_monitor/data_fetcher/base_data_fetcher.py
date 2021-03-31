@@ -26,10 +26,10 @@ class AirflowDataFetcher(object):
     ) -> AirflowDagRunsResponse:
         raise NotImplementedError()
 
-    def get_full_dag_runs(self, dagruns: List[AirflowDagRun]) -> DagRunsFullData:
+    def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
         raise NotImplementedError()
 
-    def get_dag_runs_state_data(self, dagruns: List[AirflowDagRun]) -> DagRunsStateData:
+    def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
         raise NotImplementedError()
 
     def is_alive(self):

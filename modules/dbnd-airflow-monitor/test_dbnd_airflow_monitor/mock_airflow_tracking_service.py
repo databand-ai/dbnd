@@ -78,9 +78,16 @@ class MockTrackingService(DbndAirflowTrackingService):
 
     @can_be_dead
     @ticking
-    def get_dbnd_dags_to_sync(
-        self, max_execution_date_window: int
-    ) -> DbndDagRunsResponse:
+    def get_all_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+        return DbndDagRunsResponse(
+            dag_run_ids=[dag_run.id for dag_run in self.dag_runs],
+            last_seen_dag_run_id=None,
+            last_seen_log_id=None,
+        )
+
+    @can_be_dead
+    @ticking
+    def get_active_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
         return DbndDagRunsResponse(
             dag_run_ids=[
                 dag_run.id
@@ -102,7 +109,10 @@ class MockTrackingService(DbndAirflowTrackingService):
     @can_be_dead
     @ticking
     def init_dagruns(
-        self, dag_runs_full_data: DagRunsFullData, last_seen_dag_run_id: int
+        self,
+        dag_runs_full_data: DagRunsFullData,
+        last_seen_dag_run_id: int,
+        syncer_type: str,
     ):
         for dag_run in dag_runs_full_data.dag_runs:
             dag_run = copy(dag_run)  # type: MockDagRun
@@ -120,7 +130,10 @@ class MockTrackingService(DbndAirflowTrackingService):
     @can_be_dead
     @ticking
     def update_dagruns(
-        self, dag_runs_state_data: DagRunsStateData, last_seen_log_id: int
+        self,
+        dag_runs_state_data: DagRunsStateData,
+        last_seen_log_id: int,
+        syncer_type: str,
     ):
         for ti in dag_runs_state_data.task_instances:
             self.dag_runs[self._get_dagrun_index(ti)].test_updated_at = ticker.now

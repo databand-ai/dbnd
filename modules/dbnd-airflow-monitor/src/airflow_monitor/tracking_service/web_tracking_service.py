@@ -2,6 +2,7 @@ import json
 import logging
 import typing
 
+from datetime import timedelta
 from typing import List
 
 from airflow_monitor.common.airflow_data import (
@@ -20,6 +21,7 @@ from airflow_monitor.tracking_service.af_tracking_service import (
     DbndAirflowTrackingService,
     ServersConfigurationService,
 )
+from dbnd._core.utils.timezone import utctoday
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +44,13 @@ def _get_api_client(tracking_service_config: TrackingServiceConfig) -> "ApiClien
     return ApiClient(tracking_service_config.url, credentials=credentials)
 
 
+def _min_start_time(start_time_window):
+    if not start_time_window:
+        return {}
+
+    return {"min_start_time": utctoday() - timedelta(days=start_time_window)}
+
+
 class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
     def __init__(
         self, tracking_source_uid, tracking_service_config: TrackingServiceConfig
@@ -52,44 +61,73 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
     def _url_for(self, name):
         return "tracking/{}/{}".format(self.tracking_source_uid, name)
 
-    def update_last_seen_values(self, last_seen_values: LastSeenValues):
-        response = self._api_client.api_request(
-            endpoint=self._url_for("update_last_seen_values"),
-            method="POST",
-            data=last_seen_values.as_dict(),
+    def _make_request(self, name, method, data, query=None):
+        return self._api_client.api_request(
+            endpoint=self._url_for(name), method=method, data=data, query=query
         )
 
-    def get_dbnd_dags_to_sync(
-        self, max_execution_date_window: int
-    ) -> DbndDagRunsResponse:
-        response = self._api_client.api_request(
-            endpoint=self._url_for("get_running_dag_runs"), method="GET", data=None,
+    def update_last_seen_values(self, last_seen_values: LastSeenValues):
+        response = self._make_request(
+            "update_last_seen_values", method="POST", data=last_seen_values.as_dict(),
+        )
+
+    def get_all_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+        response = self._make_request(
+            "get_all_dag_runs",
+            method="GET",
+            data=None,
+            query=_min_start_time(start_time_window),
+        )
+        dags_to_sync = DbndDagRunsResponse.from_dict(response)
+
+        return dags_to_sync
+
+    def get_active_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+        response = self._make_request(
+            "get_running_dag_runs",
+            method="GET",
+            data=None,
+            # query=_min_start_time(start_time_window),
         )
         dags_to_sync = DbndDagRunsResponse.from_dict(response)
 
         return dags_to_sync
 
     def init_dagruns(
-        self, dag_runs_full_data: DagRunsFullData, last_seen_dag_run_id: int
+        self,
+        dag_runs_full_data: DagRunsFullData,
+        last_seen_dag_run_id: int,
+        syncer_type: str,
     ):
         data = dag_runs_full_data.as_dict()
         data["last_seen_dag_run_id"] = last_seen_dag_run_id
-        response = self._api_client.api_request(
-            endpoint=self._url_for("init_dagruns"), method="POST", data=data
-        )
+        data["syncer_type"] = syncer_type
+        response = self._make_request("init_dagruns", method="POST", data=data)
         return response
 
     def update_dagruns(
-        self, dag_runs_state_data: DagRunsStateData, last_seen_log_id: int
+        self,
+        dag_runs_state_data: DagRunsStateData,
+        last_seen_log_id: int,
+        syncer_type: str,
     ):
         data = dag_runs_state_data.as_dict()
         data["last_seen_log_id"] = last_seen_log_id
-        response = self._api_client.api_request(
-            endpoint=self._url_for("update_dagruns"), method="POST", data=data
-        )
+        data["syncer_type"] = syncer_type
+        response = self._make_request("update_dagruns", method="POST", data=data)
         return response
 
     def get_monitor_configuration(self) -> MonitorConfig:
+        result_json = self._get_airflow_web_servers_data()
+        if not result_json:
+            raise Exception()  # TODO
+        if len(result_json) > 1:
+            raise Exception()  # TODO
+
+        airflow_config = AirflowMonitorConfig()
+        return MonitorConfig.create(airflow_config, result_json[0])
+
+    def _get_airflow_web_servers_data(self):
         response = self._api_client.api_request(
             endpoint="airflow_web_servers",
             method="GET",
@@ -107,13 +145,7 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
             },
         )
         result_json = response["data"]
-        if not result_json:
-            raise Exception()  # TODO
-        if len(result_json) > 1:
-            raise Exception()  # TODO
-
-        airflow_config = AirflowMonitorConfig()
-        return MonitorConfig.create(airflow_config, result_json[0])
+        return result_json
 
 
 class WebServersConfigurationService(ServersConfigurationService):
@@ -122,10 +154,7 @@ class WebServersConfigurationService(ServersConfigurationService):
 
     def get_all_servers_configuration(self) -> List[AirflowServerConfig]:
         airflow_config = AirflowMonitorConfig()
-        response = self._api_client.api_request(
-            endpoint="airflow_web_servers", method="GET", data=None
-        )
-        result_json = response["data"]
+        result_json = self._get_airflow_web_servers_data()
         servers = [
             AirflowServerConfig.create(airflow_config, server) for server in result_json
         ]
@@ -137,3 +166,10 @@ class WebServersConfigurationService(ServersConfigurationService):
         #         )
         #     )
         #     return []
+
+    def _get_airflow_web_servers_data(self):
+        response = self._api_client.api_request(
+            endpoint="airflow_web_servers", method="GET", data=None
+        )
+        result_json = response["data"]
+        return result_json

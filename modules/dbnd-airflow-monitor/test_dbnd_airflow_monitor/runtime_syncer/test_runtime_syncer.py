@@ -5,6 +5,7 @@ import pytest
 from mock import Mock, patch
 
 from airflow_monitor.common.config_data import MonitorConfig
+from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 
 from ..mock_airflow_data_fetcher import MockDagRun, MockLog
@@ -23,6 +24,40 @@ def runtime_syncer(mock_data_fetcher, mock_tracking_service):
         yield syncer
 
 
+@pytest.fixture
+def runtime_fixer(mock_data_fetcher, mock_tracking_service):
+    syncer = AirflowRuntimeFixer(
+        MonitorConfig(tracking_source_uid=mock_tracking_service.tracking_source_uid),
+        tracking_service=mock_tracking_service,
+        data_fetcher=mock_data_fetcher,
+    )
+    with patch.object(
+        syncer, "tracking_service", wraps=syncer.tracking_service
+    ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher):
+        yield syncer
+
+
+def expect_fixer_changes(runtime_fixer, update=0, reset=True, case=None):
+    patched_data_fetcher = runtime_fixer.data_fetcher
+    patched_tracking_service = runtime_fixer.tracking_service
+    prefix = f"case: {case}: " if case else ""
+
+    assert (
+        patched_tracking_service.get_all_dag_runs.call_count == 1
+    ), f"{prefix} get_all_dag_runs.call_count doesn't match"
+
+    assert (
+        patched_data_fetcher.get_dag_runs_state_data.call_count == update
+    ), f"{prefix} get_dag_runs_state_data.call_count doesn't match"
+    assert (
+        patched_tracking_service.update_dagruns.call_count == update
+    ), f"{prefix} update_dagruns.call_count doesn't match"
+
+    if reset:
+        patched_data_fetcher.reset_mock()
+        patched_tracking_service.reset_mock()
+
+
 def expect_changes(
     runtime_syncer, init=0, update=0, is_dbnd_empty=False, reset=True, case=None
 ):
@@ -37,11 +72,11 @@ def expect_changes(
     if is_dbnd_empty:
         assert patched_tracking_service.update_last_seen_values.call_count == 1
         assert (
-            patched_tracking_service.get_dbnd_dags_to_sync.call_count == 2
+            patched_tracking_service.get_active_dag_runs.call_count == 2
         ), f"{prefix} get_dbnd_dags_to_sync.call_count doesn't match"
     else:
         assert (
-            patched_tracking_service.get_dbnd_dags_to_sync.call_count == 1
+            patched_tracking_service.get_active_dag_runs.call_count == 1
         ), f"{prefix} get_dbnd_dags_to_sync.call_count doesn't match"
 
     assert (
@@ -120,7 +155,7 @@ class TestRuntimeSyncer:
             [MockDagRun(id=i, dag_id=f"dag{i}") for i in range(11)],
             key=lambda _: random.random(),
         )
-        runtime_syncer.config.init_dag_run_bulk_size = 3
+        runtime_syncer.config.dag_run_bulk_size = 3
         runtime_syncer.sync_once()
 
         # we should have 4 init calls - 3 iterations of 3 dag runs and 1 iteration of 2
@@ -147,7 +182,7 @@ class TestRuntimeSyncer:
             [MockDagRun(id=i, dag_id=f"dag{i}") for i in range(11)],
             key=lambda _: random.random(),
         )
-        runtime_syncer.config.init_dag_run_bulk_size = 0
+        runtime_syncer.config.dag_run_bulk_size = 0
         runtime_syncer.sync_once()
         expect_changes(
             runtime_syncer, init=1, update=0, is_dbnd_empty=True, reset=False
@@ -169,7 +204,7 @@ class TestRuntimeSyncer:
     #         [MockDagRun(id=i, dag_id=f"dag{i}", state="FINISHED", max_log_id=i) for i in range(11)],
     #         key=lambda _: random.random(),
     #     )
-    #     runtime_syncer.config.init_dag_run_bulk_size = 4
+    #     runtime_syncer.config.dag_run_bulk_size = 4
     #     runtime_syncer.sync_once()
     #     expect_changes(
     #         runtime_syncer, init=0, update=3, is_dbnd_empty=True, reset=False
@@ -199,7 +234,7 @@ class TestRuntimeSyncer:
             [MockDagRun(id=i, dag_id=f"dag{i}", state="FINISHED") for i in range(11)],
             key=lambda _: random.random(),
         )
-        runtime_syncer.config.init_dag_run_bulk_size = 0
+        runtime_syncer.config.dag_run_bulk_size = 0
         runtime_syncer.sync_once()
         expect_changes(
             runtime_syncer, init=0, update=1, is_dbnd_empty=True, reset=False
@@ -298,3 +333,64 @@ class TestRuntimeSyncer:
         assert mock_tracking_service.last_seen_dag_run_id == 10
         assert mock_tracking_service.last_seen_log_id == 21
         assert not mock_tracking_service.dag_runs
+
+
+class TestRuntimeFixer:
+    def test_01_initial_state(
+        self, runtime_fixer, mock_data_fetcher, mock_tracking_service
+    ):
+        mock_tracking_service.dag_runs = []
+        mock_data_fetcher.dag_runs = [MockDagRun(id=1)]
+
+        runtime_fixer.sync_once()
+
+        expect_fixer_changes(runtime_fixer, update=0)
+        assert not mock_tracking_service.dag_runs
+
+    def test_02_simple_update(
+        self, runtime_fixer, mock_data_fetcher, mock_tracking_service
+    ):
+        mock_tracking_service.dag_runs = [MockDagRun(id=2)]
+        mock_data_fetcher.dag_runs = [
+            MockDagRun(id=1),
+            MockDagRun(id=2),
+            MockDagRun(id=3),
+        ]
+
+        runtime_fixer.sync_once()
+
+        expect_fixer_changes(runtime_fixer, update=1)
+        assert len(mock_tracking_service.dag_runs) == 1
+
+    def test_03_update_bulk(
+        self, runtime_fixer, mock_data_fetcher, mock_tracking_service
+    ):
+        mock_tracking_service.dag_runs = sorted(
+            [MockDagRun(id=i, dag_id=f"dag{i}") for i in range(11)],
+            key=lambda _: random.random(),
+        )
+        mock_data_fetcher.dag_runs = sorted(
+            [MockDagRun(id=i, dag_id=f"dag{i}") for i in range(11)],
+            key=lambda _: random.random(),
+        )
+        runtime_fixer.config.dag_run_bulk_size = 3
+        runtime_fixer.sync_once()
+
+        # we should have 4 init calls - 3 iterations of 3 dag runs and 1 iteration of 2
+        expect_fixer_changes(
+            runtime_fixer,
+            update=4,
+            reset=False,
+            case="should have 4 init calls - 3 iterations of 3 dag runs and 1 iteration of 2",
+        )
+
+        # noinspection PyTypeChecker
+        mock_update_dagruns = (
+            runtime_fixer.tracking_service.update_dagruns
+        )  # type: Mock
+
+        # called for dagruns: 10,9,8 ; 7,6,5 ; 4,3,2 ; 1,0 (order inside bulk doesn't matter)
+        for i in range(4):
+            assert sorted(
+                dr.id for dr in mock_update_dagruns.call_args_list[i].args[0].dag_runs
+            ) == sorted(list(range(10 - i * 3, 10 - min(i * 3 + 3, 11), -1)))

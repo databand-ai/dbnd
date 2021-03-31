@@ -24,11 +24,12 @@ class BaseAirflowComponent(object):
         self.config = config
         self.data_fetcher = data_fetcher
         self.tracking_service = tracking_service
+        self.sleep_interval = config.interval
 
     def run(self):
         while True:
             self.sync_once()
-            time.sleep(self.config.interval)
+            time.sleep(self.sleep_interval)
 
     def sync_once(self):
         raise NotImplementedError()

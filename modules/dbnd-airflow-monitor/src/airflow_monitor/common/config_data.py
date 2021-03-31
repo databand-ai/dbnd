@@ -1,3 +1,6 @@
+from typing import List, Optional
+from uuid import UUID
+
 import attr
 
 
@@ -51,10 +54,12 @@ class AirflowServerConfig(object):
 
 @attr.s
 class MonitorConfig(AirflowServerConfig):
-    init_dag_run_bulk_size = attr.ib(default=10)  # type: int
+    dag_run_bulk_size = attr.ib(default=10)  # type: int
 
-    max_execution_date_window = attr.ib(default=14)  # type: int
+    start_time_window = attr.ib(default=14)  # type: int
     interval = attr.ib(default=10)  # type: int
+
+    fix_interval = attr.ib(default=600)  # type: int
 
 
 @attr.s
@@ -73,3 +78,4 @@ class TrackingServiceConfig:
     access_token = attr.ib(default=None)
     user = attr.ib(default=None)
     password = attr.ib(default=None)
+    service_type = attr.ib(default=None)

@@ -177,16 +177,19 @@ class WebFetcher(AirflowDataFetcher):
         data = self._make_request("new_runs", data_to_send)
         return AirflowDagRunsResponse.from_dict(data)
 
-    def get_full_dag_runs(self, dagruns: List[AirflowDagRun]) -> DagRunsFullData:
+    def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
         data = self._make_request(
-            "full_runs", dict(dag_run_ids=",".join([str(dr.id) for dr in dagruns]))
+            "full_runs",
+            dict(dag_run_ids=",".join([str(dr_id) for dr_id in dag_run_ids])),
         )
         return DagRunsFullData.from_dict(data)
 
-    def get_dag_runs_state_data(self, dagruns: List[AirflowDagRun]) -> DagRunsStateData:
+    def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
         data_to_send = {}
-        if dagruns:
-            data_to_send["dag_run_ids"] = ",".join([str(dr.id) for dr in dagruns])
+        if dag_run_ids:
+            data_to_send["dag_run_ids"] = ",".join(
+                [str(dr_id) for dr_id in dag_run_ids]
+            )
         data = self._make_request("runs_states_data", data_to_send)
         return DagRunsStateData.from_dict(data)
 

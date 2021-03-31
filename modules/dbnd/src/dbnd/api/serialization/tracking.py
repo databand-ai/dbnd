@@ -13,6 +13,10 @@ class UpdateLastSeenValuesRequestSchema(ApiObjectSchema):
     last_seen_log_id = fields.Integer()
 
 
+class GetAllDagRunsRequestSchema(ApiObjectSchema):
+    min_start_time = fields.DateTime(allow_none=True)
+
+
 class TaskSchema(ApiObjectSchema):
     upstream_task_ids = fields.List(fields.String())
     downstream_task_ids = fields.List(fields.String())
@@ -88,6 +92,7 @@ class InitDagRunsRequestSchema(ApiObjectSchema):
 
     airflow_export_meta = fields.Nested(AirflowExportMetaSchema, required=False)
     error_message = fields.String(required=False, allow_none=True)
+    syncer_type = fields.String(allow_none=True)
 
 
 class OkResponseSchema(ApiObjectSchema):
@@ -101,3 +106,4 @@ class UpdateDagRunsRequestSchema(ApiObjectSchema):
 
     airflow_export_meta = fields.Nested(AirflowExportMetaSchema, required=False)
     error_message = fields.String(required=False, allow_none=True)
+    syncer_type = fields.String(allow_none=True)

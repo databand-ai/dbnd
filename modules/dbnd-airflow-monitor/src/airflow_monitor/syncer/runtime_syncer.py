@@ -55,9 +55,11 @@ def categorize_dag_runs(
 
 
 class AirflowRuntimeSyncer(BaseAirflowComponent):
+    SYNCER_TYPE = "runtime_syncer"
+
     def sync_once(self):
-        dbnd_response = self.tracking_service.get_dbnd_dags_to_sync(
-            max_execution_date_window=self.config.max_execution_date_window
+        dbnd_response = self.tracking_service.get_active_dag_runs(
+            start_time_window=self.config.start_time_window
         )
         if (
             dbnd_response.last_seen_dag_run_id is None
@@ -71,8 +73,8 @@ class AirflowRuntimeSyncer(BaseAirflowComponent):
 
             self.tracking_service.update_last_seen_values(last_seen_values)
 
-            dbnd_response = self.tracking_service.get_dbnd_dags_to_sync(
-                max_execution_date_window=self.config.max_execution_date_window
+            dbnd_response = self.tracking_service.get_active_dag_runs(
+                start_time_window=self.config.start_time_window
             )
 
         airflow_response = self.data_fetcher.get_airflow_dagruns_to_sync(
@@ -94,12 +96,13 @@ class AirflowRuntimeSyncer(BaseAirflowComponent):
 
         dagruns = sorted(dagruns, key=lambda dr: dr.id)  # type: List[AirflowDagRun]
 
-        bulk_size = self.config.init_dag_run_bulk_size or len(dagruns)
+        bulk_size = self.config.dag_run_bulk_size or len(dagruns)
         for i in range(0, len(dagruns), bulk_size):
             dagruns_chunk = dagruns[i : i + bulk_size]
-            dag_runs_full_data = self.data_fetcher.get_full_dag_runs(dagruns_chunk)
+            dag_run_ids = [dr.id for dr in dagruns_chunk]
+            dag_runs_full_data = self.data_fetcher.get_full_dag_runs(dag_run_ids)
             self.tracking_service.init_dagruns(
-                dag_runs_full_data, max(dr.id for dr in dagruns_chunk)
+                dag_runs_full_data, max(dag_run_ids), self.SYNCER_TYPE
             )
 
     def update_dagruns(self, dagruns: List[AirflowDagRun]):
@@ -110,15 +113,16 @@ class AirflowRuntimeSyncer(BaseAirflowComponent):
             dagruns, key=lambda dr: (dr.max_log_id is None, dr.max_log_id)
         )  # type: List[AirflowDagRun]
 
-        bulk_size = self.config.init_dag_run_bulk_size or len(dagruns)
+        bulk_size = self.config.dag_run_bulk_size or len(dagruns)
         for i in range(0, len(dagruns), bulk_size):
             dagruns_chunk = dagruns[i : i + bulk_size]
-            dag_runs_state_data = self.data_fetcher.get_dag_runs_state_data(
-                dagruns_chunk
-            )
+            dag_run_ids = [dr.id for dr in dagruns_chunk]
+            dag_runs_state_data = self.data_fetcher.get_dag_runs_state_data(dag_run_ids)
             max_logs_ids = [dr.max_log_id for dr in dagruns_chunk if dr.max_log_id]
             self.tracking_service.update_dagruns(
-                dag_runs_state_data, max(max_logs_ids) if max_logs_ids else None
+                dag_runs_state_data,
+                max(max_logs_ids) if max_logs_ids else None,
+                self.SYNCER_TYPE,
             )
 
 

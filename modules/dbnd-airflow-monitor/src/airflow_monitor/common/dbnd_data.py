@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import attr
 
 
@@ -11,6 +13,6 @@ class DbndDagRunsResponse:
     def from_dict(cls, response):
         return cls(
             dag_run_ids=response["dag_run_ids"],
-            last_seen_dag_run_id=response["last_seen_dag_run_id"],
-            last_seen_log_id=response["last_seen_log_id"],
+            last_seen_dag_run_id=response.get("last_seen_dag_run_id"),
+            last_seen_log_id=response.get("last_seen_log_id"),
         )
