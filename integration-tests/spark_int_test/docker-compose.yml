@@ -32,6 +32,7 @@ services:
       - DBND__CORE__DATABAND_URL=http://databand_webserver:8080
       - DBND_HOME=/app/integration-test
       - DBND__LOG_SPARK=True
+      - DBND__SPARK__LISTENER_INJECT_ENABLED=True
       - PYTEST_ADDOPTS=--junit-xml /app/junit/inttest-spark_int_test-${IMAGE_EXTRA_TAG}.xml
     command:
       - bash

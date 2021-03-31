@@ -35,6 +35,11 @@ def dbnd_run_cmd(task_name):
 class TestSparkRun(object):
     def test_spark_inline(self):
         output = dbnd_run_cmd("word_count_inline.word_count_inline").stderr.decode()
+        assert "stage-2.runJob.internal.metrics.resultSize=1952" in output, output
+        assert "stage-6.runJob.internal.metrics.resultSize=1622" in output, output
+        assert (
+            "stage-6.runJob.internal.metrics.shuffle.read.localBytesRead=111" in output
+        ), output
         assert "Your run has been successfully executed!" in output, output
 
     def test_spark_task_class(self):

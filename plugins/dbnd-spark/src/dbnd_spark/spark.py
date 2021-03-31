@@ -19,7 +19,11 @@ from dbnd._core.utils.traversing import flatten
 from dbnd.tasks.py_distribution.fat_wheel_tasks import fat_wheel_building_task
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_config import SparkConfig, SparkEngineConfig
-from dbnd_spark.spark_session import get_spark_session
+from dbnd_spark.spark_session import (
+    get_spark_session,
+    inject_spark_listener,
+    shutdown_callback_server,
+)
 from targets import DirTarget
 from targets.file_target import FileTarget
 
@@ -210,7 +214,23 @@ class PySparkInlineTask(_BaseSparkTask):
         )
 
     def _task_run(self):
+        if self.spark_config.listener_inject_enabled:
+            try:
+                inject_spark_listener(get_spark_session())
+            except Exception as e:
+                logger.error(
+                    "Unable to inject Databand Spark Listener. Error: %s" % (e,)
+                )
+
         super(PySparkInlineTask, self)._task_run()
+
+        if self.spark_config.listener_inject_enabled:
+            try:
+                shutdown_callback_server()
+            except Exception as e:
+                logger.error(
+                    "Unable to shutdown Py4J callback server. Error: %s" % (e,)
+                )
 
         if self._get_spark_ctrl().stop_spark_session_on_finish:
             session = get_spark_session()
