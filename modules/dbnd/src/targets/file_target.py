@@ -146,6 +146,10 @@ class FileTarget(DataTarget):
         self.mark_success()
 
     def copy_from_local(self, local_path):
+        # type: (str) -> None
+        """
+        Copy the file or target in the local_path to the this file target
+        """
         self.fs.copy_from_local(local_path, self.path)
 
     def download(self, local_path, **kwargs):
