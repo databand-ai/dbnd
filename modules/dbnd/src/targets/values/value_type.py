@@ -353,7 +353,10 @@ class InlineValueType(ValueType):
 
     @property
     def type_str(self):
-        return self._type.__name__
+        try:
+            return self._type.__name__
+        except AttributeError:
+            return self._type.__class__.__name__
 
 
 def _isinstances(list_obj, type_):
