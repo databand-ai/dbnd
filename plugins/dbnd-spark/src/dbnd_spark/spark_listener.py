@@ -64,12 +64,12 @@ class DbndSparkListener(SparkListener):
     def onStageCompleted(self, stageCompleted):
         stage_info = stageCompleted.stageInfo()
         transformation_name = stage_info.name()[0 : stage_info.name().index(" ")]
-        metric_prefix = f"stage-{stage_info.stageId()}.{transformation_name}"
+        metric_prefix = "stage-{}.{}".format(stage_info.stageId(), transformation_name)
         it = stage_info.taskMetrics().accumulators().iterator()
         metrics = {}
         while it.hasNext():
             next_metric = it.next()
-            key = f"{metric_prefix}.{next_metric.name().get()}"
+            key = "{}.{}".format(metric_prefix, next_metric.name().get())
             value = next_metric.value()
             metrics[key] = value
         log_metrics(metrics, "spark")
