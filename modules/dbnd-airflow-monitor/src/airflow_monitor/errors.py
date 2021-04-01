@@ -25,7 +25,8 @@ def failed_to_connect_to_airflow_server(url, nested_exception):
         show_exc_info=False,
         nested_exceptions=nested_exception,
         help_msg="1. Make sure that Airflow server is up and running.\n"
-        "2. Make sure that airflow server was configured correctly in databand webserver.",
+        "2. Make sure that airflow server was configured correctly in databand webserver.\n"
+        "3. In case you use docker, make sure dbnd-airflow-monitor is in the same network as Airflow server.",
     )
 
 
