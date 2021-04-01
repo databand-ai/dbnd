@@ -4,19 +4,17 @@ import typing
 
 from contextlib import contextmanager
 
-import six
-
 from dbnd._core.log.logging_utils import find_handler, redirect_stderr, redirect_stdout
 from dbnd._core.settings import LocalEnvConfig
 from dbnd._core.settings.log import _safe_is_typeof
 from dbnd._core.task_run.log_preview import read_dbnd_log_preview
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.utils.string_utils import merge_dbnd_and_spark_logs
-from targets import target
+from targets.target_config import TargetConfig
 
 
 if typing.TYPE_CHECKING:
-    pass
+    from targets import FileTarget
+
 logger = logging.getLogger(__name__)
 
 CURRENT_TASK_HANDLER_LOG = None
@@ -28,18 +26,20 @@ class TaskRunLogManager(TaskRunCtrl):
 
         self.local_log_file = self.task_run.local_task_run_root.partition(
             name="%s.log" % task_run.attempt_number
-        )
+        )  # type: FileTarget
 
         if os.getenv("DBND__LOG_SPARK"):
             self.local_spark_log_file = self.task_run.local_task_run_root.partition(
                 name="%s-spark.log" % task_run.attempt_number
-            )
+            )  # type: FileTarget
 
         self.remote_log_file = None
         if not isinstance(self.task.task_env, LocalEnvConfig):
             self.remote_log_file = self.task_run.attempt_folder.partition(
-                "%s.log" % task_run.attempt_number
-            )
+                name=str(task_run.attempt_number),
+                config=TargetConfig().as_file().txt,
+                extension=".log",
+            )  # type: FileTarget
 
         # file handler for task log
         # if set -> we are in the context of capturing
@@ -168,10 +168,17 @@ class TaskRunLogManager(TaskRunCtrl):
     def _upload_task_log_preview(self):
         try:
             log_body = self.read_log_body()
-            self.write_remote_log(log_body)
-            self.save_log_preview(log_body)
-        except Exception as save_log_ex:
-            logger.error("failed to save log preview for %s:%s", self, save_log_ex)
+        except Exception as read_log_err:
+            logger.exception("failed to read log preview for %s:%s", self, read_log_err)
+        else:
+            try:
+                self.save_log_preview(log_body)
+            except Exception as save_log_err:
+                logger.exception(
+                    "failed to save task run log preview for %s:%s", self, save_log_err
+                )
+
+        self.write_remote_log()
 
     def read_log_body(self):
         try:
@@ -189,15 +196,27 @@ class TaskRunLogManager(TaskRunCtrl):
             )
             return None
 
-    def write_remote_log(self, log_body):
-        if self.task.settings.log.remote_logging_disabled or not self.remote_log_file:
+    def write_remote_log(self):
+        if (
+            self.task.settings.log.remote_logging_disabled
+            or self.remote_log_file is None
+        ):
             return
 
         try:
-            self.remote_log_file.write(log_body)
+            self.remote_log_file.copy_from_local(self.local_log_file.path)
+
         except Exception as ex:
-            # todo add remote log path to error
-            logger.warning("Failed to write remote log for %s: %s", self.task, ex)
+            logger.warning(
+                "Failed to upload the log from {local_path} "
+                "to the remote log at {remote_log} "
+                "for task {task}: {exception}".format(
+                    local_path=self.local_log_file.path,
+                    remote_log=self.remote_log_file.path,
+                    task=self.task,
+                    exception=ex,
+                )
+            )
 
     def save_log_preview(self, log_body):
         self.task_run.tracker.save_task_run_log(log_body, self.local_log_file)
