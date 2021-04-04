@@ -496,7 +496,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             task_run=task_run, msg=error_msg, help_msg=error_help_msg,
         )
 
-        if ti_state in State.finished:
+        if ti_state in State.finished():
             # Pod has failed, however, Airflow managed to update the state
             # that means - all code (including dbnd) were executed
             # let just notify the error, so we can show it in summary it
@@ -504,12 +504,19 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             dbnd_state = AIRFLOW_TO_DBND_STATE_MAP.get(ti_state, None)
             task_run.set_task_run_state(dbnd_state, track=False, error=task_run_error)
 
+            if dbnd_state == TaskRunState.FAILED:
+                color = "red"
+            elif dbnd_state == TaskRunState.SUCCESS:
+                color = "cyan"
+            else:
+                color = "yellow"
+
             self.log.info(
                 "%s",
                 task_run.task.ctrl.banner(
                     "Task %s(%s) - pod %s has failed, airflow state=%s!"
                     % (task_run.task.task_name, task_id, pod_name, ti_state),
-                    color="red",
+                    color=color,
                     task_run=task_run,
                 ),
             )
@@ -614,7 +621,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         task_instance.handle_failure(str(task_run_error.exception), session=session)
 
         # will be logged to help debug why we did or didn't retry the task
-        retry_data = "task.retries = {reties}, try_number = {try_number}, max_tries = {max_tries}, ".format(
+        retry_data = "task.retries={reties}, try_number={try_number}, max_tries={max_tries}.".format(
             reties=task_instance.task.retries,
             try_number=task_instance.try_number,
             max_tries=task_instance.max_tries,
