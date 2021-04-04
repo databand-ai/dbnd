@@ -48,7 +48,7 @@ class TaskRunError(object):
     @classmethod
     def build_from_message(cls, task_run, msg, help_msg):
         """
-        Builds TaskRunErrror from string
+        Builds TaskRunError from string
         TODO: very ugly hack, we need to support TaskRunError without exc_info
         :param task_run:
         :param msg:
