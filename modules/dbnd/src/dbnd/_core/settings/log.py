@@ -63,6 +63,7 @@ class LoggingConfig(config.Config):
     sentry_env = parameter(default="dev", description="Environment for sentry logger")[
         str
     ]
+    sentry_release = parameter(default="", description="Release for sentry logger")[str]
     sentry_debug = parameter(default=False, description="Unable debug flag for sentry")[
         bool
     ]

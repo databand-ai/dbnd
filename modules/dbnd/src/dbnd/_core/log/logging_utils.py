@@ -235,6 +235,7 @@ def try_init_sentry():
             sentry_sdk.init(
                 dsn=sentry_url,
                 environment=logging_config.sentry_env,
+                release=logging_config.sentry_release,
                 debug=logging_config.sentry_debug,
             )
 
@@ -242,8 +243,10 @@ def try_init_sentry():
             logging_config.disable_colors = True
 
             logger.debug(
-                "running with sentry. dsn={dsn}, environment={environment}".format(
-                    dsn=sentry_url, environment=logging_config.sentry_env
+                "running with sentry. dsn={dsn}, environment={environment}, release={release}".format(
+                    dsn=sentry_url,
+                    environment=logging_config.sentry_env,
+                    release=logging_config.sentry_release,
                 )
             )
 
