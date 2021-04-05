@@ -132,6 +132,7 @@ class AirflowServersGetter(object):
                 )
                 for server in result_json
                 if server["is_sync_enabled"]
+                and not server.get("is_sync_enabled_v2", False)
             ]
             return servers
         except Exception as e:

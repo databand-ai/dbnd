@@ -23,6 +23,7 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     api_mode = fields.String(allow_none=True)
     sync_interval = fields.Integer(allow_none=True)
     is_sync_enabled = fields.Boolean(allow_none=True)
+    is_sync_enabled_v2 = fields.Boolean(allow_none=True)
     fetcher = fields.String(allow_none=True)
     composer_client_id = fields.String(allow_none=True)
     active_dags = fields.Dict(allow_none=True)
@@ -73,6 +74,7 @@ class AirflowServerInfo(object):
     api_mode = attr.ib(default="rbac")  # type: Optional[str]
     sync_interval = attr.ib(default=None)  # type: Optional[int]
     is_sync_enabled = attr.ib(default=None)  # type: Optional[bool]
+    is_sync_enabled_v2 = attr.ib(default=None)  # type: Optional[bool]
     fetcher = attr.ib(default=None)  # type: Optional[str]
     composer_client_id = attr.ib(default=None)  # type: Optional[str]
     active_dags = attr.ib(default=None)  # type: Dict[str, List[str]]

@@ -153,6 +153,12 @@ def validate_composer_id(ctx, param, value):
     type=click.STRING,
     default=None,
 )
+@click.option(
+    "--use-af-monitor-v2",
+    help="Use Airflow monitor v2 for this source",
+    type=click.BOOL,
+    is_flag=True,
+)
 def add(
     url,
     external_url,
@@ -167,6 +173,7 @@ def add(
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
+    use_af_monitor_v2,
 ):
     fetcher = "web" if instance_type == "airflow" else instance_type
     try:
@@ -184,6 +191,7 @@ def add(
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,
+            use_af_monitor_v2,
         )
     except DatabandApiError as e:
         logger.error("failed with - {}".format(e.response))
