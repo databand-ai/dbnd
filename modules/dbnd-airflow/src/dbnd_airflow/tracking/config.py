@@ -35,3 +35,8 @@ class AirflowTrackingConfig(Config):
     max_xcom_length = parameter(
         default=10, description="The amount of xcom values to track, per operator"
     )[int]
+
+    # This shouldn't be set to None. In webserver None evaluates to True.
+    af_with_monitor = parameter(
+        description="Activate when airflow monitor is not in use", default=True,
+    )[bool]

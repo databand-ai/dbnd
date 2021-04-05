@@ -1,3 +1,6 @@
+from dbnd._core.constants import AD_HOC_DAG_PREFIX
+
+
 def dont_track(obj):
     """
     will not track obj. support airflow operators, DAGs, and functions.
@@ -22,6 +25,10 @@ def dont_track(obj):
 
 
 def should_not_track(obj):
-    if not hasattr(obj, "_dont_track"):
-        return False
-    return obj._dont_track
+    if hasattr(obj, "dag"):
+        if getattr(obj.dag, "_dont_track", False):
+            return True
+        dag_id = getattr(obj.dag, "dag_id", None)
+        if dag_id and dag_id.startswith(AD_HOC_DAG_PREFIX):
+            return True
+    return getattr(obj, "_dont_track", False)

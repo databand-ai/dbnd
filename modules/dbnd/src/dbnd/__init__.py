@@ -54,6 +54,7 @@ from dbnd._core.tracking.metrics import (
     log_metric,
     log_metrics,
 )
+from dbnd._core.tracking.no_tracking import dont_track
 from dbnd._core.tracking.python_tracking import (
     track_functions,
     track_module_functions,
@@ -98,6 +99,7 @@ __all__ = [
     "namespace",
     "task_namespace",
     "as_task",
+    "dont_track",
     # tasks
     "band",
     "pipeline",

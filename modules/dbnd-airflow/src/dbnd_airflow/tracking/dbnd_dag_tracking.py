@@ -28,6 +28,8 @@ def _is_verbose():
 
 
 def track_task(task):
+    # `task` is Airflow Operator, although documentation states that it TaskInstance
+    # Usually called from Dag -> add to dag bag
     try:
         _track_task(task)
     except Exception:
