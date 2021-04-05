@@ -29,7 +29,8 @@ setuptools.setup(
     install_requires=[
         "tzlocal>=1.0.0,<2.0.0",
         "six",
-        "more_itertools",
+        "more-itertools ; python_version>='3.0'",
+        "more-itertools==5.0.0 ; python_version<'3.0'",
         "attrs",
         "pyyaml",  # yaml support in targets
         "pytz",  # python time zone for pendulum library
@@ -37,7 +38,8 @@ setuptools.setup(
         "requests>=2.18.0",  # API TRACKING
         "configparser<3.6.0,>=3.5.0",  # same versions as Airflow -- Moved library to _vendor
         "jinja2>=2.10.1, <2.12",  # same versions as Airflow
-        "gitpython",
+        "GitPython ; python_version>='3.0'",
+        "GitPython==2.1.15 ; python_version<'3.0'",
         'pygments<=2.5.2 ; python_version < "3.0"',
         'pygments>=2.6.1 ; python_version >= "3.0"',
         # backward compatible python
@@ -59,7 +61,8 @@ setuptools.setup(
             "pytest-cov==2.9.0",
             "pluggy==0.11.0",  # 0.12 has import_metadata, fails on py2
             "zope.interface",
-            "mock",
+            "mock ; python_version>='3.0'",
+            "mock==3.0.5 ; python_version<'3.0'",
             "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
             "urllib3==1.23",  # otherwise we have 1.24 - conflict with 'requests'
             "tox==3.12.1",
@@ -68,7 +71,8 @@ setuptools.setup(
             'future==0.16.0 ; python_version < "3.0"',  # test newstr
             "tables==3.5.1",
             "feather-format",
-            "pyarrow",
+            "pyarrow ; python_version>='3.0'",
+            "pyarrow==0.16.0 ; python_version<'3.0'",  # Last version compatible with python 2.7
             "nbconvert",
             "nbformat",
             "jupyter",
