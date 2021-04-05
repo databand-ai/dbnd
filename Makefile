@@ -1,6 +1,6 @@
 .PHONY: clean-pyc clean-build docs clean docs-open coverage coverage-open install-dev clean-egg pre-commit
 
-prj_modules = modules/dbnd modules/dbnd-airflow
+prj_modules = modules/dbnd modules/dbnd-airflow modules/dbnd-airflow-monitor
 
 prj_plugins_spark  = plugins/dbnd-spark \
 				plugins/dbnd-databricks \

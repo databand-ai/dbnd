@@ -1,4 +1,5 @@
 import json
+import re
 
 import pendulum
 
@@ -13,7 +14,7 @@ def get_json_from_file(file_path):
 
 
 def pendulum_convert(date_str):
-    return pendulum.parse(str(date_str).replace(" 00:00", "Z"))
+    return pendulum.parse(re.sub(r" 00:00$", "Z", str(date_str)))
 
 
 class PluginSimulator(object):

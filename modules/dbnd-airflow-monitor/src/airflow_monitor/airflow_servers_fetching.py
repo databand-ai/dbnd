@@ -2,7 +2,7 @@ import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
 from dbnd import get_databand_context
-from dbnd._core.errors.base import DatabandApiError
+from dbnd._core.errors.base import DatabandConfigError
 from dbnd._core.errors.friendly_error.tools import logger_format_for_databand_error
 
 
@@ -36,6 +36,7 @@ class AirflowFetchingConfiguration(object):
         json_file_path=None,
         rbac_username=None,
         rbac_password=None,
+        syncer_name=None,
     ):
         self.base_url = url
         self.api_mode = api_mode
@@ -63,6 +64,7 @@ class AirflowFetchingConfiguration(object):
         self.json_file_path = json_file_path
         self.rbac_username = rbac_username
         self.rbac_password = rbac_password
+        self.syncer_name = syncer_name
 
 
 class AirflowServersGetter(object):
@@ -82,13 +84,33 @@ class AirflowServersGetter(object):
     def get_fetching_configurations(self):
         try:
             airflow_config = AirflowMonitorConfig()
+            if airflow_config.sql_alchemy_conn and not airflow_config.syncer_name:
+                raise DatabandConfigError(
+                    "Syncer name should be specified when using direct sql connection",
+                    help_msg="Please provide correct syncer name (using --syncer-name parameter,"
+                    " env variable DBND__AIRFLOW_MONITOR__SYNCER_NAME, or any other suitable way)",
+                )
             response = self.fetch_airflow_servers_list()
             result_json = response["data"]
+            if airflow_config.syncer_name:
+                results_by_name = {r["name"]: r for r in result_json if r.get("name")}
+                if airflow_config.syncer_name in results_by_name:
+                    result_json = [results_by_name[airflow_config.syncer_name]]
+                else:
+                    raise DatabandConfigError(
+                        "No syncer configuration found matching name '%s'. Available syncers: %s"
+                        % (
+                            airflow_config.syncer_name,
+                            ",".join(results_by_name.keys()),
+                        ),
+                        help_msg="Please provide correct syncer name (using --syncer-name parameter,"
+                        " env variable DBND__AIRFLOW_MONITOR__SYNCER_NAME, or any other suitable way)",
+                    )
             servers = [
                 AirflowFetchingConfiguration(
                     url=server["base_url"],
                     api_mode=server["api_mode"],
-                    fetcher=server["fetcher"],
+                    fetcher=airflow_config.fetcher or server["fetcher"],
                     composer_client_id=server["composer_client_id"],
                     fetch_quantity=int(server["fetch_quantity"])
                     if server["fetch_quantity"]
@@ -106,6 +128,7 @@ class AirflowServersGetter(object):
                     json_file_path=airflow_config.json_file_path,
                     rbac_username=airflow_config.rbac_username,
                     rbac_password=airflow_config.rbac_password,
+                    syncer_name=server.get("name"),
                 )
                 for server in result_json
                 if server["is_sync_enabled"]

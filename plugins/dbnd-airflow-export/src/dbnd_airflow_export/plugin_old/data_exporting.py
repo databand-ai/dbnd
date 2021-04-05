@@ -1,5 +1,6 @@
 import datetime
 import logging
+import re
 import sys
 import traceback
 
@@ -34,7 +35,7 @@ def get_airflow_data(
     session=None,
 ):
     if since:
-        since = pendulum.parse(str(since).replace(" 00:00", "Z"))
+        since = pendulum.parse(re.sub(r" 00:00$", "Z", str(since)))
     else:
         since = pendulum.datetime.min
 

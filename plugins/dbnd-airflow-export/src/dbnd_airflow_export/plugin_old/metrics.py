@@ -1,7 +1,41 @@
+from collections import defaultdict
+from contextlib import contextmanager
 from functools import wraps
 from timeit import default_timer
 
 import flask
+
+
+class MetricCollector(object):
+    def __init__(self):
+        self.d = None
+
+    @contextmanager
+    def use_local(self):
+        if self.d is not None:
+            # already local mode
+            yield self.d
+            return
+
+        self.d = defaultdict(dict)
+        try:
+            yield self.d
+        except Exception:
+            self.d = None
+            raise
+
+    def add(self, group, name, value):
+        if self.d is not None:
+            self.d[group][name] = value
+        elif flask.has_app_context():
+            metrics = getattr(flask.g, group, None)
+            if metrics is None:
+                metrics = {}
+                setattr(flask.g, group, metrics)
+            metrics[name] = value
+
+
+METRIC_COLLECTOR = MetricCollector()
 
 
 def measure_time(f):
@@ -10,10 +44,7 @@ def measure_time(f):
         start = default_timer()
         result = f(*args, **kwargs)
         end = default_timer()
-        if flask._app_ctx_stack.top is not None:
-            if "perf_metrics" not in flask.g:
-                flask.g.perf_metrics = {}
-            flask.g.perf_metrics[f.__name__] = end - start
+        METRIC_COLLECTOR.add("perf_metrics", f.__name__, end - start)
         return result
 
     return wrapped
@@ -24,14 +55,11 @@ def save_result_size(*names):
         @wraps(f)
         def wrapped(*args, **kwargs):
             result = f(*args, **kwargs)
-            if flask._app_ctx_stack.top is not None:
-                values = result
-                if len(names) == 1:
-                    values = (result,)
-                for name, value_list in zip(names, values):
-                    if "size_metrics" not in flask.g:
-                        flask.g.size_metrics = {}
-                    flask.g.size_metrics[name] = len(value_list)
+            values = result
+            if len(names) == 1:
+                values = (result,)
+            for name, value_list in zip(names, values):
+                METRIC_COLLECTOR.add("size_metrics", name, len(value_list))
             return result
 
         return wrapped

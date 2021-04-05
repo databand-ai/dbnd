@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 import sys
@@ -11,7 +12,7 @@ import six
 from airflow.configuration import conf
 from airflow.models import BaseOperator
 
-import pygit2
+from dbnd._core.utils.basics.memoized import cached
 
 
 logger = logging.getLogger(__name__)
@@ -73,17 +74,19 @@ def _get_log(ti, task):
         del ti.task
 
 
+@cached()
 def _get_git_status(path):
     try:
+        from git import Repo
+
         if os.path.isfile(path):
             path = os.path.dirname(path)
 
-        repo_path = pygit2.discover_repository(path)
-        repo = pygit2.Repository(repo_path)
-        commit = repo.revparse_single("HEAD^")
-        return commit.hex, bool(repo.status())
+        repo = Repo(path, search_parent_directories=True)
+        commit = repo.head.commit.hexsha
+        return commit, not repo.is_dirty()
     except Exception as ex:
-        logger.warning(("Failed to retrive git status: {0}").format(ex))
+        logger.warning("Failed to retrieve git status: %s", ex)
         return "", False
 
 
@@ -133,6 +136,19 @@ def _get_command_from_operator(t):
 
 def _extract_args_from_dict(t_dict):
     # type: (Dict) -> Dict[str]
+    if not t_dict:
+        return {}
+
+    if isinstance(t_dict, str) and t_dict.startswith("{"):
+        # try load json. is this correct at all?
+        try:
+            t_dict = json.loads(t_dict)
+        except Exception:
+            logger.debug("String looked like json but failed to load: %s", t_dict)
+
+    if isinstance(t_dict, str):
+        t_dict = {"value": t_dict}
+
     try:
         # Return only numeric, bool and string attributes
         res = {}

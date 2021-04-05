@@ -15,13 +15,7 @@ setuptools.setup(
     name="dbnd-airflow-export",
     package_dir={"": "src"},
     # we are not requiring airflow, as this plugin should be installed into existing airflow deployment
-    install_requires=[
-        "dbnd==" + version,
-        "setuptools",
-        "six",
-        "pygit2==0.28.2;python_version<='2.7'",
-        "pygit2==1.5.0;python_version>='3.0'",
-    ],
+    install_requires=["dbnd==" + version, "setuptools", "six"],
     extras_require={
         "tests": [
             "pytest==4.5.0",

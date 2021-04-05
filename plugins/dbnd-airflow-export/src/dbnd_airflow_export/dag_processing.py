@@ -10,6 +10,9 @@ from dbnd_airflow_export.plugin_old.metrics import measure_time, save_result_siz
 from dbnd_airflow_export.plugin_old.model import EDag
 
 
+logger = logging.getLogger(__name__)
+
+
 current_dags = {}
 
 
@@ -25,8 +28,13 @@ def get_dags(dagbag, include_task_args, dag_ids, raw_data_only=False):
     git_commit, is_committed = _get_git_status(dagbag.dag_folder)
 
     for dag_model in dag_models:
-        dag_from_dag_bag = dagbag.get_dag(dag_model.dag_id)
-        if dagbag.get_dag(dag_model.dag_id):
+        try:
+            dag_from_dag_bag = dagbag.get_dag(dag_model.dag_id)
+        except Exception:
+            logger.debug("DAG %s not in a dagbag", dag_model.dag_id)
+            dag_from_dag_bag = None
+
+        if dag_from_dag_bag:
             dag = EDag.from_dag(
                 dag_from_dag_bag,
                 dag_model,
@@ -50,9 +58,7 @@ def get_dags(dagbag, include_task_args, dag_ids, raw_data_only=False):
         dags_list.append(dag)
 
     if number_of_dags_not_in_dag_bag > 0:
-        logging.info(
-            "Found {} dags not in dagbag".format(number_of_dags_not_in_dag_bag)
-        )
+        logger.info("Found %d dags not in dagbag", number_of_dags_not_in_dag_bag)
     return dags_list
 
 
@@ -74,7 +80,7 @@ def load_dags_models(session):
         if not dag_model.dag_id.startswith(AD_HOC_DAG_PREFIX):
             current_dags[dag_model.dag_id] = dag_model
 
-    logging.info("Collected %d dags" % len(current_dags))
+    logger.info("Collected %d dags", len(current_dags))
     return current_dags
 
 
