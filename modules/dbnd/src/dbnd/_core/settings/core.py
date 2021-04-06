@@ -149,6 +149,12 @@ class CoreConfig(Config):
         description="Allow adding dbnd/_vendor_package to sys.path", default=False
     )[bool]
 
+    debug_webserver = parameter(
+        description="Allow collecting the webservers logs for each api-call on the local machine. "
+        "Requires that the web-server supports and allow this.",
+        default=False,
+    )[bool]
+
     def _validate(self):
         if not self.databand_url and self.tracker_url:
             logger.warning(
@@ -201,7 +207,11 @@ class CoreConfig(Config):
             else {"username": self.dbnd_user, "password": self.dbnd_password}
         )
 
-        return ApiClient(self.databand_url, credentials=credentials)
+        return ApiClient(
+            self.databand_url,
+            credentials=credentials,
+            debug_server=self.debug_webserver,
+        )
 
 
 class DynamicTaskConfig(Config):

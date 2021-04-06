@@ -7,9 +7,12 @@ import six
 
 from six.moves.urllib_parse import urljoin
 
+from dbnd._core.current import try_get_current_task_run, try_get_databand_run
 from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 from dbnd._core.errors.friendly_error.api import api_connection_refused
+from dbnd._core.log.logging_utils import create_file_handler
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
+from dbnd._vendor import curlify
 
 
 logger = logging.getLogger(__name__)
@@ -26,12 +29,20 @@ class ApiClient(object):
     api_prefix = "/api/v1/"
     default_headers = None
 
-    def __init__(self, api_base_url, credentials=None):
+    def __init__(self, api_base_url, credentials=None, debug_server=False):
         self._api_base_url = api_base_url
         self.is_auth_required = bool(credentials)
         self.credentials = credentials
         self.session = None
         self.default_headers = {"Accept": "application/json"}
+        self.debug_mode = debug_server
+        if debug_server:
+            # the header require so the webserver will record logs and sql queries
+            self.default_headers["X-Databand-Debug"] = "True"
+            # log the request curl command here
+            self.requests_logger = build_file_logger("requests", fmt="%(message)s")
+            # log the webserver logs and sql queries here
+            self.webserver_logger = build_file_logger("webserver")
 
     def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
         if not self.session:
@@ -52,18 +63,32 @@ class ApiClient(object):
             self.session = None
             raise
 
+        if self.debug_mode:
+            # save the curl of the current request
+            curl_request = curlify.to_curl(resp.request)
+            self.requests_logger.info(curl_request)
+
         if not resp.ok:
             logger.info("Response is not ok, Raising DatabandApiError")
             raise DatabandApiError(
                 method, url, resp.status_code, resp.content.decode("utf-8")
             )
+
         if resp.content:
             try:
-                return resp.json()
+                data = resp.json()
             except Exception as e:
                 logger.info("Failed to get resp.json(). Exception: {}".format(e))
-                return None
-        return resp.json() if resp.content else None
+            else:
+                if self.debug_mode and isinstance(data, dict):
+                    msg = "api_call: {request}\ndebug info:{debug_data}\n".format(
+                        request=resp.request.url, debug_data=data.get("debug")
+                    )
+                    self.webserver_logger.info(msg)
+
+                return data
+
+        return
 
     def _init_session(self, credentials):
         logger.info("Initialising session for webserver")
@@ -153,3 +178,22 @@ def dict_dump(obj_dict, value_schema):
     return {
         key: value_schema.dump(value).data for key, value in six.iteritems(obj_dict)
     }
+
+
+def build_file_logger(name, fmt=None):
+    file_logger = logging.getLogger("{}_{}".format(__name__, name))
+    file_logger.propagate = False
+
+    run = try_get_databand_run()
+    if run:
+        log_file = run.run_local_root.partition("{}.logs".format(name))
+        logger.info(
+            "Api-clients {name} logs writing into {path}".format(
+                name=name, path=log_file
+            )
+        )
+        handler = create_file_handler(str(log_file), fmt=fmt)
+        file_logger.addHandler(handler)
+        file_logger.setLevel(logging.INFO)
+
+    return file_logger
