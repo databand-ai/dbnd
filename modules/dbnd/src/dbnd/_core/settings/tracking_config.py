@@ -7,7 +7,12 @@ from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.task import Config
 from targets import Target
 from targets.value_meta import _DEFAULT_VALUE_PREVIEW_MAX_LEN, ValueMeta, ValueMetaConf
-from targets.values import ObjectValueType, ValueType, get_value_type_of_obj
+from targets.values import (
+    ObjectValueType,
+    TargetValueType,
+    ValueType,
+    get_value_type_of_obj,
+)
 
 
 logger = logging.getLogger()
@@ -141,9 +146,10 @@ def get_value_meta(value, meta_conf, tracking_config, value_type=None, target=No
         return None
 
     # required for calculating the relevant configuration and to build value_meta
-    if _is_default_value_type(value_type):
+    if _is_default_value_type(value_type) or isinstance(value_type, TargetValueType):
         # we calculate the actual value_type even if the given value is the default value
         # so we can be sure that we can report it the right way
+        # also Targets are futures types and now would can log their actual value
         value_type = get_value_type_of_obj(value, default_value_type=ObjectValueType())
 
     meta_conf = tracking_config.get_value_meta_conf(meta_conf, value_type, target)
