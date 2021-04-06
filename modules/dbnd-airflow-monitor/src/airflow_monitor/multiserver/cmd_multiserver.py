@@ -17,7 +17,7 @@ from dbnd._vendor import click
     type=click.INT,
     help="Limit the number of periodic monitor runs",
 )
-@click.argument("tracking_source_uid", type=click.UUID, default=None, nargs=-1)
+@click.argument("syncer_name", type=click.STRING, default=None, nargs=-1)
 def multi_server_syncer(*args, **kwargs):
     start_multi_server_monitor(*args, **kwargs)
 

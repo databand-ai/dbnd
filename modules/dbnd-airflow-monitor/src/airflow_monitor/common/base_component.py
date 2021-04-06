@@ -10,7 +10,7 @@ from airflow_monitor.tracking_service import (
 )
 
 
-class BaseAirflowComponent(object):
+class BaseMonitorComponent(object):
     config: MonitorConfig
     data_fetcher: AirflowDataFetcher
     tracking_service: DbndAirflowTrackingService
@@ -34,8 +34,11 @@ class BaseAirflowComponent(object):
     def sync_once(self):
         raise NotImplementedError()
 
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.config.name}|{self.config.tracking_source_uid})"
 
-def start_syncer(factory: Type[BaseAirflowComponent], tracking_source_uid, run=True):
+
+def start_syncer(factory: Type[BaseMonitorComponent], tracking_source_uid, run=True):
     tracking_service = get_tracking_service(tracking_source_uid=tracking_source_uid,)
     monitor_config = tracking_service.get_monitor_configuration()
     data_fetcher = get_data_fetcher(monitor_config)

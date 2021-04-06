@@ -10,6 +10,7 @@ from airflow_monitor.common.config_data import (
     MultiServerMonitorConfig,
 )
 from airflow_monitor.data_fetcher import get_data_fetcher
+from airflow_monitor.fixer.runtime_fixer import start_runtime_fixer
 from airflow_monitor.multiserver.runners import (
     RUNNER_FACTORY,
     MultiProcessRunner,
@@ -39,7 +40,7 @@ KNOWN_COMPONENTS = {
     "state_sync": start_runtime_syncer,
     # "xcom_sync": Component,
     # "dag_sync": Component,
-    # "fixer": Component,
+    "fixer": start_runtime_fixer,
 }
 
 
@@ -105,6 +106,7 @@ class AirflowMonitor(object):
         self.server_config = server_config
         self._update_component_state()
 
+    @capture_monitor_exception(logger, "checking monitor alive")
     def is_airflow_server_alive(self):
         return get_data_fetcher(self.server_config).is_alive()
 
@@ -116,7 +118,7 @@ class AirflowMonitor(object):
         self._clean_dead_components()
 
     def __str__(self):
-        return f"AirflowMonitor({self.server_config.tracking_source_uid})"
+        return f"AirflowMonitor({self.server_config.name}|{self.server_config.tracking_source_uid})"
 
 
 class MultiServerMonitor(object):
@@ -168,24 +170,22 @@ class MultiServerMonitor(object):
         self.heartbeat()
 
     def filter_servers(self, servers):
-        if not self.monitor_config.tracking_source_uids:
+        if not self.monitor_config.syncer_names:
             return servers
 
         servers_filtered = [
-            s
-            for s in servers
-            if s.tracking_source_uid in self.monitor_config.tracking_source_uids
+            s for s in servers if s.name in self.monitor_config.syncer_names
         ]
-        if len(servers_filtered) != len(self.monitor_config.tracking_source_uids):
-            filtered_uids = {s.tracking_source_uid for s in servers_filtered}
-            missing_uids = ",".join(
+        if len(servers_filtered) != len(self.monitor_config.syncer_names):
+            filtered_names = {s.name for s in servers_filtered}
+            missing_names = ",".join(
                 [
-                    str(uid)
-                    for uid in self.monitor_config.tracking_source_uids
-                    if uid not in filtered_uids
+                    name
+                    for name in self.monitor_config.syncer_names
+                    if name not in filtered_names
                 ]
             )
-            msg = f"No configuration found for monitored servers: {missing_uids}"
+            msg = f"No configuration found for monitored servers: {missing_names}"
             if self.iteration == 1:
                 raise DatabandConfigError(
                     msg,
@@ -239,7 +239,7 @@ class MultiServerMonitor(object):
 
 
 def start_multi_server_monitor(
-    interval=10, runner_type="seq", tracking_source_uid=None, number_of_iterations=None,
+    interval=10, runner_type="seq", syncer_name=None, number_of_iterations=None,
 ):
     MultiServerMonitor(
         get_servers_configuration_service(),
@@ -247,6 +247,6 @@ def start_multi_server_monitor(
             interval=interval,
             runner_type=runner_type,
             number_of_iterations=number_of_iterations,
-            tracking_source_uids=tracking_source_uid,
+            syncer_names=syncer_name,
         ),
     ).run()

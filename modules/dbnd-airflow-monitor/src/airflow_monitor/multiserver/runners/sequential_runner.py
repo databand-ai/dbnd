@@ -1,5 +1,9 @@
 import logging
 
+from typing import Optional
+
+from airflow_monitor.common import capture_monitor_exception
+from airflow_monitor.common.base_component import BaseMonitorComponent
 from airflow_monitor.multiserver.runners.base_runner import BaseRunner
 
 
@@ -11,8 +15,9 @@ class SequentialRunner(BaseRunner):
         super(SequentialRunner, self).__init__(target, **kwargs)
 
         self._iteration = -1
-        self._running = None  # type: Optional[BaseAirflowSyncer]
+        self._running = None  # type: Optional[BaseMonitorComponent]
 
+    @capture_monitor_exception(logger)
     def start(self):
         if self._running:
             logger.warning("Already running")
@@ -26,9 +31,11 @@ class SequentialRunner(BaseRunner):
                 f"Failed to create component: {self.target}({self.kwargs})"
             )
 
+    @capture_monitor_exception(logger)
     def stop(self):
         self._running = None
 
+    @capture_monitor_exception(logger)
     def heartbeat(self):
         if self._running:
             self._iteration += 1
@@ -40,5 +47,10 @@ class SequentialRunner(BaseRunner):
                 )
                 self._running = None
 
+    @capture_monitor_exception(logger)
     def is_alive(self):
         return bool(self._running)
+
+    def __str__(self):
+        s = super(SequentialRunner, self).__str__()
+        return f"{s}({self._running}, iter={self._iteration})"

@@ -14,3 +14,7 @@ class BaseRunner(object):
 
     def is_alive(self):
         raise NotImplementedError()
+
+    def __str__(self):
+        s = ", ".join([f"{k}={v}" for k, v in self.kwargs.items()])
+        return f"{self.__class__.__name__}({self.target.__name__}, {s})"

@@ -7,6 +7,7 @@ import attr
 @attr.s
 class AirflowServerConfig(object):
     tracking_source_uid = attr.ib()  # type: UUID
+    name = attr.ib(default=None)  # type: str
     state_sync_enabled = attr.ib(default=False)  # type: bool
     xcom_sync_enabled = attr.ib(default=False)  # type: bool
     dag_sync_enabled = attr.ib(default=False)  # type: bool
@@ -39,6 +40,7 @@ class AirflowServerConfig(object):
 
         conf = cls(
             tracking_source_uid=server_config["tracking_source_uid"],
+            name=server_config["name"],
             is_sync_enabled=server_config["is_sync_enabled"],
             is_sync_enabled_v2=server_config.get("is_sync_enabled_v2", False),
             base_url=server_config["base_url"],
@@ -69,9 +71,9 @@ class MultiServerMonitorConfig:
     interval = attr.ib(default=0)
     runner_type = attr.ib(default="seq")  # seq/mp
     number_of_iterations = attr.ib(default=None)  # type: Optional[int]
-    tracking_source_uids = attr.ib(
+    syncer_names = attr.ib(
         default=None, converter=lambda v: list(v) if v else v,
-    )  # type: Optional[List[UUID]]
+    )  # type: Optional[List[str]]
 
 
 @attr.s
