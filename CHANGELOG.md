@@ -1,5 +1,27 @@
 # History
 
+## DBND v 0.37.2
+
+### New features
+* \#1200030168701007: Support for the cloud UI is here. Now you can gain access to the Databand UI in the cloud.
+* \#1200016204502957: Users who have Airflow with Docker Compose environment can now use the Databand cloud solution.
+* \#1200058439151184: A flag for switching on\off the transmission (sending) of the source code was added.
+
+### Improvements
+* \#1199921442266004: AlertDef history now displays seconds in the UI.
+* \#1199995565427900: Version and Environment badges are now displayed on the Login page.
+* \#1200093251774759: Graphic info card in the Dashboard is now black.
+* \#1200127804370172: Quick updates tab added to the integration page.
+* \#1199657019529688: `QueryApi.force_pagination` is now enabled by default.
+* \#1200126969897487: Remote logs are truncated.
+* \#1200058448826966: Support for "zero computational cost" data insights and preview added.
+
+### Bug fixes
+* \#1200129802903561: Databand logo back on the Login page.
+* \#1200111167427102: Time format bug is fixed.
+* \#1199965226804188: The search bar is back in Details view.
+* \#1200091724058557: Runs and Task by Start Time are a stacked graph.
+
 ## DBND v 0.36.00
 
 ### New features:

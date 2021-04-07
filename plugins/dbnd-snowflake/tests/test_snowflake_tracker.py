@@ -79,6 +79,7 @@ def _run_simple_query_with_close_conn(mock_snowflake, log_tables, log_resource_u
         log_tables=log_tables,
         log_resource_usage=log_resource_usage,
         log_tables_with_preview=True,
+        log_tables_with_schema=True,
     ) as st:
         query = "select * from " + TEST_TABLE_NAME
         with _snowflake_connect() as conn:
@@ -123,6 +124,7 @@ def _run_simple_query_no_close_conn(mock_snowflake, log_tables, log_resource_usa
         log_tables=log_tables,
         log_resource_usage=log_resource_usage,
         log_tables_with_preview=True,
+        log_tables_with_schema=True,
     ) as st:
         query = "select * from " + TEST_TABLE_NAME
         # with self._snowflake_connect() as conn:
@@ -195,7 +197,7 @@ class TestSnowflakeQueryTracker:
     @pytest.mark.parametrize("run_query", QUERY_RUNNERS)
     def test_resource_and_table(self, mock_snowflake, run_query):
         session_id, (query_id,) = run_query(
-            mock_snowflake, log_tables=True, log_resource_usage=True
+            mock_snowflake, log_tables=True, log_resource_usage=True,
         )
 
         # 1 for actual query + COMMIT

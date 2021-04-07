@@ -44,3 +44,7 @@ class AirflowMonitorConfig(Config):
     debug_sync_log_dir_path = parameter(default=None)[str]
 
     allow_duplicates = parameter(default=False)[bool]
+
+    syncer_name = parameter(default=None)[str]
+
+    fetcher = parameter(default=None)[str]

@@ -54,6 +54,16 @@ def use_airflow_connections():
     return is_airflow_enabled() and config.getboolean("airflow", "use_connections")
 
 
+def should_use_airflow_monitor():
+    if is_airflow_enabled():
+        from dbnd_airflow.tracking.config import AirflowTrackingConfig
+
+        tracking_config = AirflowTrackingConfig.current()
+        return tracking_config.af_with_monitor
+
+    return True
+
+
 def assert_airflow_enabled():
     if not is_airflow_enabled():
         raise friendly_error.config.missing_module("dbnd-airflow")

@@ -1,4 +1,7 @@
+import json
 import logging
+import sys
+import traceback
 
 from urllib.parse import urlparse
 
@@ -262,6 +265,8 @@ class DbFetcher(DataFetcher):
         from sqlalchemy.orm import sessionmaker
 
         from dbnd_airflow_export.plugin_old.data_exporting import get_airflow_data
+        from dbnd_airflow_export.plugin_old.metrics import METRIC_COLLECTOR
+        from dbnd_airflow_export.utils import JsonEncoder
 
         conf.set("core", "sql_alchemy_conn", value=self.sql_conn_string)
         dagbag = models.DagBag(
@@ -272,19 +277,32 @@ class DbFetcher(DataFetcher):
 
         engine = create_engine(self.sql_conn_string)
         session = sessionmaker(bind=engine)
-        result = get_airflow_data(
-            dagbag=dagbag,
-            since=since,
-            include_logs=include_logs,
-            include_task_args=include_task_args,
-            include_xcom=include_xcom,
-            dag_ids=dag_ids,
-            quantity=quantity,
-            fetch_type=fetch_type,
-            incomplete_offset=incomplete_offset,
-            session=session(),
-        )
-        return result
+        try:
+            with METRIC_COLLECTOR.use_local() as metrics:
+                result = get_airflow_data(
+                    dagbag=dagbag,
+                    since=since,
+                    include_logs=include_logs,
+                    include_task_args=include_task_args,
+                    include_xcom=include_xcom,
+                    dag_ids=dag_ids,
+                    quantity=quantity,
+                    fetch_type=fetch_type,
+                    incomplete_offset=incomplete_offset,
+                    session=session(),
+                )
+                result["metrics"] = {
+                    "performance": metrics.get("perf_metrics", {}),
+                    "sizes": metrics.get("size_metrics", {}),
+                }
+        except Exception:
+            exception_type, exception, exc_traceback = sys.exc_info()
+            message = "".join(traceback.format_tb(exc_traceback))
+            message += "{}: {}. ".format(exception_type.__name__, exception)
+            logging.error("Exception during data export: \n%s", message)
+            result = {"error": message}
+
+        return json.loads(json.dumps(result, cls=JsonEncoder))
 
 
 class FileFetcher(DataFetcher):

@@ -116,6 +116,7 @@ class InitRunArgs(object):
     scheduled_run_info = attr.ib(default=None)  # type: Optional[ScheduledRunInfo]
     update_existing = attr.ib(default=False)  # type: bool
     source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
+    af_with_monitor = attr.ib(default=True)  # type: bool
     af_context = attr.ib(default=None)  # type: Optional[AirflowTaskContext]
     tracking_source = attr.ib(default=None)  # type: Optional[TrackingSourceSchema]
 
@@ -135,6 +136,7 @@ class InitRunArgsSchema(ApiObjectSchema):
     new_run_info = fields.Nested(RunInfoSchema, allow_none=True)
     scheduled_run_info = fields.Nested(ScheduledRunInfoSchema, allow_none=True)
     update_existing = fields.Boolean()
+    af_with_monitor = fields.Boolean()
     source = fields.Str(allow_none=True)
     af_context = fields.Nested(AirflowTaskContextSchema, allow_none=True)
     tracking_source = fields.Nested(TrackingSourceSchema, allow_none=True)

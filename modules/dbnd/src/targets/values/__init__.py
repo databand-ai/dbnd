@@ -132,30 +132,3 @@ def get_value_type_of_type(obj_type, inline_value_type=False):
 
 def register_value_type(value_type):
     return get_types_registry().register_value_type(value_type)
-
-
-def get_value_meta_from_value(
-    value_name, value, meta_conf, raise_on_error=False
-):  # type: (str, Any, ValueMetaConf, bool) -> Optional[ValueMeta]
-    if value is None:
-        return None
-
-    obj_value_type = get_value_type_of_obj(value, default_value_type=ObjectValueType())
-    if obj_value_type is None:
-        logger.info(
-            "Can't detect known type for '%s' with type='%s' ", value_name, type(value)
-        )
-        return None
-
-    try:
-        return obj_value_type.get_value_meta(value, meta_conf=meta_conf)
-    except Exception as ex:
-        log_exception(
-            "Failed to get value meta info for '%s' with type='%s'"
-            " ( detected as %s)" % (value_name, type(value), obj_value_type),
-            ex,
-            non_critical=not raise_on_error,
-        )
-        if raise_on_error:
-            raise
-    return None

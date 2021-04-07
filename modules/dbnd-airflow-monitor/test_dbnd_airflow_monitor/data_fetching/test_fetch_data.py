@@ -20,6 +20,10 @@ class TestFetchData(object):
         assert len(result["dag_runs"]) == 0
         assert len(result["task_instances"]) == 0
 
+        assert result["metrics"]["sizes"]["dags"] == 0
+        assert result["metrics"]["sizes"]["completed_dag_runs"] == 0
+        assert result["metrics"]["performance"]["get_dags"] > 0
+
     def test_sanity(self, unittests_db):
         result = self._fetch_data(unittests_db, "complete")
 
@@ -52,6 +56,10 @@ class TestFetchData(object):
             assert task_instance["task_id"] in ("print_date", "sleep", "templated")
             assert task_instance["try_number"] == 1
 
+        assert result["metrics"]["sizes"]["dags"] >= 1
+        assert result["metrics"]["sizes"]["completed_dag_runs"] == 2
+        assert result["metrics"]["performance"]["get_dags"] > 0
+
     def test_incomplete_data(self, incomplete_data_db):
         result = self._fetch_data(incomplete_data_db, "complete")
         assert result is not None
@@ -71,6 +79,13 @@ class TestFetchData(object):
             t for t in result["task_instances"] if t["end_date"] is None
         ]
         assert len(task_instances_without_end_dates) == len(result["task_instances"])
+
+        assert result["metrics"]["sizes"]["dags"] == 1
+        assert result["metrics"]["sizes"]["completed_dag_runs"] == 0
+        assert result["metrics"]["sizes"]["incomplete_dag_runs"] == 14
+        assert result["metrics"]["sizes"]["incomplete_task_instances"] == 42
+        assert result["metrics"]["performance"]["get_dags"] > 0
+        assert result["metrics"]["performance"]["get_incomplete_data_type_1"] > 0
 
     def _fetch_data(self, db_name, fetch_type, quantity=100):
         db_path = "sqlite:///" + os.path.abspath(
@@ -107,3 +122,4 @@ class TestFetchData(object):
         assert "logs_path" in result_keys
         assert "airflow_export_version" in result_keys
         assert "rbac_enabled" in result_keys
+        assert "metrics" in result_keys

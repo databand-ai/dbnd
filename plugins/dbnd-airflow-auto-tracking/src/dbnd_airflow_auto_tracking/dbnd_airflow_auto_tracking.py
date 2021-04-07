@@ -10,10 +10,14 @@ from dbnd_airflow.tracking.airflow_patching import (
 from dbnd_airflow.tracking.dbnd_airflow_handler import set_dbnd_handler
 
 
+# This code will run every time Airflow imports our plugin
 config = get_dbnd_project_config()
 if config.airflow_auto_tracking:
+    # Wraps all Operator.execute() with DBND trackign wrapper
     add_tracking_to_policy()
+    # Adds retry and context uid to vars
     patch_airflow_context_vars()
+    # Handler to send logs to DBND
     set_dbnd_handler()
 
 

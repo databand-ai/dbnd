@@ -23,8 +23,8 @@ def test_command_running():
     airflow_init_db(db_path)
 
     airflow_config = AirflowMonitorConfig()
-    airflow_config.fetcher = "db"
     airflow_config.sql_alchemy_conn = db_path
+    airflow_config.syncer_name = "test_syncer"
 
     fetching_configuration = AirflowFetchingConfiguration(
         url="http://localhost:8082",
@@ -39,27 +39,23 @@ def test_command_running():
         include_task_args=False,
         include_xcom=False,
         dag_ids=None,
+        syncer_name=airflow_config.syncer_name,
     )
 
     # We need this mock, because otherwise we are going to enter an infinite loop in CI/CD
-    with mock.patch("airflow_monitor.airflow_monitor_main.save_airflow_monitor_data"):
-        with mock.patch(
-            "airflow_monitor.airflow_monitor_main.save_airflow_server_info"
-        ):
-            with mock.patch(
-                "airflow_monitor.airflow_servers_fetching.AirflowServersGetter.get_fetching_configurations",
-                return_value=[fetching_configuration],
-            ):
-                runner = CliRunner()
-                with config({"core": {"tracker": "console"}}):
-                    result = runner.invoke(
-                        airflow_monitor,
-                        [
-                            "--since",
-                            "01/09/2020 10:00:00",
-                            "--number-of-iterations",
-                            1,
-                        ],
-                    )
+    with mock.patch(
+        "airflow_monitor.airflow_monitor_main.save_airflow_monitor_data"
+    ), mock.patch(
+        "airflow_monitor.airflow_monitor_main.save_airflow_server_info"
+    ), mock.patch(
+        "airflow_monitor.airflow_servers_fetching.AirflowServersGetter.get_fetching_configurations",
+        return_value=[fetching_configuration],
+    ):
+        runner = CliRunner()
+        with config({"core": {"tracker": "console"}}):
+            result = runner.invoke(
+                airflow_monitor,
+                ["--since", "01/09/2020 10:00:00", "--number-of-iterations", 1,],
+            )
 
     assert result.exit_code == 0

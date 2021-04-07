@@ -39,6 +39,7 @@ setuptools.setup(
             "requests_toolbelt==0.9.1",
             "tzlocal>=1.5.1",
         ],
+        "direct_db": ["dbnd-airflow-export==" + version],
     },
     entry_points={"dbnd": ["airflow-monitor = airflow_monitor._plugin"]},
 )

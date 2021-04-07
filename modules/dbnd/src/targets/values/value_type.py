@@ -40,6 +40,8 @@ class ValueType(object):
     load_on_build = True
     discoverable = True  # we can discover it from the object
 
+    is_lazy_evaluated = False
+
     @property
     @abc.abstractmethod
     def type(self):
@@ -351,7 +353,10 @@ class InlineValueType(ValueType):
 
     @property
     def type_str(self):
-        return self._type.__name__
+        try:
+            return self._type.__name__
+        except AttributeError:
+            return self._type.__class__.__name__
 
 
 def _isinstances(list_obj, type_):

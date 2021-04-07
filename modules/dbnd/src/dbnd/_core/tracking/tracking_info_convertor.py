@@ -7,6 +7,7 @@ from functools import partial
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.decorator.schemed_result import FuncResultParameter
+from dbnd._core.plugin.dbnd_plugins import should_use_airflow_monitor
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TargetInfo,
     TaskDefinitionInfo,
@@ -83,6 +84,7 @@ class TrackingInfoBuilder(object):
             driver_task_uid=run.driver_task_run.task_run_uid,
             task_run_env=run.context.task_run_env,
             source=run.source,
+            af_with_monitor=should_use_airflow_monitor(),
             af_context=run.af_context,
             tracking_source=run.tracking_source,
         )

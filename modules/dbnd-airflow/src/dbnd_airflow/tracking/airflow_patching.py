@@ -5,7 +5,9 @@ from dbnd_airflow.tracking.dbnd_dag_tracking import track_task
 
 def _wrap_policy_with_dbnd_track_task(policy):
     def dbnd_track_task_policy(task):
+        # Call original policy
         policy(task)
+        # Wrap it with dbnd tracking
         track_task(task)
 
     return dbnd_track_task_policy
@@ -20,9 +22,12 @@ def _patch_policy(module):
 
 def _add_tracking_to_policy():
     try:
+        # Use can have this file or not
         import airflow_local_settings
 
         _patch_policy(airflow_local_settings)
+        # Do not patch twice
+        return
     except ImportError:
         pass
 
@@ -40,7 +45,7 @@ def add_tracking_to_policy():
 
 
 def patch_airflow_context_vars():
-    """ used for tracking bash operators """
+    """ Used for tracking bash operators """
     import airflow
     from airflow.utils import operator_helpers
     from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars

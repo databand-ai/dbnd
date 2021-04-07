@@ -88,13 +88,13 @@ class FuncParamsBuilder(object):
                     raise
 
         if self.decorator_spec.varargs:
-            # create a param for with the name of *args
+            # create a param with the name of `*args` argument of the function
             params[self.decorator_spec.varargs] = build_parameter(
                 parameter[list], context=self.decorator_spec.name
             )
 
         if self.decorator_spec.varkw:
-            # create a param for with the name of **kwargs
+            # create a param with the name of `**kwargs` argument of the function
             params[self.decorator_spec.varkw] = build_parameter(
                 parameter[typing.Dict[str, typing.Any]],
                 context=self.decorator_spec.name,

@@ -5,7 +5,16 @@ import logging
 from pytest import fixture
 
 from targets.value_meta import ValueMetaConf
-from targets.values import get_value_meta_from_value
+
+
+def get_value_meta_from_value(name, value, meta_conf):
+    from dbnd._core.settings import TrackingConfig
+    from dbnd._core.settings.tracking_config import ValueTrackingLevel
+    from dbnd._core.settings.tracking_config import get_value_meta
+
+    c = TrackingConfig.current()
+    c.value_reporting_strategy = ValueTrackingLevel.ALL
+    return get_value_meta(value, meta_conf, tracking_config=c)
 
 
 logger = logging.getLogger(__name__)
