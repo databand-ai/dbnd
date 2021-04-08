@@ -27,7 +27,7 @@ if typing.TYPE_CHECKING:
     import pandas as pd
     import pyspark.sql as spark
 
-    from targets.value_meta import ValueMetaConf
+    from targets.value_meta import ValueMetaConf, ValueMeta
 
 logger = logging.getLogger(__name__)
 
@@ -214,3 +214,20 @@ class TaskRunTracker(TaskRunCtrl):
             )
             if raise_on_error:
                 raise
+
+    def log_target(
+        self,
+        key,
+        target,  # type: Union[Target,str]
+        target_meta,  # type: ValueMeta
+        operation_type,  # type: DbndTargetOperationType
+        operation_status,  # type: DbndTargetOperationStatus
+    ):
+        self.tracking_store.log_target(
+            param_name=key,
+            task_run=self.task_run,
+            target=target,
+            target_meta=target_meta,
+            operation_type=operation_type,
+            operation_status=operation_status,
+        )

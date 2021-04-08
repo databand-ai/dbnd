@@ -2,12 +2,13 @@ import logging
 import time
 import typing
 
-from dbnd._core.constants import DbndTargetOperationType
+from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.utils import seven
-from targets.value_meta import ValueMetaConf
+from targets import Target
+from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 if typing.TYPE_CHECKING:
@@ -176,6 +177,51 @@ def log_artifact(key, artifact):
         return
 
     logger.info("Artifact %s=%s", key, artifact)
+
+
+def log_target_operation(
+    name,
+    target,  # type: Union[Target,str]
+    operation_type,  # type: DbndTargetOperationType
+    target_meta=None,  # type: Optional[ValueMeta]
+    operation_status=DbndTargetOperationStatus.OK,  # type: DbndTargetOperationStatus
+):
+    """
+    Logs target operation and meta data to dbnd.
+
+    @param name: the name of the target
+    @param target: Target object to log or a unique path representing the target logic location
+    @param operation_type: the type of operation that been done with the target - read, write, delete etc.
+    @param target_meta: optional ValueMeta object - meta information about the target including:
+        dimensions, schema and preview
+    @param operation_status: OK if the operation succeed, otherwise NOK
+    """
+    tracker = _get_tracker()
+    if tracker:
+        if not target_meta:
+            target_meta = ValueMeta("")
+
+        tracker.log_target(
+            key=name,
+            target=target,
+            target_meta=target_meta,
+            operation_type=operation_type,
+            operation_status=operation_status,
+        )
+        return
+
+    logger.info(
+        "Operation {operation} executed {status} on target {name} at {path}.".format(
+            operation=operation_type,
+            status=(
+                "successfully"
+                if operation_status == DbndTargetOperationStatus.OK
+                else "unsuccessfully"
+            ),
+            name=name,
+            path=str(target),
+        )
+    )
 
 
 @seven.contextlib.contextmanager

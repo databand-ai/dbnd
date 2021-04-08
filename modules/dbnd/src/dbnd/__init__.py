@@ -53,6 +53,7 @@ from dbnd._core.tracking.metrics import (
     log_duration,
     log_metric,
     log_metrics,
+    log_target_operation,
 )
 from dbnd._core.tracking.no_tracking import dont_track
 from dbnd._core.tracking.python_tracking import (
@@ -136,6 +137,7 @@ __all__ = [
     "log_metric",
     "log_metrics",
     "log_duration",
+    "log_target_operation",
     # project paths
     "project_path",
     "relative_path",

@@ -209,6 +209,7 @@ class DbndTargetOperationType(EnumWithAll):
     reuse = "reuse"
     log = "log"
     log_hist = "log_hist"
+    delete = "delete"
 
 
 class DbndTargetOperationStatus(EnumWithAll):

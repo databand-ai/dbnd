@@ -50,7 +50,7 @@ def new_execute(context):
 
     # running the operator's original execute function
     try:
-        with tracking_context(task_run, context, copied_operator):
+        with af_tracking_context(task_run, context, copied_operator):
             execute = get_execute_function(copied_operator)
             result = execute(copied_operator, context)
 
@@ -111,7 +111,7 @@ def log_operator_result(task_run, result, operator, track_xcom):
 
 
 @contextmanager
-def tracking_context(task_run, airflow_context, operator):
+def af_tracking_context(task_run, airflow_context, operator):
     """
     Wrap the execution with handling the environment management
     """
@@ -134,7 +134,6 @@ def tracking_context(task_run, airflow_context, operator):
         return
 
     # wrap the execution with tracking info in the environment
-    # and cleaning when done
     with env(**tracking_info):
         yield
 
