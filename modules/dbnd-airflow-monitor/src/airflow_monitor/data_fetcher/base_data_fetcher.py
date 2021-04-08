@@ -23,6 +23,7 @@ class AirflowDataFetcher(object):
         last_seen_dag_run_id: Optional[int],
         last_seen_log_id: Optional[int],
         extra_dag_run_ids: Optional[List[int]],
+        dag_ids: Optional[str],
     ) -> AirflowDagRunsResponse:
         raise NotImplementedError()
 

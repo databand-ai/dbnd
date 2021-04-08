@@ -18,6 +18,7 @@ class AirflowServerConfig(object):
     base_url = attr.ib(default=None)  # type: str
     api_mode = attr.ib(default=None)  # type: str
     fetcher = attr.ib(default="web")  # type: str
+    dag_ids = attr.ib(default=None)  # type: Optional[str]
 
     # for web data fetcher
     rbac_username = attr.ib(default=None)  # type: str
@@ -47,6 +48,7 @@ class AirflowServerConfig(object):
             api_mode=server_config["api_mode"],
             fetcher=server_config["fetcher"],
             composer_client_id=server_config["composer_client_id"],
+            dag_ids=server_config["dag_ids"],
             sql_alchemy_conn=airflow_config.sql_alchemy_conn,  # TODO: currently support only one server!
             json_file_path=airflow_config.json_file_path,  # TODO: currently support only one server!
             rbac_username=airflow_config.rbac_username,  # TODO: currently support only one server!

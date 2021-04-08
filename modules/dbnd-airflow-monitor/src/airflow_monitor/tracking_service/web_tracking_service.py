@@ -71,23 +71,25 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
             "update_last_seen_values", method="POST", data=last_seen_values.as_dict(),
         )
 
-    def get_all_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+    def get_all_dag_runs(
+        self, start_time_window: int, dag_ids: str
+    ) -> DbndDagRunsResponse:
+        params = _min_start_time(start_time_window)
+        if dag_ids:
+            params["dag_ids"] = dag_ids
+
         response = self._make_request(
-            "get_all_dag_runs",
-            method="GET",
-            data=None,
-            query=_min_start_time(start_time_window),
+            "get_all_dag_runs", method="GET", data=None, query=params
         )
         dags_to_sync = DbndDagRunsResponse.from_dict(response)
 
         return dags_to_sync
 
-    def get_active_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+    def get_active_dag_runs(
+        self, start_time_window: int, dag_ids: str
+    ) -> DbndDagRunsResponse:
         response = self._make_request(
-            "get_running_dag_runs",
-            method="GET",
-            data=None,
-            # query=_min_start_time(start_time_window),
+            "get_running_dag_runs", method="GET", data=None, query={"dag_ids": dag_ids},
         )
         dags_to_sync = DbndDagRunsResponse.from_dict(response)
 

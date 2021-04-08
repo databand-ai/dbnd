@@ -12,7 +12,7 @@ from dbnd_airflow_export.plugin_old.model import EDagRun
 @save_result_size("find_new_dag_runs")
 @measure_time
 def find_new_dag_runs(
-    last_seen_dagrun_id, extra_dag_runs_ids, extra_dag_runs_tuple, session
+    last_seen_dagrun_id, extra_dag_runs_ids, extra_dag_runs_tuple, dag_ids, session
 ):
     new_runs_query = session.query(
         DagRun.id,
@@ -21,6 +21,9 @@ def find_new_dag_runs(
         DagRun.state,
         DagModel.is_paused,
     ).join(DagModel, DagModel.dag_id == DagRun.dag_id)
+
+    if dag_ids:
+        new_runs_query = new_runs_query.filter(DagRun.dag_id.in_(dag_ids))
 
     new_runs_filter_condition = or_(
         DagRun.id.in_(extra_dag_runs_ids),
@@ -42,8 +45,8 @@ def find_new_dag_runs(
 
 @save_result_size("find_all_logs_grouped_by_runs")
 @measure_time
-def find_all_logs_grouped_by_runs(last_seen_log_id, session):
-    # type: (int, Session) -> List[Log]
+def find_all_logs_grouped_by_runs(last_seen_log_id, dag_ids, session):
+    # type: (int, List[str], Session) -> List[Log]
 
     if last_seen_log_id is None:
         return []
@@ -53,11 +56,16 @@ def find_all_logs_grouped_by_runs(last_seen_log_id, session):
     else:  # mysql, sqlite
         events_field = func.group_concat(Log.event.distinct()).label("events")
 
+    if dag_ids:
+        dag_ids_filter_condition = Log.dag_id.in_(dag_ids)
+    else:
+        dag_ids_filter_condition = Log.dag_id.isnot(None)
+
     logs_query = (
         session.query(
             func.max(Log.id).label("id"), Log.dag_id, Log.execution_date, events_field
         )
-        .filter(and_(Log.id > last_seen_log_id, Log.dag_id.isnot(None)))
+        .filter(and_(Log.id > last_seen_log_id, dag_ids_filter_condition))
         .group_by(Log.dag_id, Log.execution_date)
     )
 
@@ -84,6 +92,7 @@ def find_max_log_run_id(session):
 @measure_time
 def find_full_dag_runs(dag_run_ids, session):
     # type: (List[int], Session) -> (List[AirflowTaskInstance], List[EDagRun])
+
     result_fields = (
         session.query(*EDagRun.query_fields(), *AirflowTaskInstance.query_fields())
         .outerjoin(

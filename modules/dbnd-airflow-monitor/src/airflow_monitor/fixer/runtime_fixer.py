@@ -19,7 +19,8 @@ class AirflowRuntimeFixer(BaseMonitorComponent):
     @capture_monitor_exception(logger)
     def sync_once(self):
         dbnd_response = self.tracking_service.get_all_dag_runs(
-            start_time_window=self.config.start_time_window
+            start_time_window=self.config.start_time_window,
+            dag_ids=self.config.dag_ids,
         )
         if not dbnd_response.dag_run_ids:
             logger.debug("last_seen_dag_run_id is undefined, nothing to do")

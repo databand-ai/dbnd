@@ -15,6 +15,7 @@ class UpdateLastSeenValuesRequestSchema(ApiObjectSchema):
 
 class GetAllDagRunsRequestSchema(ApiObjectSchema):
     min_start_time = fields.DateTime(allow_none=True)
+    dag_ids = fields.String(allow_none=True)
 
 
 class TaskSchema(ApiObjectSchema):

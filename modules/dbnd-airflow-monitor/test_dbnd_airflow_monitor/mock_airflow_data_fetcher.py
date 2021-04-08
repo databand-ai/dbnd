@@ -66,7 +66,10 @@ class MockDataFetcher(AirflowDataFetcher):
         last_seen_dag_run_id: Optional[int],
         last_seen_log_id: Optional[int],
         extra_dag_run_ids: Optional[List[int]],
+        dag_ids: Optional[str],
     ) -> AirflowDagRunsResponse:
+        dag_ids_list = dag_ids.split(",") if dag_ids else None
+
         updated = {}
         if last_seen_log_id is not None:
             for log in self.logs:
@@ -85,10 +88,18 @@ class MockDataFetcher(AirflowDataFetcher):
                 max_log_id=updated.get((dr.dag_id, dr.execution_date)),
             )
             for dr in self.dag_runs
-            if (dr.state == "RUNNING" and not dr.is_paused)
-            or dr.id in extra_dag_run_ids
-            or (last_seen_dag_run_id is not None and dr.id > last_seen_dag_run_id)
-            or (dr.dag_id, dr.execution_date) in updated
+            if (
+                (
+                    (dr.state == "RUNNING" and not dr.is_paused)
+                    or dr.id in extra_dag_run_ids
+                    or (
+                        last_seen_dag_run_id is not None
+                        and dr.id > last_seen_dag_run_id
+                    )
+                    or (dr.dag_id, dr.execution_date) in updated
+                )
+                and (dag_ids_list is None or dr.dag_id in dag_ids_list)
+            )
         ]
         return AirflowDagRunsResponse(
             dag_runs=dag_runs,

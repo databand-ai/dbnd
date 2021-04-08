@@ -16,10 +16,14 @@ class DbndAirflowTrackingService(object):
     def update_last_seen_values(self, last_seen_values: LastSeenValues):
         raise NotImplementedError()
 
-    def get_all_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+    def get_all_dag_runs(
+        self, start_time_window: int, dag_ids: str
+    ) -> DbndDagRunsResponse:
         raise NotImplementedError()
 
-    def get_active_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+    def get_active_dag_runs(
+        self, start_time_window: int, dag_ids: str
+    ) -> DbndDagRunsResponse:
         raise NotImplementedError()
 
     def init_dagruns(

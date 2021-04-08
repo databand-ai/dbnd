@@ -77,39 +77,39 @@ class DbFetcher(AirflowDataFetcher):
         last_seen_dag_run_id: Optional[int],
         last_seen_log_id: Optional[int],
         extra_dag_run_ids: Optional[List[int]],
+        dag_ids: Optional[str],
     ) -> AirflowDagRunsResponse:
         from dbnd_airflow_export.api_functions import get_new_dag_runs
+
+        dag_ids_list = dag_ids.split(",") if dag_ids else None
 
         with self._get_session() as session:
             data = get_new_dag_runs(
                 last_seen_dag_run_id=last_seen_dag_run_id,
                 last_seen_log_id=last_seen_log_id,
                 extra_dag_run_ids=extra_dag_run_ids,
+                dag_ids=dag_ids_list,
                 session=session,
             )
         return AirflowDagRunsResponse.from_dict(data.as_dict())
 
-    def get_full_dag_runs(self, dag_run_ids: List[AirflowDagRun]) -> DagRunsFullData:
+    def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
         from dbnd_airflow_export.api_functions import get_full_dag_runs
 
         with self._get_session() as session:
             data = get_full_dag_runs(
-                dag_run_ids=[dr.id for dr in dag_run_ids],
+                dag_run_ids=dag_run_ids,
                 airflow_dagbag=self._get_dagbag(),
                 session=session,
             )
 
         return DagRunsFullData.from_dict(data.as_dict())
 
-    def get_dag_runs_state_data(
-        self, dag_run_ids: List[AirflowDagRun]
-    ) -> DagRunsStateData:
+    def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
         from dbnd_airflow_export.api_functions import get_dag_runs_states_data
 
         with self._get_session() as session:
-            data = get_dag_runs_states_data(
-                dag_run_ids=[dr.id for dr in dag_run_ids], session=session,
-            )
+            data = get_dag_runs_states_data(dag_run_ids=dag_run_ids, session=session)
 
         return DagRunsStateData.from_dict(data.as_dict())
 

@@ -34,7 +34,11 @@ def get_last_seen_values(session=None):
 
 @provide_session
 def get_new_dag_runs(
-    last_seen_dag_run_id, last_seen_log_id, extra_dag_runs_ids, session=None
+    last_seen_dag_run_id,
+    last_seen_log_id,
+    extra_dag_runs_ids,
+    dag_ids=None,
+    session=None,
 ):
     max_dag_run_id = find_max_dag_run_id(session)
     max_log_id = find_max_log_run_id(session)
@@ -45,11 +49,11 @@ def get_new_dag_runs(
     if last_seen_log_id is None:
         last_seen_log_id = max_log_id
 
-    logs = find_all_logs_grouped_by_runs(last_seen_log_id, session)
+    logs = find_all_logs_grouped_by_runs(last_seen_log_id, dag_ids, session)
     logs_dict = {(log.dag_id, log.execution_date): log for log in logs}
 
     dag_runs = find_new_dag_runs(
-        last_seen_dag_run_id, extra_dag_runs_ids, logs_dict.keys(), session
+        last_seen_dag_run_id, extra_dag_runs_ids, logs_dict.keys(), dag_ids, session
     )
 
     new_dag_runs = []

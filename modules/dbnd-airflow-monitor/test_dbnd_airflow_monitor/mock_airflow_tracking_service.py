@@ -78,21 +78,35 @@ class MockTrackingService(DbndAirflowTrackingService):
 
     @can_be_dead
     @ticking
-    def get_all_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+    def get_all_dag_runs(
+        self, start_time_window: int, dag_ids: str
+    ) -> DbndDagRunsResponse:
+        dag_ids_list = dag_ids.split(",") if dag_ids else None
+
         return DbndDagRunsResponse(
-            dag_run_ids=[dag_run.id for dag_run in self.dag_runs],
+            dag_run_ids=[
+                dag_run.id
+                for dag_run in self.dag_runs
+                if dag_ids_list is None or dag_run.dag_id in dag_ids_list
+            ],
             last_seen_dag_run_id=None,
             last_seen_log_id=None,
         )
 
     @can_be_dead
     @ticking
-    def get_active_dag_runs(self, start_time_window: int) -> DbndDagRunsResponse:
+    def get_active_dag_runs(
+        self, start_time_window: int, dag_ids: str
+    ) -> DbndDagRunsResponse:
+        dag_ids_list = dag_ids.split(",") if dag_ids else None
+
         return DbndDagRunsResponse(
             dag_run_ids=[
                 dag_run.id
                 for dag_run in self.dag_runs
-                if dag_run.state == "RUNNING" and not dag_run.is_paused
+                if dag_run.state == "RUNNING"
+                and not dag_run.is_paused
+                and (dag_ids_list is None or dag_run.dag_id in dag_ids_list)
             ],
             last_seen_dag_run_id=self.last_seen_dag_run_id,
             last_seen_log_id=self.last_seen_log_id,

@@ -165,32 +165,34 @@ class WebFetcher(AirflowDataFetcher):
         last_seen_dag_run_id: Optional[int],
         last_seen_log_id: Optional[int],
         extra_dag_run_ids: Optional[List[int]],
+        dag_ids: Optional[str],
     ) -> AirflowDagRunsResponse:
 
-        data_to_send = dict(
+        params_dict = dict(
             last_seen_dag_run_id=last_seen_dag_run_id,
             last_seen_log_id=last_seen_log_id,
         )
         if extra_dag_run_ids:
-            data_to_send["extra_dag_runs_ids"] = ",".join(map(str, extra_dag_run_ids))
+            params_dict["extra_dag_runs_ids"] = ",".join(map(str, extra_dag_run_ids))
 
-        data = self._make_request("new_runs", data_to_send)
+        if dag_ids:
+            params_dict["dag_ids"] = dag_ids
+
+        data = self._make_request("new_runs", params_dict)
         return AirflowDagRunsResponse.from_dict(data)
 
     def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
-        data = self._make_request(
-            "full_runs",
-            dict(dag_run_ids=",".join([str(dr_id) for dr_id in dag_run_ids])),
+        params_dict = dict(
+            dag_run_ids=",".join([str(dag_run_id) for dag_run_id in dag_run_ids])
         )
+        data = self._make_request("full_runs", params_dict)
         return DagRunsFullData.from_dict(data)
 
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
-        data_to_send = {}
+        params_dict = {}
         if dag_run_ids:
-            data_to_send["dag_run_ids"] = ",".join(
-                [str(dr_id) for dr_id in dag_run_ids]
-            )
-        data = self._make_request("runs_states_data", data_to_send)
+            params_dict["dag_run_ids"] = ",".join([str(dr_id) for dr_id in dag_run_ids])
+        data = self._make_request("runs_states_data", params_dict)
         return DagRunsStateData.from_dict(data)
 
     def is_alive(self):

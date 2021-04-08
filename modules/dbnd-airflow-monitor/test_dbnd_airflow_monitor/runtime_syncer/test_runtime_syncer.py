@@ -334,6 +334,65 @@ class TestRuntimeSyncer:
         assert mock_tracking_service.last_seen_log_id == 21
         assert not mock_tracking_service.dag_runs
 
+    def test_08_dag_ids(self, runtime_syncer, mock_data_fetcher):
+        runtime_syncer.config.dag_ids = "dag2"
+
+        # both dbnd and airflow are empty
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=0,
+            update=0,
+            is_dbnd_empty=True,
+            case="both dbnd and airflow are empty",
+        )
+
+        # in airflow one dagrun started to run => should do one init
+        airflow_dag_run1 = MockDagRun(
+            id=10, dag_id="dag1", state="RUNNING", is_paused=False
+        )
+        airflow_dag_run2 = MockDagRun(
+            id=11, dag_id="dag2", state="RUNNING", is_paused=False
+        )
+        mock_data_fetcher.dag_runs.append(airflow_dag_run1)
+        mock_data_fetcher.dag_runs.append(airflow_dag_run2)
+
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=1,
+            update=0,
+            case="in airflow one dagrun started to run => should do one init",
+        )
+
+        # in airflow dagrun is running, dbnd knows about it, not updated => nothing
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=0,
+            update=0,
+            case="in airflow dagrun is running, dbnd knows about it, not updated => nothing",
+        )
+
+        # finished in airflow, running in dbnd
+        airflow_dag_run2.state = "FINISHED"
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=0,
+            update=1,
+            case="finished in airflow, running in dbnd",
+        )
+
+        # finished both in dbnd and airflow => nothing
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=0,
+            update=0,
+            case="finished both in dbnd and airflow => nothing",
+        )
+
 
 class TestRuntimeFixer:
     def test_01_initial_state(
@@ -394,3 +453,14 @@ class TestRuntimeFixer:
             assert sorted(
                 dr.id for dr in mock_update_dagruns.call_args_list[i].args[0].dag_runs
             ) == sorted(list(range(10 - i * 3, 10 - min(i * 3 + 3, 11), -1)))
+
+    def test_04_dag_ids(self, runtime_fixer, mock_data_fetcher, mock_tracking_service):
+        runtime_fixer.config.dag_ids = "dag2"
+
+        mock_tracking_service.dag_runs = [MockDagRun(id=2, dag_id="dag1")]
+        mock_data_fetcher.dag_runs = [MockDagRun(id=2, dag_id="dag1")]
+
+        runtime_fixer.sync_once()
+
+        expect_fixer_changes(runtime_fixer, update=0)
+        assert len(mock_tracking_service.dag_runs) == 1
