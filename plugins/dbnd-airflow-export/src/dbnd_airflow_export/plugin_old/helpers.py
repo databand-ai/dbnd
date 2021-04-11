@@ -13,6 +13,7 @@ from airflow.configuration import conf
 from airflow.models import BaseOperator
 
 from dbnd._core.utils.basics.memoized import cached
+from dbnd._core.utils.git import get_git_commit, is_git_dirty
 
 
 logger = logging.getLogger(__name__)
@@ -76,18 +77,9 @@ def _get_log(ti, task):
 
 @cached()
 def _get_git_status(path):
-    try:
-        from git import Repo
-
-        if os.path.isfile(path):
-            path = os.path.dirname(path)
-
-        repo = Repo(path, search_parent_directories=True)
-        commit = repo.head.commit.hexsha
-        return commit, not repo.is_dirty()
-    except Exception as ex:
-        logger.warning("Failed to retrieve git status: %s", ex)
-        return "", False
+    commit = get_git_commit(path) or ""
+    is_dirty = is_git_dirty(path) or False
+    return commit, not is_dirty
 
 
 def _get_source_code(t):
