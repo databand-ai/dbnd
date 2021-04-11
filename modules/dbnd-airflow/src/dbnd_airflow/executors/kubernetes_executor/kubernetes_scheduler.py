@@ -88,6 +88,11 @@ class SubmittedPodState(object):
     def try_number(self):
         return self.scheduler_key[1]
 
+    @property
+    def is_started_running(self):
+        # the node name is set when the pod started running
+        return self.node_name is not None
+
 
 AIRFLOW_TO_DBND_STATE_MAP = {
     State.SUCCESS: TaskRunState.SUCCESS,
@@ -390,7 +395,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             )
             return
 
-        pod_data = self.get_pod_status(pod_name)
+        pod_data = self.kube_dbnd.get_pod_status(pod_name)
         if not pod_data or not pod_data.spec.node_name:
             self.log.error("%s: Failed to find pod data for %s", pod_name)
             node_name = "failed_to_find"
@@ -459,7 +464,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             "%s: pod %s has crashed, airflow state: %s", task_run, pod_name, ti_state
         )
 
-        pod_data = self.get_pod_status(pod_name)
+        pod_data = self.kube_dbnd.get_pod_status(pod_name)
         pod_ctrl = self.kube_dbnd.get_pod_ctrl(pod_name, self.namespace)
 
         pod_logs = []
@@ -668,7 +673,3 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         zombie_pod_state = zombie_pod_state[0]
         self._process_pod_failed(zombie_pod_state)
         return zombie_pod_state
-
-    def get_pod_status(self, pod_name):
-        pod_ctrl = self.kube_dbnd.get_pod_ctrl(name=pod_name)
-        return pod_ctrl.get_pod_status_v1()

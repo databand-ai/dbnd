@@ -39,6 +39,7 @@ from dbnd_docker.kubernetes.dns1123_clean_names import (
     create_pod_id,
 )
 from targets import target
+from targets.values import TimeDeltaValueType
 
 
 if typing.TYPE_CHECKING:
@@ -227,6 +228,24 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     log_pod_events_on_sigterm = parameter(
         default=False,
         description="When receiving sigterm log current pod state to debug why the pod was terminated",
+    )
+
+    pending_zombies_timeout = parameter(
+        default="5h",
+        description="Amount of time we will wait before a pending pod would consider a"
+        " zombie and we will set it to fail",
+    ).type(TimeDeltaValueType)
+
+    zombie_query_interval_secs = parameter(
+        default=600,
+        description="Amount of seconds we wait between zombie checking intervals. "
+        "Default: 600 sec => 10 minutes",
+    )
+
+    zombie_threshold_secs = parameter(
+        default=300,
+        description="If the job has not heartbeat in this many seconds, "
+        "the scheduler will mark the associated task instance as failed and will re-schedule the task.",
     )
 
     def _initialize(self):
