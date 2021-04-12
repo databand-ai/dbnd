@@ -1,8 +1,4 @@
-import logging
-
 import flask
-
-from airflow.version import version as airflow_version
 
 from dbnd_airflow_export.api_functions import (
     get_dag_runs_states_data,
@@ -10,7 +6,6 @@ from dbnd_airflow_export.api_functions import (
     get_last_seen_values,
     get_new_dag_runs,
 )
-from dbnd_airflow_export.models import AirflowExportData, AirflowExportMeta
 from dbnd_airflow_export.utils import json_response
 
 
@@ -28,16 +23,7 @@ def convert_url_param_value_to_list(
 
 
 def process_last_seen_values_request():
-    result = AirflowExportData()
-    try:
-        result = get_last_seen_values()
-    except Exception as e:
-        result = AirflowExportData()
-        logging.error("Exception during data export: \n%s", str(e))
-        result.error_message = str(e)
-    finally:
-        result.airflow_export_meta = get_meta()
-        return json_response(result.as_dict())
+    return json_response(get_last_seen_values().as_dict())
 
 
 def process_new_runs_request():
@@ -46,63 +32,21 @@ def process_new_runs_request():
     extra_dag_runs_ids = convert_url_param_value_to_list("extra_dag_runs_ids", int, [])
     dag_ids = convert_url_param_value_to_list("dag_ids", str, None)
 
-    result = AirflowExportData()
-    try:
-        result = get_new_dag_runs(
+    return json_response(
+        get_new_dag_runs(
             last_seen_dag_run_id, last_seen_log_id, extra_dag_runs_ids, dag_ids
-        )
-    except Exception as e:
-        result = AirflowExportData()
-        logging.error("Exception during data export: \n%s", str(e))
-        result.error_message = str(e)
-    finally:
-        result.airflow_export_meta = get_meta()
-        return json_response(result.as_dict())
+        ).as_dict()
+    )
 
 
 def process_full_runs_request():
     dag_run_ids = convert_url_param_value_to_list("dag_run_ids", int, [])
     include_sources = flask.request.args.get("include_sources", type=str) == "True"
 
-    result = AirflowExportData()
-    try:
-        result = get_full_dag_runs(dag_run_ids, include_sources)
-    except Exception as e:
-        result = AirflowExportData()
-        logging.error("Exception during data export: \n%s", str(e))
-        result.error_message = str(e)
-    finally:
-        result.airflow_export_meta = get_meta()
-        return json_response(result.as_dict())
+    return json_response(get_full_dag_runs(dag_run_ids, include_sources).as_dict())
 
 
 def process_dag_run_states_data_request():
     dag_run_ids = convert_url_param_value_to_list("dag_run_ids", int, [])
 
-    result = AirflowExportData()
-    try:
-        result = get_dag_runs_states_data(dag_run_ids)
-    except Exception as e:
-        result = AirflowExportData()
-        logging.error("Exception during data export: \n%s", str(e))
-        result.error_message = str(e)
-    finally:
-        result.airflow_export_meta = get_meta()
-        return json_response(result.as_dict())
-
-
-def get_meta():
-    meta = AirflowExportMeta()
-    meta.airflow_version = airflow_version
-    meta.plugin_version = "2.0"
-    meta.request_args = flask.request.args
-
-    metrics = {}
-    if hasattr(flask.g, "perf_metrics"):
-        metrics["performance"] = flask.g.perf_metrics
-    if hasattr(flask.g, "sizes"):
-        metrics["sizes"]: flask.g.size_metrics
-
-    meta.metrics = metrics
-
-    return meta
+    return json_response(get_dag_runs_states_data(dag_run_ids).as_dict())

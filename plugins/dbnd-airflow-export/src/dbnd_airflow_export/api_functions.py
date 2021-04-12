@@ -1,5 +1,10 @@
+import logging
+
+from functools import wraps
+
 from airflow.models import DagModel
 from airflow.utils.db import provide_session
+from airflow.version import version as airflow_version
 
 from dbnd_airflow_export.dag_processing import (
     get_current_dag_model,
@@ -7,12 +12,15 @@ from dbnd_airflow_export.dag_processing import (
     load_dags_models,
 )
 from dbnd_airflow_export.models import (
+    AirflowExportData,
+    AirflowExportMeta,
     AirflowNewDagRun,
     DagRunsStatesData,
     FullRunsData,
     LastSeenData,
     NewRunsData,
 )
+from dbnd_airflow_export.plugin_old.metrics import METRIC_COLLECTOR
 from dbnd_airflow_export.queries import (
     find_all_logs_grouped_by_runs,
     find_full_dag_runs,
@@ -22,6 +30,43 @@ from dbnd_airflow_export.queries import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
+def safe_rich_result(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        with METRIC_COLLECTOR.use_local() as metrics:
+            result = AirflowExportData()
+            try:
+                result = f(*args, *kwargs)
+            except Exception as e:
+                result = AirflowExportData()
+                logger.exception("Exception during %s", f.__name__, exc_info=True)
+                result.error_message = str(e)
+            finally:
+                result.airflow_export_meta = get_meta(metrics)
+                return result
+
+    return wrapped
+
+
+def get_meta(metrics):
+    import flask
+
+    meta = AirflowExportMeta(
+        airflow_version=airflow_version,
+        plugin_version="2.0",
+        request_args=dict(flask.request.args) if flask.has_request_context() else {},
+        metrics={
+            "performance": metrics.get("perf_metrics", {}),
+            "sizes": metrics.get("sizes", {}),
+        },
+    )
+    return meta
+
+
+@safe_rich_result
 @provide_session
 def get_last_seen_values(session=None):
     max_dag_run_id = find_max_dag_run_id(session)
@@ -32,6 +77,7 @@ def get_last_seen_values(session=None):
     )
 
 
+@safe_rich_result
 @provide_session
 def get_new_dag_runs(
     last_seen_dag_run_id,
@@ -88,6 +134,7 @@ def get_new_dag_runs(
     return new_runs
 
 
+@safe_rich_result
 @provide_session
 def get_full_dag_runs(dag_run_ids, include_sources, airflow_dagbag=None, session=None):
     if airflow_dagbag:
@@ -115,6 +162,7 @@ def get_full_dag_runs(dag_run_ids, include_sources, airflow_dagbag=None, session
         DagModel.get_current = old_get_current_dag
 
 
+@safe_rich_result
 @provide_session
 def get_dag_runs_states_data(dag_run_ids, session=None):
     task_instances, dag_runs = find_full_dag_runs(dag_run_ids, session)

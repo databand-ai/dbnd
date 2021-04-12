@@ -9,6 +9,7 @@ from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
+    MonitorState,
 )
 from airflow_monitor.common.config_data import (
     AirflowServerConfig,
@@ -118,6 +119,11 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
         data["syncer_type"] = syncer_type
         response = self._make_request("update_dagruns", method="POST", data=data)
         return response
+
+    def update_monitor_state(self, monitor_state: MonitorState):
+        response = self._make_request(
+            "update_monitor_state", method="POST", data=monitor_state.as_dict(),
+        )
 
     def get_monitor_configuration(self) -> MonitorConfig:
         result_json = self._get_airflow_web_servers_data()

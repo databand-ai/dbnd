@@ -14,10 +14,13 @@ from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 
 
 @pytest.fixture
-def multi_server(mock_server_config_service, mock_data_fetcher):
+def multi_server(mock_server_config_service, mock_data_fetcher, mock_tracking_service):
     with patch(
         "airflow_monitor.multiserver.multiserver.get_data_fetcher",
         return_value=mock_data_fetcher,
+    ), patch(
+        "airflow_monitor.multiserver.multiserver.get_tracking_service",
+        return_value=mock_tracking_service,
     ):
         yield MultiServerMonitor(mock_server_config_service, MultiServerMonitorConfig())
 

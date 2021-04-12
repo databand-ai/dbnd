@@ -2,6 +2,7 @@ from copy import copy
 from functools import wraps
 from typing import List, Optional
 
+from airflow_monitor.common import MonitorState
 from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
@@ -67,6 +68,8 @@ class MockTrackingService(DbndAirflowTrackingService):
         self.last_seen_dag_run_id = None
         self.last_seen_log_id = None
         self.alive = True
+
+        self.monitor_state_updates = []
 
     @can_be_dead
     @ticking
@@ -163,3 +166,8 @@ class MockTrackingService(DbndAirflowTrackingService):
     @ticking
     def get_monitor_configuration(self) -> MonitorConfig:
         return self.config
+
+    @can_be_dead
+    @ticking
+    def update_monitor_state(self, monitor_state: MonitorState):
+        self.monitor_state_updates.append(monitor_state)

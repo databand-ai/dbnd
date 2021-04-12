@@ -16,12 +16,12 @@ class MultiProcessRunner(BaseRunner):
         super(MultiProcessRunner, self).__init__(target, **kwargs)
         self.process = None  # type: Process
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def start(self):
         self.process = Process(target=self.target, kwargs=self.kwargs)
         self.process.start()
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def stop(self):
         if self.process and self.is_alive():
             self.process.terminate()
@@ -29,12 +29,12 @@ class MultiProcessRunner(BaseRunner):
             if self.process.is_alive():
                 self.process.kill()
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def heartbeat(self):
         # do we want to do something here?
         pass
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def is_alive(self):
         return self.process.is_alive()
 

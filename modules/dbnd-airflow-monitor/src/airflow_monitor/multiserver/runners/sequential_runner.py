@@ -17,37 +17,30 @@ class SequentialRunner(BaseRunner):
         self._iteration = -1
         self._running = None  # type: Optional[BaseMonitorComponent]
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def start(self):
         if self._running:
             logger.warning("Already running")
             return
 
-        try:
-            self._iteration = -1
-            self._running = self.target(**self.kwargs, run=False)
-        except Exception as e:
-            logger.exception(
-                f"Failed to create component: {self.target}({self.kwargs})"
-            )
+        self._iteration = -1
+        self._running = self.target(**self.kwargs, run=False)
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def stop(self):
         self._running = None
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def heartbeat(self):
         if self._running:
             self._iteration += 1
             try:
                 self._running.sync_once()
             except Exception as e:
-                logger.exception(
-                    f"Failed to run sync iteration {self._iteration}: {self.target}({self.kwargs}"
-                )
                 self._running = None
+                raise
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def is_alive(self):
         return bool(self._running)
 

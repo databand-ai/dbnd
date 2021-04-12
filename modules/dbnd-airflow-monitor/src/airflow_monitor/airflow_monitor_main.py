@@ -231,7 +231,7 @@ def do_data_fetching_iteration(
         return None
 
     log_received_tasks(airflow_instance_detail.url, data)
-    send_metrics(airflow_instance_detail, data)
+    send_metrics(airflow_instance_detail.airflow_server_info.base_url, data)
 
     try:
         save_airflow_monitor_data(

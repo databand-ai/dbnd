@@ -74,7 +74,7 @@ class AirflowTaskInstance(object):
 class AirflowExportMeta(object):
     airflow_version = attr.ib(default=None)  # type: str
     plugin_version = attr.ib(default=None)  # type: str
-    request_args = attr.ib(default=None)  # type: str
+    request_args = attr.ib(default=None)  # type: dict
     metrics = attr.ib(default=None)  # type: dict
 
     def as_dict(self):

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import attr
 
 
@@ -18,6 +20,34 @@ class LastSeenValues:
             last_seen_dag_run_id=data.get("last_seen_dag_run_id"),
             last_seen_log_id=data.get("last_seen_log_id"),
         )
+
+
+@attr.s
+class MonitorState:
+    airflow_version = attr.ib(default=None)
+    airflow_export_version = attr.ib(default=None)
+    airflow_monitor_version = attr.ib(default=None)
+    dags_path = attr.ib(default=None)
+    logs_path = attr.ib(default=None)
+    monitor_status = attr.ib(default=None)
+    monitor_error_message = attr.ib(default=None)
+    monitor_start_time = attr.ib(default=None)  # type: datetime
+
+    def as_dict(self):
+        d = dict(
+            airflow_version=self.airflow_version,
+            airflow_export_version=self.airflow_export_version,
+            airflow_monitor_version=self.airflow_monitor_version,
+            dags_path=self.dags_path,
+            logs_path=self.logs_path,
+            monitor_status=self.monitor_status,
+            monitor_error_message=self.monitor_error_message,
+            monitor_start_time=self.monitor_start_time.isoformat()
+            if self.monitor_start_time
+            else None,
+        )
+        # allow partial dump
+        return {k: v for k, v in d.items() if v is not None}
 
 
 @attr.s

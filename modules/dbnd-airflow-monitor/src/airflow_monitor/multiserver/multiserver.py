@@ -4,7 +4,7 @@ from time import sleep
 from typing import Any, Callable, Dict, List, Type, Union
 from uuid import UUID
 
-from airflow_monitor.common import capture_monitor_exception
+from airflow_monitor.common import MonitorState, capture_monitor_exception
 from airflow_monitor.common.config_data import (
     AirflowServerConfig,
     MultiServerMonitorConfig,
@@ -18,12 +18,16 @@ from airflow_monitor.multiserver.runners import (
 )
 from airflow_monitor.multiserver.runners.base_runner import BaseRunner
 from airflow_monitor.syncer.runtime_syncer import start_runtime_syncer
-from airflow_monitor.tracking_service import get_servers_configuration_service
+from airflow_monitor.tracking_service import (
+    get_servers_configuration_service,
+    get_tracking_service,
+)
 from airflow_monitor.tracking_service.af_tracking_service import (
     DbndAirflowTrackingService,
     ServersConfigurationService,
 )
 from dbnd._core.errors.base import DatabandConfigError, DatabandConnectionException
+from dbnd._core.utils.timezone import utcnow
 from tenacity import (
     before_sleep_log,
     retry,
@@ -51,9 +55,11 @@ class AirflowMonitor(object):
         self,
         server_config: AirflowServerConfig,
         runner_factory: Callable[..., BaseRunner],
+        tracking_service: DbndAirflowTrackingService,
     ):
         self.server_config = server_config
         self.active_components = {}  # type: Dict[str, BaseRunner]
+        self.tracking_service = tracking_service
 
         self.runner_factory = runner_factory
         self._is_stopping = False
@@ -79,6 +85,7 @@ class AirflowMonitor(object):
             if airflow_alive and self.is_enabled(name) and not self.is_active(name):
                 self.active_components[name] = self.runner_factory(
                     target=runnable,
+                    tracking_service=self.tracking_service,
                     tracking_source_uid=self.server_config.tracking_source_uid,
                 )
                 self.active_components[name].start()
@@ -92,25 +99,29 @@ class AirflowMonitor(object):
                 component.stop()
                 self.active_components.pop(name)
 
-    @capture_monitor_exception(logger, "stopping monitor")
+    @capture_monitor_exception("stopping monitor")
     def stop(self):
         self._is_stopping = True
         self._update_component_state()
 
-    @capture_monitor_exception(logger, "starting monitor")
+    @capture_monitor_exception("starting monitor")
     def start(self):
         self._update_component_state()
 
-    @capture_monitor_exception(logger, "updating monitor config")
+        self.tracking_service.update_monitor_state(
+            MonitorState(monitor_start_time=utcnow(), monitor_status="Running"),
+        )
+
+    @capture_monitor_exception("updating monitor config")
     def update_config(self, server_config: AirflowServerConfig):
         self.server_config = server_config
         self._update_component_state()
 
-    @capture_monitor_exception(logger, "checking monitor alive")
+    @capture_monitor_exception("checking monitor alive")
     def is_airflow_server_alive(self):
         return get_data_fetcher(self.server_config).is_alive()
 
-    @capture_monitor_exception(logger, "heartbeat monitor")
+    @capture_monitor_exception("heartbeat monitor")
     def heartbeat(self):
         for component in self.active_components.values():
             component.heartbeat()
@@ -219,7 +230,11 @@ class MultiServerMonitor(object):
                 monitor.update_config(server_config)
             else:
                 logger.info(f"Starting new monitor for {server_id}")
-                monitor = AirflowMonitor(server_config, self.runner_factory)
+                monitor = AirflowMonitor(
+                    server_config,
+                    self.runner_factory,
+                    tracking_service=get_tracking_service(server_id),
+                )
                 monitor.start()
                 self.active_monitors[server_id] = monitor
 

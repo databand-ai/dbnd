@@ -6,9 +6,8 @@ import traceback
 from tempfile import NamedTemporaryFile
 from time import sleep
 
-from prometheus_client import Summary
-
 from airflow_monitor.airflow_data_saving import save_airflow_server_info
+from airflow_monitor.common.metric_reporter import METRIC_REPORTER
 from airflow_monitor.config import AirflowMonitorConfig
 from dbnd._core.utils.timezone import utcnow
 
@@ -17,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 def log_received_tasks(url, fetched_data):
+    if not fetched_data:
+        return
     try:
         logger.info(
             "Received data from %s with: {tasks: %d, dags: %d, dag_runs: %d, since: %s}",
@@ -30,32 +31,27 @@ def log_received_tasks(url, fetched_data):
         logging.error("Could not log received data. %s", e)
 
 
-prometheus_metrics = {
-    "performance": Summary(
-        "dbnd_af_plugin_query_duration_seconds",
-        "Airflow Export Plugin Query Run Time",
-        ["airflow_instance", "method_name"],
-    ),
-    "sizes": Summary(
-        "dbnd_af_plugin_query_result_size",
-        "Airflow Export Plugin Query Result Size",
-        ["airflow_instance", "method_name"],
-    ),
-}
+def send_metrics(airflow_instance_label, fetched_data):
+    if not fetched_data:
+        return
 
-
-def send_metrics(airflow_instance_detail, fetched_data):
     try:
         metrics = fetched_data.get("metrics")
         logger.info("Received Grafana Metrics from airflow plugin: %s", metrics)
-        for key, metrics_dict in metrics.items():
-            for metric_name, value in metrics_dict.items():
-                prometheus_metrics[key].labels(
-                    airflow_instance_detail.airflow_server_info.base_url,
-                    metric_name.lstrip("_"),
-                ).observe(value)
+        observe_many(
+            airflow_instance_label, METRIC_REPORTER.performance, metrics["performance"],
+        )
+        observe_many(airflow_instance_label, METRIC_REPORTER.sizes, metrics["sizes"])
     except Exception as e:
         logger.error("Failed to send plugin metrics. %s", e)
+
+
+def observe_many(airflow_instance_label, summary, data):
+    if not data:
+        return
+
+    for metric_name, value in data.items():
+        summary.labels(airflow_instance_label, metric_name.lstrip("_"),).observe(value)
 
 
 def set_airflow_server_info_started(airflow_server_info):

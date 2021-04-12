@@ -5,7 +5,7 @@ class AirflowFetchingException(DatabandError):
     _default_show_exc_info = False
 
 
-def failed_to_decode_data_From_airflow(url, nested_exception, data_sample=None):
+def failed_to_decode_data_from_airflow(url, nested_exception, data_sample=None):
     message = "Could not decode the received data from %s, error in json format." % (
         url,
     )

@@ -16,7 +16,7 @@ class AirflowRuntimeFixer(BaseMonitorComponent):
         super(AirflowRuntimeFixer, self).__init__(*args, **kwargs)
         self.sleep_interval = self.config.fix_interval
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def sync_once(self):
         dbnd_response = self.tracking_service.get_all_dag_runs(
             start_time_window=self.config.start_time_window,
@@ -28,7 +28,7 @@ class AirflowRuntimeFixer(BaseMonitorComponent):
 
         self.update_dagruns(dbnd_response.dag_run_ids)
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def update_dagruns(self, dag_run_ids: List[int]):
         if not dag_run_ids:
             return

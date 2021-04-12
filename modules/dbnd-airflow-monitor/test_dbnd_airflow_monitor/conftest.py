@@ -6,6 +6,11 @@ import pytest
 
 from pytest import fixture
 
+from airflow_monitor.data_fetcher import decorate_fetcher
+from airflow_monitor.tracking_service import (
+    decorate_configuration_service,
+    decorate_tracking_service,
+)
 from dbnd._core.configuration.environ_config import reset_dbnd_project_config
 
 from .mock_airflow_data_fetcher import MockDataFetcher
@@ -38,14 +43,14 @@ def incomplete_data_db():
 
 @pytest.fixture
 def mock_server_config_service():
-    yield MockServersConfigService()
+    yield decorate_configuration_service(MockServersConfigService())
 
 
 @pytest.fixture
 def mock_tracking_service():
-    yield MockTrackingService()
+    yield decorate_tracking_service(MockTrackingService(), "mock_ts")
 
 
 @pytest.fixture
 def mock_data_fetcher():
-    yield MockDataFetcher()
+    yield decorate_fetcher(MockDataFetcher(), "mock_fetcher")

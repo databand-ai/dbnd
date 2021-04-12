@@ -58,7 +58,7 @@ def categorize_dag_runs(
 class AirflowRuntimeSyncer(BaseMonitorComponent):
     SYNCER_TYPE = "runtime_syncer"
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def sync_once(self):
         dbnd_response = self.tracking_service.get_active_dag_runs(
             start_time_window=self.config.start_time_window,
@@ -95,7 +95,7 @@ class AirflowRuntimeSyncer(BaseMonitorComponent):
         self.init_dagruns(dagruns_to_init)
         self.update_dagruns(dagruns_to_update)
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def init_dagruns(self, dagruns: List[AirflowDagRun]):
         if not dagruns:
             return
@@ -113,7 +113,7 @@ class AirflowRuntimeSyncer(BaseMonitorComponent):
                 dag_runs_full_data, max(dag_run_ids), self.SYNCER_TYPE
             )
 
-    @capture_monitor_exception(logger)
+    @capture_monitor_exception
     def update_dagruns(self, dagruns: List[AirflowDagRun]):
         if not dagruns:
             return

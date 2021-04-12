@@ -1,11 +1,10 @@
 import logging
 
 from typing import Dict, List, Optional
-from urllib.parse import urlparse
 
-import prometheus_client
 import requests
 
+from airflow_monitor.airflow_monitor_utils import log_received_tasks, send_metrics
 from airflow_monitor.common.airflow_data import (
     AirflowDagRunsResponse,
     DagRunsFullData,
@@ -18,7 +17,7 @@ from airflow_monitor.errors import (
     AirflowFetchingException,
     failed_to_connect_to_airflow_server,
     failed_to_connect_to_server_port,
-    failed_to_decode_data_From_airflow,
+    failed_to_decode_data_from_airflow,
     failed_to_fetch_from_airflow,
     failed_to_get_csrf_token,
     failed_to_login_to_airflow,
@@ -50,9 +49,6 @@ def get_endpoint_url(base_url, api_mode):
 
 
 class WebFetcher(AirflowDataFetcher):
-    # Common instance of prometheus summary object for all fetchers
-    prometheus_af_response_time_metrics = None
-
     def __init__(self, config):
         # type: (AirflowServerConfig) -> None
         super(WebFetcher, self).__init__(config)
@@ -64,13 +60,6 @@ class WebFetcher(AirflowDataFetcher):
         self.rbac_password = config.rbac_password
         self.client = requests.session()
         self.is_logged_in = False
-
-        if WebFetcher.prometheus_af_response_time_metrics is None:
-            WebFetcher.prometheus_af_response_time_metrics = prometheus_client.Summary(
-                "af_monitor_export_response_time",
-                "Airflow export plugin response time",
-                ["airflow_instance"],
-            )
 
     def _try_login(self):
         login_url = self.base_url + "/login/"
@@ -118,18 +107,13 @@ class WebFetcher(AirflowDataFetcher):
             # In RBAC mode, we need to login with admin credentials first
             self._try_login()
 
-        parsed_uri = urlparse(self.endpoint_url)
-        airflow_instance_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
         try:
-            with WebFetcher.prometheus_af_response_time_metrics.labels(
-                airflow_instance_url
-            ).time():
-                resp = self.client.get(
-                    self.endpoint_url + "/" + endpoint_name.strip("/"),
-                    params=params,
-                    auth=auth,
-                )
-                logger.info("Fetched from: {}".format(resp.url))
+            resp = self.client.get(
+                self.endpoint_url + "/" + endpoint_name.strip("/"),
+                params=params,
+                auth=auth,
+            )
+            logger.info("Fetched from: {}".format(resp.url))
         except AirflowFetchingException:
             raise
         except requests.exceptions.ConnectionError as ce:
@@ -147,10 +131,19 @@ class WebFetcher(AirflowDataFetcher):
 
         try:
             json_data = resp.json()
-            return json_data
         except Exception as e:
             data_sample = resp.text[:100] if resp and resp.text else None
-            raise failed_to_decode_data_From_airflow(self.base_url, e, data_sample)
+            raise failed_to_decode_data_from_airflow(self.base_url, e, data_sample)
+
+        if "error" in json_data:
+            logger.error("Error in Airflow Export Plugin: \n%s", json_data["error"])
+            raise AirflowFetchingException(json_data["error"])
+
+        log_received_tasks(self.base_url, json_data)
+        send_metrics(
+            self.base_url, json_data.get("airflow_export_meta"),
+        )
+        return json_data
 
     def get_source(self):
         return self.endpoint_url

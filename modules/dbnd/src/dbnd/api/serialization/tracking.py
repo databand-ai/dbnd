@@ -13,6 +13,17 @@ class UpdateLastSeenValuesRequestSchema(ApiObjectSchema):
     last_seen_log_id = fields.Integer()
 
 
+class UpdateMonitorStateRequestSchema(ApiObjectSchema):
+    airflow_version = fields.String(required=False)
+    airflow_export_version = fields.String(required=False)
+    airflow_monitor_version = fields.String(required=False)
+    dags_path = fields.String(required=False)
+    logs_path = fields.String(required=False)
+    monitor_status = fields.String(required=False)
+    monitor_error_message = fields.String(required=False)
+    monitor_start_time = fields.DateTime(required=False)
+
+
 class GetAllDagRunsRequestSchema(ApiObjectSchema):
     min_start_time = fields.DateTime(allow_none=True)
     dag_ids = fields.String(allow_none=True)

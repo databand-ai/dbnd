@@ -5,17 +5,17 @@ import traceback
 
 from urllib.parse import urlparse
 
-import prometheus_client
 import requests
 import simplejson
 import six
 
 from airflow_monitor.airflow_servers_fetching import AirflowFetchingConfiguration
+from airflow_monitor.common.metric_reporter import METRIC_REPORTER
 from airflow_monitor.errors import (
     AirflowFetchingException,
     failed_to_connect_to_airflow_server,
     failed_to_connect_to_server_port,
-    failed_to_decode_data_From_airflow,
+    failed_to_decode_data_from_airflow,
     failed_to_fetch_from_airflow,
     failed_to_get_csrf_token,
     failed_to_login_to_airflow,
@@ -69,13 +69,6 @@ class WebFetcher(DataFetcher):
         self.client = requests.session()
         self.is_logged_in = False
 
-        if WebFetcher.prometheus_af_response_time_metrics is None:
-            WebFetcher.prometheus_af_response_time_metrics = prometheus_client.Summary(
-                "af_monitor_export_response_time",
-                "Airflow export plugin response time",
-                ["airflow_instance"],
-            )
-
     def get_data(
         self,
         since,
@@ -127,7 +120,7 @@ class WebFetcher(DataFetcher):
             return json_data
         except simplejson.JSONDecodeError as je:
             data_sample = data.text[:100] if data and data.text else None
-            raise failed_to_decode_data_From_airflow(self.base_url, je, data_sample)
+            raise failed_to_decode_data_from_airflow(self.base_url, je, data_sample)
 
     def _try_login(self):
         login_url = self.base_url + "/login/"
@@ -176,8 +169,8 @@ class WebFetcher(DataFetcher):
 
         parsed_uri = urlparse(self.endpoint_url)
         airflow_instance_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
-        with WebFetcher.prometheus_af_response_time_metrics.labels(
-            airflow_instance_url
+        with METRIC_REPORTER.exporter_response_time.labels(
+            airflow_instance_url, "export_data"
         ).time():
             return self.client.get(self.endpoint_url, params=params, auth=auth)
 
