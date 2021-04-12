@@ -89,7 +89,7 @@ def get_new_dag_runs(
 
 
 @provide_session
-def get_full_dag_runs(dag_run_ids, airflow_dagbag=None, session=None):
+def get_full_dag_runs(dag_run_ids, include_sources, airflow_dagbag=None, session=None):
     if airflow_dagbag:
         dagbag = airflow_dagbag
     else:
@@ -106,7 +106,7 @@ def get_full_dag_runs(dag_run_ids, airflow_dagbag=None, session=None):
         load_dags_models(session)
         task_instances, dag_runs = find_full_dag_runs(dag_run_ids, session)
         dag_ids = set(run.dag_id for run in dag_runs)
-        dags = get_dags(dagbag, True, dag_ids, False)
+        dags = get_dags(dagbag, True, dag_ids, False, include_sources)
         full_runs = FullRunsData(
             task_instances=task_instances, dag_runs=dag_runs, dags=dags
         )

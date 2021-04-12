@@ -1,7 +1,6 @@
 from typing import List, Optional
 
 from airflow_monitor.common.airflow_data import (
-    AirflowDagRun,
     AirflowDagRunsResponse,
     DagRunsFullData,
     DagRunsStateData,
@@ -27,7 +26,9 @@ class AirflowDataFetcher(object):
     ) -> AirflowDagRunsResponse:
         raise NotImplementedError()
 
-    def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
+    def get_full_dag_runs(
+        self, dag_run_ids: List[int], include_sources: bool
+    ) -> DagRunsFullData:
         raise NotImplementedError()
 
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:

@@ -12,6 +12,7 @@ class AirflowServerConfig(object):
     xcom_sync_enabled = attr.ib(default=False)  # type: bool
     dag_sync_enabled = attr.ib(default=False)  # type: bool
     fixer_enabled = attr.ib(default=False)  # type: bool
+    include_sources = attr.ib(default=False)  # type: bool
 
     is_sync_enabled = attr.ib(default=True)  # type: bool
     is_sync_enabled_v2 = attr.ib(default=False)  # type: bool

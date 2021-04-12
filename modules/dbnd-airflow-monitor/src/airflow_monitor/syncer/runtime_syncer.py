@@ -106,7 +106,9 @@ class AirflowRuntimeSyncer(BaseMonitorComponent):
         for i in range(0, len(dagruns), bulk_size):
             dagruns_chunk = dagruns[i : i + bulk_size]
             dag_run_ids = [dr.id for dr in dagruns_chunk]
-            dag_runs_full_data = self.data_fetcher.get_full_dag_runs(dag_run_ids)
+            dag_runs_full_data = self.data_fetcher.get_full_dag_runs(
+                dag_run_ids, self.config.include_sources
+            )
             self.tracking_service.init_dagruns(
                 dag_runs_full_data, max(dag_run_ids), self.SYNCER_TYPE
             )

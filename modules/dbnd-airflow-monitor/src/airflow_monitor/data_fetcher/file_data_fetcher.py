@@ -32,7 +32,9 @@ class FileFetcher(AirflowDataFetcher):
         data = self._get_data("get_airflow_dagruns_to_sync")
         return AirflowDagRunsResponse.from_dict(data)
 
-    def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
+    def get_full_dag_runs(
+        self, dag_run_ids: List[int], include_sources: bool
+    ) -> DagRunsFullData:
         data = self._get_data("get_full_dag_runs")
         return DagRunsFullData.from_dict(data)
 

@@ -8,6 +8,7 @@ from airflow.models import DagRun
 from airflow.utils.net import get_hostname
 from airflow.version import version as airflow_version
 
+from dbnd._core.tracking.tracking_info_convertor import source_md5
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow_export.plugin_old.helpers import (
     _extract_args_from_dict,
@@ -40,7 +41,9 @@ class ETask(object):
         downstream_task_ids=None,
         task_type=None,
         task_source_code=None,
+        task_source_hash=None,
         task_module_code=None,
+        module_source_hash=None,
         dag_id=None,
         task_id=None,
         retries=None,
@@ -51,7 +54,9 @@ class ETask(object):
         self.downstream_task_ids = list(downstream_task_ids)  # type: List[str]
         self.task_type = task_type
         self.task_source_code = task_source_code
+        self.task_source_hash = task_source_hash
         self.task_module_code = task_module_code
+        self.module_source_hash = module_source_hash
         self.dag_id = dag_id
         self.task_id = task_id
         self.retries = retries
@@ -59,14 +64,17 @@ class ETask(object):
         self.task_args = task_args
 
     @staticmethod
-    def from_task(t, include_task_args):
-        # type: (BaseOperator, bool) -> ETask
+    def from_task(t, include_task_args, dag, include_source=True):
+        # type: (BaseOperator, bool, DAG, bool) -> ETask
+        module_code = _get_module_code(t) or _read_dag_file(dag.fileloc)
         return ETask(
             upstream_task_ids=t.upstream_task_ids,
             downstream_task_ids=t.downstream_task_ids,
             task_type=t.task_type,
-            task_source_code=_get_source_code(t),
-            task_module_code=_get_module_code(t),
+            task_source_code=_get_source_code(t) if include_source else None,
+            task_source_hash=source_md5(_get_source_code(t)),
+            task_module_code=module_code if include_source else None,
+            module_source_hash=source_md5(module_code),
             dag_id=t.dag_id,
             task_id=t.task_id,
             retries=t.retries,
@@ -80,7 +88,9 @@ class ETask(object):
             downstream_task_ids=self.downstream_task_ids,
             task_type=self.task_type,
             task_source_code=self.task_source_code,
+            task_source_hash=self.task_source_hash,
             task_module_code=self.task_module_code,
+            module_source_hash=self.module_source_hash,
             dag_id=self.dag_id,
             task_id=self.task_id,
             retries=self.retries,
@@ -233,6 +243,7 @@ class EDag(object):
         dag_folder,
         hostname,
         source_code,
+        module_source_hash,
         is_subdag,
         task_type,
         task_args,
@@ -255,6 +266,7 @@ class EDag(object):
         self.dag_folder = dag_folder
         self.hostname = hostname
         self.source_code = source_code
+        self.module_source_hash = module_source_hash
         self.is_subdag = is_subdag
         self.task_type = task_type
         self.task_args = task_args
@@ -272,14 +284,17 @@ class EDag(object):
         git_commit,
         is_committed,
         raw_data_only=False,
+        include_source=True,
     ):
-        # type: (DAG, DagModel, str, bool, str, bool, bool) -> EDag
+        # type: (DAG, DagModel, str, bool, str, bool, bool, bool) -> EDag
         # Can be Dag from DagBag or from DB, therefore not all attributes may exist
+        source_code = _read_dag_file(dag.fileloc)
         return EDag(
             description=dag.description or "",
             root_task_ids=[t.task_id for t in getattr(dag, "roots", [])],
             tasks=[
-                ETask.from_task(t, include_task_args) for t in getattr(dag, "tasks", [])
+                ETask.from_task(t, include_task_args, dag, include_source)
+                for t in getattr(dag, "tasks", [])
             ]
             if not raw_data_only
             else [],
@@ -291,7 +306,8 @@ class EDag(object):
             end_date=resolve_attribute_or_default_value(dag, "end_date", None),
             dag_folder=dag_folder,
             hostname=get_hostname(),
-            source_code=_read_dag_file(dag.fileloc) if not raw_data_only else "",
+            source_code=source_code if not raw_data_only and include_source else "",
+            module_source_hash=source_md5(source_code),
             is_subdag=dag.is_subdag,
             tags=getattr(dm, "tags", []),
             task_type="DAG",
@@ -319,6 +335,7 @@ class EDag(object):
             dag_folder=self.dag_folder,
             hostname=self.hostname,
             source_code=self.source_code,
+            module_source_hash=self.module_source_hash,
             is_subdag=self.is_subdag,
             task_type=self.task_type,
             task_args=self.task_args,

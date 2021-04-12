@@ -136,6 +136,12 @@ def validate_composer_id(ctx, param, value):
     is_flag=True,
 )
 @click.option(
+    "--exclude-sources",
+    help="Don't monitor source code for tasks",
+    type=click.BOOL,
+    is_flag=True,
+)
+@click.option(
     "--dag-ids",
     help="List of specific dag ids (separated with comma) that monitor will fetch only from them",
     type=click.STRING,
@@ -170,6 +176,7 @@ def add(
     include_logs,
     include_task_args,
     include_xcom,
+    exclude_sources,
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
@@ -188,6 +195,7 @@ def add(
             include_logs,
             include_task_args,
             include_xcom,
+            not exclude_sources,
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,

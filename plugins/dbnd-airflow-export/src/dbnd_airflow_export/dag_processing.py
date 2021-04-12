@@ -18,7 +18,9 @@ current_dags = {}
 
 @save_result_size("dags")
 @measure_time
-def get_dags(dagbag, include_task_args, dag_ids, raw_data_only=False):
+def get_dags(
+    dagbag, include_task_args, dag_ids, raw_data_only=False, include_sources=True
+):
     dag_models = [d for d in current_dags.values() if d]
     if dag_ids is not None:
         dag_models = [dag for dag in dag_models if dag.dag_id in dag_ids]
@@ -43,6 +45,7 @@ def get_dags(dagbag, include_task_args, dag_ids, raw_data_only=False):
                 git_commit,
                 is_committed,
                 raw_data_only,
+                include_sources,
             )
         else:
             dag = EDag.from_dag(
@@ -53,6 +56,7 @@ def get_dags(dagbag, include_task_args, dag_ids, raw_data_only=False):
                 git_commit,
                 is_committed,
                 raw_data_only,
+                include_sources,
             )
             number_of_dags_not_in_dag_bag += 1
         dags_list.append(dag)

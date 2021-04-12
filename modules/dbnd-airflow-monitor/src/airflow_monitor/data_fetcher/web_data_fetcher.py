@@ -7,7 +7,6 @@ import prometheus_client
 import requests
 
 from airflow_monitor.common.airflow_data import (
-    AirflowDagRun,
     AirflowDagRunsResponse,
     DagRunsFullData,
     DagRunsStateData,
@@ -181,9 +180,12 @@ class WebFetcher(AirflowDataFetcher):
         data = self._make_request("new_runs", params_dict)
         return AirflowDagRunsResponse.from_dict(data)
 
-    def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
+    def get_full_dag_runs(
+        self, dag_run_ids: List[int], include_sources: bool
+    ) -> DagRunsFullData:
         params_dict = dict(
-            dag_run_ids=",".join([str(dag_run_id) for dag_run_id in dag_run_ids])
+            dag_run_ids=",".join([str(dag_run_id) for dag_run_id in dag_run_ids]),
+            include_sources=include_sources,
         )
         data = self._make_request("full_runs", params_dict)
         return DagRunsFullData.from_dict(data)

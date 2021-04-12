@@ -93,12 +93,15 @@ class DbFetcher(AirflowDataFetcher):
             )
         return AirflowDagRunsResponse.from_dict(data.as_dict())
 
-    def get_full_dag_runs(self, dag_run_ids: List[int]) -> DagRunsFullData:
+    def get_full_dag_runs(
+        self, dag_run_ids: List[int], include_sources: bool
+    ) -> DagRunsFullData:
         from dbnd_airflow_export.api_functions import get_full_dag_runs
 
         with self._get_session() as session:
             data = get_full_dag_runs(
                 dag_run_ids=dag_run_ids,
+                include_sources=include_sources,
                 airflow_dagbag=self._get_dagbag(),
                 session=session,
             )

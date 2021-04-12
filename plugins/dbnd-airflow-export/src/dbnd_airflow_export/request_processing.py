@@ -62,10 +62,11 @@ def process_new_runs_request():
 
 def process_full_runs_request():
     dag_run_ids = convert_url_param_value_to_list("dag_run_ids", int, [])
+    include_sources = flask.request.args.get("include_sources", type=str) == "True"
 
     result = AirflowExportData()
     try:
-        result = get_full_dag_runs(dag_run_ids)
+        result = get_full_dag_runs(dag_run_ids, include_sources)
     except Exception as e:
         result = AirflowExportData()
         logging.error("Exception during data export: \n%s", str(e))
