@@ -1,15 +1,21 @@
 import datetime
 import typing
 
-import airflow
+from typing import List
 
-from airflow import LoggingMixin, conf
+import airflow
+import six
+
+from airflow import DAG, LoggingMixin, conf as af_conf
+from airflow.models import TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
+from dbnd_airflow.airflow_extensions.dal import get_airflow_task_instance
 
 
 if typing.TYPE_CHECKING:
@@ -28,17 +34,26 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
 
     def __init__(self, k8s_executor):
         super(ClearKubernetesRuntimeZombiesForDagRun, self).__init__()
-        self.zombie_threshold_secs = conf.getint(
-            "scheduler", "scheduler_zombie_task_threshold"
-        )
-        self.zombie_query_interval_secs = 10
+
         self._last_zombie_query_time = None
         self.k8s_executor = k8s_executor  # type: DbndKubernetesExecutor
+
+        # time configurations
+        self.zombie_threshold_secs = (
+            k8s_executor.kube_dbnd.engine_config.zombie_threshold_secs
+        )
+        self.zombie_query_interval_secs = (
+            k8s_executor.kube_dbnd.engine_config.zombie_query_interval_secs
+        )
+        self._pending_zombies_timeout = (
+            k8s_executor.kube_dbnd.engine_config.pending_zombies_timeout
+        )
+
         self._log = PrefixLoggerAdapter("clear-zombies", self.log)
 
     @provide_session
     def find_and_clean_dag_zombies(self, dag, execution_date, session):
-
+        # type: (DAG, datetime.datetime, Session) -> None
         now = timezone.utcnow()
         if (
             self._last_zombie_query_time
@@ -46,6 +61,7 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
             < self.zombie_query_interval_secs
         ):
             return
+
         self._last_zombie_query_time = timezone.utcnow()
         self.log.debug("Checking on possible zombie tasks")
         zombies = self._find_task_instance_zombies(dag, execution_date, session=session)
@@ -80,15 +96,32 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
 
     @provide_session
     def _find_task_instance_zombies(self, dag, execution_date, session):
+        # type: (DAG, datetime.datetime, Session) -> List[TaskInstance]
+
         """
-        Find zombie task instances, which are tasks haven't heartbeated for too long
+        Find zombie task instances, which are tasks haven't send heartbeat for too long
         and update the current zombie list.
 
         copy paste from DagFileProcessorAgent
         """
-        now = timezone.utcnow()
         zombies = []
 
+        # finding running task without actual heartbeat - they seems alive but they are not
+        running_zombies = self._find_running_zombies(dag, execution_date, session)
+        zombies.extend(running_zombies)
+
+        # finding pending pods without actual pod
+        pending_zombies = self._find_pending_zombies(session)
+        zombies.extend(pending_zombies)
+
+        return zombies
+
+    def _find_running_zombies(self, dag, execution_date, session):
+        # type: (DAG, datetime.datetime, Session) -> List[TaskInstance]
+        """
+        Find tasks tha airflow think they running but actually didn't sent any
+        heartbeat for too long
+        """
         # to avoid circular imports
         from airflow.jobs import LocalTaskJob as LJ
 
@@ -97,7 +130,7 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
             seconds=self.zombie_threshold_secs
         )
 
-        tis = (
+        running_zombies = (
             session.query(TI)
             .join(LJ, TI.job_id == LJ.id)
             .filter(TI.state == State.RUNNING)
@@ -106,18 +139,65 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
             .filter(or_(LJ.state != State.RUNNING, LJ.latest_heartbeat < limit_dttm,))
             .all()
         )
-        if tis:
-            self.log.info("Failing jobs without heartbeat after %s", limit_dttm)
-        for ti in tis:
-            # sti = SimpleTaskInstance(ti)
-            sti = ti
-            self.log.info(
-                "Detected zombie task instance: dag_id=%s task_id=%s execution_date= %s, try_number=%s",
-                sti.dag_id,
-                sti.task_id,
-                sti.execution_date.isoformat(),
-                sti.try_number,
-            )
-            zombies.append(ti)
 
-        return zombies
+        if running_zombies:
+            self.log.warning("Failing jobs without heartbeat after %s", limit_dttm)
+            self.log.warning(
+                "Detected running zombies task instances: \n\t\t\t%s",
+                "\n\t\t\t".join(self._build_ti_msg(ti) for ti in running_zombies),
+            )
+
+        return running_zombies
+
+    def _find_pending_zombies(self, session):
+        # type: (Session) -> List[TaskInstance]
+        """
+        Find pods that are on `pending` state but disappeared
+
+        this is very unique scenario where:
+            1) Pod was pending
+            2) The pod disappear and we didn't see any event telling us that the pod failed
+
+        More info:
+            https://app.asana.com/0/1141064349624642/1200130408884044/f
+        """
+        now = timezone.utcnow()
+        pending_zombies = []
+
+        for pod_name, pod_state in six.iteritems(
+            self.k8s_executor.kube_scheduler.submitted_pods
+        ):
+            # we look for a state where the pod is pending for too long
+            if (
+                not pod_state.is_started_running
+                and (now - pod_state.submitted_at) >= self._pending_zombies_timeout
+            ):
+                pod_status = self.k8s_executor.kube_dbnd.get_pod_status(pod_name)
+                if pod_status is None:
+                    # the pod doesn't exit anymore so its a zombie pending
+                    af_ti = get_airflow_task_instance(
+                        pod_state.task_run, session=session
+                    )
+                    pending_zombies.append(af_ti)
+
+        if pending_zombies:
+            self.log.warning(
+                "Failing pending pods for more than {timeout}".format(
+                    timeout=self._pending_zombies_timeout
+                )
+            )
+            self.log.warning(
+                "Detected pending zombies pods for task instance: \n\t\t\t%s",
+                "\n\t\t\t".join(self._build_ti_msg(ti) for ti in pending_zombies),
+            )
+
+        return pending_zombies
+
+    @staticmethod
+    def _build_ti_msg(ti):
+        return "dag_id=%s task_id=%s execution_date= %s, try_number=%s" % (
+            ti.dag_id,
+            ti.task_id,
+            ti.execution_date.isoformat(),
+            ti.try_number,
+        )

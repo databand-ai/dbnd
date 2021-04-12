@@ -26,7 +26,7 @@ from dbnd_docker.kubernetes.kubernetes_engine_config import (
 if typing.TYPE_CHECKING:
     from airflow.contrib.kubernetes.pod import Pod
     from dbnd._core.task_run.task_run import TaskRun
-    from kubernetes.client import CoreV1Api
+    from kubernetes.client import CoreV1Api, V1Pod
 logger = logging.getLogger(__name__)
 
 
@@ -60,6 +60,10 @@ class DbndKubernetesClient(object):
 
     def delete_pod(self, name, namespace):
         self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()
+
+    def get_pod_status(self, pod_name):
+        # type: (str) -> Optional[V1Pod]
+        return self.get_pod_ctrl(name=pod_name).get_pod_status_v1()
 
 
 class DbndPodCtrl(object):
@@ -98,6 +102,7 @@ class DbndPodCtrl(object):
             #     raise
 
     def get_pod_status_v1(self):
+        # type: () -> Optional[V1Pod]
         try:
             return self.kube_client.read_namespaced_pod(
                 name=self.name, namespace=self.namespace
