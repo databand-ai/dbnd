@@ -5,7 +5,7 @@ from airflow.operators.python_operator import PythonOperator
 
 
 args = {"start_date": airflow.utils.dates.days_ago(2), "owner": "royi"}
-dag = DAG(dag_id="test_dag", default_args=args, schedule_interval=None)
+dag = DAG(dag_id="plugin_test_dag", default_args=args, schedule_interval=None)
 
 
 def task1():

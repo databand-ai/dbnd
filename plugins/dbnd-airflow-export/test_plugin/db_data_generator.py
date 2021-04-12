@@ -34,7 +34,7 @@ class FakeTaskInstance(object):
 def insert_dag_runs(
     session, dag_runs_count=1, task_instances_per_run=0, state="success", with_log=False
 ):
-    dag_id = "test_dag"
+    dag_id = "plugin_test_dag"
 
     for i in range(dag_runs_count):
         execution_date = utcnow()
@@ -66,7 +66,7 @@ def insert_dag_runs(
 
 @provide_session
 def set_dag_is_paused(session, is_paused):
-    session.query(DagModel).filter(DagModel.dag_id == "test_dag").update(
+    session.query(DagModel).filter(DagModel.dag_id == "plugin_test_dag").update(
         {DagModel.is_paused: is_paused}
     )
     session.commit()
