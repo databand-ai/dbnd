@@ -15,6 +15,7 @@ from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 from targets import Target
+from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 if typing.TYPE_CHECKING:
@@ -26,8 +27,6 @@ if typing.TYPE_CHECKING:
     from typing import Any, Optional, Union, List, Dict
     import pandas as pd
     import pyspark.sql as spark
-
-    from targets.value_meta import ValueMetaConf, ValueMeta
 
 logger = logging.getLogger(__name__)
 
@@ -219,15 +218,33 @@ class TaskRunTracker(TaskRunCtrl):
         self,
         key,
         target,  # type: Union[Target,str]
-        target_meta,  # type: ValueMeta
         operation_type,  # type: DbndTargetOperationType
         operation_status,  # type: DbndTargetOperationStatus
+        data=None,
+        meta_conf=None,
     ):
+        value_meta = None
+        if data is not None and meta_conf is not None:
+            # Combine meta_conf with the config settings
+            try:
+                value_meta = get_value_meta(
+                    data, meta_conf, tracking_config=self.settings.tracking
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to get value meta info for {} with target {}".format(
+                        key, str(target)
+                    )
+                )
+
+        if value_meta is None:
+            value_meta = ValueMeta("")
+
         self.tracking_store.log_target(
             param_name=key,
             task_run=self.task_run,
             target=target,
-            target_meta=target_meta,
+            target_meta=value_meta,
             operation_type=operation_type,
             operation_status=operation_status,
         )

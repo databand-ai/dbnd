@@ -1,5 +1,3 @@
-from typing import List
-
 from dbnd import parameter
 from dbnd._core.task import Config
 
@@ -38,5 +36,9 @@ class AirflowTrackingConfig(Config):
 
     # This shouldn't be set to None. In webserver None evaluates to True.
     af_with_monitor = parameter(
-        description="Activate when airflow monitor is not in use", default=True,
+        default=True, description="Activate when airflow monitor is not in use",
+    )[bool]
+
+    sql_reporting = parameter(
+        default=True, description="Enable targets reporting from sql queries",
     )[bool]

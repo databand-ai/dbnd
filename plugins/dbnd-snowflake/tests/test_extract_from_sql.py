@@ -3,6 +3,7 @@ import sqlparse
 
 from dbnd._core.constants import DbndTargetOperationType
 from dbnd_snowflake.extract_sql_query import (
+    TableTargetOperation,
     build_target_path,
     detect_cte_tables,
     extract_from_sql,
@@ -499,30 +500,30 @@ def test_detect_cte_tables(sqlquery, expected):
             from cte2
         """,
             {
-                (
-                    "snowflake://account.some.service/schema0/table0",
-                    "schema0.table0",
-                    DbndTargetOperationType.read,
+                TableTargetOperation(
+                    path="snowflake://account.some.service/schema0/table0",
+                    name="schema0.table0",
+                    operation=DbndTargetOperationType.read,
                 ),
-                (
-                    "snowflake://account.some.service/schema1/table1",
-                    "schema1.table1",
-                    DbndTargetOperationType.read,
+                TableTargetOperation(
+                    path="snowflake://account.some.service/schema1/table1",
+                    name="schema1.table1",
+                    operation=DbndTargetOperationType.read,
                 ),
-                (
-                    "snowflake://account.some.service/schema1/table2",
-                    "schema1.table2",
-                    DbndTargetOperationType.read,
+                TableTargetOperation(
+                    path="snowflake://account.some.service/schema1/table2",
+                    name="schema1.table2",
+                    operation=DbndTargetOperationType.read,
                 ),
-                (
-                    "snowflake://account.some.service/schema0/table5",
-                    "schema0.table5",
-                    DbndTargetOperationType.read,
+                TableTargetOperation(
+                    path="snowflake://account.some.service/schema0/table5",
+                    name="schema0.table5",
+                    operation=DbndTargetOperationType.read,
                 ),
-                (
-                    "snowflake://account.some.service/schema3/table4",
-                    "schema3.table4",
-                    DbndTargetOperationType.read,
+                TableTargetOperation(
+                    path="snowflake://account.some.service/schema3/table4",
+                    name="schema3.table4",
+                    operation=DbndTargetOperationType.read,
                 ),
             },
         ),
@@ -533,15 +534,15 @@ def test_detect_cte_tables(sqlquery, expected):
   file_format = (format_name = my_csv_format);
 """,
             {
-                (
-                    "gcs://mybucket/unload",
-                    "mybucket/unload",
-                    DbndTargetOperationType.write,
+                TableTargetOperation(
+                    path="gcs://mybucket/unload",
+                    name="mybucket/unload",
+                    operation=DbndTargetOperationType.write,
                 ),
-                (
-                    "snowflake://account.some.service/mytable",
-                    "mytable",
-                    DbndTargetOperationType.read,
+                TableTargetOperation(
+                    path="snowflake://account.some.service/mytable",
+                    name="mytable",
+                    operation=DbndTargetOperationType.read,
                 ),
             },
         ),
@@ -556,10 +557,10 @@ def test_extract_from_sql(sqlquery, expected):
     [
         (
             "snowflake://account.some.service",
-            '"sales_data"."public"."sales_data"',
+            '"SALES_DATA"."PUBLIC"."SALES_DATA"',
             (
                 "snowflake://account.some.service/sales_data/public/sales_data",
-                "sales_data.public.sales_data",
+                "SALES_DATA.PUBLIC.SALES_DATA",
             ),
         ),
         (
@@ -581,7 +582,7 @@ def test_extract_from_sql(sqlquery, expected):
         (
             "mssql://scott/ms_2008",
             '"D:\directory\YourFileName.csv"',
-            ("d:\\directory\\yourfilename.csv", "directory\\yourfilename.csv",),
+            ("D:\\directory\\YourFileName.csv", "directory\\YourFileName.csv"),
         ),
     ],
 )

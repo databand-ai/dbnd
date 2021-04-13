@@ -66,7 +66,10 @@ def patch_airflow_context_vars():
 def patch_snowflake_hook():
     # In order to use this patch the user need to have both `dbnd-snowflake` and `snowflake` installed
     try:
-        from dbnd_snowflake.sql_tracking import patch_airflow_db_hook
+        from dbnd_snowflake.sql_tracking import (
+            patch_airflow_db_hook,
+            config_base_target_reporter,
+        )
         import snowflake
     except ImportError:
         # one of them is not available
@@ -74,4 +77,4 @@ def patch_snowflake_hook():
 
     from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 
-    patch_airflow_db_hook(SnowflakeHook)
+    patch_airflow_db_hook(SnowflakeHook, config_base_target_reporter)

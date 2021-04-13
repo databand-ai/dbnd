@@ -10,7 +10,9 @@ from snowflake.connector import SnowflakeConnection
 from snowflake.connector.cursor import SnowflakeCursor
 
 from dbnd_snowflake import log_snowflake_resource_usage, log_snowflake_table
-from dbnd_snowflake.sql_utils import is_sql_crud_command, try_extract_tables
+from dbnd_snowflake.extract_sql_query import TableTargetOperation, extract_from_sql
+from dbnd_snowflake.sql_utils import is_sql_crud_command
+from targets.connections import build_conn_path
 
 
 @attr.s
@@ -32,7 +34,7 @@ class ConnectionData(object):
     schema = attr.ib()
     database = attr.ib()
     connection = attr.ib(default=None)  # type: SnowflakeConnection
-    tables = attr.ib(factory=set)  # type: Set[str]
+    tables_ops = attr.ib(factory=set)  # type: Set[TableTargetOperation]
     session_data = attr.ib(factory=OrderedDict)  # type: Dict[int, SessionData]
     connection_number = attr.ib(default=0)  # type: int
 
@@ -47,7 +49,7 @@ class ConnectionData(object):
         self.session_data = OrderedDict()
 
     def reset_tables(self):
-        self.tables = set()
+        self.tables_ops = set()
 
     def get_all_session_queries(self):
         return OrderedDict(
@@ -55,6 +57,14 @@ class ConnectionData(object):
                 (session_id, session_data.query_ids)
                 for session_id, session_data in self.session_data.items()
             ]
+        )
+
+    def get_connection_path(self):
+        return build_conn_path(
+            conn_type="snowflake",
+            hostname=self.connection.host,
+            port=self.connection.port,
+            path="/".join(filter(None, [self.database, self.schema])),
         )
 
 
@@ -116,7 +126,9 @@ class SnowflakeQueryTracker(object):
         session_id = cursor.connection.session_id
         session_data = connection_data.get_session_data(session_id)
 
-        connection_data.tables.update(try_extract_tables(command))
+        conn_path = connection_data.get_connection_path()
+        tables_ops = extract_from_sql(conn_path, command)
+        connection_data.tables_ops.update(tables_ops)
 
         try:
             yield
@@ -146,9 +158,11 @@ class SnowflakeQueryTracker(object):
         return self._connection_data[conn_id]
 
     def get_all_tables(self):
-        tables = set()
-        for connection_data in self._connection_data.values():  # type: ConnectionData
-            tables.update(connection_data.tables)
+        tables = {
+            table_op.name
+            for connection_data in self._connection_data.values()
+            for table_op in connection_data.tables_ops
+        }
         return tables
 
     def get_all_session_queries(self):
@@ -258,7 +272,7 @@ def log_all_snowflake_tables(cd, tables, reset=True, **kwargs):
     :return:
     """
     if tables is True:
-        tables = cd.tables
+        tables = [table_op.name for table_op in cd.tables_ops]
     else:
         # don't reset if explicit tables provided
         reset = False

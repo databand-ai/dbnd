@@ -12,6 +12,8 @@ from targets.value_meta import ValueMetaConf
 
 EXPECTED_SNOWFLAKE_TABLE_SIGNATURE = "snowflake://SNOWFLAKE_USER:***@snowflake_account/SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL/CUSTOMER"
 
+EXPECTED_SNOWFLAKE_TABLE_HASH = str(hash(EXPECTED_SNOWFLAKE_TABLE_SIGNATURE))
+
 
 @fixture
 def snowflake_conn_params():
@@ -73,7 +75,7 @@ class TestSnowflakeTableValueType:
             "column_types": {"name": "varchar"},
             "size.bytes": 500,
         }
-        assert value_meta.data_hash == EXPECTED_SNOWFLAKE_TABLE_SIGNATURE
+        assert value_meta.data_hash == EXPECTED_SNOWFLAKE_TABLE_HASH
         assert snowflake_table.snowflake_ctrl.get_column_types.called
         assert snowflake_table.snowflake_ctrl.get_dimensions.called
         assert snowflake_table.snowflake_ctrl.to_preview.called
@@ -90,7 +92,7 @@ class TestSnowflakeTableValueType:
         assert value_meta.value_preview is None
         assert value_meta.data_dimensions is None
         assert value_meta.data_schema == {}
-        assert value_meta.data_hash == EXPECTED_SNOWFLAKE_TABLE_SIGNATURE
+        assert value_meta.data_hash == EXPECTED_SNOWFLAKE_TABLE_HASH
         assert not snowflake_table.snowflake_ctrl.get_column_types.called
         assert not snowflake_table.snowflake_ctrl.get_dimensions.called
         assert not snowflake_table.snowflake_ctrl.to_preview.called

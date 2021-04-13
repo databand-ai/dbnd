@@ -183,8 +183,10 @@ def log_target_operation(
     name,
     target,  # type: Union[Target,str]
     operation_type,  # type: DbndTargetOperationType
-    target_meta=None,  # type: Optional[ValueMeta]
-    operation_status=DbndTargetOperationStatus.OK,  # type: DbndTargetOperationStatus
+    success=True,  # type: bool
+    data=None,
+    with_preview=None,
+    with_schema=None,
 ):
     """
     Logs target operation and meta data to dbnd.
@@ -192,21 +194,28 @@ def log_target_operation(
     @param name: the name of the target
     @param target: Target object to log or a unique path representing the target logic location
     @param operation_type: the type of operation that been done with the target - read, write, delete etc.
-    @param target_meta: optional ValueMeta object - meta information about the target including:
-        dimensions, schema and preview
-    @param operation_status: OK if the operation succeed, otherwise NOK
+    @param success: True if the operation succeeded, False otherwise.
+    @param data: optional value of data to use build meta-data on the target
+    @param with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
+    @param with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
     """
     tracker = _get_tracker()
     if tracker:
-        if not target_meta:
-            target_meta = ValueMeta("")
+        meta_conf = ValueMetaConf(
+            log_preview=with_preview, log_schema=with_schema, log_size=with_schema,
+        )
+
+        status = (
+            DbndTargetOperationStatus.OK if success else DbndTargetOperationStatus.NOK
+        )
 
         tracker.log_target(
             key=name,
             target=target,
-            target_meta=target_meta,
             operation_type=operation_type,
-            operation_status=operation_status,
+            operation_status=status,
+            data=data,
+            meta_conf=meta_conf,
         )
         return
 
@@ -215,7 +224,7 @@ def log_target_operation(
             operation=operation_type,
             status=(
                 "successfully"
-                if operation_status == DbndTargetOperationStatus.OK
+                if success == DbndTargetOperationStatus.OK
                 else "unsuccessfully"
             ),
             name=name,

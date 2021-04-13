@@ -1,5 +1,6 @@
 from typing import List, Optional, Set, Tuple
 
+import attr
 import sqlparse
 
 from sqlparse import tokens as T
@@ -34,8 +35,14 @@ SEQUENCE_OPERATIONS = {
 
 # tuple of: (table_name, target_operation)
 TableOperation = Tuple[str, DbndTargetOperationType]
-# tuple of: (target_path, table_name, target_operation)
-TableTargetOperation = Tuple[str, str, DbndTargetOperationType]
+
+
+@attr.s(frozen=True)
+class TableTargetOperation(object):
+    path = attr.ib(default=None)  # type: str
+    name = attr.ib(default=None)  # type: str
+    operation = attr.ib(default=None)  # type:DbndTargetOperationType
+    success = attr.ib(default=True)  # type: bool
 
 
 def detect_cte_tables(statement):
@@ -76,7 +83,8 @@ def extract_from_sql(path, sqlquery):
         # don't return cte_tables
         if name not in cte_tables:
             parsed_path, name = build_target_path(path, name)
-            result.add((parsed_path, name, op))
+            operation = TableTargetOperation(path=parsed_path, name=name, operation=op)
+            result.add(operation)
 
     return result
 
@@ -225,7 +233,7 @@ def build_target_path(base_path, name):
     @param name: the extracted name from the sql-query
     @return: The full path of the target and the name of the target
     """
-    name = name.strip("\"'").lower()
+    name = name.strip("\"'")
 
     if "://" in name:
         # S3://bucket/key | GCS://bucket/key ...
@@ -234,7 +242,7 @@ def build_target_path(base_path, name):
         return path, name
 
     if ":\\" in name:
-        # D:\\folder/folder/file
+        # D:\\folder\folder\file
         path = name
         _, _, name = name.partition(":\\")
         return path, name
@@ -242,13 +250,18 @@ def build_target_path(base_path, name):
     if name.startswith("@"):
         # Snowflake staging
         name = name.strip("@")
-        parts = list(map(lambda s: s.strip("\"'"), name.split(".")))
-        destination = "/".join(parts)
-        name = "@{}".format(".".join(parts))
+        name, destination = parse_parts(name)
+        name = "@{}".format(name)
         path = "{}/staging/{}".format(base_path, destination)
         return path, name
 
-    parts = list(map(lambda s: s.strip("\"'"), name.split(".")))
-    destination = "/".join(parts)
-    name = ".".join(parts)
+    name, destination = parse_parts(name)
+
     return "{}/{}".format(base_path, destination), name
+
+
+def parse_parts(name):
+    parts = list(map(lambda s: s.strip("\"'"), name.split(".")))
+    destination = "/".join(map(str.lower, parts))
+    name = ".".join(parts)
+    return name, destination
