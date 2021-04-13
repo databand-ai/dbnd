@@ -57,13 +57,13 @@ class TestNewRuns(object):
                     if result.new_dag_runs[i].has_updated_task_instances:
                         assert result.new_dag_runs[i].events == ["success"]
 
-    def test_empty_db(self):
+    def test_01_empty_db(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
 
         result = get_new_dag_runs(1, 1, [])
         self.validate_result(result, 0, None, None)
 
-    def test_both_none(self):
+    def test_02_both_none(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs
 
@@ -72,7 +72,7 @@ class TestNewRuns(object):
         result = get_new_dag_runs(None, None, [])
         self.validate_result(result, 0, 3, 3)
 
-    def test_running(self):
+    def test_03_running(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs
 
@@ -81,7 +81,7 @@ class TestNewRuns(object):
         result = get_new_dag_runs(None, None, [])
         self.validate_result(result, 3, 3, None)
 
-    def test_dag_run_id_none(self):
+    def test_04_dag_run_id_none(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs
 
@@ -90,7 +90,7 @@ class TestNewRuns(object):
         result = get_new_dag_runs(None, 1, [])
         self.validate_result(result, 2, 3, 3, expected_max_log_ids=[2, 3])
 
-    def test_log_id_none(self):
+    def test_05_log_id_none(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs
 
@@ -99,7 +99,7 @@ class TestNewRuns(object):
         result = get_new_dag_runs(1, None, [])
         self.validate_result(result, 2, 3, 3)
 
-    def test_both_0(self):
+    def test_06_both_0(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs
 
@@ -108,7 +108,7 @@ class TestNewRuns(object):
         result = get_new_dag_runs(0, 0, [])
         self.validate_result(result, 1, 1, 1, expected_max_log_ids=[1])
 
-    def test_big_run_id(self):
+    def test_07_big_run_id(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs
 
@@ -119,7 +119,7 @@ class TestNewRuns(object):
 
         assert result
 
-    def test_big_log_id(self):
+    def test_08_big_log_id(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs
 
@@ -128,7 +128,7 @@ class TestNewRuns(object):
         result = get_new_dag_runs(0, 3, [])
         self.validate_result(result, 3, 3, None)
 
-    def test_paused(self):
+    def test_09_paused(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs, set_dag_is_paused
 
@@ -137,7 +137,7 @@ class TestNewRuns(object):
         result = get_new_dag_runs(0, 0, [])
         self.validate_result(result, 1, 1, 1, True, expected_max_log_ids=[1])
 
-    def test_running_paused(self):
+    def test_10_running_paused(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs, set_dag_is_paused
 
@@ -146,7 +146,7 @@ class TestNewRuns(object):
         result = get_new_dag_runs(1, 1, [])
         self.validate_result(result, 0, 1, 1, True)
 
-    def test_extra_dag_runs(self):
+    def test_11_extra_dag_runs(self):
         from dbnd_airflow_export.api_functions import get_new_dag_runs
         from test_plugin.db_data_generator import insert_dag_runs
 
