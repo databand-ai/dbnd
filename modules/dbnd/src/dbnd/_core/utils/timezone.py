@@ -70,7 +70,9 @@ def utcnow():
 
 def utctoday():
     now = utcnow()
-    return dt.datetime(now.year, now.month, now.day)
+    d = dt.datetime(now.year, now.month, now.day)
+    d = d.replace(tzinfo=utc)
+    return d
 
 
 def utc_epoch():
