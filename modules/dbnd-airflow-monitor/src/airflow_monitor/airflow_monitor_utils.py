@@ -38,10 +38,16 @@ def send_metrics(airflow_instance_label, fetched_data):
     try:
         metrics = fetched_data.get("metrics")
         logger.info("Received Grafana Metrics from airflow plugin: %s", metrics)
+
         observe_many(
-            airflow_instance_label, METRIC_REPORTER.performance, metrics["performance"],
+            airflow_instance_label,
+            METRIC_REPORTER.performance,
+            metrics.get("performance", None),
         )
-        observe_many(airflow_instance_label, METRIC_REPORTER.sizes, metrics["sizes"])
+        observe_many(
+            airflow_instance_label, METRIC_REPORTER.sizes, metrics.get("sizes", None)
+        )
+
     except Exception as e:
         logger.error("Failed to send plugin metrics. %s", e)
 

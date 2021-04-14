@@ -81,7 +81,6 @@ class TestFetchData(object):
         assert len(task_instances_without_end_dates) == len(result["task_instances"])
 
         assert result["metrics"]["sizes"]["dags"] == 1
-        assert result["metrics"]["sizes"]["completed_dag_runs"] == 0
         assert result["metrics"]["sizes"]["incomplete_dag_runs"] == 14
         assert result["metrics"]["sizes"]["incomplete_task_instances"] == 42
         assert result["metrics"]["performance"]["get_dags"] > 0

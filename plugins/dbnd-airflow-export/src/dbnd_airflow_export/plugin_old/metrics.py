@@ -20,9 +20,8 @@ class MetricCollector(object):
         self.d = defaultdict(dict)
         try:
             yield self.d
-        except Exception:
+        finally:
             self.d = None
-            raise
 
     def add(self, group, name, value):
         if self.d is not None:

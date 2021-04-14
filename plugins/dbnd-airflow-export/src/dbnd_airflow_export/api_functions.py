@@ -60,7 +60,7 @@ def get_meta(metrics):
         request_args=dict(flask.request.args) if flask.has_request_context() else {},
         metrics={
             "performance": metrics.get("perf_metrics", {}),
-            "sizes": metrics.get("sizes", {}),
+            "sizes": metrics.get("size_metrics", {}),
         },
     )
     return meta
