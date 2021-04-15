@@ -1,5 +1,20 @@
 # History
 
+## DBND v 0.38.00
+### New features
+* \#1199905812865631: Added Favorite Metrics widget.
+* \#1199905812865626: Added reference date and fix time range widget.
+* \#1200036364804040: Added support for Date picker in the UI.
+* \#1199908347034091: Added Python Spark Metrics listener (similar to JVM).
+* \#1200135620545740: New alerting mechanism for on-prem users (available on demand).
+* \#1200130408884041: Zero-cost integration of SQL Airflow DAGs with Snowflake (in DBND SDK).
+
+### Improvements
+* \#1199510429341979: Configured POC alerting.
+* \#1199592642123487: Run name/run description is now editable from the UI.
+* \#1199917986044490: It’s now possible to access the latest webserver logs via the webserver.
+* \#1200092086191209: Added a descriptive error message that appears when installing Airflow Monitor not in the same folder as Airflow.
+
 ## DBND v 0.37.2
 
 ### New features
