@@ -519,23 +519,20 @@ def airflow_monitor_main(monitor_args):
     while True:
         configs_fetched = servers_fetcher.get_fetching_configurations()
 
-        if configs_fetched is None:
-            # Probably an error occurred
-            wait_interval()
-            continue
+        if configs_fetched is not None:
+            airflow_instance_details = create_instance_details_list(
+                monitor_args, configs_fetched, airflow_instance_details,
+            )
 
-        airflow_instance_details = create_instance_details_list(
-            monitor_args, configs_fetched, airflow_instance_details,
-        )
+            sync_all_servers(monitor_args, airflow_instance_details)
 
-        sync_all_servers(monitor_args, airflow_instance_details)
-
-        # We are running in history_only mode and finished syncing all servers
-        if monitor_args.history_only and len(airflow_instance_details) == 0:
-            logger.info("Finished syncing all servers")
-            break
+            # We are running in history_only mode and finished syncing all servers
+            if monitor_args.history_only and len(airflow_instance_details) == 0:
+                logger.info("Finished syncing all servers")
+                break
 
         # Limit the total number of sync iterations, mostly for tests and debug
+        # used in monitor-as-dag
         iteration_number += 1
         if monitor_args.number_of_iterations is not None:
             if iteration_number >= monitor_args.number_of_iterations:
