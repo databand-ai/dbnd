@@ -15,7 +15,7 @@ from dbnd_test_scenarios.spark.spark_tasks import (
     WordCountTask,
     WordCountThatFails,
 )
-from targets import target
+from targets import DirTarget, target
 from tests.conftest import skip_require_java_build
 
 
@@ -123,6 +123,18 @@ class TestSparkTasksLocally(object):
         parent_directory = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory,}}):
             assert_run_task(word_count_inline.t(text=__file__))
+
+    def test_spark_complete(self, monkeypatch):
+        from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
+
+        # Solve "tests" module conflict on pickle loading after spark-submit
+        parent_directory = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory,}}):
+            t = word_count_inline.t(text=__file__)
+            dir_target = mock.MagicMock(DirTarget)
+            dir_target.exists = mock.Mock(return_value=False)
+            monkeypatch.setattr(t, "_get_dir_outputs", lambda: [dir_target])
+            assert t._complete() is False
 
     def test_spark_inline_same_context(self):
         from pyspark.sql import SparkSession
