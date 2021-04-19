@@ -167,6 +167,8 @@ def incomplete_output_found_for_task(task_name, complete_outputs, incomplete_out
         "Incomplete outputs: {} "
         "Hint: clean the environment or overwrite the output. "
         "To ignore this error, turn off 'validate_task_outputs_on_build' in the '[run]' configuration section".format(
-            task_name, ", ".join(complete_outputs), ", ".join(incomplete_outputs),
+            task_name,
+            ", ".join(map(str, complete_outputs)),
+            ", ".join(map(str, incomplete_outputs)),
         )
     )

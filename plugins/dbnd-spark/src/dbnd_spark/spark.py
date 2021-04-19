@@ -4,6 +4,8 @@ import typing
 
 from typing import Dict, Union
 
+import more_itertools
+
 from dbnd._core.cli.cmd_execute import get_dbnd_version, get_python_version
 from dbnd._core.constants import TaskType
 from dbnd._core.current import try_get_databand_context
@@ -51,6 +53,23 @@ class _BaseSparkTask(Task):
     )[Dict[str, FileTarget]]
 
     def _complete(self):
+        dir_outputs = self._get_dir_outputs()
+        incomplete_outputs, complete_outputs = map(
+            list, more_itertools.partition(lambda target: target.exists(), dir_outputs)
+        )
+        if incomplete_outputs:
+            exc = incomplete_output_found_for_task(
+                self.task_name, complete_outputs, incomplete_outputs
+            )
+            if self.task_env.settings.run.validate_task_outputs_on_build:
+                raise exc
+
+            logger.warning(str(exc))
+            return False
+
+        return super(_BaseSparkTask, self)._complete()
+
+    def _get_dir_outputs(self):
         # We address targets as directories in spark task because spark creates success flags in directory.
         # All FileTargets that run on spark actually create directories!
         dir_outputs = [
@@ -58,22 +77,7 @@ class _BaseSparkTask(Task):
             for target in flatten(self.task_outputs)
             if target.fs.isdir(target.path) and not target.config.overwrite_target
         ]  # All outputs that are directories and are NOT overwrite targets
-        incomplete_dir_outputs = [
-            str(target) for target in dir_outputs if not target.exists()
-        ]
-        if incomplete_dir_outputs:
-            complete_dir_outputs = [
-                str(target) for target in dir_outputs if target.exists()
-            ]
-            exc = incomplete_output_found_for_task(
-                self.task_meta.task_name, complete_dir_outputs, incomplete_dir_outputs
-            )
-            if self.task_env.settings.run.validate_task_outputs_on_build:
-                raise exc
-            else:
-                logger.warning(str(exc))
-            return False
-        return super(_BaseSparkTask, self)._complete()
+        return dir_outputs
 
     def band(self):
         result = super(_BaseSparkTask, self).band()
