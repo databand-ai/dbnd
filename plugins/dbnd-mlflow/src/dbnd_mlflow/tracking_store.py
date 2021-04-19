@@ -130,14 +130,18 @@ class DatabandStore(AbstractStore):
             # mlflow.entities.Metric.timestamp is `int(time.time() * 1000)`
             timestamp=datetime.fromtimestamp(metric.timestamp / 1000),
         )
-        self.dbnd_store.log_metrics(self._get_current_task_run(), [dbnd_metric])
+        self.dbnd_store.log_metrics(
+            task_run=self._get_current_task_run(), metrics=[dbnd_metric]
+        )
         logger.info("Metric {}".format(metric))
 
     def _log_param(self, run_id, param):
         # type: (str, mlflow.entities.Param) -> None
         # Temporarly log params as metrics
         dbnd_metric = Metric(key=param.key, value=param.value, timestamp=utcnow())
-        self.dbnd_store.log_metrics(self._get_current_task_run(), [dbnd_metric])
+        self.dbnd_store.log_metrics(
+            task_run=self._get_current_task_run(), metrics=[dbnd_metric]
+        )
         logger.info("Param {}".format(param))
 
     @duplication_store
@@ -180,6 +184,12 @@ def get_dbnd_store(store_uri=None, artifact_uri=None):
 
         duplication_store = _get_store(duplicate_tracking_to, artifact_uri)
 
-    dbnd_store = get_tracking_store(["api"], "web", True, False)
+    dbnd_store = get_tracking_store(
+        tracking_store_names=["api"],
+        api_channel_name="web",
+        max_retires=1,
+        tracker_raise_on_error=True,
+        remove_failed_store=False,
+    )
 
     return DatabandStore(dbnd_store, duplication_store)

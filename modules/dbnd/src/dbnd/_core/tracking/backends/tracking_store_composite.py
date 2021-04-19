@@ -1,67 +1,101 @@
 import logging
 
-from dbnd._core.errors.base import TrackerPanicError, TrackerRecoverError
+from typing import Any, Dict
+
+from dbnd._core.current import in_tracking_run, is_orchestration_run
+from dbnd._core.errors.base import TrackerPanicError
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
+from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
 
+
+MAX_RETRIES = 2
 
 logger = logging.getLogger(__name__)
 
 
+def try_run_handler(tries, store, handler_name, kwargs, verbose=False):
+    # type: (int, TrackingStore, str, Dict[str, Any],bool) -> Any
+    """
+    Locate the handler function to run and will try to run it multiple times.
+    If fails all the times -> raise the last error.
+
+    @param tries: maximum amount of retries, positive integer.
+    @param store: the store to run its handler
+    @param handler_name: the name of the handler to run
+    @param kwargs: the input for the handler
+    @param verbose: should we log verbosely
+    @return: The result of the handler if succeeded, otherwise raise the last error
+    """
+    try_num = 1
+    handler = getattr(store, handler_name)
+
+    while True:
+        try:
+            return handler(**kwargs)
+
+        except Exception as ex:
+            log_exception(
+                "Try %s out of %s: Failed to store tracking information from %s at %s"
+                % (try_num, tries, handler_name, str(store)),
+                ex,
+                non_critical=True,
+                verbose=verbose,
+            )
+
+            if try_num == tries:
+                # raise on the last try
+                raise
+
+            try_num += 1
+
+
 class CompositeTrackingStore(TrackingStore):
-    def __init__(self, tracking_stores, raise_on_error=True, remove_failed_store=False):
+    def __init__(
+        self,
+        tracking_stores,
+        max_retires,
+        raise_on_error=True,
+        remove_failed_store=False,
+    ):
         if not tracking_stores:
             logger.warning("You are running without any tracking store configured.")
+
         self._stores = tracking_stores
         self._raise_on_error = raise_on_error
         self._remove_failed_store = remove_failed_store
+        self._max_retries = max_retires
 
     def _invoke(self, name, kwargs):
         res = None
         failed_stores = []
+
         for store in self._stores:
+            tries = self._max_retries if is_state_call(name) else 1
+
             try:
-                handler = getattr(store, name)
-                handler_res = handler(**kwargs)
-                if handler_res:
-                    res = handler_res
-
-            except TrackerRecoverError as ex:
-                log_exception(
-                    "Failed to store tracking information from %s at %s"
-                    % (name, str(store)),
-                    ex,
-                    non_critical=True,
+                res = try_run_handler(
+                    tries, store, name, kwargs, verbose=is_orchestration_run()
                 )
-
-            except TrackerPanicError as ex:
-                log_exception(
-                    "Failed to store tracking information from %s at %s"
-                    % (name, str(store)),
-                    ex,
-                    non_critical=True,
-                )
-
-                if self._remove_failed_store:
+            except Exception as e:
+                if self._remove_failed_store or (
+                    in_tracking_run() and is_state_call(name)
+                ):
                     failed_stores.append(store)
-                if self._raise_on_error:
+
+                if isinstance(e, TrackerPanicError) and self._raise_on_error:
                     raise
 
-            except Exception as ex:
-                if self._remove_failed_store:
-                    failed_stores.append(store)
-                log_exception(
-                    "Failed to store tracking information from %s at %s: %s"
-                    % (name, str(store), str(ex)),
-                    ex,
-                    non_critical=True,
-                )
         if failed_stores:
             for store in failed_stores:
                 logger.warning(
                     "Removing store %s from stores list due to failure" % (str(store),)
                 )
                 self._stores.remove(store)
+
+            if not self._stores:
+                logger.warning("You are running without any tracking store configured.")
+
         return res
 
     # this is a function that used for disabling Tracking api on spark inline tasks.

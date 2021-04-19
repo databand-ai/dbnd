@@ -94,7 +94,7 @@ class CoreConfig(Config):
     )[object]
 
     user_code_on_fork = parameter(
-        default=None, description="Runs in sub process (parallel/kubernets/external)"
+        default=None, description="Runs in sub process (parallel/kubernetes/external)"
     )[object]
 
     pickle_handler = parameter(
@@ -109,6 +109,14 @@ class CoreConfig(Config):
     tracker_raise_on_error = parameter(
         default=True, description="Raise error when failed to track data"
     )[bool]
+    remove_failed_store = parameter(
+        default=False, description="Remove a tracking store if it fails"
+    )[bool]
+    max_tracking_store_retries = parameter(
+        default=2,
+        description="Maximal amounts of retries allowed for a single tracking store call if it failed.",
+    )[int]
+
     tracker_api = parameter(default="web", description="Tracking Stores to be used")[
         str
     ]
@@ -184,12 +192,16 @@ class CoreConfig(Config):
         if self.silence_tracking_mode:
             self.tracker = [t for t in self.tracker if t != "console"]
 
-    def build_tracking_store(self, remove_failed_store=True):
+    def build_tracking_store(self, remove_failed_store=None):
         from dbnd._core.tracking.registry import get_tracking_store
+
+        if remove_failed_store is None:
+            remove_failed_store = self.remove_failed_store
 
         return get_tracking_store(
             tracking_store_names=self.tracker,
             api_channel_name=self.tracker_api,
+            max_retires=self.max_tracking_store_retries,
             tracker_raise_on_error=self.tracker_raise_on_error,
             remove_failed_store=remove_failed_store,
         )

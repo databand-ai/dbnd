@@ -3,10 +3,20 @@ import pytest
 from dbnd import new_dbnd_context
 
 
+def first_store(tracking_store):
+    """
+    Returns the first store, otherwise None.
+    """
+    if tracking_store._stores:
+        return tracking_store._stores[0]
+
+    return None
+
+
 class TestProtobufImportability(object):
     def test_init_protoweb_channel(self):
         # testing env should not include protobuf package
-        # othervise this test is useless
+        # otherwise this test is useless
         with pytest.raises(ImportError):
             from google import protobuf
 
@@ -21,7 +31,7 @@ class TestProtobufImportability(object):
                 }
             }
         ) as dc:
-            ts = dc.tracking_store
+            ts = first_store(dc.tracking_store)
             assert ts.__class__.__name__ == "TrackingStoreThroughChannel", ts
             assert (
                 ts.channel.__class__.__name__ == "TrackingProtoWebChannel"

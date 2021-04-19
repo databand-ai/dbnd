@@ -60,6 +60,24 @@ def try_get_databand_run():
     return None
 
 
+def in_tracking_run():
+    # type: () -> bool
+    run = try_get_databand_run()
+    if run:
+        return not run.is_orchestration
+
+    return False
+
+
+def is_orchestration_run():
+    # type: () -> bool
+    run = try_get_databand_run()
+    if run:
+        return run.is_orchestration
+
+    return False
+
+
 def current_task():
     # type: () -> Task
     from dbnd._core.task_build.task_context import current_task as ct
