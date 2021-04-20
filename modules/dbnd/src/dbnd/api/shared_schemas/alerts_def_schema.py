@@ -2,6 +2,11 @@ from dbnd._core.tracking.schemas.base import ApiObjectSchema
 from dbnd._vendor.marshmallow import fields
 
 
+class MLAlert(ApiObjectSchema):
+    sensitivity = fields.Float()
+    look_back = fields.Integer()
+
+
 class AlertDefsSchema(ApiObjectSchema):
     uid = fields.Str()
     original_uid = fields.Str()
@@ -17,6 +22,8 @@ class AlertDefsSchema(ApiObjectSchema):
     is_str_value = fields.Bool()
     value = fields.Str()
     advanced_json = fields.Str()
+
+    ml_alert = fields.Nested(MLAlert, allow_none=True)
 
     created_at = fields.DateTime()
     scheduled_job_uid = fields.Str()
