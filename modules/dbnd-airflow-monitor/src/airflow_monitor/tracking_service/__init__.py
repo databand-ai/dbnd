@@ -3,7 +3,7 @@ from airflow_monitor.common.metric_reporter import (
     METRIC_REPORTER,
     decorate_measure_time,
 )
-from airflow_monitor.tracking_service.af_tracking_service import (
+from airflow_monitor.tracking_service.base_tracking_service import (
     DbndAirflowTrackingService,
     ServersConfigurationService,
 )

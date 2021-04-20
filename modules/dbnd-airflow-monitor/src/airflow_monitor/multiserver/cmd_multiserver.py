@@ -1,25 +1,29 @@
+from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.multiserver import start_multi_server_monitor
 from dbnd._vendor import click
 
 
 @click.command()
-@click.option(
-    "--interval", default=10, type=click.INT, help="Interval between iterations"
-)
-@click.option(
-    "--runner-type",
-    default="seq",
-    type=click.Choice(["seq", "mp"]),
-    help="Runner type. Options: seq for sequential, mp for multi-process",
-)
+@click.option("--interval", type=click.INT, help="Interval between iterations")
 @click.option(
     "--number-of-iterations",
     type=click.INT,
     help="Limit the number of periodic monitor runs",
 )
-@click.argument("syncer_name", type=click.STRING, default=None, nargs=-1)
+@click.option(
+    "--stop-after", type=click.INT, help="Limit time for monitor to run, in seconds",
+)
+@click.option(
+    "--runner-type",
+    type=click.Choice(["seq", "mp"]),
+    help="Runner type. Options: seq for sequential, mp for multi-process",
+)
+@click.option("--syncer-name", type=click.STRING, help="Sync only specified instance")
 def multi_server_syncer(*args, **kwargs):
-    start_multi_server_monitor(*args, **kwargs)
+    # remove all None values to not override defaults/env configured params
+    actual_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+    monitor_config = AirflowMonitorConfig(**actual_kwargs)
+    start_multi_server_monitor(monitor_config)
 
 
 if __name__ == "__main__":

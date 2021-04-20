@@ -3,6 +3,8 @@ from uuid import UUID
 
 import attr
 
+from airflow_monitor.config import AirflowMonitorConfig
+
 
 @attr.s
 class AirflowServerConfig(object):
@@ -35,8 +37,17 @@ class AirflowServerConfig(object):
     # for file data fetcher
     json_file_path = attr.ib(default=None)  # type: str
 
+    # runtime syncer config
+    dag_run_bulk_size = attr.ib(default=10)  # type: int
+
+    start_time_window = attr.ib(default=14)  # type: int
+    interval = attr.ib(default=10)  # type: int
+
+    # runtime fixer config
+    fix_interval = attr.ib(default=600)  # type: int
+
     @classmethod
-    def create(cls, airflow_config, server_config):
+    def create(cls, airflow_config: AirflowMonitorConfig, server_config):
         monitor_config = server_config.get("monitor_config") or {}
         kwargs = {k: v for k, v in monitor_config.items() if k in attr.fields_dict(cls)}
 
@@ -47,7 +58,7 @@ class AirflowServerConfig(object):
             is_sync_enabled_v2=server_config.get("is_sync_enabled_v2", False),
             base_url=server_config["base_url"],
             api_mode=server_config["api_mode"],
-            fetcher=server_config["fetcher"],
+            fetcher=airflow_config.fetcher or server_config["fetcher"],
             composer_client_id=server_config["composer_client_id"],
             dag_ids=server_config["dag_ids"],
             sql_alchemy_conn=airflow_config.sql_alchemy_conn,  # TODO: currently support only one server!
@@ -57,26 +68,6 @@ class AirflowServerConfig(object):
             **kwargs,
         )
         return conf
-
-
-@attr.s
-class MonitorConfig(AirflowServerConfig):
-    dag_run_bulk_size = attr.ib(default=10)  # type: int
-
-    start_time_window = attr.ib(default=14)  # type: int
-    interval = attr.ib(default=10)  # type: int
-
-    fix_interval = attr.ib(default=600)  # type: int
-
-
-@attr.s
-class MultiServerMonitorConfig:
-    interval = attr.ib(default=0)
-    runner_type = attr.ib(default="seq")  # seq/mp
-    number_of_iterations = attr.ib(default=None)  # type: Optional[int]
-    syncer_names = attr.ib(
-        default=None, converter=lambda v: list(v) if v else v,
-    )  # type: Optional[List[str]]
 
 
 @attr.s

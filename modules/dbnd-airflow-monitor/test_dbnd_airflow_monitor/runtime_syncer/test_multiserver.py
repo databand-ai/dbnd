@@ -5,16 +5,26 @@ import pytest
 from mock import patch
 
 from airflow_monitor.common.base_component import BaseMonitorComponent
-from airflow_monitor.common.config_data import (
-    AirflowServerConfig,
-    MultiServerMonitorConfig,
-)
+from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.multiserver import KNOWN_COMPONENTS, MultiServerMonitor
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 
 
 @pytest.fixture
-def multi_server(mock_server_config_service, mock_data_fetcher, mock_tracking_service):
+def airflow_monitor_config():
+    # use dummy local_dag_folder to generate "new" config object
+    # (that won't conflict with monitor v1 global configuration)
+    return AirflowMonitorConfig(local_dag_folder="/tmp")
+
+
+@pytest.fixture
+def multi_server(
+    mock_server_config_service,
+    mock_data_fetcher,
+    mock_tracking_service,
+    airflow_monitor_config,
+):
     with patch(
         "airflow_monitor.multiserver.multiserver.get_data_fetcher",
         return_value=mock_data_fetcher,
@@ -22,13 +32,13 @@ def multi_server(mock_server_config_service, mock_data_fetcher, mock_tracking_se
         "airflow_monitor.multiserver.multiserver.get_tracking_service",
         return_value=mock_tracking_service,
     ):
-        yield MultiServerMonitor(mock_server_config_service, MultiServerMonitorConfig())
+        yield MultiServerMonitor(mock_server_config_service, airflow_monitor_config)
 
 
 @pytest.fixture
 def mock_syncer_factory(mock_data_fetcher, mock_tracking_service):
     yield lambda: MockSyncer(
-        config=mock_tracking_service.get_monitor_configuration(),
+        config=mock_tracking_service.get_airflow_server_configuration(),
         data_fetcher=mock_data_fetcher,
         tracking_service=mock_tracking_service,
     )

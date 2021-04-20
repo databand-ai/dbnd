@@ -11,7 +11,10 @@ from airflow_monitor.tracking_service import (
     decorate_configuration_service,
     decorate_tracking_service,
 )
-from dbnd._core.configuration.environ_config import reset_dbnd_project_config
+from dbnd._core.configuration.environ_config import (
+    get_dbnd_project_config,
+    reset_dbnd_project_config,
+)
 
 from .mock_airflow_data_fetcher import MockDataFetcher
 from .mock_airflow_tracking_service import MockServersConfigService, MockTrackingService
@@ -24,6 +27,9 @@ os.environ["DBND_HOME"] = home
 os.environ["AIRFLOW_HOME"] = home
 os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"
 reset_dbnd_project_config()
+
+# we don't need to load dbnd plugins/modules
+get_dbnd_project_config().is_no_modules = True
 
 
 @fixture

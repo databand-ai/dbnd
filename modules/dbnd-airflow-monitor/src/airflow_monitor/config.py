@@ -48,3 +48,9 @@ class AirflowMonitorConfig(Config):
     syncer_name = parameter(default=None)[str]
 
     fetcher = parameter(default=None)[str]
+
+    number_of_iterations = parameter(default=None)[int]
+
+    stop_after = parameter(default=None)[int]
+
+    runner_type = parameter(default="seq")[str]  # seq/mp

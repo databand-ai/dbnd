@@ -1,14 +1,13 @@
 import logging
 
+from datetime import timedelta
 from time import sleep
 from typing import Any, Callable, Dict, List, Type, Union
 from uuid import UUID
 
 from airflow_monitor.common import MonitorState, capture_monitor_exception
-from airflow_monitor.common.config_data import (
-    AirflowServerConfig,
-    MultiServerMonitorConfig,
-)
+from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.data_fetcher import get_data_fetcher
 from airflow_monitor.fixer.runtime_fixer import start_runtime_fixer
 from airflow_monitor.multiserver.runners import (
@@ -22,7 +21,7 @@ from airflow_monitor.tracking_service import (
     get_servers_configuration_service,
     get_tracking_service,
 )
-from airflow_monitor.tracking_service.af_tracking_service import (
+from airflow_monitor.tracking_service.base_tracking_service import (
     DbndAirflowTrackingService,
     ServersConfigurationService,
 )
@@ -134,43 +133,65 @@ class AirflowMonitor(object):
 
 class MultiServerMonitor(object):
     runner_factory: Union[Type[SequentialRunner], Type[MultiProcessRunner], None]
-    monitor_config: MultiServerMonitorConfig
+    monitor_config: AirflowMonitorConfig
     active_monitors: Dict[UUID, AirflowMonitor]
     tracking_service: DbndAirflowTrackingService
 
     def __init__(
         self,
         servers_configuration_service: ServersConfigurationService,
-        monitor_config: MultiServerMonitorConfig,
+        monitor_config: AirflowMonitorConfig,
     ):
         self.servers_configuration_service = servers_configuration_service
         self.monitor_config = monitor_config
         self.runner_factory = RUNNER_FACTORY[self.monitor_config.runner_type]
         self.active_monitors = {}
+
         self.iteration = 0
+        self.stop_at = (
+            utcnow() + timedelta(seconds=self.monitor_config.stop_after)
+            if self.monitor_config.stop_after
+            else None
+        )
 
     def run(self):
-        while not self._should_stop():
+        if self.monitor_config.sql_alchemy_conn and not self.monitor_config.syncer_name:
+            raise DatabandConfigError(
+                "Syncer name should be specified when using direct sql connection",
+                help_msg="Please provide correct syncer name (using --syncer-name parameter,"
+                " env variable DBND__AIRFLOW_MONITOR__SYNCER_NAME, or any other suitable way)",
+            )
+
+        while True:
             self.iteration += 1
             try:
                 logger.info(f"Starting {self.iteration} iteration")
                 self.run_once()
                 logger.info(f"Iteration {self.iteration} done")
             except Exception:
-                logger.exception("Unknown exception during iteration")
-                if self.iteration == 1:
-                    raise
-            if not self._should_stop():
-                sleep(self.monitor_config.interval)
+                logger.exception("Unknown exception during iteration", exc_info=True)
+
+            if self._should_stop():
+                self.stop_disabled_servers([])
+                break
+
+            sleep(self.monitor_config.interval)
 
     def _should_stop(self):
-        return (
+        if (
             self.monitor_config.number_of_iterations
             and self.iteration >= self.monitor_config.number_of_iterations
-        )
+        ):
+            return True
+
+        if self.stop_at and utcnow() >= self.stop_at:
+            return True
 
     def run_once(self):
         servers = self._get_servers_configs_safe()
+        if not servers:
+            logger.warning("No servers found")
+
         servers = self.filter_servers(servers)
         servers = [s for s in servers if s.is_sync_enabled and s.is_sync_enabled_v2]
 
@@ -181,30 +202,22 @@ class MultiServerMonitor(object):
         self.heartbeat()
 
     def filter_servers(self, servers):
-        if not self.monitor_config.syncer_names:
+        if not self.monitor_config.syncer_name:
             return servers
 
         servers_filtered = [
-            s for s in servers if s.name in self.monitor_config.syncer_names
+            s for s in servers if s.name == self.monitor_config.syncer_name
         ]
-        if len(servers_filtered) != len(self.monitor_config.syncer_names):
-            filtered_names = {s.name for s in servers_filtered}
-            missing_names = ",".join(
-                [
-                    name
-                    for name in self.monitor_config.syncer_names
-                    if name not in filtered_names
-                ]
+        if not servers_filtered:
+            raise DatabandConfigError(
+                "No syncer configuration found matching name '%s'. Available syncers: %s"
+                % (
+                    self.monitor_config.syncer_name,
+                    ",".join([s.name for s in servers if s.name]),
+                ),
+                help_msg="Please provide correct syncer name (using --syncer-name parameter,"
+                " env variable DBND__AIRFLOW_MONITOR__SYNCER_NAME, or any other suitable way)",
             )
-            msg = f"No configuration found for monitored servers: {missing_names}"
-            if self.iteration == 1:
-                raise DatabandConfigError(
-                    msg,
-                    help_msg="Please make sure you've properly setup configuration"
-                    " the specified airflow servers in Databand UI",
-                )
-            else:
-                logger.warning(msg)
         return servers_filtered
 
     @retry(
@@ -218,7 +231,9 @@ class MultiServerMonitor(object):
         reraise=True,
     )
     def _get_servers_configs_safe(self):
-        return self.servers_configuration_service.get_all_servers_configuration()
+        return self.servers_configuration_service.get_all_servers_configuration(
+            self.monitor_config
+        )
 
     def ensure_monitored_servers(self, servers_configs: List[AirflowServerConfig]):
         self.stop_disabled_servers(servers_configs)
@@ -253,15 +268,5 @@ class MultiServerMonitor(object):
             monitor.heartbeat()
 
 
-def start_multi_server_monitor(
-    interval=10, runner_type="seq", syncer_name=None, number_of_iterations=None,
-):
-    MultiServerMonitor(
-        get_servers_configuration_service(),
-        MultiServerMonitorConfig(
-            interval=interval,
-            runner_type=runner_type,
-            number_of_iterations=number_of_iterations,
-            syncer_names=syncer_name,
-        ),
-    ).run()
+def start_multi_server_monitor(monitor_config: AirflowMonitorConfig):
+    MultiServerMonitor(get_servers_configuration_service(), monitor_config).run()

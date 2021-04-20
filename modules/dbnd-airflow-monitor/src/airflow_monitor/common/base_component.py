@@ -2,7 +2,7 @@ import time
 
 from typing import Type
 
-from airflow_monitor.common.config_data import MonitorConfig
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher import AirflowDataFetcher, get_data_fetcher
 from airflow_monitor.tracking_service import (
     DbndAirflowTrackingService,
@@ -11,13 +11,13 @@ from airflow_monitor.tracking_service import (
 
 
 class BaseMonitorComponent(object):
-    config: MonitorConfig
+    config: AirflowServerConfig
     data_fetcher: AirflowDataFetcher
     tracking_service: DbndAirflowTrackingService
 
     def __init__(
         self,
-        config: MonitorConfig,
+        config: AirflowServerConfig,
         data_fetcher: AirflowDataFetcher,
         tracking_service: DbndAirflowTrackingService,
     ):
@@ -40,7 +40,7 @@ class BaseMonitorComponent(object):
 
 def start_syncer(factory: Type[BaseMonitorComponent], tracking_source_uid, run=True):
     tracking_service = get_tracking_service(tracking_source_uid=tracking_source_uid,)
-    monitor_config = tracking_service.get_monitor_configuration()
+    monitor_config = tracking_service.get_airflow_server_configuration()
     data_fetcher = get_data_fetcher(monitor_config)
     syncer = factory(monitor_config, data_fetcher, tracking_service)
     if run:

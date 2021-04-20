@@ -8,9 +8,10 @@ from airflow_monitor.common.airflow_data import (
     DagRunsStateData,
     LastSeenValues,
 )
-from airflow_monitor.common.config_data import AirflowServerConfig, MonitorConfig
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
-from airflow_monitor.tracking_service.af_tracking_service import (
+from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.tracking_service.base_tracking_service import (
     DbndAirflowTrackingService,
     ServersConfigurationService,
 )
@@ -55,7 +56,9 @@ class MockServersConfigService(ServersConfigurationService):
 
     @can_be_dead
     @ticking
-    def get_all_servers_configuration(self) -> List[AirflowServerConfig]:
+    def get_all_servers_configuration(
+        self, airflow_config: AirflowMonitorConfig
+    ) -> List[AirflowServerConfig]:
         return self.mock_servers
 
 
@@ -64,7 +67,7 @@ class MockTrackingService(DbndAirflowTrackingService):
         super(MockTrackingService, self).__init__(tracking_source_uid)
         self.dag_runs = []  # type: List[MockDagRun]
 
-        self.config = MonitorConfig(tracking_source_uid=tracking_source_uid)
+        self.config = AirflowServerConfig(tracking_source_uid=tracking_source_uid)
         self.last_seen_dag_run_id = None
         self.last_seen_log_id = None
         self.alive = True
@@ -164,7 +167,7 @@ class MockTrackingService(DbndAirflowTrackingService):
 
     @can_be_dead
     @ticking
-    def get_monitor_configuration(self) -> MonitorConfig:
+    def get_airflow_server_configuration(self) -> AirflowServerConfig:
         return self.config
 
     @can_be_dead

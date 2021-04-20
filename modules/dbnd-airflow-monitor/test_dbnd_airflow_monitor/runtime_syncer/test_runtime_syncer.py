@@ -4,7 +4,7 @@ import pytest
 
 from mock import Mock, patch
 
-from airflow_monitor.common.config_data import MonitorConfig
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 
@@ -14,7 +14,9 @@ from ..mock_airflow_data_fetcher import MockDagRun, MockLog
 @pytest.fixture
 def runtime_syncer(mock_data_fetcher, mock_tracking_service):
     syncer = AirflowRuntimeSyncer(
-        MonitorConfig(tracking_source_uid=mock_tracking_service.tracking_source_uid),
+        AirflowServerConfig(
+            tracking_source_uid=mock_tracking_service.tracking_source_uid
+        ),
         tracking_service=mock_tracking_service,
         data_fetcher=mock_data_fetcher,
     )
@@ -27,7 +29,9 @@ def runtime_syncer(mock_data_fetcher, mock_tracking_service):
 @pytest.fixture
 def runtime_fixer(mock_data_fetcher, mock_tracking_service):
     syncer = AirflowRuntimeFixer(
-        MonitorConfig(tracking_source_uid=mock_tracking_service.tracking_source_uid),
+        AirflowServerConfig(
+            tracking_source_uid=mock_tracking_service.tracking_source_uid
+        ),
         tracking_service=mock_tracking_service,
         data_fetcher=mock_data_fetcher,
     )

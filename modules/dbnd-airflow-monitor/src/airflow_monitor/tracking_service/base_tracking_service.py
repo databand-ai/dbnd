@@ -6,8 +6,9 @@ from airflow_monitor.common.airflow_data import (
     LastSeenValues,
     MonitorState,
 )
-from airflow_monitor.common.config_data import AirflowServerConfig, MonitorConfig
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
+from airflow_monitor.config import AirflowMonitorConfig
 
 
 class DbndAirflowTrackingService(object):
@@ -43,7 +44,7 @@ class DbndAirflowTrackingService(object):
     ):
         raise NotImplementedError()
 
-    def get_monitor_configuration(self) -> MonitorConfig:
+    def get_airflow_server_configuration(self) -> AirflowServerConfig:
         raise NotImplementedError()
 
     def update_monitor_state(self, monitor_state: MonitorState):
@@ -51,5 +52,7 @@ class DbndAirflowTrackingService(object):
 
 
 class ServersConfigurationService(object):
-    def get_all_servers_configuration(self) -> List[AirflowServerConfig]:
+    def get_all_servers_configuration(
+        self, airflow_config: AirflowMonitorConfig
+    ) -> List[AirflowServerConfig]:
         raise NotImplementedError()

@@ -13,15 +13,15 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.config_data import (
     AirflowServerConfig,
-    MonitorConfig,
     TrackingServiceConfig,
 )
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.tracking_service.af_tracking_service import (
+from airflow_monitor.tracking_service.base_tracking_service import (
     DbndAirflowTrackingService,
     ServersConfigurationService,
 )
+from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.timezone import utctoday
 
 
@@ -68,7 +68,7 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
         )
 
     def update_last_seen_values(self, last_seen_values: LastSeenValues):
-        response = self._make_request(
+        self._make_request(
             "update_last_seen_values", method="POST", data=last_seen_values.as_dict(),
         )
 
@@ -121,19 +121,19 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
         return response
 
     def update_monitor_state(self, monitor_state: MonitorState):
-        response = self._make_request(
+        self._make_request(
             "update_monitor_state", method="POST", data=monitor_state.as_dict(),
         )
 
-    def get_monitor_configuration(self) -> MonitorConfig:
+    def get_airflow_server_configuration(self) -> AirflowServerConfig:
         result_json = self._get_airflow_web_servers_data()
         if not result_json:
-            raise Exception()  # TODO
-        if len(result_json) > 1:
-            raise Exception()  # TODO
+            raise DatabandConfigError(
+                f"Not found configuration for syncer {self.tracking_source_uid}"
+            )
 
         airflow_config = AirflowMonitorConfig()
-        return MonitorConfig.create(airflow_config, result_json[0])
+        return AirflowServerConfig.create(airflow_config, result_json[0])
 
     def _get_airflow_web_servers_data(self):
         response = self._api_client.api_request(
@@ -160,20 +160,14 @@ class WebServersConfigurationService(ServersConfigurationService):
     def __init__(self, tracking_service_config: TrackingServiceConfig):
         self._api_client = _get_api_client(tracking_service_config)
 
-    def get_all_servers_configuration(self) -> List[AirflowServerConfig]:
-        airflow_config = AirflowMonitorConfig()
+    def get_all_servers_configuration(
+        self, airflow_config: AirflowMonitorConfig
+    ) -> List[AirflowServerConfig]:
         result_json = self._get_airflow_web_servers_data()
         servers = [
             AirflowServerConfig.create(airflow_config, server) for server in result_json
         ]
         return servers
-        # except Exception as e:
-        #     logger.error(
-        #         "An error occurred while connecting to server: {}. Error: {}".format(
-        #             self._api_client, e
-        #         )
-        #     )
-        #     return []
 
     def _get_airflow_web_servers_data(self):
         response = self._api_client.api_request(
