@@ -9,6 +9,65 @@ from dbnd_airflow_export.plugin_old.metrics import measure_time, save_result_siz
 from dbnd_airflow_export.plugin_old.model import EDagRun
 
 
+MAX_PARAMETERS_INSIDE_IN_CLAUSE = 900
+
+
+def _get_new_dag_runs_base_query(dag_ids, include_subdags, session):
+    new_runs_base_query = session.query(
+        DagRun.id,
+        DagRun.dag_id,
+        DagRun.execution_date,
+        DagRun.state,
+        DagModel.is_paused,
+    ).join(DagModel, DagModel.dag_id == DagRun.dag_id)
+
+    if dag_ids:
+        new_runs_base_query = new_runs_base_query.filter(DagRun.dag_id.in_(dag_ids))
+
+    if not include_subdags:
+        new_runs_base_query = new_runs_base_query.filter(DagModel.is_subdag.is_(False))
+
+    return new_runs_base_query
+
+
+def _get_new_dag_runs_filter_condition(
+    last_seen_dagrun_id, extra_dag_runs_ids, extra_dag_runs_tuple
+):
+    new_runs_filter_condition = or_(
+        DagRun.id.in_(extra_dag_runs_ids),
+        and_(DagRun.state == "running", DagModel.is_paused.is_(False)),
+    )
+
+    if last_seen_dagrun_id is not None:
+        new_runs_filter_condition = or_(
+            new_runs_filter_condition, DagRun.id > last_seen_dagrun_id
+        )
+
+    if extra_dag_runs_tuple is not None:
+        new_runs_filter_condition = or_(
+            new_runs_filter_condition,
+            tuple_(DagRun.dag_id, DagRun.execution_date).in_(extra_dag_runs_tuple),
+        )
+
+    return new_runs_filter_condition
+
+
+def _find_dag_runs_by_list_in_chunks(new_runs_base_query, extra_dag_runs_tuple_list):
+    all_runs = set()
+
+    for i in range(0, len(extra_dag_runs_tuple_list), MAX_PARAMETERS_INSIDE_IN_CLAUSE):
+        extra_dag_runs_tuple_chunk = extra_dag_runs_tuple_list[
+            i : i + MAX_PARAMETERS_INSIDE_IN_CLAUSE
+        ]
+        new_runs_query = new_runs_base_query.filter(
+            tuple_(DagRun.dag_id, DagRun.execution_date).in_(extra_dag_runs_tuple_chunk)
+        )
+        new_runs = new_runs_query.all()
+        all_runs.update(new_runs)
+
+    return all_runs
+
+
 @save_result_size("find_new_dag_runs")
 @measure_time
 def find_new_dag_runs(
@@ -19,36 +78,31 @@ def find_new_dag_runs(
     include_subdags,
     session,
 ):
-    new_runs_query = session.query(
-        DagRun.id,
-        DagRun.dag_id,
-        DagRun.execution_date,
-        DagRun.state,
-        DagModel.is_paused,
-    ).join(DagModel, DagModel.dag_id == DagRun.dag_id)
+    extra_dag_runs_tuple_list = list(extra_dag_runs_tuple)
 
-    if dag_ids:
-        new_runs_query = new_runs_query.filter(DagRun.dag_id.in_(dag_ids))
-
-    if not include_subdags:
-        new_runs_query = new_runs_query.filter(DagModel.is_subdag.is_(False))
-
-    new_runs_filter_condition = or_(
-        DagRun.id.in_(extra_dag_runs_ids),
-        and_(DagRun.state == "running", DagModel.is_paused.is_(False)),
-        tuple_(DagRun.dag_id, DagRun.execution_date).in_(extra_dag_runs_tuple),
+    new_runs_base_query = _get_new_dag_runs_base_query(
+        dag_ids, include_subdags, session
     )
 
-    if last_seen_dagrun_id is not None:
-        new_runs_filter_condition = or_(
-            new_runs_filter_condition, DagRun.id > last_seen_dagrun_id
+    if len(extra_dag_runs_tuple_list) < MAX_PARAMETERS_INSIDE_IN_CLAUSE:
+        new_runs_filter_condition = _get_new_dag_runs_filter_condition(
+            last_seen_dagrun_id, extra_dag_runs_ids, extra_dag_runs_tuple
         )
+        new_runs_query = new_runs_base_query.filter(new_runs_filter_condition)
+        new_runs = new_runs_query.all()
+        return set(new_runs)
 
-    new_runs_query = new_runs_query.filter(new_runs_filter_condition)
-
+    new_runs_filter_condition = _get_new_dag_runs_filter_condition(
+        last_seen_dagrun_id, extra_dag_runs_ids, None
+    )
+    new_runs_query = new_runs_base_query.filter(new_runs_filter_condition)
     new_runs = new_runs_query.all()
-
-    return new_runs
+    # extra_dag_runs_tuple can be very big so process it in chunks in order to limit the number of parameters passed
+    extra_runs_set = _find_dag_runs_by_list_in_chunks(
+        new_runs_base_query, extra_dag_runs_tuple_list
+    )
+    extra_runs_set.update(new_runs)
+    return extra_runs_set
 
 
 @save_result_size("find_all_logs_grouped_by_runs")

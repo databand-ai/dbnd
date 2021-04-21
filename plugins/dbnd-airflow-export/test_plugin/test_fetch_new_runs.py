@@ -1,3 +1,6 @@
+import mock
+
+
 class TestNewRuns(object):
     def validate_result(
         self,
@@ -14,6 +17,8 @@ class TestNewRuns(object):
         assert result.last_seen_dag_run_id is expected_max_dag_run_id
         assert result.last_seen_log_id is expected_max_log_id
 
+        result.new_dag_runs = sorted(result.new_dag_runs, key=lambda r: r.id)
+
         if result.new_dag_runs:
             paused_runs = [
                 new_run for new_run in result.new_dag_runs if new_run.is_paused
@@ -24,26 +29,18 @@ class TestNewRuns(object):
                 assert len(paused_runs) == 0
 
             if not expected_max_log_ids:
-                assert (
-                    len(
-                        [
-                            new_run.max_log_id
-                            for new_run in result.new_dag_runs
-                            if new_run.max_log_id is not None
-                        ]
-                    )
-                    == 0
-                )
-                assert (
-                    len(
-                        [
-                            new_run.has_updated_task_instances
-                            for new_run in result.new_dag_runs
-                            if new_run.has_updated_task_instances
-                        ]
-                    )
-                    == 0
-                )
+                new_run_max_log_ids = [
+                    new_run.max_log_id
+                    for new_run in result.new_dag_runs
+                    if new_run.max_log_id is not None
+                ]
+                assert len(new_run_max_log_ids) == 0
+                runs_with_updated_task_instances = [
+                    new_run.has_updated_task_instances
+                    for new_run in result.new_dag_runs
+                    if new_run.has_updated_task_instances
+                ]
+                assert len(runs_with_updated_task_instances) == 0
             else:
                 for i in range(len(result.new_dag_runs)):
                     assert result.new_dag_runs[i].max_log_id == expected_max_log_ids[i]
@@ -154,3 +151,36 @@ class TestNewRuns(object):
 
         result = get_new_dag_runs(2, 2, [1, 2])
         self.validate_result(result, 3, 3, 3, expected_max_log_ids=[None, None, 3])
+
+    def test_12_dag_ids(self):
+        from dbnd_airflow_export.api_functions import get_new_dag_runs
+        from test_plugin.db_data_generator import insert_dag_runs
+
+        insert_dag_runs(dag_runs_count=3, with_log=True)
+        insert_dag_runs(dag_id="plugin_other_dag", dag_runs_count=3, with_log=True)
+
+        result = get_new_dag_runs(0, 0, [], ["plugin_other_dag"])
+
+        self.validate_result(result, 3, 6, 6, expected_max_log_ids=[4, 5, 6])
+
+    def test_13_fetch_in_chunks(self):
+        from dbnd_airflow_export.api_functions import get_new_dag_runs
+        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow_export.queries import (
+            MAX_PARAMETERS_INSIDE_IN_CLAUSE,
+            _find_dag_runs_by_list_in_chunks,
+        )
+
+        with mock.patch(
+            "dbnd_airflow_export.queries._find_dag_runs_by_list_in_chunks",
+            wraps=lambda a, b: _find_dag_runs_by_list_in_chunks(a, b),
+        ) as m:
+            insert_dag_runs(
+                dag_runs_count=MAX_PARAMETERS_INSIDE_IN_CLAUSE - 1, with_log=True
+            )
+            get_new_dag_runs(0, 0, [], [])
+            assert m.call_count == 0
+
+            insert_dag_runs(dag_runs_count=1, with_log=True)
+            get_new_dag_runs(0, 0, [], [])
+            assert m.call_count == 1
