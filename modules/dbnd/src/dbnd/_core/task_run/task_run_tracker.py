@@ -59,16 +59,14 @@ class TaskRunTracker(TaskRunCtrl):
     ):
         # type: (TaskRunTracker, ParameterDefinition, Target, Any, DbndTargetOperationType, DbndTargetOperationStatus) -> None
         tracking_conf = self.settings.tracking
-        if not tracking_conf.log_value_meta:
-            return
-        if value is None:
+        if not tracking_conf.log_value_meta or value is None:
             return
 
         try:
             target.target_meta = get_value_meta(
                 value,
                 parameter.value_meta_conf,
-                tracking_config=self.settings.tracking,
+                tracking_config=tracking_conf,
                 value_type=parameter.value_type,
                 target=target,
             )
