@@ -17,7 +17,7 @@ from dbnd._core.tracking.script_tracking_manager import (
 from dbnd._core.utils.basics.environ_utils import env
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_tracking_information, get_xcoms
-from dbnd_airflow.tracking.wrap_operators import add_tracking_to_submit_task
+from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_info
 
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ def af_tracking_context(task_run, airflow_context, operator):
 
     try:
         tracking_info = get_tracking_information(airflow_context, task_run)
-        add_tracking_to_submit_task(tracking_info, operator)
+        wrap_operator_with_tracking_info(tracking_info, operator)
 
     except Exception as e:
         logger.error(

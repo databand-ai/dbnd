@@ -25,6 +25,7 @@ from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec, args_to
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
+from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
@@ -140,7 +141,10 @@ class CallableTrackingManager(object):
                     task, task_engine=current_task_run().task_engine
                 )
 
-                with task_run.runner.task_run_execution_context(handle_sigterm=True):
+                should_capture_log = TrackingConfig.current().capture_tracking_log
+                with task_run.runner.task_run_execution_context(
+                    handle_sigterm=True, capture_log=should_capture_log
+                ):
                     task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
                     _log_inputs(task_run)

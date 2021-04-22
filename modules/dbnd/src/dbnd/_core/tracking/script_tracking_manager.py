@@ -15,7 +15,7 @@ from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.run.databand_run import new_databand_run
-from dbnd._core.settings import CoreConfig
+from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_passport import TaskPassport
@@ -149,7 +149,12 @@ class _DbndScriptTrackingManager(object):
         run.tracker.init_run()
         run.root_task_run.set_task_run_state(TaskRunState.RUNNING)
 
-        self._enter_cm(run.root_task_run.runner.task_run_execution_context())
+        should_capture_log = TrackingConfig.current().capture_tracking_log
+        self._enter_cm(
+            run.root_task_run.runner.task_run_execution_context(
+                capture_log=should_capture_log
+            )
+        )
         self._task_run = run.root_task_run
 
         return self._task_run

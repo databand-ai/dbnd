@@ -93,10 +93,16 @@ def get_tracking_information(context, task_run):
 
 def extend_airflow_ctx_with_dbnd_tracking_info(task_run, airflow_ctx_env):
     info = airflow_ctx_env.copy()
-    info[DBND_ROOT_RUN_UID] = str(task_run.run.root_run_info.root_run_uid)
+
+    info[DBND_ROOT_RUN_UID] = task_run.run.root_run_info.root_run_uid
     info[DBND_ROOT_RUN_TRACKER_URL] = task_run.run.root_run_info.root_run_url
-    info[DBND_PARENT_TASK_RUN_UID] = str(task_run.task_run_uid)
-    info[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = str(task_run.task_run_attempt_uid)
+    info[DBND_PARENT_TASK_RUN_UID] = task_run.task_run_uid
+    info[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = task_run.task_run_attempt_uid
+
+    core = CoreConfig.current()
+    info["DBND__CORE__DATABAND_URL"] = core.databand_url
+    info["DBND__CORE__DATABAND_ACCESS_TOKEN"] = core.databand_access_token
+
     info = {n: str(v) for n, v in six.iteritems(info) if v is not None}
     return info
 
