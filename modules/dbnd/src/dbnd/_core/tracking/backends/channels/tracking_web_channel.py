@@ -1,6 +1,8 @@
 from dbnd._core.current import get_databand_context
 from dbnd._core.errors.base import (
+    DatabandAuthenticationError,
     DatabandConnectionException,
+    DatabandUnauthorizedApiError,
     TrackerPanicError,
     TrackerRecoverError,
 )
@@ -20,6 +22,7 @@ class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
     def _handle(self, name, data):
         try:
             return self.client.api_request("tracking/%s" % name, data)
+
         except DatabandConnectionException as e:
             # connection problems are not recoverable for web tracker
             raise TrackerPanicError(
@@ -27,9 +30,19 @@ class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
                 e,
                 help_msg="As a temporal workaround you can disable WEB tracking using --disable-web-tracker",
             )
+
+        except (DatabandAuthenticationError, DatabandUnauthorizedApiError) as e:
+            # authentication problems are not recoverable for web tracker
+            raise TrackerPanicError(
+                "Authentication error accrued",
+                e,
+                help_msg="Check your credential information",
+            )
+
         except TypeError as e:
             # probably problems with data trying to send - can recover
             raise TrackerRecoverError("Failed to send the data", e)
+
         # unknown exception are not handled
 
     def is_ready(self):

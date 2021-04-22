@@ -8,7 +8,12 @@ import six
 from six.moves.urllib_parse import urljoin
 
 from dbnd._core.current import try_get_current_task_run, try_get_databand_run
-from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
+from dbnd._core.errors.base import (
+    DatabandApiError,
+    DatabandAuthenticationError,
+    DatabandConnectionException,
+    DatabandUnauthorizedApiError,
+)
 from dbnd._core.errors.friendly_error.api import api_connection_refused
 from dbnd._core.log.logging_utils import create_file_handler
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
@@ -70,6 +75,11 @@ class ApiClient(object):
 
         if not resp.ok:
             logger.info("Response is not ok, Raising DatabandApiError")
+            if resp.status_code in [403, 401]:
+                raise DatabandUnauthorizedApiError(
+                    method, url, resp.status_code, resp.content.decode("utf-8")
+                )
+
             raise DatabandApiError(
                 method, url, resp.status_code, resp.content.decode("utf-8")
             )
@@ -124,7 +134,7 @@ class ApiClient(object):
                 "Exception occurred while initialising the session: {}".format(e)
             )
             self.session = None
-            raise
+            raise DatabandAuthenticationError("Failed to init a webserver session", e)
 
     def api_request(
         self,

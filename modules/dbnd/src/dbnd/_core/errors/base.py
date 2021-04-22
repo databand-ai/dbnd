@@ -215,6 +215,18 @@ class DatabandApiError(DatabandError):
         )
 
 
+class DatabandUnauthorizedApiError(DatabandApiError):
+    pass
+
+
+class DatabandAuthenticationError(DatabandError):
+    def __init__(self, message, cause, **kwargs):
+        super(DatabandAuthenticationError, self).__init__(
+            message + u", caused by " + repr(cause), **kwargs
+        )
+        self.cause = cause
+
+
 class DatabandBadRequest(DatabandError):
     pass
 
