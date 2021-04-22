@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 
 from airflow import DAG
+from airflow.contrib.operators.ecs_operator import ECSOperator
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
 from airflow.utils.dates import days_ago
@@ -11,7 +12,7 @@ from mock import Mock
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
-from dbnd_airflow.tracking.wrap_operators import add_tracking_to_submit_task
+from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_info
 
 
 dbnd_spark_env_vars = (
@@ -94,7 +95,7 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
 
-        add_tracking_to_submit_task(env, operator)
+        wrap_operator_with_tracking_info(env, operator)
         return operator
 
     def test_emr_add_steps_operator(self, emr_operator):
@@ -121,7 +122,7 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
 
-        add_tracking_to_submit_task(env, operator)
+        wrap_operator_with_tracking_info(env, operator)
         return operator
 
     def test_spark_submit_operator(self, spark_submit_operator):
@@ -129,6 +130,59 @@ class TestTrackOperator(object):
             assert env_var in spark_submit_operator._conf
 
         assert "DBND__ENABLE__SPARK_CONTEXT_ENV" in spark_submit_operator._env_vars
+
+    @pytest.fixture
+    def ecs_operator(self, dag):
+        return ECSOperator(
+            task_id="ecs_task",
+            application="script.py",
+            cluster="cluster",
+            task_definition="definition",
+            overrides={
+                "containerOverrides": [{"command": ["some", "command"], "cpu": 50,}]
+            },
+            dag=dag,
+        )
+
+    def test_ecs_operator(self, ecs_operator):
+        wrap_operator_with_tracking_info(
+            {"TRACKING_ENV": "TRACKING_VALUE"}, ecs_operator
+        )
+        for override in ecs_operator.overrides["containerOverrides"]:
+            assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
+                "environment"
+            ]
+
+    @pytest.fixture
+    def ecs_operator_with_env(self, dag):
+        return ECSOperator(
+            task_id="ecs_task",
+            application="script.py",
+            cluster="cluster",
+            task_definition="definition",
+            overrides={
+                "containerOverrides": [
+                    {
+                        "command": ["some", "command"],
+                        "cpu": 50,
+                        "environment": [{"name": "USER_KEY", "value": "USER_VALUE"}],
+                    }
+                ]
+            },
+            dag=dag,
+        )
+
+    def test_ecs_operator_with_env(self, ecs_operator_with_env):
+        wrap_operator_with_tracking_info(
+            {"TRACKING_ENV": "TRACKING_VALUE"}, ecs_operator_with_env
+        )
+        for override in ecs_operator_with_env.overrides["containerOverrides"]:
+            assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
+                "environment"
+            ]
+            assert {"name": "USER_KEY", "value": "USER_VALUE"} in override[
+                "environment"
+            ]
 
     def test_airflow_context_vars_patch(self):
         patch_airflow_context_vars()

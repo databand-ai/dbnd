@@ -26,14 +26,19 @@ logger = logging.getLogger(__name__)
 
 class TaskRunRunner(TaskRunCtrl):
     @contextlib.contextmanager
-    def task_run_execution_context(self, handle_sigterm=True):
+    def task_run_execution_context(self, handle_sigterm=True, capture_log=True):
         ctx_managers = [
             self.task.ctrl.task_context(phase=TaskContextPhase.RUN),
-            self.task_run.log.capture_task_log(),
         ]
+
+        if capture_log:
+            ctx_managers.append(self.task_run.log.capture_task_log())
+
         if handle_sigterm:
             ctx_managers.append(handle_sigterm_at_dbnd_task_run())
+
         ctx_managers.extend(pm.hook.dbnd_task_run_context(task_run=self.task_run))
+
         with nested(*ctx_managers):
             yield
 

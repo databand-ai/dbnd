@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 import six
 
-from dbnd import dbnd_tracking_stop, log_metric, task
+from dbnd import config, dbnd_tracking_stop, log_metric, task
 from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.errors import DatabandRunError
 from dbnd._core.tracking.schemas.tracking_info_objects import (
@@ -93,7 +93,14 @@ def _check_tracking_calls(mock_store, expected_tracking_calls_counter):
     )
 
 
+@pytest.fixture
+def tracking_config():
+    with config({"tracking": {"capture_tracking_log": True}}):
+        yield
+
+
 @pytest.mark.usefixtures(set_airflow_context.__name__)
+@pytest.mark.usefixtures(tracking_config.__name__)
 def test_tracking_pass_through_default_airflow(
     pandas_data_frame_on_disk, mock_channel_tracker
 ):
@@ -145,6 +152,7 @@ def test_tracking_pass_through_default_airflow(
     )
 
 
+@pytest.mark.usefixtures(tracking_config.__name__)
 @pytest.mark.usefixtures(set_tracking_context.__name__)
 def test_tracking_pass_through_default_tracking(
     pandas_data_frame_on_disk, mock_channel_tracker
@@ -182,6 +190,7 @@ def test_tracking_pass_through_default_tracking(
     )
 
 
+@pytest.mark.usefixtures(tracking_config.__name__)
 @pytest.mark.usefixtures(set_airflow_context.__name__)
 def test_tracking_pass_through_nested_default(
     pandas_data_frame_on_disk, mock_channel_tracker
@@ -223,6 +232,7 @@ def test_tracking_pass_through_nested_default(
     )
 
 
+@pytest.mark.usefixtures(tracking_config.__name__)
 @pytest.mark.usefixtures(set_airflow_context.__name__)
 def test_tracking_user_exception(mock_channel_tracker):
     # we'll pass string instead of defined expected DataFrame and it should work

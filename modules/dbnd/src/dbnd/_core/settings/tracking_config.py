@@ -97,6 +97,10 @@ class TrackingConfig(Config):
         description="Control which of the operator's fields would be flatten when tracked",
     )[Dict[str, str]]
 
+    capture_tracking_log = parameter(
+        default=False, description="Enable log capturing for tracking tasks"
+    )[bool]
+
     def get_value_meta_conf(self, meta_conf, value_type, target=None):
         # type: (ValueMetaConf, ValueType, Optional[Target]) -> ValueMetaConf
         meta_conf_by_type = calc_meta_conf_for_value_type(
