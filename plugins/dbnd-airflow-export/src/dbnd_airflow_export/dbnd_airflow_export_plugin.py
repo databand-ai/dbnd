@@ -10,6 +10,7 @@ from dbnd_airflow_export.request_processing import (
     process_dag_run_states_data_request,
     process_full_runs_request,
     process_last_seen_values_request,
+    process_metadata_request,
     process_new_runs_request,
 )
 
@@ -45,6 +46,11 @@ class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
     def task_instances(self):
         return process_dag_run_states_data_request()
 
+    @flask_appbuilder.has_access
+    @flask_appbuilder.expose("/metadata")
+    def metadata(self):
+        return process_metadata_request()
+
 
 class ExportDataViewAdmin(flask_admin.BaseView):
     def __init__(self, *args, **kwargs):
@@ -59,25 +65,25 @@ class ExportDataViewAdmin(flask_admin.BaseView):
 
         return export_data_api(dagbag)
 
-    @flask_admin.expose("/")
     @flask_admin.expose("/last_seen_values")
     def last_seen_values(self):
         return process_last_seen_values_request()
 
-    @flask_admin.expose("/")
     @flask_admin.expose("/new_runs")
     def new_runs(self):
         return process_new_runs_request()
 
-    @flask_admin.expose("/")
     @flask_admin.expose("/full_runs")
     def full_runs(self):
         return process_full_runs_request()
 
-    @flask_admin.expose("/")
     @flask_admin.expose("/runs_states_data")
     def task_instances(self):
         return process_dag_run_states_data_request()
+
+    @flask_admin.expose("/metadata")
+    def metadata(self):
+        return process_metadata_request()
 
 
 class DataExportAirflowPlugin(AirflowPlugin):
@@ -125,6 +131,11 @@ try:
     @requires_authentication
     def task_instances(self):
         return process_dag_run_states_data_request()
+
+    @api_experimental.route("/metadata", methods=["GET"])
+    @requires_authentication
+    def metadata(self):
+        return process_metadata_request()
 
 
 except Exception as e:

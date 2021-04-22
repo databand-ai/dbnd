@@ -21,7 +21,7 @@ FETCHERS = {
 }
 
 
-def get_data_fetcher(server_config: AirflowServerConfig):
+def get_data_fetcher(server_config: AirflowServerConfig) -> AirflowDataFetcher:
     fetcher = FETCHERS[server_config.fetcher]
     if fetcher:
         return decorate_fetcher(fetcher(server_config), server_config.base_url)

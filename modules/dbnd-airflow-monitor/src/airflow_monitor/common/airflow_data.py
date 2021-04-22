@@ -23,6 +23,24 @@ class LastSeenValues:
 
 
 @attr.s
+class PluginMetadata:
+    airflow_version = attr.ib(default=None)
+    plugin_version = attr.ib(default=None)
+
+    def as_dict(self):
+        return dict(
+            airflow_version=self.airflow_version, plugin_version=self.plugin_version,
+        )
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            airflow_version=data.get("airflow_version"),
+            plugin_version=data.get("plugin_version"),
+        )
+
+
+@attr.s
 class MonitorState:
     airflow_version = attr.ib(default=None)
     airflow_export_version = attr.ib(default=None)

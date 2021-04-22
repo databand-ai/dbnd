@@ -5,11 +5,11 @@ import logging
 from typing import List, Optional
 
 from airflow_monitor.common.airflow_data import (
-    AirflowDagRun,
     AirflowDagRunsResponse,
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
+    PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
@@ -128,3 +128,12 @@ class DbFetcher(AirflowDataFetcher):
 
     def is_alive(self):
         return True
+
+    def get_plugin_metadata(self) -> PluginMetadata:
+        from airflow import version as airflow_version
+        import dbnd_airflow_export
+
+        return PluginMetadata(
+            airflow_version=airflow_version,
+            plugin_version=dbnd_airflow_export.__version__,
+        )

@@ -77,6 +77,7 @@ class MockTrackingService(DbndAirflowTrackingService):
     @can_be_dead
     @ticking
     def update_last_seen_values(self, last_seen_values: LastSeenValues):
+        last_seen_values = LastSeenValues.from_dict(last_seen_values.as_dict())
         if self.last_seen_log_id is None:
             self.last_seen_log_id = last_seen_values.last_seen_log_id
         if self.last_seen_dag_run_id is None:
@@ -134,6 +135,7 @@ class MockTrackingService(DbndAirflowTrackingService):
         last_seen_dag_run_id: int,
         syncer_type: str,
     ):
+        dag_runs_full_data = DagRunsFullData.from_dict(dag_runs_full_data.as_dict())
         for dag_run in dag_runs_full_data.dag_runs:
             dag_run = copy(dag_run)  # type: MockDagRun
             dag_run.test_created_at = ticker.now
@@ -155,6 +157,7 @@ class MockTrackingService(DbndAirflowTrackingService):
         last_seen_log_id: int,
         syncer_type: str,
     ):
+        dag_runs_state_data = DagRunsStateData.from_dict(dag_runs_state_data.as_dict())
         for ti in dag_runs_state_data.task_instances:
             self.dag_runs[self._get_dagrun_index(ti)].test_updated_at = ticker.now
         for dr in dag_runs_state_data.dag_runs:  # type: MockDagRun
@@ -173,4 +176,5 @@ class MockTrackingService(DbndAirflowTrackingService):
     @can_be_dead
     @ticking
     def update_monitor_state(self, monitor_state: MonitorState):
+        monitor_state.as_dict()
         self.monitor_state_updates.append(monitor_state)

@@ -6,6 +6,8 @@ from airflow.models import DagModel
 from airflow.utils.db import provide_session
 from airflow.version import version as airflow_version
 
+import dbnd_airflow_export
+
 from dbnd_airflow_export.dag_processing import (
     get_current_dag_model,
     get_dags,
@@ -56,7 +58,7 @@ def get_meta(metrics):
 
     meta = AirflowExportMeta(
         airflow_version=airflow_version,
-        plugin_version="2.0",
+        plugin_version=" ".join([dbnd_airflow_export.__version__, "v2"]),
         request_args=dict(flask.request.args) if flask.has_request_context() else {},
         metrics={
             "performance": metrics.get("perf_metrics", {}),

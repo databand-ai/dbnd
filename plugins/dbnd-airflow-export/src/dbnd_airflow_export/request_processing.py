@@ -4,6 +4,7 @@ from dbnd_airflow_export.api_functions import (
     get_dag_runs_states_data,
     get_full_dag_runs,
     get_last_seen_values,
+    get_meta,
     get_new_dag_runs,
 )
 from dbnd_airflow_export.utils import json_response
@@ -20,6 +21,10 @@ def convert_url_param_value_to_list(
         return default_value
 
     return list(map(value_type, param_value.split(separator)))
+
+
+def process_metadata_request():
+    return json_response(get_meta({}).as_dict())
 
 
 def process_last_seen_values_request():

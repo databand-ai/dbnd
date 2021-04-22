@@ -5,6 +5,7 @@ from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
+    PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 
@@ -36,3 +37,6 @@ class AirflowDataFetcher(object):
 
     def is_alive(self):
         raise NotImplementedError()
+
+    def get_plugin_metadata(self) -> PluginMetadata:
+        return PluginMetadata()

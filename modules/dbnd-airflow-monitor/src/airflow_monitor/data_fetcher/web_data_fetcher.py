@@ -10,6 +10,7 @@ from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
+    PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
@@ -140,9 +141,7 @@ class WebFetcher(AirflowDataFetcher):
             raise AirflowFetchingException(json_data["error"])
 
         log_received_tasks(self.base_url, json_data)
-        send_metrics(
-            self.base_url, json_data.get("airflow_export_meta"),
-        )
+        send_metrics(self.base_url, json_data.get("airflow_export_meta"))
         return json_data
 
     def get_source(self):
@@ -192,5 +191,8 @@ class WebFetcher(AirflowDataFetcher):
 
     def is_alive(self):
         resp = self.client.get(self.base_url + "/health")
-        # TODO: should we actually check the response status?
         return resp.ok
+
+    def get_plugin_metadata(self) -> PluginMetadata:
+        json_data = self._make_request("metadata", {})
+        return PluginMetadata.from_dict(json_data)

@@ -5,6 +5,8 @@ from time import sleep
 from typing import Any, Callable, Dict, List, Type, Union
 from uuid import UUID
 
+import airflow_monitor
+
 from airflow_monitor.common import MonitorState, capture_monitor_exception
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.config import AirflowMonitorConfig
@@ -74,23 +76,28 @@ class AirflowMonitor(object):
     def _update_component_state(self):
         self._clean_dead_components()
 
-        airflow_alive = self.is_airflow_server_alive()
-        if not airflow_alive:
-            logger.warning(
-                "Airflow Server is not responsive, will skip starting new syncers"
-            )
-
+        airflow_alive = None
         for name, runnable in KNOWN_COMPONENTS.items():
-            if airflow_alive and self.is_enabled(name) and not self.is_active(name):
-                self.active_components[name] = self.runner_factory(
-                    target=runnable,
-                    tracking_service=self.tracking_service,
-                    tracking_source_uid=self.server_config.tracking_source_uid,
-                )
-                self.active_components[name].start()
+            if self.is_enabled(name) and not self.is_active(name):
+                if airflow_alive is None:
+                    # check it only once per iteration and only if need to start anything
+                    airflow_alive = self.is_airflow_server_alive()
+                    if not airflow_alive:
+                        logger.warning(
+                            "Airflow Server is not responsive, will skip starting new syncers"
+                        )
+                if airflow_alive:
+                    self.active_components[name] = self.runner_factory(
+                        target=runnable,
+                        tracking_service=self.tracking_service,
+                        tracking_source_uid=self.server_config.tracking_source_uid,
+                    )
+                    self.active_components[name].start()
             elif not self.is_enabled(name) and self.is_active(name):
                 component = self.active_components.pop(name)
                 component.stop()
+
+        return airflow_alive
 
     def _clean_dead_components(self):
         for name, component in list(self.active_components.items()):
@@ -105,10 +112,25 @@ class AirflowMonitor(object):
 
     @capture_monitor_exception("starting monitor")
     def start(self):
-        self._update_component_state()
+        alive = self._update_component_state()
+
+        if alive:
+            plugin_metadata = get_data_fetcher(self.server_config).get_plugin_metadata()
+        else:
+            plugin_metadata = None
 
         self.tracking_service.update_monitor_state(
-            MonitorState(monitor_start_time=utcnow(), monitor_status="Running"),
+            MonitorState(
+                monitor_start_time=utcnow(),
+                monitor_status="Running",
+                airflow_monitor_version=airflow_monitor.__version__,
+                airflow_version=plugin_metadata.airflow_version
+                if plugin_metadata
+                else None,
+                airflow_export_version=plugin_metadata.plugin_version
+                if plugin_metadata
+                else None,
+            ),
         )
 
     @capture_monitor_exception("updating monitor config")
