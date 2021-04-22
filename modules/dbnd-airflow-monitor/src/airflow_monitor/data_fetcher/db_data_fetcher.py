@@ -99,6 +99,7 @@ class DbFetcher(AirflowDataFetcher):
                 last_seen_log_id=last_seen_log_id,
                 extra_dag_run_ids=extra_dag_run_ids,
                 dag_ids=dag_ids_list,
+                include_subdags=False,
                 session=session,
             )
         return AirflowDagRunsResponse.from_dict(json_conv(data))

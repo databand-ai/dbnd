@@ -12,7 +12,12 @@ from dbnd_airflow_export.plugin_old.model import EDagRun
 @save_result_size("find_new_dag_runs")
 @measure_time
 def find_new_dag_runs(
-    last_seen_dagrun_id, extra_dag_runs_ids, extra_dag_runs_tuple, dag_ids, session
+    last_seen_dagrun_id,
+    extra_dag_runs_ids,
+    extra_dag_runs_tuple,
+    dag_ids,
+    include_subdags,
+    session,
 ):
     new_runs_query = session.query(
         DagRun.id,
@@ -24,6 +29,9 @@ def find_new_dag_runs(
 
     if dag_ids:
         new_runs_query = new_runs_query.filter(DagRun.dag_id.in_(dag_ids))
+
+    if not include_subdags:
+        new_runs_query = new_runs_query.filter(DagModel.is_subdag.is_(False))
 
     new_runs_filter_condition = or_(
         DagRun.id.in_(extra_dag_runs_ids),

@@ -36,17 +36,23 @@ def process_new_runs_request():
     last_seen_log_id = flask.request.args.get("last_seen_log_id", type=int)
     extra_dag_runs_ids = convert_url_param_value_to_list("extra_dag_runs_ids", int, [])
     dag_ids = convert_url_param_value_to_list("dag_ids", str, None)
+    # default to true
+    include_subdags = flask.request.args.get("include_subdags", "").lower() != "false"
 
     return json_response(
         get_new_dag_runs(
-            last_seen_dag_run_id, last_seen_log_id, extra_dag_runs_ids, dag_ids
+            last_seen_dag_run_id,
+            last_seen_log_id,
+            extra_dag_runs_ids,
+            dag_ids,
+            include_subdags,
         ).as_dict()
     )
 
 
 def process_full_runs_request():
     dag_run_ids = convert_url_param_value_to_list("dag_run_ids", int, [])
-    include_sources = flask.request.args.get("include_sources", type=str) == "True"
+    include_sources = flask.request.args.get("include_sources", "").lower() == "true"
 
     return json_response(get_full_dag_runs(dag_run_ids, include_sources).as_dict())
 
