@@ -31,6 +31,12 @@ def multi_server(
     ), patch(
         "airflow_monitor.multiserver.multiserver.get_tracking_service",
         return_value=mock_tracking_service,
+    ), patch(
+        "airflow_monitor.common.base_component.get_data_fetcher",
+        return_value=mock_data_fetcher,
+    ), patch(
+        "airflow_monitor.common.base_component.get_tracking_service",
+        return_value=mock_tracking_service,
     ):
         yield MultiServerMonitor(mock_server_config_service, airflow_monitor_config)
 
@@ -247,3 +253,48 @@ class TestMultiServer(object):
 
         # we should have only one exception (from failed syncer)
         assert count_logged_exceptions(caplog) < 2
+
+    def test_07_test_error_cleanup(
+        self,
+        multi_server,
+        mock_server_config_service,
+        mock_data_fetcher,
+        mock_tracking_service,
+        caplog,
+    ):
+        mock_server_config_service.mock_servers = [
+            AirflowServerConfig(
+                uuid.uuid4(), state_sync_enabled=True, is_sync_enabled_v2=True
+            )
+        ]
+
+        multi_server.run_once()
+        # should start mock_server, should do 1 iteration
+        assert len(multi_server.active_monitors) == 1
+        assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
+        assert not mock_tracking_service.current_monitor_state.monitor_error_message
+
+        mock_data_fetcher.alive = False
+        multi_server.run_once()
+        # still alive
+        assert len(multi_server.active_monitors) == 1
+        assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
+        assert mock_tracking_service.current_monitor_state.monitor_error_message
+
+        first_error_lines = mock_tracking_service.current_monitor_state.monitor_error_message.split(
+            "\n"
+        )
+
+        multi_server.run_once()
+        assert mock_tracking_service.current_monitor_state.monitor_error_message
+        new_error_lines = mock_tracking_service.current_monitor_state.monitor_error_message.split(
+            "\n"
+        )
+        # should be same message except for last (Timestamp) line
+        assert first_error_lines[:-1] == new_error_lines[:-1]
+
+        mock_data_fetcher.alive = True
+        multi_server.run_once()
+        assert len(multi_server.active_monitors) == 1
+        assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
+        assert not mock_tracking_service.current_monitor_state.monitor_error_message

@@ -20,7 +20,7 @@ class UpdateMonitorStateRequestSchema(ApiObjectSchema):
     dags_path = fields.String(required=False)
     logs_path = fields.String(required=False)
     monitor_status = fields.String(required=False)
-    monitor_error_message = fields.String(required=False)
+    monitor_error_message = fields.String(required=False, allow_none=True)
     monitor_start_time = fields.DateTime(required=False)
 
 

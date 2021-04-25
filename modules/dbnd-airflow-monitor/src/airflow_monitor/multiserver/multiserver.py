@@ -112,6 +112,14 @@ class AirflowMonitor(object):
 
     @capture_monitor_exception("starting monitor")
     def start(self):
+        self.tracking_service.update_monitor_state(
+            MonitorState(
+                monitor_start_time=utcnow(),
+                monitor_status="Scheduled",
+                airflow_monitor_version=airflow_monitor.__version__,
+                monitor_error_message=None,
+            ),
+        )
         alive = self._update_component_state()
 
         if alive:
