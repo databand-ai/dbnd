@@ -48,15 +48,15 @@ def incomplete_data_db():
 
 
 @pytest.fixture
-def mock_server_config_service():
+def mock_server_config_service() -> MockServersConfigService:
     yield decorate_configuration_service(MockServersConfigService())
 
 
 @pytest.fixture
-def mock_tracking_service():
+def mock_tracking_service() -> MockTrackingService:
     yield decorate_tracking_service(MockTrackingService(), "mock_ts")
 
 
 @pytest.fixture
-def mock_data_fetcher():
+def mock_data_fetcher() -> MockDataFetcher:
     yield decorate_fetcher(MockDataFetcher(), "mock_fetcher")

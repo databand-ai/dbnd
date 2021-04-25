@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import List, Optional
 
 import attr
+
+from dbnd._core.utils.basics.nothing import NOTHING
 
 
 @attr.s
@@ -42,16 +45,20 @@ class PluginMetadata:
 
 @attr.s
 class MonitorState:
-    airflow_version = attr.ib(default=None)
-    airflow_export_version = attr.ib(default=None)
-    airflow_monitor_version = attr.ib(default=None)
-    dags_path = attr.ib(default=None)
-    logs_path = attr.ib(default=None)
-    monitor_status = attr.ib(default=None)
-    monitor_error_message = attr.ib(default=None)
-    monitor_start_time = attr.ib(default=None)  # type: datetime
+    airflow_version = attr.ib(default=NOTHING)
+    airflow_export_version = attr.ib(default=NOTHING)
+    airflow_monitor_version = attr.ib(default=NOTHING)
+    dags_path = attr.ib(default=NOTHING)
+    logs_path = attr.ib(default=NOTHING)
+    monitor_status = attr.ib(default=NOTHING)
+    monitor_error_message = attr.ib(default=NOTHING)
+    monitor_start_time = attr.ib(default=NOTHING)  # type: datetime
 
     def as_dict(self):
+        # don't serialize data which didn't changed: as_dict should be able to return
+        # None value when it set, specifically for monitor_error_message - when not set
+        # at all (=NOTHING, not changing) - no need to pass serialize it, vs set to None
+        # (means is changed and is None=empty) - serialize as None
         d = dict(
             airflow_version=self.airflow_version,
             airflow_export_version=self.airflow_export_version,
@@ -61,11 +68,11 @@ class MonitorState:
             monitor_status=self.monitor_status,
             monitor_error_message=self.monitor_error_message,
             monitor_start_time=self.monitor_start_time.isoformat()
-            if self.monitor_start_time
-            else None,
+            if self.monitor_start_time not in (NOTHING, None)
+            else self.monitor_start_time,
         )
         # allow partial dump
-        return {k: v for k, v in d.items() if v is not None}
+        return {k: v for k, v in d.items() if v is not NOTHING}
 
 
 @attr.s

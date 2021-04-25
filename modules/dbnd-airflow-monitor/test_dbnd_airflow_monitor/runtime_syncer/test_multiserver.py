@@ -125,7 +125,12 @@ class TestMultiServer(object):
         assert not count_logged_exceptions(caplog)
 
     def test_05_failing_syncer(
-        self, multi_server, mock_server_config_service, mock_syncer_factory, caplog
+        self,
+        multi_server,
+        mock_server_config_service,
+        mock_syncer_factory,
+        mock_tracking_service,
+        caplog,
     ):
         mock_syncer1 = mock_syncer_factory()
         mock_syncer2 = mock_syncer_factory()
@@ -142,6 +147,9 @@ class TestMultiServer(object):
             # should start mock_server, should do 1 iteration
             assert len(multi_server.active_monitors) == 1
             assert mock_syncer1.sync_count == 1
+            assert (
+                mock_tracking_service.current_monitor_state.monitor_status == "Running"
+            )
 
         with patch.dict(
             KNOWN_COMPONENTS, {"state_sync": mock_syncer2.emulate_start_syncer}
@@ -152,6 +160,7 @@ class TestMultiServer(object):
             assert mock_syncer1.sync_count == 2
             assert mock_syncer2.sync_count == 0
             assert not count_logged_exceptions(caplog)
+            assert not mock_tracking_service.current_monitor_state.monitor_error_message
 
             mock_syncer1.should_fail = True
             multi_server.run_once()
@@ -161,12 +170,19 @@ class TestMultiServer(object):
             assert mock_syncer2.sync_count == 0
             # we should expect here log message that syncer failed
             assert count_logged_exceptions(caplog)
+            # we should expect error reported to webserver
+            assert (
+                "Traceback"
+                in mock_tracking_service.current_monitor_state.monitor_error_message
+            )
 
             multi_server.run_once()
             # should restart the server
             assert len(multi_server.active_monitors) == 1
             assert mock_syncer1.sync_count == 2
             assert mock_syncer2.sync_count == 1
+            # should clean the error
+            assert not mock_tracking_service.current_monitor_state.monitor_error_message
 
         assert count_logged_exceptions(caplog) < 2
 

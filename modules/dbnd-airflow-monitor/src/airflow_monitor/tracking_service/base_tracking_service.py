@@ -9,11 +9,13 @@ from airflow_monitor.common.airflow_data import (
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
 from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.tracking_service.error_aggregator import ErrorAggregator
 
 
 class DbndAirflowTrackingService(object):
     def __init__(self, tracking_source_uid):
         self.tracking_source_uid = tracking_source_uid
+        self.error_aggregator = ErrorAggregator()
 
     def update_last_seen_values(self, last_seen_values: LastSeenValues):
         raise NotImplementedError()
@@ -49,6 +51,11 @@ class DbndAirflowTrackingService(object):
 
     def update_monitor_state(self, monitor_state: MonitorState):
         raise NotImplementedError()
+
+    def report_error(self, reporting_obj_ref, err_message):
+        res = self.error_aggregator.report(reporting_obj_ref, err_message)
+        if res.should_update:
+            self.update_monitor_state(MonitorState(monitor_error_message=res.message))
 
 
 class ServersConfigurationService(object):

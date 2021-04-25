@@ -127,8 +127,7 @@ def get_new_dag_runs(
             execution_date=dag_run.execution_date,
             state=dag_run.state,
             is_paused=dag_run.is_paused,
-            has_updated_task_instances=(dag_run.dag_id, dag_run.execution_date)
-            in logs_dict,
+            has_updated_task_instances=log is not None,
             events=events,
             max_log_id=log.id if log else None,
         )

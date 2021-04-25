@@ -1,12 +1,9 @@
 import random
-import string
 
 from airflow_monitor.common.airflow_data import AirflowDagRun
 from airflow_monitor.syncer.runtime_syncer import categorize_dag_runs
 
-
-def random_text(n=10):
-    return "".join(random.choice(string.ascii_letters) for _ in range(n))
+from . import random_text
 
 
 def gen_dag_run(id_, **kwargs):
