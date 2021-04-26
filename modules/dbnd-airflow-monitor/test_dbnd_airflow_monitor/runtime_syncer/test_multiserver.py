@@ -7,7 +7,8 @@ from mock import patch
 from airflow_monitor.common.base_component import BaseMonitorComponent
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.multiserver.multiserver import KNOWN_COMPONENTS, MultiServerMonitor
+from airflow_monitor.multiserver.monitor_component_manager import KNOWN_COMPONENTS
+from airflow_monitor.multiserver.multiserver import MultiServerMonitor
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 
 
@@ -26,7 +27,7 @@ def multi_server(
     airflow_monitor_config,
 ):
     with patch(
-        "airflow_monitor.multiserver.multiserver.get_data_fetcher",
+        "airflow_monitor.multiserver.monitor_component_manager.get_data_fetcher",
         return_value=mock_data_fetcher,
     ), patch(
         "airflow_monitor.multiserver.multiserver.get_tracking_service",
