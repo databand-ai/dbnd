@@ -41,7 +41,7 @@ def safe_rich_result(f):
         with METRIC_COLLECTOR.use_local() as metrics:
             result = AirflowExportData()
             try:
-                result = f(*args, *kwargs)
+                result = f(*args, **kwargs)
             except Exception as e:
                 result = AirflowExportData()
                 logger.exception("Exception during %s", f.__name__, exc_info=True)

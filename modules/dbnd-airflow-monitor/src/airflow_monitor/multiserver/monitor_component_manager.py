@@ -133,4 +133,4 @@ class MonitorComponentManager(object):
         self._clean_dead_components()
 
     def __str__(self):
-        return f"AirflowMonitor({self.server_config.name}|{self.server_config.tracking_source_uid})"
+        return f"{self.__class__.__name__}({self.server_config.name}|{self.server_config.tracking_source_uid})"

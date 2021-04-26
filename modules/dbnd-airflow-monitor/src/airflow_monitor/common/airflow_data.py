@@ -106,7 +106,7 @@ class AirflowDagRunsResponse:
                     has_updated_task_instances=dr.get("has_updated_task_instances"),
                     max_log_id=dr.get("max_log_id"),
                 )
-                for dr in data.get("new_dag_runs")
+                for dr in data.get("new_dag_runs") or []
             ],
             last_seen_dag_run_id=data.get("last_seen_dag_run_id"),
             last_seen_log_id=data.get("last_seen_log_id"),

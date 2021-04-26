@@ -19,7 +19,7 @@ from dbnd._vendor import click
     help="Runner type. Options: seq for sequential, mp for multi-process",
 )
 @click.option("--syncer-name", type=click.STRING, help="Sync only specified instance")
-def multi_server_syncer(*args, **kwargs):
+def airflow_monitor_v2(*args, **kwargs):
     # remove all None values to not override defaults/env configured params
     actual_kwargs = {k: v for k, v in kwargs.items() if v is not None}
     monitor_config = AirflowMonitorConfig(**actual_kwargs)
@@ -27,4 +27,4 @@ def multi_server_syncer(*args, **kwargs):
 
 
 if __name__ == "__main__":
-    multi_server_syncer()
+    airflow_monitor_v2()
