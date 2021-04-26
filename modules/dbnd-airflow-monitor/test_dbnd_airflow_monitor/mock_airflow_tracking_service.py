@@ -69,7 +69,9 @@ class MockTrackingService(DbndAirflowTrackingService):
         super(MockTrackingService, self).__init__(tracking_source_uid)
         self.dag_runs = []  # type: List[MockDagRun]
 
-        self.config = AirflowServerConfig(tracking_source_uid=tracking_source_uid)
+        self.config = AirflowServerConfig(
+            tracking_source_uid=tracking_source_uid, interval=0, fix_interval=0
+        )
         self.last_seen_dag_run_id = None
         self.last_seen_log_id = None
         self.alive = True
