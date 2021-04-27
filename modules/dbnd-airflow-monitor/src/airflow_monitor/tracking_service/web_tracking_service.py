@@ -175,3 +175,10 @@ class WebServersConfigurationService(ServersConfigurationService):
         )
         result_json = response["data"]
         return result_json
+
+    def send_prometheus_metrics(self, job_name: str, full_metrics: str):
+        self._api_client.api_request(
+            endpoint="tracking/save_monitor_metrics",
+            method="POST",
+            data={"job_name": job_name, "metrics": full_metrics},
+        )

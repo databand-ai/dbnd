@@ -5,7 +5,9 @@ from time import sleep
 from typing import Dict, List, Type, Union
 from uuid import UUID
 
+from airflow_monitor.common import capture_monitor_exception
 from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.metric_reporter import generate_latest_metrics
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.monitor_component_manager import (
     MonitorComponentManager,
@@ -74,6 +76,7 @@ class MultiServerMonitor(object):
             try:
                 logger.info(f"Starting {self.iteration} iteration")
                 self.run_once()
+                self._send_metrics()
                 logger.info(f"Iteration {self.iteration} done")
             except Exception:
                 logger.exception("Unknown exception during iteration", exc_info=True)
@@ -83,6 +86,13 @@ class MultiServerMonitor(object):
                 break
 
             sleep(self.monitor_config.interval)
+
+    @capture_monitor_exception
+    def _send_metrics(self):
+        metrics = generate_latest_metrics().decode("utf-8")
+        self.servers_configuration_service.send_prometheus_metrics(
+            self.monitor_config.syncer_name or "airflow-monitor", metrics
+        )
 
     def _should_stop(self):
         if (

@@ -1,33 +1,68 @@
 from functools import wraps
 
-from prometheus_client import Summary
+from prometheus_client import CollectorRegistry, Summary, generate_latest
+
+
+registry = CollectorRegistry()
 
 
 class MetricReporter:
     def __init__(self):
-        self.performance = Summary(
-            "dbnd_af_plugin_query_duration_seconds",
-            "Airflow Export Plugin Query Run Time",
-            ["airflow_instance", "method_name"],
-        )
-        self.sizes = Summary(
-            "dbnd_af_plugin_query_result_size",
-            "Airflow Export Plugin Query Result Size",
-            ["airflow_instance", "method_name"],
-        )
-        self.dbnd_api_response_time = Summary(
-            "af_monitor_dbnd_api_response_time",
-            "Databand API response time",
-            ["airflow_instance", "method_name"],
-        )
-        self.exporter_response_time = Summary(
-            "af_monitor_export_response_time",
-            "Airflow export plugin response time",
-            ["airflow_instance", "method_name"],
-        )
+        self._performance = None
+        self._sizes = None
+        self._dbnd_api_response_time = None
+        self._exporter_response_time = None
+
+    @property
+    def performance(self):
+        if self._performance is None:
+            self._performance = Summary(
+                "dbnd_af_plugin_query_duration_seconds",
+                "Airflow Export Plugin Query Run Time",
+                ["airflow_instance", "method_name"],
+                registry=registry,
+            )
+        return self._performance
+
+    @property
+    def sizes(self):
+        if self._sizes is None:
+            self._sizes = Summary(
+                "dbnd_af_plugin_query_result_size",
+                "Airflow Export Plugin Query Result Size",
+                ["airflow_instance", "method_name"],
+                registry=registry,
+            )
+        return self._sizes
+
+    @property
+    def dbnd_api_response_time(self):
+        if self._dbnd_api_response_time is None:
+            self._dbnd_api_response_time = Summary(
+                "af_monitor_dbnd_api_response_time",
+                "Databand API response time",
+                ["airflow_instance", "method_name"],
+                registry=registry,
+            )
+        return self._dbnd_api_response_time
+
+    @property
+    def exporter_response_time(self):
+        if self._exporter_response_time is None:
+            self._exporter_response_time = Summary(
+                "af_monitor_export_response_time",
+                "Airflow export plugin response time",
+                ["airflow_instance", "method_name"],
+                registry=registry,
+            )
+        return self._exporter_response_time
 
 
 METRIC_REPORTER = MetricReporter()
+
+
+def generate_latest_metrics():
+    return generate_latest(registry)
 
 
 def decorate_measure_time(inst, interface_cls: type, metric: Summary, label: str):

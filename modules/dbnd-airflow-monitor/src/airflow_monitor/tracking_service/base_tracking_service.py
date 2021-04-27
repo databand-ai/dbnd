@@ -63,3 +63,6 @@ class ServersConfigurationService(object):
         self, airflow_config: AirflowMonitorConfig
     ) -> List[AirflowServerConfig]:
         raise NotImplementedError()
+
+    def send_prometheus_metrics(self, job_name: str, full_metrics: str):
+        raise NotImplementedError()
