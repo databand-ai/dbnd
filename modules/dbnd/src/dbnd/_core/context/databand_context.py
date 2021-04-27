@@ -202,9 +202,7 @@ class DatabandContext(SingletonContext):
         :return DatabandRun
         """
         job_name = get_task_name_safe(task_or_task_name)
-        project_name = get_project_name_safe(
-            project or self.settings.tracking.project, task_or_task_name
-        )
+        project_name = self._get_project_name(project, task_or_task_name)
 
         with new_databand_run(
             context=self,
@@ -222,6 +220,15 @@ class DatabandContext(SingletonContext):
             )
             run.run_executor.run_execute()
             return run
+
+    def _get_project_name(self, project, task_or_task_name):
+        # type: (Optional[str], Union[Task, str]) -> str
+        return get_project_name_safe(
+            project
+            or self.config.get("tracking", "project")
+            or self.settings.tracking.project,
+            task_or_task_name,
+        )
 
     def __deepcopy__(self, memo):
         # create a copy with self.linked_to *not copied*, just referenced.
