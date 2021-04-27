@@ -33,10 +33,10 @@ RUN pip install -r /dist/dbnd.requirements.txt && \
     pip install -r /dist/dbnd-spark.requirements.txt && \
     pip install -r /dist/dbnd-test-scenarios.requirements.txt && \
     pip install -r /dist/dbnd-airflow.requirements.txt && \
-    pip install -r /dist/dbnd-airflow[airflow_1_10_7].requirements.txt && \
+    pip install -r /dist/dbnd-airflow[airflow].requirements.txt && \
     pip install -r /dist/dbnd-airflow[tests].requirements.txt && \
     pip install -r /dist/examples.requirements.txt
-RUN pip install dbnd_airflow[airflow_1_10_7] dbnd_examples databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
+RUN pip install dbnd_airflow[airflow] dbnd_examples databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
 
 ENV DBND_EXAMPLES_PATH=/app/examples
 WORKDIR /app/

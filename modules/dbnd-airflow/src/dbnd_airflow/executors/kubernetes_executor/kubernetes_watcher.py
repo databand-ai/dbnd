@@ -11,6 +11,8 @@ import signal
 import time
 import typing
 
+import attr
+
 from airflow.contrib.executors.kubernetes_executor import KubernetesJobWatcher
 from airflow.utils.state import State
 
@@ -18,7 +20,7 @@ from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
-from dbnd_airflow.compat.kubernetes_executor import get_tuple_for_watcher_queue
+from dbnd_airflow.constants import AIRFLOW_ABOVE_9
 
 
 if typing.TYPE_CHECKING:
@@ -38,10 +40,45 @@ def watcher_sig_handler(signal, frame):
     sys.exit(0)
 
 
-class DbndKubernetesJobWatcher(KubernetesJobWatcher):
+@attr.s
+class WatcherPodEvent:
+    """
+    holds the information to create an event suite for the watcher queue
     """
 
-    """
+    pod_id = attr.ib(default=None)
+    namespace = attr.ib(default=None)
+    state = attr.ib(default=None)
+    labels = attr.ib(default=None)
+    resource_version = attr.ib(default=None)
+
+    @classmethod
+    def from_watcher_task(cls, task):
+        if AIRFLOW_ABOVE_9:
+            return WatcherPodEvent(*task)
+
+        pod_id, state, labels, resource_version = task
+        return WatcherPodEvent(
+            pod_id=pod_id,
+            state=state,
+            labels=labels,
+            resource_version=resource_version,
+        )
+
+    def as_tuple_with_state(self, state):
+        if AIRFLOW_ABOVE_9:
+            return (
+                self.pod_id,
+                self.namespace,
+                state,
+                self.labels,
+                self.resource_version,
+            )
+        return self.pod_id, state, self.labels, self.resource_version
+
+
+class DbndKubernetesJobWatcher(KubernetesJobWatcher):
+    """"""
 
     def __init__(self, kube_dbnd, **kwargs):
         super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
@@ -165,9 +202,9 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         except ValueError:
             pass
 
-        _fail_event = get_tuple_for_watcher_queue(
-            pod_id, self.namespace, State.FAILED, labels, resource_version
-        )
+        pod_event = WatcherPodEvent(pod_id, self.namespace, labels, resource_version)
+        _fail_event = pod_event.as_tuple_with_state(State.FAILED)
+
         debug_phase = (
             self.kube_dbnd.engine_config.debug_phase
         )  # print only if user defined debug phase
@@ -189,6 +226,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 pod_data.metadata.deletion_timestamp,
             )
             self.watcher_queue.put(_fail_event)
+
         elif pod_data.metadata.deletion_timestamp:
             self.log.info(
                 "%s: pod is being deleted: phase=%s deletion_timestamp=%s ",
@@ -197,6 +235,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 pod_data.metadata.deletion_timestamp,
             )
             self.watcher_queue.put(_fail_event)
+
         elif phase == "Pending":
             pod_ctrl = self.kube_dbnd.get_pod_ctrl(
                 pod_id, namespace=pod_data.metadata.namespace
@@ -219,26 +258,22 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 # now we only fail, we will use the same code to try to rerun at scheduler code
                 pod_ctrl.check_running_errors(pod_data)
                 self.log.info("%s: pod is Running", event_msg)
-                self.watcher_queue.put(
-                    get_tuple_for_watcher_queue(
-                        pod_id, self.namespace, State.RUNNING, labels, resource_version
-                    )
-                )
+                self.watcher_queue.put(pod_event.as_tuple_with_state(State.RUNNING))
+
             except Exception as ex:
                 self.log.error(
                     "Event: %s Pending: failing with %s", pod_id, str(ex),
                 )
-                self.watcher_queue.put(_fail_event)
+                self.watcher_queue.put(pod_event.as_tuple_with_state(State.FAILED))
+
         elif phase == "Failed":
             self.log.info("%s: pod has Failed", event_msg)
             self.watcher_queue.put(_fail_event)
+
         elif phase == "Succeeded":
             self.log.info("%s: pod has Succeeded", event_msg)
-            self.watcher_queue.put(
-                get_tuple_for_watcher_queue(
-                    pod_id, self.namespace, None, labels, resource_version
-                )
-            )
+            self.watcher_queue.put(pod_event.as_tuple_with_state(None))
+
         else:
             self.log.warning(
                 "Event: Invalid state: %s on pod: %s with labels: %s with "

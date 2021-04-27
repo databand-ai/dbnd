@@ -29,8 +29,10 @@ from kubernetes.client.rest import ApiException
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd_airflow.compat.kubernetes_executor import KubernetesExecutor
+from dbnd_airflow.constants import AIRFLOW_ABOVE_9
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_scheduler import (
     DbndKubernetesScheduler,
+    PodResult,
 )
 from dbnd_airflow.executors.kubernetes_executor.utils import (
     _update_airflow_kube_config,
@@ -134,18 +136,20 @@ class DbndKubernetesExecutor(KubernetesExecutor):
             try:
                 results = self.result_queue.get_nowait()
                 try:
-                    key, state, pod_id, resource_version = results
-                    last_resource_version = resource_version
-                    self.log.info("Changing state of %s to %s", results, state)
+                    result = PodResult.from_result(results)
+                    last_resource_version = result.resource_version
+                    self.log.info("Changing state of %s to %s", results, result.state)
                     try:
-                        self._change_state(key, state, pod_id)
+                        self._change_state(
+                            result.key, result.state, result.pod_id, result.namespace
+                        )
                     except Exception as e:
                         self.log.exception(
                             "Exception: %s when attempting "
                             + "to change state of %s to %s, re-queueing.",
                             e,
                             results,
-                            state,
+                            result.state,
                         )
                         self.result_queue.put(results)
                 finally:
@@ -201,3 +205,14 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         self._change_state(
             zombie_pod_state.scheduler_key, None, zombie_pod_state.pod_name
         )
+
+    def _change_state(self, key, state, pod_id, namespace=None):
+        if namespace is None:
+            namespace = self.kube_scheduler.namespace
+
+        if AIRFLOW_ABOVE_9:
+            return super(DbndKubernetesExecutor, self)._change_state(
+                key, state, pod_id, namespace
+            )
+        else:
+            return super(DbndKubernetesExecutor, self)._change_state(key, state, pod_id)

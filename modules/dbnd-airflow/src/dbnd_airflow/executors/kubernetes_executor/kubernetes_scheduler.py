@@ -48,6 +48,7 @@ from dbnd_airflow.compat.kubernetes_executor import (
 from dbnd_airflow.constants import AIRFLOW_ABOVE_9
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_watcher import (
     DbndKubernetesJobWatcher,
+    WatcherPodEvent,
 )
 from dbnd_airflow.executors.kubernetes_executor.utils import mgr_init
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
@@ -68,6 +69,10 @@ if typing.TYPE_CHECKING:
 
 @attr.s
 class SubmittedPodState(object):
+    """
+    Structure to keep track of the pod we submitted to k8s
+    """
+
     pod_name = attr.ib()
     submitted_at = attr.ib()
 
@@ -92,6 +97,57 @@ class SubmittedPodState(object):
     def is_started_running(self):
         # the node name is set when the pod started running
         return self.node_name is not None
+
+
+@attr.s
+class PodResult(object):
+    """
+    Information passed in the result queue
+    """
+
+    key = attr.ib(default=None)
+    state = attr.ib(default=None)
+    pod_id = attr.ib(default=None)
+    namespace = attr.ib(default=None)
+    resource_version = attr.ib(default=None)
+
+    @classmethod
+    def from_pod(cls, submitted_pod, pod_event):
+        # type: (SubmittedPodState, WatcherPodEvent) -> PodResult
+        return PodResult(
+            key=submitted_pod.scheduler_key,
+            state=pod_event.state,
+            pod_id=pod_event.pod_id,
+            namespace=pod_event.namespace,
+            resource_version=pod_event.resource_version,
+        )
+
+    @classmethod
+    def from_result(cls, result):
+        if AIRFLOW_ABOVE_9:
+            key, state, pod_id, namespace, resource_version = result
+        else:
+            key, state, pod_id, resource_version = result
+            namespace = None
+
+        return PodResult(key, state, pod_id, namespace, resource_version,)
+
+    def as_tuple(self):
+        if AIRFLOW_ABOVE_9:
+            return (
+                self.key,
+                self.state,
+                self.pod_id,
+                self.namespace,
+                self.resource_version,
+            )
+        else:
+            return (
+                self.key,
+                self.state,
+                self.pod_id,
+                self.resource_version,
+            )
 
 
 AIRFLOW_TO_DBND_STATE_MAP = {
@@ -312,16 +368,13 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
     def process_watcher_task(self, task):
         """Process the task event sent by watcher."""
-        if AIRFLOW_ABOVE_9:
-            pod_id, namespace, state, labels, resource_version = task
-        else:
-            pod_id, state, labels, resource_version = task
-        pod_name = pod_id
+        pod_event = WatcherPodEvent.from_watcher_task(task)
+        pod_name = pod_event.pod_id
         self.log.debug(
             "Attempting to process pod; pod_name: %s; state: %s; labels: %s",
-            pod_id,
-            state,
-            labels,
+            pod_event.pod_id,
+            pod_event.state,
+            pod_event.labels,
         )
 
         submitted_pod = self.submitted_pods.get(pod_name)
@@ -344,22 +397,24 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         self.log.debug(
             "Attempting to process pod; pod_name: %s; state: %s; labels: %s",
-            pod_id,
-            state,
-            labels,
+            pod_event.pod_id,
+            pod_event.state,
+            pod_event.labels,
         )
 
         # we are not looking for key
         task_run = submitted_pod.task_run
-        key = submitted_pod.scheduler_key
+        result = PodResult.from_pod(submitted_pod, pod_event)
         if submitted_pod.processed:
             # we already processed this kind of event, as in this process we have failed status already
             self.log.info(
-                "Skipping pod '%s' event from %s - already processed", state, pod_name,
+                "Skipping pod '%s' event from %s - already processed",
+                pod_event.state,
+                pod_name,
             )
             return
 
-        if state == State.RUNNING:
+        if result.state == State.RUNNING:
             # we should get here only once -> when pod starts to run
 
             self._process_pod_running(submitted_pod)
@@ -367,18 +422,23 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             return
 
         try:
-            if state is None:
+            if result.state is None:
                 # simple case, pod has success - will be proceed by airflow main scheduler (Job)
                 # task can be failed or passed. Airflow exit with 0 if task has failed regular way.
                 self._process_pod_success(submitted_pod)
-                self.result_queue.put((key, state, pod_name, resource_version))
-            elif state == State.FAILED:
+                self.result_queue.put(result.as_tuple())
+            elif result.state == State.FAILED:
                 # Pod crash, it was deleted, killed, evicted.. we need to give it extra treatment
                 self._process_pod_failed(submitted_pod)
-                self.result_queue.put((key, state, pod_id, resource_version))
+                self.result_queue.put(result.as_tuple())
             else:
-                self.log.debug("finishing job %s - %s (%s)", key, state, pod_id)
-                self.result_queue.put((key, state, pod_id, resource_version))
+                self.log.debug(
+                    "finishing job %s - %s (%s)",
+                    result.key,
+                    result.state,
+                    result.pod_id,
+                )
+                self.result_queue.put(result.as_tuple())
         finally:
             submitted_pod.processed = True
 
