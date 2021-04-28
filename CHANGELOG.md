@@ -1,5 +1,19 @@
 # History
 
+## DBND v 0.39.00
+### New features
+* \#1168991558489592: Auto-log paths became available for Spark JVM I/O (Alpha version).
+* \#1200183406021457: It’s now possible to trigger a numeric alert when an anomaly is detected.
+* \#1200182230484446: Added alerts integration with Opsgenie.
+### Improvements
+* \#1199534439165430: Tracking system error handling is out - enjoy safe tracking without the performance penalty.
+* \#1200183406021460: See how a newly defined alert would have affected your past runs.
+* \#1200183406021459: Define sensitivity and the number of runs for anomaly detection.
+* \#1200194910187394: Slack alert headline now leads to the Alert page and displays the number of firing alerts.
+### Bug fixes
+* \#1200141500926246: Fixed the URL in Slack message alerts.
+* \#1200194910187389: Slack alert’s link is now leading to the first alert.
+
 ## DBND v 0.38.00
 ### New features
 * \#1199905812865631: Added Favorite Metrics widget.
