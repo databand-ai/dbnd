@@ -1,4 +1,4 @@
-val databandVersion = "0.38.7"
+val databandVersion = "0.39.0"
 resolvers += "Databand Maven Repository" at "https://dbnd-dev-maven-repository.s3.us-east-2.amazonaws.com"
 
 ThisBuild / scalaVersion := "2.12.8"
