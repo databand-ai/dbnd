@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict
 import airflow_monitor
 
 from airflow_monitor.common import MonitorState, capture_monitor_exception
+from airflow_monitor.common.airflow_data import PluginMetadata
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher import get_data_fetcher
 from airflow_monitor.fixer.runtime_fixer import start_runtime_fixer
@@ -100,19 +101,16 @@ class MonitorComponentManager(object):
         if alive:
             plugin_metadata = get_data_fetcher(self.server_config).get_plugin_metadata()
         else:
-            plugin_metadata = None
+            plugin_metadata = PluginMetadata()
 
         self.tracking_service.update_monitor_state(
             MonitorState(
                 monitor_start_time=utcnow(),
                 monitor_status="Running",
                 airflow_monitor_version=airflow_monitor.__version__,
-                airflow_version=plugin_metadata.airflow_version
-                if plugin_metadata
-                else None,
-                airflow_export_version=plugin_metadata.plugin_version
-                if plugin_metadata
-                else None,
+                airflow_version=plugin_metadata.airflow_version,
+                airflow_export_version=plugin_metadata.plugin_version,
+                airflow_instance_uid=plugin_metadata.airflow_instance_uid,
             ),
         )
 

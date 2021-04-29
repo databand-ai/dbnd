@@ -29,10 +29,13 @@ class LastSeenValues:
 class PluginMetadata:
     airflow_version = attr.ib(default=None)
     plugin_version = attr.ib(default=None)
+    airflow_instance_uid = attr.ib(default=None)
 
     def as_dict(self):
         return dict(
-            airflow_version=self.airflow_version, plugin_version=self.plugin_version,
+            airflow_version=self.airflow_version,
+            plugin_version=self.plugin_version,
+            airflow_instance_uid=self.airflow_instance_uid,
         )
 
     @classmethod
@@ -40,6 +43,7 @@ class PluginMetadata:
         return cls(
             airflow_version=data.get("airflow_version"),
             plugin_version=data.get("plugin_version"),
+            airflow_instance_uid=data.get("airflow_instance_uid"),
         )
 
 
@@ -53,6 +57,7 @@ class MonitorState:
     monitor_status = attr.ib(default=NOTHING)
     monitor_error_message = attr.ib(default=NOTHING)
     monitor_start_time = attr.ib(default=NOTHING)  # type: datetime
+    airflow_instance_uid = attr.ib(default=NOTHING)
 
     def as_dict(self):
         # don't serialize data which didn't changed: as_dict should be able to return
@@ -70,6 +75,7 @@ class MonitorState:
             monitor_start_time=self.monitor_start_time.isoformat()
             if self.monitor_start_time not in (NOTHING, None)
             else self.monitor_start_time,
+            airflow_instance_uid=self.airflow_instance_uid,
         )
         # allow partial dump
         return {k: v for k, v in d.items() if v is not NOTHING}
