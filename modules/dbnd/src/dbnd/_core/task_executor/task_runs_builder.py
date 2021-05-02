@@ -173,7 +173,8 @@ class TaskRunsBuilder(object):
         skipped_ids = tasks_to_ids_set(tasks_skipped)
 
         task_runs = []
-        for task in tasks_to_run:
+        # should be sorted to have reproducible runs for snapshot testing
+        for task in sorted(tasks_to_run, key=lambda x: x.task_creation_id):
 
             with task.ctrl.task_context(phase=TaskContextPhase.BUILD):
                 # we want to have engine configuration with task overrides

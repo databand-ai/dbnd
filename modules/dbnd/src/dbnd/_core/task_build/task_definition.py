@@ -22,7 +22,7 @@ from dbnd._core.parameter.parameter_definition import (
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_signature import user_friendly_signature
-from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCode
+from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.utils.basics.nothing import is_defined
 from dbnd._core.utils.structures import combine_mappings
 from dbnd._core.utils.uid_utils import get_uuid

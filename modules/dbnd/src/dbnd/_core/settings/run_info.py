@@ -19,6 +19,10 @@ from dbnd._core.utils.uid_utils import get_uuid
 from targets.values.version_value import VersionStr
 
 
+def get_task_info_cmd():
+    return subprocess.list2cmdline(sys.argv)
+
+
 class RunInfoConfig(config.Config):
     """(Advanced) Databand's run information gatherer"""
 
@@ -43,7 +47,7 @@ class RunInfoConfig(config.Config):
             databand_version=dbnd.__version__,
             user_code_version=self.source_version,
             user_code_committed=True,
-            cmd_line=subprocess.list2cmdline(sys.argv),
+            cmd_line=get_task_info_cmd(),
             user=self.user or dbnd_getuser(),
             machine=machine,
             project_root=project_path(),
