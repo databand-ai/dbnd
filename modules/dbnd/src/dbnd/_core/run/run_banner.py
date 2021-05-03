@@ -62,8 +62,11 @@ class RunBanner(RunCtrl):
         ctx = run.context
         task_run_env = ctx.task_run_env  # type: TaskRunEnvInfo
 
-        b.column("TRACKER URL", run.run_url, skip_if_empty=True)
-        b.column("TRACKERS", CoreConfig().tracker)
+        if run.context.tracking_store.has_tracking_store("api", channel_name="web"):
+            b.column("TRACKER URL", run.run_url, skip_if_empty=True)
+
+        b.column("TRACKERS", run.context.tracking_store.trackers_names)
+
         if run.root_run_info.root_run_uid != run.run_uid:
             b.column(
                 "ROOT TRACKER URL", run.root_run_info.root_run_url, skip_if_empty=True

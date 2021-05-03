@@ -207,7 +207,8 @@ class _TaskBannerBuilder(TaskSubCtrl):
         )
 
     def add_tracker_info(self, task_run):
-        self.banner.column("TRACKER", task_run.task_tracker_url)
+        if task_run.tracking_store.has_tracking_store("api", channel_name="web"):
+            self.banner.column("TRACKER URL", task_run.task_tracker_url)
 
     def add_task_run_info(self, task_run):
         self.banner.column_properties(

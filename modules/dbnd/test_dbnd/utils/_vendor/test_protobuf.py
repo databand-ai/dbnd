@@ -8,7 +8,7 @@ def first_store(tracking_store):
     Returns the first store, otherwise None.
     """
     if tracking_store._stores:
-        return tracking_store._stores[0]
+        return next(iter(tracking_store._stores.values()))
 
     return None
 

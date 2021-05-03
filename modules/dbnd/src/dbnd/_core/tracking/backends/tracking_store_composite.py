@@ -2,6 +2,8 @@ import logging
 
 from typing import Any, Dict
 
+import six
+
 from dbnd._core.current import in_tracking_run, is_orchestration_run
 from dbnd._core.errors.base import TrackerPanicError
 from dbnd._core.errors.errors_utils import log_exception
@@ -50,6 +52,13 @@ def try_run_handler(tries, store, handler_name, kwargs, verbose=False):
             try_num += 1
 
 
+def build_store_name(name, channel_name):
+    if channel_name:
+        return "{}-{}".format(name, channel_name)
+
+    return name
+
+
 class CompositeTrackingStore(TrackingStore):
     def __init__(
         self,
@@ -58,6 +67,8 @@ class CompositeTrackingStore(TrackingStore):
         raise_on_error=True,
         remove_failed_store=False,
     ):
+        # type: (Dict[str, TrackingStore], int, bool, bool) -> CompositeTrackingStore
+
         if not tracking_stores:
             logger.warning("You are running without any tracking store configured.")
 
@@ -70,7 +81,7 @@ class CompositeTrackingStore(TrackingStore):
         res = None
         failed_stores = []
 
-        for store in self._stores:
+        for store_name, store in six.iteritems(self._stores):
             tries = self._max_retries if is_state_call(name) else 1
 
             try:
@@ -81,17 +92,19 @@ class CompositeTrackingStore(TrackingStore):
                 if self._remove_failed_store or (
                     in_tracking_run() and is_state_call(name)
                 ):
-                    failed_stores.append(store)
+                    failed_stores.append(store_name)
 
                 if isinstance(e, TrackerPanicError) and self._raise_on_error:
                     raise
 
         if failed_stores:
-            for store in failed_stores:
+            for store_name in failed_stores:
                 logger.warning(
-                    "Removing store %s from stores list due to failure" % (str(store),)
+                    "Removing store {store_name}: {store} from stores list due to failure".format(
+                        store_name=store_name, store=str(self._stores.get(store_name))
+                    )
                 )
-                self._stores.remove(store)
+                self._stores.pop(store_name, None)
 
             if not self._stores:
                 logger.warning("You are running without any tracking store configured.")
@@ -107,6 +120,14 @@ class CompositeTrackingStore(TrackingStore):
                 continue
             filtered_stores.append(store)
         self._stores = filtered_stores
+
+    def has_tracking_store(self, name, channel_name=None):
+        name = build_store_name(name, channel_name)
+        return name in self._stores
+
+    @property
+    def trackers_names(self):
+        return list(self._stores.keys())
 
     def init_scheduled_job(self, **kwargs):
         return self._invoke(CompositeTrackingStore.init_scheduled_job.__name__, kwargs)
@@ -175,7 +196,7 @@ class CompositeTrackingStore(TrackingStore):
         )
 
     def is_ready(self, **kwargs):
-        return all(store.is_ready() for store in self._stores)
+        return all(store.is_ready() for store in self._stores.values())
 
     def save_airflow_monitor_data(self, **kwargs):
         return self._invoke(

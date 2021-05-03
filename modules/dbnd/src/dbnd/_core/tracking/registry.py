@@ -17,6 +17,7 @@ from dbnd._core.tracking.backends import (
     TrackingStore,
     TrackingStoreThroughChannel,
 )
+from dbnd._core.tracking.backends.tracking_store_composite import build_store_name
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ def get_tracking_store(
     tracker_raise_on_error,
     remove_failed_store,
 ):
-    # type: (List[str], Optional[str], int, bool, bool) -> TrackingStore
+    # type: (List[str], Optional[str], int, bool, bool) -> CompositeTrackingStore
     """
     Build a tracking stores based on the registry and wrap them with TrackingStoreComposite
 
@@ -56,7 +57,7 @@ def get_tracking_store(
     @return:
     """
 
-    tracking_store_instances = []
+    tracking_store_instances = {}
     for name in tracking_store_names:
         if name == "api":
             name = (name, api_channel_name)
@@ -71,7 +72,12 @@ def get_tracking_store(
             raise friendly_error.config.wrong_store_name(name)
 
         instance = tracking_store_builder()
-        tracking_store_instances.append(instance)
+        if isinstance(name, tuple):
+            store_name = build_store_name(*name)
+        else:
+            store_name = name
+
+        tracking_store_instances[store_name] = instance
 
     # We always use the CompositeTrackingStore cause it handle failure recovery for the inner tracking stores
     return CompositeTrackingStore(
