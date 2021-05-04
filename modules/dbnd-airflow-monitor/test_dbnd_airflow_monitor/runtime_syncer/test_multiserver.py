@@ -67,7 +67,7 @@ class MockSyncer(BaseMonitorComponent):
         self.sync_count = 0
         self.should_fail = False
 
-    def sync_once(self):
+    def _sync_once(self):
         if self.should_fail:
             raise Exception("Mock - should fail")
         self.sync_count += 1

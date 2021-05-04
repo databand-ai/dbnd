@@ -39,6 +39,7 @@ class MonitorComponentManager(object):
 
         self.runner_factory = runner_factory
         self._is_stopping = False
+        self.plugin_metadata = None
 
     def is_enabled(self, component_name):
         if self._is_stopping:
@@ -72,7 +73,8 @@ class MonitorComponentManager(object):
                 component = self.active_components.pop(name)
                 component.stop()
 
-        return airflow_alive
+        if airflow_alive and self.plugin_metadata is None:
+            self._set_monitor_state()
 
     def _clean_dead_components(self):
         for name, component in list(self.active_components.items()):
@@ -85,6 +87,22 @@ class MonitorComponentManager(object):
         self._is_stopping = True
         self._update_component_state()
 
+    def _set_monitor_state(self):
+        plugin_metadata = get_data_fetcher(self.server_config).get_plugin_metadata()
+
+        self.tracking_service.update_monitor_state(
+            MonitorState(
+                monitor_start_time=utcnow(),
+                monitor_status="Running",
+                airflow_monitor_version=airflow_monitor.__version__,
+                airflow_version=plugin_metadata.airflow_version,
+                airflow_export_version=plugin_metadata.plugin_version,
+                airflow_instance_uid=plugin_metadata.airflow_instance_uid,
+            ),
+        )
+
+        self.plugin_metadata = plugin_metadata
+
     @capture_monitor_exception("starting monitor")
     def start(self):
         self.tracking_service.update_monitor_state(
@@ -95,26 +113,7 @@ class MonitorComponentManager(object):
                 monitor_error_message=None,
             ),
         )
-        alive = self._update_component_state()
-
-        if alive:
-            plugin_metadata = get_data_fetcher(self.server_config).get_plugin_metadata()
-        else:
-            plugin_metadata = None
-
-        self.tracking_service.update_monitor_state(
-            MonitorState(
-                monitor_start_time=utcnow(),
-                monitor_status="Running",
-                airflow_monitor_version=airflow_monitor.__version__,
-                airflow_version=plugin_metadata.airflow_version
-                if plugin_metadata
-                else None,
-                airflow_export_version=plugin_metadata.plugin_version
-                if plugin_metadata
-                else None,
-            ),
-        )
+        self._update_component_state()
 
     @capture_monitor_exception("updating monitor config")
     def update_config(self, server_config: AirflowServerConfig):

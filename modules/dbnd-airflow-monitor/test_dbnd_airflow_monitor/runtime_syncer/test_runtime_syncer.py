@@ -154,12 +154,14 @@ class TestRuntimeSyncer:
             case="finished both in dbnd and airflow => nothing",
         )
 
-    def test_02_init_dagruns_in_bulk(self, runtime_syncer, mock_data_fetcher):
+    def test_02_init_dagruns_in_bulk(
+        self, runtime_syncer, mock_data_fetcher, mock_tracking_service
+    ):
         mock_data_fetcher.dag_runs = sorted(
             [MockDagRun(id=i, dag_id=f"dag{i}") for i in range(11)],
             key=lambda _: random.random(),
         )
-        runtime_syncer.config.dag_run_bulk_size = 3
+        mock_tracking_service.config.dag_run_bulk_size = 3
         runtime_syncer.sync_once()
 
         # we should have 4 init calls - 3 iterations of 3 dag runs and 1 iteration of 2
@@ -181,12 +183,14 @@ class TestRuntimeSyncer:
                 dr.id for dr in mock_init_dagruns.call_args_list[i].args[0].dag_runs
             ) == list(range(i * 3, min(i * 3 + 3, 11)))
 
-    def test_03_init_dagruns_oneshot(self, runtime_syncer, mock_data_fetcher):
+    def test_03_init_dagruns_oneshot(
+        self, runtime_syncer, mock_data_fetcher, mock_tracking_service
+    ):
         mock_data_fetcher.dag_runs = sorted(
             [MockDagRun(id=i, dag_id=f"dag{i}") for i in range(11)],
             key=lambda _: random.random(),
         )
-        runtime_syncer.config.dag_run_bulk_size = 0
+        mock_tracking_service.config.dag_run_bulk_size = 0
         runtime_syncer.sync_once()
         expect_changes(
             runtime_syncer, init=1, update=0, is_dbnd_empty=True, reset=False
@@ -208,7 +212,7 @@ class TestRuntimeSyncer:
     #         [MockDagRun(id=i, dag_id=f"dag{i}", state="FINISHED", max_log_id=i) for i in range(11)],
     #         key=lambda _: random.random(),
     #     )
-    #     runtime_syncer.config.dag_run_bulk_size = 4
+    #     mock_tracking_service.config.dag_run_bulk_size = 4
     #     runtime_syncer.sync_once()
     #     expect_changes(
     #         runtime_syncer, init=0, update=3, is_dbnd_empty=True, reset=False
@@ -238,7 +242,7 @@ class TestRuntimeSyncer:
             [MockDagRun(id=i, dag_id=f"dag{i}", state="FINISHED") for i in range(11)],
             key=lambda _: random.random(),
         )
-        runtime_syncer.config.dag_run_bulk_size = 0
+        mock_tracking_service.config.dag_run_bulk_size = 0
         runtime_syncer.sync_once()
         expect_changes(
             runtime_syncer, init=0, update=1, is_dbnd_empty=True, reset=False
@@ -338,8 +342,8 @@ class TestRuntimeSyncer:
         assert mock_tracking_service.last_seen_log_id == 21
         assert not mock_tracking_service.dag_runs
 
-    def test_08_dag_ids(self, runtime_syncer, mock_data_fetcher):
-        runtime_syncer.config.dag_ids = "dag2"
+    def test_08_dag_ids(self, runtime_syncer, mock_data_fetcher, mock_tracking_service):
+        mock_tracking_service.config.dag_ids = "dag2"
 
         # both dbnd and airflow are empty
         runtime_syncer.sync_once()
@@ -436,7 +440,7 @@ class TestRuntimeFixer:
             [MockDagRun(id=i, dag_id=f"dag{i}") for i in range(11)],
             key=lambda _: random.random(),
         )
-        runtime_fixer.config.dag_run_bulk_size = 3
+        mock_tracking_service.config.dag_run_bulk_size = 3
         runtime_fixer.sync_once()
 
         # we should have 4 init calls - 3 iterations of 3 dag runs and 1 iteration of 2
@@ -459,7 +463,7 @@ class TestRuntimeFixer:
             ) == sorted(list(range(10 - i * 3, 10 - min(i * 3 + 3, 11), -1)))
 
     def test_04_dag_ids(self, runtime_fixer, mock_data_fetcher, mock_tracking_service):
-        runtime_fixer.config.dag_ids = "dag2"
+        mock_tracking_service.config.dag_ids = "dag2"
 
         mock_tracking_service.dag_runs = [MockDagRun(id=2, dag_id="dag1")]
         mock_data_fetcher.dag_runs = [MockDagRun(id=2, dag_id="dag1")]

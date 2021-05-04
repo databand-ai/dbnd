@@ -22,6 +22,7 @@ class UpdateMonitorStateRequestSchema(ApiObjectSchema):
     monitor_status = fields.String(required=False, allow_none=True)
     monitor_error_message = fields.String(required=False, allow_none=True)
     monitor_start_time = fields.DateTime(required=False, allow_none=True)
+    airflow_instance_uid = fields.UUID(required=False, allow_none=True)
 
 
 class GetAllDagRunsRequestSchema(ApiObjectSchema):
@@ -61,8 +62,11 @@ class DagSchema(ApiObjectSchema):
     source_code = fields.String(allow_none=True)
     module_source_hash = fields.String(allow_none=True)
     is_subdag = fields.Boolean()
+    tags = fields.List(fields.String(), allow_none=True)
     task_type = fields.String()
     task_args = fields.Dict()
+    is_active = fields.Boolean(allow_none=True)
+    is_paused = fields.Boolean(allow_none=True)
 
 
 class DagRunSchema(ApiObjectSchema):

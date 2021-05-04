@@ -13,6 +13,7 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
+from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
 
 logger = logging.getLogger(__name__)
@@ -138,4 +139,5 @@ class DbFetcher(AirflowDataFetcher):
         return PluginMetadata(
             airflow_version=airflow_version.version,
             plugin_version=dbnd_airflow_export.__version__,
+            airflow_instance_uid=get_airflow_instance_uid(),
         )
