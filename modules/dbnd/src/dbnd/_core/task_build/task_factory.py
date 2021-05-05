@@ -124,7 +124,6 @@ from dbnd._core.task_build.task_context import (
     task_context,
     try_get_current_task,
 )
-from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_passport import format_source_suffix
 from dbnd._core.task_build.task_signature import (
     TASK_ID_INVALID_CHAR_REGEX,
@@ -137,10 +136,12 @@ from targets.target_config import parse_target_config
 
 
 if typing.TYPE_CHECKING:
-    from typing import Type, Any, List, Optional, Dict
+    from typing import Any, Dict, List, Optional, Type
+
     from dbnd._core.configuration.dbnd_config import DbndConfig
     from dbnd._core.settings import EnvConfig
     from dbnd._core.task.task_with_params import _TaskWithParams
+    from dbnd._core.task_build.task_definition import TaskDefinition
 
 TASK_BAND_PARAMETER_NAME = "task_band"
 logger = logging.getLogger(__name__)

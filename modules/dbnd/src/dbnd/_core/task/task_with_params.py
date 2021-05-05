@@ -1,14 +1,17 @@
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
 import six
 
 from dbnd._core.constants import ParamValidation
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.parameter.parameter_definition import ParameterDefinition
-from dbnd._core.parameter.parameter_value import Parameters, ParameterValue
 from dbnd._core.task.base_task import _BaseTask
-from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
+
+
+if TYPE_CHECKING:
+    from dbnd._core.parameter.parameter_definition import ParameterDefinition
+    from dbnd._core.parameter.parameter_value import Parameters, ParameterValue
+    from dbnd._core.task_build.task_definition import TaskDefinition
 
 
 @six.add_metaclass(TaskMetaclass)
