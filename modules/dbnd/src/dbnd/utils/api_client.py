@@ -120,7 +120,7 @@ class ApiClient(object):
                 timeout=request_timeout or self.default_request_timeout,
             )
             logger.debug("Sending the following request: %s", request_params)
-            resp = self.session.request(**request_params)
+            resp = self._send_request(**request_params)
 
         except requests.exceptions.ConnectionError as ce:
             logger.info("Got connection error while sending request: {}".format(ce))
@@ -159,6 +159,9 @@ class ApiClient(object):
 
         return
 
+    def _send_request(self, method, url, **kwargs):
+        return self.session.request(method, url, **kwargs)
+
     def _init_session(self, credentials):
         logger.info("Initialising session for webserver")
         try:
@@ -174,7 +177,7 @@ class ApiClient(object):
                 return
 
             # get the csrf token cookie (if enabled on the server)
-            self.session.get(urljoin(self._api_base_url, "/app"))
+            self._send_request("GET", urljoin(self._api_base_url, "/app"))
             csrf_token = self.session.cookies.get("dbnd_csrftoken")
             if csrf_token:
                 logger.info("Got csrf token from session")

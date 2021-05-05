@@ -20,7 +20,7 @@ setuptools.setup(
         "setuptools",
         "prometheus_client",
         "beautifulsoup4==4.9.2",
-        "tenacity<7",
+        "tenacity>=4.12.0,<7",
     ],
     extras_require={
         "tests": [
@@ -30,6 +30,7 @@ setuptools.setup(
             "apache-airflow>=1.10.9,<=1.10.11",
             "sh",
             "SQLAlchemy==1.3.18",
+            "cattrs~=0.9",
         ],
         "composer": [
             "PyJWT==1.7.1",

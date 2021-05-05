@@ -15,6 +15,7 @@ from dbnd._core.configuration.environ_config import (
     get_dbnd_project_config,
     reset_dbnd_project_config,
 )
+from dbnd.testing.test_config_setter import add_test_configuration
 
 from .mock_airflow_data_fetcher import MockDataFetcher
 from .mock_airflow_tracking_service import MockServersConfigService, MockTrackingService
@@ -30,6 +31,10 @@ reset_dbnd_project_config()
 
 # we don't need to load dbnd plugins/modules
 get_dbnd_project_config().is_no_modules = True
+
+
+def pytest_configure(config):
+    add_test_configuration(__file__)
 
 
 @fixture

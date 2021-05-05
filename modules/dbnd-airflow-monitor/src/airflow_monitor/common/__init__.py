@@ -52,7 +52,7 @@ def report_error(obj, f, err_message):
     tracking_service = getattr(
         obj, "tracking_service", None
     )  # type: DbndAirflowTrackingService
-    if tracking_service:
+    if tracking_service is not None:
         try:
             tracking_service.report_error(f, err_message)
         except Exception as e:

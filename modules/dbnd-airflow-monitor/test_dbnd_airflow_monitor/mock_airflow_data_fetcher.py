@@ -8,6 +8,7 @@ from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
+    PluginMetadata,
 )
 from airflow_monitor.data_fetcher import AirflowDataFetcher
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
@@ -30,11 +31,25 @@ class MockDagRun:
     test_created_at = attr.ib(default=None)
     test_updated_at = attr.ib(default=None)
 
+    def as_dict(self):
+        return dict(
+            id=self.id,
+            dag_id=self.dag_id,
+            execution_date=self.execution_date,
+            state=self.state,
+            is_paused=self.is_paused,
+            max_log_id=self.max_log_id,
+            events=self.events,
+        )
+
 
 @attr.s
 class MockTaskInstance:
     dag_id = attr.ib(default="dag1")  # type: str
     execution_date = attr.ib(default="date1")  # type: str
+
+    def as_dict(self):
+        return dict(dag_id=self.dag_id, execution_date=self.execution_date)
 
 
 @attr.s
@@ -50,6 +65,9 @@ class MockDataFetcher(AirflowDataFetcher):
         self.dag_runs = []  # type: List[MockDagRun]
         self.logs = []  # type: List[MockLog]
         self.alive = True
+        self.airflow_version = None
+        self.plugin_version = None
+        self.airflow_instance_uid = None
 
     @can_be_dead
     def get_last_seen_values(self) -> LastSeenValues:
@@ -140,3 +158,10 @@ class MockDataFetcher(AirflowDataFetcher):
 
     def is_alive(self):
         return self.alive
+
+    def get_plugin_metadata(self):
+        return PluginMetadata(
+            airflow_version=self.airflow_version,
+            plugin_version=self.plugin_version,
+            airflow_instance_uid=self.airflow_instance_uid,
+        )
