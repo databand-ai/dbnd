@@ -3,7 +3,11 @@ import logging
 from typing import List
 
 from airflow_monitor.common import capture_monitor_exception
-from airflow_monitor.common.airflow_data import AirflowDagRun, AirflowDagRunsResponse
+from airflow_monitor.common.airflow_data import (
+    AirflowDagRun,
+    AirflowDagRunsResponse,
+    DagRunsStateData,
+)
 from airflow_monitor.common.base_component import BaseMonitorComponent, start_syncer
 
 
@@ -116,6 +120,12 @@ class AirflowRuntimeSyncer(BaseMonitorComponent):
     @capture_monitor_exception
     def update_dagruns(self, dagruns: List[AirflowDagRun]):
         if not dagruns:
+            # if no update required, do empty update for heartbeat
+            self.tracking_service.update_dagruns(
+                DagRunsStateData(task_instances=[], dag_runs=[]),
+                None,
+                self.SYNCER_TYPE,
+            )
             return
 
         dagruns = sorted(
