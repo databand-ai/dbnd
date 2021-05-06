@@ -1,13 +1,14 @@
 import logging
 
+from datetime import datetime, timedelta
 from time import sleep
+from typing import Dict, Optional, Union
 
 import requests
-import six
 
 from six.moves.urllib_parse import urljoin
 
-from dbnd._core.current import try_get_current_task_run, try_get_databand_run
+from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import (
     DatabandApiError,
     DatabandAuthenticationError,
@@ -34,12 +35,38 @@ class ApiClient(object):
     api_prefix = "/api/v1/"
     default_headers = None
 
-    def __init__(self, api_base_url, credentials=None, debug_server=False):
+    def __init__(
+        self,
+        api_base_url,
+        credentials=None,
+        debug_server=False,
+        session_timeout=5,
+        default_max_retry=1,
+        default_retry_sleep=0,
+    ):
+        # type: (str, Optional[Dict[str, str]], bool, int, int, Union[int, float]) -> ApiClient
+        """
+        @param api_base_url: databand webserver url to build the request with
+        @param credentials: dict of credential to authenticate with the webserver
+         can include "token" key or "username"  and "password" keys
+        @param debug_server: flag to debug the webserver - collect logs from webserver and the client's requests
+        @param session_timeout: minutes to recreate the requests session
+        @param default_max_retry: default value for retries for failed connection
+        @param default_retry_sleep: default value for sleep between retries
+        """
+
         self._api_base_url = api_base_url
         self.is_auth_required = bool(credentials)
         self.credentials = credentials
-        self.session = None
         self.default_headers = {"Accept": "application/json"}
+
+        self.session = None
+        self.session_creation_time = None
+        self.session_timeout = session_timeout
+
+        self.default_max_retry = default_max_retry
+        self.default_retry_sleep = default_retry_sleep
+
         self.debug_mode = debug_server
         if debug_server:
             # the header require so the webserver will record logs and sql queries
@@ -49,13 +76,23 @@ class ApiClient(object):
             # log the webserver logs and sql queries here
             self.webserver_logger = build_file_logger("webserver")
 
+    def remove_session(self):
+        self.session = None
+        self.session_creation_time = None
+
+    def is_session_timedout(self):
+        return datetime.now() - self.session_creation_time >= timedelta(
+            minutes=self.session_timeout
+        )
+
     def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
-        if not self.session:
-            logger.info("Webserver session does not exist, creating new one")
+        if not self.session or self.is_session_timedout():
+            logger.info(
+                "Webserver session does not exist or timedout, creating new one"
+            )
             self._init_session(self.credentials)
 
         headers = dict(self.default_headers, **(headers or {}))
-
         url = urljoin(self._api_base_url, endpoint)
         try:
             request_params = dict(
@@ -63,9 +100,10 @@ class ApiClient(object):
             )
             logger.debug("Sending the following request: %s", request_params)
             resp = self.session.request(**request_params)
+
         except requests.exceptions.ConnectionError as ce:
             logger.info("Got connection error while sending request: {}".format(ce))
-            self.session = None
+            self.remove_session()
             raise
 
         if self.debug_mode:
@@ -104,6 +142,7 @@ class ApiClient(object):
         logger.info("Initialising session for webserver")
         try:
             self.session = requests.session()
+            self.session_creation_time = datetime.now()
 
             if not self.is_auth_required:
                 return
@@ -129,11 +168,12 @@ class ApiClient(object):
                 logger.warning(
                     "ApiClient._init_session: username or password is not provided"
                 )
+
         except Exception as e:
             logger.warning(
                 "Exception occurred while initialising the session: {}".format(e)
             )
-            self.session = None
+            self.remove_session()
             raise DatabandAuthenticationError("Failed to init a webserver session", e)
 
     def api_request(
@@ -147,9 +187,13 @@ class ApiClient(object):
         retry_policy=None,
         failure_handler=None,
     ):
-        retry_number = 0
-        retry_policy = retry_policy or LinearRetryPolicy(0, 1)  # single chance
+        retry_policy = retry_policy or LinearRetryPolicy(
+            seconds_to_sleep=self.default_retry_sleep,
+            max_retries=self.default_max_retry,
+        )
         url = endpoint if no_prefix else urljoin(self.api_prefix, endpoint)
+
+        retry_number = 0
         while True:
             retry_number += 1
             try:
@@ -159,9 +203,11 @@ class ApiClient(object):
             except requests.ConnectionError as ex:
                 if failure_handler:
                     failure_handler(ex, retry_policy, retry_number)
+
                 if retry_policy.should_retry(500, None, retry_number):
                     sleep(retry_policy.seconds_to_sleep(retry_number))
                     continue
+
                 raise api_connection_refused(self._api_base_url + url, ex)
             return resp
 
@@ -180,17 +226,11 @@ class ApiClient(object):
         return "{}({})".format(self.__class__.__name__, self._api_base_url)
 
 
-def dict_dump(obj_dict, value_schema):
-    """
-    Workaround around marshmallow 2.0 not supporting Dict with types
-    :return:
-    """
-    return {
-        key: value_schema.dump(value).data for key, value in six.iteritems(obj_dict)
-    }
-
-
 def build_file_logger(name, fmt=None):
+    """
+    Create a logger which write only to a file.
+    the file will be located under the run dict.
+    """
     file_logger = logging.getLogger("{}_{}".format(__name__, name))
     file_logger.propagate = False
 
