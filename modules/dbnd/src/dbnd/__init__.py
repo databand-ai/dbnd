@@ -62,6 +62,7 @@ from dbnd._core.tracking.python_tracking import (
     track_modules,
 )
 from dbnd._core.tracking.script_tracking_manager import (
+    dbnd_tracking,
     dbnd_tracking_start,
     dbnd_tracking_stop,
 )
@@ -94,6 +95,7 @@ __all__ = [
     "get_databand_run",
     "get_databand_context",
     # inplace implementation
+    "dbnd_tracking",
     "dbnd_tracking_start",
     "dbnd_tracking_stop",
     "auto_namespace",

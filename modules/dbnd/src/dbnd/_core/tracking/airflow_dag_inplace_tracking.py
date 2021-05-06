@@ -220,8 +220,8 @@ def try_get_airflow_context_from_spark_conf():
     return None
 
 
-def build_run_time_airflow_task(af_context):
-    # type: (AirflowTaskContext) -> Tuple(TrackingTask, str, UpdateSource)
+def build_run_time_airflow_task(af_context, root_task_name):
+    # type: (AirflowTaskContext, Optional[str]) -> Tuple[TrackingTask, str, UpdateSource]
     if af_context.context:
         # we are in the execute entry point and therefore that task name is <task>__execute
         task_family = "%s__execute" % af_context.task_id
@@ -238,7 +238,7 @@ def build_run_time_airflow_task(af_context):
             source_code = TaskSourceCode.from_callable(tracked_function)
     else:
         # if this is an inline run-time task, we name it after the script which ran it
-        task_family = sys.argv[0].split(os.path.sep)[-1]
+        task_family = root_task_name
         source_code = TaskSourceCode.from_callstack()
         user_params = {}
 
