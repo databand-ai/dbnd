@@ -29,6 +29,9 @@ setuptools.setup(
         airflow_1_10_10=requirements_for_airflow + ["apache-airflow==1.10.10"],
         airflow_1_10_11=requirements_for_airflow + ["apache-airflow==1.10.11"],
         airflow_1_10_12=requirements_for_airflow + ["apache-airflow==1.10.12"],
+        airflow_1_10_13=requirements_for_airflow + ["apache-airflow==1.10.13"],
+        airflow_1_10_14=requirements_for_airflow + ["apache-airflow==1.10.14"],
+        airflow_1_10_15=requirements_for_airflow + ["apache-airflow==1.10.15"],
         airflow=requirements_for_airflow + ["apache-airflow==1.10.10"],
         tests=[
             # airflow support
@@ -60,8 +63,7 @@ setuptools.setup(
     ),
     entry_points={
         "console_scripts": [
-            "dbnd-airflow = dbnd_airflow.dbnd_airflow_main:main",
-            "dbnd-airflow-create-api-user = dbnd_airflow.utils:create_user",
+            "dbnd-set-up-scheduled = dbnd_airflow.plugins.setup_plugins:setup_scheduled_dags",
         ],
         "dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],
     },

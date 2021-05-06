@@ -17,8 +17,9 @@ COPY ./project.cfg /dbnd/
 
 RUN pip install --upgrade 'pip>=20,<20.3'
 
+ARG AIRFLOW_EXTRA=airflow
 RUN pip install -e /dbnd/modules/dbnd
-RUN pip install -e /dbnd/modules/dbnd-airflow[airflow]
+RUN pip install -e /dbnd/modules/dbnd-airflow[$AIRFLOW_EXTRA]
 RUN pip install -e /dbnd/examples
 RUN pip install -e /dbnd/plugins/dbnd-aws
 RUN pip install -e /dbnd/plugins/dbnd-docker

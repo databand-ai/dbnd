@@ -1,9 +1,47 @@
 import logging
 import os
+import subprocess
+import sys
 
 
 AIRFLOW_LEGACY_URL_KEY = "airflow"
 logger = logging.getLogger(__name__)
+
+
+def subprocess_airflow(args):
+    """Forward arguments to airflow command line"""
+
+    from airflow.configuration import conf
+    from sqlalchemy.engine.url import make_url
+
+    # let's make sure that we user correct connection string
+    airflow_sql_conn = conf.get("core", "SQL_ALCHEMY_CONN")
+    env = os.environ.copy()
+    env["AIRFLOW__CORE__SQL_ALCHEMY_CONN"] = airflow_sql_conn
+    env["AIRFLOW__CORE__FERNET_KEY"] = conf.get("core", "FERNET_KEY")
+
+    # if we use airflow, we can get airflow from external env
+    args = ["airflow"] + args
+    logging.info(
+        "Running airflow command at subprocess: '%s" " with DB=%s",
+        subprocess.list2cmdline(args),
+        repr(make_url(airflow_sql_conn)),
+    )
+    try:
+        subprocess.check_call(args=args, env=env)
+    except Exception:
+        logging.exception(
+            "Failed to run airflow command %s with path=%s",
+            subprocess.list2cmdline(args),
+            sys.path,
+        )
+        raise
+    logging.info("Airflow command has been successfully executed")
+
+
+def subprocess_airflow_initdb():
+    logging.info("Initializing Airflow DB")
+    return subprocess_airflow(args=["initdb"])
 
 
 def setup_unittest_airflow():
@@ -17,8 +55,6 @@ def setup_unittest_airflow():
     airflow_configuration.conf.read(TEST_CONFIG_FILE)
 
     # init db first
-    from dbnd_airflow.dbnd_airflow_main import subprocess_airflow_initdb
-
     subprocess_airflow_initdb()
 
     # now reconnnect

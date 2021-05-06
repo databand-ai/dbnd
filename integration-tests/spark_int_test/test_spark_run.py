@@ -9,7 +9,7 @@ import sh
 
 @fixture(autouse=True, scope="module")
 def setup_spark_connection():
-    cmd = sh.Command("dbnd-airflow")
+    cmd = sh.Command("airflow")
     cmd("connections", "--delete", "--conn_id", "spark_default")
     cmd(
         "connections",
