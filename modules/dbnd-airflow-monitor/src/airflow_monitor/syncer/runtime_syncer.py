@@ -3,7 +3,11 @@ import logging
 from typing import List
 
 from airflow_monitor.common import capture_monitor_exception
-from airflow_monitor.common.airflow_data import AirflowDagRun, AirflowDagRunsResponse
+from airflow_monitor.common.airflow_data import (
+    AirflowDagRun,
+    AirflowDagRunsResponse,
+    DagRunsStateData,
+)
 from airflow_monitor.common.base_component import BaseMonitorComponent, start_syncer
 
 
@@ -115,7 +119,18 @@ class AirflowRuntimeSyncer(BaseMonitorComponent):
 
     @capture_monitor_exception
     def update_dagruns(self, dagruns: List[AirflowDagRun]):
+        # update_dagruns will fetch updated states for given dagruns and send them
+        # to webserver (in chunks). As a side effect - webserver will also update
+        # last_sync_time which is used as heartbeat. We do it as part of update_dagruns
+        # to be sure that we update last_sync_time only if data is being updated.
         if not dagruns:
+            # if there is no dagruns to update - do empty update to set last_sync_time
+            # otherwise we might get false alarms that monitor is not syncing
+            self.tracking_service.update_dagruns(
+                DagRunsStateData(task_instances=[], dag_runs=[]),
+                None,
+                self.SYNCER_TYPE,
+            )
             return
 
         dagruns = sorted(

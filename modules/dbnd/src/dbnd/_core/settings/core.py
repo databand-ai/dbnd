@@ -159,6 +159,17 @@ class CoreConfig(Config):
         default=False,
     )[bool]
 
+    client_session_timeout = parameter(
+        description="Minutes to recreate the api client's session", default=5
+    )[int]
+    client_max_retry = parameter(
+        description="Maximum amount of retries on failed connection for the api client",
+        default=2,
+    )[int]
+    client_retry_sleep = parameter(
+        description="Sleep between retries of the api client", default=0.1
+    )[float]
+
     def _validate(self):
         if not self.databand_url and self.tracker_url:
             logger.warning(
@@ -219,6 +230,9 @@ class CoreConfig(Config):
             self.databand_url,
             credentials=credentials,
             debug_server=self.debug_webserver,
+            session_timeout=self.client_session_timeout,
+            default_max_retry=self.client_max_retry,
+            default_retry_sleep=self.client_retry_sleep,
         )
 
 

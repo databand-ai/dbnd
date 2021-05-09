@@ -62,6 +62,7 @@ from dbnd._core.tracking.python_tracking import (
     track_modules,
 )
 from dbnd._core.tracking.script_tracking_manager import (
+    dbnd_tracking,
     dbnd_tracking_start,
     dbnd_tracking_stop,
 )
@@ -94,6 +95,7 @@ __all__ = [
     "get_databand_run",
     "get_databand_context",
     # inplace implementation
+    "dbnd_tracking",
     "dbnd_tracking_start",
     "dbnd_tracking_stop",
     "auto_namespace",
@@ -161,7 +163,7 @@ __all__ = [
 
 # shortcuts for useful objects
 str(_set_patches)  # NOQA
-__version__ = "0.39.2"
+__version__ = "0.39.3"
 
 __title__ = "databand"
 __description__ = "Machine Learning Orchestration"

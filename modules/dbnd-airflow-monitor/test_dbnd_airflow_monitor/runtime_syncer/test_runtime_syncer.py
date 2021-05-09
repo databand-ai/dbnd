@@ -93,8 +93,9 @@ def expect_changes(
     assert (
         patched_data_fetcher.get_dag_runs_state_data.call_count == update
     ), f"{prefix} get_dag_runs_state_data.call_count doesn't match"
-    assert (
-        patched_tracking_service.update_dagruns.call_count == update
+    # if no updates happened - then we should see "empty" update for heartbeat
+    assert patched_tracking_service.update_dagruns.call_count == (
+        update or 1
     ), f"{prefix} update_dagruns.call_count doesn't match"
 
     if reset:

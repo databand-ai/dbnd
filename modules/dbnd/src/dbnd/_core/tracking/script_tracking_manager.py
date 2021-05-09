@@ -111,8 +111,14 @@ class _DbndScriptTrackingManager(object):
             new_dbnd_context(name="inplace_tracking")
         )  # type: DatabandContext
 
+        if not root_task_name:
+            # extract the name of the script we are running
+            root_task_name = sys.argv[0].split(os.path.sep)[-1]
+
         if airflow_context:
-            root_task, job_name, source = build_run_time_airflow_task(airflow_context)
+            root_task, job_name, source = build_run_time_airflow_task(
+                airflow_context, root_task_name
+            )
         else:
             root_task = _build_inline_root_task(root_task_name)
             job_name = root_task.task_name
@@ -230,9 +236,6 @@ def _build_inline_root_task(root_task_name):
         ),  # we need to fix that
         source_code=TaskSourceCode.from_callstack(),
     )
-
-    if not root_task_name:
-        root_task_name = sys.argv[0].split(os.path.sep)[-1]
 
     root_task = TrackingTask(
         task_name=root_task_name,

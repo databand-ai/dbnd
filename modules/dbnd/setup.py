@@ -31,7 +31,7 @@ setuptools.setup(
         "six",
         "more-itertools ; python_version>='3.0'",
         "more-itertools==5.0.0 ; python_version<'3.0'",
-        "attrs<=20.3",
+        "attrs!=21.1.0",  # yanked version, breaks dbnd
         "pyyaml",  # yaml support in targets
         "pytz",  # python time zone for pendulum library
         "pytzdata",  # python time zone for pendulum library
