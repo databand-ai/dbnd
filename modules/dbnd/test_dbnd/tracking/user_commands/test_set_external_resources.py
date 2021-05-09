@@ -1,6 +1,6 @@
 import pytest
 
-from more_itertools import one
+from more_itertools import last, one
 
 from dbnd import task
 from dbnd._core.current import try_get_current_task_run
@@ -23,7 +23,7 @@ class TestSetExternalResourceURLS(object):
             return task_run.task_run_attempt_uid
 
         task_run_attempt_uid = task_with_set_external_resource_urls()
-        save_external_links_call = one(get_save_external_links(mock_channel_tracker))
+        save_external_links_call = last(get_save_external_links(mock_channel_tracker))
         assert save_external_links_call["external_links_dict"] == {
             "my_resource": "http://some_resource_name.com/path/to/resource/123456789"
         }
