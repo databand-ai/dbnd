@@ -16,6 +16,7 @@ requirements_for_airflow = [
     "Werkzeug<1.0.0,>=0.15.0",
     "psycopg2>=2.7.4,<2.8",
     "SQLAlchemy==1.3.15",  # Make sure Airflow uses SQLAlchemy 1.3.15, Airflow is incompatible with SQLAlchemy 1.4.x
+    "marshmallow<3.0.0,>=2.18.0",
 ]
 
 setuptools.setup(
