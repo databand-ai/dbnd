@@ -166,6 +166,14 @@ class RunState(EnumWithAll):
     SHUTDOWN = "shutdown"
     CANCELLED = "cancelled"
 
+    @staticmethod
+    def finished_states_str():
+        return [
+            TaskRunState.SUCCESS.value,
+            TaskRunState.FAILED.value,
+            TaskRunState.CANCELLED.value,
+        ]
+
 
 class AlertStatus(EnumWithAll):
     TRIGGERED = "TRIGGERED"
