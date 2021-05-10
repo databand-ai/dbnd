@@ -23,6 +23,8 @@ class AirflowServerConfig(object):
     fetcher = attr.ib(default="web")  # type: str
     dag_ids = attr.ib(default=None)  # type: Optional[str]
 
+    log_level = attr.ib(default=None)  # type: str
+
     # for web data fetcher
     rbac_username = attr.ib(default=None)  # type: str
     rbac_password = attr.ib(default=None)  # type: str

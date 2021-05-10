@@ -26,6 +26,9 @@ from airflow_monitor.errors import (
 from bs4 import BeautifulSoup as bs
 
 
+DEFAULT_REQUEST_TIMEOUT = 30
+LONG_REQUEST_TIMEOUT = 300
+
 logger = logging.getLogger(__name__)
 
 
@@ -88,7 +91,9 @@ class WebFetcher(AirflowDataFetcher):
                 raise failed_to_get_csrf_token(self.base_url)
 
         # login
-        resp = self.client.post(login_url, data=auth_params)
+        resp = self.client.post(
+            login_url, data=auth_params, timeout=DEFAULT_REQUEST_TIMEOUT
+        )
 
         # validate login succeeded
         soup = bs(resp.text, "html.parser")
@@ -99,8 +104,8 @@ class WebFetcher(AirflowDataFetcher):
             logger.warning("Could not login to %s.", login_url)
             raise failed_to_login_to_airflow(self.base_url)
 
-    def _make_request(self, endpoint_name, params):
-        # type: (str, Dict) -> Dict
+    def _make_request(self, endpoint_name, params, timeout=DEFAULT_REQUEST_TIMEOUT):
+        # type: (str, Dict, float) -> Dict
         auth = ()
         if self.api_mode == "experimental":
             auth = (self.rbac_username, self.rbac_password)
@@ -113,11 +118,12 @@ class WebFetcher(AirflowDataFetcher):
                 self.endpoint_url + "/" + endpoint_name.strip("/"),
                 params=params,
                 auth=auth,
+                timeout=timeout,
             )
             logger.info("Fetched from: {}".format(resp.url))
         except AirflowFetchingException:
             raise
-        except requests.exceptions.ConnectionError as ce:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as ce:
             raise failed_to_connect_to_airflow_server(self.base_url, ce)
         except ValueError as ve:
             raise failed_to_connect_to_server_port(self.base_url, ve)
@@ -170,7 +176,7 @@ class WebFetcher(AirflowDataFetcher):
         if dag_ids:
             params_dict["dag_ids"] = dag_ids
 
-        data = self._make_request("new_runs", params_dict)
+        data = self._make_request("new_runs", params_dict, timeout=LONG_REQUEST_TIMEOUT)
         return AirflowDagRunsResponse.from_dict(data)
 
     def get_full_dag_runs(
@@ -180,14 +186,18 @@ class WebFetcher(AirflowDataFetcher):
             dag_run_ids=",".join([str(dag_run_id) for dag_run_id in dag_run_ids]),
             include_sources=include_sources,
         )
-        data = self._make_request("full_runs", params_dict)
+        data = self._make_request(
+            "full_runs", params_dict, timeout=LONG_REQUEST_TIMEOUT
+        )
         return DagRunsFullData.from_dict(data)
 
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
         params_dict = {}
         if dag_run_ids:
             params_dict["dag_run_ids"] = ",".join([str(dr_id) for dr_id in dag_run_ids])
-        data = self._make_request("runs_states_data", params_dict)
+        data = self._make_request(
+            "runs_states_data", params_dict, timeout=LONG_REQUEST_TIMEOUT
+        )
         return DagRunsStateData.from_dict(data)
 
     def is_alive(self):

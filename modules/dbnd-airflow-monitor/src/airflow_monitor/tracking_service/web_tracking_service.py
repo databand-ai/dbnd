@@ -25,6 +25,9 @@ from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.timezone import utctoday
 
 
+DEFAULT_REQUEST_TIMEOUT = 30
+LONG_REQUEST_TIMEOUT = 300
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +45,11 @@ def _get_api_client(tracking_service_config: TrackingServiceConfig) -> "ApiClien
             "username": tracking_service_config.user,
             "password": tracking_service_config.password,
         }
-    return ApiClient(tracking_service_config.url, credentials=credentials)
+    return ApiClient(
+        tracking_service_config.url,
+        credentials=credentials,
+        default_request_timeout=DEFAULT_REQUEST_TIMEOUT,
+    )
 
 
 def _min_start_time(start_time_window):
@@ -62,9 +69,13 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
     def _url_for(self, name):
         return "tracking/{}/{}".format(self.tracking_source_uid, name)
 
-    def _make_request(self, name, method, data, query=None):
+    def _make_request(self, name, method, data, query=None, request_timeout=None):
         return self._api_client.api_request(
-            endpoint=self._url_for(name), method=method, data=data, query=query
+            endpoint=self._url_for(name),
+            method=method,
+            data=data,
+            query=query,
+            request_timeout=request_timeout,
         )
 
     def update_last_seen_values(self, last_seen_values: LastSeenValues):
@@ -105,7 +116,12 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
         data = dag_runs_full_data.as_dict()
         data["last_seen_dag_run_id"] = last_seen_dag_run_id
         data["syncer_type"] = syncer_type
-        response = self._make_request("init_dagruns", method="POST", data=data)
+        response = self._make_request(
+            "init_dagruns",
+            method="POST",
+            data=data,
+            request_timeout=LONG_REQUEST_TIMEOUT,
+        )
         return response
 
     def update_dagruns(
@@ -117,7 +133,12 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
         data = dag_runs_state_data.as_dict()
         data["last_seen_log_id"] = last_seen_log_id
         data["syncer_type"] = syncer_type
-        response = self._make_request("update_dagruns", method="POST", data=data)
+        response = self._make_request(
+            "update_dagruns",
+            method="POST",
+            data=data,
+            request_timeout=LONG_REQUEST_TIMEOUT,
+        )
         return response
 
     def update_monitor_state(self, monitor_state: MonitorState):

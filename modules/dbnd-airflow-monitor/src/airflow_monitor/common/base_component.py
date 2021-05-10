@@ -1,3 +1,4 @@
+import logging
 import time
 
 from typing import Type
@@ -35,6 +36,11 @@ class BaseMonitorComponent(object):
     @capture_monitor_exception
     def refresh_config(self):
         self.config = self.tracking_service.get_airflow_server_configuration()
+        if (
+            self.config.log_level
+            and logging.getLevelName(self.config.log_level) != logging.root.level
+        ):
+            logging.root.setLevel(self.config.log_level)
 
     def sync_once(self):
         self.refresh_config()

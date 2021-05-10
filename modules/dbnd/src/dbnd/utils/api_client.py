@@ -2,7 +2,7 @@ import logging
 
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 
 import requests
 
@@ -20,6 +20,9 @@ from dbnd._core.log.logging_utils import create_file_handler
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
 from dbnd._vendor import curlify
 
+
+# we'd like to have all requests with default timeout, just in case it's stuck
+DEFAULT_REQUEST_TIMEOUT = 300
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +46,9 @@ class ApiClient(object):
         session_timeout=5,
         default_max_retry=1,
         default_retry_sleep=0,
+        default_request_timeout=DEFAULT_REQUEST_TIMEOUT,
     ):
-        # type: (str, Optional[Dict[str, str]], bool, int, int, Union[int, float]) -> ApiClient
+        # type: (str, Optional[Dict[str, str]], bool, int, int, Union[int, float], Union[float, Tuple[float, float]]) -> ApiClient
         """
         @param api_base_url: databand webserver url to build the request with
         @param credentials: dict of credential to authenticate with the webserver
@@ -53,6 +57,9 @@ class ApiClient(object):
         @param session_timeout: minutes to recreate the requests session
         @param default_max_retry: default value for retries for failed connection
         @param default_retry_sleep: default value for sleep between retries
+        @param default_request_timeout: (optional) How long to wait for the server to send
+            data before giving up, as a float, or a :ref:`(connect timeout,
+            read timeout) <timeouts>` tuple
         """
 
         self._api_base_url = api_base_url
@@ -66,6 +73,7 @@ class ApiClient(object):
 
         self.default_max_retry = default_max_retry
         self.default_retry_sleep = default_retry_sleep
+        self.default_request_timeout = default_request_timeout
 
         self.debug_mode = debug_server
         if debug_server:
@@ -85,7 +93,15 @@ class ApiClient(object):
             minutes=self.session_timeout
         )
 
-    def _request(self, endpoint, method="GET", data=None, headers=None, query=None):
+    def _request(
+        self,
+        endpoint,
+        method="GET",
+        data=None,
+        headers=None,
+        query=None,
+        request_timeout=None,
+    ):
         if not self.session or self.is_session_timedout():
             logger.info(
                 "Webserver session does not exist or timedout, creating new one"
@@ -96,7 +112,12 @@ class ApiClient(object):
         url = urljoin(self._api_base_url, endpoint)
         try:
             request_params = dict(
-                method=method, url=url, json=data, headers=headers, params=query
+                method=method,
+                url=url,
+                json=data,
+                headers=headers,
+                params=query,
+                timeout=request_timeout or self.default_request_timeout,
             )
             logger.debug("Sending the following request: %s", request_params)
             resp = self.session.request(**request_params)
@@ -186,6 +207,7 @@ class ApiClient(object):
         no_prefix=False,
         retry_policy=None,
         failure_handler=None,
+        request_timeout=None,
     ):
         retry_policy = retry_policy or LinearRetryPolicy(
             seconds_to_sleep=self.default_retry_sleep,
@@ -198,9 +220,14 @@ class ApiClient(object):
             retry_number += 1
             try:
                 resp = self._request(
-                    url, method=method, data=data, headers=headers, query=query
+                    url,
+                    method=method,
+                    data=data,
+                    headers=headers,
+                    query=query,
+                    request_timeout=request_timeout,
                 )
-            except requests.ConnectionError as ex:
+            except (requests.ConnectionError, requests.Timeout) as ex:
                 if failure_handler:
                     failure_handler(ex, retry_policy, retry_number)
 
