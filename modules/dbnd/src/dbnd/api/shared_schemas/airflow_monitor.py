@@ -8,6 +8,12 @@ from dbnd._core.tracking.schemas.base import _ApiCallSchema
 from dbnd._vendor.marshmallow import fields, post_load
 
 
+class MonitorConfigSchema(_ApiCallSchema):
+    include_sources = fields.Boolean(required=False)
+    dag_run_bulk_size = fields.Integer(required=False)
+    start_time_window = fields.Integer(required=False)
+
+
 class AirflowServerInfoSchema(_ApiCallSchema):
     airflow_version = fields.String(allow_none=True)
     airflow_export_version = fields.String(allow_none=True)
@@ -41,7 +47,7 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     name = fields.String(allow_none=True)
     env = fields.String(allow_none=True)
     monitor_status = fields.String(allow_none=True)
-    monitor_config = fields.Dict(allow_none=True)  # TODO: attrs schema
+    monitor_config = fields.Nested(MonitorConfigSchema, allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
