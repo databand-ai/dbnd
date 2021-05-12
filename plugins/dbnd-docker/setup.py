@@ -17,7 +17,7 @@ setuptools.setup(
     install_requires=[
         "dbnd==" + version,
         "dbnd-airflow==" + version,
-        "docker~=3.0",
+        "docker>=3.0",
         # k8s
         "kubernetes>=9.0.0",
         "cryptography>=2.0.0",

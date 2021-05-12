@@ -354,14 +354,33 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         try:
             for submitted_pod in pods_to_delete:
                 task_run = submitted_pod.task_run
-                if task_run.task_run_state in TaskRunState.final_states():
-                    self.log.info(
-                        "%s with pod %s was %s, skipping",
-                        task_run,
-                        submitted_pod.pod_name,
-                        task_run.task_run_state,
-                    )
+                ti_state = get_airflow_task_instance_state(task_run)
+                if ti_state in State.finished():
+                    if task_run.task_run_state not in TaskRunState.final_states():
+                        self.log.info(
+                            "%s with pod %s is not finished: airflow state - %s and databand state - %s."
+                            "Setting the task_run state to match airflow state",
+                            task_run,
+                            submitted_pod.pod_name,
+                            ti_state,
+                            task_run.task_run_state,
+                        )
+
+                        new_state = AIRFLOW_TO_DBND_STATE_MAP.get(
+                            ti_state, TaskRunState.CANCELLED
+                        )
+                        task_run.set_task_run_state(new_state)
+                    else:
+                        self.log.info(
+                            "%s with pod %s is finished: airflow state - %s and databand state - %s.Skipping",
+                            task_run,
+                            submitted_pod.pod_name,
+                            ti_state,
+                            task_run.task_run_state,
+                        )
+
                     continue
+
                 task_run.set_task_run_state(TaskRunState.CANCELLED)
         except Exception:
             self.log.exception("Could not set pods to cancelled!")
