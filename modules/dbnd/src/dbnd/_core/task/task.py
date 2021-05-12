@@ -372,7 +372,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         except Exception as ex:
             access_status = DbndTargetOperationStatus.NOK
             raise friendly_error.task_execution.failed_to_save_value_to_target(
-                ex, self.task, parameter, original_value, current_value
+                ex, self, parameter, original_value, current_value
             )
         finally:
             if task_run:
