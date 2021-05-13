@@ -1,5 +1,26 @@
 # History
 
+## DBND v 0.40.10
+
+### New features
+
+* \#1200183306770565: Stats widget changed to display the top failure rate Pipelines.
+* \#1200191541441378: Server-side sorting for Pipeline stats widget.
+* \#1200258224502988: New Anomaly Detection alert is triggered if Custom Metric grows too fast.
+* \#1200259328525645: Airflow Monitor v.2.
+* \#1200183150156169: It’s now possible to see an alert’s effect on the affected data.
+
+### Improvements
+* \#1200044288700180: Drill down to Runs & Pipelines from the Dashboard.
+* \#1200259770331112: Click iteration and reporting stats added to Dashboard.
+* \#1200058439151159: Airflow monitor heartbeat indication.
+* \#1200243606518228: Errors Discovery Flow added for non-Python Operators.
+
+### Bug fixes
+* \#1200276060368190: Negative values are now displayed in Dashboard charts.
+* \#1200285224722668: Fixed Docker version incompatibility issue (extended the number of supported versions).
+* \#1200275951379659: Fixed Kubernetes execution bug when tasks were wrongly marked as canceled on the end of Pipelines.
+
 ## DBND v 0.39.00
 ### New features
 * \#1168991558489592: Auto-log paths became available for Spark JVM I/O (Alpha version).
