@@ -136,3 +136,9 @@ class RunConfig(config.Config):
     run_result_json_path = parameter(default=None).help(
         "The path to save the task band of the run"
     )[str]
+
+    debug_pydevd_pycharm_port = parameter(default=None).help(
+        "Enable debugging with `pydevd_pycharm` by setting this to the port value expecting the debugger to connect.\n"
+        "This will start a new `settrace` connecting to `localhost` on the requested port, "
+        "right before starting the driver task_run."
+    )[int]

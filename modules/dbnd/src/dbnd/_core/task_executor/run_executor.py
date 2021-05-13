@@ -35,6 +35,7 @@ from dbnd._core.task_executor.task_runs_builder import TaskRunsBuilder
 from dbnd._core.utils import console_utils
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.nested_context import nested
+from dbnd._core.utils.pycharm_debugger import start_pycharm_debugger
 from dbnd._core.utils.seven import cloudpickle
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
@@ -161,6 +162,11 @@ class RunExecutor(object):
 
         # with captures_log_into_file_as_task_file(log_file=self.local_driver_log.path):
         try:
+            if self.run_config.debug_pydevd_pycharm_port is not None:
+                debug_port = self.run_config.debug_pydevd_pycharm_port
+                # currently no need to export the host to configuration.
+                start_pycharm_debugger(host="localhost", port=debug_port)
+
             self.start_time = utcnow()
             run.driver_task_run.runner.execute()
             self.finished_time = utcnow()
