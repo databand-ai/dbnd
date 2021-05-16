@@ -26,7 +26,8 @@ except ImportError:
 
 
 if typing.TYPE_CHECKING:
-    from typing import List, Dict, Tuple, Any, Iterable
+    from typing import Any, Dict, Iterable, List, Tuple
+
     from dbnd._core.task_run.task_run import TaskRun
     from targets.value_meta import ValueMeta
 
@@ -202,7 +203,7 @@ class ConsoleStore(TrackingStore):
         Additionally forces float values to NOT use scientific notation.
         """
         if isinstance(value, float):
-            value_width = abs(floor(log10(value)))
+            value_width = 1 if value == 0.0 else abs(floor(log10(abs(value))))
             # default python precision threshold to switch to scientific representation of floats
             if value > 1 or value_width < 4:
                 return str(value)
