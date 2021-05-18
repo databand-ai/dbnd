@@ -110,7 +110,10 @@ class PandasHistograms(object):
                 return
 
             column_type = self._get_column_type(df_column)
-            if is_bool_dtype(column_type) or is_string_dtype(column_type):
+            if "1" < pd.__version__ < "1.2":
+                # handle  'Float32', 'Float64', 'Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64'
+                column_type = column_type.lower()
+            if is_string_dtype(column_type) or is_bool_dtype(column_type):
                 counts = df_column.value_counts()  # type: pd.Series
                 if (
                     stats
