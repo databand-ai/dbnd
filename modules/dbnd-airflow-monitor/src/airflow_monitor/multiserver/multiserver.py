@@ -9,6 +9,7 @@ from airflow_monitor.common import capture_monitor_exception
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.metric_reporter import generate_latest_metrics
 from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.multiserver.liveness_probe import create_liveness_file
 from airflow_monitor.multiserver.monitor_component_manager import (
     MonitorComponentManager,
 )
@@ -117,6 +118,7 @@ class MultiServerMonitor(object):
 
         self.ensure_monitored_servers(servers)
         self.heartbeat()
+        create_liveness_file()
 
     def filter_servers(self, servers):
         if not self.monitor_config.syncer_name:

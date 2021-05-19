@@ -1,12 +1,15 @@
+import time
 import uuid
 
 import pytest
 
+from click.testing import CliRunner
 from mock import patch
 
 from airflow_monitor.common.base_component import BaseMonitorComponent
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.multiserver.cmd_liveness_probe import airflow_monitor_v2_alive
 from airflow_monitor.multiserver.monitor_component_manager import KNOWN_COMPONENTS
 from airflow_monitor.multiserver.multiserver import MultiServerMonitor
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
@@ -299,3 +302,18 @@ class TestMultiServer(object):
         assert len(multi_server.active_monitors) == 1
         assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
         assert not mock_tracking_service.current_monitor_state.monitor_error_message
+
+    def test_08_liveness_prove(self, multi_server, mock_server_config_service, caplog):
+        runner = CliRunner()
+        multi_server.run_once()
+
+        result = runner.invoke(airflow_monitor_v2_alive, ["--max-time-diff", "5"])
+        assert result.exit_code == 0
+
+        time.sleep(6)
+        result = runner.invoke(airflow_monitor_v2_alive, ["--max-time-diff", "5"])
+        assert result.exit_code != 0
+
+        multi_server.run_once()
+        result = runner.invoke(airflow_monitor_v2_alive, ["--max-time-diff", "5"])
+        assert result.exit_code == 0
