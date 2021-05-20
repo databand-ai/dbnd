@@ -169,6 +169,6 @@ def set_dbnd_config_from_airflow_connections():
         logger.info(afe)
         return False
 
-    except Exception as e:
-        logger.error(e)
+    except Exception:
+        logger.exception("Failed to extract dbnd config from airflow's connection.")
         return False

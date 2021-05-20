@@ -135,13 +135,12 @@ class TestTrackOperator(object):
     def ecs_operator(self, dag):
         return ECSOperator(
             task_id="ecs_task",
-            application="script.py",
+            dag=dag,
             cluster="cluster",
             task_definition="definition",
             overrides={
                 "containerOverrides": [{"command": ["some", "command"], "cpu": 50,}]
             },
-            dag=dag,
         )
 
     def test_ecs_operator(self, ecs_operator):
@@ -157,7 +156,7 @@ class TestTrackOperator(object):
     def ecs_operator_with_env(self, dag):
         return ECSOperator(
             task_id="ecs_task",
-            application="script.py",
+            dag=dag,
             cluster="cluster",
             task_definition="definition",
             overrides={
@@ -169,7 +168,6 @@ class TestTrackOperator(object):
                     }
                 ]
             },
-            dag=dag,
         )
 
     def test_ecs_operator_with_env(self, ecs_operator_with_env):

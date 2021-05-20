@@ -12,9 +12,22 @@ from dbnd._core.errors.friendly_error.versioned_dagbag import (
     failed_to_retrieve_dag_via_dbnd_versioned_dagbag,
 )
 from dbnd._vendor import pendulum
+from dbnd_airflow.constants import AIRFLOW_VERSION_2
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_dagbag_model():
+    if AIRFLOW_VERSION_2:
+        from airflow.models.dagbag import DagBag
+
+        dagbag = DagBag()
+    elif airflow.settings.RBAC:
+        from airflow.www_rbac.views import dagbag
+    else:
+        from airflow.www.views import dagbag
+    return dagbag
 
 
 class DbndDagModel(DagModel):
@@ -33,7 +46,7 @@ class DbndDagModel(DagModel):
         if dag:
             return dag
 
-        from airflow.www_rbac.views import dagbag
+        dagbag = get_dagbag_model()
 
         return dagbag.get_dag(dag_id=self.dag_id)
 

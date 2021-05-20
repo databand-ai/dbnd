@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 from airflow import DAG, settings
-from airflow.executors import SequentialExecutor
+from airflow.executors.sequential_executor import SequentialExecutor
 from airflow.models import XCom
 from airflow.utils.dates import days_ago
 
@@ -15,7 +15,7 @@ from targets import target
 
 
 logger = logging.getLogger(__name__)
-_lib_dbnd_airflow_operator_test = relative_path(__file__, "..", "..", "..")
+_lib_dbnd_airflow_operator_test = relative_path(__file__, "../..", "..", "..")
 
 
 def get_executor_for_test():

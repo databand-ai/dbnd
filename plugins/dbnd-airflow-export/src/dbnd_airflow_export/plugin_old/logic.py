@@ -1,9 +1,8 @@
 import logging
 
-import pendulum
-
 from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow_export.dag_processing import get_dags, load_dags_models
+from dbnd_airflow_export.datetime_utils import pendulum_max_dt
 from dbnd_airflow_export.plugin_old.db_queries import (
     get_completed_task_instances_and_dag_runs,
     get_dag_runs_within_time_window,
@@ -62,7 +61,7 @@ def get_complete_data(
         task.end_date for task in task_instances if task.end_date is not None
     ]
     if not task_end_dates or not quantity or len(task_instances) < quantity:
-        dag_run_end_date = pendulum.datetime.max
+        dag_run_end_date = pendulum_max_dt
     else:
         dag_run_end_date = max(task_end_dates)
 

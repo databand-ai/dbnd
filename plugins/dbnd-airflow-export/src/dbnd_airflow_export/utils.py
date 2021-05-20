@@ -1,6 +1,10 @@
 import datetime
 import json
 
+from distutils.version import LooseVersion
+
+import airflow
+
 from flask import Response
 
 
@@ -22,3 +26,6 @@ def json_response(obj):
         status=200,
         mimetype="application/json",
     )
+
+
+AIRFLOW_VERSION_2 = LooseVersion(airflow.version.version) >= LooseVersion("2.0.0")

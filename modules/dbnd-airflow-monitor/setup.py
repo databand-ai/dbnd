@@ -29,7 +29,7 @@ setuptools.setup(
             "WTForms<2.3.0",
             "apache-airflow>=1.10.9,<=1.10.11",
             "sh",
-            "SQLAlchemy==1.3.15",
+            "SQLAlchemy==1.3.18",
         ],
         "composer": [
             "PyJWT==1.7.1",

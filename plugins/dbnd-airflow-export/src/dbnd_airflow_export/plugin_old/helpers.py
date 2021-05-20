@@ -14,6 +14,7 @@ from airflow.models import BaseOperator
 
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.git import get_git_commit, is_git_dirty
+from dbnd_airflow_export.compat import get_task_log_reader
 
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ def _get_log(ti, task):
     try:
         ti.task = task
         af_logger = logging.getLogger("airflow.task")
-        task_log_reader = conf.get("core", "task_log_reader")
+        task_log_reader = get_task_log_reader()
         handler = next(
             (
                 handler

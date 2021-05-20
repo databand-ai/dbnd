@@ -1,6 +1,7 @@
 from airflow import DAG
 
 from dbnd_airflow.config import get_dbnd_default_args
+from dbnd_airflow.constants import AIRFLOW_VERSION_1
 
 
 class DatabandOpCatcherDag(DAG):
@@ -27,7 +28,7 @@ _dag_catcher = None
 def get_databand_op_catcher_dag():
     import airflow
 
-    if airflow.settings.CONTEXT_MANAGER_DAG:
+    if AIRFLOW_VERSION_1 and airflow.settings.CONTEXT_MANAGER_DAG:
         # we are inside native airflow DAG or already have DatabandOpCatcherDag
         return None
 

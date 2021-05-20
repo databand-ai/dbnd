@@ -4,8 +4,8 @@ from airflow import DAG
 from airflow.models import TaskInstance
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
-from pendulum import utcnow
 
+from dbnd._vendor.pendulum import utcnow
 from dbnd_airflow import track_task
 
 

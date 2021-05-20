@@ -8,17 +8,20 @@ import flask
 import pendulum
 
 from airflow.configuration import conf
+from airflow.exceptions import AirflowConfigException
 from airflow.models import DagModel
 from airflow.utils.db import provide_session
 
+from dbnd_airflow_export.compat import is_rbac_enabled
 from dbnd_airflow_export.dag_processing import get_current_dag_model
+from dbnd_airflow_export.datetime_utils import pendulum_min_dt
 from dbnd_airflow_export.plugin_old.logic import (
     get_complete_data,
     get_dags_list_only,
     get_incomplete_data_type_1,
     get_incomplete_data_type_2,
 )
-from dbnd_airflow_export.utils import json_response
+from dbnd_airflow_export.utils import AIRFLOW_VERSION_2, json_response
 
 
 @provide_session
@@ -37,7 +40,7 @@ def get_airflow_data(
     if since:
         since = pendulum.parse(re.sub(r" 00:00$", "Z", str(since)))
     else:
-        since = pendulum.datetime.min
+        since = pendulum_min_dt
 
     # We monkey patch `get_current` to optimize sql querying
     old_get_current_dag = DagModel.get_current
@@ -96,7 +99,6 @@ def export_data_api(dagbag):
         else None
     )
     quantity = flask.request.args.get("fetch_quantity", type=int)
-    rbac_enabled = conf.get("webserver", "rbac").lower() == "true"
     incomplete_offset = flask.request.args.get("incomplete_offset", type=int)
     fetch_type = flask.request.args.get("fetch_type")
 
@@ -104,10 +106,12 @@ def export_data_api(dagbag):
         new_since = datetime.datetime.utcnow().replace(
             tzinfo=pendulum.timezone("UTC")
         ) - datetime.timedelta(days=1)
+
         redirect_url = (
-            "ExportDataViewAppBuilder" if rbac_enabled else "data_export_plugin"
+            "ExportDataViewAppBuilder" if is_rbac_enabled() else "data_export_plugin"
         )
         redirect_url += ".export_data"
+
         return flask.redirect(flask.url_for(redirect_url, since=new_since, code=303))
 
     # do_update = flask.request.args.get("do_update", "").lower() == "true"

@@ -3,6 +3,7 @@ import pendulum
 from airflow.models import DagRun
 from sqlalchemy import and_
 
+from dbnd_airflow_export.datetime_utils import pendulum_max_dt
 from dbnd_airflow_export.plugin_old.metrics import measure_time, save_result_size
 from dbnd_airflow_export.plugin_old.model import EDagRun, ETaskInstance
 from dbnd_airflow_export.plugin_old.task_instance_building import build_task_instance
@@ -47,7 +48,7 @@ def get_dag_runs_within_time_window(start_date, end_date, dag_ids, quantity, ses
 
     # We reached a point where there are no more task, but can have potentially large number of dag runs with no tasks
     # so let's limit them. In the next fetch we'll get the next runs.
-    if quantity is not None and end_date == pendulum.datetime.max:
+    if quantity is not None and end_date == pendulum_max_dt:
         dagruns_query = dagruns_query.order_by(DagRun.end_date).limit(quantity)
 
     return set(EDagRun.from_db_fields(*fields) for fields in dagruns_query.all())

@@ -2,12 +2,11 @@ import logging
 
 import pytest
 
-from dbnd._core.plugin.dbnd_plugins import is_web_enabled
 from dbnd_airflow.airflow_override.dbnd_aiflow_webserver import (
     use_databand_airflow_dagbag,
 )
 from dbnd_airflow.web.airflow_app import create_app
-from test_dbnd_airflow.utils import WebAppCtrl
+from test_dbnd_airflow.web.utils import WebAppCtrl
 
 
 logger = logging.getLogger(__name__)

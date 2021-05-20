@@ -23,7 +23,11 @@ print(os.environ["DBND__LOG__SQLALCHEMY_TRACE"])
 
 
 def main():
-    from airflow import conf
+    try:
+        from airflow import conf
+    except ImportError:
+        from airflow.configuration import conf
+
     from airflow.jobs.scheduler_job import SchedulerJob
     from airflow.models import DagBag
 

@@ -2,7 +2,6 @@ import typing
 
 from datetime import datetime
 
-from airflow import DAG
 from airflow.configuration import conf
 from airflow.models import DagRun
 from airflow.utils.net import get_hostname
@@ -10,6 +9,7 @@ from airflow.version import version as airflow_version
 
 from dbnd._core.tracking.tracking_info_convertor import source_md5
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
+from dbnd_airflow_export.compat import base_log_folder, is_rbac_enabled
 from dbnd_airflow_export.plugin_old.helpers import (
     _extract_args_from_dict,
     _get_command_from_operator,
@@ -25,7 +25,7 @@ from dbnd_airflow_export.plugin_old.helpers import (
 
 if typing.TYPE_CHECKING:
     from typing import List
-    from airflow.models import DagModel, DagTag
+    from airflow.models import DagModel, DagTag, DAG
 
 try:
     # in dbnd it might be overridden
@@ -350,9 +350,9 @@ class ExportData(object):
         self.since = since  # type: datetime
         self.airflow_version = airflow_version
         self.dags_path = conf.get("core", "dags_folder")
-        self.logs_path = conf.get("core", "base_log_folder")
+        self.logs_path = base_log_folder()
         self.airflow_export_version = _get_export_plugin_version()
-        self.rbac_enabled = conf.get("webserver", "rbac")
+        self.rbac_enabled = is_rbac_enabled()
         self.airflow_instance_uid = get_airflow_instance_uid()
 
     def as_dict(self):

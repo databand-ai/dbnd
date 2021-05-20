@@ -10,7 +10,10 @@ from test_dbnd_airflow.airflow_home.dags.dag_test_examples import (
     t_B,
     t_pipeline,
 )
-from test_dbnd_airflow.functional.utils import read_xcom_result_value, run_and_get
+from test_dbnd_airflow.orchestration.functional.utils import (
+    read_xcom_result_value,
+    run_and_get,
+)
 
 
 str(dbnd)

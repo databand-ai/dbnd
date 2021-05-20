@@ -2,12 +2,17 @@ import datetime
 import logging
 import typing
 
-from airflow.jobs import BaseJob
 from airflow.models import DagRun, TaskInstance as TI
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from sqlalchemy import and_, or_
+
+
+try:
+    from airflow.jobs import BaseJob
+except ImportError:
+    from airflow.jobs.base_job import BaseJob
 
 
 if typing.TYPE_CHECKING:

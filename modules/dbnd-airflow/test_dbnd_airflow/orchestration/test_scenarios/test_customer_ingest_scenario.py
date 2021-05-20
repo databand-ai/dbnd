@@ -1,6 +1,6 @@
 import pytest
 
-from test_dbnd_airflow.functional.utils import run_and_get
+from test_dbnd_airflow.orchestration.functional.utils import run_and_get
 
 
 class TestCustomerIngestScenario(object):

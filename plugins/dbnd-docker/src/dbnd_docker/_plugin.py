@@ -9,7 +9,7 @@ from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 logger = logging.getLogger(__name__)
 
 
-@dbnd.hookimpl
+# @dbnd.hookimpl
 def dbnd_setup_plugin():
     from dbnd_docker.docker.docker_engine_config import DockerEngineConfig
     from dbnd_docker.docker.docker_task import DockerRunTask

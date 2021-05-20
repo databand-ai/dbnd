@@ -14,10 +14,12 @@ def _wrap_policy_with_dbnd_track_task(policy):
 
 
 def _patch_policy(module):
-    if not hasattr(module, "policy"):
-        return
-    new_policy = _wrap_policy_with_dbnd_track_task(module.policy)
-    module.policy = new_policy
+    if hasattr(module, "policy"):
+        new_policy = _wrap_policy_with_dbnd_track_task(module.policy)
+        module.policy = new_policy
+    elif hasattr(module, "task_policy"):
+        new_policy = _wrap_policy_with_dbnd_track_task(module.task_policy)
+        module.task_policy = new_policy
 
 
 def _add_tracking_to_policy():
@@ -31,7 +33,7 @@ def _add_tracking_to_policy():
     except ImportError:
         pass
 
-    from airflow import settings
+    from airflow.models.dagbag import settings
 
     _patch_policy(settings)
 
@@ -40,7 +42,7 @@ def add_tracking_to_policy():
     """ Add tracking to all tasks as part of airflow policy """
     try:
         _add_tracking_to_policy()
-    except Exception:
+    except Exception as e:
         logging.exception("Failed to add tracking in policy")
 
 
@@ -71,10 +73,9 @@ def patch_snowflake_hook():
             config_base_target_reporter,
         )
         import snowflake
+        from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
     except ImportError:
         # one of them is not available
         return
-
-    from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 
     patch_airflow_db_hook(SnowflakeHook, config_base_target_reporter)

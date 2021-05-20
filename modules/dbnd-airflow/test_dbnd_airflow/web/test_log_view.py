@@ -21,13 +21,13 @@ import copy
 import os
 import sys
 
-from airflow import configuration as conf
 from airflow.config_templates.airflow_local_settings import DEFAULT_LOGGING_CONFIG
+from airflow.configuration import conf
 from pytest import fixture, mark
 
 from dbnd._core.utils.date_utils import airflow_datetime_str
 from dbnd_test_scenarios.test_common.task.factories import TTask
-from test_dbnd_airflow.utils import WebAppTest
+from test_dbnd_airflow.web.utils import WebAppTest
 
 
 @fixture

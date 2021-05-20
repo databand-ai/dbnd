@@ -1,5 +1,6 @@
 import logging
 
+import airflow
 import flask_admin
 import flask_appbuilder
 
@@ -13,6 +14,19 @@ from dbnd_airflow_export.request_processing import (
     process_metadata_request,
     process_new_runs_request,
 )
+from dbnd_airflow_export.utils import AIRFLOW_VERSION_2
+
+
+def get_dagbag_model():
+    if AIRFLOW_VERSION_2:
+        from airflow.models.dagbag import DagBag
+
+        dagbag = DagBag()
+    elif airflow.settings.RBAC:
+        from airflow.www_rbac.views import dagbag
+    else:
+        from airflow.www.views import dagbag
+    return dagbag
 
 
 class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
@@ -22,8 +36,7 @@ class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
     @flask_appbuilder.has_access
     @flask_appbuilder.expose("/export_data")
     def export_data(self):
-        from airflow.www_rbac.views import dagbag
-
+        dagbag = get_dagbag_model()
         return export_data_api(dagbag)
 
     @flask_appbuilder.has_access
@@ -61,8 +74,7 @@ class ExportDataViewAdmin(flask_admin.BaseView):
     @flask_admin.expose("/")
     @flask_admin.expose("/export_data")
     def export_data(self):
-        from airflow.www.views import dagbag
-
+        dagbag = get_dagbag_model()
         return export_data_api(dagbag)
 
     @flask_admin.expose("/last_seen_values")
@@ -94,49 +106,53 @@ class DataExportAirflowPlugin(AirflowPlugin):
     ]
 
 
-try:
-    # this import is critical for loading `requires_authentication`
-    from airflow import api
+if not AIRFLOW_VERSION_2:
+    try:
+        # this import is critical for loading `requires_authentication`
+        from airflow import api
 
-    api.load_auth()
+        api.load_auth()
+        if AIRFLOW_VERSION_2:
+            from airflow.www.api.experimental.endpoints import (
+                api_experimental,
+                requires_authentication,
+            )
+        else:
+            from airflow.www_rbac.api.experimental.endpoints import (
+                api_experimental,
+                requires_authentication,
+            )
 
-    from airflow.www_rbac.api.experimental.endpoints import (
-        api_experimental,
-        requires_authentication,
-    )
+        @api_experimental.route("/export_data", methods=["GET"])
+        @requires_authentication
+        def export_data():
+            dagbag = get_dagbag_model()
+            return export_data_api(dagbag)
 
-    @api_experimental.route("/export_data", methods=["GET"])
-    @requires_authentication
-    def export_data():
-        from airflow.www_rbac.views import dagbag
+        @api_experimental.route("/last_seen_values", methods=["GET"])
+        @requires_authentication
+        def last_seen_values(self):
+            return process_last_seen_values_request()
 
-        return export_data_api(dagbag)
+        @api_experimental.route("/new_runs", methods=["GET"])
+        @requires_authentication
+        def new_runs(self):
+            return process_new_runs_request()
 
-    @api_experimental.route("/last_seen_values", methods=["GET"])
-    @requires_authentication
-    def last_seen_values(self):
-        return process_last_seen_values_request()
+        @api_experimental.route("/full_runs", methods=["GET"])
+        @requires_authentication
+        def full_runs(self):
+            return process_full_runs_request()
 
-    @api_experimental.route("/new_runs", methods=["GET"])
-    @requires_authentication
-    def new_runs(self):
-        return process_new_runs_request()
+        @api_experimental.route("/runs_states_data", methods=["GET"])
+        @requires_authentication
+        def task_instances(self):
+            return process_dag_run_states_data_request()
 
-    @api_experimental.route("/full_runs", methods=["GET"])
-    @requires_authentication
-    def full_runs(self):
-        return process_full_runs_request()
+        @api_experimental.route("/metadata", methods=["GET"])
+        @requires_authentication
+        def metadata(self):
+            return process_metadata_request()
 
-    @api_experimental.route("/runs_states_data", methods=["GET"])
-    @requires_authentication
-    def task_instances(self):
-        return process_dag_run_states_data_request()
-
-    @api_experimental.route("/metadata", methods=["GET"])
-    @requires_authentication
-    def metadata(self):
-        return process_metadata_request()
-
-
-except Exception as e:
-    logging.error("Export data could not be added to experimental api: %s", e)
+    except Exception as e:
+        logging.error("Export data could not be added to experimental api: %s", e)
