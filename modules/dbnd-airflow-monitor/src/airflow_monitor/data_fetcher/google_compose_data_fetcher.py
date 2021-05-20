@@ -10,12 +10,13 @@ class GoogleComposerFetcher(WebFetcher):
         self.client_id = config.composer_client_id
         self.env = "GoogleCloudComposer"
 
-    def _make_request(self, endpoint_name, params):
+    def _do_make_request(self, endpoint_name, params, timeout):
         from airflow_monitor.make_iap_request import make_iap_request
 
         resp = make_iap_request(
             url=self.endpoint_url + "/" + endpoint_name.strip("/"),
             client_id=self.client_id,
             params=params,
+            timeout=timeout,
         )
         return resp

@@ -106,20 +106,8 @@ class WebFetcher(AirflowDataFetcher):
 
     def _make_request(self, endpoint_name, params, timeout=DEFAULT_REQUEST_TIMEOUT):
         # type: (str, Dict, float) -> Dict
-        auth = ()
-        if self.api_mode == "experimental":
-            auth = (self.rbac_username, self.rbac_password)
-        elif self.api_mode == "rbac" and not self.is_logged_in:
-            # In RBAC mode, we need to login with admin credentials first
-            self._try_login()
-
         try:
-            resp = self.client.get(
-                self.endpoint_url + "/" + endpoint_name.strip("/"),
-                params=params,
-                auth=auth,
-                timeout=timeout,
-            )
+            resp = self._do_make_request(endpoint_name, params, timeout)
             logger.info("Fetched from: {}".format(resp.url))
         except AirflowFetchingException:
             raise
@@ -149,6 +137,21 @@ class WebFetcher(AirflowDataFetcher):
         log_received_tasks(self.base_url, json_data)
         send_metrics(self.base_url, json_data.get("airflow_export_meta"))
         return json_data
+
+    def _do_make_request(self, endpoint_name, params, timeout):
+        auth = ()
+        if self.api_mode == "experimental":
+            auth = (self.rbac_username, self.rbac_password)
+        elif self.api_mode == "rbac" and not self.is_logged_in:
+            # In RBAC mode, we need to login with admin credentials first
+            self._try_login()
+        resp = self.client.get(
+            self.endpoint_url + "/" + endpoint_name.strip("/"),
+            params=params,
+            auth=auth,
+            timeout=timeout,
+        )
+        return resp
 
     def get_source(self):
         return self.endpoint_url
