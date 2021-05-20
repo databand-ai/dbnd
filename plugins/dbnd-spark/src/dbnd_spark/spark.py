@@ -82,6 +82,7 @@ class _BaseSparkTask(Task):
             fat_wheel_task = fat_wheel_building_task(
                 task_version=try_get_databand_context().current_context_uid,
                 task_target_date="today",
+                task_is_system=True,
             )
             self.spark_resources = {"user_project": fat_wheel_task}
 
