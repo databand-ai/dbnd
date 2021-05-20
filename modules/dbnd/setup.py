@@ -37,7 +37,6 @@ setuptools.setup(
         "pytzdata",  # python time zone for pendulum library
         "requests>=2.18.0",  # API TRACKING
         "configparser<3.6.0,>=3.5.0",  # same versions as Airflow -- Moved library to _vendor
-        "jinja2>=2.10.1, <2.12",  # same versions as Airflow
         "GitPython ; python_version>='3.0'",
         "GitPython==2.1.15 ; python_version<'3.0'",
         'pygments<=2.5.2 ; python_version < "3.0"',
@@ -49,6 +48,7 @@ setuptools.setup(
         "enum34;python_version<='2.7'",
         'contextlib2; python_version < "3"',
         "python-dateutil",
+        "jinja2>=2.10.1, <2.12",  # same versions as Airflow
     ],
     extras_require={
         ':sys_platform=="win32"': ["colorama"],
