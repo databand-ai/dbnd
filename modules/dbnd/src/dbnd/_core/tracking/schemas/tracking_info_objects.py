@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class TaskDefinitionInfo(_DbndDataClass):
     task_definition_uid = attr.ib()  # type: UUID
 
-    name = attr.ib()  # type: str
+    name = attr.ib(repr=True)  # type: str
     family = attr.ib()  # type: str
     type = attr.ib()  # type: str
 
@@ -48,24 +48,24 @@ class TaskRunParamInfo(_DbndDataClass):
 
 @attr.s
 class TaskRunInfo(_DbndDataClass):
-    task_run_uid = attr.ib()  # type: UUID
-    task_run_attempt_uid = attr.ib()  # type: UUID
+    task_run_uid = attr.ib(repr=False)  # type: UUID
+    task_run_attempt_uid = attr.ib(repr=False)  # type: UUID
 
-    task_definition_uid = attr.ib()  # type: UUID
-    run_uid = attr.ib()  # type: UUID
+    task_definition_uid = attr.ib(repr=False)  # type: UUID
+    run_uid = attr.ib(repr=False)  # type: UUID
+
+    task_af_id = attr.ib()  # type: str
+    task_id = attr.ib()  # type: str
 
     execution_date = attr.ib()  # type: datetime
-    task_af_id = attr.ib()  # type: str
-
-    task_id = attr.ib()  # type: str
     task_signature = attr.ib()  # type: str
 
     name = attr.ib()  # type: str
 
     env = attr.ib()  # type: str
 
-    command_line = attr.ib()  # type: str
-    functional_call = attr.ib()  # type: str
+    command_line = attr.ib(repr=False)  # type: str
+    functional_call = attr.ib(repr=False)  # type: str
 
     has_downstreams = attr.ib()  # type: bool
     has_upstreams = attr.ib()  # type: bool

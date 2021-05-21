@@ -4,9 +4,9 @@ import pandas as pd
 
 import dbnd
 
-from dbnd import Config, data, output, parameter, task
+from dbnd import Config, data, output, parameter, pipeline, task
 from dbnd._core.current import current_task_run
-from dbnd.tasks import PythonTask
+from dbnd.tasks import PipelineTask, PythonTask
 
 
 class TTask(PythonTask):
@@ -39,7 +39,7 @@ class RequiredConfig(dbnd.Config):
     required_test_param = parameter[str]
 
 
-class TaskThatRequiresConfig(dbnd.tasks.PipelineTask):
+class TaskThatRequiresConfig(PipelineTask):
     some_output = output
 
     def band(self):
@@ -67,6 +67,11 @@ class TTaskWithMetrics(TTask):
         current_task_run().set_external_resource_urls({"someurl": "http://localhost"})
 
         super(TTaskWithMetrics, self).run()
+
+
+class TPipelineWithMetrics(PipelineTask):
+    def band(self):
+        TTaskWithMetrics()
 
 
 class TTaskWithMetricsAndInput(TTaskWithMetrics):
@@ -105,3 +110,10 @@ def ttask_simple(tparam="1"):
 def ttask_dataframe(tparam=1):
     # type:(int)->pd.DataFrame
     return pd.DataFrame(data=[[tparam, tparam]], columns=["c1", "c2"])
+
+
+@pipeline
+def tpipeline_simple(param1=1, param2="2"):
+    data_df = ttask_dataframe(param1)
+    data_str = ttask_simple(str(data_df))
+    return data_str
