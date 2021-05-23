@@ -13,10 +13,10 @@ from dbnd_airflow_export.utils import json_response
 def convert_url_param_value_to_list(
     param_name, value_type, default_value, separator=","
 ):
-    if param_name not in flask.request.args:
+    if param_name not in flask.request.values:
         return default_value
 
-    param_value = flask.request.args.get(param_name, type=str)
+    param_value = flask.request.values.get(param_name, type=str)
     if not param_value:
         return default_value
 
@@ -32,12 +32,12 @@ def process_last_seen_values_request():
 
 
 def process_new_runs_request():
-    last_seen_dag_run_id = flask.request.args.get("last_seen_dag_run_id", type=int)
-    last_seen_log_id = flask.request.args.get("last_seen_log_id", type=int)
+    last_seen_dag_run_id = flask.request.values.get("last_seen_dag_run_id", type=int)
+    last_seen_log_id = flask.request.values.get("last_seen_log_id", type=int)
     extra_dag_runs_ids = convert_url_param_value_to_list("extra_dag_runs_ids", int, [])
     dag_ids = convert_url_param_value_to_list("dag_ids", str, None)
     # default to true
-    include_subdags = flask.request.args.get("include_subdags", "").lower() != "false"
+    include_subdags = flask.request.values.get("include_subdags", "").lower() != "false"
 
     return json_response(
         get_new_dag_runs(
@@ -52,7 +52,7 @@ def process_new_runs_request():
 
 def process_full_runs_request():
     dag_run_ids = convert_url_param_value_to_list("dag_run_ids", int, [])
-    include_sources = flask.request.args.get("include_sources", "").lower() == "true"
+    include_sources = flask.request.values.get("include_sources", "").lower() == "true"
 
     return json_response(get_full_dag_runs(dag_run_ids, include_sources).as_dict())
 

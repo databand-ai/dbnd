@@ -29,6 +29,8 @@ from bs4 import BeautifulSoup as bs
 DEFAULT_REQUEST_TIMEOUT = 30
 LONG_REQUEST_TIMEOUT = 300
 
+DEFAULT_SESSION_TIMEOUT_IN_MINUTES = 5
+
 logger = logging.getLogger(__name__)
 
 
@@ -58,56 +60,62 @@ class WebFetcher(AirflowDataFetcher):
         super(WebFetcher, self).__init__(config)
         self.env = "Airflow"
         self.base_url = config.base_url
+        self.login_url = self.base_url + "/login/"
         self.api_mode = config.api_mode
         self.endpoint_url = get_endpoint_url(config.base_url, config.api_mode)
         self.rbac_username = config.rbac_username
         self.rbac_password = config.rbac_password
-        self.client = requests.session()
+        self.session = requests.session()
         self.is_logged_in = False
 
-    def _try_login(self):
-        login_url = self.base_url + "/login/"
+    def _get_csrf_token(self):
+        # IMPORTANT: Airflow doesn't return the relevant csrf token in a cookie,
+        # but inside the main page html content (In RBAC mode in the login page).
+        # Therefore, we are extracting it, and attaching it to the session manually
+        logger.info(
+            "Trying to login to %s with username: %s.",
+            self.login_url,
+            self.rbac_username,
+        )
+        # extract csrf token, will raise ConnectionError if the server is is down
+        resp = self.session.get(self.login_url)
+        soup = bs(resp.text, "html.parser")
+        csrf_token_tag = soup.find(id="csrf_token")
+        if not csrf_token_tag:
+            raise failed_to_get_csrf_token(self.base_url)
+
+        return csrf_token_tag.get("value")
+
+    def _login_to_server(self):
         auth_params = {"username": self.rbac_username, "password": self.rbac_password}
+        csrf_token = self._get_csrf_token()
 
-        # IMPORTANT: when airflow uses RBAC (Flask-AppBuilder [FAB]) it doesn't return
-        # the relevant csrf token in a cookie, but inside the login page html content.
-        # therefore, we are extracting it, and attaching it to the session manually
-        if self.api_mode == "rbac":
-            # extract csrf token, will raise ConnectionError if the server is is down
-            logger.info(
-                "Trying to login to %s with username: %s.",
-                login_url,
-                self.rbac_username,
-            )
-            resp = self.client.get(login_url)
-            soup = bs(resp.text, "html.parser")
-            csrf_token_tag = soup.find(id="csrf_token")
-            if not csrf_token_tag:
-                raise failed_to_get_csrf_token(self.base_url)
-            csrf_token = csrf_token_tag.get("value")
-            if csrf_token:
-                auth_params["csrf_token"] = csrf_token
-            else:
-                raise failed_to_get_csrf_token(self.base_url)
+        if csrf_token:
+            auth_params["csrf_token"] = csrf_token
+            self.csrf_token = csrf_token
+        else:
+            raise failed_to_get_csrf_token(self.base_url)
 
-        # login
-        resp = self.client.post(
-            login_url, data=auth_params, timeout=DEFAULT_REQUEST_TIMEOUT
+        resp = self.session.post(
+            self.login_url, data=auth_params, timeout=DEFAULT_REQUEST_TIMEOUT
         )
 
         # validate login succeeded
         soup = bs(resp.text, "html.parser")
         if "/logout/" in [a.get("href") for a in soup.find_all("a")]:
             self.is_logged_in = True
-            logger.info("Succesfully logged in to %s.", login_url)
+            logger.info("Succesfully logged in to %s.", self.login_url)
         else:
-            logger.warning("Could not login to %s.", login_url)
+            logger.warning("Could not login to %s.", self.login_url)
             raise failed_to_login_to_airflow(self.base_url)
 
-    def _make_request(self, endpoint_name, params, timeout=DEFAULT_REQUEST_TIMEOUT):
-        # type: (str, Dict, float) -> Dict
+    def _make_request(
+        self, endpoint_name, params, timeout=DEFAULT_REQUEST_TIMEOUT, method="POST"
+    ):
+        # type: (str, Dict, float, str) -> Dict
+
         try:
-            resp = self._do_make_request(endpoint_name, params, timeout)
+            resp = self._do_make_request(endpoint_name, params, timeout, method)
             logger.info("Fetched from: {}".format(resp.url))
         except AirflowFetchingException:
             raise
@@ -138,26 +146,38 @@ class WebFetcher(AirflowDataFetcher):
         send_metrics(self.base_url, json_data.get("airflow_export_meta"))
         return json_data
 
-    def _do_make_request(self, endpoint_name, params, timeout):
-        auth = ()
-        if self.api_mode == "experimental":
-            auth = (self.rbac_username, self.rbac_password)
-        elif self.api_mode == "rbac" and not self.is_logged_in:
-            # In RBAC mode, we need to login with admin credentials first
-            self._try_login()
-        resp = self.client.get(
-            self.endpoint_url + "/" + endpoint_name.strip("/"),
-            params=params,
-            auth=auth,
-            timeout=timeout,
+    def _do_make_request(self, endpoint_name, params, timeout, method="POST"):
+        auth = (
+            (self.rbac_username, self.rbac_password)
+            if self.api_mode == "experimental"
+            else ()
         )
+
+        if self.api_mode == "rbac" and not self.is_logged_in:
+            # In RBAC mode, we need to login with admin credentials first
+            self._login_to_server()
+
+        if method == "GET":
+            resp = self.session.get(
+                self.endpoint_url + "/" + endpoint_name.strip("/"),
+                params=params,
+                auth=auth,
+                timeout=timeout,
+            )
+        else:
+            resp = self.session.post(
+                self.endpoint_url + "/" + endpoint_name.strip("/"),
+                data=params,
+                auth=auth,
+                timeout=timeout,
+            )
         return resp
 
     def get_source(self):
         return self.endpoint_url
 
     def get_last_seen_values(self) -> LastSeenValues:
-        data = self._make_request("last_seen_values", {})
+        data = self._make_request("last_seen_values", {}, method="GET")
         return LastSeenValues.from_dict(data)
 
     def get_airflow_dagruns_to_sync(
@@ -198,15 +218,16 @@ class WebFetcher(AirflowDataFetcher):
         params_dict = {}
         if dag_run_ids:
             params_dict["dag_run_ids"] = ",".join([str(dr_id) for dr_id in dag_run_ids])
+
         data = self._make_request(
             "runs_states_data", params_dict, timeout=LONG_REQUEST_TIMEOUT
         )
         return DagRunsStateData.from_dict(data)
 
     def is_alive(self):
-        resp = self.client.get(self.base_url + "/health")
+        resp = self.session.get(self.base_url + "/health")
         return resp.ok
 
     def get_plugin_metadata(self) -> PluginMetadata:
-        json_data = self._make_request("metadata", {})
+        json_data = self._make_request("metadata", {}, method="GET")
         return PluginMetadata.from_dict(json_data)
