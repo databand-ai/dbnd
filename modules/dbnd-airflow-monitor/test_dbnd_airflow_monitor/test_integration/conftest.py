@@ -3,13 +3,13 @@ import pytest
 
 
 try:
-    from dbnd_web.utils.testing.dbnd_web_testing.utils import WebAppTest
+    from dbnd_web.utils.testing.utils import WebAppTest
 
     pytest_plugins = [
         "dbnd.testing.pytest_dbnd_plugin",
         "dbnd.testing.pytest_dbnd_markers_plugin",
         "dbnd.testing.pytest_dbnd_home_plugin",
-        "dbnd_web.utils.testing.dbnd_web_testing.pytest_web_plugin",
+        "dbnd_web.utils.testing.pytest_web_plugin",
     ]
 except ModuleNotFoundError:
     pytest_plugins = []
