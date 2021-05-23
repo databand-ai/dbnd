@@ -216,7 +216,7 @@ def list_jobs(job):
     try:
         alerts_list = list_job_alerts(job_name=job)
     except LookupError as e:
-        logger.error(e)
+        logger.warning(e)
     else:
         print_table("Alerts configured for {job}".format(job=job), alerts_list)
 
@@ -271,7 +271,7 @@ def cmd_create_alert(manage_ctx, alert, operator, value, user_metric):
             user_metric=user_metric,
         )
     except DatabandApiError as e:
-        logger.error("failed with - {}".format(e.response))
+        logger.warning("failed with - {}".format(e.response))
     else:
         logger.info("Created alert %s", alert_def_uid["uid"])
 
@@ -297,4 +297,4 @@ def delete(uid, wipe, job, name):
         delete_alerts(uids)
         print_table("deleted", alerts_list)
     else:
-        logger.error("alerts not found to delete")
+        logger.warning("alerts not found to delete")

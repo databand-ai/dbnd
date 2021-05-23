@@ -167,7 +167,7 @@ class SchedulerFileConfigLoader(object):
                 config_entry["validation_errors"] = ""
 
         if log_message:
-            logger.error("scheduler config file validation errors:%s" % log_message)
+            logger.warning("scheduler config file validation errors:%s" % log_message)
 
         # name is the key, so we can't save to the db without the key
         for entry in loaded_entries:

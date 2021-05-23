@@ -218,9 +218,9 @@ class RunExecutor(object):
             run_uid=self.run.run_uid, state=unfinished_task_state
         )
 
-        logger.error(
+        logger.warning(
             u"\n\n{sep}\n{banner}\n{sep}".format(
-                sep=console_utils.ERROR_SEPARATOR,
+                sep=console_utils.error_separator(),
                 banner=self.run.describe.run_banner(
                     "Your run has failed! See more info above.",
                     color="red",
@@ -264,7 +264,7 @@ class RunExecutor(object):
                 )
                 pickle_handler(databand_run)
         except Exception as e:
-            logger.warning(
+            logger.exception(
                 "error while trying to handle pickle with custom handler:", e
             )
         return databand_run
@@ -297,7 +297,7 @@ class RunExecutor(object):
                 if current_list:
                     current_task = current_list.pop()
         except Exception as ex:
-            logger.error("Failed to find current task: %s" % ex)
+            logger.warning("Failed to find current task: %s" % ex)
             return
 
         if not current_task:
@@ -307,7 +307,7 @@ class RunExecutor(object):
         try:
             current_task.on_kill()
         except Exception as ex:
-            logger.error("Failed to kill current task %s: %s" % (current_task, ex))
+            logger.warning("Failed to kill current task %s: %s" % (current_task, ex))
             return
 
     def kill_run(self):
@@ -590,10 +590,10 @@ class _RunExecutor_Task(Task):
                 )
         except BaseException as ex:
             # we print it on any exception
-            logger.error("Run failure: %s" % ex)
-            logger.error(
+            logger.warning("Run failure: %s" % ex)
+            logger.warning(
                 u"\n\n\n\n{sep}\n\n   -= Your run has failed, please review errors below =-\n\n{sep}\n".format(
-                    sep=console_utils.ERROR_SEPARATOR
+                    sep=console_utils.error_separator()
                 )
             )
 
@@ -616,14 +616,14 @@ class _RunExecutor_Task(Task):
                     )
 
             if canceled_msgs:
-                logger.error(
+                logger.warning(
                     u"\nNumber of canceled tasks={count}:\n{banner}\n".format(
                         banner=u"\n".join(canceled_msgs), count=len(canceled_msgs)
                     )
                 )
 
             if failed_msgs:
-                logger.error(
+                logger.warning(
                     u"\nNumber of failed tasks={count}:\n{banner}\n".format(
                         banner=u"\n".join(failed_msgs), count=len(failed_msgs)
                     )

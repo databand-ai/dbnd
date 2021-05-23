@@ -81,8 +81,8 @@ class DescribeDagCtrl(TaskSubCtrl):
             try:
                 complete = task._complete()
             except Exception as ex:
-                logger.error(
-                    "Failed to get copmlete status for %s: %s", task.task_id, ex
+                logger.warning(
+                    "Failed to get complete status for %s: %s", task.task_id, ex
                 )
                 complete = None
 

@@ -210,7 +210,7 @@ class TaskDefinition(object):
                 else:
                     class_values[a_name] = a_obj
             except Exception:
-                logger.error("Failed to process %s" % context)
+                logger.warning("Failed to process %s" % context)
                 raise
 
         # now, if we have overloads in code ( calculated in task_definition):

@@ -138,7 +138,7 @@ def send_heartbeat_continuously(
                 )
                 return
             except Exception:
-                logger.error(
+                logger.warning(
                     "[heartbeat sender] failed to send heartbeat: %s",
                     format_exception_as_str(),
                 )

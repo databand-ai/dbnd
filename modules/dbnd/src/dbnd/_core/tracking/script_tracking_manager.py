@@ -189,7 +189,7 @@ class _DbndScriptTrackingManager(object):
 
             self._close_all_context_managers()
 
-        except Exception as ex:
+        except Exception:
             _handle_tracking_error("dbnd-tracking-shutdown")
 
     def stop_on_exception(self, type, value, traceback):
@@ -283,8 +283,7 @@ def dbnd_tracking_start(name=None, airflow_context=None):
             if dsm._active:
                 _dbnd_script_manager = dsm
 
-        except Exception as e:
-            logger.error(e, exc_info=True)
+        except Exception:
             _handle_tracking_error("dbnd-tracking-start")
 
             # disabling the project so we don't start any new handler in this execution
@@ -318,15 +317,11 @@ def dbnd_tracking(name=None, conf=None):
 
 
 def _handle_tracking_error(msg):
-    if is_verbose():
-        logger.warning(
-            "Failed during dbnd %s, ignoring, and continue without tracking" % msg,
-            exc_info=True,
-        )
-    else:
-        logger.info(
-            "Failed during dbnd %s, ignoring, and continue without tracking" % msg
-        )
+    exec_info = is_verbose()
+    logger.warning(
+        "Failed during dbnd %s, ignoring, and continue without tracking" % msg,
+        exc_info=exec_info,
+    )
 
 
 def _set_dbnd_config_from_airflow_connections():

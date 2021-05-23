@@ -62,9 +62,9 @@ class LocalTaskExecutor(TaskExecutor):
                 tr.runner.execute()
             except DatabandSigTermError as e:
                 raise e
-            except Exception as e:
+            except Exception:
                 task_failed = True
-                logger.error("Failed to execute task '%s': %s" % (task.task_id, str(e)))
+                logger.exception("Failed to execute task '%s':" % task.task_id)
 
         if task_runs_to_update_state:
             self.run.tracker.set_task_run_states(task_runs_to_update_state)

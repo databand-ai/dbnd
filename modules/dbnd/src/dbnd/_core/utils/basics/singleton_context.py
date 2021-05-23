@@ -86,7 +86,7 @@ class SingletonContext(object):
             try:
                 context = cls(*args, **kwargs)
             except DatabandError:
-                logger.error("Failed to create new context for %s", cls)
+                logger.warning("Failed to create new context for %s", cls)
                 raise
             except Exception:
                 logger.exception("Failed to create new context for %s", cls)

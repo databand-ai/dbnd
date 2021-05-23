@@ -144,7 +144,7 @@ class DbndTaskRegistry(SingletonContext):
             try:
                 return self._get_task_cls(config_task_type)
             except Exception:
-                logger.error(
+                logger.warning(
                     "Failed to load type required by [%s] using _type=%s",
                     task_name,
                     config_task_type,
@@ -257,7 +257,9 @@ class DbndTaskRegistry(SingletonContext):
             exc = get_databand_context().settings.log.format_exception_as_str(
                 sys.exc_info(), isolate=True
             )
-            logger.error("Failed to build %s: \n\n%s", task_cls.get_task_family(), exc)
+            logger.warning(
+                "Failed to build %s: \n\n%s", task_cls.get_task_family(), exc
+            )
             raise
         if expected_type and not issubclass(task_cls, expected_type):
             raise friendly_error.task_registry.wrong_type_for_task(

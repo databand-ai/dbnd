@@ -114,7 +114,8 @@ class TaskRunLogManager(TaskRunCtrl):
                 target_logger.removeHandler(handler)
                 handler.close()
             except Exception:
-                logger.error("Failed to close file handler for log %s", log_file)
+                logger.warning("Failed to close file handler for log %s", log_file)
+
             self._log_task_run_into_file_active = False
             self._upload_task_log_preview()
 
@@ -139,7 +140,7 @@ class TaskRunLogManager(TaskRunCtrl):
                 file_appender.activateOptions()
                 spark_logger.addAppender(file_appender)
             except Exception as task_ex:
-                logger.error(
+                logger.warning(
                     "Failed to attach spark logger for log %s: %s",
                     spark_log_file,
                     task_ex,
@@ -159,7 +160,7 @@ class TaskRunLogManager(TaskRunCtrl):
 
                 spark_logger.removeAppender(spark_log_file.path)
             except Exception as task_ex:
-                logger.error(
+                logger.warning(
                     "Failed to detach spark logger for log %s: %s",
                     spark_log_file,
                     task_ex,
@@ -188,7 +189,7 @@ class TaskRunLogManager(TaskRunCtrl):
             return read_dbnd_log_preview(self.local_log_file.path, spark_log_file)
 
         except Exception as ex:
-            logger.error(
+            logger.warning(
                 "Failed to read log (%s) for %s: %s",
                 self.local_log_file.path,
                 self.task,

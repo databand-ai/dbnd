@@ -27,7 +27,7 @@ from dbnd._core.utils.basics.helpers import indent
 logger = logging.getLogger(__name__)
 
 
-def get_databand_error_mesage(ex, args=None, sys_exit=True):
+def get_databand_error_message(ex, args=None, sys_exit=True):
     args = args or sys.argv
     please_report = False
     print_source = True
@@ -40,23 +40,21 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
         )
 
     if isinstance(ex, DatabandRuntimeError):
-        code = DatabandExitCodes.execution_failed
+        exit_code = DatabandExitCodes.execution_failed
     elif isinstance(ex, DatabandConfigError):
-        code = DatabandExitCodes.configuration_error
-    elif isinstance(ex, DatabandRunError):
-        code = DatabandExitCodes.execution_failed
+        exit_code = DatabandExitCodes.configuration_error
     elif isinstance(ex, DatabandSystemError):
-        code = DatabandExitCodes.error
+        exit_code = DatabandExitCodes.error
         please_report = True
     elif isinstance(ex, DatabandError):
-        code = DatabandExitCodes.error
+        exit_code = DatabandExitCodes.error
     elif ex.__class__.__name__ == "NoCredentialsError":  # aws
-        code = DatabandExitCodes.configuration_error
+        exit_code = DatabandExitCodes.configuration_error
         ex = friendly_error.config.no_credentials()
         print_source = False
     else:
         please_report = True
-        code = DatabandExitCodes.unknown_error
+        exit_code = DatabandExitCodes.unknown_error
 
     msg = str(ex)
 
@@ -95,15 +93,15 @@ def get_databand_error_mesage(ex, args=None, sys_exit=True):
         "{extra_msg}\n"
         "{sep}\n"
         "".format(
-            sep=console_utils.ERROR_SEPARATOR,
+            sep=console_utils.error_separator(),
             command_line=subprocess.list2cmdline(args or []),
-            sep_small=console_utils.ERROR_SEPARATOR_SMALL,
+            sep_small=console_utils.error_separator_small(),
             msg=console_utils.bold(indent(msg, "\t")),
             exc_type=ex.__class__.__name__,
             extra_msg="\n ".join(extra_msg_lines),
         )
     )
-    return msg, code
+    return msg, exit_code
 
 
 @seven.contextlib.contextmanager
@@ -112,7 +110,7 @@ def dbnd_handle_errors(exit_on_error=True):
         yield
     except Exception as ex:
         if not hasattr(ex, "_dbnd_error_handled"):
-            msg, code = get_databand_error_mesage(ex=ex, args=None)
+            msg, code = get_databand_error_message(ex=ex, args=None)
             logger.error(msg)
             setattr(ex, "_dbnd_error_handled", True)
         if exit_on_error:

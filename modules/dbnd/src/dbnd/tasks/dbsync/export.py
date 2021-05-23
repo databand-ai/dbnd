@@ -69,4 +69,4 @@ def export_db(
                 logger.info("Adding run folder from '%s'", logs_folder)
                 tar.add(logs_folder, "run")
             else:
-                logger.error("Logs dir '%s' is not found", logs_folder)
+                logger.warning("Logs dir '%s' is not found", logs_folder)

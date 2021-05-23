@@ -180,7 +180,7 @@ class TaskRelations(TaskSubCtrl):
                     )
 
         except Exception as ex:
-            logger.error(
+            logger.warning(
                 self.visualiser.banner(
                     msg="Failed to run %s" % _band_call_str(self.task),
                     color="red",

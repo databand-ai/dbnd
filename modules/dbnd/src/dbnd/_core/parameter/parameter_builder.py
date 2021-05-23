@@ -527,7 +527,7 @@ def build_parameter(parameter, context="inline"):
             # may be used just used name of the class
             return parameter()
     except Exception:
-        logger.error("Failed to build parameter for '%s'", context)
+        logger.warning("Failed to build parameter for '%s'", context)
         raise
     if not isinstance(parameter, ParameterDefinition):
         raise value_is_not_parameter_cls(parameter, context=context)

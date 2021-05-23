@@ -113,7 +113,7 @@ class TaskRunRunner(TaskRunCtrl):
                 task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
                 raise
             except KeyboardInterrupt as ex:
-                logger.error(
+                logger.warning(
                     "User Interrupt! Killing the task %s", task_run.task.task_id
                 )
                 error = TaskRunError.build_from_ex(ex, task_run)

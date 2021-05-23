@@ -108,7 +108,7 @@ class ReliableHttpClient(object):
                 status = None
                 text = None
 
-                self.logger.error(u"Request to '{}' failed with '{}'".format(url, e))
+                self.logger.warning(u"Request to '{}' failed with '{}'".format(url, e))
             else:
                 error = False
                 status = r.status_code

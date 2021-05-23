@@ -129,9 +129,9 @@ def dbnd_run_cmd_main(task, env=None, args=None):
         logger.error("Keyboard interrupt, exiting...")
         sys.exit(1)
     except Exception as ex:
-        from dbnd._core.failures import get_databand_error_mesage
+        from dbnd._core.failures import get_databand_error_message
 
-        msg, code = get_databand_error_mesage(ex=ex, args=sys.argv[1:])
+        msg, code = get_databand_error_message(ex=ex, args=sys.argv[1:])
         logger.error("dbnd cmd run failed with error: {}".format(msg))
         if code is not None:
             sys.exit(code)
@@ -155,9 +155,9 @@ def main():
         sys.exit(1)
 
     except Exception as ex:
-        from dbnd._core.failures import get_databand_error_mesage
+        from dbnd._core.failures import get_databand_error_message
 
-        msg, code = get_databand_error_mesage(ex=ex, args=sys.argv[1:])
+        msg, code = get_databand_error_message(ex=ex, args=sys.argv[1:])
         logger.error(msg)
         if code is not None:
             sys.exit(code)

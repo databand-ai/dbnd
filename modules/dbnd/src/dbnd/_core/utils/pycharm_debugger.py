@@ -17,7 +17,7 @@ def start_pycharm_debugger(host, port):
     try:
         import pydevd_pycharm
     except ImportError:
-        logger.error(
+        logger.warning(
             "\n\tCouldn't import `pydevd_pycharm`.\n"
             "\tHelp:\tMake sure to install the relevant `pydevd_pycharm` version matching to your pycharm version"
         )

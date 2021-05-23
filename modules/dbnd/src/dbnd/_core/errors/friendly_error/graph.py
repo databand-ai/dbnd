@@ -43,7 +43,7 @@ def cyclic_graph_detected(task, cyclic_nodes):
     circle_trail = _find_cirlce(cyclic_nodes)
     from dbnd._core.task_ctrl.task_dag_describe import tasks_trail
 
-    logger.error("Cyclic graph detected: %s", tasks_trail(circle_trail))
+    logger.warning("Cyclic graph detected: %s", tasks_trail(circle_trail))
     return DatabandBuildError(
         "A cyclic dependency occurred %s: {short_trail}.. ({num_of_tasks} tasks)".format(
             task_call="in '{task_call}'" % _band_call_str(task) if task else "",

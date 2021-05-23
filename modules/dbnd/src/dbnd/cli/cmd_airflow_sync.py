@@ -26,7 +26,7 @@ def list_airflow_instances():
     try:
         instances = list_synced_airflow_instances()
     except (LookupError, DatabandApiError) as e:
-        logger.error(e)
+        logger.warning(e)
     else:
         print_table("Synced Airflow instances", instances)
 
@@ -202,7 +202,7 @@ def add(
             use_af_monitor_v2,
         )
     except DatabandApiError as e:
-        logger.error("failed with - {}".format(e.response))
+        logger.warning("failed with - {}".format(e.response))
     else:
         logger.info("Starting syncing instance %s", url)
 
@@ -219,7 +219,7 @@ def archive(url):
     try:
         archive_airflow_instance(url)
     except DatabandApiError as e:
-        logger.error("failed with - {}".format(e.response))
+        logger.warning("failed with - {}".format(e.response))
     else:
         logger.info("Archived instance %s", url)
 
@@ -236,6 +236,6 @@ def unarchive(url):
     try:
         unarchive_airflow_instance(url)
     except DatabandApiError as e:
-        logger.error("failed with - {}".format(e.response))
+        logger.warning("failed with - {}".format(e.response))
     else:
         logger.info("Unarchived instance %s", url)

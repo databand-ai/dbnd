@@ -44,7 +44,7 @@ def _load_module(module, description):
             )
             return m
     except import_errors as ex:
-        logger.error(
+        logger.warning(
             "Failed to load module '%s' %s: cwd='%s', sys.path=\n\t%s",
             module,
             friendly_error.dbnd_module_not_found_tip(module),
@@ -91,5 +91,5 @@ def run_user_func(callable_path):
     try:
         return f()
     except Exception:
-        logger.error("Failed to run user function %s", callable_path)
+        logger.warning("Failed to run user function %s", callable_path)
         raise

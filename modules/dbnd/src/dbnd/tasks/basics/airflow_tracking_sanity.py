@@ -18,7 +18,7 @@ def assert_plugins():
 
         log_metric("dbnd_airflow_version", dbnd_airflow.__version__)
     except ImportError:
-        logger.error("dbnd_airflow is not installed")
+        logger.warning("dbnd_airflow is not installed")
         raise
 
     try:
@@ -28,7 +28,7 @@ def assert_plugins():
             "dbnd_airflow_auto_tracking_version", dbnd_airflow_auto_tracking.__version__
         )
     except ImportError:
-        logger.error("dbnd_airflow_auto_tracking is not installed")
+        logger.warning("dbnd_airflow_auto_tracking is not installed")
         raise
 
     try:
