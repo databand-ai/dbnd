@@ -2,7 +2,7 @@ import json
 import logging
 import typing
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import List
 
 from airflow_monitor.common.airflow_data import (
@@ -52,11 +52,11 @@ def _get_api_client(tracking_service_config: TrackingServiceConfig) -> "ApiClien
     )
 
 
-def _min_start_time(start_time_window):
+def _min_start_time(start_time_window: int) -> datetime:
     if not start_time_window:
-        return {}
+        return None
 
-    return {"min_start_time": utctoday() - timedelta(days=start_time_window)}
+    return utctoday() - timedelta(days=start_time_window)
 
 
 class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
@@ -86,7 +86,10 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
     def get_all_dag_runs(
         self, start_time_window: int, dag_ids: str
     ) -> DbndDagRunsResponse:
-        params = _min_start_time(start_time_window)
+        params = {}
+        start_time = _min_start_time(start_time_window)
+        if start_time:
+            params["min_start_time"] = start_time.isoformat()
         if dag_ids:
             params["dag_ids"] = dag_ids
 
@@ -100,8 +103,15 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
     def get_active_dag_runs(
         self, start_time_window: int, dag_ids: str
     ) -> DbndDagRunsResponse:
+        params = {}
+        start_time = _min_start_time(start_time_window)
+        if start_time:
+            params["min_start_time"] = start_time.isoformat()
+        if dag_ids:
+            params["dag_ids"] = dag_ids
+
         response = self._make_request(
-            "get_running_dag_runs", method="GET", data=None, query={"dag_ids": dag_ids},
+            "get_running_dag_runs", method="GET", data=None, query=params,
         )
         dags_to_sync = DbndDagRunsResponse.from_dict(response)
 
