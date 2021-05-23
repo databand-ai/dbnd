@@ -30,7 +30,6 @@ setuptools.setup(
             "apache-airflow>=1.10.9,<=1.10.11",
             "sh",
             "SQLAlchemy==1.3.18",
-            "cattrs~=0.9",
         ],
         "composer": [
             "PyJWT==1.7.1",
