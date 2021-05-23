@@ -11,9 +11,7 @@ def _band_call_str(task):
 
 
 def _run_name(task):
-    if task._conf__decorator_spec:
-        return "%s()" % _task_name(task)
-    return "%s.run()" % _task_name(task)
+    return task.task_definition.run_name()
 
 
 def _safe_task_family(task):

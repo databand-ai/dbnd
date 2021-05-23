@@ -76,11 +76,11 @@ class FuncResultParameter(ParameterDefinition):
     def _validate_result(self, result):
         if not isinstance(result, (tuple, list, dict)):
             raise friendly_error.task_execution.wrong_return_value_type(
-                self.task_cls, self.names, result
+                self.task_definition, self.names, result
             )
         elif len(result) != len(self.schema):
             raise friendly_error.task_execution.wrong_return_value_len(
-                self.task_cls, self.names, result
+                self.task_definition, self.names, result
             )
         if isinstance(result, dict):
             if set(result.keys()).symmetric_difference(set(self.names)):

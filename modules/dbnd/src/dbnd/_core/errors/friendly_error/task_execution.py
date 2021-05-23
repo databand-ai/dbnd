@@ -62,20 +62,20 @@ def can_run_only_tasks(task):
     )
 
 
-def wrong_return_value_type(task, names, result):
+def wrong_return_value_type(task_def, names, result):
     return DatabandRuntimeError(
-        "Returned value from '{task}' should be tupel/list/dict as task has multiple result."
+        "Returned value from '{task}' should be tuple/list/dict as task has multiple result."
         "Expected tuple of '{names}', got value of type '{result}'".format(
-            task=_run_name(task), names=names, result=type(result)
+            task=task_def.run_name(), names=names, result=type(result)
         )
     )
 
 
-def wrong_return_value_len(task, names, result):
+def wrong_return_value_len(task_def, names, result):
     return DatabandRuntimeError(
         "Returned result from '{task}' doesn't match expected schema. "
         "Expected tuple of '{names}', got tuple of length '{result}'".format(
-            task=_run_name(task), names=names, result=len(result)
+            task=task_def.run_name(), names=names, result=len(result)
         )
     )
 

@@ -230,33 +230,34 @@ class TaskDefinition(object):
         if not result:
             return False
         names = result.names if isinstance(result, FuncResultParameter) else []
-        for p in self.task_param_defs.values():
-            if p.system or p.kind != _ParameterKind.task_output:
+        for param_def in self.task_param_defs.values():
+            if param_def.system or param_def.kind != _ParameterKind.task_output:
                 continue
-            if p.name in [RESULT_PARAM, "task_band"]:
+            if param_def.name in [RESULT_PARAM, "task_band"]:
                 continue
-            if p.name in names:
+            if param_def.name in names:
                 continue
             return False
         return True
 
     def __str__(self):
-        return "TaskDefinition(%s)" % (self.full_task_family)
+        return "TaskDefinition(%s)" % self.full_task_family
+
+    def run_name(self):
+        if self.func_spec:
+            return "%s()" % self.full_task_family
+        return "%s.run()" % self.full_task_family
 
 
 def get_base_task_definitions(task_class):
-    """
-    only for task with inheritance
-    :param task_class:
-    :return:
-    """
+    """Accessing the task_definitions of the parents classes of the given `task_class`"""
     task_definitions = []
 
-    for c in reversed(task_class.__bases__):  # type: TaskMetaclass
-        if not hasattr(c, "task_definition"):
+    for cls in reversed(task_class.__bases__):  # type: TaskMetaclass
+        if not hasattr(cls, "task_definition"):
             logger.debug(
-                "you should inherit from Task objects only: %s -> %s ", task_class, c,
+                "you should inherit from Task objects only: %s -> %s ", task_class, cls,
             )
             continue
-        task_definitions.append(c.task_definition)
+        task_definitions.append(cls.task_definition)
     return task_definitions
