@@ -65,10 +65,10 @@ def generate_latest_metrics():
     return generate_latest(registry)
 
 
-def decorate_measure_time(inst, interface_cls: type, metric: Summary, label: str):
+def measure_time(metric: Summary, label: str):
     label = str(label)  # just in case
 
-    def measure_time(f):
+    def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
             with metric.labels(label, f.__name__).time():
@@ -76,7 +76,16 @@ def decorate_measure_time(inst, interface_cls: type, metric: Summary, label: str
 
         return wrapped
 
+    return decorator
+
+
+def decorate_methods(inst, interface_cls: type, *decorators):
     for name in dir(interface_cls):
         if not name.startswith("_"):
-            setattr(inst, name, measure_time(getattr(inst, name)))
+            f = getattr(inst, name)
+            if not callable(f):
+                continue
+            for decorator in decorators:
+                f = decorator(f)
+            setattr(inst, name, f)
     return inst

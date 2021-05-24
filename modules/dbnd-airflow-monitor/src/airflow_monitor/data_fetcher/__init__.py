@@ -1,7 +1,8 @@
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.metric_reporter import (
     METRIC_REPORTER,
-    decorate_measure_time,
+    decorate_methods,
+    measure_time,
 )
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
@@ -11,6 +12,7 @@ from airflow_monitor.data_fetcher.google_compose_data_fetcher import (
 )
 from airflow_monitor.data_fetcher.web_data_fetcher import WebFetcher
 from dbnd._core.errors import DatabandConfigError
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 FETCHERS = {
@@ -33,6 +35,9 @@ def get_data_fetcher(server_config: AirflowServerConfig) -> AirflowDataFetcher:
 
 
 def decorate_fetcher(fetcher, label):
-    return decorate_measure_time(
-        fetcher, AirflowDataFetcher, METRIC_REPORTER.exporter_response_time, label,
+    return decorate_methods(
+        fetcher,
+        AirflowDataFetcher,
+        measure_time(METRIC_REPORTER.exporter_response_time, label),
+        retry(stop=stop_after_attempt(3), reraise=True, wait=wait_fixed(1)),
     )

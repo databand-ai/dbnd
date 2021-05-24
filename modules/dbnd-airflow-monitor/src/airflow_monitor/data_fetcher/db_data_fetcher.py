@@ -138,6 +138,6 @@ class DbFetcher(AirflowDataFetcher):
 
         return PluginMetadata(
             airflow_version=airflow_version.version,
-            plugin_version=dbnd_airflow_export.__version__,
+            plugin_version=dbnd_airflow_export.__version__ + " v2",
             airflow_instance_uid=get_airflow_instance_uid(),
         )

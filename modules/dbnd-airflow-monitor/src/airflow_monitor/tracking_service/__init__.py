@@ -1,7 +1,8 @@
 from airflow_monitor.common.config_data import TrackingServiceConfig
 from airflow_monitor.common.metric_reporter import (
     METRIC_REPORTER,
-    decorate_measure_time,
+    decorate_methods,
+    measure_time,
 )
 from airflow_monitor.tracking_service.base_tracking_service import (
     DbndAirflowTrackingService,
@@ -12,6 +13,7 @@ from airflow_monitor.tracking_service.web_tracking_service import (
     WebServersConfigurationService,
 )
 from dbnd._core.utils.basics.memoized import cached
+from tenacity import retry, stop_after_attempt
 
 
 def get_tracking_service_config_from_dbnd() -> TrackingServiceConfig:
@@ -40,11 +42,11 @@ def get_tracking_service(tracking_source_uid) -> DbndAirflowTrackingService:
 
 
 def decorate_tracking_service(tracking_service, label):
-    return decorate_measure_time(
+    return decorate_methods(
         tracking_service,
         DbndAirflowTrackingService,
-        METRIC_REPORTER.dbnd_api_response_time,
-        label,
+        measure_time(METRIC_REPORTER.dbnd_api_response_time, label),
+        retry(stop=stop_after_attempt(2), reraise=True),
     )
 
 
@@ -56,9 +58,9 @@ def get_servers_configuration_service():
 
 
 def decorate_configuration_service(configuration_service):
-    return decorate_measure_time(
+    return decorate_methods(
         configuration_service,
         ServersConfigurationService,
-        METRIC_REPORTER.dbnd_api_response_time,
-        "global",
+        measure_time(METRIC_REPORTER.dbnd_api_response_time, "global"),
+        retry(stop=stop_after_attempt(2), reraise=True),
     )

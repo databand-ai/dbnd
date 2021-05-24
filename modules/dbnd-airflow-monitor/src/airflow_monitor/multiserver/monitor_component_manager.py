@@ -94,7 +94,7 @@ class MonitorComponentManager(object):
             MonitorState(
                 monitor_start_time=utcnow(),
                 monitor_status="Running",
-                airflow_monitor_version=airflow_monitor.__version__,
+                airflow_monitor_version=airflow_monitor.__version__ + " v2",
                 airflow_version=plugin_metadata.airflow_version,
                 airflow_export_version=plugin_metadata.plugin_version,
                 airflow_instance_uid=plugin_metadata.airflow_instance_uid,
@@ -109,7 +109,7 @@ class MonitorComponentManager(object):
             MonitorState(
                 monitor_start_time=utcnow(),
                 monitor_status="Scheduled",
-                airflow_monitor_version=airflow_monitor.__version__,
+                airflow_monitor_version=airflow_monitor.__version__ + " v2",
                 monitor_error_message=None,
             ),
         )
