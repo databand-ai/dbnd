@@ -16,8 +16,8 @@ MAX_RETRIES = 2
 logger = logging.getLogger(__name__)
 
 
-def try_run_handler(tries, store, handler_name, kwargs, verbose=False):
-    # type: (int, TrackingStore, str, Dict[str, Any],bool) -> Any
+def try_run_handler(tries, store, handler_name, kwargs):
+    # type: (int, TrackingStore, str, Dict[str, Any]) -> Any
     """
     Locate the handler function to run and will try to run it multiple times.
     If fails all the times -> raise the last error.
@@ -26,7 +26,6 @@ def try_run_handler(tries, store, handler_name, kwargs, verbose=False):
     @param store: the store to run its handler
     @param handler_name: the name of the handler to run
     @param kwargs: the input for the handler
-    @param verbose: should we log verbosely
     @return: The result of the handler if succeeded, otherwise raise the last error
     """
     try_num = 1
@@ -42,7 +41,6 @@ def try_run_handler(tries, store, handler_name, kwargs, verbose=False):
                 % (try_num, tries, handler_name, str(store)),
                 ex,
                 non_critical=True,
-                verbose=verbose,
             )
 
             if try_num == tries:
@@ -85,9 +83,7 @@ class CompositeTrackingStore(TrackingStore):
             tries = self._max_retries if is_state_call(name) else 1
 
             try:
-                res = try_run_handler(
-                    tries, store, name, kwargs, verbose=is_orchestration_run()
-                )
+                res = try_run_handler(tries, store, name, kwargs)
             except Exception as e:
                 if self._remove_failed_store or (
                     in_tracking_run() and is_state_call(name)
@@ -95,7 +91,12 @@ class CompositeTrackingStore(TrackingStore):
                     failed_stores.append(store_name)
 
                 if isinstance(e, TrackerPanicError) and self._raise_on_error:
-                    raise
+                    if is_orchestration_run():
+                        # in orchestration runs we have good error collection that's show error banner
+                        # error should have good msg and no need to show full trace
+                        e.show_exc_info = False
+
+                    raise e
 
         if failed_stores:
             for store_name in failed_stores:

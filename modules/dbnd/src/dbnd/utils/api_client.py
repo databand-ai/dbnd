@@ -15,7 +15,10 @@ from dbnd._core.errors.base import (
     DatabandConnectionException,
     DatabandUnauthorizedApiError,
 )
-from dbnd._core.errors.friendly_error.api import api_connection_refused
+from dbnd._core.errors.friendly_error.api import (
+    api_connection_refused,
+    unauthorized_api_call,
+)
 from dbnd._core.log.logging_utils import create_file_handler
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
 from dbnd._vendor import curlify
@@ -40,15 +43,14 @@ class ApiClient(object):
 
     def __init__(
         self,
-        api_base_url,
-        credentials=None,
-        debug_server=False,
-        session_timeout=5,
-        default_max_retry=1,
-        default_retry_sleep=0,
-        default_request_timeout=DEFAULT_REQUEST_TIMEOUT,
+        api_base_url,  # type: str
+        credentials=None,  # type: Optional[Dict[str, str]]
+        debug_server=False,  # type: bool
+        session_timeout=5,  # type: int
+        default_max_retry=1,  # type: int
+        default_retry_sleep=0,  # type: Union[int, float]
+        default_request_timeout=DEFAULT_REQUEST_TIMEOUT,  # Union[float, Tuple[float, float]],
     ):
-        # type: (str, Optional[Dict[str, str]], bool, int, int, Union[int, float], Union[float, Tuple[float, float]]) -> ApiClient
         """
         @param api_base_url: databand webserver url to build the request with
         @param credentials: dict of credential to authenticate with the webserver
@@ -135,9 +137,7 @@ class ApiClient(object):
         if not resp.ok:
             logger.info("Response is not ok, Raising DatabandApiError")
             if resp.status_code in [403, 401]:
-                raise DatabandUnauthorizedApiError(
-                    method, url, resp.status_code, resp.content.decode("utf-8")
-                )
+                raise unauthorized_api_call(method, url, resp)
 
             raise DatabandApiError(
                 method, url, resp.status_code, resp.content.decode("utf-8")
@@ -192,11 +192,10 @@ class ApiClient(object):
                 logger.warning(
                     "ApiClient._init_session: username or password is not provided"
                 )
+        except requests.exceptions.ConnectionError:
+            raise
 
         except Exception as e:
-            logger.warning(
-                "Exception occurred while initialising the session: {}".format(e)
-            )
             self.remove_session()
             raise DatabandAuthenticationError("Failed to init a webserver session", e)
 

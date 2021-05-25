@@ -1,4 +1,7 @@
-from dbnd._core.errors.base import DatabandConnectionException
+from dbnd._core.errors.base import (
+    DatabandConnectionException,
+    DatabandUnauthorizedApiError,
+)
 
 
 def api_connection_refused(connection_details, ex):
@@ -26,4 +29,16 @@ def couldnt_find_databand_run_in_db(name_or_uid, ex):
         "Couldn't find the databand run '%s' in current database! Please validate that you are using the correct "
         "connection string" % name_or_uid,
         nested_exceptions=ex,
+    )
+
+
+def unauthorized_api_call(method, url, resp):
+    return DatabandUnauthorizedApiError(
+        method,
+        url,
+        resp.status_code,
+        resp.content.decode("utf-8"),
+        help_msg="Please check your credential are configured correctly with one of this methods:\n"
+        "1. Using `dbnd_user` and `dbnd_password` configurations under [core] section.\n"
+        "2. Using `databand_access_token` configuration under [core] section.",
     )

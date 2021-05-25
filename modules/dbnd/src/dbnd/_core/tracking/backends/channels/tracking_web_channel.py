@@ -4,7 +4,6 @@ from dbnd._core.errors.base import (
     DatabandConnectionException,
     DatabandUnauthorizedApiError,
     TrackerPanicError,
-    TrackerRecoverError,
 )
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
 from dbnd._core.tracking.backends.channels.marshmallow_mixin import MarshmallowMixin
@@ -26,22 +25,14 @@ class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
         except DatabandConnectionException as e:
             # connection problems are not recoverable for web tracker
             raise TrackerPanicError(
-                "Failed to connect the tracking api",
-                e,
-                help_msg="As a temporal workaround you can disable WEB tracking using --disable-web-tracker",
-            )
+                "Failed to connect the tracking api", inner_error=e,
+            ) from None
 
         except (DatabandAuthenticationError, DatabandUnauthorizedApiError) as e:
             # authentication problems are not recoverable for web tracker
             raise TrackerPanicError(
-                "Authentication error accrued",
-                e,
-                help_msg="Check your credential information",
-            )
-
-        except TypeError as e:
-            # probably problems with data trying to send - can recover
-            raise TrackerRecoverError("Failed to send the data", e)
+                "Authentication error accrued", inner_error=e
+            ) from None
 
         # unknown exception are not handled
 

@@ -50,6 +50,30 @@ class DatabandError(Exception):
             logger.exception("Failed to print nested exceptions for unit test mode")
 
 
+class WrapperDatabandError(DatabandError):
+    """
+    Implement the boilerplate required to have a DatabandError which wrapping another DatabandError.
+    Use this when you want to create a DatabandError that can chain inner error inside but keep the properties
+     of the inner error.
+    """
+
+    def __init__(self, message, inner_error, **kwargs):
+        # type: (str, Exception, dict) -> WrapperDatabandError
+        extended_msg = "{message}, caused by: \n\t {cause_name}: {cause_message} ".format(
+            message=message,
+            cause_name=inner_error.__class__.__name__,
+            cause_message=str(inner_error),
+        )
+        super(WrapperDatabandError, self).__init__(extended_msg, **kwargs)
+        self.inner_error = inner_error
+
+        # try passing the help message of the cause to this error if current error is None
+        try:
+            self.help_msg = self.help_msg or self.inner_error.help_msg
+        except AttributeError:
+            pass
+
+
 class DatabandBuildError(DatabandError):
     """
     Error while building task
@@ -192,8 +216,10 @@ class TaskValidationError(DatabandError):
 
 
 class DatabandApiError(DatabandError):
-    def __init__(self, method, endpoint, resp_code, response):
-        super(DatabandApiError, self).__init__(method, endpoint, resp_code, response)
+    def __init__(self, method, endpoint, resp_code, response, **kwargs):
+        super(DatabandApiError, self).__init__(
+            method, endpoint, resp_code, response, **kwargs
+        )
 
         self.method = method
         self.endpoint = endpoint
@@ -216,44 +242,22 @@ class DatabandApiError(DatabandError):
 
 
 class DatabandUnauthorizedApiError(DatabandApiError):
+    """Api error indicate unauthorized http request (status code: 403 or 401)"""
+
     pass
 
 
-class DatabandAuthenticationError(DatabandError):
-    def __init__(self, message, cause, **kwargs):
-        super(DatabandAuthenticationError, self).__init__(
-            message + u", caused by " + repr(cause), **kwargs
-        )
-        self.cause = cause
+class DatabandAuthenticationError(WrapperDatabandError):
+    """Api error indicate we failed to authenticate to the server"""
+
+    pass
 
 
 class DatabandBadRequest(DatabandError):
     pass
 
 
-# Containers for trackers to communicate the inner error to an action about the errors:
-# Should we remove the containers? only for panic
-class TrackerErrorContainer(DatabandError):
-    """
-    Implementation for holding inner error - Error chaining is not supported for py 2.7
-    """
-
-    def __init__(self, message, cause, **kwargs):
-        super(TrackerErrorContainer, self).__init__(
-            message + u", caused by " + repr(cause), **kwargs
-        )
-        self.cause = cause
-
-
-class TrackerRecoverError(TrackerErrorContainer):
-    """
-    Indicate that the error is not a reason to drop the tracker
-    """
-
-    pass
-
-
-class TrackerPanicError(TrackerErrorContainer):
+class TrackerPanicError(WrapperDatabandError):
     """
     Indicate that tracker panic and need to be removed
     """
