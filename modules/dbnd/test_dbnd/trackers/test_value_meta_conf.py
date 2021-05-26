@@ -149,7 +149,10 @@ class TestValueMetaConf(object):
             LazyValueType(),
             None,
             ValueMetaConf(
-                log_preview=False, log_histograms=False, log_stats=False, log_size=None,
+                log_preview=False,
+                log_histograms=False,
+                log_stats=False,
+                log_size=False,
             ),
         ),
         (
@@ -168,7 +171,10 @@ class TestValueMetaConf(object):
             LazyValueType(),
             FileTarget("mock_path", MockFileSystem(), config=file.parquet),
             ValueMetaConf(
-                log_preview=False, log_histograms=False, log_stats=False, log_size=True,
+                log_preview=False,
+                log_histograms=False,
+                log_stats=False,
+                log_size=False,
             ),
         ),
         (ValueTrackingLevel.ALL, ObjectValueType(), None, ValueMetaConf(),),

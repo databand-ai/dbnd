@@ -12,7 +12,6 @@ from dbnd._core.utils.timezone import utcnow
 if typing.TYPE_CHECKING:
     from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-
 # keep it below VALUE_PREVIEW_MAX_LEN at web
 _DEFAULT_VALUE_PREVIEW_MAX_LEN = 10000
 
@@ -134,6 +133,15 @@ class ValueMetaConf(object):
             log_schema=True,
             log_stats=True,
             log_histograms=True,
+        )
+
+    @classmethod
+    def disabled_expensive(cls):
+        """
+        Disabling any config that can be expensive to calculate
+        """
+        return ValueMetaConf(
+            log_preview=False, log_histograms=False, log_stats=False, log_size=False,
         )
 
     def merge_if_none(self, other):

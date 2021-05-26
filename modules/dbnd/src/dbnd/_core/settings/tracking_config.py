@@ -3,6 +3,8 @@ import logging
 
 from typing import Any, Dict, Optional
 
+import attr
+
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.task import Config
 from targets import Target
@@ -174,24 +176,19 @@ def calc_meta_conf_for_value_type(tracking_level, value_type, target=None):
         return ValueMetaConf()
 
     if tracking_level == ValueTrackingLevel.SMART:
-        # restrict only for lazy evaluate values
-
-        log_size = None
-        if target is not None:
-            log_size = value_type.support_fast_count(target)
 
         result = ValueMetaConf()
         if value_type.is_lazy_evaluated:
-            result = ValueMetaConf(
-                log_preview=False, log_histograms=False, log_stats=False,
-            )
+            # restrict only for lazy evaluate values
+            result = ValueMetaConf.disabled_expensive()
 
-        result.log_size = log_size
+        elif target is not None and not value_type.support_fast_count(target):
+            # we don't set it to True cause there might
+            # be different configuration that will want it to be False
+            result = attr.evolve(result, log_size=False)
 
         return result
 
     if tracking_level == ValueTrackingLevel.NONE:
         # restrict any
-        return ValueMetaConf(
-            log_preview=False, log_histograms=False, log_stats=False, log_size=False,
-        )
+        return ValueMetaConf.disabled_expensive()
