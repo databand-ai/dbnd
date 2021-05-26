@@ -1,78 +1,123 @@
 # History
 
-## DBND v 0.40.10
+## DBND v0.41.00
 
 ### New features
 
-* \#1200183306770565: Stats widget changed to display the top failure rate Pipelines.
-* \#1200191541441378: Server-side sorting for Pipeline stats widget.
-* \#1200258224502988: New Anomaly Detection alert is triggered if Custom Metric grows too fast.
-* \#1200259328525645: Airflow Monitor v.2.
-* \#1200183150156169: It’s now possible to see an alert’s effect on the affected data.
+-   \#1200253837838312: Added Deequ + PySpark integration.
+-   \#1200245988366766: Added multiple metrics support in the Favorite Metric widget.
+-   \#1200095672805698: Home Screen selection option is now available in the Settings Page.
+-   \#1200306047670389: It’s now possible to enable the debug mode in PyDev from the CLI.
+-   \#1200179220565213: Slack notifications can now be received from the Databand UI.
 
 ### Improvements
-* \#1200044288700180: Drill down to Runs & Pipelines from the Dashboard.
-* \#1200259770331112: Click iteration and reporting stats added to Dashboard.
-* \#1200058439151159: Airflow monitor heartbeat indication.
-* \#1200243606518228: Errors Discovery Flow added for non-Python Operators.
+
+-   \#1199965369989833: Tracking is now compatible with Airflow 2.0.
+-   \#1200213466288282: Airflow tracking is running on Google Composer.
+-   \#1200105822969991: Added support for liveness probe check in Airflow Monitor v2.0.
+-   \#1200327639593933: Latest Pandas version (1.2.x) is now supported.
+-   \#1200223284217045: Improved Alert screen.
+-   \#1200345876827058: Alert rules can be enabled based on the Run env.
+-   \#1200269646547649: “Last Active” widget moved to the bottom of the screen.
+-   \#1200269646547644: Pipeline screen's default view is set to “List”.
+-   \#1200310831229608: PyWheel build tasks are not displayed in the UI now.
+-   \#1200315872631815: Changed the cursor in Favorite Charts.
 
 ### Bug fixes
-* \#1200276060368190: Negative values are now displayed in Dashboard charts.
-* \#1200285224722668: Fixed Docker version incompatibility issue (extended the number of supported versions).
-* \#1200275951379659: Fixed Kubernetes execution bug when tasks were wrongly marked as canceled on the end of Pipelines.
 
-## DBND v 0.39.00
-### New features
-* \#1168991558489592: Auto-log paths became available for Spark JVM I/O (Alpha version).
-* \#1200183406021457: It’s now possible to trigger a numeric alert when an anomaly is detected.
-* \#1200182230484446: Added alerts integration with Opsgenie.
-### Improvements
-* \#1199534439165430: Tracking system error handling is out - enjoy safe tracking without the performance penalty.
-* \#1200183406021460: See how a newly defined alert would have affected your past runs.
-* \#1200183406021459: Define sensitivity and the number of runs for anomaly detection.
-* \#1200194910187394: Slack alert headline now leads to the Alert page and displays the number of firing alerts.
-### Bug fixes
-* \#1200141500926246: Fixed the URL in Slack message alerts.
-* \#1200194910187389: Slack alert’s link is now leading to the first alert.
+-   \#1200305391366264: Fixed missing filters and Run names in the Alert API.
+-   \#1200324498682162: Identified and fixed the issue with Sentry integration.
+-   \#1200275951379648: Fixed incorrect handling of attempts.
+-   \#1200290917819476: Changed Error Widget headline to “Top Errors”.
+-   \#1200359124635729: Fixed error on wrong outputs’ schema in Orchestration.
 
-## DBND v 0.38.00
-### New features
-* \#1199905812865631: Added Favorite Metrics widget.
-* \#1199905812865626: Added reference date and fix time range widget.
-* \#1200036364804040: Added support for Date picker in the UI.
-* \#1199908347034091: Added Python Spark Metrics listener (similar to JVM).
-* \#1200135620545740: New alerting mechanism for on-prem users (available on demand).
-* \#1200130408884041: Zero-cost integration of SQL Airflow DAGs with Snowflake (in DBND SDK).
-
-### Improvements
-* \#1199510429341979: Configured POC alerting.
-* \#1199592642123487: Run name/run description is now editable from the UI.
-* \#1199917986044490: It’s now possible to access the latest webserver logs via the webserver.
-* \#1200092086191209: Added a descriptive error message that appears when installing Airflow Monitor not in the same folder as Airflow.
-
-## DBND v 0.37.2
+## DBND v0.40.10
 
 ### New features
-* \#1200030168701007: Support for the cloud UI is here. Now you can gain access to the Databand UI in the cloud.
-* \#1200016204502957: Users who have Airflow with Docker Compose environment can now use the Databand cloud solution.
-* \#1200058439151184: A flag for switching on\off the transmission (sending) of the source code was added.
+
+-   \#1200183306770565: Stats widget changed to display the top failure rate Pipelines.
+-   \#1200191541441378: Server-side sorting for Pipeline stats widget.
+-   \#1200258224502988: New Anomaly Detection alert is triggered if Custom Metric grows too fast.
+-   \#1200259328525645: Airflow Monitor v.2.
+-   \#1200183150156169: It’s now possible to see an alert’s effect on the affected data.
 
 ### Improvements
-* \#1199921442266004: AlertDef history now displays seconds in the UI.
-* \#1199995565427900: Version and Environment badges are now displayed on the Login page.
-* \#1200093251774759: Graphic info card in the Dashboard is now black.
-* \#1200127804370172: Quick updates tab added to the integration page.
-* \#1199657019529688: `QueryApi.force_pagination` is now enabled by default.
-* \#1200126969897487: Remote logs are truncated.
-* \#1200058448826966: Support for "zero computational cost" data insights and preview added.
+
+-   \#1200044288700180: Drill down to Runs & Pipelines from the Dashboard.
+-   \#1200259770331112: Click iteration and reporting stats added to Dashboard.
+-   \#1200058439151159: Airflow monitor heartbeat indication.
+-   \#1200243606518228: Errors Discovery Flow added for non-Python Operators.
 
 ### Bug fixes
-* \#1200129802903561: Databand logo back on the Login page.
-* \#1200111167427102: Time format bug is fixed.
-* \#1199965226804188: The search bar is back in Details view.
-* \#1200091724058557: Runs and Task by Start Time are a stacked graph.
 
-## DBND v 0.36.00
+-   \#1200276060368190: Negative values are now displayed in Dashboard charts.
+-   \#1200285224722668: Fixed Docker version incompatibility issue (extended the number of supported versions).
+-   \#1200275951379659: Fixed Kubernetes execution bug when tasks were wrongly marked as canceled on the end of Pipelines.
+
+## DBND v0.39.00
+
+### New features
+
+-   \#1168991558489592: Auto-log paths became available for Spark JVM I/O (Alpha version).
+-   \#1200183406021457: It’s now possible to trigger a numeric alert when an anomaly is detected.
+-   \#1200182230484446: Added alerts integration with Opsgenie.
+
+### Improvements
+
+-   \#1199534439165430: Tracking system error handling is out - enjoy safe tracking without the performance penalty.
+-   \#1200183406021460: See how a newly defined alert would have affected your past runs.
+-   \#1200183406021459: Define sensitivity and the number of runs for anomaly detection.
+-   \#1200194910187394: Slack alert headline now leads to the Alert page and displays the number of firing alerts.
+
+### Bug fixes
+
+-   \#1200141500926246: Fixed the URL in Slack message alerts.
+-   \#1200194910187389: Slack alert’s link is now leading to the first alert.
+
+## DBND v0.38.00
+
+### New features
+
+-   \#1199905812865631: Added Favorite Metrics widget.
+-   \#1199905812865626: Added reference date and fix time range widget.
+-   \#1200036364804040: Added support for Date picker in the UI.
+-   \#1199908347034091: Added Python Spark Metrics listener (similar to JVM).
+-   \#1200135620545740: New alerting mechanism for on-prem users (available on demand).
+-   \#1200130408884041: Zero-cost integration of SQL Airflow DAGs with Snowflake (in DBND SDK).
+
+### Improvements
+
+-   \#1199510429341979: Configured POC alerting.
+-   \#1199592642123487: Run name/run description is now editable from the UI.
+-   \#1199917986044490: It’s now possible to access the latest webserver logs via the webserver.
+-   \#1200092086191209: Added a descriptive error message that appears when installing Airflow Monitor not in the same folder as Airflow.
+
+## DBND v0.37.2
+
+### New features
+
+-   \#1200030168701007: Support for the cloud UI is here. Now you can gain access to the Databand UI in the cloud.
+-   \#1200016204502957: Users who have Airflow with Docker Compose environment can now use the Databand cloud solution.
+-   \#1200058439151184: A flag for switching on\off the transmission (sending) of the source code was added.
+
+### Improvements
+
+-   \#1199921442266004: AlertDef history now displays seconds in the UI.
+-   \#1199995565427900: Version and Environment badges are now displayed on the Login page.
+-   \#1200093251774759: Graphic info card in the Dashboard is now black.
+-   \#1200127804370172: Quick updates tab added to the integration page.
+-   \#1199657019529688: `QueryApi.force_pagination` is now enabled by default.
+-   \#1200126969897487: Remote logs are truncated.
+-   \#1200058448826966: Support for "zero computational cost" data insights and preview added.
+
+### Bug fixes
+
+-   \#1200129802903561: Databand logo back on the Login page.
+-   \#1200111167427102: Time format bug is fixed.
+-   \#1199965226804188: The search bar is back in Details view.
+-   \#1200091724058557: Runs and Task by Start Time are a stacked graph.
+
+## DBND v0.36.00
 
 ### New features:
 
@@ -88,7 +133,7 @@
 -   \#1199965687445132: Added columns for the task table in the Dashboard.
 -   \#1199917986044517: Added Spark LogPath.
 
-## DBND v 0.35.00
+## DBND v0.35.00
 
 ### New features:
 
@@ -96,7 +141,7 @@
 -   \#1199382295296733: Project phase 1
 -   \#1199562651279654: Support multiple Azkaban instances
 
-## DBND v 0.34.00
+## DBND v0.34.00
 
 ### New features:
 
@@ -116,7 +161,7 @@
 -   \#1199665645625989: fix Marshalling of nested lists
 -   \#1199692629063013: log_dataframe(...,with_stats=True) does not print stats to CLI
 
-## DBND v 0.33.00
+## DBND v0.33.00
 
 ### New features:
 
@@ -137,7 +182,7 @@
 -   \#1199592885591350: EKS(AWS) submitter log read timeout after 4h
 -   \#1199383391833788: Normalize
 
-## DBND v 0.32.00
+## DBND v0.32.00
 
 ### Improvements:
 
@@ -156,7 +201,7 @@
 -   \#1199561667659637: Improve Airflow monitor performance
 -   \#1199360347022221: fix dbnd db init printouts
 
-## DBND v 0.31.00
+## DBND v0.31.00
 
 ### Improvements:
 
@@ -170,14 +215,14 @@
 -   \#1185047487019177: add dataframe name to target reporting with log_dataframe()
 -   \#1198956007770574: fix jvm tracking timeouts
 
-## DBND v 0.30.04
+## DBND v0.30.04
 
 ### Fixed Issues:
 
 -   \#1196324185480705: make databand task return proper result
 -   \#1198935333953725: fix pickling compatibility issue for fat wheel.
 
-## DBND v 0.30.00
+## DBND v0.30.00
 
 ### New features:
 
@@ -200,7 +245,7 @@
 -   \#1198912139427114: fix airflow logging
 -   \#1198951004489095: task_visualizer banner - configurable max value size
 
-## DBND v 0.29.00
+## DBND v0.29.00
 
 ### New features:
 
@@ -227,7 +272,7 @@
 -   \#1177515786548674: support MultiTarget with require_local_access=true
 -   \#1194826730548337: Handle incomplete output scenario
 
-## DBND v.0.28.26
+## DBND v0.28.26
 
 ### New features:
 
@@ -246,7 +291,7 @@
 -   \#1193537416358473: column type not shown when histograms = true but statistics=False
 -   \#1188126160239994: histograms for pandas on empty column produce an error in a log
 
-## DBND v.0.28.20
+## DBND v0.28.20
 
 ### New features:
 
@@ -265,7 +310,7 @@
 -   \#1193537416358473: column type not shown when histograms = true but statistics=False
 -   \#1188126160239994: histograms for pandas on empty column produce an error in a log
 
-## DBND v.0.28.13
+## DBND v0.28.13
 
 ### New features:
 
@@ -283,7 +328,7 @@
 -   \#1191864220891825: histogram calculation fails on complex type
 -   \#1190570128931897: Solve compatibility errors of versioned dag and airflow 1.10.10
 
-## DBND v.0.28.6
+## DBND v0.28.6
 
 ### Improvements:
 
@@ -292,7 +337,7 @@
 -   \#1189508556532473: support airflow 1.10.10
 -   \#1183936916078880: Retrieve spark exception when running spark locally
 
-## DBND v.0.28.05
+## DBND v0.28.05
 
 ### New features:
 
@@ -321,7 +366,7 @@
 -   \#1186213205378244: Run list table style alignment
 -   \#1187782447252866: Pandas fails to write parquet file to hdfs
 
-## DBND v.0.28.01
+## DBND v0.28.01
 
 ### New features:
 
@@ -354,7 +399,7 @@
 -   fixed task sometimes not being selected in the graph during initial page load
 -   large performance improvements for the stats endpoint exporting metrics to prometheus
 
-## DBND v.0.28.00
+## DBND v0.28.00
 
 ### New features:
 
