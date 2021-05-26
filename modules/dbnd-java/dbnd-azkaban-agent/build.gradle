@@ -1,0 +1,70 @@
+/**
+ * ****************************************************************************
+ * Dependency on Azkaban SPI. Since Azkaban doesn't have it's jars published
+ * anywhere, we use our own custom build and repository.
+ * ****************************************************************************
+ */
+def azkabanVersion = "3.18.0"
+
+dependencies {
+    implementation("org.javassist:javassist:3.27.0-GA")
+
+    compileOnly("com.linkedin:azkaban-spi:${azkabanVersion}")
+    compileOnly("com.linkedin:azkaban-common:${azkabanVersion}")
+    compileOnly("com.linkedin:azkaban-exec-server:${azkabanVersion}")
+    compileOnly("com.linkedin:azkaban-web-server:${azkabanVersion}")
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.6.0'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+}
+
+/**
+ * ****************************************************************************
+ * Deequ should be excluded from all configurations because it's provided.
+ * ****************************************************************************
+ */
+configurations.all {
+    exclude group: "com.amazon.deequ", module: "deequ"
+}
+
+/**
+ * ****************************************************************************
+ * Agent configuration.
+ * ****************************************************************************
+ */
+jar {
+    manifest {
+        attributes(
+            'Premain-Class': 'ai.databand.azkaban.agent.DbndAgent',
+            'Can-Redefine-Classes': 'true',
+            'Can-Retransform-Classes': 'true',
+            'Can-Set-Native-Method-Prefix': 'true',
+            'Implementation-Title': 'DbndAgent',
+            'Implementation-Version': rootProject.version
+        )
+    }
+}
+
+/**
+ * ****************************************************************************
+ * We don't want all transitive dependencies to be included into fatjar.
+ * Spark is provided dependency and we need to include only databand, retrofit,
+ * slf4j, javassist and fasterxml.
+ *
+ * Fasterxml should be relocated to different package because azkaban brings
+ * very old version of fasterxml as a transitive dependency and retrofit
+ * unable to work with it
+ * ****************************************************************************
+ */
+shadowJar {
+    dependencies {
+        exclude(dependency {
+            !it.moduleGroup.contains('databand') \
+               && !it.moduleGroup.contains('squareup') \
+               && !it.moduleGroup.contains('ch.qos') \
+               && !it.moduleGroup.contains('javassist') \
+               && !it.moduleGroup.contains('com.fasterxml')
+        })
+    }
+    relocate 'com.fasterxml', 'shadow.com.fasterxml'
+}

@@ -1,0 +1,39 @@
+dependencies {
+    implementation 'org.javassist:javassist:3.27.0-GA'
+    implementation 'com.amazon.deequ:deequ:1.2.2-spark-2.2'
+}
+
+configurations.all {
+    exclude group: "ai.databand", module: "dbnd-api-deequ"
+}
+
+jar {
+    manifest {
+        attributes(
+            'Premain-Class': 'ai.databand.agent.DbndAgent',
+            'Can-Redefine-Classes': 'true',
+            'Can-Retransform-Classes': 'true',
+            'Can-Set-Native-Method-Prefix': 'true',
+            'Implementation-Title': 'DbndAgent',
+            'Implementation-Version': rootProject.version
+        )
+    }
+}
+
+/**
+ * ****************************************************************************
+ * We don't want all transitive dependencies to be included into fatjar.
+ * Spark is provided dependency and we need to include only databand, retrofit,
+ * slf4j and javassist.
+ * ****************************************************************************
+ */
+shadowJar {
+    dependencies {
+        exclude(dependency {
+            !it.moduleGroup.contains('databand') \
+              && !it.moduleGroup.contains('squareup') \
+              && !it.moduleGroup.contains('ch.qos') \
+              && !it.moduleGroup.contains('javassist')
+        })
+    }
+}
