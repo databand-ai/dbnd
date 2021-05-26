@@ -14,7 +14,7 @@ version = config["metadata"]["version"]
 requirements_for_airflow = [
     "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
     "Werkzeug<1.0.0,>=0.15.0",
-    "psycopg2>=2.7.4,<2.8",
+    "psycopg2-binary>=2.7.4",
     "SQLAlchemy==1.3.18",  # Make sure Airflow uses SQLAlchemy 1.3.15, Airflow is incompatible with SQLAlchemy 1.4.x
     "marshmallow<3.0.0,>=2.18.0",
 ]
@@ -22,7 +22,7 @@ requirements_for_airflow = [
 setuptools.setup(
     name="dbnd-airflow",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version, "packaging", "psycopg2>=2.7.4,<2.8"],
+    install_requires=["dbnd==" + version, "packaging"],
     extras_require=dict(
         airflow_1_10_7=requirements_for_airflow + ["apache-airflow==1.10.7"],
         airflow_1_10_8=requirements_for_airflow + ["apache-airflow==1.10.8"],
@@ -34,7 +34,7 @@ setuptools.setup(
         airflow_1_10_14=requirements_for_airflow + ["apache-airflow==1.10.14"],
         airflow_1_10_15=requirements_for_airflow + ["apache-airflow==1.10.15"],
         airflow_2_0_2=[
-            "psycopg2>=2.7.4,<2.8",
+            "psycopg2-binary>=2.7.4",
             "apache-airflow==2.0.2",
             "apache-airflow-providers-apache-spark==1.0.3",
         ],
