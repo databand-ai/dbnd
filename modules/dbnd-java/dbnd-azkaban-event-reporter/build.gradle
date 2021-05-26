@@ -4,13 +4,24 @@
  * anywhere, we use our own custom build and repository.
  * ****************************************************************************
  */
-def azkabanVersion = "3.91.0-86-g2e2d3e61"
+def azkabanVersion = "3.90.0"
 
 dependencies {
-    compileOnly("com.linkedin:azkaban-spi:${azkabanVersion}")
-    compileOnly("com.linkedin:azkaban-common:${azkabanVersion}")
-    compileOnly("com.linkedin:azkaban-exec-server:${azkabanVersion}")
-    compileOnly("com.linkedin:azkaban-web-server:${azkabanVersion}")
+    compileOnly("ai.databand.azkaban:az-core:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+    compileOnly("ai.databand.azkaban:azkaban-spi:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+    compileOnly("ai.databand.azkaban:azkaban-common:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+    compileOnly("ai.databand.azkaban:azkaban-exec-server:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+    compileOnly("ai.databand.azkaban:azkaban-web-server:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
 }
 
 /**
