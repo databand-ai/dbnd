@@ -1,11 +1,6 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
-        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.15.1'
-    }
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id "com.vanniktech.maven.publish" version "0.15.1"
 }
 
 /**
@@ -17,9 +12,9 @@ subprojects {
     apply plugin: 'java'
 
     group = 'ai.databand'
-    version = '0.40.3'
+    version = '0.41.1'
     if (project.hasProperty('snapshot')) {
-        version = "0.40.3-${System.env.CI_COMMIT_SHORT_SHA}"
+        version = "0.41.1-${System.env.CI_COMMIT_SHORT_SHA}"
     }
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -41,7 +36,7 @@ subprojects {
     }
 }
 
-def projectsToPublish = ["dbnd-api", "dbnd-api-deequ", "dbnd-client", "dbnd-mlflow"]
+def projectsToPublish = ["dbnd-api", "dbnd-api-deequ", "dbnd-client", "dbnd-mlflow", "dbnd-agent", "dbnd-azkaban-agent"]
 
 configure(subprojects.findAll { projectsToPublish.contains(it.name) }) {
     apply plugin: "com.vanniktech.maven.publish"
