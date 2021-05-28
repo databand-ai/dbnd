@@ -148,8 +148,8 @@ class InitRunArgsSchema(ApiObjectSchema):
 
 @attr.s
 class TaskRunAttemptUpdateArgs(object):
-    task_run_uid = attr.ib()  # type: UUID
-    task_run_attempt_uid = attr.ib()  # type: UUID
+    task_run_uid = attr.ib(repr=False)  # type: UUID
+    task_run_attempt_uid = attr.ib(repr=False)  # type: UUID
     timestamp = attr.ib()  # type:  datetime.datetime
     state = attr.ib()  # type: TaskRunState
     error = attr.ib(default=None)  # type: Optional[ErrorInfo]
