@@ -106,6 +106,8 @@ class AirflowServersGetter(object):
                         help_msg="Please provide correct syncer name (using --syncer-name parameter,"
                         " env variable DBND__AIRFLOW_MONITOR__SYNCER_NAME, or any other suitable way)",
                     )
+            else:
+                result_json = [r for r in result_json if r.get("fetcher") != "db"]
             servers = [
                 AirflowFetchingConfiguration(
                     url=server["base_url"],

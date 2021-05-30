@@ -122,7 +122,7 @@ class MultiServerMonitor(object):
 
     def filter_servers(self, servers):
         if not self.monitor_config.syncer_name:
-            return servers
+            return [s for s in servers if s.fetcher != "db"]
 
         servers_filtered = [
             s for s in servers if s.name == self.monitor_config.syncer_name
