@@ -180,6 +180,10 @@ class AlertStatus(EnumWithAll):
     RESOLVED = "RESOLVED"
     ACKNOWLEDGED = "ACKNOWLEDGED"
 
+    @classmethod
+    def not_resolved(cls):
+        return [cls.TRIGGERED.value, cls.ACKNOWLEDGED.value]
+
 
 class AlertErrorPolicy(object):
     none = ""
