@@ -1,5 +1,3 @@
-import pendulum
-
 from airflow.models import DagRun
 from sqlalchemy import and_
 

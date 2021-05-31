@@ -9,7 +9,7 @@ from airflow.version import version as airflow_version
 import dbnd_airflow_export
 
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
-from dbnd_airflow_export.dag_processing import (
+from dbnd_airflow_export.dag_operations import (
     get_current_dag_model,
     get_dags,
     load_dags_models,
@@ -31,6 +31,7 @@ from dbnd_airflow_export.queries import (
     find_max_log_run_id,
     find_new_dag_runs,
 )
+from dbnd_airflow_export.utils import get_dagbag_model
 
 
 logger = logging.getLogger(__name__)
@@ -149,12 +150,7 @@ def get_full_dag_runs(dag_run_ids, include_sources, airflow_dagbag=None, session
     if airflow_dagbag:
         dagbag = airflow_dagbag
     else:
-        from airflow import settings
-
-        if settings.RBAC:
-            from airflow.www_rbac.views import dagbag
-        else:
-            from airflow.www.views import dagbag
+        dagbag = get_dagbag_model()
 
     old_get_current_dag = DagModel.get_current
     try:

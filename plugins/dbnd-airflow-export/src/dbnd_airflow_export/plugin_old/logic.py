@@ -1,7 +1,7 @@
 import logging
 
 from dbnd._core.utils.timezone import utcnow
-from dbnd_airflow_export.dag_processing import get_dags, load_dags_models
+from dbnd_airflow_export.dag_operations import get_dags, load_dags_models
 from dbnd_airflow_export.datetime_utils import pendulum_max_dt
 from dbnd_airflow_export.plugin_old.db_queries import (
     get_completed_task_instances_and_dag_runs,

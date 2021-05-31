@@ -1,9 +1,9 @@
 import logging
 
 import airflow
-import flask_admin
 import flask_appbuilder
 
+from airflow.models import DagModel
 from airflow.plugins_manager import AirflowPlugin
 from airflow.www.app import csrf as admin_csrf
 
@@ -15,134 +15,70 @@ from dbnd_airflow_export.request_processing import (
     process_metadata_request,
     process_new_runs_request,
 )
-from dbnd_airflow_export.utils import AIRFLOW_VERSION_2
+from dbnd_airflow_export.utils import AIRFLOW_VERSION_2, get_dagbag_model
+
+
+flask_admin_views_list = []
+flask_appbuilder_views_list = []
 
 
 if not AIRFLOW_VERSION_2:
     from airflow.www_rbac.app import csrf as rbac_csrf
-else:
-    from airflow.www.app import csrf as rbac_csrf
+    from airflow.www_rbac.utils import CustomSQLAInterface
+    import flask_admin
 
+    class ExportDataViewAdmin(flask_admin.BaseView):
+        def __init__(self, *args, **kwargs):
+            super(ExportDataViewAdmin, self).__init__(*args, **kwargs)
+            self.endpoint = "data_export_plugin"
+            self.default_view = "export_data"
 
-def get_dagbag_model():
-    if AIRFLOW_VERSION_2:
-        from airflow.models.dagbag import DagBag
+        @admin_csrf.exempt
+        @flask_admin.expose("/")
+        @flask_admin.expose("/export_data")
+        def export_data(self):
+            dagbag = get_dagbag_model()
+            return export_data_api(dagbag)
 
-        dagbag = DagBag()
-    elif airflow.settings.RBAC:
-        from airflow.www_rbac.views import dagbag
-    else:
-        from airflow.www.views import dagbag
-    return dagbag
+        @admin_csrf.exempt
+        @flask_admin.expose("/last_seen_values")
+        def last_seen_values(self):
+            return process_last_seen_values_request()
 
+        @admin_csrf.exempt
+        @flask_admin.expose("/new_runs", methods=["GET", "POST"])
+        def new_runs(self):
+            return process_new_runs_request()
 
-class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
-    endpoint = "data_export_plugin"
-    default_view = "export_data"
+        @admin_csrf.exempt
+        @flask_admin.expose("/full_runs", methods=["GET", "POST"])
+        def full_runs(self):
+            return process_full_runs_request()
 
-    @rbac_csrf.exempt
-    @flask_appbuilder.has_access
-    @flask_appbuilder.expose("/export_data")
-    def export_data(self):
-        dagbag = get_dagbag_model()
-        return export_data_api(dagbag)
+        @admin_csrf.exempt
+        @flask_admin.expose("/runs_states_data", methods=["GET", "POST"])
+        def task_instances(self):
+            return process_dag_run_states_data_request()
 
-    @rbac_csrf.exempt
-    @flask_appbuilder.has_access
-    @flask_appbuilder.expose("/last_seen_values")
-    def last_seen_values(self):
-        return process_last_seen_values_request()
+        @admin_csrf.exempt
+        @flask_admin.expose("/metadata")
+        def metadata(self):
+            return process_metadata_request()
 
-    @rbac_csrf.exempt
-    @flask_appbuilder.has_access
-    @flask_appbuilder.expose("/new_runs", methods=["GET", "POST"])
-    def new_runs(self):
-        return process_new_runs_request()
+    flask_admin_views_list.append(
+        ExportDataViewAdmin(category="Admin", name="Export Data")
+    )
 
-    @rbac_csrf.exempt
-    @flask_appbuilder.has_access
-    @flask_appbuilder.expose("/full_runs", methods=["GET", "POST"])
-    def full_runs(self):
-        return process_full_runs_request()
-
-    @rbac_csrf.exempt
-    @flask_appbuilder.has_access
-    @flask_appbuilder.expose("/runs_states_data", methods=["GET", "POST"])
-    def task_instances(self):
-        return process_dag_run_states_data_request()
-
-    @rbac_csrf.exempt
-    @flask_appbuilder.has_access
-    @flask_appbuilder.expose("/metadata")
-    def metadata(self):
-        return process_metadata_request()
-
-
-class ExportDataViewAdmin(flask_admin.BaseView):
-    def __init__(self, *args, **kwargs):
-        super(ExportDataViewAdmin, self).__init__(*args, **kwargs)
-        self.endpoint = "data_export_plugin"
-        self.default_view = "export_data"
-
-    @admin_csrf.exempt
-    @flask_admin.expose("/")
-    @flask_admin.expose("/export_data")
-    def export_data(self):
-        dagbag = get_dagbag_model()
-        return export_data_api(dagbag)
-
-    @admin_csrf.exempt
-    @flask_admin.expose("/last_seen_values")
-    def last_seen_values(self):
-        return process_last_seen_values_request()
-
-    @admin_csrf.exempt
-    @flask_admin.expose("/new_runs", methods=["GET", "POST"])
-    def new_runs(self):
-        return process_new_runs_request()
-
-    @admin_csrf.exempt
-    @flask_admin.expose("/full_runs", methods=["GET", "POST"])
-    def full_runs(self):
-        return process_full_runs_request()
-
-    @admin_csrf.exempt
-    @flask_admin.expose("/runs_states_data", methods=["GET", "POST"])
-    def task_instances(self):
-        return process_dag_run_states_data_request()
-
-    @admin_csrf.exempt
-    @flask_admin.expose("/metadata")
-    def metadata(self):
-        return process_metadata_request()
-
-
-class DataExportAirflowPlugin(AirflowPlugin):
-    name = "dbnd_airflow_export"
-    admin_views = [ExportDataViewAdmin(category="Admin", name="Export Data")]
-    appbuilder_views = [
-        {"category": "Admin", "name": "Export Data", "view": ExportDataViewAppBuilder()}
-    ]
-
-
-if not AIRFLOW_VERSION_2:
     try:
         # this import is critical for loading `requires_authentication`
         from airflow import api
 
         api.load_auth()
-        if AIRFLOW_VERSION_2:
-            from airflow.www.api.experimental.endpoints import (
-                api_experimental,
-                requires_authentication,
-                csrf,
-            )
-        else:
-            from airflow.www_rbac.api.experimental.endpoints import (
-                api_experimental,
-                requires_authentication,
-                csrf,
-            )
+        from airflow.www_rbac.api.experimental.endpoints import (
+            api_experimental,
+            requires_authentication,
+            csrf,
+        )
 
         @csrf.exempt
         @api_experimental.route("/export_data", methods=["GET"])
@@ -183,3 +119,64 @@ if not AIRFLOW_VERSION_2:
 
     except Exception as e:
         logging.error("Export data could not be added to experimental api: %s", e)
+
+
+else:
+    from airflow.www.app import csrf as rbac_csrf
+    from airflow.www.utils import CustomSQLAInterface
+
+
+class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
+    endpoint = "data_export_plugin"
+    default_view = "export_data"
+    # This line is required for the upgrade_check script as part of upgrading to Airflow 2.0
+    # The actual model passed to CustomSQLAInterface doesn't really matter
+    datamodel = CustomSQLAInterface(DagModel)
+
+    @rbac_csrf.exempt
+    @flask_appbuilder.has_access
+    @flask_appbuilder.expose("/export_data")
+    def export_data(self):
+        dagbag = get_dagbag_model()
+        return export_data_api(dagbag)
+
+    @rbac_csrf.exempt
+    @flask_appbuilder.has_access
+    @flask_appbuilder.expose("/last_seen_values")
+    def last_seen_values(self):
+        return process_last_seen_values_request()
+
+    @rbac_csrf.exempt
+    @flask_appbuilder.has_access
+    @flask_appbuilder.expose("/new_runs", methods=["GET", "POST"])
+    def new_runs(self):
+        return process_new_runs_request()
+
+    @rbac_csrf.exempt
+    @flask_appbuilder.has_access
+    @flask_appbuilder.expose("/full_runs", methods=["GET", "POST"])
+    def full_runs(self):
+        return process_full_runs_request()
+
+    @rbac_csrf.exempt
+    @flask_appbuilder.has_access
+    @flask_appbuilder.expose("/runs_states_data", methods=["GET", "POST"])
+    def task_instances(self):
+        return process_dag_run_states_data_request()
+
+    @rbac_csrf.exempt
+    @flask_appbuilder.has_access
+    @flask_appbuilder.expose("/metadata")
+    def metadata(self):
+        return process_metadata_request()
+
+
+flask_appbuilder_views_list.append(
+    {"category": "Admin", "name": "Export Data", "view": ExportDataViewAppBuilder()}
+)
+
+
+class DataExportAirflowPlugin(AirflowPlugin):
+    name = "dbnd_airflow_export"
+    admin_views = flask_admin_views_list
+    appbuilder_views = flask_appbuilder_views_list

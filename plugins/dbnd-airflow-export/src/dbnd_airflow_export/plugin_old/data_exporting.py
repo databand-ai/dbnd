@@ -13,7 +13,7 @@ from airflow.models import DagModel
 from airflow.utils.db import provide_session
 
 from dbnd_airflow_export.compat import is_rbac_enabled
-from dbnd_airflow_export.dag_processing import get_current_dag_model
+from dbnd_airflow_export.dag_operations import get_current_dag_model
 from dbnd_airflow_export.datetime_utils import pendulum_min_dt
 from dbnd_airflow_export.plugin_old.logic import (
     get_complete_data,
@@ -21,7 +21,7 @@ from dbnd_airflow_export.plugin_old.logic import (
     get_incomplete_data_type_1,
     get_incomplete_data_type_2,
 )
-from dbnd_airflow_export.utils import AIRFLOW_VERSION_2, json_response
+from dbnd_airflow_export.utils import json_response
 
 
 @provide_session

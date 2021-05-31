@@ -254,7 +254,13 @@ class DbFetcher(DataFetcher):
         incomplete_offset,
     ):
         import airflow
-        from airflow import conf, models, settings
+
+        if hasattr(airflow, "conf"):
+            from airflow import conf
+        else:
+            from airflow.configuration import conf
+
+        from airflow import models, settings
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
 

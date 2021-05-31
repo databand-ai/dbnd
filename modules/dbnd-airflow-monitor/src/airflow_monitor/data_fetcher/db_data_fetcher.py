@@ -48,7 +48,13 @@ class DbFetcher(AirflowDataFetcher):
 
     @contextlib.contextmanager
     def _get_session(self):
-        from airflow import conf
+        import airflow
+
+        if hasattr(airflow, "conf"):
+            from airflow import conf
+        else:
+            from airflow.configuration import conf
+
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
 
