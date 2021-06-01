@@ -16,7 +16,7 @@ plugins {
 apply plugin: 'com.github.johnrengelman.shadow'
 
 group 'ai.databand'
-version = '0.41.2'
+version = '0.41.3'
 
 repositories {
     mavenCentral()
