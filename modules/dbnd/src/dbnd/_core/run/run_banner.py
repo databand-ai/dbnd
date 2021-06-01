@@ -89,9 +89,10 @@ class RunBanner(RunCtrl):
                 ("user", task_run_env.user),
                 ("run_uid", "%s" % run.run_uid),
                 ("env", run.env.name),
-                ("project", run.project_name or "'NOT DEFINED'",),
+                ("project", run.project_name) if run.project_name else None,
                 ("user_code_version", task_run_env.user_code_version),
             ]
+            run_params = list(filter(None, run_params))
             b.column("RUN", b.f_simple_dict(run_params))
             b.column("CMD", task_run_env.cmd_line)
 
