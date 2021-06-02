@@ -19,6 +19,7 @@ requirements_for_airflow = [
     "marshmallow<3.0.0,>=2.18.0",
     "marshmallow-sqlalchemy<0.24.0,>=0.16.1;python_version>='3.0'",
     "marshmallow-sqlalchemy==0.18.0;python_version<='2.7'",
+    "itsdangerous<2.0,>=0.24",
 ]
 
 setuptools.setup(
