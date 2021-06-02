@@ -264,7 +264,7 @@ public class DefaultDbndRun implements DbndRun {
 
         dbnd.addTaskRuns(rootRunUid, runId, taskRuns, taskDefinitions, parentChildMap, upstreamsMap);
         dbnd.logTargets(taskRun.getTaskRunUid(), runAndDefinition.targets());
-        dbnd.updateTaskRunAttempt(taskRun.getRunUid(), taskRun.getTaskRunAttemptUid(), "RUNNING", null, taskRun.getStartDate());
+        dbnd.updateTaskRunAttempt(taskRun.getTaskRunUid(), taskRun.getTaskRunAttemptUid(), "RUNNING", null, taskRun.getStartDate());
         LOG.info("TASK: task_id={}", taskRun.getTaskId());
         LOG.info("TIME: start={}", taskRun.getExecutionDate());
         LOG.info("TRACKER: {}/app/jobs/{}/{}/{}", config.databandUrl(), this.driverTask.getTaskAfId(), this.driverTask.getRunUid(), taskRun.getTaskRunUid());
@@ -485,7 +485,7 @@ public class DefaultDbndRun implements DbndRun {
             false,
             error.getClass().getCanonicalName()
         );
-        dbnd.updateTaskRunAttempt(task.getRunUid(), task.getTaskRunAttemptUid(), "FAILED", errorInfo, task.getStartDate());
+        dbnd.updateTaskRunAttempt(task.getTaskRunUid(), task.getTaskRunAttemptUid(), "FAILED", errorInfo, task.getStartDate());
     }
 
     protected String extractStackTrace(Throwable error) {
@@ -530,14 +530,14 @@ public class DefaultDbndRun implements DbndRun {
         }
         dbnd.saveTaskLog(task.getTaskRunAttemptUid(), task.getTaskLog());
         dbnd.logMetrics(task.getTaskRunAttemptUid(), task.getMetrics(), "spark");
-        dbnd.updateTaskRunAttempt(task.getRunUid(), task.getTaskRunAttemptUid(), "SUCCESS", null, task.getStartDate());
+        dbnd.updateTaskRunAttempt(task.getTaskRunUid(), task.getTaskRunAttemptUid(), "SUCCESS", null, task.getStartDate());
     }
 
     @Override
     public void stop() {
         dbnd.saveTaskLog(driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
         dbnd.logMetrics(driverTask.getTaskRunAttemptUid(), driverTask.getMetrics(), "spark");
-        dbnd.updateTaskRunAttempt(driverTask.getRunUid(), driverTask.getTaskRunAttemptUid(), "SUCCESS", null, driverTask.getStartDate());
+        dbnd.updateTaskRunAttempt(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), "SUCCESS", null, driverTask.getStartDate());
         dbnd.setRunState(rootRunUid, "SUCCESS");
     }
 
@@ -556,7 +556,7 @@ public class DefaultDbndRun implements DbndRun {
         driverTask.appendLog(stackTrace);
         dbnd.saveTaskLog(driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
         dbnd.logMetrics(driverTask.getTaskRunAttemptUid(), driverTask.getMetrics(), "spark");
-        dbnd.updateTaskRunAttempt(driverTask.getRunUid(), driverTask.getTaskRunAttemptUid(), "FAILED", errorInfo, driverTask.getStartDate());
+        dbnd.updateTaskRunAttempt(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), "FAILED", errorInfo, driverTask.getStartDate());
         dbnd.setRunState(rootRunUid, "FAILED");
     }
 
