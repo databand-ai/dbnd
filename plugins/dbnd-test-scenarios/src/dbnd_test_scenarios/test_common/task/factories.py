@@ -113,7 +113,12 @@ def ttask_dataframe(tparam=1):
 
 
 @pipeline
-def tpipeline_simple(param1=1, param2="2"):
+def tpipeline_simple(param="1"):
+    return ttask_simple(param)
+
+
+@pipeline
+def tpipeline_two_tasks(param1=1, param2="2"):
     data_df = ttask_dataframe(param1)
     data_str = ttask_simple(str(data_df))
     return data_str
