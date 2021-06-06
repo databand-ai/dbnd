@@ -73,3 +73,7 @@ def get_airflow_instance_uid():
     db_str = "{}:{}/{}".format(db_url.host, db_url.port, db_url.database)
     airflow_instance_uid = uuid.uuid5(uuid.NAMESPACE_URL, db_str)
     return str(airflow_instance_uid)
+
+
+def get_dataset_op_uid(dataset_uid, task_run_attempt_id, operation_type):
+    return uuid.uuid5(dataset_uid, "{}.{}".format(task_run_attempt_id, operation_type))
