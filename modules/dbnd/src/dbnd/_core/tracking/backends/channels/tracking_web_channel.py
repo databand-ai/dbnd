@@ -1,3 +1,5 @@
+import six
+
 from dbnd._core.current import get_databand_context
 from dbnd._core.errors.base import (
     DatabandAuthenticationError,
@@ -22,17 +24,22 @@ class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
         try:
             return self.client.api_request("tracking/%s" % name, data)
 
+        # ATTENTION: `raise from None`
+        # This is used to reduce the amount of information passing to upper level
+        # It's ok because we handle all the necessary information inside TrackerPanicError
         except DatabandConnectionException as e:
             # connection problems are not recoverable for web tracker
-            raise TrackerPanicError(
-                "Failed to connect the tracking api", inner_error=e,
-            ) from None
+            six.raise_from(
+                TrackerPanicError("Failed to connect the tracking api", inner_error=e,),
+                from_value=None,
+            )
 
         except (DatabandAuthenticationError, DatabandUnauthorizedApiError) as e:
             # authentication problems are not recoverable for web tracker
-            raise TrackerPanicError(
-                "Authentication error accrued", inner_error=e
-            ) from None
+            six.raise_from(
+                TrackerPanicError("Authentication error accrued", inner_error=e),
+                from_value=None,
+            )
 
         # unknown exception are not handled
 
