@@ -2,6 +2,7 @@ import contextlib
 import json
 import logging
 
+from distutils.version import LooseVersion
 from typing import List, Optional
 
 from airflow_monitor.common.airflow_data import (
@@ -68,13 +69,20 @@ class DbFetcher(AirflowDataFetcher):
     def _get_dagbag(self):
         if not self._dagbag:
             from airflow import models, settings
-            from airflow.settings import STORE_SERIALIZED_DAGS
 
-            self._dagbag = models.DagBag(
-                self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
-                include_examples=True,
-                store_serialized_dags=STORE_SERIALIZED_DAGS,
-            )
+            if hasattr(settings, "STORE_SERIALIZED_DAGS"):
+                from airflow.settings import STORE_SERIALIZED_DAGS
+
+                self._dagbag = models.DagBag(
+                    self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
+                    include_examples=True,
+                    store_serialized_dags=STORE_SERIALIZED_DAGS,
+                )
+            else:
+                self._dagbag = models.DagBag(
+                    self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
+                    include_examples=True,
+                )
         return self._dagbag
 
     def get_last_seen_values(self) -> LastSeenValues:

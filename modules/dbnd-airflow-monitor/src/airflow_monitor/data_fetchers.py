@@ -3,6 +3,7 @@ import logging
 import sys
 import traceback
 
+from distutils.version import LooseVersion
 from urllib.parse import urlparse
 
 import requests
@@ -252,8 +253,8 @@ class DbFetcher(DataFetcher):
         fetch_type,
         incomplete_offset,
     ):
+        import airflow
         from airflow import conf, models, settings
-        from airflow.settings import STORE_SERIALIZED_DAGS
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
 
@@ -262,11 +263,20 @@ class DbFetcher(DataFetcher):
         from dbnd_airflow_export.utils import JsonEncoder
 
         conf.set("core", "sql_alchemy_conn", value=self.sql_conn_string)
-        dagbag = models.DagBag(
-            self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
-            include_examples=True,
-            store_serialized_dags=STORE_SERIALIZED_DAGS,
-        )
+
+        if hasattr(settings, "STORE_SERIALIZED_DAGS"):
+            from airflow.settings import STORE_SERIALIZED_DAGS
+
+            dagbag = models.DagBag(
+                self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
+                include_examples=True,
+                store_serialized_dags=STORE_SERIALIZED_DAGS,
+            )
+        else:
+            dagbag = models.DagBag(
+                self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
+                include_examples=True,
+            )
 
         engine = create_engine(self.sql_conn_string)
         session = sessionmaker(bind=engine)

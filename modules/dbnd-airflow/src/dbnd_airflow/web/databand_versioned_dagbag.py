@@ -12,7 +12,7 @@ from dbnd._core.errors.friendly_error.versioned_dagbag import (
     failed_to_retrieve_dag_via_dbnd_versioned_dagbag,
 )
 from dbnd._vendor import pendulum
-from dbnd_airflow.constants import AIRFLOW_VERSION_2
+from dbnd_airflow.constants import AIRFLOW_ABOVE_6, AIRFLOW_BELOW_10, AIRFLOW_VERSION_2
 
 
 logger = logging.getLogger(__name__)
@@ -35,14 +35,18 @@ class DbndDagModel(DagModel):
         # DBND PATCH
         # unwrap all old logic, as we have recursion call there that makes it not easy to patch
 
-        dag = DagBag(
-            dag_folder=self.fileloc, store_serialized_dags=store_serialized_dags
-        ).get_dag(self.dag_id)
+        if AIRFLOW_ABOVE_6:
+            dag = DagBag(
+                dag_folder=self.fileloc, store_serialized_dags=store_serialized_dags
+            ).get_dag(self.dag_id)
 
-        if store_serialized_dags and dag is None:
-            dag = DagBag(dag_folder=self.fileloc, store_serialized_dags=False).get_dag(
-                self.dag_id
-            )
+            if store_serialized_dags and dag is None:
+                dag = DagBag(
+                    dag_folder=self.fileloc, store_serialized_dags=False
+                ).get_dag(self.dag_id)
+        else:
+            dag = DagBag(dag_folder=self.fileloc).get_dag(self.dag_id)
+
         if dag:
             return dag
 
@@ -88,9 +92,7 @@ class DbndAirflowDagBag(DagBag):
                     if dag:
                         return dag
 
-            if pkg_resources.parse_version(
-                airflow.__version__
-            ) < pkg_resources.parse_version("1.10.10"):
+            if AIRFLOW_BELOW_10 and AIRFLOW_ABOVE_6:
                 # get_dag function signature changed in airflow 1.10.10, ensure compatibility in parameters
                 # we don't have specific dag/execution date, we are trying to get in-memory version
                 dag = super(DbndAirflowDagBag, self).get_dag(
@@ -98,6 +100,7 @@ class DbndAirflowDagBag(DagBag):
                 )
             else:
                 dag = super(DbndAirflowDagBag, self).get_dag(dag_id)
+
             if dag:
                 return dag
 
