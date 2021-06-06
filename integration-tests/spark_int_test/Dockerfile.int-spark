@@ -29,7 +29,7 @@ RUN pip install -U pytest sh pyspark tox 'pip>=20,<20.3'
 
 ARG AIRFLOW_EXTRA=airflow
 # install dbnd packages:
-ADD ./dist/ /dist/
+COPY ./dist/*.requirements.txt /dist/
 RUN pip install -r /dist/dbnd.requirements.txt && \
     pip install -r /dist/dbnd-spark.requirements.txt && \
     pip install -r /dist/dbnd-test-scenarios.requirements.txt && \
@@ -37,6 +37,7 @@ RUN pip install -r /dist/dbnd.requirements.txt && \
     pip install -r /dist/dbnd-airflow[$AIRFLOW_EXTRA].requirements.txt && \
     pip install -r /dist/dbnd-airflow[tests].requirements.txt && \
     pip install -r /dist/examples.requirements.txt
+COPY ./dist/*.whl /dist/
 RUN pip install dbnd_airflow[$AIRFLOW_EXTRA] dbnd_examples databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
 
 ENV DBND_EXAMPLES_PATH=/app/examples

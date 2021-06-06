@@ -40,7 +40,7 @@ RUN pip install -r /dist/dbnd.requirements.txt && \
     pip install -r /dist/dbnd-spark.requirements.txt && \
     pip install -r /dist/dbnd-test-scenarios.requirements.txt
 
-ADD ./dist/ /dist/
+COPY ./dist/*.whl /dist/
 RUN pip install databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
 
 EXPOSE 8998
