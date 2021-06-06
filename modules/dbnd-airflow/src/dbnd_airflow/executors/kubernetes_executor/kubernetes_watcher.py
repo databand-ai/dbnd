@@ -41,7 +41,7 @@ def watcher_sig_handler(signal, frame):
 
 
 @attr.s
-class WatcherPodEvent:
+class WatcherPodEvent(object):
     """
     holds the information to create an event suite for the watcher queue
     """
