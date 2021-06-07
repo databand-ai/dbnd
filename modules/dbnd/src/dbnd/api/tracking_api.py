@@ -6,6 +6,7 @@ from uuid import UUID
 import attr
 
 from dbnd._core.constants import (
+    DbndDatasetOperationType,
     DbndTargetOperationStatus,
     DbndTargetOperationType,
     RunState,
@@ -303,6 +304,22 @@ class LogTargetArgs(object):
 
 
 @attr.s
+class LogDatasetArgs(object):
+    run_uid = attr.ib()  # type: UUID
+    task_run_attempt_uid = attr.ib()  # type: UUID
+    operation_path = attr.ib()  # type: str
+    operation_type = attr.ib()  # type: DbndDatasetOperationType
+    operation_status = attr.ib()  # type: DbndTargetOperationStatus
+
+    value_preview = attr.ib()  # type: str
+    data_dimensions = attr.ib()  # type: Sequence[int]
+    data_schema = attr.ib()  # type: str
+
+    def asdict(self):
+        return attr.asdict(self, recurse=False)
+
+
+@attr.s
 class LogDataframeHistogramsArgs(object):
     run_uid = attr.ib()  # type: UUID
     task_run_uid = attr.ib()  # type: UUID
@@ -348,6 +365,26 @@ class LogTargetsSchema(_ApiCallSchema):
 
 
 log_targets_schema = LogTargetsSchema()
+
+
+class LogDatasetSchema(_ApiCallSchema):
+    run_uid = fields.UUID(required=True)
+    task_run_attempt_uid = fields.UUID(required=True)
+
+    operation_path = fields.String()
+    operation_type = EnumField(DbndDatasetOperationType)
+    operation_status = EnumField(DbndTargetOperationStatus)
+
+    value_preview = fields.String(allow_none=True)
+    data_dimensions = fields.List(fields.Integer(), allow_none=True)
+    data_schema = fields.String(allow_none=True)
+
+
+class LogDatasetsSchema(_ApiCallSchema):
+    datasets_info = fields.Nested(LogDatasetSchema, many=True)
+
+
+log_datasets_schema = LogDatasetsSchema()
 
 
 class HeartbeatSchema(_ApiCallSchema):

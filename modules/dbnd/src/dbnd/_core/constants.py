@@ -214,6 +214,12 @@ class ParamValidation(EnumWithAll):
     disabled = "disabled"
 
 
+class DbndDatasetOperationType(EnumWithAll):
+    read = "read"
+    write = "write"
+    delete = "delete"
+
+
 class DbndTargetOperationType(EnumWithAll):
     init = "init"
     read = "read"

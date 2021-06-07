@@ -7,7 +7,7 @@ import attr
 
 from dbnd._core.settings import TrackingConfig
 from dbnd._core.settings.tracking_config import ValueTrackingLevel
-from dbnd._core.tracking.metrics import log_target_operation
+from dbnd._core.tracking.metrics import log_dataset_op
 from dbnd_airflow.tracking.airflow_connections import get_conn_path
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_snowflake.extract_sql_query import extract_from_sql
@@ -57,10 +57,9 @@ def log_sql_targets(conn_str, path, sql_query, is_succeed):
             else:
                 # the target can actually be a non table like S3 file that used
                 # as part of the sql query
-                log_target_operation(
-                    name=target_op.name,
-                    target=target_op.path,
-                    operation_type=target_op.operation,
+                log_dataset_op(
+                    op_path=target_op.path,
+                    op_type=target_op.operation,
                     success=target_op.success,
                 )
     except Exception:

@@ -40,6 +40,12 @@ class TrackingChannel(object):
     def save_external_links(self, data):
         return self._handle(TrackingChannel.save_external_links.__name__, data)
 
+    def log_dataset(self, data):
+        return self._handle(TrackingChannel.log_dataset.__name__, data)
+
+    def log_datasets(self, data):
+        return self._handle(TrackingChannel.log_datasets.__name__, data)
+
     def log_target(self, data):
         return self._handle(TrackingChannel.log_target.__name__, data)
 

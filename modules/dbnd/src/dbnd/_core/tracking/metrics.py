@@ -2,7 +2,11 @@ import logging
 import time
 import typing
 
-from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
+from dbnd._core.constants import (
+    DbndDatasetOperationType,
+    DbndTargetOperationStatus,
+    DbndTargetOperationType,
+)
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.tracking.log_data_request import LogDataRequest
@@ -179,26 +183,28 @@ def log_artifact(key, artifact):
     logger.info("Artifact %s=%s", key, artifact)
 
 
-def log_target_operation(
-    name,
-    target,  # type: Union[Target,str]
-    operation_type,  # type: DbndTargetOperationType
+def log_dataset_op(
+    op_path,  # type: Union[Target,str]
+    op_type,  # type: Union[DbndDatasetOperationType, str]
     success=True,  # type: bool
     data=None,
     with_preview=None,
     with_schema=None,
 ):
     """
-    Logs target operation and meta data to dbnd.
+    Logs dataset operation and meta data to dbnd.
 
-    @param name: the name of the target
-    @param target: Target object to log or a unique path representing the target logic location
-    @param operation_type: the type of operation that been done with the target - read, write, delete etc.
+    @param op_path: Target object to log or a unique path representing the operation location
+    @param op_type: the type of operation that been done with the target - read, write, delete.
     @param success: True if the operation succeeded, False otherwise.
     @param data: optional value of data to use build meta-data on the target
     @param with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
     @param with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
     """
+    if isinstance(op_type, str):
+        # If str type is not of DbndDatasetOperationType, raise.
+        op_type = DbndDatasetOperationType[op_type]
+
     tracker = _get_tracker()
     if tracker:
         meta_conf = ValueMetaConf(
@@ -209,10 +215,9 @@ def log_target_operation(
             DbndTargetOperationStatus.OK if success else DbndTargetOperationStatus.NOK
         )
 
-        tracker.log_target(
-            key=name,
-            target=target,
-            operation_type=operation_type,
+        tracker.log_dataset(
+            operation_path=op_path,
+            operation_type=op_type,
             operation_status=status,
             data=data,
             meta_conf=meta_conf,
@@ -220,15 +225,10 @@ def log_target_operation(
         return
 
     logger.info(
-        "Operation {operation} executed {status} on target {name} at {path}.".format(
-            operation=operation_type,
-            status=(
-                "successfully"
-                if success == DbndTargetOperationStatus.OK
-                else "unsuccessfully"
-            ),
-            name=name,
-            path=str(target),
+        "Operation {operation} executed {status} on target {path}.".format(
+            operation=op_type,
+            status=("successfully" if success else "unsuccessfully"),
+            path=str(op_path),
         )
     )
 
@@ -254,3 +254,64 @@ def log_duration(metric_key, source="user"):
     finally:
         end_time = time.time()
         log_metric(metric_key, end_time - start_time, source)
+
+
+@seven.contextlib.contextmanager
+def dataset_op_logger(
+    op_path,  # type: Union[Target,str]
+    op_type,  # type: Union[DbndDatasetOperationType, str]
+    data=None,
+    with_preview=True,
+    with_schema=True,
+):
+    """
+    Wrapper to Log dataset operation and meta data to dbnd.
+    ** Make sure to wrap only operation related code **
+
+    Good Example::
+
+        with dataset_op_logger("location://path/to/value.csv", "read"):
+            value = read_from()
+            # Read is successful
+
+        unrealted_func()
+
+    Bad Example::
+
+        with dataset_op_logger("location://path/to/value.csv", "read"):
+            value = read_from()
+            # Read is successful
+            unrealted_func()
+            # If unrealted_func raise exception, failed read operation is reported to databand.
+
+    @param op_path: Target object to log or a unique path representing the target logic location
+    @param op_type: the type of operation that been done with the target - read, write, delete.
+    @param data: optional value of data to use build meta-data on the target
+    @param with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
+    @param with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
+    """
+
+    if isinstance(op_type, str):
+        # If str type is not of DbndDatasetOperationType, raise.
+        op_type = DbndDatasetOperationType[op_type]
+    try:
+        yield
+    except Exception:
+        log_dataset_op(
+            op_path=op_path,
+            op_type=op_type,
+            success=False,
+            data=data,
+            with_preview=with_preview,
+            with_schema=with_schema,
+        )
+        raise
+    else:
+        log_dataset_op(
+            op_path=op_path,
+            op_type=op_type,
+            success=True,
+            data=data,
+            with_preview=with_preview,
+            with_schema=with_schema,
+        )

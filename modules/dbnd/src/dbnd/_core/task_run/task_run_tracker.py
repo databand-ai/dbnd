@@ -4,6 +4,7 @@ import typing
 import six
 
 from dbnd._core.constants import (
+    DbndDatasetOperationType,
     DbndTargetOperationStatus,
     DbndTargetOperationType,
     MetricSource,
@@ -212,37 +213,35 @@ class TaskRunTracker(TaskRunCtrl):
             if raise_on_error:
                 raise
 
-    def log_target(
+    def log_dataset(
         self,
-        key,
-        target,  # type: Union[Target,str]
-        operation_type,  # type: DbndTargetOperationType
+        operation_path,  # type: Union[Target,str]
+        operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
         data=None,
         meta_conf=None,
     ):
-        value_meta = None
+        data_meta = None
         if data is not None and meta_conf is not None:
             # Combine meta_conf with the config settings
             try:
-                value_meta = get_value_meta(
+                data_meta = get_value_meta(
                     data, meta_conf, tracking_config=self.settings.tracking
                 )
             except Exception:
                 logger.exception(
-                    "Failed to get value meta info for {} with target {}".format(
-                        key, str(target)
+                    "Failed to get value meta info for operation_path {}".format(
+                        str(operation_path)
                     )
                 )
 
-        if value_meta is None:
-            value_meta = ValueMeta("")
+        if data_meta is None:
+            data_meta = ValueMeta("")
 
-        self.tracking_store.log_target(
-            param_name=key,
+        self.tracking_store.log_dataset(
             task_run=self.task_run,
-            target=target,
-            target_meta=value_meta,
+            operation_path=operation_path,
+            data_meta=data_meta,
             operation_type=operation_type,
             operation_status=operation_status,
         )

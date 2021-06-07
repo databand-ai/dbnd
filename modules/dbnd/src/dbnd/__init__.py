@@ -48,12 +48,13 @@ from dbnd._core.task_build.task_registry import register_config_cls, register_ta
 from dbnd._core.task_ctrl.task_relations import as_task
 from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.tracking.metrics import (
+    dataset_op_logger,
     log_artifact,
     log_dataframe,
+    log_dataset_op,
     log_duration,
     log_metric,
     log_metrics,
-    log_target_operation,
 )
 from dbnd._core.tracking.no_tracking import dont_track
 from dbnd._core.tracking.python_tracking import (
@@ -134,12 +135,13 @@ __all__ = [
     "dbnd_handle_errors",
     # metrics
     "log_dataframe",
+    "dataset_op_logger",
     "LogDataRequest",
     "log_artifact",
     "log_metric",
     "log_metrics",
     "log_duration",
-    "log_target_operation",
+    "log_dataset_op",
     # project paths
     "project_path",
     "relative_path",

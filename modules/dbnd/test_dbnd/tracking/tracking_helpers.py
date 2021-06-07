@@ -46,6 +46,13 @@ def get_log_targets(mock_channel_tracker):
                 yield target_info
 
 
+def get_log_datasets(mock_channel_tracker):
+    for call in mock_channel_tracker.call_args_list:
+        if call.args[0].__name__ == "log_datasets":
+            for dataset_info in call[1]["datasets_info"]:
+                yield dataset_info
+
+
 def get_log_metrics(mock_channel_tracker):
     for call in mock_channel_tracker.call_args_list:
         if call.args[0].__name__ == "log_metrics":

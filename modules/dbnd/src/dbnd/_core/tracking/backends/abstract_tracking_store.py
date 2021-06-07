@@ -13,10 +13,12 @@ if typing.TYPE_CHECKING:
     from dbnd.api.tracking_api import (
         InitRunArgs,
         AirflowTaskInfo,
+        LogDatasetArgs,
         LogTargetArgs,
     )
     from dbnd._core.constants import (
         DbndTargetOperationType,
+        DbndDatasetOperationType,
         DbndTargetOperationStatus,
         UpdateSource,
     )
@@ -103,6 +105,20 @@ class TrackingStore(object):
     @state_call
     def save_airflow_task_infos(self, airflow_task_infos, source, base_url):
         # type: (List[AirflowTaskInfo], UpdateSource, str) -> None
+        pass
+
+    def log_dataset(
+        self,
+        task_run,  # type: TaskRun
+        operation_path,  # type: Union[Target, str]
+        data_meta,  # type: ValueMeta
+        operation_type,  # type: DbndDatasetOperationType
+        operation_status,  # type: DbndTargetOperationStatus
+    ):  # type: (...) -> None
+        pass
+
+    def log_datasets(self, datasets_info):
+        # type: (List[LogDatasetArgs]) -> None
         pass
 
     def log_target(

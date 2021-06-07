@@ -2,19 +2,28 @@ import datetime
 import logging
 import typing
 
-from dbnd._core.constants import DbndTargetOperationStatus, DbndTargetOperationType
+from dbnd._core.constants import (
+    DbndDatasetOperationType,
+    DbndTargetOperationStatus,
+    DbndTargetOperationType,
+)
 from dbnd._core.tracking.backends.abstract_tracking_store import TrackingStore
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.tracking.tracking_info_convertor import TrackingInfoBuilder
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.timezone import utcnow
-from dbnd.api.tracking_api import LogTargetArgs, TaskRunAttemptUpdateArgs
+from dbnd.api.tracking_api import (
+    LogDatasetArgs,
+    LogTargetArgs,
+    TaskRunAttemptUpdateArgs,
+)
+from targets import Target
 from targets.value_meta import ValueMeta
 
 
 if typing.TYPE_CHECKING:
-    from typing import List, Optional, Iterable
+    from typing import List, Optional, Iterable, Union
     from uuid import UUID
 
     from dbnd._core.constants import TaskRunState
@@ -127,6 +136,35 @@ class TrackingStoreThroughChannel(TrackingStore):
             task_run_attempt_uid=task_run.task_run_attempt_uid,
             external_links_dict=external_links_dict,
         )
+
+    def log_dataset(
+        self,
+        task_run,  # type: TaskRun
+        operation_path,  # type: Union[Target, str]
+        data_meta,  # type: ValueMeta
+        operation_type,  # type: DbndDatasetOperationType
+        operation_status,  # type: DbndTargetOperationStatus
+    ):
+        data_schema = (
+            json_utils.dumps(data_meta.data_schema)
+            if data_meta.data_schema is not None
+            else None
+        )
+        dataset_info = LogDatasetArgs(
+            run_uid=task_run.run.run_uid,
+            task_run_attempt_uid=task_run.task_run_attempt_uid,
+            operation_path=str(operation_path),
+            operation_type=operation_type,
+            operation_status=operation_status,
+            value_preview=data_meta.value_preview,
+            data_dimensions=data_meta.data_dimensions,
+            data_schema=data_schema,
+        )
+        res = self.log_datasets(datasets_info=[dataset_info])
+        return res
+
+    def log_datasets(self, datasets_info):  # type: (List[LogDatasetArgs]) -> None
+        return self._m(self.channel.log_datasets, datasets_info=datasets_info)
 
     def log_target(
         self,

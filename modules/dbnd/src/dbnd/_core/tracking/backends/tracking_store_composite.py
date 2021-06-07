@@ -162,6 +162,12 @@ class CompositeTrackingStore(TrackingStore):
     def save_external_links(self, **kwargs):
         return self._invoke(CompositeTrackingStore.save_external_links.__name__, kwargs)
 
+    def log_dataset(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.log_dataset.__name__, kwargs)
+
+    def log_datasets(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.log_datasets.__name__, kwargs)
+
     def log_target(self, **kwargs):
         return self._invoke(CompositeTrackingStore.log_target.__name__, kwargs)
 

@@ -4,7 +4,7 @@ from snowflake.connector import SnowflakeConnection
 
 from dbnd import log_duration
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
-from dbnd._core.tracking.metrics import log_data, log_target_operation
+from dbnd._core.tracking.metrics import log_data, log_dataset_op
 from dbnd_snowflake.extract_sql_query import TableTargetOperation
 from dbnd_snowflake.snowflake_config import SnowflakeConfig
 from dbnd_snowflake.snowflake_controller import SnowflakeController
@@ -67,10 +67,9 @@ def log_snowflake_table_targets(
 
     with SnowflakeController(connection_string) as snowflake_ctrl:
         snowflake_table = SnowflakeTable.from_table(snowflake_ctrl, table_op.name)
-        log_target_operation(
-            name=table_op.name,
-            target=table_op.path,
-            operation_type=table_op.operation,
+        log_dataset_op(
+            op_path=table_op.path,
+            op_type=table_op.operation,
             success=table_op.success,
             data=snowflake_table,
             with_preview=with_preview,
