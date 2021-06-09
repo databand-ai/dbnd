@@ -274,15 +274,15 @@ def dataset_op_logger(
             value = read_from()
             # Read is successful
 
-        unrealted_func()
+        unrelated_func()
 
     Bad Example::
 
         with dataset_op_logger("location://path/to/value.csv", "read"):
             value = read_from()
             # Read is successful
-            unrealted_func()
-            # If unrealted_func raise exception, failed read operation is reported to databand.
+            unrelated_func()
+            # If unrelated_func raise exception, failed read operation is reported to databand.
 
     @param op_path: Target object to log or a unique path representing the target logic location
     @param op_type: the type of operation that been done with the target - read, write, delete.
