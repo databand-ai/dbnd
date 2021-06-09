@@ -61,7 +61,7 @@ def test_build_run_time_airflow_task_without_context():
 
     assert job_name == "test_dag.test_task"
     assert source == UpdateSource.airflow_tracking
-    assert root_task.task_name == "special_name"
+    assert root_task.task_name == "test_task_special_name"
     assert root_task.task_family == AIRFLOW_TRACKING_ROOT_TASK_NAME
 
 
@@ -72,7 +72,7 @@ def test_script_tracking_with_airflow_context_from_env():
         AIRFLOW_CTX_TASK_ID="test_task",
         AIRFLOW_CTX_TRY_NUMBER="6",
     ), dbnd_tracking(name="boom") as task_run:
-        assert task_run.task.task_name == "boom"
+        assert task_run.task.task_name == "test_task_boom"
 
 
 def test_script_tracking():

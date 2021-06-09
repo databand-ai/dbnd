@@ -238,7 +238,7 @@ def build_run_time_airflow_task(af_context, root_task_name):
             source_code = TaskSourceCode.from_callable(tracked_function)
     else:
         # if this is an inline run-time task, we name it after the script which ran it
-        task_family = root_task_name
+        task_family = "_".join([af_context.task_id, root_task_name])
         source_code = TaskSourceCode.from_callstack()
         user_params = {}
 
