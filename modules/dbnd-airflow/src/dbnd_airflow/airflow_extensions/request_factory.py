@@ -1,8 +1,5 @@
 import logging
 
-from distutils.version import LooseVersion
-
-import airflow
 import yaml
 
 from airflow.contrib.kubernetes.pod import Pod
@@ -10,6 +7,8 @@ from airflow.contrib.kubernetes.secret import Secret
 
 from dbnd_airflow.compat.request_factory import serialize_pod
 
+
+AIRFLOW_LOG_MOUNT_NAME = "airflow-logs"
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +26,7 @@ class DbndPodRequestFactory(object):
         self.extract_volume_secrets(pod, req)
         self.extract_extended_resources(req, pod)
         self.extract_restart_policy(req)
+        self.add_logs_container(req)
 
         return req
 
@@ -84,3 +84,52 @@ class DbndPodRequestFactory(object):
             req["spec"]["volumes"].append(
                 {"name": vol_id, "secret": {"secretName": vol.secret}}
             )
+
+    def add_logs_container(self, req):
+        if self.kubernetes_engine_config.airflow_live_log_image is None:
+            return
+
+        # add a new mount volume for the logs
+        req["spec"].setdefault("volumes", [])
+        req["spec"]["volumes"].append({"name": AIRFLOW_LOG_MOUNT_NAME, "emptyDir": {}})
+
+        # add to the log mount to the original container
+        req["spec"]["containers"][0].setdefault("volumeMounts", [])
+        req["spec"]["containers"][0]["volumeMounts"].append(
+            {
+                "name": AIRFLOW_LOG_MOUNT_NAME,
+                "mountPath": (self.kubernetes_engine_config.container_airflow_log_path),
+            }
+        )
+
+        # configure airflow to use the ip as the hostname of the job
+        # airflow-webserver uses the hostname to query the log_sidecar but in kubernetes
+        # In kubernetes normally, only Services get DNS names, not Pods. so we use the ip.
+        # see more here: https://stackoverflow.com/a/59262628
+        if self.kubernetes_engine_config.host_as_ip_for_live_logs:
+            req["spec"]["containers"][0].setdefault("env", [])
+            req["spec"]["containers"][0]["env"].append(
+                {
+                    "name": "AIRFLOW__CORE__HOSTNAME_CALLABLE",
+                    "value": "airflow.utils.net:get_host_ip_address",
+                },
+            )
+
+        # build the log sidecar and add it
+        log_folder = self.kubernetes_engine_config.airflow_log_folder
+        airflow_image = self.kubernetes_engine_config.airflow_live_log_image
+        log_port = self.kubernetes_engine_config.airflow_log_port
+        side_car = {
+            "name": "log-sidecar",  # keep the name lowercase
+            "image": airflow_image,
+            "command": ["/bin/bash", "-c", "airflow serve_logs"],
+            # those env variable are used by `airflow serve_logs` to access the log and with the relevant port
+            "env": [
+                {"name": "AIRFLOW__CORE__BASE_LOG_FOLDER", "value": log_folder,},
+                {"name": "AIRFLOW__CELERY__WORKER_LOG_SERVER_PORT", "value": log_port},
+            ],
+            "volumeMounts": [{"name": AIRFLOW_LOG_MOUNT_NAME, "mountPath": log_folder}],
+            "ports": [{"containerPort": int(log_port)}],
+        }
+
+        req["spec"]["containers"].append(side_car)

@@ -6,7 +6,6 @@ import typing
 from datetime import datetime
 from typing import Optional
 
-from airflow.contrib.kubernetes.pod_launcher import PodStatus
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 
@@ -16,6 +15,7 @@ from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_erro
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter, override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
+from dbnd_docker.kubernetes.compat.pod_launcher import PodStatus
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
     KubernetesEngineConfig,

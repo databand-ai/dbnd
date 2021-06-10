@@ -248,6 +248,34 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         "the scheduler will mark the associated task instance as failed and will re-schedule the task.",
     )
 
+    # airflow live logs feature
+    # ------------------------- #
+    airflow_live_log_image = parameter(
+        default=None,
+        description="Specify the airflow image that will be used to add sidecar to the run which will expose the live "
+        "logs of the run. By setting it to a value (default=None), it enables the `airflow live log` feature.",
+    )[str]
+    airflow_log_folder = parameter(
+        default="/usr/local/airflow/logs",
+        description="Specify the location on the airflow image (sidecar), where we mount the logs from the original"
+        " container and expose them to airflow ui.",
+    )[str]
+    airflow_log_port = parameter(
+        default="8793",
+        description="The port airflow live log sidecar will expose its service. This port should match the port "
+        "airflow webserver tries to access the live logs ",
+    )[str]
+    container_airflow_log_path = parameter(
+        default="/root/airflow/logs/",
+        description="The path to the airflow logs, on the databand container.",
+    )
+    host_as_ip_for_live_logs = parameter(
+        default=True,
+        description="Set the host of the pod to be the ip address of the pod."
+        "In kubernetes normally, only Services get DNS names, not Pods."
+        "We use the ip for airflow webserver to lookup the sidecar See more here: https://stackoverflow.com/a/59262628",
+    )
+
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
 
@@ -487,11 +515,6 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             )
             cmds = shlex.split(self.debug_with_command)
 
-        if not self.container_tag:
-            raise DatabandConfigError(
-                "Your container tag is None, please check your configuration",
-                help_msg="Container tag should be assigned",
-            )
         if not self.container_tag:
             raise DatabandConfigError(
                 "Your container tag is None, please check your configuration",
