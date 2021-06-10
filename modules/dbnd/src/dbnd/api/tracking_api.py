@@ -306,6 +306,8 @@ class LogTargetArgs(object):
 @attr.s
 class LogDatasetArgs(object):
     run_uid = attr.ib()  # type: UUID
+    task_run_uid = attr.ib()  # type: UUID
+    task_run_name = attr.ib()  # type: str
     task_run_attempt_uid = attr.ib()  # type: UUID
     operation_path = attr.ib()  # type: str
     operation_type = attr.ib()  # type: DbndDatasetOperationType
@@ -369,6 +371,8 @@ log_targets_schema = LogTargetsSchema()
 
 class LogDatasetSchema(_ApiCallSchema):
     run_uid = fields.UUID(required=True)
+    task_run_uid = fields.UUID(required=True)
+    task_run_name = fields.String(required=True)
     task_run_attempt_uid = fields.UUID(required=True)
 
     operation_path = fields.String()

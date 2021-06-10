@@ -152,6 +152,8 @@ class TrackingStoreThroughChannel(TrackingStore):
         )
         dataset_info = LogDatasetArgs(
             run_uid=task_run.run.run_uid,
+            task_run_uid=task_run.task_run_uid,
+            task_run_name=task_run.job_name,
             task_run_attempt_uid=task_run.task_run_attempt_uid,
             operation_path=str(operation_path),
             operation_type=operation_type,
