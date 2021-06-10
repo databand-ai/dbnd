@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 
 import six
@@ -7,6 +8,8 @@ from dbnd._core.settings import LoggingConfig
 from dbnd._core.utils.string_utils import merge_dbnd_and_spark_logs
 from dbnd._vendor.termcolor import colored
 
+
+logger = logging.getLogger(__name__)
 
 MERGE_MSG_COLOR = "yellow"
 
@@ -34,7 +37,7 @@ def read_dbnd_log_preview(log_path, spark_log_path=None):
         return EMPTY_LOG_MSG
 
     if spark_log_path:
-        # we need to read and than merge the content of dbnd log and spark long
+        # we need to read and than merge the content of dbnd log and spark log
         # using half of the max_bytes for each of the logs to make sure we are not exceeding the max after merging
         parts = merge_read_log_files(
             log_path, spark_log_path, max_head_size // 2, max_tail_size // 2,
@@ -104,15 +107,27 @@ def merge_read_log_files(dbnd_log_path, spark_log_path, head_size, tail_size):
     """
     Handle the safe reading and merging of two log files.
     """
-    # we create tuples of parts (heads together and tails together).
-    # if there is no tail for only one of them will have : [(dbnd_head, spark_head), (dbnd_head, [])]
-    parts = zip_longest(
-        read_head_and_tail(dbnd_log_path, head_size, tail_size),
-        read_head_and_tail(spark_log_path, head_size, tail_size),
-        fillvalue=[],
-    )
 
-    # merging each part (heads, tails) separately
+    # if dbnd log read fails we want to move it up
+    dbnd_log = read_head_and_tail(dbnd_log_path, head_size, tail_size)
+
+    try:
+        spark_log = read_head_and_tail(spark_log_path, head_size, tail_size)
+    except Exception:
+        logger.warning(
+            "Failed to read dbnd spark log file {}".format(dbnd_log_path), exc_info=True
+        )
+        # if spark log read fails we want to return dbnd_log at least
+        return dbnd_log
+
+    # if both ok we merge them
+
+    # 1) we create tuples of parts (heads together and tails together).
+    #    if there is no tail for only one of them will have :
+    #               [(dbnd_head, spark_head), (dbnd_tail, [])]
+    parts = zip_longest(dbnd_log, spark_log, fillvalue=[],)
+
+    # 2) merging each part (heads, tails) separately
     merged_parts = []
     for part in parts:
         merged = merge_dbnd_and_spark_logs(*part)
