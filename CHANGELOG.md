@@ -1,5 +1,38 @@
 # History
 
+## DBND v0.42.00
+
+### New features
+
+-   \#1200378732521423: Airflow Monitor v2 now supports Airflow 2.0.
+-   \#1200392175180332: The Favorite Metric widget in the Dashboard now automatically displays anomalies for metrics.
+-   \#1200213466288282: Now supporting Google Composer for Airflow tracking.
+-   \#1200340430085787: Main menu now expands to include titles.
+-   \#1200321463111129: Added a chart display toggle for switching between Run charts in the Favorite Metric widget.
+-   \#1200095672805698: Users can select the main page view. The default mode is Dashboard; options: Dashboard or Pipelines.
+-   \#1200309661632765: The Syncer page was moved to the Settings page.
+-   \#1200284286454068: Now you can identify errors in different Runs - both the error message and the error type now lead to the Run page; the task that triggered the error is selected so you can view the error.
+    ​
+
+### Improvements
+
+-   \#1200403425760171: Added new Syncer issue counters in the Settings section.
+-   \#1200420269065898: Only the table is now scrollable in the Metrics widget.
+-   \#1200400792119627: Changes in the chart type design.
+-   \#1200400792119629: Changes in the Dashboard chart tooltips - now, the nearest point tooltip will be displayed.
+-   \#1200251794221201: Improved the readability of the metric charts tooltip.
+-   \#1200378661150501: Added Error Column to All Runs and Pipeline Runs lists.
+-   \#1200369692119674: Improved usability of the Alert Definition section.
+-   \#1200374990956464: Tasks in Airflow sub-processes are now automatically assigned unique names.
+-   \#1200102937873725: Added a unified context manager for handling log dataset operations.
+-   \#1200279378863216: Aligned and improved alert counters in the Pipeline and Run lists.
+    ​
+
+### Bug fixes
+
+-   \#1200401407223048: Fixed custom date picker behavior and placed it next to the Pipeline filter.
+-   \#1200126969897499: Task ID is now correctly displayed in the UI.
+
 ## DBND v0.41.00
 
 ### New features
