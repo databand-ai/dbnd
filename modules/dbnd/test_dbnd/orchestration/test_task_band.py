@@ -8,6 +8,7 @@ import six
 
 from dbnd import (
     PipelineTask,
+    Task,
     band,
     current_task,
     new_dbnd_context,
@@ -262,3 +263,40 @@ class TestTaskBand(object):
 
         with pytest.raises(DatabandRunError, match="A cyclic dependency occurred"):
             task_circle.dbnd_run()
+
+    def test_partitioned_band(self):
+        @task
+        def tpartition_task(partition_id=parameter[int]):
+            return partition_id
+
+        @pipeline
+        def pipeline_with_partitions(num_of_paritions=parameter[int]):
+            partitions = {}
+            root_dir = "/tmp/1"
+            for i in range(num_of_paritions):
+                partitions[str(i)] = tpartition_task(
+                    partition_id=i, result=os.path.join(root_dir, "p=%s" % i)
+                )
+            # root dir "target" created inside this pipeline
+            # every "str" converted into "target" will be binded to the "owning" pipeline
+            # meaning -> root_dir will become target(root_dir).task=self
+            # automatically, every task that will use it will "wait" for "this pipeline" to complete
+            return root_dir, partitions
+
+        @task
+        def ttask_that_use_root(root_dir: PathStr):
+            return root_dir
+
+        @pipeline
+        def main_pipeline(num_of_paritions=parameter[int]):
+            root_dir, partitions = pipeline_with_partitions(
+                num_of_paritions=num_of_paritions
+            )
+            return ttask_that_use_root(root_dir)
+
+        main_pipeline_instance = main_pipeline.t(3)
+        main_pipeline_instance.ctrl.describe_dag.describe_dag()
+        main_pipeline_instance.dbnd_run()
+        task_that_use_root_instance = main_pipeline_instance.result  # type:Task
+
+        print(task_that_use_root_instance)

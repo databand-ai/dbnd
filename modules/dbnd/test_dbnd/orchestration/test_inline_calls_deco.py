@@ -20,14 +20,33 @@ def t_f_b(t_input2):
     return ["s_%s" % s for s in t_input2]
 
 
+@task
+def task_that_runs_inline(value=1.0):
+    # type: (float)-> float
+    return value + 0.1
+
+
+@task
+def task_that_spawns(value=1.0):
+    # type: (float)-> float
+
+    value_task = task_that_runs_inline.task(value=value)
+    value_task.dbnd_run()
+
+    return value_task.result.read_pickle() + 0.1
+
+
 class TestInlineCalls(TargetTestBase):
     @fixture
     def target_1_2(self):
         t = self.target("file.txt")
-        t.as_object.write("1\n2\n")
+        t.as_object.writelines(["1", "2"])
         return t
 
-    def test_inline_call(self, target_1_2):
+    def test_inline_call_1(self, target_1_2):
+        assert_run_task(task_that_spawns.t())
+
+    def test_inline_call_2(self, target_1_2):
         @task
         def t_f(a):
             assert a == ["1", "2"]
