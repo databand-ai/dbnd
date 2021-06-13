@@ -6,6 +6,7 @@ from airflow.models import DagModel, DagRun, Log, TaskInstance
 from airflow.utils.db import provide_session
 
 from dbnd._core.utils.timezone import utcnow
+from dbnd_airflow_export.utils import AIRFLOW_VERSION_2
 
 
 @attr.s
@@ -20,6 +21,7 @@ class FakeTask(object):
     run_as_user = attr.ib(default=None)  # type: str
     retries = attr.ib(default=None)  # type: str
     executor_config = attr.ib(default=None)  # type: str
+    task_type = attr.ib(default=None)  # type str
 
 
 @attr.s
@@ -46,6 +48,8 @@ def insert_dag_runs(
         dag_run.dag_id = dag_id
         dag_run.execution_date = execution_date
         dag_run._state = state
+        if AIRFLOW_VERSION_2:
+            dag_run.run_type = ""
         session.add(dag_run)
 
         if with_log:

@@ -18,10 +18,10 @@ setuptools.setup(
     install_requires=["dbnd==" + version, "setuptools", "six"],
     extras_require={
         "tests": [
+            "werkzeug==0.16.1",
             "pytest==4.5.0",
             "mock",
             "WTForms<2.3.0",
-            "apache-airflow==1.10.9",
             "sh",
             "SQLAlchemy==1.3.18",
         ],

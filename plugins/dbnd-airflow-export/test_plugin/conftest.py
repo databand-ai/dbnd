@@ -30,21 +30,36 @@ def airflow_dag_folder(airflow_home):
 
 @fixture(scope="session")
 def airflow_dagbag(airflow_sqlalchemy_conn, airflow_dag_folder):
-    from airflow import models, conf
-    from airflow.settings import STORE_SERIALIZED_DAGS
+    import airflow
+    from airflow import models
+
+    if hasattr(airflow, "conf"):
+        from airflow import conf
+    else:
+        from airflow.settings import conf
 
     conf.set("core", "sql_alchemy_conn", value=airflow_sqlalchemy_conn)
-    dagbag = models.DagBag(
-        airflow_dag_folder,
-        include_examples=True,
-        store_serialized_dags=STORE_SERIALIZED_DAGS,
-    )
+
+    if hasattr(airflow.settings, "STORE_SERIALIZED_DAGS"):
+        from airflow.settings import STORE_SERIALIZED_DAGS
+
+        dagbag = models.DagBag(
+            airflow_dag_folder,
+            include_examples=True,
+            store_serialized_dags=STORE_SERIALIZED_DAGS,
+        )
+    else:
+        dagbag = models.DagBag(airflow_dag_folder, include_examples=True,)
+
     return dagbag
 
 
 @fixture(autouse=True, scope="session")
 def airflow_init_db(airflow_sqlalchemy_conn):
-    from airflow.bin.cli import initdb
+    try:
+        from airflow.bin.cli import initdb
+    except ImportError:
+        from airflow.cli.commands.db_command import initdb
 
     initdb([])
 
@@ -56,7 +71,11 @@ class YesObject(object):
 
 @fixture(autouse=True, scope="function")
 def airflow_reset_db(airflow_sqlalchemy_conn):
-    from airflow.bin.cli import resetdb
+    try:
+        from airflow.bin.cli import resetdb
+    except ImportError:
+        from airflow.cli.commands.db_command import resetdb
+
     from test_plugin.db_data_generator import set_dag_is_paused
 
     resetdb(YesObject(yes=True))
