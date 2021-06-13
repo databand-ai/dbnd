@@ -65,7 +65,7 @@ services:
       - hadoop.env
 
   inttest:
-    image: ${DOCKER_IMAGE_INT_WITH_PLUGINS:-gcr.io/dbnd-dev-260010/databand:dbnd-int-with-plugins-py36-local}
+    image: ${DOCKER_IMAGE_INT_WITH_PLUGINS:-gcr.io/dbnd-dev-260010/databand/dbnd-int-with-plugins:py36-local}
     depends_on:
       - databand_database
       - namenode

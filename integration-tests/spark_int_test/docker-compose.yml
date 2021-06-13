@@ -16,7 +16,7 @@ services:
       - "5432:5432"
 
   inttest:
-    image: ${DOCKER_IMAGE_INT_SPARK:-gcr.io/dbnd-dev-260010/databand:dbnd-int-spark-py36-local}
+    image: ${DOCKER_IMAGE_INT_SPARK:-gcr.io/dbnd-dev-260010/databand/dbnd-int-spark:py36-local}
     depends_on:
       - databand_database
       - airflow_postgres
@@ -43,8 +43,3 @@ services:
         airflow initdb
         (cd /app/dbnd/plugins/dbnd-spark && tox -e py36 -- --run-spark)
         (cd integration-test && pytest . -vv)
-
-
-
-
-
