@@ -27,7 +27,8 @@ class DbndPodRequestFactory(object):
         self.extract_volume_secrets(pod, req)
         self.extract_extended_resources(req, pod)
         self.extract_restart_policy(req)
-        self.add_logs_container(req)
+        if self.kubernetes_engine_config.airflow_live_log_image is not None:
+            self.add_logs_container(req)
 
         return req
 
@@ -87,8 +88,11 @@ class DbndPodRequestFactory(object):
             )
 
     def add_logs_container(self, req):
-        if self.kubernetes_engine_config.airflow_live_log_image is None:
-            return
+        if self.kubernetes_engine_config.trap_exit_file_flag is None:
+            logger.warning(
+                "Can't use live log feature without trap exit file."
+                "Please use the configuration `kubernetes.trap_exit_file_flag`"
+            )
 
         trap_file = self.kubernetes_engine_config.trap_exit_file_flag
         trap_dir = os.path.dirname(trap_file)
