@@ -114,14 +114,14 @@ class ConsoleStore(TrackingStore):
         elif state == TaskRunState.FAILED:
             task_msg = "Task %s has failed!" % task_id_str
             color = "red"
-            level = logging.ERROR
+            level = logging.WARNING
             if task_run.task.task_name in SystemTaskName.driver_and_submitter:
                 show_simple_log = True
 
         elif state == TaskRunState.CANCELLED:
             task_msg = "Task %s has been canceled!" % task_id_str
             color = "red"
-            level = logging.ERROR
+            level = logging.WARNING
             show_simple_log = True
 
         else:

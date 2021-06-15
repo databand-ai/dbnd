@@ -1,4 +1,5 @@
 import logging
+import os
 
 import yaml
 
@@ -26,7 +27,8 @@ class DbndPodRequestFactory(object):
         self.extract_volume_secrets(pod, req)
         self.extract_extended_resources(req, pod)
         self.extract_restart_policy(req)
-        self.add_logs_container(req)
+        if self.kubernetes_engine_config.airflow_live_log_image is not None:
+            self.add_logs_container(req)
 
         return req
 
@@ -86,20 +88,34 @@ class DbndPodRequestFactory(object):
             )
 
     def add_logs_container(self, req):
-        if self.kubernetes_engine_config.airflow_live_log_image is None:
-            return
+        if self.kubernetes_engine_config.trap_exit_file_flag is None:
+            logger.warning(
+                "Can't use live log feature without trap exit file."
+                "Please use the configuration `kubernetes.trap_exit_file_flag`"
+            )
+
+        trap_file = self.kubernetes_engine_config.trap_exit_file_flag
+        trap_dir = os.path.dirname(trap_file)
 
         # add a new mount volume for the logs
         req["spec"].setdefault("volumes", [])
-        req["spec"]["volumes"].append({"name": AIRFLOW_LOG_MOUNT_NAME, "emptyDir": {}})
+        req["spec"]["volumes"].extend(
+            [
+                {"name": AIRFLOW_LOG_MOUNT_NAME, "emptyDir": {}},
+                {"name": "trap", "emptyDir": {}},
+            ]
+        )
 
         # add to the log mount to the original container
         req["spec"]["containers"][0].setdefault("volumeMounts", [])
-        req["spec"]["containers"][0]["volumeMounts"].append(
-            {
-                "name": AIRFLOW_LOG_MOUNT_NAME,
-                "mountPath": (self.kubernetes_engine_config.container_airflow_log_path),
-            }
+        req["spec"]["containers"][0]["volumeMounts"].extend(
+            [
+                {
+                    "name": AIRFLOW_LOG_MOUNT_NAME,
+                    "mountPath": self.kubernetes_engine_config.container_airflow_log_path,
+                },
+                {"name": "trap", "mountPath": trap_dir,},
+            ]
         )
 
         # configure airflow to use the ip as the hostname of the job
@@ -122,13 +138,25 @@ class DbndPodRequestFactory(object):
         side_car = {
             "name": "log-sidecar",  # keep the name lowercase
             "image": airflow_image,
-            "command": ["/bin/bash", "-c", "airflow serve_logs"],
+            "command": ["/bin/bash", "-c"],
+            "args": [
+                """airflow serve_logs &
+                CHILD_PID=$!
+                (while true ; do if [[ -f "{0}" ]]; then kill $CHILD_PID; fi; sleep 1; done) &
+                wait $CHILD_PID
+                if [[ -f "{0}" ]]; then exit 0; fi""".format(
+                    trap_file
+                )
+            ],
             # those env variable are used by `airflow serve_logs` to access the log and with the relevant port
             "env": [
                 {"name": "AIRFLOW__CORE__BASE_LOG_FOLDER", "value": log_folder,},
                 {"name": "AIRFLOW__CELERY__WORKER_LOG_SERVER_PORT", "value": log_port},
             ],
-            "volumeMounts": [{"name": AIRFLOW_LOG_MOUNT_NAME, "mountPath": log_folder}],
+            "volumeMounts": [
+                {"name": AIRFLOW_LOG_MOUNT_NAME, "mountPath": log_folder},
+                {"name": "trap", "mountPath": trap_dir,},
+            ],
             "ports": [{"containerPort": int(log_port)}],
         }
 
