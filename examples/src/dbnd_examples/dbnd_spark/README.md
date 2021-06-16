@@ -28,3 +28,4 @@ Run basic training pipeline:
 ```bash
 dbnd run dbnd_examples.dbnd_spark.word_count_inline.word_count_inline --text s3://databand-playground/demo/customer_b.csv --env aws
 ```
+
