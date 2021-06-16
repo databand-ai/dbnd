@@ -25,11 +25,6 @@ class AirflowTrackingConfig(Config):
         description="Allow logging the values of xcom variables from airflow",
     )[bool]
 
-    max_xcom_size = parameter(
-        default=10000,
-        description="Maximum size, in bytes, of single xcom value that we will track",
-    )[int]
-
     max_xcom_length = parameter(
         default=10, description="The amount of xcom values to track, per operator"
     )[int]

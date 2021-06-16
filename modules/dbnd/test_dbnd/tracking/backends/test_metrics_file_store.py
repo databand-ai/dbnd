@@ -36,9 +36,9 @@ class TestFileMetricsStore(object):
 
         assert user_metrics == {
             "a": 1.0,
-            "a_list": "[1, 3]",
+            "a_list": [1, 3],
             "a_string": 1.0,
-            "a_tuple": "(1, 2)",
+            "a_tuple": [1, 2],
         }
 
     @pytest.mark.skipif(six.PY2, reason="float representation issue with stats.std")

@@ -115,7 +115,7 @@ def get_xcoms(task_instance):
     dag_id = task_instance.dag_id
 
     results = XCom.get_many(execution_date, task_ids=task_id, dag_ids=dag_id)
-    return [(xcom.key, str(xcom.value)) for xcom in results]
+    return [(xcom.key, xcom.value) for xcom in results]
 
 
 def set_dbnd_config_from_airflow_connections():

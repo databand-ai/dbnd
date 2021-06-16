@@ -93,11 +93,7 @@ def log_xcom(context, track_config):
     if xcoms:
         # get only the first xcoms
         xcoms_head = islice(xcoms, track_config.max_xcom_length)
-        # cut the size of too long xcom values
-        shortened_xcoms = {
-            key: value[: track_config.max_xcom_size] for key, value in xcoms_head
-        }
-        log_metrics(shortened_xcoms)
+        log_metrics(dict(xcoms_head))
 
 
 def log_operator_result(task_run, result, operator, track_xcom):
