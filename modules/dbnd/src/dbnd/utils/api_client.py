@@ -193,6 +193,7 @@ class ApiClient(object):
                     "ApiClient._init_session: username or password is not provided"
                 )
         except requests.exceptions.ConnectionError:
+            self.remove_session()
             raise
 
         except Exception as e:
