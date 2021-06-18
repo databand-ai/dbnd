@@ -14,8 +14,7 @@ from dbnd._core.current import (
     get_databand_run,
     try_get_current_task,
 )
-from dbnd._core.decorator.schemed_result import FuncResultParameter
-from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec, args_to_kwargs
+from dbnd._core.decorator.callable_spec import CallableSpec, args_to_kwargs
 from dbnd._core.parameter import build_user_parameter_value
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
@@ -28,6 +27,7 @@ from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_build.task_signature import Signature, user_friendly_signature
 from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.task_ctrl.task_ctrl import TrackingTaskCtrl
@@ -309,7 +309,7 @@ def build_func_parameter_values(task_definition, task_args, task_kwargs):
     In tracking task we need to build params without definitions.
     Those params value need no calculations and therefore are very easy to construct
     """
-    func_spec = task_definition.func_spec  # type: _TaskDecoratorSpec
+    func_spec = task_definition.task_decorator.get_func_spec()  # type: CallableSpec
     values = []
 
     # convert any arg to kwarg if possible

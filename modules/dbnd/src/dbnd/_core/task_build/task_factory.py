@@ -106,7 +106,7 @@ from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriori
 from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd._core.constants import RESULT_PARAM, ParamValidation, _TaskParamContainer
 from dbnd._core.current import get_databand_context
-from dbnd._core.decorator.task_decorator_spec import args_to_kwargs
+from dbnd._core.decorator.callable_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
 from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_definition import (
@@ -737,13 +737,14 @@ class TaskFactory(object):
         param_names = set(self.task_definition.task_param_defs)
         has_varargs = False
         has_varkwargs = False
-        if self.task_cls._conf__decorator_spec is not None:
+        if self.task_cls.task_decorator is not None:
+            func_spec = self.task_cls.task_decorator.get_func_spec()
             # only in functions we can have args as we know exact "call" signature
             task_args, task_kwargs = args_to_kwargs(
-                self.task_cls._conf__decorator_spec.args, task_args, task_kwargs
+                func_spec.args, task_args, task_kwargs
             )
-            has_varargs = self.task_cls._conf__decorator_spec.varargs
-            has_varkwargs = self.task_cls._conf__decorator_spec.varkw
+            has_varargs = func_spec.varargs
+            has_varkwargs = func_spec.varkw
 
         if task_args and not has_varargs:
             # we should not have any args, so we don't know how to assign them

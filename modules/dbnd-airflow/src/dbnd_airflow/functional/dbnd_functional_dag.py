@@ -12,8 +12,8 @@ from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.config_store import merge_config_stores
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.current import try_get_databand_context
-from dbnd._core.decorator.schemed_result import ResultProxyTarget
 from dbnd._core.parameter.parameter_value import ParameterFilters
+from dbnd._core.task_build.task_results import ResultProxyTarget
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.object_utils import safe_isinstance
 from dbnd_airflow.airflow_utils import (

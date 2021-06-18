@@ -3,7 +3,7 @@ import logging
 from functools import partial
 
 from dbnd import output, parameter, task
-from dbnd._core.decorator.decorated_task import DecoratedPythonTask
+from dbnd._core.task.task_from_task_decorator import DecoratedPythonTask
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 

@@ -9,12 +9,12 @@ import more_itertools
 from dbnd._core.cli.cmd_execute import get_dbnd_version, get_python_version
 from dbnd._core.constants import TaskType
 from dbnd._core.current import try_get_databand_context
-from dbnd._core.decorator.decorated_task import _DecoratedTask
-from dbnd._core.decorator.task_cls_builder import _task_decorator
+from dbnd._core.decorator.dbnd_decorator import build_task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
 from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.task.task import Task
+from dbnd._core.task.task_from_task_decorator import _TaskFromTaskDecorator
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
 from dbnd._core.utils.traversing import flatten
@@ -243,7 +243,7 @@ class PySparkInlineTask(_BaseSparkTask):
             session.stop()
 
 
-class _PySparkInlineFuncTask(PySparkInlineTask, _DecoratedTask):
+class _PySparkInlineFuncTask(PySparkInlineTask, _TaskFromTaskDecorator):
     def run(self):
         # we actually are going to run run function via our python script
         self._invoke_func()
@@ -252,4 +252,4 @@ class _PySparkInlineFuncTask(PySparkInlineTask, _DecoratedTask):
 def spark_task(*args, **kwargs):
     kwargs.setdefault("_task_type", _PySparkInlineFuncTask)
     kwargs.setdefault("_task_default_result", parameter.output.pickle[object])
-    return _task_decorator(*args, **kwargs)
+    return build_task_decorator(*args, **kwargs)

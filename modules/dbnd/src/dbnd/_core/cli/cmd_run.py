@@ -3,7 +3,6 @@ from __future__ import print_function
 import functools
 import logging
 
-import attr
 import six
 
 from dbnd._core.cli.click_utils import ConfigValueType, _help
@@ -34,11 +33,11 @@ def build_dynamic_task(original_cls, new_cls_name):
     original_name = original_cls.task_definition.task_family
     logger.info("Creating new class %s from %s", new_cls_name, original_name)
     attributes = {}  # {'_conf__task_family': original_cls.get_task_family()}
-    if original_cls._conf__decorator_spec:
-        conf__decorator_spec = attr.evolve(
-            original_cls._conf__decorator_spec, name=new_cls_name
-        )
-        attributes["_conf__decorator_spec"] = conf__decorator_spec
+    if original_cls.task_decorator:
+        # TODO: FIX TASK_DECORATOR
+        task_decorator = original_cls.task_decorator
+        task_decorator.task_passport.name = new_cls_name
+        attributes["task_decorator"] = task_decorator
     else:
         attributes["_conf__task_family"] = new_cls_name
     new_cls = TaskMetaclass(str(new_cls_name), (original_cls,), attributes)

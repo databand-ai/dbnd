@@ -5,8 +5,8 @@ from functools import partial
 
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
-from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.plugin.dbnd_plugins import should_use_airflow_monitor
+from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TargetInfo,
     TaskDefinitionInfo,

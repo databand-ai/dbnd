@@ -81,13 +81,11 @@ class TaskSourceCode(object):
     @classmethod
     def from_task_class(cls, task_class):
         # type: (Type[_BaseTask]) -> TaskSourceCode
+        # TODO: FIX TASK_DECORATOR
         if task_class._conf__track_source_code:
-            if (
-                hasattr(task_class, "_conf__decorator_spec")
-                and task_class._conf__decorator_spec
-            ):
+            if hasattr(task_class, "task_decorator") and task_class.task_decorator:
                 # this means we are inside a task_class of decorated function
-                return cls.from_callable(task_class._conf__decorator_spec.item)
+                return cls.from_callable(task_class.task_decorator.class_or_func)
             else:
                 return cls.from_class(task_class)
         else:

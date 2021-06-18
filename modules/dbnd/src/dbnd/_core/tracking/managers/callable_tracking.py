@@ -2,7 +2,7 @@ import contextlib
 import logging
 import typing
 
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Tuple
 
 import attr
 
@@ -19,9 +19,7 @@ from dbnd._core.current import (
     is_verbose,
     try_get_current_task,
 )
-from dbnd._core.decorator.decorated_task import _DecoratedTask
-from dbnd._core.decorator.schemed_result import FuncResultParameter
-from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec, args_to_kwargs
+from dbnd._core.decorator.callable_spec import args_to_kwargs
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
@@ -29,7 +27,7 @@ from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
-from dbnd._core.task_build.task_passport import TaskPassport
+from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
@@ -39,7 +37,7 @@ from targets.values import get_value_type_of_obj
 
 
 if typing.TYPE_CHECKING:
-    pass
+    from dbnd._core.decorator.task_decorator import TaskDecorator
 
 logger = logging.getLogger(__name__)
 
@@ -61,11 +59,9 @@ class TrackedFuncCallWithResult(object):
 
 
 class CallableTrackingManager(object):
-    def __init__(self, func_spec, task_defaults):
-        # type: (CallableTrackingManager, _TaskDecoratorSpec, Type[_DecoratedTask]) -> None
-        self.func_spec = func_spec
-
-        self.task_defaults = task_defaults
+    def __init__(self, task_decorator):
+        # type: (CallableTrackingManager, TaskDecorator) -> None
+        self.task_decorator = task_decorator
 
         self._tracking_task_definition = None
         self._call_count = 0
@@ -74,7 +70,7 @@ class CallableTrackingManager(object):
 
     @property
     def func(self):
-        return self.func_spec.item
+        return self.task_decorator.class_or_func
 
     def get_tracking_task_definition(self):
         if not self._tracking_task_definition:
@@ -82,9 +78,7 @@ class CallableTrackingManager(object):
         return self._tracking_task_definition
 
     def _build_tracking_task_definition(self):
-        return TaskDefinition.from_func_spec(
-            func_spec=self.func_spec, defaults=self.task_defaults,
-        )
+        return TaskDefinition.from_task_decorator(task_decorator=self.task_decorator)
 
     def _call_count_limit_exceeded(self):
         if not self._call_as_func:
@@ -104,75 +98,93 @@ class CallableTrackingManager(object):
         user_code_finished = False  # whether we passed executing of user code
         func_call = None
         try:
+            # 1. check that we don't have too many calls
+            if self._call_count_limit_exceeded():
+                yield _do_nothing_decorator
+                return
+
+            # 2. Start or reuse existing "main tracking task" that is root for tracked tasks
+            if not try_get_current_task():
+                """
+                 try to get existing task, and if not exists - try to get/create inplace_task_run
+                 """
+                from dbnd._core.tracking.script_tracking_manager import (
+                    try_get_inplace_tracking_task_run,
+                )
+
+                inplace_tacking_task = try_get_inplace_tracking_task_run()
+                if not inplace_tacking_task:
+                    # we didn't manage to start inplace tracking task run, we will not be able to track
+                    yield _do_nothing_decorator
+                    return
+
             tracking_task_definition = self.get_tracking_task_definition()
+            func_spec = tracking_task_definition.task_decorator.task
+
             func_call = TrackedFuncCallWithResult(
                 call_user_code=self.func,
                 call_args=tuple(call_args),  # prevent original call_args modification
                 call_kwargs=dict(call_kwargs),  # prevent original kwargs modification
             )
+            # replace any position argument with kwarg if it possible
+            args, kwargs = args_to_kwargs(
+                func_spec.args, func_call.call_args, func_call.call_kwargs,
+            )
 
-            # 1. check that we don't have too many calls
-            # 2. Start or reuse existing "inplace_task" that is root for tracked tasks
-            if not self._call_count_limit_exceeded() and _get_or_create_inplace_task():
-                # replace any position argument with kwarg if it possible
-                args, kwargs = args_to_kwargs(
-                    self.func_spec.args, func_call.call_args, func_call.call_kwargs,
-                )
+            # instantiate inline task
+            task = TrackingTask.for_func(tracking_task_definition, args, kwargs)
 
-                # instantiate inline task
-                task = TrackingTask.for_func(tracking_task_definition, args, kwargs)
+            # update upstream/downstream relations - needed for correct tracking
+            # we can have the task as upstream , as it was executed already
+            parent_task = current_task_run().task
+            if not parent_task.task_dag.has_upstream(task):
+                parent_task.set_upstream(task)
 
-                # update upstream/downstream relations - needed for correct tracking
-                # we can have the task as upstream , as it was executed already
-                parent_task = current_task_run().task
-                if not parent_task.task_dag.has_upstream(task):
-                    parent_task.set_upstream(task)
+            # checking if any of the inputs are the outputs of previous task.
+            # we can add that task as upstream.
+            dbnd_run = get_databand_run()
+            call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(kwargs)
+            for value_origin in call_kwargs_as_targets.values():
+                up_task = value_origin.origin_target.task
+                task.set_upstream(up_task)
 
-                # checking if any of the inputs are the outputs of previous task.
-                # we can add that task as upstream.
-                dbnd_run = get_databand_run()
-                call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(kwargs)
-                for value_origin in call_kwargs_as_targets.values():
-                    up_task = value_origin.origin_target.task
-                    task.set_upstream(up_task)
+            # creating task_run as a task we found mid-run
+            task_run = dbnd_run.create_dynamic_task_run(
+                task, task_engine=current_task_run().task_engine
+            )
 
-                # creating task_run as a task we found mid-run
-                task_run = dbnd_run.create_dynamic_task_run(
-                    task, task_engine=current_task_run().task_engine
-                )
+            should_capture_log = TrackingConfig.current().capture_tracking_log
+            with task_run.runner.task_run_execution_context(
+                handle_sigterm=True, capture_log=should_capture_log
+            ):
+                task_run.set_task_run_state(state=TaskRunState.RUNNING)
 
-                should_capture_log = TrackingConfig.current().capture_tracking_log
-                with task_run.runner.task_run_execution_context(
-                    handle_sigterm=True, capture_log=should_capture_log
-                ):
-                    task_run.set_task_run_state(state=TaskRunState.RUNNING)
+                _log_inputs(task_run)
 
-                    _log_inputs(task_run)
+                # if we reached this line, then all tracking initialization is
+                # finished successfully, and we're going to execute user code
+                user_code_called = True
 
-                    # if we reached this line, then all tracking initialization is
-                    # finished successfully, and we're going to execute user code
-                    user_code_called = True
+                try:
+                    # tracking_context is context manager - user code will run on yield
+                    yield func_call.set_result
 
-                    try:
-                        # tracking_context is context manager - user code will run on yield
-                        yield func_call.set_result
+                    # if we reached this line, this means that user code finished
+                    # successfully without any exceptions
+                    user_code_finished = True
+                except Exception as ex:
+                    task_run.finished_time = utcnow()
 
-                        # if we reached this line, this means that user code finished
-                        # successfully without any exceptions
-                        user_code_finished = True
-                    except Exception as ex:
-                        task_run.finished_time = utcnow()
+                    error = TaskRunError.build_from_ex(ex, task_run)
+                    task_run.set_task_run_state(TaskRunState.FAILED, error=error)
+                    raise
+                else:
+                    task_run.finished_time = utcnow()
 
-                        error = TaskRunError.build_from_ex(ex, task_run)
-                        task_run.set_task_run_state(TaskRunState.FAILED, error=error)
-                        raise
-                    else:
-                        task_run.finished_time = utcnow()
+                    # func_call.result should contain result, log it
+                    _log_result(task_run, func_call.result)
 
-                        # func_call.result should contain result, log it
-                        _log_result(task_run, func_call.result)
-
-                        task_run.set_task_run_state(TaskRunState.SUCCESS)
+                    task_run.set_task_run_state(TaskRunState.SUCCESS)
         except Exception:
             if user_code_called and not user_code_finished:
                 # if we started to call the user code and not got to user_code_finished
@@ -186,7 +198,8 @@ class CallableTrackingManager(object):
         # dbnd tracking initialization, so nothing is done - user function wasn't called yet
         if not user_code_called:
             # tracking_context is context manager - user code will run on yield
-            yield _passthrough_decorator
+            yield _do_nothing_decorator
+            return
 
 
 def _handle_tracking_error(msg, func_call):
@@ -203,24 +216,8 @@ def _handle_tracking_error(msg, func_call):
         )
 
 
-def _passthrough_decorator(f):
+def _do_nothing_decorator(f):
     return f
-
-
-def _get_or_create_inplace_task():
-    """
-    try to get existing task, and if not exists - try to get/create inplace_task_run
-    """
-    current_task = try_get_current_task()
-    if not current_task:
-        from dbnd._core.tracking.script_tracking_manager import (
-            try_get_inplace_tracking_task_run,
-        )
-
-        inplace_task_run = try_get_inplace_tracking_task_run()
-        if inplace_task_run:
-            current_task = inplace_task_run.task
-    return current_task
 
 
 def _log_inputs(task_run):

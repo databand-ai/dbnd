@@ -5,7 +5,7 @@ import typing
 import warnings
 
 from contextlib import contextmanager
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from dbnd._core.constants import (
     DbndTargetOperationStatus,
@@ -40,7 +40,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd._core.decorator.func_task_call import TaskCallState
+    from dbnd._core.task_build.task_cls__call_state import TaskCallState
 
 DEFAULT_CLASS_VERSION = ""
 
@@ -158,12 +158,13 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         description="timedelta to wait before retrying a task. Example: 5s",
     )[datetime.timedelta]
 
-    _dbnd_call_state = None  # type: TaskCallState
     task_essence = TaskEssence.ORCHESTRATION
 
     def __init__(self, **kwargs):
         super(Task, self).__init__(**kwargs)
 
+        # used to communicate return value of "user function"
+        self._dbnd_call_state = None  # type: Optional[TaskCallState]
         self.ctrl = TaskCtrl(self)
 
     def band(self):

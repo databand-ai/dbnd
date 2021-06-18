@@ -14,7 +14,7 @@ class TestFunctionDecorating(object):
         assert not _is_task(f1), "function got decorated unexpectedly"
         track_functions(f1, f2, f3)
 
-        assert _is_function(f1), "function is not function anymore"
+        assert callable(f1), "function is not function anymore"
         assert _is_task(f1), "local function wasn't decorated"
         assert _is_task(module_to_track.f1), "function in module wasn't decorated"
         assert _is_task(f2)
@@ -25,9 +25,9 @@ class TestFunctionDecorating(object):
         assert not _is_task(f4), "function got decorated unexpectedly"
         track_modules(module_to_track)
 
-        assert _is_function(f4), "function is not function anymore"
+        assert callable(f4), "function is not function anymore"
         assert _is_task(f4), "local function wasn't decorated"
-        assert _is_function(module_to_track.f4), "function is not function anymore"
+        assert callable(module_to_track.f4), "function is not function anymore"
         assert _is_task(module_to_track.f4), "function in module wasn't decorated"
         assert _is_task(module_to_track.f5)
         assert _is_function(module_to_track.task)
@@ -44,4 +44,4 @@ class TestFunctionDecorating(object):
 
         track_modules(module_to_track)
         track_modules(module_to_track)
-        assert _is_function(f6.func), "function was decorated more than once"
+        assert callable(f6.func), "function was decorated more than once"

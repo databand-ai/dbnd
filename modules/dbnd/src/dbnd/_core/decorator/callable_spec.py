@@ -1,12 +1,10 @@
 import inspect
-import itertools
 
 from typing import Any, Dict, List, Optional, Tuple
 
 import attr
 import six
 
-from dbnd._core.parameter import ParameterFactory
 from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 from dbnd._core.utils.typing_utils.doc_annotations import get_doc_annotaions
 from dbnd._vendor.pytypes.type_utils import get_Tuple_params, is_Tuple
@@ -14,19 +12,14 @@ from targets.values import get_types_registry
 
 
 @attr.s
-class _TaskDecoratorSpec(object):
+class CallableSpec(object):
     """
     Holding and describing the spec of callable that been decorated as a task.
-
     """
 
     # holding the callable
     item = attr.ib()  # type: callable
     is_class = attr.ib()  # type: bool
-
-    # inputs that came from the decorator
-    decorator_kwargs = attr.ib()  # type: Dict[str, Any]
-    default_result = attr.ib()  # type: ParameterFactory
 
     # callable spec
     # -------------
@@ -46,14 +39,13 @@ class _TaskDecoratorSpec(object):
     annotations = attr.ib()  # type: Dict[str, Any]
 
     defaults_values = attr.ib()  # type: Tuple[Any, ...]
-    # the callable name
-    name = attr.ib()  # type: str
+
     # annotation made with docstring
     doc_annotations = attr.ib()  # type: Dict[str,type ]
 
     @property
     def known_keywords_names(self):
-        return set(itertools.chain(self.args, self.decorator_kwargs))
+        return self.args
 
 
 # Extracts arg types and return type from doc string
@@ -64,15 +56,14 @@ class _TaskDecoratorSpec(object):
 # "str, dict(str, bool), list[str]" => ["str", "dict(str, bool)", "list[str]"]
 
 
-def build_task_decorator_spec(class_or_func, decorator_kwargs, default_result):
-    # type: (callable, Dict[str, Any], ParameterFactory ) -> _TaskDecoratorSpec
+def build_callable_spec(class_or_func):
+    # type: (callable ) -> CallableSpec
     is_class = inspect.isclass(class_or_func)
     if is_class:
         f = class_or_func.__init__
     else:
         f = class_or_func
 
-    name = class_or_func.__name__
     if six.PY3:
         # python 3 https://docs.python.org/3/library/inspect.html#inspect.getfullargspec
         f_spec = inspect.getfullargspec(f)
@@ -91,11 +82,9 @@ def build_task_decorator_spec(class_or_func, decorator_kwargs, default_result):
     f_defaults = f_spec.defaults or ()
     defaults_start_at = len(f_spec.args) - len(f_defaults)
 
-    return _TaskDecoratorSpec(
+    return CallableSpec(
         item=class_or_func,
         is_class=is_class,
-        decorator_kwargs=decorator_kwargs,
-        default_result=default_result,
         args=f_spec.args,
         varargs=f_spec.varargs,
         varkw=varkw,
@@ -106,7 +95,6 @@ def build_task_decorator_spec(class_or_func, decorator_kwargs, default_result):
         kwonlydefaults=kwonlydefaults or {},
         annotations=annotations or {},
         defaults_values=f_defaults,
-        name=name,
         doc_annotations=get_doc_annotaions(f, f_spec.args) or {},
     )
 
@@ -125,7 +113,7 @@ def build_task_decorator_spec(class_or_func, decorator_kwargs, default_result):
 #    but default_value returned float) - nothing happens, probably should raise exception. If 0 types
 #    guessed - assume simple Parameter
 def guess_func_arg_value_type(f_spec, name, default_value):
-    # type: (_TaskDecoratorSpec, str, Any) -> ValueType
+    # type: (CallableSpec, str, Any) -> ValueType
     r = get_types_registry()
 
     annotation = f_spec.annotations.get(name)

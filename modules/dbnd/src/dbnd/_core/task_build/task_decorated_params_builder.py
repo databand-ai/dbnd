@@ -6,8 +6,7 @@ from typing import List
 import six
 
 from dbnd._core.constants import RESULT_PARAM
-from dbnd._core.decorator.schemed_result import FuncResultParameter
-from dbnd._core.decorator.task_decorator_spec import (
+from dbnd._core.decorator.callable_spec import (
     guess_func_arg_value_type,
     guess_func_return_type,
 )
@@ -23,25 +22,26 @@ from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
     _ParameterKind,
 )
+from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.utils.basics.nothing import NOTHING, is_defined, is_not_defined
 from targets.values import get_value_type_of_type
 from targets.values.builtins_values import DefaultObjectValueType
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
+    from dbnd._core.decorator.callable_spec import CallableSpec
+    from dbnd._core.decorator.task_decorator import TaskDecorator
 logger = logging.getLogger(__name__)
 
 
-class FuncParamsBuilder(object):
-    def __init__(self, base_params, decorator_spec):
+class TaskFromDecoratorParamsBuilder(object):
+    def __init__(self, base_params, task_decorator):
         self.base_params = base_params
-        self.decorator_spec = decorator_spec  # type: _TaskDecoratorSpec
 
-        self.decorator_kwargs = (
-            decorator_spec.decorator_kwargs if decorator_spec else {}
-        )
+        self.task_decorator = task_decorator  # type: TaskDecorator
 
+        self.callable_spec = task_decorator.get_func_spec()  # type: CallableSpec
+        self._context = task_decorator.task_passport.full_task_family
         self.exclude = {RESULT_PARAM, "self"}
 
         self.decorator_kwargs_params = {}
@@ -51,14 +51,14 @@ class FuncParamsBuilder(object):
     def _build_func_spec_params(self, decorator_kwargs_params):
         params = {}
         # let go over all kwargs of the functions
-        for k in self.decorator_spec.args:
+        for k in self.callable_spec.args:
             if (
                 k in self.exclude or k in decorator_kwargs_params
             ):  # excluded or processed already
                 continue
-            context = "%s.%s" % (self.decorator_spec.name, k)
+            context = self._get_param_context(k)
 
-            default = self.decorator_spec.defaults.get(k, NOTHING)
+            default = self.callable_spec.defaults.get(k, NOTHING)
             if isinstance(default, ParameterFactory):
                 # it's inplace defition
                 # user_param= parameter[str]
@@ -74,7 +74,7 @@ class FuncParamsBuilder(object):
                 try:
                     # regular value
                     param_value_type = guess_func_arg_value_type(
-                        self.decorator_spec, k, default
+                        self.callable_spec, k, default
                     )
                     if param_value_type is None:
                         # fallback to "object"
@@ -87,23 +87,23 @@ class FuncParamsBuilder(object):
                     logger.exception("Failed to analyze function arg %s", context)
                     raise
 
-        if self.decorator_spec.varargs:
+        if self.callable_spec.varargs:
             # create a param with the name of `*args` argument of the function
-            params[self.decorator_spec.varargs] = build_parameter(
-                parameter[list], context=self.decorator_spec.name
+            params[self.callable_spec.varargs] = build_parameter(
+                parameter[list], context=self._get_param_context("*args")
             )
 
-        if self.decorator_spec.varkw:
+        if self.callable_spec.varkw:
             # create a param with the name of `**kwargs` argument of the function
-            params[self.decorator_spec.varkw] = build_parameter(
+            params[self.callable_spec.varkw] = build_parameter(
                 parameter[typing.Dict[str, typing.Any]],
-                context=self.decorator_spec.name,
+                context=self._get_param_context("**kwargs"),
             )
         return params
 
     def _build_decorator_kwargs_params(self):
         params = {}
-        for k, param in six.iteritems(self.decorator_kwargs):
+        for k, param in six.iteritems(self.task_decorator.decorator_kwargs):
             if k in self.exclude:  # we'll take care of result param later
                 continue
 
@@ -111,9 +111,9 @@ class FuncParamsBuilder(object):
                 self.exclude.add(k)
                 continue
 
-            context = "%s.%s" % (self.decorator_spec.name, k)
+            context = self._get_param_context(k)
 
-            if k not in self.decorator_spec.args and k not in self.base_params:
+            if k not in self.callable_spec.args and k not in self.base_params:
                 # we have parameter which is not part of real function signature
                 # @task(some_unknown_parameter=parameter)
                 logger.info(
@@ -122,8 +122,8 @@ class FuncParamsBuilder(object):
                     )
                 )
 
-            if k in self.decorator_spec.defaults:
-                if isinstance(self.decorator_spec.defaults[k], ParameterFactory):
+            if k in self.callable_spec.defaults:
+                if isinstance(self.callable_spec.defaults[k], ParameterFactory):
                     raise DatabandBuildError(
                         "{}: {} has conlficted definition in function and in decorator itself".format(
                             context, k
@@ -133,7 +133,7 @@ class FuncParamsBuilder(object):
                     logger.warning(
                         "Default value conflict between function and @task decorator"
                     )
-                param = param.default(self.decorator_spec.defaults.get(k))
+                param = param.default(self.callable_spec.defaults.get(k))
 
             if k not in self.base_params or isinstance(param, ParameterFactory):
                 # we are going to build a new parameter
@@ -145,7 +145,7 @@ class FuncParamsBuilder(object):
     def _build_multiple_outputs_result(self, result_deco_spec):
         # type: (List[ParameterFactory]) -> (List[ParameterDefinition], ParameterDefinition)
 
-        context = "{}.{}".format(self.decorator_spec.name, RESULT_PARAM)
+        context = self._get_param_context(RESULT_PARAM)
         res = []
         for i, lv in enumerate(result_deco_spec):
             lv = build_parameter(lv, context="%s.%s" % (context, i))
@@ -198,15 +198,15 @@ class FuncParamsBuilder(object):
         return p.output
 
     def _get_result_parameter(self):
-        context = "{}.{}".format(self.decorator_spec.name, RESULT_PARAM)
+        context = self._get_param_context(RESULT_PARAM)
 
-        return_spec = guess_func_return_type(self.decorator_spec)
+        return_spec = guess_func_return_type(self.callable_spec)
 
         deco_spec = None
         # first of all , let parse the definition we have
-        if RESULT_PARAM in self.decorator_kwargs:
+        if RESULT_PARAM in self.task_decorator.decorator_kwargs:
             # @task(result=...)
-            deco_spec = self.decorator_kwargs[RESULT_PARAM]
+            deco_spec = self.task_decorator.decorator_kwargs[RESULT_PARAM]
             if isinstance(deco_spec, dict):
                 raise friendly_error.task_parameters.dict_in_result_definition(
                     deco_spec
@@ -240,7 +240,7 @@ class FuncParamsBuilder(object):
                 return {}
             # let return default parameter ( pickle in @task)
             if is_not_defined(return_spec):
-                return build_parameter(self.decorator_spec.default_result, context)
+                return build_parameter(self.task_decorator.task_default_result, context)
 
             # so we have something in return speck, let use it
             if isinstance(return_spec, list):
@@ -273,7 +273,7 @@ class FuncParamsBuilder(object):
         return build_parameter(param, context)
 
     def build_func_params(self):
-        if not self.decorator_spec:
+        if not self.callable_spec:
             return
 
         # calc auto parameters from function spec
@@ -292,7 +292,7 @@ class FuncParamsBuilder(object):
         )
         if conflict_keys:
             raise friendly_error.task_parameters.result_and_params_have_same_keys(
-                self.decorator_spec.name, conflict_keys
+                self._context, conflict_keys
             )
 
     def _build_func_result_params(self):
@@ -315,7 +315,7 @@ class FuncParamsBuilder(object):
                 "@task(result='%s')\n\t"
                 "# type: -> '%s'\n\t error:%s\n\t"
                 " @task definition will be used!",
-                self.decorator_spec.name,
+                self._context,
                 deco_spec,
                 return_spec,
                 msg,
@@ -340,3 +340,6 @@ class FuncParamsBuilder(object):
             err("number of outputs is different")
             return None
         return return_spec
+
+    def _get_param_context(self, param_name):
+        return "%s.%s" % (self._context, param_name)

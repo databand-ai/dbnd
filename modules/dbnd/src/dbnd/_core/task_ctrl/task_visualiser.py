@@ -384,7 +384,7 @@ class _ParamTableDirector(object):
         self.default = param_default
 
         """adds the param table to the banner"""
-        from dbnd._core.decorator.schemed_result import ResultProxyTarget
+        from dbnd._core.task_build.task_results import ResultProxyTarget
 
         exclude = set(_TASK_FIELDS)  # excluding those
 

@@ -1,8 +1,4 @@
-import pytest
-import six
-
-from dbnd import parameter
-from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
+from dbnd._core.decorator.callable_spec import build_callable_spec
 
 
 class TestTaskDecoratorSpec(object):
@@ -10,7 +6,7 @@ class TestTaskDecoratorSpec(object):
         def only_arguments(a, b, c):
             pass
 
-        decorator_spec = build_task_decorator_spec(only_arguments, {}, parameter)
+        decorator_spec = build_callable_spec(only_arguments)
         assert not decorator_spec.is_class
         assert decorator_spec.args == ["a", "b", "c"]
         assert decorator_spec.varargs is None
@@ -19,13 +15,12 @@ class TestTaskDecoratorSpec(object):
         assert decorator_spec.kwonlyargs == []
         assert decorator_spec.kwonlydefaults == {}
         assert decorator_spec.defaults_values == ()
-        assert decorator_spec.name == "only_arguments"
 
     def test_arguments_and_kwargs(self):
         def arguments_and_kwargs(a, b, c, **kwargs):
             pass
 
-        decorator_spec = build_task_decorator_spec(arguments_and_kwargs, {}, parameter)
+        decorator_spec = build_callable_spec(arguments_and_kwargs)
         assert not decorator_spec.is_class
         assert decorator_spec.args == ["a", "b", "c"]
         assert decorator_spec.varargs is None
@@ -34,15 +29,12 @@ class TestTaskDecoratorSpec(object):
         assert decorator_spec.kwonlyargs == []
         assert decorator_spec.kwonlydefaults == {}
         assert decorator_spec.defaults_values == ()
-        assert decorator_spec.name == "arguments_and_kwargs"
 
     def test_arguments_and_named_kwarg(self):
         def arguments_and_named_kwarg(a, b, c, kwarg="default"):
             pass
 
-        decorator_spec = build_task_decorator_spec(
-            arguments_and_named_kwarg, {}, parameter
-        )
+        decorator_spec = build_callable_spec(arguments_and_named_kwarg)
         assert not decorator_spec.is_class
         assert decorator_spec.args == ["a", "b", "c", "kwarg"]
         assert decorator_spec.varargs is None
@@ -51,15 +43,12 @@ class TestTaskDecoratorSpec(object):
         assert decorator_spec.kwonlyargs == []
         assert decorator_spec.kwonlydefaults == {}
         assert decorator_spec.defaults_values == ("default",)
-        assert decorator_spec.name == "arguments_and_named_kwarg"
 
     def test_named_kwarg_only(self):
         def named_kwarg_and_vkwarg(a=1, b=2, c=3, kwarg="default", **kwargs):
             pass
 
-        decorator_spec = build_task_decorator_spec(
-            named_kwarg_and_vkwarg, {}, parameter
-        )
+        decorator_spec = build_callable_spec(named_kwarg_and_vkwarg)
         assert not decorator_spec.is_class
         assert decorator_spec.args == ["a", "b", "c", "kwarg"]
         assert decorator_spec.varargs is None
@@ -68,16 +57,15 @@ class TestTaskDecoratorSpec(object):
         assert decorator_spec.kwonlyargs == []
         assert decorator_spec.kwonlydefaults == {}
         assert decorator_spec.defaults_values == (1, 2, 3, "default")
-        assert decorator_spec.name == "named_kwarg_and_vkwarg"
 
-        assert decorator_spec.known_keywords_names == {"a", "b", "c", "kwarg"}
+        assert set(decorator_spec.known_keywords_names) == {"a", "b", "c", "kwarg"}
 
     def test_doc_annotations(self):
         def with_doc_annotations(a, b, **kwargs):
             # type: (int, str, **str) -> int
             pass
 
-        decorator_spec = build_task_decorator_spec(with_doc_annotations, {}, parameter)
+        decorator_spec = build_callable_spec(with_doc_annotations)
         assert decorator_spec.annotations == {}
         assert decorator_spec.doc_annotations == {
             "a": "int",

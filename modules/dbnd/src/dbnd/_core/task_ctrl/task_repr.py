@@ -109,7 +109,7 @@ class TaskRepr(TaskSubCtrl):
         task_ref = "{task_name}".format(
             task_name=self.task.task_definition.full_task_family
         )
-        if self.task._conf__decorator_spec:
+        if self.task.task_decorator:
             task_ref += ".task"
         return "{task_ref}({params})".format(
             task_ref=task_ref, params=", ".join(params)

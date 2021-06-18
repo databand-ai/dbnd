@@ -7,11 +7,11 @@ import typing
 from typing import Dict, List
 
 from dbnd import parameter
-from dbnd._core.decorator.decorated_task import _DecoratedTask
-from dbnd._core.decorator.task_cls_builder import _task_decorator
+from dbnd._core.decorator.dbnd_decorator import build_task_decorator
 from dbnd._core.errors import DatabandConfigError, friendly_error
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.settings.engine import EngineConfig
+from dbnd._core.task.task_from_task_decorator import _TaskFromTaskDecorator
 from dbnd._core.task_ctrl.task_repr import _parameter_value_to_argparse_str
 from dbnd.tasks import Config, Task
 from dbnd_gcp.apache_beam import ApacheBeamJobCtrl
@@ -86,7 +86,7 @@ class ApacheBeamPythonTask(_BeamTask):
         )
 
 
-class _ApacheBeamInlineTask(_BeamTask, _DecoratedTask):
+class _ApacheBeamInlineTask(_BeamTask, _TaskFromTaskDecorator):
     _conf__require_run_dump_file = True
 
     dataflow_build_pipeline = parameter(
@@ -204,4 +204,4 @@ class _ApacheBeamInlineTask(_BeamTask, _DecoratedTask):
 def beam_task(*args, **kwargs):
     kwargs.setdefault("_task_type", _ApacheBeamInlineTask)
     kwargs.setdefault("_task_default_result", parameter.output.pickle[object])
-    return _task_decorator(*args, **kwargs)
+    return build_task_decorator(*args, **kwargs)

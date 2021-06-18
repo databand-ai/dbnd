@@ -5,7 +5,7 @@ def _task_name(task):
 def _band_call_str(task):
     if not task:
         return
-    if task._conf__decorator_spec:
+    if task.task_decorator:
         return "%s()" % _task_name(task)
     return "%s.band()" % _task_name(task)
 

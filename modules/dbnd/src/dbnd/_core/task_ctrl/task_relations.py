@@ -2,11 +2,11 @@ import logging
 import sys
 import warnings
 
-from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.friendly_error import _band_call_str
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
+from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_build.task_signature import (
     build_signature,
     build_signature_from_values,
@@ -188,8 +188,10 @@ class TaskRelations(TaskSubCtrl):
                 )
             )
 
-            if self.task._conf__decorator_spec:
+            if self.task.task_decorator:
+                # just re-raise, we already have an error from the "run" function
                 raise
+
             raise friendly_error.task_build.failed_to_call_band(ex, self.task)
 
     def _get_all_child_pipelines(self):

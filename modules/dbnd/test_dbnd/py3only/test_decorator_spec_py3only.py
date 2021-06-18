@@ -1,5 +1,5 @@
 from dbnd import parameter
-from dbnd._core.decorator.task_decorator_spec import build_task_decorator_spec
+from dbnd._core.decorator.callable_spec import build_callable_spec
 
 
 class TestTaskDecoratorSpecPy3(object):
@@ -7,7 +7,7 @@ class TestTaskDecoratorSpecPy3(object):
         def with_annotations(a: int, b: str, **kwargs: str) -> int:
             pass
 
-        decorator_spec = build_task_decorator_spec(with_annotations, {}, parameter)
+        decorator_spec = build_callable_spec(with_annotations)
         assert decorator_spec.annotations == {
             "return": int,
             "a": int,
@@ -20,7 +20,7 @@ class TestTaskDecoratorSpecPy3(object):
         def args_and_kwargs(a, *args, word="default", **kwargs):
             pass
 
-        decorator_spec = build_task_decorator_spec(args_and_kwargs, {}, parameter)
+        decorator_spec = build_callable_spec(args_and_kwargs)
         assert not decorator_spec.is_class
         assert decorator_spec.args == ["a"]
         assert decorator_spec.varargs == "args"
@@ -29,26 +29,21 @@ class TestTaskDecoratorSpecPy3(object):
         assert decorator_spec.kwonlyargs == ["word"]
         assert decorator_spec.kwonlydefaults == {"word": "default"}
         assert decorator_spec.defaults_values == ()
-        assert decorator_spec.name == "args_and_kwargs"
 
-        assert decorator_spec.known_keywords_names == {"a"}
+        assert decorator_spec.known_keywords_names == ["a"]
 
     def test_args_and_kwargs_and_decorator_kwarg(self):
         def args_and_kwargs(a, *args, word="default", **kwargs):
             pass
 
-        decorator_spec = build_task_decorator_spec(
-            args_and_kwargs, {"decorator": 1}, parameter
-        )
+        decorator_spec = build_callable_spec(args_and_kwargs)
         assert not decorator_spec.is_class
         assert decorator_spec.args == ["a"]
         assert decorator_spec.varargs == "args"
         assert decorator_spec.varkw == "kwargs"
         assert decorator_spec.defaults == {}
-        assert decorator_spec.decorator_kwargs == {"decorator": 1}
         assert decorator_spec.kwonlyargs == ["word"]
         assert decorator_spec.kwonlydefaults == {"word": "default"}
         assert decorator_spec.defaults_values == ()
-        assert decorator_spec.name == "args_and_kwargs"
 
-        assert decorator_spec.known_keywords_names == {"a", "decorator"}
+        assert decorator_spec.known_keywords_names == ["a"]

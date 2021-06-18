@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Optional
 
 from dbnd._core.constants import TaskType
 from dbnd._core.current import get_databand_context
-from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.utils.basics.nothing import NOTHING
@@ -17,6 +16,7 @@ from dbnd._core.utils.basics.nothing import NOTHING
 if TYPE_CHECKING:
     from dbnd._core.settings import DatabandSettings
     from dbnd._core.task_build.task_definition import TaskDefinition
+    from dbnd._core.decorator.task_decorator import TaskDecorator
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,6 @@ class _BaseTask(object):
     # override to change get_task_family() -> changes task_family
     _conf__task_family = None
     _conf__track_source_code = True  # module/class/function user source code tracking
-    task_namespace = NOTHING
 
     _conf__task_type_name = TaskType.python
     _conf__task_ui_color = None
@@ -35,9 +34,11 @@ class _BaseTask(object):
     # override output path format
     _conf__base_output_path_fmt = None
 
-    # stores call spec for the @task definition
-    _conf__decorator_spec = None  # type: Optional[_TaskDecoratorSpec]
     _conf__tracked = True  # track task changes with TrackingStore
+
+    # stores call spec for the @task definition
+    task_decorator = None  # type: Optional[TaskDecorator]
+    task_namespace = NOTHING
 
     @property
     def task_family(self):

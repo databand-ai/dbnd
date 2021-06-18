@@ -10,7 +10,7 @@ from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.decorator.task_decorator_spec import _TaskDecoratorSpec
+    from dbnd._core.decorator.callable_spec import CallableSpec
     from dbnd._core.task import Task
 
 
@@ -41,10 +41,10 @@ class TaskPassport(object):
     @classmethod
     def from_task_cls(cls, task_class):
         # type: (Type[Task]) -> TaskPassport
-        if task_class._conf__decorator_spec:
-            cls_name = task_class._conf__decorator_spec.name
-        else:
-            cls_name = task_class.__name__
+        if task_class.task_decorator:
+            return task_class.task_decorator.task_passport
+
+        cls_name = task_class.__name__
         task_namespace = task_class.task_namespace
         module_name = task_class.__module__
 
@@ -53,16 +53,6 @@ class TaskPassport(object):
             module_name=module_name,
             task_namespace=task_namespace,
             task_family=task_class._conf__task_family,
-        )
-
-    @classmethod
-    def from_func_spec(cls, func_spec, task_namespace=NOTHING, task_family=None):
-        # type: (_TaskDecoratorSpec, str, str) -> TaskPassport
-        return cls.build_task_passport(
-            cls_name=func_spec.name,
-            module_name=func_spec.item.__module__,
-            task_namespace=task_namespace,
-            task_family=task_family,
         )
 
     @classmethod

@@ -1,10 +1,7 @@
 import io
 
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
-from airflow.models import BaseOperator
-
-from dbnd._core.decorator.schemed_result import ResultProxyTarget
 from dbnd_airflow.airflow_utils import safe_get_context_manager_dag
 from targets import AtomicLocalFile
 from targets.fs import register_file_system
