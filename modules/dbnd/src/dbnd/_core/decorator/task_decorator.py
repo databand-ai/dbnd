@@ -12,6 +12,7 @@ from dbnd._core.decorator.callable_spec import (
     args_to_kwargs,
     build_callable_spec,
 )
+from dbnd._core.decorator.lazy_property_proxy import CallableLazyObjectProxy
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import user_side_code
 from dbnd._core.failures import dbnd_handle_errors
@@ -36,7 +37,16 @@ if typing.TYPE_CHECKING:
 
 
 class TaskDecorator(object):
-    __is_dbnd_task__ = True
+    """
+    This object represent the state and logic of decorated callable (user class or user function)
+    All "expensive" objects are lazy: task_cls, callable_spec, callable_tracking_manager
+
+    all "user-side" calls are routed into self.handle_callable_call() that will decide should we
+    1. call user code directly (dbnd is disabled)
+    2. call and track user callable call (tracking is enabled)
+    3. create a Task that represents user code ( orchestration mode at @pipeline.band
+    4. create a Task and run it (orchestration mode at @task.run)
+    """
 
     def __init__(self, class_or_func, decorator_kwargs):
         # known parameters for @task
@@ -75,8 +85,6 @@ class TaskDecorator(object):
             None
         )  # type: Optional[CallableTrackingManager]
 
-        functools.update_wrapper(self, class_or_func)
-
     def get_callable_spec(self):
         if not self._callable_spec:
             try:
@@ -114,10 +122,6 @@ class TaskDecorator(object):
             )
         return self._task_cls
 
-    @property
-    def func(self):
-        return self.class_or_func
-
     def get_task_definition(self):
         return self.get_task_cls().task_definition
 
@@ -144,15 +148,15 @@ class TaskDecorator(object):
             call_args=call_args, call_kwargs=call_kwargs
         )
 
-    def __call__(self, *args, **kwargs):
+    def handle_callable_call(self, *call_args, **call_kwargs):
         dbnd_project_config = get_dbnd_project_config()
         if dbnd_project_config.disabled:
-            return self.class_or_func(*args, **kwargs)
+            return self.class_or_func(*call_args, **call_kwargs)
 
         # we are at tracking mode
         if dbnd_project_config.is_tracking_mode():
-            with self.tracking_context(args, kwargs) as track_result_callback:
-                fp_result = self.class_or_func(*args, **kwargs)
+            with self.tracking_context(call_args, call_kwargs) as track_result_callback:
+                fp_result = self.class_or_func(*call_args, **call_kwargs)
                 return track_result_callback(fp_result)
 
         #### DBND ORCHESTRATION MODE
@@ -162,8 +166,6 @@ class TaskDecorator(object):
         # decorated object call/creation  ( my_func(), MyDecoratedTask()
         # we are at orchestration mode
 
-        call_args = args
-        call_kwargs = kwargs
         task_cls = self.get_task_cls()
 
         if is_in_airflow_dag_build_context():
@@ -179,10 +181,10 @@ class TaskDecorator(object):
             return self.class_or_func(*call_args, **call_kwargs)
 
         ######
-        # current is not None, and we are not in trackign/airflow/luigi
-        # DBND Orchestration mode
-        # we can be in the context of .run() or in .band()
-        # called from  user code using user_decorated_func()  or UserDecoratedTask()
+        # current is not None, and we are not in tracking/airflow/luigi
+        # this is DBND Orchestration mode
+        # we can be in the context of task.run() or in task.band()
+        # called from user code using user_decorated_func()  or UserDecoratedTask()
 
         if self.is_class:
             call_kwargs.pop("__call_original_cls", False)
@@ -194,12 +196,13 @@ class TaskDecorator(object):
             # we are in the @pipeline.band() context, we are building execution plan
             t = task_cls(*call_args, **call_kwargs)
 
-            # we are in the band
+            # we are in the band, and if user_code() is called we want to remove redundant
+            # `user_code().result` usage
             if t.task_definition.single_result_output:
                 return t.result
 
-            # we have multiple outputs ( result, another output.. )
-            # -> just return task object
+            # we have multiple outputs (more than one "output" parameter)
+            # just return task object, user will use it as `user_code().output_1`
             return t
         elif phase is TaskContextPhase.RUN:
             # we are "running" inside some other task execution (orchestration!)
@@ -319,15 +322,34 @@ class TaskDecorator(object):
     def task_definition(self):
         return self.get_task_definition()
 
+    @property
+    def func(self):
+        return self.class_or_func
+
+    @property
+    def callable(self):
+        return self.class_or_func
+
 
 class _UserClassWithTaskDecoratorMetaclass(type):
     """
     Used by decorated user classes only,
-    we change metaclass of original class to go through dbnd as a proxy
+    1. we change metaclass of original class to go through __call__ on object call
+    2. object still behaves as original object (until __call_ is called)
+    3. we intercept the call and may call original object, or create dbnd task class
+    (at @pipeline or inside @task.run function)
+
+    in order to prevent recursion ( from DecoratedCallableTask.invoke for example)
+    we use `__call_original_cls` kwarg. if present we would call an original code
+
+    this code should be serializable with pickle!
+
     @task
     class UserClass():
         pass
     """
+
+    __is_dbnd_task__ = True
 
     task_decorator = None  # type: TaskDecorator
 
@@ -342,9 +364,10 @@ class _UserClassWithTaskDecoratorMetaclass(type):
 
         # prevent recursion call. next time we call cls() we will go into original ctor()
         kwargs["__call_original_cls"] = True
-        return cls.task_decorator(*args, **kwargs)
+        return cls.task_decorator.handle_callable_call(*args, **kwargs)
 
-    # compatibility support
+    # exposing dbnd logic
+    # so OriginalUserClass.task can be used
 
     @property
     def task_cls(self):
@@ -358,5 +381,44 @@ class _UserClassWithTaskDecoratorMetaclass(type):
     def task(self):
         return self.task_cls
 
+    @property
+    def func(self):
+        return self.task_decorator.callable
+
+    @property
+    def callable(self):
+        return self.task_decorator.callable
+
     def dbnd_run(self, *args, **kwargs):
         return self.task_decorator.dbnd_run(*args, **kwargs)
+
+
+def build_dbnd_decorated_func(task_decorator):
+    def dbnd_decorated_func(*args, **kwargs):
+        """
+        DBND Wrapper of User Function
+        Redirect call to dbnd logic that might track/orchestrate user code
+        """
+        return task_decorator.handle_callable_call(*args, **kwargs)
+
+    # new wrapper should should look like original function and be serializable
+    # class decorator will not work, because of pickle errors
+    functools.update_wrapper(dbnd_decorated_func, task_decorator.original_class_or_func)
+
+    # we don't want to create .task_cls object immediately(that is used for orchestration only)
+    # however, we can't just return task_decorator, as it's class, and it can not be serialized
+    # with pickle, as user func != task_decorator class
+    # we wrap "all known" heavy properties with CallableLazyObjectProxy
+
+    lazy_task_cls_property = CallableLazyObjectProxy(task_decorator.get_task_cls)
+    # create lazy properties t, task and task_cls
+    dbnd_decorated_func.task = lazy_task_cls_property
+    dbnd_decorated_func.t = lazy_task_cls_property
+    dbnd_decorated_func.task_cls = lazy_task_cls_property
+
+    dbnd_decorated_func.func = task_decorator.callable  # backward compatiblity
+    dbnd_decorated_func.callable = task_decorator.callable
+
+    dbnd_decorated_func.dbnd_run = task_decorator.dbnd_run
+    dbnd_decorated_func.__is_dbnd_task__ = True
+    return dbnd_decorated_func

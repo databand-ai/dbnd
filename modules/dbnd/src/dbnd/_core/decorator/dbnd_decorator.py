@@ -5,9 +5,11 @@ import typing
 import six
 
 from dbnd._core.configuration.environ_config import is_databand_enabled
+from dbnd._core.decorator.lazy_property_proxy import CallableLazyObjectProxy
 from dbnd._core.decorator.task_decorator import (
     TaskDecorator,
     _UserClassWithTaskDecoratorMetaclass,
+    build_dbnd_decorated_func,
 )
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.decorated_callable_task import (
@@ -65,25 +67,25 @@ def build_task_decorator(*decorator_args, **decorator_kwargs):
             task_family=tp.task_family,
         )
         if task_decorator.is_class:
-            # we do not support tracking for UserClass
-            # # we will change metaclass for UserClass
+            # we will change metaclass for UserClass so we will process all UserClass calls
+            #
             # @task
             # class UserClass():
             #     pass
             # so the the moment user call UserClass(), -> _DecoratedUserClassMeta.__call__ will be called
-            dbnd_applied_class = six.add_metaclass(
+            dbnd_decorated_class = six.add_metaclass(
                 _UserClassWithTaskDecoratorMetaclass
             )(class_or_func)
-            dbnd_applied_class.task_decorator = task_decorator
-            task_decorator.class_or_func = dbnd_applied_class
-            return dbnd_applied_class
+            dbnd_decorated_class.task_decorator = task_decorator
+            task_decorator.class_or_func = dbnd_decorated_class
+            return dbnd_decorated_class
         else:
             # @task
             # def user_func():
             #     pass
             # we will return our wrapper, that will be called during a runtime,
             # when user calls his own code.
-            return task_decorator
+            return build_dbnd_decorated_func(task_decorator)
 
     # simple `@task` decorator in opposite to @task(...), no options were (probably) given.
     if len(decorator_args) == 1 and callable(decorator_args[0]):

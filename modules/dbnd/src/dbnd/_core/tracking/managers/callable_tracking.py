@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 class TrackedFuncCallWithResult(object):
     call_args = attr.ib()  # type:  Tuple[Any]
     call_kwargs = attr.ib()  # type:  Dict[str,Any]
-    call_user_code = attr.ib()
+    callable = attr.ib()
     result = attr.ib(default=None)
 
     def set_result(self, value):
@@ -54,7 +54,7 @@ class TrackedFuncCallWithResult(object):
         return value
 
     def invoke(self):
-        func = self.call_user_code
+        func = self.callable
         return func(*self.call_args, **self.call_kwargs)
 
 
@@ -69,7 +69,7 @@ class CallableTrackingManager(object):
         self._max_call_count = get_dbnd_project_config().max_calls_per_run
 
     @property
-    def func(self):
+    def callable(self):
         return self.task_decorator.class_or_func
 
     def get_tracking_task_definition(self):
@@ -122,7 +122,7 @@ class CallableTrackingManager(object):
             callable_spec = tracking_task_definition.task_decorator.get_callable_spec()
 
             func_call = TrackedFuncCallWithResult(
-                call_user_code=self.func,
+                callable=self.callable,
                 call_args=tuple(call_args),  # prevent original call_args modification
                 call_kwargs=dict(call_kwargs),  # prevent original kwargs modification
             )
@@ -203,7 +203,7 @@ class CallableTrackingManager(object):
 
 
 def _handle_tracking_error(msg, func_call=None):
-    location = " for %s" % func_call.call_user_code if func_call else ""
+    location = " for %s" % func_call.callable if func_call else ""
     msg = "Failed during dbnd %s for %s, ignoring, and continue without tracking" % (
         msg,
         location,

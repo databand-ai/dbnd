@@ -44,4 +44,4 @@ class TestFunctionDecorating(object):
 
         track_modules(module_to_track)
         track_modules(module_to_track)
-        assert callable(f6.func), "function was decorated more than once"
+        assert callable(f6.callable), "function was decorated more than once"

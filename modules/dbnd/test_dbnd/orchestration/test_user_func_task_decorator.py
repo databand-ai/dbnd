@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import pickle
 
 from typing import List, Tuple
 
@@ -25,29 +26,6 @@ from targets.values.pandas_values import DataFrameValueType
 
 
 logger = logging.getLogger(__name__)
-
-
-@task(result=output.data_list_str)
-def t_f_b(t_input2):
-    # type: (DataList[str]) -> List[str]
-    return ["s_%s" % s for s in t_input2]
-
-
-@task
-def task_that_runs_inline(value=1.0):
-    # type: (float)-> float
-    return value + 0.1
-
-
-@task
-def task_that_spawns_inline_run(value=1.0):
-    # type: (float)-> float
-
-    value_task = task_that_runs_inline.task(value=value)
-    value_task.dbnd_run()
-
-    return value_task.result.read_pickle() + 0.1
-
 
 _value_1_2 = ["1", "2"]
 
@@ -80,18 +58,19 @@ def t_f_band(t_input, t_param="d2"):
 
 
 @task
-def calc_value(value=1.0):
+def task_that_runs_inline(value=1.0):
     # type: (float)-> float
-
-    value_task = inline_task_value.t(value=value)
-    value_task.dbnd_run()
-    return value_task.result.read_pickle() + 0.1
+    return value + 0.1
 
 
 @task
-def inline_task_value(value=1.0):
+def task_that_spawns_inline_run(value=1.0):
     # type: (float)-> float
-    return value + 0.1
+
+    value_task = task_that_runs_inline.task(value=value)
+    value_task.dbnd_run()
+
+    return value_task.result.read_pickle() + 0.1
 
 
 class TestTaskDecoratorDefaults(TargetTestBase):
@@ -217,11 +196,6 @@ class TestTaskDecoratorDefaults(TargetTestBase):
                 return a
 
             err_f_unknown_return_type()  # ???
-
-    def test_simple_nested_call(self):
-        target = calc_value.t(0.5)
-        assert_run_task(target)
-        assert target.result.read_obj()
 
     @fixture
     def target_1_2(self):
@@ -525,3 +499,8 @@ class TestTaskDecoratorDefaults(TargetTestBase):
         assert_run_task(t_f_parent.t(input_a))
 
         assert len(calls) == 1
+
+    def test_user_decorated_func_serializable(self):
+        target_func = t_f_a
+        pickled = pickle.dumps(target_func)
+        assert target_func == pickle.loads(pickled)

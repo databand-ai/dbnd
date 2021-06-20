@@ -106,3 +106,8 @@ class TestTaskObject(object):
 
         assert dummy_1 != dummy_2
         assert dummy_1 == dummy_1b
+
+    def test_task_obj_serializable(self):
+        t = TTask()
+        pickled = pickle.dumps(t)
+        assert t == pickle.loads(pickled)

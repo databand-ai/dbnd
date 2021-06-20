@@ -193,7 +193,7 @@ class Launcher(PythonTask):
         env = os.environ.copy()
         env[DBND_RUN_UID] = str(DatabandRun.get_instance().run_uid)
         env[DBND_RESUBMIT_RUN] = "true"
-        return bash_cmd.func(
+        return bash_cmd.callable(
             cmd=self.scheduled_cmd, env=env, dbnd_env=False, shell=self.shell
         )
 

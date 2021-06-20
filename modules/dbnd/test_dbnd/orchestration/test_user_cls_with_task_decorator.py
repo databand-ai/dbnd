@@ -1,4 +1,5 @@
 import logging
+import pickle
 
 from typing import Dict, List
 
@@ -19,6 +20,16 @@ logger = logging.getLogger(__name__)
 
 class TError(Exception):
     pass
+
+
+@task
+class ClsAsTask(object):
+    def __init__(self, a=6):
+        self.a = a
+
+    def run(self):
+        assert self.a == 6
+        return self.a
 
 
 @task(result=(output(name="datasets")[List[str]]))
@@ -49,16 +60,6 @@ class ParentCallClsDecoratedTask:
         self.datasets = InlineCallClsDecoratedTask(
             param_dict=self.param_dict, param_str=self.param_str
         )
-
-
-@task
-class ClsAsTask(object):
-    def __init__(self, a=6):
-        self.a = a
-
-    def run(self):
-        assert self.a == 6
-        return self.a
 
 
 @task
@@ -210,6 +211,11 @@ class TestUserClassWithTaskDecorator(TargetTestBase):
                 return self.a
 
         TFCls_output.task(a=6).dbnd_run()
+
+    def test_user_decorated_class_serializable(self):
+        t = ClsAsTask()
+        pickled = pickle.dumps(t)
+        assert t.a == pickle.loads(pickled).a
 
 
 if __name__ == "__main__":
