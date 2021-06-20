@@ -4,8 +4,8 @@ from dbnd._core.tracking.python_tracking import (
     track_functions,
     track_modules,
 )
-from test_dbnd.task.decorator import module_to_track
-from test_dbnd.task.decorator.module_to_track import f1, f2, f3, f4, f6
+from test_dbnd.tracking.callable_tracking import module_to_track
+from test_dbnd.tracking.callable_tracking.module_to_track import f1, f2, f3, f4, f6
 
 
 class TestFunctionDecorating(object):

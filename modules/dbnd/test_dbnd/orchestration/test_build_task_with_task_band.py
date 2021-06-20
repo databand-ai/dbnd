@@ -2,6 +2,7 @@ import pytest
 
 from dbnd import PipelineTask, Task, dbnd_config, dbnd_run_cmd, output, parameter
 from dbnd._vendor.pendulum import now
+from dbnd.tasks.basics import SimplestTask
 
 
 class First(Task):
@@ -62,3 +63,14 @@ class TestBuildTaskWithTaskBand(object):
 
         # accessing the result and check that the used value is the one from the task_band
         assert run.run_executor.result.load("result") == 1
+
+    def test_simple_task(self):
+        t = SimplestTask(simplest_param=1)
+        t.dbnd_run()
+
+        t2 = SimplestTask(simplest_param=2)
+        assert str(t2.simplest_output) != str(t.simplest_output)
+
+        t3 = SimplestTask(task_band=t.task_band)
+
+        assert str(t3.simplest_output) == str(t.simplest_output)

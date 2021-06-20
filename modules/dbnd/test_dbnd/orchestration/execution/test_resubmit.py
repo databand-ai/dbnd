@@ -7,7 +7,7 @@ from test_dbnd.orchestration.utils import DbndCmdTest
 
 
 class TestResubmit(DbndCmdTest):
-    test_config = os.path.join(relative_path(__file__, ".."), "databand-test.cfg")
+    test_config = os.path.join(relative_path(__file__, "../.."), "databand-test.cfg")
 
     @skip_on_windows
     def test_external_task_cmd_line(self):

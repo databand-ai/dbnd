@@ -5,15 +5,18 @@ import logging
 from typing import List, Tuple
 
 import pandas as pd
+import pytest
 
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 from pytest import fixture
 
-from dbnd import band, data, dbnd_run_cmd, log_metric, output, task
-from dbnd._core.task_build.task_context import current_task, try_get_current_task
+from dbnd import band, data, dbnd_run_cmd, log_metric, output, parameter, task
+from dbnd._core.errors import DatabandBuildError
+from dbnd._core.task_build.task_context import current_task
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
+from targets import Target
 from targets.types import DataList
 from targets.values import DictValueType, ListValueType
 from targets.values.pandas_values import DataFrameValueType
@@ -51,7 +54,150 @@ def t_f_band(t_input, t_param="d2"):
     return t_f_b(res1)
 
 
-class TestTaskDecorators(TargetTestBase):
+@task
+def calc_value(value=1.0):
+    # type: (float)-> float
+
+    value_task = inline_task_value.t(value=value)
+    value_task.dbnd_run()
+    return value_task.result.read_pickle() + 0.1
+
+
+@task
+def inline_task_value(value=1.0):
+    # type: (float)-> float
+    return value + 0.1
+
+
+class TestTaskDecoratorDefaults(TargetTestBase):
+    def test_simple_defaults(self):
+        @task
+        def t_f_defaults(a=5):
+            assert a == 5
+
+        t_f_defaults()
+        assert_run_task(t_f_defaults.t())
+
+    def test_simple_no_call(self):
+        @task
+        def t_f_nocall(a=5):
+            assert a == 6
+
+        t_f_nocall(a=6)
+        assert_run_task(t_f_nocall.t(a=6))
+
+    def test_simple_with_call(self):
+        @task()
+        def t_f_call(a=5):
+            assert a == 6
+
+        t_f_call(a=6)
+        assert_run_task(t_f_call.t(a=6))
+
+    def test_type_hints_from_defaults_cmdline(self, pandas_data_frame):
+        my_target = self.target("file.parquet")
+        my_target.write_df(pandas_data_frame)
+
+        @task
+        def t_f_defaults_cmdline(
+            a_str="",
+            b_datetime=datetime.datetime.utcnow(),
+            c_timedelta=datetime.timedelta(),
+            d_int=0,
+        ):
+            assert a_str == "1"
+            assert b_datetime.isoformat() == "2018-01-01T10:10:10.100000+00:00"
+            assert c_timedelta == datetime.timedelta(days=5)
+            assert d_int == 1
+            return pandas_data_frame
+
+        dbnd_run_cmd(
+            [
+                "t_f_defaults_cmdline",
+                "-r",
+                "a_str=1",
+                "-r",
+                "b_datetime=2018-01-01T101010.1",
+                "-r",
+                "c_timedelta=5d",
+                "--set",
+                json.dumps({"t_f_defaults_cmdline": {"d_int": 1}}),
+            ]
+        )
+
+    def test_definition_inplace_param(self):
+        @task
+        def t_f_call(a=parameter[int]):
+            assert a == 6
+
+        t_f_call(a=6)
+        assert_run_task(t_f_call.t(a=6))
+
+    def test_definition_inplace_output(self):
+        @task
+        def t_f_call(a=parameter[int], f_output=output[Target]):
+            f_output.write(str(a))
+            return None
+
+        assert_run_task(t_f_call.t(a=6))
+
+    def test_no_type(self):
+        @task
+        def err_f_no_type(a):
+            return a
+
+        err_f_no_type.dbnd_run(1)
+
+    def test_wrong_type(self):
+        @task
+        def err_f_wrong_type(a):
+            # type: () -> str
+            return str(a)
+
+        err_f_wrong_type.dbnd_run(1)
+
+    def test_comment_first(self):
+        @task
+        def err_f_comment_first(a):
+            # sss
+            # type: (datetime.datetime)->str
+            assert isinstance(a, datetime.datetime)
+            return "OK"
+
+        err_f_comment_first.dbnd_run("2018-01-01")
+
+    def test_missing_params(self):
+        @task
+        def err_f_missing_params(a, b, c):
+            # sss
+            # type: (str) -> str
+            return a
+
+        err_f_missing_params.dbnd_run(1, 2, 3)
+
+    def test_unknown_return_type(self):
+        @task
+        def err_f_unknown_return_type(a):
+            # type: (str) -> err_f_missing_params
+            return a
+
+        err_f_unknown_return_type.dbnd_run(1)
+
+    def test_double_definition(self):
+        with pytest.raises(DatabandBuildError):
+
+            @task(a=parameter[int])
+            def err_f_unknown_return_type(a=parameter[str]):
+                # type: (str) -> None
+                return a
+
+            err_f_unknown_return_type()  # ???
+
+    def test_simple_nested_call(self):
+        target = calc_value.t(0.5)
+        assert_run_task(target)
+        assert target.result.read_obj()
+
     @fixture
     def target_1_2(self):
         t = self.target("file.txt")

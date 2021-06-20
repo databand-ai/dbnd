@@ -79,24 +79,6 @@ class TestTaskBand(object):
         assert_run_task(target)
         assert target.calculated.read_obj()
 
-    def test_task_band_complex_objects(self):
-        @task
-        class t_1(object):
-            def __init__(self, extra_output=output[PathStr]):
-                self.extra_output = extra_output
-
-            def run(self):
-                target(self.extra_output).mkdir_parent()
-                open(self.extra_output, "w").write("")
-                return ""
-
-        @pipeline
-        def t_pipe():
-            v = t_1().extra_output
-            return v
-
-        t_pipe.dbnd_run()
-
     def test_wire_list(self):
         @task
         def calc_value(value=1.0):

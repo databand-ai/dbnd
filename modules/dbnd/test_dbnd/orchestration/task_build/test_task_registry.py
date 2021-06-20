@@ -25,7 +25,7 @@ class TestDbndTaskRegistry(object):
 
     def test_full_name_not_ambigious(self):
         actual = get_task_registry().get_task_cls(
-            "test_dbnd.task.task_build.test_task_registry.RAmbiguousClass"
+            "test_dbnd.orchestration.task_build.test_task_registry.RAmbiguousClass"
         )
         assert actual == RAmbiguousClass
 

@@ -171,6 +171,9 @@ class TaskDecorator(object):
         # we can be in the context of .run() or in .band()
         # called from  user code using user_decorated_func()  or UserDecoratedTask()
 
+        if self.is_class:
+            call_kwargs.pop("__call_original_cls", False)
+
         # we should not get here from _TaskFromTaskDecorator.invoke()
         # at that function we should call user code directly
         phase = current_phase()
@@ -202,6 +205,8 @@ class TaskDecorator(object):
                     call_kwargs=call_kwargs,
                 )
             # we can not call it in "dbnd" way, fallback to normal call
+            if self.is_class:
+                call_kwargs["__call_original_cls"] = False
             return self.class_or_func(*call_args, **call_kwargs)
         else:
             raise Exception()
@@ -224,7 +229,7 @@ class TaskDecorator(object):
         return self.get_task_definition()
 
 
-class _DecoratedUserClassMeta(type):
+class _UserClassWithTaskDecoratorMetaclass(type):
     """
     Used by decorated user classes only,
     we change metaclass of original class to go through dbnd as a proxy
@@ -233,12 +238,18 @@ class _DecoratedUserClassMeta(type):
         pass
     """
 
+    task_decorator = None  # type: TaskDecorator
+
     def __call__(cls, *args, **kwargs):
         """
         wrap user class ,so on user_class() we run _item_call first and if required we return task object inplace
         """
         if kwargs.pop("__call_original_cls", False):
-            return super(_DecoratedUserClassMeta, cls).__call__(*args, **kwargs)
+            return super(_UserClassWithTaskDecoratorMetaclass, cls).__call__(
+                *args, **kwargs
+            )
+
+        # prevent recursion call. next time we call cls() we will go into original ctor()
         kwargs["__call_original_cls"] = True
         return cls.task_decorator(*args, **kwargs)
 
@@ -256,6 +267,9 @@ class _DecoratedUserClassMeta(type):
     def task(self):
         return self.task_cls
 
+    def dbnd_run(self, *args, **kwargs):
+        return self.task_decorator.dbnd_run(*args, **kwargs)
+
 
 def _task_cls__call__in_scope_of_orchestration_run(
     task_decorator, parent_task, call_args, call_kwargs
@@ -263,8 +277,6 @@ def _task_cls__call__in_scope_of_orchestration_run(
     # type: (TaskDecorator, Task, *Any, **Any) -> TaskRun
     # task is running from another task
     task_cls = task_decorator.get_task_cls()
-    if task_decorator.is_class:
-        call_kwargs.pop("__call_original_cls", False)
     from dbnd import pipeline, PipelineTask
     from dbnd._core.decorator.dbnd_decorator import _default_output
 

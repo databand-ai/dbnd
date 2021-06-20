@@ -33,7 +33,7 @@ def test_result_view():
 
 
 class TestSubmitterHasAccessToResult(DbndCmdTest):
-    test_config = os.path.join(relative_path(__file__, ".."), "databand-test.cfg")
+    test_config = os.path.join(relative_path(__file__, "../.."), "databand-test.cfg")
 
     @skip_on_windows
     def test_submit_access_to_result(self):

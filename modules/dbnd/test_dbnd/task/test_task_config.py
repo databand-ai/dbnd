@@ -1,6 +1,6 @@
 import logging
 
-from dbnd import override, task
+from dbnd import Config, new_dbnd_context, override, parameter, task
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_build.task_registry import build_task_from_config
@@ -11,6 +11,13 @@ from dbnd._core.utils.seven import qualname_func
 def dynamically_calculated():
     logging.error("Calculating!")
     return "test_f_value"
+
+
+class DummyConfig(Config):
+    _conf__task_family = "my_dummy"
+
+    foo = parameter(default="foofoo")[str]
+    bar = parameter(default="barbar")[str]
 
 
 @task(
@@ -77,3 +84,26 @@ class TestTaskConfig(object):
             "override_config_s1",
             "task_config_regular_s2",
         )
+
+    def test_single_instance(self):
+        with new_dbnd_context(name="first") as ctx:
+            config1 = ctx.settings.get_config("my_dummy")
+            config2 = Config.current("my_dummy")
+            config3 = DummyConfig.current()
+            config4 = ctx.settings.get_config("my_dummy")
+            assert config1 is config2
+            assert config1 is config3
+            assert config1 is config4
+
+            config1.foo = "123"
+
+            assert config2.foo == "123"
+            assert config3.foo == "123"
+            assert config4.foo == "123"
+
+    def test_different_instances(self):
+        with new_dbnd_context(name="first") as ctx:
+            config1 = ctx.settings.get_config("my_dummy")
+            with new_dbnd_context(name="second") as ctx2:
+                config2 = ctx2.settings.get_config("my_dummy")
+                assert config1 is not config2

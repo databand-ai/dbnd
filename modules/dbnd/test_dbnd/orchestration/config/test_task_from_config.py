@@ -15,7 +15,7 @@ class MyTaskConfig(Config):
 test_config = """
 
 [my_t]
-_type=test_dbnd.task.config.test_task_from_config.MyTaskConfig
+_type=test_dbnd.orchestration.config.test_task_from_config.MyTaskConfig
 p_str = my_t_sql
 p_basic = basic_my_t
 

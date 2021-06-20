@@ -4,7 +4,10 @@ import typing
 import six
 
 from dbnd._core.configuration.environ_config import is_databand_enabled
-from dbnd._core.decorator.task_decorator import TaskDecorator, _DecoratedUserClassMeta
+from dbnd._core.decorator.task_decorator import (
+    TaskDecorator,
+    _UserClassWithTaskDecoratorMetaclass,
+)
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.task_from_task_decorator import (
     DecoratedPipelineTask,
@@ -67,9 +70,9 @@ def build_task_decorator(*decorator_args, **decorator_kwargs):
             # class UserClass():
             #     pass
             # so the the moment user call UserClass(), -> _DecoratedUserClassMeta.__call__ will be called
-            dbnd_applied_class = six.add_metaclass(_DecoratedUserClassMeta)(
-                class_or_func
-            )
+            dbnd_applied_class = six.add_metaclass(
+                _UserClassWithTaskDecoratorMetaclass
+            )(class_or_func)
             dbnd_applied_class.task_decorator = task_decorator
             task_decorator.class_or_func = dbnd_applied_class
             return dbnd_applied_class
