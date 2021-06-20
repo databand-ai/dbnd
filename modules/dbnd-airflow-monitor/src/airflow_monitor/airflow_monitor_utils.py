@@ -19,16 +19,22 @@ def log_received_tasks(url, fetched_data):
     if not fetched_data:
         return
     try:
+        d = sorted(
+            [
+                (k, len(v))
+                for k, v in fetched_data.items()
+                if hasattr(v, "__len__") and not isinstance(v, str)
+            ]
+        )
+        if "since" in fetched_data:
+            d.append(("since", fetched_data["since"]))
         logger.info(
-            "Received data from %s with: {tasks: %d, dags: %d, dag_runs: %d, since: %s}",
+            "Received data from %s with: {%s}",
             url,
-            len(fetched_data.get("task_instances", [])),
-            len(fetched_data.get("dags", [])),
-            len(fetched_data.get("dag_runs", [])),
-            fetched_data.get("since"),
+            ", ".join(["{}: {}".format(k, v) for k, v in d]),
         )
     except Exception as e:
-        logging.error("Could not log received data. %s", e)
+        logging.warning("Could not log received data. %s", e)
 
 
 def send_metrics(airflow_instance_label, fetched_data):
@@ -37,7 +43,7 @@ def send_metrics(airflow_instance_label, fetched_data):
 
     try:
         metrics = fetched_data.get("metrics")
-        logger.info("Received Grafana Metrics from airflow plugin: %s", metrics)
+        logger.debug("Received metrics from airflow plugin: %s", metrics)
 
         observe_many(
             airflow_instance_label,

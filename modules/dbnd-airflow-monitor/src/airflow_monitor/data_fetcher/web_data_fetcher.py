@@ -116,7 +116,7 @@ class WebFetcher(AirflowDataFetcher):
 
         try:
             resp = self._do_make_request(endpoint_name, params, timeout, method)
-            logger.info("Fetched from: {}".format(resp.url))
+            logger.debug("Fetched from: %s", resp.url)
         except AirflowFetchingException:
             raise
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as ce:
@@ -142,7 +142,9 @@ class WebFetcher(AirflowDataFetcher):
             logger.error("Error in Airflow Export Plugin: \n%s", json_data["error"])
             raise AirflowFetchingException(json_data["error"])
 
-        log_received_tasks(self.base_url, json_data)
+        log_received_tasks(
+            self.endpoint_url + "/" + endpoint_name.strip("/"), json_data
+        )
         send_metrics(self.base_url, json_data.get("airflow_export_meta"))
         return json_data
 
