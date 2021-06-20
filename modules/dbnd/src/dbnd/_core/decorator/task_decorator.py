@@ -3,11 +3,15 @@ import inspect
 import logging
 import typing
 
-from typing import Any
+from typing import Any, Optional, Type
 
 from dbnd._core.configuration.environ_config import get_dbnd_project_config
 from dbnd._core.current import current_task_run, get_databand_run, try_get_current_task
-from dbnd._core.decorator.callable_spec import args_to_kwargs, build_callable_spec
+from dbnd._core.decorator.callable_spec import (
+    CallableSpec,
+    args_to_kwargs,
+    build_callable_spec,
+)
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import user_side_code
 from dbnd._core.failures import dbnd_handle_errors
@@ -15,6 +19,7 @@ from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
     build_task_at_airflow_dag_context,
     is_in_airflow_dag_build_context,
 )
+from dbnd._core.task.decorated_callable_task import _DecoratedCallableTask
 from dbnd._core.task_build.task_context import TaskContextPhase, current_phase
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_passport import TaskPassport
@@ -40,7 +45,7 @@ class TaskDecorator(object):
 
         self.task_type = decorator_kwargs.pop(
             "_task_type"
-        )  # type: Type[_TaskFromTaskDecorator]
+        )  # type: Type[_DecoratedCallableTask]
         self.task_default_result = decorator_kwargs.pop(
             "_task_default_result"
         )  # ParameterFactory
@@ -64,12 +69,15 @@ class TaskDecorator(object):
         # used by decorated UserClass only, stores "wrapped" user class
 
         # lazy task class definition for orchestration case
-        self._task_cls = None
-        self._callable_spec = None
+        self._task_cls = None  # type: Optional[Type[Task]]
+        self._callable_spec = None  # type: Optional[CallableSpec]
+        self._callable_tracking_manager = (
+            None
+        )  # type: Optional[CallableTrackingManager]
 
         functools.update_wrapper(self, class_or_func)
 
-    def get_func_spec(self):
+    def get_callable_spec(self):
         if not self._callable_spec:
             try:
                 self._callable_spec = build_callable_spec(
@@ -128,8 +136,13 @@ class TaskDecorator(object):
         return t.dbnd_run()
 
     def tracking_context(self, call_args, call_kwargs):
-        mngr = CallableTrackingManager(task_decorator=self)
-        return mngr.tracking_context(call_args=call_args, call_kwargs=call_kwargs)
+        if not self._callable_tracking_manager:
+            self._callable_tracking_manager = CallableTrackingManager(
+                task_decorator=self
+            )
+        return self._callable_tracking_manager.tracking_context(
+            call_args=call_args, call_kwargs=call_kwargs
+        )
 
     def __call__(self, *args, **kwargs):
         dbnd_project_config = get_dbnd_project_config()
@@ -198,11 +211,8 @@ class TaskDecorator(object):
                 current.settings.dynamic_task.enabled
                 and current.task_supports_dynamic_tasks
             ):
-                return _task_cls__call__in_scope_of_orchestration_run(
-                    task_decorator=self,
-                    parent_task=current,
-                    call_args=call_args,
-                    call_kwargs=call_kwargs,
+                return self._run_task_from_another_task_execution(
+                    parent_task=current, call_args=call_args, call_kwargs=call_kwargs,
                 )
             # we can not call it in "dbnd" way, fallback to normal call
             if self.is_class:
@@ -210,6 +220,87 @@ class TaskDecorator(object):
             return self.class_or_func(*call_args, **call_kwargs)
         else:
             raise Exception()
+
+    def _run_task_from_another_task_execution(
+        self, parent_task, call_args, call_kwargs
+    ):
+        # type: (TaskDecorator, Task, *Any, **Any) -> TaskRun
+        # task is running from another task
+        task_cls = self.get_task_cls()
+        from dbnd import pipeline, PipelineTask
+        from dbnd._core.decorator.dbnd_decorator import _default_output
+
+        dbnd_run = get_databand_run()
+
+        # orig_call_args, orig_call_kwargs = call_args, call_kwargs
+        call_args, call_kwargs = args_to_kwargs(
+            self.get_callable_spec().args, call_args, call_kwargs
+        )
+
+        # Map all kwargs to the "original" target of that objects
+        # for example: for DataFrame we'll try to find a relevant target that were used to read it
+        # get all possible value's targets
+        call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(call_kwargs)
+        for p_name, value_origin in call_kwargs_as_targets.items():
+            root_target = value_origin.origin_target
+            path = root_target.path if hasattr(root_target, "path") else None
+            original_object = call_kwargs[p_name]
+            call_kwargs[p_name] = InlineTarget(
+                root_target=root_target,
+                obj=original_object,
+                value_type=value_origin.value_type,
+                source=value_origin.origin_target.source,
+                path=path,
+            )
+
+        call_kwargs.setdefault("task_is_dynamic", True)
+        call_kwargs.setdefault(
+            "task_in_memory_outputs",
+            parent_task.settings.dynamic_task.in_memory_outputs,
+        )
+
+        if issubclass(task_cls, PipelineTask):
+            # if it's pipeline - create new databand run
+            # create override _task_default_result to be object instead of target
+            task_cls = pipeline(
+                self.class_or_func, _task_default_result=_default_output
+            ).task_cls
+
+            # instantiate inline pipeline
+            task = task_cls(*call_args, **call_kwargs)
+            # if it's pipeline - create new databand run
+            run = dbnd_run.context.dbnd_run_task(task)
+            task_run = run.get_task_run(task.task_id)
+        else:
+            # instantiate inline task (dbnd object)
+            task = task_cls(*call_args, **call_kwargs)
+
+            # update upstream/downstream relations - needed for correct tracking
+            # we can have the task as upstream , as it was executed already
+            if not parent_task.task_dag.has_upstream(task):
+                parent_task.set_upstream(task)
+
+            from dbnd._core.task_build.task_cls__call_state import TaskCallState
+
+            task._dbnd_call_state = TaskCallState(should_store_result=True)
+            try:
+                task_run = dbnd_run.run_executor.run_dynamic_task(
+                    task, task_engine=current_task_run().task_engine
+                )
+
+                # this will work only for _DecoratedTask
+                if task._dbnd_call_state.result_saved:
+                    return task._dbnd_call_state.result
+
+            finally:
+                # we'd better clean _invoke_result to avoid memory leaks
+                task._dbnd_call_state = None
+
+        # if we are inside run, we want to have real values, not deferred!
+        if task.task_definition.single_result_output:
+            return task.__class__.result.load_from_target(task.result)
+            # we have func without result, just fallback to None
+        return task
 
     # compatibility support
     @property
@@ -269,84 +360,3 @@ class _UserClassWithTaskDecoratorMetaclass(type):
 
     def dbnd_run(self, *args, **kwargs):
         return self.task_decorator.dbnd_run(*args, **kwargs)
-
-
-def _task_cls__call__in_scope_of_orchestration_run(
-    task_decorator, parent_task, call_args, call_kwargs
-):
-    # type: (TaskDecorator, Task, *Any, **Any) -> TaskRun
-    # task is running from another task
-    task_cls = task_decorator.get_task_cls()
-    from dbnd import pipeline, PipelineTask
-    from dbnd._core.decorator.dbnd_decorator import _default_output
-
-    dbnd_run = get_databand_run()
-
-    # orig_call_args, orig_call_kwargs = call_args, call_kwargs
-    call_args, call_kwargs = args_to_kwargs(
-        task_decorator.get_func_spec().args, call_args, call_kwargs
-    )
-
-    # Map all kwargs to the "original" target of that objects
-    # for example: for DataFrame we'll try to find a relevant target that were used to read it
-    # get all possible value's targets
-    call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(call_kwargs)
-    for p_name, value_origin in call_kwargs_as_targets.items():
-        root_target = value_origin.origin_target
-        path = root_target.path if hasattr(root_target, "path") else None
-        original_object = call_kwargs[p_name]
-        call_kwargs[p_name] = InlineTarget(
-            root_target=root_target,
-            obj=original_object,
-            value_type=value_origin.value_type,
-            source=value_origin.origin_target.source,
-            path=path,
-        )
-
-    call_kwargs.setdefault("task_is_dynamic", True)
-    call_kwargs.setdefault(
-        "task_in_memory_outputs", parent_task.settings.dynamic_task.in_memory_outputs
-    )
-
-    if issubclass(task_cls, PipelineTask):
-        # if it's pipeline - create new databand run
-        # create override _task_default_result to be object instead of target
-        task_cls = pipeline(
-            task_decorator.class_or_func, _task_default_result=_default_output
-        ).task_cls
-
-        # instantiate inline pipeline
-        task = task_cls(*call_args, **call_kwargs)
-        # if it's pipeline - create new databand run
-        run = dbnd_run.context.dbnd_run_task(task)
-        task_run = run.get_task_run(task.task_id)
-    else:
-        # instantiate inline task (dbnd object)
-        task = task_cls(*call_args, **call_kwargs)
-
-        # update upstream/downstream relations - needed for correct tracking
-        # we can have the task as upstream , as it was executed already
-        if not parent_task.task_dag.has_upstream(task):
-            parent_task.set_upstream(task)
-
-        from dbnd._core.task_build.task_cls__call_state import TaskCallState
-
-        task._dbnd_call_state = TaskCallState(should_store_result=True)
-        try:
-            task_run = dbnd_run.run_executor.run_dynamic_task(
-                task, task_engine=current_task_run().task_engine
-            )
-
-            # this will work only for _DecoratedTask
-            if task._dbnd_call_state.result_saved:
-                return task._dbnd_call_state.result
-
-        finally:
-            # we'd better clean _invoke_result to avoid memory leaks
-            task._dbnd_call_state = None
-
-    # if we are inside run, we want to have real values, not deferred!
-    if task.task_definition.single_result_output:
-        return task.__class__.result.load_from_target(task.result)
-        # we have func without result, just fallback to None
-    return task

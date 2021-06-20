@@ -19,8 +19,8 @@ from dbnd._core.parameter.parameter_definition import (
     _ParameterKind,
 )
 from dbnd._core.parameter.parameter_value import Parameters
-from dbnd._core.task_build.task_decorated_params_builder import (
-    TaskFromDecoratorParamsBuilder,
+from dbnd._core.task_build.decorated_callable_param_builder import (
+    DecoratedCallableParamBuilder,
 )
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_results import FuncResultParameter
@@ -163,7 +163,7 @@ class TaskDefinition(object):
 
         # this is the place we add parameters from function definition
         if self.task_decorator is not None:
-            func_params_builder = TaskFromDecoratorParamsBuilder(
+            func_params_builder = DecoratedCallableParamBuilder(
                 base_params=params, task_decorator=self.task_decorator
             )
 

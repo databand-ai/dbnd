@@ -119,7 +119,7 @@ class CallableTrackingManager(object):
                     return
 
             tracking_task_definition = self.get_tracking_task_definition()
-            func_spec = tracking_task_definition.task_decorator.task
+            callable_spec = tracking_task_definition.task_decorator.get_callable_spec()
 
             func_call = TrackedFuncCallWithResult(
                 call_user_code=self.func,
@@ -128,7 +128,7 @@ class CallableTrackingManager(object):
             )
             # replace any position argument with kwarg if it possible
             args, kwargs = args_to_kwargs(
-                func_spec.args, func_call.call_args, func_call.call_kwargs,
+                callable_spec.args, func_call.call_args, func_call.call_kwargs,
             )
 
             # instantiate inline task
@@ -202,18 +202,18 @@ class CallableTrackingManager(object):
             return
 
 
-def _handle_tracking_error(msg, func_call):
+def _handle_tracking_error(msg, func_call=None):
+    location = " for %s" % func_call.call_user_code if func_call else ""
+    msg = "Failed during dbnd %s for %s, ignoring, and continue without tracking" % (
+        msg,
+        location,
+    )
     if is_verbose():
         logger.warning(
-            "Failed during dbnd %s for %s, ignoring, and continue without tracking/orchestration"
-            % (msg, func_call.call_user_code),
-            exc_info=True,
+            msg, exc_info=True,
         )
     else:
-        logger.info(
-            "Failed during dbnd %s for %s, ignoring, and continue without tracking"
-            % (msg, func_call.call_user_code)
-        )
+        logger.info(msg)
 
 
 def _do_nothing_decorator(f):

@@ -26,6 +26,7 @@ from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     build_run_time_airflow_task,
     override_airflow_log_system_for_tracking,
 )
+from dbnd._core.tracking.managers.callable_tracking import _handle_tracking_error
 from dbnd._core.utils import seven
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor import pendulum
@@ -317,14 +318,6 @@ def dbnd_tracking(name=None, conf=None):
             yield tr
     finally:
         dbnd_tracking_stop()
-
-
-def _handle_tracking_error(msg):
-    exec_info = is_verbose()
-    logger.warning(
-        "Failed during dbnd %s, ignoring, and continue without tracking" % msg,
-        exc_info=exec_info,
-    )
 
 
 def _set_dbnd_config_from_airflow_connections():

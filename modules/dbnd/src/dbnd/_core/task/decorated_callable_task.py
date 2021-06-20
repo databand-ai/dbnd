@@ -14,7 +14,7 @@ from dbnd._core.task_build.task_results import FuncResultParameter
 logger = logging.getLogger(__name__)
 
 
-class _TaskFromTaskDecorator(Task):
+class _DecoratedCallableTask(Task):
     _dbnd_decorated_task = True
 
     # default result for any decorated function
@@ -25,7 +25,7 @@ class _TaskFromTaskDecorator(Task):
         # usually it's called from from task.run/task.band
         extra_kwargs = extra_kwargs or {}
         task_decorator = self.task_decorator
-        spec = task_decorator.get_func_spec()
+        spec = task_decorator.get_callable_spec()
         invoke_kwargs = {}
         for name in spec.args:
             # if there is no parameter - it was disabled at TaskDefinition building stage
@@ -62,9 +62,10 @@ class _TaskFromTaskDecorator(Task):
         if result_param is None and result:
             raise failed_to_process_non_empty_result(self, result)
 
-        # if result is "complex" spread result into relevant fields.
         if isinstance(result_param, FuncResultParameter):
-            # assign all returned values to relevant band Outputs
+            # if we have result that combined from different output params
+            # assign all returned values to relevant outputs
+            # so they will be automatically saved
             if result is None:
                 raise failed_to_assign_result(self, result_param)
             for r_name, value in result_param.named_results(result):
@@ -79,17 +80,17 @@ class _TaskFromTaskDecorator(Task):
             task_user_obj.on_kill()
             return
         else:
-            super(_TaskFromTaskDecorator, self).on_kill()
+            super(_DecoratedCallableTask, self).on_kill()
 
 
-class DecoratedPythonTask(PythonTask, _TaskFromTaskDecorator):
+class DecoratedPythonTask(PythonTask, _DecoratedCallableTask):
     _conf__task_type_name = TaskType.python
 
     def run(self):
         self._invoke_func(force_invoke=True)
 
 
-class DecoratedPipelineTask(PipelineTask, _TaskFromTaskDecorator):
+class DecoratedPipelineTask(PipelineTask, _DecoratedCallableTask):
     _conf__task_type_name = TaskType.pipeline
 
     def band(self):

@@ -55,7 +55,12 @@ class TestTaskInfo(object):
 
         t = TaskInfoParamsTask(str_param=15, num_param=12, list_param=[1, 2, 3])
         func_call = t.ctrl.task_repr.task_functional_call
-        logger.info("Func all : %s", func_call)
+
+        import test_dbnd
+
+        # the func call will have "full module", so we need ot be able to import it
+
+        logger.info("Func call : %s, imported module: %s", func_call, test_dbnd)
         task_run = eval(func_call)
         assert task_run.task == t
 
@@ -69,7 +74,7 @@ class TestTaskInfo(object):
         try:
             raise Exception("MyException")
         except Exception:
-            actual = TaskVisualiser(s).banner("Runinng task", exc_info=sys.exc_info())
+            actual = TaskVisualiser(s).banner("Running task", exc_info=sys.exc_info())
             assert actual
             assert "MyException" in actual
 

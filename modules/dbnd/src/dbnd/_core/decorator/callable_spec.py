@@ -43,10 +43,6 @@ class CallableSpec(object):
     # annotation made with docstring
     doc_annotations = attr.ib()  # type: Dict[str,type ]
 
-    @property
-    def known_keywords_names(self):
-        return self.args
-
 
 # Extracts arg types and return type from doc string
 # # type: (str, dict) -> int

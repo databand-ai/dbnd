@@ -30,8 +30,6 @@ class TestTaskDecoratorSpecPy3(object):
         assert decorator_spec.kwonlydefaults == {"word": "default"}
         assert decorator_spec.defaults_values == ()
 
-        assert decorator_spec.known_keywords_names == ["a"]
-
     def test_args_and_kwargs_and_decorator_kwarg(self):
         def args_and_kwargs(a, *args, word="default", **kwargs):
             pass
@@ -45,5 +43,3 @@ class TestTaskDecoratorSpecPy3(object):
         assert decorator_spec.kwonlyargs == ["word"]
         assert decorator_spec.kwonlydefaults == {"word": "default"}
         assert decorator_spec.defaults_values == ()
-
-        assert decorator_spec.known_keywords_names == ["a"]

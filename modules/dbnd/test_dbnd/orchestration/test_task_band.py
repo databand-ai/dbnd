@@ -22,7 +22,7 @@ from dbnd._core.errors.base import DatabandRunError
 from dbnd.tasks.basics.publish import publish_results
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_test_scenarios.test_common.task.factories import TTask
-from targets import Target, target
+from targets import Target
 from targets.target_config import TargetConfig
 from targets.types import Path, PathStr
 
@@ -247,6 +247,15 @@ class TestTaskBand(object):
             task_circle.dbnd_run()
 
     def test_partitioned_band(self):
+        """
+        Use-case when we create a pipeline of partitions
+        and we have a task that want to use root of that partitions"
+
+        root/p1 ->  task_ttask_that_use_root(root)
+        root/p2
+
+        """
+
         @task
         def tpartition_task(partition_id=parameter[int]):
             return partition_id

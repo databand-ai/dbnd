@@ -1,3 +1,4 @@
+import functools
 import logging
 import typing
 
@@ -9,7 +10,7 @@ from dbnd._core.decorator.task_decorator import (
     _UserClassWithTaskDecoratorMetaclass,
 )
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.task.task_from_task_decorator import (
+from dbnd._core.task.decorated_callable_task import (
     DecoratedPipelineTask,
     DecoratedPythonTask,
 )

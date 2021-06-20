@@ -13,8 +13,8 @@ from dbnd._core.decorator.dbnd_decorator import build_task_decorator
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
 from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.parameter.parameter_builder import output, parameter
+from dbnd._core.task.decorated_callable_task import _DecoratedCallableTask
 from dbnd._core.task.task import Task
-from dbnd._core.task.task_from_task_decorator import _TaskFromTaskDecorator
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
 from dbnd._core.utils.traversing import flatten
@@ -243,7 +243,7 @@ class PySparkInlineTask(_BaseSparkTask):
             session.stop()
 
 
-class _PySparkInlineFuncTask(PySparkInlineTask, _TaskFromTaskDecorator):
+class _PySparkInlineFuncTask(PySparkInlineTask, _DecoratedCallableTask):
     def run(self):
         # we actually are going to run run function via our python script
         self._invoke_func()

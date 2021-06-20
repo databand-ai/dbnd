@@ -738,13 +738,13 @@ class TaskFactory(object):
         has_varargs = False
         has_varkwargs = False
         if self.task_cls.task_decorator is not None:
-            func_spec = self.task_cls.task_decorator.get_func_spec()
+            callable_spec = self.task_cls.task_decorator.get_callable_spec()
             # only in functions we can have args as we know exact "call" signature
             task_args, task_kwargs = args_to_kwargs(
-                func_spec.args, task_args, task_kwargs
+                callable_spec.args, task_args, task_kwargs
             )
-            has_varargs = func_spec.varargs
-            has_varkwargs = func_spec.varkw
+            has_varargs = callable_spec.varargs
+            has_varkwargs = callable_spec.varkw
 
         if task_args and not has_varargs:
             # we should not have any args, so we don't know how to assign them

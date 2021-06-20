@@ -58,8 +58,6 @@ class TestTaskDecoratorSpec(object):
         assert decorator_spec.kwonlydefaults == {}
         assert decorator_spec.defaults_values == (1, 2, 3, "default")
 
-        assert set(decorator_spec.known_keywords_names) == {"a", "b", "c", "kwarg"}
-
     def test_doc_annotations(self):
         def with_doc_annotations(a, b, **kwargs):
             # type: (int, str, **str) -> int

@@ -34,13 +34,13 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class TaskFromDecoratorParamsBuilder(object):
+class DecoratedCallableParamBuilder(object):
     def __init__(self, base_params, task_decorator):
         self.base_params = base_params
 
         self.task_decorator = task_decorator  # type: TaskDecorator
 
-        self.callable_spec = task_decorator.get_func_spec()  # type: CallableSpec
+        self.callable_spec = task_decorator.get_callable_spec()  # type: CallableSpec
         self._context = task_decorator.task_passport.full_task_family
         self.exclude = {RESULT_PARAM, "self"}
 

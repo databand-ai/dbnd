@@ -309,17 +309,19 @@ def build_func_parameter_values(task_definition, task_args, task_kwargs):
     In tracking task we need to build params without definitions.
     Those params value need no calculations and therefore are very easy to construct
     """
-    func_spec = task_definition.task_decorator.get_func_spec()  # type: CallableSpec
+    callable_spec = (
+        task_definition.task_decorator.get_callable_spec()
+    )  # type: CallableSpec
     values = []
 
     # convert any arg to kwarg if possible
-    args, task_kwargs = args_to_kwargs(func_spec.args, task_args, task_kwargs)
+    args, task_kwargs = args_to_kwargs(callable_spec.args, task_args, task_kwargs)
 
     # the parameter of the * argument
-    if func_spec.varargs:
+    if callable_spec.varargs:
         # build the parameter value for the varargs
         vargs_param = build_user_parameter_value(
-            func_spec.varargs,
+            callable_spec.varargs,
             tuple(args),
             source=task_definition.full_task_family_short,
         )
@@ -327,15 +329,14 @@ def build_func_parameter_values(task_definition, task_args, task_kwargs):
 
     # distinguish between the parameter we expect to create vs those we don't
     unknown_kwargs, known_kwargs = more_itertools.partition(
-        lambda kwarg: kwarg[0] in func_spec.known_keywords_names,
-        six.iteritems(task_kwargs),
+        lambda kwarg: kwarg[0] in callable_spec.args, six.iteritems(task_kwargs),
     )
 
     # the parameter of the ** argument
-    if func_spec.varkw:
+    if callable_spec.varkw:
         # build the parameter value for the varkw
         varkw_param = build_user_parameter_value(
-            func_spec.varkw,
+            callable_spec.varkw,
             dict(unknown_kwargs),
             source=task_definition.full_task_family_short,
         )

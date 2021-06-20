@@ -1,13 +1,4 @@
-import logging
-import typing
-
 import attr
-
-
-logger = logging.getLogger(__name__)
-
-if typing.TYPE_CHECKING:
-    pass
 
 
 @attr.s
