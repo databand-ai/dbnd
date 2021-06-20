@@ -59,7 +59,9 @@ class RunExecutor(object):
     * in driver mode - build and run the task
     """
 
-    def __init__(self, run, root_task_or_task_name, send_heartbeat):
+    def __init__(
+        self, run, root_task_or_task_name, send_heartbeat, force_task_name=None
+    ):
 
         self.run = run
         self.send_heartbeat = send_heartbeat
@@ -73,7 +75,7 @@ class RunExecutor(object):
         # root task sometimes can be executed only inside the docker
         # it can be affected by docker env (k8s secrets/external source)
         self.root_task_name_to_build = None
-
+        self.force_task_name = force_task_name
         if isinstance(root_task_or_task_name, six.string_types):
             self.root_task_name_to_build = root_task_or_task_name
         elif isinstance(root_task_or_task_name, Task):
@@ -376,9 +378,20 @@ class RunExecutor(object):
         remote_engine.prepare_for_run(run)
 
         if self.root_task_name_to_build:
-            logger.info("Building main task '%s'", self.root_task_name_to_build)
+
+            if self.force_task_name:
+                kwargs = {"task_name": self.force_task_name}
+
+                logger.info(
+                    "Building main task '%s' with name %s",
+                    self.root_task_name_to_build,
+                    self.force_task_name,
+                )
+            else:
+                logger.info("Building main task '%s'", self.root_task_name_to_build)
+                kwargs = {}
             root_task = get_task_registry().build_dbnd_task(
-                self.root_task_name_to_build
+                self.root_task_name_to_build, task_kwargs=kwargs
             )
             logger.info(
                 "Task %s has been created (%s children)",

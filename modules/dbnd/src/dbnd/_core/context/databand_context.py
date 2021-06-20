@@ -187,6 +187,8 @@ class DatabandContext(SingletonContext):
     def dbnd_run_task(
         self,
         task_or_task_name,  # type: Union[Task, str]
+        job_name=None,  # type: Optional[str]
+        force_task_name=None,  # type: Optional[str]
         project=None,  # type: Optional[str]
         run_uid=None,  # type: Optional[UUID]
         scheduled_run_info=None,  # type: Optional[ScheduledRunInfo]
@@ -198,10 +200,11 @@ class DatabandContext(SingletonContext):
         we create a new Run + RunExecutor and trigger the execution
 
         :param task_or_task_name task name to run or already built task object
+        :param force_task_name
         :param project Project name for the run
         :return DatabandRun
         """
-        job_name = get_task_name_safe(task_or_task_name)
+        job_name = get_task_name_safe(job_name or task_or_task_name)
         project_name = self._get_project_name(project, task_or_task_name)
 
         with new_databand_run(
@@ -216,6 +219,7 @@ class DatabandContext(SingletonContext):
             run.run_executor = RunExecutor(
                 run=run,
                 root_task_or_task_name=task_or_task_name,
+                force_task_name=force_task_name,
                 send_heartbeat=send_heartbeat,
             )
             run.run_executor.run_execute()

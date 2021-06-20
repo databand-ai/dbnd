@@ -13,7 +13,6 @@ from dbnd._core.configuration.environ_config import tracking_mode_context
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
-from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.basics.dict_utils import filter_dict_remove_false_values
@@ -26,22 +25,6 @@ logger = logging.getLogger(__name__)
 
 def _to_conf(kwargs):
     return {k: str(v) for k, v in kwargs.items() if v is not None}
-
-
-def build_dynamic_task(original_cls, new_cls_name):
-    # Helper func to allow using --type-name feature
-    original_name = original_cls.task_definition.task_family
-    logger.info("Creating new class %s from %s", new_cls_name, original_name)
-    attributes = {}  # {'_conf__task_family': original_cls.get_task_family()}
-    if original_cls.task_decorator:
-        # TODO: FIX TASK_DECORATOR
-        task_decorator = original_cls.task_decorator
-        task_decorator.task_passport.name = new_cls_name
-        attributes["task_decorator"] = task_decorator
-    else:
-        attributes["_conf__task_family"] = new_cls_name
-    new_cls = TaskMetaclass(str(new_cls_name), (original_cls,), attributes)
-    return new_cls
 
 
 @click.command(context_settings=dict(help_option_names=[]))
@@ -120,6 +103,7 @@ def build_dynamic_task(original_cls, new_cls_name):
 )
 @click.option("--run-driver", "run_driver", help="Running in remote mode")
 @click.option("--task-name", "alternative_task_name", help="Name of this task")
+@click.option("--job-name", "job_name", help="Job Name")
 @click.option(
     "--scheduled-job-name",
     "-sjn",
@@ -187,6 +171,7 @@ def run(
     description,
     run_driver,
     alternative_task_name,
+    job_name,
     scheduled_job_name,
     scheduled_date,
     interactive,
@@ -317,11 +302,6 @@ def run(
         task_cls = None
         if task_name:
             task_cls = task_registry.get_task_cls(task_name)
-            if alternative_task_name:
-                task_cls = build_dynamic_task(
-                    original_cls=task_cls, new_cls_name=alternative_task_name
-                )
-                task_name = alternative_task_name
 
         # --set-root
         # now we can get it config, as it's not main task, we can load config after the configuration is loaded
@@ -355,6 +335,8 @@ def run(
 
         return context.dbnd_run_task(
             task_or_task_name=task_name,
+            force_task_name=alternative_task_name,
+            job_name=job_name or alternative_task_name or task_name,
             run_uid=run_driver,
             scheduled_run_info=scheduled_run_info,
             project=project,
