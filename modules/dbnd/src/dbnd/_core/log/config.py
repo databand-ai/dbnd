@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 FORMAT_FULL = "[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s"
-FORMAT_SIMPLE = "%(asctime)s %(levelname)s - %(message)s"
+FORMAT_SIMPLE = "[%(asctime)s] %(levelname)s - %(message)s"
 FORMAT_COLORLOG = "[%(asctime)s] %(log_color)s%(levelname)s %(reset)s - %(message)s"
 
 
@@ -23,11 +23,10 @@ def basic_logging_config(
     filename=None,
     log_level=logging.INFO,
     console_stream=sys.stderr,
-    console_formatter_name="formatter_colorlog",
+    console_formatter_name="formatter_simple",
     file_formatter_name="formatter_full",
 ):
     # type: (...) -> Optional[dict]
-
     config = {
         "version": 1,
         "disable_existing_loggers": False,

@@ -312,7 +312,7 @@ class LoggingConfig(config.Config):
         os.environ["ANSI_COLORS_DISABLED"] = "True"  # disabling termcolor.colored
         self.exception_no_color = True
         if self.console_formatter_name == "formatter_colorlog":
-            self.console_formatter_name = "formatter"
+            self.console_formatter_name = "formatter_simple"
 
 
 def _safe_is_typeof(value, name):
