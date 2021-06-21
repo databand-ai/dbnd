@@ -14,7 +14,6 @@ from dbnd._core.current import (
     get_databand_run,
     try_get_current_task,
 )
-from dbnd._core.decorator.callable_spec import CallableSpec, args_to_kwargs
 from dbnd._core.parameter import build_user_parameter_value
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
@@ -35,6 +34,7 @@ from dbnd._core.task_ctrl.task_output_builder import windows_drive_re
 from dbnd._core.task_ctrl.task_relations import traverse_and_set_target
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.nothing import NOTHING, is_not_defined
+from dbnd._core.utils.callable_spec import CallableSpec, args_to_kwargs
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
 from targets import InMemoryTarget, target

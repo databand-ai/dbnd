@@ -7,12 +7,6 @@ from typing import Any, Optional, Type
 
 from dbnd._core.configuration.environ_config import get_dbnd_project_config
 from dbnd._core.current import current_task_run, get_databand_run, try_get_current_task
-from dbnd._core.decorator.callable_spec import (
-    CallableSpec,
-    args_to_kwargs,
-    build_callable_spec,
-)
-from dbnd._core.decorator.lazy_property_proxy import CallableLazyObjectProxy
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import user_side_code
 from dbnd._core.failures import dbnd_handle_errors
@@ -26,6 +20,12 @@ from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.tracking.managers.callable_tracking import CallableTrackingManager
 from dbnd._core.utils.basics.nothing import NOTHING
+from dbnd._core.utils.callable_spec import (
+    CallableSpec,
+    args_to_kwargs,
+    build_callable_spec,
+)
+from dbnd._core.utils.lazy_property_proxy import CallableLazyObjectProxy
 from targets.inline_target import InlineTarget
 
 
@@ -231,7 +231,7 @@ class TaskDecorator(object):
         # task is running from another task
         task_cls = self.get_task_cls()
         from dbnd import pipeline, PipelineTask
-        from dbnd._core.decorator.dbnd_decorator import _default_output
+        from dbnd._core.task_build.dbnd_decorator import _default_output
 
         dbnd_run = get_databand_run()
 
@@ -368,6 +368,7 @@ class _UserClassWithTaskDecoratorMetaclass(type):
 
     # exposing dbnd logic
     # so OriginalUserClass.task can be used
+    # this list should be alligned with attributes at build_dbnd_decorated_func
 
     @property
     def task_cls(self):
@@ -405,6 +406,8 @@ def build_dbnd_decorated_func(task_decorator):
     # class decorator will not work, because of pickle errors
     functools.update_wrapper(dbnd_decorated_func, task_decorator.original_class_or_func)
 
+    # this list should be alligned with attributes at _UserClassWithTaskDecoratorMetaclass
+
     # we don't want to create .task_cls object immediately(that is used for orchestration only)
     # however, we can't just return task_decorator, as it's class, and it can not be serialized
     # with pickle, as user func != task_decorator class
@@ -420,5 +423,6 @@ def build_dbnd_decorated_func(task_decorator):
     dbnd_decorated_func.callable = task_decorator.callable
 
     dbnd_decorated_func.dbnd_run = task_decorator.dbnd_run
+    dbnd_decorated_func.task_decorator = task_decorator
     dbnd_decorated_func.__is_dbnd_task__ = True
     return dbnd_decorated_func

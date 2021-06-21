@@ -106,7 +106,6 @@ from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriori
 from dbnd._core.configuration.pprint_config import pformat_current_config
 from dbnd._core.constants import RESULT_PARAM, ParamValidation, _TaskParamContainer
 from dbnd._core.current import get_databand_context
-from dbnd._core.decorator.callable_spec import args_to_kwargs
 from dbnd._core.errors import MissingParameterError, friendly_error
 from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_definition import (
@@ -131,6 +130,7 @@ from dbnd._core.task_build.task_signature import (
 )
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.basics.text_banner import safe_string
+from dbnd._core.utils.callable_spec import args_to_kwargs
 from targets import target
 from targets.target_config import parse_target_config
 

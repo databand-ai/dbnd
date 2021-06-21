@@ -1,4 +1,4 @@
-from dbnd._core.decorator.dbnd_decorator import pipeline, task
+from dbnd._core.task_build.dbnd_decorator import pipeline, task
 
 
 @pipeline

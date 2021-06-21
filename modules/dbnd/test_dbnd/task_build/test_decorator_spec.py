@@ -1,4 +1,4 @@
-from dbnd._core.decorator.callable_spec import build_callable_spec
+from dbnd._core.utils.callable_spec import build_callable_spec
 
 
 class TestTaskDecoratorSpec(object):

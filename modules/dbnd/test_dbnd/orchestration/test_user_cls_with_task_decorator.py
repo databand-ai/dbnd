@@ -5,8 +5,6 @@ from typing import Dict, List
 
 import pytest
 
-from pytest import fixture
-
 from dbnd import output, parameter, pipeline, task
 from dbnd._core.errors import DatabandError
 from dbnd.testing.helpers_pytest import assert_run_task
@@ -30,36 +28,6 @@ class ClsAsTask(object):
     def run(self):
         assert self.a == 6
         return self.a
-
-
-@task(result=(output(name="datasets")[List[str]]))
-class InlineCallClsDecoratedTask(object):
-    def __init__(self, param_dict=parameter[Dict], param_str=parameter[str]):
-        self.param_dict = param_dict
-        self.param_str = param_str
-
-    def run(self):
-        assert self.param_dict
-        assert self.param_str
-        if self.param_str == "error":
-            raise TError("Raising as requested")
-        self.datasets = list(self.param_dict.keys())
-
-
-@task(result=(output(name="datasets")[List[str]]))
-class ParentCallClsDecoratedTask:
-    def __init__(self, param_dict=parameter[str], param_str=parameter[str]):
-        self.param_dict = param_dict
-        self.param_str = param_str
-
-    def run(self):
-        assert self.param_dict
-        assert self.param_str
-        # MODE A - current
-        # too implicit - magic
-        self.datasets = InlineCallClsDecoratedTask(
-            param_dict=self.param_dict, param_str=self.param_str
-        )
 
 
 @task
@@ -108,22 +76,7 @@ class OuterTask(object):
 
 
 class TestUserClassWithTaskDecorator(TargetTestBase):
-    @fixture
-    def target_1_2(self):
-        t = self.target("file.txt")
-        t.as_object.writelines(["1", "2"])
-        return t
-
-    def test_simple_inline(self, target_1_2):
-        assert_run_task(
-            ParentCallClsDecoratedTask.t(param_dict={"a": 1}, param_str="p_str")
-        )
-
-    def test_error_at_inline(self, target_1_2):
-        with pytest.raises(DatabandError):
-            ParentCallClsDecoratedTask.dbnd_run(param_dict={"a": 1}, param_str="error")
-
-    def test_task_band_complex_objects(self):
+    def test_task_band_user_class(self):
         @task
         class t_1(object):
             def __init__(self, extra_output=output[PathStr]):
@@ -216,6 +169,47 @@ class TestUserClassWithTaskDecorator(TargetTestBase):
         t = ClsAsTask()
         pickled = pickle.dumps(t)
         assert t.a == pickle.loads(pickled).a
+
+
+@task(result=(output(name="datasets")[List[str]]))
+class InlineCallClsDecoratedTask(object):
+    def __init__(self, param_dict=parameter[Dict], param_str=parameter[str]):
+        self.param_dict = param_dict
+        self.param_str = param_str
+
+    def run(self):
+        assert self.param_dict
+        assert self.param_str
+        if self.param_str == "error":
+            raise TError("Raising as requested")
+        self.datasets = list(self.param_dict.keys())
+
+
+@task(result=(output(name="datasets")[List[str]]))
+class ParentCallClsDecoratedTask:
+    def __init__(self, param_dict=parameter[str], param_str=parameter[str]):
+        self.param_dict = param_dict
+        self.param_str = param_str
+
+    def run(self):
+        assert self.param_dict
+        assert self.param_str
+        # MODE A - current
+        # too implicit - magic
+        self.datasets = InlineCallClsDecoratedTask(
+            param_dict=self.param_dict, param_str=self.param_str
+        )
+
+
+class TestUserClassInlineCalls(TargetTestBase):
+    def test_simple_inline(self, target_1_2):
+        assert_run_task(
+            ParentCallClsDecoratedTask.t(param_dict={"a": 1}, param_str="p_str")
+        )
+
+    def test_error_at_inline(self, target_1_2):
+        with pytest.raises(DatabandError):
+            ParentCallClsDecoratedTask.dbnd_run(param_dict={"a": 1}, param_str="error")
 
 
 if __name__ == "__main__":

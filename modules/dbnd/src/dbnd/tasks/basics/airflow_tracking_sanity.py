@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from dbnd._core.decorator.dbnd_decorator import task
+from dbnd._core.task_build.dbnd_decorator import task
 from dbnd._core.tracking.metrics import log_metric
 
 

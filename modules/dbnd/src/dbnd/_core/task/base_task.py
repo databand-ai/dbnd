@@ -16,7 +16,7 @@ from dbnd._core.utils.basics.nothing import NOTHING
 if TYPE_CHECKING:
     from dbnd._core.settings import DatabandSettings
     from dbnd._core.task_build.task_definition import TaskDefinition
-    from dbnd._core.decorator.task_decorator import TaskDecorator
+    from dbnd._core.task_build.task_decorator import TaskDecorator
 
 logger = logging.getLogger(__name__)
 

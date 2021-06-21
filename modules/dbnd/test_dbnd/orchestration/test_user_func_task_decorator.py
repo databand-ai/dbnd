@@ -3,7 +3,7 @@ import json
 import logging
 import pickle
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy
 import pandas as pd
@@ -26,6 +26,7 @@ from targets.values.pandas_values import DataFrameValueType
 
 
 logger = logging.getLogger(__name__)
+
 
 _value_1_2 = ["1", "2"]
 
@@ -73,7 +74,7 @@ def task_that_spawns_inline_run(value=1.0):
     return value_task.result.read_pickle() + 0.1
 
 
-class TestTaskDecoratorDefaults(TargetTestBase):
+class TestUserFuncTaskDecorator(TargetTestBase):
     def test_simple_defaults(self):
         @task
         def t_f_defaults(a=5):
@@ -97,37 +98,6 @@ class TestTaskDecoratorDefaults(TargetTestBase):
 
         t_f_call(a=6)
         assert_run_task(t_f_call.t(a=6))
-
-    def test_type_hints_from_defaults_cmdline(self, pandas_data_frame):
-        my_target = self.target("file.parquet")
-        my_target.write_df(pandas_data_frame)
-
-        @task
-        def t_f_defaults_cmdline(
-            a_str="",
-            b_datetime=datetime.datetime.utcnow(),
-            c_timedelta=datetime.timedelta(),
-            d_int=0,
-        ):
-            assert a_str == "1"
-            assert b_datetime.isoformat() == "2018-01-01T10:10:10.100000+00:00"
-            assert c_timedelta == datetime.timedelta(days=5)
-            assert d_int == 1
-            return pandas_data_frame
-
-        dbnd_run_cmd(
-            [
-                "t_f_defaults_cmdline",
-                "-r",
-                "a_str=1",
-                "-r",
-                "b_datetime=2018-01-01T101010.1",
-                "-r",
-                "c_timedelta=5d",
-                "--set",
-                json.dumps({"t_f_defaults_cmdline": {"d_int": 1}}),
-            ]
-        )
 
     def test_definition_inplace_param(self):
         @task
@@ -197,12 +167,6 @@ class TestTaskDecoratorDefaults(TargetTestBase):
 
             err_f_unknown_return_type()  # ???
 
-    @fixture
-    def target_1_2(self):
-        t = self.target("file.txt")
-        t.as_object.writelines(["1", "2"])
-        return t
-
     def test_signature(self):
         @task
         def t_f(t_input, t_int, t_time):
@@ -228,122 +192,6 @@ class TestTaskDecoratorDefaults(TargetTestBase):
         assert_run_task(task)
         assert task.result.load(List[str]) == ["1", "2"]
 
-    def test_type_hints_inline(self, pandas_data_frame):
-        my_target = self.target("file.parquet")
-        my_target.write_df(pandas_data_frame)
-
-        now = datetime.datetime.now()
-
-        @task
-        def t_f_hints(a_str, b_datetime, c_timedelta, d_int):
-            # type: (str, datetime.datetime, datetime.timedelta, int) -> DataFrame
-            assert a_str == "strX"
-            assert b_datetime == now
-            assert c_timedelta == datetime.timedelta(seconds=1)
-            assert d_int == 1
-            return pandas_data_frame
-
-        args = ["strX", now, datetime.timedelta(seconds=1), 1]
-        assert_frame_equal(pandas_data_frame, t_f_hints(*args))
-        t = assert_run_task(t_f_hints.t(*args))
-        assert_frame_equal(pandas_data_frame, t.result.read_df())
-
-    def test_type_hints_cmdline(self, pandas_data_frame):
-        my_target = self.target("file.parquet")
-        my_target.write_df(pandas_data_frame)
-
-        @task
-        def t_f_cmd_hints(a_str, b_datetime, c_timedelta, d_int):
-            # type: (str, datetime.datetime, datetime.timedelta, int) -> DataFrame
-            assert a_str == "1"
-            assert b_datetime.isoformat() == "2018-01-01T10:10:10.100000+00:00"
-            assert c_timedelta == datetime.timedelta(days=5)
-            assert d_int == 1
-            return pandas_data_frame
-
-        dbnd_run_cmd(
-            [
-                "t_f_cmd_hints",
-                "-r",
-                "a_str=1",
-                "-r",
-                "b_datetime=2018-01-01T101010.1",
-                "-r",
-                "c_timedelta=5d",
-                "-r",
-                "d_int=1",
-            ]
-        )
-
-    def test_type_hints_from_defaults_cmdline(self, pandas_data_frame):
-        my_target = self.target("file.parquet")
-        my_target.write_df(pandas_data_frame)
-
-        @task
-        def t_f_defaults_cmdline(
-            a_str="",
-            b_datetime=datetime.datetime.utcnow(),
-            c_timedelta=datetime.timedelta(),
-            d_int=0,
-        ):
-            assert a_str == "1"
-            assert b_datetime.isoformat() == "2018-01-01T10:10:10.100000+00:00"
-            assert c_timedelta == datetime.timedelta(days=5)
-            assert d_int == 1
-            return pandas_data_frame
-
-        dbnd_run_cmd(
-            [
-                "t_f_defaults_cmdline",
-                "-r",
-                "a_str=1",
-                "-r",
-                "b_datetime=2018-01-01T101010.1",
-                "-r",
-                "c_timedelta=5d",
-                "-r",
-                "d_int=1",
-            ]
-        )
-
-    def test_type_hints_output_simple(self, pandas_data_frame):
-        @task
-        def t_f_hints(a_str):
-            # type: (str) -> Tuple[str, str]
-            return "a", "b"
-
-        a, b = t_f_hints.t("a").result
-        assert a
-        assert b
-
-    def test_type_hints_py2(self):
-        @task
-        def t_f_hints(p_list, p_dict):
-            # type: (list,dict) -> str
-            assert isinstance(p_list, list)
-            assert isinstance(p_dict, dict)
-            return "a"
-
-        a = t_f_hints.t(["a", "b"], {1: 1, 2: 2})
-        logger.info(a.ctrl.banner(""))
-        assert isinstance(a.__class__.p_list.value_type, ListValueType)
-        assert isinstance(a.__class__.p_dict.value_type, DictValueType)
-
-    def test_type_hints_output_df(self, pandas_data_frame):
-        @task(result="a,b")
-        def func_multiple_outputs():
-            # type: ()-> (pd.DataFrame, pd.DataFrame)
-            return (
-                pd.DataFrame(data=[[1, 1]], columns=["c1", "c2"]),
-                pd.DataFrame(data=[[1, 1]], columns=["c1", "c2"]),
-            )
-
-        t = func_multiple_outputs.task
-        assert isinstance(t.a.value_type, DataFrameValueType)
-        a, b = func_multiple_outputs.t().result
-        assert a
-        assert b
-
     def test_inline_override_in_decorator(self):
         @task(task_version="2")
         def my_task():
@@ -358,12 +206,13 @@ class TestTaskDecoratorDefaults(TargetTestBase):
 
         my_task.dbnd_run(task_name="test_name")
 
-    @fixture
-    def target_1_2(self):
-        t = self.target("file.txt")
-        t.as_object.writelines(["1", "2"])
-        return t
+    def test_user_decorated_func_serializable(self):
+        target_func = t_f_a
+        pickled = pickle.dumps(target_func)
+        assert target_func == pickle.loads(pickled)
 
+
+class TestUserFuncInlineCalls(TargetTestBase):
     def test_inline_call_1(self, target_1_2):
         assert_run_task(task_that_spawns_inline_run.t())
 
@@ -500,7 +349,196 @@ class TestTaskDecoratorDefaults(TargetTestBase):
 
         assert len(calls) == 1
 
-    def test_user_decorated_func_serializable(self):
-        target_func = t_f_a
-        pickled = pickle.dumps(target_func)
-        assert target_func == pickle.loads(pickled)
+
+class TestFuncTypingAndHints(TargetTestBase):
+    def test_type_hints_inline(self, pandas_data_frame):
+        my_target = self.target("file.parquet")
+        my_target.write_df(pandas_data_frame)
+
+        now = datetime.datetime.now()
+
+        @task
+        def t_f_hints(a_str, b_datetime, c_timedelta, d_int):
+            # type: (str, datetime.datetime, datetime.timedelta, int) -> DataFrame
+            assert a_str == "strX"
+            assert b_datetime == now
+            assert c_timedelta == datetime.timedelta(seconds=1)
+            assert d_int == 1
+            return pandas_data_frame
+
+        args = ["strX", now, datetime.timedelta(seconds=1), 1]
+        assert_frame_equal(pandas_data_frame, t_f_hints(*args))
+        t = assert_run_task(t_f_hints.t(*args))
+        assert_frame_equal(pandas_data_frame, t.result.read_df())
+
+    def test_type_hints_from_defaults_cmdline(self, pandas_data_frame):
+        my_target = self.target("file.parquet")
+        my_target.write_df(pandas_data_frame)
+
+        @task
+        def t_f_defaults_cmdline(
+            a_str="",
+            b_datetime=datetime.datetime.utcnow(),
+            c_timedelta=datetime.timedelta(),
+            d_int=0,
+        ):
+            assert a_str == "1"
+            assert b_datetime.isoformat() == "2018-01-01T10:10:10.100000+00:00"
+            assert c_timedelta == datetime.timedelta(days=5)
+            assert d_int == 1
+            return pandas_data_frame
+
+        dbnd_run_cmd(
+            [
+                "t_f_defaults_cmdline",
+                "-r",
+                "a_str=1",
+                "-r",
+                "b_datetime=2018-01-01T101010.1",
+                "-r",
+                "c_timedelta=5d",
+                "--set",
+                json.dumps({"t_f_defaults_cmdline": {"d_int": 1}}),
+            ]
+        )
+
+    def test_type_hints_cmdline(self, pandas_data_frame):
+        my_target = self.target("file.parquet")
+        my_target.write_df(pandas_data_frame)
+
+        @task
+        def t_f_cmd_hints(a_str, b_datetime, c_timedelta, d_int):
+            # type: (str, datetime.datetime, datetime.timedelta, int) -> DataFrame
+            assert a_str == "1"
+            assert b_datetime.isoformat() == "2018-01-01T10:10:10.100000+00:00"
+            assert c_timedelta == datetime.timedelta(days=5)
+            assert d_int == 1
+            return pandas_data_frame
+
+        dbnd_run_cmd(
+            [
+                "t_f_cmd_hints",
+                "-r",
+                "a_str=1",
+                "-r",
+                "b_datetime=2018-01-01T101010.1",
+                "-r",
+                "c_timedelta=5d",
+                "-r",
+                "d_int=1",
+            ]
+        )
+
+    def test_type_hints_from_defaults_cmdline(self, pandas_data_frame):
+        my_target = self.target("file.parquet")
+        my_target.write_df(pandas_data_frame)
+
+        @task
+        def t_f_defaults_cmdline(
+            a_str="",
+            b_datetime=datetime.datetime.utcnow(),
+            c_timedelta=datetime.timedelta(),
+            d_int=0,
+        ):
+            assert a_str == "1"
+            assert b_datetime.isoformat() == "2018-01-01T10:10:10.100000+00:00"
+            assert c_timedelta == datetime.timedelta(days=5)
+            assert d_int == 1
+            return pandas_data_frame
+
+        dbnd_run_cmd(
+            [
+                "t_f_defaults_cmdline",
+                "-r",
+                "a_str=1",
+                "-r",
+                "b_datetime=2018-01-01T101010.1",
+                "-r",
+                "c_timedelta=5d",
+                "-r",
+                "d_int=1",
+            ]
+        )
+
+    def test_type_hints_output_simple(self, pandas_data_frame):
+        @task
+        def t_f_hints(a_str):
+            # type: (str) -> Tuple[str, str]
+            return "a", "b"
+
+        a, b = t_f_hints.t("a").result
+        assert a
+        assert b
+
+    def test_type_hints_py2(self):
+        @task
+        def t_f_hints(p_list, p_dict):
+            # type: (list,dict) -> str
+            assert isinstance(p_list, list)
+            assert isinstance(p_dict, dict)
+            return "a"
+
+        a = t_f_hints.t(["a", "b"], {1: 1, 2: 2})
+        logger.info(a.ctrl.banner(""))
+        assert isinstance(a.__class__.p_list.value_type, ListValueType)
+        assert isinstance(a.__class__.p_dict.value_type, DictValueType)
+
+    def test_type_hints_output_df(self, pandas_data_frame):
+        @task(result="a,b")
+        def func_multiple_outputs():
+            # type: ()-> (pd.DataFrame, pd.DataFrame)
+            return (
+                pd.DataFrame(data=[[1, 1]], columns=["c1", "c2"]),
+                pd.DataFrame(data=[[1, 1]], columns=["c1", "c2"]),
+            )
+
+        t = func_multiple_outputs.task
+        assert isinstance(t.a.value_type, DataFrameValueType)
+        a, b = func_multiple_outputs.t().result
+        assert a
+        assert b
+
+    def test_simple_deco(self):
+        @task
+        def t_f_defaults(a=5):
+            # type: (int)->str
+            # some comment
+            assert a == 5
+            return "ok"
+
+        assert t_f_defaults.task.a.value_type.type == int
+        assert t_f_defaults.task.result.value_type.type == str
+
+    def test_optional_deco(self):
+        @task
+        def t_f_defaults(a=5, b=2):
+            # type: (Optional[int], Optional[str])->Optional[str]
+            # some comment
+            assert a == 5
+            return "ok"
+
+        assert t_f_defaults.task.a.value_type.type == int
+        assert t_f_defaults.task.b.value_type.type == str
+        assert t_f_defaults.task.result.value_type.type == str
+
+    def test_optional_tuple(self):
+        @task
+        def t_f(a=5):
+            # type: (int)->Tuple[Optional[str]]
+            # some comment
+            assert a == 5
+            return ("ok",)
+
+        assert t_f.task.a.value_type.type == int
+        assert t_f.task.result_1.value_type.type == str
+
+    def test_union(self):
+        @task
+        def t_f(a=5):
+            # type: (Union[int, str])->Union[str]
+            # some comment
+            assert a == 5
+            return "ok"
+
+        assert t_f.task.a.value_type.type == int
+        assert t_f.task.result.value_type.type == str

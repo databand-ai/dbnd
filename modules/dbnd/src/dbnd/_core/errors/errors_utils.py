@@ -15,6 +15,7 @@ _inner_call_functions_regexp = re.compile(
         [
             r"errors/errors_utils",
             r"_core/task_build",
+            r"_core/utils",
             r"_core/decorator",
             r"_core/failures",
         ]

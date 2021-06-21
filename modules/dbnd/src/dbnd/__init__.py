@@ -25,12 +25,6 @@ from dbnd._core.current import (
     get_databand_context,
     get_databand_run,
 )
-from dbnd._core.decorator.dbnd_decorator import (
-    band,
-    data_source_pipeline,
-    pipeline,
-    task,
-)
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_builder import data, output, parameter
@@ -42,6 +36,12 @@ from dbnd._core.task.pipeline_task import PipelineTask
 from dbnd._core.task.python_task import PythonTask
 from dbnd._core.task.task import Task
 from dbnd._core.task_build import task_namespace
+from dbnd._core.task_build.dbnd_decorator import (
+    band,
+    data_source_pipeline,
+    pipeline,
+    task,
+)
 from dbnd._core.task_build.task_context import current
 from dbnd._core.task_build.task_namespace import auto_namespace, namespace
 from dbnd._core.task_build.task_registry import register_config_cls, register_task

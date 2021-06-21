@@ -32,7 +32,7 @@ from dbnd._core.utils.uid_utils import get_uuid
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.decorator.task_decorator import TaskDecorator
+    from dbnd._core.task_build.task_decorator import TaskDecorator
 
 logger = logging.getLogger(__name__)
 

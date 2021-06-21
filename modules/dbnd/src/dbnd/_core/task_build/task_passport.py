@@ -10,7 +10,6 @@ from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.decorator.callable_spec import CallableSpec
     from dbnd._core.task import Task
 
 

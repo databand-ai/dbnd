@@ -6,10 +6,6 @@ from typing import List
 import six
 
 from dbnd._core.constants import RESULT_PARAM
-from dbnd._core.decorator.callable_spec import (
-    guess_func_arg_value_type,
-    guess_func_return_type,
-)
 from dbnd._core.errors import DatabandBuildError, friendly_error
 from dbnd._core.parameter import get_parameter_for_value_type
 from dbnd._core.parameter.parameter_builder import (
@@ -24,13 +20,17 @@ from dbnd._core.parameter.parameter_definition import (
 )
 from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.utils.basics.nothing import NOTHING, is_defined, is_not_defined
+from dbnd._core.utils.callable_spec import (
+    guess_func_arg_value_type,
+    guess_func_return_type,
+)
 from targets.values import get_value_type_of_type
 from targets.values.builtins_values import DefaultObjectValueType
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.decorator.callable_spec import CallableSpec
-    from dbnd._core.decorator.task_decorator import TaskDecorator
+    from dbnd._core.utils.callable_spec import CallableSpec
+    from dbnd._core.task_build.task_decorator import TaskDecorator
 logger = logging.getLogger(__name__)
 
 

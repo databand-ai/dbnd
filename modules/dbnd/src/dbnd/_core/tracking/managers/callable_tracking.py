@@ -19,7 +19,6 @@ from dbnd._core.current import (
     is_verbose,
     try_get_current_task,
 )
-from dbnd._core.decorator.callable_spec import args_to_kwargs
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
@@ -30,6 +29,7 @@ from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
+from dbnd._core.utils.callable_spec import args_to_kwargs
 from dbnd._core.utils.timezone import utcnow
 from targets import InMemoryTarget, Target
 from targets.value_meta import ValueMetaConf
@@ -37,7 +37,7 @@ from targets.values import get_value_type_of_obj
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.decorator.task_decorator import TaskDecorator
+    from dbnd._core.task_build.task_decorator import TaskDecorator
 
 logger = logging.getLogger(__name__)
 

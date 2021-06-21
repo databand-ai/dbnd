@@ -7,11 +7,11 @@ import typing
 from typing import Dict, List
 
 from dbnd import parameter
-from dbnd._core.decorator.dbnd_decorator import build_task_decorator
 from dbnd._core.errors import DatabandConfigError, friendly_error
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.settings.engine import EngineConfig
 from dbnd._core.task.decorated_callable_task import _DecoratedCallableTask
+from dbnd._core.task_build.dbnd_decorator import build_task_decorator
 from dbnd._core.task_ctrl.task_repr import _parameter_value_to_argparse_str
 from dbnd.tasks import Config, Task
 from dbnd_gcp.apache_beam import ApacheBeamJobCtrl

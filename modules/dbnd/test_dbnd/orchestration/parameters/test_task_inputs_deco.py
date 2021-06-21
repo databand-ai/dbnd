@@ -47,12 +47,6 @@ def t_f_pathlib(a, b):
 
 
 class TestDecoratorTaskInputs(TargetTestBase):
-    @fixture
-    def target_1_2(self):
-        t = self.target("file.txt")
-        t.as_object.writelines(["1", "2"])
-        return t
-
     def test_input_lines_direct_call(self, target_1_2):
         actual = t_f_data_list_str(a=_value_1_2)
         assert actual == _value_1_2[:1]

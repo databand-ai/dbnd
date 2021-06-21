@@ -45,17 +45,17 @@ class TestSanityInvokeOverCmdline(object):
         run_dbnd_subprocess_test(args)
         assert t.exists()
 
-    def test_dbnd_help(self):
-        stdout = run_dbnd_subprocess_test([TTask.get_task_family(), "--help"])
-        assert "-r", "t_param" in stdout
-
-
-@skip_on_windows
-class TestInvokeOverCmdline(object):
     def test_task_name_with_package(self):
         # this is real command line , so the Task will not be found
         # if we don't import tests.tasks.test_cmdline_real.TLocalTaskDef
         run_dbnd_subprocess_test([TLocalTaskDef.task_definition.full_task_family])
+
+
+@skip_on_windows
+class TestHelpAndMisspelledOverCmdline(object):
+    def test_dbnd_help(self):
+        stdout = run_dbnd_subprocess_test([TTask.get_task_family(), "--help"])
+        assert "-r", "t_param" in stdout
 
     def test_bin_mentions_misspelled_task(self):
         """

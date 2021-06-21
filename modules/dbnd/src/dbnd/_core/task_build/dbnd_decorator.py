@@ -1,20 +1,18 @@
-import functools
 import logging
 import typing
 
 import six
 
 from dbnd._core.configuration.environ_config import is_databand_enabled
-from dbnd._core.decorator.lazy_property_proxy import CallableLazyObjectProxy
-from dbnd._core.decorator.task_decorator import (
-    TaskDecorator,
-    _UserClassWithTaskDecoratorMetaclass,
-    build_dbnd_decorated_func,
-)
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task.decorated_callable_task import (
     DecoratedPipelineTask,
     DecoratedPythonTask,
+)
+from dbnd._core.task_build.task_decorator import (
+    TaskDecorator,
+    _UserClassWithTaskDecoratorMetaclass,
+    build_dbnd_decorated_func,
 )
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.managers.callable_tracking import _do_nothing_decorator
