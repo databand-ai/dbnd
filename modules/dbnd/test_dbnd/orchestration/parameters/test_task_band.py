@@ -278,7 +278,7 @@ class TestTaskBand(object):
             return root_dir, partitions
 
         @task
-        def ttask_that_use_root(root_dir: PathStr):
+        def ttask_that_use_root(root_dir=parameter[PathStr]):
             return root_dir
 
         @pipeline

@@ -9,6 +9,8 @@ import targets
 from dbnd._core.utils.basics.path_utils import relative_path
 from dbnd.testing.helpers import run_dbnd_subprocess__dbnd_run
 from dbnd.testing.helpers_pytest import skip_on_windows
+from dbnd_test_scenarios.pipelines import pipe_4tasks
+from dbnd_test_scenarios.pipelines.simple_pipeline import get_some_data
 from dbnd_test_scenarios.test_common.task import factories
 from dbnd_test_scenarios.test_common.task.factories import TTask
 
@@ -33,10 +35,6 @@ def run_dbnd_subprocess_test(*args, **kwargs):
     return run_dbnd_subprocess__dbnd_run(*args, module=factories, env=env, **kwargs)
 
 
-class TLocalTaskDef(TTask):
-    pass
-
-
 @skip_on_windows
 class TestSanityInvokeOverCmdline(object):
     def test_dbnd_run(self, tmpdir):
@@ -48,7 +46,9 @@ class TestSanityInvokeOverCmdline(object):
     def test_task_name_with_package(self):
         # this is real command line , so the Task will not be found
         # if we don't import tests.tasks.test_cmdline_real.TLocalTaskDef
-        run_dbnd_subprocess_test([TLocalTaskDef.task_definition.full_task_family])
+        run_dbnd_subprocess_test(
+            [get_some_data.task_cls.task_definition.full_task_family]
+        )
 
 
 @skip_on_windows
@@ -80,7 +80,7 @@ class TestHelpAndMisspelledOverCmdline(object):
     def test_describe_simple(self):
         args = [
             "-m",
-            "test_dbnd.scenarios.pipelines.pipe_4tasks",
+            pipe_4tasks.__name__,
             "scenario_4_tasks.MainPipeline",
         ]
         run_dbnd_subprocess_test(args)

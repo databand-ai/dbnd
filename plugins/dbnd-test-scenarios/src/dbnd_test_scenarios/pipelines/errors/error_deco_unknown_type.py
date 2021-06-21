@@ -6,5 +6,5 @@ class UnknownForDBND(object):
 
 
 @band(ssss=parameter[UnknownForDBND])
-def band_unknown_param():
+def error_band_unknown_param():
     return None

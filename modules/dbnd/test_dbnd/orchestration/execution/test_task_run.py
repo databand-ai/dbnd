@@ -22,12 +22,12 @@ from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandRunError
 from dbnd.tasks.basics import SimplestTask
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_test_scenarios.pipelines.pipe_4tasks import (
+    MainPipeline as Scenario4_MainPipeline,
+)
 from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from dbnd_test_scenarios.test_common.task.factories import TTask, TTaskWithInput
 from targets import FileTarget
-from test_dbnd.scenarios.pipelines.pipe_4tasks import (
-    MainPipeline as Scenario4_MainPipeline,
-)
 
 
 logger = logging.getLogger(__name__)

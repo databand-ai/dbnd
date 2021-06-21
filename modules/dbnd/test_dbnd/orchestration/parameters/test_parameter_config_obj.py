@@ -19,7 +19,7 @@ class TTaskwithConfigParam(SimplestTask):
 
 
 @task
-def ttask_with_config_param(p_config: _TestConfig):
+def ttask_with_config_param(p_config=parameter[_TestConfig]):
     return p_config.c_value
 
 

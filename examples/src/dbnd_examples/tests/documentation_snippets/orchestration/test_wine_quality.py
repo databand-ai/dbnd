@@ -25,7 +25,9 @@ class TestQuickStartExample(object):
     def test_predict_wine_quality(self):
         task_config = {"raw_data": data_repo.wines_full}
         config.set_values(
-            {predict_wine_quality.task_definition.task_config_section: task_config},
+            {
+                predict_wine_quality.task_cls.task_definition.task_config_section: task_config
+            },
             source="--set-root",
         )
         assert_run_task(predict_wine_quality.task())
