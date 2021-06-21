@@ -243,10 +243,10 @@ class RunExecutor(object):
         with t.open("wb") as fp:
             cloudpickle.dump(obj=self.run, file=fp)
 
-    def run_dynamic_task(self, task, task_engine=None):
+    def run_task_at_execution_time(self, task, task_engine=None):
         if task_engine is None:
             task_engine = self.host_engine
-        task_run = self.run.create_dynamic_task_run(task, task_engine)
+        task_run = self.run.create_task_run_at_execution_time(task, task_engine)
         task_run.runner.execute()
         return task_run
 
@@ -260,9 +260,9 @@ class RunExecutor(object):
                 databand_run.context.tracking_store.disable_tracking_api()
                 logger.info("Tracking has been disabled")
         try:
-            if databand_run.context.settings.core.pickle_handler:
+            if databand_run.context.settings.run.pickle_handler:
                 pickle_handler = load_python_callable(
-                    databand_run.context.settings.core.pickle_handler
+                    databand_run.context.settings.run.pickle_handler
                 )
                 pickle_handler(databand_run)
         except Exception as e:
@@ -325,10 +325,9 @@ class RunExecutor(object):
 
     def _is_save_run_pickle(self, task_runs, remote_engine):
 
-        core_settings = self.run.context.settings.core
-        if core_settings.always_save_pipeline:
+        if self.run_config.always_save_pipeline:
             return True
-        if core_settings.disable_save_pipeline:
+        if self.run_config.disable_save_pipeline:
             return False
 
         if any(tr.task._conf__require_run_dump_file for tr in task_runs):

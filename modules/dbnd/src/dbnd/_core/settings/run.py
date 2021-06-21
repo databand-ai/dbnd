@@ -142,3 +142,34 @@ class RunConfig(config.Config):
         "This will start a new `settrace` connecting to `localhost` on the requested port, "
         "right before starting the driver task_run."
     )[int]
+
+    # MOVED from [core]
+    always_save_pipeline = parameter(
+        description="Boolean for always saving pipeline to pickle"
+    ).value(False)
+    disable_save_pipeline = parameter(
+        description="Boolean for disabling pipeline pickling"
+    ).value(False)
+
+    recheck_circle_dependencies = parameter(
+        description="Re check circle dependencies on every task creation,"
+        " use it if you need to find of circle in your graph "
+    ).value(False)
+
+    pickle_handler = parameter(
+        default=None,
+        description="Defines a python pickle handler to be used to pickle the "
+        "run's data",
+    )[str]
+
+    target_cache_on_access = parameter(
+        default=True, description="Cache targets values in memory during execution"
+    )[bool]
+
+    task_run_at_execution_time_enabled = parameter(
+        default=True, description="Allow tasks calls during another task execution"
+    )[bool]
+    task_run_at_execution_time_in_memory_outputs = parameter(
+        default=False,
+        description="Store outputs for inline task at execution time in memory (do not use FileSystem)",
+    )[bool]

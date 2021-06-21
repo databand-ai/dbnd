@@ -65,7 +65,7 @@ class TaskRunRunner(TaskRunCtrl):
             submit_task.descendants.add_child(task.task_id)
             if run_config.open_web_tracker_in_browser:
                 webbrowser.open_new_tab(task_run.task_tracker_url)
-            run_executor.run_dynamic_task(submit_task)
+            run_executor.run_task_at_execution_time(submit_task)
             return
 
         with self.task_run_execution_context(handle_sigterm=handle_sigterm):

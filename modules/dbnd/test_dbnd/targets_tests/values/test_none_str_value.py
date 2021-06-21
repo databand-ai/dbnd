@@ -26,6 +26,6 @@ class TestNoneStringType:
     def test_none_string_marshalling(self):
         dc = try_get_databand_context()
         # Prevent target caching, force reload from disk
-        dc.settings.features.in_memory_cache_target_value = False
+        dc.settings.run.target_cache_on_access = False
         p = NoneStringPipeline()
         p.dbnd_run()

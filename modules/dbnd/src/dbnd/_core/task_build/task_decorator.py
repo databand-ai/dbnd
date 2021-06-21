@@ -211,7 +211,7 @@ class TaskDecorator(object):
             # if possible we will run it as "orchestration" task
             # with parameters parsing
             if (
-                current.settings.dynamic_task.enabled
+                current.settings.run.task_run_at_execution_time_enabled
                 and current.task_supports_dynamic_tasks
             ):
                 return self._run_task_from_another_task_execution(
@@ -259,7 +259,7 @@ class TaskDecorator(object):
         call_kwargs.setdefault("task_is_dynamic", True)
         call_kwargs.setdefault(
             "task_in_memory_outputs",
-            parent_task.settings.dynamic_task.in_memory_outputs,
+            parent_task.settings.run.task_run_at_execution_time_in_memory_outputs,
         )
 
         if issubclass(task_cls, PipelineTask):
@@ -287,7 +287,7 @@ class TaskDecorator(object):
 
             task._dbnd_call_state = TaskCallState(should_store_result=True)
             try:
-                task_run = dbnd_run.run_executor.run_dynamic_task(
+                task_run = dbnd_run.run_executor.run_task_at_execution_time(
                     task, task_engine=current_task_run().task_engine
                 )
 

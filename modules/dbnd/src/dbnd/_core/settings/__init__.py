@@ -5,12 +5,7 @@ from typing import Union
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.base import ConfigLookupError
 from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
-from dbnd._core.settings.core import (
-    CoreConfig,
-    DatabandSystemConfig,
-    DynamicTaskConfig,
-    FeaturesConfig,
-)
+from dbnd._core.settings.core import CoreConfig, DatabandSystemConfig
 from dbnd._core.settings.describe import DescribeConfig
 from dbnd._core.settings.engine import EngineConfig
 from dbnd._core.settings.env import EnvConfig, LocalEnvConfig
@@ -36,9 +31,7 @@ class DatabandSettings(object):
         self.databand_context = databand_context  # type: DatabandContext
 
         self.core = CoreConfig()
-        self.features = FeaturesConfig()  # type: FeaturesConfig
         self.tracking = TrackingConfig()  # type: TrackingConfig
-        self.dynamic_task = DynamicTaskConfig()
 
         self.run = RunConfig()
         self.git = GitConfig()

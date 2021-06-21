@@ -61,7 +61,7 @@ def prepare_docker_for_executor(run, docker_engine):
             task_is_system=True,
         )
 
-        run.run_executor.run_dynamic_task(docker_build)
+        run.run_executor.run_task_at_execution_time(docker_build)
         pm.hook.dbnd_build_project_docker(
             docker_engine=docker_engine, docker_build_task=docker_build
         )

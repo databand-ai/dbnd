@@ -61,5 +61,5 @@ def get_local_tempfile(*path):
 def is_in_memory_cache_target_value():
     dc = try_get_databand_context()
     if dc:
-        return dc.settings.features.in_memory_cache_target_value
+        return dc.settings.run.target_cache_on_access
     return False

@@ -52,6 +52,6 @@ def cyclic_graph_detected(task, cyclic_nodes):
         ),
         show_exc_info=False,
         help_msg="Check your %s logic, see the full circle path in log. "
-        "For better visability, use core.recheck_circle_dependencies=True"
+        "For better visability, use run.recheck_circle_dependencies=True"
         % _band_call_str(task),
     )

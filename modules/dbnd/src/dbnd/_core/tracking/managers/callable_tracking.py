@@ -149,7 +149,7 @@ class CallableTrackingManager(object):
                 task.set_upstream(up_task)
 
             # creating task_run as a task we found mid-run
-            task_run = dbnd_run.create_dynamic_task_run(
+            task_run = dbnd_run.create_task_run_at_execution_time(
                 task, task_engine=current_task_run().task_engine
             )
 

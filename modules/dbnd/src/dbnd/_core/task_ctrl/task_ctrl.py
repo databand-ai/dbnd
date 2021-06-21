@@ -185,7 +185,7 @@ class TaskCtrl(_BaseTaskCtrl):
         # may be we should move it to global level because of performance issues
         # however, by running it at every task we'll be able to find the code that causes the issue
         # and show it to user
-        if self.dbnd_context.settings.core.recheck_circle_dependencies:
+        if self.dbnd_context.settings.run.recheck_circle_dependencies:
             self.task_dag.topological_sort()
 
     def should_run(self):

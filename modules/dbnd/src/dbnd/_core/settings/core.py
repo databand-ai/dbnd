@@ -29,7 +29,7 @@ class DatabandSystemConfig(Config):
     )[str]
     env = parameter(
         default=CloudType.local,
-        description="task environment: local/aws/aws_prod/gcp/prod",
+        description="task environment: (based on core.environments) local/aws/aws_prod/gcp/prod",
     )[str]
 
     conf_file = parameter(default=None, description="List of files to read from")[
@@ -48,19 +48,6 @@ class CoreConfig(Config):
 
     _conf__task_family = "core"
 
-    dags_subdir = parameter.system(
-        default="",
-        description="File location or directory from which to look for the dag",
-    )
-
-    environments = parameter(description="List of enabled environments")[List[str]]
-
-    dbnd_user = parameter(description="user used to connect to the dbnd web server")[
-        str
-    ]
-    dbnd_password = parameter(
-        description="password used to connect to the dbnd web server", hidden=True
-    )[str]
     databand_url = parameter(
         default=None,
         description="Tracker URL to be used for creating links in console logs",
@@ -71,19 +58,55 @@ class CoreConfig(Config):
         hidden=True,
     )[str]
 
-    # Backward compatibility
-    tracker_url = parameter(
-        default=None,
-        description="OLD: Tracker URL to be used for creating links in console logs",
+    tracker = parameter(
+        default=["file", "console", "api"], description="Tracking Stores to be used"
+    )[List[str]]
+
+    tracker_api = parameter(
+        default="web", description="Tracker Channels to be used by 'api' store"
     )[str]
 
     tracker_version = parameter[str]
+
+    debug_webserver = parameter(
+        description="Allow collecting the webservers logs for each api-call on the local machine. "
+        "Requires that the web-server supports and allow this.",
+        default=False,
+    )[bool]
+
+    silence_tracking_mode = parameter(
+        default=False, description="Silence console on tracking mode"
+    )[bool]
+
+    tracker_raise_on_error = parameter(
+        default=True, description="Raise error when failed to track data"
+    )[bool]
+    remove_failed_store = parameter(
+        default=False, description="Remove a tracking store if it fails"
+    )[bool]
+
+    max_tracking_store_retries = parameter(
+        default=2,
+        description="Maximal amounts of retries allowed for a single tracking store call if it failed.",
+    )[int]
+
+    client_session_timeout = parameter(
+        description="Minutes to recreate the api client's session", default=5
+    )[int]
+    client_max_retry = parameter(
+        description="Maximum amount of retries on failed connection for the api client",
+        default=2,
+    )[int]
+    client_retry_sleep = parameter(
+        description="Sleep between retries of the api client", default=0.1
+    )[float]
 
     user_configs = parameter(
         empty_default=True,
         description="Contains the config for creating tasks from user code",
     )[List[str]]
 
+    # USER CODE TO RUN ON START
     # user_pre_init = defined at Databand System config, dbnd_on_pre_init_context
     user_init = parameter(
         default=None,
@@ -98,78 +121,33 @@ class CoreConfig(Config):
         default=None, description="Runs in sub process (parallel/kubernetes/external)"
     )[object]
 
-    pickle_handler = parameter(
-        default=None,
-        description="Defines a python pickle handler to be used to pickle the "
-        "run's data",
-    )[str]
-
-    tracker = parameter(
-        default=["file", "console", "api"], description="Tracking Stores to be used"
-    )[List[str]]
-    tracker_raise_on_error = parameter(
-        default=True, description="Raise error when failed to track data"
-    )[bool]
-    remove_failed_store = parameter(
-        default=False, description="Remove a tracking store if it fails"
-    )[bool]
-    max_tracking_store_retries = parameter(
-        default=2,
-        description="Maximal amounts of retries allowed for a single tracking store call if it failed.",
-    )[int]
-
-    tracker_api = parameter(default="web", description="Tracking Stores to be used")[
-        str
-    ]
-
-    silence_tracking_mode = parameter(
-        default=False, description="Silence console on tracking mode"
-    )[bool]
-
-    always_save_pipeline = parameter(
-        description="Boolean for always saving pipeline to pickle"
-    ).value(False)
-    disable_save_pipeline = parameter(
-        description="Boolean for disabling pipeline pickling"
-    ).value(False)
-
-    recheck_circle_dependencies = parameter(
-        description="Re check circle dependencies on every task creation,"
-        " use it if you need to find of circle in your graph "
-    ).value(False)
-
-    hide_system_pipelines = parameter(
-        description="Hides the scheduled job launcher and driver submit pipelines at the API level to prevent clutter",
-        default=True,
-    )
-
-    fix_env_on_osx = parameter(
-        description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
-    )[bool]
-
+    # PLUGINS
     plugins = parameter(
         description="plugins to load on databand context creation", default=None
     )[str]
     allow_vendored_package = parameter(
         description="Allow adding dbnd/_vendor_package to sys.path", default=False
     )[bool]
-
-    debug_webserver = parameter(
-        description="Allow collecting the webservers logs for each api-call on the local machine. "
-        "Requires that the web-server supports and allow this.",
-        default=False,
+    fix_env_on_osx = parameter(
+        description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
     )[bool]
 
-    client_session_timeout = parameter(
-        description="Minutes to recreate the api client's session", default=5
-    )[int]
-    client_max_retry = parameter(
-        description="Maximum amount of retries on failed connection for the api client",
-        default=2,
-    )[int]
-    client_retry_sleep = parameter(
-        description="Sleep between retries of the api client", default=0.1
-    )[float]
+    environments = parameter(description="List of enabled environments")[List[str]]
+
+    #### TO DEPRECATE ## (DONT USE)
+    # deprecate in favor of databand_access_token
+    dbnd_user = parameter(
+        description="DEPRECATED: user used to connect to the dbnd web server"
+    )[str]
+    dbnd_password = parameter(
+        description="DEPRECATED: password used to connect to the dbnd web server", hidden=True
+    )[str]
+
+    # deprecated at 0.34 (Backward compatibility)
+    tracker_url = parameter(
+        default=None,
+        description="DEPRECATED: Tracker URL to be used for creating links in console logs",
+    )[str]
 
     def _validate(self):
         if not self.databand_url and self.tracker_url:
@@ -235,28 +213,3 @@ class CoreConfig(Config):
             default_max_retry=self.client_max_retry,
             default_retry_sleep=self.client_retry_sleep,
         )
-
-
-class DynamicTaskConfig(Config):
-    """
-    Configuration section for dynamically generated tasks.
-    """
-
-    _conf__task_family = "dynamic_task"
-
-    enabled = parameter(default=True, description="Allow tasks calls at runtime")[bool]
-    in_memory_outputs = parameter(
-        default=False, description="Store outputs for inline tasks in memory"
-    )[bool]
-
-
-class FeaturesConfig(Config):
-    """
-    Configuration section for caching features.
-    """
-
-    _conf__task_family = "features"
-
-    in_memory_cache_target_value = parameter(
-        default=True, description="Cache targets values in memory during execution"
-    )[bool]
