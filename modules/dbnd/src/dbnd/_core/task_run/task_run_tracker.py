@@ -188,21 +188,8 @@ class TaskRunTracker(TaskRunCtrl):
                     operation_status=operation_status,
                     param_name=key,
                 )
-            metrics = value_meta.build_metrics_for_key(key, meta_conf)
 
-            if metrics["user"]:
-                self._log_metrics(metrics["user"])
-
-            if metrics["histograms"]:
-                self.tracking_store.log_histograms(
-                    task_run=self.task_run,
-                    key=key,
-                    value_meta=value_meta,
-                    timestamp=ts,
-                )
-
-            if not (metrics["user"] or metrics["histograms"] or path):
-                logger.info("No metrics to log_data(key={}, data={})".format(key, data))
+            self.log_value_metrics(key, meta_conf, value_meta, ts)
 
         except Exception as ex:
             log_exception(
@@ -213,13 +200,27 @@ class TaskRunTracker(TaskRunCtrl):
             if raise_on_error:
                 raise
 
+    def log_value_metrics(self, key, meta_conf, value_meta, ts=None):
+        ts = ts or utcnow()
+        metrics = value_meta.build_metrics_for_key(key, meta_conf)
+        if metrics["user"]:
+            self._log_metrics(metrics["user"])
+
+        if metrics["histograms"]:
+            self.tracking_store.log_histograms(
+                task_run=self.task_run, key=key, value_meta=value_meta, timestamp=ts,
+            )
+        if not (metrics["user"] or metrics["histograms"]):
+            logger.info("No metrics to log_data(key={})".format(key))
+
     def log_dataset(
         self,
         operation_path,  # type: Union[Target,str]
         operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
-        data=None,
-        meta_conf=None,
+        data=None,  # type: Optional[Any]
+        meta_conf=None,  # type: Optional[ValueMetaConf]
+        send_metrics=True,
     ):
         data_meta = None
         if data is not None and meta_conf is not None:
@@ -245,3 +246,42 @@ class TaskRunTracker(TaskRunCtrl):
             operation_type=operation_type,
             operation_status=operation_status,
         )
+
+        if send_metrics:
+            dataset_name = _get_dataset_name(operation_path)
+            self.log_value_metrics(dataset_name, meta_conf, data_meta)
+
+
+def _get_dataset_name(operation_path):
+    """
+    This is a temporary patch to report metrics with log_dataset.
+    Should be removed in favor of reporting the metrics with the dataset operation
+    """
+    # todo: deprecate the name calculation from the sdk, move only to backend
+    try:
+        from urllib.parse import urlparse
+    except ImportError:
+        from urlparse import urlparse
+
+    import os
+    import itertools
+
+    path = urlparse(str(operation_path)).path  # type: str
+    dirname, basename = os.path.split(path)
+    dataset_path = dirname
+    if "." not in basename or path.endswith("/"):
+        dataset_path = path
+
+    # removing any partition
+    path_parts = list(
+        itertools.takewhile(
+            lambda part: "=" not in part, dataset_path.strip("/").split("/")
+        )
+    )
+    dataset_name = ".".join(path_parts)
+    # we might not successfully extract a name from the path so as a
+    # fallback we return the original value
+    if dataset_name == "":
+        return operation_path
+
+    return dataset_name

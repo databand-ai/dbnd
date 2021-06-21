@@ -190,6 +190,8 @@ def log_dataset_op(
     data=None,
     with_preview=None,
     with_schema=None,
+    with_histograms=None,
+    send_metrics=True,
 ):
     """
     Logs dataset operation and meta data to dbnd.
@@ -200,6 +202,7 @@ def log_dataset_op(
     @param data: optional value of data to use build meta-data on the target
     @param with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
     @param with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
+    @param with_histograms:
     """
     if isinstance(op_type, str):
         # If str type is not of DbndDatasetOperationType, raise.
@@ -208,7 +211,11 @@ def log_dataset_op(
     tracker = _get_tracker()
     if tracker:
         meta_conf = ValueMetaConf(
-            log_preview=with_preview, log_schema=with_schema, log_size=with_schema,
+            log_preview=with_preview,
+            log_schema=with_schema,
+            log_size=with_schema,
+            log_stats=with_histograms,
+            log_histograms=with_histograms,
         )
 
         status = (
@@ -221,6 +228,7 @@ def log_dataset_op(
             operation_status=status,
             data=data,
             meta_conf=meta_conf,
+            send_metrics=send_metrics,
         )
         return
 
@@ -263,6 +271,8 @@ def dataset_op_logger(
     data=None,
     with_preview=True,
     with_schema=True,
+    with_histograms=True,
+    send_metrics=True,
 ):
     """
     Wrapper to Log dataset operation and meta data to dbnd.
@@ -304,6 +314,8 @@ def dataset_op_logger(
             data=data,
             with_preview=with_preview,
             with_schema=with_schema,
+            with_histograms=with_histograms,
+            send_metrics=send_metrics,
         )
         raise
     else:
@@ -314,4 +326,6 @@ def dataset_op_logger(
             data=data,
             with_preview=with_preview,
             with_schema=with_schema,
+            with_histograms=with_histograms,
+            send_metrics=send_metrics,
         )

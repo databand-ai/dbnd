@@ -6,9 +6,14 @@ from more_itertools import one
 
 from dbnd import dataset_op_logger, log_dataset_op, task
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationStatus
+from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd.testing.helpers_mocks import set_tracking_context
 from targets import target
-from test_dbnd.tracking.tracking_helpers import get_log_datasets, get_log_targets
+from test_dbnd.tracking.tracking_helpers import (
+    get_log_datasets,
+    get_log_metrics,
+    get_log_targets,
+)
 
 
 @pytest.mark.usefixtures(set_tracking_context.__name__)
@@ -29,6 +34,10 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.value_preview == ""
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
+
+        # no metrics reported
+        log_metrics_args = list(get_log_metrics(mock_channel_tracker))
+        assert len(log_metrics_args) == 0
 
     def test_log_dataset_with_wrapper(self, mock_channel_tracker, pandas_data_frame):
         @task()
@@ -56,6 +65,19 @@ class TestTrackingDatasets(object):
             "size.bytes",
             "type",
         }
+
+        log_metrics_args = get_log_metrics(mock_channel_tracker)
+        metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
+        assert metrics_names.issuperset(
+            {
+                "path.to.schema",
+                "path.to.shape0",
+                "path.to.shape1",
+                "path.to",
+                "path.to.histograms",
+                "path.to.stats",
+            }
+        )
 
     def test_failed_target_with_wrapper(self, mock_channel_tracker, pandas_data_frame):
         @task()
@@ -87,6 +109,19 @@ class TestTrackingDatasets(object):
             "type",
         }
 
+        log_metrics_args = get_log_metrics(mock_channel_tracker)
+        metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
+        assert metrics_names.issuperset(
+            {
+                "path.to.schema",
+                "path.to.shape0",
+                "path.to.shape1",
+                "path.to",
+                "path.to.histograms",
+                "path.to.stats",
+            }
+        )
+
     def test_failed_target(self, mock_channel_tracker):
         @task()
         def task_with_log_datasets():
@@ -106,6 +141,9 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
 
+        log_metrics_args = get_log_metrics(mock_channel_tracker)
+        assert len(list(log_metrics_args)) == 0
+
     def test_with_actual_op_path(self, mock_channel_tracker):
         @task()
         def task_with_log_datasets():
@@ -121,6 +159,9 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.value_preview == ""
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
+
+        log_metrics_args = get_log_metrics(mock_channel_tracker)
+        assert len(list(log_metrics_args)) == 0
 
     def test_path_with_data_meta(self, mock_channel_tracker, pandas_data_frame):
         @task()
@@ -148,4 +189,13 @@ class TestTrackingDatasets(object):
             "shape",
             "size.bytes",
             "type",
+        }
+
+        log_metrics_args = get_log_metrics(mock_channel_tracker)
+        metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
+        assert metrics_names == {
+            "path.to.schema",
+            "path.to.shape0",
+            "path.to.shape1",
+            "path.to",
         }
