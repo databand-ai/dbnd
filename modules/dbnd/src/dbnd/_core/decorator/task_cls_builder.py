@@ -141,6 +141,11 @@ def _call_handler(task_cls, call_user_code, call_args, call_kwargs):
         # 1. Databand is not enabled
         # 2. we have this call coming from Task.run / Task.band direct invocation
         return call_user_code(*call_args, **call_kwargs)
+
+    if isinstance(task_cls, CallableLazyObjectProxy):
+        # we might still be in proxy mode
+        task_cls = task_cls._wrapped
+
     func_call = FuncCall(
         task_cls=task_cls,
         call_args=call_args,

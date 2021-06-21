@@ -95,7 +95,16 @@ def parse_arg_types_for_callable(func):
 
     # todo make this compatible with python 3 type hints
     # python 2.7 type hint
-    source_lines = inspect.getsource(func).split("\n")
+    try:
+        source_lines = inspect.getsource(func).split("\n")
+    except OSError:
+        # It's not possible to get source code when running script as a string passed to IPython.
+        # This is how Databricks passes pyspark scripts wo we have to workaround it.
+        from dbnd._core.log import dbnd_log_info_error
+
+        dbnd_log_info_error("Failed to parse doc string for function %s" % func)
+        return None, None
+
     def_statements = 0
     for source_line in source_lines:
         try:
