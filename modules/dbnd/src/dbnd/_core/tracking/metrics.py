@@ -2,6 +2,8 @@ import logging
 import time
 import typing
 
+import attr
+
 from dbnd._core.constants import (
     DbndDatasetOperationType,
     DbndTargetOperationStatus,
@@ -264,6 +266,28 @@ def log_duration(metric_key, source="user"):
         log_metric(metric_key, end_time - start_time, source)
 
 
+@attr.s(slots=True, frozen=False)
+class DatasetOperationLogger(object):
+    op_path = attr.ib(default=None)
+    op_type = attr.ib(default=None)
+    data = attr.ib(default=None)
+    with_preview = attr.ib(default=None)
+    with_schema = attr.ib(default=None)
+    with_histograms = attr.ib(default=None)
+    send_metrics = attr.ib(default=None)
+
+    def set(self, **kwargs):
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                logger.warning(
+                    "Can't set attribute {} for DatasetOperationLogger, no such attribute".format(
+                        k
+                    )
+                )
+
+
 @seven.contextlib.contextmanager
 def dataset_op_logger(
     op_path,  # type: Union[Target,str]
@@ -271,7 +295,7 @@ def dataset_op_logger(
     data=None,
     with_preview=True,
     with_schema=True,
-    with_histograms=True,
+    with_histograms=False,
     send_metrics=True,
 ):
     """
@@ -295,37 +319,25 @@ def dataset_op_logger(
             # If unrelated_func raise exception, failed read operation is reported to databand.
 
     @param op_path: Target object to log or a unique path representing the target logic location
-    @param op_type: the type of operation that been done with the target - read, write, delete.
-    @param data: optional value of data to use build meta-data on the target
-    @param with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
-    @param with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
+    @param op_type: the type of operation that been done with the dataset - read, write, delete.
+    @param data: optional value of data to use build meta-data on the dataset
+    @param with_preview: should extract preview of the data as meta-data of the dataset - relevant only with data param
+    @param with_schema: should extract schema of the data as meta-data of the dataset - relevant only with data param
+    @param with_histograms: should calculate histogram and stats of the given data - relevant only with data param
+    @param send_metrics: should report preview, schemas and histograms as metrics
     """
-
     if isinstance(op_type, str):
         # If str type is not of DbndDatasetOperationType, raise.
         op_type = DbndDatasetOperationType[op_type]
+
+    op = DatasetOperationLogger(
+        op_path, op_type, data, with_preview, with_schema, with_histograms, send_metrics
+    )
+
     try:
-        yield
+        yield op
     except Exception:
-        log_dataset_op(
-            op_path=op_path,
-            op_type=op_type,
-            success=False,
-            data=data,
-            with_preview=with_preview,
-            with_schema=with_schema,
-            with_histograms=with_histograms,
-            send_metrics=send_metrics,
-        )
+        log_dataset_op(success=False, **attr.asdict(op))
         raise
     else:
-        log_dataset_op(
-            op_path=op_path,
-            op_type=op_type,
-            success=True,
-            data=data,
-            with_preview=with_preview,
-            with_schema=with_schema,
-            with_histograms=with_histograms,
-            send_metrics=send_metrics,
-        )
+        log_dataset_op(success=True, **attr.asdict(op))

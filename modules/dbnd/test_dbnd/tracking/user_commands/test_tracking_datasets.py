@@ -43,12 +43,10 @@ class TestTrackingDatasets(object):
         @task()
         def task_with_log_dataset_wrapper():
             with dataset_op_logger(
-                op_path=target("/path/to/value.csv"),
-                data=pandas_data_frame,
-                op_type="read",
-            ):
+                op_path=target("/path/to/value.csv"), op_type="read",
+            ) as logger:
                 ans = 42
-                print(ans)
+                logger.set(data=pandas_data_frame)
 
         task_with_log_dataset_wrapper()
 
@@ -66,27 +64,14 @@ class TestTrackingDatasets(object):
             "type",
         }
 
-        log_metrics_args = get_log_metrics(mock_channel_tracker)
-        metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
-        assert metrics_names.issuperset(
-            {
-                "path.to.schema",
-                "path.to.shape0",
-                "path.to.shape1",
-                "path.to",
-                "path.to.histograms",
-                "path.to.stats",
-            }
-        )
-
     def test_failed_target_with_wrapper(self, mock_channel_tracker, pandas_data_frame):
         @task()
         def task_with_log_dataset_wrapper():
             with dataset_op_logger(
                 op_path=target("/path/to/value.csv"),
                 data=pandas_data_frame,
-                op_type="read",
-            ):
+                op_type="write",
+            ) as logger:
                 ans = 42
                 ans / 0
 
@@ -97,7 +82,7 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "/path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.write
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.NOK
         assert log_dataset_arg.value_preview is not None
         assert log_dataset_arg.data_dimensions == (5, 3)
@@ -108,19 +93,6 @@ class TestTrackingDatasets(object):
             "size.bytes",
             "type",
         }
-
-        log_metrics_args = get_log_metrics(mock_channel_tracker)
-        metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
-        assert metrics_names.issuperset(
-            {
-                "path.to.schema",
-                "path.to.shape0",
-                "path.to.shape1",
-                "path.to",
-                "path.to.histograms",
-                "path.to.stats",
-            }
-        )
 
     def test_failed_target(self, mock_channel_tracker):
         @task()
