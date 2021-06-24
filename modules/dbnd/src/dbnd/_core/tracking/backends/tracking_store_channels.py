@@ -2,6 +2,8 @@ import datetime
 import logging
 import typing
 
+import dbnd
+
 from dbnd._core.constants import (
     DbndDatasetOperationType,
     DbndTargetOperationStatus,
@@ -52,7 +54,9 @@ class TrackingStoreThroughChannel(TrackingStore):
         return self.init_run_from_args(init_args=init_args)
 
     def init_run_from_args(self, init_args):
-        return self._m(self.channel.init_run, init_args=init_args)
+        return self._m(
+            self.channel.init_run, init_args=init_args, version=dbnd.__version__
+        )
 
     def add_task_runs(self, run, task_runs):
         task_runs_info = TrackingInfoBuilder(run).build_task_runs_info(
@@ -90,6 +94,7 @@ class TrackingStoreThroughChannel(TrackingStore):
                     state=state,
                     error=error.as_error_info() if error else None,
                     timestamp=timestamp or utcnow(),
+                    source=task_run.run.source,
                 )
             ],
         )
@@ -103,6 +108,7 @@ class TrackingStoreThroughChannel(TrackingStore):
                     task_run_attempt_uid=task_run.task_run_attempt_uid,
                     state=task_run.task_run_state,
                     timestamp=utcnow(),
+                    source=task_run.run.source,
                 )
                 for task_run in task_runs
             ],

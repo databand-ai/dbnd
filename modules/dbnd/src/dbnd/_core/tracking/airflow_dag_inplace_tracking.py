@@ -4,10 +4,10 @@ Here we create dbnd objects to represent them and send to webserver through trac
 """
 import logging
 import os
-import sys
 
 from collections import Mapping
 from typing import Any, Dict, Iterable, Optional, Tuple
+from uuid import UUID
 
 import attr
 
@@ -27,10 +27,14 @@ from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCod
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.seven import import_errors
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
-from dbnd._core.utils.uid_utils import get_airflow_instance_uid
+from dbnd._core.utils.uid_utils import (
+    get_airflow_instance_uid,
+    get_job_run_uid,
+    get_task_def_uid,
+    get_task_run_uid,
+    source_md5,
+)
 
-
-AIRFLOW_TRACKING_ROOT_TASK_NAME = "AirflowTrackingRoot"
 
 logger = logging.getLogger(__name__)
 _SPARK_ENV_FLAG = "SPARK_ENV_LOADED"  # if set, we are in spark
@@ -221,10 +225,10 @@ def try_get_airflow_context_from_spark_conf():
 
 
 def build_run_time_airflow_task(af_context, root_task_name):
-    # type: (AirflowTaskContext, Optional[str]) -> Tuple[TrackingTask, str, UpdateSource]
+    # type: (AirflowTaskContext, Optional[str]) -> Tuple[TrackingTask, str, UpdateSource, UUID]
     if af_context.context:
         # we are in the execute entry point and therefore that task name is <task>__execute
-        task_family = "%s__execute" % af_context.task_id
+        task_family = af_context.task_id
 
         airflow_operator = af_context.context["task_instance"].task
 
@@ -249,13 +253,22 @@ def build_run_time_airflow_task(af_context, root_task_name):
     )
 
     # just a placeholder name
-    task_passport = TaskPassport.from_module(AIRFLOW_TRACKING_ROOT_TASK_NAME)
+    task_passport = TaskPassport.from_module(task_family)
+    task_definition_uid = get_task_def_uid(
+        af_context.dag_id,
+        task_family,
+        "{}{}".format(
+            source_md5(source_code.task_source_code),
+            source_md5(source_code.task_module_code),
+        ),
+    )
     root_task = TrackingTask.for_user_params(
+        task_definition_uid=task_definition_uid,
         task_name=task_family,
         task_passport=task_passport,
         source_code=source_code,
         user_params=user_params,
-    )
+    )  # type: TrackingTask
 
     root_task.ctrl.task_repr.task_functional_call = ""
     root_task.ctrl.task_repr.task_command_line = generate_airflow_cmd(
@@ -265,9 +278,18 @@ def build_run_time_airflow_task(af_context, root_task_name):
         is_root_task=False,
     )
 
-    job_name = "{}.{}".format(af_context.dag_id, af_context.task_id)
+    root_run_uid = get_job_run_uid(
+        airflow_instance_uid=af_context.airflow_instance_uid,
+        dag_id=af_context.dag_id,
+        execution_date=af_context.execution_date,
+    )
+    root_task.ctrl.force_task_run_uid = get_task_run_uid(
+        run_uid=root_run_uid, dag_id=af_context.dag_id, task_id=task_family
+    )
+
+    job_name = af_context.dag_id
     source = UpdateSource.airflow_tracking
-    return root_task, job_name, source
+    return root_task, job_name, source, root_run_uid
 
 
 def should_flatten(operator, attr_name):
@@ -317,9 +339,7 @@ def calc_task_run_attempt_key_from_af_ti(ti):
     """
     Creates a key from airflow TaskInstance, for communicating task_run_attempt_uid
     """
-    return ":".join(
-        [ENV_DBND_TRACKING_ATTEMPT_UID, ti.dag_id, "%s__execute" % ti.task_id]
-    )
+    return ":".join([ENV_DBND_TRACKING_ATTEMPT_UID, ti.dag_id, ti.task_id])
 
 
 def calc_task_run_attempt_key_from_dbnd_task(dag_id, task_family):
@@ -333,9 +353,9 @@ def try_pop_attempt_id_from_env(task):
     """
     if the task is an airflow execute task we try to pop the attempt id from environ
     """
-    if task.task_family == AIRFLOW_TRACKING_ROOT_TASK_NAME:
+    if task.task_params.get_param_value("dag_id"):
         key = calc_task_run_attempt_key_from_dbnd_task(
-            task.task_params.get_value("dag_id"), task.task_name
+            task.task_params.get_value("dag_id"), task.task_family
         )
         attempt_id = os.environ.get(key, None)
         if attempt_id:

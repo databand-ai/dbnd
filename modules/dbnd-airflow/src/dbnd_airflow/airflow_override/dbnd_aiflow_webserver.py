@@ -6,6 +6,7 @@ from dbnd._core.errors.friendly_error.versioned_dagbag import failed_to_load_ver
 from dbnd._core.utils.object_utils import patch_module_attr
 from dbnd_airflow.constants import AIRFLOW_VERSION_2
 
+
 logger = logging.getLogger(__name__)
 
 

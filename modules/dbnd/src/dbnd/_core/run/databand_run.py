@@ -299,7 +299,9 @@ class DatabandRun(SingletonContext):
 
         self.tracker.add_task_runs(task_runs)
 
-    def _build_and_add_task_run(self, task, task_engine=None, task_af_id=None):
+    def _build_and_add_task_run(
+        self, task, task_engine=None, task_af_id=None, try_number=1
+    ):
         if task_af_id is None:
             task_af_id = self.next_af_task_name(task)
 
@@ -308,6 +310,7 @@ class DatabandRun(SingletonContext):
             run=self,
             task_engine=task_engine or self.local_engine,
             task_af_id=task_af_id,
+            try_number=try_number,
         )
         self._add_task_run(tr)
         return tr
