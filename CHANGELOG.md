@@ -1,5 +1,36 @@
 # History
 
+## DBND v0.43.00
+
+### New features
+
+-   \#1200445773961849: Introducing `log_dataset_op` - now you can manually log the dataset you are interacting with.
+-   \#1200130408884030: Outside-of-the-box tracking support for PySpark with Databricks.
+-   \#1199370081934662: Added Live Logs for Kubernetes workers in the Airflow UI.
+-   \#1200401140575119: Missing Data now triggers an alert.
+-   \#1200454655158822: Now you can calculate metric aggregations like SUM/AVG and others and display them in the Favorite charts widget. You can also compare trends over the filtered time period and display trends.
+-   \#1200430623687636: Dataset Screen is deprecated and replaced by Data Targets and Datasets screen in the UI.
+-   \#1200466625626565: Added support for custom headers for Alert Manager webhooks.
+
+### Improvements
+
+-   \#1200403795815183: Improved Favorite Metric widget usability.
+-   \#1200463339266254: Improved Metric tab interface.
+-   \#1200452512156534: ‘Triggered by column’ is removed from the Run list.
+-   \#1200408168252754: History tab is removed from the Run details.
+-   \#1200430599620006: Timeline Tab in the Run details is deprecated.
+-   \#1200181993522176: Monitor V2 now supports X-com and logs.
+-   \#1200275295497774: Added support for the Airflow retries and restarts in Alerts.
+-   \#1200372371285197: It’s now possible to expose Run env and user in the `stats_api` for alerting.
+
+### Bug fixes
+
+-   \#1200402990123287: Fixed a bug that prevented proper tracking from Databricks.
+-   \#1200358546721956: Metrics that cannot be presented in a graph now cannot be added.
+-   \#1200275951379648: Fixed incorrect handling of attempts.
+-   \#1200440061411916: Fixed tracking tasks from `@task`.
+-   \#1200035644894886: Fixed browser ‘Back’ button behavior in the Run details page.
+
 ## DBND v0.42.00
 
 ### New features
