@@ -16,10 +16,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
 from dbnd import log_dataframe, log_metric, parameter, pipeline, task
-from dbnd_test_scenarios.data_chaos_monkey.client_scoring_chaos import (
+from dbnd_test_scenarios.scenarios_repo import client_scoring_data
+from dbnd_test_scenarios.utils.data_chaos_monkey.client_scoring_chaos import (
     chaos_model_metric,
 )
-from dbnd_test_scenarios.scenarios_repo import client_scoring_data
 from targets.types import PathStr
 
 

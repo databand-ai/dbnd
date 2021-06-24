@@ -15,7 +15,7 @@ from dbnd._core.errors import (
 )
 from dbnd._vendor.snippets.edit_distance import get_editdistance
 from dbnd.testing.helpers_pytest import run_locally__raises, skip_on_windows
-from dbnd_test_scenarios.dbnd_scenarios import scenario_path
+from dbnd_test_scenarios import scenario_path
 from dbnd_test_scenarios.test_common.task.factories import TTask
 
 

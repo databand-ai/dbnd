@@ -26,7 +26,7 @@ project.cfg
 
 plugins/dbnd-luigi/data
 modules/dbnd-airflow/test_dbnd_airflow/airflow_home
-examples/src/dbnd_examples/tests/extensions/catboost_info
+examples/src/dbnd_examples/tests/orchestration/customizations/catboost_info
 
 logs/*
 .tox

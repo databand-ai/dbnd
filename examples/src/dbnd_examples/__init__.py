@@ -1,6 +1,6 @@
 __version__ = "0.1.0"
 
-__title__ = "databand-dbnd_examples"
+__title__ = "dbnd-examples"
 __description__ = "databand.ai example project"
 __url__ = "http://www.databand.ai/"
 __uri__ = __url__

@@ -4,7 +4,7 @@ import pytest
 
 from dbnd import parameter
 from dbnd._core.task_build.task_context import current_task
-from dbnd_examples.dbnd_gcp.tool_dataflow.dataflow_word_count import BeamWordCount
+from dbnd_examples.orchestration.dbnd_gcp.tool_dataflow import BeamWordCount
 from dbnd_gcp.apache_beam.apache_beam_task import beam_task
 from dbnd_gcp.apache_beam.parameters import beam_output
 from targets import target
@@ -19,14 +19,12 @@ class TestLocalApacheBeam(object):
         t.dbnd_run()
 
     def test_beam_wordcount_inline_task(self):
-        from dbnd_examples.dbnd_gcp.tool_dataflow.dataflow_word_count_inline import (
-            word_count,
-        )
+        from dbnd_examples.orchestration.dbnd_gcp.tool_dataflow import word_count
 
         word_count.dbnd_run(text_input=__file__)
 
     def test_beam_wordcount_inline_metrics(self):
-        from dbnd_examples.dbnd_gcp.tool_dataflow.dataflow_word_count_inline import (
+        from dbnd_examples.orchestration.dbnd_gcp.tool_dataflow import (
             word_count_with_metrics,
         )
 

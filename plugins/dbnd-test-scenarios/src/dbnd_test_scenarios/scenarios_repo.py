@@ -2,7 +2,7 @@ import datetime
 import logging
 
 from dbnd._core.utils.project.project_fs import abs_join, relative_path
-from dbnd_test_scenarios.data_chaos_monkey.client_scoring_chaos import (
+from dbnd_test_scenarios.utils.data_chaos_monkey.client_scoring_chaos import (
     is_chaos_column_10,
 )
 from targets import target

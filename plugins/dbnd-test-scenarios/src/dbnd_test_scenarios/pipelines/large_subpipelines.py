@@ -1,7 +1,7 @@
 import logging
 
 from dbnd import pipeline, task
-from dbnd_test_scenarios.scheduler_scenarios import simplest_task
+from dbnd_test_scenarios.pipelines.scheduler_scenarios import simplest_task
 
 
 logger = logging.getLogger(__name__)

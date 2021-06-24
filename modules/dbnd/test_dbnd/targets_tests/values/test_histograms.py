@@ -4,7 +4,7 @@ import logging
 
 import pandas as pd
 
-from dbnd_test_scenarios.histograms.histogram_tests import BaseHistogramTests
+from dbnd_test_scenarios.test_common.histogram_tests import BaseHistogramTests
 
 
 logger = logging.getLogger(__name__)

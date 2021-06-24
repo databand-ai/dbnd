@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from dbnd_examples.dbnd_gcp.tool_dataflow.dataflow_word_count import BeamWordCount
+from dbnd_examples.orchestration.dbnd_gcp.tool_dataflow import BeamWordCount
 
 
 @pytest.mark.gcp
@@ -18,9 +18,7 @@ class TestGcpDataFlow(object):
         t.dbnd_run()
 
     def test_beam_wordcount_inline_task(self):
-        from dbnd_examples.dbnd_gcp.tool_dataflow.dataflow_word_count_inline import (
-            word_count,
-        )
+        from dbnd_examples.orchestration.dbnd_gcp.tool_dataflow import word_count
 
         word_count.dbnd_run(
             task_env="gcp",
@@ -29,7 +27,7 @@ class TestGcpDataFlow(object):
         )
 
     def test_beam_wordcount_inline_metrics(self):
-        from dbnd_examples.dbnd_gcp.tool_dataflow.dataflow_word_count_inline import (
+        from dbnd_examples.orchestration.dbnd_gcp.tool_dataflow import (
             word_count_with_metrics,
         )
 

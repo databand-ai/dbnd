@@ -8,7 +8,7 @@ from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 from dbnd_spark import get_spark_session
 from dbnd_spark.spark_targets import SparkDataFrameValueType
-from dbnd_test_scenarios.histograms.histogram_tests import (
+from dbnd_test_scenarios.test_common.histogram_tests import (
     BaseHistogramTests,
     get_value_meta_from_value,
 )

@@ -17,8 +17,8 @@ from dbnd._core.constants import DbndTargetOperationType
 from dbnd._core.tracking.metrics import log_dataframe
 from dbnd._vendor import click
 from dbnd_spark.spark import spark_task
-from dbnd_test_scenarios.data_chaos_monkey.chaos_utils import chaos_float, chaos_int
 from dbnd_test_scenarios.scenarios_repo import client_scoring_data
+from dbnd_test_scenarios.utils.data_chaos_monkey import chaos_float, chaos_int
 from dbnd_test_scenarios.utils.data_utils import get_hash
 from targets.types import PathStr
 
