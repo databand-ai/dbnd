@@ -280,6 +280,19 @@ class LogMetricArgs(object):
     source = attr.ib(default=None)  # type: Optional[str]
     target_meta_uid = attr.ib(default=None)  # type: Optional[UUID]
 
+    def copy(self, key, value):
+        return LogMetricArgs(
+            task_run_attempt_uid=self.task_run_attempt_uid,
+            source=self.source,
+            target_meta_uid=self.target_meta_uid,
+            metric=Metric(
+                key=key,
+                value=value,
+                timestamp=self.metric.timestamp,
+                source=self.metric.source,
+            ),
+        )
+
 
 @attr.s
 class LogTargetArgs(object):

@@ -1,7 +1,7 @@
 import enum
 import logging
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import attr
 
@@ -102,6 +102,13 @@ class TrackingConfig(Config):
     capture_tracking_log = parameter(
         default=False, description="Enable log capturing for tracking tasks"
     )[bool]
+
+    # example config for flatten return_value and add counts for extracted fields:
+    # [ {"name": "flatten_metrics", "key_match": "return_value"}, {"name": "add_counts", "key_match": "return_value\\..*"} ]
+    # it's actually List[Dict[str, Any]] but in this case parsing fails
+    metric_processors = parameter(default=None, description="Custom metric processors")[
+        List[object]
+    ]
 
     def get_value_meta_conf(self, meta_conf, value_type, target=None):
         # type: (ValueMetaConf, ValueType, Optional[Target]) -> ValueMetaConf

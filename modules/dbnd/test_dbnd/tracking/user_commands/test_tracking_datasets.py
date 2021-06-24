@@ -64,19 +64,6 @@ class TestTrackingDatasets(object):
             "type",
         }
 
-        log_metrics_args = get_log_metrics(mock_channel_tracker)
-        metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
-        assert metrics_names.issuperset(
-            {
-                "path.to.schema",
-                "path.to.shape0",
-                "path.to.shape1",
-                "path.to",
-                "path.to.histograms",
-                "path.to.stats",
-            }
-        )
-
     def test_failed_target_with_wrapper(self, mock_channel_tracker, pandas_data_frame):
         @task()
         def task_with_log_dataset_wrapper():
@@ -106,19 +93,6 @@ class TestTrackingDatasets(object):
             "size.bytes",
             "type",
         }
-
-        log_metrics_args = get_log_metrics(mock_channel_tracker)
-        metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
-        assert metrics_names.issuperset(
-            {
-                "path.to.schema",
-                "path.to.shape0",
-                "path.to.shape1",
-                "path.to",
-                "path.to.histograms",
-                "path.to.stats",
-            }
-        )
 
     def test_failed_target(self, mock_channel_tracker):
         @task()

@@ -295,7 +295,7 @@ def dataset_op_logger(
     data=None,
     with_preview=True,
     with_schema=True,
-    with_histograms=True,
+    with_histograms=False,
     send_metrics=True,
 ):
     """
