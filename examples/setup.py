@@ -13,7 +13,6 @@ INSTALL_REQUIRES = [
     "scikit-learn==0.20.3;python_version<'3.5'",  # The latest version which supports Python 2.7
     "scikit-learn==0.23.2;python_version>='3.5'",
     "scipy==1.1.0",
-    "sklearn==0.0",
     "matplotlib==2.2.5;python_version<'3.5'",
     "matplotlib==3.3.0;python_version>='3.5'",
     "pandas<2.0.0,>=0.17.1",

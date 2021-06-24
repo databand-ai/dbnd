@@ -82,7 +82,7 @@ setuptools.setup(
             "idna<=2.7",  # conflict with requests (require 2.8 <)
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
             "openpyxl==2.6.4",
-            "sklearn",
+            "scikit-learn",
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
             "wheel",  # for fat_wheel tests
         ],
