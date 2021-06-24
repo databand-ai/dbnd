@@ -19,7 +19,7 @@
 -   \#1200452512156534: ‘Triggered by column’ is removed from the Run list.
 -   \#1200408168252754: History tab is removed from the Run details.
 -   \#1200430599620006: Timeline Tab in the Run details is deprecated.
--   \#1200181993522176: Monitor V2 now supports X-com and logs.
+-   \#1200181993522176: Proper support for DagRun submit args and XCom; values are reported with correct types.
 -   \#1200275295497774: Added support for the Airflow retries and restarts in Alerts.
 -   \#1200372371285197: It’s now possible to expose Run env and user in the `stats_api` for alerting.
 
