@@ -7,8 +7,7 @@ from airflow.models import DagRun
 from airflow.utils.net import get_hostname
 from airflow.version import version as airflow_version
 
-from dbnd._core.tracking.tracking_info_convertor import source_md5
-from dbnd._core.utils.uid_utils import get_airflow_instance_uid
+from dbnd._core.utils.uid_utils import get_airflow_instance_uid, source_md5
 from dbnd_airflow_export.compat import base_log_folder, is_rbac_enabled
 from dbnd_airflow_export.plugin_old.helpers import (
     _extract_args_from_dict,

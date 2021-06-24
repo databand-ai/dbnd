@@ -1,11 +1,10 @@
-import hashlib
 import logging
 import typing
 
 from functools import partial
 
 from dbnd._core.configuration import get_dbnd_project_config
-from dbnd._core.constants import RunState, TaskRunState
+from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.decorator.schemed_result import FuncResultParameter
 from dbnd._core.plugin.dbnd_plugins import should_use_airflow_monitor
 from dbnd._core.tracking.schemas.tracking_info_objects import (
@@ -18,6 +17,7 @@ from dbnd._core.tracking.schemas.tracking_info_run import RunInfo
 from dbnd._core.utils.string_utils import safe_short_string
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.traversing import traverse
+from dbnd._core.utils.uid_utils import source_md5
 from dbnd.api.tracking_api import InitRunArgs, TaskRunsInfo
 
 
@@ -89,7 +89,11 @@ class TrackingInfoBuilder(object):
             tracking_source=run.tracking_source,
         )
 
-        if not run.existing_run or get_dbnd_project_config().resubmit_run:
+        if (
+            not run.existing_run
+            or get_dbnd_project_config().resubmit_run
+            or run.source == UpdateSource.airflow_tracking
+        ):
             # even if it's existing run, may be we are running from Airflow
             # so the run is actually "submitted", ( the root airflow job has no info..,
             # we want to capture "real" info of the run
@@ -289,11 +293,3 @@ def build_task_run_info(task_run):
         execution_date=task_run.run.execution_date,
         is_root=task_run.is_root,
     )
-
-
-def source_md5(source_code):
-    if source_code:
-        try:
-            return hashlib.md5(source_code.encode("utf-8")).hexdigest()
-        except UnicodeDecodeError:
-            return hashlib.md5(source_code).hexdigest()

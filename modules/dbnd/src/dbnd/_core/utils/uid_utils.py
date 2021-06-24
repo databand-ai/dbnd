@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import uuid
 
 import pytz
@@ -7,6 +8,14 @@ import six
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._vendor import pendulum
+
+
+def source_md5(source_code):
+    if source_code:
+        try:
+            return hashlib.md5(source_code.encode("utf-8")).hexdigest()
+        except UnicodeDecodeError:
+            return hashlib.md5(source_code).hexdigest()
 
 
 def get_uuid():

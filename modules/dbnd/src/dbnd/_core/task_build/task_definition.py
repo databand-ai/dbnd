@@ -3,6 +3,7 @@ import typing
 
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 import six
 
@@ -84,10 +85,10 @@ class TaskDefinition(object):
         func_spec=None,  # type: Optional[_TaskDecoratorSpec]
         source_code=None,  # type: Optional[TaskSourceCode]
         external_parameters=None,  # type: Optional[Parameters]
+        task_definition_uid=None,  # type: Optional[UUID]
     ):
         super(TaskDefinition, self).__init__()
 
-        self.task_definition_uid = get_uuid()
         self.hidden = False
 
         self.task_passport = task_passport
@@ -138,6 +139,11 @@ class TaskDefinition(object):
             self.task_signature_extra["task_code_hash"] = user_friendly_signature(
                 self.source_code.task_source_code
             )
+
+        if task_definition_uid:
+            self.task_definition_uid = task_definition_uid
+        else:
+            self.task_definition_uid = get_uuid()
 
     def _calculate_task_class_values(
         self, classdict, decorator_spec, external_parameters

@@ -116,13 +116,16 @@ class _DbndScriptTrackingManager(object):
             root_task_name = sys.argv[0].split(os.path.sep)[-1]
 
         if airflow_context:
-            root_task, job_name, source = build_run_time_airflow_task(
+            root_task, job_name, source, run_uid = build_run_time_airflow_task(
                 airflow_context, root_task_name
             )
+            try_number = airflow_context.try_number
         else:
             root_task = _build_inline_root_task(root_task_name)
             job_name = root_task.task_name
             source = UpdateSource.dbnd
+            run_uid = None
+            try_number = 1
 
         tracking_source = (
             None  # TODO_CORE build tracking_source -> typeof TrackingSourceSchema
@@ -131,7 +134,7 @@ class _DbndScriptTrackingManager(object):
             new_databand_run(
                 context=dc,
                 job_name=job_name,
-                existing_run=False,
+                run_uid=run_uid,
                 source=source,
                 af_context=airflow_context,
                 tracking_source=tracking_source,
@@ -148,7 +151,7 @@ class _DbndScriptTrackingManager(object):
 
         # now we send data to DB
         root_task_run = run._build_and_add_task_run(
-            root_task, task_af_id=root_task.task_name
+            root_task, task_af_id=root_task.task_name, try_number=try_number
         )
         root_task_run.is_root = True
 

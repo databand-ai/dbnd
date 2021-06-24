@@ -15,7 +15,7 @@ from dbnd._core.tracking.airflow_dag_inplace_tracking import try_pop_attempt_id_
 from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import utcnow
-from dbnd._core.utils.uid_utils import get_uuid
+from dbnd._core.utils.uid_utils import get_task_run_attempt_uid, get_uuid
 from targets import target
 
 
@@ -71,8 +71,8 @@ class TaskRun(object):
             .folder(self.task.task_id)
         )
 
-        self._attempt_number = 1
-        self.task_run_attempt_uid = get_uuid()
+        self._attempt_number = self.try_number
+        self.task_run_attempt_uid = None
         self.attempt_folder = None
         self.meta_files = None
         self.log = None
@@ -215,7 +215,18 @@ class TaskRun(object):
         attempt_id = try_pop_attempt_id_from_env(self.task)
         if attempt_id:
             self.task_run_attempt_uid = UUID(attempt_id)
+        elif self.task.ctrl.force_task_run_uid:
+            # This is required if uid wasn't passed correctly through env,
+            # might happen because of mlflow initialisation that overrides
+            # custom logging handlers
+            self.task_run_attempt_uid = get_task_run_attempt_uid(
+                self.run.run_uid,
+                self.run.job_name,
+                self.task.task_family,
+                self.attempt_number,
+            )
         else:
+            # TODO: remove this option once it's safe to create fixed uids everywhere
             self.task_run_attempt_uid = get_uuid()
 
         self.attempt_folder = self.task._meta_output.folder(

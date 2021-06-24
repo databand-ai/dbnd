@@ -3,8 +3,6 @@ import os
 import subprocess
 import sys
 
-from dbnd_airflow.constants import AIRFLOW_VERSION_2
-
 
 AIRFLOW_LEGACY_URL_KEY = "airflow"
 logger = logging.getLogger(__name__)
@@ -43,6 +41,8 @@ def subprocess_airflow(args):
 
 def subprocess_airflow_initdb():
     logging.info("Initializing Airflow DB")
+    from dbnd_airflow.constants import AIRFLOW_VERSION_2
+
     if AIRFLOW_VERSION_2:
         return subprocess_airflow(args=["db", "init"])
 

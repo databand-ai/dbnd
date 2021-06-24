@@ -77,8 +77,7 @@ class TestDbndAirflowHandler(object):
 
         assert dbnd_airflow_handler.dbnd_context_manage is not None
         assert (
-            dbnd_airflow_handler.task_env_key
-            == "DBND__TRACKING_ATTEMPT_UID:dag:task__execute"
+            dbnd_airflow_handler.task_env_key == "DBND__TRACKING_ATTEMPT_UID:dag:task"
         )
 
         # closing

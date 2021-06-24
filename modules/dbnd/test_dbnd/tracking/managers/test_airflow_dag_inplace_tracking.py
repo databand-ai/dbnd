@@ -1,12 +1,16 @@
 from mock import Mock
 
+from dbnd import log_metric
 from dbnd._core.constants import UpdateSource
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
-    AIRFLOW_TRACKING_ROOT_TASK_NAME,
     AirflowTaskContext,
     build_run_time_airflow_task,
 )
-from dbnd._core.tracking.script_tracking_manager import dbnd_tracking
+from dbnd._core.tracking.script_tracking_manager import (
+    dbnd_tracking,
+    dbnd_tracking_start,
+    dbnd_tracking_stop,
+)
 from dbnd._core.utils.basics.environ_utils import env
 
 
@@ -44,12 +48,14 @@ def af_context_wo_context():
 
 def test_build_run_time_airflow_task_with_context():
     context = af_context_w_context()
-    root_task, job_name, source = build_run_time_airflow_task(context, "some_name")
+    root_task, job_name, source, run_uid = build_run_time_airflow_task(
+        context, "some_name"
+    )
 
-    assert job_name == "test_dag.test_task"
+    assert job_name == "test_dag"
     assert source == UpdateSource.airflow_tracking
-    assert "test_task__execute" in root_task.task_name
-    assert root_task.task_family == AIRFLOW_TRACKING_ROOT_TASK_NAME
+    assert "test_task" in root_task.task_name
+    assert root_task.task_family == "test_task"
 
     for field in ["a", "b", "c"]:
         assert root_task.task_params.get_value(field)
@@ -57,12 +63,14 @@ def test_build_run_time_airflow_task_with_context():
 
 def test_build_run_time_airflow_task_without_context():
     context = af_context_wo_context()
-    root_task, job_name, source = build_run_time_airflow_task(context, "special_name")
+    root_task, job_name, source, run_uid = build_run_time_airflow_task(
+        context, "special_name"
+    )
 
-    assert job_name == "test_dag.test_task"
+    assert job_name == "test_dag"
     assert source == UpdateSource.airflow_tracking
     assert root_task.task_name == "test_task_special_name"
-    assert root_task.task_family == AIRFLOW_TRACKING_ROOT_TASK_NAME
+    assert root_task.task_family == "test_task_special_name"
 
 
 def test_script_tracking_with_airflow_context_from_env():
@@ -78,3 +86,10 @@ def test_script_tracking_with_airflow_context_from_env():
 def test_script_tracking():
     with dbnd_tracking(name="boom") as task_run:
         assert task_run.task.task_name == "boom"
+
+
+def test_tracking():
+    af_context = af_context_w_context()
+    dbnd_tracking_start(airflow_context=af_context)
+    log_metric("test", "test_value")
+    dbnd_tracking_stop()

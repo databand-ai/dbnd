@@ -155,6 +155,15 @@ class TaskRunState(EnumWithAll):
     def states_lower_case():
         return [state.name.lower() for state in TaskRunState]
 
+    def is_after(self, old_state):
+        # type: (TaskRunState) -> bool
+        ORDER_MAP = {
+            TaskRunState.SCHEDULED: 1,
+            TaskRunState.QUEUED: 2,
+            TaskRunState.RUNNING: 3,
+        }
+        return ORDER_MAP.get(self, 4) > ORDER_MAP.get(old_state, 4)
+
 
 REUSED = "reused"
 

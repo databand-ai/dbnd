@@ -3,6 +3,7 @@ import os
 import typing
 
 from typing import Any, Dict, List, Optional, Type
+from uuid import UUID
 
 import more_itertools
 import six
@@ -108,9 +109,16 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
 
     @classmethod
     def for_user_params(
-        cls, task_name, user_params, task_passport, source_code=None, result=True
+        cls,
+        task_definition_uid,  # type: UUID
+        task_name,  # type: str
+        user_params,  # type: Dict[str,Any]
+        task_passport,  # type: TaskPassport
+        source_code=None,  # type: TaskSourceCode
+        result=True,  # type: Optional[bool]
     ):
-        # type: (Type[TrackingTask], str, Dict[str,Any], TaskPassport, TaskSourceCode, Optional[bool]) -> TrackingTask
+        # type: (...) -> TrackingTask
+
         """
         Creating a customize task from the required params.
         Here we build the params from runtime values and use them to build the task definition.
@@ -134,6 +142,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
             task_passport=task_passport,
             source_code=source_code,
             external_parameters=task_params,
+            task_definition_uid=task_definition_uid,
         )
 
         return cls(

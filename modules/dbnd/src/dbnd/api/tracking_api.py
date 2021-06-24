@@ -178,6 +178,7 @@ class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
 
 class InitRunSchema(_ApiCallSchema):
     init_args = fields.Nested(InitRunArgsSchema)
+    version = fields.String(allow_none=True)
 
 
 init_run_schema = InitRunSchema()

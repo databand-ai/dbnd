@@ -146,7 +146,6 @@ def test_tracking_pass_through_default_airflow(
             "update_task_run_attempts": 4,  # as above +   airflow root stop
             "log_metrics": 1,
             "log_targets": 1,
-            "set_run_state": 1,
             "save_task_run_log": 2,  # as above + airflow root log
         },
     )
@@ -226,7 +225,6 @@ def test_tracking_pass_through_nested_default(
             "update_task_run_attempts": 6,
             "log_metrics": 1,
             "log_targets": 2,
-            "set_run_state": 1,
             "save_task_run_log": 3,
         },
     )
@@ -258,7 +256,6 @@ def test_tracking_user_exception(mock_channel_tracker):
             "init_run": 1,
             "add_task_runs": 1,
             "update_task_run_attempts": 4,
-            "set_run_state": 1,
             "save_task_run_log": 2,
         },
     )
@@ -274,13 +271,6 @@ def test_tracking_user_exception(mock_channel_tracker):
         TaskRunState.FAILED,  # task
         TaskRunState.UPSTREAM_FAILED,  # DAG
     ] == update_task_run_attempts_chain
-
-    set_run_state_chain = [
-        call.kwargs["state"]
-        for call in mock_channel_tracker.call_args_list
-        if call.args[0].__name__ == "set_run_state"
-    ]
-    assert [RunState.FAILED] == set_run_state_chain
 
 
 def test_dbnd_pass_through_default(pandas_data_frame_on_disk, mock_channel_tracker):
