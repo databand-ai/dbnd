@@ -309,7 +309,7 @@ def run(
             # adding root task to configuration
             config.set_values(
                 {task_cls.task_definition.task_config_section: root_task_config},
-                source="--set-root",
+                source="cmdline.--set-root",
             )
 
         if is_help or not task_name:

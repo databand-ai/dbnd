@@ -70,6 +70,8 @@ class TaskMetaclass(abc.ABCMeta):
         """
         Custom class instantiation utilizing instance cache.
         """
+
+        # use-case of TaskClass() call from airflow context during DAG creation
         _dbnd_disable_airflow_inplace = kwargs.pop(
             "_dbnd_disable_airflow_inplace", False
         )
@@ -91,7 +93,7 @@ class TaskMetaclass(abc.ABCMeta):
         # create new config layer, so when we are out of this process -> config is back to the previous value
         with config(
             config_values={},
-            source=task_definition.task_passport.format_source_name("runtime"),
+            source=task_definition.task_passport.format_source_name("ctor"),
         ) as task_config:
             factory = TaskFactory(
                 config=task_config,

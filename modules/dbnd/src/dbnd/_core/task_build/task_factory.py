@@ -150,7 +150,7 @@ logger = logging.getLogger(__name__)
 class TaskFactoryConfig(object):
     """(Advanced) Databand's core task builder"""
 
-    _conf__task_family = "task_build"
+    config_section = "task_build"
 
     def __init__(self, verbose, sign_with_full_qualified_name, sign_with_task_code):
         self.verbose = verbose
@@ -159,8 +159,10 @@ class TaskFactoryConfig(object):
 
     @classmethod
     def from_dbnd_config(cls, conf):
+        # we can not use standard "Config" class creation here, as we are used for that
+
         def _b(param_name):
-            return conf.getboolean(cls._conf__task_family, param_name)
+            return conf.getboolean(cls.config_section, param_name)
 
         return cls(
             verbose=_b("verbose"),
@@ -569,8 +571,9 @@ class TaskFactory(object):
     def _build_task_param_values(self):
         """
         This process is composed from those parts:
-        1. Editing the config while building params - depend on some magic params
-        2. Validating the params
+        1. Adding extra layers of config (based on defaults, task_config and override)
+        2. Building the params
+        3. Validating the params
         """
         # copy because we about to edit it
         params_to_build = self.task_definition.task_param_defs.copy()
