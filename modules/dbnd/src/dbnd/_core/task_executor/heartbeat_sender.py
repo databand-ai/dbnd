@@ -33,75 +33,82 @@ def start_heartbeat_sender(run_executor):
     core = settings.core
     heartbeat_interval_s = settings.run.heartbeat_interval_s
 
-    if heartbeat_interval_s > 0:
-        sp = None
-        heartbeat_log_fp = None
-        try:
-            try:
-                cmd = [
-                    sys.executable,
-                    "-m",
-                    "dbnd",
-                    "send-heartbeat",
-                    "--run-uid",
-                    str(run.run_uid),
-                    "--driver-pid",
-                    str(os.getpid()),
-                    "--heartbeat-interval",
-                    str(heartbeat_interval_s),
-                    "--tracker",
-                    ",".join(core.tracker),
-                    "--tracker-api",
-                    core.tracker_api,
-                ]
-                if core.databand_url:
-                    cmd += ["--databand-url", core.databand_url]
-
-                if settings.run.heartbeat_sender_log_to_file:
-                    local_heartbeat_log_file = run.run_local_root.partition(
-                        name="heartbeat.log"
-                    )
-                    heartbeat_log_file = local_heartbeat_log_file
-                    heartbeat_log_fp = heartbeat_log_file.open("w")
-                    stdout = heartbeat_log_fp
-                    logger.info(
-                        "Starting heartbeat with log at %s using cmd: %s",
-                        heartbeat_log_file,
-                        subprocess.list2cmdline(cmd),
-                    )
-                else:
-                    stdout = None
-                    logger.info(
-                        "Starting heartbeat using cmd: %s", subprocess.list2cmdline(cmd)
-                    )
-
-                sp = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.STDOUT)
-            except Exception as ex:
-                logger.info(
-                    "Failed to spawn heartbeat process, you can disable it via [task]heartbeat_interval_s=0  .\n %s",
-                    ex,
-                )
-                raise ex
-            yield
-        finally:
-            if sp:
-                sp.terminate()
-
-                try:
-                    sp.wait(timeout=TERMINATE_WAIT_TIMEOUT)
-                except Exception:
-                    logger.warning(
-                        "waited %s seconds for the heartbeat sender to exit but it still hasn't exited",
-                        TERMINATE_WAIT_TIMEOUT,
-                    )
-
-            if heartbeat_log_fp:
-                heartbeat_log_fp.close()
-    else:
+    if not heartbeat_interval_s > 0:
         logger.info(
             "run heartbeat sender disabled (set task.heartbeat_interval_s to value > 0)"
         )
         yield
+        return
+
+    if not core.tracker_api:
+        logger.info("run heartbeat sender disabled (set core.tracker_api)")
+        yield
+        return
+
+    sp = None
+    heartbeat_log_fp = None
+    try:
+        try:
+            cmd = [
+                sys.executable,
+                "-m",
+                "dbnd",
+                "send-heartbeat",
+                "--run-uid",
+                str(run.run_uid),
+                "--driver-pid",
+                str(os.getpid()),
+                "--heartbeat-interval",
+                str(heartbeat_interval_s),
+                "--tracker",
+                ",".join(core.tracker),
+                "--tracker-api",
+                core.tracker_api,
+            ]
+            if core.databand_url:
+                cmd += ["--databand-url", core.databand_url]
+
+            if settings.run.heartbeat_sender_log_to_file:
+                local_heartbeat_log_file = run.run_local_root.partition(
+                    name="heartbeat.log"
+                )
+                heartbeat_log_file = local_heartbeat_log_file
+                heartbeat_log_fp = heartbeat_log_file.open("w")
+                stdout = heartbeat_log_fp
+                logger.error("cmd: %s", cmd)
+                logger.info(
+                    "Starting heartbeat with log at %s using cmd: %s",
+                    heartbeat_log_file,
+                    subprocess.list2cmdline(cmd),
+                )
+            else:
+                stdout = None
+                logger.info(
+                    "Starting heartbeat using cmd: %s", subprocess.list2cmdline(cmd)
+                )
+
+            sp = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.STDOUT)
+        except Exception as ex:
+            logger.info(
+                "Failed to spawn heartbeat process, you can disable it via [task]heartbeat_interval_s=0  .\n %s",
+                ex,
+            )
+            raise ex
+        yield
+    finally:
+        if sp:
+            sp.terminate()
+
+            try:
+                sp.wait(timeout=TERMINATE_WAIT_TIMEOUT)
+            except Exception:
+                logger.warning(
+                    "waited %s seconds for the heartbeat sender to exit but it still hasn't exited",
+                    TERMINATE_WAIT_TIMEOUT,
+                )
+
+        if heartbeat_log_fp:
+            heartbeat_log_fp.close()
 
 
 def send_heartbeat_continuously(

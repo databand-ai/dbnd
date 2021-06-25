@@ -1,9 +1,6 @@
 import base64
 import logging
 import os
-import tarfile
-
-from io import BytesIO
 
 from dbnd._core.utils.cli import required_mutually_exclusive_options
 from dbnd._vendor import click
@@ -21,9 +18,7 @@ def ipython():
     from airflow.utils.db import create_session
     import IPython
 
-    with new_dbnd_context(
-        name="ipython", autoload_modules=False
-    ) as ctx, create_session() as session:
+    with new_dbnd_context(name="ipython") as ctx, create_session() as session:
         header = "\n\t".join(
             [
                 "Welcome to \033[91mDataband\033[0m's ipython command.\nPredefined variable are",

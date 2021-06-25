@@ -15,7 +15,7 @@ from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
-from dbnd._core.utils.basics.dict_utils import filter_dict_remove_false_values
+from dbnd._core.utils.basics.load_python_module import load_python_module
 from dbnd._vendor import click
 from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
@@ -32,6 +32,7 @@ def _to_conf(kwargs):
 @click.option(
     "--module",
     "-m",
+    multiple=True,
     help="Define a path of a module where DBND can search for a task or pipeline",
 )
 @click.option(
@@ -191,43 +192,48 @@ def run(
     from dbnd._core.utils.structures import combine_mappings
     from dbnd import config
 
+    task_registry = get_task_registry()
+
+    # loading user modules
+    # we need to do it before we are looking for the task cls
+    module_from_config = config.get("databand", "module")
+    if module_from_config:
+        load_python_module(module_from_config, "config file (see [databand].module)")
+    if module:
+        for m in module:
+            load_python_module(m, "--module")
+
     task_name = task
     # --verbose, --describe, --env, --parallel, --conf-file and --project
     # we filter out false flags since otherwise they will always override the config with their falseness
     main_switches = dict(
-        databand=filter_dict_remove_false_values(
-            dict(
-                verbose=verbose > 0,
-                task_band=print_task_band,
-                describe=describe,
-                env=env,
-                conf_file=conf_file,
-                project=project,
-            )
+        databand=dict(
+            verbose=verbose > 0,
+            task_band=print_task_band,
+            describe=describe,
+            env=env,
+            conf_file=conf_file,
+            project=project,
         ),
-        run=filter_dict_remove_false_values(
-            dict(
-                name=name,
-                parallel=parallel,
-                description=description,
-                is_archived=describe,
-            )
+        run=dict(
+            name=name,
+            parallel=parallel,
+            interactive=interactive,
+            description=description,
+            is_archived=describe,
+            open_web_tracker_in_browser=open_web_tab,
+            submit_driver=_nullable_flag(submit_driver),
+            submit_tasks=_nullable_flag(submit_tasks),
         ),
+        kubernetes=dict(docker_build_tag=docker_build_tag),
+        task_version=dict(task_version=task_version),
+        task_build=dict(verbose=True if verbose > 1 else None),
+        core=dict(tracker_api="disabled" if disable_web_tracker else None),
     )
-
-    if submit_driver is not None:
-        main_switches["run"]["submit_driver"] = bool(submit_driver)
-    if submit_tasks is not None:
-        main_switches["run"]["submit_tasks"] = bool(submit_tasks)
-    if disable_web_tracker:
-        main_switches.setdefault("core", {})["tracker_api"] = "disabled"
-
-    if task_version is not None:
-        main_switches["task"] = {"task_version": task_version}
-
-    cmd_line_config = parse_and_build_config_store(
-        source="cli", config_values=main_switches
-    )
+    # remove all None (so we use config values)
+    main_switches = {k: _filter_none(**v) for k, v in main_switches.items()}
+    # remove all empty sections
+    main_switches = {k: v for k, v in main_switches.items() if v}
 
     _sets = list(_sets)
     _sets_config = list(_sets_config)
@@ -246,6 +252,9 @@ def run(
                 root_task_config[k] = v
                 del _set[k]
 
+    cmd_line_config = parse_and_build_config_store(
+        source="cli", config_values=main_switches
+    )
     # --set, --set-config
     if _sets:
         cmd_line_config.update(_parse_cli(_sets, source="--set"))
@@ -255,7 +264,6 @@ def run(
         cmd_line_config.update(
             _parse_cli(_extend, source="--extend-config", extend=True,)
         )
-
     if _overrides:
         cmd_line_config.update(
             _parse_cli(
@@ -264,23 +272,31 @@ def run(
                 priority=ConfigValuePriority.OVERRIDE,
             )
         )
-    if interactive:
+
+    # --set-root
+    if root_task_config:
+        task_cls = task_registry.get_task_cls(task_name)
+        task_section = task_cls.task_definition.task_config_section
+        # adding root task to configuration
         cmd_line_config.update(
-            _parse_cli([{"run.interactive": True}], source="--interactive")
-        )
-    if verbose > 1:
-        cmd_line_config.update(
-            _parse_cli([{"task_build.verbose": True}], source="-v -v")
+            parse_and_build_config_store(
+                config_values={task_section: root_task_config}, source="--set-root",
+            )
         )
 
+    # UPDATE CURRENT CONFIG with CLI values
     if cmd_line_config:
+        if verbose:
+            logger.info(
+                "CLI config: \n%s", pformat_config_store_as_table(cmd_line_config)
+            )
         config.set_values(cmd_line_config, source="cmdline")
-    if verbose:
-        logger.info("CLI config: \n%s", pformat_config_store_as_table(cmd_line_config))
 
     # double checking on bootstrap, as we can run from all kind of locations
     # usually we should be bootstraped already as we run from cli.
     dbnd_bootstrap()
+
+    # initialize basic logging (until we get to the context logging
     if not config.getboolean("log", "disabled"):
         configure_basic_logging(None)
 
@@ -290,38 +306,27 @@ def run(
             scheduled_job_name=scheduled_job_name, scheduled_date=scheduled_date
         )
 
-    with tracking_mode_context(tracking=False), new_dbnd_context(
-        name="run", module=module
-    ) as context:  # type: DatabandContext
-        task_registry = get_task_registry()
-
+    # update completer
+    if config.getboolean("databand", "completer"):
         tasks = task_registry.list_dbnd_task_classes()
         completer.refresh(tasks)
 
-        # modules are loaded, we can load the task
-        task_cls = None
-        if task_name:
-            task_cls = task_registry.get_task_cls(task_name)
+    # modules are loaded, we can load the task
+    task_cls = None
+    if task_name:
+        task_cls = task_registry.get_task_cls(task_name)
 
-        # --set-root
-        # now we can get it config, as it's not main task, we can load config after the configuration is loaded
-        if task_cls is not None and root_task_config:
-            # adding root task to configuration
-            config.set_values(
-                {task_cls.task_definition.task_config_section: root_task_config},
-                source="cmdline.--set-root",
-            )
+    if not task_name:
+        print_help(ctx, None)
+        return
 
-        if is_help or not task_name:
-            print_help(ctx, task_cls)
-            return
+    if is_help:
+        print_help(ctx, task_cls)
+        return
 
-        if open_web_tab:
-            config.set_values({"run": {"open_web_tracker_in_browser": "True"}})
-
-        if docker_build_tag:
-            config.set_values({"kubernetes": {"docker_build_tag": docker_build_tag}})
-
+    with tracking_mode_context(tracking=False), new_dbnd_context(
+        name="run"
+    ) as context:  # type: DatabandContext
         if context.settings.system.describe:
             # we want to print describe without triggering real run
             logger.info("Building main task '%s'", task_name)
@@ -381,3 +386,14 @@ def _parse_cli(configs, source, priority=None, extend=False):
         for c in configs
     ]
     return functools.reduce((lambda x, y: x.update(y)), config_values_list)
+
+
+def _filter_none(**kwargs):
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+
+def _nullable_flag(flag):
+    if flag is None:
+        return None
+
+    return bool(flag)

@@ -54,7 +54,7 @@ def schedule(ctx):
     ctx.obj["headers"] = SCHEDULED_JOB_HEADERS
     from dbnd import new_dbnd_context
 
-    new_dbnd_context(autoload_modules=False, conf={"core": {"tracker": ""}}).__enter__()
+    new_dbnd_context(conf={"core": {"tracker": ""}}).__enter__()
 
 
 @schedule.command()

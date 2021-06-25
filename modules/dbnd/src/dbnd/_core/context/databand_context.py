@@ -55,7 +55,7 @@ class DatabandContext(SingletonContext):
 
     # controls load of orm dags by versioned airflow
     # we will set it to true when we run airflow original commands
-    def __init__(self, module=None, name="global", autoload_modules=True):
+    def __init__(self, name="global"):
         """
         Initialize cmd line args
         """
@@ -71,7 +71,6 @@ class DatabandContext(SingletonContext):
             str(uuid.uuid1())[:8],
         )
 
-        self._module = module
         self.config = config
 
         # we are running from python notebook, let start to print to stdout
@@ -82,7 +81,6 @@ class DatabandContext(SingletonContext):
 
         self.task_instance_cache = TaskInstanceCache()
         self.user_code_detector = UserCodeDetector.build_code_detector()
-        self._autoload_modules = autoload_modules
 
         # will set up in __enter__
         # we can't initialize settings without having self defined as context
@@ -90,26 +88,14 @@ class DatabandContext(SingletonContext):
         from dbnd._core.settings import DatabandSettings
 
         self.settings = None  # type: DatabandSettings
-
-        self.initialized_context = False
+        self._is_initialized = False
 
     def _on_enter(self):
         pm.hook.dbnd_on_pre_init_context(ctx=self)
         run_user_func(config.get("core", "user_pre_init"))
         # if we are deserialized - we don't need to run this code again.
-        if not self.initialized_context:
-            # noinspection PyTypeChecker
-            if self._module:
-                load_python_module(self._module, "--module")
-
-            module_from_config = config.get("databand", "module")
-            if self._autoload_modules and module_from_config:
-                load_python_module(
-                    module_from_config, "config file (see [databand].module)"
-                )
-
+        if not self._is_initialized:
             # will be called from singleton context manager
-            # we want to be able to catch all "new" inline airflow operators
             self.system_settings = DatabandSystemConfig()
             if self.system_settings.conf:
                 self.config.set_values(
@@ -137,7 +123,7 @@ class DatabandContext(SingletonContext):
             )
 
             self.task_run_env = RunInfoConfig().build_task_run_info()
-            self.initialized_context = True
+            self._is_initialized = True
         else:
             # we get here if we are running at sub process that recreates the Context
             pm.hook.dbnd_on_existing_context(ctx=self)

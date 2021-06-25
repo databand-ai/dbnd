@@ -1,7 +1,6 @@
 import datetime
 
-from dbnd import new_dbnd_context, parameter, task
-from dbnd._core.context.databand_context import DatabandContext
+from dbnd import dbnd_config, dbnd_run_cmd, parameter, task
 
 
 @task
@@ -18,8 +17,8 @@ def task_auto_config(
 
 class TestBuildErrorsDecorators(object):
     def test_auto_load(self):
-        with new_dbnd_context(
-            conf={
+        with dbnd_config(
+            {
                 "autotestconfig": {"param_datetime": "2018-01-01", "param_int": "42"},
                 "core": {
                     "user_configs": "autotestconfig",
@@ -29,5 +28,5 @@ class TestBuildErrorsDecorators(object):
                     "module": "test_dbnd.orchestration.config.autoloaded_config"
                 },
             }
-        ) as dc:  # type: DatabandContext
-            dc.dbnd_run_task(task_or_task_name="task_auto_config")
+        ):
+            dbnd_run_cmd("task_auto_config")

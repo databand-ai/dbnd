@@ -49,7 +49,7 @@ class TestRunDbndTaskRegistry(object):
     def test_shortened_task_name_reference(self, capfd):
         dbnd_cmd(
             "run",
-            "dbnd_test_scenarios.complex_package_structure.complex_package.complex_structure_pipeline",
+            "dbnd_test_scenarios.test_common.complex_package_structure.complex_package.complex_structure_pipeline",
         )
         output = capfd.readouterr()
         assert "Auto-decorating and treating it as @task" not in output.out

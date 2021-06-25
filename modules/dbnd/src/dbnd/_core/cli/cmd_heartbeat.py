@@ -15,7 +15,6 @@ def send_heartbeat(
     run_uid, databand_url, heartbeat_interval, driver_pid, tracker, tracker_api
 ):
     from dbnd import config
-    from dbnd._core.settings import CoreConfig
     from dbnd._core.task_executor.heartbeat_sender import send_heartbeat_continuously
 
     with config(
@@ -31,9 +30,7 @@ def send_heartbeat(
         if tracker_api == "db":
             from dbnd import new_dbnd_context
 
-            requred_context.append(
-                new_dbnd_context(name="send_heartbeat", autoload_modules=False)
-            )
+            requred_context.append(new_dbnd_context(name="send_heartbeat"))
 
         with nested_context.nested(*requred_context):
             tracking_store = get_databand_context().tracking_store
