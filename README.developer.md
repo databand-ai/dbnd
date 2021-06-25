@@ -1,18 +1,11 @@
 # Development Guide
 
-## Make Patch or Release
-
-### Prerequisite:
+## Prerequisite:
 
 ```shell script
 pip install wheel twine bumpversion
 ```
 
-### Create release
-
-```shell script
-./etc/scripts/dbnd-release patch|release
-```
 
 ## Pre Commit hooks
 
@@ -26,13 +19,4 @@ If you want to install pre-commit app on osx:
 
 ```shell script
 brew install pre-commit
-```
-
-## Debug
-
-### User Space Task and Configs objects build
-
-```ini
-[task_build]
-verbose=True
 ```

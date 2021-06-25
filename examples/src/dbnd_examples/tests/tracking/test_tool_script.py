@@ -19,7 +19,7 @@ def my_cli(parameter, my_cli_input, my_cli_output):
     bash_cmd(
         args=[
             sys.executable,
-            cli_scripts("../../tracking/tool_script_1.py"),
+            cli_scripts("../../tracking/tracking_script.py"),
             my_cli_output,
             parameter,
             my_cli_input,
