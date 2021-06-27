@@ -20,11 +20,10 @@ _AIRFLOW_ENABLED = None  # dbnd-airflow is installed and enabled
 
 
 def _is_airflow_enabled():
-    if pm.has_plugin("dbnd-airflow"):
-        return True
-
     if get_dbnd_project_config().is_no_modules:
         return False
+    if pm.has_plugin("dbnd-airflow"):
+        return True
 
     # TODO: make decision based on plugin only
     try:

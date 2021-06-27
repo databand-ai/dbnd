@@ -60,9 +60,6 @@ class ConsoleStore(TrackingStore):
         self.verbose = is_verbose()
         self.ascii_graph = Pyasciigraph()
 
-    def init_scheduled_job(self, scheduled_job, update_existing):
-        super(ConsoleStore, self).init_scheduled_job(scheduled_job, update_existing)
-
     def init_run(self, run):
         if run.is_orchestration:
             logger.info(

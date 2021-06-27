@@ -115,6 +115,11 @@ class TestCmdline(object):
         ]
         dbnd_run_cmd(args)
 
+    def test_dbnd_task_version(self):
+        args = [TTask.get_task_family(), "-r", "t_param=100", "--task-version", "5"]
+        run = dbnd_run_cmd(args)
+        assert run.root_task.task_version == "5"
+
     def test_misspelled_task_suggestion(self):
         with pytest.raises(
             TaskClassNotFoundException, match="dbnd_sanity_check"

@@ -1,7 +1,7 @@
 """
 This is a retry scenario to test k8s execution with retries of a failed task.
 CMD:
-    `dbnd run dbnd_examples.pipelines.retry_scenario.retry_pipeline --task-version now --env=gcp_k8s --interactive`
+    `dbnd run dbnd_test_scenarios.pipelines.retry_scenario.retry_pipeline --task-version now --env=gcp_k8s --interactive`
     run with relevant config:
         `kubernetes.namespace` | `kubernetes.service_account_name` | `kubernetes.container_tag`
 """

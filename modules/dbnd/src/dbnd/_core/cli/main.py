@@ -14,7 +14,7 @@ import six
 from dbnd._core.cli.cmd_execute import execute
 from dbnd._core.cli.cmd_heartbeat import send_heartbeat
 from dbnd._core.cli.cmd_project import project_init
-from dbnd._core.cli.cmd_run import run
+from dbnd._core.cli.cmd_run import cmd_run
 from dbnd._core.cli.cmd_show import show_configs, show_tasks
 from dbnd._core.cli.cmd_tracker import tracker
 from dbnd._core.cli.cmd_utils import collect_logs, ipython
@@ -56,7 +56,7 @@ def cli():
 cli.add_command(project_init)
 
 # run
-cli.add_command(run)
+cli.add_command(cmd_run)
 cli.add_command(execute)
 cli.add_command(ipython)
 

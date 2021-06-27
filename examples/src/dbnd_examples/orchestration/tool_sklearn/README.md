@@ -15,19 +15,19 @@ This pipeline generates data for 3 partners, `a` - csv format, `b`-json format ,
 Run basic training pipeline:
 
 ```
-dbnd run dbnd_examples.example_ml_pipeline.scenario.train_model_for_customer --train-model-for-customer-data example_raw_data/customer_a.csv
+dbnd run dbnd_examples.orchestration.tool_sklearn.train_pipeline.train_model_for_customer --train-model-for-customer-data example_raw_data/customer_a.csv
 ```
 
 Run pipeline that fails:
 
 ```
-dbnd run dbnd_examples.example_ml_pipeline.scenario.train_model_for_customer --train-model-for-customer-data example_raw_data/customer_b.csv
+dbnd run dbnd_examples.orchestration.tool_sklearn.train_pipeline.train_model_for_customer --train-model-for-customer-data example_raw_data/customer_b.csv
 ```
 
 Run pipeline with data ingestion. Rund training on a period of 7 days ended on July 11, 2019:
 
 ```
-dbnd run dbnd_examples.example_ml_pipeline.scenario.train_model_for_customer --period 7d --task-target-date 2019-07-11
+dbnd run dbnd_examples.orchestration.tool_sklearn.train_pipeline.train_model_for_customer --period 7d --task-target-date 2019-07-11
 ```
 
 Train model for a all customers demonstrates how one pipeline can call another pipeline:
@@ -45,13 +45,13 @@ dbnd run dbnd_examples.example_ml_pipeline.scenario.training_with_parameter_sear
 Running Same Pipeline on AWS Kubernetes
 
 ```
-dbnd run dbnd_examples.example_ml_pipeline.scenario.train_model_for_customer --train-model-for-customer-data s3://databand-playground/demo/customer_b.csv --env aws_minikube
+dbnd run dbnd_examples.orchestration.tool_sklearn.train_pipeline.train_model_for_customer --train-model-for-customer-data s3://databand-playground/demo/customer_b.csv --env aws_minikube
 ```
 
 Scheduling a pipeline to run hourly
 
 ```
-dbnd schedule --name train_model_hourly --cmd "dbnd run dbnd_examples.example_ml_pipeline.scenario.train_model_for_customer --train-model-for-customer-data example_raw_data/customer_a.csv" --start_date 2019-08-25 --schedule-interval "@hourly"
+dbnd schedule --name train_model_hourly --cmd "dbnd run dbnd_examples.orchestration.tool_sklearn.train_pipeline.train_model_for_customer --train-model-for-customer-data example_raw_data/customer_a.csv" --start_date 2019-08-25 --schedule-interval "@hourly"
 ```
 
 ## Setup minikube demo

@@ -41,7 +41,10 @@ ENV_DBND_CONFIG = "DBND_CONFIG"  # extra config for DBND
 ENV_DBND__DEBUG_INIT = "DBND__DEBUG_INIT"
 
 ENV_DBND__USER_PRE_INIT = "DBND__USER_PRE_INIT"  # run on user init
-ENV_DBND__NO_MODULES = "DBND__NO_MODULES"  # do not auto-load user modules
+ENV_DBND__NO_MODULES = (
+    "DBND__NO_MODULES"  # do not auto-load user modules (for example: airflow)
+)
+ENV_DBND__NO_PLUGINS = "DBND__NO_PLUGINS"  # do not auto-load user plugins (for example all dbnd-tensorflow)
 
 ENV_DBND__NO_TABLES = "DBND__NO_TABLES"  # do not print fancy tables
 ENV_DBND__SHOW_STACK_ON_SIGQUIT = "DBND__SHOW_STACK_ON_SIGQUIT"
@@ -205,9 +208,11 @@ class DbndProjectConfig(object):
         )
 
         self.is_no_modules = environ_enabled(ENV_DBND__NO_MODULES)
+        self.is_no_plugins = environ_enabled(ENV_DBND__NO_PLUGINS)
         self.disable_pluggy_entrypoint_loading = environ_enabled(
             ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING
         )
+
         self.is_sigquit_handler_on = environ_enabled(ENV_DBND__SHOW_STACK_ON_SIGQUIT)
 
         self._verbose = environ_enabled(ENV_DBND__VERBOSE)

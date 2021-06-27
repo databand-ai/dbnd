@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import os
-
 from datetime import datetime
 
 import numpy as np
@@ -14,27 +12,36 @@ from pytest import fixture
 import dbnd
 import dbnd._core.utils.basics.environ_utils
 
-from dbnd import (
-    dbnd_tracking_stop,
-    get_dbnd_project_config,
-    register_config_cls,
-    register_task,
+from dbnd import register_config_cls, register_task
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING,
+    ENV_DBND__NO_MODULES,
+    ENV_DBND__NO_PLUGINS,
+    reset_dbnd_project_config,
 )
-from dbnd._core.configuration.environ_config import reset_dbnd_project_config
 from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
+from dbnd._core.utils.basics.environ_utils import set_on
 from dbnd.testing.test_config_setter import add_test_configuration
 from dbnd_test_scenarios.test_common.task.factories import FooConfig, TConfig
 from targets import target
 
 
 # we want to test only this module
-get_dbnd_project_config().is_no_modules = True
+# However, this import runs in separate space from test run -> this global will not be visible to your test
+# get_dbnd_project_config().is_no_modules = True
 
 # if enabled will pring much better info on tests
 # os.environ["DBND__VERBOSE"] = "True"
+set_on(ENV_DBND__NO_MODULES)
+set_on(ENV_DBND__NO_PLUGINS)
+set_on(ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING)
 
 # DISABLE AIRFLOW, we don't test it in this module!
 disable_airflow_plugin()
+
+# all env changes should be active for current project config
+reset_dbnd_project_config()
+
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",

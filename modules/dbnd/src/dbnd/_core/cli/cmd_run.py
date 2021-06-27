@@ -27,7 +27,7 @@ def _to_conf(kwargs):
     return {k: str(v) for k, v in kwargs.items() if v is not None}
 
 
-@click.command(context_settings=dict(help_option_names=[]))
+@click.command(name="run", context_settings=dict(help_option_names=[]))
 @click.argument("task", autocompletion=completer.task(), required=False)
 @click.option(
     "--module",
@@ -150,7 +150,7 @@ def _to_conf(kwargs):
     help="Define custom docker image tag for docker image that will be built",
 )
 @click.pass_context
-def run(
+def cmd_run(
     ctx,
     is_help,
     task,
@@ -209,7 +209,7 @@ def run(
     main_switches = dict(
         databand=dict(
             verbose=verbose > 0,
-            task_band=print_task_band,
+            print_task_band=print_task_band,
             describe=describe,
             env=env,
             conf_file=conf_file,
@@ -226,7 +226,7 @@ def run(
             submit_tasks=_nullable_flag(submit_tasks),
         ),
         kubernetes=dict(docker_build_tag=docker_build_tag),
-        task_version=dict(task_version=task_version),
+        task=dict(task_version=task_version),
         task_build=dict(verbose=True if verbose > 1 else None),
         core=dict(tracker_api="disabled" if disable_web_tracker else None),
     )
@@ -356,7 +356,7 @@ def print_help(ctx, task_cls):
     from dbnd._core.parameter.parameter_definition import _ParameterKind
 
     formatter = ctx.make_formatter()
-    run.format_help(ctx, formatter)
+    cmd_run.format_help(ctx, formatter)
     if task_cls:
         dl = []
         for (param_name, param_obj) in task_cls.task_definition.task_param_defs.items():

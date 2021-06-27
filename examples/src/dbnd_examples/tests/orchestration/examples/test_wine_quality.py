@@ -60,9 +60,9 @@ class TestWineQualityClasses(object):
         )
         assert_run_task(task)
 
-    @pytest.mark.skipif(not six.PY2, reason="requires python2")
+    @pytest.mark.skipif(not six.PY3, reason="requires python3")
     def test_notebook(self):
         ipynb = relative_path(
-            wine_quality_decorators_py2.__file__, "predict_wine_quality_py27.ipynb"
+            wine_quality_decorators.__file__, "predict_wine_quality_py3.ipynb"
         )
         run_test_notebook(ipynb)

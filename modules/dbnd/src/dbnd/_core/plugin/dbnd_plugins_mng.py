@@ -12,7 +12,7 @@ _dbnd_plugins_registered = False
 
 
 def register_dbnd_plugins():
-    if get_dbnd_project_config().is_no_modules:
+    if get_dbnd_project_config().is_no_plugins:
         return
 
     global _dbnd_plugins_registered

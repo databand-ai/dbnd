@@ -12,9 +12,11 @@ from airflow_monitor.tracking_service import (
     decorate_tracking_service,
 )
 from dbnd._core.configuration.environ_config import (
+    ENV_DBND__NO_PLUGINS,
     get_dbnd_project_config,
     reset_dbnd_project_config,
 )
+from dbnd._core.utils.basics.environ_utils import set_on
 from dbnd.testing.test_config_setter import add_test_configuration
 
 from .mock_airflow_data_fetcher import MockDataFetcher
@@ -30,7 +32,7 @@ os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"
 reset_dbnd_project_config()
 
 # we don't need to load dbnd plugins/modules
-get_dbnd_project_config().is_no_modules = True
+set_on(ENV_DBND__NO_PLUGINS)
 
 
 def pytest_configure(config):
