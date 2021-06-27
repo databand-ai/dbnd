@@ -24,8 +24,7 @@ class _DecoratedCallableTask(Task):
         # this function is in charge of calling user defined code (decorated function) call
         # usually it's called from from task.run/task.band
         extra_kwargs = extra_kwargs or {}
-        task_decorator = self.task_decorator
-        spec = task_decorator.get_callable_spec()
+        spec = self.task_decorator.get_callable_spec()
         invoke_kwargs = {}
         for name in spec.args:
             # if there is no parameter - it was disabled at TaskDefinition building stage
@@ -41,7 +40,7 @@ class _DecoratedCallableTask(Task):
             self._dbnd_call_state = TaskCallState()
         self._dbnd_call_state.start()
 
-        if task_decorator.is_class:
+        if self.task_decorator.is_class:
             # this is the case of
             # @task
             # class UserClass:

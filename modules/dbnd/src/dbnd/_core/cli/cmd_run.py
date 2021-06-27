@@ -311,7 +311,7 @@ def run(
         tasks = task_registry.list_dbnd_task_classes()
         completer.refresh(tasks)
 
-    # modules are loaded, we can load the task
+    # bootstrap and modules are loaded, we can load the task
     task_cls = None
     if task_name:
         task_cls = task_registry.get_task_cls(task_name)

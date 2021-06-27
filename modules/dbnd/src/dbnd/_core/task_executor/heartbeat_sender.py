@@ -75,7 +75,6 @@ def start_heartbeat_sender(run_executor):
                 heartbeat_log_file = local_heartbeat_log_file
                 heartbeat_log_fp = heartbeat_log_file.open("w")
                 stdout = heartbeat_log_fp
-                logger.error("cmd: %s", cmd)
                 logger.info(
                     "Starting heartbeat with log at %s using cmd: %s",
                     heartbeat_log_file,

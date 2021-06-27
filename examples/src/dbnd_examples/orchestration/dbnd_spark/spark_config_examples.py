@@ -7,10 +7,19 @@ from databand import output, parameter
 from dbnd import config, dbnd_context
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd_spark import SparkConfig
-from dbnd_spark.spark import PySparkInlineTask
+from dbnd_spark.spark import PySparkInlineTask, spark_task
+from targets.target_config import FileFormat
 
 
 logger = logging.getLogger(__name__)
+
+
+@spark_task(result=output.save_options(FileFormat.csv, header=True)[spark.DataFrame])
+def custom_load_save_options(
+    data=parameter.load_options(FileFormat.csv, header=False, sep="\t")[spark.DataFrame]
+):
+    print(data.show())
+    return data
 
 
 class AdvancedSparkConfigExample(PySparkInlineTask):

@@ -137,12 +137,14 @@ class TargetConfig(object):
         return attr.evolve(self, compression=compression)
 
     def with_format(self, format):
+        # type: (TargetConfig, str) -> TargetConfig
         return attr.evolve(self, format=format, is_binary=format in BINARY_FORMATS)
 
     def with_meta_files(self, list_of_meta_files):
         return attr.evolve(self, meta_files=list_of_meta_files, folder=True)
 
     def with_flag(self, flag):
+        # type: (TargetConfig, bool) -> TargetConfig
         return attr.evolve(self, flag=flag)
 
     def without_flag(self):

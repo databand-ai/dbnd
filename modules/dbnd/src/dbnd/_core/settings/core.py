@@ -101,12 +101,12 @@ class CoreConfig(Config):
         description="Sleep between retries of the api client", default=0.1
     )[float]
 
+    # USER CODE TO RUN ON START
     user_configs = parameter(
         empty_default=True,
         description="Contains the config for creating tasks from user code",
     )[List[str]]
 
-    # USER CODE TO RUN ON START
     # user_pre_init = defined at Databand System config, dbnd_on_pre_init_context
     user_init = parameter(
         default=None,
