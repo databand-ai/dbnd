@@ -5,7 +5,7 @@ import six
 if six.PY2:
     pytestmark = pytest.mark.skip("Python 2 non compatible code")  # py2 styling
 else:
-    from dbnd_examples.orchestration.dynamic_tasks_with_pipeline import (
+    from dbnd_examples.orchestration.features.dynamic_tasks_with_pipeline import (
         say_hello_to_everybody,
     )
 
