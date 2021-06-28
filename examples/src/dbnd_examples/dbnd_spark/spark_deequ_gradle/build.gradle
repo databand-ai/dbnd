@@ -20,9 +20,6 @@ version = '0.43.3'
 
 repositories {
     mavenCentral()
-    maven {
-        url "https://dbnd-dev-maven-repository.s3.us-east-2.amazonaws.com"
-    }
 }
 
 configurations.all {
@@ -30,9 +27,10 @@ configurations.all {
 }
 
 dependencies {
+    implementation("ai.databand:dbnd-api:${version}")
     implementation("ai.databand:dbnd-api-deequ:${version}")
     implementation("ai.databand:dbnd-client:${version}")
-    implementation("ai.databand:deequ:1.1.0") {
+    implementation("com.amazon.deequ:deequ:1.2.2-spark-2.4") {
         exclude(group: "org.apache.spark")
         exclude(group: "org.scalanlp")
     }
