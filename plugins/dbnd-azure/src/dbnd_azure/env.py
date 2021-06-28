@@ -24,6 +24,7 @@ class AzureCredentialsConfig(Config):
                 If neither account key or sas token is specified, anonymous access
                 will be used.""",
         default=None,
+        hidden=True,
     ).none()[str]
     sas_token = parameter(
         description="""A shared access signature token to use to authenticate requests
@@ -31,6 +32,7 @@ class AzureCredentialsConfig(Config):
                  specified, account key will be used to sign. If neither are
                  specified, anonymous access will be used.""",
         default=None,
+        hidden=True,
     ).none()[str]
     protocol = parameter(
         description="""The protocol to use for requests. Defaults to https."""
@@ -52,5 +54,6 @@ class AzureCredentialsConfig(Config):
     ).none()[str]
     token_credential = parameter(
         description="""A token credential used to authenticate HTTPS requests. The token value
-                should be updated before its expiration."""
+                should be updated before its expiration.""",
+        hidden=True,
     ).none()[str]

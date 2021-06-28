@@ -59,7 +59,7 @@ class CoreConfig(Config):
         str
     ]
     dbnd_password = parameter(
-        description="password used to connect to the dbnd web server"
+        description="password used to connect to the dbnd web server", hidden=True
     )[str]
     databand_url = parameter(
         default=None,
@@ -68,6 +68,7 @@ class CoreConfig(Config):
     databand_access_token = parameter(
         description="Personal access token to connect to the dbnd web server",
         default=None,
+        hidden=True,
     )[str]
 
     # Backward compatibility

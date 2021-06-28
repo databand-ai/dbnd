@@ -19,7 +19,7 @@ class AirflowMonitorConfig(Config):
     # Used by db fetcher
     local_dag_folder = parameter(default=None)[str]
 
-    sql_alchemy_conn = parameter(default=None, description="db url")[str]
+    sql_alchemy_conn = parameter(default=None, description="db url", hidden=True)[str]
 
     rbac_username = parameter(
         default={},
