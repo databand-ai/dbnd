@@ -30,6 +30,7 @@
 -   \#1200275951379648: Fixed incorrect handling of attempts.
 -   \#1200440061411916: Fixed tracking tasks from `@task`.
 -   \#1200035644894886: Fixed browser ‘Back’ button behavior in the Run details page.
+-   \#1200503204031963: Fixed bug that prevented to define advanced alert
 
 ## DBND v0.42.00
 
