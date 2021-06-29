@@ -28,6 +28,7 @@ from dbnd._core.tracking.airflow_dag_inplace_tracking import (
 )
 from dbnd._core.tracking.managers.callable_tracking import _handle_tracking_error
 from dbnd._core.utils import seven
+from dbnd._core.utils.airflow_utils import get_project_name_from_airflow_tags
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor import pendulum
 
@@ -96,6 +97,24 @@ class _DbndScriptTrackingManager(object):
             cm = self._context_managers.pop()
             cm.__exit__(None, None, None)
 
+    def update_run_from_airflow_context(self, airflow_context):
+        if not airflow_context or not airflow_context.context:
+            return
+
+        dag = airflow_context.context.get("dag", None)
+        if not dag:
+            return
+
+        dag_tags = getattr(dag, "tags", [])
+        project_name = get_project_name_from_airflow_tags(dag_tags)
+        airflow_user = airflow_context.context["dag"].owner
+
+        if project_name:
+            self._run.project_name = project_name
+
+        if airflow_user:
+            self._run.context.task_run_env.user = airflow_user
+
     def start(self, root_task_name=None, airflow_context=None):
         if self._run or self._active or try_get_databand_run():
             return
@@ -142,6 +161,8 @@ class _DbndScriptTrackingManager(object):
             )
         )  # type: DatabandRun
         self._run.root_task = root_task
+
+        self.update_run_from_airflow_context(airflow_context)
 
         if not self._atexit_registered:
             _set_process_exit_handler(self.stop)
