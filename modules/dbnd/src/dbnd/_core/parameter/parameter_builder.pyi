@@ -5,11 +5,11 @@ import pandas as pd
 
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd._core.constants import OutputMode
+from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_definition import (
     ParameterDefinition,
     _ParameterKind,
 )
-from dbnd import ParameterScope
 from dbnd._core.parameter.validators import Validator
 from targets import DataTarget, Target
 from targets.target_config import FileFormat, TargetConfig
@@ -28,19 +28,20 @@ class ParameterFactory(object):
         default: _T = ...,
         description: str = ...,
         significant: bool = ...,
+        name: str = ...,
         target_config: TargetConfig = ...,
         config_path: ConfigPath = ...,
         value_type: ValueType = ...,
+        hidden: bool = ...,
         system: bool = ...,
         scope: ParameterScope = ...,
         from_task_env_config: bool = ...,
         kind: _ParameterKind = ...,
         output_name: str = ...,
         output_ext: str = ...,
-        name: str = ...,
+        output_mode: OutputMode = ...,
         output_factory: Callable[[Any, ParameterDefinition], Any] = ...,
         flag: bool = ...,
-        output_mode: OutputMode = ...,
         validator: Validator = ...,
         choices: List = ...,
         parameter_cls: Type = ...,
@@ -63,21 +64,23 @@ class ParameterFactory(object):
     ) -> ParameterFactory: ...
     def __call__(
         self,
-        default: Any = ...,
-        name: str = ...,
+        default: _T = ...,
         description: str = ...,
         significant: bool = ...,
+        name: str = ...,
+        target_config: TargetConfig = ...,
         config_path: ConfigPath = ...,
         value_type: ValueType = ...,
+        hidden: bool = ...,
         system: bool = ...,
         scope: ParameterScope = ...,
         from_task_env_config: bool = ...,
         kind: _ParameterKind = ...,
-        target_config: TargetConfig = ...,
         output_name: str = ...,
         output_ext: str = ...,
-        output_factory: Callable = ...,
         output_mode: OutputMode = ...,
+        output_factory: Callable[[Any, ParameterDefinition], Any] = ...,
+        flag: bool = ...,
         validator: Validator = ...,
         choices: List = ...,
         parameter_cls: Type = ...,

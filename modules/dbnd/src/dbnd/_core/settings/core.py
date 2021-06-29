@@ -140,7 +140,8 @@ class CoreConfig(Config):
         description="DEPRECATED: user used to connect to the dbnd web server"
     )[str]
     dbnd_password = parameter(
-        description="DEPRECATED: password used to connect to the dbnd web server", hidden=True
+        description="DEPRECATED: password used to connect to the dbnd web server",
+        hidden=True,
     )[str]
 
     # deprecated at 0.34 (Backward compatibility)
