@@ -4,20 +4,27 @@ from dbnd_airflow.tracking.dbnd_dag_tracking import track_task
 
 
 def _wrap_policy_with_dbnd_track_task(policy):
+    if policy and getattr(policy, "_dbnd_patched", None):
+        # already wrapped - don't double patch, return as is
+        return policy
+
     def dbnd_track_task_policy(task):
         # Call original policy
         policy(task)
         # Wrap it with dbnd tracking
         track_task(task)
 
+    dbnd_track_task_policy._dbnd_patched = True
     return dbnd_track_task_policy
 
 
 def _patch_policy(module):
     if hasattr(module, "policy"):
+        # airflow < 2.0, https://airflow.apache.org/docs/apache-airflow/1.10.10/concepts.html#cluster-policy
         new_policy = _wrap_policy_with_dbnd_track_task(module.policy)
         module.policy = new_policy
-    elif hasattr(module, "task_policy"):
+    if hasattr(module, "task_policy"):
+        # airflow >= 2.0, https://airflow.apache.org/docs/apache-airflow/stable/concepts/cluster-policies.html
         new_policy = _wrap_policy_with_dbnd_track_task(module.task_policy)
         module.task_policy = new_policy
 
@@ -28,8 +35,11 @@ def _add_tracking_to_policy():
         import airflow_local_settings
 
         _patch_policy(airflow_local_settings)
-        # Do not patch twice
-        return
+        # we want to proceed and patch dagbag.settings as well
+        # 1. _patch_policy is idempotent
+        # 2. this code runs after local_settings are read
+        # 3. there could be situation that local_settings exist but without policy
+        #    (so global settings.policy is used anyway)
     except ImportError:
         pass
 
