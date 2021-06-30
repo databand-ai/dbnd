@@ -31,6 +31,7 @@
 -   \#1200440061411916: Fixed tracking tasks from `@task`.
 -   \#1200035644894886: Fixed browser ‘Back’ button behavior in the Run details page.
 -   \#1200503204031963: Fixed bug that prevented to define advanced alert
+-   \#1200542429205442: Fixed support for airflow_local_settings in auto-tracking
 
 ## DBND v0.42.00
 
