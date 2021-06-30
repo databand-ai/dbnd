@@ -43,6 +43,15 @@ def get_task_run_attempt_uid(run_uid, dag_id, task_id, try_number):
     return uuid.uuid5(run_uid, "{}.{}:{}".format(dag_id, task_id, try_number))
 
 
+def get_task_run_attempt_uid_by_task_run(task_run):
+    return get_task_run_attempt_uid(
+        task_run.run.run_uid,
+        task_run.run.dag_id,
+        task_run.task_af_id,
+        task_run.attempt_number,
+    )
+
+
 def get_job_run_uid(airflow_instance_uid, dag_id, execution_date):
     # TODO_CORE: change to source_instance_uid
     if isinstance(execution_date, six.string_types):

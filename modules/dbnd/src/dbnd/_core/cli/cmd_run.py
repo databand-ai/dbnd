@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import functools
 import logging
+import uuid
 
 import six
 
@@ -102,7 +103,9 @@ def _to_conf(kwargs):
 @click.option(
     "--help", "is_help", is_flag=True, help="Used for dynamic loading of modules"
 )
-@click.option("--run-driver", "run_driver", help="Running in remote mode")
+@click.option(
+    "--run-driver", "run_driver", type=uuid.UUID, help="Running in remote mode"
+)
 @click.option("--task-name", "alternative_task_name", help="Name of this task")
 @click.option("--job-name", "job_name", help="Job Name")
 @click.option(

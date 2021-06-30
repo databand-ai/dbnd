@@ -86,7 +86,7 @@ class DatabandRun(SingletonContext):
         if not run_uid and DBND_RUN_UID in os.environ:
             # we pop so if this run spawnes subprocesses with their own runs they will be associated using the sub-runs mechanism instead
             # of being fused into this run directly
-            run_uid = os.environ.pop(DBND_RUN_UID)
+            run_uid = UUID(os.environ.pop(DBND_RUN_UID))
         if run_uid:
             self.run_uid = run_uid
             self.existing_run = True

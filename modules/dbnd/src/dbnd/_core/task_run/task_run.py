@@ -15,7 +15,7 @@ from dbnd._core.tracking.airflow_dag_inplace_tracking import try_pop_attempt_id_
 from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import utcnow
-from dbnd._core.utils.uid_utils import get_task_run_attempt_uid, get_uuid
+from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_by_task_run, get_uuid
 from targets import target
 
 
@@ -43,7 +43,6 @@ class TaskRun(object):
         self.task = task  # type: Task
         self.run = run  # type: DatabandRun
         self.task_engine = task_engine
-        self.try_number = try_number
         self.is_dynamic = is_dynamic if is_dynamic is not None else task.task_is_dynamic
         self.is_system = task.task_is_system
         self.task_af_id = task_af_id or self.task.task_id
@@ -71,7 +70,7 @@ class TaskRun(object):
             .folder(self.task.task_id)
         )
 
-        self._attempt_number = self.try_number
+        self.attempt_number = try_number
         self.task_run_attempt_uid = None
         self.attempt_folder = None
         self.meta_files = None
@@ -107,7 +106,7 @@ class TaskRun(object):
         # Task can be skipped as it's not required by any other task scheduled to run
         self.is_skipped_as_not_required = False
 
-        self._airflow_context = None
+        self.airflow_context = None
         self._task_run_state = None
 
         self.start_time = None
@@ -183,51 +182,25 @@ class TaskRun(object):
             task_run=self, external_links_dict=links_dict
         )
 
-    @property
-    def attempt_number(self):
-        return self._attempt_number
-
-    @attempt_number.setter
-    def attempt_number(self, value):
-        if not value:
+    def update_task_run_attempt(self, attempt_number):
+        if attempt_number is None:
             raise DatabandRuntimeError("cannot set None as the attempt number")
 
-        if value != self._attempt_number:
-            self._attempt_number = value
+        if self.attempt_number != attempt_number:
+            self.attempt_number = attempt_number
             self.init_new_task_run_attempt()
             self.run.tracker.tracking_store.add_task_runs(
                 run=self.run, task_runs=[self]
             )
-
-    @property
-    def airflow_context(self):
-        return self._airflow_context
-
-    @airflow_context.setter
-    def airflow_context(self, value):
-        self._airflow_context = value
-        if self._airflow_context:
-            self.attempt_number = self._airflow_context["ti"].try_number
 
     def init_new_task_run_attempt(self):
         # trying to find if we should use attempt_uid that been set from external process.
         # if so - the attempt_uid is uniquely for this task_run_attempt, and that why we pop.
         attempt_id = try_pop_attempt_id_from_env(self.task)
         if attempt_id:
-            self.task_run_attempt_uid = UUID(attempt_id)
-        elif self.task.ctrl.force_task_run_uid:
-            # This is required if uid wasn't passed correctly through env,
-            # might happen because of mlflow initialisation that overrides
-            # custom logging handlers
-            self.task_run_attempt_uid = get_task_run_attempt_uid(
-                self.run.run_uid,
-                self.run.job_name,
-                self.task.task_family,
-                self.attempt_number,
-            )
+            self.task_run_attempt_uid = attempt_id
         else:
-            # TODO: remove this option once it's safe to create fixed uids everywhere
-            self.task_run_attempt_uid = get_uuid()
+            self.task_run_attempt_uid = get_task_run_attempt_uid_by_task_run(self)
 
         self.attempt_folder = self.task._meta_output.folder(
             "attempt_%s_%s" % (self.attempt_number, self.task_run_attempt_uid),

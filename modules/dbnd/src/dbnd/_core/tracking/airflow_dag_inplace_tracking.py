@@ -360,5 +360,6 @@ def try_pop_attempt_id_from_env(task):
         attempt_id = os.environ.get(key, None)
         if attempt_id:
             del os.environ[key]
+            attempt_id = UUID(attempt_id)
 
         return attempt_id

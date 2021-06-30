@@ -258,6 +258,10 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         dr = try_get_databand_run()
         task_run = dr.get_task_run_by_af_id(task_id)
+        # When we submit from Scheduler (k8s scenario) we might get a task multiple times. without any
+        # change to the task_run_attempt_uid, that is why it is critical to update the run attempt, so
+        # we won't log everything to the same task_run_attempt.
+        task_run.update_task_run_attempt(try_number)
         pod_command = [str(c) for c in command]
         task_engine = task_run.task_engine  # type: KubernetesEngineConfig
         pod = task_engine.build_pod(

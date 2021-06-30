@@ -44,6 +44,11 @@ class TaskRunRunner(TaskRunCtrl):
 
     def execute(self, airflow_context=None, allow_resubmit=True, handle_sigterm=True):
         self.task_run.airflow_context = airflow_context
+        if airflow_context:
+            # In the case the airflow_context has a different try_number than our task_run's attempt_number,
+            # we need to update our task_run attempt accordingally.
+            self.task_run.update_task_run_attempt(airflow_context["ti"].try_number)
+
         task_run = self.task_run
         run = task_run.run
         run_executor = run.run_executor
