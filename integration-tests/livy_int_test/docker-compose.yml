@@ -1,0 +1,35 @@
+# Requirements:
+# * make dist
+# * make kaniko/int-webserver
+# * make kaniko/int-livy
+# * make kaniko/int-maven
+
+version: "3.7"
+
+services:
+  livy:
+    image: ${DOCKER_IMAGE_INT_LIVY}
+    volumes:
+      - .:/app/integration-test
+    ports:
+      - 8998:8998
+
+  inttest:
+    image: ${DOCKER_IMAGE_INT_MAVEN}
+    depends_on:
+      - databand_database
+      - livy
+    volumes:
+      - ../junit:/app/junit
+      - .:/app/integration-test
+    environment:
+      - DBND__CORE__DATABAND_URL=http://databand_webserver:8080
+      - DBND_HOME=/app/integration-test
+      - DBND__LOG_SPARK=True
+      - PYTEST_ADDOPTS=--junit-xml /app/junit/inttest-livy_int_test-${IMAGE_EXTRA_TAG}.xml
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        pytest integration-test -vv

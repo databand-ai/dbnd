@@ -1,0 +1,386 @@
+### DBND CI CD
+### GENERAL CI CONFIG
+
+### KNOWN ISSUES:
+# `needs` doesn't work for failed job, the job after will run when the "needed" job is skipped
+# A (fails) -> B (skip) -> C (runs!!!)
+
+#image:
+
+stages:
+  - test
+  - build-base
+  - publish
+  - staging
+  - test-windows
+  - ci-utils
+
+variables:
+  # Change pip's cache directory to be inside the project directory since we can
+  # only cache local items.
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
+
+### TESTS BASIC
+.template__except_defaults:
+  except: &except_on_skip_message
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-tests/
+
+.template__on_every_commit:
+  only: &on_every_commit
+    - /^feature|fix/
+    - master
+    - merge_requests
+    - develop
+    - tags
+
+.template__on_significant_branch_only:
+  only: &on_significant_branch
+    - master
+    - merge_requests
+    - develop
+    - tags
+
+### TEST TEMPLATES
+.template__basic_job: &template__basic_checks_job
+  stage: test
+  only: *on_every_commit
+
+.template__test_python: &template__python_test_job
+  stage: test
+  except: *except_on_skip_message
+
+.template__test_tensorflow: &template__test_tensorflow
+  <<: *template__python_test_job
+  image: $IMAGE
+  script:
+    - cd plugins/dbnd-tensorflow
+    - tox -e $TEST_NAME
+  artifacts:
+    reports:
+      junit: plugins/dbnd-tensorflow/build/junit-$TEST_NAME.xml
+
+.template__test_windows: &template__windows_tests_job
+  stage: test-windows
+  only: *on_significant_branch
+  except: *except_on_skip_message
+  needs: ["empty_job"]
+  before_script:
+    - echo "start"
+    - whoami
+  tags:
+    - windows
+  # TODO: new models - sqlalchemy_utils.UUID - not wokring on windows?
+  when: manual
+
+empty_job:
+  # workaround for gitlab not supporting empty `needs`
+  # we want build jobs starting to run right away
+  stage: test
+  only: *on_significant_branch
+  variables:
+    KUBERNETES_CPU_REQUEST: 10m
+    KUBERNETES_CPU_LIMIT: 100m
+    KUBERNETES_MEMORY_REQUEST: 10Mi
+    KUBERNETES_MEMORY_LIMIT: 100Mi
+  script:
+    - echo "Hello World"
+
+pre_commit:
+  <<: *template__python_test_job
+  variables:
+    KUBERNETES_CPU_REQUEST: 1200m
+    KUBERNETES_CPU_LIMIT: 2000m
+    KUBERNETES_MEMORY_REQUEST: 230Mi
+    KUBERNETES_MEMORY_LIMIT: 1Gi
+  image: python:3.6
+  script:
+    #    - tox -e pre-commit,lint,docs,readme
+    - tox -e pre-commit,lint
+
+manifest:
+  <<: *template__python_test_job
+  variables:
+    KUBERNETES_CPU_REQUEST: 250m
+    KUBERNETES_CPU_LIMIT: 1
+    KUBERNETES_MEMORY_REQUEST: 260Mi
+    KUBERNETES_MEMORY_LIMIT: 1Gi
+  image: python:3.6
+  script:
+    - make test-manifest
+
+dbnd_py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd modules/dbnd
+    - tox -e py27
+  artifacts:
+    reports:
+      junit: modules/dbnd/build/junit-py27.xml
+
+dbnd_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd modules/dbnd
+    - tox -e py36
+  artifacts:
+    reports:
+      junit: build/junit-py36.xml
+
+dbnd_py36_windows:
+  <<: *template__windows_tests_job
+  script:
+    - xcopy /y "modules\setup.cfg" "modules\dbnd\"
+    - tox -c modules/dbnd/tox.ini -r -e win-py36
+
+dbnd_py37:
+  <<: *template__python_test_job
+  image: python:3.7
+  script:
+    - cd modules/dbnd
+    - tox -e py37
+  artifacts:
+    reports:
+      junit: modules/dbnd/build/junit-py37.xml
+
+dbnd_examples_py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd examples
+    - tox -e py27
+  artifacts:
+    reports:
+      junit: .tox/dbnd-examples/junit/junit-py27.xml
+
+dbnd_examples_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd examples
+    - tox -e py36
+  artifacts:
+    reports:
+      junit: .tox/dbnd-examples/junit/junit-py36.xml
+
+#dbnd_databricks_py36:
+#  <<: *template__python_test_job
+#  variables:
+#    KUBERNETES_CPU_REQUEST: 900m
+#    KUBERNETES_CPU_LIMIT: 2
+#    KUBERNETES_MEMORY_REQUEST: 2.5Gi
+#    KUBERNETES_MEMORY_LIMIT: 4Gi
+#  image: python:3.6
+#  script:
+#    - cd plugins/dbnd-databricks
+#    - tox -e py36
+#  artifacts:
+#    reports:
+#      junit: plugins/dbnd-databricks/build/junit-py36.xml
+
+dbnd_airflow 0 1_10_7_py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py27-airflow_1_10_7
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_7.xml
+  only: *on_significant_branch
+
+dbnd_airflow 0 1_10_9_py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py27-airflow_1_10_9
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_9.xml
+  only: *on_significant_branch
+
+dbnd_airflow 0 1_10_10_py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py27-airflow_1_10_10
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_10.xml
+  only: *on_significant_branch
+  when: manual
+
+dbnd_airflow 0 1_10_12_py27:
+  <<: *template__python_test_job
+  image: python:2.7
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py27-airflow_1_10_12
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_12.xml
+  only: *on_significant_branch
+  when: manual
+
+dbnd_airflow 0 1_10_7_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py36-airflow_1_10_7
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_7.xml
+  only: *on_significant_branch
+
+dbnd_airflow 0 1_10_9_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py36-airflow_1_10_9
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_9.xml
+  only: *on_significant_branch
+
+dbnd_airflow 0 1_10_10_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py36-airflow_1_10_10
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_10.xml
+  only: *on_significant_branch
+
+dbnd_airflow 0 1_10_12_py36:
+  <<: *template__python_test_job
+  image: python:3.6
+  script:
+    - cd modules/dbnd-airflow
+    - tox -e py36-airflow_1_10_12
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_12.xml
+  only: *on_significant_branch
+
+dbnd_airflow_monitor 0 1_10_9_py36:
+  <<: *template__python_test_job
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
+  script:
+    - cd modules/dbnd-airflow-monitor
+    - tox -e py36-airflow_1_10_9
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_9.xml
+  when: manual
+
+dbnd_airflow_monitor 0 1_10_10_py36:
+  <<: *template__python_test_job
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
+  script:
+    - cd modules/dbnd-airflow-monitor
+    - tox -e py36-airflow_1_10_10
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_10.xml
+  only: *on_significant_branch
+  when: manual
+
+dbnd_airflow_monitor 0 1_10_11_py36:
+  <<: *template__python_test_job
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
+  script:
+    - cd modules/dbnd-airflow-monitor
+    - tox -e py36-airflow_1_10_11
+  artifacts:
+    reports:
+      junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_11.xml
+  only: *on_significant_branch
+  when: manual
+
+dbnd_tensorflow 1 py27:
+  <<: *template__test_tensorflow
+  variables:
+    IMAGE: python:2.7
+    TEST_NAME: py27-tensorflow1
+
+dbnd_tensorflow 1 py35:
+  <<: *template__test_tensorflow
+  variables:
+    IMAGE: python:3.5
+    TEST_NAME: py35-tensorflow1
+  when: manual
+
+dbnd_tensorflow 2 py35:
+  <<: *template__test_tensorflow
+  variables:
+    IMAGE: python:3.5
+    TEST_NAME: py35-tensorflow2
+  when: manual
+
+dbnd_tensorflow 1 py36:
+  <<: *template__test_tensorflow
+  variables:
+    IMAGE: python:3.6
+    TEST_NAME: py36-tensorflow1
+
+dbnd_tensorflow 2 py36:
+  <<: *template__test_tensorflow
+  variables:
+    IMAGE: python:3.6
+    TEST_NAME: py36-tensorflow2
+
+dbnd_tensorflow 1 py37:
+  <<: *template__test_tensorflow
+  variables:
+    IMAGE: python:3.7
+    TEST_NAME: py37-tensorflow1
+  when: manual
+
+dbnd_tensorflow 2 py37:
+  <<: *template__test_tensorflow
+  variables:
+    IMAGE: python:3.7
+    TEST_NAME: py37-tensorflow2
+  when: manual
+
+build_pypi_org_whl:
+  stage: build-base
+  image: python:3.6
+  needs: ["empty_job"]
+  script:
+    - python setup.py sdist bdist_wheel
+    - make dist-modules
+  artifacts:
+    paths:
+      - dist/*
+  only:
+    - tags
+  when: manual
+
+#downstream:
+#  stage: staging
+#  trigger:
+#    project: databand/databand
+#    branch: develop
+#  only: *on_significant_branch
+
+publish_pypi_org_dbnd_package:
+  stage: publish
+  image: ${DOCKER_IMAGE_CI_BUILD_PY36}
+  variables:
+    GIT_STRATEGY: none
+  needs:
+    - build_pypi_org_whl
+  script:
+    - twine upload dist/*
+  only:
+    - tags
+  when: manual
