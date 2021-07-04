@@ -74,7 +74,7 @@ def write_data(dest_dir, df):
         if not grouped.empty:
             try:
                 with dataset_op_logger(
-                    op_path=file_path, op_type="write", data=grouped
+                    op_path=file_path, op_type="write", data=grouped, send_metrics=False
                 ):
                     randomly_fail()
             except:
