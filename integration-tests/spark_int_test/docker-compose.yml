@@ -1,7 +1,7 @@
 # Requirements:
 # * make dist
-# * make kaniko/int-webserver
-# * make kaniko/int-maven
+# * dbnd-manage kaniko webserver
+# * dbnd-manage kaniko int-maven
 
 version: "3.7"
 

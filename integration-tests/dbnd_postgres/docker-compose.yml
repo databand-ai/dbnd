@@ -1,6 +1,6 @@
 # Requirements:
 # * make dist
-# * make kaniko/int-webserver
+# * dbnd-manage kaniko webserver
 
 version: "3.7"
 
