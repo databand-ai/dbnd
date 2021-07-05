@@ -35,12 +35,19 @@ RUN wget --no-verbose http://archive.apache.org/dist/incubator/livy/${LIVY_VERSI
 ENV PATH=$PATH:/livy/bin
 
 # install dbnd packages:
-COPY ./dist/*.requirements.txt /dist/
+COPY ./dist/dbnd.requirements.txt \
+    ./dist/dbnd-spark.requirements.txt \
+    ./dist/dbnd-test-scenarios.requirements.txt \
+    /dist/
 RUN pip install -r /dist/dbnd.requirements.txt && \
     pip install -r /dist/dbnd-spark.requirements.txt && \
     pip install -r /dist/dbnd-test-scenarios.requirements.txt
 
-COPY ./dist/*.whl /dist/
+COPY ./dist/databand-*.whl \
+    ./dist/dbnd-*.whl \
+    ./dist/dbnd_spark-*.whl \
+    ./dist/dbnd_test_scenarios-*.whl \
+    /dist/
 RUN pip install databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
 
 EXPOSE 8998
