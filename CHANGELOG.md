@@ -1,5 +1,22 @@
 # History
 
+## DBND v0.44.00
+
+### New features
+
+-   \#1200404227512965: Choose and view any suitable metric in a new chart in the Favorite Metric widget.
+-   \#1200369882031623: View Run's data operations (writes, schema, etc.) in the Run with alerts and see what happened in the last 6 Runs.
+-   \#1200526450615526: Helm chart variables now support Global image configs.
+
+### Improvements
+
+-   \#1200526450615534: Improved performance of Databand Web UI configuration. AS-1200371843828304 Errors from Airflow are now displayed in the Run list.
+-   \#1200463339266254: An extensive round of improvements of the metrics reporting and display processes.
+-   \#1200258862047040: Access to custom metrics is now available. Reporting metrics and discovering what metrics are reported within Databand got much easier.
+-   \#1199332360687562: [Breaking change!] Deprecated `__execute` tasks and separation for root-Run and sub-Runs per Airflow task. All the information which was previously reported on `<task_name>__execute task` (like metrics or log) is now reported on `<task_name> task`.
+-   \#1200483852764557: The `log_dataset_op` behavior is now the same for `read` and `write`.
+-   \#1200445773961847: `log_dataset_op` can have the `log_df` functionality.
+
 ## DBND v0.43.00
 
 ### New features
