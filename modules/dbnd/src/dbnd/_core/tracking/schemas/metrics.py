@@ -78,7 +78,8 @@ class Metric(_DbndDataClass):
         if isinstance(value, float):
             self.value_float = value
         elif isinstance(value, int) and self.MIN_INT <= value <= self.MAX_INT:
-            self.value_int = value
+            # need int() in case it's bool
+            self.value_int = int(value)
         else:
             # if passed value has json-serializable representation, we'd prefer
             # to store it as value_json. For this we'll try to convert value to
