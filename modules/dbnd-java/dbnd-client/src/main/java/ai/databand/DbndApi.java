@@ -4,10 +4,12 @@ import ai.databand.schema.AddTaskRuns;
 import ai.databand.schema.GetRunsResponse;
 import ai.databand.schema.InitRun;
 import ai.databand.schema.Job;
+import ai.databand.schema.LogDatasets;
 import ai.databand.schema.LogMetric;
 import ai.databand.schema.LogMetrics;
 import ai.databand.schema.LogTargets;
 import ai.databand.schema.MetricsForAlertsResponse;
+import ai.databand.schema.OperationsRes;
 import ai.databand.schema.PaginatedData;
 import ai.databand.schema.SaveExternalLinks;
 import ai.databand.schema.SaveTaskRunLog;
@@ -28,6 +30,7 @@ import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
+import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 import java.util.List;
@@ -51,6 +54,9 @@ public interface DbndApi {
 
     @POST("/api/v1/tracking/log_targets")
     Call<Void> logTargets(@Body LogTargets data);
+
+    @POST("/api/v1/tracking/log_datasets")
+    Call<Void> logDatasets(@Body LogDatasets data);
 
     @POST("/api/v1/tracking/set_run_state")
     Call<Void> setRunState(@Body SetRunState data);
@@ -84,6 +90,9 @@ public interface DbndApi {
 
     @GET("/api/v1/metrics/for_alerts")
     Call<MetricsForAlertsResponse> metricsForAlerts(@Query("filter") String filter);
+
+    @GET("/api/v1/runs/{run_uid}/operations")
+    Call<OperationsRes> operations(@Path("run_uid") String runUid);
 
     @POST("/api/v1/auth/personal_access_token")
     Call<CreateTokenRes> createPersonalAccessToken(@Body CreateTokenReq req, @Header("Cookie") String cookie);

@@ -2,6 +2,8 @@ package ai.databand;
 
 import ai.databand.config.DbndConfig;
 import ai.databand.log.HistogramRequest;
+import ai.databand.schema.DatasetOperationStatuses;
+import ai.databand.schema.DatasetOperationTypes;
 import javassist.ClassPool;
 import javassist.Loader;
 import org.apache.log4j.Level;
@@ -20,6 +22,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -199,6 +202,19 @@ public class DbndWrapper {
         }
         run.logMetric(key, value);
         LOG.info("Metric logged: [{}: {}]", key, value);
+    }
+
+    public void logDatasetOperation(String operationPath,
+                                    DatasetOperationTypes operationType,
+                                    DatasetOperationStatuses operationStatus,
+                                    String valuePreview,
+                                    List<Long> dataDimensions,
+                                    String dataSchema) {
+        DbndRun run = currentRun();
+        if (run == null) {
+            run = createAgentlessRun();
+        }
+        run.logDatasetOperation(operationPath, operationType, operationStatus, valuePreview, dataDimensions, dataSchema);
     }
 
     public void logMetrics(Map<String, Object> metrics) {

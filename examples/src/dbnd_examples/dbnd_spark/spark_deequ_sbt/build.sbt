@@ -1,5 +1,4 @@
 val databandVersion = "0.43.4"
-resolvers += "Databand Maven Repository" at "https://dbnd-dev-maven-repository.s3.us-east-2.amazonaws.com"
 
 ThisBuild / scalaVersion := "2.12.8"
 ThisBuild / version := databandVersion
@@ -11,6 +10,7 @@ lazy val root = (project in file("."))
         name := "spark_deequ_sbt",
         libraryDependencies ++= Seq(
             "ai.databand" % "dbnd-api-deequ" % databandVersion,
+            "com.amazon.deequ" % "deequ" % "1.2.2-spark-2.4",
             "org.slf4j" % "slf4j-api" % "1.7.16",
             "org.apache.spark" %% "spark-sql" % "2.4.2" % "provided"
         ),
@@ -18,3 +18,8 @@ lazy val root = (project in file("."))
     )
 
 assemblyJarName in assembly := "spark_deequ_sbt-assembly-latest.jar"
+
+assemblyMergeStrategy in assembly := {
+    case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+    case x => MergeStrategy.first
+}
