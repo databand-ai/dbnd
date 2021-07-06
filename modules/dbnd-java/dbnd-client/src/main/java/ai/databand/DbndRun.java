@@ -1,11 +1,15 @@
 package ai.databand;
 
 import ai.databand.log.HistogramRequest;
+import ai.databand.schema.DatasetOperationStatuses;
+import ai.databand.schema.DatasetOperationTypes;
+import ai.databand.schema.LogDataset;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
 import org.apache.spark.sql.Dataset;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -75,11 +79,23 @@ public interface DbndRun {
     void logDataframe(String key, Dataset<?> value, HistogramRequest histogramRequest);
 
     /**
-     * Log historgram object.
+     * Log histogram object.
      *
      * @param histogram
      */
     void logHistogram(Map<String, Object> histogram);
+
+    /**
+     * Log dataset operations.
+     *
+     * @param datasets
+     */
+    void logDatasetOperation(String operationPath,
+                             DatasetOperationTypes operationType,
+                             DatasetOperationStatuses operationStatus,
+                             String valuePreview,
+                             List<Long> dataDimensions,
+                             String dataSchema);
 
     /**
      * Log Deequ result
