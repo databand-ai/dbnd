@@ -113,7 +113,9 @@ class DatabandRun(SingletonContext):
 
         # dag_id , execution_date are used by Airflow,
         # should be deprecated (still used by DB tracking)
-        self.dag_id = AD_HOC_DAG_PREFIX + self.job_name
+        self.dag_id = (
+            (AD_HOC_DAG_PREFIX + self.job_name) if is_orchestration else self.job_name
+        )
 
         # RUN STATE
         self._run_state = None
@@ -281,6 +283,9 @@ class DatabandRun(SingletonContext):
     def create_task_run_at_execution_time(self, task, task_engine, task_af_id=None):
         if task_af_id is None:
             task_af_id = self.next_af_task_name(task)
+
+        if self.af_context:
+            task_af_id = "_".join([self.af_context.task_id, task_af_id])
 
         tr = TaskRun(
             task=task,
