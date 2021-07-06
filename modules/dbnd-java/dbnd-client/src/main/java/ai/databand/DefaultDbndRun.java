@@ -10,7 +10,10 @@ import ai.databand.parameters.ParametersPreview;
 import ai.databand.parameters.TaskParameterPreview;
 import ai.databand.schema.AirflowTaskContext;
 import ai.databand.schema.AzkabanTaskContext;
+import ai.databand.schema.DatasetOperationStatuses;
+import ai.databand.schema.DatasetOperationTypes;
 import ai.databand.schema.ErrorInfo;
+import ai.databand.schema.LogDataset;
 import ai.databand.schema.LogTarget;
 import ai.databand.schema.Pair;
 import ai.databand.schema.RootRun;
@@ -607,6 +610,34 @@ public class DefaultDbndRun implements DbndRun {
             dbnd.logMetrics(currentTask.getTaskRunAttemptUid(), histogram, "histograms");
         } catch (Exception e) {
             LOG.error("Unable to log histogram", e);
+        }
+    }
+
+    @Override
+    public void logDatasetOperation(String operationPath,
+                                    DatasetOperationTypes operationType,
+                                    DatasetOperationStatuses operationStatus,
+                                    String valuePreview,
+                                    List<Long> dataDimensions,
+                                    String dataSchema) {
+        try {
+            TaskRun currentTask = stack.peek();
+            if (currentTask == null) {
+                currentTask = driverTask;
+            }
+            dbnd.logDatasetOperations(currentTask.getTaskRunUid(), Collections.singletonList(
+                new LogDataset(
+                    currentTask,
+                    operationPath,
+                    operationType,
+                    operationStatus,
+                    valuePreview,
+                    dataDimensions,
+                    dataSchema
+                )
+            ));
+        } catch (Exception e) {
+            LOG.error("Unable to log dataset operation", e);
         }
     }
 

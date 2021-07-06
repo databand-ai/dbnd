@@ -119,7 +119,12 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
                 new ExprEditor() {
                     public void edit(MethodCall m) throws CannotCompileException {
                         if (m.getMethodName().contains("getOrCreate") && m.getClassName().equalsIgnoreCase("org.apache.spark.sql.SparkSession$Builder")) {
-                            String injected = "{ $_ = $proceed($$); $_.sparkContext().addSparkListener(new ai.databand.spark.DbndSparkListener($dbnd)); }";
+                            String injected =
+                                "{ " +
+                                    "$_ = $proceed($$);" +
+                                    "$_.sparkContext().addSparkListener(new ai.databand.spark.DbndSparkListener($dbnd));" +
+                                    "$_.listenerManager().register(new ai.databand.spark.DbndSparkQueryExecutionListener($dbnd));" +
+                                "}";
                             m.replace(injected);
                             if (config.isVerbose()) {
                                 System.out.println("Spark listener injected");

@@ -1,11 +1,14 @@
 package ai.databand;
 
 import ai.databand.log.HistogramRequest;
+import ai.databand.schema.DatasetOperationStatuses;
+import ai.databand.schema.DatasetOperationTypes;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
 import org.apache.spark.sql.Dataset;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,6 +58,16 @@ public class NoopDbndRun implements DbndRun {
 
     @Override
     public void logHistogram(Map<String, Object> histogram) {
+        // do nothing
+    }
+
+    @Override
+    public void logDatasetOperation(String operationPath,
+                                    DatasetOperationTypes operationType,
+                                    DatasetOperationStatuses operationStatus,
+                                    String valuePreview,
+                                    List<Long> dataDimensions,
+                                    String dataSchema) {
         // do nothing
     }
 

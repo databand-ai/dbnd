@@ -73,7 +73,7 @@ configure(subprojects.findAll { fatJarProjects.contains(it.name) }) {
 
 /**
  * ****************************************************************************
- * API-only projects (no real implementation goes here.
+ * API-only projects (no real implementation goes here).
  * ****************************************************************************
  */
 def apiOnlyProjects = ['dbnd-api', 'dbnd-api-deequ'].toSet()

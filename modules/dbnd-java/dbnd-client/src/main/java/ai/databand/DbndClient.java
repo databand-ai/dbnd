@@ -7,6 +7,8 @@ import ai.databand.schema.AirflowTaskContext;
 import ai.databand.schema.ErrorInfo;
 import ai.databand.schema.InitRun;
 import ai.databand.schema.InitRunArgs;
+import ai.databand.schema.LogDataset;
+import ai.databand.schema.LogDatasets;
 import ai.databand.schema.LogMetric;
 import ai.databand.schema.LogMetrics;
 import ai.databand.schema.LogTarget;
@@ -359,6 +361,21 @@ public class DbndClient {
             LOG.info("[task_run: {}] target submitted", taskRunUid);
         } else {
             LOG.error("[task_run: {}] Unable to submit target", taskRunUid);
+        }
+    }
+
+    /**
+     * Log task dataset operations.
+     *
+     * @param taskRunUid task run UID
+     * @param datasets   dataset operations to log
+     */
+    public void logDatasetOperations(String taskRunUid, List<LogDataset> datasets) {
+        Optional<Object> res = safeExecuteVoid(dbnd.logDatasets(new LogDatasets(datasets)));
+        if (res.isPresent()) {
+            LOG.info("[task_run: {}] dataset operation submitted", taskRunUid);
+        } else {
+            LOG.error("[task_run: {}] Unable to submit dataset operation", taskRunUid);
         }
     }
 
