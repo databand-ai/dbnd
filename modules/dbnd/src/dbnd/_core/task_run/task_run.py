@@ -189,9 +189,6 @@ class TaskRun(object):
         if self.attempt_number != attempt_number:
             self.attempt_number = attempt_number
             self.init_new_task_run_attempt()
-            self.run.tracker.tracking_store.add_task_runs(
-                run=self.run, task_runs=[self]
-            )
 
     def init_new_task_run_attempt(self):
         # trying to find if we should use attempt_uid that been set from external process.

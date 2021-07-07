@@ -14,7 +14,7 @@ from airflow.utils.state import State
 from sqlalchemy.orm.session import make_transient
 
 from dbnd._core import current
-from dbnd._core.constants import TaskRunState
+from dbnd._core.constants import TaskRunState, UpdateSource
 from dbnd._core.current import get_databand_run
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
@@ -555,6 +555,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                     # all remaining tasks
                     self.log.debug("Adding %s to not_ready", ti)
                     ti_status.not_ready.add(key)
+
+            # sync the attempt with the retries
+            self.sync_task_run_attempts_retries(ti_status)
+
             # execute the tasks in the queue
             self.heartbeat()
             executor.heartbeat()
@@ -593,15 +597,15 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
             # update dag run state
             _dag_runs = ti_status.active_runs[:]
-            for run in _dag_runs:
-                run.update_state(session=session)
+            for dag_run in _dag_runs:
+                dag_run.update_state(session=session)
 
-                self._update_databand_task_run_states(run)
+                self._update_databand_task_run_states(dag_run)
 
-                if run.state in State.finished():
+                if dag_run.state in State.finished():
                     ti_status.finished_runs += 1
-                    ti_status.active_runs.remove(run)
-                    executed_run_dates.append(run.execution_date)
+                    ti_status.active_runs.remove(dag_run)
+                    executed_run_dates.append(dag_run.execution_date)
 
             self._log_progress(ti_status)
 
@@ -618,6 +622,25 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         # return updated status
         return executed_run_dates
 
+    def sync_task_run_attempts_retries(self, ti_status):
+        databand_run = get_databand_run()
+        for dag_run in ti_status.active_runs:
+            for ti in dag_run.get_task_instances():
+                task_run = databand_run.get_task_run_by_af_id(
+                    ti.task_id
+                )  # type: TaskRun
+                # looking for retry tasks
+                if task_run and task_run.attempt_number != ti.try_number:
+                    # update in memory object with new attempt number
+                    task_run.update_task_run_attempt(ti.try_number)
+                    # sync the tracker with the new task_run_attempt
+                    databand_run.tracker.tracking_store.add_task_runs(
+                        run=databand_run, task_runs=[task_run]
+                    )
+                    report_airflow_task_instance(
+                        ti.dag_id, ti.execution_date, [task_run]
+                    )
+
     def _update_databand_task_run_states(self, run):
         """
         Sync states between DBND and Airflow
@@ -628,13 +651,13 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         # this is the only state we want to propogate into Databand
         # all other state changes are managed by databand itself by it's own state machine
-        dr = get_databand_run()
+        databand_run = get_databand_run()
 
         task_runs = []
 
         # sync all states
         for ti in run.get_task_instances():
-            task_run = dr.get_task_run_by_af_id(ti.task_id)  # type: TaskRun
+            task_run = databand_run.get_task_run_by_af_id(ti.task_id)  # type: TaskRun
             if not task_run:
                 continue
 
@@ -659,7 +682,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         # optimization to write all updates in batch
         if task_runs:
-            dr.tracker.set_task_run_states(task_runs)
+            databand_run.tracker.set_task_run_states(task_runs)
 
     @provide_session
     def _collect_errors(self, ti_status, session=None):
@@ -821,3 +844,37 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             # self.executor.terminate()
             return
         self.terminating = True
+
+
+def report_airflow_task_instance(
+    dag_id, execution_date, task_runs, airflow_config=None
+):
+    # type: (str, datetime, List[TaskRun], Optional[AirflowConfig]) ->None
+    """
+    report the relevant airflow task instances to the given task runs
+    """
+    from dbnd.api.tracking_api import AirflowTaskInfo
+
+    af_instances = []
+    for task_run in task_runs:
+        if not task_run.is_reused:
+
+            # we build airflow infos only for not reused tasks
+            af_instance = AirflowTaskInfo(
+                execution_date=execution_date,
+                dag_id=dag_id,
+                task_id=task_run.task_af_id,
+                task_run_attempt_uid=task_run.task_run_attempt_uid,
+            )
+            af_instances.append(af_instance)
+
+    if airflow_config is None:
+        airflow_config = AirflowConfig.current()
+
+    if af_instances and airflow_config.webserver_url:
+        first_task_run = task_runs[0]
+        first_task_run.tracker.tracking_store.save_airflow_task_infos(
+            airflow_task_infos=af_instances,
+            source=UpdateSource.dbnd,
+            base_url=airflow_config.webserver_url,
+        )
