@@ -1,0 +1,326 @@
+{
+    "dags": [
+        {
+            "description": "",
+            "root_task_ids": [
+                "root_dummy_task"
+            ],
+            "tasks": [
+                {
+                    "upstream_task_ids": [],
+                    "downstream_task_ids": [
+                        "level_a_dummy_task_1"
+                    ],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "root_dummy_task",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "root_dummy_task"
+                    ],
+                    "downstream_task_ids": [
+                        "level_b_dummy_task_1_2",
+                        "level_b_dummy_task_1_1"
+                    ],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_a_dummy_task_1",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "level_a_dummy_task_1"
+                    ],
+                    "downstream_task_ids": [
+                        "level_c_dummy_task_1_1_1"
+                    ],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_b_dummy_task_1_1",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "level_b_dummy_task_1_1"
+                    ],
+                    "downstream_task_ids": [
+                        "level_c_dummy_task_1_1_2"
+                    ],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_c_dummy_task_1_1_1",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "level_c_dummy_task_1_1_1"
+                    ],
+                    "downstream_task_ids": [
+                        "level_c_dummy_task_1_1_3"
+                    ],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_c_dummy_task_1_1_2",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "level_c_dummy_task_1_1_2"
+                    ],
+                    "downstream_task_ids": [],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_c_dummy_task_1_1_3",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "level_a_dummy_task_1"
+                    ],
+                    "downstream_task_ids": [
+                        "level_c_dummy_task_1_2_1"
+                    ],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_b_dummy_task_1_2",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "level_b_dummy_task_1_2"
+                    ],
+                    "downstream_task_ids": [
+                        "level_c_dummy_task_1_2_2"
+                    ],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_c_dummy_task_1_2_1",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "level_c_dummy_task_1_2_1"
+                    ],
+                    "downstream_task_ids": [
+                        "level_c_dummy_task_1_2_3"
+                    ],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_c_dummy_task_1_2_2",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                },
+                {
+                    "upstream_task_ids": [
+                        "level_c_dummy_task_1_2_2"
+                    ],
+                    "downstream_task_ids": [],
+                    "task_type": "DummyOperator",
+                    "task_source_code": null,
+                    "task_module_code": null,
+                    "dag_id": "dummy_dag",
+                    "task_id": "level_c_dummy_task_1_2_3",
+                    "retries": 0,
+                    "command": null,
+                    "task_args": {}
+                }
+            ],
+            "owner": "databand",
+            "dag_id": "dummy_dag",
+            "schedule_interval": "None",
+            "catchup": false,
+            "start_date": null,
+            "end_date": null,
+            "is_committed": true,
+            "git_commit": "fc6dce46acb0e203a319200d973196d2ac7e3cbe",
+            "dag_folder": "/Users/yevgenyzaligan/development/databand/.dbnd/airflow/dags",
+            "hostname": "yevgenyzaligan",
+            "source_code": "import airflow\n\nfrom airflow.models import DAG\nfrom airflow.operators.dummy_operator import DummyOperator\n\n\nargs = {\n    \"owner\": \"databand\",\n    \"start_date\": airflow.utils.dates.days_ago(0),\n}\n\nhuge_dag = DAG(\n    dag_id=\"dummy_dag\",\n    schedule_interval=None,\n    default_args=args,\n    catchup=False,\n    tags=[\"airflow_feature\", \"stress\"],\n)\n\nwith huge_dag:\n    root_dummy_task = DummyOperator(task_id=\"root_dummy_task\")\n    for a in range(1, 2):\n        level_a_dummy_task = DummyOperator(task_id=\"level_a_dummy_task_{}\".format(a))\n        level_a_dummy_task.set_upstream(root_dummy_task)\n\n        for b in range(1, 3):\n            level_b_dummy_task = DummyOperator(\n                task_id=\"level_b_dummy_task_{0}_{1}\".format(a, b),\n            )\n            level_b_dummy_task.set_upstream(level_a_dummy_task)\n\n            previous = level_b_dummy_task\n            for c in range(1, 4):\n                level_c_dummy_task = DummyOperator(\n                    task_id=\"level_c_dummy_task_{0}_{1}_{2}\".format(a, b, c),\n                )\n                level_c_dummy_task.set_upstream(previous)\n                previous = level_c_dummy_task\n",
+            "is_subdag": false,
+            "task_type": "DAG",
+            "task_args": {}
+        }
+    ],
+    "dag_runs": [
+        {
+            "dag_id": "dummy_dag",
+            "dagrun_id": 20,
+            "start_date": "2021-02-08T06:55:33.947082Z",
+            "state": "success",
+            "end_date": "2021-02-08T06:57:47.125706Z",
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "task_args": {}
+        }
+    ],
+    "task_instances": [
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_a_dummy_task_1",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_b_dummy_task_1_1",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_b_dummy_task_1_2",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_c_dummy_task_1_1_1",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_c_dummy_task_1_1_2",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_c_dummy_task_1_1_3",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_c_dummy_task_1_2_1",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_c_dummy_task_1_2_2",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "level_c_dummy_task_1_2_3",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        },
+        {
+            "execution_date": "2021-02-08T06:55:33.939696Z",
+            "dag_id": "dummy_dag",
+            "state": "success",
+            "try_number": 0,
+            "task_id": "root_dummy_task",
+            "start_date": null,
+            "end_date": null,
+            "log_body": null,
+            "xcom_dict": {}
+        }
+    ],
+    "since": "2021-02-07T00:00:00.000000Z",
+    "airflow_version": "1.10.10",
+    "dags_path": "/Users/yevgenyzaligan/development/databand/.dbnd/airflow/dags",
+    "logs_path": "/Users/yevgenyzaligan/development/databand/.dbnd/airflow/logs",
+    "airflow_export_version": "0.33.4",
+    "rbac_enabled": "True",
+    "airflow_instance_uid": "34db92af-a525-522e-8f27-941cd4746d7b",
+    "metrics": {
+        "performance": {
+            "load_dags_models": 0.002000469947233796,
+            "get_incomplete_task_instances_from_completed_dag_runs": 0.004437985830008984,
+            "get_current_dag_model": 4.63270116597414e-05,
+            "get_dags": 0.07339723501354456,
+            "get_incomplete_data_type_1": 0.08190980786457658
+        },
+        "sizes": {
+            "current_dags": 11,
+            "incomplete_task_instances": 10,
+            "incomplete_dag_runs": 1,
+            "dags": 1
+        }
+    }
+}
