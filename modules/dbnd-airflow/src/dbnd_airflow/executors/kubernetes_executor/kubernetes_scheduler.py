@@ -51,6 +51,7 @@ from dbnd_airflow.executors.kubernetes_executor.kubernetes_watcher import (
     WatcherPodEvent,
 )
 from dbnd_airflow.executors.kubernetes_executor.utils import mgr_init
+from dbnd_airflow.scheduler.single_dag_run_job import report_airflow_task_instance
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 from dbnd_docker.kubernetes.dns1123_clean_names import create_pod_id
 from dbnd_docker.kubernetes.kube_dbnd_client import (
@@ -256,12 +257,9 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             str(next_job),
         )
 
-        dr = try_get_databand_run()
-        task_run = dr.get_task_run_by_af_id(task_id)
-        # When we submit from Scheduler (k8s scenario) we might get a task multiple times. without any
-        # change to the task_run_attempt_uid, that is why it is critical to update the run attempt, so
-        # we won't log everything to the same task_run_attempt.
-        task_run.update_task_run_attempt(try_number)
+        databand_run = try_get_databand_run()
+        task_run = databand_run.get_task_run_by_af_id(task_id)
+
         pod_command = [str(c) for c in command]
         task_engine = task_run.task_engine  # type: KubernetesEngineConfig
         pod = task_engine.build_pod(
