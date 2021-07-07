@@ -246,6 +246,8 @@ class DbndTargetOperationStatus(EnumWithAll):
 
 class SystemMetrics(EnumWithAll):
     Duration = "Duration"
+    TotalDuration = "Total Duration"
+    ComputeTime = "Compute Time"
     # TODO: Remove the obsolete 4 metrics below ,deprecated since version 0.43.0
     TotalCpuTime = "Total CPU Time"
     TotalWallTime = "Total Wall Time"
@@ -259,6 +261,8 @@ class SystemMetrics(EnumWithAll):
             s.value
             for s in [
                 SystemMetrics.Duration,
+                SystemMetrics.TotalDuration,
+                SystemMetrics.ComputeTime,
                 # TODO: Remove the obsolete 4 metrics below, deprecated since version 0.43.0
                 SystemMetrics.TotalCpuTime,
                 SystemMetrics.TotalWallTime,
