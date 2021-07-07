@@ -10,12 +10,10 @@ from airflow.executors import LocalExecutor, SequentialExecutor
 from airflow.models import DagPickle, DagRun, Pool, TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import create_session, provide_session
-from airflow.utils.net import get_hostname
 from airflow.utils.state import State
 from sqlalchemy.orm import Session
 
 from dbnd import dbnd_config
-from dbnd._core.constants import UpdateSource
 from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
@@ -34,7 +32,10 @@ from dbnd_airflow.dbnd_task_executor.dbnd_task_to_airflow_operator import (
 )
 from dbnd_airflow.executors import AirflowTaskExecutorType
 from dbnd_airflow.executors.simple_executor import InProcessExecutor
-from dbnd_airflow.scheduler.single_dag_run_job import SingleDagRunJob
+from dbnd_airflow.scheduler.single_dag_run_job import (
+    SingleDagRunJob,
+    report_airflow_task_instance,
+)
 from dbnd_airflow.utils import create_airflow_pool
 
 
@@ -272,26 +273,9 @@ class AirflowTaskExecutor(TaskExecutor):
     def do_run(self):
         dag = self.build_airflow_dag(task_runs=self.task_runs)
         with set_dag_as_current(dag):
-            from dbnd.api.tracking_api import AirflowTaskInfo
-
-            af_instances = []
-            for task_run in self.task_runs:
-                if not task_run.is_reused:
-                    # we build airflow infos only for not reused tasks
-                    af_instance = AirflowTaskInfo(
-                        execution_date=self.run.execution_date,
-                        dag_id=dag.dag_id,
-                        task_id=task_run.task_af_id,
-                        task_run_attempt_uid=task_run.task_run_attempt_uid,
-                    )
-                    af_instances.append(af_instance)
-
-            if af_instances and self.airflow_config.webserver_url:
-                self.run.tracker.tracking_store.save_airflow_task_infos(
-                    airflow_task_infos=af_instances,
-                    source=UpdateSource.dbnd,
-                    base_url=self.airflow_config.webserver_url,
-                )
+            report_airflow_task_instance(
+                dag.dag_id, self.run.execution_date, self.task_runs, self.airflow_config
+            )
 
             self.run_airflow_dag(dag)
 
