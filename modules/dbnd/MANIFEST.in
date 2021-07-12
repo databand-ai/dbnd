@@ -1,0 +1,14 @@
+include LICENSE *.md *.toml
+
+# Stubs
+#include dbnd/py.typed
+recursive-include src/dbnd *.pyi
+# All default configurations
+graft src/dbnd/conf
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .ipynb_checkpoints
+
+prune test_dbnd
+exclude tox.ini
