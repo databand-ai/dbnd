@@ -388,9 +388,15 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
             self.validator.validate(self, x)
 
     def as_str_input(self, value):
+        if value is None:
+            return "@none"
+
         switch_value = self.to_str(value)
-        if isinstance(value, Target) and self.load_on_build:
-            switch_value = "@%s" % switch_value
+        if isinstance(value, Target):
+            if self.load_on_build:
+                # this is non-data parameter, it's int/str/bool
+                # we are in the scenario, when something should be loaded, however, it's still Target
+                switch_value = "@target:%s" % switch_value
         return switch_value
 
     def next_in_enumeration(self, value):
