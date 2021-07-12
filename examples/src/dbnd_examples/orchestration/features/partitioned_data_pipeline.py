@@ -39,5 +39,17 @@ class ExamplePartitionedDataPipeline(dbnd.PipelineTask):
     concat = output.data
 
     def band(self):
-        partitioned_data = PartitionedDataTask().partitioned_data
-        self.concat = PartitionedDataReader(partitioned_data=partitioned_data).concat
+        # This is a way to override every output of underneath tasks with custom output location (see "_custom")
+        with dbnd.dbnd_config(
+            config_values={
+                "task": {
+                    "task_output_path_format": "{root}/{env_label}/{task_family}{task_class_version}_custom/"
+                    "{output_name}{output_ext}/date={task_target_date}"
+                }
+            }
+        ):
+
+            partitioned_data = PartitionedDataTask().partitioned_data
+            self.concat = PartitionedDataReader(
+                partitioned_data=partitioned_data
+            ).concat
