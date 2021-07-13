@@ -144,3 +144,8 @@ def get_target_logging_level():
 def is_killed():
     run = try_get_databand_run()
     return run and run.is_killed()
+
+
+def cancel_current_run(message=None):
+    current_databand_run = get_databand_run()
+    return current_databand_run.kill_run(message)
