@@ -16,7 +16,11 @@ from dbnd._core.constants import (
 )
 from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRunError, DatabandSystemError
-from dbnd._core.errors.base import DatabandFailFastError, DatabandSigTermError
+from dbnd._core.errors.base import (
+    DatabandError,
+    DatabandFailFastError,
+    DatabandSigTermError,
+)
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.run.run_banner import print_tasks_tree
@@ -32,6 +36,7 @@ from dbnd._core.task_executor.heartbeat_sender import start_heartbeat_sender
 from dbnd._core.task_executor.local_task_executor import LocalTaskExecutor
 from dbnd._core.task_executor.results_view import RunResultBand
 from dbnd._core.task_executor.task_runs_builder import TaskRunsBuilder
+from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils import console_utils
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.nested_context import nested
@@ -42,6 +47,8 @@ from dbnd._core.utils.uid_utils import get_uuid
 from dbnd.api.runs import kill_run
 from targets import FileTarget, target
 
+
+DEFAULT_TASK_CANCELED_ERR_MSG = "Task was killed by the user"
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +70,7 @@ class RunExecutor(object):
         self, run, root_task_or_task_name, send_heartbeat, force_task_name=None
     ):
 
-        self.run = run
+        self.run = run  # type: DatabandRun
         self.send_heartbeat = send_heartbeat
 
         if root_task_or_task_name is None:
@@ -312,14 +319,31 @@ class RunExecutor(object):
             logger.warning("Failed to kill current task %s: %s" % (current_task, ex))
             return
 
-    def kill_run(self):
+    def kill_run(self, message=None):
         _is_killed.set()
+
+        # When initiating kill_run, the api's kill_run sends a signal to all running runs,
+        # to change their state to shutdown, which in the end sets it to cancelled.
+        # the task which initiated the killing, the current task run, should have a state of Failed, and not Canceled.
+        # It is important to set it with an error, to allow the passing of error message, to be displayed in the UI
+        # as the error_message for the whole run.
+        tr = current_task_run()
+        if tr.run == self.run:
+            task_run_error = TaskRunError.build_from_message(
+                task_run=tr,
+                msg=message or DEFAULT_TASK_CANCELED_ERR_MSG,
+                help_msg="task with task_run_uid:%s initiated kill_run"
+                % (tr.task_run_uid),
+            )
+            tr.set_task_run_state(TaskRunState.FAILED, track=True, error=task_run_error)
         try:
-            return kill_run(str(self.run.run_uid), ctx=self.run.context)
+            kill_run(str(self.run.run_uid), ctx=self.run.context)
         except Exception as e:
             raise DatabandFailFastError(
                 "Could not send request to kill databand run!", e
             )
+        if tr.run == self.run:
+            raise DatabandError(message or DEFAULT_TASK_CANCELED_ERR_MSG)
 
     # all paths, we make them system, we don't want to check if they are exists
 

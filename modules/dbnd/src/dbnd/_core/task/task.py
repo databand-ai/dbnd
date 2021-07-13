@@ -137,6 +137,10 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         default=False, description="Store all task outputs in memory"
     )[bool]
 
+    task_output_path_format = system_passthrough_param(
+        default=None, description="Format string used to generate task output paths"
+    )[str]
+
     task_is_dynamic = system_passthrough_param(
         default=False,
         scope=ParameterScope.children,
@@ -318,9 +322,23 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         pass
 
     def _get_task_output_path_format(self, output_mode):
+        """"
+        Defines the format string used to generate all task outputs
+        For example:
+           {root}/{env_label}/{task_target_date}/{task_name}/{task_name}{task_class_version}_{task_signature}/{output_name}{output_ext}
+        :return str
+        """
+        if self.task_output_path_format:
+            # explicit input - first priority
+            return self.task_output_path_format
+        if self._conf__base_output_path_fmt:
+            # from class definition
+            return self._conf__base_output_path_fmt
+
+        # default behaviour
         if self.task_env.production and output_mode == OutputMode.prod_immutable:
             return self.settings.output.path_prod_immutable_task
-        return self._conf__base_output_path_fmt or self.settings.output.path_task
+        return self.settings.output.path_task
 
     def get_target(self, name, config=None, output_ext=None, output_mode=None):
         name = name or "tmp/dbnd-tmp-%09d" % random.randint(0, 999999999)

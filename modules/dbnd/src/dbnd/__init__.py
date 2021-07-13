@@ -19,6 +19,7 @@ from dbnd._core.configuration.dbnd_config import config, config_deco
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import (
+    cancel_current_run,
     current_task,
     current_task_run,
     dbnd_context,
@@ -86,6 +87,7 @@ get_dbnd_project_config().validate_init()  # isort:skip
 
 dbnd_config = config
 __all__ = [
+    "cancel_current_run",
     "hookimpl",
     # context management
     "new_dbnd_context",
@@ -165,7 +167,7 @@ __all__ = [
 
 # shortcuts for useful objects
 str(_set_patches)  # NOQA
-__version__ = "0.44.1"
+__version__ = "0.44.2"
 
 __title__ = "databand"
 __description__ = "Machine Learning Orchestration"

@@ -9,7 +9,16 @@ from typing import List
 import pandas as pd
 import six
 
-from dbnd import PythonTask, config, dbnd_run_cmd, output, parameter, task
+from dbnd import (
+    PythonTask,
+    Task,
+    config,
+    dbnd_config,
+    dbnd_run_cmd,
+    output,
+    parameter,
+    task,
+)
 from dbnd._core.constants import OutputMode
 from dbnd._core.current import get_databand_context
 from dbnd.testing.helpers_pytest import assert_run_task, skip_on_windows
@@ -149,7 +158,7 @@ class TestTaskDataOutputs(object):
 
         assert_run_task(TGeneratedOutputs())
 
-    def test_custom_parition(self):
+    def test_custom_parition_via_class(self):
         class CustomOutputsTTask(TTask):
             _conf__base_output_path_fmt = (
                 "{root}/{env_label}/{task_family}{task_class_version}_custom/"
@@ -159,6 +168,27 @@ class TestTaskDataOutputs(object):
         task = CustomOutputsTTask()
         assert_run_task(task)
         assert "CustomOutputsTTask_custom/t_output.csv/" in str(task.t_output)
+
+    def test_custom_partition_from_config(self):
+        with dbnd_config(
+            config_values={
+                "task": {
+                    "task_output_path_format": "{root}/{env_label}/{task_family}{task_class_version}_custom/"
+                    "{output_name}{output_ext}/date={task_target_date}"
+                }
+            }
+        ):
+            task = TTask()
+            assert_run_task(task)
+            assert "TTask_custom/t_output.csv/" in str(task.t_output)
+
+    def test_custom_partition_from_ctor(self):
+        task = TTask(
+            task_output_path_format="{root}/{env_label}/{task_family}{task_class_version}_custom/"
+            "{output_name}{output_ext}/date={task_target_date}"
+        )
+        assert_run_task(task)
+        assert "TTask_custom/t_output.csv/" in str(task.t_output)
 
     def test_multiple_outputs_inline(self):
         def _partitions(task, to):

@@ -143,19 +143,28 @@ class ValueType(object):
         # if we need to parse("str") or read_from_disk("str")
         # @ in the beginning of the string supported by @@
         if isinstance(value, six.string_types) and value.startswith("@"):
-            value = value[1:]
+            value = value[1:]  # we shift first @
             if value.startswith("@"):
                 # this is the way to provide string value with @
-                pass
-            else:
-                # so this is @/somepath case and not @@
-                # TODO: we need to move it into target wrapper
-                if value.startswith("python://"):
-                    value = value[9:]
-                    value = run_user_func(value)
-                else:
-                    from targets import target
+                # we return value minus "@"
+                return value
+            # so this is @/somepath case and not @@
+            if value.lower() == "none":
+                return None
 
+            from targets import target
+
+            if value.startswith("python://"):
+                value = value[9:]
+                value = run_user_func(value)
+            else:
+                if value.startswith("target:"):
+                    value = value[7:]
+                    value = target(value)
+                else:
+                    # the path is a target, something like @/path/to/file/with/data
+                    # this might be dangerous, we need to have more "explicit" way
+                    # to understand that the path is a path
                     value = self.load_from_target(target(value))
         return value
 

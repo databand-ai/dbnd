@@ -8,6 +8,7 @@ from typing import List
 from dbnd import dbnd_run_cmd, parameter, task
 from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser
 from dbnd_test_scenarios.test_common.task.factories import TTask
+from targets import target
 from targets.values import DateValueType
 
 
@@ -26,6 +27,8 @@ class TaskInfoParamsTask(TTask):
     date_param = parameter.value(DateValueType().parse_from_str("2015-04-03"))
     false_param = parameter.value(False)
     true_param = parameter.value(True)
+    none_param = parameter[str]
+    str_as_target = parameter[str]
 
     def run(self):
         super(TaskInfoParamsTask, self).run()
@@ -35,14 +38,25 @@ class TaskInfoParamsTask(TTask):
         assert self.date_param == datetime.date(2015, 4, 3)
         assert not self.false_param
         assert self.true_param
+        assert self.none_param is None  # check for @none support
+        assert self.str_as_target is not None  # check for @target support
+        assert (
+            "THIS FILE" in self.str_as_target
+        )  # we load this file, so THIS FILE is there :)
 
 
 class TestTaskInfo(object):
     def test_generated_command_line(self):
-        t = TaskInfoParamsTask(str_param=15, num_param=12, list_param=[1, 2, 3])
+        t = TaskInfoParamsTask(
+            str_param=15,
+            num_param=12,
+            list_param=[1, 2, 3],
+            none_param=None,
+            str_as_target=target(__file__),
+        )
         cmd_line_as_str = t.ctrl.task_repr.task_command_line
         cmd_line = shlex.split(cmd_line_as_str)
-
+        logger.info("Command line: %s", cmd_line_as_str)
         assert cmd_line_as_str.startswith("dbnd run")
         # check that outputs are filtered out
         assert "t_output" not in cmd_line_as_str
@@ -53,7 +67,13 @@ class TestTaskInfo(object):
 
     def test_generated_function_call(self):
 
-        t = TaskInfoParamsTask(str_param=15, num_param=12, list_param=[1, 2, 3])
+        t = TaskInfoParamsTask(
+            str_param=15,
+            num_param=12,
+            list_param=[1, 2, 3],
+            none_param=None,
+            str_as_target=target(__file__),
+        )
         func_call = t.ctrl.task_repr.task_functional_call
 
         import test_dbnd
