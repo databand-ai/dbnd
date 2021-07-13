@@ -377,9 +377,9 @@ class DatabandRun(SingletonContext):
         if self.run_executor:
             self.run_executor.kill()
 
-    def kill_run(self):
+    def kill_run(self, message=None):
         if self.run_executor:
-            self.run_executor.kill_run()
+            self.run_executor.kill_run(message)
 
     def get_current_dbnd_local_root(self):
         # we should return here the proper engine config, based in which context we run right now
