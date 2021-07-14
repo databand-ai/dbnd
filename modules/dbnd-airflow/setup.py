@@ -61,6 +61,7 @@ setuptools.setup(
             "pandas-gbq",
             # docker
             "docker~=3.0",
+            "idna<=2.7",  # conflict with requests (require 2.8 <)
             # k8s
             "kubernetes==9.0.0",
             "cryptography>=2.0.0",
