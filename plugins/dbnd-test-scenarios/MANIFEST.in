@@ -1,0 +1,13 @@
+include LICENSE *.md *.toml
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .ipynb_checkpoints
+
+include *.py
+include tox.ini
+recursive-include scenarios *.java
+recursive-include scenarios *.py
+recursive-include scenarios *.xml
+recursive-include src *.sh
+recursive-include scripts *.sh

@@ -1,0 +1,33 @@
+FROM python:3.6
+
+USER root
+RUN apt-get update
+RUN apt-get install -y gcc unzip vim
+
+COPY ./plugins /dbnd/plugins/
+COPY ./modules /dbnd/modules/
+COPY ./examples /dbnd/examples/
+
+COPY ./setup.cfg /dbnd/modules/dbnd/setup.cfg
+COPY ./setup.cfg /dbnd/modules/dbnd-airflow/setup.cfg
+COPY ./setup.cfg /dbnd/examples/setup.cfg
+COPY ./setup.cfg /dbnd/plugins/*/setup.cfg
+
+COPY ./project.cfg /dbnd/
+
+RUN pip install --upgrade 'pip>=20,<20.3'
+
+ARG AIRFLOW_EXTRA=airflow
+RUN pip install -e /dbnd/modules/dbnd
+RUN pip install -e /dbnd/modules/dbnd-airflow[$AIRFLOW_EXTRA]
+RUN pip install -e /dbnd/examples
+RUN pip install -e /dbnd/plugins/dbnd-aws
+RUN pip install -e /dbnd/plugins/dbnd-docker
+RUN pip install -e /dbnd/plugins/dbnd-airflow-auto-tracking
+RUN pip install -e /dbnd/plugins/dbnd-airflow-export
+RUN pip install -e /dbnd/plugins/dbnd-airflow-operator
+RUN pip install -e /dbnd/plugins/dbnd-airflow-versioned-dag
+
+WORKDIR /dbnd
+
+ENTRYPOINT "/bin/bash"
