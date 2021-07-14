@@ -630,9 +630,11 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                     ti.task_id
                 )  # type: TaskRun
                 # looking for retry tasks
-                if task_run and task_run.attempt_number != ti.try_number:
+
+                af_task_try_number = get_af_task_try_number(ti)
+                if task_run and task_run.attempt_number != af_task_try_number:
                     # update in memory object with new attempt number
-                    task_run.update_task_run_attempt(ti.try_number)
+                    task_run.update_task_run_attempt(af_task_try_number)
                     # sync the tracker with the new task_run_attempt
                     databand_run.tracker.tracking_store.add_task_runs(
                         run=databand_run, task_runs=[task_run]
@@ -878,3 +880,23 @@ def report_airflow_task_instance(
             source=UpdateSource.dbnd,
             base_url=airflow_config.webserver_url,
         )
+
+
+def get_af_task_try_number(af_task_instance):
+    """
+    Return the expected try_number from airflow's TaskInstance
+
+    Airflow's TaskInstance have two attributes - `_try_number` and `try_number` here is the change in flow for those two:
+    State                                   _try_number     try_number      expected
+    ================================================================================
+    pre-run (scheduled/submitted/queued)    0               1               1
+    running                                 1               1               1
+    finished (success/fail/...)             1               2               1
+    pre-rerun (scheduled/submitted/queued)  1               2               2
+    rerunning                               2               2               2
+    finished (success/fail/...)             2               3               2
+    """
+    if af_task_instance.state in State.finished():
+        return af_task_instance.try_number - 1
+
+    return af_task_instance.try_number
