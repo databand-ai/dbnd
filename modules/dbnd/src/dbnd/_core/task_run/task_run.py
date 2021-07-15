@@ -1,8 +1,6 @@
 import logging
 import typing
 
-from uuid import UUID
-
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
@@ -111,6 +109,15 @@ class TaskRun(object):
 
         self.start_time = None
         self.finished_time = None
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        if "airflow_context" in d:
+            # airflow context contains "auto generated code" that can not be pickled (Vars class)
+            # we don't need to pickle it as we pickle DAGs separately
+            d = self.__dict__.copy()
+            del d["airflow_context"]
+        return d
 
     @property
     def task_run_env(self):
