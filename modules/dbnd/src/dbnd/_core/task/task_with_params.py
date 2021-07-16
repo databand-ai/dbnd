@@ -106,17 +106,18 @@ class _TaskWithParams(_BaseTask):
             cls = self.__class__
         output_params_to_clone = output_params_to_clone or []
         new_k = {}
+
+        # copy only fields that exists in target class
         for param_name, param_class in six.iteritems(
             cls.task_definition.task_param_defs
         ):
             if param_class.is_output() and param_name not in output_params_to_clone:
                 continue
-            if param_name in kwargs:
-                new_k[param_name] = kwargs[param_name]
-            elif hasattr(self, param_name):
+            if hasattr(self, param_name):
                 new_k[param_name] = getattr(self, param_name)
-
         new_k["task_name"] = self.task_name
+
+        new_k.update(kwargs)
         return cls(**new_k)
 
     @classmethod
