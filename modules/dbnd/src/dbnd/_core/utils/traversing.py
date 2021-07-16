@@ -1,3 +1,5 @@
+import functools
+
 from collections import Mapping
 
 import six
@@ -66,69 +68,81 @@ def traverse(
     filter_none=False,
     filter_empty=False,
     convert_types=None,
+    traverse_path=None,
 ):
     """
     Maps all Tasks in a structured data object to their .output().
     :param convert_types non basic types to apply convert_f
     :param filter_none  remove None from structures
     """
+    obj = struct
 
-    def t(obj):
-        if convert_types and isinstance(obj, convert_types):
-            return convert_f(obj)
+    if traverse_path is None:
+        traverse_path = []  # first invocation fo the function
 
-        if isinstance(obj, Mapping):
-            # noinspection PyArgumentList
-            converted = ((k, t(v)) for k, v in six.iteritems(obj))
-            if filter_none:
-                converted = ((k, v) for k, v in converted if v is not None)
-            new_obj = obj.__class__(converted)
-            if filter_empty and not new_obj:
-                return None
-            return new_obj
+    t = functools.partial(
+        traverse,
+        convert_f=convert_f,
+        filter_none=filter_none,
+        filter_empty=filter_empty,
+        convert_types=convert_types,
+    )
 
-        if isinstance(obj, six.string_types):
-            return convert_f(obj)
-
-        if "pyspark" in str(type(obj)):
-            return convert_f(obj)
-
-        try:
-            target_no_traverse = hasattr(obj, "target_no_traverse") and getattr(
-                obj, "target_no_traverse", None
-            )
-        except ValueError:
-            # SPARK OBJECTS do not support hasattr
-            target_no_traverse = True
-        if target_no_traverse is bool and target_no_traverse:
-            return convert_f(obj)
-
-        list_obj_constructor = None
-        if isinstance(obj, (list, tuple, set)):
-            list_obj_constructor = obj.__class__
-        elif is_instance_by_class_name(obj, "DataFrame"):
-            pass
-        else:
-            try:
-                iter(obj)  # noqa: F841
-                list_obj_constructor = list
-            except TypeError:
-                pass
-
-        # we can parse and reconstruct list object
-        if list_obj_constructor:
-            converted = (t(r) for r in obj)
-            if filter_none:
-                converted = filter(lambda x: x is not None, converted)
-            new_obj = list_obj_constructor(converted)
-            if filter_empty and not new_obj:
-                return None
-            return new_obj
-
-        # so it's simple obj, let apply function
+    if convert_types and isinstance(obj, convert_types):
         return convert_f(obj)
 
-    return t(struct)
+    if isinstance(obj, Mapping):
+        # noinspection PyArgumentList
+        converted = (
+            (k, t(v, traverse_path=traverse_path + [k])) for k, v in six.iteritems(obj)
+        )
+        if filter_none:
+            converted = ((k, v) for k, v in converted if v is not None)
+        new_obj = obj.__class__(converted)
+        if filter_empty and not new_obj:
+            return None
+        return new_obj
+
+    if isinstance(obj, six.string_types):
+        return convert_f(obj)
+
+    if "pyspark" in str(type(obj)):
+        return convert_f(obj)
+
+    try:
+        target_no_traverse = hasattr(obj, "target_no_traverse") and getattr(
+            obj, "target_no_traverse", None
+        )
+    except ValueError:
+        # SPARK OBJECTS do not support hasattr
+        target_no_traverse = True
+    if target_no_traverse is bool and target_no_traverse:
+        return convert_f(obj)
+
+    list_obj_constructor = None
+    if isinstance(obj, (list, tuple, set)):
+        list_obj_constructor = obj.__class__
+    elif is_instance_by_class_name(obj, "DataFrame"):
+        pass
+    else:
+        try:
+            iter(obj)  # noqa: F841
+            list_obj_constructor = list
+        except TypeError:
+            pass
+
+    # we can parse and reconstruct list object
+    if list_obj_constructor:
+        converted = (t(r, traverse_path=traverse_path + [i]) for i, r in enumerate(obj))
+        if filter_none:
+            converted = filter(lambda x: x is not None, converted)
+        new_obj = list_obj_constructor(converted)
+        if filter_empty and not new_obj:
+            return None
+        return new_obj
+
+    # so it's simple obj, let apply function
+    return convert_f(obj)
 
 
 def _frozen_set(struct):
