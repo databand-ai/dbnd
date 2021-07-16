@@ -5,7 +5,6 @@ from collections import Counter
 from dbnd._core.constants import DescribeFormat, SystemTaskName, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.run.run_ctrl import RunCtrl
-from dbnd._core.settings.core import CoreConfig
 from dbnd._core.tracking.schemas.tracking_info_objects import TaskRunEnvInfo
 from dbnd._core.utils.basics.text_banner import TextBanner
 
@@ -56,9 +55,14 @@ class RunBanner(RunCtrl):
             b.column("RUN OPTIMIZATION", " ".join(optimizations))
         return b
 
-    def run_banner(self, msg, color="white", show_run_info=False, show_tasks_info=True):
-        b = TextBanner(msg, color)
+    def run_banner(
+        self, msg, color="white", show_run_info=False, show_tasks_info=False
+    ):
         run = self.run  # type: DatabandRun
+        if run.root_run_info.root_run_uid != run.run_uid:
+            msg += " -> sub-run"
+
+        b = TextBanner(msg, color)
         ctx = run.context
         task_run_env = ctx.task_run_env  # type: TaskRunEnvInfo
 

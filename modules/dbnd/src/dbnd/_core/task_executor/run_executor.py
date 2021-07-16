@@ -234,6 +234,7 @@ class RunExecutor(object):
                     "Your run has failed! See more info above.",
                     color="red",
                     show_run_info=True,
+                    show_tasks_info=True,
                 ),
             )
         )
@@ -496,7 +497,7 @@ class RunExecutor(object):
                 color="green",
                 task_run=self.run.root_task_run,
             ),
-            run.describe.run_banner(msg, color="green",),
+            run.describe.run_banner(msg, color="green", show_tasks_info=True),
         )
         logger.info(run_msg)
 
