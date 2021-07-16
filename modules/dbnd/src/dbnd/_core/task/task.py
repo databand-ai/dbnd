@@ -279,9 +279,10 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
     def _task_run(self):
         # bring all relevant files
         self.current_task_run.sync_local.sync_pre_execute()
+        param_values = self.task_params.get_param_values()
 
         with auto_load_save_params(
-            task=self, auto_read=self._conf_auto_read_params,
+            task=self, auto_read=self._conf_auto_read_params, param_values=param_values
         ):
             result = self.run()
 
@@ -421,9 +422,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
 
 @contextmanager
-def auto_load_save_params(task, auto_read):
-    task_params = task.task_params
-    param_values = task_params.get_param_values()
+def auto_load_save_params(task, auto_read, param_values):
     original_values = [(p, p.value) for p in param_values]
 
     # keep all outputs that were "read" during pre-read phase

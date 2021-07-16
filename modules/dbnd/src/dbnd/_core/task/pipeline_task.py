@@ -12,6 +12,9 @@ class PipelineTask(Task):
     _conf__task_type_name = TaskType.pipeline
 
     def _task_run(self):
+        """
+        we override, as we don't want to automatically load deferred inputs as we do it in regular task
+        """
         result = self.run()
         return result
 
