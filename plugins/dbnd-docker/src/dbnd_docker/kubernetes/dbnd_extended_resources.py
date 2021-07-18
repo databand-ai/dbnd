@@ -1,9 +1,9 @@
-import airflow.contrib.kubernetes.pod
+from airflow.contrib.kubernetes.pod import Resources
 
 
-class DbndExtendedResources(airflow.contrib.kubernetes.pod.Resources):
+class DbndExtendedResources(Resources):
     def __init__(self, requests=None, limits=None, **kwargs):
         # py2 support: Resources is not object
-        airflow.contrib.kubernetes.pod.Resources.__init__(self, **kwargs)
+        Resources.__init__(self, **kwargs)
         self.requests = requests
         self.limits = limits
