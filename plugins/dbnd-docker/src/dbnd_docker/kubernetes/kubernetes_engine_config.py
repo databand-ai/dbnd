@@ -451,7 +451,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             ] = self.gcp_service_account_keys
         annotations["dbnd_tracker"] = task_run.task_tracker_url
 
-        from dbnd_docker.kubernetes.dbnd_extended_resources import DbndExtendedResources
+        from dbnd_docker.kubernetes.vendorized_airflow.dbnd_extended_resources import (
+            DbndExtendedResources,
+        )
 
         resources = DbndExtendedResources(
             requests=self.requests,
@@ -572,7 +574,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         return result
 
     def build_kube_pod_req(self, pod):
-        from dbnd_airflow.airflow_extensions.request_factory import (
+        from dbnd_docker.kubernetes.vendorized_airflow.request_factory import (
             DbndPodRequestFactory,
         )
 
