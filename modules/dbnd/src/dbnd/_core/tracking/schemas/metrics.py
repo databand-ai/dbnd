@@ -2,6 +2,7 @@ import json
 import logging
 
 import attr
+import six
 
 from dbnd._core.constants import _DbndDataClass
 from dbnd._core.utils.string_utils import safe_short_string
@@ -11,17 +12,21 @@ logger = logging.getLogger(__name__)
 
 
 def safe_value_to_str(value, max_len):
+    if value is None or isinstance(value, six.string_types):
+        return safe_short_string(str(value), max_len)
+
     try:
         # local import to prevent imports recursion
         from targets.values import get_value_type_of_obj
 
         value_type = get_value_type_of_obj(value)
-        value_str = value_type.to_preview(value, max_len)
+
+        if value_type is not None:
+            return value_type.to_preview(value, max_len)
     except Exception:
         logger.warning("failed dumping metric, falling back to str", exc_info=True)
         # This object has to hold only serializable values
-        value_str = safe_short_string(str(value), max_len)
-    return value_str
+    return safe_short_string(str(value), max_len)
 
 
 class Metric(_DbndDataClass):
