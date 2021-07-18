@@ -27,7 +27,7 @@ class DbndPodRequestFactory(object):
         self.extract_volume_secrets(pod, req)
         self.extract_extended_resources(req, pod)
         self.extract_restart_policy(req)
-        if self.kubernetes_engine_config.airflow_live_log_image is not None:
+        if self.kubernetes_engine_config.airflow_log_enabled:
             self.add_logs_container(req)
 
         return req
@@ -107,8 +107,9 @@ class DbndPodRequestFactory(object):
         )
 
         # add to the log mount to the original container
-        req["spec"]["containers"][0].setdefault("volumeMounts", [])
-        req["spec"]["containers"][0]["volumeMounts"].extend(
+        base_container = req["spec"]["containers"][0]
+        base_container.setdefault("volumeMounts", [])
+        base_container["volumeMounts"].extend(
             [
                 {
                     "name": AIRFLOW_LOG_MOUNT_NAME,
@@ -123,8 +124,8 @@ class DbndPodRequestFactory(object):
         # In kubernetes normally, only Services get DNS names, not Pods. so we use the ip.
         # see more here: https://stackoverflow.com/a/59262628
         if self.kubernetes_engine_config.host_as_ip_for_live_logs:
-            req["spec"]["containers"][0].setdefault("env", [])
-            req["spec"]["containers"][0]["env"].append(
+            base_container.setdefault("env", [])
+            base_container["env"].append(
                 {
                     "name": "AIRFLOW__CORE__HOSTNAME_CALLABLE",
                     "value": "airflow.utils.net:get_host_ip_address",
@@ -133,7 +134,10 @@ class DbndPodRequestFactory(object):
 
         # build the log sidecar and add it
         log_folder = self.kubernetes_engine_config.airflow_log_folder
-        airflow_image = self.kubernetes_engine_config.airflow_live_log_image
+
+        airflow_image = (
+            self.kubernetes_engine_config.airflow_log_image or base_container["image"]
+        )
         log_port = self.kubernetes_engine_config.airflow_log_port
         side_car = {
             "name": "log-sidecar",  # keep the name lowercase
@@ -148,16 +152,27 @@ class DbndPodRequestFactory(object):
                     trap_file
                 )
             ],
-            # those env variable are used by `airflow serve_logs` to access the log and with the relevant port
-            "env": [
-                {"name": "AIRFLOW__CORE__BASE_LOG_FOLDER", "value": log_folder,},
-                {"name": "AIRFLOW__CELERY__WORKER_LOG_SERVER_PORT", "value": log_port},
-            ],
             "volumeMounts": [
                 {"name": AIRFLOW_LOG_MOUNT_NAME, "mountPath": log_folder},
                 {"name": "trap", "mountPath": trap_dir,},
             ],
             "ports": [{"containerPort": int(log_port)}],
         }
+
+        # we want our side container to have basic env
+        side_car["env"] = (
+            list(base_container["env"]) if base_container.get("env") else []
+        )
+        existing_keys = {env_def.get("name") for env_def in side_car["env"]}
+
+        # those env variable are used by `airflow serve_logs` to access the log and with the relevant port
+        if "AIRFLOW__CORE__BASE_LOG_FOLDER" not in existing_keys:
+            side_car["env"].append(
+                {"name": "AIRFLOW__CORE__BASE_LOG_FOLDER", "value": log_folder,}
+            )
+        if "AIRFLOW__CELERY__WORKER_LOG_SERVER_PORT" not in existing_keys:
+            side_car["env"].append(
+                {"name": "AIRFLOW__CELERY__WORKER_LOG_SERVER_PORT", "value": log_port},
+            )
 
         req["spec"]["containers"].append(side_car)
