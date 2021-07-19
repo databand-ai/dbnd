@@ -3,7 +3,6 @@ package ai.databand;
 import ai.databand.log.HistogramRequest;
 import ai.databand.schema.DatasetOperationStatuses;
 import ai.databand.schema.DatasetOperationTypes;
-import ai.databand.schema.LogDataset;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
 import org.apache.spark.sql.Dataset;
@@ -88,7 +87,12 @@ public interface DbndRun {
     /**
      * Log dataset operations.
      *
-     * @param datasets
+     * @param operationPath   operation path
+     * @param operationType   operation type (read/write)
+     * @param operationStatus operation status (success/failed)
+     * @param valuePreview    dataset preivew
+     * @param dataDimensions  dataset dimenstions
+     * @param dataSchema      dataset schema
      */
     void logDatasetOperation(String operationPath,
                              DatasetOperationTypes operationType,
