@@ -28,7 +28,7 @@ public class ActiveJobTracker {
     /**
      * Extract IO information from Spark ActiveJob.
      *
-     * @param job
+     * @param job Spark job
      */
     public static void track(ActiveJob job) {
         Stage stage = job.finalStage();
@@ -90,8 +90,8 @@ public class ActiveJobTracker {
     /**
      * Recursively extract all rdds from job.
      *
-     * @param rdd
-     * @return
+     * @param rdd top-level rdd
+     * @return list of all downstream rdds
      */
     public static List<RDD<?>> allRdds(RDD<?> rdd) {
         List<RDD<?>> result = new ArrayList<>(1);
