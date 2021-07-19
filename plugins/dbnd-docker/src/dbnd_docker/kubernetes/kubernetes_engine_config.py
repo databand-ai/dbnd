@@ -253,7 +253,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     airflow_log_enabled = parameter(
         default=False,
         description="Enables Airflow Live log at KubernetesExecutor feature",
-    )[str]
+    )[bool]
     airflow_log_image = parameter(
         default=None,
         description="Overrider the image that will be used to add sidecar to the run which will expose the live "
