@@ -16,9 +16,10 @@ public class NormalizedProps implements PropertiesSource {
         props = new HashMap<>();
         for (Map.Entry<String, String> prop : propsToNormalize.entrySet()) {
             String key = prop.getKey();
+            String normalizedValue = prop.getValue().trim();
             if (key.toLowerCase().startsWith("dbnd")) {
                 String normalizedKey = key.replace("__", ".").toLowerCase();
-                props.put(normalizedKey, prop.getValue());
+                props.put(normalizedKey, normalizedValue);
             } else {
                 props.put(key, prop.getValue());
             }

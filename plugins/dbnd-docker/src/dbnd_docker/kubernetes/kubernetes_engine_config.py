@@ -250,10 +250,14 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     # airflow live logs feature
     # ------------------------- #
-    airflow_live_log_image = parameter(
+    airflow_log_enabled = parameter(
+        default=False,
+        description="Enables Airflow Live log at KubernetesExecutor feature",
+    )[str]
+    airflow_log_image = parameter(
         default=None,
-        description="Specify the airflow image that will be used to add sidecar to the run which will expose the live "
-        "logs of the run. By setting it to a value (default=None), it enables the `airflow live log` feature.",
+        description="Overrider the image that will be used to add sidecar to the run which will expose the live "
+        "logs of the run. By default the main container image will be used",
     )[str]
     airflow_log_folder = parameter(
         default="/usr/local/airflow/logs",
@@ -265,6 +269,12 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         description="The port airflow live log sidecar will expose its service. This port should match the port "
         "airflow webserver tries to access the live logs ",
     )[str]
+
+    airflow_log_trap_exit_flag_default = parameter(
+        default="/tmp/pod/terminated",
+        description="The path that will be used by default if `airflow_log_enabled` is true ",
+    )[str]
+
     container_airflow_log_path = parameter(
         default="/root/airflow/logs/",
         description="The path to the airflow logs, on the databand container.",
@@ -298,6 +308,13 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                 "switching to auto_remove=False"
             )
             self.auto_remove = False
+
+        if (
+            self.airflow_log_enabled
+            and not self.trap_exit_file_flag
+            and self.airflow_log_trap_exit_flag_default
+        ):
+            self.trap_exit_file_flag = self.airflow_log_trap_exit_flag_default
 
         self.pod_retry_config = PodRetryConfiguration.from_kube_config(self)
 
@@ -451,7 +468,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             ] = self.gcp_service_account_keys
         annotations["dbnd_tracker"] = task_run.task_tracker_url
 
-        from dbnd_docker.kubernetes.dbnd_extended_resources import DbndExtendedResources
+        from dbnd_docker.kubernetes.vendorized_airflow.dbnd_extended_resources import (
+            DbndExtendedResources,
+        )
 
         resources = DbndExtendedResources(
             requests=self.requests,
@@ -572,7 +591,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         return result
 
     def build_kube_pod_req(self, pod):
-        from dbnd_airflow.airflow_extensions.request_factory import (
+        from dbnd_docker.kubernetes.vendorized_airflow.request_factory import (
             DbndPodRequestFactory,
         )
 
