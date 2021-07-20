@@ -126,3 +126,30 @@ class UpdateDagRunsRequestSchema(ApiObjectSchema):
     airflow_export_meta = fields.Nested(AirflowExportMetaSchema, required=False)
     error_message = fields.String(required=False, allow_none=True)
     syncer_type = fields.String(allow_none=True)
+
+
+# Datasource Tracking
+class DatasetMetadataSchema(ApiObjectSchema):
+    num_bytes = fields.Integer()
+    num_rows = fields.Integer()
+    # TODO: ADD -> Schema & Preview
+
+
+class DatasetSchema(ApiObjectSchema):
+    uri = fields.String()  # {storage_type://project_id/scheme_name/table_name}
+    name = fields.String()  # {scheme_name.table_name}
+    storage_type = fields.String()  # bigquery / snowflake / etc
+    created_date = fields.DateTime()
+    last_modified_date = fields.DateTime(allow_none=True)
+    # Metadata #TODO: make nested switching marmellow
+    num_bytes = fields.Integer()
+    num_rows = fields.Integer()
+
+
+class DatasetsRequestSchema(ApiObjectSchema):
+    # report_timestamp = fields.DateTime()
+    error_message = fields.String(required=False, allow_none=True)
+    source_type = fields.String(allow_none=True)  # bigquery / snowflake / etc
+    syncer_type = fields.String(allow_none=True)
+
+    datasets = fields.Nested(DatasetSchema, many=True)

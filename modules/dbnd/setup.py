@@ -27,7 +27,7 @@ setuptools.setup(
     name="dbnd",
     package_dir={"": "src"},
     install_requires=[
-        "tzlocal>=1.0.0,<2.0.0",
+        "tzlocal>=1.0.0,<=2.1.0",
         "six",
         "more-itertools ; python_version>='3.0'",
         "more-itertools==5.0.0 ; python_version<'3.0'",
