@@ -135,16 +135,6 @@ dbnd_py36_windows:
     - xcopy /y "modules\setup.cfg" "modules\dbnd\"
     - tox -c modules/dbnd/tox.ini -r -e win-py36
 
-dbnd_py37:
-  <<: *template__python_test_job
-  image: python:3.7
-  script:
-    - cd modules/dbnd
-    - tox -e py37
-  artifacts:
-    reports:
-      junit: modules/dbnd/build/junit-py37.xml
-
 dbnd_examples_py27:
   <<: *template__python_test_job
   image: python:2.7
@@ -336,20 +326,6 @@ dbnd_tensorflow 2 py36:
   variables:
     IMAGE: python:3.6
     TEST_NAME: py36-tensorflow2
-
-dbnd_tensorflow 1 py37:
-  <<: *template__test_tensorflow
-  variables:
-    IMAGE: python:3.7
-    TEST_NAME: py37-tensorflow1
-  when: manual
-
-dbnd_tensorflow 2 py37:
-  <<: *template__test_tensorflow
-  variables:
-    IMAGE: python:3.7
-    TEST_NAME: py37-tensorflow2
-  when: manual
 
 build_pypi_org_whl:
   stage: build-base
