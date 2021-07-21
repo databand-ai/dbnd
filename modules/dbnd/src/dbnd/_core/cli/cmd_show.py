@@ -1,5 +1,7 @@
 from dbnd._core.cli.click_utils import _help
 from dbnd._core.cli.service_auto_completer import completer
+from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.context.databand_context import load_user_modules
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._vendor import click
 
@@ -32,7 +34,9 @@ def _list_tasks(ctx, module, search, is_config):
 
     formatter = ctx.make_formatter()
 
-    with new_dbnd_context(module=module):
+    load_user_modules(config, modules=module)
+
+    with new_dbnd_context():
         tasks = get_task_registry().list_dbnd_task_classes()
 
     for task_cls in tasks:
