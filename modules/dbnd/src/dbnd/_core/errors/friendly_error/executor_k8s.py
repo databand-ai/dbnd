@@ -102,3 +102,10 @@ def failed_to_connect_to_cluster(in_cluster_value, exc):
         help_msg="in-cluster is set to '%s'. Are you running %s cluster?"
         % (in_cluster_value, "inside" if in_cluster_value else "outside"),
     )
+
+
+def failed_to_load_config_file(exc):
+    return DatabandConfigError(
+        "Could not connect to kubernetes cluster! Exception: %s" % (exc,),
+        help_msg="there is probably an error in your configurations file.",
+    )
