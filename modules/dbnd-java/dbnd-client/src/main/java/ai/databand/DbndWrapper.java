@@ -13,7 +13,11 @@ import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.scheduler.SparkListenerEvent;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.util.ShutdownHookManager;
 import org.slf4j.LoggerFactory;
+import scala.Function0;
+import scala.runtime.AbstractFunction0;
+import scala.runtime.BoxedUnit;
 
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
@@ -297,6 +301,7 @@ public class DbndWrapper {
             // do nothing
         }
 
+        // add jvm shutdown hook so run will be completed after spark job will stop
         Runtime.getRuntime().addShutdownHook(new Thread(run::stop));
         return run;
     }
