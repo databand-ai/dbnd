@@ -1,6 +1,6 @@
 # History
 
-## DBND v0.45.0
+## DBND v0.45.00
 
 ### New features
 
