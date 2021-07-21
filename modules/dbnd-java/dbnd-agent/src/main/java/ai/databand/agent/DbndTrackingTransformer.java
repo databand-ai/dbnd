@@ -60,7 +60,7 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
             }
 
             for (CtMethod method : declaredMethods) {
-                // wrap methods annotated by @task
+                // wrap methods annotated by @Task
                 MethodInfo methodInfo = method.getMethodInfo();
                 AnnotationsAttribute attInfo = (AnnotationsAttribute) methodInfo.getAttribute(AnnotationsAttribute.visibleTag);
                 if (attInfo == null) {
