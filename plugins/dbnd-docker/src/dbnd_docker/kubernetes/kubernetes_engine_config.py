@@ -93,7 +93,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     cluster_context = parameter.none().help("Kubernetes cluster context")[str]
     config_file = parameter.none().help("Custom Kubernetes config file")[str]
 
-    in_cluster = parameter(default=False)[bool]
+    in_cluster = parameter(default=None).help(
+        "If None, we set it dynamically, according to where we run."
+    )[bool]
 
     image_pull_policy = parameter.value(
         "IfNotPresent", description="Kubernetes image_pull_policy flag"
@@ -386,19 +388,33 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     def get_kube_client(self, in_cluster=None):
         from kubernetes import config, client
 
+        # if in_cluster is set to None, we set it dynamically by trying to set
+        # the k8s's config as if we are in a cluster, and if it fails, we set it
+        # as we are not running in a cluster.
         if in_cluster is None:
-            in_cluster = self.in_cluster
-        try:
-            if in_cluster:
+            try:
                 config.load_incluster_config()
-            else:
-                config.load_kube_config(
-                    config_file=self.config_file, context=self.cluster_context
+                self.in_cluster = True
+            except ConfigException:
+                try:
+                    config.load_kube_config(
+                        config_file=self.config_file, context=self.cluster_context
+                    )
+                except ConfigException as e:
+                    raise friendly_error.executor_k8s.failed_to_load_config_file(e)
+                self.in_cluster = False
+        else:
+            try:
+                if in_cluster:
+                    config.load_incluster_config()
+                else:
+                    config.load_kube_config(
+                        config_file=self.config_file, context=self.cluster_context
+                    )
+            except ConfigException as e:
+                raise friendly_error.executor_k8s.failed_to_connect_to_cluster(
+                    self.in_cluster, e
                 )
-        except ConfigException as e:
-            raise friendly_error.executor_k8s.failed_to_connect_to_cluster(
-                self.in_cluster, e
-            )
 
         if PY2:
             # For connect_get_namespaced_pod_exec
