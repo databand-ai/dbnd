@@ -32,11 +32,6 @@ class TestSaladExample(object):
     def test_prepare_salad_deco(self,):
         assert_run_task(prepare_salad.t(vegetables=data_repo.vegetables))
 
-    @pytest.mark.skipif(not six.PY2, reason="requires python2")
-    def test_notebook(self):
-        ipynb = relative_path(salad.__file__, "salad_notebook_py27.ipynb")
-        run_test_notebook(ipynb)
-
     @fixture
     def vegetables(self, tmpdir):
         t = target(str(tmpdir), "vegetables.csv")

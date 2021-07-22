@@ -74,21 +74,20 @@ setuptools.setup(
             "feather-format",
             "pyarrow ; python_version>='3.0'",
             "pyarrow==0.16.0 ; python_version<'3.0'",  # Last version compatible with python 2.7
-            ################
-            # JUPYTER TESTS
-            "nbconvert==5.6.1",
-            "nbformat",
-            "jupyter",
-            "traitlets>=4.2,<5.0.0",  # required by jupyter, fix py37 compatibility
-            "IPython>=4.0.0, <7.0",
-            "jupyter_contrib_nbextensions",
-            #########
             "idna<=2.7",  # conflict with requests (require 2.8 <)
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
             "openpyxl==2.6.4",
             "sklearn",
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
             "wheel",  # for fat_wheel tests
+        ],
+        "jupyter": [
+            "nbconvert",
+            "nbformat",
+            "jupyter",
+            "traitlets>=4.2,<5.0.0",  # required by jupyter, fix py37 compatibility
+            "IPython",
+            "jupyter_contrib_nbextensions",
         ],
     },
     entry_points={"console_scripts": ["dbnd = dbnd:dbnd_main"]},
