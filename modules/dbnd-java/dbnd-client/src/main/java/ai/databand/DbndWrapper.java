@@ -2,8 +2,10 @@ package ai.databand;
 
 import ai.databand.config.DbndConfig;
 import ai.databand.log.HistogramRequest;
+import ai.databand.schema.DatabandTaskContext;
 import ai.databand.schema.DatasetOperationStatuses;
 import ai.databand.schema.DatasetOperationTypes;
+import ai.databand.schema.TaskRun;
 import javassist.ClassPool;
 import javassist.Loader;
 import org.apache.log4j.Level;
@@ -273,28 +275,45 @@ public class DbndWrapper {
     }
 
     private DbndRun createAgentlessRun() {
-        try {
-            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            StackTraceElement main = null;
-            for (StackTraceElement el : stackTrace) {
-                if (el.getMethodName().equals("main")) {
-                    main = el;
-                    break;
+        // check if we're running inside databand task context
+        if (config.databandTaskContext().isPresent()) {
+            // don't init run from the scratch, reuse values
+            run = config.isTrackingEnabled() ? new DefaultDbndRun(dbnd, config) : new NoopDbndRun();
+            if (!config.isTrackingEnabled()) {
+                System.out.println("Tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
+            }
+            System.out.println("Reusing existing task");
+            DatabandTaskContext dbndCtx = config.databandTaskContext().get();
+            TaskRun driverTask = new TaskRun();
+            driverTask.setRunUid(dbndCtx.getRootRunUid());
+            driverTask.setTaskRunUid(dbndCtx.getTaskRunUid());
+            driverTask.setTaskRunAttemptUid(dbndCtx.getTaskRunAttemptUid());
+            config.airflowContext().ifPresent(ctx -> driverTask.setName(ctx.getTaskId()));
+            run.setDriverTask(driverTask);
+        } else {
+            try {
+                StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+                StackTraceElement main = null;
+                for (StackTraceElement el : stackTrace) {
+                    if (el.getMethodName().equals("main")) {
+                        main = el;
+                        break;
+                    }
                 }
-            }
-            if (main == null) {
-                main = stackTrace[stackTrace.length - 1];
-            }
-            Class<?> entryPoint = Class.forName(main.getClassName());
-            for (Method method : entryPoint.getMethods()) {
-                if (method.getName().contains(main.getMethodName())) {
-                    Object[] args = new Object[method.getParameterCount()];
-                    Arrays.fill(args, null);
-                    beforePipeline(main.getClassName(), main.getMethodName(), args);
+                if (main == null) {
+                    main = stackTrace[stackTrace.length - 1];
                 }
+                Class<?> entryPoint = Class.forName(main.getClassName());
+                for (Method method : entryPoint.getMethods()) {
+                    if (method.getName().contains(main.getMethodName())) {
+                        Object[] args = new Object[method.getParameterCount()];
+                        Arrays.fill(args, null);
+                        beforePipeline(main.getClassName(), main.getMethodName(), args);
+                    }
+                }
+            } catch (ClassNotFoundException e) {
+                // do nothing
             }
-        } catch (ClassNotFoundException e) {
-            // do nothing
         }
 
         // add jvm shutdown hook so run will be completed after spark job will stop
