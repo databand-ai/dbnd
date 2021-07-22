@@ -3,6 +3,7 @@ package ai.databand.config;
 import ai.databand.RandomNames;
 import ai.databand.schema.AirflowTaskContext;
 import ai.databand.schema.AzkabanTaskContext;
+import ai.databand.schema.DatabandTaskContext;
 import org.apache.spark.SparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,9 @@ import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_EXECUTION_DATE;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_TASK_ID;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_TRY_NUMBER;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_UID;
+import static ai.databand.DbndPropertyNames.DBND_PARENT_TASK_RUN_ATTEMPT_UID;
+import static ai.databand.DbndPropertyNames.DBND_PARENT_TASK_RUN_UID;
+import static ai.databand.DbndPropertyNames.DBND_ROOT_RUN_UID;
 import static ai.databand.DbndPropertyNames.DBND__CORE__DATABAND_ACCESS_TOKEN;
 import static ai.databand.DbndPropertyNames.DBND__CORE__DATABAND_URL;
 import static ai.databand.DbndPropertyNames.DBND__LOG__PREVIEW_HEAD_BYTES;
@@ -41,6 +45,7 @@ public class DbndConfig implements PropertiesSource {
 
     private final AirflowTaskContext afCtx;
     private final AzkabanTaskContext azkbnCtx;
+    private final DatabandTaskContext dbndCtx;
     private final boolean previewEnabled;
     private final boolean trackingEnabled;
     private final boolean verbose;
@@ -77,6 +82,7 @@ public class DbndConfig implements PropertiesSource {
 
         afCtx = buildAirflowCtxFromEnv(this.props);
         azkbnCtx = buildAzkabanCtxFromEnv(this.props);
+        dbndCtx = buildDatabandCtxFromEnv(this.props);
 
         previewEnabled = isTrue(this.props, DBND__TRACKING__DATA_PREVIEW) || isTrue(this.props, DBND__TRACKING__LOG_VALUE_PREVIEW);
         verbose = isTrue(this.props, DBND__TRACKING__VERBOSE);
@@ -101,6 +107,20 @@ public class DbndConfig implements PropertiesSource {
                 env.get(AIRFLOW_CTX_EXECUTION_DATE),
                 env.get(AIRFLOW_CTX_TASK_ID),
                 env.get(AIRFLOW_CTX_TRY_NUMBER)
+            );
+        } else {
+            return null;
+        }
+    }
+
+    private DatabandTaskContext buildDatabandCtxFromEnv(Map<String, String> env) {
+        if (env.containsKey(DBND_ROOT_RUN_UID)
+            && env.containsKey(DBND_PARENT_TASK_RUN_UID)
+            && env.containsKey(DBND_PARENT_TASK_RUN_ATTEMPT_UID)) {
+            return new DatabandTaskContext(
+                env.get(DBND_ROOT_RUN_UID),
+                env.get(DBND_PARENT_TASK_RUN_UID),
+                env.get(DBND_PARENT_TASK_RUN_ATTEMPT_UID)
             );
         } else {
             return null;
@@ -168,6 +188,10 @@ public class DbndConfig implements PropertiesSource {
 
     public Optional<AzkabanTaskContext> azkabanContext() {
         return Optional.ofNullable(azkbnCtx);
+    }
+
+    public Optional<DatabandTaskContext> databandTaskContext() {
+        return Optional.ofNullable(dbndCtx);
     }
 
     public String cmd() {
