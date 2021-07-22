@@ -1,0 +1,45 @@
+# Requirements:
+# * make dist
+# * dbnd-manage kaniko webserver
+# * dbnd-manage kaniko int-maven
+
+version: "3.7"
+
+services:
+  airflow_postgres:
+    image: postgres:10.5
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "5432:5432"
+
+  inttest:
+    image: ${DOCKER_IMAGE_INT_SPARK:-gcr.io/dbnd-dev-260010/databand/dbnd-int-spark:py36-local}
+    depends_on:
+      - databand_database
+      - airflow_postgres
+    volumes:
+      - ../junit:/app/junit
+      - .:/app/integration-test
+      - ../../../dbnd-core/examples/src/dbnd_examples/dbnd_spark/pyspark_scripts/word_count.py:/usr/local/lib/python3.6/src/dbnd_examples/dbnd_spark/pyspark_scripts/word_count.py
+      - ../../../dbnd-core:/app/dbnd
+      - ../../../dbnd-core/examples/data/examples_config.cfg:/usr/local/lib/python3.6/data/examples_config.cfg
+      - ../../../dbnd-core/examples:/app/examples
+    environment:
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow_postgres:5432/airflow
+      - DBND__CORE__DATABAND_URL=http://databand_webserver:8080
+      - DBND_HOME=/app/integration-test
+      - DBND__LOG_SPARK=True
+      - DBND__SPARK__LISTENER_INJECT_ENABLED=True
+      - PYTEST_ADDOPTS=--junit-xml /app/junit/inttest-spark_int_test-${IMAGE_EXTRA_TAG}.xml
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        until nc -z airflow_postgres 5432; do echo "Waiting for Postgres..." && sleep 1; done
+        airflow initdb
+        (cd /app/dbnd/plugins/dbnd-spark && tox -e py36 -- --run-spark)
+        (cd integration-test && pytest . -vv)
