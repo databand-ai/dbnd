@@ -731,4 +731,7 @@ public class DefaultDbndRun implements DbndRun {
         }
     }
 
+    public void setDriverTask(TaskRun driverTask) {
+        this.driverTask = driverTask;
+    }
 }
