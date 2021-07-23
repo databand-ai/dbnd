@@ -10,6 +10,7 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TruncatedLog {
 
@@ -49,7 +50,9 @@ public class TruncatedLog {
         int tailBytes = config.previewTailBytes();
         try {
             if (logFile.length() <= config.previewTotalBytes()) {
-                this.log = Files.lines(logFile.toPath()).collect(Collectors.joining("\n"));
+                try (Stream<String> lines = Files.lines(logFile.toPath())) {
+                    this.log = lines.collect(Collectors.joining("\n"));
+                }
             } else {
                 // todo: potential OOM in case of very large limits
                 byte[] head = new byte[headBytes];
