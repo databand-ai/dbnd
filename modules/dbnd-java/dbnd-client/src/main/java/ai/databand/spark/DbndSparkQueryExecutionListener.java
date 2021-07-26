@@ -3,6 +3,7 @@ package ai.databand.spark;
 import ai.databand.DbndWrapper;
 import ai.databand.schema.DatasetOperationStatuses;
 import ai.databand.schema.DatasetOperationTypes;
+import org.apache.spark.sql.execution.CollectLimitExec;
 import org.apache.spark.sql.execution.FileSourceScanExec;
 import org.apache.spark.sql.execution.QueryExecution;
 import org.apache.spark.sql.execution.SparkPlan;
@@ -57,7 +58,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 );
             }
         }
-        if (qe.executedPlan() instanceof WholeStageCodegenExec) {
+        if (qe.executedPlan() instanceof WholeStageCodegenExec || qe.executedPlan() instanceof CollectLimitExec) {
             List<SparkPlan> allChildren = getAllChildren(qe.executedPlan());
             for (SparkPlan next : allChildren) {
                 if (next instanceof FileSourceScanExec) {

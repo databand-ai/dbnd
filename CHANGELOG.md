@@ -1,5 +1,32 @@
 # History
 
+## DBND v0.45.00
+
+### New features
+
+-   \#1200535318342009: Databand Alerting now supports email as a notification channel.
+-   \#1200401288822416: Per Project and Source Alert routing - you can define Alerts on any job as you like.
+-   \#1200443526055542: New Run duration metrics: Duration, Total Duration, Compute Time.
+-   \#1200596368463950: New alert type: get notifications when a schema changes on the data you logged with `log_dataset_op`.
+
+### Improvements
+
+-   \#1200535433472848: Dashboard widgets now show the project or source name if there are multiple sources. This addresses the case of a pipeline with the same name coming from 2 sources.
+-   \#1200587432732540: Look at the affected datasets of past Runs by clicking on Runs.
+-   \#1200557294252243: New tooltip added to the Dataset overview chart - you now can display the Run status and add/view label.
+-   \#1200602972144983: Dataset overview chart changed from stacked to a regular graph.
+-   \#1200526324086040: New alert type: when using `log_dataset_op`, you can get notifications when a pipeline didn’t read or write as expected.
+-   \#1200430856087576: Alerts can now be set directly from the Alerts page.
+-   \#1200557294252244: Missing operations are now prominently displayed in the history chart and in the Trend operation bars graph.
+-   \#1200557294252253: Improved coloring for better readability of dataset graphs.
+
+### Bug fixes
+
+-   \#1200587833068258: The description in the alert pop-up is no longer missing.
+-   \#1200587301890745: Datasets page sorting and filtering are fixed - dataset operations are sorted by most recent first.
+-   \#1200557970734951: Current Run is marked as usual.
+-   \#1200579848765971: Datasets page filters project correctly.
+
 ## DBND v0.44.00
 
 ### New features
