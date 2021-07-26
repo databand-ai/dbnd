@@ -29,6 +29,10 @@ class LivySparkConfig(SparkEngineConfig):
         default=None,
     )[str]
 
+    retry_on_status_error = parameter(
+        description="retries http requests if status code is not accepted", default=0
+    )[int]
+
     def get_spark_ctrl(self, task_run):
         from dbnd_spark.livy.livy_spark import LivySparkCtrl
 
