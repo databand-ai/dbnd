@@ -4,8 +4,6 @@ import ai.databand.DbndWrapper;
 import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.scheduler.SparkListenerEvent;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
-import org.apache.spark.sql.execution.QueryExecution;
-import org.apache.spark.sql.execution.SQLExecution;
 import org.apache.spark.sql.execution.SparkPlanInfo;
 import org.apache.spark.sql.execution.ui.SparkListenerSQLExecutionStart;
 import scala.Tuple2;
