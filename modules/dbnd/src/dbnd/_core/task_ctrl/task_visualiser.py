@@ -7,8 +7,6 @@ from dbnd._core.constants import SystemTaskName, TaskEssence, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandBuildError, get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
-from dbnd._core.settings import DescribeConfig
-from dbnd._core.task.task import Task
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.task_run.task_run_error import task_call_source_to_str
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_string, safe_tabulate
@@ -17,6 +15,7 @@ from targets import DataTarget, InMemoryTarget, Target
 
 
 if typing.TYPE_CHECKING:
+    from dbnd._core.task.task import Task
     from dbnd._core.task_run.task_run import TaskRun
 
 logger = logging.getLogger(__name__)
@@ -60,9 +59,9 @@ def _f_none_default(value, default):
     return value
 
 
-class TaskVisualiser(TaskSubCtrl):
+class TaskVisualiser(object):
     def __init__(self, task):
-        super(TaskVisualiser, self).__init__(task)
+        self.task = task
 
     def banner(
         self,
@@ -73,6 +72,7 @@ class TaskVisualiser(TaskSubCtrl):
         task_run=None,
         exc_info=None,
     ):
+        task_id = self.task.task_id
         try:
             banner = TextBanner(msg, color)
 
@@ -92,17 +92,20 @@ class TaskVisualiser(TaskSubCtrl):
             if TaskEssence.TRACKING.is_instance(self.task):
                 builder.build_tracking_banner(task_run=task_run, exc_info=exc_info)
             else:
-                builder.build_orchestration_banner(task_run=task_run, exc_info=exc_info)
+                if TaskEssence.CONFIG.is_instance(self.task):
+                    builder.build_config_banner()
+                else:
+                    builder.build_orchestration_banner(
+                        task_run=task_run, exc_info=exc_info
+                    )
 
             return banner.get_banner_str()
 
         except Exception as ex:
             log_exception(
-                "Failed to calculate banner for '%s'" % self.task_id,
-                ex,
-                non_critical=True,
+                "Failed to calculate banner for '%s'" % task_id, ex, non_critical=True,
             )
-            return msg + (" ( task_id=%s)" % self.task_id)
+            return msg + (" ( task_id=%s)" % task_id)
 
 
 class _TaskBannerBuilder(TaskSubCtrl):
@@ -178,6 +181,16 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
         self.add_stack_and_errors(exc_info, task_run, self.verbosity)
 
+        return self.banner
+
+    def build_config_banner(self):
+        self.table_director.add_params_table(
+            all_params=True,
+            param_format=True,
+            param_source=True,
+            param_section=True,
+            param_default=True,
+        )
         return self.banner
 
     def add_stack_and_errors(self, exc_info, task_run, verbosity):
@@ -399,21 +412,29 @@ class _ParamTableDirector(object):
         params_warnings = []
         # iterating over the params and building the data for the table
         for param_value in self.task._params:
-            param_def = param_value.parameter
-            # filter switches
-            if not all_params:
-                if param_def.name in exclude:
-                    continue
-                if param_def.system:
-                    continue
+            try:
+                param_def = param_value.parameter
+                # filter switches
+                if not all_params:
+                    if param_def.name in exclude:
+                        continue
+                    if param_def.system:
+                        continue
 
-            # building a single row
-            param_row = self.build_record(param_def, param_value, param_value.value)
-            params_data.append(param_row)
+                # building a single row
+                param_row = self.build_record(param_def, param_value, param_value.value)
+                params_data.append(param_row)
 
-            # extract param warnings
-            if param_value and param_value.warnings:
-                params_warnings.extend(param_value.warnings)
+                # extract param warnings
+                if param_value and param_value.warnings:
+                    params_warnings.extend(param_value.warnings)
+            except Exception as ex:
+                log_exception(
+                    "Failed to calculate parameter value for %s.%s"
+                    % (self.task.task_name, param_value.parameter.name),
+                    ex,
+                    non_critical=True,
+                )
 
         if params_warnings:
             self.banner.column("BUILD WARNINGS:", "")
@@ -520,13 +541,18 @@ class _ParamRecordBuilder(object):
         self.row.append(str(self.definition.default))
 
     def add_value(self):
+        from dbnd._core.settings import DescribeConfig
+
         console_value_preview_size = DescribeConfig.current().console_value_preview_size
 
-        value_str = (
-            TextBanner.f_io(self.value)
-            if self._param_kind() in ["input", "output"]
-            else self.definition.to_str(self.value)
-        )
+        if self.value is None:
+            value_str = "@None"
+        else:
+            value_str = (
+                TextBanner.f_io(self.value)
+                if self._param_kind() in ["input", "output"]
+                else self.definition.to_str(self.value)
+            )
 
         value_str = safe_string(value_str, console_value_preview_size)
 
