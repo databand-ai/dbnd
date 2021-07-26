@@ -84,8 +84,11 @@ class _LivySparkCtrl(SparkCtrl):
         )
         batch = livy.post_batch(data)
         self._run_post_submit_hook(batch)
+        livy_config = self.task_run.task.spark_engine
         livy.track_batch_progress(
-            batch["id"], status_reporter=self._report_livy_batch_status
+            batch["id"],
+            status_reporter=self._report_livy_batch_status,
+            retry_on_status_error=livy_config.retry_on_status_error,
         )
 
     def _run_post_submit_hook(self, batch_response):
