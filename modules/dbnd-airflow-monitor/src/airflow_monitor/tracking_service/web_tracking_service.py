@@ -153,7 +153,7 @@ class WebDbndAirflowTrackingService(DbndAirflowTrackingService):
 
     def update_monitor_state(self, monitor_state: MonitorState):
         self._make_request(
-            "update_monitor_state", method="POST", data=monitor_state.as_dict(),
+            "update_airflow_monitor_state", method="POST", data=monitor_state.as_dict(),
         )
 
     def get_airflow_server_configuration(self) -> AirflowServerConfig:
