@@ -89,7 +89,7 @@ class TestRequireLocalAccessOnHdfs(object):
 
     def test_execution_file_target(self):
         output = cmd_output(
-            "dbnd run dbnd.tasks.basics.simple_read_write_pipeline.write_read --set write.res={0} "
+            "dbnd run dbnd_test_scenarios.pipelines.simple_read_write_pipeline.write_read --set write.res={0} "
             "--task-version now".format(TestRequireLocalAccessOnHdfs.hdfs_file)
         )
         assert "Your run has been successfully executed!" in output, output
@@ -97,7 +97,7 @@ class TestRequireLocalAccessOnHdfs(object):
 
     def test_execution_dir_target(self):
         output = cmd_output(
-            "dbnd run dbnd.tasks.basics.simple_read_write_pipeline.write_read_dir --set write_dir.res={0} --task-version now".format(
+            "dbnd run dbnd_test_scenarios.pipelines.simple_read_write_pipeline.write_read_dir --set write_dir.res={0} --task-version now".format(
                 TestRequireLocalAccessOnHdfs.hdfs_dir
             )
         )

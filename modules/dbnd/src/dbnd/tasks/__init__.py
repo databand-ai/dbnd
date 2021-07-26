@@ -4,6 +4,7 @@ from dbnd._core.task.pipeline_task import PipelineTask
 from dbnd._core.task.python_task import PythonTask
 from dbnd._core.task.task import Task
 from dbnd.tasks import basics
+from dbnd.tasks.doctor.check import dbnd_doctor
 
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "DataSourceTask",
     "PipelineTask",
     "PythonTask",
+    "dbnd_doctor",
 ]
 
 try:

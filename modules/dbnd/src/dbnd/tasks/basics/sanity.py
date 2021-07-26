@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 @task
 def dbnd_sanity_check(check_time=datetime.datetime.now()):
     logger.info("Running Databand Task Sanity Check!")
+
     log_metric("metric_check", "OK")
+    log_metric("Happiness Level", "High")
 
     logger.info("Your system is good to go! Enjoy Databand!")
     return "Databand has been checked at %s" % check_time
