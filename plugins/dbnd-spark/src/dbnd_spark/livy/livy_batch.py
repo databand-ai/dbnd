@@ -6,7 +6,10 @@ import logging
 import time
 
 from dbnd._core.errors import DatabandError
-from dbnd._core.utils.http.reliable_http_client import ReliableHttpClient
+from dbnd._core.utils.http.reliable_http_client import (
+    HttpClientException,
+    ReliableHttpClient,
+)
 from dbnd._core.utils.http.retry_policy import get_retry_policy
 
 
@@ -44,9 +47,6 @@ class LivyBatchClient(object):
     def get_batch(self, batch_id):
         return self._http_client.get(self._batch_url(batch_id), [200]).json()
 
-    def get_batch_state(self, batch_id):
-        return self._http_client.get(self._batch_url(batch_id), [200]).json()
-
     def get_all_batch_logs(self, batch_id, from_line=0):
         return self._http_client.get(
             self._batch_url(batch_id) + "/log?from=%s" % from_line, [200]
@@ -79,14 +79,30 @@ class LivyBatchClient(object):
             "Batch status: %s", json.dumps(batch_response, indent=4, sort_keys=True)
         )
 
-    def track_batch_progress(self, batch_id, status_reporter=None):
+    def track_batch_progress(
+        self, batch_id, status_reporter=None, retry_on_status_error=0
+    ):
+        logger.debug("Beginning to track batch %s", batch_id)
         status_reporter = status_reporter or self._default_status_reporter
 
         # Poll the status of the submitted scala code
 
         current_line = 0
         while True:
-            batch_response = self.get_batch(batch_id)
+            try:
+                batch_response = self.get_batch(batch_id)
+            except HttpClientException as e:
+                retry_on_status_error -= 1
+                if retry_on_status_error > 0:
+                    logger.warning(
+                        "Caught internal http client error while getting batch %s, got %s more retries: %s",
+                        batch_id,
+                        retry_on_status_error,
+                        e,
+                    )
+                    continue
+                raise
+
             batch_status = batch_response["state"]
             status_reporter(batch_response)
 
