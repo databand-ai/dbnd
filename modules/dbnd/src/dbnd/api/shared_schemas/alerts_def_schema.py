@@ -37,3 +37,4 @@ class AlertDefsSchema(ApiObjectSchema):
 
     project_id = fields.Int(attribute="job.project_id")
     project_name = fields.Str(attribute="job.project.name")
+    alert_on_historical_runs = fields.Bool()
