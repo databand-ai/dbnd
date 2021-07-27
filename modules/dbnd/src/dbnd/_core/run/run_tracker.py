@@ -42,7 +42,7 @@ class RunTracker(RunCtrl):
     def set_run_state(self, state):
         if not self.run.is_tracked:
             return
-        if self.run.existing_run:
+        if self.run.existing_run and not self.run.is_orchestration:
             return
         self.tracking_store.set_run_state(run=self.run, state=state)
 

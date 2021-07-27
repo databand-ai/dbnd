@@ -125,17 +125,16 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
         # to avoid circular imports
         from airflow.jobs import LocalTaskJob as LJ
 
-        TI = airflow.models.TaskInstance
         limit_dttm = timezone.utcnow() - datetime.timedelta(
             seconds=self.zombie_threshold_secs
         )
 
         running_zombies = (
-            session.query(TI)
-            .join(LJ, TI.job_id == LJ.id)
-            .filter(TI.state == State.RUNNING)
-            .filter(TI.dag_id == dag.dag_id)
-            .filter(TI.execution_date == execution_date)
+            session.query(TaskInstance)
+            .join(LJ, TaskInstance.job_id == LJ.id)
+            .filter(TaskInstance.state == State.RUNNING)
+            .filter(TaskInstance.dag_id == dag.dag_id)
+            .filter(TaskInstance.execution_date == execution_date)
             .filter(or_(LJ.state != State.RUNNING, LJ.latest_heartbeat < limit_dttm,))
             .all()
         )
