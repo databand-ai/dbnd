@@ -295,9 +295,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             logger.warning(
                 "Running in debug mode, setting all k8s loggers to debug, waiting for every pod completion!"
             )
-            import airflow.contrib.kubernetes
+            from airflow.contrib import kubernetes
 
-            set_module_logging_to_debug([dbnd_docker, airflow.contrib.kubernetes])
+            set_module_logging_to_debug([dbnd_docker, kubernetes])
             self.detach_run = False
         if self.show_pod_log:
             logger.warning(
