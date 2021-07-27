@@ -2,6 +2,7 @@
 # * make dist
 # * dbnd-manage kaniko webserver
 # * dbnd-manage kaniko int-maven
+# * dbnd-manage kaniko int-spark
 
 version: "3.7"
 

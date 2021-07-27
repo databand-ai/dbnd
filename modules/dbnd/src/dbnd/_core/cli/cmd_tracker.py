@@ -21,7 +21,7 @@ def tracker():
     "--timeout",
     "-t",
     type=int,
-    default=120,
+    default=300,
     help="Amount of seconds to wait for webserver until timing out",
 )
 def wait(timeout):
