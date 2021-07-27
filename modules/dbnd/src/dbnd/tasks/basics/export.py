@@ -1,5 +1,6 @@
 import logging
 import os.path
+import subprocess
 import tarfile
 import tempfile
 
@@ -57,3 +58,32 @@ def export_db(
                 tar.add(logs_folder, "run")
             else:
                 logger.warning("Logs dir '%s' is not found", logs_folder)
+
+
+def dump_postgres(conn_string, dump_file):
+    logger.info(
+        "backing up postgres DB to %s, pg_dump and sqlalchemy are required!", dump_file
+    )
+
+    from sqlalchemy.engine.url import make_url
+
+    url = make_url(conn_string)
+
+    cmd = [
+        "pg_dump",
+        "-h",
+        url.host,
+        "-p",
+        str(url.port),
+        "-U",
+        url.username,
+        "-Fc",
+        "-f",
+        dump_file,
+        "-d",
+        url.database,
+    ]
+    logger.info("Running command: %s", subprocess.list2cmdline(cmd))
+    env = os.environ.copy()
+    env["PGPASSWORD"] = url.password
+    subprocess.check_call(args=cmd, env=env)
