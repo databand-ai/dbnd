@@ -271,6 +271,17 @@ class SystemMetrics(EnumWithAll):
             ]
         ]
 
+    @staticmethod
+    def get_description(metric_name):
+        if metric_name == SystemMetrics.Duration.value:
+            return "Execution time of the latest run attempt of this task"
+        elif metric_name == SystemMetrics.TotalDuration.value:
+            return "Sum the duration of all task run attempts of this task"
+        elif metric_name == SystemMetrics.ComputeTime.value:
+            return "Sum of the duration of all task attempts related to this run"
+        else:
+            return None
+
 
 class UpdateSource(EnumWithAll):
     dbnd = "dbnd"
