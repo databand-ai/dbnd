@@ -106,7 +106,7 @@ class ApiClient(object):
     ):
         if not self.session or self.is_session_timedout():
             logger.info(
-                "Webserver session does not exist or timedout, creating new one"
+                "Webserver session does not exist or timed out, creating new one"
             )
             self._init_session(self.credentials)
 
@@ -135,7 +135,7 @@ class ApiClient(object):
             self.requests_logger.info(curl_request)
 
         if not resp.ok:
-            logger.info("Response is not ok, Raising DatabandApiError")
+            logger.debug("Response is not ok, Raising DatabandApiError")
             if resp.status_code in [403, 401]:
                 raise unauthorized_api_call(method, url, resp)
 
@@ -180,11 +180,11 @@ class ApiClient(object):
             self._send_request("GET", urljoin(self._api_base_url, "/app"))
             csrf_token = self.session.cookies.get("dbnd_csrftoken")
             if csrf_token:
-                logger.info("Got csrf token from session")
+                logger.debug("Got csrf token from session")
                 self.default_headers["X-CSRFToken"] = csrf_token
 
             if "username" in credentials and "password" in credentials:
-                logger.info("Attempting to login to webserver")
+                logger.debug("Attempting to login to webserver")
                 self.api_request(
                     "auth/login", method="POST", data=credentials,
                 )
