@@ -1,5 +1,5 @@
 from dbnd import dbnd_config
-from dbnd.tasks.basics.simple_read_write_pipeline import (
+from dbnd_test_scenarios.pipelines.simple_read_write_pipeline import (
     write,
     write_dir,
     write_read,
