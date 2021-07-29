@@ -13,10 +13,10 @@ from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.environ_config import tracking_mode_context
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
+from dbnd._core.context.databand_context import load_user_modules
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
-from dbnd._core.utils.basics.load_python_module import load_python_module
 from dbnd._vendor import click
 from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
@@ -188,7 +188,8 @@ def cmd_run(
     """
     Run a task or a DAG
 
-    To see tasks use `dbnd show-tasks` (tab completion is available).
+    To see all available tasks use `dbnd show-tasks` (tab completion is available).
+    `dbnd show-configs` will print all available configs.
     """
 
     from dbnd._core.context.databand_context import new_dbnd_context, DatabandContext
@@ -197,14 +198,8 @@ def cmd_run(
 
     task_registry = get_task_registry()
 
-    # loading user modules
     # we need to do it before we are looking for the task cls
-    module_from_config = config.get("databand", "module")
-    if module_from_config:
-        load_python_module(module_from_config, "config file (see [databand].module)")
-    if module:
-        for m in module:
-            load_python_module(m, "--module")
+    load_user_modules(dbnd_config=config, modules=module)
 
     task_name = task
     # --verbose, --describe, --env, --parallel, --conf-file and --project

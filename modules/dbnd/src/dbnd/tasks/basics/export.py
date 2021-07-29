@@ -1,27 +1,17 @@
 import logging
 import os.path
+import subprocess
 import tarfile
 import tempfile
 
-from dbnd import output, parameter, task
+from dbnd import output, task
 from dbnd._core.constants import CloudType
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
-from dbnd._core.task import config
 from dbnd._core.utils.timezone import utcnow
-from targets import Target
 from targets.types import Path
 
 
 logger = logging.getLogger(__name__)
-
-
-class DbSyncConfig(config.Config):
-    """(Advanced) Databand's db sync behaviour"""
-
-    _conf__task_family = "db_sync"
-
-    export_root = parameter[Target]
 
 
 @task(archive=output(output_ext=".tar.gz")[Path])
@@ -39,8 +29,6 @@ def export_db(
     with tarfile.open(str(archive), "w:gz") as tar:
 
         if include_db:
-
-            assert_web_enabled(reason="dbnd_web is required for export db")
             dbnd_context = get_databand_context()
             conn_string = dbnd_context.settings.web.get_sql_alchemy_conn()
             if conn_string.startswith("sqlite:"):
@@ -70,3 +58,32 @@ def export_db(
                 tar.add(logs_folder, "run")
             else:
                 logger.warning("Logs dir '%s' is not found", logs_folder)
+
+
+def dump_postgres(conn_string, dump_file):
+    logger.info(
+        "backing up postgres DB to %s, pg_dump and sqlalchemy are required!", dump_file
+    )
+
+    from sqlalchemy.engine.url import make_url
+
+    url = make_url(conn_string)
+
+    cmd = [
+        "pg_dump",
+        "-h",
+        url.host,
+        "-p",
+        str(url.port),
+        "-U",
+        url.username,
+        "-Fc",
+        "-f",
+        dump_file,
+        "-d",
+        url.database,
+    ]
+    logger.info("Running command: %s", subprocess.list2cmdline(cmd))
+    env = os.environ.copy()
+    env["PGPASSWORD"] = url.password
+    subprocess.check_call(args=cmd, env=env)

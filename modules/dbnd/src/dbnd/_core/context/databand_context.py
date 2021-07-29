@@ -2,11 +2,11 @@ import logging
 import typing
 import uuid
 
-from typing import Optional, Union
+from typing import List, Optional, Union
 from uuid import UUID
 
 from dbnd._core.configuration.config_readers import read_from_config_files
-from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.configuration.dbnd_config import DbndConfig, config
 from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.errors.errors_utils import UserCodeDetector
@@ -233,6 +233,17 @@ def _run_user_func(param, value):
     if not value:
         return
     return run_user_func(value)
+
+
+def load_user_modules(dbnd_config, modules=None):
+    # type: (DbndConfig, List[str]) -> None
+    # loading user modules
+    module_from_config = dbnd_config.get("databand", "module")
+    if module_from_config:
+        load_python_module(module_from_config, "config file (see [databand].module)")
+    if modules:
+        for m in modules:
+            load_python_module(m, "--module")
 
 
 @seven.contextlib.contextmanager
