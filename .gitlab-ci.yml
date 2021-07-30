@@ -96,7 +96,7 @@ pre_commit:
   image: python:3.6
   script:
     #    - tox -e pre-commit,lint,docs,readme
-    - tox -e pre-commit,lint
+    - tox -e pre-commit,lint,bumpversion-check
 
 manifest:
   <<: *template__python_test_job
