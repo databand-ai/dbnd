@@ -1,0 +1,17 @@
+dependencies {
+    // scala
+    compileOnly 'org.scala-lang:scala-library:2.11.12'
+    // deequ
+    implementation('com.amazon.deequ:deequ:1.2.2-spark-2.2') {
+        exclude group: "org.apache.spark"
+        exclude group: "org.scala-lang"
+        exclude group: "org.scalanlp"
+    }
+    // http client
+    implementation 'com.squareup.retrofit2:retrofit:2.1.0'
+    // implementation 'com.squareup.okhttp3:logging-interceptor:3.8.0'
+    implementation 'com.squareup.retrofit2:converter-jackson:2.1.0'
+
+    // should be removed after switching to apache http client
+    compileOnly 'com.fasterxml.jackson.module:jackson-module-scala_2.11:2.10.2'
+}
