@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 @task
 def dbnd_sanity_check(check_time=datetime.datetime.now()):
+    # type: (datetime.datetime) -> str
     logger.info("Running Databand Task Sanity Check!")
 
     log_metric("metric_check", "OK")
@@ -24,7 +25,7 @@ def dbnd_sanity_check(check_time=datetime.datetime.now()):
 @task
 def dbnd_simple_task(
     check_time=datetime.datetime.now(), fail_chance=0.0, sleep=0.0, loop=1,
-):
+):  # type: (datetime.datetime, float, float, int) -> str
     logger.info("Running dbnd_simple_task!")
     log_metric("metric_check", "OK")
     log_metric("metric_random_value", random.random())
