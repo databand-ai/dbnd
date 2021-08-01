@@ -124,11 +124,14 @@ class TaskRunState(EnumWithAll):
     SKIPPED = "skipped"
     UP_FOR_RETRY = "up_for_retry"
 
+    REMOVED = "removed"
+
     @staticmethod
     def final_states():
         return TaskRunState.finished_states() | {
             TaskRunState.UPSTREAM_FAILED,
             TaskRunState.SKIPPED,
+            TaskRunState.REMOVED,
         }
 
     @staticmethod
