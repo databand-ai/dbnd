@@ -33,8 +33,8 @@ COPY ./dist/dbnd.requirements.txt \
     ./dist/dbnd-spark.requirements.txt \
     ./dist/dbnd-test-scenarios.requirements.txt \
     ./dist/dbnd-airflow.requirements.txt \
-    ./dist/dbnd-airflow[$AIRFLOW_EXTRA].requirements.txt \
-    ./dist/dbnd-airflow[tests].requirements.txt \
+    ./dist/dbnd-airflow[[]$AIRFLOW_EXTRA].requirements.txt \
+    ./dist/dbnd-airflow[[]tests].requirements.txt \
     ./dist/examples.requirements.txt \
     /dist/
 RUN pip install -r /dist/dbnd.requirements.txt && \
