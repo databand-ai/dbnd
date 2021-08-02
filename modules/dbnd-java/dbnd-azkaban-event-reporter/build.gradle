@@ -1,0 +1,52 @@
+/**
+ * ****************************************************************************
+ * Dependency on Azkaban SPI. Since Azkaban doesn't have it's jars published
+ * anywhere, we use our own custom build and repository.
+ * ****************************************************************************
+ */
+def azkabanVersion = "3.90.0"
+
+dependencies {
+    compileOnly("ai.databand.azkaban:az-core:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+    compileOnly("ai.databand.azkaban:azkaban-spi:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+    compileOnly("ai.databand.azkaban:azkaban-common:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+    compileOnly("ai.databand.azkaban:azkaban-exec-server:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+    compileOnly("ai.databand.azkaban:azkaban-web-server:${azkabanVersion}") {
+        exclude group: 'azkaban'
+    }
+}
+
+/**
+ * ****************************************************************************
+ * Deequ should be excluded from all configurations because it's provided.
+ * ****************************************************************************
+ */
+configurations.all {
+    exclude group: "com.amazon.deequ", module: "deequ"
+}
+
+/**
+ * ****************************************************************************
+ * We don't want all transitive dependencies to be included into fatjar.
+ * Spark is provided dependency and we need to include only databand, retrofit,
+ * slf4j and javassist.
+ * ****************************************************************************
+ */
+shadowJar {
+    dependencies {
+        exclude(dependency {
+            !it.moduleGroup.contains('databand') \
+              && !it.moduleGroup.contains('squareup') \
+              && !it.moduleGroup.contains('ch.qos') \
+              && !it.moduleGroup.contains('javassist')
+        })
+    }
+}
