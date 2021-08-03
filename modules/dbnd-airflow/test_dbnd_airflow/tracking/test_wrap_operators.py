@@ -95,8 +95,8 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
 
-        wrap_operator_with_tracking_info(env, operator)
-        return operator
+        with wrap_operator_with_tracking_info(env, operator):
+            return operator
 
     def test_emr_add_steps_operator(self, emr_operator):
         emr_args = emr_operator.steps[0]["HadoopJarStep"]["Args"]
@@ -122,8 +122,8 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
 
-        wrap_operator_with_tracking_info(env, operator)
-        return operator
+        with wrap_operator_with_tracking_info(env, operator):
+            return operator
 
     def test_spark_submit_operator(self, spark_submit_operator):
         for env_var in dbnd_spark_env_vars:
@@ -144,13 +144,13 @@ class TestTrackOperator(object):
         )
 
     def test_ecs_operator(self, ecs_operator):
-        wrap_operator_with_tracking_info(
+        with wrap_operator_with_tracking_info(
             {"TRACKING_ENV": "TRACKING_VALUE"}, ecs_operator
-        )
-        for override in ecs_operator.overrides["containerOverrides"]:
-            assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
-                "environment"
-            ]
+        ):
+            for override in ecs_operator.overrides["containerOverrides"]:
+                assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
+                    "environment"
+                ]
 
     @pytest.fixture
     def ecs_operator_with_env(self, dag):
@@ -171,16 +171,16 @@ class TestTrackOperator(object):
         )
 
     def test_ecs_operator_with_env(self, ecs_operator_with_env):
-        wrap_operator_with_tracking_info(
+        with wrap_operator_with_tracking_info(
             {"TRACKING_ENV": "TRACKING_VALUE"}, ecs_operator_with_env
-        )
-        for override in ecs_operator_with_env.overrides["containerOverrides"]:
-            assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
-                "environment"
-            ]
-            assert {"name": "USER_KEY", "value": "USER_VALUE"} in override[
-                "environment"
-            ]
+        ):
+            for override in ecs_operator_with_env.overrides["containerOverrides"]:
+                assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
+                    "environment"
+                ]
+                assert {"name": "USER_KEY", "value": "USER_VALUE"} in override[
+                    "environment"
+                ]
 
     def test_airflow_context_vars_patch(self):
         patch_airflow_context_vars()

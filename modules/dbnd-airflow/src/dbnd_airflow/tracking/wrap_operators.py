@@ -1,7 +1,8 @@
 import typing
 
 from collections import OrderedDict
-from typing import Dict
+from contextlib import contextmanager
+from typing import Any, ContextManager, Dict, Optional
 
 import six
 
@@ -23,6 +24,7 @@ if typing.TYPE_CHECKING:
     from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
 
 
+@contextmanager
 def track_emr_add_steps_operator(operator, tracking_info):
     flat_spark_envs = flat_conf(add_spark_env_fields(tracking_info))
     for step in operator.steps:
@@ -31,8 +33,10 @@ def track_emr_add_steps_operator(operator, tracking_info):
             step["HadoopJarStep"]["Args"] = spark_submit_with_dbnd_tracking(
                 args, dbnd_context=flat_spark_envs
             )
+    yield
 
 
+@contextmanager
 def track_databricks_submit_run_operator(operator, tracking_info):
     config = operator.json
     # passing env variables is only supported in new clusters
@@ -47,15 +51,19 @@ def track_databricks_submit_run_operator(operator, tracking_info):
             agent_conf = get_databricks_java_agent_conf()
             if agent_conf is not None:
                 cluster["spark_conf"].update(agent_conf)
+    yield
 
 
+@contextmanager
 def track_data_proc_pyspark_operator(operator, tracking_info):
     if operator.dataproc_properties is None:
         operator.dataproc_properties = dict()
     spark_envs = add_spark_env_fields(tracking_info)
     operator.dataproc_properties.update(spark_envs)
+    yield
 
 
+@contextmanager
 def track_spark_submit_operator(operator, tracking_info):
     # type: (SparkSubmitOperator, Dict[str,str])-> None
 
@@ -73,6 +81,7 @@ def track_spark_submit_operator(operator, tracking_info):
         agent_conf = get_spark_submit_java_agent_conf()
         if agent_conf is not None:
             operator._conf.update(agent_conf)
+    yield
 
 
 def _has_java_application(operator):
@@ -83,6 +92,7 @@ def _has_java_application(operator):
     )
 
 
+@contextmanager
 def track_ecs_operator(operator, tracking_info):
     # type: (ECSOperator, Dict[str,str])-> None
     """
@@ -104,6 +114,7 @@ def track_ecs_operator(operator, tracking_info):
             new.append(override)
 
         operator.overrides["containerOverrides"] = new
+    yield
 
 
 # registering operators names to the relevant tracking method
@@ -119,11 +130,10 @@ _EXECUTE_TRACKING = OrderedDict(
 
 
 def wrap_operator_with_tracking_info(tracking_info, operator):
-    # type: (Dict[str, str], BaseOperator) -> None
+    # type: (Dict[str, str], Any) -> Optional[ContextManager]
     """
     Wrap the operator with relevant tracking method, if found such method.
     """
     for class_name, tracking_wrapper in _EXECUTE_TRACKING.items():
         if is_instance_by_class_name(operator, class_name):
-            tracking_wrapper(operator, tracking_info)
-            break
+            return tracking_wrapper(operator, tracking_info)
