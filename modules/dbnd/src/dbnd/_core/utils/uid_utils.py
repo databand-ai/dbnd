@@ -52,6 +52,16 @@ def get_task_run_attempt_uid_by_task_run(task_run):
     )
 
 
+def get_task_run_attempt_uid_from_af_ti(ti):
+    airflow_instance_uid = get_airflow_instance_uid()
+    run_uid = get_job_run_uid(
+        airflow_instance_uid=airflow_instance_uid,
+        dag_id=ti.dag_id,
+        execution_date=ti.execution_date,
+    )
+    return get_task_run_attempt_uid(run_uid, ti.dag_id, ti.task_id, ti.try_number,)
+
+
 def get_job_run_uid(airflow_instance_uid, dag_id, execution_date):
     # TODO_CORE: change to source_instance_uid
     if isinstance(execution_date, six.string_types):

@@ -13,14 +13,9 @@ from dbnd import config, get_dbnd_project_config
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.task_run.log_preview import read_dbnd_log_preview
-from dbnd._core.tracking.airflow_dag_inplace_tracking import (
-    calc_task_run_attempt_key_from_af_ti,
-)
-from dbnd._core.utils.uid_utils import (
-    get_airflow_instance_uid,
-    get_job_run_uid,
-    get_task_run_attempt_uid,
-)
+from dbnd._core.tracking.airflow_dag_inplace_tracking import calac_task_key_from_af_ti
+from dbnd._core.utils.basics import environ_utils
+from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_from_af_ti
 
 
 AIRFLOW_FILE_TASK_HANDLER = FileTaskHandler.__name__
@@ -71,27 +66,20 @@ class DbndAirflowHandler(logging.Handler):
         if ti.operator is None or ti.operator == SubDagOperator.__name__:
             return
 
-        task_key = calc_task_run_attempt_key_from_af_ti(ti)
-        env_attempt_uid = os.environ.get(task_key)
-
-        # This key is already set which means we are in --raw run
-        if env_attempt_uid:
-            # no need for further actions inside --raw run
+        # Airflow is running with two process `run` and `--raw run`.
+        # But we want the handler to run only once (Idempotency)
+        # So ee are using an environment variable to sync those two process
+        task_key = calac_task_key_from_af_ti(ti)
+        if os.environ.get(task_key, False):
+            # This key is already set which means we are in `--raw run`
             return
+        else:
+            # We are in the outer `run`
+            self.task_env_key = task_key
+            # marking the environment with the current key for the
+            environ_utils.set_on(task_key)
 
-        # communicate the task_run_attempt_uid to inner processes
-        # will be used for the task_run of `<airflow_operator>_execute` task
-        airflow_instance_uid = get_airflow_instance_uid()
-        run_uid = get_job_run_uid(
-            airflow_instance_uid=airflow_instance_uid,
-            dag_id=ti.dag_id,
-            execution_date=ti.execution_date,
-        )
-        self.task_run_attempt_uid = get_task_run_attempt_uid(
-            run_uid, ti.dag_id, ti.task_id, ti.try_number,
-        )
-        self.task_env_key = task_key
-        os.environ[self.task_env_key] = str(self.task_run_attempt_uid)
+        self.task_run_attempt_uid = get_task_run_attempt_uid_from_af_ti(ti)
 
         # airflow calculation for the relevant log_file
         log_relative_path = self.log_file_name_factory(ti, ti.try_number)
