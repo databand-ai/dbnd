@@ -335,31 +335,8 @@ def get_flatten_operator_params(operator):
     return {name: repr(value) for name, value in params}
 
 
-def calc_task_run_attempt_key_from_af_ti(ti):
+def calac_task_key_from_af_ti(ti):
     """
     Creates a key from airflow TaskInstance, for communicating task_run_attempt_uid
     """
     return ":".join([ENV_DBND_TRACKING_ATTEMPT_UID, ti.dag_id, ti.task_id])
-
-
-def calc_task_run_attempt_key_from_dbnd_task(dag_id, task_family):
-    """
-    Creates a key from dbnd Task, for communicating task_run_attempt_uid
-    """
-    return ":".join([ENV_DBND_TRACKING_ATTEMPT_UID, dag_id, task_family])
-
-
-def try_pop_attempt_id_from_env(task):
-    """
-    if the task is an airflow execute task we try to pop the attempt id from environ
-    """
-    if task.task_params.get_param_value("dag_id"):
-        key = calc_task_run_attempt_key_from_dbnd_task(
-            task.task_params.get_value("dag_id"), task.task_family
-        )
-        attempt_id = os.environ.get(key, None)
-        if attempt_id:
-            del os.environ[key]
-            attempt_id = UUID(attempt_id)
-
-        return attempt_id

@@ -9,7 +9,6 @@ from dbnd._core.task_run.task_run_runner import TaskRunRunner
 from dbnd._core.task_run.task_run_sync_local import TaskRunLocalSyncer
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
-from dbnd._core.tracking.airflow_dag_inplace_tracking import try_pop_attempt_id_from_env
 from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import utcnow
@@ -200,11 +199,7 @@ class TaskRun(object):
     def init_new_task_run_attempt(self):
         # trying to find if we should use attempt_uid that been set from external process.
         # if so - the attempt_uid is uniquely for this task_run_attempt, and that why we pop.
-        attempt_id = try_pop_attempt_id_from_env(self.task)
-        if attempt_id:
-            self.task_run_attempt_uid = attempt_id
-        else:
-            self.task_run_attempt_uid = get_task_run_attempt_uid_by_task_run(self)
+        self.task_run_attempt_uid = get_task_run_attempt_uid_by_task_run(self)
 
         self.attempt_folder = self.task._meta_output.folder(
             "attempt_%s_%s" % (self.attempt_number, self.task_run_attempt_uid),
