@@ -10,6 +10,7 @@ from typing import Optional
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.configuration.environ_config import try_get_script_name
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
@@ -296,6 +297,9 @@ def dbnd_tracking_start(name=None, airflow_context=None):
     if dbnd_project_config.disabled:
         # we are not tracking if dbnd is disabled
         return None
+
+    if name is None:
+        name = try_get_script_name()
 
     global _dbnd_script_manager
     if not _dbnd_script_manager:
