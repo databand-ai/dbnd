@@ -128,7 +128,8 @@ class UpdateDagRunsRequestSchema(ApiObjectSchema):
     syncer_type = fields.String(allow_none=True)
 
 
-# Datasource Tracking
+# ----- Datasource Tracking ------
+# When changing update datasource_monitor.datasource_domain
 class DatasetMetadataSchema(ApiObjectSchema):
     num_bytes = fields.Integer()
     num_rows = fields.Integer()
@@ -136,23 +137,11 @@ class DatasetMetadataSchema(ApiObjectSchema):
 
 
 class DatasetSchema(ApiObjectSchema):
-    uri = fields.String()  # {storage_type://project_id/scheme_name/table_name}
-    name = fields.String()  # {scheme_name.table_name}
-    storage_type = fields.String()  # bigquery / snowflake / etc
+    uri = fields.String()  # {storage_type://region/project_id/scheme_name/table_name}
     created_date = fields.DateTime()
     last_modified_date = fields.DateTime(allow_none=True)
-    # Metadata #TODO: make nested switching marmellow
-    num_bytes = fields.Integer()
-    num_rows = fields.Integer()
 
-
-class DatasetsRequestSchema(ApiObjectSchema):
-    # report_timestamp = fields.DateTime()
-    error_message = fields.String(required=False, allow_none=True)
-    source_type = fields.String(allow_none=True)  # bigquery / snowflake / etc
-    syncer_type = fields.String(allow_none=True)
-
-    datasets = fields.Nested(DatasetSchema, many=True)
+    metadata = fields.Nested(DatasetMetadataSchema)
 
 
 class DatasourceMonitorStateRequestSchema(ApiObjectSchema):
@@ -160,3 +149,13 @@ class DatasourceMonitorStateRequestSchema(ApiObjectSchema):
     monitor_status = fields.String(required=False, allow_none=True)
     monitor_error_message = fields.String(required=False, allow_none=True)
     monitor_start_time = fields.DateTime(required=False, allow_none=True)
+    last_sync_time = fields.DateTime(required=False, allow_none=True)
+
+
+class DatasetsRequestSchema(ApiObjectSchema):
+    sync_event_uid = fields.UUID()
+    monitor_state = fields.Nested(DatasourceMonitorStateRequestSchema)
+    source_type = fields.String(allow_none=True)  # bigquery / snowflake / etc
+    syncer_type = fields.String(allow_none=True)
+
+    datasets = fields.Nested(DatasetSchema, many=True)
