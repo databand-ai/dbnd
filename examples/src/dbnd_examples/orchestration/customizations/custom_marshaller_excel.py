@@ -1,35 +1,67 @@
 """
 This is a way to add another format to serialize/deserialize pandas data frame
 """
+import logging
 
-import pandas as pd
+import joblib
 
 from dbnd import output, task
 from targets.marshalling import register_marshaller
-from targets.marshalling.pandas import _PandasMarshaller
-from targets.target_config import register_file_extension
+from targets.marshalling.marshaller import Marshaller
+from targets.target_config import TargetConfig, register_file_extension
+from targets.values import ValueType, register_value_type
+
+
+logger = logging.getLogger(__name__)
+
+
+class SizedMessage(object):
+    def __init__(self, msg, size):
+        self.msg = msg
+        self.size = size
+
+
+# This defines how MyCustomObject is parsed and serialised into strings
+class MessageValueType(ValueType):
+    type = SizedMessage
+
+    def parse_from_str(self, x):
+        parts = x.split(">")
+        return SizedMessage(parts[0], parts[1])
+
+    def to_str(self, x):
+        return x.msg + ">" + str(x.size)
+
+
+# This registers value type with value type registry
+register_value_type(MessageValueType())
 
 
 # 1. create file extension
-excel_file_ext = register_file_extension("xlsx")
+z_file_ext = register_file_extension("z")
 
 
-class DataFrameToExcel(_PandasMarshaller):
-    def _pd_read(self, *args, **kwargs):
-        return pd.read_excel(*args, **kwargs)
+class JoblibSizedMessageMarshaller(Marshaller):
+    def target_to_value(self, target, **kwargs):
+        with target.open() as fp:
+            from_file = joblib.load(fp.name)
+            return from_file
 
-    def _pd_to(self, value, *args, **kwargs):
-        return value.to_excel(*args, **kwargs)
+    def value_to_target(self, value, target, **kwargs):
+        with target.open("w") as fp:
+            joblib.dump(value, fp.name)
 
 
 # 2. register type to extension mapping
-register_marshaller(pd.DataFrame, excel_file_ext, DataFrameToExcel())
+register_marshaller(SizedMessage, z_file_ext, JoblibSizedMessageMarshaller())
 
 
-@task(result=output(output_ext=excel_file_ext))
-def dump_as_excel_table():
-    # type: ()-> pd.DataFrame
-    df = pd.DataFrame(
-        data=list(zip(["Bob", "Jessica"], [968, 155])), columns=["Names", "Births"]
-    )
-    return df
+@task(result=output.target_config(TargetConfig(format=z_file_ext)))
+def dump_as_joblib():
+    # type: ()-> SizedMessage
+    return SizedMessage("example message \n", 10)
+
+
+@task(result=output.txt[int])
+def load_as_joblib(sized_message: SizedMessage):
+    return sized_message.msg * sized_message.size

@@ -152,6 +152,9 @@ class ParameterFactory(object):
     def excel(self):
         return self.target_config(self._target_config.excel)
 
+    def with_format(self, format):
+        return self.target_config(self._target_config.with_format(format))
+
     @property
     def folder(self):
         """
