@@ -13,6 +13,7 @@ from dbnd_airflow.tracking.dbnd_spark_conf import (
     add_spark_env_fields,
     dbnd_wrap_spark_environment,
     get_databricks_java_agent_conf,
+    get_databricks_python_script_name,
     get_spark_submit_java_agent_conf,
     spark_submit_with_dbnd_tracking,
 )
@@ -45,6 +46,13 @@ def track_databricks_submit_run_operator(operator, tracking_info):
         cluster.setdefault("spark_env_vars", {})
         cluster["spark_env_vars"].update(tracking_info)
         cluster["spark_env_vars"].update(get_databand_url_conf())
+
+        if "spark_python_task" in config:
+            cluster["spark_env_vars"].update(
+                get_databricks_python_script_name(
+                    config["spark_python_task"]["python_file"]
+                )
+            )
 
         if "spark_jar_task" in config:
             cluster.setdefault("spark_conf", {})
