@@ -72,6 +72,3 @@ class TrackingChannel(object):
 
     def get_schema_by_handler_name(self, handler_name):
         raise NotImplementedError()
-
-    def save_airflow_monitor_data(self, data):
-        return self._handle(TrackingChannel.save_airflow_monitor_data.__name__, data)

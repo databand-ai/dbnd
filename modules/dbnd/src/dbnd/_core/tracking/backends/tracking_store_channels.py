@@ -250,16 +250,6 @@ class TrackingStoreThroughChannel(TrackingStore):
             base_url=base_url,
         )
 
-    def save_airflow_monitor_data(
-        self, airflow_monitor_data, airflow_base_url, last_sync_time
-    ):
-        return self._m(
-            self.channel.save_airflow_monitor_data,
-            airflow_export_data=airflow_monitor_data,
-            airflow_base_url=airflow_base_url,
-            last_sync_time=last_sync_time,
-        )
-
     def _m(self, channel_call, **req_kwargs):
         """
         Marshall and call channel function

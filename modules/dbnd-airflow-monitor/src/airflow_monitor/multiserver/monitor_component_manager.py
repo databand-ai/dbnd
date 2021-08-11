@@ -92,7 +92,6 @@ class MonitorComponentManager(object):
 
         self.tracking_service.update_monitor_state(
             MonitorState(
-                monitor_start_time=utcnow(),
                 monitor_status="Running",
                 airflow_monitor_version=airflow_monitor.__version__ + " v2",
                 airflow_version=plugin_metadata.airflow_version,
@@ -107,7 +106,6 @@ class MonitorComponentManager(object):
     def start(self):
         self.tracking_service.update_monitor_state(
             MonitorState(
-                monitor_start_time=utcnow(),
                 monitor_status="Scheduled",
                 airflow_monitor_version=airflow_monitor.__version__ + " v2",
                 monitor_error_message=None,

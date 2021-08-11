@@ -14,6 +14,7 @@ from dbnd_airflow_export.dag_operations import (
     get_dags,
     load_dags_models,
 )
+from dbnd_airflow_export.metrics import METRIC_COLLECTOR
 from dbnd_airflow_export.models import (
     AirflowExportData,
     AirflowExportMeta,
@@ -23,7 +24,6 @@ from dbnd_airflow_export.models import (
     LastSeenData,
     NewRunsData,
 )
-from dbnd_airflow_export.plugin_old.metrics import METRIC_COLLECTOR
 from dbnd_airflow_export.queries import (
     find_all_logs_grouped_by_runs,
     find_full_dag_runs,

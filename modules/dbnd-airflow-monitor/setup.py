@@ -16,7 +16,6 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=[
         "dbnd==" + version,
-        "simplejson==3.17.0",
         "setuptools",
         "prometheus_client",
         "beautifulsoup4==4.9.2",

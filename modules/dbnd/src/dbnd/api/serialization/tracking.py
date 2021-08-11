@@ -17,11 +17,8 @@ class UpdateAirflowMonitorStateRequestSchema(ApiObjectSchema):
     airflow_version = fields.String(required=False, allow_none=True)
     airflow_export_version = fields.String(required=False, allow_none=True)
     airflow_monitor_version = fields.String(required=False, allow_none=True)
-    dags_path = fields.String(required=False, allow_none=True)
-    logs_path = fields.String(required=False, allow_none=True)
     monitor_status = fields.String(required=False, allow_none=True)
     monitor_error_message = fields.String(required=False, allow_none=True)
-    monitor_start_time = fields.DateTime(required=False, allow_none=True)
     airflow_instance_uid = fields.UUID(required=False, allow_none=True)
 
 
