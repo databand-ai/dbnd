@@ -96,8 +96,8 @@ class TestMultiServer(object):
     def test_03_empty_config(self, multi_server, mock_server_config_service, caplog):
         # server config is empty (all components disabled) - nothing should run
         mock_server_config_service.mock_servers = [
-            AirflowServerConfig(uuid.uuid4(), is_sync_enabled_v2=True),
-            AirflowServerConfig(uuid.uuid4(), is_sync_enabled_v2=True),
+            AirflowServerConfig(uuid.uuid4()),
+            AirflowServerConfig(uuid.uuid4()),
         ]
         multi_server.run_once()
 
@@ -113,9 +113,7 @@ class TestMultiServer(object):
             KNOWN_COMPONENTS, {"state_sync": mock_syncer.emulate_start_syncer}
         ):
             mock_server_config_service.mock_servers = [
-                AirflowServerConfig(
-                    uuid.uuid4(), state_sync_enabled=True, is_sync_enabled_v2=True
-                )
+                AirflowServerConfig(uuid.uuid4(), state_sync_enabled=True)
             ]
             multi_server.run_once()
             # should start mock_server, should do 1 iteration
@@ -146,9 +144,7 @@ class TestMultiServer(object):
         mock_syncer2 = mock_syncer_factory()
 
         mock_server_config_service.mock_servers = [
-            AirflowServerConfig(
-                uuid.uuid4(), state_sync_enabled=True, is_sync_enabled_v2=True
-            )
+            AirflowServerConfig(uuid.uuid4(), state_sync_enabled=True)
         ]
         with patch.dict(
             KNOWN_COMPONENTS, {"state_sync": mock_syncer1.emulate_start_syncer}
@@ -205,9 +201,7 @@ class TestMultiServer(object):
         caplog,
     ):
         mock_server_config_service.mock_servers = [
-            AirflowServerConfig(
-                uuid.uuid4(), state_sync_enabled=True, is_sync_enabled_v2=True
-            )
+            AirflowServerConfig(uuid.uuid4(), state_sync_enabled=True)
         ]
         with patch.dict(
             KNOWN_COMPONENTS, {"state_sync": mock_syncer.emulate_start_syncer}
@@ -267,9 +261,7 @@ class TestMultiServer(object):
         caplog,
     ):
         mock_server_config_service.mock_servers = [
-            AirflowServerConfig(
-                uuid.uuid4(), state_sync_enabled=True, is_sync_enabled_v2=True
-            )
+            AirflowServerConfig(uuid.uuid4(), state_sync_enabled=True)
         ]
 
         multi_server.run_once()

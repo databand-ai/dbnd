@@ -71,12 +71,6 @@ class TestSyncerWorks(WebAppTest):
                 "composer_client_id": "",
                 "api_mode": "rbac",
                 "dag_ids": "",
-                "include_logs": False,
-                "include_task_args": True,
-                "include_xcom": False,
-                "fetch_quantity": 100,
-                "oldest_incomplete_data_in_days": 14,
-                "is_sync_enabled_v2": True,
             },
         )
         return random_name

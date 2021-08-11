@@ -1,7 +1,6 @@
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
 from dbnd.api.tracking_api import (
     add_task_runs_schema,
-    airflow_monitor_data_schema,
     airflow_task_infos_schema,
     heartbeat_schema,
     init_run_schema,
@@ -36,7 +35,6 @@ class MarshmallowMixin:
         TrackingChannel.log_artifact.__name__: log_artifact_schema,
         TrackingChannel.heartbeat.__name__: heartbeat_schema,
         TrackingChannel.save_airflow_task_infos.__name__: airflow_task_infos_schema,
-        TrackingChannel.save_airflow_monitor_data.__name__: airflow_monitor_data_schema,
     }
 
     def get_schema_by_handler_name(self, handler_name):

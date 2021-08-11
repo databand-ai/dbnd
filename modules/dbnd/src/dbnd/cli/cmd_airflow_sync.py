@@ -106,36 +106,6 @@ def validate_composer_id(ctx, param, value):
     callback=validate_composer_id,
 )
 @click.option(
-    "--fetch-quantity",
-    help="How much data to fetch in each iteration",
-    type=click.INT,
-    default=100,
-)
-@click.option(
-    "--oldest-incomplete-data-in-days",
-    help="Number of days ago to look for incomplete data",
-    type=click.INT,
-    default=14,
-)
-@click.option(
-    "--include-logs",
-    help="Should monitor include logs for tasks",
-    type=click.BOOL,
-    is_flag=True,
-)
-@click.option(
-    "--include-task-args",
-    help="Should monitor include task args for tasks",
-    type=click.BOOL,
-    is_flag=True,
-)
-@click.option(
-    "--include-xcom",
-    help="Should monitor include xcom data for tasks",
-    type=click.BOOL,
-    is_flag=True,
-)
-@click.option(
     "--exclude-sources",
     help="Don't monitor source code for tasks",
     type=click.BOOL,
@@ -159,28 +129,16 @@ def validate_composer_id(ctx, param, value):
     type=click.STRING,
     default=None,
 )
-@click.option(
-    "--use-af-monitor-v2",
-    help="Use Airflow monitor v2 for this source",
-    type=click.BOOL,
-    is_flag=True,
-)
 def add(
     url,
     external_url,
     instance_type,
     api_mode,
     composer_client_id,
-    fetch_quantity,
-    oldest_incomplete_data_in_days,
-    include_logs,
-    include_task_args,
-    include_xcom,
     exclude_sources,
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
-    use_af_monitor_v2,
 ):
     fetcher = "web" if instance_type == "airflow" else instance_type
     try:
@@ -190,16 +148,10 @@ def add(
             fetcher,
             api_mode,
             composer_client_id,
-            fetch_quantity,
-            oldest_incomplete_data_in_days,
-            include_logs,
-            include_task_args,
-            include_xcom,
             not exclude_sources,
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,
-            use_af_monitor_v2,
         )
     except DatabandApiError as e:
         logger.warning("failed with - {}".format(e.response))
