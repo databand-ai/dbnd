@@ -15,6 +15,7 @@ from dbnd._core.tracking.script_tracking_manager import (
     dbnd_tracking_stop,
 )
 from dbnd._core.utils.basics.environ_utils import env
+from dbnd._core.utils.basics.nested_context import nested
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_tracking_information, get_xcoms
 from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_info
@@ -118,7 +119,7 @@ def af_tracking_context(task_run, airflow_context, operator):
 
     try:
         tracking_info = get_tracking_information(airflow_context, task_run)
-        wrap_operator_with_tracking_info(tracking_info, operator)
+        operator_wrapper = wrap_operator_with_tracking_info(tracking_info, operator)
 
     except Exception as e:
         logger.error(
@@ -130,7 +131,7 @@ def af_tracking_context(task_run, airflow_context, operator):
         return
 
     # wrap the execution with tracking info in the environment
-    with env(**tracking_info):
+    with nested(env(**tracking_info), operator_wrapper):
         yield
 
 

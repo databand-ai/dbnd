@@ -2,7 +2,9 @@ import logging
 import os
 
 from functools import partial
+from typing import Dict
 
+from dbnd._core.configuration.environ_config import ENV_DBND_SCRIPT_NAME
 from dbnd._core.errors import DatabandError
 from dbnd_airflow.tracking.conf_operations import fix_keys, flat_conf
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
@@ -121,6 +123,18 @@ def get_spark_submit_java_agent_conf():
         return
 
     return create_spark_java_agent_conf(agent_jar)
+
+
+def get_databricks_python_script_name(raw_script_path):
+    # type: (str) -> Dict[str,str]
+    try:
+        script_name = os.path.basename(raw_script_path)
+        if script_name:
+            return {ENV_DBND_SCRIPT_NAME: script_name}
+        else:
+            return {}
+    except Exception:
+        return {}
 
 
 def get_databricks_java_agent_conf():
