@@ -52,11 +52,8 @@ class MonitorState:
     airflow_version = attr.ib(default=NOTHING)
     airflow_export_version = attr.ib(default=NOTHING)
     airflow_monitor_version = attr.ib(default=NOTHING)
-    dags_path = attr.ib(default=NOTHING)
-    logs_path = attr.ib(default=NOTHING)
     monitor_status = attr.ib(default=NOTHING)
     monitor_error_message = attr.ib(default=NOTHING)
-    monitor_start_time = attr.ib(default=NOTHING)  # type: datetime
     airflow_instance_uid = attr.ib(default=NOTHING)
 
     def as_dict(self):
@@ -68,13 +65,8 @@ class MonitorState:
             airflow_version=self.airflow_version,
             airflow_export_version=self.airflow_export_version,
             airflow_monitor_version=self.airflow_monitor_version,
-            dags_path=self.dags_path,
-            logs_path=self.logs_path,
             monitor_status=self.monitor_status,
             monitor_error_message=self.monitor_error_message,
-            monitor_start_time=self.monitor_start_time.isoformat()
-            if self.monitor_start_time not in (NOTHING, None)
-            else self.monitor_start_time,
             airflow_instance_uid=self.airflow_instance_uid,
         )
         # allow partial dump

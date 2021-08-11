@@ -7,7 +7,6 @@ from airflow.models import DagModel
 from airflow.plugins_manager import AirflowPlugin
 from airflow.www.app import csrf as admin_csrf
 
-from dbnd_airflow_export.plugin_old.data_exporting import export_data_api
 from dbnd_airflow_export.request_processing import (
     process_dag_run_states_data_request,
     process_full_runs_request,
@@ -15,7 +14,7 @@ from dbnd_airflow_export.request_processing import (
     process_metadata_request,
     process_new_runs_request,
 )
-from dbnd_airflow_export.utils import AIRFLOW_VERSION_2, get_dagbag_model
+from dbnd_airflow_export.utils import AIRFLOW_VERSION_2
 
 
 flask_admin_views_list = []
@@ -31,14 +30,7 @@ if not AIRFLOW_VERSION_2:
         def __init__(self, *args, **kwargs):
             super(ExportDataViewAdmin, self).__init__(*args, **kwargs)
             self.endpoint = "data_export_plugin"
-            self.default_view = "export_data"
-
-        @admin_csrf.exempt
-        @flask_admin.expose("/")
-        @flask_admin.expose("/export_data")
-        def export_data(self):
-            dagbag = get_dagbag_model()
-            return export_data_api(dagbag)
+            self.default_view = "new_runs"
 
         @admin_csrf.exempt
         @flask_admin.expose("/last_seen_values")
@@ -46,6 +38,7 @@ if not AIRFLOW_VERSION_2:
             return process_last_seen_values_request()
 
         @admin_csrf.exempt
+        @flask_admin.expose("/")
         @flask_admin.expose("/new_runs", methods=["GET", "POST"])
         def new_runs(self):
             return process_new_runs_request()
@@ -79,13 +72,6 @@ if not AIRFLOW_VERSION_2:
             requires_authentication,
             csrf,
         )
-
-        @csrf.exempt
-        @api_experimental.route("/export_data", methods=["GET"])
-        @requires_authentication
-        def export_data():
-            dagbag = get_dagbag_model()
-            return export_data_api(dagbag)
 
         @csrf.exempt
         @api_experimental.route("/last_seen_values", methods=["GET"])
@@ -128,17 +114,10 @@ else:
 
 class ExportDataViewAppBuilder(flask_appbuilder.BaseView):
     endpoint = "data_export_plugin"
-    default_view = "export_data"
+    default_view = "new_runs"
     # This line is required for the upgrade_check script as part of upgrading to Airflow 2.0
     # The actual model passed to CustomSQLAInterface doesn't really matter
     datamodel = CustomSQLAInterface(DagModel)
-
-    @rbac_csrf.exempt
-    @flask_appbuilder.has_access
-    @flask_appbuilder.expose("/export_data")
-    def export_data(self):
-        dagbag = get_dagbag_model()
-        return export_data_api(dagbag)
 
     @rbac_csrf.exempt
     @flask_appbuilder.has_access

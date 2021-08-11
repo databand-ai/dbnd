@@ -111,7 +111,7 @@ class MultiServerMonitor(object):
             logger.warning("No servers found")
 
         servers = self.filter_servers(servers)
-        servers = [s for s in servers if s.is_sync_enabled and s.is_sync_enabled_v2]
+        servers = [s for s in servers if s.is_sync_enabled]
 
         if not servers:
             logger.warning("No enabled servers found")

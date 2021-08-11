@@ -17,7 +17,6 @@ class AirflowServerConfig(object):
     include_sources = attr.ib(default=False)  # type: bool
 
     is_sync_enabled = attr.ib(default=True)  # type: bool
-    is_sync_enabled_v2 = attr.ib(default=False)  # type: bool
     base_url = attr.ib(default=None)  # type: str
     api_mode = attr.ib(default=None)  # type: str
     fetcher = attr.ib(default="web")  # type: str
@@ -57,7 +56,6 @@ class AirflowServerConfig(object):
             tracking_source_uid=server_config["tracking_source_uid"],
             name=server_config["name"],
             is_sync_enabled=server_config["is_sync_enabled"],
-            is_sync_enabled_v2=server_config.get("is_sync_enabled_v2", False),
             base_url=server_config["base_url"],
             api_mode=server_config["api_mode"],
             fetcher=airflow_config.fetcher or server_config["fetcher"],

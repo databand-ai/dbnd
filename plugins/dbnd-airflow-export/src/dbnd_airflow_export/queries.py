@@ -4,9 +4,8 @@ from airflow.models import DagModel, DagRun, Log, TaskInstance
 from airflow.settings import Session
 from sqlalchemy import and_, func, or_, tuple_
 
-from dbnd_airflow_export.models import AirflowTaskInstance
-from dbnd_airflow_export.plugin_old.metrics import measure_time, save_result_size
-from dbnd_airflow_export.plugin_old.model import EDagRun
+from dbnd_airflow_export.metrics import measure_time, save_result_size
+from dbnd_airflow_export.models import AirflowTaskInstance, EDagRun
 
 
 MAX_PARAMETERS_INSIDE_IN_CLAUSE = 900
