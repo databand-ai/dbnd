@@ -3,12 +3,14 @@ from datetime import timedelta
 import pytest
 
 from airflow import DAG
+from airflow.contrib.operators.databricks_operator import DatabricksSubmitRunOperator
 from airflow.contrib.operators.ecs_operator import ECSOperator
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
 from airflow.utils.dates import days_ago
 from mock import Mock
 
+from dbnd._core.configuration.environ_config import ENV_DBND_SCRIPT_NAME
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
@@ -95,8 +97,8 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
 
-        wrap_operator_with_tracking_info(env, operator)
-        return operator
+        with wrap_operator_with_tracking_info(env, operator):
+            return operator
 
     def test_emr_add_steps_operator(self, emr_operator):
         emr_args = emr_operator.steps[0]["HadoopJarStep"]["Args"]
@@ -122,8 +124,8 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
         }
 
-        wrap_operator_with_tracking_info(env, operator)
-        return operator
+        with wrap_operator_with_tracking_info(env, operator):
+            return operator
 
     def test_spark_submit_operator(self, spark_submit_operator):
         for env_var in dbnd_spark_env_vars:
@@ -144,13 +146,13 @@ class TestTrackOperator(object):
         )
 
     def test_ecs_operator(self, ecs_operator):
-        wrap_operator_with_tracking_info(
+        with wrap_operator_with_tracking_info(
             {"TRACKING_ENV": "TRACKING_VALUE"}, ecs_operator
-        )
-        for override in ecs_operator.overrides["containerOverrides"]:
-            assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
-                "environment"
-            ]
+        ):
+            for override in ecs_operator.overrides["containerOverrides"]:
+                assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
+                    "environment"
+                ]
 
     @pytest.fixture
     def ecs_operator_with_env(self, dag):
@@ -171,16 +173,54 @@ class TestTrackOperator(object):
         )
 
     def test_ecs_operator_with_env(self, ecs_operator_with_env):
-        wrap_operator_with_tracking_info(
+        with wrap_operator_with_tracking_info(
             {"TRACKING_ENV": "TRACKING_VALUE"}, ecs_operator_with_env
+        ):
+            for override in ecs_operator_with_env.overrides["containerOverrides"]:
+                assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
+                    "environment"
+                ]
+                assert {"name": "USER_KEY", "value": "USER_VALUE"} in override[
+                    "environment"
+                ]
+
+    @pytest.fixture
+    def databricks_operator_with_env(self, dag):
+        databricks_cluster_params = {
+            "spark_version": "6.5.x-scala2.11",
+            "node_type_id": "m5a.large",
+            "aws_attributes": {
+                "availability": "SPOT_WITH_FALLBACK",
+                "ebs_volume_count": 1,
+                "ebs_volume_type": "GENERAL_PURPOSE_SSD",
+                "ebs_volume_size": 100,
+            },
+            "spark_env_vars": {"DBND__VERBOSE": "True"},
+            "num_workers": 1,
+        }
+
+        databricks_task_params = {
+            "name": "generate rport",
+            "new_cluster": databricks_cluster_params,
+            "libraries": [{"pypi": {"package": "dbnd"}}],
+            "max_retries": 1,
+            "spark_python_task": {
+                "python_file": "s3://databricks/scripts/databricks_report.py"
+            },
+        }
+
+        return DatabricksSubmitRunOperator(
+            task_id="databricks_task", json=databricks_task_params
         )
-        for override in ecs_operator_with_env.overrides["containerOverrides"]:
-            assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
-                "environment"
-            ]
-            assert {"name": "USER_KEY", "value": "USER_VALUE"} in override[
-                "environment"
-            ]
+
+    def test_databricks_operator_with_env(self, databricks_operator_with_env):
+        with wrap_operator_with_tracking_info(
+            {"TRACKING_ENV": "TRACKING_VALUE"}, databricks_operator_with_env
+        ):
+            config = databricks_operator_with_env.json
+            env = config["new_cluster"]["spark_env_vars"]
+            assert env["TRACKING_ENV"] == "TRACKING_VALUE"
+            assert env[ENV_DBND_SCRIPT_NAME] == "databricks_report.py"
 
     def test_airflow_context_vars_patch(self):
         patch_airflow_context_vars()

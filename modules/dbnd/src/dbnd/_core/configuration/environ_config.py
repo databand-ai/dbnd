@@ -6,6 +6,7 @@ import os
 
 from configparser import ConfigParser
 from contextlib import contextmanager
+from typing import Optional
 
 from dbnd._core.configuration.project_env import (
     _init_windows_python_path,
@@ -85,6 +86,7 @@ ENV_DBND__AUTO_TRACKING = "DBND__AUTO_TRACKING"
 DEFAULT_MAX_CALLS_PER_RUN = 100
 
 ENV_DBND_TRACKING_ATTEMPT_UID = "DBND__TRACKING_ATTEMPT_UID"
+ENV_DBND_SCRIPT_NAME = "DBND__SCRIPT_NAME"
 
 _DBND_DEBUG_INIT = environ_enabled(ENV_DBND__DEBUG_INIT)
 _databand_package = relative_path(__file__, "..", "..")
@@ -177,6 +179,11 @@ def tracking_mode_context(tracking=None):
         yield
     finally:
         get_dbnd_project_config()._dbnd_tracking = is_current_tracking
+
+
+def try_get_script_name():
+    # type: () -> Optional[str]
+    return os.environ.get(ENV_DBND_SCRIPT_NAME)
 
 
 class DbndProjectConfig(object):
