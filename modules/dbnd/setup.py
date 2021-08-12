@@ -57,7 +57,7 @@ setuptools.setup(
             "qtconsole==4.7.7",  # 5.0 is not py 27 compatible
             "numpy==1.16.6;python_version<'3.5'",  # Latest py2 compatible version
             "numpy==1.19.5;python_version>='3.5'",  # 1.20 has compatibility issue with HDF5 marshalling. Fix is in progress
-            "coverage",
+            "coverage==5.5",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov==2.9.0",
             "pluggy==0.11.0",  # 0.12 has import_metadata, fails on py2
