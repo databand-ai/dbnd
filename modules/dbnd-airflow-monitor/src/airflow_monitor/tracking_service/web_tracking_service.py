@@ -22,7 +22,7 @@ from airflow_monitor.tracking_service.base_tracking_service import (
     ServersConfigurationService,
 )
 from dbnd._core.errors import DatabandConfigError
-from dbnd._core.utils.timezone import utctoday
+from dbnd._core.utils.timezone import utcnow, utctoday
 
 
 DEFAULT_REQUEST_TIMEOUT = 30
@@ -212,4 +212,14 @@ class WebServersConfigurationService(ServersConfigurationService):
             endpoint="tracking/save_monitor_metrics",
             method="POST",
             data={"job_name": job_name, "metrics": full_metrics},
+        )
+
+    def report_exception(self, exception):
+        data = {
+            "source": "airflow_monitor",
+            "stack_trace": exception,
+            "timestamp": utcnow().isoformat(),
+        }
+        return self._api_client.api_request(
+            endpoint="log_exception", method="POST", data=data,
         )
