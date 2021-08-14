@@ -1,8 +1,8 @@
 package ai.databand.spark;
 
 import ai.databand.DbndWrapper;
-import ai.databand.schema.DatasetOperationStatuses;
-import ai.databand.schema.DatasetOperationTypes;
+import ai.databand.schema.DatasetOperationStatus;
+import ai.databand.schema.DatasetOperationType;
 import org.apache.spark.sql.execution.CollectLimitExec;
 import org.apache.spark.sql.execution.FileSourceScanExec;
 import org.apache.spark.sql.execution.QueryExecution;
@@ -50,8 +50,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
                 dbnd.logDatasetOperation(
                     path,
-                    DatasetOperationTypes.WRITE,
-                    DatasetOperationStatuses.OK,
+                    DatasetOperationType.WRITE,
+                    DatasetOperationStatus.OK,
                     "",
                     dimensions,
                     schema
@@ -79,8 +79,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
                     dbnd.logDatasetOperation(
                         path,
-                        DatasetOperationTypes.READ,
-                        DatasetOperationStatuses.OK,
+                        DatasetOperationType.READ,
+                        DatasetOperationStatus.OK,
                         "",
                         dimensions,
                         schema

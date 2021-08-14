@@ -1,8 +1,8 @@
 package ai.databand;
 
 import ai.databand.log.HistogramRequest;
-import ai.databand.schema.DatasetOperationStatuses;
-import ai.databand.schema.DatasetOperationTypes;
+import ai.databand.schema.DatasetOperationStatus;
+import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.TaskRun;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
@@ -63,12 +63,22 @@ public class NoopDbndRun implements DbndRun {
     }
 
     @Override
-    public void logDatasetOperation(String operationPath,
-                                    DatasetOperationTypes operationType,
-                                    DatasetOperationStatuses operationStatus,
+    public void logDatasetOperation(String path,
+                                    DatasetOperationType type,
+                                    DatasetOperationStatus status,
                                     String valuePreview,
                                     List<Long> dataDimensions,
                                     String dataSchema) {
+        // do nothing
+    }
+
+    @Override
+    public void logDatasetOperation(String path,
+                                    DatasetOperationType type,
+                                    DatasetOperationStatus status,
+                                    Dataset<?> data,
+                                    boolean withPreview,
+                                    boolean withSchema) {
         // do nothing
     }
 
