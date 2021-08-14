@@ -17,8 +17,8 @@ public class LogDataset {
 
     public LogDataset(TaskRun taskRun,
                       String operationPath,
-                      DatasetOperationTypes operationType,
-                      DatasetOperationStatuses operationStatus,
+                      DatasetOperationType operationType,
+                      DatasetOperationStatus operationStatus,
                       String valuePreview,
                       List<Long> dataDimensions,
                       String dataSchema) {
@@ -41,8 +41,8 @@ public class LogDataset {
                       String taskRunName,
                       String taskRunAttemptUid,
                       String operationPath,
-                      DatasetOperationTypes operationType,
-                      DatasetOperationStatuses operationStatus,
+                      DatasetOperationType operationType,
+                      DatasetOperationStatus operationStatus,
                       String valuePreview,
                       List<Long> dataDimensions,
                       String dataSchema) {

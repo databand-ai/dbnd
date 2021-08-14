@@ -1,11 +1,11 @@
 package ai.databand.schema;
 
-public enum DatasetOperationStatuses {
+public enum DatasetOperationStatus {
     OK("OK"), NOK("NOK");
 
     private final String name;
 
-    DatasetOperationStatuses(String name) {
+    DatasetOperationStatus(String name) {
         this.name = name;
     }
 
