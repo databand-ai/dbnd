@@ -3,8 +3,8 @@ package ai.databand;
 import ai.databand.config.DbndConfig;
 import ai.databand.log.HistogramRequest;
 import ai.databand.schema.DatabandTaskContext;
-import ai.databand.schema.DatasetOperationStatuses;
-import ai.databand.schema.DatasetOperationTypes;
+import ai.databand.schema.DatasetOperationStatus;
+import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.TaskRun;
 import javassist.ClassPool;
 import javassist.Loader;
@@ -206,9 +206,22 @@ public class DbndWrapper {
         LOG.info("Metric logged: [{}: {}]", key, value);
     }
 
-    public void logDatasetOperation(String operationPath,
-                                    DatasetOperationTypes operationType,
-                                    DatasetOperationStatuses operationStatus,
+    public void logDatasetOperation(String path,
+                                    DatasetOperationType type,
+                                    DatasetOperationStatus status,
+                                    Dataset<?> data,
+                                    boolean withPreview,
+                                    boolean withSchema) {
+        DbndRun run = currentRun();
+        if (run == null) {
+            run = createAgentlessRun();
+        }
+        run.logDatasetOperation(path, type, status, data, withPreview, withSchema);
+    }
+
+    public void logDatasetOperation(String path,
+                                    DatasetOperationType type,
+                                    DatasetOperationStatus status,
                                     String valuePreview,
                                     List<Long> dataDimensions,
                                     String dataSchema) {
@@ -216,7 +229,7 @@ public class DbndWrapper {
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(operationPath, operationType, operationStatus, valuePreview, dataDimensions, dataSchema);
+        run.logDatasetOperation(path, type, status, valuePreview, dataDimensions, dataSchema);
     }
 
     public void logMetrics(Map<String, Object> metrics) {
@@ -264,6 +277,10 @@ public class DbndWrapper {
             run.saveSparkMetrics((SparkListenerStageCompleted) event);
             LOG.info("Spark metrics saved");
         }
+    }
+
+    public DbndConfig config() {
+        return config;
     }
 
     // TODO: replace synchronized with better approach to avoid performance bottlenecks
