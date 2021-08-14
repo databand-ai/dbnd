@@ -5,13 +5,15 @@ import ai.databand.id.Sha1Long;
 import ai.databand.id.Sha1Short;
 import ai.databand.id.Uuid5;
 import ai.databand.log.HistogramRequest;
+import ai.databand.parameters.DatasetPreview;
 import ai.databand.parameters.Histogram;
+import ai.databand.parameters.NullPreview;
 import ai.databand.parameters.ParametersPreview;
 import ai.databand.parameters.TaskParameterPreview;
 import ai.databand.schema.AirflowTaskContext;
 import ai.databand.schema.AzkabanTaskContext;
-import ai.databand.schema.DatasetOperationStatuses;
-import ai.databand.schema.DatasetOperationTypes;
+import ai.databand.schema.DatasetOperationStatus;
+import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.ErrorInfo;
 import ai.databand.schema.LogDataset;
 import ai.databand.schema.LogTarget;
@@ -614,9 +616,9 @@ public class DefaultDbndRun implements DbndRun {
     }
 
     @Override
-    public void logDatasetOperation(String operationPath,
-                                    DatasetOperationTypes operationType,
-                                    DatasetOperationStatuses operationStatus,
+    public void logDatasetOperation(String path,
+                                    DatasetOperationType type,
+                                    DatasetOperationStatus status,
                                     String valuePreview,
                                     List<Long> dataDimensions,
                                     String dataSchema) {
@@ -628,9 +630,9 @@ public class DefaultDbndRun implements DbndRun {
             dbnd.logDatasetOperations(currentTask.getTaskRunUid(), Collections.singletonList(
                 new LogDataset(
                     currentTask,
-                    operationPath,
-                    operationType,
-                    operationStatus,
+                    path,
+                    type,
+                    status,
                     valuePreview,
                     dataDimensions,
                     dataSchema
@@ -639,6 +641,17 @@ public class DefaultDbndRun implements DbndRun {
         } catch (Exception e) {
             LOG.error("Unable to log dataset operation", e);
         }
+    }
+
+    @Override
+    public void logDatasetOperation(String path,
+                                    DatasetOperationType type,
+                                    DatasetOperationStatus status,
+                                    Dataset<?> data,
+                                    boolean withPreview,
+                                    boolean withSchema) {
+        TaskParameterPreview preview = withSchema ? new DatasetPreview() : new NullPreview();
+        logDatasetOperation(path, type, status, preview.full(data), preview.dimensions(data), preview.schema(data));
     }
 
     public void logMetric(TaskRun taskRun, String key, Object value, String source) {
