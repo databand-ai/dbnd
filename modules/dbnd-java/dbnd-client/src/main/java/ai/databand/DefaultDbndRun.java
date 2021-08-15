@@ -5,7 +5,7 @@ import ai.databand.id.Sha1Long;
 import ai.databand.id.Sha1Short;
 import ai.databand.id.Uuid5;
 import ai.databand.log.HistogramRequest;
-import ai.databand.parameters.DatasetPreview;
+import ai.databand.parameters.DatasetOperationPreview;
 import ai.databand.parameters.Histogram;
 import ai.databand.parameters.NullPreview;
 import ai.databand.parameters.ParametersPreview;
@@ -621,7 +621,7 @@ public class DefaultDbndRun implements DbndRun {
                                     DatasetOperationStatus status,
                                     String valuePreview,
                                     List<Long> dataDimensions,
-                                    String dataSchema) {
+                                    Object dataSchema) {
         try {
             TaskRun currentTask = stack.peek();
             if (currentTask == null) {
@@ -650,7 +650,7 @@ public class DefaultDbndRun implements DbndRun {
                                     Dataset<?> data,
                                     boolean withPreview,
                                     boolean withSchema) {
-        TaskParameterPreview preview = withSchema ? new DatasetPreview() : new NullPreview();
+        TaskParameterPreview preview = withSchema ? new DatasetOperationPreview() : new NullPreview();
         logDatasetOperation(path, type, status, preview.full(data), preview.dimensions(data), preview.schema(data));
     }
 

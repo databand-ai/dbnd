@@ -13,7 +13,7 @@ public class LogDataset {
     private final String operationStatus;
     private final String valuePreview;
     private final List<Long> dataDimensions;
-    private final String dataSchema;
+    private final Object dataSchema;
 
     public LogDataset(TaskRun taskRun,
                       String operationPath,
@@ -21,7 +21,7 @@ public class LogDataset {
                       DatasetOperationStatus operationStatus,
                       String valuePreview,
                       List<Long> dataDimensions,
-                      String dataSchema) {
+                      Object dataSchema) {
         this(
             taskRun.getRunUid(),
             taskRun.getTaskRunUid(),
@@ -45,7 +45,7 @@ public class LogDataset {
                       DatasetOperationStatus operationStatus,
                       String valuePreview,
                       List<Long> dataDimensions,
-                      String dataSchema) {
+                      Object dataSchema) {
         this.runUid = runUid;
         this.taskRunUid = taskRunUid;
         this.taskRunName = taskRunName;
@@ -94,7 +94,7 @@ public class LogDataset {
         return dataDimensions;
     }
 
-    public String getDataSchema() {
+    public Object getDataSchema() {
         return dataSchema;
     }
 }

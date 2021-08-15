@@ -28,7 +28,7 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
     }
 
     @Override
-    public String schema(Dataset<Row> input) {
+    public Object schema(Dataset<Row> input) {
         try {
             return input.schema().prettyJson();
         } catch (Exception e) {
@@ -47,8 +47,8 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
     @Override
     public List<Long> dimensions(Dataset<Row> input) {
         try {
-            long columns = input.columns().length;
             long rows = input.count();
+            long columns = input.columns().length;
             return Arrays.asList(rows, columns);
         } catch (Exception e) {
             return Arrays.asList(0L, 0L);
