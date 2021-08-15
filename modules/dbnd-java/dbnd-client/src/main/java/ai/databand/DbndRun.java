@@ -1,8 +1,8 @@
 package ai.databand;
 
 import ai.databand.log.HistogramRequest;
-import ai.databand.schema.DatasetOperationStatuses;
-import ai.databand.schema.DatasetOperationTypes;
+import ai.databand.schema.DatasetOperationStatus;
+import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.TaskRun;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
@@ -96,11 +96,28 @@ public interface DbndRun {
      * @param dataSchema
      */
     void logDatasetOperation(String operationPath,
-                             DatasetOperationTypes operationType,
-                             DatasetOperationStatuses operationStatus,
+                             DatasetOperationType operationType,
+                             DatasetOperationStatus operationStatus,
                              String valuePreview,
                              List<Long> dataDimensions,
-                             String dataSchema);
+                             Object dataSchema);
+
+    /**
+     * Log dataset operations.
+     *
+     * @param path
+     * @param type
+     * @param status
+     * @param data
+     * @param withPreview
+     * @param withSchema
+     */
+    void logDatasetOperation(String path,
+                             DatasetOperationType type,
+                             DatasetOperationStatus status,
+                             Dataset<?> data,
+                             boolean withPreview,
+                             boolean withSchema);
 
     /**
      * Log Deequ result
