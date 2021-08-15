@@ -1,8 +1,10 @@
 package ai.databand.spark;
 
 import ai.databand.DbndWrapper;
+import ai.databand.parameters.DatasetOperationPreview;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
+import ai.databand.schema.Pair;
 import org.apache.spark.sql.execution.CollectLimitExec;
 import org.apache.spark.sql.execution.FileSourceScanExec;
 import org.apache.spark.sql.execution.QueryExecution;
@@ -20,13 +22,15 @@ import java.util.List;
 public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
     private final DbndWrapper dbnd;
+    private final DatasetOperationPreview operationPreview;
 
     public DbndSparkQueryExecutionListener(DbndWrapper dbnd) {
         this.dbnd = dbnd;
+        this.operationPreview = new DatasetOperationPreview();
     }
 
     public DbndSparkQueryExecutionListener() {
-        this.dbnd = DbndWrapper.instance();
+        this(DbndWrapper.instance());
     }
 
     @Override
@@ -37,24 +41,18 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 InsertIntoHadoopFsRelationCommand cmd = (InsertIntoHadoopFsRelationCommand) writePlan.cmd();
 
                 String path = exctractPath(cmd.outputPath().toString());
-                // dimensions
-                List<Long> dimensions = new ArrayList<>(2);
-                // written rows
-                long rows = cmd.metrics().get("numOutputRows").get().value();
-                dimensions.add(rows);
 
-                // written columns
-                List<String> columns = scala.collection.JavaConverters.seqAsJavaListConverter(cmd.outputColumnNames()).asJava();
-                String schema = String.join(",", columns);
-                dimensions.add((long) columns.size());
+                long rows = cmd.metrics().get("numOutputRows").get().value();
+
+                Pair<String, List<Long>> schema = operationPreview.extractSchema(cmd.schema(), rows);
 
                 dbnd.logDatasetOperation(
                     path,
                     DatasetOperationType.WRITE,
                     DatasetOperationStatus.OK,
                     "",
-                    dimensions,
-                    schema
+                    schema.right(),
+                    schema.left()
                 );
             }
         }
@@ -65,25 +63,17 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                     FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
                     String path = exctractPath(fileSourceScan.metadata().get("Location").get());
-                    String schema = fileSourceScan.metadata().get("ReadSchema").get();
 
-                    // dimensions
-                    List<Long> dimensions = new ArrayList<>(2);
-                    // written rows
                     long rows = fileSourceScan.metrics().get("numOutputRows").get().value();
-                    dimensions.add(rows);
-
-                    // written columns
-                    long columns = fileSourceScan.schema().size();
-                    dimensions.add(columns);
+                    Pair<String, List<Long>> schema = operationPreview.extractSchema(fileSourceScan.schema(), rows);
 
                     dbnd.logDatasetOperation(
                         path,
                         DatasetOperationType.READ,
                         DatasetOperationStatus.OK,
                         "",
-                        dimensions,
-                        schema
+                        schema.right(),
+                        schema.left()
                     );
                 }
             }
