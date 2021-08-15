@@ -10,7 +10,7 @@ public interface TaskParameterPreview<T> {
 
     String typeName(Class<T> input);
 
-    String schema(T input);
+    Object schema(T input);
 
     List<Long> dimensions(T input);
 }

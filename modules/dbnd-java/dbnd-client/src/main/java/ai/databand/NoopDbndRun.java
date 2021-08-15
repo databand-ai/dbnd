@@ -68,7 +68,7 @@ public class NoopDbndRun implements DbndRun {
                                     DatasetOperationStatus status,
                                     String valuePreview,
                                     List<Long> dataDimensions,
-                                    String dataSchema) {
+                                    Object dataSchema) {
         // do nothing
     }
 

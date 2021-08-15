@@ -66,9 +66,9 @@ public class DbndLogger {
     /**
      * Report success dataset operation. Schema and preview will automatically be calculated.
      *
-     * @param path   data path (S3, filesystem, GCS etc)
-     * @param type   operation type — read/write
-     * @param data   spark dataset
+     * @param path data path (S3, filesystem, GCS etc)
+     * @param type operation type — read/write
+     * @param data spark dataset
      */
     public static void logDatasetOperation(String path,
                                            DatasetOperationType type,
