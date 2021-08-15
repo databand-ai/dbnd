@@ -1,11 +1,11 @@
 package ai.databand.schema;
 
-public enum DatasetOperationTypes {
+public enum DatasetOperationType {
     READ("read"), WRITE("write"), DELETE("delete");
 
     private final String name;
 
-    DatasetOperationTypes(String name) {
+    DatasetOperationType(String name) {
         this.name = name;
     }
 

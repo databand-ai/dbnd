@@ -28,8 +28,12 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
     }
 
     @Override
-    public String schema(Dataset<Row> input) {
-        return input.schema().prettyJson();
+    public Object schema(Dataset<Row> input) {
+        try {
+            return input.schema().prettyJson();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /**
@@ -42,8 +46,12 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
      */
     @Override
     public List<Long> dimensions(Dataset<Row> input) {
-        long columns = input.columns().length;
-        long rows = input.count();
-        return Arrays.asList(rows, columns);
+        try {
+            long rows = input.count();
+            long columns = input.columns().length;
+            return Arrays.asList(rows, columns);
+        } catch (Exception e) {
+            return Arrays.asList(0L, 0L);
+        }
     }
 }

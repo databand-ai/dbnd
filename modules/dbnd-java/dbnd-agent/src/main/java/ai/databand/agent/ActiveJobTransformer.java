@@ -34,7 +34,7 @@ public class ActiveJobTransformer implements ClassFileTransformer {
             }
             return ct.toBytecode();
         } catch (Throwable e) {
-            System.err.println("Class instrumentation failed");
+            System.err.println("Spark ActiveJob class instrumentation failed. I/O tracking won't be available.");
             e.printStackTrace();
             return null;
         }

@@ -31,6 +31,7 @@ import static ai.databand.DbndPropertyNames.DBND__RUN__JOB_NAME;
 import static ai.databand.DbndPropertyNames.DBND__RUN__NAME;
 import static ai.databand.DbndPropertyNames.DBND__SPARK__IO_TRACKING_ENABLED;
 import static ai.databand.DbndPropertyNames.DBND__SPARK__LISTENER_INJECT_ENABLED;
+import static ai.databand.DbndPropertyNames.DBND__SPARK__QUERY_LISTENER_INJECT_ENABLED;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING__DATA_PREVIEW;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING__LOG_VALUE_PREVIEW;
@@ -224,6 +225,10 @@ public class DbndConfig implements PropertiesSource {
 
     public boolean sparkListenerInjectEnabled() {
         return !isFalse(DBND__SPARK__LISTENER_INJECT_ENABLED);
+    }
+
+    public boolean sparkQueryListenerInjectEnabled() {
+        return isTrue(DBND__SPARK__QUERY_LISTENER_INJECT_ENABLED);
     }
 
     public boolean sparkIoTrackingEnabled() {
