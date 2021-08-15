@@ -15,7 +15,7 @@ public class LogTarget {
     private final String operationStatus;
     private final String valuePreview;
     private final List<Long> dataDimensions;
-    private final String dataSchema;
+    private final Object dataSchema;
     private final String dataHash;
 
     public LogTarget(String runUid,
@@ -29,7 +29,7 @@ public class LogTarget {
                      String operationStatus,
                      String valuePreview,
                      List<Long> dataDimensions,
-                     String dataSchema,
+                     Object dataSchema,
                      String dataHash) {
         this.runUid = runUid;
         this.taskRunUid = taskRunUid;
@@ -90,7 +90,7 @@ public class LogTarget {
         return dataDimensions;
     }
 
-    public String getDataSchema() {
+    public Object getDataSchema() {
         return dataSchema;
     }
 

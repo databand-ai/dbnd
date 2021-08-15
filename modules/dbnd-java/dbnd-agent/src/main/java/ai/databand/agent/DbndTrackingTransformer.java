@@ -97,6 +97,21 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
         return classfileBuffer;
     }
 
+    //@formatter:off
+    private static final String SPARK_LISTENER_INJECT_CODE =
+        "{ " +
+            "$_ = $proceed($$);" +
+            "$_.sparkContext().addSparkListener(new ai.databand.spark.DbndSparkListener($dbnd));" +
+        "}";
+
+    private static final String SPARK_QUERY_LISTENER_INJECT_CODE =
+        "{ " +
+            "$_ = $proceed($$);" +
+            "$_.sparkContext().addSparkListener(new ai.databand.spark.DbndSparkListener($dbnd));" +
+            "$_.listenerManager().register(new ai.databand.spark.DbndSparkQueryExecutionListener($dbnd));" +
+        "}";
+    //@formatter:on
+
     protected void injectSparkListener(CtMethod method) throws CannotCompileException {
         if (!config.sparkListenerInjectEnabled()) {
             return;
@@ -119,15 +134,16 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
                 new ExprEditor() {
                     public void edit(MethodCall m) throws CannotCompileException {
                         if (m.getMethodName().contains("getOrCreate") && m.getClassName().equalsIgnoreCase("org.apache.spark.sql.SparkSession$Builder")) {
-                            String injected =
-                                "{ " +
-                                    "$_ = $proceed($$);" +
-                                    "$_.sparkContext().addSparkListener(new ai.databand.spark.DbndSparkListener($dbnd));" +
-                                    "$_.listenerManager().register(new ai.databand.spark.DbndSparkQueryExecutionListener($dbnd));" +
-                                "}";
-                            m.replace(injected);
-                            if (config.isVerbose()) {
-                                System.out.println("Spark listener injected");
+                            if (config.sparkQueryListenerInjectEnabled()) {
+                                m.replace(SPARK_QUERY_LISTENER_INJECT_CODE);
+                                if (config.isVerbose()) {
+                                    System.out.println("Spark listener and query listener are injected");
+                                }
+                            } else {
+                                m.replace(SPARK_LISTENER_INJECT_CODE);
+                                if (config.isVerbose()) {
+                                    System.out.println("Spark listener is injected");
+                                }
                             }
                         }
                     }
