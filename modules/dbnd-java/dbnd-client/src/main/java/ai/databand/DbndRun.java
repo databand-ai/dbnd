@@ -100,7 +100,7 @@ public interface DbndRun {
                              DatasetOperationStatus operationStatus,
                              String valuePreview,
                              List<Long> dataDimensions,
-                             String dataSchema);
+                             Object dataSchema);
 
     /**
      * Log dataset operations.
