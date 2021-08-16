@@ -82,30 +82,35 @@ def write_data(dest_dir, df):
 
 
 @task()
-def main(source, dest, days):
-    randomly_fail()
+def main(source, dest, days, index):
+    randomly_fail(index)
 
     df = get_data(source, days=days)
-    randomly_fail()
+    randomly_fail(index)
 
     df = manipulate(df)
-    randomly_fail()
+    randomly_fail(index)
 
     write_data(dest, df)
-    randomly_fail()
+    randomly_fail(index)
 
 
-def randomly_fail():
-    if randint(1, 100) > 95:
+def randomly_fail(index):
+    if (index % 2) != 0:
         raise Exception
 
 
 if __name__ == "__main__":
     # run with `python dbnd-core/examples/src/dbnd_examples/tracking/data_health.py`
-    for _ in range(20):
+    for index in range(20):
         try:
             with dbnd_tracking():
-                main(f"/tmp/input/test_data", f"/tmp/output/test_data/", days=3)
+                main(
+                    f"/tmp/input/test_data",
+                    f"/tmp/output/test_data/",
+                    days=3,
+                    index=index,
+                )
         except Exception:
             pass
 
