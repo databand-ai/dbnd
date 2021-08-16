@@ -14,13 +14,7 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-airflow-monitor",
     package_dir={"": "src"},
-    install_requires=[
-        "dbnd==" + version,
-        "setuptools",
-        "prometheus_client",
-        "beautifulsoup4==4.9.2",
-        "tenacity>=4.12.0,<7",
-    ],
+    install_requires=["dbnd==" + version, "setuptools", "prometheus_client",],
     extras_require={
         "tests": [
             "pytest==4.5.0",

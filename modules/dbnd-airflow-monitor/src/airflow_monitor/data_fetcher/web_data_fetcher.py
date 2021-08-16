@@ -1,4 +1,5 @@
 import logging
+import re
 
 from typing import Dict, List, Optional
 
@@ -23,7 +24,6 @@ from airflow_monitor.errors import (
     failed_to_get_csrf_token,
     failed_to_login_to_airflow,
 )
-from bs4 import BeautifulSoup as bs
 
 
 DEFAULT_REQUEST_TIMEOUT = 30
@@ -39,6 +39,11 @@ AIRFLOW_API_MODE_TO_SUFFIX = {
     "rbac": "/exportdataviewappbuilder",
     "experimental": "/api/experimental",
 }
+
+CSRF_TOKEN_PATTERN = (
+    r'"csrf_token" name="csrf_token" type="hidden" value="(?P<token>.*)"'
+)
+LOGOUT_LINK_PATTERN = r'<a href="/logout/">'
 
 
 def get_endpoint_url(base_url, api_mode):
@@ -79,12 +84,11 @@ class WebFetcher(AirflowDataFetcher):
         )
         # extract csrf token, will raise ConnectionError if the server is is down
         resp = self.session.get(self.login_url)
-        soup = bs(resp.text, "html.parser")
-        csrf_token_tag = soup.find(id="csrf_token")
-        if not csrf_token_tag:
+        result = re.findall(CSRF_TOKEN_PATTERN, resp.text)
+        if not result:
             raise failed_to_get_csrf_token(self.base_url)
 
-        return csrf_token_tag.get("value")
+        return result[0]
 
     def _login_to_server(self):
         auth_params = {"username": self.rbac_username, "password": self.rbac_password}
@@ -101,8 +105,8 @@ class WebFetcher(AirflowDataFetcher):
         )
 
         # validate login succeeded
-        soup = bs(resp.text, "html.parser")
-        if "/logout/" in [a.get("href") for a in soup.find_all("a")]:
+        logout_match = re.findall(LOGOUT_LINK_PATTERN, resp.text)
+        if logout_match:
             self.is_logged_in = True
             logger.info("Succesfully logged in to %s.", self.login_url)
         else:

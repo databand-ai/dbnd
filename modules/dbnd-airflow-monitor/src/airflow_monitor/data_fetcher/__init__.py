@@ -12,7 +12,7 @@ from airflow_monitor.data_fetcher.google_compose_data_fetcher import (
 )
 from airflow_monitor.data_fetcher.web_data_fetcher import WebFetcher
 from dbnd._core.errors import DatabandConfigError
-from tenacity import retry, stop_after_attempt, wait_fixed
+from dbnd._vendor.tenacity import retry, stop_after_attempt, wait_fixed
 
 
 FETCHERS = {

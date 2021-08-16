@@ -13,7 +13,7 @@ from airflow_monitor.tracking_service.web_tracking_service import (
     WebServersConfigurationService,
 )
 from dbnd._core.utils.basics.memoized import cached
-from tenacity import retry, stop_after_attempt
+from dbnd._vendor.tenacity import retry, stop_after_attempt
 
 
 def get_tracking_service_config_from_dbnd() -> TrackingServiceConfig:

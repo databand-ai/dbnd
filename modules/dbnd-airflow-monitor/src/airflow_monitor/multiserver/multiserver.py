@@ -28,7 +28,7 @@ from airflow_monitor.tracking_service.base_tracking_service import (
 )
 from dbnd._core.errors.base import DatabandConfigError, DatabandConnectionException
 from dbnd._core.utils.timezone import utcnow
-from tenacity import (
+from dbnd._vendor.tenacity import (
     before_sleep_log,
     retry,
     retry_if_exception_type,
