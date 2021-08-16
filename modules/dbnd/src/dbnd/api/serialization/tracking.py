@@ -1,5 +1,13 @@
+from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+import attr
+
 from dbnd._core.tracking.schemas.base import ApiObjectSchema
-from dbnd._vendor.marshmallow import fields
+from dbnd._core.utils.basics.nothing import NOTHING
+from dbnd._core.utils.date_utils import get_isoformat_date
+from dbnd._vendor.marshmallow import fields, post_load
 
 
 class GetRunningDagRunsResponseSchema(ApiObjectSchema):
@@ -127,18 +135,111 @@ class UpdateDagRunsRequestSchema(ApiObjectSchema):
 
 # ----- Datasource Tracking ------
 # When changing update datasource_monitor.datasource_domain
-class DatasetMetadataSchema(ApiObjectSchema):
+
+# Dataset Objects
+@attr.s
+class SyncedDatasetMetadata(object):
+    num_bytes = attr.ib()  # type: int
+    records = attr.ib()  # type: int
+    schema = attr.ib()  # type: dict
+
+    def as_dict(self):
+        return attr.asdict(self)
+
+
+@attr.s
+class SyncedDataset(object):
+    uri = attr.ib()  # type: str
+    created_date = attr.ib()  # type: datetime
+    last_modified_date = attr.ib()  # type: datetime
+    metadata = attr.ib()  # type: SyncedDatasetMetadata
+
+    def as_dict(self, parse_for_api=False):
+        if parse_for_api:
+            return dict(
+                uri=self.uri,
+                created_date=self.created_date.isoformat(),
+                last_modified_date=self.last_modified_date.isoformat(),
+                metadata=self.metadata.as_dict(),
+            )
+        return attr.asdict(self)
+
+
+@attr.s
+class DatasourceMonitorStateRequest(object):
+    datasource_monitor_version = attr.ib(default=NOTHING)  # type: str
+    monitor_status = attr.ib(default=NOTHING)  # type: str
+    monitor_error_message = attr.ib(default=NOTHING)  # type: str
+    monitor_start_time = attr.ib(default=NOTHING)  # type: datetime
+    last_sync_time = attr.ib(default=NOTHING)  # type: datetime
+
+    def as_dict(self, parse_for_api=False):
+        # don't serialize data which didn't changed: as_dict should be able to return
+        # None value when it set, specifically for monitor_error_message - when not set
+        # at all (=NOTHING, not changing) - no need to pass serialize it, vs set to None
+        # (means is changed and is None=empty) - serialize as None
+        d = dict(
+            datasource_monitor_version=self.datasource_monitor_version,
+            monitor_status=self.monitor_status,
+            monitor_error_message=self.monitor_error_message,
+            monitor_start_time=get_isoformat_date(self.monitor_start_time)
+            if parse_for_api
+            else self.monitor_start_time,
+            last_sync_time=get_isoformat_date(self.last_sync_time)
+            if parse_for_api
+            else self.last_sync_time,
+        )
+        # allow partial dump
+        return {k: v for k, v in d.items() if v is not NOTHING}
+
+
+@attr.s
+class DatasetsReport(object):
+    sync_event_uid = attr.ib()  # type: UUID
+    monitor_state = attr.ib()  # type: DatasourceMonitorStateRequest
+
+    sync_event_timestamp = attr.ib()  # type: datetime
+    datasets = attr.ib()  # type: SyncedDataset
+
+    source_type = attr.ib(default=None)  # type: Optional[str]
+    syncer_type = attr.ib(default=None)  # type: Optional[str]
+
+    def as_dict(self, parse_for_api=False):
+        if parse_for_api:
+            return dict(
+                source_type=self.source_type,
+                syncer_type=self.syncer_type,
+                sync_event_uid=str(self.sync_event_uid),
+                sync_event_timestamp=self.sync_event_timestamp.isoformat(),
+                datasets=list(map(lambda d: d.as_dict(), self.datasets),),
+                monitor_state=self.monitor_state.as_dict(),
+            )
+        return attr.asdict(self)
+
+
+# Dataset schemas
+class SyncedDatasetMetadataSchema(ApiObjectSchema):
     num_bytes = fields.Integer()
-    num_rows = fields.Integer()
-    # TODO: ADD -> Schema & Preview
+    records = fields.Integer()
+
+    schema = fields.Dict()
+    # TODO: ADD -> Preview
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return SyncedDatasetMetadata(**data)
 
 
-class DatasetSchema(ApiObjectSchema):
+class SyncedDatasetSchema(ApiObjectSchema):
     uri = fields.String()  # {storage_type://region/project_id/scheme_name/table_name}
     created_date = fields.DateTime()
     last_modified_date = fields.DateTime(allow_none=True)
 
-    metadata = fields.Nested(DatasetMetadataSchema)
+    metadata = fields.Nested(SyncedDatasetMetadataSchema)
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return SyncedDataset(**data)
 
 
 class DatasourceMonitorStateRequestSchema(ApiObjectSchema):
@@ -148,11 +249,22 @@ class DatasourceMonitorStateRequestSchema(ApiObjectSchema):
     monitor_start_time = fields.DateTime(required=False, allow_none=True)
     last_sync_time = fields.DateTime(required=False, allow_none=True)
 
+    @post_load
+    def make_object(self, data, **kwargs):
+        return {"monitor_state": DatasourceMonitorStateRequest(**data)}
 
-class DatasetsRequestSchema(ApiObjectSchema):
+
+class DatasetsReportSchema(ApiObjectSchema):
     sync_event_uid = fields.UUID()
     monitor_state = fields.Nested(DatasourceMonitorStateRequestSchema)
     source_type = fields.String(allow_none=True)  # bigquery / snowflake / etc
     syncer_type = fields.String(allow_none=True)
 
-    datasets = fields.Nested(DatasetSchema, many=True)
+    sync_event_timestamp = fields.DateTime(required=False, allow_none=True)
+    datasets = fields.Nested(SyncedDatasetSchema, many=True)
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return {
+            "datasets_report": DatasetsReport(**data),
+        }
