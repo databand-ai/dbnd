@@ -25,7 +25,11 @@ requirements_for_airflow = [
 setuptools.setup(
     name="dbnd-airflow",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version, "packaging"],
+    install_requires=[
+        "dbnd==" + version,
+        "packaging",
+        "idna<3,>=2.5",  # fix compatibility with requests==2.23.0 from apache-airflow
+    ],
     extras_require=dict(
         airflow_1_10_7=requirements_for_airflow + ["apache-airflow==1.10.7"],
         airflow_1_10_8=requirements_for_airflow + ["apache-airflow==1.10.8"],
