@@ -1,20 +1,25 @@
 # History
+
+## DBND v0.47.0
+
+TODO
+
 ## DBND v0.46.0
 
 ### New features
 
-- \#1200619480835694: Pipeline and run lists optimized for tracking.
-- \#1200597628980930: Now you can choose whether to have alerts fire on historical runs by editing alert definitions.
-- \#1200347108016370: Range alerts added. Now it’s possible to add an alert if the metric's value is in a predefined range or out of range.
-- \#1200700419038963: New schema Alert flow changes in Affected Datasets: schema changes in a data operation are now shown in the Affected Datasets screen. Now you'll know when a column is added, removed, or when its type changes. Some minor cosmetic changes in the UI were also implemented.
+-   \#1200619480835694: Pipeline and run lists optimized for tracking.
+-   \#1200597628980930: Now you can choose whether to have alerts fire on historical runs by editing alert definitions.
+-   \#1200347108016370: Range alerts added. Now it’s possible to add an alert if the metric's value is in a predefined range or out of range.
+-   \#1200700419038963: New schema Alert flow changes in Affected Datasets: schema changes in a data operation are now shown in the Affected Datasets screen. Now you'll know when a column is added, removed, or when its type changes. Some minor cosmetic changes in the UI were also implemented.
 
 ### Improvements
 
-- \#1200610543227298: Simplified usage of `in_cluster` in cases where `in_cluster` is None.
+-   \#1200610543227298: Simplified usage of `in_cluster` in cases where `in_cluster` is None.
 
 ### Bug fixes
 
-- \#1200629604891227: Run view performance improvements.
+-   \#1200629604891227: Run view performance improvements.
 
 ## DBND v0.45.0
 
