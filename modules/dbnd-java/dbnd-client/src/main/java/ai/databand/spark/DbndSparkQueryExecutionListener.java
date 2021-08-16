@@ -44,7 +44,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
                 long rows = cmd.metrics().get("numOutputRows").get().value();
 
-                Pair<String, List<Long>> schema = operationPreview.extractSchema(cmd.schema(), rows);
+                Pair<String, List<Long>> schema = operationPreview.extractSchema(cmd.query().schema(), rows);
 
                 dbnd.logDatasetOperation(
                     path,
