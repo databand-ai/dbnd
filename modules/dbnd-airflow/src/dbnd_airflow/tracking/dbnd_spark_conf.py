@@ -132,8 +132,16 @@ def get_databricks_python_script_name(raw_script_path):
         if script_name:
             return {ENV_DBND_SCRIPT_NAME: script_name}
         else:
+            logger.warning(
+                "Unable to determine script name from path %s", raw_script_path
+            )
             return {}
-    except Exception:
+    except Exception as exc:
+        logger.error(
+            "Unable to determine script name from path %s, exception: %s",
+            raw_script_path,
+            exc,
+        )
         return {}
 
 
