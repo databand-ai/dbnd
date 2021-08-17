@@ -1,4 +1,6 @@
+import logging
 import typing
+import uuid
 
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -6,7 +8,19 @@ from typing import Any, ContextManager, Dict, Optional
 
 import six
 
+from dbnd import dbnd_context
+from dbnd._core.configuration.environ_config import (
+    DBND_ROOT_RUN_UID,
+    ENV_DBND_SCRIPT_NAME,
+)
+from dbnd._core.constants import TaskRunState, UpdateSource
+from dbnd._core.tracking.airflow_dag_inplace_tracking import (
+    get_task_family_for_inline_script,
+    get_task_run_uid_for_inline_script,
+)
+from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
+from dbnd._core.utils.uid_utils import get_task_run_attempt_uid, get_task_run_uid
 from dbnd_airflow.tracking.conf_operations import flat_conf
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_databand_url_conf
 from dbnd_airflow.tracking.dbnd_spark_conf import (
@@ -17,12 +31,20 @@ from dbnd_airflow.tracking.dbnd_spark_conf import (
     get_spark_submit_java_agent_conf,
     spark_submit_with_dbnd_tracking,
 )
+from dbnd_airflow.tracking.fakes import FakeRun, FakeTask, FakeTaskRun
 
 
 if typing.TYPE_CHECKING:
     from airflow.models import BaseOperator
     from airflow.contrib.operators.ecs_operator import ECSOperator
     from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
+    from airflow.contrib.operators.databricks_operator import (
+        DatabricksSubmitRunOperator,
+    )
+    from airflow.contrib.operators.databricks_operator import DatabricksHook
+    from airflow.contrib.hooks.databricks_hook import RunState as DatabricksRunState
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -39,7 +61,9 @@ def track_emr_add_steps_operator(operator, tracking_info):
 
 @contextmanager
 def track_databricks_submit_run_operator(operator, tracking_info):
+    # type: (DatabricksSubmitRunOperator, Dict[str, str])-> None
     config = operator.json
+    script_name = None  # type: str
     # passing env variables is only supported in new clusters
     if "new_cluster" in config:
         cluster = config["new_cluster"]
@@ -53,13 +77,72 @@ def track_databricks_submit_run_operator(operator, tracking_info):
                     config["spark_python_task"]["python_file"]
                 )
             )
+            script_name = cluster["spark_env_vars"][ENV_DBND_SCRIPT_NAME]
+            # calculate deterministic task uids so we can use it for manual completion
+            (
+                task_id,
+                task_run_uid,
+                task_run_attempt_uid,
+            ) = get_task_run_uid_for_inline_script(tracking_info, script_name)
 
-        if "spark_jar_task" in config:
-            cluster.setdefault("spark_conf", {})
-            agent_conf = get_databricks_java_agent_conf()
-            if agent_conf is not None:
-                cluster["spark_conf"].update(agent_conf)
+    if "spark_jar_task" in config:
+        cluster.setdefault("spark_conf", {})
+        agent_conf = get_databricks_java_agent_conf()
+        if agent_conf is not None:
+            cluster["spark_conf"].update(agent_conf)
     yield
+    if script_name:
+        # When dbnd is running inside Databricks, the script can be SIGTERM'd before dbnd will send state to tracker
+        # So we need to check whenever the run was succeeded afterwards and set run state manually
+        tracking_store = dbnd_context().tracking_store  # type: TrackingStore
+        run = FakeRun(source=UpdateSource.airflow_tracking)
+        task_run = FakeTaskRun(
+            task_run_uid=task_run_uid,
+            task_run_attempt_uid=task_run_attempt_uid,
+            run=run,
+            task=FakeTask(task_name=task_id, task_id=task_id),
+            task_af_id=task_id,
+        )
+        try:
+            hook = operator.get_hook()  # type: DatabricksHook
+            state = hook.get_run_state(operator.run_id)  # type: DatabricksRunState
+            run_page_url = hook.get_run_page_url(operator.run_id)
+        except Exception as exc:
+            logger.error(
+                "Unable to get inline script run state from Databricks. Setting task run state to Failed: %s",
+                exc,
+            )
+            set_task_run_state_safe(tracking_store, task_run, TaskRunState.FAILED)
+            return
+
+        save_extrnal_links_safe(tracking_store, task_run, {"databricks": run_page_url})
+        if state.is_successful:
+            set_task_run_state_safe(tracking_store, task_run, TaskRunState.SUCCESS)
+        else:
+            # TODO: error should be extracted from plain Databricks logs
+            set_task_run_state_safe(tracking_store, task_run, TaskRunState.FAILED)
+
+
+def set_task_run_state_safe(tracking_store, task_run, state):
+    # (TrackingStore, Any, TaskRunState) -> None
+    try:
+        tracking_store.set_task_run_state(task_run=task_run, state=state)
+    except Exception as exc:
+        logger.error(
+            "Unable to set task run state: %s", exc,
+        )
+
+
+def save_extrnal_links_safe(tracking_store, task_run, links_dict):
+    # (TrackingStore, Any, Dict[str, str]) -> None
+    try:
+        tracking_store.save_external_links(
+            task_run=task_run, external_links_dict=links_dict,
+        )
+    except Exception as exc:
+        logger.error(
+            "Unable to set external links: %s", exc,
+        )
 
 
 @contextmanager

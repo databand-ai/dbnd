@@ -1,8 +1,6 @@
 import logging
 import os
 
-import attr
-
 from airflow.operators.subdag_operator import SubDagOperator
 from airflow.utils.log.file_task_handler import FileTaskHandler
 from more_itertools import first_true
@@ -13,9 +11,10 @@ from dbnd import config, get_dbnd_project_config
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.task_run.log_preview import read_dbnd_log_preview
-from dbnd._core.tracking.airflow_dag_inplace_tracking import calac_task_key_from_af_ti
+from dbnd._core.tracking.airflow_dag_inplace_tracking import calc_task_key_from_af_ti
 from dbnd._core.utils.basics import environ_utils
 from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_from_af_ti
+from dbnd_airflow.tracking.fakes import FakeTaskRun
 
 
 AIRFLOW_FILE_TASK_HANDLER = FileTaskHandler.__name__
@@ -69,7 +68,7 @@ class DbndAirflowHandler(logging.Handler):
         # Airflow is running with two process `run` and `--raw run`.
         # But we want the handler to run only once (Idempotency)
         # So ee are using an environment variable to sync those two process
-        task_key = calac_task_key_from_af_ti(ti)
+        task_key = calc_task_key_from_af_ti(ti)
         if os.environ.get(task_key, False):
             # This key is already set which means we are in `--raw run`
             return
@@ -141,17 +140,6 @@ class DbndAirflowHandler(logging.Handler):
         This handler is not really writing records, so ignoring.
         """
         pass
-
-
-@attr.s
-class FakeTaskRun(object):
-    """
-    This is a workaround for using `tracking_store.save_task_run_log`
-    cause it require a TaskRun with task_run_attempt_uid attr.
-    Should be solved with refactoring the tracking_store interface.
-    """
-
-    task_run_attempt_uid = attr.ib()
 
 
 def set_dbnd_handler():

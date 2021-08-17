@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from mock import Mock
 
 from dbnd import log_metric
@@ -5,6 +7,8 @@ from dbnd._core.constants import UpdateSource
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     AirflowTaskContext,
     build_run_time_airflow_task,
+    get_task_family_for_inline_script,
+    get_task_run_uid_for_inline_script,
 )
 from dbnd._core.tracking.script_tracking_manager import (
     dbnd_tracking,
@@ -93,3 +97,24 @@ def test_tracking():
     dbnd_tracking_start(airflow_context=af_context)
     log_metric("test", "test_value")
     dbnd_tracking_stop()
+
+
+def test_get_task_family_for_inline_script():
+    actual = get_task_family_for_inline_script("sample_task", "root_task")
+    assert actual == "sample_task_root_task"
+
+
+def test_get_task_run_uid_for_inline_script():
+    tracking_env = {
+        "AIRFLOW_CTX_TASK_ID": "potholes_report",
+        "DBND_ROOT_RUN_UID": "15683ffd-9bd8-5732-8288-4a48aea0db2b",
+        "AIRFLOW_CTX_DAG_ID": "service311_ingest_data",
+        "AIRFLOW_CTX_TRY_NUMBER": "1",
+    }
+    script_name = "potholes_report.py"
+    task_id, task_run_uid, task_run_attempt_uid = get_task_run_uid_for_inline_script(
+        tracking_env, script_name
+    )
+    assert task_id == "potholes_report_potholes_report.py"
+    assert task_run_uid == UUID("f79ff618-a456-5835-9bc5-c7536e174157")
+    assert task_run_attempt_uid == UUID("0396fa7a-7e95-510f-a6b4-f198accb8ae5")
