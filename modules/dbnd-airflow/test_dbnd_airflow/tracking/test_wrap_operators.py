@@ -1,3 +1,5 @@
+import uuid
+
 from datetime import timedelta
 
 import pytest
@@ -10,7 +12,10 @@ from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
 from airflow.utils.dates import days_ago
 from mock import Mock
 
-from dbnd._core.configuration.environ_config import ENV_DBND_SCRIPT_NAME
+from dbnd._core.configuration.environ_config import (
+    DBND_ROOT_RUN_UID,
+    ENV_DBND_SCRIPT_NAME,
+)
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
@@ -215,7 +220,14 @@ class TestTrackOperator(object):
 
     def test_databricks_operator_with_env(self, databricks_operator_with_env):
         with wrap_operator_with_tracking_info(
-            {"TRACKING_ENV": "TRACKING_VALUE"}, databricks_operator_with_env
+            {
+                "TRACKING_ENV": "TRACKING_VALUE",
+                "AIRFLOW_CTX_TASK_ID": "test_task",
+                "AIRFLOW_CTX_DAG_ID": "test_dag",
+                "AIRFLOW_CTX_TRY_NUMBER": "1",
+                DBND_ROOT_RUN_UID: str(uuid.uuid4()),
+            },
+            databricks_operator_with_env,
         ):
             config = databricks_operator_with_env.json
             env = config["new_cluster"]["spark_env_vars"]

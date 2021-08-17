@@ -4,6 +4,7 @@ Here we create dbnd objects to represent them and send to webserver through trac
 """
 import logging
 import os
+import uuid
 
 from collections import Mapping
 from typing import Any, Dict, Iterable, Optional, Tuple
@@ -15,6 +16,7 @@ import dbnd._core.utils.basics.environ_utils
 
 from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.environ_config import (
+    DBND_ROOT_RUN_UID,
     ENV_DBND_TRACKING_ATTEMPT_UID,
     _debug_init_print,
     spark_tracking_enabled,
@@ -31,6 +33,7 @@ from dbnd._core.utils.uid_utils import (
     get_airflow_instance_uid,
     get_job_run_uid,
     get_task_def_uid,
+    get_task_run_attempt_uid,
     get_task_run_uid,
     source_md5,
 )
@@ -242,7 +245,9 @@ def build_run_time_airflow_task(af_context, root_task_name):
             source_code = TaskSourceCode.from_callable(tracked_function)
     else:
         # if this is an inline run-time task, we name it after the script which ran it
-        task_family = "_".join([af_context.task_id, root_task_name])
+        task_family = get_task_family_for_inline_script(
+            af_context.task_id, root_task_name
+        )
         source_code = TaskSourceCode.from_callstack()
         user_params = {}
 
@@ -335,8 +340,38 @@ def get_flatten_operator_params(operator):
     return {name: repr(value) for name, value in params}
 
 
-def calac_task_key_from_af_ti(ti):
+def calc_task_key_from_af_ti(ti):
     """
     Creates a key from airflow TaskInstance, for communicating task_run_attempt_uid
     """
     return ":".join([ENV_DBND_TRACKING_ATTEMPT_UID, ti.dag_id, ti.task_id])
+
+
+def get_task_family_for_inline_script(task_id, root_task_name):
+    """
+    Calculate task family name for inline script
+    :param task_id: task_id
+    :param root_task_name: root_task_name
+    :return:
+    """
+    return "_".join([task_id, root_task_name])
+
+
+def get_task_run_uid_for_inline_script(tracking_env, script_name):
+    # type: (Dict[str, str], str) -> (str, UUID, UUID)
+    """
+    Calculate task run uid and task run attempt uid for inline script execution
+    :param tracking_env: dict with airflow context env
+    :param script_name: inline script name
+    :return:
+    """
+    task_id = get_task_family_for_inline_script(
+        tracking_env["AIRFLOW_CTX_TASK_ID"], script_name
+    )
+    run_uid = uuid.UUID(tracking_env[DBND_ROOT_RUN_UID])
+    dag_id = tracking_env["AIRFLOW_CTX_DAG_ID"]
+    task_run_uid = get_task_run_uid(run_uid, dag_id, task_id)
+    task_run_attempt_uid = get_task_run_attempt_uid(
+        run_uid, dag_id, task_id, tracking_env["AIRFLOW_CTX_TRY_NUMBER"]
+    )
+    return task_id, task_run_uid, task_run_attempt_uid
