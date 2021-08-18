@@ -1,5 +1,5 @@
 """
-This is a way to add another format to serialize/deserialize pandas data frame
+This is a way to add another format to serialize/deserialize SizedMessage example object
 """
 import logging
 
@@ -21,7 +21,7 @@ class SizedMessage(object):
         self.size = size
 
 
-# This defines how MyCustomObject is parsed and serialised into strings
+# This defines how SizedMessage is parsed and serialised into strings
 class MessageValueType(ValueType):
     type = SizedMessage
 
