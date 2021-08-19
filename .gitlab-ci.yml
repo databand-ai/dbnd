@@ -5,7 +5,7 @@
 # `needs` doesn't work for failed job, the job after will run when the "needed" job is skipped
 # A (fails) -> B (skip) -> C (runs!!!)
 
-#image:
+image: gcr.io/dbnd-dev-260010/databand/dbnd-ci.default:py36-latest
 
 stages:
   - test
