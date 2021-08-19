@@ -1,20 +1,41 @@
 # History
+
+## DBND v0.47.0
+
+### New features
+
+-   \#1200526324086051: BigQuery connector - Databand can now sync with your BigQuery tables.
+-   \#1200667621364917: Databand Dashboard can now be shared and will include filters, metrics, and aggregations.
+
+### Improvements
+
+-   \#1200700177752978: Airflow Monitor V1 is deprecated.
+-   \#1200618993918094: Improved visibility of missing operations in Affected Datasets.
+-   \#1200721895327001: Updated the UI on the Integrations page.
+-   \#1200624166545000: Full table path in the Affected Datasets tab is now a tooltip.
+
+### Bug fixes
+
+-   \#1200654355859365: Source and project names are displayed correctly.
+-   \#1200670021315930: Missing operations are now properly represented in the History Trend chart in the Affected Datasets tab.
+-   \#1200655482328132: Fixed the dropdown table column in the 'Add new alert' page.
+
 ## DBND v0.46.0
 
 ### New features
 
-- \#1200619480835694: Pipeline and run lists optimized for tracking.
-- \#1200597628980930: Now you can choose whether to have alerts fire on historical runs by editing alert definitions.
-- \#1200347108016370: Range alerts added. Now it’s possible to add an alert if the metric's value is in a predefined range or out of range.
-- \#1200700419038963: New schema Alert flow changes in Affected Datasets: schema changes in a data operation are now shown in the Affected Datasets screen. Now you'll know when a column is added, removed, or when its type changes. Some minor cosmetic changes in the UI were also implemented.
+-   \#1200619480835694: Pipeline and run lists optimized for tracking.
+-   \#1200597628980930: Now you can choose whether to have alerts fire on historical runs by editing alert definitions.
+-   \#1200347108016370: Range alerts added. Now it’s possible to add an alert if the metric's value is in a predefined range or out of range.
+-   \#1200700419038963: New schema Alert flow changes in Affected Datasets: schema changes in a data operation are now shown in the Affected Datasets screen. Now you'll know when a column is added, removed, or when its type changes. Some minor cosmetic changes in the UI were also implemented.
 
 ### Improvements
 
-- \#1200610543227298: Simplified usage of `in_cluster` in cases where `in_cluster` is None.
+-   \#1200610543227298: Simplified usage of `in_cluster` in cases where `in_cluster` is None.
 
 ### Bug fixes
 
-- \#1200629604891227: Run view performance improvements.
+-   \#1200629604891227: Run view performance improvements.
 
 ## DBND v0.45.0
 
