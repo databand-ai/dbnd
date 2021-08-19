@@ -5,7 +5,7 @@
 ### New features
 
 -   \#1200526324086051: BigQuery connector - Databand can now sync with your BigQuery tables.
--   \#1200667621364917: You can share dashboard filters and metrics as a link.
+-   \#1200667621364917: Databand Dashboard can now be shared using and will include filters, metrics, and aggregations.
 
 ### Improvements
 
