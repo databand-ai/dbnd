@@ -2,7 +2,23 @@
 
 ## DBND v0.47.0
 
-TODO
+### New features
+
+-   \#1200526324086051: BigQuery connector - Databand can now sync with your BigQuery tables.
+-   \#1200667621364917: You can share dashboard filters and metrics as a link.
+
+### Improvements
+
+-   \#1200700177752978: Airflow Monitor V1 is deprecated.
+-   \#1200618993918094: Improved visibility of missing operations in Affected Datasets.
+-   \#1200721895327001: Updated the UI on the Integrations page.
+-   \#1200624166545000: Full table path in the Affected Datasets tab is now a tooltip.
+
+### Bug fixes
+
+-   \#1200654355859365: Source and project names are displayed correctly.
+-   \#1200670021315930: Missing operations are now properly represented in the History Trend chart in the Affected Datasets tab.
+-   \#1200655482328132: Fixed the dropdown table column in the 'Add new alert' page.
 
 ## DBND v0.46.0
 
