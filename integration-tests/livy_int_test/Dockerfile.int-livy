@@ -12,7 +12,7 @@ RUN apt-get update -y -qq && \
 # Spark installation:
 ENV SPARK_VERSION=2.4.5
 ENV HADOOP_VERSION=2.7
-RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
     tar -xzf spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
     mv spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} /spark && \
     rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
