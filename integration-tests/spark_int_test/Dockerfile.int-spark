@@ -12,7 +12,7 @@ RUN apt-get update -y -qq && \
 
 # Maven install
 ENV MAVEN_VERSION=3.6.3
-RUN wget --no-verbose https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz
+RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/apache-maven-${MAVEN_VERSION}-bin.tar.gz
 RUN tar -zxf apache-maven-${MAVEN_VERSION}-bin.tar.gz -C /opt/ && rm -f apache-maven-${MAVEN_VERSION}-bin.tar.gz
 ENV M2_HOME=/opt/apache-maven-${MAVEN_VERSION}
 ENV M2=$M2_HOME/bin
