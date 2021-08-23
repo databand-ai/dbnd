@@ -48,7 +48,7 @@ class TestKubernetesPodBuild(object):
         with dbnd_config(K8S_CONFIG):
             dbnd_run_cmd(
                 [
-                    "predict_wine_quality",
+                    "dbnd_sanity_check",
                     "--env=gcp_k8s",
                     "--set-config",
                     "kubernetes.container_tag=tag",

@@ -49,13 +49,9 @@ class TestSchedulerFileConfigLoader(object):
           retries: 2
           active: true
 
-        - name: predict_wine_quality daily
-          cmd: dbnd run predict_wine_quality --task-target-date {{ ds }}
-          schedule_interval: "@daily"
-          active: false
         """
         with self.build_delta(file) as delta_result:
-            assert len(delta_result.to_create) == 2
+            assert len(delta_result.to_create) == 1
             assert delta_result.to_create[0]["name"] == "dbnd_sanity_check"
             assert (
                 delta_result.to_create[0]["cmd"]
@@ -64,8 +60,6 @@ class TestSchedulerFileConfigLoader(object):
             assert delta_result.to_create[0]["schedule_interval"] == "* * * * *"
             assert delta_result.to_create[0]["retries"] == 2
             assert delta_result.to_create[0]["active"] is True
-
-            assert delta_result.to_create[1]["name"] == "predict_wine_quality daily"
 
             assert len(delta_result.to_disable) == 0
             assert len(delta_result.to_enable) == 0
