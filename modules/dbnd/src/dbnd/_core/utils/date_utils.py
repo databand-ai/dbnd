@@ -28,15 +28,3 @@ def unique_execution_date():
         - timedelta(seconds=1)
         + timedelta(microseconds=_current_unique_execution_date_salt)
     )
-
-
-def get_isoformat_date(date):
-    """
-    Returns parsed isofromat date
-    :param date: Optional[datetime]
-
-    :returns Optional[datetime]
-    """
-    from dbnd._core.utils.basics.nothing import NOTHING
-
-    return date.isoformat() if date not in (NOTHING, None) else date
