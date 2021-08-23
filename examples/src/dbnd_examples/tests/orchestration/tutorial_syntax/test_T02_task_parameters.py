@@ -53,9 +53,8 @@ class TestTaskParameters(object):
         assert result
 
     def test_run_all_task(self):
-        # this code runs outsider @band context, we need to explicitly state .task(),
-        #  otherwise function will be executed in place
-        # so 'task' is a Task object, it's a definition of the Pipeline, it still not executed
+        # the test code runs outsider @band context, we need to explicitly state .task() for a function
+        # otherwise it will be just called like a regular function
 
         run_result = f_run_all_simple.task().dbnd_run()
 
