@@ -44,16 +44,13 @@ class TestDocTasksPipelinesData(object):
 
     def test_prepare_data_pipeline_class(self):
         #### DOC START
-        class PrepareDataTwice(PipelineTask):
+        class PrepareData(PipelineTask):
             data = parameter.data
-            data2 = parameter.data
 
             prepared_data = output.csv.data
-            prepared_data2 = output.csv.data
 
             def band(self):
                 self.prepared_data = prepare_data(data=self.data)
-                self.prepared_data2 = prepare_data(data=self.data2)
 
         #### DOC END
-        PrepareDataTwice(data=data_repo.wines, data2=data_repo.wines).dbnd_run()
+        PrepareData(data=data_repo.wines).dbnd_run()
