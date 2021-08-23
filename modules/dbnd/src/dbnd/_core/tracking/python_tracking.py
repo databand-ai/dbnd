@@ -15,6 +15,9 @@ def _is_function(obj):
 
 
 def _is_task(obj):
+    """
+    checks if obj is decorated func (dbnd generated object)
+    """
     return hasattr(obj, "__is_dbnd_task__")
 
 
