@@ -3,7 +3,8 @@ import pyspark.sql as spark
 from databand import output, parameter, pipeline
 from databand.tasks import PipelineTask, PySparkTask, SparkTask
 from dbnd import log_dataframe, log_metric
-from dbnd_examples.dbnd_spark import spark_folder, spark_script
+from dbnd_examples.dbnd_spark import spark_folder
+from dbnd_examples.orchestration.dbnd_spark.scripts import spark_script
 from dbnd_spark.spark import PySparkInlineTask, spark_task
 from dbnd_spark.spark_config import SparkConfig
 from targets import Target
@@ -15,7 +16,7 @@ WORD_COUNT_MAIN_CLASS = "ai.databand.examples.WordCount"
 
 
 def _mvn_target_file(*path):
-    return spark_folder("spark-jvm/target", *path)
+    return spark_folder("spark_jvm/target", *path)
 
 
 class WordCountTask(SparkTask):

@@ -7,7 +7,7 @@ from sklearn.linear_model import ElasticNet
 
 from dbnd import pipeline
 from dbnd_examples.data import data_repo
-from dbnd_examples.orchestration.examples.wine_quality.wine_quality_simple import (
+from dbnd_examples.tests.documentation.orchestration.test_quick_start_wine_quality import (
     prepare_data,
     train_model,
     validate_model,
