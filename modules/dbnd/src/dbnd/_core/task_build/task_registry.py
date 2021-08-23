@@ -171,6 +171,14 @@ class DbndTaskRegistry(SingletonContext):
             task_module = sys.modules.get(possible_module)
             if task_module and hasattr(task_module, possible_root_task):
                 user_func = getattr(task_module, possible_root_task)
+
+                from dbnd._core.task_build.task_metaclass import TaskMetaclass
+
+                # weird case of we didn't manage to find a class after it was loaded via _get_registered_task_cls
+                # can happen if the function name is different from "task_family"
+                if isinstance(user_func, TaskMetaclass):
+                    return user_func
+
                 if callable(user_func):
                     from dbnd._core.tracking.python_tracking import _is_task
 
