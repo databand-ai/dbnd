@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 from dbnd import log_dataframe, log_metric, parameter, pipeline, task
 from dbnd.utils import data_combine, period_dates
 from dbnd_examples.data import demo_data_repo
-from dbnd_examples.orchestration.examples.wine_quality.serving import package_as_docker
+from dbnd_examples.orchestration.examples.wine_quality import package_as_docker
 from targets import target
 
 
