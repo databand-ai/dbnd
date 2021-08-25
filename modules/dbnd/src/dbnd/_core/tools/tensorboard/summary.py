@@ -12,18 +12,18 @@ logger = logging.getLogger(__name__)
 
 
 def tensorflow_graph(task):
-    from tensorboardX.src.attr_value_pb2 import AttrValue
-    from tensorboardX.src.graph_pb2 import GraphDef
-    from tensorboardX.src.node_def_pb2 import NodeDef
-    from tensorboardX.src.step_stats_pb2 import (
+    from tensorboardX.proto.attr_value_pb2 import AttrValue
+    from tensorboardX.proto.graph_pb2 import GraphDef
+    from tensorboardX.proto.node_def_pb2 import NodeDef
+    from tensorboardX.proto.step_stats_pb2 import (
         RunMetadata,
         StepStats,
         DeviceStepStats,
         NodeExecStats,
         AllocatorMemoryUsed,
     )
-    from tensorboardX.src.tensor_shape_pb2 import TensorShapeProto
-    from tensorboardX.src.versions_pb2 import VersionDef
+    from tensorboardX.proto.tensor_shape_pb2 import TensorShapeProto
+    from tensorboardX.proto.versions_pb2 import VersionDef
 
     # assert isinstance(task, Task)
 

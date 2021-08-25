@@ -2,6 +2,10 @@
 
 ## DBND v0.48.0
 
+### Improvements
+
+-   \#1200854192669862: Drop support for tensorflow <2.4 and py27 in dbnd-tensorflow plugin.
+
 ## DBND v0.47.0
 
 ### New features
