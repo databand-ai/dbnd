@@ -7,7 +7,8 @@ from targets.values import register_value_type
 
 @dbnd.hookimpl
 def dbnd_setup_plugin():
-    from dbnd_tensorflow.seven import models, History
+    from tensorflow.keras.callbacks import History
+    from tensorflow.keras import models
 
     from dbnd_tensorflow.marshalling.tensorflow_marshaller import (
         TensorflowKerasHistoryMarshaller,

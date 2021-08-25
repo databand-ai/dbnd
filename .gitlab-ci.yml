@@ -140,16 +140,6 @@ dbnd_py36_windows:
     - xcopy /y "modules\setup.cfg" "modules\dbnd\"
     - tox -c modules/dbnd/tox.ini -r -e win-py36
 
-dbnd_examples_py27:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_TEST_PY27}
-  script:
-    - cd examples
-    - tox -e py27
-  artifacts:
-    reports:
-      junit: .tox/dbnd-examples/junit/junit-py27.xml
-
 dbnd_examples_py36:
   <<: *template__python_test_job
   image: ${DOCKER_IMAGE_CI_TEST_PY36}
@@ -300,23 +290,11 @@ dbnd_airflow_monitor 0 1_10_11_py36:
   only: *on_significant_branch
   when: manual
 
-dbnd_tensorflow 1 py27:
-  <<: *template__test_tensorflow
-  variables:
-    IMAGE: ${DOCKER_IMAGE_CI_TEST_PY27}
-    TEST_NAME: py27-tensorflow1
-
-dbnd_tensorflow 1 py36:
-  <<: *template__test_tensorflow
-  variables:
-    IMAGE: ${DOCKER_IMAGE_CI_TEST_PY36}
-    TEST_NAME: py36-tensorflow1
-
 dbnd_tensorflow 2 py36:
   <<: *template__test_tensorflow
   variables:
     IMAGE: ${DOCKER_IMAGE_CI_TEST_PY36}
-    TEST_NAME: py36-tensorflow2
+    TEST_NAME: py36-tensorflow26
 
 build_pypi_org_whl:
   stage: build-base

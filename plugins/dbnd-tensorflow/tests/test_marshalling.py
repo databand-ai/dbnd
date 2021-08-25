@@ -46,14 +46,14 @@ def model_passer(model):
     return model
 
 
-@task(result=output.tfhistory[tf.python.keras.callbacks.History])
+@task(result=output.tfhistory[tf.keras.callbacks.History])
 def history_passer(history):
     print("History passing by")
     print(history)
     return history
 
 
-@task(result=output.tfhistory[tf.python.keras.callbacks.History])
+@task(result=output.tfhistory[tf.keras.callbacks.History])
 def train_model(
     model, learning_rate=0.001, epochs=1, batch_size=128,
 ):
