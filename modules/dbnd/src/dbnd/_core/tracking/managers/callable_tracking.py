@@ -20,6 +20,7 @@ from dbnd._core.current import (
     try_get_current_task,
 )
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.settings import TrackingConfig
@@ -194,6 +195,8 @@ class CallableTrackingManager(object):
             # then it's some dbnd tracking error - just log it
             if func_call:
                 _handle_tracking_error("tracking-init", func_call)
+            else:
+                log_exception_to_server()
         # if we didn't reached user_code_called=True line - there was an error during
         # dbnd tracking initialization, so nothing is done - user function wasn't called yet
         if not user_code_called:
@@ -203,6 +206,7 @@ class CallableTrackingManager(object):
 
 
 def _handle_tracking_error(msg, func_call=None):
+    log_exception_to_server()
     location = " for %s" % func_call.callable if func_call else ""
     msg = "Failed during dbnd %s for %s, ignoring, and continue without tracking" % (
         msg,
