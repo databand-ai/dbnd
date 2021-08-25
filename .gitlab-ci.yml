@@ -5,6 +5,7 @@
 # `needs` doesn't work for failed job, the job after will run when the "needed" job is skipped
 # A (fails) -> B (skip) -> C (runs!!!)
 
+# default image to use
 image: gcr.io/dbnd-dev-260010/databand/dbnd-ci.default:py36-latest
 
 stages:
@@ -19,6 +20,10 @@ variables:
   # Change pip's cache directory to be inside the project directory since we can
   # only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
+  # Specific images according to a python version
+  DOCKER_IMAGE_CI_TEST_PY27: gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py27-latest
+  DOCKER_IMAGE_CI_TEST_PY36: gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py36-latest
+  DOCKER_IMAGE_CI_BUILD_PY36: gcr.io/dbnd-dev-260010/databand/dbnd-ci.build:py36-latest
 
 ### TESTS BASIC
 .template__except_defaults:
@@ -93,7 +98,7 @@ pre_commit:
     KUBERNETES_CPU_LIMIT: 2000m
     KUBERNETES_MEMORY_REQUEST: 230Mi
     KUBERNETES_MEMORY_LIMIT: 1Gi
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
   script:
     #    - tox -e pre-commit,lint,docs,readme
     - tox -e pre-commit,lint,bumpversion-check
@@ -105,13 +110,13 @@ manifest:
     KUBERNETES_CPU_LIMIT: 1
     KUBERNETES_MEMORY_REQUEST: 260Mi
     KUBERNETES_MEMORY_LIMIT: 1Gi
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
   script:
     - make test-manifest
 
 dbnd_py27:
   <<: *template__python_test_job
-  image: python:2.7
+  image: ${DOCKER_IMAGE_CI_TEST_PY27}
   script:
     - cd modules/dbnd
     - tox -e py27
@@ -121,7 +126,7 @@ dbnd_py27:
 
 dbnd_py36:
   <<: *template__python_test_job
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
   script:
     - cd modules/dbnd
     - tox -e py36
@@ -137,7 +142,7 @@ dbnd_py36_windows:
 
 dbnd_examples_py27:
   <<: *template__python_test_job
-  image: python:2.7
+  image: ${DOCKER_IMAGE_CI_TEST_PY27}
   script:
     - cd examples
     - tox -e py27
@@ -147,7 +152,7 @@ dbnd_examples_py27:
 
 dbnd_examples_py36:
   <<: *template__python_test_job
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
   script:
     - cd examples
     - tox -e py36
@@ -172,7 +177,7 @@ dbnd_examples_py36:
 
 dbnd_airflow 0 1_10_7_py27:
   <<: *template__python_test_job
-  image: python:2.7
+  image: ${DOCKER_IMAGE_CI_TEST_PY27}
   script:
     - cd modules/dbnd-airflow
     - tox -e py27-airflow_1_10_7
@@ -183,7 +188,7 @@ dbnd_airflow 0 1_10_7_py27:
 
 dbnd_airflow 0 1_10_9_py27:
   <<: *template__python_test_job
-  image: python:2.7
+  image: ${DOCKER_IMAGE_CI_TEST_PY27}
   script:
     - cd modules/dbnd-airflow
     - tox -e py27-airflow_1_10_9
@@ -194,7 +199,7 @@ dbnd_airflow 0 1_10_9_py27:
 
 dbnd_airflow 0 1_10_10_py27:
   <<: *template__python_test_job
-  image: python:2.7
+  image: ${DOCKER_IMAGE_CI_TEST_PY27}
   script:
     - cd modules/dbnd-airflow
     - tox -e py27-airflow_1_10_10
@@ -206,7 +211,7 @@ dbnd_airflow 0 1_10_10_py27:
 
 dbnd_airflow 0 1_10_12_py27:
   <<: *template__python_test_job
-  image: python:2.7
+  image: ${DOCKER_IMAGE_CI_TEST_PY27}
   script:
     - cd modules/dbnd-airflow
     - tox -e py27-airflow_1_10_12
@@ -218,7 +223,7 @@ dbnd_airflow 0 1_10_12_py27:
 
 dbnd_airflow 0 1_10_7_py36:
   <<: *template__python_test_job
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
   script:
     - cd modules/dbnd-airflow
     - tox -e py36-airflow_1_10_7
@@ -229,7 +234,7 @@ dbnd_airflow 0 1_10_7_py36:
 
 dbnd_airflow 0 1_10_9_py36:
   <<: *template__python_test_job
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
   script:
     - cd modules/dbnd-airflow
     - tox -e py36-airflow_1_10_9
@@ -240,7 +245,7 @@ dbnd_airflow 0 1_10_9_py36:
 
 dbnd_airflow 0 1_10_10_py36:
   <<: *template__python_test_job
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
   script:
     - cd modules/dbnd-airflow
     - tox -e py36-airflow_1_10_10
@@ -251,7 +256,7 @@ dbnd_airflow 0 1_10_10_py36:
 
 dbnd_airflow 0 1_10_12_py36:
   <<: *template__python_test_job
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_TEST_PY36}
   script:
     - cd modules/dbnd-airflow
     - tox -e py36-airflow_1_10_12
@@ -298,38 +303,24 @@ dbnd_airflow_monitor 0 1_10_11_py36:
 dbnd_tensorflow 1 py27:
   <<: *template__test_tensorflow
   variables:
-    IMAGE: python:2.7
+    IMAGE: ${DOCKER_IMAGE_CI_TEST_PY27}
     TEST_NAME: py27-tensorflow1
-
-dbnd_tensorflow 1 py35:
-  <<: *template__test_tensorflow
-  variables:
-    IMAGE: python:3.5
-    TEST_NAME: py35-tensorflow1
-  when: manual
-
-dbnd_tensorflow 2 py35:
-  <<: *template__test_tensorflow
-  variables:
-    IMAGE: python:3.5
-    TEST_NAME: py35-tensorflow2
-  when: manual
 
 dbnd_tensorflow 1 py36:
   <<: *template__test_tensorflow
   variables:
-    IMAGE: python:3.6
+    IMAGE: ${DOCKER_IMAGE_CI_TEST_PY36}
     TEST_NAME: py36-tensorflow1
 
 dbnd_tensorflow 2 py36:
   <<: *template__test_tensorflow
   variables:
-    IMAGE: python:3.6
+    IMAGE: ${DOCKER_IMAGE_CI_TEST_PY36}
     TEST_NAME: py36-tensorflow2
 
 build_pypi_org_whl:
   stage: build-base
-  image: python:3.6
+  image: ${DOCKER_IMAGE_CI_BUILD_PY36}
   needs: ["empty_job"]
   script:
     - python setup.py sdist bdist_wheel
