@@ -10,6 +10,10 @@ from dbnd._core.constants import (
     MetricSource,
 )
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.log.external_exception_logging import (
+    capture_tracking_exception,
+    log_exception_to_server,
+)
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.settings.tracking_config import get_value_meta
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
@@ -95,6 +99,7 @@ class TaskRunTracker(TaskRunCtrl):
         # type: (List[Metric]) -> None
         return self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
 
+    @capture_tracking_exception
     def log_metrics(self, metrics_dict, source=None, timestamp=None):
         # type: (Dict[str, Any], Optional[str], Optional[datetime]) -> None
         """
@@ -214,7 +219,8 @@ class TaskRunTracker(TaskRunCtrl):
                 data_meta = get_value_meta(
                     data, meta_conf, tracking_config=self.settings.tracking
                 )
-            except Exception:
+            except Exception as e:
+                log_exception_to_server(e)
                 logger.exception(
                     "Failed to get value meta info for operation_path {}".format(
                         str(operation_path)
