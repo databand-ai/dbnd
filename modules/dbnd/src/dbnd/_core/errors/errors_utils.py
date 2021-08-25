@@ -4,6 +4,7 @@ import re
 import sys
 
 from dbnd._core.current import is_verbose
+from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd._core.utils.basics.text_banner import safe_string
 from dbnd._core.utils.project.project_fs import databand_lib_path, project_path
 
@@ -188,6 +189,7 @@ class UserCodeDetector(object):
 
 def log_exception(msg, ex, logger_=None, verbose=None, non_critical=False):
     logger_ = logger_ or logger
+    log_exception_to_server()
 
     from dbnd._core.errors.base import DatabandError
 
