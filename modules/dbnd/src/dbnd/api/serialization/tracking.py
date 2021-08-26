@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 import attr
@@ -142,6 +142,7 @@ class DatasourceMonitorState(object):
     monitor_error_message = attr.ib(default=NOTHING)  # type: str
     monitor_start_time = attr.ib(default=NOTHING)  # type: datetime
     last_sync_time = attr.ib(default=NOTHING)  # type: datetime
+    last_transaction_sync_time = attr.ib(default=NOTHING)  # type: datetime
 
     def as_dict(self):
         # don't serialize data which didn't changed: as_dict should be able to return
@@ -156,6 +157,7 @@ class DatasourceMonitorStateSchema(ApiObjectSchema):
     monitor_error_message = fields.String(required=False, allow_none=True)
     monitor_start_time = fields.DateTime(required=False, allow_none=True)
     last_sync_time = fields.DateTime(required=False, allow_none=True)
+    last_transaction_sync_time = fields.DateTime(required=False, allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -237,4 +239,71 @@ class DatasetsReportSchema(ApiObjectSchema):
     def make_object(self, data, **kwargs):
         return {
             "datasets_report": DatasetsReport(**data),
+        }
+
+
+@attr.s
+class SyncedTransaction(object):
+    datasource_transaction_id = attr.ib()  # type: str
+
+    created_date = attr.ib()  # type: datetime
+    started_date = attr.ib()  # type: datetime
+    ended_date = attr.ib()  # type: datetime
+
+    # Destination dataset - uri of dataset that write operation preformed to
+    destination_dataset_uri = attr.ib()  # type: str
+    # Referenced datasets - uris of datasets that read operation preformed on
+    referenced_datasets_uris = attr.ib()  # type: List[str]
+
+    query_string = attr.ib()  # type: str
+
+    def as_dict(self):
+        return attr.asdict(self)
+
+
+@attr.s
+class SyncedTransactionsReport(object):
+    sync_event_uid = attr.ib()  # type: UUID
+    source_type = attr.ib()  # type: str
+    syncer_type = attr.ib()  # type: str
+    sync_event_timestamp = attr.ib()  # type: datetime
+
+    monitor_state = attr.ib()  # type: DatasourceMonitorStateSchema
+    transactions = attr.ib()  # type: List[SyncedTransaction]
+
+    def as_dict(self):
+        return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
+
+
+class SyncedTransactionSchema(ApiObjectSchema):
+    datasource_transaction_id = fields.String()
+    created_date = fields.DateTime()
+    started_date = fields.DateTime()
+    ended_date = fields.DateTime()
+
+    # Destination dataset - uri of dataset that write operation preformed to
+    destination_dataset_uri = fields.String()
+    # Referenced datasets - uris of datasets that read operation preformed on
+    referenced_datasets_uris = fields.List(fields.String())
+
+    query_string = fields.String()
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return SyncedTransaction(**data)
+
+
+class SyncedTransactionsReportSchema(ApiObjectSchema):
+    sync_event_uid = fields.UUID()
+    sync_event_timestamp = fields.DateTime()
+    source_type = fields.String(allow_none=True)  # bigquery / snowflake / etc
+    syncer_type = fields.String(allow_none=True)
+
+    monitor_state = fields.Nested(DatasourceMonitorStateSchema)
+    transactions = fields.Nested(SyncedTransactionSchema, many=True)
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return {
+            "transactions_report": SyncedTransactionsReport(**data),
         }
