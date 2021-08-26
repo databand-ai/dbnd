@@ -70,6 +70,7 @@ class TestSyncerWorks(WebAppTest):
                 "external_url": "",
                 "composer_client_id": "",
                 "api_mode": "rbac",
+                "airflow_environment": "on_prem",
                 "dag_ids": "",
             },
         )
