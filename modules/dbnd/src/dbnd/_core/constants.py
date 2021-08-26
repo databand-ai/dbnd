@@ -352,3 +352,10 @@ class TaskEssence(enum.Enum):
         return (
             hasattr(obj, TASK_ESSENCE_ATTR) and getattr(obj, TASK_ESSENCE_ATTR) == self
         )
+
+
+class AirflowEnvironment(EnumWithAll):
+    ON_PREM = "on_prem"
+    GCP_AF1 = "gcp_af1"
+    GCP_AF2 = "gcp_af2"
+    MWAA = "mwaa"

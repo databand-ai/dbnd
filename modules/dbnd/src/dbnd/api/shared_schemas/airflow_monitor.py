@@ -36,6 +36,7 @@ class AirflowServerInfoSchema(_ApiCallSchema):
     env = fields.String(allow_none=True)
     monitor_status = fields.String(allow_none=True)
     monitor_config = fields.Nested(MonitorConfigSchema, allow_none=True)
+    airflow_environment = fields.String(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -66,3 +67,4 @@ class AirflowServerInfo(object):
     composer_client_id = attr.ib(default=None)  # type: Optional[str]
     dag_ids = attr.ib(default=None)  # type: Optional[str]
     monitor_config = attr.ib(default=None)  # type: Optional[Dict]
+    airflow_environment = attr.ib(default=None)  # type: Optional[str]
