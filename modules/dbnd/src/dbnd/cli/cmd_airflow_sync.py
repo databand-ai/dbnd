@@ -1,5 +1,6 @@
 import logging
 
+from dbnd._core.constants import AirflowEnvironment
 from dbnd._core.errors.base import DatabandApiError
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_tabulate
 from dbnd._vendor import click
@@ -99,6 +100,13 @@ def validate_composer_id(ctx, param, value):
     default="rbac",
 )
 @click.option(
+    "--airflow-environment",
+    "-t",
+    help="Airflow environment",
+    type=click.Choice(AirflowEnvironment.all_values()),
+    default="on_prem",
+)
+@click.option(
     "--composer-client-id",
     "-c",
     help="client id for Google Cloud Composer connection",
@@ -134,6 +142,7 @@ def add(
     external_url,
     instance_type,
     api_mode,
+    airflow_environment,
     composer_client_id,
     exclude_sources,
     dag_ids,
@@ -147,6 +156,7 @@ def add(
             external_url,
             fetcher,
             api_mode,
+            airflow_environment,
             composer_client_id,
             not exclude_sources,
             dag_ids,
