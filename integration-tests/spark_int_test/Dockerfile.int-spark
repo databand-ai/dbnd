@@ -1,0 +1,57 @@
+# Content: openjdk-8-jdk + maven +
+
+ARG DOCKER_IMAGE_BASE=python:3.6
+FROM ${DOCKER_IMAGE_BASE}
+
+# Java install
+RUN apt-get update -y -qq && \
+    apt-get install -y -qq software-properties-common apt-transport-https netcat && \
+    apt-add-repository --yes -m 'deb http://security.debian.org/debian-security stretch/updates main' && \
+    apt-get update -y -qq && apt-get install -y -qq openjdk-8-jdk
+# EO Java install
+
+# Maven install
+ENV MAVEN_VERSION=3.6.3
+RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/apache-maven-${MAVEN_VERSION}-bin.tar.gz
+RUN tar -zxf apache-maven-${MAVEN_VERSION}-bin.tar.gz -C /opt/ && rm -f apache-maven-${MAVEN_VERSION}-bin.tar.gz
+ENV M2_HOME=/opt/apache-maven-${MAVEN_VERSION}
+ENV M2=$M2_HOME/bin
+ENV PATH=$M2:$PATH
+
+ADD dbnd-core/examples/src/dbnd_examples/dbnd_spark/spark_jvm /app/spark_jvm
+RUN (cd /app/spark_jvm && mvn install -q)
+# EO Maven install
+
+RUN apt-get update -y -qq && apt-get install -y -qq netcat
+
+# instrumentation:
+RUN pip install -U pytest sh pyspark tox 'pip>=20,<20.3'
+
+ARG AIRFLOW_EXTRA=airflow
+# install dbnd packages:
+COPY ./dist/dbnd.requirements.txt \
+    ./dist/dbnd-spark.requirements.txt \
+    ./dist/dbnd-test-scenarios.requirements.txt \
+    ./dist/dbnd-airflow.requirements.txt \
+    ./dist/dbnd-airflow[[]$AIRFLOW_EXTRA].requirements.txt \
+    ./dist/dbnd-airflow[[]tests].requirements.txt \
+    ./dist/examples.requirements.txt \
+    /dist/
+RUN pip install -r /dist/dbnd.requirements.txt && \
+    pip install -r /dist/dbnd-spark.requirements.txt && \
+    pip install -r /dist/dbnd-test-scenarios.requirements.txt && \
+    pip install -r /dist/dbnd-airflow.requirements.txt && \
+    pip install -r /dist/dbnd-airflow[$AIRFLOW_EXTRA].requirements.txt && \
+    pip install -r /dist/dbnd-airflow[tests].requirements.txt && \
+    pip install -r /dist/examples.requirements.txt
+COPY ./dist/databand-*.whl \
+    ./dist/dbnd-*.whl \
+    ./dist/dbnd_spark-*.whl \
+    ./dist/dbnd_examples-*.whl \
+    ./dist/dbnd_test_scenarios-*.whl \
+    ./dist/dbnd_airflow-*.whl \
+    /dist/
+RUN pip install dbnd_airflow[$AIRFLOW_EXTRA] dbnd_examples databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
+
+ENV DBND_EXAMPLES_PATH=/app/examples
+WORKDIR /app/

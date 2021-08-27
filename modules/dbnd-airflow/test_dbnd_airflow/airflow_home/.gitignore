@@ -1,0 +1,6 @@
+data
+logs
+*.db
+*.pid
+.dbnd/logs
+autocompletion
