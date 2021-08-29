@@ -1,5 +1,12 @@
 # History
 
+## DBND v0.48.0
+
+### Improvements
+
+-   \#1200876485130367: Drop py27 support for dbnd-examples.
+-   \#1200854192669862: Drop support for tensorflow <2.4 and py27 in dbnd-tensorflow plugin.
+
 ## DBND v0.47.0
 
 ### New features
