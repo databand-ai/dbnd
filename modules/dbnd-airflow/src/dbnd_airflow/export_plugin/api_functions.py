@@ -6,16 +6,16 @@ from airflow.models import DagModel
 from airflow.utils.db import provide_session
 from airflow.version import version as airflow_version
 
-import dbnd_airflow_export
+import dbnd_airflow
 
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
-from dbnd_airflow_export.dag_operations import (
+from dbnd_airflow.export_plugin.dag_operations import (
     get_current_dag_model,
     get_dags,
     load_dags_models,
 )
-from dbnd_airflow_export.metrics import METRIC_COLLECTOR
-from dbnd_airflow_export.models import (
+from dbnd_airflow.export_plugin.metrics import METRIC_COLLECTOR
+from dbnd_airflow.export_plugin.models import (
     AirflowExportData,
     AirflowExportMeta,
     AirflowNewDagRun,
@@ -24,14 +24,14 @@ from dbnd_airflow_export.models import (
     LastSeenData,
     NewRunsData,
 )
-from dbnd_airflow_export.queries import (
+from dbnd_airflow.export_plugin.queries import (
     find_all_logs_grouped_by_runs,
     find_full_dag_runs,
     find_max_dag_run_id,
     find_max_log_run_id,
     find_new_dag_runs,
 )
-from dbnd_airflow_export.utils import get_dagbag_model
+from dbnd_airflow.export_plugin.utils import get_dagbag_model
 
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ def get_meta(metrics):
 
     meta = AirflowExportMeta(
         airflow_version=airflow_version,
-        plugin_version=" ".join([dbnd_airflow_export.__version__, "v2"]),
+        plugin_version=" ".join([dbnd_airflow.__version__, "v2"]),
         airflow_instance_uid=get_airflow_instance_uid(),
         request_args=dict(flask.request.args) if flask.has_request_context() else {},
         metrics={

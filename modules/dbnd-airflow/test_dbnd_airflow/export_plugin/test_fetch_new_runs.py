@@ -55,14 +55,14 @@ class TestNewRuns(object):
                         assert result.new_dag_runs[i].events == ["success"]
 
     def test_01_empty_db(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
 
         result = get_new_dag_runs(1, 1, [])
         self.validate_result(result, 0, None, None)
 
     def test_02_both_none(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(dag_runs_count=3, with_log=True)
 
@@ -70,8 +70,8 @@ class TestNewRuns(object):
         self.validate_result(result, 0, 3, 3)
 
     def test_03_running(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(dag_runs_count=3, state="running", with_log=False)
 
@@ -79,8 +79,8 @@ class TestNewRuns(object):
         self.validate_result(result, 3, 3, None)
 
     def test_04_dag_run_id_none(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(dag_runs_count=3, with_log=True)
 
@@ -88,8 +88,8 @@ class TestNewRuns(object):
         self.validate_result(result, 2, 3, 3, expected_max_log_ids=[2, 3])
 
     def test_05_log_id_none(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(dag_runs_count=3, with_log=True)
 
@@ -97,8 +97,8 @@ class TestNewRuns(object):
         self.validate_result(result, 2, 3, 3)
 
     def test_06_both_0(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(with_log=True)
 
@@ -106,8 +106,8 @@ class TestNewRuns(object):
         self.validate_result(result, 1, 1, 1, expected_max_log_ids=[1])
 
     def test_07_big_run_id(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(dag_runs_count=3, with_log=False)
 
@@ -117,8 +117,8 @@ class TestNewRuns(object):
         assert result
 
     def test_08_big_log_id(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(dag_runs_count=3, with_log=False)
 
@@ -126,8 +126,11 @@ class TestNewRuns(object):
         self.validate_result(result, 3, 3, None)
 
     def test_09_paused(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs, set_dag_is_paused
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import (
+            insert_dag_runs,
+            set_dag_is_paused,
+        )
 
         insert_dag_runs(dag_runs_count=1, with_log=True)
         set_dag_is_paused(is_paused=True)
@@ -135,8 +138,11 @@ class TestNewRuns(object):
         self.validate_result(result, 1, 1, 1, True, expected_max_log_ids=[1])
 
     def test_10_running_paused(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs, set_dag_is_paused
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import (
+            insert_dag_runs,
+            set_dag_is_paused,
+        )
 
         insert_dag_runs(dag_runs_count=1, state="running", with_log=True)
         set_dag_is_paused(is_paused=True)
@@ -144,8 +150,8 @@ class TestNewRuns(object):
         self.validate_result(result, 0, 1, 1, True)
 
     def test_11_extra_dag_runs(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(dag_runs_count=3, with_log=True)
 
@@ -153,8 +159,8 @@ class TestNewRuns(object):
         self.validate_result(result, 3, 3, 3, expected_max_log_ids=[None, None, 3])
 
     def test_12_dag_ids(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         insert_dag_runs(dag_runs_count=3, with_log=True)
         insert_dag_runs(dag_id="plugin_other_dag", dag_runs_count=3, with_log=True)
@@ -164,15 +170,15 @@ class TestNewRuns(object):
         self.validate_result(result, 3, 6, 6, expected_max_log_ids=[4, 5, 6])
 
     def test_13_fetch_in_chunks(self):
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
-        from test_plugin.db_data_generator import insert_dag_runs
-        from dbnd_airflow_export.queries import (
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
+        from dbnd_airflow.export_plugin.queries import (
             MAX_PARAMETERS_INSIDE_IN_CLAUSE,
             _find_dag_runs_by_list_in_chunks,
         )
 
         with mock.patch(
-            "dbnd_airflow_export.queries._find_dag_runs_by_list_in_chunks",
+            "dbnd_airflow.export_plugin.queries._find_dag_runs_by_list_in_chunks",
             wraps=lambda a, b: _find_dag_runs_by_list_in_chunks(a, b),
         ) as m:
             insert_dag_runs(

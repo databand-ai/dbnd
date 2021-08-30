@@ -6,7 +6,7 @@ from airflow.models import DagModel, DagRun, Log, TaskInstance
 from airflow.utils.db import provide_session
 
 from dbnd._core.utils.timezone import utcnow
-from dbnd_airflow_export.utils import AIRFLOW_VERSION_2
+from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
 
 
 @attr.s

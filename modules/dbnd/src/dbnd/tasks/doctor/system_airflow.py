@@ -38,14 +38,6 @@ def airflow_status():
         logger.error("dbnd_airflow_auto_tracking is not installed")
 
     try:
-        import dbnd_airflow_export
-
-        report.log("dbnd_airflow_export.version", dbnd_airflow_export.__version__)
-    except ImportError:
-        report.log("dbnd_airflow_export.version", 0)
-        logger.error("dbnd_airflow_export is not installed")
-
-    try:
         import airflow
 
         report.log("airflow.version", airflow.__version__)

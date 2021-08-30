@@ -7,14 +7,12 @@ import sys
 from typing import Dict
 
 import pkg_resources
-import six
 
-from airflow.configuration import conf
 from airflow.models import BaseOperator
 
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.git import get_git_commit, is_git_dirty
-from dbnd_airflow_export.compat import get_task_log_reader
+from dbnd_airflow.export_plugin.compat import get_task_log_reader
 
 
 logger = logging.getLogger(__name__)
@@ -145,7 +143,7 @@ def _extract_args_from_dict(t_dict):
     try:
         # Return only numeric, bool and string attributes
         res = {}
-        for k, v in six.iteritems(t_dict):
+        for k, v in t_dict.items():
             if v is None or isinstance(v, TASK_ARG_TYPES):
                 res[k] = v
             elif isinstance(v, list):
@@ -173,11 +171,3 @@ def _read_dag_file(dag_file):
                 pass
 
     return ""
-
-
-def _get_export_plugin_version():
-    try:
-        return pkg_resources.get_distribution("dbnd_airflow_export").version
-    except Exception:
-        # plugin is probably not installed but "copied" to plugins folder so we cannot know its version
-        return None

@@ -9,7 +9,7 @@ from airflow.models import BaseOperator, DagRun, TaskInstance
 from airflow.utils.net import get_hostname
 
 from dbnd._core.utils.uid_utils import source_md5
-from dbnd_airflow_export.helpers import (
+from dbnd_airflow.export_plugin.helpers import (
     _extract_args_from_dict,
     _get_command_from_operator,
     _get_module_code,

@@ -72,9 +72,15 @@ setuptools.setup(
             "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
             "dbnd_test_scenarios==" + version,
             "SQLAlchemy==1.3.18",
+            "pytest==4.5.0",
+            "mock",
+            "sh",
         ],
     ),
     entry_points={
+        "airflow.plugins": [
+            "dbnd_airflow_export = dbnd_airflow.export_plugin.dbnd_airflow_export_plugin:DataExportAirflowPlugin"
+        ],
         "console_scripts": [
             "dbnd-set-up-scheduled = dbnd_airflow.plugins.setup_plugins:setup_scheduled_dags",
         ],

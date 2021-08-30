@@ -24,9 +24,6 @@ RUN pip install -e /dbnd/examples
 RUN pip install -e /dbnd/plugins/dbnd-aws
 RUN pip install -e /dbnd/plugins/dbnd-docker
 RUN pip install -e /dbnd/plugins/dbnd-airflow-auto-tracking
-RUN pip install -e /dbnd/plugins/dbnd-airflow-export
-RUN pip install -e /dbnd/plugins/dbnd-airflow-operator
-RUN pip install -e /dbnd/plugins/dbnd-airflow-versioned-dag
 
 WORKDIR /dbnd
 

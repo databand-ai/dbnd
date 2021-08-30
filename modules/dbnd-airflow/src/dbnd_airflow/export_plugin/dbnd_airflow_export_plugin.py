@@ -1,20 +1,19 @@
 import logging
 
-import airflow
 import flask_appbuilder
 
 from airflow.models import DagModel
 from airflow.plugins_manager import AirflowPlugin
 from airflow.www.app import csrf as admin_csrf
 
-from dbnd_airflow_export.request_processing import (
+from dbnd_airflow.export_plugin.request_processing import (
     process_dag_run_states_data_request,
     process_full_runs_request,
     process_last_seen_values_request,
     process_metadata_request,
     process_new_runs_request,
 )
-from dbnd_airflow_export.utils import AIRFLOW_VERSION_2
+from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
 
 
 flask_admin_views_list = []

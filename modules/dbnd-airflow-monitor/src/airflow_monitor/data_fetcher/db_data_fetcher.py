@@ -2,7 +2,6 @@ import contextlib
 import json
 import logging
 
-from distutils.version import LooseVersion
 from typing import List, Optional
 
 from airflow_monitor.common.airflow_data import (
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def json_conv(data):
-    from dbnd_airflow_export.utils import JsonEncoder
+    from dbnd_airflow.export_plugin.utils import JsonEncoder
 
     if not isinstance(data, dict):
         data = data.as_dict()
@@ -92,7 +91,7 @@ class DbFetcher(AirflowDataFetcher):
         return self._dagbag
 
     def get_last_seen_values(self) -> LastSeenValues:
-        from dbnd_airflow_export.api_functions import get_last_seen_values
+        from dbnd_airflow.export_plugin.api_functions import get_last_seen_values
 
         with self._get_session() as session:
             data = get_last_seen_values(session=session)
@@ -105,7 +104,7 @@ class DbFetcher(AirflowDataFetcher):
         extra_dag_run_ids: Optional[List[int]],
         dag_ids: Optional[str],
     ) -> AirflowDagRunsResponse:
-        from dbnd_airflow_export.api_functions import get_new_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
 
         dag_ids_list = dag_ids.split(",") if dag_ids else None
 
@@ -123,7 +122,7 @@ class DbFetcher(AirflowDataFetcher):
     def get_full_dag_runs(
         self, dag_run_ids: List[int], include_sources: bool
     ) -> DagRunsFullData:
-        from dbnd_airflow_export.api_functions import get_full_dag_runs
+        from dbnd_airflow.export_plugin.api_functions import get_full_dag_runs
 
         with self._get_session() as session:
             data = get_full_dag_runs(
@@ -136,7 +135,7 @@ class DbFetcher(AirflowDataFetcher):
         return DagRunsFullData.from_dict(json_conv(data))
 
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
-        from dbnd_airflow_export.api_functions import get_dag_runs_states_data
+        from dbnd_airflow.export_plugin.api_functions import get_dag_runs_states_data
 
         with self._get_session() as session:
             data = get_dag_runs_states_data(dag_run_ids=dag_run_ids, session=session)
@@ -148,10 +147,10 @@ class DbFetcher(AirflowDataFetcher):
 
     def get_plugin_metadata(self) -> PluginMetadata:
         from airflow import version as airflow_version
-        import dbnd_airflow_export
+        import dbnd_airflow
 
         return PluginMetadata(
             airflow_version=airflow_version.version,
-            plugin_version=dbnd_airflow_export.__version__ + " v2",
+            plugin_version=dbnd_airflow.__version__ + " v2",
             airflow_instance_uid=get_airflow_instance_uid(),
         )

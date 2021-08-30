@@ -49,7 +49,7 @@ def failed_to_fetch_from_airflow(url, nested_exception, error_code=None):
         message,
         show_exc_info=False,
         nested_exceptions=nested_exception,
-        help_msg="1. Check that dbnd-airflow-export is installed on airflow webserver.\n"
+        help_msg="1. Check that dbnd-airflow is installed on airflow webserver.\n"
         "2. Check that airflow server is configured with the right API mode in databand webserver.",
     )
 

@@ -1,13 +1,13 @@
 import flask
 
-from dbnd_airflow_export.api_functions import (
+from dbnd_airflow.export_plugin.api_functions import (
     get_dag_runs_states_data,
     get_full_dag_runs,
     get_last_seen_values,
     get_meta,
     get_new_dag_runs,
 )
-from dbnd_airflow_export.utils import json_response
+from dbnd_airflow.export_plugin.utils import json_response
 
 
 def convert_url_param_value_to_list(

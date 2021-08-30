@@ -3,18 +3,13 @@ from __future__ import print_function
 import os
 
 import attr
-import mock
 
 from pytest import fixture
 
 
 @fixture(scope="session")
 def airflow_home():
-    home_path = os.path.abspath(
-        os.path.normpath(os.path.join(os.path.dirname(__file__), "airflow"))
-    )
-    with mock.patch.dict(os.environ, {"AIRFLOW_HOME": home_path}):
-        yield home_path
+    yield os.environ["AIRFLOW_HOME"]
 
 
 @fixture(scope="session")
@@ -76,7 +71,7 @@ def airflow_reset_db(airflow_sqlalchemy_conn):
     except ImportError:
         from airflow.cli.commands.db_command import resetdb
 
-    from test_plugin.db_data_generator import set_dag_is_paused
+    from test_dbnd_airflow.export_plugin.db_data_generator import set_dag_is_paused
 
     resetdb(YesObject(yes=True))
 
