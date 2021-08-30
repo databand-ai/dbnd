@@ -243,6 +243,21 @@ class DatasetsReportSchema(ApiObjectSchema):
 
 
 @attr.s
+class TransactionOperation(object):
+    op_type = attr.ib()  # type: str
+    records_count = attr.ib()  # type: int
+    started_date = attr.ib()  # type: datetime
+
+    dataset_uri = attr.ib()  # type: str
+    dataset_uid = attr.ib(default=None)  # type: UUID
+
+    def as_dict(self, fields_to_ignore=[]):
+        return attr.asdict(
+            self, filter=lambda field, _: field.name not in fields_to_ignore
+        )
+
+
+@attr.s
 class SyncedTransaction(object):
     datasource_transaction_id = attr.ib()  # type: str
 
@@ -250,10 +265,8 @@ class SyncedTransaction(object):
     started_date = attr.ib()  # type: datetime
     ended_date = attr.ib()  # type: datetime
 
-    # Destination dataset - uri of dataset that write operation preformed to
-    destination_dataset_uri = attr.ib()  # type: str
-    # Referenced datasets - uris of datasets that read operation preformed on
-    referenced_datasets_uris = attr.ib()  # type: List[str]
+    write_operation = attr.ib()  # type: TransactionOperation
+    read_operations = attr.ib()  # type: List[TransactionOperation]
 
     query_string = attr.ib()  # type: str
 
@@ -275,16 +288,29 @@ class SyncedTransactionsReport(object):
         return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
 
 
+class TransactionOperationSchema(ApiObjectSchema):
+    op_type = fields.String()
+    started_date = fields.DateTime()  # type: datetime
+    records_count = fields.Integer()
+
+    dataset_uri = fields.String()
+    dataset_uid = fields.UUID(allow_none=True)
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return TransactionOperation(**data)
+
+
 class SyncedTransactionSchema(ApiObjectSchema):
     datasource_transaction_id = fields.String()
     created_date = fields.DateTime()
     started_date = fields.DateTime()
     ended_date = fields.DateTime()
 
-    # Destination dataset - uri of dataset that write operation preformed to
-    destination_dataset_uri = fields.String()
-    # Referenced datasets - uris of datasets that read operation preformed on
-    referenced_datasets_uris = fields.List(fields.String())
+    write_operation = fields.Nested(TransactionOperationSchema)
+    read_operations = fields.Nested(
+        TransactionOperationSchema, many=True, allow_none=True
+    )
 
     query_string = fields.String()
 
