@@ -10,8 +10,7 @@ logger = logging.getLogger(__name__)
 
 class DatabandClient(object):
     """
-    Alpha version for the customer facing api client
-    DO NOT USE, this api is going to be significantly changed
+    Customer facing api client
     """
 
     def __init__(self, api_client, verbose=False):
@@ -66,6 +65,12 @@ class DatabandClient(object):
             # TODO: move to webserver
             metrics = (m for m in metrics if m["key"].startswith(filter_name_by_prefix))
         return {m["key"]: m for m in metrics}
+
+    def get_run_info(self, run_uid):
+        run_info = self.api_client.api_request(
+            "/api/client/v1/run/%s" % run_uid, None, method="GET",
+        )
+        return run_info
 
     @classmethod
     def build_databand_client(cls):
