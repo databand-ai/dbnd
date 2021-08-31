@@ -83,11 +83,13 @@ class TaskRunsInfoSchema(ApiObjectSchema):
     root_run_uid = fields.UUID()
     task_run_env_uid = fields.UUID()
 
-    parent_child_map = fields.List(fields.List(fields.UUID()))
     task_runs = fields.Nested(
         TaskRunInfoSchema, many=True, exclude=("task_signature_source",)
     )
+
+    parent_child_map = fields.List(fields.List(fields.UUID()))
     upstreams_map = fields.List(fields.List(fields.UUID()))
+
     dynamic_task_run_update = fields.Boolean()
 
     targets = fields.Nested(TargetInfoSchema, many=True)
