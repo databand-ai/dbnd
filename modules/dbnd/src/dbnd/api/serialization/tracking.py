@@ -243,7 +243,7 @@ class DatasetsReportSchema(ApiObjectSchema):
 
 
 @attr.s
-class TransactionOperation(object):
+class SyncedTransactionOperation(object):
     op_type = attr.ib()  # type: str
     records_count = attr.ib()  # type: int
     started_date = attr.ib()  # type: datetime
@@ -265,8 +265,8 @@ class SyncedTransaction(object):
     started_date = attr.ib()  # type: datetime
     ended_date = attr.ib()  # type: datetime
 
-    write_operation = attr.ib()  # type: TransactionOperation
-    read_operations = attr.ib()  # type: List[TransactionOperation]
+    write_operation = attr.ib()  # type: SyncedTransactionOperation
+    read_operations = attr.ib()  # type: List[SyncedTransactionOperation]
 
     query_string = attr.ib()  # type: str
 
@@ -288,7 +288,7 @@ class SyncedTransactionsReport(object):
         return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
 
 
-class TransactionOperationSchema(ApiObjectSchema):
+class SyncedTransactionOperationSchema(ApiObjectSchema):
     op_type = fields.String()
     started_date = fields.DateTime()  # type: datetime
     records_count = fields.Integer()
@@ -298,7 +298,7 @@ class TransactionOperationSchema(ApiObjectSchema):
 
     @post_load
     def make_object(self, data, **kwargs):
-        return TransactionOperation(**data)
+        return SyncedTransactionOperation(**data)
 
 
 class SyncedTransactionSchema(ApiObjectSchema):
@@ -307,9 +307,9 @@ class SyncedTransactionSchema(ApiObjectSchema):
     started_date = fields.DateTime()
     ended_date = fields.DateTime()
 
-    write_operation = fields.Nested(TransactionOperationSchema)
+    write_operation = fields.Nested(SyncedTransactionOperationSchema)
     read_operations = fields.Nested(
-        TransactionOperationSchema, many=True, allow_none=True
+        SyncedTransactionOperationSchema, many=True, allow_none=True
     )
 
     query_string = fields.String()
