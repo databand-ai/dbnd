@@ -10,8 +10,8 @@
 
 ## Improvements
 
--   \#1200876485130367: Drop py27 support for dbnd-examples.
--   \#1200854192669862: Drop support for tensorflow <2.4 and py27 in dbnd-tensorflow plugin.
+-   \#1200876485130367: Dropped py27 support for dbnd-examples.
+-   \#1200854192669862: Dropped support for tensorflow <2.4 and py27 in dbnd-tensorflow plugin.
 -   \#1200495012906365: Defined and implemented Network Policy to isolate workloads in namespaces.
 -   \#1200845451577692: Delete alert definitions in bulk using the “Delete” button.
 -   \#1200791698233717: Trigger value of Missing Operation alert now reflects the total number of missing operations in the run.
