@@ -1,6 +1,6 @@
-import tensorflow
+from tensorflow.keras import models
+from tensorflow.keras.callbacks import History
 
-from dbnd_tensorflow.seven import History, models
 from targets.values.builtins_values import DataValueType
 
 

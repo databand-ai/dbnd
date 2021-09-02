@@ -3,6 +3,7 @@ import logging
 
 import tensorflow as tf
 
+from databand.parameters import TargetParameter
 from dbnd import PipelineTask, PythonTask, data, output, parameter
 from dbnd_examples.data import data_repo
 
@@ -53,7 +54,7 @@ class TransformToTfRecords(PythonTask):
     def run(self):
         # this is just an example, your transformation goes here
         input_data = self.raw_data.read_df().values
-        with tf.python_io.TFRecordWriter(self.tf_records.path) as writer:
+        with tf.io.TFRecordWriter(self.tf_records.path) as writer:
             for row in input_data:
                 example = tf.train.Example(
                     features=tf.train.Features(

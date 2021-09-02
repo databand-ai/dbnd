@@ -81,6 +81,7 @@ coverage.xml
 *,cover
 .hypothesis/
 .python-version
+.mypy_cache
 
 
 # Translations

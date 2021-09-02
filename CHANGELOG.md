@@ -7,6 +7,27 @@
 -   \#1200876485130367: Drop py27 support for dbnd-examples.
 -   \#1200854192669862: Drop support for tensorflow <2.4 and py27 in dbnd-tensorflow plugin.
 
+### New features
+
+-   \#1200463416979272: Run metrics in the list of metrics are now selected by default and are available from the filters in the Databand UI.
+-   \#1200794953399592: A new look for the Dataset page.
+-   \#1200667723456248: Metrics page added - see all the metrics, alerts, and trends for numeric values in one place (coming in a later minor release).​
+
+## Improvements
+
+-   \#1200876485130367: Dropped py27 support for dbnd-examples.
+-   \#1200854192669862: Dropped support for tensorflow <2.4 and py27 in dbnd-tensorflow plugin.
+-   \#1200495012906365: Defined and implemented Network Policy to isolate workloads in namespaces.
+-   \#1200845451577692: Delete alert definitions in bulk using the “Delete” button.
+-   \#1200791698233717: Trigger value of Missing Operation alert now reflects the total number of missing operations in the run.
+-   \#1200667315624593: Tooltip in schema change now opens on click.
+
+## Bug fixes
+
+-   \#1200587432732541: Text in the UI now aligns to the left after a line break.
+-   \#1200785050007987: Fixed a bug where the “last modified” field returned an empty value.
+-   \#1200847984199269: Fixed a “type change” reporting bug in schema change alerts.
+
 ## DBND v0.47.0
 
 ### New features
