@@ -17,11 +17,16 @@ logger = logging.getLogger(__name__)
 class DbndPodRequestFactory(object):
     def __init__(self, kubernetes_engine_config, pod_yaml):
         self.kubernetes_engine_config = kubernetes_engine_config
+        self.yaml_str = pod_yaml or None
         self.yaml = yaml.safe_load(pod_yaml) or {}
 
     def create(self, pod):
 
-        req = serialize_pod(pod, self.kubernetes_engine_config)
+        req = serialize_pod(
+            pod,
+            yaml_str=self.yaml_str,
+            in_cluster=self.kubernetes_engine_config.in_cluster,
+        )
 
         self.extract_node_affinity(pod, req)
         self.extract_volume_secrets(pod, req)

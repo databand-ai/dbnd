@@ -614,9 +614,13 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         self.apply_env_vars_to_pod(pod)
 
         pod_yaml = getattr(pod, "pod_yaml", "")
-        kube_req_factory = DbndPodRequestFactory(self, pod_yaml)
+        try:
+            kube_req_factory = DbndPodRequestFactory(self, pod_yaml)
 
-        req = kube_req_factory.create(pod)
+            req = kube_req_factory.create(pod)
+        except Exception:
+            logger.exception("Failed to materialize pod into k8s request: %s", pod)
+            raise
         return req
 
     def apply_env_vars_to_pod(self, pod):
