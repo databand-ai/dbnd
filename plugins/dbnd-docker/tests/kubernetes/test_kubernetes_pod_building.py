@@ -1,7 +1,7 @@
 import mock
 import pytest
 
-from dbnd import dbnd_config, dbnd_run_cmd, task
+from dbnd import dbnd_config, dbnd_run_cmd, relative_path, task
 from dbnd._core.current import try_get_current_task_run
 from dbnd._core.task_build.task_registry import build_task_from_config
 
@@ -105,6 +105,23 @@ class TestKubernetesPodBuild(object):
         )
 
         assert pod.namespace == "test_namespace"
+
+    def test_custom_yaml(self,):
+        with dbnd_config(
+            {
+                "kubernetes": {
+                    "pod_yaml": relative_path(__file__, "custom_pod.yaml"),
+                    "container_tag": "dummy_tag",
+                    "namespace": "test_namespace",
+                }
+            }
+        ):
+            run = request_builder.dbnd_run(config_name="gcp_k8s_engine",)
+            req = run.run_executor.result.load("result")
+
+        spec = req["spec"]
+
+        assert spec["dnsPolicy"] == "ClusterFirstWithHostNet"
 
     def test_req_building(self,):
         with dbnd_config(K8S_CONFIG):

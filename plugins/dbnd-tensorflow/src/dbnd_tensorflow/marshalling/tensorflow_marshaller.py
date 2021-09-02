@@ -1,8 +1,8 @@
-import tensorflow
+from tensorflow.keras import models
+from tensorflow.keras.callbacks import History
 
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils.seven import cloudpickle
-from dbnd_tensorflow.seven import History, models
 from targets import LocalFileSystem
 from targets.marshalling.marshaller import Marshaller
 
