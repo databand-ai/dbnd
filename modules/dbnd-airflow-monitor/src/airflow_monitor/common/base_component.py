@@ -10,6 +10,7 @@ from airflow_monitor.tracking_service import (
     DbndAirflowTrackingService,
     get_tracking_service,
 )
+from dbnd.utils.trace import new_tracing_id
 
 
 class BaseMonitorComponent(object):
@@ -43,8 +44,9 @@ class BaseMonitorComponent(object):
             logging.root.setLevel(self.config.log_level)
 
     def sync_once(self):
-        self.refresh_config()
-        return self._sync_once()
+        with new_tracing_id():
+            self.refresh_config()
+            return self._sync_once()
 
     def _sync_once(self):
         raise NotImplementedError()
