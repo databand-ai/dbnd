@@ -2,7 +2,7 @@ import logging
 
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Union
 
 import requests
 
@@ -13,7 +13,6 @@ from dbnd._core.errors.base import (
     DatabandApiError,
     DatabandAuthenticationError,
     DatabandConnectionException,
-    DatabandUnauthorizedApiError,
 )
 from dbnd._core.errors.friendly_error.api import (
     api_connection_refused,
@@ -22,6 +21,7 @@ from dbnd._core.errors.friendly_error.api import (
 from dbnd._core.log.logging_utils import create_file_handler
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
 from dbnd._vendor import curlify
+from dbnd.utils.trace import get_tracing_id
 
 
 # we'd like to have all requests with default timeout, just in case it's stuck
@@ -67,7 +67,9 @@ class ApiClient(object):
         self._api_base_url = api_base_url
         self.is_auth_required = bool(credentials)
         self.credentials = credentials
-        self.default_headers = {"Accept": "application/json"}
+        self.default_headers = {
+            "Accept": "application/json",
+        }
 
         self.session = None
         self.session_creation_time = None
@@ -113,6 +115,7 @@ class ApiClient(object):
         headers = dict(self.default_headers, **(headers or {}))
         url = urljoin(self._api_base_url, endpoint)
         try:
+            headers["X-Databand-Trace-ID"] = get_tracing_id().hex
             request_params = dict(
                 method=method,
                 url=url,
