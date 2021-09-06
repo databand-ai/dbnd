@@ -116,17 +116,26 @@ def generate_project_whl(package_dir, output_dir):
     # generating deps wheels
 
     # Very important to change to the working dir, otherwise, wheel creation won't work as expected
-    os.chdir(package_dir)
 
+    curdir = os.curdir
     setup_py_path = os.path.join(package_dir, "setup.py")
     if not os.path.exists(setup_py_path):
-        raise Exception("Can't find setup.py inside package dir {}".format(package_dir))
+        raise Exception(
+            "Can't find setup.py inside package dir {} (curdir={})".format(
+                package_dir, curdir
+            )
+        )
 
+    # we are going to be inside the package dir (this way pip works correctly)
     generate_command = "{} {} bdist_wheel --dist-dir {}".format(
-        sys.executable, setup_py_path, output_dir
+        sys.executable, "setup.py", output_dir
     )
 
-    _run_command(generate_command)
+    try:
+        os.chdir(package_dir)
+        _run_command(generate_command)
+    finally:
+        os.chdir(curdir)
 
 
 def generate_third_party_deps(requirements_file, output_dir):

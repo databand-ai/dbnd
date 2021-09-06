@@ -37,6 +37,7 @@ class FileFormat(object):
     tsv = "tsv"
     tfmodel = "tfmodel"
     tfhistory = "tfhistory"
+    zip = "zip"
 
 
 BINARY_FORMATS = [
@@ -118,6 +119,7 @@ register_file_extension(FileFormat.numpy, ["npy", "numpy"])
 register_file_extension(FileFormat.tsv)
 register_file_extension(FileFormat.tfmodel)
 register_file_extension(FileFormat.tfhistory)
+register_file_extension(FileFormat.zip)
 
 
 @attr.s(frozen=True, repr=False)
@@ -183,7 +185,7 @@ class TargetConfig(object):
 
     @property
     def zip(self):
-        return self.with_compression(FileCompressions.zip)
+        return self.with_format(FileFormat.zip)
 
     @property
     def xz(self):
