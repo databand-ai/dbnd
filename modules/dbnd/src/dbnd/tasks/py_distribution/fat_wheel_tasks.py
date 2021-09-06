@@ -1,19 +1,67 @@
-from typing import List
+import logging
 
-from dbnd import task
-from dbnd.tasks.py_distribution.fat_wheel_builder import (
-    build_fat_wheel,
-    build_wheel_zips,
+from pathlib import Path
+
+from dbnd import Task, output, parameter, project_path
+from dbnd._core.current import try_get_databand_context
+from dbnd.tasks.py_distribution.build_distribution import (
+    _create_temp_working_dir,
+    generate_project_whl,
+    generate_third_party_deps,
+    zip_dir,
 )
+from targets import FileTarget
 
 
-@task
-def fat_wheel_building_task(use_cached=True, output_dir=None):
-    # type: (bool, str) -> str
-    return build_fat_wheel(use_cached, output_dir)
+logger = logging.getLogger(__name__)
 
 
-@task
-def wheel_zips_building_task(use_cached=True, output_dir=None):
-    # type: (bool, str) -> List[str]
-    return build_wheel_zips(use_cached, output_dir)
+class ProjectWheelFile(Task):
+    task_is_system = True
+    package_dir = parameter(
+        default=project_path(),
+        description="Full path to the directory of the package that contains setup.py",
+    )[str]
+
+    requirements_file = parameter(
+        description="Full path to the requirements file (if any)", default=None
+    )[Path]
+
+    wheel_file = output.with_format("zip")
+
+    def run(self):
+        local_wheel_file_zip = self.current_task_run.local_task_run_root.partition(
+            name="project_wheel_file.zip"
+        )  # type: FileTarget
+        # we need a temp folder to create our wheel file,
+        # pip build doesn't take "output" parameter
+        with _create_temp_working_dir() as tmp_build_dir:
+            logger.info(
+                "Started building bdist_zip file %s at %s, package_dir=%s",
+                self.wheel_file,
+                tmp_build_dir,
+                self.package_dir,
+            )
+
+            # generate main file, we can find a package version and name from it if required
+            generate_project_whl(self.package_dir, tmp_build_dir)
+            if self.requirements_file is not None:
+                generate_third_party_deps(self.requirements_file, tmp_build_dir)
+
+            # zip everything into one file before we copy
+            zip_dir(local_wheel_file_zip, tmp_build_dir)
+
+            self.wheel_file.copy_from_local(local_wheel_file_zip)
+            logger.info(
+                "Successfully published project wheel zip file at %s", self.wheel_file
+            )
+
+    @classmethod
+    def build_project_wheel_file_task(cls):
+        fat_wheel_task = cls(
+            # we need it to run every time we "rerun" the pipeline
+            task_version=try_get_databand_context().current_context_uid,
+            # we don't want to inherit from parent task, as they might have different target_dates
+            task_target_date="today",
+        )
+        return fat_wheel_task

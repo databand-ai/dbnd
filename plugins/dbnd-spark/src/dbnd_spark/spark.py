@@ -8,7 +8,6 @@ import more_itertools
 
 from dbnd._core.cli.cmd_execute import get_dbnd_version, get_python_version
 from dbnd._core.constants import TaskType
-from dbnd._core.current import try_get_databand_context
 from dbnd._core.errors import DatabandBuildError, DatabandConfigError
 from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.parameter.parameter_builder import output, parameter
@@ -17,8 +16,9 @@ from dbnd._core.task.task import Task
 from dbnd._core.task_build.dbnd_decorator import build_task_decorator
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
+from dbnd._core.utils.task_utils import _to_target
 from dbnd._core.utils.traversing import flatten
-from dbnd.tasks.py_distribution.fat_wheel_tasks import fat_wheel_building_task
+from dbnd.tasks.py_distribution.fat_wheel_tasks import ProjectWheelFile
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_config import SparkConfig, SparkEngineConfig
 from dbnd_spark.spark_session import (
@@ -26,8 +26,8 @@ from dbnd_spark.spark_session import (
     inject_spark_listener,
     shutdown_callback_server,
 )
-from targets import DirTarget
-from targets.file_target import FileTarget
+from targets import DirTarget, FileTarget
+from targets.types import PathStr
 
 
 if typing.TYPE_CHECKING:
@@ -48,9 +48,9 @@ class _BaseSparkTask(Task):
     python_script = None
     main_class = None
 
-    spark_resources = parameter(
+    spark_project_wheel_file = parameter(
         empty_default=True, default=None, system=True, significant=False
-    )[Dict[str, FileTarget]]
+    )[PathStr]
 
     def _complete(self):
         dir_outputs = self._get_dir_outputs()
@@ -83,12 +83,8 @@ class _BaseSparkTask(Task):
         result = super(_BaseSparkTask, self).band()
 
         if self.spark_config.include_user_project:
-            fat_wheel_task = fat_wheel_building_task(
-                task_version=try_get_databand_context().current_context_uid,
-                task_target_date="today",
-                task_is_system=True,
-            )
-            self.spark_resources = {"user_project": fat_wheel_task}
+            fat_wheel_task = ProjectWheelFile.build_project_wheel_file_task()
+            self.spark_project_wheel_file = fat_wheel_task.wheel_file
 
         if self.spark_engine.disable_task_band:
             logger.debug("Task band is disabled due to disable_task_band flag")
@@ -98,9 +94,8 @@ class _BaseSparkTask(Task):
 
     def get_py_files(self):
         py_files = self.spark_config.py_files.copy()
-        if self.spark_resources and "user_project" in self.spark_resources:
-            project_files = self.spark_resources["user_project"].load(str)
-            py_files.append(project_files)
+        if self.spark_project_wheel_file:
+            py_files.append(str(self.spark_project_wheel_file))
         return py_files
 
     def application_args(self):
