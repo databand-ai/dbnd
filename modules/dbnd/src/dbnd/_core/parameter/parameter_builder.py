@@ -109,6 +109,10 @@ class ParameterFactory(object):
         return self.target_config(self._target_config.gzip)
 
     @property
+    def zip(self):
+        return self.target_config(self._target_config.zip)
+
+    @property
     def parquet(self):
         return self.target_config(self._target_config.parquet)
 
