@@ -172,6 +172,9 @@ class RunConfig(config.Config):
         description="create a separate log file for the heartbeat sender and don't log the run process stdout"
     )[bool]
 
+    hearbeat_disable_plugins = parameter(
+        default=False, description="disable dbnd plugins at heartbeat sub-process"
+    )[bool]
     ######
     # Task/Pipeline in task Execution
     task_run_at_execution_time_enabled = parameter(
