@@ -8,6 +8,7 @@ import typing
 
 from time import sleep, time
 
+from dbnd._core.configuration.environ_config import ENV_DBND__NO_PLUGINS
 from dbnd._core.constants import RunState
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
@@ -31,7 +32,8 @@ def start_heartbeat_sender(run_executor):
     run = run_executor.run
     settings = run.context.settings
     core = settings.core
-    heartbeat_interval_s = settings.run.heartbeat_interval_s
+    run_config = settings.run
+    heartbeat_interval_s = run_config.heartbeat_interval_s
 
     if not heartbeat_interval_s > 0:
         logger.info(
@@ -68,7 +70,7 @@ def start_heartbeat_sender(run_executor):
             if core.databand_url:
                 cmd += ["--databand-url", core.databand_url]
 
-            if settings.run.heartbeat_sender_log_to_file:
+            if run_config.heartbeat_sender_log_to_file:
                 local_heartbeat_log_file = run.run_local_root.partition(
                     name="heartbeat.log"
                 )
@@ -85,8 +87,12 @@ def start_heartbeat_sender(run_executor):
                 logger.info(
                     "Starting heartbeat using cmd: %s", subprocess.list2cmdline(cmd)
                 )
+            env = os.environ.copy()
+            if run_config.hearbeat_disable_plugins:
+                # we might disable plugins, as underline process doesn't need that
+                env[ENV_DBND__NO_PLUGINS] = "True"
 
-            sp = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.STDOUT)
+            sp = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.STDOUT, env=env)
         except Exception as ex:
             logger.info(
                 "Failed to spawn heartbeat process, you can disable it via [task]heartbeat_interval_s=0  .\n %s",
