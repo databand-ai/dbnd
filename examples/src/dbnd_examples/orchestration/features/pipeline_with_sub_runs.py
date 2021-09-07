@@ -27,9 +27,11 @@ def greetings_pipeline(num_of_greetings):
 
 @task
 def greetings_pipeline_subrun(num_of_greetings):
+    # this is task, so num_of_greetings is going to be evaluated
     assert isinstance(num_of_greetings, int)
 
     dc = get_databand_context()  # type: DatabandContext
+    # if you are running in "submission" mode, you should cancel that for the new run.
     dc.settings.run.submit_driver = False
 
     greetings_pipeline.task(num_of_greetings=num_of_greetings).dbnd_run()
