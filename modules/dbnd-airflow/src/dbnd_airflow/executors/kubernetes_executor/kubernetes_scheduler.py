@@ -382,7 +382,6 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                         )
 
                     continue
-
                 task_run.set_task_run_state(TaskRunState.CANCELLED)
         except Exception:
             self.log.exception("Could not set pods to cancelled!")
@@ -467,6 +466,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         task_run = submitted_pod.task_run
         pod_name = submitted_pod.pod_name
 
+        # node_name is coming from outside
+        # if it's not None, we already got Runnning phase event
         if submitted_pod.node_name:
             self.log.info(
                 "%s: Zombie bug: Seeing pod event again. "
@@ -485,6 +486,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             self.metrics_logger.log_pod_running(task_run.task, node_name=node_name)
 
         submitted_pod.node_name = node_name
+
+        # only to print this info to Console , track=False
         task_run.set_task_run_state(TaskRunState.RUNNING, track=False)
 
     def _process_pod_success(self, submitted_pod):
@@ -498,6 +501,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 "%s Skipping pod 'success' event from %s: already processed", pod_name
             )
             return
+
+        # get refreshed TI from Airflow DB
         ti = get_airflow_task_instance(task_run=task_run)
 
         # we print success message to the screen
@@ -510,7 +515,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         elif ti.state in {State.FAILED, State.SHUTDOWN}:
             dbnd_state = TaskRunState.FAILED
         else:
-            # we got a corruption here:
+            # we got a corruption here, pod has finished, but the AF state is not "final" state
+            # meaning: AF execution was interrupted in the middle
             error_msg = (
                 "Pod %s has finished with SUCCESS, but task instance state is %s, failing the job."
                 % (pod_name, ti.state)
@@ -526,6 +532,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             )
             return
 
+        # only print to console
         task_run.set_task_run_state(dbnd_state, track=False)
         self.log.info(
             "%s has been completed at pod '%s' with state %s try_number=%s!"
@@ -585,8 +592,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         if ti_state in State.finished():
             # Pod has failed, however, Airflow managed to update the state
             # that means - all code (including dbnd) were executed
-            # let just notify the error, so we can show it in summary it
-            # we will not send it to databand tracking store
+            # let just notify the error, so we can show it in the summary
+            # we will not send it to databand tracking store, only print to console
             dbnd_state = AIRFLOW_TO_DBND_STATE_MAP.get(ti_state, None)
             task_run.set_task_run_state(dbnd_state, track=False, error=task_run_error)
 
@@ -686,7 +693,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             task_instance.max_tries = retry_count
 
         self.log.info(
-            "Retry %s task: max_retries=%s, task.retries=%s, current:%s state:%s",
+            "Retry %s  task: max_retries=%s, task.retries=%s, current:%s state:%s",
             task_run,
             task_instance.max_tries,
             task_instance.task.retries,
