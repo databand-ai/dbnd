@@ -252,11 +252,12 @@ public class DbndMlflowClient extends MlflowClient {
 
         String runUid = uuid5("RUN_UID", runId);
         String taskRunAttemptUid = uuid5("TASK_RUN_ATTEMPT", runId);
+        String taskRunUid = uuid5("DRIVER_TASK", runId);
 
         UpdateTaskRunAttempts taskRunAttempts = new UpdateTaskRunAttempts(
             Collections.singletonList(
                 new TaskRunAttemptUpdate(
-                    runUid,
+                    taskRunUid,
                     taskRunAttemptUid,
                     "SUCCESS",
                     ZonedDateTime.now(ZoneOffset.UTC),
