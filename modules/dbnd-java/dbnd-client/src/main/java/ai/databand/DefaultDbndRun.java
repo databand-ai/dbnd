@@ -543,6 +543,10 @@ public class DefaultDbndRun implements DbndRun {
         dbnd.saveTaskLog(driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
         dbnd.logMetrics(driverTask.getTaskRunAttemptUid(), driverTask.getMetrics(), "spark");
         dbnd.updateTaskRunAttempt(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), "SUCCESS", null, driverTask.getStartDate());
+        if (rootRunUid == null) {
+            // for agentless runs created inside Databand Context (when root run is outside of JVM) we shouldn't complete run
+            return;
+        }
         dbnd.setRunState(rootRunUid, "SUCCESS");
     }
 
