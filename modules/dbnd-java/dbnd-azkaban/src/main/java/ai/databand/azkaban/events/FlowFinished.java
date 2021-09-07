@@ -24,7 +24,7 @@ public class FlowFinished implements AzkabanEvent {
             return;
         }
         dbnd.saveTaskLog(azCtx.driverTaskRunAttemptUid(), flow.log());
-        dbnd.updateTaskRunAttempt(azCtx.rootRunUid(), azCtx.driverTaskRunAttemptUid(), flow.state(), null, flow.startDate());
+        dbnd.updateTaskRunAttempt(azCtx.driverTaskUid(), azCtx.driverTaskRunAttemptUid(), flow.state(), null, flow.startDate());
         dbnd.setRunState(azCtx.rootRunUid(), flow.state());
     }
 
