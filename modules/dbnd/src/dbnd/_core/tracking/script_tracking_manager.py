@@ -44,18 +44,17 @@ if typing.TYPE_CHECKING:
 
 
 def set_tracking_config_overide(airflow_context=None, use_dbnd_log=None):
-    # 1. create proper DatabandContext so we can create other objects
-    track_with_cache = config.getboolean("run", "tracking_with_cache")
+    # Ceate proper DatabandContext so we can create other objects
+    # There should be no Orchestrations tasks.
+    # However, let's disable any orchestrations side effects
     config_for_tracking = {
         "run": {
-            "skip_completed": track_with_cache,
-            "skip_completed_on_run": track_with_cache,
-            "validate_task_inputs": track_with_cache,
-            "validate_task_outputs": track_with_cache,
+            "skip_completed": False,
+            "skip_completed_on_run": False,
+            "validate_task_inputs": False,
+            "validate_task_outputs": False,
         },  # we don't want to "check" as script is task_version="now"
-        "task": {
-            "task_in_memory_outputs": not track_with_cache
-        },  # do not save any outputs
+        "task": {"task_in_memory_outputs": True},  # do not save any outputs
         "core": {"tracker_raise_on_error": False},  # do not fail on tracker errors
     }
     if airflow_context:
