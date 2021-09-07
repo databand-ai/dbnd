@@ -222,31 +222,31 @@ public class DbndClient {
     /**
      * Update task run attempts with given state.
      *
-     * @param runUid            task run UID
+     * @param taskRunUid        task run UID
      * @param taskRunAttemptUid task run attempt UID
      * @param state             state: RUNNING, FAILED, SUCCESS
      * @param errorInfo         error details in case of failure
      * @param startDate         task start date—required for proper task duration calculation
      */
-    public void updateTaskRunAttempt(String runUid,
+    public void updateTaskRunAttempt(String taskRunUid,
                                      String taskRunAttemptUid,
                                      String state,
                                      ErrorInfo errorInfo,
                                      ZonedDateTime startDate) {
-        updateTaskRunAttempt(runUid, taskRunAttemptUid, state, errorInfo, startDate, null);
+        updateTaskRunAttempt(taskRunUid, taskRunAttemptUid, state, errorInfo, startDate, null);
     }
 
     /**
      * Update task run attempts with given state.
      *
-     * @param runUid            task run UID
+     * @param taskRunUid        task run UID
      * @param taskRunAttemptUid task run attempt UID
      * @param state             state: RUNNING, FAILED, SUCCESS
      * @param errorInfo         error details in case of failure
      * @param startDate         task start date—required for proper task duration calculation
      * @param linksDict         external links, e.g. Airflow or Azkaban run, Spark History server
      */
-    public void updateTaskRunAttempt(String runUid,
+    public void updateTaskRunAttempt(String taskRunUid,
                                      String taskRunAttemptUid,
                                      String state,
                                      ErrorInfo errorInfo,
@@ -255,7 +255,7 @@ public class DbndClient {
         UpdateTaskRunAttempts taskRunAttempts = new UpdateTaskRunAttempts(
             Collections.singletonList(
                 new TaskRunAttemptUpdate(
-                    runUid,
+                    taskRunUid,
                     taskRunAttemptUid,
                     state,
                     ZonedDateTime.now(ZoneOffset.UTC),
@@ -269,9 +269,9 @@ public class DbndClient {
         Call<Void> call = dbnd.updateTaskRunAttempts(taskRunAttempts);
         Optional<Object> res = safeExecuteVoid(call);
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] [task_run_attempt: {}] Updated with status {}", runUid, taskRunAttemptUid, state);
+            LOG.info("[task_run: {}] [task_run_attempt: {}] Updated with status {}", taskRunUid, taskRunAttemptUid, state);
         } else {
-            LOG.error("[task_run: {}] Unable to complete task run attempt", runUid);
+            LOG.error("[task_run: {}] Unable to complete task run attempt", taskRunUid);
         }
     }
 
