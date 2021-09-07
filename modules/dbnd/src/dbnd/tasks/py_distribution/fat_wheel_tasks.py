@@ -1,7 +1,5 @@
 import logging
 
-from pathlib import Path
-
 from dbnd import Task, output, parameter, project_path
 from dbnd._core.current import try_get_databand_context
 from dbnd.tasks.py_distribution.build_distribution import (
@@ -11,6 +9,7 @@ from dbnd.tasks.py_distribution.build_distribution import (
     zip_dir,
 )
 from targets import FileTarget
+from targets.types import PathStr
 
 
 logger = logging.getLogger(__name__)
@@ -21,11 +20,11 @@ class ProjectWheelFile(Task):
     package_dir = parameter(
         default=project_path(),
         description="Full path to the directory of the package that contains setup.py",
-    )[str]
+    )[PathStr]
 
     requirements_file = parameter(
         description="Full path to the requirements file (if any)", default=None
-    )[Path]
+    )[PathStr]
 
     wheel_file = output.with_format("zip")
 
