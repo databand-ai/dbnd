@@ -52,4 +52,4 @@ RUN pip install databand[spark] dbnd_test_scenarios --find-links /dist/ --no-ind
 
 EXPOSE 8998
 
-CMD livy-server start && tail -f
+CMD livy-server start && sleep infinity
