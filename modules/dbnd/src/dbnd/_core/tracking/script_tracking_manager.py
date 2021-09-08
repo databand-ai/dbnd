@@ -143,7 +143,7 @@ class _DbndScriptTrackingManager(object):
         else:
             root_task = _build_inline_root_task(root_task_name)
             job_name = root_task.task_name
-            source = UpdateSource.dbnd
+            source = UpdateSource.generic_tracking
             run_uid = None
             try_number = 1
 

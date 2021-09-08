@@ -282,6 +282,7 @@ class UpdateSource(EnumWithAll):
     airflow_monitor = "airflow_monitor"
     airflow_tracking = "airflow_tracking"
     azkaban_tracking = "azkaban_tracking"
+    generic_tracking = "generic_tracking"
 
     def __eq__(self, other):
         if isinstance(other, UpdateSource):
