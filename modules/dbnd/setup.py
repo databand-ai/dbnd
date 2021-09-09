@@ -43,9 +43,6 @@ setuptools.setup(
         'pygments>=2.6.1 ; python_version >= "3.0"',
         # backward compatible python
         'typing;python_version<"3.7"',  # Standalone pkg is incompatible with 3.7 and not required
-        'pathlib2; python_version < "3.0"',  # pathlib support in python 2
-        "pathlib2;python_version<='2.7'",
-        "enum34;python_version<='2.7'",
         'contextlib2; python_version < "3"',
         "python-dateutil",
         "jinja2>=2.10.1, <2.12",  # same versions as Airflow
@@ -54,15 +51,14 @@ setuptools.setup(
     extras_require={
         ':sys_platform=="win32"': ["colorama"],
         "tests": [
-            "qtconsole==4.7.7",  # 5.0 is not py 27 compatible
-            "numpy==1.16.6;python_version<'3.5'",  # Latest py2 compatible version
+            "qtconsole==4.7.7",
             "numpy==1.19.5;python_version>='3.5'",  # 1.20 has compatibility issue with HDF5 marshalling. Fix is in progress
             "coverage==5.5",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov==2.9.0",
             "pluggy==0.11.0",  # 0.12 has import_metadata, fails on py2
             "zope.interface",
-            "mock ; python_version>='3.0'",
+            "mock",
             "mock==3.0.5 ; python_version<'3.0'",
             "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
             "urllib3==1.23",  # otherwise we have 1.24 - conflict with 'requests'
@@ -72,8 +68,7 @@ setuptools.setup(
             'future==0.16.0 ; python_version < "3.0"',  # test newstr
             "tables==3.5.1",
             "feather-format",
-            "pyarrow ; python_version>='3.0'",
-            "pyarrow==0.16.0 ; python_version<'3.0'",  # Last version compatible with python 2.7
+            "pyarrow",
             "idna<=2.7",  # conflict with requests (require 2.8 <)
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
             "openpyxl==2.6.4",

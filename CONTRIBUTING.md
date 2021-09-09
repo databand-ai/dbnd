@@ -95,10 +95,12 @@ Ready to contribute? Here's how to set up `databand` for local development.
 
 You can take advantage of Docker containers isolation and reproducibility by using our development
 docker compose:
+
 ```
 docker-compose -f docker-compose.yaml up -d postgres
 docker-compose -f docker-compose-dev.yaml run -p 8080:8080 dbnd /bin/bash
 ```
+
 In this way you will enter a container with installed DBND modules installed in editable way.
 
 ## Pull Request Guidelines
@@ -109,7 +111,7 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.md.
-3. The pull request should work for Python 2.7, 3.6, 3.7 and 3.8. Check
+3. The pull request should work for Python 3.6, 3.7 and 3.8. Check
    https://travis-ci.org/shulmane/databand/pull_requests
    and make sure that the tests pass for all supported Python versions.
 

@@ -52,9 +52,6 @@ class MultiTargetOpen(object):
             self.nextfile()
             # repeat with next file
 
-    def next(self):  # python 2.7
-        return self.__next__()
-
     def __getitem__(self, i):
         if i != self.lineno():
             raise RuntimeError("accessing lines out of order")

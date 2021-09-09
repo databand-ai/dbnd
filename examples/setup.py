@@ -11,7 +11,7 @@ version = config["metadata"]["version"]
 INSTALL_REQUIRES = [
     # we are still installing 'databand' in dockers.. "dbnd==" + version,
     "dbnd-airflow[airflow]==" + version,
-    "scikit-learn==0.20.3;python_version<'3.5'",  # The latest version which supports Python 2.7
+    "scikit-learn==0.20.3;python_version<'3.5'",
     "scikit-learn==0.23.2;python_version>='3.5'",
     "scipy==1.1.0",
     "sklearn==0.0",

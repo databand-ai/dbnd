@@ -1,15 +1,8 @@
 import logging
 
-import pytest
-import six
-
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_examples.orchestration.examples.salad import prepare_salad
 
-
-if six.PY2:
-    pytestmark = pytest.mark.skip()  # py2 styling
-else:
-    from dbnd_examples.orchestration.examples.salad import prepare_salad
 
 logger = logging.getLogger(__name__)
 

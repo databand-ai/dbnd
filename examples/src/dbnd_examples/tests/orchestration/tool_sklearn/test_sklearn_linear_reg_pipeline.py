@@ -1,21 +1,10 @@
 import logging
 
-import pytest
-import six
-
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_examples.orchestration.tool_sklearn.sklearn_example import linear_reg_pipeline
 
-
-if six.PY2:
-    pytestmark = pytest.mark.skip()  # py2 styling
-else:
-    from dbnd_examples.orchestration.tool_sklearn.sklearn_example import (
-        linear_reg_pipeline,
-    )
 
 logger = logging.getLogger(__name__)
-
-
 logging.basicConfig(level=logging.INFO)
 
 
