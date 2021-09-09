@@ -21,7 +21,6 @@ variables:
   # only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
   # Specific images according to a python version
-  DOCKER_IMAGE_CI_TEST_PY27: gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py27-latest
   DOCKER_IMAGE_CI_TEST_PY36: gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py36-latest
   DOCKER_IMAGE_CI_BUILD_PY36: gcr.io/dbnd-dev-260010/databand/dbnd-ci.build:py36-latest
 
@@ -114,16 +113,6 @@ manifest:
   script:
     - make test-manifest
 
-dbnd_py27:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_TEST_PY27}
-  script:
-    - cd modules/dbnd
-    - tox -e py27
-  artifacts:
-    reports:
-      junit: modules/dbnd/build/junit-py27.xml
-
 dbnd_py36:
   <<: *template__python_test_job
   image: ${DOCKER_IMAGE_CI_TEST_PY36}
@@ -164,52 +153,6 @@ dbnd_examples_py36:
 #  artifacts:
 #    reports:
 #      junit: plugins/dbnd-databricks/build/junit-py36.xml
-
-dbnd_airflow 0 1_10_7_py27:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_TEST_PY27}
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py27-airflow_1_10_7
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_7.xml
-  only: *on_significant_branch
-
-dbnd_airflow 0 1_10_9_py27:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_TEST_PY27}
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py27-airflow_1_10_9
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_9.xml
-  only: *on_significant_branch
-
-dbnd_airflow 0 1_10_10_py27:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_TEST_PY27}
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py27-airflow_1_10_10
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_10.xml
-  only: *on_significant_branch
-  when: manual
-
-dbnd_airflow 0 1_10_12_py27:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_TEST_PY27}
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py27-airflow_1_10_12
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py27-airflow_1_10_12.xml
-  only: *on_significant_branch
-  when: manual
 
 dbnd_airflow 0 1_10_7_py36:
   <<: *template__python_test_job

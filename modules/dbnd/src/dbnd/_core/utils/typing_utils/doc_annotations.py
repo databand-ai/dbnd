@@ -93,7 +93,7 @@ def parse_arg_types_for_callable(func):
     :return: list of parameter types if successfully parsed, else None
     """
 
-    # todo make this compatible with python 3 type hints
+    # TODO: make this compatible with python 3 type hints
     # python 2.7 type hint
     try:
         source_lines = inspect.getsource(func).split("\n")
