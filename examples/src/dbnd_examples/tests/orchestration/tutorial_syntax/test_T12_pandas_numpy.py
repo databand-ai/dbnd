@@ -1,17 +1,10 @@
 import logging
 
-import pytest
-import six
-
 from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_examples.orchestration.tutorial_syntax.T12_data_pandas_and_numpy import (
+    f_test_pandas_numpy_flow,
+)
 
-
-if six.PY2:
-    pytestmark = pytest.mark.skip()  # py2 styling
-else:
-    from dbnd_examples.orchestration.tutorial_syntax.T12_data_pandas_and_numpy import (
-        f_test_pandas_numpy_flow,
-    )
 
 logger = logging.getLogger(__name__)
 

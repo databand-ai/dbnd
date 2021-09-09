@@ -1,13 +1,7 @@
 import logging
 
-import pytest
-import six
+from dbnd_examples.orchestration.tutorial_syntax import T03_task_outputs
 
-
-if six.PY2:
-    pytestmark = pytest.mark.skip("Python 2 non compatible code")  # py2 styling
-else:
-    from dbnd_examples.orchestration.tutorial_syntax import T03_task_outputs
 
 logger = logging.getLogger(__name__)
 

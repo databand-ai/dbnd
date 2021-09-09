@@ -32,7 +32,6 @@ class ExamplesData(object):
     wines_per_date = dbnd_examples_data_path("wine_quality_per_day")
 
     wines_full = dbnd_examples_data_path("wine_quality.csv.gz")
-    wines_parquet_py27 = dbnd_examples_data_path("wine_quality.py27.parquet")
 
     raw_logs = timezone.parse("2018-06-22")
     partitioned_data_target_date = datetime.date(year=2018, month=9, day=3)
