@@ -95,7 +95,9 @@ class DbFetcher(AirflowDataFetcher):
 
         with self._get_session() as session:
             data = get_last_seen_values(session=session)
-        return LastSeenValues.from_dict(json_conv(data))
+        json_data = json_conv(data)
+        self._on_data_received(json_data, "get_last_seen_values")
+        return LastSeenValues.from_dict(json_data)
 
     def get_airflow_dagruns_to_sync(
         self,
@@ -117,7 +119,9 @@ class DbFetcher(AirflowDataFetcher):
                 include_subdags=False,
                 session=session,
             )
-        return AirflowDagRunsResponse.from_dict(json_conv(data))
+        json_data = json_conv(data)
+        self._on_data_received(json_data, "get_airflow_dagruns_to_sync")
+        return AirflowDagRunsResponse.from_dict(json_data)
 
     def get_full_dag_runs(
         self, dag_run_ids: List[int], include_sources: bool
@@ -132,7 +136,9 @@ class DbFetcher(AirflowDataFetcher):
                 session=session,
             )
 
-        return DagRunsFullData.from_dict(json_conv(data))
+        json_data = json_conv(data)
+        self._on_data_received(json_data, "get_full_dag_runs")
+        return DagRunsFullData.from_dict(json_data)
 
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
         from dbnd_airflow.export_plugin.api_functions import get_dag_runs_states_data
@@ -140,7 +146,9 @@ class DbFetcher(AirflowDataFetcher):
         with self._get_session() as session:
             data = get_dag_runs_states_data(dag_run_ids=dag_run_ids, session=session)
 
-        return DagRunsStateData.from_dict(json_conv(data))
+        json_data = json_conv(data)
+        self._on_data_received(json_data, "get_dag_runs_state_data")
+        return DagRunsStateData.from_dict(json_data)
 
     def is_alive(self):
         return True

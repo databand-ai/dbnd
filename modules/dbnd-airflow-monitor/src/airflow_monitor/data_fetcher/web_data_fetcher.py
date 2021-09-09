@@ -5,7 +5,6 @@ from typing import Dict, List, Optional
 
 import requests
 
-from airflow_monitor.airflow_monitor_utils import log_received_tasks, send_metrics
 from airflow_monitor.common.airflow_data import (
     AirflowDagRunsResponse,
     DagRunsFullData,
@@ -142,14 +141,9 @@ class WebFetcher(AirflowDataFetcher):
             data_sample = resp.text[:100] if resp and resp.text else None
             raise failed_to_decode_data_from_airflow(self.base_url, e, data_sample)
 
-        if "error" in json_data:
-            logger.error("Error in Airflow Export Plugin: \n%s", json_data["error"])
-            raise AirflowFetchingException(json_data["error"])
-
-        log_received_tasks(
-            self.endpoint_url + "/" + endpoint_name.strip("/"), json_data
+        self._on_data_received(
+            json_data, self.endpoint_url + "/" + endpoint_name.strip("/"),
         )
-        send_metrics(self.base_url, json_data.get("airflow_export_meta"))
         return json_data
 
     def _do_make_request(self, endpoint_name, params, timeout, method="POST"):

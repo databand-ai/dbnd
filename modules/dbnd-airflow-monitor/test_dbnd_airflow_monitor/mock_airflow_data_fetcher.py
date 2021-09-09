@@ -1,3 +1,5 @@
+import uuid
+
 from typing import List, Optional
 
 import attr
@@ -10,6 +12,7 @@ from airflow_monitor.common.airflow_data import (
     LastSeenValues,
     PluginMetadata,
 )
+from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher import AirflowDataFetcher
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 
@@ -61,7 +64,7 @@ class MockLog:
 
 class MockDataFetcher(AirflowDataFetcher):
     def __init__(self):
-        super(MockDataFetcher, self).__init__(None)
+        super(MockDataFetcher, self).__init__(AirflowServerConfig(uuid.uuid4()))
         self.dag_runs = []  # type: List[MockDagRun]
         self.logs = []  # type: List[MockLog]
         self.alive = True
