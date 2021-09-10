@@ -278,6 +278,7 @@ class SystemMetrics(EnumWithAll):
 
 
 class UpdateSource(EnumWithAll):
+    # `dbnd` source is only for orchestration
     dbnd = "dbnd"
     airflow_monitor = "airflow_monitor"
     airflow_tracking = "airflow_tracking"
