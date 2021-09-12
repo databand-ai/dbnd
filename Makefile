@@ -87,10 +87,6 @@ test-all-py36:
 		(cd $$m && tox -e py36) ;\
 	done
 
-test-gitlab-ci:
-	python etc/scripts/validate_gitlab_ci_yml.py --file ./.gitlab-ci.yml
-
-
 test-manifest:
 	mkdir -p dist
 	for m in $(prj_dist) ; do \
