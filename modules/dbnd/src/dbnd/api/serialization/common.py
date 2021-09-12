@@ -1,12 +1,12 @@
 from dbnd._core.constants import TaskRunState
-from dbnd._core.tracking.schemas.base import ApiObjectSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.tracking.schemas.tracking_info_objects import ErrorInfo, TargetInfo
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
 
 
-class TargetInfoSchema(ApiObjectSchema):
+class TargetInfoSchema(ApiStrictSchema):
     parameter_name = fields.String()
 
     path = fields.String()
@@ -18,7 +18,7 @@ class TargetInfoSchema(ApiObjectSchema):
         return TargetInfo(**data)
 
 
-class MetricSchema(ApiObjectSchema):
+class MetricSchema(ApiStrictSchema):
     key = fields.String()
     value = fields.Raw(allow_none=True)
     value_str = fields.String(allow_none=True)
@@ -32,11 +32,11 @@ class MetricSchema(ApiObjectSchema):
         return Metric(**data)
 
 
-class ArtifactSchema(ApiObjectSchema):
+class ArtifactSchema(ApiStrictSchema):
     path = fields.String()
 
 
-class ErrorInfoSchema(ApiObjectSchema):
+class ErrorInfoSchema(ApiStrictSchema):
     msg = fields.String()
     help_msg = fields.String(allow_none=True)
     databand_error = fields.Bool()
@@ -51,7 +51,7 @@ class ErrorInfoSchema(ApiObjectSchema):
         return ErrorInfo(**data)
 
 
-class TaskRunAttemptSchema(ApiObjectSchema):
+class TaskRunAttemptSchema(ApiStrictSchema):
     task_run_uid = fields.UUID()
     task_run_attempt_uid = fields.UUID()
     state = EnumField(TaskRunState, allow_none=True)
@@ -65,7 +65,7 @@ class TaskRunAttemptSchema(ApiObjectSchema):
     external_links_dict = fields.Dict(allow_none=True)
 
 
-class ExternalUrlSchema(ApiObjectSchema):
+class ExternalUrlSchema(ApiStrictSchema):
     id = fields.UUID(attribute="uid")
     name = fields.Str()
     url = fields.Str()

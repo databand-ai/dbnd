@@ -1,8 +1,8 @@
-from dbnd._core.tracking.schemas.base import ApiObjectSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._vendor.marshmallow import fields, validate
 
 
-class JobSchemaV2(ApiObjectSchema):
+class JobSchemaV2(ApiStrictSchema):
     id = fields.Int()
     name = fields.Str()
     user = fields.Str()
@@ -31,7 +31,7 @@ class JobSchemaV2(ApiObjectSchema):
     scheduled_job_count = fields.Number()
 
 
-class JobsSetArchiveSchema(ApiObjectSchema):
+class JobsSetArchiveSchema(ApiStrictSchema):
     ids = fields.List(fields.Integer(), required=True, validate=validate.Length(min=1))
     is_archived = fields.Boolean(required=True)
 

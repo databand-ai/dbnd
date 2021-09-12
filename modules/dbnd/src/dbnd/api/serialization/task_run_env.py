@@ -1,9 +1,9 @@
-from dbnd._core.tracking.schemas.base import ApiObjectSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.tracking.schemas.tracking_info_objects import TaskRunEnvInfo
 from dbnd._vendor.marshmallow import fields, post_load
 
 
-class TaskRunEnvInfoSchema(ApiObjectSchema):
+class TaskRunEnvInfoSchema(ApiStrictSchema):
     uid = fields.UUID()
     cmd_line = fields.String()
 

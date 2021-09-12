@@ -14,7 +14,7 @@ from dbnd._core.constants import (
     UpdateSource,
 )
 from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
-from dbnd._core.tracking.schemas.base import ApiObjectSchema, _ApiCallSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.tracking.schemas.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._core.utils.dotdict import _as_dotted_dict
@@ -53,7 +53,7 @@ class TrackingSource(object):
     source_instance_uid = attr.ib(default=None)  # type: Optional[UUID]
 
 
-class TrackingSourceSchema(ApiObjectSchema):
+class TrackingSourceSchema(ApiStrictSchema):
     name = fields.String()
     url = fields.String()
     env = fields.String()
@@ -66,7 +66,7 @@ class TrackingSourceSchema(ApiObjectSchema):
         return TrackingSource(**data)
 
 
-class AirflowTaskContextSchema(ApiObjectSchema):
+class AirflowTaskContextSchema(ApiStrictSchema):
     dag_id = fields.String()
     execution_date = fields.String()
     task_id = fields.String()
@@ -78,7 +78,7 @@ class AirflowTaskContextSchema(ApiObjectSchema):
         return AirflowTaskContext(**data)
 
 
-class TaskRunsInfoSchema(ApiObjectSchema):
+class TaskRunsInfoSchema(ApiStrictSchema):
     run_uid = fields.UUID()
     root_run_uid = fields.UUID()
     task_run_env_uid = fields.UUID()
@@ -127,7 +127,7 @@ class InitRunArgs(object):
         return attr.asdict(self, recurse=False)
 
 
-class InitRunArgsSchema(ApiObjectSchema):
+class InitRunArgsSchema(ApiStrictSchema):
     run_uid = fields.UUID()
     root_run_uid = fields.UUID()
 
@@ -162,7 +162,7 @@ class TaskRunAttemptUpdateArgs(object):
     external_links_dict = attr.ib(default=None)
 
 
-class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
+class TaskRunAttemptUpdateArgsSchema(ApiStrictSchema):
     task_run_uid = fields.UUID()
     task_run_attempt_uid = fields.UUID()
     state = EnumField(TaskRunState, allow_none=True)
@@ -178,7 +178,7 @@ class TaskRunAttemptUpdateArgsSchema(ApiObjectSchema):
         return TaskRunAttemptUpdateArgs(**data)
 
 
-class InitRunSchema(_ApiCallSchema):
+class InitRunSchema(ApiStrictSchema):
     init_args = fields.Nested(InitRunArgsSchema)
     version = fields.String(allow_none=True)
 
@@ -186,7 +186,7 @@ class InitRunSchema(_ApiCallSchema):
 init_run_schema = InitRunSchema()
 
 
-class AddTaskRunsSchema(_ApiCallSchema):
+class AddTaskRunsSchema(ApiStrictSchema):
     task_runs_info = fields.Nested(TaskRunsInfoSchema)
     source = EnumField(UpdateSource, allow_none=True)
 
@@ -194,7 +194,7 @@ class AddTaskRunsSchema(_ApiCallSchema):
 add_task_runs_schema = AddTaskRunsSchema()
 
 
-class SetDatabandRunStateSchema(_ApiCallSchema):
+class SetDatabandRunStateSchema(ApiStrictSchema):
     run_uid = fields.UUID(required=True)
     state = EnumField(RunState)
     timestamp = fields.DateTime(required=False, default=None, missing=None)
@@ -203,7 +203,7 @@ class SetDatabandRunStateSchema(_ApiCallSchema):
 set_run_state_schema = SetDatabandRunStateSchema()
 
 
-class SetTaskRunReusedSchema(_ApiCallSchema):
+class SetTaskRunReusedSchema(ApiStrictSchema):
     task_run_uid = fields.UUID(required=True)
     task_outputs_signature = fields.String(required=True)
 
@@ -211,14 +211,14 @@ class SetTaskRunReusedSchema(_ApiCallSchema):
 set_task_run_reused_schema = SetTaskRunReusedSchema()
 
 
-class UpdateTaskRunAttemptsSchema(_ApiCallSchema):
+class UpdateTaskRunAttemptsSchema(ApiStrictSchema):
     task_run_attempt_updates = fields.Nested(TaskRunAttemptUpdateArgsSchema, many=True)
 
 
 update_task_run_attempts_schema = UpdateTaskRunAttemptsSchema()
 
 
-class SetUnfinishedTasksStateShcmea(_ApiCallSchema):
+class SetUnfinishedTasksStateShcmea(ApiStrictSchema):
     run_uid = fields.UUID()
     state = EnumField(TaskRunState)
     timestamp = fields.DateTime()
@@ -227,7 +227,7 @@ class SetUnfinishedTasksStateShcmea(_ApiCallSchema):
 set_unfinished_tasks_state_schema = SetUnfinishedTasksStateShcmea()
 
 
-class SaveTaskRunLogSchema(_ApiCallSchema):
+class SaveTaskRunLogSchema(ApiStrictSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     log_body = fields.String(allow_none=True)
     local_log_path = fields.String(allow_none=True)
@@ -236,7 +236,7 @@ class SaveTaskRunLogSchema(_ApiCallSchema):
 save_task_run_log_schema = SaveTaskRunLogSchema()
 
 
-class SaveExternalLinksSchema(_ApiCallSchema):
+class SaveExternalLinksSchema(ApiStrictSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     external_links_dict = fields.Dict(
         name=fields.Str(), url=fields.Str(), required=True
@@ -246,7 +246,7 @@ class SaveExternalLinksSchema(_ApiCallSchema):
 save_external_links_schema = SaveExternalLinksSchema()
 
 
-class LogMetricSchema(_ApiCallSchema):
+class LogMetricSchema(ApiStrictSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     target_meta_uid = fields.UUID(allow_none=True)
     metric = fields.Nested(MetricSchema, allow_none=True)
@@ -256,7 +256,7 @@ class LogMetricSchema(_ApiCallSchema):
 log_metric_schema = LogMetricSchema()
 
 
-class LogMetricsSchema(_ApiCallSchema):
+class LogMetricsSchema(ApiStrictSchema):
     metrics_info = fields.Nested(LogMetricSchema, many=True)
 
     @post_load
@@ -267,7 +267,7 @@ class LogMetricsSchema(_ApiCallSchema):
 log_metrics_schema = LogMetricsSchema()
 
 
-class LogArtifactSchema(_ApiCallSchema):
+class LogArtifactSchema(ApiStrictSchema):
     task_run_attempt_uid = fields.UUID(required=True)
     name = fields.String()
     path = fields.String()
@@ -362,7 +362,7 @@ class LogDataframeHistogramsArgs(object):
     task_def_uid = attr.ib(default=None)  # type: Optional[UUID]
 
 
-class LogTargetSchema(_ApiCallSchema):
+class LogTargetSchema(ApiStrictSchema):
     run_uid = fields.UUID(required=True)
     task_run_uid = fields.UUID(required=True)
     task_run_name = fields.String()
@@ -380,14 +380,14 @@ class LogTargetSchema(_ApiCallSchema):
     data_hash = fields.String(allow_none=True)
 
 
-class LogTargetsSchema(_ApiCallSchema):
+class LogTargetsSchema(ApiStrictSchema):
     targets_info = fields.Nested(LogTargetSchema, many=True)
 
 
 log_targets_schema = LogTargetsSchema()
 
 
-class LogDatasetSchema(_ApiCallSchema):
+class LogDatasetSchema(ApiStrictSchema):
     run_uid = fields.UUID(required=True)
     task_run_uid = fields.UUID(required=True)
     task_run_name = fields.String(required=True)
@@ -402,21 +402,21 @@ class LogDatasetSchema(_ApiCallSchema):
     data_schema = fields.String(allow_none=True)
 
 
-class LogDatasetsSchema(_ApiCallSchema):
+class LogDatasetsSchema(ApiStrictSchema):
     datasets_info = fields.Nested(LogDatasetSchema, many=True)
 
 
 log_datasets_schema = LogDatasetsSchema()
 
 
-class HeartbeatSchema(_ApiCallSchema):
+class HeartbeatSchema(ApiStrictSchema):
     run_uid = fields.UUID()
 
 
 heartbeat_schema = HeartbeatSchema()
 
 
-class AirflowTaskInfoSchema(_ApiCallSchema):
+class AirflowTaskInfoSchema(ApiStrictSchema):
     execution_date = fields.DateTime()
     last_sync = fields.DateTime(allow_none=True)
     dag_id = fields.String()
@@ -429,7 +429,7 @@ class AirflowTaskInfoSchema(_ApiCallSchema):
         return AirflowTaskInfo(**data)
 
 
-class AirflowTaskInfosSchema(_ApiCallSchema):
+class AirflowTaskInfosSchema(ApiStrictSchema):
     airflow_task_infos = fields.Nested(AirflowTaskInfoSchema, many=True)
     source = fields.String()
     base_url = fields.String()
@@ -480,7 +480,7 @@ class ScheduledJobInfo(object):
     job_name = attr.ib(default=None)  # type: Optional[str]
 
 
-class ScheduledJobInfoSchema(ApiObjectSchema):
+class ScheduledJobInfoSchema(ApiStrictSchema):
     uid = fields.UUID()
     name = fields.String()
     cmd = fields.String()
@@ -505,7 +505,7 @@ class ScheduledJobInfoSchema(ApiObjectSchema):
         return ScheduledJobInfo(**data)
 
 
-class ScheduledJobArgsSchema(_ApiCallSchema):
+class ScheduledJobArgsSchema(ApiStrictSchema):
     scheduled_job_args = fields.Nested(ScheduledJobInfoSchema)
     update_existing = fields.Boolean(default=False)
 

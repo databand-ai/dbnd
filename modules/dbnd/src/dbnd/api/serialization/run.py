@@ -1,11 +1,11 @@
 from dbnd._core.constants import RunState
-from dbnd._core.tracking.schemas.base import ApiObjectSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
 
 
-class ScheduledRunInfoSchema(ApiObjectSchema):
+class ScheduledRunInfoSchema(ApiStrictSchema):
     scheduled_job_uid = fields.UUID(allow_none=True)
     scheduled_date = fields.DateTime(allow_none=True)
     scheduled_job_dag_run_id = fields.String(allow_none=True)
@@ -16,7 +16,7 @@ class ScheduledRunInfoSchema(ApiObjectSchema):
         return _as_dotted_dict(**data)
 
 
-class RootRunInfoSchema(ApiObjectSchema):
+class RootRunInfoSchema(ApiStrictSchema):
     root_run_uid = fields.UUID()
     root_task_run_uid = fields.UUID(allow_none=True)
     root_task_run_attempt_uid = fields.UUID(allow_none=True)
@@ -27,7 +27,7 @@ class RootRunInfoSchema(ApiObjectSchema):
         return _as_dotted_dict(**data)
 
 
-class RunInfoSchema(ApiObjectSchema):
+class RunInfoSchema(ApiStrictSchema):
     root_run_uid = fields.UUID()
     run_uid = fields.UUID()
 

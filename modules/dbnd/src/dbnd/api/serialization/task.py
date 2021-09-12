@@ -1,6 +1,6 @@
 from dbnd._core.constants import TaskRunState
 from dbnd._core.parameter.parameter_definition import ParameterGroup, _ParameterKind
-from dbnd._core.tracking.schemas.base import ApiObjectSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TaskDefinitionInfo,
     TaskRunInfo,
@@ -11,7 +11,7 @@ from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
 
 
-class TaskDefinitionParamSchema(ApiObjectSchema):
+class TaskDefinitionParamSchema(ApiStrictSchema):
     """
     Based on TaskDefinitionParam object
     """
@@ -34,7 +34,7 @@ class TaskDefinitionParamSchema(ApiObjectSchema):
         return _as_dotted_dict(**data)
 
 
-class TaskDefinitionInfoSchema(ApiObjectSchema):
+class TaskDefinitionInfoSchema(ApiStrictSchema):
     task_definition_uid = fields.UUID()
     name = fields.String()
 
@@ -56,7 +56,7 @@ class TaskDefinitionInfoSchema(ApiObjectSchema):
         return TaskDefinitionInfo(**data)
 
 
-class TaskRunParamSchema(ApiObjectSchema):
+class TaskRunParamSchema(ApiStrictSchema):
     parameter_name = fields.String()
     value_origin = fields.String()
     value = fields.String()
@@ -66,7 +66,7 @@ class TaskRunParamSchema(ApiObjectSchema):
         return TaskRunParamInfo(**data)
 
 
-class TaskRunInfoSchema(ApiObjectSchema):
+class TaskRunInfoSchema(ApiStrictSchema):
     task_run_uid = fields.UUID()
     task_run_attempt_uid = fields.UUID()
 

@@ -1,3 +1,4 @@
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._vendor.croniter import croniter
 from dbnd._vendor.marshmallow import Schema, fields
 
@@ -8,10 +9,7 @@ class AlertEventSchema(Schema):
     run_uid = fields.Str()
 
 
-class ScheduledJobSchemaV2(Schema):
-    class Meta:
-        strict = True
-
+class ScheduledJobSchemaV2(ApiStrictSchema):
     uid = fields.Str(attribute="DbndScheduledJob.uid", allow_none=True)
     name = fields.Str(attribute="DbndScheduledJob.name", required=True)
     cmd = fields.Str(attribute="DbndScheduledJob.cmd", required=True)

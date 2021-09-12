@@ -4,17 +4,17 @@ from typing import Dict, List, Optional
 
 import attr
 
-from dbnd._core.tracking.schemas.base import _ApiCallSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._vendor.marshmallow import fields, post_load
 
 
-class MonitorConfigSchema(_ApiCallSchema):
+class MonitorConfigSchema(ApiStrictSchema):
     include_sources = fields.Boolean(required=False)
     dag_run_bulk_size = fields.Integer(required=False)
     start_time_window = fields.Integer(required=False)
 
 
-class AirflowServerInfoSchema(_ApiCallSchema):
+class AirflowServerInfoSchema(ApiStrictSchema):
     airflow_version = fields.String(allow_none=True)
     airflow_export_version = fields.String(allow_none=True)
     airflow_monitor_version = fields.String(allow_none=True)

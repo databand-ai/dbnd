@@ -1,13 +1,13 @@
-from dbnd._core.tracking.schemas.base import ApiObjectSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._vendor.marshmallow import fields
 
 
-class MLAlert(ApiObjectSchema):
+class MLAlert(ApiStrictSchema):
     sensitivity = fields.Float()
     look_back = fields.Integer()
 
 
-class AlertDefsSchema(ApiObjectSchema):
+class AlertDefsSchema(ApiStrictSchema):
     uid = fields.Str()
     original_uid = fields.Str()
     custom_name = fields.Str()

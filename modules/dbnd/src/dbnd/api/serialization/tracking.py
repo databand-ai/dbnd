@@ -4,23 +4,23 @@ from uuid import UUID
 
 import attr
 
-from dbnd._core.tracking.schemas.base import ApiObjectSchema
+from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._vendor.marshmallow import fields, post_load
 
 
-class GetRunningDagRunsResponseSchema(ApiObjectSchema):
+class GetRunningDagRunsResponseSchema(ApiStrictSchema):
     dag_run_ids = fields.List(fields.Integer())
     last_seen_dag_run_id = fields.Integer(allow_none=True)
     last_seen_log_id = fields.Integer(allow_none=True)
 
 
-class UpdateLastSeenValuesRequestSchema(ApiObjectSchema):
+class UpdateLastSeenValuesRequestSchema(ApiStrictSchema):
     last_seen_dag_run_id = fields.Integer()
     last_seen_log_id = fields.Integer()
 
 
-class UpdateAirflowMonitorStateRequestSchema(ApiObjectSchema):
+class UpdateAirflowMonitorStateRequestSchema(ApiStrictSchema):
     airflow_version = fields.String(required=False, allow_none=True)
     airflow_export_version = fields.String(required=False, allow_none=True)
     airflow_monitor_version = fields.String(required=False, allow_none=True)
@@ -29,12 +29,12 @@ class UpdateAirflowMonitorStateRequestSchema(ApiObjectSchema):
     airflow_instance_uid = fields.UUID(required=False, allow_none=True)
 
 
-class GetAllDagRunsRequestSchema(ApiObjectSchema):
+class GetAllDagRunsRequestSchema(ApiStrictSchema):
     min_start_time = fields.DateTime(allow_none=True)
     dag_ids = fields.String(allow_none=True)
 
 
-class TaskSchema(ApiObjectSchema):
+class TaskSchema(ApiStrictSchema):
     upstream_task_ids = fields.List(fields.String())
     downstream_task_ids = fields.List(fields.String())
     task_type = fields.String()
@@ -49,7 +49,7 @@ class TaskSchema(ApiObjectSchema):
     task_args = fields.Dict()
 
 
-class DagSchema(ApiObjectSchema):
+class DagSchema(ApiStrictSchema):
     description = fields.String()
     root_task_ids = fields.List(fields.String())
     tasks = fields.Nested(TaskSchema, many=True)
@@ -73,7 +73,7 @@ class DagSchema(ApiObjectSchema):
     is_paused = fields.Boolean(allow_none=True)
 
 
-class DagRunSchema(ApiObjectSchema):
+class DagRunSchema(ApiStrictSchema):
     dag_id = fields.String()
     run_id = fields.String(required=False)
     dagrun_id = fields.Integer()
@@ -84,7 +84,7 @@ class DagRunSchema(ApiObjectSchema):
     task_args = fields.Dict()
 
 
-class TaskInstanceSchema(ApiObjectSchema):
+class TaskInstanceSchema(ApiStrictSchema):
     execution_date = fields.DateTime()
     dag_id = fields.String()
     state = fields.String(allow_none=True)
@@ -96,19 +96,19 @@ class TaskInstanceSchema(ApiObjectSchema):
     xcom_dict = fields.Dict()
 
 
-class MetricsSchema(ApiObjectSchema):
+class MetricsSchema(ApiStrictSchema):
     performance = fields.Dict()
     sizes = fields.Dict()
 
 
-class AirflowExportMetaSchema(ApiObjectSchema):
+class AirflowExportMetaSchema(ApiStrictSchema):
     airflow_version = fields.String()
     plugin_version = fields.String()
     request_args = fields.Dict()
     metrics = fields.Nested(MetricsSchema)
 
 
-class InitDagRunsRequestSchema(ApiObjectSchema):
+class InitDagRunsRequestSchema(ApiStrictSchema):
     dags = fields.Nested(DagSchema, many=True)
     dag_runs = fields.Nested(DagRunSchema, many=True)
     task_instances = fields.Nested(TaskInstanceSchema, many=True)
@@ -118,11 +118,11 @@ class InitDagRunsRequestSchema(ApiObjectSchema):
     syncer_type = fields.String(allow_none=True)
 
 
-class OkResponseSchema(ApiObjectSchema):
+class OkResponseSchema(ApiStrictSchema):
     ok = fields.Boolean()
 
 
-class UpdateDagRunsRequestSchema(ApiObjectSchema):
+class UpdateDagRunsRequestSchema(ApiStrictSchema):
     dag_runs = fields.Nested(DagRunSchema, many=True)
     task_instances = fields.Nested(TaskInstanceSchema, many=True)
     last_seen_log_id = fields.Integer(allow_none=True)
@@ -151,7 +151,7 @@ class DatasourceMonitorState(object):
         return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
 
 
-class DatasourceMonitorStateSchema(ApiObjectSchema):
+class DatasourceMonitorStateSchema(ApiStrictSchema):
     datasource_monitor_version = fields.String(required=False, allow_none=True)
     monitor_status = fields.String(required=False, allow_none=True)
     monitor_error_message = fields.String(required=False, allow_none=True)
@@ -202,7 +202,7 @@ class DatasetsReport(object):
 
 
 # Dataset schemas
-class SyncedDatasetMetadataSchema(ApiObjectSchema):
+class SyncedDatasetMetadataSchema(ApiStrictSchema):
     num_bytes = fields.Integer()
     records = fields.Integer()
 
@@ -214,7 +214,7 @@ class SyncedDatasetMetadataSchema(ApiObjectSchema):
         return SyncedDatasetMetadata(**data)
 
 
-class SyncedDatasetSchema(ApiObjectSchema):
+class SyncedDatasetSchema(ApiStrictSchema):
     uri = fields.String()  # {storage_type://region/project_id/scheme_name/table_name}
     created_date = fields.DateTime()
     last_modified_date = fields.DateTime(allow_none=True)
@@ -226,7 +226,7 @@ class SyncedDatasetSchema(ApiObjectSchema):
         return SyncedDataset(**data)
 
 
-class DatasetsReportSchema(ApiObjectSchema):
+class DatasetsReportSchema(ApiStrictSchema):
     sync_event_uid = fields.UUID()
     monitor_state = fields.Nested(DatasourceMonitorStateSchema)
     source_type = fields.String(allow_none=True)  # bigquery / snowflake / etc
@@ -289,7 +289,7 @@ class SyncedTransactionsReport(object):
         return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
 
 
-class SyncedTransactionOperationSchema(ApiObjectSchema):
+class SyncedTransactionOperationSchema(ApiStrictSchema):
     op_type = fields.String()
     started_date = fields.DateTime()  # type: datetime
     records_count = fields.Integer()
@@ -302,7 +302,7 @@ class SyncedTransactionOperationSchema(ApiObjectSchema):
         return SyncedTransactionOperation(**data)
 
 
-class SyncedTransactionSchema(ApiObjectSchema):
+class SyncedTransactionSchema(ApiStrictSchema):
     datasource_transaction_id = fields.String()
     created_date = fields.DateTime()
     started_date = fields.DateTime()
@@ -320,7 +320,7 @@ class SyncedTransactionSchema(ApiObjectSchema):
         return SyncedTransaction(**data)
 
 
-class SyncedTransactionsReportSchema(ApiObjectSchema):
+class SyncedTransactionsReportSchema(ApiStrictSchema):
     sync_event_uid = fields.UUID()
     sync_event_timestamp = fields.DateTime()
     source_type = fields.String(allow_none=True)  # bigquery / snowflake / etc
