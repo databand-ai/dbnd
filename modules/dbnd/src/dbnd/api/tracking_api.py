@@ -333,6 +333,8 @@ class LogDatasetArgs(object):
     data_dimensions = attr.ib()  # type: Sequence[int]
     data_schema = attr.ib()  # type: str
 
+    timestamp = attr.ib(default=None)  # type: datetime
+
     def asdict(self):
         return attr.asdict(self, recurse=False)
 
