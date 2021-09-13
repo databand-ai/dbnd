@@ -20,6 +20,7 @@ from dbnd._core.errors.base import (
     DatabandError,
     DatabandFailFastError,
     DatabandSigTermError,
+    DbndCanceledRunError,
 )
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.run.databand_run import DatabandRun
@@ -335,6 +336,7 @@ class RunExecutor(object):
                 msg=message or DEFAULT_TASK_CANCELED_ERR_MSG,
                 help_msg="task with task_run_uid:%s initiated kill_run"
                 % (tr.task_run_uid),
+                ex_class=DbndCanceledRunError,
             )
             tr.set_task_run_state(TaskRunState.FAILED, track=True, error=task_run_error)
         try:
