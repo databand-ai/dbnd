@@ -9,3 +9,4 @@ AUTHS_SUPPORTED = [NO_AUTH, AUTH_KERBEROS, AUTH_BASIC]
 
 CONFIGURABLE_RETRY = "configurable"
 LINEAR_RETRY = "linear"
+LINEAR_RETRY_ANY_ERROR = "linear_retry_any_error"

@@ -52,7 +52,7 @@ class ReliableHttpClient(object):
         r_u = "/{}".format(relative_url.rstrip("/").lstrip("/"))
         return self._endpoint.url + r_u
 
-    def get(self, relative_url, accepted_status_codes):
+    def get(self, relative_url, accepted_status_codes, retry_policy=None):
         """Sends a get request. Returns a response."""
         logger.debug("Sending GET request to %s", self.compose_url(relative_url))
         return self._send_request(relative_url, accepted_status_codes, requests.get)
@@ -72,15 +72,27 @@ class ReliableHttpClient(object):
         """Sends a delete request. Returns a response."""
         return self._send_request(relative_url, accepted_status_codes, requests.delete)
 
-    def _send_request(self, relative_url, accepted_status_codes, function, data=None):
+    def _send_request(
+        self,
+        relative_url,
+        accepted_status_codes,
+        function,
+        data=None,
+        retry_policy=None,
+    ):
         response = self._send_request_helper(
-            self.compose_url(relative_url), accepted_status_codes, function, data, 0
+            self.compose_url(relative_url),
+            accepted_status_codes,
+            function,
+            data,
+            0,
+            retry_policy,
         )
         logger.debug("Received response: %s", response)
         return response
 
     def _send_request_helper(
-        self, url, accepted_status_codes, function, data, retry_count
+        self, url, accepted_status_codes, function, data, retry_count, retry_policy
     ):
         while True:
             try:
@@ -123,8 +135,9 @@ class ReliableHttpClient(object):
                 text = r.text
 
             if error or status not in accepted_status_codes:
-                if self._retry_policy.should_retry(status, error, retry_count):
-                    sleep(self._retry_policy.seconds_to_sleep(retry_count))
+                retry_policy = retry_policy or self._retry_policy
+                if retry_policy.should_retry(status, error, retry_count):
+                    sleep(retry_policy.seconds_to_sleep(retry_count))
                     retry_count += 1
                     continue
 
