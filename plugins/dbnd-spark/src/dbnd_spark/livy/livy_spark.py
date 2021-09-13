@@ -79,16 +79,16 @@ class _LivySparkCtrl(SparkCtrl):
         livy_endpoint = self.get_livy_endpoint()
         self.task_run.set_external_resource_urls({"Livy url": livy_endpoint.url})
         logger.info("Connecting to: %s", livy_endpoint)
+        livy_config = self.task_run.task.spark_engine
         livy = LivyBatchClient.from_endpoint(
-            livy_endpoint, ignore_ssl_errors=self.get_livy_ignore_ssl_errors()
+            livy_endpoint,
+            status_code_retries=livy_config.retry_on_status_error,
+            ignore_ssl_errors=self.get_livy_ignore_ssl_errors(),
         )
         batch = livy.post_batch(data)
         self._run_post_submit_hook(batch)
-        livy_config = self.task_run.task.spark_engine
         livy.track_batch_progress(
-            batch["id"],
-            status_reporter=self._report_livy_batch_status,
-            retry_on_status_error=livy_config.retry_on_status_error,
+            batch["id"], status_reporter=self._report_livy_batch_status,
         )
 
     def _run_post_submit_hook(self, batch_response):
