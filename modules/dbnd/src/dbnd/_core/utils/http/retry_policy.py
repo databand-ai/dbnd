@@ -3,7 +3,11 @@
 # Distributed under the terms of the Modified BSD License.s
 
 from dbnd._core.errors import DatabandConfigError
-from dbnd._core.utils.http.constants import CONFIGURABLE_RETRY, LINEAR_RETRY
+from dbnd._core.utils.http.constants import (
+    CONFIGURABLE_RETRY,
+    LINEAR_RETRY,
+    LINEAR_RETRY_ANY_ERROR,
+)
 
 
 # TODO implement real configuration
@@ -24,6 +28,10 @@ def get_retry_policy(name, policy=None, seconds_to_sleep=5, max_retries=5):
         return ConfigurableRetryPolicy(
             retry_seconds_to_sleep_list=conf_retry_seconds_to_sleep_list,
             max_retries=conf_retry_policy_max_retries,
+        )
+    elif policy == LINEAR_RETRY_ANY_ERROR:
+        return LinearRetryOnAnyError(
+            seconds_to_sleep=seconds_to_sleep, max_retries=max_retries
         )
     else:
         raise DatabandConfigError(u"Retry policy '{}' not supported".format(policy))
@@ -76,3 +84,16 @@ class ConfigurableRetryPolicy(LinearRetryPolicy):
             index = self._max_index
 
         return self.retry_seconds_to_sleep_list[index]
+
+
+class LinearRetryOnAnyError(LinearRetryPolicy):
+    """Retry policy that always returns the same number of seconds to sleep between calls,
+    takes all status codes to be retriable, and retries a given number of times."""
+
+    def __init__(self, seconds_to_sleep, max_retries):
+        super(LinearRetryOnAnyError, self).__init__(seconds_to_sleep, max_retries)
+
+    def should_retry(self, status_code, error, retry_count):
+        if self.max_retries != -1 and retry_count >= self.max_retries:
+            return False
+        return True
