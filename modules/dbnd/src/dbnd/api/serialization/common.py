@@ -61,6 +61,7 @@ class TaskRunAttemptSchema(ApiObjectSchema):
     attempt_number = fields.Number(allow_none=True)
     source = fields.Str(allow_none=True)
     start_date = fields.DateTime(allow_none=True)
+    end_date = fields.DateTime(allow_none=True)
     external_links_dict = fields.Dict(allow_none=True)
 
 
