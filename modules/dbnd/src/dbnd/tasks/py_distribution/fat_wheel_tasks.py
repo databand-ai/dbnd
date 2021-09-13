@@ -57,6 +57,8 @@ class ProjectWheelFile(Task):
 
     @classmethod
     def build_project_wheel_file_task(cls):
+        # Use current_context_uid to make sure this task is going to be run only once per pipeline
+        # Constant task_target_date so the signature won't change if user changes task_target_date parameter.
         fat_wheel_task = cls(
             # we need it to run every time we "rerun" the pipeline
             task_version=try_get_databand_context().current_context_uid,

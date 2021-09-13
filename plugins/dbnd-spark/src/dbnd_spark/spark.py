@@ -2,7 +2,7 @@ import logging
 import subprocess
 import typing
 
-from typing import Dict, Union
+from typing import Union
 
 import more_itertools
 
@@ -16,7 +16,6 @@ from dbnd._core.task.task import Task
 from dbnd._core.task_build.dbnd_decorator import build_task_decorator
 from dbnd._core.utils.project.project_fs import databand_lib_path
 from dbnd._core.utils.structures import list_of_strings
-from dbnd._core.utils.task_utils import _to_target
 from dbnd._core.utils.traversing import flatten
 from dbnd.tasks.py_distribution.fat_wheel_tasks import ProjectWheelFile
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
@@ -26,7 +25,7 @@ from dbnd_spark.spark_session import (
     inject_spark_listener,
     shutdown_callback_server,
 )
-from targets import DirTarget, FileTarget
+from targets import DirTarget
 from targets.types import PathStr
 
 
@@ -82,6 +81,7 @@ class _BaseSparkTask(Task):
     def band(self):
         result = super(_BaseSparkTask, self).band()
 
+        # We use fat wheel task in the band function because it is executed when we are still in the build stage
         if self.spark_config.include_user_project:
             fat_wheel_task = ProjectWheelFile.build_project_wheel_file_task()
             self.spark_project_wheel_file = fat_wheel_task.wheel_file
