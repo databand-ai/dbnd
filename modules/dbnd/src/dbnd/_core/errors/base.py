@@ -193,7 +193,15 @@ class UnknownParameterError(ParameterError):
 
 class DatabandConnectionException(DatabandError):
     """
-    Error thrown when connecting with the server is not available
+    Error thrown when connecting with the server is not available.
+    """
+
+    pass
+
+
+class DbndCanceledRunError(DatabandError):
+    """
+    Error thrown when canceling a run.
     """
 
     pass
