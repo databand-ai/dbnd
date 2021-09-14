@@ -251,7 +251,8 @@ class SyncedTransactionOperation(object):
     dataset_uri = attr.ib()  # type: str
     dataset_uid = attr.ib(default=None)  # type: UUID
 
-    def as_dict(self, fields_to_ignore=[]):
+    def as_dict(self, fields_to_ignore=None):
+        fields_to_ignore = fields_to_ignore or []
         return attr.asdict(
             self, filter=lambda field, _: field.name not in fields_to_ignore
         )
@@ -265,7 +266,7 @@ class SyncedTransaction(object):
     started_date = attr.ib()  # type: datetime
     ended_date = attr.ib()  # type: datetime
 
-    write_operation = attr.ib()  # type: SyncedTransactionOperation
+    write_operation = attr.ib()  # type: Optional[SyncedTransactionOperation]
     read_operations = attr.ib()  # type: List[SyncedTransactionOperation]
 
     query_string = attr.ib()  # type: str
