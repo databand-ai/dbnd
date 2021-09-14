@@ -158,6 +158,10 @@ class TaskRunState(EnumWithAll):
     def states_lower_case():
         return [state.name.lower() for state in TaskRunState]
 
+    @staticmethod
+    def parse(state):
+        return TaskRunState(state) if state else None
+
     def is_after(self, old_state):
         # type: (TaskRunState) -> bool
         ORDER_MAP = {
