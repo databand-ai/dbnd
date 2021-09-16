@@ -2,9 +2,6 @@
 
 prj_modules = modules/dbnd modules/dbnd-airflow modules/dbnd-airflow-monitor
 
-prj_plugins_spark  = plugins/dbnd-spark \
-				plugins/dbnd-databricks \
-				plugins/dbnd-qubole \
 
 prj_plugins = plugins/dbnd-aws  \
 			plugins/dbnd-azure \
@@ -13,77 +10,68 @@ prj_plugins = plugins/dbnd-aws  \
 			plugins/dbnd-databricks \
 			plugins/dbnd-docker \
 			plugins/dbnd-hdfs \
-          	plugins/dbnd-gcp \
-          	plugins/dbnd-mlflow \
-          	plugins/dbnd-tensorflow \
-          	plugins/dbnd-postgres \
-          	plugins/dbnd-redshift \
-          	plugins/dbnd-snowflake \
-          	plugins/dbnd-test-scenarios \
-          	plugins/dbnd-luigi
+			plugins/dbnd-gcp \
+			plugins/dbnd-mlflow \
+			plugins/dbnd-luigi \
+			plugins/dbnd-postgres \
+			plugins/dbnd-redshift \
+			plugins/dbnd-tensorflow \
+			plugins/dbnd-test-scenarios \
+			plugins/dbnd-spark \
+			plugins/dbnd-snowflake \
+			plugins/dbnd-qubole
 
 
-prj_dist = $(prj_modules) $(prj_plugins) $(prj_plugins_spark)
+prj_plugins_spark  = plugins/dbnd-spark \
+				plugins/dbnd-databricks \
+				plugins/dbnd-qubole
 
 prj_examples = examples
 prj_test = plugins/dbnd-test-scenarios
 
-prj_dev_modules_plugins =$(prj_modules) $(prj_plugins) $(prj_examples)
-prj_dev = $(prj_dev_modules_plugins) $(prj_test)
+prj_dev =$(prj_modules) $(prj_plugins) $(prj_examples) $(prj_test)
+
+prj_dist = $(prj_modules) $(prj_plugins) $(prj_examples)
+
+help:  ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 
-help:
-	@echo "clean - remove all build, test, coverage and Python artifacts"
-	@echo "clean-build - remove build artifacts"
-	@echo "clean-pyc - remove Python file artifacts"
-	@echo "clean-test - remove test and coverage artifacts"
-	@echo "lint - check style with flake8"
-	@echo "test - run tests quickly with the default Python"
-	@echo "test-all - run tests on every Python version with tox"
-	@echo "test-gitlab-ci - test gitlab ci/cd yaml"
-	@echo "coverage - check code coverage quickly with the default Python"
-	@echo "pre-commit - run pre-commit checks"
-	@echo "docs - generate Sphinx HTML documentation, including API docs"
-	@echo "docs-open - docs + open documentation in default browser"
-	@echo "release - package and upload a release"
-	@echo "dist - package"
-	@echo "install-site-packages - install the package to the active Python's site-packages"
-	@echo "install-dev - install all modules in editable mode to the active Python's site-packages"
-	@echo "build-modules - build all modules"
 
-clean: clean-build clean-pyc clean-test
+clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts"
 
-clean-build:
+clean-build: ## remove build artifacts
 	rm -fr build/
 	rm -fr dist/
 	rm -fr .eggs/
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
 
-clean-pyc:
+clean-pyc: ## remove Python file artifacts
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 
 
+
 clean-egg:
 	find . -name '*.egg-info' -exec rm -fr {} +
 
-clean-test:
+clean-test: ## remove test and coverage artifacts
 	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
 
-lint:
+lint: ## check style with flake8
 	tox -e pre-commit,lint
 
-test:
+test: ## run tests quickly with the default Python
 	py.test modules/dbnd/test_dbnd
 	tox -e pre-commit,lint
 
-test-all-py36:
-	for m in $(prj_dev_modules_plugins) ; do \
+test-all-py36: ## run tests on every Python version with tox
+	for m in $(prj_dev) ; do \
 		echo "Testing '$$m'..." ;\
 		(cd $$m && tox -e py36) ;\
 	done
@@ -96,54 +84,101 @@ test-manifest:
 	done
 
 
-coverage:
+coverage: ##  check code coverage quickly with the default Python
 	py.test --cov-report=html --cov=databand  tests
 
 coverage-open: coverage
 	$(BROWSER) htmlcov/index.html
 
-pre-commit:
+
+pre-commit: ## run pre-commit checks
 	tox -e pre-commit
 
-docs:
+docs: ## generate Sphinx HTML documentation, including API docs
 	tox -e docs
 
-docs-open: docs
+docs-open: docs ## docs + open documentation in default browser
 	$(BROWSER) docs/_build/html/index.html
 
 servedocs: docs
 	watchmedo shell-command -p '*.md' -c '$(MAKE) -C docs html' -R -D .
 
-dist: clean
-	python setup.py sdist
-	python setup.py bdist_wheel
-	ls -l dist
 
-release: dist
+
+##@ Distribution
+.PHONY: release clean-dist dist-modules-dirty dist-modules dist dist-java
+
+release:  ## package and upload a release
+	make dist
 	twine upload -r databand dist/*
 
-dist-modules-dirty:
-	mkdir -p dist
-	python setup.py sdist bdist_wheel
+clean-dist:  ##
+	rm -fr dist
 	for m in $(prj_dist) ; do \
-		echo "Building '$$m'..." ;\
-		(cd $$m && python setup.py sdist bdist_wheel) ;\
-		python etc/scripts/generate_requirements.py  --wheel  $$m/dist/*.whl --output $$m/dist/$$(basename $$m).requirements.txt --third-party-only --extras airflow,airflow_1_10_7,airflow_1_10_8,airflow_1_10_9,airflow_1_10_10,tests,composer --separate-extras;\
-		mv $$m/dist/* dist;\
+		echo "Cleaning '$$m/dist" ;\
+		rm -fr $$m/dist;\
+		echo "Cleaning '$$m/build" ;\
+		rm -fr $$m/build;\
 	done
 
+dist-module-dirty:  ## Build a single module
+	echo "Building '${MODULE}'..." ;
+	# Build *.tar.gz and *.whl packages:
+	(cd ${MODULE} && python setup.py sdist bdist_wheel);
+
+	# Generate requirements...
+	python etc/scripts/generate_requirements.py \
+		--wheel ${MODULE}/dist/*.whl \
+		--output ${MODULE}/dist/$$(basename ${MODULE}).requirements.txt \
+		--third-party-only \
+		--extras airflow,airflow_1_10_8,airflow_1_10_9,airflow_1_10_10,airflow_1_10_12,airflow_1_10_15,airflow_2_0_2,tests,composer,mysql,bigquery \
+		--separate-extras;
+
+	# Move to root dist dir...
+	mv ${MODULE}/dist/* dist;\
+
+dist-modules-dirty:  ## Build all modules
+	# Install python-stripzip (CI only):
+	if test -n "${CI_COMMIT_SHORT_SHA}"; then pip install python-stripzip; fi;
+
+	mkdir -p dist
+	set -e;\
+	for m in $(prj_dist); do \
+		MODULE=$$m make dist-module-dirty;\
+	done;\
+
+	# create databand package
+	python setup.py sdist bdist_wheel
+
+	# Running stripzip (CI only)...
+	if test -n "${CI_COMMIT_SHORT_SHA}"; then stripzip ./dist/*.whl; fi;
+
+	cp examples/requirements.txt dist/dbnd-examples.requirements.txt
+	echo SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
+
+	@# Calculate md5 for generated packages (with osx and linux support)
+	@export MD5=md5; if ! command -v md5 &> /dev/null; then export MD5=md5sum; fi;\
+	for file in dist/*; do $$MD5 $$file; done > dist/hash-list.txt
+
+
+
+dist:  ## package all others
+	make clean-dist
+	make dist-modules-dirty
 	ls -l dist
 
-dist-modules: clean dist-modules-dirty
+dist-java:  ## build java project
+	(cd modules/dbnd-java/ && ./gradlew build)
 
-
-install-dev:
+##@ Development
+.PHONY: install-dev install-dev-spark
+install-dev: ## install all modules in editable mode to the active Python's site-packages
 	for m in $(prj_dev) ; do \
 		echo "Installing '$$m'..." ;\
 		(cd $$m && pip install -e .) ;\
 	done
 
-install-dev-spark: install-dev
+install-dev-spark: install-dev ## install the package to the active Python's site-packages
 	for m in $(prj_plugins_spark) ; do \
 		echo "Installing '$$m'..." ;\
 		(cd $$m && pip install -e .) ;\
