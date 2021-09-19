@@ -4,7 +4,6 @@ recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 recursive-exclude * .ipynb_checkpoints
 
-include src/dbnd_airflow/scheduler/dags/dbnd_dropin_scheduler.py
 include src/dbnd_airflow_contrib/README.md
 include src/dbnd_airflow_windows/README.md
 

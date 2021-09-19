@@ -64,7 +64,6 @@ Pipfile.lock
 *.manifest
 *.spec
 
-.dbnd/airflow/dags/dbnd_dropin_scheduler.py
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
