@@ -11,3 +11,8 @@ recursive-include scenarios *.py
 recursive-include scenarios *.xml
 recursive-include src *.sh
 recursive-include scripts *.sh
+
+prune data
+prune scenarios/dbnd-test-package
+prune scenarios/jvm_spark_project
+exclude src/dbnd_test_scenarios/test_common/README.md
