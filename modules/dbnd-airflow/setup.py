@@ -81,9 +81,6 @@ setuptools.setup(
         "airflow.plugins": [
             "dbnd_airflow_export = dbnd_airflow.export_plugin.dbnd_airflow_export_plugin:DataExportAirflowPlugin"
         ],
-        "console_scripts": [
-            "dbnd-set-up-scheduled = dbnd_airflow.plugins.setup_plugins:setup_scheduled_dags",
-        ],
         "dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],
     },
 )
