@@ -2,7 +2,7 @@
 
 ## DBND v0.49.0
 
-### Improvements
+### New features
 * \#1200638623009192: Datasets can be archived now.
 * \#1200713291030116: Added empty state clickable component.
 * \#1200920981691825: Default operation is pre-selected on the Alert definition screen.
