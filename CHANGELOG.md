@@ -1,6 +1,6 @@
 # History
 
-## DBND v 0.49.0
+## DBND v0.49.0
 
 ### Improvements
 * \#1200638623009192: Datasets can be archived now.
