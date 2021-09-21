@@ -18,6 +18,9 @@ setuptools.setup(
         "dbnd==" + version,
         "httplib2>=0.9.2",
         "google-api-python-client>=1.6.0, <3.0.0dev",
+        # NOTE: Maintainers, please do not require google-auth>=2.x.x
+        # Until this issue is closed
+        # https://github.com/googleapis/google-cloud-python/issues/10566
         "google-auth>=1.0.0, <3.0.0dev",
         "google-auth-httplib2>=0.0.1",
         "google-cloud-container>=0.1.1",
