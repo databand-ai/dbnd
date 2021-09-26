@@ -37,8 +37,6 @@ setuptools.setup(
         "pytzdata",  # python time zone for pendulum library
         "requests>=2.18.0",  # API TRACKING
         "configparser<3.6.0,>=3.5.0",  # same versions as Airflow -- Moved library to _vendor
-        "GitPython ; python_version>='3.0'",
-        "GitPython==2.1.15 ; python_version<'3.0'",
         'pygments<=2.5.2 ; python_version < "3.0"',
         'pygments>=2.6.1 ; python_version >= "3.0"',
         # backward compatible python
