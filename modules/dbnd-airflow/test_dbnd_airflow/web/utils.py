@@ -8,7 +8,6 @@ import pytest
 
 from airflow.settings import Session
 from flask import url_for
-from flask_appbuilder.security.sqla.models import User as ab_user
 from pytest import fixture
 from six.moves.urllib.parse import quote_plus
 
@@ -67,6 +66,8 @@ class WebAppCtrl(object):
         self.session = Session()
 
     def login(self):
+        from flask_appbuilder.security.sqla.models import User as ab_user
+
         sm_session = self.appbuilder.sm.get_session()
         self.user = sm_session.query(ab_user).filter(ab_user.username == "test").first()
         if not self.user:
