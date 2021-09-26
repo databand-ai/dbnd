@@ -74,6 +74,50 @@ class DatabandClient(object):
         )
         return run_info
 
+    def get_all_runs_info(self):
+        runs_info = self.api_client.api_request(
+            "/api/client/v1/run_info", None, method="GET",
+        )
+        return runs_info
+
+    def get_run_info_by_dag_id(self, dag_id):
+        runs_info = self.api_client.api_request(
+            "/api/client/v1/run_info",
+            None,
+            method="GET",
+            query={"filter": '[{"name":"dag_id","op":"eq","val": "%s"}]' % dag_id},
+        )
+        return runs_info
+
+    def get_scheduled_jobs_by_scheduled_job_uid(self, scheduled_job_uid):
+        scheduled_jobs = self.api_client.api_request(
+            "/api/client/v1/scheduled_job_info",
+            None,
+            method="GET",
+            query={
+                "filter": '[{"name":"uid","op":"eq","val": "%s"}]' % scheduled_job_uid
+            },
+        )
+        return scheduled_jobs
+
+    def get_scheduled_job_by_job_name(self, dag_id):
+        scheduled_job = self.api_client.api_request(
+            "/api/client/v1/scheduled_job_info",
+            None,
+            method="GET",
+            query={"filter": '[{"name":"name","op":"eq","val": "%s"}]' % dag_id},
+        )
+        return scheduled_job
+
+    def get_run_info_by_run_uid(self, run_uid):
+        runs_info = self.api_client.api_request(
+            "/api/client/v1/run_info",
+            None,
+            method="GET",
+            query={"filter": '[{"name":"uid","op":"eq","val": "%s"}]' % run_uid},
+        )
+        return runs_info
+
     def _get_task_start_time(self, task_run):
         return dateutil.parser.isoparse(
             task_run["latest_task_run_attempt"].get("end_date", None)
