@@ -2,6 +2,15 @@
 
 ## DBND v0.49.0
 
+### New features
+* \#1200638623009192: Datasets can be archived now.
+* \#1200713291030116: Added empty state clickable component.
+* \#1200920981691825: Default operation is pre-selected on the Alert definition screen.
+
+### Improvements
+* \#1200948790296167: Dropped all `python 2.7` support.
+* \#1200766175220434: All alerted metrics that are being reported are now visible.
+* \#1200892336582865: Reviewed documentation links in the code.
 
 ## DBND v0.48.0
 
