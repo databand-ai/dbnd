@@ -111,7 +111,13 @@ class SqlQueryExtractor:
                 elif token.ttype is Keyword.CTE:
                     # after a CTE statement (WITH) we expect identifiers list with each has a sub-query inside parenthesis
                     idx, token = self._next_non_empty_token(idx, statement)
-                    for identifier in token.get_identifiers():
+
+                    if isinstance(token, IdentifierList):
+                        token_list = token.get_identifiers()
+                    else:
+                        token_list = [token]
+
+                    for identifier in token_list:
                         _, cte_statement = identifier.token_next_by(i=Parenthesis)
                         cte_operations = self.extract_operations_schemas(cte_statement)
                         extracted = self.enrich_with_dynamic(
@@ -190,9 +196,14 @@ class SqlQueryExtractor:
         extracted = {}
         if operation_name == "SET":
             idx, token = self._next_non_empty_token(idx, statement)
-            extracted = self.extract_write_schema(
-                token.get_identifiers(), table_name, table_alias
-            )
+
+            if isinstance(token, Comparison):
+                # This is case when token is Comparison object due to single SET condition in SQL
+                extracted = self.extract_write_schema([token], table_name, table_alias)
+            else:
+                extracted = self.extract_write_schema(
+                    token.get_identifiers(), table_name, table_alias
+                )
 
         return extracted, idx
 
