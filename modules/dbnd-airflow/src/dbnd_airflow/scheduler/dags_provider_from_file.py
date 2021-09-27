@@ -194,7 +194,7 @@ class DbndAirflowDagsProviderFromFile(object):
 
         job_name = clean_job_name(job["name"])
         dag = DAG(
-            "dbnd_launcher__%s" % job_name,
+            "%s" % job_name,
             start_date=start_date,
             default_args=default_args,
             schedule_interval=job.get("schedule_interval", None),
@@ -224,6 +224,9 @@ def get_dags_from_file():
         config.load_system_configs()
 
         config_file = config.get("scheduler", "config_file")
+        if not config_file:
+            logger.info("No dags file has been defined at scheduler.config_file")
+            return {}
         default_retries = config.getint("scheduler", "default_retries")
         active_by_default = config.getboolean("scheduler", "active_by_default")
 

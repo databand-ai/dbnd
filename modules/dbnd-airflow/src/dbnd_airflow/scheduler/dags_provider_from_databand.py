@@ -11,7 +11,9 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.string_utils import clean_job_name
+from dbnd._core.utils.timezone import convert_to_utc
 from dbnd.api.scheduler import get_scheduled_jobs
+from dbnd_airflow.scheduler.scheduler_dags_provider import DbndSchedulerOperator
 
 
 logger = logging.getLogger(__name__)
@@ -60,8 +62,8 @@ class DbndSchedulerDBDagsProvider(object):
 
         job_name = clean_job_name(job["name"])
         dag = DAG(
-            "dbnd_launcher__%s" % job_name,
-            start_date=start_day,
+            "%s" % job_name,
+            start_date=start_date,
             default_args=default_args,
             schedule_interval=job.get("schedule_interval", None),
             catchup=job.get("catchup", False),
