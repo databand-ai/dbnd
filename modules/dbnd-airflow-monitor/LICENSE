@@ -1,0 +1,348 @@
+                            Copyright (c) 2018, Databand.ai
+                                All rights reserved.
+
+
+                                DATABAND.AI PACKAGE EVALUATION EULA
+This Databand.ai package Evaluation End User License Agreement ("Agreement"), consists of the
+terms and conditions which govern your, the undersigned ("you" or "user"), access to and use of
+Databand.ai's ("Databand.ai") Software (defined below).
+
+1.	License.
+Subject to the terms and conditions of this Agreement, Databand.ai grants user, and user accepts a non-exclusive,
+non-transferable, non-sublicensable, perpetual (subject to termination) license to use the databand.ai package software
+("Software") internally, in source code and to create derivative works
+thereof (derivatives shall be deemed part of the Software).
+
+2. Ownership.
+Notwithstanding any other provision to the contrary, the Software, Feedback and Confidential Information and all
+improvements, enhancements and derivatives thereof (including those created by User) and all Intellectual Property
+Rights thereto ("Databand.ai IPR") are exclusively owned by Databand.ai and/or its licensors.
+This Agreement does not convey to user any right, title or interest in the Databand.ai IPR, other than the revocable
+and limited right to use the Software as set forth in Section 4 below.
+
+3. Confidential Information.
+User expressly undertakes to retain in confidence and to require its employees to
+retain in confidence all information and know-how with respect of the Software that are disclosed to user
+(“Confidential Information”). The Software, its source code and any documentation in respect thereof are Confidential
+Information of Databand.ai. User expressly undertakes to (i) limit dissemination of the Confidential Information solely
+to its employees, officers and directors on a need-to-know basis (the “Representatives”) and who are bound by
+obligations and restrictions as to confidentiality and Intellectual Property Rights no less restrictive on said
+Representatives and no less protective of Databand.ai IPR and Confidential Information than the terms hereof;
+(ii) not disclose the Confidential Information to any third party; and
+(iii) not use the Confidential Information for any purpose other than as explicitly permitted herein.
+
+4.	Limitations on Use.
+User shall not (i) sell, license (or sub-license), lease, loan, assign, transfer, or pledge the Software, or publicly
+perform, display or communicate, the Software, or otherwise use the Software in a time-sharing, outsourcing, or
+service bureau environment or otherwise permit any third party to do any of the foregoing; (ii) ship, transfer,
+or export the Software or use the Software in any manner that is prohibited by law, including without limitation,
+to sell, distribute, download or export the Software: (a) into (or to a national or resident of) Cuba, Iran, Iraq,
+Libya, North Korea, Sudan, Lebanon or Syria, (b) to anyone on the U.S. Commerce Department’s Table of Denial Orders
+or U.S. Treasury Department’s list of Specially Designated Nationals, (c) to any country to which such export or
+re-export is restricted or prohibited, or as to which the U.S. or Israeli government or any agency thereof requires
+an export license or other governmental approval at the time of export or re-export without first obtaining such
+license or approval, or (d) otherwise in violation of any export or import restrictions, laws or regulations of the
+U.S. or Israel or any foreign agency or authority.  User agrees to the foregoing and warrants that it is not located in,
+under the control of, or a national or resident of any such prohibited country or on any such prohibited party list;
+(v) contest Databand.ai's Intellectual Property Rights to the Databand.ai IPR; (vi) remove or add any labels,
+notices or logos to the Software, (vii) perform any act or be responsible to any omission that is illegal; (viii); or
+(ix) cause or permit any third party to do any of the foregoing. User is solely responsible for acquiring and
+maintaining all of the hardware, software and services necessary to use and evaluate the Software.
+
+5.	Feedback.
+User agrees that any feedback or ideas user provides to Databand.ai regarding suggested improvements, enhancements or
+derivatives of the Software ("Feedback") will be the exclusive property of Databand.ai and shall be deemed as
+Databand.ai IPR and Confidential Information. User shall not disclose or publish such Feedback or otherwise make any
+such information publicly available. To the extent all right, title and interest in and to all Intellectual Property
+Rights in the Feedback are not owned in their entirety by Databand.ai upon creation, user hereby irrevocably assigns
+all rights therein to Databand.ai and waives any and all rights therein including without limitation moral rights
+and/or rights to receive compensation and/or royalties.
+
+6.	Disclaimer of Warranty.
+6.1.	THE SOFTWARE IS IN PRE-ALPHA AND UNDER DEVELOPMENT. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT ANY
+REPRESENTATIONS OR WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. TO THE MAXIMUM EXTENT PERMITTED BY LAW,
+DATABAND.AI DISCLAIMS ALL WARRANTIES, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE OR USE, SECURITY AND NON-INFRINGEMENT. THE ENTIRE RISK ARISING
+OUT OF THE USE OR PERFORMANCE OF THE SOFTWARE REMAINS WITH USER.
+6.2.	DATABAND.AI DOES NOT WARRANT THAT THE SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE; OR THAT ERRORS/BUGS ARE
+REPRODUCIBLE OR THAT ERRORS/BUGS ARE REPAIRABLE AND DOES NOT WARRANT OR MAKE ANY REPRESENTATIONS REGARDING THE USE
+OR THE RESULTS OF THE USE OF THE SOFTWARE IN TERMS OF THEIR CORRECTNESS, USEFULNESS, ACCURACY, RELIABILITY, OR OTHERWISE.
+USER SHALL BE RESPONSIBLE FOR TAKING ALL PRECAUTIONS USER BELIEVES ARE NECESSARY OR ADVISABLE TO PROTECT USER AGAINST
+ANY CLAIM, DAMAGE, LOSS OR HAZARD THAT MAY ARISE BY VIRTUE OF ANY USE OF OR RELIANCE UPON THE SOFTWARE AND FOR
+VERIFYING ANY OUTPUT RESULTING FROM USE OF THE SOFTWARE.
+
+7. Limitation of Liability.
+EXCEPT FOR CLAIMS ARISING FROM BREACH OF CONFIDENTIALITY OBLIGATIONS, MISAPPROPRIATION OF
+DATABAND.AI'S INTELLECTUAL PROPERTY RIGHTS BY USER, AND BODILY INJURIES, IN NO EVENT SHALL EITHER PARTY OR ITS
+AFFILIATES, LICENSORS, SUPPLIERS, REPRESENTATIVES OR DISTRIBUTORS OR THEIR SHAREHOLDERS, MANAGERS, DIRECTORS, OFFICERS,
+AFFILIATES AND EMPLOYEES ("AFFILIATE") RESPECTIVELY BE LIABLE TO THE OTHER PARTY OR ANY THIRD PARTY, UNDER ANY LEGAL
+THEORY WHETHER CONTRACT, TORT OR OTHERWISE, FOR ANY DAMAGES WHATSOEVER (INCLUDING, WITHOUT LIMITATION, INCIDENTAL,
+CONSEQUENTIAL, DIRECT, INDIRECT, SPECIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING DAMAGES FOR LOSS OF BUSINESS
+PROFITS, BUSINESS INTERRUPTION, LOSS OF INFORMATION, LOSS OF DATA INCLUDING ARISING OUT OF THE USE OF OR INABILITY
+TO USE THE SOLUTION OR OTHER PECUNIARY LOSS) ARISING OUT OF OR IN CONNECTION WITH THE SOFTWARE, EVEN IF SUCH PARTY
+HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. IN THE EVENT THAT DESPITE THE AFOREMENTIONED LIMITATION OF
+LIABILITY ANY COMPETENT AUTHORITY WILL FIND DATABAND.AI OR ITS AFFILIATE LIABLE, DATABAND.AI'S AND/OR ITS AFFILIATE'S
+AGGREGATE LIABILITY SHALL NOT EXCEED ONE HUNDRED USD ($100).
+
+8. Termination. Each party may terminate this Agreement in the event of breach by the other party upon a
+fourteen (14) days' notice.  Upon termination or expiration of this Agreement: (i) the right granted to you in this
+Agreement shall expire and you shall cease use of the Software and immediately delete all copies of the Software and
+Confidential Information. Notwithstanding the termination or expiration of this Agreement, Sections 2-10 shall survive
+and remain in effect in perpetuity.
+
+9.	Governing Law & Jurisdiction. This Agreement is governed by the laws of the State of Israel without regard to
+conflict of laws provisions thereof.  The courts of Tel Aviv-Jaffa, Israel shall have exclusive jurisdiction and
+venue to adjudicate any dispute arising out of this Agreement and both parties hereby irrevocably submit to the
+exclusive jurisdiction of those courts.
+
+10.	General. (i) This Agreement is the entire agreement between you and Databand.ai in respect of the subject matter
+herein and this Agreement shall not be modified except as provided herein; (ii) neither party may assign or otherwise
+transfer this Agreement or any of its rights and obligations under this Agreement to any third party without the prior
+written consent of the other party. Any unauthorized assignment will be void and of no force or effect.
+Notwithstanding the foregoing, Databand.ai may assign and transfer all of its rights and obligations herein in
+connection with a merger, consolidation, reorganization or sale of all or substantially all of its assets;
+(iii) unless otherwise expressly provided, no provisions of this Agreement are intended or shall be construed to
+confer upon or give to any person or entity other than you and Databand.ai, any rights, remedies or other benefits
+under or by reason of the Agreement; (iv) no failure or delay by either party in exercising any right, power or
+remedy shall operate as a waiver thereof. Waivers must be explicit and in writing.
+
+This software is using apache airflow, lugi and docker puckle
+licenced under Apache Licence 2.0 (http://www.apache.org/licenses/license-2.0)
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "{}"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright 2017 Matthieu "Puckel_" Roisil
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+
+
+    All code from sparkmagic and cookiecutter package sis licensed under the terms of the Modified BSD License
+    (also known as New or Revised or 3-Clause BSD), as follows:
+
+    - Copyright (c) 2001-2015, IPython Development Team
+    - Copyright (c) 2015-, Jupyter Development Team
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+    Redistributions in binary form must reproduce the above copyright notice, this
+    list of conditions and the following disclaimer in the documentation and/or
+    other materials provided with the distribution.
+
+    Neither the name of the Jupyter Development Team nor the names of its
+    contributors may be used to endorse or promote products derived from this
+    software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
