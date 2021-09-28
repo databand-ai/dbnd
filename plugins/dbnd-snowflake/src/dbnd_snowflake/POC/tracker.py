@@ -1,5 +1,6 @@
 import contextlib
 import functools
+import logging
 
 from collections import namedtuple
 from itertools import chain, takewhile
@@ -135,7 +136,9 @@ class PocSnowflakeTracker(object):
             raise
         finally:
             operations = build_snowflake_operations(cursor, command, success)
-            self.operations.extend(operations)
+            if operations:
+                # Only extend self.operations if read or write operation occurred in command
+                self.operations.extend(operations)
 
 
 def get_snowflake_table_schema(connection, table):
@@ -169,6 +172,10 @@ def build_snowflake_operations(
     # find the relevant operations schemas from the command
     parsed_query = sqlparse.parse(command)[0]
     extracted = SqlQueryExtractor().extract_operations_schemas(parsed_query)
+
+    if not extracted:
+        # This is DML statement and no read or write occurred
+        return operations
 
     # helper method for building an operation from common values
     build_operation = functools.partial(
