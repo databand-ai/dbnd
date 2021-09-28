@@ -245,7 +245,7 @@ build_pypi_org_whl:
   needs: ["empty_job"]
   script:
     - python setup.py sdist bdist_wheel
-    - make dist-modules
+    - make dist-python
   artifacts:
     paths:
       - dist/*
