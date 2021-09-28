@@ -28,6 +28,7 @@ include LICENSE
 include tox.ini
 exclude MANIFEST.in
 exclude requirements.txt
+exclude Dockerfile.*
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]

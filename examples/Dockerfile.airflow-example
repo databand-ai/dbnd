@@ -1,0 +1,96 @@
+ARG DOCKER_IMAGE_BASE=gcr.io/dbnd-dev-260010/databand/dbnd-airflow.base:py36-airflow-1-10-10-latest
+FROM ${DOCKER_IMAGE_BASE}
+
+USER root
+# Never prompts the user for choices on installation/configuration of packages
+
+ENV VIRTUALENV_NO_DOWNLOAD yes
+ARG AIRFLOW_FOLDER=/usr/local/airflow
+ARG PLUGINS_FOLDER=${AIRFLOW_FOLDER}/plugins
+
+ENV SPARK_VERSION=2.4.5
+ENV HADOOP_VERSION=2.7
+ENV LIVY_VERSION=0.6.0
+
+
+# INSTALL SPARK
+# Add repository for openjdk-8-jdk-headless in debian
+RUN echo 'deb http://ftp.us.debian.org/debian/ stretch main contrib non-free' > /etc/apt/sources.list.d/stretch.list
+# Run the following commands on my Linux machine
+RUN mkdir -p /usr/share/man/man1 && apt-get update -qq && apt-get upgrade -qq && \
+    apt-get install -qq -y gnupg2 gcc wget unzip procps openjdk-8-jdk-headless scala vim
+
+#Download the Spark binaries from the repo
+WORKDIR /
+#install spark binaries
+RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+    tar -xvzf spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+    mv spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} spark && \
+    rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+    echo "export PATH=$PATH:/spark/bin" >> ~/.bashrc && echo "export SPARK_HOME=/spark" >> ~/.bashrc && echo "export HADOOP_CONF_DIR=/etc/hadoop/conf" >> ~/.bashrc && \
+    pip install pyspark==2.4.4
+# EO SPARK INSTALL
+
+# EO LOCAL VERSION
+# DEV ENV
+RUN pip install statsd matplotlib scikit-learn scipy==1.1.0
+## AWS:
+RUN pip install boto3 s3fs
+## GCP:
+RUN pip install google-api-python-client google-cloud google-cloud-storage
+RUN pip install --upgrade "snowflake-connector-python<2.6.0"
+
+
+# USING LOCAL VERSION OF DBND
+ARG AIRFLOW_EXTRA=airflow
+COPY ./dist/dbnd.requirements.txt \
+    ./dist/dbnd-airflow.requirements.txt \
+    ./dist/dbnd-airflow[[]$AIRFLOW_EXTRA].requirements.txt \
+    ./dist/dbnd-airflow-monitor.requirements.txt \
+    ./dist/dbnd-mlflow.requirements.txt \
+    ./dist/dbnd-postgres.requirements.txt \
+    ./dist/dbnd-redshift.requirements.txt \
+    ./dist/dbnd-snowflake.requirements.txt \
+    ./dist/dbnd-luigi.requirements.txt \
+    /dist/
+RUN pip install -r /dist/dbnd.requirements.txt && \
+    pip install -r /dist/dbnd-airflow.requirements.txt && \
+    pip install -r /dist/dbnd-airflow[$AIRFLOW_EXTRA].requirements.txt && \
+    pip install -r /dist/dbnd-airflow-monitor.requirements.txt && \
+    pip install -r /dist/dbnd-mlflow.requirements.txt && \
+    pip install -r /dist/dbnd-postgres.requirements.txt && \
+    pip install -r /dist/dbnd-redshift.requirements.txt && \
+    pip install -r /dist/dbnd-snowflake.requirements.txt    && \
+    pip install -r /dist/dbnd-luigi.requirements.txt
+
+COPY ./dist/databand-*.whl \
+    ./dist/dbnd-*.whl \
+    ./dist/dbnd_mlflow-*.whl \
+    ./dist/dbnd_airflow_auto_tracking*.whl \
+    ./dist/dbnd_spark-*.whl \
+    ./dist/dbnd_postgres-*.whl \
+    ./dist/dbnd_redshift-*.whl \
+    ./dist/dbnd_luigi-*.whl \
+    ./dist/dbnd_snowflake-*.whl \
+    ./dist/dbnd_airflow-*.whl \
+    ./dist/dbnd_airflow_monitor-*.whl \
+    /dist/
+RUN pip install databand[mlflow,airflow-auto-tracking,spark,postgres,redshift,luigi,snowflake] dbnd-airflow[$AIRFLOW_EXTRA] --no-index --find-links /dist/
+RUN touch project.cfg
+
+COPY ./dbnd-core/setup.cfg /usr/local/airflow/databand/dbnd-core/setup.cfg
+
+# Debug
+RUN ls ${AIRFLOW_FOLDER}
+USER airflow
+WORKDIR ${AIRFLOW_FOLDER}
+
+COPY ./deployment/airflow_example/Makefile /usr/local/airflow/Makefile
+ARG SOURCE_VERSION
+
+# DBND CONFIG
+ENV DBND_HOME=${AIRFLOW_FOLDER}
+ENV DBND__RUN_INFO__SOURCE_VERSION=${SOURCE_VERSION}
+ENV DBND__MLFLOW_TRACKING__DATABAND_TRACKING=True
+
+RUN echo "export PATH=$PATH:/spark/bin" >> ~/.bashrc && echo "export SPARK_HOME=/spark" >> ~/.bashrc
