@@ -1,5 +1,4 @@
 import logging
-import re
 
 import six
 
@@ -123,6 +122,12 @@ class TextBanner(StringIO):
         self.write(colored("=\n", self.color))
         self.write(self._banner_separator)
         return self.getvalue()
+
+
+def simple_banner(header, table):
+    banner = TextBanner(header)
+    banner.write(table)
+    return banner.get_banner_str()
 
 
 def safe_tabulate(tabular_data, headers, **kwargs):
