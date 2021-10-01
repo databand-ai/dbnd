@@ -43,7 +43,6 @@ setuptools.setup(
         'typing;python_version<"3.7"',  # Standalone pkg is incompatible with 3.7 and not required
         'contextlib2; python_version < "3"',
         "python-dateutil",
-        "jinja2>=2.10.1, <2.12",  # same versions as Airflow
         "certifi<2021.0.0",  # fix conflict with snowflake-connector-python
     ],
     extras_require={
