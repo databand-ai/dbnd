@@ -2,7 +2,7 @@ import logging
 
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 
 import requests
 
@@ -43,13 +43,15 @@ class ApiClient(object):
 
     def __init__(
         self,
-        api_base_url,  # type: str
-        credentials=None,  # type: Optional[Dict[str, str]]
-        debug_server=False,  # type: bool
-        session_timeout=5,  # type: int
-        default_max_retry=1,  # type: int
-        default_retry_sleep=0,  # type: Union[int, float]
-        default_request_timeout=DEFAULT_REQUEST_TIMEOUT,  # Union[float, Tuple[float, float]],
+        api_base_url: str,
+        credentials: Optional[Dict[str, str]] = None,
+        debug_server: bool = False,
+        session_timeout: int = 5,
+        default_max_retry: int = 1,
+        default_retry_sleep: Union[int, float] = 0,
+        default_request_timeout: Union[
+            float, Tuple[float, float]
+        ] = DEFAULT_REQUEST_TIMEOUT,
     ):
         """
         @param api_base_url: databand webserver url to build the request with
@@ -65,13 +67,12 @@ class ApiClient(object):
         """
 
         self._api_base_url = api_base_url
-        self.is_auth_required = bool(credentials)
         self.credentials = credentials
         self.default_headers = {
             "Accept": "application/json",
         }
 
-        self.session = None
+        self.session: Optional[requests.Session] = None
         self.session_creation_time = None
         self.session_timeout = session_timeout
 
@@ -88,11 +89,7 @@ class ApiClient(object):
             # log the webserver logs and sql queries here
             self.webserver_logger = build_file_logger("webserver")
 
-    def remove_session(self):
-        self.session = None
-        self.session_creation_time = None
-
-    def is_session_timedout(self):
+    def is_session_expired(self):
         return datetime.now() - self.session_creation_time >= timedelta(
             minutes=self.session_timeout
         )
@@ -100,18 +97,13 @@ class ApiClient(object):
     def _request(
         self,
         endpoint,
+        session,
         method="GET",
         data=None,
         headers=None,
         query=None,
         request_timeout=None,
     ):
-        if not self.session or self.is_session_timedout():
-            logger.info(
-                "Webserver session does not exist or timed out, creating new one"
-            )
-            self._init_session(self.credentials)
-
         headers = dict(self.default_headers, **(headers or {}))
         url = urljoin(self._api_base_url, endpoint)
         try:
@@ -125,11 +117,10 @@ class ApiClient(object):
                 timeout=request_timeout or self.default_request_timeout,
             )
             logger.debug("Sending the following request: %s", request_params)
-            resp = self._send_request(**request_params)
+            resp = self._send_request(session, **request_params)
 
         except requests.exceptions.ConnectionError as ce:
             logger.info("Got connection error while sending request: {}".format(ce))
-            self.remove_session()
             raise
 
         if self.debug_mode:
@@ -162,18 +153,15 @@ class ApiClient(object):
 
         return
 
-    def _send_request(self, method, url, **kwargs):
-        return self.session.request(method, url, **kwargs)
+    def _send_request(self, session, method, url, **kwargs):
+        return session.request(method, url, **kwargs)
 
-    def _init_session(self, credentials):
-        logger.info("Initialising session for webserver")
+    def _authenticate(self):
+        if not self.has_credentials():
+            return
+
         try:
-            self.session = requests.session()
-            self.session_creation_time = datetime.now()
-
-            if not self.is_auth_required:
-                return
-
+            credentials = self.credentials
             token = credentials.get("token")
             if token:
                 self.default_headers["Authorization"] = "Bearer {}".format(token)
@@ -186,15 +174,20 @@ class ApiClient(object):
                 )
             else:
                 logger.warning(
-                    "ApiClient._init_session: username or password is not provided"
+                    "ApiClient._authenticate: username or password is not provided"
                 )
-        except requests.exceptions.ConnectionError:
-            self.remove_session()
-            raise
-
         except Exception as e:
             self.remove_session()
             raise DatabandAuthenticationError("Failed to init a webserver session", e)
+
+    def create_session(self):
+        logger.info("Initialising session for webserver")
+        self.session = requests.session()
+        self.session_creation_time = datetime.now()
+
+    def remove_session(self):
+        self.session = None
+        self.session_creation_time = None
 
     def api_request(
         self,
@@ -207,19 +200,27 @@ class ApiClient(object):
         retry_policy=None,
         failure_handler=None,
         request_timeout=None,
+        requires_auth=True,
     ):
         retry_policy = retry_policy or LinearRetryPolicy(
             seconds_to_sleep=self.default_retry_sleep,
             max_retries=self.default_max_retry,
         )
+
         url = endpoint if no_prefix else urljoin(self.api_prefix, endpoint)
 
         retry_number = 0
         while True:
             retry_number += 1
             try:
+                if requires_auth:
+                    session = self.authenticated_session()
+                else:
+                    session = self.anonymous_session()
+
                 resp = self._request(
                     url,
+                    session=session,
                     method=method,
                     data=data,
                     headers=headers,
@@ -234,19 +235,37 @@ class ApiClient(object):
                     sleep(retry_policy.seconds_to_sleep(retry_number))
                     continue
 
+                self.remove_session()
                 raise api_connection_refused(self._api_base_url + url, ex)
             return resp
 
     def is_ready(self):
         try:
-            is_auth_required = self.is_auth_required
-            self.is_auth_required = False
-            self.api_request("auth/ping", None, method="GET")
+            self.api_request(
+                "auth/ping",
+                None,
+                method="GET",
+                requires_auth=False,
+                retry_policy=LinearRetryPolicy(0, 1),
+            )
             return True
         except (DatabandConnectionException, DatabandApiError):
             return False
-        finally:
-            self.is_auth_required = is_auth_required
+
+    def has_credentials(self) -> bool:
+        return bool(self.credentials)
+
+    def authenticated_session(self):
+        if not self.session or self.is_session_expired():
+            logger.info(
+                "Webserver session does not exist or timed out, creating new one"
+            )
+            self.create_session()
+            self._authenticate()
+        return self.session
+
+    def anonymous_session(self) -> requests.Session:
+        return requests.session()
 
     def __str__(self):
         return "{}({})".format(self.__class__.__name__, self._api_base_url)

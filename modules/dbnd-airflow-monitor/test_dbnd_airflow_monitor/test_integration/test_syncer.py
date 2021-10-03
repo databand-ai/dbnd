@@ -93,7 +93,15 @@ class TestSyncerWorks(WebAppTest):
             )
 
     def send_request_to_test_server(
-        self, url, method="GET", json=None, headers=None, params=None, *args, **kwargs
+        self,
+        session,
+        url,
+        method="GET",
+        json=None,
+        headers=None,
+        params=None,
+        *args,
+        **kwargs
     ):
         resp = self.client.open(
             url, method=method, json=json, query_string=params, headers=headers
