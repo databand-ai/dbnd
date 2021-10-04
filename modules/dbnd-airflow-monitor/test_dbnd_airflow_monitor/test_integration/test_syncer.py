@@ -84,34 +84,11 @@ class TestSyncerWorks(WebAppTest):
         ), patch(
             "airflow_monitor.common.base_component.get_data_fetcher",
             return_value=mock_data_fetcher,
-        ), patch.object(
-            ApiClient, "_send_request", new=self.send_request_to_test_server,
-        ):
+        ), self.patch_api_client():
             yield MultiServerMonitor(
                 get_servers_configuration_service(),
                 AirflowMonitorConfig(syncer_name=syncer_name),
             )
-
-    def send_request_to_test_server(
-        self,
-        session,
-        url,
-        method="GET",
-        json=None,
-        headers=None,
-        params=None,
-        *args,
-        **kwargs
-    ):
-        resp = self.client.open(
-            url, method=method, json=json, query_string=params, headers=headers
-        )
-        return MagicMock(
-            ok=resp.status_code < 400,
-            content=resp.data,
-            json=MagicMock(return_value=resp.json),
-            status_code=resp.status_code,
-        )
 
     def test_01_server_sync_enable_disable(
         self, multi_server, syncer_name, mock_sync_once
