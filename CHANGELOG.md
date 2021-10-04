@@ -1,5 +1,18 @@
 # History
 
+## DBND v 0.50.0
+
+### New features
+* \#1200764884086970: Added SDK Client for Metadata (basic access API endpoint for collecting all errors in a Run).
+
+### Improvements
+* \#1201013784336315: Improved behavior of Reset Selection in Affected Datasets.
+* \#1200766175220432: Now you can create alerts directly from the redesigned Metrics tab.
+
+### Bug fixes
+* \#1200964944935744: Each step on the X-axis in Dataset Overview now equals 24 hours from the previous point.
+* \#1200964944935725: "Reported from" and "Dataset Type" columns in the Datasets tab follow the same logic as elsewhere in the Databand UI.
+
 ## DBND v0.49.0
 
 ### New features
