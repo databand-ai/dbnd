@@ -11,11 +11,15 @@ logger = logging.getLogger(__name__)
 
 
 @task
-def dbnd_sanity_check(check_time=datetime.datetime.now()):
-    # type: (datetime.datetime) -> str
+def dbnd_sanity_check(check_time=datetime.datetime.now(), fail_chance=0.0):
+    # type: (datetime.datetime, float) -> str
     logger.info("Running Databand Task Sanity Check!")
 
     log_metric("metric_check", "OK")
+
+    if random.random() < fail_chance:
+        raise Exception("Failed accordingly to fail_chance: %f" % fail_chance)
+
     log_metric("Happiness Level", "High")
 
     logger.info("Your system is good to go! Enjoy Databand!")
