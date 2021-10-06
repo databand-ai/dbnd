@@ -12,3 +12,4 @@ recursive-exclude * .ipynb_checkpoints
 
 prune test_dbnd
 exclude tox.ini
+exclude dbnd.requirements.txt
