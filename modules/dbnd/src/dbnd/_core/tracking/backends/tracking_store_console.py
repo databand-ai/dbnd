@@ -64,7 +64,9 @@ class ConsoleStore(TrackingStore):
         if run.is_orchestration:
             logger.info(
                 run.describe.run_banner(
-                    "Running Databand!", color="cyan", show_run_info=True
+                    "Running Databand v%s" % run.context.task_run_env.databand_version,
+                    color="cyan",
+                    show_run_info=True,
                 )
             )
 
