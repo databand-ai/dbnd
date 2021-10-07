@@ -78,7 +78,7 @@ services:
       - ../junit:/app/junit
       - .:/app/integration-test
     environment:
-      - PYTEST_ADDOPTS=--junit-xml junit/inttest-hdfs_local_access_int_test-${IMAGE_EXTRA_TAG}.xml
+      - PYTEST_ADDOPTS=--junit-xml junit/inttest-dbnd-run-hdfs-${IMAGE_EXTRA_TAG}.xml
       - DBND_HOME=/app/integration-test
     working_dir: /app/integration-test
     command:
