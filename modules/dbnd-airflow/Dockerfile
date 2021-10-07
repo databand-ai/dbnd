@@ -24,17 +24,17 @@ ARG PLUGINS_FOLDER=${AIRFLOW_FOLDER}/plugins
 
 # Create plugin folder and copy plugin file into it (airflow will search for this folder when starting)
 RUN mkdir -p ${PLUGINS_FOLDER}
-COPY dbnd-core/modules/dbnd-airflow/src/dbnd_airflow/export_plugin/dbnd_airflow_export_plugin.py ${PLUGINS_FOLDER}
+COPY ./dbnd-core/modules/dbnd-airflow/src/dbnd_airflow/export_plugin/dbnd_airflow_export_plugin.py ${PLUGINS_FOLDER}
 
-COPY ./dist/dbnd.requirements.txt /dist_req/
+COPY ./dbnd-core/dist-python/dbnd.requirements.txt /dist_req/
 RUN pip install -r /dist_req/dbnd.requirements.txt --user
-COPY ./dist/databand-*.whl \
-    ./dist/dbnd-*.whl \
-    /dist/
+COPY ./dbnd-core/dist-python/databand-*.whl \
+    ./dbnd-core/dist-python/dbnd-*.whl \
+    /dist-python/
 
 ARG DBND_VERSION=0.50.2
 
-RUN pip install databand==$DBND_VERSION --user --find-links /dist/
+RUN pip install databand==$DBND_VERSION --user --find-links /dist-python/
 RUN touch project.cfg
 
 # Debug

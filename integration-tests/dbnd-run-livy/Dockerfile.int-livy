@@ -35,20 +35,20 @@ RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/apac
 ENV PATH=$PATH:/livy/bin
 
 # install dbnd packages:
-COPY ./dist/dbnd.requirements.txt \
-    ./dist/dbnd-spark.requirements.txt \
-    ./dist/dbnd-test-scenarios.requirements.txt \
-    /dist/
-RUN pip install -r /dist/dbnd.requirements.txt && \
-    pip install -r /dist/dbnd-spark.requirements.txt && \
-    pip install -r /dist/dbnd-test-scenarios.requirements.txt
+COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-spark.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-test-scenarios.requirements.txt \
+    /dist-python/
+RUN pip install -r /dist-python/dbnd.requirements.txt && \
+    pip install -r /dist-python/dbnd-spark.requirements.txt && \
+    pip install -r /dist-python/dbnd-test-scenarios.requirements.txt
 
-COPY ./dist/databand-*.whl \
-    ./dist/dbnd-*.whl \
-    ./dist/dbnd_spark-*.whl \
-    ./dist/dbnd_test_scenarios-*.whl \
-    /dist/
-RUN pip install databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
+COPY ./dbnd-core/dist-python/databand-*.whl \
+    ./dbnd-core/dist-python/dbnd-*.whl \
+    ./dbnd-core/dist-python/dbnd_spark-*.whl \
+    ./dbnd-core/dist-python/dbnd_test_scenarios-*.whl \
+    /dist-python/
+RUN pip install databand[spark] dbnd_test_scenarios --find-links /dist-python/ --no-index
 
 EXPOSE 8998
 
