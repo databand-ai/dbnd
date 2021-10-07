@@ -95,8 +95,7 @@ COPY ./dist/databand-*.whl \
     ./dist/dbnd_mlflow-*.whl \
     /dist/
 ENV DBND_VERSION=0.50.2
-RUN pip install databand[aws,gcp,docker,airflow_bundle,mlflow]==$DBND_VERSION --find-links /dist/ \
-    && rm -rf /dist
+RUN pip install databand[aws,gcp,docker,airflow_bundle,mlflow]==$DBND_VERSION --find-links /dist/
 
 
 COPY dbnd-core/setup.cfg \

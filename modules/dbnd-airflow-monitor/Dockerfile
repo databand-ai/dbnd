@@ -27,8 +27,7 @@ RUN pip install dbnd==$DBND_VERSION \
     dbnd_airflow_monitor==$DBND_VERSION \
     dbnd_airflow_monitor[composer]==$DBND_VERSION \
     --no-index \
-    --find-links /dist/ \
-    && rm -rf /dist
+    --find-links /dist/
 
 ENV DBND_HOME=/dbnd
 WORKDIR ${DBND_HOME}
