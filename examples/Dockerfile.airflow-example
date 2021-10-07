@@ -43,39 +43,39 @@ RUN pip install --upgrade "snowflake-connector-python<2.6.0"
 
 # USING LOCAL VERSION OF DBND
 ARG AIRFLOW_EXTRA=airflow
-COPY ./dist/dbnd.requirements.txt \
-    ./dist/dbnd-airflow.requirements.txt \
-    ./dist/dbnd-airflow[[]$AIRFLOW_EXTRA].requirements.txt \
-    ./dist/dbnd-airflow-monitor.requirements.txt \
-    ./dist/dbnd-mlflow.requirements.txt \
-    ./dist/dbnd-postgres.requirements.txt \
-    ./dist/dbnd-redshift.requirements.txt \
-    ./dist/dbnd-snowflake.requirements.txt \
-    ./dist/dbnd-luigi.requirements.txt \
-    /dist/
-RUN pip install -r /dist/dbnd.requirements.txt && \
-    pip install -r /dist/dbnd-airflow.requirements.txt && \
-    pip install -r /dist/dbnd-airflow[$AIRFLOW_EXTRA].requirements.txt && \
-    pip install -r /dist/dbnd-airflow-monitor.requirements.txt && \
-    pip install -r /dist/dbnd-mlflow.requirements.txt && \
-    pip install -r /dist/dbnd-postgres.requirements.txt && \
-    pip install -r /dist/dbnd-redshift.requirements.txt && \
-    pip install -r /dist/dbnd-snowflake.requirements.txt    && \
-    pip install -r /dist/dbnd-luigi.requirements.txt
+COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-airflow.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-airflow[[]$AIRFLOW_EXTRA].requirements.txt \
+    ./dbnd-core/dist-python/dbnd-airflow-monitor.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-mlflow.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-postgres.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-redshift.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-snowflake.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-luigi.requirements.txt \
+    /dist-python/
+RUN pip install -r /dist-python/dbnd.requirements.txt && \
+    pip install -r /dist-python/dbnd-airflow.requirements.txt && \
+    pip install -r /dist-python/dbnd-airflow[$AIRFLOW_EXTRA].requirements.txt && \
+    pip install -r /dist-python/dbnd-airflow-monitor.requirements.txt && \
+    pip install -r /dist-python/dbnd-mlflow.requirements.txt && \
+    pip install -r /dist-python/dbnd-postgres.requirements.txt && \
+    pip install -r /dist-python/dbnd-redshift.requirements.txt && \
+    pip install -r /dist-python/dbnd-snowflake.requirements.txt    && \
+    pip install -r /dist-python/dbnd-luigi.requirements.txt
 
-COPY ./dist/databand-*.whl \
-    ./dist/dbnd-*.whl \
-    ./dist/dbnd_mlflow-*.whl \
-    ./dist/dbnd_airflow_auto_tracking*.whl \
-    ./dist/dbnd_spark-*.whl \
-    ./dist/dbnd_postgres-*.whl \
-    ./dist/dbnd_redshift-*.whl \
-    ./dist/dbnd_luigi-*.whl \
-    ./dist/dbnd_snowflake-*.whl \
-    ./dist/dbnd_airflow-*.whl \
-    ./dist/dbnd_airflow_monitor-*.whl \
-    /dist/
-RUN pip install databand[mlflow,airflow-auto-tracking,spark,postgres,redshift,luigi,snowflake] dbnd-airflow[$AIRFLOW_EXTRA] --no-index --find-links /dist/
+COPY ./dbnd-core/dist-python/databand-*.whl \
+    ./dbnd-core/dist-python/dbnd-*.whl \
+    ./dbnd-core/dist-python/dbnd_mlflow-*.whl \
+    ./dbnd-core/dist-python/dbnd_airflow_auto_tracking*.whl \
+    ./dbnd-core/dist-python/dbnd_spark-*.whl \
+    ./dbnd-core/dist-python/dbnd_postgres-*.whl \
+    ./dbnd-core/dist-python/dbnd_redshift-*.whl \
+    ./dbnd-core/dist-python/dbnd_luigi-*.whl \
+    ./dbnd-core/dist-python/dbnd_snowflake-*.whl \
+    ./dbnd-core/dist-python/dbnd_airflow-*.whl \
+    ./dbnd-core/dist-python/dbnd_airflow_monitor-*.whl \
+    /dist-python/
+RUN pip install databand[mlflow,airflow-auto-tracking,spark,postgres,redshift,luigi,snowflake] dbnd-airflow[$AIRFLOW_EXTRA] --no-index --find-links /dist-python/
 RUN touch project.cfg
 
 COPY ./dbnd-core/setup.cfg /usr/local/airflow/databand/dbnd-core/setup.cfg

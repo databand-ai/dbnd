@@ -58,7 +58,6 @@ test-all-py36: ## Run tests on every python package with tox.
 	done
 
 test-manifest: ## Run minifest tests on every python package with tox.
-	mkdir -p dist
 	for m in $(prj_dist) ; do \
 		echo "Building '$$m'..." ;\
 		(cd $$m && tox -e manifest) ;\
@@ -96,27 +95,35 @@ __dist-python-module:  ## (Hidden target) Build a single python module.
 		--separate-extras;
 
 	# Move to root dist dir...
-	mv ${MODULE}/dist/* dist;
+	mv ${MODULE}/dist/* dist-python;
 
 dist-python:  ## Build all python modules.
-	mkdir -p dist
+	mkdir -p dist-python;
 	set -e;\
 	for m in $(prj_dist); do \
 		MODULE=$$m make __dist-python-module;\
 	done;
 
+	@echo "\n\nCheck if dbnd.requirements.txt in repo is updated"
+	@# add newline at the end of dist-python/dbnd.requirements.txt to match
+	@echo "" >> dist-python/dbnd.requirements.txt
+	@cmp -s dist-python/dbnd.requirements.txt modules/dbnd/dbnd.requirements.txt && \
+		echo "dbnd.requirements.txt is expected" || \
+		(echo "Error: dbnd.requirements.txt files doesn't match" && exit 1);
+
 	# create databand package
 	python setup.py sdist bdist_wheel
+	mv dist/* dist-python/
 
 	# Running stripzip (CI only)...
-	if test -n "${CI_COMMIT_SHORT_SHA}"; then stripzip ./dist/*.whl; fi;
+	if test -n "${CI_COMMIT_SHORT_SHA}"; then stripzip ./dist-python/*.whl; fi;
 
-	cp examples/requirements.txt dist/dbnd-examples.requirements.txt
+	cp examples/requirements.txt dist-python/dbnd-examples.requirements.txt
 	echo SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
 
 	@# Calculate md5 for generated packages (with osx and linux support)
 	@export MD5=md5; if ! command -v md5 &> /dev/null; then export MD5=md5sum; fi;\
-	for file in dist/*; do $$MD5 $$file || true; done > dist/hash-list.txt
+	for file in dist-python/*; do $$MD5 $$file || true; done > dist-python/hash-list.txt
 
 dist-java:  ## Build dbnd-java modules.
 	(cd modules/dbnd-java/ && ./gradlew build)

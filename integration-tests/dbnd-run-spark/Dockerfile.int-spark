@@ -29,29 +29,29 @@ RUN pip install -U pytest sh pyspark tox 'pip>=20,<20.3'
 
 ARG AIRFLOW_EXTRA=airflow
 # install dbnd packages:
-COPY ./dist/dbnd.requirements.txt \
-    ./dist/dbnd-spark.requirements.txt \
-    ./dist/dbnd-test-scenarios.requirements.txt \
-    ./dist/dbnd-airflow.requirements.txt \
-    ./dist/dbnd-airflow[[]$AIRFLOW_EXTRA].requirements.txt \
-    ./dist/dbnd-airflow[[]tests].requirements.txt \
-    ./dist/examples.requirements.txt \
-    /dist/
-RUN pip install -r /dist/dbnd.requirements.txt && \
-    pip install -r /dist/dbnd-spark.requirements.txt && \
-    pip install -r /dist/dbnd-test-scenarios.requirements.txt && \
-    pip install -r /dist/dbnd-airflow.requirements.txt && \
-    pip install -r /dist/dbnd-airflow[$AIRFLOW_EXTRA].requirements.txt && \
-    pip install -r /dist/dbnd-airflow[tests].requirements.txt && \
-    pip install -r /dist/examples.requirements.txt
-COPY ./dist/databand-*.whl \
-    ./dist/dbnd-*.whl \
-    ./dist/dbnd_spark-*.whl \
-    ./dist/dbnd_examples-*.whl \
-    ./dist/dbnd_test_scenarios-*.whl \
-    ./dist/dbnd_airflow-*.whl \
-    /dist/
-RUN pip install dbnd_airflow[$AIRFLOW_EXTRA] dbnd_examples databand[spark] dbnd_test_scenarios --find-links /dist/ --no-index
+COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-spark.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-test-scenarios.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-airflow.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-airflow[[]$AIRFLOW_EXTRA].requirements.txt \
+    ./dbnd-core/dist-python/dbnd-airflow[[]tests].requirements.txt \
+    /dbnd-core/dist-python/examples.requirements.txt \
+    /dist-python/
+RUN pip install -r /dist-python/dbnd.requirements.txt && \
+    pip install -r /dist-python/dbnd-spark.requirements.txt && \
+    pip install -r /dist-python/dbnd-test-scenarios.requirements.txt && \
+    pip install -r /dist-python/dbnd-airflow.requirements.txt && \
+    pip install -r /dist-python/dbnd-airflow[$AIRFLOW_EXTRA].requirements.txt && \
+    pip install -r /dist-python/dbnd-airflow[tests].requirements.txt && \
+    pip install -r /dist-python/examples.requirements.txt
+COPY ./dbnd-core/dist-python/databand-*.whl \
+    ./dbnd-core/dist-python/dbnd-*.whl \
+    ./dbnd-core/dist-python/dbnd_spark-*.whl \
+    ./dbnd-core/dist-python/dbnd_examples-*.whl \
+    ./dbnd-core/dist-python/dbnd_test_scenarios-*.whl \
+    ./dbnd-core/dist-python/dbnd_airflow-*.whl \
+    /dist-python/
+RUN pip install dbnd_airflow[$AIRFLOW_EXTRA] dbnd_examples databand[spark] dbnd_test_scenarios --find-links /dist-python/ --no-index
 
 ENV DBND_EXAMPLES_PATH=/app/examples
 WORKDIR /app/

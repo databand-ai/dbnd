@@ -8,18 +8,18 @@ RUN apt-get update -yqq && \
     pip install -U 'pip>=20,<20.3' mysqlclient
 
 # install dbnd packages:
-COPY ./dist/dbnd.requirements.txt \
-    ./dist/dbnd-airflow-monitor.requirements.txt \
-    ./dist/dbnd-airflow-monitor[[]composer].requirements.txt \
-    /dist/
-RUN pip install -r /dist/dbnd.requirements.txt \
-    && pip install -r /dist/dbnd-airflow-monitor.requirements.txt \
-    && pip install -r /dist/dbnd-airflow-monitor[composer].requirements.txt
+COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-airflow-monitor.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-airflow-monitor[[]composer].requirements.txt \
+    /dist-python/
+RUN pip install -r /dist-python/dbnd.requirements.txt \
+    && pip install -r /dist-python/dbnd-airflow-monitor.requirements.txt \
+    && pip install -r /dist-python/dbnd-airflow-monitor[composer].requirements.txt
 
-COPY ./dist/databand-*.whl \
-    ./dist/dbnd-*.whl \
-    ./dist/dbnd_airflow_monitor-*.whl \
-    /dist/
+COPY ./dbnd-core/dist-python/databand-*.whl \
+    ./dbnd-core/dist-python/dbnd-*.whl \
+    ./dbnd-core/dist-python/dbnd_airflow_monitor-*.whl \
+    /dist-python/
 
 ENV DBND_VERSION=0.50.2
 
@@ -27,7 +27,7 @@ RUN pip install dbnd==$DBND_VERSION \
     dbnd_airflow_monitor==$DBND_VERSION \
     dbnd_airflow_monitor[composer]==$DBND_VERSION \
     --no-index \
-    --find-links /dist/
+    --find-links /dist-python/
 
 ENV DBND_HOME=/dbnd
 WORKDIR ${DBND_HOME}

@@ -246,7 +246,7 @@ build_pypi_org_whl:
     - make dist-python
   artifacts:
     paths:
-      - dist/*
+      - dist-python/*
   only:
     - tags
   when: manual
@@ -265,7 +265,7 @@ publish_pypi_org_dbnd_package:
   needs:
     - build_pypi_org_whl
   script:
-    - twine upload dist/*
+    - twine upload dist-python/*
   only:
     - tags
   when: manual
