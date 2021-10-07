@@ -11,6 +11,7 @@ from functools import partial
 
 import six
 
+from dbnd._core.cli.cmd_deprecated import add_deprecated_commands
 from dbnd._core.cli.cmd_execute import execute
 from dbnd._core.cli.cmd_heartbeat import send_heartbeat
 from dbnd._core.cli.cmd_project import project_init
@@ -77,6 +78,8 @@ cli.add_command(schedule)
 
 # error reporting
 cli.add_command(collect_logs)
+
+add_deprecated_commands(cli)
 
 
 @dbnd_handle_errors(exit_on_error=False)

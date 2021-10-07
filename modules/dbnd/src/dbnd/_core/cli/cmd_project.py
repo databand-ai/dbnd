@@ -31,7 +31,7 @@ def project_init(ctx, overwrite, dbnd_home, dbnd_system):
             raise DatabandSystemError(
                 "You are trying to re-initialize your project. You already have dbnd configuration at %s. "
                 "You can force project-init by providing --overwrite flag. "
-                "If you need to create/update database use `dbnd db init` instead"
+                "If you need to create/update database use `dbnd-web db init` instead"
                 % dbnd_system
             )
 

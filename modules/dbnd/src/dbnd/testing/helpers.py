@@ -93,6 +93,17 @@ def run_dbnd_subprocess__dbnd(args, retcode=255, **kwargs):
     )
 
 
+def run_dbnd_subprocess__dbnd_web(args, retcode=255, **kwargs):
+    if isinstance(args, str):
+        args = shlex.split(args, posix=not windows_compatible_mode)
+    return run_dbnd_subprocess(
+        args=["dbnd-web"] + args,
+        cwd=kwargs.pop("cwd", os.environ[ENV_DBND_HOME]),
+        retcode=retcode,
+        **kwargs
+    )
+
+
 def run_dbnd_subprocess__with_home(args, retcode=255, **kwargs):
     return run_dbnd_subprocess(
         args=[sys.executable] + args,
