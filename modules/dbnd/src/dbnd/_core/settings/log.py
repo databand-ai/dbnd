@@ -25,6 +25,10 @@ class LoggingConfig(config.Config):
 
     _conf__task_family = "log"
     disabled = parameter(description="Should logging be disabled").value(False)
+    debug_log_config = parameter(
+        description="Debug our logging configuration system"
+    ).value(False)
+
     capture_stdout_stderr = parameter(
         description="Should logger retransmit all output wrtten to stdout/stderr"
     ).value(True)
@@ -143,12 +147,15 @@ class LoggingConfig(config.Config):
         if self.custom_dict_config:
             if not in_quiet_mode():
                 logger.info("Using user provided logging config")
+
+            self.log_debug("Using log.custom_dict_config")
             return self.settings.log.custom_dict_config()
 
         return self.get_dbnd_logging_config_base(filename=filename)
 
     def get_dbnd_logging_config_base(self, filename=None):
         # type: (LoggingConfig, Optional[str]) -> Optional[dict]
+        self.log_debug("Using log.get_dbnd_logging_config_base")
         log_settings = self
         log_level = log_settings.level
         # we want to have "real" output, so nothing can catch our handler
@@ -161,10 +168,14 @@ class LoggingConfig(config.Config):
             # we can not use __stdout__ or __stderr__ as it will not be printed into jupyter web UI
             # at the same time  using sys.stdout when airflow is active is very dangerous
             # as it can create dangerous loop from airflow redirection into root logger
+
+            self.log_debug("ipykernel: checking on console_stream again")
             console_stream = sys.stdout if log_settings.stream_stdout else sys.stderr
 
         # dummy path, we will not write to this file
         task_file_handler_file = databand_system_path("logs", "task.log")
+
+        self.log_debug("task_file_handler_file: %s", task_file_handler_file)
         setup_log_file(task_file_handler_file)
 
         config = {
@@ -214,16 +225,20 @@ class LoggingConfig(config.Config):
         if log_settings.sqlalchemy_print:
             loggers["sqlalchemy.engine"] = {"level": logging.INFO, "propagate": True}
 
+        self.log_debug("Log config: %s", config)
         return config
 
     def configure_dbnd_logging(self):
         if self.disabled:
+            self.log_debug("Log is disabled, skipping configure_dbnd_logging")
             return
 
         # start by trying to initiate Sentry setup - has side effect of changing the logging config
+        self.log_debug("Initialize Sentry setup")
         try_init_sentry()
 
         if self.disable_colors:
+            self.log_debug("Colors are disabled")
             self.disable_color_logs()
 
         dict_config = self.get_dbnd_logging_config(filename=self.file_log)
@@ -232,6 +247,7 @@ class LoggingConfig(config.Config):
         if self.override_airflow_logging_on_task_run:
             airflow_task_log_handler = self.dbnd_override_airflow_logging_on_task_run()
         try:
+            self.log_debug("configure_logging_dictConfig: %s", dict_config)
             configure_logging_dictConfig(dict_config=dict_config)
         except Exception as e:
             # we print it this way, as it could be that now "logging" is down!
@@ -242,8 +258,9 @@ class LoggingConfig(config.Config):
             )
             raise
         if airflow_task_log_handler:
+            self.log_debug("logging.root.handlers.append(airflow_task_log_handler)")
             logging.root.handlers.append(airflow_task_log_handler)
-        logger.debug("Databand logging is up!")
+        self.log_debug("Databand logging is up!")
 
     def dbnd_override_airflow_logging_on_task_run(self):
         # EXISTING STATE:
@@ -252,9 +269,12 @@ class LoggingConfig(config.Config):
         # into logger `airflow.task`, that will save everything into file.
         #  EVERY output of root logger will go through CONSOLE handler into AIRFLOW.TASK without being printed to screen
 
+        self.log_debug("dbnd_override_airflow_logging_on_task_run")
         if not sys.stderr or not _safe_is_typeof(sys.stderr, "StreamLogWriter"):
-            logger.debug(
-                "Airflow logging is already replaced by dbnd stream log writer!"
+
+            self.log_debug(
+                "Airflow logging is already replaced by dbnd stream log writer! sys.stderr=%s",
+                sys.stderr,
             )
             return
 
@@ -269,21 +289,29 @@ class LoggingConfig(config.Config):
 
         airflow_root_console_handler = find_handler(logging.root, "console")
 
+        self.log_debug("airflow_root_console_handler:%s", airflow_root_console_handler)
         if _safe_is_typeof(airflow_root_console_handler, "RedirectStdHandler"):
             # we are removing this console logger
             # this is the logger that capable to create self loop
             # as it writes to "latest" sys.stdout,
             # if you have stdout redirection into any of loggers, that will propogate into root
             # you get very busy message loop that is really hard to debug
+
+            self.log_debug("airflow_root_console_handler has been removed")
             logging.root.handlers.remove(airflow_root_console_handler)
 
         airflow_task_logger = logging.getLogger("airflow.task")
+
+        self.log_debug("airflow_task_logger: %s", airflow_task_logger)
         airflow_task_log_handler = find_handler(airflow_task_logger, "task")
         if airflow_task_log_handler:
+            self.log_debug("airflow_task_log_handler: %s", airflow_task_log_handler)
             logging.root.handlers.append(airflow_task_log_handler)
             airflow_task_logger.propagate = True
             airflow_task_logger.handlers = []
-
+        self.log_debug(
+            "dbnd_override_airflow_logging_on_task_run logging.root: %s", logging.root
+        )
         return airflow_task_log_handler
 
     def get_task_log_file_handler(self, log_file):
@@ -313,6 +341,20 @@ class LoggingConfig(config.Config):
         self.exception_no_color = True
         if self.console_formatter_name == "formatter_colorlog":
             self.console_formatter_name = "formatter_simple"
+
+    def log_debug(self, msg, *args):
+        if not self.debug_log_config:
+            if not self.disabled:
+                # we don't want to print ANYTHING if we are disabled
+                logger.debug(msg, *args)
+            return
+
+        try:
+            # we print to stderr as well in case logging is broken
+            print("DEBUG_LOG_CONFIG:" + msg % args, file=sys.__stderr__)
+            logger.info("DEBUG_LOG_CONFIG:" + msg, *args)
+        except Exception:
+            pass
 
 
 def _safe_is_typeof(value, name):
