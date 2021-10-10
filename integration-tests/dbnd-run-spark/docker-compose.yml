@@ -34,7 +34,7 @@ services:
       - DBND_HOME=/app/integration-test
       - DBND__LOG_SPARK=True
       - DBND__SPARK__LISTENER_INJECT_ENABLED=True
-      - PYTEST_ADDOPTS=--junit-xml /app/junit/inttest-spark_int_test-${IMAGE_EXTRA_TAG}.xml
+      - PYTEST_ADDOPTS=--junit-xml /app/junit/inttest-dbnd-run-spark-${IMAGE_EXTRA_TAG}.xml
     command:
       - bash
       - -c
