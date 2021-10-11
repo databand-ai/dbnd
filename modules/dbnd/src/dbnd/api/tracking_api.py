@@ -328,6 +328,7 @@ class LogDatasetArgs(object):
     operation_path = attr.ib()  # type: str
     operation_type = attr.ib()  # type: DbndDatasetOperationType
     operation_status = attr.ib()  # type: DbndTargetOperationStatus
+    operation_error = attr.ib()  # type: str
 
     value_preview = attr.ib()  # type: str
     data_dimensions = attr.ib()  # type: Sequence[int]
@@ -396,10 +397,15 @@ class LogDatasetSchema(ApiStrictSchema):
     operation_path = fields.String()
     operation_type = EnumField(DbndDatasetOperationType)
     operation_status = EnumField(DbndTargetOperationStatus)
+    operation_error = fields.String(allow_none=True)
 
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(), allow_none=True)
     data_schema = fields.String(allow_none=True)
+
+    @post_load
+    def make_object(self, data):
+        return LogDatasetArgs(**data).asdict()
 
 
 class LogDatasetsSchema(ApiStrictSchema):
