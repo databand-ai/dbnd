@@ -150,6 +150,7 @@ class TrackingStoreThroughChannel(TrackingStore):
         data_meta,  # type: ValueMeta
         operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
+        operation_error,  # type: str
     ):
         data_schema = (
             json_utils.dumps(data_meta.data_schema)
@@ -164,6 +165,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             operation_path=str(operation_path),
             operation_type=operation_type,
             operation_status=operation_status,
+            operation_error=operation_error,
             value_preview=data_meta.value_preview,
             data_dimensions=data_meta.data_dimensions,
             data_schema=data_schema,

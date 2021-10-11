@@ -114,6 +114,7 @@ class TrackingStore(object):
         data_meta,  # type: ValueMeta
         operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
+        operation_error,  # type: str
     ):  # type: (...) -> None
         pass
 

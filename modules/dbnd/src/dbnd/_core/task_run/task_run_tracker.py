@@ -208,6 +208,7 @@ class TaskRunTracker(TaskRunCtrl):
         operation_path,  # type: Union[Target,str]
         operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
+        operation_error,  # type: str
         data=None,  # type: Optional[Any]
         meta_conf=None,  # type: Optional[ValueMetaConf]
         send_metrics=True,
@@ -236,6 +237,7 @@ class TaskRunTracker(TaskRunCtrl):
             data_meta=data_meta,
             operation_type=operation_type,
             operation_status=operation_status,
+            operation_error=operation_error,
         )
 
         if send_metrics:

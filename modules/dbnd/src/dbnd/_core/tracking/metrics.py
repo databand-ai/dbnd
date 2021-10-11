@@ -189,6 +189,7 @@ def log_dataset_op(
     op_path,  # type: Union[Target,str]
     op_type,  # type: Union[DbndDatasetOperationType, str]
     success=True,  # type: bool
+    error=None,  # type: str
     data=None,
     with_preview=None,
     with_schema=None,
@@ -201,6 +202,7 @@ def log_dataset_op(
     @param op_path: Target object to log or a unique path representing the operation location
     @param op_type: the type of operation that been done with the target - read, write, delete.
     @param success: True if the operation succeeded, False otherwise.
+    @param error: optional error message.
     @param data: optional value of data to use build meta-data on the target
     @param with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
     @param with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
@@ -228,6 +230,7 @@ def log_dataset_op(
             operation_path=op_path,
             operation_type=op_type,
             operation_status=status,
+            operation_error=error,
             data=data,
             meta_conf=meta_conf,
             send_metrics=send_metrics,
@@ -336,8 +339,8 @@ def dataset_op_logger(
 
     try:
         yield op
-    except Exception:
-        log_dataset_op(success=False, **attr.asdict(op))
+    except Exception as e:
+        log_dataset_op(success=False, **attr.asdict(op), error=str(e))
         raise
     else:
         log_dataset_op(success=True, **attr.asdict(op))
