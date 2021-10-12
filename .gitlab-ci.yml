@@ -6,7 +6,7 @@
 # A (fails) -> B (skip) -> C (runs!!!)
 
 # default image to use
-image: gcr.io/dbnd-dev-260010/databand/dbnd-ci-default:py36-latest
+image: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci-default:py36-latest
 
 stages:
   - test
@@ -21,7 +21,7 @@ variables:
   # only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
   # Specific images according to a python version
-  DOCKER_IMAGE_CI_PYTEST_PY36: gcr.io/dbnd-dev-260010/databand/dbnd-ci-test:py36-latest
+  DOCKER_IMAGE_CI_PYTEST_PY36: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py36-latest
 
 ### TESTS BASIC
 .template__except_defaults:
