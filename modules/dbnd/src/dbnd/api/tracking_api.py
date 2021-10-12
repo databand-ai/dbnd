@@ -328,12 +328,14 @@ class LogDatasetArgs(object):
     operation_path = attr.ib()  # type: str
     operation_type = attr.ib()  # type: DbndDatasetOperationType
     operation_status = attr.ib()  # type: DbndTargetOperationStatus
-    operation_error = attr.ib()  # type: str
 
     value_preview = attr.ib()  # type: str
     data_dimensions = attr.ib()  # type: Sequence[int]
     data_schema = attr.ib()  # type: str
 
+    operation_error = attr.ib(
+        default=None
+    )  # type: str # default=None :-> for compatibility with SDK < 51.0.0
     timestamp = attr.ib(default=None)  # type: datetime
 
     def asdict(self):
