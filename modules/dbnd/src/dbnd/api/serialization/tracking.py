@@ -160,8 +160,8 @@ class DatasourceMonitorStateSchema(ApiStrictSchema):
     last_transaction_sync_time = fields.DateTime(required=False, allow_none=True)
 
     @post_load
-    def make_object(self, data, **kwargs):
-        return {"monitor_state": DatasourceMonitorState(**data)}
+    def make_object(self, data):
+        return DatasourceMonitorState(**data)
 
 
 # Dataset Objects
@@ -181,6 +181,8 @@ class SyncedDataset(object):
     created_date = attr.ib()  # type: datetime
     last_modified_date = attr.ib()  # type: datetime
     metadata = attr.ib()  # type: SyncedDatasetMetadata
+
+    uid = attr.ib(default=None)  # type: UUID
 
     def as_dict(self):
         return attr.asdict(self)
@@ -210,7 +212,7 @@ class SyncedDatasetMetadataSchema(ApiStrictSchema):
     # TODO: ADD -> Preview
 
     @post_load
-    def make_object(self, data, **kwargs):
+    def make_object(self, data):
         return SyncedDatasetMetadata(**data)
 
 
@@ -221,8 +223,10 @@ class SyncedDatasetSchema(ApiStrictSchema):
 
     metadata = fields.Nested(SyncedDatasetMetadataSchema)
 
+    uid = fields.UUID(allow_none=True)
+
     @post_load
-    def make_object(self, data, **kwargs):
+    def make_object(self, data):
         return SyncedDataset(**data)
 
 
@@ -236,10 +240,8 @@ class DatasetsReportSchema(ApiStrictSchema):
     datasets = fields.Nested(SyncedDatasetSchema, many=True)
 
     @post_load
-    def make_object(self, data, **kwargs):
-        return {
-            "datasets_report": DatasetsReport(**data),
-        }
+    def make_object(self, data):
+        return DatasetsReport(**data)
 
 
 @attr.s
@@ -278,12 +280,13 @@ class SyncedTransaction(object):
 @attr.s
 class SyncedTransactionsReport(object):
     sync_event_uid = attr.ib()  # type: UUID
-    source_type = attr.ib()  # type: str
-    syncer_type = attr.ib()  # type: str
     sync_event_timestamp = attr.ib()  # type: datetime
 
     monitor_state = attr.ib()  # type: DatasourceMonitorStateSchema
     transactions = attr.ib()  # type: List[SyncedTransaction]
+
+    source_type = attr.ib(default=None)  # type: str
+    syncer_type = attr.ib(default=None)  # type: str
 
     def as_dict(self):
         return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
@@ -298,7 +301,7 @@ class SyncedTransactionOperationSchema(ApiStrictSchema):
     dataset_uid = fields.UUID(allow_none=True)
 
     @post_load
-    def make_object(self, data, **kwargs):
+    def make_object(self, data):
         return SyncedTransactionOperation(**data)
 
 
@@ -316,7 +319,7 @@ class SyncedTransactionSchema(ApiStrictSchema):
     query_string = fields.String()
 
     @post_load
-    def make_object(self, data, **kwargs):
+    def make_object(self, data):
         return SyncedTransaction(**data)
 
 
@@ -330,7 +333,5 @@ class SyncedTransactionsReportSchema(ApiStrictSchema):
     transactions = fields.Nested(SyncedTransactionSchema, many=True)
 
     @post_load
-    def make_object(self, data, **kwargs):
-        return {
-            "transactions_report": SyncedTransactionsReport(**data),
-        }
+    def make_object(self, data):
+        return SyncedTransactionsReport(**data)
