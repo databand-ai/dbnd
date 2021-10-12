@@ -1,0 +1,2 @@
+[2020-12-23 15:26:42,895] {databand.DefaultDbndRun} INFO - TASK: task_id=countTracksByArtist
+[2020-12-23 15:26:42,895] {databand.DefaultDbndRun} INFO - TIME: start=2020-12-23T13:26:42.674Z

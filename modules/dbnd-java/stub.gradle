@@ -1,0 +1,16 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'com.github.johnrengelman.shadow'
+
+    test {
+        useJUnitPlatform()
+    }
+
+    configurations.all {
+        exclude group: "junit", module: "junit"
+    }
+}

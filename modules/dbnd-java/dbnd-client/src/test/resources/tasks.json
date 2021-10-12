@@ -1,0 +1,35 @@
+{
+    "task_instances": {
+        "14014aac-852a-8aa7-2cf5-31209dde6e53": {
+            "id": 23,
+            "uid": "14014aac-852a-8aa7-2cf5-31209dde6e53",
+            "name": "loadTracks",
+            "output_signature": "f4ICgava",
+            "task_id": "loadTracks",
+            "task_af_id": "loadTracks",
+            "latest_task_run_attempt_id": 23,
+            "target_date": "2020-05-12",
+            "env": "jvm",
+            "version": "",
+            "state": "success",
+            "task_signature": "f4ICgava",
+            "command_line": "loadTracks",
+            "functional_call": "loadTracks",
+            "is_reused": false,
+            "is_system": false,
+            "is_dynamic": false,
+            "has_downstreams": false,
+            "has_upstreams": false,
+            "run_uid": "9203fd0a-8000-b6ff-9569-80ebdc0371d1",
+            "root_run_uid": "9203fd0a-8000-b6ff-9569-80ebdc0371d1",
+            "reused_job_name": "9203fd0a-8000-b6ff-9569-80ebdc0371d1",
+            "reused_run_uid": null,
+            "reused_task_run_uid": null,
+            "reused_task_state": null,
+            "type": "java",
+            "start_date": "2020-05-12T14:17:26.681000+00:00",
+            "end_date": "2020-05-12T14:17:27.098000+00:00",
+            "task_run_params": []
+        }
+    }
+}
