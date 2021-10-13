@@ -1,0 +1,137 @@
+[
+  {
+    "_id": "6165ac91e1d41e1e63dbb7cf",
+    "index": 0,
+    "guid": "1de07694-24a2-43dc-9169-de178c6f8eea",
+    "isActive": true,
+    "balance": "$1,354.45",
+    "picture": "http://placehold.it/32x32",
+    "age": 20,
+    "eyeColor": "brown",
+    "name": "Mason Arnold",
+    "gender": "male",
+    "company": "ZOMBOID",
+    "email": "masonarnold@zomboid.com",
+    "phone": "+1 (839) 590-2493",
+    "address": "962 Tiffany Place, Sparkill, Alaska, 416",
+    "about": "Aliquip ipsum aute ea et proident cillum. Nisi qui Lorem occaecat consectetur dolore sunt ad pariatur. Adipisicing eu aliqua sint do reprehenderit ex. Sunt amet dolor culpa magna tempor aute eu quis do. Ipsum cupidatat velit velit mollit consectetur nostrud. Qui et consectetur nisi consectetur officia laborum commodo velit occaecat. Enim adipisicing laboris sunt pariatur id ipsum ut laborum tempor aliqua.\r\n",
+    "registered": "2018-05-30T01:25:31 -03:00",
+    "latitude": 57.442431,
+    "longitude": 131.213391,
+    "tags": [
+      "nulla",
+      "id",
+      "est",
+      "voluptate",
+      "amet",
+      "veniam",
+      "in"
+    ],
+    "friends": [
+      {
+        "id": 0,
+        "name": "Miller Cannon"
+      },
+      {
+        "id": 1,
+        "name": "Raquel Barber"
+      },
+      {
+        "id": 2,
+        "name": "Warren Dotson"
+      }
+    ],
+    "greeting": "Hello, Mason Arnold! You have 1 unread messages.",
+    "favoriteFruit": "apple"
+  },
+  {
+    "_id": "6165ac91a020bddbbe38edb0",
+    "index": 1,
+    "guid": "863024c2-6836-4e8d-8c56-2c3c05c15d90",
+    "isActive": false,
+    "balance": "$3,129.02",
+    "picture": "http://placehold.it/32x32",
+    "age": 22,
+    "eyeColor": "green",
+    "name": "Julie Hopkins",
+    "gender": "female",
+    "company": "DATAGENE",
+    "email": "juliehopkins@datagene.com",
+    "phone": "+1 (967) 437-3987",
+    "address": "656 Lynch Street, Winfred, Wisconsin, 2858",
+    "about": "Id est sit duis id nisi labore aute eu. Duis amet quis commodo cupidatat cillum ad. Velit laborum aute nostrud duis. Qui fugiat non occaecat et sit. Eu occaecat ex dolor laborum in ea commodo aliqua elit duis labore.\r\n",
+    "registered": "2019-04-14T11:58:24 -03:00",
+    "latitude": -78.288507,
+    "longitude": 63.175595,
+    "tags": [
+      "id",
+      "aliqua",
+      "dolore",
+      "ipsum",
+      "pariatur",
+      "proident",
+      "non"
+    ],
+    "friends": [
+      {
+        "id": 0,
+        "name": "Santana Fuentes"
+      },
+      {
+        "id": 1,
+        "name": "Dillon Hewitt"
+      },
+      {
+        "id": 2,
+        "name": "Rosario Henson"
+      }
+    ],
+    "greeting": "Hello, Julie Hopkins! You have 7 unread messages.",
+    "favoriteFruit": "strawberry"
+  },
+  {
+    "_id": "6165ac918be4df44f7636adf",
+    "index": 2,
+    "guid": "5f2fb0a2-06fe-4cc9-8868-9a5b41c9d91d",
+    "isActive": false,
+    "balance": "$2,783.65",
+    "picture": "http://placehold.it/32x32",
+    "age": 35,
+    "eyeColor": "brown",
+    "name": "Ana Cohen",
+    "gender": "female",
+    "company": "GEEKFARM",
+    "email": "anacohen@geekfarm.com",
+    "phone": "+1 (802) 520-3032",
+    "address": "123 Lacon Court, Fairmount, North Dakota, 2452",
+    "about": "Est do officia sint eu et aliqua exercitation aliquip pariatur amet consectetur. Ea sunt aliqua ullamco id sunt non sunt. Sint adipisicing elit fugiat laboris laboris tempor consequat aute aliqua consectetur cillum aute ullamco.\r\n",
+    "registered": "2020-11-09T10:18:51 -02:00",
+    "latitude": 25.335817,
+    "longitude": 97.712381,
+    "tags": [
+      "qui",
+      "in",
+      "aliqua",
+      "ea",
+      "aute",
+      "pariatur",
+      "adipisicing"
+    ],
+    "friends": [
+      {
+        "id": 0,
+        "name": "Larson Hammond"
+      },
+      {
+        "id": 1,
+        "name": "Terry Green"
+      },
+      {
+        "id": 2,
+        "name": "Ramos Barrera"
+      }
+    ],
+    "greeting": "Hello, Ana Cohen! You have 4 unread messages.",
+    "favoriteFruit": "strawberry"
+  }
+]
