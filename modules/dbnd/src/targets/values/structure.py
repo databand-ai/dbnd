@@ -15,6 +15,7 @@ from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.traversing import traverse
 from dbnd._vendor.splitter import split_args, unquote
+from targets.value_meta import ValueMeta
 from targets.values.value_type import ValueType
 
 
@@ -263,6 +264,71 @@ class ListValueType(_StructureValueType, Iterable):
 
     config_name = "list"
     support_merge = True  # we know how to merge frames
+
+    def get_value_meta(self, value, meta_conf):
+        # type: (list, ValueMetaConf) -> ValueMeta
+        data_schema = self.get_list_metrics(value, meta_conf)
+        data_dimensions = data_schema.get("shape")
+        if meta_conf.log_size:
+            data_schema["size.bytes"] = value.__sizeof__()
+
+        value_preview, data_hash = None, None
+        if meta_conf.log_preview:
+            value_preview = self.to_preview(
+                value, preview_size=meta_conf.get_preview_size()
+            )
+            try:
+                data_hash = hash(json.dumps(value))
+            except Exception as e:
+                logger.warning("Could not hash list %s! Exception: %s", value, e)
+
+        # calculating stats, metrics and histograms are out of scope at the moment
+        stats, histograms = {}, {}
+        hist_sys_metrics = None
+
+        return ValueMeta(
+            value_preview=value_preview,
+            data_dimensions=data_dimensions,
+            data_schema=data_schema if meta_conf.log_schema else None,
+            data_hash=data_hash,
+            descriptive_stats=stats,
+            histogram_system_metrics=hist_sys_metrics,
+            histograms=histograms,
+        )
+
+    def get_list_metrics(self, value, meta_conf):
+        # type: (list, ValueMetaConf)-> dict
+        """
+           caculates list schema, in case of dict objects aggregate total columns, types and dimension of all objects in list
+
+           """
+        data_schema = {}
+        columns = set()
+        dtypes = {}
+        for obj in value:
+            if isinstance(obj, dict):
+                json_utils.flatten_dict(obj)
+                columns.update(obj.keys())
+                if meta_conf.log_schema:
+                    self.aggregate_object_column_types(dtypes, obj)
+        # sort list of columns to prevent schema order change
+        columns_sort = list(columns)
+        columns_sort.sort()
+        data_schema.update(
+            {
+                "type": self.type_str,
+                "columns": columns_sort,
+                "shape": (len(value), len(columns)),
+                "dtypes": dtypes,
+            }
+        )
+        return data_schema
+
+    def aggregate_object_column_types(self, dtypes: dict, json_object: dict):
+        for key, val in json_object.items():
+            value_type = str(type(val))
+            if key not in dtypes or val is not None:
+                dtypes[key] = value_type
 
     def _generate_empty_default(self):
         return list()

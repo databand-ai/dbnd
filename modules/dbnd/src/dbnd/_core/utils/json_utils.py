@@ -120,3 +120,34 @@ def dumps_safe(
 
 def convert_to_safe_types(obj):
     return loads(dumps_safe(obj))
+
+
+def flatten_dict(json_input: dict) -> dict:
+    """
+       Flatten nested json dict to 1 level dict
+       list values will no further drilled down
+
+        Example input: {"attribute":"value","object_array":[{"attribute":1},{"attribute":2}],"some_nested_object":{"nested_attribute":"nested_value"}}
+        output: {"attribute":"value","object_array":"[{'attribute': 1}, {'attribute': 2}]","some_nested_object.nested_attribute":"nested_value"}
+       """
+    json_output = {}
+
+    def flatten(value, name=""):
+
+        # If the Nested key-value
+        # pair is of dict type
+        if isinstance(value, dict):
+
+            for key, val in value.items():
+                flatten(val, f"{name}{key}.")
+
+        # If the Nested key-value
+        # pair is of list type, column value = stringify json and no further drill down
+        elif isinstance(value, list):
+            json_output[name[:-1]] = json.dumps(value)
+
+        else:
+            json_output[name[:-1]] = value
+
+    flatten(json_input)
+    return json_output
