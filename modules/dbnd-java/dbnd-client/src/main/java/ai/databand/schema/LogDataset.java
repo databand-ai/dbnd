@@ -11,6 +11,7 @@ public class LogDataset {
     private final String operationPath;
     private final String operationType;
     private final String operationStatus;
+    private final String operationError;
     private final String valuePreview;
     private final List<Long> dataDimensions;
     private final Object dataSchema;
@@ -19,6 +20,7 @@ public class LogDataset {
                       String operationPath,
                       DatasetOperationType operationType,
                       DatasetOperationStatus operationStatus,
+                      String operationError,
                       String valuePreview,
                       List<Long> dataDimensions,
                       Object dataSchema) {
@@ -30,6 +32,7 @@ public class LogDataset {
             operationPath,
             operationType,
             operationStatus,
+            operationError,
             valuePreview,
             dataDimensions,
             dataSchema
@@ -43,6 +46,7 @@ public class LogDataset {
                       String operationPath,
                       DatasetOperationType operationType,
                       DatasetOperationStatus operationStatus,
+                      String operationError,
                       String valuePreview,
                       List<Long> dataDimensions,
                       Object dataSchema) {
@@ -53,6 +57,7 @@ public class LogDataset {
         this.operationPath = operationPath;
         this.operationType = operationType.toString();
         this.operationStatus = operationStatus.toString();
+        this.operationError = operationError;
         this.valuePreview = valuePreview;
         this.dataDimensions = dataDimensions;
         this.dataSchema = dataSchema;
@@ -84,6 +89,10 @@ public class LogDataset {
 
     public String getOperationStatus() {
         return operationStatus;
+    }
+
+    public String getOperationError() {
+        return operationError;
     }
 
     public String getValuePreview() {

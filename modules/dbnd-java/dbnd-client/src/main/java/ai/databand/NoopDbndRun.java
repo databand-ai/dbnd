@@ -66,6 +66,7 @@ public class NoopDbndRun implements DbndRun {
     public void logDatasetOperation(String path,
                                     DatasetOperationType type,
                                     DatasetOperationStatus status,
+                                    String error,
                                     String valuePreview,
                                     List<Long> dataDimensions,
                                     Object dataSchema) {
@@ -77,6 +78,7 @@ public class NoopDbndRun implements DbndRun {
                                     DatasetOperationType type,
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
+                                    Throwable error,
                                     boolean withPreview,
                                     boolean withSchema) {
         // do nothing

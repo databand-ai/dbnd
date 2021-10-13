@@ -102,6 +102,28 @@ public class DbndLogger {
     }
 
     /**
+     * Report dataset operation and error operation if occurred. Schema and preview will automatically be calculated.
+     *
+     * @param path   data path (S3, filesystem, GCS etc)
+     * @param type   operation type — read/write
+     * @param status operation status — success/failure
+     * @param data   spark dataset
+     * @param error  error when operation was failed
+     */
+    public static void logDatasetOperation(String path,
+                                           DatasetOperationType type,
+                                           DatasetOperationStatus status,
+                                           Dataset<?> data,
+                                           Throwable error) {
+        try {
+            DbndWrapper.instance().logDatasetOperation(path, type, status, data, error, true, true);
+        } catch (Throwable e) {
+            System.out.println("DbndLogger: Unable to log dataset operation");
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Report dataset operation. Schema will be automatically calculated.
      *
      * @param path        data path (S3, filesystem, GCS etc)

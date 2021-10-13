@@ -99,6 +99,7 @@ public interface DbndRun {
                              DatasetOperationType operationType,
                              DatasetOperationStatus operationStatus,
                              String valuePreview,
+                             String error,
                              List<Long> dataDimensions,
                              Object dataSchema);
 
@@ -116,6 +117,7 @@ public interface DbndRun {
                              DatasetOperationType type,
                              DatasetOperationStatus status,
                              Dataset<?> data,
+                             Throwable error,
                              boolean withPreview,
                              boolean withSchema);
 
