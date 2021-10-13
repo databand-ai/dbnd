@@ -623,6 +623,7 @@ public class DefaultDbndRun implements DbndRun {
     public void logDatasetOperation(String path,
                                     DatasetOperationType type,
                                     DatasetOperationStatus status,
+                                    String error,
                                     String valuePreview,
                                     List<Long> dataDimensions,
                                     Object dataSchema) {
@@ -637,6 +638,7 @@ public class DefaultDbndRun implements DbndRun {
                     path,
                     type,
                     status,
+                    error,
                     valuePreview,
                     dataDimensions,
                     dataSchema
@@ -652,10 +654,19 @@ public class DefaultDbndRun implements DbndRun {
                                     DatasetOperationType type,
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
+                                    Throwable error,
                                     boolean withPreview,
                                     boolean withSchema) {
         TaskParameterPreview preview = withSchema ? new DatasetOperationPreview() : new NullPreview();
-        logDatasetOperation(path, type, status, preview.full(data), preview.dimensions(data), preview.schema(data));
+        String errorStr = null;
+        if (error != null) {
+            StringWriter sw = new StringWriter();
+            try (PrintWriter pw = new PrintWriter(sw)) {
+                error.printStackTrace(pw);
+                errorStr = sw.toString();
+            }
+        }
+        logDatasetOperation(path, type, status, errorStr, preview.full(data), preview.dimensions(data), preview.schema(data));
     }
 
     public void logMetric(TaskRun taskRun, String key, Object value, String source) {

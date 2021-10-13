@@ -210,13 +210,27 @@ public class DbndWrapper {
                                     DatasetOperationType type,
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
+                                    Throwable error,
                                     boolean withPreview,
                                     boolean withSchema) {
         DbndRun run = currentRun();
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, data, withPreview, withSchema);
+        run.logDatasetOperation(path, type, status, data, error, withPreview, withSchema);
+    }
+
+    public void logDatasetOperation(String path,
+                                    DatasetOperationType type,
+                                    DatasetOperationStatus status,
+                                    Dataset<?> data,
+                                    boolean withPreview,
+                                    boolean withSchema) {
+        DbndRun run = currentRun();
+        if (run == null) {
+            run = createAgentlessRun();
+        }
+        run.logDatasetOperation(path, type, status, data, null, withPreview, withSchema);
     }
 
     public void logDatasetOperation(String path,
@@ -229,7 +243,7 @@ public class DbndWrapper {
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, valuePreview, dataDimensions, dataSchema);
+        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema);
     }
 
     public void logMetrics(Map<String, Object> metrics) {

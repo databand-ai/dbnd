@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class DatasetOperationRes {
 
     private String latestOperationStatus;
+    private String latestOperationError;
     private long records;
     private long operations;
     private String datasetPath;
@@ -19,6 +20,14 @@ public class DatasetOperationRes {
 
     public void setLatestOperationStatus(String latestOperationStatus) {
         this.latestOperationStatus = latestOperationStatus;
+    }
+
+    public String getLatestOperationError() {
+        return latestOperationError;
+    }
+
+    public void setLatestOperationError(String latestOperationError) {
+        this.latestOperationError = latestOperationError;
     }
 
     public long getRecords() {
