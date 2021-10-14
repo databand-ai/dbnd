@@ -33,6 +33,7 @@ DEFAULT_SESSION_TIMEOUT_IN_MINUTES = 5
 logger = logging.getLogger(__name__)
 
 
+# If you modify the values here, make sure to modify AIRFLOW_API_MODE_VALUES in airflow_servers_api in dbnd-web
 AIRFLOW_API_MODE_TO_SUFFIX = {
     "flask-admin": "/admin/data_export_plugin",
     "rbac": "/exportdataviewappbuilder",
