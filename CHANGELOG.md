@@ -1,5 +1,27 @@
 # History
 
+## DBND v 0.51.0
+
+### New features
+* \#1200949438035921: Metric view now includes dataset read and write metrics.
+* \#1200944564541400: You can enable Status Alerts on pipelines and sub-pipelines.
+
+### Improvements
+* \#1200766175220433: Added time picker to the Overview section of the Datasets tab.
+* \#1200768017051953: Introduced empty states for Affected Datasets.
+* \#1200834591237808: Added Record columns to the list of operations in Affected Datasets.
+* \#1200964446833790: Both future and past Runs are shown in the operation's volume history in Affected Datasets.
+* \#1200565098066843: Both future and past Runs are shown in the records’ history overview chart in Affected Datasets.
+
+### Bug fixes
+* \#1201110693029252: Failed operations no longer falsely marked as "Successful" in Affected Datasets.
+* \#1201133337683376: When alerts are fired on missing data, the issue is listed in the Affected Datasets section as it should be.
+* \#1201133337683372: Data operations are properly displayed in Affected Datasets.
+* \#1201110693029259: Charts in Dataset Overview include no "Failed" operations or transactions now.
+* \#1201110693029254: Fixed the issue with record count that falsely displayed 0 records.
+
+Note: Starting from version 0.51, a pipeline that contains a failed task will be marked as "failed". Previously, the pipeline status would be marked as "upstream failed".
+
 ## DBND v 0.50.0
 
 ### New features
