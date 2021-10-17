@@ -164,12 +164,23 @@ class TaskRunState(EnumWithAll):
 
     def is_after(self, old_state):
         # type: (TaskRunState) -> bool
+        # Verify, in case of a race condition that we select the most recent state
         ORDER_MAP = {
             TaskRunState.SCHEDULED: 1,
             TaskRunState.QUEUED: 2,
             TaskRunState.RUNNING: 3,
         }
-        return ORDER_MAP.get(self, 4) > ORDER_MAP.get(old_state, 4)
+        new_state_order = ORDER_MAP.get(self, 4)
+        old_state_order = ORDER_MAP.get(old_state, 4)
+
+        if new_state_order > old_state_order:
+            return True
+
+        # A change in the UI, mark as success or mark as failed
+        return (
+            new_state_order in (TaskRunState.FAILED, TaskRunState.SUCCESS)
+            and self != old_state
+        )
 
 
 REUSED = "reused"
