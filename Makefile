@@ -157,8 +157,45 @@ clean-python:  ## Remove bulid artifacts.
 ##@ Development
 .PHONY: install-dev
 
+CURRENT_PY_VERSION = $(shell python -c "import sys; print('{0}{1}'.format(*sys.version_info[:2]))")
+VENV_TARGET ?= dbnd-core
+VENV_TARGET_NAME ?= venv-${VENV_TARGET}-py${CURRENT_PY_VERSION}
+
+create-venv:  ## Create virtual env for dbnd-core
+	@echo 'Virtual env "${VENV_TARGET_NAME}" with python version from a current shell is going to be created'
+	@echo "Current python version: "
+	@python -c "import sys; print(sys.version)"
+	@read -p "Are you sure you want to proceed? " -n 1 -r; [[ "Yy" != *"$$REPLY"* ]] && exit 1; echo;
+	pyenv virtualenv ${VENV_TARGET_NAME}
+
+__is_venv_activated:  ## (Hidden target) check if correct virtual env is activated
+	@export CURRENT_VENV_NAME=$$(basename ${VIRTUAL_ENV}); \
+	if [[ "$$CURRENT_VENV_NAME" != *"${VENV_TARGET}"* ]]; \
+	then \
+		if [[ -z "${VIRTUAL_ENV}" ]]; \
+		then \
+			echo "Virtual env is not activated, activate ${VENV_TARGET_NAME}"; \
+		else \
+			echo "Looks like wrong virtual env is activated, ${VENV_TARGET_NAME} is expected"; \
+		fi; \
+		\
+		read -p "Are you sure you want to proceed? " -n 1 -r; \
+		[[ "Yy" != *"$$REPLY"* ]] && exit 1; \
+	fi; \
+	echo; \
+	echo Virtual env check passed, current venv is $$CURRENT_VENV_NAME
+
+
 install-dev: ## Install all modules in editable mode to the active Python's site-packages.
+	@make __is_venv_activated
+	make __uninstall-dev
+	pip install -U pip
+
 	for m in $(prj_dev) ; do \
 		echo "Installing '$$m'..." ;\
 		(cd $$m && pip install -e .) ;\
 	done
+
+__uninstall-dev:  ## (Hidden target) Remove all dbnd modules from the current virtual environment.
+	pip uninstall databand -y || true
+	pip freeze | grep "dbnd" | egrep -o '#egg=dbnd[a-z_]*' | egrep -o 'dbnd[a-z_]*' | xargs pip uninstall -y
