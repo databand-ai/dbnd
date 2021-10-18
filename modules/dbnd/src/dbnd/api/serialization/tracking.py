@@ -56,7 +56,7 @@ class DagSchema(ApiStrictSchema):
     owner = fields.String()
     dag_id = fields.String()
     schedule_interval = fields.String()
-    catchup = fields.Boolean()
+    catchup = fields.Boolean(allow_none=True)
     start_date = fields.DateTime(allow_none=True)
     end_date = fields.DateTime(allow_none=True)
     is_committed = fields.Boolean()
