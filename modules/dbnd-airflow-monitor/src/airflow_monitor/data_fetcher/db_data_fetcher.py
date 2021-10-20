@@ -35,6 +35,7 @@ class DbFetcher(AirflowDataFetcher):
         # It's important to do this import to prevent import issues
         import airflow
         from sqlalchemy import create_engine
+        from dbnd_airflow.export_plugin.smart_dagbag import SmartDagBag
 
         self.dag_folder = config.local_dag_folder
         self.sql_conn_string = config.sql_alchemy_conn
@@ -44,6 +45,7 @@ class DbFetcher(AirflowDataFetcher):
         self._engine = None
         self._session = None
         self._dagbag = None
+        self._smart_dagbag = SmartDagBag()
 
     @contextlib.contextmanager
     def _get_session(self):
@@ -70,25 +72,6 @@ class DbFetcher(AirflowDataFetcher):
         except Exception:
             session.rollback()
             raise
-
-    def _get_dagbag(self):
-        if not self._dagbag:
-            from airflow import models, settings
-
-            if hasattr(settings, "STORE_SERIALIZED_DAGS"):
-                from airflow.settings import STORE_SERIALIZED_DAGS
-
-                self._dagbag = models.DagBag(
-                    self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
-                    include_examples=True,
-                    store_serialized_dags=STORE_SERIALIZED_DAGS,
-                )
-            else:
-                self._dagbag = models.DagBag(
-                    self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
-                    include_examples=True,
-                )
-        return self._dagbag
 
     def get_last_seen_values(self) -> LastSeenValues:
         from dbnd_airflow.export_plugin.api_functions import get_last_seen_values
@@ -129,10 +112,13 @@ class DbFetcher(AirflowDataFetcher):
         from dbnd_airflow.export_plugin.api_functions import get_full_dag_runs
 
         with self._get_session() as session:
+            self._dagbag = self._smart_dagbag.get_dagbag(
+                dag_run_ids, self._dagbag, session
+            )
             data = get_full_dag_runs(
                 dag_run_ids=dag_run_ids,
                 include_sources=include_sources,
-                airflow_dagbag=self._get_dagbag(),
+                airflow_dagbag=self._dagbag,
                 session=session,
             )
 
