@@ -27,13 +27,12 @@ class TestFetchFullRuns(object):
         from dbnd_airflow.export_plugin.api_functions import get_full_dag_runs
 
         dag_run_ids = [1, 2, 3]
-        airflow_dagbag = None
-        from dbnd_airflow.export_plugin.smart_dagbag import SmartDagBag
+        from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
 
-        smart_dagbag = SmartDagBag()
-        airflow_dagbag = self.get_dagbag(dag_run_ids, smart_dagbag, airflow_dagbag)
+        dbnd_dag_loader = DbndDagLoader()
+        dbnd_dag_loader.load_dags_for_runs(dag_run_ids)
 
-        result = get_full_dag_runs(dag_run_ids, True, airflow_dagbag)
+        result = get_full_dag_runs(dag_run_ids, True, dag_loader=dbnd_dag_loader)
         self.validate_result(result, 0, 0, 0)
 
     def test_02_get_task_instances(self):
@@ -43,13 +42,12 @@ class TestFetchFullRuns(object):
         insert_dag_runs(dag_runs_count=3, task_instances_per_run=3)
 
         dag_run_ids = [1, 2, 3]
-        airflow_dagbag = None
-        from dbnd_airflow.export_plugin.smart_dagbag import SmartDagBag
+        from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
 
-        smart_dagbag = SmartDagBag()
-        airflow_dagbag = self.get_dagbag(dag_run_ids, smart_dagbag, airflow_dagbag)
+        dbnd_dag_loader = DbndDagLoader()
+        dbnd_dag_loader.load_dags_for_runs(dag_run_ids)
 
-        result = get_full_dag_runs(dag_run_ids, True, airflow_dagbag)
+        result = get_full_dag_runs(dag_run_ids, True, dbnd_dag_loader)
         self.validate_result(result, 1, 3, 9)
 
     def test_03_sync_no_sources(self):
@@ -59,13 +57,12 @@ class TestFetchFullRuns(object):
         insert_dag_runs(dag_runs_count=3, task_instances_per_run=3)
 
         dag_run_ids = [1, 2, 3]
-        airflow_dagbag = None
-        from dbnd_airflow.export_plugin.smart_dagbag import SmartDagBag
+        from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
 
-        smart_dagbag = SmartDagBag()
-        airflow_dagbag = self.get_dagbag(dag_run_ids, smart_dagbag, airflow_dagbag)
+        dbnd_dag_loader = DbndDagLoader()
+        dbnd_dag_loader.load_dags_for_runs(dag_run_ids)
 
-        result = get_full_dag_runs(dag_run_ids, False, airflow_dagbag)
+        result = get_full_dag_runs(dag_run_ids, False, dag_loader=dbnd_dag_loader)
         self.validate_result(result, 1, 3, 9)
         for dag in result.dags:
             assert not dag.source_code
@@ -95,24 +92,26 @@ class TestFetchFullRuns(object):
             dag_runs_count=1, task_instances_per_run=3, dag_id="plugin_test_dag_6"
         )
 
-        airflow_dagbag = None
-        from dbnd_airflow.export_plugin.smart_dagbag import SmartDagBag
+        from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
 
-        smart_dagbag = SmartDagBag()
+        dbnd_dag_loader = DbndDagLoader()
+        dbnd_dag_loader.load_dags_for_runs([1, 2])
+        actual_ids = {d.dag_id for d in dbnd_dag_loader.get_dags().values()}
+        assert actual_ids == {"plugin_test_dag_1", "plugin_test_dag_2"}
 
-        airflow_dagbag = self.get_dagbag([1, 2], smart_dagbag, airflow_dagbag)
-        assert set(airflow_dagbag.dag_ids) == {"plugin_test_dag_1", "plugin_test_dag_2"}
-
-        airflow_dagbag = self.get_dagbag([3, 4], smart_dagbag, airflow_dagbag)
-        assert set(airflow_dagbag.dag_ids) == {
+        dbnd_dag_loader.load_dags_for_runs([3, 4])
+        actual_ids = {d.dag_id for d in dbnd_dag_loader.get_dags().values()}
+        assert actual_ids == {
             "plugin_test_dag_1",
             "plugin_test_dag_2",
             "plugin_test_dag_3",
             "plugin_test_dag_4",
         }
 
-        airflow_dagbag = self.get_dagbag([5, 6], smart_dagbag, airflow_dagbag)
-        assert set(airflow_dagbag.dag_ids) == {
+        dbnd_dag_loader.load_dags_for_runs([5, 6])
+
+        actual_ids = {d.dag_id for d in dbnd_dag_loader.get_dags().values()}
+        assert actual_ids == {
             "plugin_test_dag_1",
             "plugin_test_dag_2",
             "plugin_test_dag_3",

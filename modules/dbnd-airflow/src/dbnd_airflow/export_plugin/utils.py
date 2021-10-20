@@ -29,15 +29,3 @@ def json_response(obj):
 
 
 AIRFLOW_VERSION_2 = LooseVersion(airflow.version.version) >= LooseVersion("2.0.0")
-
-
-def get_dagbag_model():
-    if AIRFLOW_VERSION_2:
-        from airflow.models.dagbag import DagBag
-
-        dagbag = DagBag()
-    elif airflow.settings.RBAC:
-        from airflow.www_rbac.views import dagbag
-    else:
-        from airflow.www.views import dagbag
-    return dagbag

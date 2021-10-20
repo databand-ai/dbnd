@@ -1,5 +1,7 @@
 import logging
 
+import airflow.settings
+
 from airflow.models import DagModel
 from airflow.utils.db import provide_session
 from sqlalchemy.orm import joinedload
@@ -12,14 +14,13 @@ from dbnd_airflow.export_plugin.models import EDag
 
 logger = logging.getLogger(__name__)
 
-
 current_dags = {}
 
 
 @save_result_size("dags")
 @measure_time
 def get_dags(
-    dagbag, include_task_args, dag_ids, raw_data_only=False, include_sources=True
+    dag_loader, include_task_args, dag_ids, raw_data_only=False, include_sources=True
 ):
     dag_models = [d for d in current_dags.values() if d]
     if dag_ids is not None:
@@ -27,37 +28,25 @@ def get_dags(
 
     number_of_dags_not_in_dag_bag = 0
     dags_list = []
-    git_commit, is_committed = _get_git_status(dagbag.dag_folder)
+
+    git_commit, is_committed = _get_git_status(airflow.settings.DAGS_FOLDER)
 
     for dag_model in dag_models:
-        try:
-            dag_from_dag_bag = dagbag.get_dag(dag_model.dag_id)
-        except Exception:
-            logger.debug("DAG %s not in a dagbag", dag_model.dag_id)
-            dag_from_dag_bag = None
+        dag_from_dag_bag = dag_loader.get_dag(dag_model.dag_id)
 
-        if dag_from_dag_bag:
-            dag = EDag.from_dag(
-                dag_from_dag_bag,
-                dag_model,
-                dagbag.dag_folder,
-                include_task_args,
-                git_commit,
-                is_committed,
-                raw_data_only,
-                include_sources,
-            )
-        else:
-            dag = EDag.from_dag(
-                dag_model,
-                dag_model,
-                dagbag.dag_folder,
-                include_task_args,
-                git_commit,
-                is_committed,
-                raw_data_only,
-                include_sources,
-            )
+        dag = EDag.from_dag(
+            # ATTENTION, we use different object types for the same field
+            dag=dag_from_dag_bag or dag_model,
+            dm=dag_model,
+            dag_folder=airflow.settings.DAGS_FOLDER,
+            include_task_args=include_task_args,
+            git_commit=git_commit,
+            is_committed=is_committed,
+            raw_data_only=raw_data_only,
+            include_source=include_sources,
+        )
+
+        if not dag_from_dag_bag:
             number_of_dags_not_in_dag_bag += 1
         dags_list.append(dag)
 
