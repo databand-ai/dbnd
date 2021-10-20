@@ -307,10 +307,10 @@ class ListValueType(_StructureValueType, Iterable):
         dtypes = {}
         for obj in value:
             if isinstance(obj, dict):
-                json_utils.flatten_dict(obj)
-                columns.update(obj.keys())
+                flat_obj = json_utils.flatten_dict(obj)
+                columns.update(flat_obj.keys(), obj.keys())
                 if meta_conf.log_schema:
-                    self.aggregate_object_column_types(dtypes, obj)
+                    self.aggregate_object_column_types(dtypes, flat_obj, obj)
         # sort list of columns to prevent schema order change
         columns_sort = list(columns)
         columns_sort.sort()
@@ -324,11 +324,16 @@ class ListValueType(_StructureValueType, Iterable):
         )
         return data_schema
 
-    def aggregate_object_column_types(self, dtypes: dict, json_object: dict):
-        for key, val in json_object.items():
-            value_type = str(type(val))
+    def aggregate_object_column_types(
+        self, dtypes: dict, flat_obj: dict, orig_obj: dict
+    ):
+        for key, val in flat_obj.items():
             if key not in dtypes or val is not None:
-                dtypes[key] = value_type
+                dtypes[key] = str(type(val))
+        # add types of nested fields from original object
+        for key, val in orig_obj.items():
+            if isinstance(val, (list, dict)):
+                dtypes[key] = str(type(val))
 
     def _generate_empty_default(self):
         return list()
