@@ -31,7 +31,8 @@ from dbnd_airflow.export_plugin.queries import (
     find_max_log_run_id,
     find_new_dag_runs,
 )
-from dbnd_airflow.export_plugin.utils import get_dagbag_model
+from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
+from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
 
 
 logger = logging.getLogger(__name__)
@@ -146,11 +147,31 @@ def get_new_dag_runs(
 
 @safe_rich_result
 @provide_session
-def get_full_dag_runs(dag_run_ids, include_sources, airflow_dagbag=None, session=None):
-    if airflow_dagbag:
-        dagbag = airflow_dagbag
+def get_full_dag_runs_for_plugin(dag_run_ids, include_sources, session=None):
+    dbnd_dag_loader = DbndDagLoader()
+    if AIRFLOW_VERSION_2:
+        dbnd_dag_loader.load_dags_for_runs(dag_run_ids=dag_run_ids, session=session)
     else:
-        dagbag = get_dagbag_model()
+        import airflow
+
+        if airflow.settings.RBAC:
+            from airflow.www_rbac.views import dagbag
+        else:
+            from airflow.www.views import dagbag
+        # this is preloaded dagbag, we are in UI context, dagbag is global variable which is loaded
+        # we "load" all dags from the dagbag directly into DagLoader
+        dbnd_dag_loader.load_from_dag_bag(dagbag)
+
+    return get_full_dag_runs(
+        dag_run_ids=dag_run_ids,
+        include_sources=include_sources,
+        dag_loader=dbnd_dag_loader,
+    )
+
+
+@safe_rich_result
+@provide_session
+def get_full_dag_runs(dag_run_ids, include_sources, dag_loader, session=None):
 
     old_get_current_dag = DagModel.get_current
     try:
@@ -158,7 +179,7 @@ def get_full_dag_runs(dag_run_ids, include_sources, airflow_dagbag=None, session
         load_dags_models(session)
         task_instances, dag_runs = find_full_dag_runs(dag_run_ids, session)
         dag_ids = set(run.dag_id for run in dag_runs)
-        dags = get_dags(dagbag, True, dag_ids, False, include_sources)
+        dags = get_dags(dag_loader, True, dag_ids, False, include_sources)
         full_runs = FullRunsData(
             task_instances=task_instances, dag_runs=dag_runs, dags=dags
         )
