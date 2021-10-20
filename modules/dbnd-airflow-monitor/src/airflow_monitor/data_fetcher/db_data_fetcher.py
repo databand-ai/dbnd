@@ -44,8 +44,6 @@ class DbFetcher(AirflowDataFetcher):
         self._engine = None
         self._session = None
         self._dagbag = None
-        self._existing_file_paths = set()
-        self._safe_mode = True
 
     @contextlib.contextmanager
     def _get_session(self):
@@ -73,38 +71,24 @@ class DbFetcher(AirflowDataFetcher):
             session.rollback()
             raise
 
-    def _get_dagbag(self, dags_file_paths, dag_bag=None):
-        if not dag_bag:
-            from airflow.configuration import conf
-
-            self._safe_mode = conf.getboolean("core", "DAG_DISCOVERY_SAFE_MODE")
-
-            from tempfile import mkdtemp
-
-            tmp_dir = mkdtemp()
-
+    def _get_dagbag(self):
+        if not self._dagbag:
             from airflow import models, settings
 
             if hasattr(settings, "STORE_SERIALIZED_DAGS"):
                 from airflow.settings import STORE_SERIALIZED_DAGS
 
-                dag_bag = models.DagBag(
-                    tmp_dir,
-                    include_examples=False,
+                self._dagbag = models.DagBag(
+                    self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
+                    include_examples=True,
                     store_serialized_dags=STORE_SERIALIZED_DAGS,
                 )
             else:
-                dag_bag = models.DagBag(tmp_dir, include_examples=False)
-
-        for file_path in dags_file_paths:
-            if file_path not in self._existing_file_paths:
-                dag_bag.collect_dags(
-                    file_path, include_examples=False, safe_mode=self._safe_mode
+                self._dagbag = models.DagBag(
+                    self.dag_folder if self.dag_folder else settings.DAGS_FOLDER,
+                    include_examples=True,
                 )
-
-        self._existing_file_paths.update(dags_file_paths)
-
-        return dag_bag
+        return self._dagbag
 
     def get_last_seen_values(self) -> LastSeenValues:
         from dbnd_airflow.export_plugin.api_functions import get_last_seen_values
@@ -139,37 +123,16 @@ class DbFetcher(AirflowDataFetcher):
         self._on_data_received(json_data, "get_airflow_dagruns_to_sync")
         return AirflowDagRunsResponse.from_dict(json_data)
 
-    def _get_dag_ids(self, dag_run_ids, session):
-        from airflow.models import DagRun
-
-        result = session.query(DagRun.dag_id).filter(DagRun.id.in_(dag_run_ids)).all()
-        dag_ids = set([r[0] for r in result])
-
-        return dag_ids
-
-    def _get_dag_files_paths(self, dag_ids, session):
-        from airflow.models import DagModel
-
-        result = (
-            session.query(DagModel.fileloc).filter(DagModel.dag_id.in_(dag_ids)).all()
-        )
-        paths = set([r[0] for r in result])
-
-        return paths
-
     def get_full_dag_runs(
         self, dag_run_ids: List[int], include_sources: bool
     ) -> DagRunsFullData:
         from dbnd_airflow.export_plugin.api_functions import get_full_dag_runs
 
         with self._get_session() as session:
-            dag_ids = self._get_dag_ids(dag_run_ids, session)
-            dag_files_paths = self._get_dag_files_paths(dag_ids, session)
-            self._dagbag = self._get_dagbag(dag_files_paths, self._dagbag)
             data = get_full_dag_runs(
                 dag_run_ids=dag_run_ids,
                 include_sources=include_sources,
-                airflow_dagbag=self._dagbag,
+                airflow_dagbag=self._get_dagbag(),
                 session=session,
             )
 
