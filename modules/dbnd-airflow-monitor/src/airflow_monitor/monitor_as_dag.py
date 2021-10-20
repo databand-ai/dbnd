@@ -1,5 +1,8 @@
+import contextlib
 import logging
 import os
+import threading
+import time
 
 from datetime import timedelta
 
@@ -9,9 +12,12 @@ from airflow.models import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.utils.dates import days_ago
 
+import psutil
+
 
 CHECK_INTERVAL = 10
 AUTO_RESTART_TIMEOUT = 30 * 60
+MEMORY_LIMIT = 8 * 1024 * 1024 * 1024
 
 FORCE_RESTART_TIMEOUT = timedelta(seconds=AUTO_RESTART_TIMEOUT + 5 * 60)
 LOG_LEVEL = "WARN"
@@ -26,10 +32,26 @@ args = {
 
 
 class MonitorOperator(BashOperator):
-    def __init__(self, databand_airflow_conn_id, log_level, **kwargs):
+    def __init__(
+        self,
+        databand_airflow_conn_id,
+        log_level,
+        custom_env=None,
+        guard_memory=None,
+        **kwargs
+    ):
         super().__init__(**kwargs)
         self.databand_airflow_conn_id = databand_airflow_conn_id
         self.log_level = log_level
+        self.custom_env = custom_env
+        self.guard_memory = guard_memory
+
+    def execute(self, context):
+
+        with start_guard_thread(self.guard_memory):
+            if self.custom_env:
+                self.env.update(self.custom_env)
+            return super(MonitorOperator, self).execute(context)
 
     def pre_execute(self, context):
         dbnd_conn_config = BaseHook.get_connection(self.databand_airflow_conn_id)
@@ -74,23 +96,94 @@ class MonitorOperator(BashOperator):
         return {k.upper(): str(v) for k, v in d.items()}
 
 
+def kill_processes(processes):
+    logger.fatal("Memory usage went over limit, killing")
+    for process in reversed(processes):
+        try:
+            logger.fatal("killing %s", process.pid)
+            process.kill()
+        except Exception as e:
+            logger.fatal("Error while killing process %s", process.pid, exc_info=True)
+
+
+def _check_memory_usage():
+    current_process = psutil.Process(os.getpid())
+    current_process_memory = current_process.memory_full_info()
+    total_usage = current_process_memory.rss
+    logger.info(
+        "Current process %s (%s) usage: %s",
+        current_process.pid,
+        current_process.name(),
+        current_process_memory,
+    )
+
+    children = current_process.children(recursive=True)
+    for child in children:
+        child_memory = child.memory_full_info()
+        total_usage += child_memory.rss
+        logger.info(
+            "Child process %s (%s) usage: %s", child.pid, child.name(), child_memory,
+        )
+    logger.info("Total memory usage: %s mb", int(total_usage / 1024 / 1024))
+    return children, total_usage
+
+
+@contextlib.contextmanager
+def start_guard_thread(memory_guard_limit, guard_sleep=10):
+    should_stop = False
+
+    def memory_guard():
+        logger.info(
+            "Running memory guard with the limit=%s, checking every %s seconds",
+            memory_guard_limit,
+            guard_sleep,
+        )
+        while not should_stop:
+            try:
+                processe, total_usage = _check_memory_usage()
+                if memory_guard_limit and total_usage > memory_guard_limit:
+                    kill_processes(processe)
+                    return
+            except Exception:
+                logger.exception(
+                    "Failed to run memory guard with limit=%s", memory_guard_limit
+                )
+                return
+            time.sleep(guard_sleep)
+
+    t = threading.Thread(target=memory_guard)
+    try:
+        t.start()
+        yield
+    finally:
+        should_stop = True
+        logger.info("Finalizing memory guard thread, waiting 15 seconds")
+        t.join(timeout=15)
+
+
 def get_monitor_dag(
+    dag_id="databand_airflow_monitor",
     check_interval=CHECK_INTERVAL,
     auto_restart_timeout=AUTO_RESTART_TIMEOUT,
     force_restart_timeout=FORCE_RESTART_TIMEOUT,
     databand_airflow_conn_id=DATABAND_AIRFLOW_CONN_ID,
+    monitor_env=None,
+    guard_memory=MEMORY_LIMIT,
     log_level=LOG_LEVEL,
 ):
     """
+    @param dag_id: Name of Databand sync dag - default is "databand_airflow_monitor"
     @param check_interval: Sleep time (in seconds) between sync iterations
     @param auto_restart_timeout: Restart after this number of seconds
     @param force_restart_timeout: We're using FORCE_RESTART_TIMEOUT as backup mechanism for the case monitor is stuck for some reason.
     Normally it should auto-restart by itself after AUTO_RESTART_TIMEOUT, but in case it's not - we'd like to kill it.
     @param databand_airflow_conn_id: Name of databand connection in Airflow connections
+    @param monitor_env: Custom Monitor Operator environment (use it to override DBND settings)
+    @param guard_memory: Limit of memory used by monitor process (bytes, disabled if None)
     @param log_level: Dbnd log level
     """
     dag = DAG(
-        dag_id="databand_airflow_monitor",
+        dag_id=dag_id,
         default_args=args,
         schedule_interval="* * * * *",
         dagrun_timeout=None,
@@ -117,6 +210,8 @@ def get_monitor_dag(
             retry_exponential_backoff=False,
             max_retry_delay=timedelta(seconds=1),
             execution_timeout=force_restart_timeout,
+            custom_env=monitor_env,
+            guard_memory=guard_memory,
         )
 
     return dag
