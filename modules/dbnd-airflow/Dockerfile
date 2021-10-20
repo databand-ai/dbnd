@@ -32,7 +32,7 @@ COPY ./dist/databand-*.whl \
     ./dist/dbnd-*.whl \
     /dist/
 
-ARG DBND_VERSION=0.51.0
+ARG DBND_VERSION=0.51.1
 
 RUN pip install databand==$DBND_VERSION --user --find-links /dist/
 RUN touch project.cfg
