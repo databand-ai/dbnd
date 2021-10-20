@@ -35,7 +35,7 @@ class DbFetcher(AirflowDataFetcher):
         # It's important to do this import to prevent import issues
         import airflow
         from sqlalchemy import create_engine
-        from dbnd_airflow.export_plugin.smart_dagbag import SmartDagBag
+        from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
 
         self.dag_folder = config.local_dag_folder
         self.sql_conn_string = config.sql_alchemy_conn
@@ -44,8 +44,8 @@ class DbFetcher(AirflowDataFetcher):
 
         self._engine = None
         self._session = None
-        self._dagbag = None
-        self._smart_dagbag = SmartDagBag()
+        # we want to load dags one in the current session
+        self._dag_loader = DbndDagLoader()
 
     @contextlib.contextmanager
     def _get_session(self):
@@ -112,13 +112,13 @@ class DbFetcher(AirflowDataFetcher):
         from dbnd_airflow.export_plugin.api_functions import get_full_dag_runs
 
         with self._get_session() as session:
-            self._dagbag = self._smart_dagbag.get_dagbag(
-                dag_run_ids, self._dagbag, session
-            )
+            # load missing dags
+            self._dag_loader.load_dags_for_runs(dag_run_ids, session)
+
             data = get_full_dag_runs(
                 dag_run_ids=dag_run_ids,
                 include_sources=include_sources,
-                airflow_dagbag=self._dagbag,
+                dag_loader=self._dag_loader,
                 session=session,
             )
 

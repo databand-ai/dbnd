@@ -2,7 +2,7 @@ import flask
 
 from dbnd_airflow.export_plugin.api_functions import (
     get_dag_runs_states_data,
-    get_full_dag_runs,
+    get_full_dag_runs_for_plugin,
     get_last_seen_values,
     get_meta,
     get_new_dag_runs,
@@ -54,7 +54,9 @@ def process_full_runs_request():
     dag_run_ids = convert_url_param_value_to_list("dag_run_ids", int, [])
     include_sources = flask.request.values.get("include_sources", "").lower() == "true"
 
-    return json_response(get_full_dag_runs(dag_run_ids, include_sources).as_dict())
+    return json_response(
+        get_full_dag_runs_for_plugin(dag_run_ids, include_sources).as_dict()
+    )
 
 
 def process_dag_run_states_data_request():
