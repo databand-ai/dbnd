@@ -5,7 +5,7 @@ class TestFetchDagRunState(object):
             assert result.task_instances
             assert len(result.task_instances) == number_of_task_instances
 
-    def test_01_empty_db(self, airflow_dagbag):
+    def test_01_empty_db(self):
         from dbnd_airflow.export_plugin.api_functions import get_dag_runs_states_data
 
         result = get_dag_runs_states_data([1, 2, 3])
