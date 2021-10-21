@@ -11,7 +11,7 @@ from dbnd._core.constants import DbndDatasetOperationType
 
 
 """
-run with `python dbnd-core/plugins/dbnd-test-scenarios/src/dbnd_test_scenarios/data_health.py`
+run with `python dbnd-core/plugins/dbnd-test-scenarios/src/dbnd_test_scenarios/data_health/data_health.py`
 """
 
 
@@ -101,7 +101,7 @@ def randomly_fail(index):
 
 
 if __name__ == "__main__":
-    # run with `python  dbnd-core/plugins/dbnd-test-scenarios/src/dbnd_test_scenarios/data_health.py`
+    # run with `python  dbnd-core/plugins/dbnd-test-scenarios/src/dbnd_test_scenarios/data_health/data_health.py`
     for index in range(20):
         try:
             with dbnd_tracking():
