@@ -1,3 +1,4 @@
+import itertools
 import json
 import logging
 import typing
@@ -79,7 +80,7 @@ class PandasHistograms(object):
             stats = df.describe(include="all").to_json()
         except Exception as e:
             logger.warning("Failed to describe df: %s", e)
-            stats = df.astype("str").describe(include="all").to_json()
+            stats = df.explode().describe(include="all").to_json()
         stats = json.loads(stats)
         stats = self._remove_none_values(stats)
         for col in stats.keys():
@@ -90,7 +91,11 @@ class PandasHistograms(object):
                 distinct_count = len(df[col].unique())
             except Exception:
                 logger.warning("Failed to determine column type for: %s.", col)
-                distinct_count = len(df[col].astype("str").unique())
+                try:
+                    distinct_count = len(df[col].astype("str").unique())
+                except Exception:
+                    # Support pandas >= v1.0
+                    distinct_count = len(df[col].astype("string").unique())
             stats[col]["distinct"] = distinct_count
             stats[col]["type"] = self._get_column_type(df[col])
         return stats
