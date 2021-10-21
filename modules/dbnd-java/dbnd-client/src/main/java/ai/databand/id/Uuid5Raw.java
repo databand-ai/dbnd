@@ -1,6 +1,7 @@
 package ai.databand.id;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
@@ -15,10 +16,9 @@ public class Uuid5Raw {
     public static final UUID NAMESPACE_URL = UUID.fromString("6ba7b811-9dad-11d1-80b4-00c04fd430c8");
     public static final UUID NAMESPACE_OID = UUID.fromString("6ba7b812-9dad-11d1-80b4-00c04fd430c8");
     public static final UUID NAMESPACE_X500 = UUID.fromString("6ba7b814-9dad-11d1-80b4-00c04fd430c8");
-    private static final Charset UTF8 = Charset.forName("UTF-8");
 
     public static UUID fromString(UUID namespace, String name) {
-        return fromBytes(namespace, Objects.requireNonNull(name, "name == null").getBytes(UTF8));
+        return fromBytes(namespace, Objects.requireNonNull(name, "name == null").getBytes(StandardCharsets.UTF_8));
     }
 
     public static UUID fromBytes(UUID namespace, byte[] name) {

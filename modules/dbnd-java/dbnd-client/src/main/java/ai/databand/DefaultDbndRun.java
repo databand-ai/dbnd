@@ -330,14 +330,16 @@ public class DefaultDbndRun implements DbndRun {
             Object parameterValue = args[i];
 
             TaskParameterPreview preview = parameters.get(parameter.getType());
-
+            String compactPreview = preview.compact(parameterValue);
             params.add(
                 new TaskRunParam(
-                    preview.compact(parameterValue),
+                    compactPreview,
                     "",
                     parameter.getName()
                 )
             );
+
+            String targetPath = String.format("%s.%s", method.getName(), parameter.getName());
 
             targets.add(
                 new LogTarget(
@@ -345,7 +347,7 @@ public class DefaultDbndRun implements DbndRun {
                     taskRunUid,
                     methodName,
                     taskRunAttemptUid,
-                    new Sha1Long("TARGET_PATH", preview.compact(parameterValue)).toString(),
+                    targetPath,
                     parameter.getName(),
                     taskDefinitionUid,
                     "read",
@@ -353,7 +355,7 @@ public class DefaultDbndRun implements DbndRun {
                     preview.full(parameterValue),
                     preview.dimensions(parameterValue),
                     preview.schema(parameterValue),
-                    new Sha1Long("", preview.compact(parameterValue)).toString()
+                    new Sha1Long("", compactPreview).toString()
                 )
             );
         }
