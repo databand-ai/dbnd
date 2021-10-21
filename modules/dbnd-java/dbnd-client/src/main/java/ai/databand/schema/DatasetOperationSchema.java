@@ -9,6 +9,7 @@ public class DatasetOperationSchema {
     private final List<String> columns;
     private final Map<String, String> dtypes;
     private final List<Long> shape;
+    private static final String SPARK_DATAFRAME_TYPE = "Spark.DataFrame";
 
     public DatasetOperationSchema(List<String> columns, Map<String, String> dtypes, List<Long> shape) {
         this.columns = columns;
@@ -29,6 +30,6 @@ public class DatasetOperationSchema {
     }
 
     public String getType() {
-        return "DataFrame";
+        return SPARK_DATAFRAME_TYPE;
     }
 }
