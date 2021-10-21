@@ -75,14 +75,23 @@ class PandasHistograms(object):
             df, self.meta_conf.log_stats
         )
         df = df.filter(stats_column_names)
-        stats = df.describe(include="all").to_json()
+        try:
+            stats = df.describe(include="all").to_json()
+        except Exception as e:
+            logger.warning("Failed to describe df: %s", e)
+            stats = df.astype("str").describe(include="all").to_json()
         stats = json.loads(stats)
         stats = self._remove_none_values(stats)
         for col in stats.keys():
             stats[col]["null-count"] = np.count_nonzero(pd.isnull(df[col]))
             stats[col]["count"] = df[col].size
             stats[col]["non-null"] = stats[col]["count"] - stats[col]["null-count"]
-            stats[col]["distinct"] = len(df[col].unique())
+            try:
+                distinct_count = len(df[col].unique())
+            except Exception:
+                logger.warning("Failed to determine column type for: %s.", col)
+                distinct_count = len(df[col].astype("str").unique())
+            stats[col]["distinct"] = distinct_count
             stats[col]["type"] = self._get_column_type(df[col])
         return stats
 
