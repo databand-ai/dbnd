@@ -7,12 +7,12 @@ public class StringPreview implements TaskParameterPreview<String> {
 
     @Override
     public String compact(String input) {
-        return input;
+        return input == null ? "null" : input;
     }
 
     @Override
     public String full(String input) {
-        return input;
+        return input == null ? "null" : input;
     }
 
     @Override

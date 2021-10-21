@@ -104,13 +104,26 @@ public class DbndWrapper {
         if (classname != null && !loadedClasses.contains(classname)) {
             loadMethods(classname);
         }
-        String truncated = methodName.substring(0, methodName.indexOf("(") + 1);
+        String truncated = removeArgsFromMethodName(methodName);
         for (Map.Entry<String, Method> mthd : methodsCache.entrySet()) {
             if (mthd.getKey().contains(truncated)) {
                 return mthd.getValue();
             }
         }
         return null;
+    }
+
+    /**
+     * Removes arguments part from string representation of method name.
+     * ai.databand.JavaSparkPipeline.execute(java.lang.String) → ai.databand.JavaSparkPipeline.execute(
+     * Opening parent should be present in result because latter it will be used in methods cache calculation
+     *
+     * @param methodName
+     * @return
+     */
+    protected String removeArgsFromMethodName(String methodName) {
+        int parenIndex = methodName.indexOf("(");
+        return parenIndex > 0 ? methodName.substring(0, parenIndex + 1) : methodName;
     }
 
     protected void loadMethods(String classname) {
@@ -339,7 +352,7 @@ public class DbndWrapper {
                     if (method.getName().contains(main.getMethodName())) {
                         Object[] args = new Object[method.getParameterCount()];
                         Arrays.fill(args, null);
-                        beforePipeline(main.getClassName(), main.getMethodName(), args);
+                        beforePipeline(main.getClassName(), method.getName(), args);
                     }
                 }
             } catch (ClassNotFoundException e) {
