@@ -31,7 +31,28 @@ class TestTrackingConfig:
                     "type": "List",
                 },
             ),
-            # list of flat dict
+        ],
+    )
+    def test_get_value_meta(
+        self, value, value_type, target, expected_value_preview, expected_data_schema,
+    ):
+        tracking_config = TrackingConfig.current()
+        tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
+
+        result = get_value_meta(
+            value,
+            ValueMetaConf(),
+            tracking_config,
+            value_type=value_type,
+            target=target,
+        )
+
+        assert result.value_preview == expected_value_preview
+        assert result.data_schema == expected_data_schema
+
+    @pytest.mark.parametrize(
+        "value, value_type, target, expected_value_preview, expected_data_schema",
+        [
             (
                 [
                     {"test": "test", "num": 10, "bool": True},
@@ -52,7 +73,18 @@ class TestTrackingConfig:
                     "type": "List",
                 },
             ),
-            #  list of dict with nested dicts
+        ],
+    )
+    def test_get_value_meta_list_of_flat_dict(
+        self, value, value_type, target, expected_value_preview, expected_data_schema
+    ):
+        self.test_get_value_meta(
+            value, value_type, target, expected_value_preview, expected_data_schema
+        )
+
+    @pytest.mark.parametrize(
+        "value, value_type, target, expected_value_preview, expected_data_schema",
+        [
             (
                 [
                     {
@@ -103,7 +135,18 @@ class TestTrackingConfig:
                     "type": "List",
                 },
             ),
-            #  list of dict with arrays of flat dicts
+        ],
+    )
+    def test_get_value_meta_list_of_nested_dict(
+        self, value, value_type, target, expected_value_preview, expected_data_schema
+    ):
+        self.test_get_value_meta(
+            value, value_type, target, expected_value_preview, expected_data_schema
+        )
+
+    @pytest.mark.parametrize(
+        "value, value_type, target, expected_value_preview, expected_data_schema",
+        [
             (
                 [
                     {
@@ -139,7 +182,18 @@ class TestTrackingConfig:
                     "type": "List",
                 },
             ),
-            #  list of dict with arrays of dicts and nested dicts
+        ],
+    )
+    def test_get_value_meta_list_of_dict_with_list_of_flat_dict(
+        self, value, value_type, target, expected_value_preview, expected_data_schema
+    ):
+        self.test_get_value_meta(
+            value, value_type, target, expected_value_preview, expected_data_schema
+        )
+
+    @pytest.mark.parametrize(
+        "value, value_type, target, expected_value_preview, expected_data_schema",
+        [
             (
                 [
                     {
@@ -216,7 +270,18 @@ class TestTrackingConfig:
                     "type": "List",
                 },
             ),
-            #  list of dict with arrays of dicts and nested dicts with different keys
+        ],
+    )
+    def test_get_value_meta_list_of_dict_with_list_of_nested_dicts(
+        self, value, value_type, target, expected_value_preview, expected_data_schema
+    ):
+        self.test_get_value_meta(
+            value, value_type, target, expected_value_preview, expected_data_schema
+        )
+
+    @pytest.mark.parametrize(
+        "value, value_type, target, expected_value_preview, expected_data_schema",
+        [
             (
                 [
                     {
@@ -299,19 +364,9 @@ class TestTrackingConfig:
             ),
         ],
     )
-    def test_get_value_meta(
-        self, value, value_type, target, expected_value_preview, expected_data_schema,
+    def test_get_value_meta_list_of_dict_with_list_of_nested_dicts_with_different_keys(
+        self, value, value_type, target, expected_value_preview, expected_data_schema
     ):
-        tracking_config = TrackingConfig.current()
-        tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
-
-        result = get_value_meta(
-            value,
-            ValueMetaConf(),
-            tracking_config,
-            value_type=value_type,
-            target=target,
+        self.test_get_value_meta(
+            value, value_type, target, expected_value_preview, expected_data_schema
         )
-
-        assert result.value_preview == expected_value_preview
-        assert result.data_schema == expected_data_schema
