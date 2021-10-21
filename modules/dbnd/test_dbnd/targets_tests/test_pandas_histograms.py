@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 
 from targets.value_meta import ValueMetaConf
@@ -38,7 +40,19 @@ diverse_df = pd.DataFrame({
                    None, 'foo', None, 'foo', None, 'bar', None, 'bar', 'baz', 'foo',
                    'foo', None, 'foo', '', 'baz', 'baz', 'baz', None, 'bar', None,
                    None, 'bar', '', 'foo', 'baz', 'baz', '', 'foo', 'baz', 'foo', '',
-                   'bar', None, 'foo', '']
+                   'bar', None, 'foo', ''],
+    "multi_data_types": [
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"foo","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+                "string_type","another_one",datetime(2020, 1, 1),None,pd.DataFrame({"...": [1]}),42,"42",24,"24","foo",
+            ],
 })
 # fmt: on
 
@@ -100,9 +114,19 @@ def test_pandas_v0_histograms():
             "type": "str",
             "unique": 4,
         },
+        "multi_data_types": {
+            "count": 100,
+            "distinct": 8,
+            "freq": 11,
+            "non-null": 90,
+            "null-count": 10,
+            "top": "foo",
+            "type": "str",
+            "unique": 18,
+        },
     }
     # "str_column" calculation is unstable hence these unpacked assertions
-    assert set(histograms.keys()) == {"bool_column", "float_column", "int_column", "str_column"}
+    assert set(histograms.keys()) == {"bool_column", "float_column", "int_column", "str_column", "multi_data_types"}
     assert histograms["bool_column"] == [[35, 33, 32], [None, False, True]]
     assert histograms["float_column"] == [
         [6, 0, 9, 0, 13, 0, 8, 0, 10, 0, 0, 8, 0, 6, 0, 15, 0, 8, 0, 11],
