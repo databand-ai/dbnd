@@ -24,6 +24,40 @@ from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_inf
 logger = logging.getLogger(__name__)
 
 
+AIRFLOW_MONITOR_CONFIG_NAME = "airflow_monitor"
+DAG_IDS_FOR_TRACKING_CONFIG_NAME = "dag_ids"
+
+
+def get_tracking_dag_ids_from_airflow_json():
+    try:
+        from dbnd_airflow.tracking.dbnd_airflow_conf import (
+            get_dbnd_json_config_from_airflow_connections,
+        )
+
+        json = get_dbnd_json_config_from_airflow_connections()
+
+        if json:
+            monitor_config = json.get(AIRFLOW_MONITOR_CONFIG_NAME, None)
+            if monitor_config:
+                dag_ids_config = monitor_config.get(
+                    DAG_IDS_FOR_TRACKING_CONFIG_NAME, None
+                )
+                if isinstance(dag_ids_config, list):
+                    return dag_ids_config
+        return None
+    except Exception as e:
+        logger.error(
+            "exception caught while running on dbnd new execute {}".format(e),
+            exc_info=True,
+        )
+        return []
+
+
+def is_dag_eligable_for_tracking(dag_id):
+    tracking_list = get_tracking_dag_ids_from_airflow_json()
+    return tracking_list is None or dag_id in tracking_list
+
+
 def new_execute(context):
     """
     This function replaces the operator's original `execute` function
@@ -35,9 +69,14 @@ def new_execute(context):
     # pre_execute, execute, etc..).
     copied_operator = context["task_instance"].task
 
+    if not is_dag_eligable_for_tracking(context["task_instance"].dag_id):
+        execute = get_execute_function(copied_operator)
+        result = execute(copied_operator, context)
+        return result
+
     try:
-        # start operator execute run with current airflow context
         task_context = extract_airflow_context(context)
+        # start operator execute run with current airflow context
         task_run = dbnd_tracking_start(
             airflow_context=task_context
         )  # type: Optional[TaskRun]
@@ -45,7 +84,7 @@ def new_execute(context):
     except Exception as e:
         task_run = None
         logger.error(
-            "exception caught will running on dbnd new execute {}".format(e),
+            "exception caught while running on dbnd new execute {}".format(e),
             exc_info=True,
         )
 
