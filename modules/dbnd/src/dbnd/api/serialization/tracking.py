@@ -209,6 +209,7 @@ class SyncedDatasetMetadataSchema(ApiStrictSchema):
     records = fields.Integer()
 
     schema = fields.Dict()
+
     # TODO: ADD -> Preview
 
     @post_load
@@ -268,13 +269,26 @@ class SyncedTransaction(object):
     started_date = attr.ib()  # type: datetime
     ended_date = attr.ib()  # type: datetime
 
-    write_operation = attr.ib()  # type: Optional[SyncedTransactionOperation]
-    read_operations = attr.ib()  # type: List[SyncedTransactionOperation]
-
-    query_string = attr.ib()  # type: str
+    write_operation = attr.ib(
+        default=None
+    )  # type: Optional[SyncedTransactionOperation]
+    read_operations = attr.ib(
+        default=attr.Factory(list)
+    )  # type: List[SyncedTransactionOperation]
+    query_string = attr.ib(default=None)  # type: Optional[str]
 
     def as_dict(self):
         return attr.asdict(self)
+
+    @property
+    def all_operations(self):
+        # transaction can have multiple read operations but single write operation
+        all_ops = self.read_operations.copy()
+
+        if self.write_operation:
+            all_ops.append(self.write_operation)
+
+        return all_ops
 
 
 @attr.s
