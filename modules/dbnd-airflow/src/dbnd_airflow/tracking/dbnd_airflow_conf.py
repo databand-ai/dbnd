@@ -118,57 +118,62 @@ def get_xcoms(task_instance):
     return [(xcom.key, xcom.value) for xcom in results]
 
 
-def set_dbnd_config_from_airflow_connections():
+def get_dbnd_json_config_from_airflow_connections():
     """
     Set Databand config from Extra section in Airflow dbnd_config connection.
     Read about setting DBND Connection at: https://dbnd.readme.io/docs/setting-up-configurations-using-airflow-connections
     """
     from airflow.exceptions import AirflowException
-    from dbnd._core.configuration.dbnd_config import config
-    from dbnd._core.configuration.config_value import ConfigValuePriority
     from dbnd_airflow.compat import BaseHook
 
     try:
         # Get connection from Airflow
         dbnd_conn_config = BaseHook.get_connection(DATABAND_AIRFLOW_CONN_ID)
         json_config = dbnd_conn_config.extra_dejson
+        if json_config:
+            return json_config
 
-        if not json_config:
-            if dbnd_conn_config.extra:
-                # Airflow failed to parse extra config as json
-                logger.error(
-                    "Extra config for {0} connection, should be formated as a valid json.".format(
-                        DATABAND_AIRFLOW_CONN_ID
-                    )
+        if dbnd_conn_config.extra:
+            # Airflow failed to parse extra config as json
+            logger.error(
+                "Extra config for {0} connection, should be formated as a valid json.".format(
+                    DATABAND_AIRFLOW_CONN_ID
                 )
-
-            else:
-                # Extra section in connection is empty
-                logger.warning(
-                    "No extra config provided to {0} connection.".format(
-                        DATABAND_AIRFLOW_CONN_ID
-                    )
-                )
-
-            return False
-
-        config.set_values(
-            config_values=json_config,
-            priority=ConfigValuePriority.NORMAL,
-            source="airflow_dbnd_connection",
-        )
-        logger.info(
-            "Databand config was set using {0} connection.".format(
-                DATABAND_AIRFLOW_CONN_ID
             )
-        )
-        return True
+
+        else:
+            # Extra section in connection is empty
+            logger.warning(
+                "No extra config provided to {0} connection.".format(
+                    DATABAND_AIRFLOW_CONN_ID
+                )
+            )
+
+        return None
 
     except AirflowException as afe:
         # Probably dbnd_config is not set properly in Airflow connections.
         logger.info(afe)
-        return False
-
+        return None
     except Exception:
         logger.exception("Failed to extract dbnd config from airflow's connection.")
+        return None
+
+
+def set_dbnd_config_from_airflow_connections():
+    json_config = get_dbnd_json_config_from_airflow_connections()
+    if not json_config:
         return False
+
+    from dbnd._core.configuration.dbnd_config import config
+    from dbnd._core.configuration.config_value import ConfigValuePriority
+
+    config.set_values(
+        config_values=json_config,
+        priority=ConfigValuePriority.NORMAL,
+        source="airflow_dbnd_connection",
+    )
+    logger.info(
+        "Databand config was set using {0} connection.".format(DATABAND_AIRFLOW_CONN_ID)
+    )
+    return True
