@@ -7,6 +7,7 @@ from dbnd._vendor import click
 from dbnd.api.airflow_sync import (
     archive_airflow_instance,
     create_airflow_instance,
+    edit_airflow_instance,
     list_synced_airflow_instances,
     unarchive_airflow_instance,
 )
@@ -152,6 +153,97 @@ def add(
     fetcher = "web" if instance_type == "airflow" else instance_type
     try:
         create_airflow_instance(
+            url,
+            external_url,
+            fetcher,
+            api_mode,
+            airflow_environment,
+            composer_client_id,
+            not exclude_sources,
+            dag_ids,
+            last_seen_dag_run_id,
+            last_seen_log_id,
+        )
+    except DatabandApiError as e:
+        logger.warning("failed with - {}".format(e.response))
+    else:
+        logger.info("Starting syncing instance %s", url)
+
+
+@airflow_sync.command()
+@click.option(
+    "--url", "-u", help="base url for instance", type=click.STRING, required=True
+)
+@click.option(
+    "--external-url", "-e", help="external url for instance", type=click.STRING
+)
+@click.option(
+    "--instance-type",
+    "-i",
+    help="type of an instance: Airflow or Google Cloud Composer",
+    type=click.Choice(["airflow", "composer"], case_sensitive=False),
+    required=True,
+)
+@click.option(
+    "--api-mode",
+    "-a",
+    help="Airflow API connection mode",
+    type=click.Choice(["rbac", "flask-admin", "experimental"]),
+    default="rbac",
+)
+@click.option(
+    "--airflow-environment",
+    "-t",
+    help="Airflow environment",
+    type=click.Choice(AirflowEnvironment.all_values()),
+    default="on_prem",
+)
+@click.option(
+    "--composer-client-id",
+    "-c",
+    help="client id for Google Cloud Composer connection",
+    type=click.STRING,
+    callback=validate_composer_id,
+)
+@click.option(
+    "--exclude-sources",
+    help="Don't monitor source code for tasks",
+    type=click.BOOL,
+    is_flag=True,
+)
+@click.option(
+    "--dag-ids",
+    help="List of specific dag ids (separated with comma) that monitor will fetch only from them",
+    type=click.STRING,
+    default=None,
+)
+@click.option(
+    "--last-seen-dag-run-id",
+    help="Id of the last dag run seen in the Airflow database",
+    type=click.STRING,
+    default=None,
+)
+@click.option(
+    "--last-seen-log-id",
+    help="Id of the last log seen in the Airflow database",
+    type=click.STRING,
+    default=None,
+)
+def edit(
+    url,
+    external_url,
+    instance_type,
+    api_mode,
+    airflow_environment,
+    composer_client_id,
+    exclude_sources,
+    dag_ids,
+    last_seen_dag_run_id,
+    last_seen_log_id,
+):
+    fetcher = "web" if instance_type == "airflow" else instance_type
+    try:
+        edit_airflow_instance(
             url,
             external_url,
             fetcher,
