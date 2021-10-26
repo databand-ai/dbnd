@@ -155,6 +155,7 @@ class _DbndScriptTrackingManager(object):
                 context=dc,
                 job_name=job_name,
                 run_uid=run_uid,
+                existing_run=run_uid is not None,
                 source=source,
                 af_context=airflow_context,
                 tracking_source=tracking_source,
