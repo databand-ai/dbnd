@@ -21,7 +21,7 @@ from targets.values.value_type import ValueType
 
 logger = logging.getLogger(__name__)
 
-_PARSABLE_PARAM_PREFIX = u"@{["
+_PARSABLE_PARAM_PREFIX = "@{["
 
 
 #
@@ -259,6 +259,7 @@ class ListValueType(_StructureValueType, Iterable):
 
     """
 
+    DEFAULT_MAX_ELEMENTS_TO_PREVIEW = 10
     type = typing.List
     type_str_extras = ("list", "DataList")
 
@@ -275,7 +276,7 @@ class ListValueType(_StructureValueType, Iterable):
         value_preview, data_hash = None, None
         if meta_conf.log_preview:
             value_preview = self.to_preview(
-                value, preview_size=meta_conf.get_preview_size()
+                value, preview_size=self.get_preview_size(meta_conf)
             )
             try:
                 data_hash = hash(json.dumps(value))
@@ -335,6 +336,15 @@ class ListValueType(_StructureValueType, Iterable):
             if isinstance(val, (list, dict)):
                 dtypes[key] = str(type(val))
 
+    def get_preview_size(self, meta_conf):
+        # type: (ValueMetaConf)-> int
+        conf_preview_size = meta_conf.get_preview_size()
+        return (
+            conf_preview_size
+            if conf_preview_size < self.DEFAULT_MAX_ELEMENTS_TO_PREVIEW
+            else self.DEFAULT_MAX_ELEMENTS_TO_PREVIEW
+        )
+
     def _generate_empty_default(self):
         return list()
 
@@ -343,6 +353,12 @@ class ListValueType(_StructureValueType, Iterable):
 
     def merge_values(self, *values):
         return list(itertools.chain(*values))
+
+    def to_preview(self, x, preview_size):  # type: (list, int) -> str
+        try:
+            return json.dumps(x[:preview_size])
+        except Exception:
+            logger.exception(f"Failed to convert list to json string: {x}")
 
 
 class SetValueType(_StructureValueType):

@@ -60,7 +60,8 @@ class TestTrackingConfig:
                 ],
                 ListValueType(),
                 None,
-                '[{"bool":true,"num":10,"test":"test"},{"bool":false,"num":20,"test":"test_2"}]',
+                '[{"test": "test", "num": 10, "bool": true}, {"test": "test_2", "num": 20, '
+                '"bool": false}]',
                 {
                     "columns": ["bool", "num", "test"],
                     "dtypes": {
@@ -110,7 +111,11 @@ class TestTrackingConfig:
                 ],
                 ListValueType(),
                 None,
-                '[{"bool":true,"num":10,"test":"test","test_object":{"inner":{"foo":"bar"},"test_id":12345,"test_object_name":"some_name"}},{"bool":false,"num":20,"test":"test_2","test_object":{"inner":{"foo":"bar_2"},"test_id":56789,"test_object_name":"some_other_name"}}]',
+                '[{"test": "test", "num": 10, "bool": true, "test_object": '
+                '{"test_object_name": "some_name", "test_id": 12345, "inner": {"foo": '
+                '"bar"}}}, {"test": "test_2", "num": 20, "bool": false, "test_object": '
+                '{"test_object_name": "some_other_name", "test_id": 56789, "inner": {"foo": '
+                '"bar_2"}}}]',
                 {
                     "columns": [
                         "bool",
@@ -168,7 +173,10 @@ class TestTrackingConfig:
                 ],
                 ListValueType(),
                 None,
-                '[{"bool":true,"num":10,"test":"test","test_objects":[{"test_id":12345,"test_object_name":"some_name"}]},{"bool":false,"num":20,"test":"test_2","test_objects":[{"test_id":56789,"test_object_name":"some_other_name"}]}]',
+                '[{"test": "test", "num": 10, "bool": true, "test_objects": '
+                '[{"test_object_name": "some_name", "test_id": 12345}]}, {"test": "test_2", '
+                '"num": 20, "bool": false, "test_objects": [{"test_object_name": '
+                '"some_other_name", "test_id": 56789}]}]',
                 {
                     "columns": ["bool", "num", "test", "test_objects"],
                     "dtypes": {
@@ -243,7 +251,16 @@ class TestTrackingConfig:
                 ],
                 ListValueType(),
                 None,
-                '[{"bool":true,"num":10,"test":"test","test_object":{"inner":{"foo":"bar_3"},"test_id":56789,"test_object_name":"some_other_name"},"test_objects":[{"inner":{"foo":"bar"},"test_id":12345,"test_object_name":"some_name"},{"inner":{"foo":"bar_2"},"test_id":54321,"test_object_name":"some_name_1"}]},{"bool":false,"num":20,"test":"test_2","test_object":{"inner":{"foo":"bar_6"},"test_id":11111,"test_object_name":"some_name"},"test_objects":[{"inner":{"foo":"bar_3"},"test_id":56789,"test_object_name":"some_other_name"},{"inner":{"foo":"bar_4"},"test_id":98765,"test_object_name":"some_other_name"}]}]',
+                '[{"test": "test", "num": 10, "bool": true, "test_object": '
+                '{"test_object_name": "some_other_name", "test_id": 56789, "inner": {"foo": '
+                '"bar_3"}}, "test_objects": [{"test_object_name": "some_name", "test_id": '
+                '12345, "inner": {"foo": "bar"}}, {"test_object_name": "some_name_1", '
+                '"test_id": 54321, "inner": {"foo": "bar_2"}}]}, {"test": "test_2", "num": '
+                '20, "bool": false, "test_object": {"test_object_name": "some_name", '
+                '"test_id": 11111, "inner": {"foo": "bar_6"}}, "test_objects": '
+                '[{"test_object_name": "some_other_name", "test_id": 56789, "inner": {"foo": '
+                '"bar_3"}}, {"test_object_name": "some_other_name", "test_id": 98765, '
+                '"inner": {"foo": "bar_4"}}]}]',
                 {
                     "columns": [
                         "bool",
@@ -331,7 +348,16 @@ class TestTrackingConfig:
                 ],
                 ListValueType(),
                 None,
-                '[{"bool":true,"num":10,"test":"test","test_object":{"inner":{"foo":"bar_3"},"test_id":56789,"test_object_name":"some_other_name"},"test_objects":[{"inner":{"foo":"bar"},"test_id":12345,"test_object_name":"some_name"},{"inner":{"foo":"bar_2"},"test_id":54321,"test_object_name":"some_name_1"}]},{"bool":false,"num":20,"test_1":"test_2","test_object":{"inner":{"bar":"foo","foo":"bar_6"},"test_id":11111,"test_object_name":"some_name"},"test_objects":[{"inner":{"foo":"bar_3"},"test_id":56789,"test_object_name":"some_other_name"},{"inner":{"foo":"bar_4"},"test_id":98765,"test_object_name":"some_other_name"}]}]',
+                '[{"test": "test", "num": 10, "bool": true, "test_object": '
+                '{"test_object_name": "some_other_name", "test_id": 56789, "inner": {"foo": '
+                '"bar_3"}}, "test_objects": [{"test_object_name": "some_name", "test_id": '
+                '12345, "inner": {"foo": "bar"}}, {"test_object_name": "some_name_1", '
+                '"test_id": 54321, "inner": {"foo": "bar_2"}}]}, {"test_1": "test_2", "num": '
+                '20, "bool": false, "test_object": {"test_object_name": "some_name", '
+                '"test_id": 11111, "inner": {"foo": "bar_6", "bar": "foo"}}, "test_objects": '
+                '[{"test_object_name": "some_other_name", "test_id": 56789, "inner": {"foo": '
+                '"bar_3"}}, {"test_object_name": "some_other_name", "test_id": 98765, '
+                '"inner": {"foo": "bar_4"}}]}]',
                 {
                     "columns": [
                         "bool",
@@ -370,3 +396,108 @@ class TestTrackingConfig:
         self.test_get_value_meta(
             value, value_type, target, expected_value_preview, expected_data_schema
         )
+
+    @pytest.mark.parametrize(
+        "value, value_type, target, expected_value_preview",
+        [
+            (
+                [
+                    {"a": "a", "b": "b"},
+                    {"a": "c", "b": "d"},
+                    {"a": "e", "b": "f"},
+                    {"a": "g", "b": "h"},
+                    {"a": "i", "b": "j"},
+                    {"a": "k", "b": "l"},
+                    {"a": "m", "b": "n"},
+                    {"a": "o", "b": "p"},
+                    {"a": "q", "b": "r"},
+                    {"a": "s", "b": "t"},
+                    {"a": "u", "b": "v"},
+                    {"a": "w", "b": "x"},
+                    {"a": "y", "b": "z"},
+                ],
+                ListValueType(),
+                None,
+                '[{"a": "a", "b": "b"}, {"a": "c", "b": "d"}, {"a": "e", "b": "f"}, {"a": '
+                '"g", "b": "h"}, {"a": "i", "b": "j"}, {"a": "k", "b": "l"}, {"a": "m", "b": '
+                '"n"}, {"a": "o", "b": "p"}, {"a": "q", "b": "r"}, {"a": "s", "b": "t"}]',
+            ),
+        ],
+    )
+    def test_get_value_meta_preview_size_default_max_elements(
+        self, value, value_type, target, expected_value_preview,
+    ):
+        tracking_config = TrackingConfig.current()
+        tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
+
+        result = get_value_meta(
+            value,
+            ValueMetaConf(),
+            tracking_config,
+            value_type=value_type,
+            target=target,
+        )
+
+        assert result.value_preview == expected_value_preview
+
+    @pytest.mark.parametrize(
+        "value, value_type, target, expected_value_preview",
+        [
+            (
+                [
+                    {"a": "a", "b": "b"},
+                    {"a": "c", "b": "d"},
+                    {"a": "e", "b": "f"},
+                    {"a": "g", "b": "h"},
+                    {"a": "i", "b": "j"},
+                    {"a": "k", "b": "l"},
+                    {"a": "m", "b": "n"},
+                    {"a": "o", "b": "p"},
+                    {"a": "q", "b": "r"},
+                    {"a": "s", "b": "t"},
+                    {"a": "u", "b": "v"},
+                    {"a": "w", "b": "x"},
+                    {"a": "y", "b": "z"},
+                ],
+                ListValueType(),
+                None,
+                '[{"a": "a", "b": "b"}, {"a": "c", "b": "d"}, {"a": "e", "b": "f"}, {"a": '
+                '"g", "b": "h"}, {"a": "i", "b": "j"}]',
+            ),
+        ],
+    )
+    def test_get_value_meta_preview_size_config_max_elements(
+        self, value, value_type, target, expected_value_preview,
+    ):
+        tracking_config = TrackingConfig.current()
+        tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
+
+        result = get_value_meta(
+            value,
+            ValueMetaConf(log_preview_size=5),
+            tracking_config,
+            value_type=value_type,
+            target=target,
+        )
+
+        assert result.value_preview == expected_value_preview
+
+    @pytest.mark.parametrize(
+        "value, value_type, target, expected_value_preview",
+        [([{"a": "a", "b": "b"},], ListValueType(), None, '[{"a": "a", "b": "b"}]',),],
+    )
+    def test_get_value_meta_preview_small_size(
+        self, value, value_type, target, expected_value_preview,
+    ):
+        tracking_config = TrackingConfig.current()
+        tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
+
+        result = get_value_meta(
+            value,
+            ValueMetaConf(),
+            tracking_config,
+            value_type=value_type,
+            target=target,
+        )
+
+        assert result.value_preview == expected_value_preview
