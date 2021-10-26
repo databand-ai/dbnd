@@ -106,6 +106,12 @@ def _to_conf(kwargs):
 @click.option(
     "--run-driver", "run_driver", type=uuid.UUID, help="Running in remote mode"
 )
+@click.option(
+    "--override-run-uid",
+    "override_run_uid",
+    type=uuid.UUID,
+    help="Use predefined uid for run. Run will be considered as a new run.",
+)
 @click.option("--task-name", "alternative_task_name", help="Name of this task")
 @click.option("--job-name", "job_name", help="Job Name")
 @click.option(
@@ -174,6 +180,7 @@ def cmd_run(
     name,
     description,
     run_driver,
+    override_run_uid,
     alternative_task_name,
     job_name,
     scheduled_job_name,
@@ -228,10 +235,8 @@ def cmd_run(
         task_build=dict(verbose=True if verbose > 1 else None),
         core=dict(tracker_api="disabled" if disable_web_tracker else None),
     )
-    # remove all None (so we use config values)
-    main_switches = {k: _filter_none(**v) for k, v in main_switches.items()}
-    # remove all empty sections
-    main_switches = {k: v for k, v in main_switches.items() if v}
+
+    main_switches = cleanup_empty_switches(main_switches)
 
     _sets = list(_sets)
     _sets_config = list(_sets_config)
@@ -335,15 +340,23 @@ def cmd_run(
             # https://github.com/pallets/click/issues/564
             print("Task %s has been described!" % task_name)
             return root_task
-
         return context.dbnd_run_task(
             task_or_task_name=task_name,
             force_task_name=alternative_task_name,
             job_name=job_name or alternative_task_name or task_name,
-            run_uid=run_driver,
+            run_uid=run_driver or override_run_uid,
+            existing_run=run_driver is not None,
             scheduled_run_info=scheduled_run_info,
             project=project,
         )
+
+
+def cleanup_empty_switches(main_switches):
+    # remove all None (so we use config values)
+    main_switches = {k: _filter_none(**v) for k, v in main_switches.items()}
+    # remove all empty sections
+    main_switches = {k: v for k, v in main_switches.items() if v}
+    return main_switches
 
 
 def is_running_in_direct_db_mode(ctx):

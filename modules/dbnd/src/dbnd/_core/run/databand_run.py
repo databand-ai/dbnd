@@ -64,8 +64,8 @@ class DatabandRun(SingletonContext):
         project_name=None,  # type: Optional[str]
         run_uid=None,  # type:  Optional[UUID]
         scheduled_run_info=None,  # type:  Optional[ScheduledRunInfo]
-        existing_run=None,
-        source=UpdateSource.dbnd,  # type:Optional[UpdateSource]
+        existing_run=False,  # type:  Optional[bool]
+        source=UpdateSource.dbnd,  # type:  Optional[UpdateSource]
         af_context=None,
         tracking_source=None,
         is_orchestration=False,
@@ -87,12 +87,9 @@ class DatabandRun(SingletonContext):
             # we pop so if this run spawnes subprocesses with their own runs they will be associated using the sub-runs mechanism instead
             # of being fused into this run directly
             run_uid = UUID(os.environ.pop(DBND_RUN_UID))
-        if run_uid:
-            self.run_uid = run_uid
             self.existing_run = True
-        else:
-            self.run_uid = get_uuid()
 
+        self.run_uid = run_uid or get_uuid()
         # if user provided name - use it
         # otherwise - generate human friendly name for the run
         self.name = s.run.name or get_random_name(seed=self.run_uid)

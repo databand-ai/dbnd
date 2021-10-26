@@ -177,6 +177,7 @@ class DatabandContext(SingletonContext):
         force_task_name=None,  # type: Optional[str]
         project=None,  # type: Optional[str]
         run_uid=None,  # type: Optional[UUID]
+        existing_run=None,  # type: Optional[bool]
         scheduled_run_info=None,  # type: Optional[ScheduledRunInfo]
         send_heartbeat=True,  # type: bool
     ):  # type: (...) -> DatabandRun
@@ -197,6 +198,7 @@ class DatabandContext(SingletonContext):
             context=self,
             job_name=job_name,
             run_uid=run_uid,
+            existing_run=existing_run,
             scheduled_run_info=scheduled_run_info,
             is_orchestration=True,
             project_name=project_name,

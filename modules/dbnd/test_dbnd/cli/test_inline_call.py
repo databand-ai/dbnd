@@ -1,3 +1,5 @@
+import uuid
+
 from dbnd import config, dbnd_run_cmd, parameter, task
 
 
@@ -18,3 +20,11 @@ class TestInlineCliCalls(object):
         with config({"task_test": {"p": {"value": "2"}}}):
             my_run = dbnd_run_cmd(["task_test", "--extend", "task_test.p={'t':'v'}"])
             assert my_run.task.p == {"value": "2", "t": "v"}
+
+    def test_run_with_overridden_run_uid(self):
+        expected_run_uid = str(uuid.uuid1())
+        my_run = dbnd_run_cmd(
+            ["dbnd_sanity_check", "--override-run-uid", expected_run_uid]
+        )
+        assert str(my_run.run_uid) == expected_run_uid
+        assert my_run.existing_run is False
