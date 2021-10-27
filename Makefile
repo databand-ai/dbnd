@@ -12,6 +12,7 @@ prj_plugins = plugins/dbnd-aws  \
 			plugins/dbnd-azure \
 			plugins/dbnd-airflow-auto-tracking \
 			plugins/dbnd-airflow-versioned-dag \
+			plugins/dbnd-airflow-export \
 			plugins/dbnd-databricks \
 			plugins/dbnd-docker \
 			plugins/dbnd-hdfs \

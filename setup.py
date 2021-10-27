@@ -49,6 +49,7 @@ EXTRAS_REQUIRE = {
     "airflow_1_10_15": [dbnd_package("dbnd-airflow", ["airflow_1_10_15"])],
     "airflow-auto-tracking": [dbnd_package("dbnd-airflow-auto-tracking")],
     "airflow-versioned-dag": [dbnd_package("dbnd-airflow-versioned-dag")],
+    "airflow-export": [dbnd_package("dbnd-airflow-export")],
     "aws": [dbnd_package("dbnd-aws")],
     "azure": [dbnd_package("dbnd-azure")],
     "databricks": [dbnd_package("dbnd-databricks")],
