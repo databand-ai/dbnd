@@ -77,10 +77,5 @@ setuptools.setup(
             "sh",
         ],
     ),
-    entry_points={
-        "airflow.plugins": [
-            "dbnd_airflow_export = dbnd_airflow.export_plugin.dbnd_airflow_export_plugin:DataExportAirflowPlugin"
-        ],
-        "dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],
-    },
+    entry_points={"dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],},
 )
