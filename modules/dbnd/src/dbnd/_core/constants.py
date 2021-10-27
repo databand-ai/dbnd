@@ -177,10 +177,7 @@ class TaskRunState(EnumWithAll):
             return True
 
         # A change in the UI, mark as success or mark as failed
-        return (
-            new_state_order in (TaskRunState.FAILED, TaskRunState.SUCCESS)
-            and self != old_state
-        )
+        return self in (TaskRunState.FAILED, TaskRunState.SUCCESS) and self != old_state
 
 
 REUSED = "reused"
