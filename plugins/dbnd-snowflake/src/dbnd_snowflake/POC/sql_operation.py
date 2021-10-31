@@ -1,12 +1,13 @@
 from collections import defaultdict
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple
+from urllib.parse import urlparse
 
 import attr
 
 from more_itertools import first, padded
 
-from dbnd._core.constants import DbndDatasetOperationType
+from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
 from dbnd_snowflake.POC.sql_extract import Column, Schema
 from targets.connections import build_conn_path
 from targets.value_meta import ValueMeta
@@ -60,6 +61,14 @@ class SqlOperation:
             return None
 
     @property
+    def is_file(self) -> bool:
+        # files are only in snowflake read operations
+        return (
+            self.op_type is DbndTargetOperationType.read
+            and first(self.extracted_columns).is_file
+        )
+
+    @property
     def tables(self) -> Iterable[str]:
         return [col.table for col in self.extracted_columns]
 
@@ -77,6 +86,8 @@ class SqlOperation:
     def build_dtypes(self, tables_schemas: Dict[str, DTypes]) -> DTypes:
         dtypes = {}
         for col in self.extracted_columns:
+            if col.is_file:
+                continue
             if col.is_wildcard:
                 all_columns = tables_schemas[col.table]
                 dtypes.update(all_columns)
@@ -89,7 +100,10 @@ class SqlOperation:
         schema: Schema = defaultdict(list)
         for name, cols in self.extracted_schema.items():
             for col in cols:
-                table_name = render_table_name(connection, col.table)
+                if not col.is_file:
+                    table_name = render_table_name(connection, col.table)
+                else:
+                    table_name = col.table
                 col = attr.evolve(col, table=table_name)
                 schema[name].append(col)
 
@@ -116,7 +130,16 @@ def render_connection_path(
 ) -> str:
     # We takes only the first table as a workaround
     table_name = first(operation.tables)
-    path = render_table_name(connection, table_name, sep="/")
+    if operation.is_file:
+        urlparsed = urlparse(table_name)
+        return build_conn_path(
+            conn_type=urlparsed.scheme,
+            hostname=urlparsed.netloc,
+            port=urlparsed.port,
+            path=urlparsed.path,
+        )
+    else:
+        path = render_table_name(connection, table_name, sep="/")
     return build_conn_path(
         conn_type=conn_type, hostname=connection.host, port=connection.port, path=path,
     )
