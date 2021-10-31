@@ -408,3 +408,89 @@ def test_extract_tables_operations_update(sqlquery, expected):
         SqlQueryExtractor().extract_operations_schemas(parse_first_query(sqlquery))
         == expected
     )
+
+
+@pytest.mark.parametrize(
+    "sqlquery, expected",
+    [
+        (
+            """
+copy into JSON_TABLE from s3://bucket/file.json CREDENTIALS = (AWS_KEY_ID = '12345' AWS_SECRET_KEY = '12345')
+        """,
+            {
+                DbndTargetOperationType.read: {
+                    "s3://bucket/file.json.*": [
+                        Column(
+                            table="s3://bucket/file.json",
+                            name="*",
+                            alias="s3://bucket/file.json.*",
+                            is_file=True,
+                        )
+                    ]
+                },
+                DbndTargetOperationType.write: {
+                    "JSON_TABLE.*": [
+                        Column(
+                            table="JSON_TABLE",
+                            name="*",
+                            alias="JSON_TABLE.*",
+                            is_file=False,
+                        )
+                    ]
+                },
+            },
+        )
+    ],
+)
+def test_copy_into_from_external_file(sqlquery, expected):
+    assert (
+        SqlQueryExtractor().extract_operations_schemas(parse_first_query(sqlquery))
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "sqlquery, expected",
+    [
+        (
+            """
+copy into JSON_TABLE ("Company Name", "Description") from s3://bucket/file.json CREDENTIALS = (AWS_KEY_ID = '12345' AWS_SECRET_KEY = '12345')
+        """,
+            {
+                DbndTargetOperationType.read: {
+                    "s3://bucket/file.json.*": [
+                        Column(
+                            table="s3://bucket/file.json",
+                            name="*",
+                            alias="s3://bucket/file.json.*",
+                            is_file=True,
+                        )
+                    ]
+                },
+                DbndTargetOperationType.write: {
+                    "Company Name": [
+                        Column(
+                            table="JSON_TABLE",
+                            name="Company Name",
+                            alias="Company Name",
+                            is_file=False,
+                        )
+                    ],
+                    "Description": [
+                        Column(
+                            table="JSON_TABLE",
+                            name="Description",
+                            alias="Description",
+                            is_file=False,
+                        )
+                    ],
+                },
+            },
+        )
+    ],
+)
+def test_copy_into_with_columns_from_external_file(sqlquery, expected):
+    assert (
+        SqlQueryExtractor().extract_operations_schemas(parse_first_query(sqlquery))
+        == expected
+    )

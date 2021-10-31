@@ -85,8 +85,8 @@ class PocSnowflakeTracker(object):
             def snowflake_connection_close(connection_self, *args, **kwargs):
                 # track connection before closing it (Example 1)
                 self.unpatch_method(SnowflakeCursor, "execute")
-
                 self.flush_operations(connection_self)
+
                 return close_original(connection_self, *args, **kwargs)
 
             snowflake_connection_close.__dbnd_patched__ = close_original
@@ -116,11 +116,14 @@ class PocSnowflakeTracker(object):
     def report_operations(
         self, connection: SnowflakeConnection, operations: List[SqlOperation]
     ):
+        if connection.is_closed():
+            # already closed, cannot proceed (and probably already tracked)
+            return
         # update the tables names
         operations = [op.evolve_table_name(connection) for op in operations]
 
         # looks for tables schemas
-        tables = chain.from_iterable(op.tables for op in operations)
+        tables = chain.from_iterable(op.tables for op in operations if not op.is_file)
 
         tables_schemas: Dict[str, DTypes] = {}
         for table in tables:

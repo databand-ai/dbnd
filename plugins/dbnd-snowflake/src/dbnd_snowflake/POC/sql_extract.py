@@ -1,5 +1,7 @@
+import re
+
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import attr
 
@@ -23,6 +25,7 @@ class Column:
     table = attr.ib()
     name = attr.ib(default=None)
     alias = attr.ib(default=None)
+    is_file = attr.ib(default=False)
 
     @property
     def is_wildcard(self):
@@ -45,6 +48,7 @@ READ_OPERATIONS = {
     "RIGHT OUTER",
     "RIGHT OUTER JOIN",
 }
+CLOUD_SERVICE_URI_REGEX = re.compile(r"s3://\S+|azure://\S+|gcs://\S+")
 
 
 class SqlQueryExtractor:
@@ -69,6 +73,7 @@ class SqlQueryExtractor:
 
         # collect the operations and their schemas
         operations = defaultdict(lambda: defaultdict(list))
+
         while True:
             # each iteration we pick up the next token we didn't handle yet
             idx, token = self._next_non_empty_token(idx, statement)
@@ -159,15 +164,34 @@ class SqlQueryExtractor:
 
         elif next_token.ttype not in Keyword:
             # no subquery - just parse the source/dest name of the operator
+            extracted, left_columns = self.generate_schema(columns, next_token)
+            columns = left_columns
+            extracted = self.enrich_with_dynamic(extracted, dynamic_tables)
+
+        return extracted, idx, columns
+
+    def generate_schema(self, columns: Columns, next_token: Identifier):
+        """
+          generate schema object and columns for table or file
+
+          :param Columns columns: name of a table we want to track
+          :param Identifier next_token: snowflake query identifier
+
+          """
+        cloud_uri_path = self.extract_cloud_uri(next_token)
+        if cloud_uri_path:
+            table_alias = cloud_uri_path
+            table_name = table_alias
+            extracted, left_columns = self.extract_file(
+                table_name, [Column(table=table_name, name="*", alias=table_alias)]
+            )
+        else:
             table_alias = self.get_identifier_name(next_token)
             table_name = self.get_full_name(next_token)
             extracted, left_columns = self.extract_schema(
                 table_name, table_alias, columns
             )
-            columns = left_columns
-            extracted = self.enrich_with_dynamic(extracted, dynamic_tables)
-
-        return extracted, idx, columns
+        return extracted, left_columns
 
     def handle_into(
         self, idx: int, next_token: Token, statement: TokenList
@@ -244,6 +268,23 @@ class SqlQueryExtractor:
 
         return collected_schema, left_columns
 
+    def extract_file(self, file_name: str, columns: Columns) -> Tuple[Schema, Columns]:
+        """
+                  Collects a schema and a wildcard column for a file
+
+                :param str file_name: full path and name of a file
+                  :param Columns columns: array of columns for a file (in basic use-case would be a wildcard)
+                  """
+        collected_schema = defaultdict(list)
+        left_columns = []
+        for col in columns:
+            ev_col = attr.evolve(
+                col, table=file_name, alias=f"{file_name}.*", is_file=True
+            )
+            collected_schema[ev_col.alias].append(ev_col)
+            left_columns.append(col)
+        return collected_schema, left_columns
+
     @staticmethod
     def _next_non_empty_token(
         idx: int, token_list: TokenList
@@ -305,6 +346,18 @@ class SqlQueryExtractor:
     @staticmethod
     def get_identifier_name(identifier):
         return identifier.get_alias() or identifier.value.split(".")[-1]
+
+    @staticmethod
+    def extract_cloud_uri(identifier: Identifier) -> str:
+        """
+          Search for cloud providers pattern in snowflake query identifier,
+          if pattern exists returns the URI as string
+
+          :param Identifier identifier: snowflake query identifier
+            """
+        if identifier.value.upper() in ["S3", "AZURE", "GCS"]:
+            cloud_uri = CLOUD_SERVICE_URI_REGEX.findall(identifier.parent.value)
+            return cloud_uri[0] if cloud_uri else None
 
     @staticmethod
     def get_full_name(identifier):
