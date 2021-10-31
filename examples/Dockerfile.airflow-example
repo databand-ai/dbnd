@@ -1,4 +1,4 @@
-ARG DOCKER_IMAGE_BASE=gcr.io/dbnd-dev-260010/databand/dbnd-airflow.base:py36-airflow-1-10-10-latest
+ARG DOCKER_IMAGE_BASE=us.gcr.io/dbnd-dev-260010/databand/dbnd-airflow.base:py36-airflow-1-10-10-latest
 FROM ${DOCKER_IMAGE_BASE}
 
 USER root
