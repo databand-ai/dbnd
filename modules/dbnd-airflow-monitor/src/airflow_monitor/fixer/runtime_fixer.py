@@ -3,18 +3,21 @@ import logging
 from typing import List
 
 from airflow_monitor.common import capture_monitor_exception
-from airflow_monitor.common.base_component import BaseMonitorComponent, start_syncer
+from airflow_monitor.common.base_component import BaseMonitorSyncer, start_syncer
 
 
 logger = logging.getLogger(__name__)
 
 
-class AirflowRuntimeFixer(BaseMonitorComponent):
+class AirflowRuntimeFixer(BaseMonitorSyncer):
     SYNCER_TYPE = "runtime_fixer"
 
     def __init__(self, *args, **kwargs):
         super(AirflowRuntimeFixer, self).__init__(*args, **kwargs)
-        self.sleep_interval = self.config.fix_interval
+
+    @property
+    def sleep_interval(self):
+        return self.config.fix_interval
 
     @capture_monitor_exception("sync_once")
     def _sync_once(self):

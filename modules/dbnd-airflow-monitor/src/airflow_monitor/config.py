@@ -1,20 +1,12 @@
 from typing import Dict, List
 
+from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from dbnd import parameter
-from dbnd._core.task import Config
 
 
-class AirflowMonitorConfig(Config):
+class AirflowMonitorConfig(BaseMonitorConfig):
 
     _conf__task_family = "airflow_monitor"
-
-    prometheus_port = parameter(default=8000, description="Port for airflow-monitor")[
-        int
-    ]
-
-    interval = parameter(
-        default=5, description="Sleep time (in seconds) between fetches when not busy"
-    )[int]
 
     # Used by db fetcher
     local_dag_folder = parameter(default=None)[str]
@@ -25,6 +17,8 @@ class AirflowMonitorConfig(Config):
         default={},
         description="Username credentials to use when monitoring airflow with rbac enabled",
     )[str]
+
+    syncer_name = parameter(default=None)[str]
 
     rbac_password = parameter(
         default={},
@@ -45,12 +39,4 @@ class AirflowMonitorConfig(Config):
 
     allow_duplicates = parameter(default=False)[bool]
 
-    syncer_name = parameter(default=None)[str]
-
     fetcher = parameter(default=None)[str]
-
-    number_of_iterations = parameter(default=None)[int]
-
-    stop_after = parameter(default=None)[int]
-
-    runner_type = parameter(default="seq")[str]  # seq/mp

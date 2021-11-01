@@ -3,7 +3,7 @@ import logging
 from multiprocessing.context import Process
 
 from airflow_monitor.common import capture_monitor_exception
-from airflow_monitor.multiserver.runners.base_runner import BaseRunner
+from airflow_monitor.shared.base_runner import BaseRunner
 
 
 logger = logging.getLogger(__name__)

@@ -64,7 +64,13 @@ class MockLog:
 
 class MockDataFetcher(AirflowDataFetcher):
     def __init__(self):
-        super(MockDataFetcher, self).__init__(AirflowServerConfig(uuid.uuid4()))
+        super(MockDataFetcher, self).__init__(
+            AirflowServerConfig(
+                source_name="test",
+                source_type="airflow",
+                tracking_source_uid=uuid.uuid4(),
+            )
+        )
         self.dag_runs = []  # type: List[MockDagRun]
         self.logs = []  # type: List[MockLog]
         self.alive = True

@@ -18,9 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class AirflowDataFetcher(object):
-    def __init__(self, config):
-        # type: (AirflowServerConfig) -> None
-        self.name = config.name or config.base_url
+    def __init__(self, config: AirflowServerConfig):
+        self.source_name = config.source_name
 
     def get_last_seen_values(self) -> LastSeenValues:
         raise NotImplementedError()
@@ -54,4 +53,4 @@ class AirflowDataFetcher(object):
             raise AirflowFetchingException(json_data["error"])
 
         log_received_tasks(data_source, json_data)
-        send_metrics(self.name, json_data.get("airflow_export_meta"))
+        send_metrics(self.source_name, json_data.get("airflow_export_meta"))

@@ -24,14 +24,14 @@ FETCHERS = {
 
 
 def get_data_fetcher(server_config: AirflowServerConfig) -> AirflowDataFetcher:
-    fetcher = FETCHERS[server_config.fetcher]
+    fetcher = FETCHERS.get(server_config.fetcher_type)
     if fetcher:
         return decorate_fetcher(fetcher(server_config), server_config.base_url)
 
     err = "Unsupported fetcher_type: {}, use one of the following: {}".format(
-        server_config.fetcher, "/".join(FETCHERS.keys())
+        server_config.fetcher_type, "/".join(FETCHERS.keys())
     )
-    raise DatabandConfigError(err, help="Please specify correct fetcher type")
+    raise DatabandConfigError(err, help_msg="Please specify correct fetcher type")
 
 
 def decorate_fetcher(fetcher, label):

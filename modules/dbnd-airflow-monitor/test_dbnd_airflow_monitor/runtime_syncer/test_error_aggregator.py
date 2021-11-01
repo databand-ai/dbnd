@@ -1,4 +1,4 @@
-from airflow_monitor.tracking_service.error_aggregator import ErrorAggregator
+from airflow_monitor.shared.error_aggregator import ErrorAggregator
 
 from . import random_text
 

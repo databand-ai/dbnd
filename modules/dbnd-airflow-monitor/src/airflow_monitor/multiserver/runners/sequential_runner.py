@@ -3,8 +3,8 @@ import logging
 from typing import Optional
 
 from airflow_monitor.common import capture_monitor_exception
-from airflow_monitor.common.base_component import BaseMonitorComponent
-from airflow_monitor.multiserver.runners.base_runner import BaseRunner
+from airflow_monitor.common.base_component import BaseMonitorSyncer
+from airflow_monitor.shared.base_runner import BaseRunner
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -16,8 +16,7 @@ class SequentialRunner(BaseRunner):
         super(SequentialRunner, self).__init__(target, **kwargs)
 
         self._iteration = -1
-        self._running = None  # type: Optional[BaseMonitorComponent]
-        self.last_heartbeat = None
+        self._running = None  # type: Optional[BaseMonitorSyncer]
 
     @capture_monitor_exception
     def start(self):
@@ -42,8 +41,8 @@ class SequentialRunner(BaseRunner):
             ):
                 return
 
-            self._iteration += 1
             try:
+                self._iteration += 1
                 self._running.sync_once()
             except Exception as e:
                 self._running = None

@@ -6,13 +6,41 @@ import pytest
 from click.testing import CliRunner
 from mock import patch
 
-from airflow_monitor.common.base_component import BaseMonitorComponent
+from airflow_monitor.common.base_component import BaseMonitorSyncer
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.cmd_liveness_probe import airflow_monitor_v2_alive
-from airflow_monitor.multiserver.monitor_component_manager import KNOWN_COMPONENTS
-from airflow_monitor.multiserver.multiserver import MultiServerMonitor
+from airflow_monitor.multiserver.monitor_component_manager import (
+    SERVICES_COMPONENTS,
+    AirflowMonitorComponentManager,
+)
+from airflow_monitor.multiserver.multiserver import AirflowMultiServerMonitor
+from airflow_monitor.multiserver.runners import RUNNER_FACTORY
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
+
+
+MOCK_SERVER_1_CONFIG = {
+    "source_type": "airflow",
+    "source_name": "mock_server_1",
+    "tracking_source_uid": uuid.uuid4(),
+}
+MOCK_SERVER_2_CONFIG = {
+    "source_type": "airflow",
+    "source_name": "mock_server_2",
+    "tracking_source_uid": uuid.uuid4(),
+}
+MOCK_SERVER_3_CONFIG = {
+    "source_type": "airflow",
+    "source_name": "mock_server_3",
+    "tracking_source_uid": uuid.uuid4(),
+    "state_sync_enabled": True,
+}
+MOCK_SERVER_4_CONFIG = {
+    "source_type": "airflow",
+    "source_name": "mock_server_4",
+    "tracking_source_uid": uuid.uuid4(),
+    "state_sync_enabled": True,
+}
 
 
 @pytest.fixture
@@ -42,13 +70,18 @@ def multi_server(
         "airflow_monitor.common.base_component.get_tracking_service",
         return_value=mock_tracking_service,
     ):
-        yield MultiServerMonitor(mock_server_config_service, airflow_monitor_config)
+        yield AirflowMultiServerMonitor(
+            runner=RUNNER_FACTORY[airflow_monitor_config.runner_type],
+            monitor_component_manager=AirflowMonitorComponentManager,
+            servers_configuration_service=mock_server_config_service,
+            monitor_config=airflow_monitor_config,
+        )
 
 
 @pytest.fixture
 def mock_syncer_factory(mock_data_fetcher, mock_tracking_service):
     yield lambda: MockSyncer(
-        config=mock_tracking_service.get_airflow_server_configuration(),
+        config=mock_tracking_service.get_monitor_configuration(),
         data_fetcher=mock_data_fetcher,
         tracking_service=mock_tracking_service,
     )
@@ -64,7 +97,7 @@ def count_logged_exceptions(caplog):
     return len(logged_exceptions)
 
 
-class MockSyncer(BaseMonitorComponent):
+class MockSyncer(BaseMonitorSyncer):
     def __init__(self, *args, **kwargs):
         super(MockSyncer, self).__init__(*args, **kwargs)
         self.sync_count = 0
@@ -96,8 +129,8 @@ class TestMultiServer(object):
     def test_03_empty_config(self, multi_server, mock_server_config_service, caplog):
         # server config is empty (all components disabled) - nothing should run
         mock_server_config_service.mock_servers = [
-            AirflowServerConfig(uuid.uuid4()),
-            AirflowServerConfig(uuid.uuid4()),
+            AirflowServerConfig(**MOCK_SERVER_1_CONFIG),
+            AirflowServerConfig(**MOCK_SERVER_2_CONFIG),
         ]
         multi_server.run_once()
 
@@ -110,10 +143,10 @@ class TestMultiServer(object):
         self, multi_server, mock_server_config_service, mock_syncer, caplog
     ):
         with patch.dict(
-            KNOWN_COMPONENTS, {"state_sync": mock_syncer.emulate_start_syncer}
+            SERVICES_COMPONENTS, {"state_sync": mock_syncer.emulate_start_syncer}
         ):
             mock_server_config_service.mock_servers = [
-                AirflowServerConfig(uuid.uuid4(), state_sync_enabled=True)
+                AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
             ]
             multi_server.run_once()
             # should start mock_server, should do 1 iteration
@@ -144,10 +177,10 @@ class TestMultiServer(object):
         mock_syncer2 = mock_syncer_factory()
 
         mock_server_config_service.mock_servers = [
-            AirflowServerConfig(uuid.uuid4(), state_sync_enabled=True)
+            AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
         ]
         with patch.dict(
-            KNOWN_COMPONENTS, {"state_sync": mock_syncer1.emulate_start_syncer}
+            SERVICES_COMPONENTS, {"state_sync": mock_syncer1.emulate_start_syncer}
         ):
             multi_server.run_once()
             # should start mock_server, should do 1 iteration
@@ -158,7 +191,7 @@ class TestMultiServer(object):
             )
 
         with patch.dict(
-            KNOWN_COMPONENTS, {"state_sync": mock_syncer2.emulate_start_syncer}
+            SERVICES_COMPONENTS, {"state_sync": mock_syncer2.emulate_start_syncer}
         ):
             # ensure it's not restarted (just because we've change component definition)
             multi_server.run_once()
@@ -201,10 +234,10 @@ class TestMultiServer(object):
         caplog,
     ):
         mock_server_config_service.mock_servers = [
-            AirflowServerConfig(uuid.uuid4(), state_sync_enabled=True)
+            AirflowServerConfig(**MOCK_SERVER_3_CONFIG)
         ]
         with patch.dict(
-            KNOWN_COMPONENTS, {"state_sync": mock_syncer.emulate_start_syncer}
+            SERVICES_COMPONENTS, {"state_sync": mock_syncer.emulate_start_syncer}
         ):
             mock_data_fetcher.alive = False
             multi_server.run_once()
@@ -261,7 +294,7 @@ class TestMultiServer(object):
         caplog,
     ):
         mock_server_config_service.mock_servers = [
-            AirflowServerConfig(uuid.uuid4(), state_sync_enabled=True)
+            AirflowServerConfig(**MOCK_SERVER_4_CONFIG)
         ]
 
         multi_server.run_once()

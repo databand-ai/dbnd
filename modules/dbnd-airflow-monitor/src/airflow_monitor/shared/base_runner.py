@@ -1,8 +1,16 @@
+from datetime import datetime
+from typing import Callable, Optional
+
+from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
+
+
 class BaseRunner(object):
     def __init__(self, target, tracking_service, **kwargs):
-        self.target = target
-        self.tracking_service = tracking_service
-        self.kwargs = kwargs
+        self.target: Callable = target
+        self.tracking_service: BaseDbndTrackingService = tracking_service
+        self.kwargs: dict = kwargs
+
+        self.last_heartbeat: Optional[datetime] = None
 
     def start(self):
         raise NotImplementedError()

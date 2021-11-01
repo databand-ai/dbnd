@@ -132,6 +132,31 @@ class UpdateDagRunsRequestSchema(ApiStrictSchema):
     syncer_type = fields.String(allow_none=True)
 
 
+@attr.s
+class BaseSourceMonitorState(object):
+    monitor_version = attr.ib(default=NOTHING)  # type: str
+    monitor_status = attr.ib(default=NOTHING)  # type: str
+    monitor_error_message = attr.ib(default=NOTHING)  # type: str
+    monitor_start_time = attr.ib(default=NOTHING)  # type: datetime
+
+    def as_dict(self):
+        # don't serialize data which didn't changed: as_dict should be able to return
+        # None value when it set, specifically for monitor_error_message - when not set
+        # at all (=NOTHING, didn't changed, =None changed)
+        return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
+
+
+class BaseSourceMonitorStateSchema(ApiStrictSchema):
+    monitor_version = fields.String(required=False, allow_none=True)
+    monitor_status = fields.String(required=False, allow_none=True)
+    monitor_error_message = fields.String(required=False, allow_none=True)
+    monitor_start_time = fields.DateTime(required=False, allow_none=True)
+
+    @post_load
+    def make_object(self, data):
+        return BaseSourceMonitorState(**data)
+
+
 # ----- Datasource Tracking ------
 
 # Datasource Monitor
@@ -148,7 +173,7 @@ class DatasourceMonitorState(object):
         # don't serialize data which didn't changed: as_dict should be able to return
         # None value when it set, specifically for monitor_error_message - when not set
         # at all (=NOTHING, didn't changed, =None changed)
-        return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
+        return attr.asdict(self, filter=lambda field, value: value is not NOTHING,)
 
 
 class DatasourceMonitorStateSchema(ApiStrictSchema):

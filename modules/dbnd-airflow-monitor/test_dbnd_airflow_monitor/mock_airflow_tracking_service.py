@@ -12,11 +12,12 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
-from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.tracking_service.base_tracking_service import (
-    DbndAirflowTrackingService,
-    ServersConfigurationService,
+from airflow_monitor.shared import get_tracking_service_config_from_dbnd
+from airflow_monitor.shared.base_tracking_service import (
+    BaseDbndTrackingService,
+    WebServersConfigurationService,
 )
+from dbnd.api.serialization.tracking import UpdateAirflowMonitorStateRequestSchema
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 from test_dbnd_airflow_monitor.mock_airflow_data_fetcher import MockDagRun
 
@@ -51,26 +52,44 @@ def ticking(f):
     return wrapped
 
 
-class MockServersConfigService(ServersConfigurationService):
+class MockServersConfigService(WebServersConfigurationService):
     def __init__(self):
+
+        super(MockServersConfigService, self).__init__(
+            monitor_type="airflow",
+            tracking_service_config=get_tracking_service_config_from_dbnd(),
+            server_monitor_config=AirflowServerConfig,
+        )
         self.alive = True
         self.mock_servers = []  # type: List[AirflowServerConfig]
 
     @can_be_dead
     @ticking
     def get_all_servers_configuration(
-        self, airflow_config: AirflowMonitorConfig
+        self, monitor_config=None
     ) -> List[AirflowServerConfig]:
         return self.mock_servers
 
 
-class MockTrackingService(DbndAirflowTrackingService):
+class MockTrackingService(BaseDbndTrackingService):
     def __init__(self, tracking_source_uid=None):
-        super(MockTrackingService, self).__init__(tracking_source_uid)
+        super(MockTrackingService, self).__init__(
+            monitor_type="airflow",
+            tracking_source_uid=tracking_source_uid,
+            tracking_service_config=get_tracking_service_config_from_dbnd(),
+            server_monitor_config=AirflowServerConfig,
+            monitor_state_schema=UpdateAirflowMonitorStateRequestSchema,
+        )
+
         self.dag_runs = []  # type: List[MockDagRun]
 
         self.config = AirflowServerConfig(
-            tracking_source_uid=tracking_source_uid, interval=0, fix_interval=0
+            source_name="test",
+            source_type="airflow",
+            tracking_source_uid=tracking_source_uid,
+            interval=0,
+            sync_interval=0,
+            fix_interval=0,
         )
         self.last_seen_dag_run_id = None
         self.last_seen_log_id = None
@@ -174,7 +193,7 @@ class MockTrackingService(DbndAirflowTrackingService):
 
     @can_be_dead
     @ticking
-    def get_airflow_server_configuration(self) -> AirflowServerConfig:
+    def get_monitor_configuration(self) -> AirflowServerConfig:
         return self.config
 
     @can_be_dead

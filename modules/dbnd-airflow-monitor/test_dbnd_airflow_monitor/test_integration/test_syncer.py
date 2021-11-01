@@ -8,7 +8,11 @@ import pytest
 from mock import MagicMock, patch
 
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.multiserver.multiserver import MultiServerMonitor
+from airflow_monitor.multiserver.monitor_component_manager import (
+    AirflowMonitorComponentManager,
+)
+from airflow_monitor.multiserver.multiserver import AirflowMultiServerMonitor
+from airflow_monitor.multiserver.runners import RUNNER_FACTORY
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from airflow_monitor.tracking_service import get_servers_configuration_service
 from dbnd.utils.api_client import ApiClient
@@ -85,9 +89,13 @@ class TestSyncerWorks(WebAppTest):
             "airflow_monitor.common.base_component.get_data_fetcher",
             return_value=mock_data_fetcher,
         ), self.patch_api_client():
-            yield MultiServerMonitor(
-                get_servers_configuration_service(),
-                AirflowMonitorConfig(syncer_name=syncer_name),
+
+            monitor_config = AirflowMonitorConfig(syncer_name=syncer_name)
+            yield AirflowMultiServerMonitor(
+                runner=RUNNER_FACTORY[monitor_config.runner_type],
+                monitor_component_manager=AirflowMonitorComponentManager,
+                servers_configuration_service=get_servers_configuration_service(),
+                monitor_config=monitor_config,
             )
 
     def test_01_server_sync_enable_disable(

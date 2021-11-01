@@ -8,7 +8,7 @@ from airflow_monitor.common.airflow_data import (
     AirflowDagRunsResponse,
     DagRunsStateData,
 )
-from airflow_monitor.common.base_component import BaseMonitorComponent, start_syncer
+from airflow_monitor.common.base_component import BaseMonitorSyncer, start_syncer
 
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def categorize_dag_runs(
     return dagruns_to_init, dagruns_to_update
 
 
-class AirflowRuntimeSyncer(BaseMonitorComponent):
+class AirflowRuntimeSyncer(BaseMonitorSyncer):
     SYNCER_TYPE = "runtime_syncer"
 
     @capture_monitor_exception("sync_once")
