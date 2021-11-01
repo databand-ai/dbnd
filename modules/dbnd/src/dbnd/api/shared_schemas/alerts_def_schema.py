@@ -17,6 +17,7 @@ class AlertDefsSchema(ApiStrictSchema):
     severity = fields.Str()
     type = fields.Str()
     task_name = fields.Str()
+    task_repr = fields.Str()
     user_metric = fields.Str()
     operator = fields.Str()
     is_str_value = fields.Bool()
