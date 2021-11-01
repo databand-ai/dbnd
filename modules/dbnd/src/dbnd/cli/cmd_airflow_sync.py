@@ -63,22 +63,6 @@ def build_instances_table(instances_data):
     return safe_tabulate(table_data, headers)
 
 
-def validate_composer_id(ctx, param, value):
-    if ctx.params["instance_type"] == "composer":
-        if value is None:
-            raise click.MissingParameter(
-                "Client id is required for Google Cloud Composer instance", ctx, param
-            )
-    else:
-        if value is not None:
-            raise click.BadParameter(
-                "Setting client id is allowed only for Google Cloud Composer instances",
-                ctx,
-                param,
-            )
-    return value
-
-
 @airflow_sync.command()
 @click.option(
     "--url", "-u", help="base url for instance", type=click.STRING, required=True
@@ -87,10 +71,10 @@ def validate_composer_id(ctx, param, value):
     "--external-url", "-e", help="external url for instance", type=click.STRING
 )
 @click.option(
-    "--instance-type",
-    "-i",
-    help="type of an instance: Airflow or Google Cloud Composer",
-    type=click.Choice(["airflow", "composer"], case_sensitive=False),
+    "--fetcher",
+    "-f",
+    help="Fetcher to use ofr data (web, db)",
+    type=click.Choice(["web", "db"], case_sensitive=False),
     required=True,
 )
 @click.option(
@@ -112,7 +96,6 @@ def validate_composer_id(ctx, param, value):
     "-c",
     help="client id for Google Cloud Composer connection",
     type=click.STRING,
-    callback=validate_composer_id,
 )
 @click.option(
     "--exclude-sources",
@@ -138,10 +121,13 @@ def validate_composer_id(ctx, param, value):
     type=click.STRING,
     default=None,
 )
+@click.option(
+    "--name", help="Name for the syncer", type=click.STRING, default=None,
+)
 def add(
     url,
     external_url,
-    instance_type,
+    fetcher,
     api_mode,
     airflow_environment,
     composer_client_id,
@@ -149,8 +135,8 @@ def add(
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
+    name,
 ):
-    fetcher = "web" if instance_type == "airflow" else instance_type
     try:
         create_airflow_instance(
             url,
@@ -163,11 +149,12 @@ def add(
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,
+            name,
         )
     except DatabandApiError as e:
         logger.warning("failed with - {}".format(e.response))
     else:
-        logger.info("Starting syncing instance %s", url)
+        logger.info("Successfully added %s", url)
 
 
 @airflow_sync.command()
@@ -178,10 +165,10 @@ def add(
     "--external-url", "-e", help="external url for instance", type=click.STRING
 )
 @click.option(
-    "--instance-type",
-    "-i",
-    help="type of an instance: Airflow or Google Cloud Composer",
-    type=click.Choice(["airflow", "composer"], case_sensitive=False),
+    "--fetcher",
+    "-f",
+    help="Fetcher to use ofr data (web, db)",
+    type=click.Choice(["web", "db"], case_sensitive=False),
     required=True,
 )
 @click.option(
@@ -203,7 +190,6 @@ def add(
     "-c",
     help="client id for Google Cloud Composer connection",
     type=click.STRING,
-    callback=validate_composer_id,
 )
 @click.option(
     "--exclude-sources",
@@ -229,10 +215,13 @@ def add(
     type=click.STRING,
     default=None,
 )
+@click.option(
+    "--name", help="Name for the syncer", type=click.STRING, default=None,
+)
 def edit(
     url,
     external_url,
-    instance_type,
+    fetcher,
     api_mode,
     airflow_environment,
     composer_client_id,
@@ -240,8 +229,8 @@ def edit(
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
+    name,
 ):
-    fetcher = "web" if instance_type == "airflow" else instance_type
     try:
         edit_airflow_instance(
             url,
@@ -254,11 +243,12 @@ def edit(
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,
+            name,
         )
     except DatabandApiError as e:
         logger.warning("failed with - {}".format(e.response))
     else:
-        logger.info("Starting syncing instance %s", url)
+        logger.info("Successfully edited %s", url)
 
 
 @airflow_sync.command()
