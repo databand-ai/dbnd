@@ -2,9 +2,9 @@ import contextlib
 import functools
 import logging
 
-from collections import namedtuple
+from collections import OrderedDict, namedtuple
 from itertools import chain, takewhile
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import sqlparse
 
@@ -12,6 +12,7 @@ from snowflake.connector import SnowflakeConnection
 from snowflake.connector.cursor import DictCursor, SnowflakeCursor
 
 from dbnd import log_dataset_op
+from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd_snowflake.POC.sql_extract import READ, WRITE, SqlQueryExtractor
 from dbnd_snowflake.POC.sql_operation import (
     DTypes,
@@ -19,6 +20,8 @@ from dbnd_snowflake.POC.sql_operation import (
     render_connection_path,
 )
 
+
+logger = logging.getLogger(__name__)
 
 SNOWFLAKE_TYPE_CODE_MAP = {
     0: "NUMBER",
@@ -61,6 +64,7 @@ def extract_schema_from_sf_desc(description):
 class PocSnowflakeTracker(object):
     def __init__(self):
         self.operations = []
+        self._connection = None
 
     def __enter__(self):
         if not hasattr(SnowflakeCursor.execute, "__dbnd_patched__"):
@@ -82,7 +86,7 @@ class PocSnowflakeTracker(object):
                 # track connection before closing it (Example 1)
                 self.unpatch_method(SnowflakeCursor, "execute")
 
-                self.track_connection_data(connection_self)
+                self.flush_operations(connection_self)
                 return close_original(connection_self, *args, **kwargs)
 
             snowflake_connection_close.__dbnd_patched__ = close_original
@@ -90,7 +94,8 @@ class PocSnowflakeTracker(object):
 
         return self
 
-    def unpatch_method(self, obj, original_attr, patched_attr="__dbnd_patched__"):
+    @staticmethod
+    def unpatch_method(obj, original_attr, patched_attr="__dbnd_patched__"):
         method = getattr(obj, original_attr)
         if hasattr(method, patched_attr):
             setattr(
@@ -100,17 +105,28 @@ class PocSnowflakeTracker(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.unpatch_method(SnowflakeCursor, "execute")
         self.unpatch_method(SnowflakeConnection, "close")
+        if self._connection:
+            self.flush_operations(self._connection)
 
-    def track_connection_data(self, connection_self: SnowflakeConnection):
+    def flush_operations(self, connection: SnowflakeConnection):
+        self.report_operations(connection, self.operations)
+        # we clean all the batch of operations we reported so we don't report twice
+        self.operations = []
+
+    def report_operations(
+        self, connection: SnowflakeConnection, operations: List[SqlOperation]
+    ):
         # update the tables names
-        operations = [op.evolve_table_name(connection_self) for op in self.operations]
+        operations = [op.evolve_table_name(connection) for op in operations]
 
         # looks for tables schemas
         tables = chain.from_iterable(op.tables for op in operations)
-        tables_schemas: Dict[str, DTypes] = {
-            table: get_snowflake_table_schema(connection_self, table)
-            for table in tables
-        }
+
+        tables_schemas: Dict[str, DTypes] = {}
+        for table in tables:
+            table_schema = get_snowflake_table_schema(connection, table)
+            if table_schema:
+                tables_schemas[table] = table_schema
 
         operations: List[SqlOperation] = [
             op.evolve_schema(tables_schemas) for op in operations
@@ -118,7 +134,7 @@ class PocSnowflakeTracker(object):
 
         for op in operations:
             log_dataset_op(
-                op_path=render_connection_path(connection_self, op, "snowflake"),
+                op_path=render_connection_path(connection, op, "snowflake"),
                 op_type=op.op_type,
                 success=op.success,
                 data=op,
@@ -128,6 +144,7 @@ class PocSnowflakeTracker(object):
 
     @contextlib.contextmanager
     def track_execute(self, cursor, command, *args, **kwargs):
+        self._connection = cursor.connection
         success = True
         try:
             yield
@@ -141,16 +158,25 @@ class PocSnowflakeTracker(object):
                 self.operations.extend(operations)
 
 
-def get_snowflake_table_schema(connection, table):
-    desc_results = snowflake_query(connection, f"desc table {table}")
-    schema = {}
-    for col_desc in desc_results:
-        # remove the trailing part of the column type that's inside brackets
-        # `NUMBER(123,0) -> NUMBER`, `VARCHAR(23,2) -> VARCHAR` and so on
-        normalized_col_type = "".join(takewhile(lambda c: c != "(", col_desc["type"]))
-        normalized_col_name = col_desc["name"].lower()
-        schema[normalized_col_name] = normalized_col_type
-    return schema
+def get_snowflake_table_schema(connection, table) -> Optional[DTypes]:
+    try:
+        desc_results = snowflake_query(connection, f"desc table {table}")
+    except Exception as e:
+        logger.warning(
+            "Failed to fetch table description for table %s", table, exc_info=True
+        )
+        log_exception_to_server(e)
+    else:
+        schema = {}
+        for col_desc in desc_results:
+            # remove the trailing part of the column type that's inside brackets
+            # `NUMBER(123,0) -> NUMBER`, `VARCHAR(23,2) -> VARCHAR` and so on
+            normalized_col_type = "".join(
+                takewhile(lambda c: c != "(", col_desc["type"])
+            )
+            normalized_col_name = col_desc["name"].lower()
+            schema[normalized_col_name] = normalized_col_type
+        return schema
 
 
 def snowflake_query(connection: SnowflakeConnection, query: str, params=None):
@@ -160,7 +186,7 @@ def snowflake_query(connection: SnowflakeConnection, query: str, params=None):
             result = cursor.fetchall()
             return result
     except Exception:
-        print("Error occurred during querying Snowflake, query: %s", query)
+        logger.exception("Error occurred during querying Snowflake, query: %s", query)
         raise
 
 
