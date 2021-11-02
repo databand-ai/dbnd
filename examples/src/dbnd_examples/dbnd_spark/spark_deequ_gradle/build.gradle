@@ -1,0 +1,69 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+    }
+}
+
+plugins {
+    id 'java'
+    id 'application'
+    id 'scala'
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+group 'ai.databand'
+version = '0.52.0'
+
+repositories {
+    mavenCentral()
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+    implementation("ai.databand:dbnd-api:${version}")
+    implementation("ai.databand:dbnd-api-deequ:${version}")
+    implementation("ai.databand:dbnd-client:${version}")
+    implementation("com.amazon.deequ:deequ:1.2.2-spark-2.4") {
+        exclude(group: "org.apache.spark")
+        exclude(group: "org.scalanlp")
+    }
+
+    implementation("org.scala-lang:scala-library:2.12.8")
+
+    implementation("org.slf4j:slf4j-api:1.7.16")
+
+    implementation("org.apache.spark:spark-sql_2.12:2.4.2")
+}
+
+mainClassName = "ai.databand.examples.Showcase"
+
+compileScala {
+    options.compilerArgs << '-parameters'
+}
+
+shadowJar {
+    dependencies {
+        exclude(dependency {
+            !it.moduleGroup.contains('databand') \
+          && !it.moduleGroup.contains('deequ') \
+          && !it.moduleGroup.contains('squareup')
+        })
+    }
+}
+
+task shadowJarLatest(type: Copy) {
+    from shadowJar
+    into 'build/libs'
+    rename { String fileName ->
+        fileName.replace("$project.version", "latest")
+    }
+}
+
+shadowJar.finalizedBy shadowJarLatest
