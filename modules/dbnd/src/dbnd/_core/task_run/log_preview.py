@@ -28,7 +28,7 @@ def read_dbnd_log_preview(log_path, spark_log_path=None):
     """
     Reads the log_path using the current logging config
     """
-    logger_config = LoggingConfig.from_databand_context()
+    logger_config = LoggingConfig()
     max_head_size = logger_config.preview_head_bytes
     max_tail_size = logger_config.preview_tail_bytes
 
