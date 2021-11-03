@@ -1,5 +1,35 @@
 # History
 
+## DBND v 0.52.0
+​
+### New features
+* \#1201144776560259: Java SDK is now able to catch and display operation errors.
+* \#1200978087736013: Added time picker to the Overview tab.
+​
+### Improvements
+* \#1201233822389401: Airflow monitor doesn't load the entire AirflowMonitor SmartDagBag,
+but loads each DAG as requested.
+* \#1201270762446144: Added AirflowMonitor memory guard to allow the Monitor DAG
+to automatically stop if it consumes more memory than allowed (8GB by default, configurable).
+* \#1201161190744548: Metric view does not display system metrics from tasks.
+* \#1200887319437205: Receiver configuration is now accessible from the Alerts tab.
+*\#1200978826558970: BigQuery Monitor errors are followed by a 'red dot" notification on
+the left bottom corner of the UI.
+* \#1201174491849652: Chart "Current Table Size" renamed to "Total Rows Over Time"
+in the Dataset Overview.
+* \#1201174491849648: Added a "copy" icon next to the path and a "Copy to clipboard" tooltip
+on hover in the Datasets tab.
+* \#1200941787313784: Added navigation from the Dataset operation list to the Task Run details.
+​
+### Bug fixes
+* \#1200998434897582: Relevant parts of long metric names are not mistakenly hidden
+in the UI anymore.
+* \#1201137363846218: Unclickable "bad tasks" in Affected Datasets are not clickable anymore.
+* \#1201068945769376: Archived runs stopped being displayed in the record count history
+of Affected Datasets.
+* \#1201225016615890: Dataset operation list table is scrollable again.
+* \#1201225016615878: Fixed histogram calculation.
+
 ## DBND v 0.50.0
 
 ### New features
