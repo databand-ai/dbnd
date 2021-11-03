@@ -43,7 +43,7 @@ def log_sql_targets(conn_str, path, sql_query, is_succeed):
 
             if (
                 target_op.path.startswith("snowflake")
-                and TrackingConfig.current().value_reporting_strategy
+                and TrackingConfig.from_databand_context().value_reporting_strategy
                 == ValueTrackingLevel.ALL
                 and not target_op.name.startswith("@")
             ):
@@ -83,7 +83,7 @@ def patch_airflow_db_hook(operator_cls, wrapper):
 def config_base_target_reporter(original_run):
     @functools.wraps(original_run)
     def _run_sql(self, sql, *args, **kwargs):
-        config = AirflowTrackingConfig.current()
+        config = AirflowTrackingConfig.from_databand_context()
 
         if config.sql_reporting:
             # each instance of DbApiHook has `conn_name_attr` attribute that map to the actual name the attribute

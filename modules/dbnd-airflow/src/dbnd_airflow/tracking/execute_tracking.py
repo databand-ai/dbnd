@@ -105,7 +105,7 @@ def new_execute(context):
     # if we have a task run here we want to log results and xcoms
     if task_run:
         try:
-            track_config = AirflowTrackingConfig.current()
+            track_config = AirflowTrackingConfig.from_databand_context()
             if track_config.track_xcom_values:
                 # reporting xcoms as metrix of the task
                 log_xcom(context, track_config)

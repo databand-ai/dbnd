@@ -57,7 +57,7 @@ def should_use_airflow_monitor():
     if is_airflow_enabled():
         from dbnd_airflow.tracking.config import AirflowTrackingConfig
 
-        tracking_config = AirflowTrackingConfig.current()
+        tracking_config = AirflowTrackingConfig.from_databand_context()
         return tracking_config.af_with_monitor
 
     return True

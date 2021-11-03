@@ -88,8 +88,8 @@ class TestTaskConfig(object):
     def test_single_instance(self):
         with new_dbnd_context(name="first") as ctx:
             config1 = ctx.settings.get_config("my_dummy")
-            config2 = Config.current("my_dummy")
-            config3 = DummyConfig.current()
+            config2 = Config.from_databand_context("my_dummy")
+            config3 = DummyConfig.from_databand_context()
             config4 = ctx.settings.get_config("my_dummy")
             assert config1 is config2
             assert config1 is config3

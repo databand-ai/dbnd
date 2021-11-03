@@ -22,7 +22,7 @@ class Config(_TaskWithParams, SingletonContext):
         return self.task_name
 
     @classmethod
-    def current(cls, name=None):
+    def from_databand_context(cls, name=None):
         """
         Syntax sugar for accessing the current config instance.
         """

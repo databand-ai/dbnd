@@ -154,7 +154,9 @@ class CallableTrackingManager(object):
                 task, task_engine=current_task_run().task_engine
             )
 
-            should_capture_log = TrackingConfig.current().capture_tracking_log
+            should_capture_log = (
+                TrackingConfig.from_databand_context().capture_tracking_log
+            )
             with task_run.runner.task_run_execution_context(
                 handle_sigterm=True, capture_log=should_capture_log
             ):

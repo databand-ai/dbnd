@@ -36,7 +36,7 @@ class TestTrackingConfig:
     def test_get_value_meta(
         self, value, value_type, target, expected_value_preview, expected_data_schema,
     ):
-        tracking_config = TrackingConfig.current()
+        tracking_config = TrackingConfig.from_databand_context()
         tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
 
         result = get_value_meta(
@@ -427,7 +427,7 @@ class TestTrackingConfig:
     def test_get_value_meta_preview_size_default_max_elements(
         self, value, value_type, target, expected_value_preview,
     ):
-        tracking_config = TrackingConfig.current()
+        tracking_config = TrackingConfig.from_databand_context()
         tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
 
         result = get_value_meta(
@@ -469,7 +469,7 @@ class TestTrackingConfig:
     def test_get_value_meta_preview_size_config_max_elements(
         self, value, value_type, target, expected_value_preview,
     ):
-        tracking_config = TrackingConfig.current()
+        tracking_config = TrackingConfig.from_databand_context()
         tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
 
         result = get_value_meta(
@@ -489,7 +489,7 @@ class TestTrackingConfig:
     def test_get_value_meta_preview_small_size(
         self, value, value_type, target, expected_value_preview,
     ):
-        tracking_config = TrackingConfig.current()
+        tracking_config = TrackingConfig.from_databand_context()
         tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
 
         result = get_value_meta(

@@ -215,7 +215,7 @@ def try_init_sentry():
 
     from dbnd._core.settings import LoggingConfig
 
-    logging_config = LoggingConfig.current()
+    logging_config = LoggingConfig.from_databand_context()
 
     sentry_url = logging_config.sentry_url
 

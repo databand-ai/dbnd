@@ -871,7 +871,7 @@ def report_airflow_task_instance(
             af_instances.append(af_instance)
 
     if airflow_config is None:
-        airflow_config = AirflowConfig.current()
+        airflow_config = AirflowConfig.from_databand_context()
 
     if af_instances and airflow_config.webserver_url:
         first_task_run = task_runs[0]

@@ -543,7 +543,9 @@ class _ParamRecordBuilder(object):
     def add_value(self):
         from dbnd._core.settings import DescribeConfig
 
-        console_value_preview_size = DescribeConfig.current().console_value_preview_size
+        console_value_preview_size = (
+            DescribeConfig.from_databand_context().console_value_preview_size
+        )
 
         if self.value is None:
             value_str = "@None"

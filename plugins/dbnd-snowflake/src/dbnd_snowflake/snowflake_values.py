@@ -61,7 +61,7 @@ class SnowflakeTable(object):
     def from_table(cls, snowflake_ctrl, table, config=None):
         # type: (SnowflakeController, str, Optional[SnowflakeConfig]) -> SnowflakeTable
         if config is None:
-            config = SnowflakeConfig.current()
+            config = SnowflakeConfig.from_databand_context()
         preview_rows = config.table_preview_rows
 
         # this case is very simple, we need to extract from the controller if there is a missing part

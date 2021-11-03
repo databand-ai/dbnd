@@ -181,7 +181,7 @@ class _DbndScriptTrackingManager(object):
         run.tracker.init_run()
         run.root_task_run.set_task_run_state(TaskRunState.RUNNING)
 
-        should_capture_log = TrackingConfig.current().capture_tracking_log
+        should_capture_log = TrackingConfig.from_databand_context().capture_tracking_log
         self._enter_cm(
             run.root_task_run.runner.task_run_execution_context(
                 capture_log=should_capture_log

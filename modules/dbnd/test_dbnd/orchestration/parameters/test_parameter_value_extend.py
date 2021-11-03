@@ -32,22 +32,22 @@ class DummyConfig(Config):
 
 @task
 def example_task(name, expected_dict):
-    assert Config.current(name).dict_config == expected_dict
+    assert Config.from_databand_context(name).dict_config == expected_dict
 
 
 @task(task_config={"dummy": {"dict_config": {"A": "a"}}})
 def example_task_with_task_config(expected_dict):
-    assert DummyConfig.current().dict_config == expected_dict
+    assert DummyConfig.from_databand_context().dict_config == expected_dict
 
 
 @task(task_config={"dummy": {"dict_config": override({"A": "a"})}})
 def example_task_with_task_config_override(expected_dict):
-    assert DummyConfig.current().dict_config == expected_dict
+    assert DummyConfig.from_databand_context().dict_config == expected_dict
 
 
 @task(task_config={"dummy": {"dict_config": extend({"new_key": "value"})}})
 def example_task_with_task_config_extend(expected_dict):
-    assert DummyConfig.current().dict_config == expected_dict
+    assert DummyConfig.from_databand_context().dict_config == expected_dict
 
 
 class TestBuildTaskWithMergeOperator(object):

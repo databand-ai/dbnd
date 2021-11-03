@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def _hide_or_show_by_config(source):
     from dbnd._core.settings import TrackingConfig
 
-    tracking_config = TrackingConfig.current()
+    tracking_config = TrackingConfig.from_databand_context()
     if tracking_config.track_source_code:
         return source
     else:

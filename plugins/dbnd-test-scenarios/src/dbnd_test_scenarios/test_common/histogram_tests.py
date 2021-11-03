@@ -12,7 +12,7 @@ def get_value_meta_from_value(name, value, meta_conf):
     from dbnd._core.settings.tracking_config import ValueTrackingLevel
     from dbnd._core.settings.tracking_config import get_value_meta
 
-    c = TrackingConfig.current()
+    c = TrackingConfig.from_databand_context()
     c.value_reporting_strategy = ValueTrackingLevel.ALL
     return get_value_meta(value, meta_conf, tracking_config=c)
 
