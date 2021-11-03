@@ -15,6 +15,8 @@ from dbnd._core.settings import CoreConfig, TrackingConfig
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
 
+AIRFLOW_DBND_CONNECTION_SOURCE = "airflow_dbnd_connection"
+
 logger = logging.getLogger(__name__)
 
 
@@ -161,19 +163,27 @@ def get_dbnd_json_config_from_airflow_connections():
 
 
 def set_dbnd_config_from_airflow_connections():
-    json_config = get_dbnd_json_config_from_airflow_connections()
-    if not json_config:
-        return False
-
     from dbnd._core.configuration.dbnd_config import config
-    from dbnd._core.configuration.config_value import ConfigValuePriority
 
-    config.set_values(
-        config_values=json_config,
-        priority=ConfigValuePriority.NORMAL,
-        source="airflow_dbnd_connection",
+    all_config_layers_names = set(
+        [layer.name for layer in config.config_layer.get_all_layers()]
     )
-    logger.info(
-        "Databand config was set using {0} connection.".format(DATABAND_AIRFLOW_CONN_ID)
-    )
+
+    if AIRFLOW_DBND_CONNECTION_SOURCE not in all_config_layers_names:
+        json_config = get_dbnd_json_config_from_airflow_connections()
+        if not json_config:
+            return False
+
+        from dbnd._core.configuration.config_value import ConfigValuePriority
+
+        config.set_values(
+            config_values=json_config,
+            priority=ConfigValuePriority.NORMAL,
+            source=AIRFLOW_DBND_CONNECTION_SOURCE,
+        )
+        logger.info(
+            "Databand config was set using {0} connection.".format(
+                DATABAND_AIRFLOW_CONN_ID
+            )
+        )
     return True

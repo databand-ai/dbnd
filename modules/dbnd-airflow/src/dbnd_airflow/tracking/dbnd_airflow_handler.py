@@ -67,10 +67,20 @@ class DbndAirflowHandler(logging.Handler):
 
         # Airflow is running with two process `run` and `--raw run`.
         # But we want the handler to run only once (Idempotency)
-        # So ee are using an environment variable to sync those two process
+        # So we are using an environment variable to sync those two process
         task_key = calc_task_key_from_af_ti(ti)
         if os.environ.get(task_key, False):
             # This key is already set which means we are in `--raw run`
+            from dbnd_airflow.tracking.dbnd_airflow_conf import (
+                set_dbnd_config_from_airflow_connections,
+            )
+
+            # When we are in `--raw run`, in tracking, it runs the main airflow process
+            # for every task, which made some of the features to run twice,
+            # once when the `worker` process ran, and once when the `main` one ran,
+            # which made some of the features to run with different configurations.
+            # it still runs twice, but know with the same configurations.
+            set_dbnd_config_from_airflow_connections()
             return
         else:
             # We are in the outer `run`
