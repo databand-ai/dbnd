@@ -169,5 +169,7 @@ class TestTrackingDatasets(object):
             "path.to.schema",
             "path.to.shape0",
             "path.to.shape1",
+            "path.to.rows",
+            "path.to.columns",
             "path.to",
         }

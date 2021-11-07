@@ -33,80 +33,72 @@ class ValueMeta(object):
         ts = utcnow()
         dataframe_metric_value = {}
         data_metrics, hist_metrics = [], []
-
+        metric_source = MetricSource.user
         if self.data_dimensions:
             dataframe_metric_value["data_dimensions"] = self.data_dimensions
             for dim, size in enumerate(self.data_dimensions):
-                data_metrics.append(
-                    Metric(
-                        key="{}.shape{}".format(key, dim),
-                        value=size,
-                        source=MetricSource.user,
-                        timestamp=ts,
-                    )
-                )
+                key_name = "{}.shape{}".format(key, dim)
+                self.append_metric(data_metrics, key_name, metric_source, size, ts)
+                name = "rows" if dim == 0 else "columns"
+                key_name = "{}.{}".format(key, name)
+                self.append_metric(data_metrics, key_name, metric_source, size, ts)
 
         if meta_conf and meta_conf.log_schema:
             dataframe_metric_value["schema"] = self.data_schema
-            data_metrics.append(
-                Metric(
-                    key="{}.schema".format(key),
-                    value_json=self.data_schema,
-                    source=MetricSource.user,
-                    timestamp=ts,
-                )
+            key_name = "{}.schema".format(key)
+            self.append_metric(
+                data_metrics, key_name, metric_source, None, ts, self.data_schema
             )
 
         if meta_conf and meta_conf.log_preview:
             dataframe_metric_value["value_preview"] = self.value_preview
             dataframe_metric_value["type"] = "dataframe_metric"
-            data_metrics.append(
-                Metric(
-                    key=str(key),
-                    value_json=dataframe_metric_value,
-                    source=MetricSource.user,
-                    timestamp=ts,
-                )
+            key_name = str(key)
+            self.append_metric(
+                data_metrics, key_name, metric_source, None, ts, dataframe_metric_value
             )
 
+        metric_source = MetricSource.histograms
         if self.histogram_system_metrics:
-            hist_metrics.append(
-                Metric(
-                    key="{}.histogram_system_metrics".format(key),
-                    value_json=self.histogram_system_metrics,
-                    source=MetricSource.histograms,
-                    timestamp=ts,
-                )
+            key_name = "{}.histogram_system_metrics".format(key)
+            self.append_metric(
+                hist_metrics,
+                key_name,
+                metric_source,
+                None,
+                ts,
+                self.histogram_system_metrics,
             )
+
         if self.histograms:
-            hist_metrics.append(
-                Metric(
-                    key="{}.histograms".format(key),
-                    value_json=self.histograms,
-                    source=MetricSource.histograms,
-                    timestamp=ts,
-                )
+            key_name = "{}.histograms".format(key)
+            self.append_metric(
+                hist_metrics, key_name, metric_source, None, ts, self.histograms
             )
+
         if self.descriptive_stats:
-            hist_metrics.append(
-                Metric(
-                    key="{}.stats".format(key),
-                    value_json=self.descriptive_stats,
-                    source=MetricSource.histograms,
-                    timestamp=ts,
-                )
+            key_name = "{}.stats".format(key)
+            self.append_metric(
+                hist_metrics, key_name, metric_source, None, ts, self.descriptive_stats
             )
             for column, stats in self.descriptive_stats.items():
                 for stat, value in stats.items():
-                    hist_metrics.append(
-                        Metric(
-                            key="{}.{}.{}".format(key, column, stat),
-                            value=value,
-                            source=MetricSource.histograms,
-                            timestamp=ts,
-                        )
-                    )
+                    key_name = "{}.{}.{}".format(key, column, stat)
+                    self.append_metric(hist_metrics, key_name, metric_source, value, ts)
         return {"user": data_metrics, "histograms": hist_metrics}
+
+    def append_metric(
+        self, data_metrics, key_name, metric_source, value, ts, value_json=None
+    ):
+        data_metrics.append(
+            Metric(
+                key=key_name,
+                value=value,
+                source=metric_source,
+                timestamp=ts,
+                value_json=value_json,
+            )
+        )
 
 
 @attr.s
