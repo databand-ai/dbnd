@@ -3,7 +3,7 @@ import traceback
 
 from datetime import timedelta
 from functools import wraps
-from typing import Optional
+from typing import Callable, Optional
 
 from airflow_monitor.shared.base_tracking_service import (
     BaseDbndTrackingService,
@@ -18,53 +18,66 @@ from dbnd._vendor.cachetools import TTLCache, cached
 logger = logging.getLogger(__name__)
 
 
-def capture_monitor_exception(
-    message: Optional[str] = None,
-    configuration_service: Optional[WebServersConfigurationService] = None,
-):
-    def wrapper(f):
-        @wraps(f)
-        def wrapped(obj, *args, **kwargs):
-            obj_logger = getattr(obj.__module__, "logger", None) or logging.getLogger(
-                obj.__module__
-            )
-            try:
-                obj_logger.debug("[%s] %s", obj, message or f.__name__)
-                result = f(obj, *args, **kwargs)
+class CaptureMonitorExceptionDecorator:
+    def __init__(
+        self,
+        configuration_service_provider: Optional[
+            Callable[[], WebServersConfigurationService]
+        ] = None,
+    ):
+        self.configuration_service_provider = configuration_service_provider
 
-                _report_error(obj, f, None)
+    def __call__(self, message: Optional[str] = None):
+        def wrapper(f):
+            @wraps(f)
+            def wrapped(obj, *args, **kwargs):
+                obj_logger = getattr(
+                    obj.__module__, "logger", None
+                ) or logging.getLogger(obj.__module__)
+                try:
+                    obj_logger.debug("[%s] %s", obj, message or f.__name__)
+                    result = f(obj, *args, **kwargs)
 
-                return result
-            except Exception as e:
-                obj_logger.exception("[%s] Error during %s", obj, message or f.__name__)
+                    _report_error(obj, f, None)
 
-                err_message = traceback.format_exc()
-                _log_exception_to_server(
-                    err_message, configuration_service or _get_tracking_service(obj),
-                )
+                    return result
+                except Exception as e:
+                    obj_logger.exception(
+                        "[%s] Error during %s", obj, message or f.__name__
+                    )
 
-                if isinstance(e, DatabandError):
-                    err_message = logger_format_for_databand_error(e)
+                    err_message = traceback.format_exc()
+                    if self.configuration_service_provider:
+                        configuration_service = self.configuration_service_provider()
+                    else:
+                        configuration_service = _get_tracking_service(obj)
+                    _log_exception_to_server(err_message, configuration_service)
 
-                err_message += "\nTimestamp: {}".format(utcnow())
+                    if isinstance(e, DatabandError):
+                        err_message = logger_format_for_databand_error(e)
 
-                _report_error(obj, f, err_message)
+                    err_message += "\nTimestamp: {}".format(utcnow())
 
-        return wrapped
+                    _report_error(obj, f, err_message)
 
-    if callable(message):
-        # probably was used as @capture_monitor_exception
-        func, message = message, None
-        return wrapper(func)
+            return wrapped
 
-    return wrapper
+        if callable(message):
+            # probably was used as @capture_monitor_exception
+            func, message = message, None
+            return wrapper(func)
+
+        return wrapper
 
 
-cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds())
+capture_monitor_exception = CaptureMonitorExceptionDecorator()
+
+
+log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds())
 
 
 # cached in order to avoid logging same messages over and over again
-@cached(cache)
+@cached(log_exception_cache)
 def _log_exception_to_server(exception_message: str, client):
     try:
         client.report_exception(exception_message)
