@@ -17,15 +17,16 @@ from sqlparse.sql import (
 from sqlparse.tokens import Keyword, Name, Token as TokenType, Whitespace, Wildcard
 
 from dbnd._core.constants import DbndTargetOperationType
-from dbnd_snowflake.POC.utils import ddict2dict
+from dbnd_snowflake.sdk.utils import ddict2dict
 
 
 @attr.s
 class Column:
-    table = attr.ib()
+    dataset_name = attr.ib()
     name = attr.ib(default=None)
     alias = attr.ib(default=None)
     is_file = attr.ib(default=False)
+    is_stage = attr.ib(default=False)
 
     @property
     def is_wildcard(self):
@@ -40,13 +41,6 @@ READ = DbndTargetOperationType.read
 WRITE = DbndTargetOperationType.write
 READ_OPERATIONS = {
     "FROM",
-    "LEFT JOIN",
-    "JOIN",
-    "INNER JOIN",
-    "LEFT OUTER JOIN",
-    "RIGHT JOIN",
-    "RIGHT OUTER",
-    "RIGHT OUTER JOIN",
 }
 CLOUD_SERVICE_URI_REGEX = re.compile(r"s3://\S+|azure://\S+|gcs://\S+")
 
@@ -79,7 +73,7 @@ class SqlQueryExtractor:
             idx, token = self._next_non_empty_token(idx, statement)
             if not token:
                 # done iterating over the sql statement
-                # converting the result to regular dict for convince
+                # converting the result to regular dict
                 return ddict2dict(operations)
 
             token: Token
@@ -87,20 +81,8 @@ class SqlQueryExtractor:
                 operation_name = token.value.upper()
                 idx_potential, next_token = self._next_non_empty_token(idx, statement)
 
-                if operation_name == "SELECT":
-                    extracted_columns, idx = self.handle_select(
-                        idx_potential, next_token
-                    )
-                    columns.extend(extracted_columns)
-
-                elif operation_name == "INTO":
+                if operation_name == "INTO":
                     extracted, idx = self.handle_into(
-                        idx_potential, next_token, statement
-                    )
-                    operations[WRITE].update(extracted)
-
-                elif operation_name == "UPDATE":
-                    extracted, idx = self.handle_update(
                         idx_potential, next_token, statement
                     )
                     operations[WRITE].update(extracted)
@@ -130,15 +112,6 @@ class SqlQueryExtractor:
                         )
                         dynamic_tables[identifier.get_name()] = extracted
 
-    def handle_select(self, idx: int, next_token: Token) -> Tuple[Columns, int]:
-        tokens: List[Token] = (
-            next_token.get_identifiers()
-            if isinstance(next_token, IdentifierList)
-            else [next_token]
-        )
-        columns = self._extract_columns(tokens)
-        return columns, idx
-
     def handle_read_operation(
         self,
         idx: int,
@@ -146,23 +119,8 @@ class SqlQueryExtractor:
         columns: Columns,
         dynamic_tables: Dict[str, Schema],
     ) -> Tuple[Schema, int, Columns]:
-        # looking for a sub-query first - it can be the current token or the first son of this token
         extracted = {}
-        if isinstance(next_token, Parenthesis):
-            # sub query doesnt have an alias name:
-            # `... from (<sub_query>) where ...`
-            extracted = self.extract_from_subquery(next_token, "anon", columns)
-
-        elif isinstance(next_token, TokenList) and isinstance(
-            next_token.token_first(), Parenthesis
-        ):
-            # the sub query has an alias name:
-            # `... from (<sub_query>) as <alias_name> where ...`
-            extracted = self.extract_from_subquery(
-                next_token.token_first(), next_token.get_alias(), columns
-            )
-
-        elif next_token.ttype not in Keyword:
+        if next_token.ttype not in Keyword:
             # no subquery - just parse the source/dest name of the operator
             extracted, left_columns = self.generate_schema(columns, next_token)
             columns = left_columns
@@ -174,7 +132,7 @@ class SqlQueryExtractor:
         self, columns: Columns, next_token: Identifier
     ) -> Tuple[Schema, Columns]:
         """
-          generate schema object and columns for table or file
+          generate schema object and columns for table, file or stage
 
           :param Columns columns: name of a table we want to track
           :param Identifier next_token: snowflake query identifier
@@ -184,20 +142,34 @@ class SqlQueryExtractor:
         if cloud_uri_path:
             table_alias = cloud_uri_path
             table_name = table_alias
-            extracted, left_columns = self.extract_file(
-                table_name, [Column(table=table_name, name="*", alias=table_alias)]
-            )
+            columns = [
+                Column(
+                    dataset_name=table_name, name="*", alias=table_alias, is_file=True
+                )
+            ]
         else:
             table_alias = self.get_identifier_name(next_token)
             table_name = self.get_full_name(next_token)
-            extracted, left_columns = self.extract_schema(
-                table_name, table_alias, columns
-            )
+            if table_name.startswith("@"):
+                columns = [
+                    Column(
+                        dataset_name=table_name,
+                        name="*",
+                        alias=table_alias,
+                        is_stage=True,
+                    )
+                ]
+        extracted, left_columns = self.extract_schema(table_name, table_alias, columns)
         return extracted, left_columns
 
     def handle_into(
         self, idx: int, next_token: Token, statement: TokenList
     ) -> Tuple[Schema, int]:
+        if next_token.is_group:
+            # if token is group, get inner function token if exist
+            for token in next_token.tokens:
+                if isinstance(token, Function):
+                    next_token = token
         table_alias = self.get_identifier_name(next_token)
         table_name = self.get_full_name(next_token)
         if isinstance(next_token, Function):
@@ -210,29 +182,6 @@ class SqlQueryExtractor:
             )
         return extracted, idx
 
-    def handle_update(
-        self, idx: int, next_token: Token, statement: TokenList
-    ) -> Tuple[Schema, int]:
-        table_alias = next_token.get_name()
-        table_name = next_token.normalized
-
-        idx, token = self._next_non_empty_token(idx, statement)
-        operation_name = token.value.upper()
-
-        extracted = {}
-        if operation_name == "SET":
-            idx, token = self._next_non_empty_token(idx, statement)
-
-            if isinstance(token, Comparison):
-                # This is case when token is Comparison object due to single SET condition in SQL
-                extracted = self.extract_write_schema([token], table_name, table_alias)
-            else:
-                extracted = self.extract_write_schema(
-                    token.get_identifiers(), table_name, table_alias
-                )
-
-        return extracted, idx
-
     def extract_write_schema(
         self, tokens: List[Token], table_name: str, table_alias: str
     ) -> Schema:
@@ -240,51 +189,34 @@ class SqlQueryExtractor:
         extracted, _ = self.extract_schema(table_name, table_alias, cols)
         return extracted
 
-    def extract_from_subquery(
-        self, tok: TokenList, table_alias: str, columns: Columns
-    ) -> Schema:
-        dynamic = self.extract_operations_schemas(tok)
-        extracted, left_columns = self.extract_schema(table_alias, table_alias, columns)
-        extracted = self.enrich_with_dynamic(extracted, {table_alias: dynamic[READ]})
-        return extracted
-
     def extract_schema(
         self, table_name: str, table_alias: str, columns: Columns
     ) -> Tuple[Schema, Columns]:
+        """
+        Collects a schema and a wildcard column for a table, file or stage
+        :param str table_name: full path and name of a table , file or stage
+        :param str table_alias: alias of table, file or stage
+        :param Columns columns: array of columns for a table, file or stage (for file and stage would be wildcard)
+        """
         collected_schema = defaultdict(list)
         left_columns = []
 
         col: Column
         for col in columns:
             if col.is_wildcard:
-                ev_col = attr.evolve(col, table=table_name, alias=f"{table_name}.*")
+                ev_col = attr.evolve(
+                    col, dataset_name=table_name, alias=f"{table_name}.*"
+                )
                 collected_schema[ev_col.alias].append(ev_col)
                 left_columns.append(col)
 
-            elif col.table and col.table != table_alias:
+            elif col.dataset_name and col.dataset_name != table_alias:
                 left_columns.append(col)
 
             else:
-                ev_col = attr.evolve(col, table=table_name)
+                ev_col = attr.evolve(col, dataset_name=table_name)
                 collected_schema[ev_col.alias].append(ev_col)
 
-        return collected_schema, left_columns
-
-    def extract_file(self, file_name: str, columns: Columns) -> Tuple[Schema, Columns]:
-        """
-                  Collects a schema and a wildcard column for a file
-
-                :param str file_name: full path and name of a file
-                  :param Columns columns: array of columns for a file (in basic use-case would be a wildcard)
-                  """
-        collected_schema = defaultdict(list)
-        left_columns = []
-        for col in columns:
-            ev_col = attr.evolve(
-                col, table=file_name, alias=f"{file_name}.*", is_file=True
-            )
-            collected_schema[ev_col.alias].append(ev_col)
-            left_columns.append(col)
         return collected_schema, left_columns
 
     @staticmethod
@@ -302,8 +234,8 @@ class SqlQueryExtractor:
         result = defaultdict(list)
         for name, cols in extracted.items():
             for col in cols:
-                if col.table in dynamic:
-                    dynamic_table_schema = dynamic[col.table]
+                if col.dataset_name in dynamic:
+                    dynamic_table_schema = dynamic[col.dataset_name]
                     if col.is_wildcard:
                         result.update(dynamic_table_schema)
 
@@ -320,7 +252,7 @@ class SqlQueryExtractor:
         collected_columns = []
         for token in tokens:
             if token.ttype == Wildcard:
-                col = Column(table=None, name="*", alias=None)
+                col = Column(dataset_name=None, name="*", alias=None)
 
             elif isinstance(token, Identifier):
                 name = token.get_real_name()
@@ -332,15 +264,15 @@ class SqlQueryExtractor:
                     if len(token.tokens) > 1 and first.ttype == Name
                     else None
                 )
-                col = Column(table=ref, name=name, alias=alias)
+                col = Column(dataset_name=ref, name=name, alias=alias)
 
             elif isinstance(token, Comparison):
                 name = token.left.get_real_name()
-                col = Column(table=None, name=name, alias=name)
+                col = Column(dataset_name=None, name=name, alias=name)
 
             else:
-                name = token.get_alias() or token.normalized
-                col = Column(table=None, name=name, alias=name)
+                name = token.normalized or token.get_alias()
+                col = Column(dataset_name=None, name=name, alias=name)
 
             collected_columns.append(col)
         return collected_columns
