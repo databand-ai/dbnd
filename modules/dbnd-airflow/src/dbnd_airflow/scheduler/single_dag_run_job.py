@@ -668,7 +668,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti.state == State.UPSTREAM_FAILED
                 and task_run.task_run_state != TaskRunState.UPSTREAM_FAILED
             ):
-                task_run.set_task_run_state(TaskRunState.UPSTREAM_FAILED, track=False)
+                state = databand_run.get_upstream_failed_task_run_state(task_run)
+
+                logger.info("Setting %s to %s", task_run.task.task_id, state)
+                task_run.set_task_run_state(state, track=False)
                 task_runs.append(task_run)
             # update only in memory state
             if (
