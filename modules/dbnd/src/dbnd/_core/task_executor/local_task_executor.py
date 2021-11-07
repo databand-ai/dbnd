@@ -22,10 +22,10 @@ class LocalTaskExecutor(TaskExecutor):
                 continue
 
             if fail_fast and task_failed:
-                logger.info(
-                    "Setting %s to %s", task.task_id, TaskRunState.UPSTREAM_FAILED
-                )
-                tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED, track=False)
+                state = self.run.get_upstream_failed_task_run_state(tr)
+
+                logger.info("Setting %s to %s", task.task_id, state)
+                tr.set_task_run_state(state, track=False)
                 task_runs_to_update_state.append(tr)
                 continue
 

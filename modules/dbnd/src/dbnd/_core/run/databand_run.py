@@ -390,6 +390,25 @@ class DatabandRun(SingletonContext):
         """
         return self.run_executor.result.load(name, value_type)
 
+    def get_upstream_failed_task_run_state(self, task_run):
+        # type: (TaskRun)-> TaskRunState
+        """
+            This function is a helper function to decide task final state only for orchestration runs.
+            param: task_run - the task  which we want to get it's state
+            return: TaskRunState
+        """
+        state = TaskRunState.UPSTREAM_FAILED
+        child_task_runs = task_run.task.descendants
+        # Since task run has children, IT'S a pipeline task ,so we need to calculate it's state based on children states
+        if child_task_runs:
+            for task_run_id in child_task_runs.children:
+                child_tr_instance = self.get_task_run_by_id(task_run_id)
+                if child_tr_instance.task_run_state == TaskRunState.FAILED:
+                    # Im case one of it's children fail,task run state is updated from upstream failed to failed
+                    state = TaskRunState.FAILED
+
+        return state
+
 
 def new_databand_run(context, job_name, run_uid=None, **kwargs):
     # type: (DatabandContext, Union[Task, str], UUID, **Any)-> ContextManager[DatabandRun]
