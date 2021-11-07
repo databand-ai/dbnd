@@ -89,11 +89,12 @@ class SqlOperation:
             if col.is_file:
                 continue
             if col.is_wildcard:
-                all_columns = tables_schemas[col.table]
+                all_columns = tables_schemas.get(col.table, {})
                 dtypes.update(all_columns)
             else:
-                col_type = tables_schemas[col.table][col.name.lower()]
-                dtypes[col.name] = col_type
+                col_type = tables_schemas.get(col.table, {}).get(col.name.lower())
+                if col_type:
+                    dtypes[col.name] = col_type
         return dtypes
 
     def evolve_table_name(self, connection: Connection) -> "SqlOperation":
