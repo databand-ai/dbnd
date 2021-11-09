@@ -1,11 +1,4 @@
-#### TESTED
-
-import logging
-
 from dbnd import PythonTask, output, parameter, task
-
-
-logger = logging.getLogger(__name__)
 
 
 class TestDocRunATaskInPython:
@@ -22,7 +15,7 @@ class TestDocRunATaskInPython:
             def run(self):
                 self.result.write(self.beta)
 
-        if __name__ == "__main__":
-            calculate_alpha.dbnd_run(alpha=0.4)
-            CalculateBeta(beta=0.15).dbnd_run()
+        # if __name__ == "__main__":
+        calculate_alpha.dbnd_run(alpha=0.4)
+        CalculateBeta(beta=0.15).dbnd_run()
         #### DOC END

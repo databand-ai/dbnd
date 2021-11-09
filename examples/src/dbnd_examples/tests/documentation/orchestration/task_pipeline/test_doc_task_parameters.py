@@ -1,5 +1,3 @@
-#### TESTED
-
 import datetime
 import pathlib
 
@@ -19,6 +17,42 @@ from targets.types import PathStr
 
 
 class TestDocTaskParameters:
+    def test_prepare_data_default(self):
+        #### DOC START
+        @task
+        def prepare_data(data: DataFrame = None) -> DataFrame:
+            return data
+
+        #### DOC END
+        prepare_data.dbnd_run(data=data_repo.wines)
+
+    def test_prepare_data_parameter_factory(self):
+        #### DOC START
+        @task
+        def prepare_data(data=parameter.default(None)[DataFrame]) -> DataFrame:
+            return data
+
+        #### DOC END
+        prepare_data.dbnd_run(data=data_repo.wines)
+
+    def test_prepare_data_parameter_decorator(self):
+        #### DOC START
+        @task(data=parameter.default(None)[DataFrame])
+        def prepare_data(data) -> DataFrame:
+            return data
+
+        #### DOC END
+        prepare_data.dbnd_run(data=data_repo.wines)
+
+    def test_calculate_alpha_value_factory(self):
+        #### DOC START
+        @task(alpha=parameter.value(0.5))
+        def calculate_alpha(alpha) -> float:
+            return alpha
+
+        #### DOC END
+        calculate_alpha.dbnd_run()
+
     def test_prepare_data_simple_types(self):
         #### DOC START
         @task
@@ -56,25 +90,6 @@ class TestDocTaskParameters:
 
         #### DOC END
 
-    def test_prepare_data_parameter(self):
-        #### DOC START
-        class PrepareData(PythonTask):
-            data = parameter[DataFrame]
-            #### DOC END
-            def run(self):
-                return self.data
-
-        PrepareData(data=data_repo.wines).dbnd_run()
-
-    def test_calculate_alpha_with_parameter_value(self):
-        #### DOC START
-        class CalculateAlpha(PythonTask):
-            alpha = parameter.value(0.5)
-
-        d = CalculateAlpha(alpha=0.4)
-        print(d.alpha)
-        #### DOC END
-
     def test_prepare_data_various_lists(self):
         #### DOC START
         @task
@@ -101,16 +116,12 @@ class TestDocTaskParameters:
         #### DOC START
         from dbnd import PythonTask, parameter
 
-        class CalculateAlpha(PythonTask):
-            alpha = parameter[int]
+        @task
+        def calculate_alpha(
+            alpha=parameter[float],
+            debug_level=parameter(significant=False).value(0)[int],
+        ):
+            return alpha
 
-        class CalculateBeta(CalculateAlpha):
-            beta = parameter(significant=False)[int]
-
-        a = CalculateBeta(alpha=0.5, beta=0.1)
-        b = CalculateBeta(alpha=0.5, beta=0.2)
-
-        assert a.beta == 0.1
-        assert b.beta == 0.1
-        assert a is b
         #### DOC END
+        calculate_alpha.dbnd_run(alpha=0.5)

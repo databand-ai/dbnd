@@ -1,4 +1,3 @@
-#### TESTED
 import logging
 
 from typing import Tuple
@@ -19,6 +18,18 @@ def train_test_split(raw_data):
 
 
 class TestDocOrchestrationQuickstart:
+    def test_calculate_alpha(self):
+        #### DOC START
+        from dbnd import task
+
+        @task
+        def calculate_alpha(alpha: float = 0.5) -> float:
+            alpha += 0.1
+            return alpha
+
+        #### DOC END
+        calculate_alpha.dbnd_run(alpha=0.4)
+
     def test_without_dbnd(self):
         #### DOC START
         logging.basicConfig(level=logging.INFO)

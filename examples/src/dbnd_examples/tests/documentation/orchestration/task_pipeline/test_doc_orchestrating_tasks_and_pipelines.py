@@ -10,8 +10,6 @@ from dbnd import pipeline, task
 from dbnd_examples.data import data_repo
 
 
-#### TESTED
-
 #### DOC START
 
 

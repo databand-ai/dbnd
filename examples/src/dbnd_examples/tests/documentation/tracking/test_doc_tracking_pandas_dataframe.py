@@ -1,14 +1,17 @@
+import pandas as pd
 import pytest
 
+from dbnd import LogDataRequest, log_dataframe, task
 
+
+"""
 class TestDocTrackingPandasDataframe:
-    @pytest.mark.skip()
     def test_doc(self):
         # Python 3.6.8
         from dbnd import log_metric, log_dataframe
         import pandas as pd
 
-        transactions_df = pd.read_csv("data/example.csv")
+        transactions_df = pd.read_csv("~/data/example.csv")
 
         # log dataframe
         log_dataframe(
@@ -32,3 +35,16 @@ class TestDocTrackingPandasDataframe:
         log_dataframe(
             "Large transactions (>= 5000)", large_transactions_df, with_preview=False
         )
+
+
+
+    def test_process_customers_data(self):
+        #### DOC START
+        @task
+        def prepare_data(data: pd.DataFrame = "s3://pipelines/customers_data.csv") -> pd.DataFrame:
+            log_dataframe("customers_data", data,
+                          with_histograms=LogDataRequest(include_all_numeric=True,
+                                                         exclude_columns=["name", "phone"]))
+        #### DOC END
+        prepare_data.dbnd_run()
+"""

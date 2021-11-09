@@ -1,6 +1,4 @@
-#### TESTED
-
-import datetime
+from datetime import datetime
 
 from pandas import DataFrame
 from sklearn.linear_model import ElasticNet
@@ -31,7 +29,7 @@ class TestDocAccessingRunResults:
             return model, validation
 
         run = predict_wine_quality.dbnd_run(
-            raw_data=data_repo.wines, task_version=datetime.time
+            raw_data=data_repo.wines, task_version=datetime.now()
         )
 
         model = run.load_from_result("model", value_type=ElasticNet)

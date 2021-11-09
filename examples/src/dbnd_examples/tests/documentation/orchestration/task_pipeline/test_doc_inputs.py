@@ -1,5 +1,3 @@
-#### TESTED
-
 import os
 
 from pathlib import Path
@@ -9,8 +7,9 @@ import pandas as pd
 from pandas import DataFrame
 from sklearn.linear_model import ElasticNet
 
-from dbnd import task
+from dbnd import parameter, task
 from dbnd_examples.data import data_repo
+from targets.target_config import FileFormat
 
 
 class TestDocInputsOutputs:
@@ -45,3 +44,13 @@ class TestDocInputsOutputs:
 
         #### DOC END
         prepare_data.task(data="testing prepare dat").dbnd_run()
+
+    def test_prepare_data_load_options(self):
+        #### DOC START
+        @task(data=parameter[DataFrame].csv.load_options(FileFormat.csv, sep="\t"))
+        def prepare_data(data: DataFrame) -> DataFrame:
+            data["new_column"] = 5
+            return data
+
+        #### DOC END
+        prepare_data.dbnd_run(data_repo.wines)

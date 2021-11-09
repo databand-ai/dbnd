@@ -1,4 +1,6 @@
-from dbnd import task
+import time
+
+from dbnd import pipeline, task
 
 
 class TestDocOverridingConfigurationInCLI:
@@ -8,10 +10,10 @@ class TestDocOverridingConfigurationInCLI:
         def calculate_alpha(alpha=0.5):
             return alpha
 
-        @task
-        def calculate_beta():
+        @pipeline
+        def train_model_pipeline():
             calculate_alpha(0.1)
 
         #### DOC END
 
-        calculate_beta.dbnd_run()
+        train_model_pipeline.dbnd_run(task_version=time.time())

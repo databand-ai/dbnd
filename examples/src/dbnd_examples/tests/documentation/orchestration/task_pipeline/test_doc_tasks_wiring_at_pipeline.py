@@ -1,5 +1,3 @@
-#### TESTED
-
 import datetime
 
 from logging import getLogger
@@ -55,25 +53,6 @@ class TestDocTasksWiringAtPipeline:
         #### DOC END
 
         create_model.dbnd_run(raw_data=data_repo.wines)
-
-    def test_upstream_tasks(self):
-        #### DOC START
-        @task
-        def calculate_alpha():
-            return 0.5
-
-        @task
-        def calculate_beta():
-            return 0.1
-
-        @pipeline
-        def calculate_coefficient():
-            a = calculate_alpha()
-            b = calculate_beta()
-            a.set_upstream(b)
-
-        #### DOC END
-        calculate_coefficient.task().dbnd_run()
 
     def test_linear_reg_pipeline(self):
         @task

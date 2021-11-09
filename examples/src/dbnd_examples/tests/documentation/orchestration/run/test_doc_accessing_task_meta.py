@@ -1,5 +1,3 @@
-#### TESTED
-
 from pytest import raises
 
 from dbnd import PythonTask, parameter, task
@@ -12,7 +10,7 @@ class PrepareData(PythonTask):
         return self.data
 
 
-class TestDocTaskDiscovery:
+class TestDocAccessingTaskMeta:
     def test_doc(self):
         #### DOC START
         prepared_data = PrepareData(data="just some data")
@@ -27,3 +25,26 @@ class TestDocTaskDiscovery:
         with raises(AttributeError):
             PrepareData.task_id  # --> Error!
         #### DOC END
+
+    def test_current_task_object(self):
+        #### DOC START
+        from dbnd import current_task, task
+
+        @task
+        def calculate_alpha(alpha: int = 0.5):
+            return current_task().task_version
+
+        #### DOC END
+        calculate_alpha.dbnd_run()
+
+    def test_current_env_inside_task_or_pipeline(self):
+        #### DOC START
+        from dbnd import current_task, task
+
+        @task
+        def calculate_alpha(alpha: int = 0.5):
+            return current_task().task_env.name  # The environment of the task
+            # See EnvConfig object for all properties
+
+        #### DOC END
+        calculate_alpha.dbnd_run()

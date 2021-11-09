@@ -1,56 +1,37 @@
-# https://docs.databand.ai/docs/running-pipelines
-
 import pandas as pd
 
-import databand
+from pandas import DataFrame
 
-from dbnd import PipelineTask, output, parameter, pipeline, task
+from dbnd import pipeline, task
 from dbnd_examples.data import data_repo
 
 
-#### DOC START
-@task
-def prepare_data(data: pd.DataFrame) -> pd.DataFrame:
-    return data
-
-
-#### DOC END
-
-
-class TestDocTasksPipelinesData(object):
-    def test_prepare_data_decorated_function(self):
-        prepare_data(data=data_repo.wines)
-
-    def test_prepare_data_derived_class(self):
+class TestDocTasksPipelinesData:
+    def test_pipelines(self):
         #### DOC START
-        class PrepareData(databand.Task):
-            data = parameter.data
-            prepared_data = output.csv.data
+        @task
+        def prepare_data(data: pd.DataFrame) -> pd.DataFrame:
+            return data
 
-            def run(self):
-                self.prepared_data.write(self.data)
+        @task
+        def train_model(data: pd.DataFrame) -> object:
+            ...
 
-        #### DOC END
-        PrepareData(data=data_repo.wines).dbnd_run()
-
-    def test_prepare_data_decorated_pipeline(self):
-        #### DOC START
-        @pipeline(result=("prepared_data", "raw_data"))
+        @pipeline
         def prepare_data_pipeline(data: pd.DataFrame):
-            return prepare_data(data), data
+            prepared_data = prepare_data(data)
+            model = train_model(prepared_data)
+            return model
 
         #### DOC END
-        prepare_data_pipeline.dbnd_run(data=data_repo.wines)
+        prepare_data_pipeline.dbnd_run(data_repo.wines)
 
-    def test_prepare_data_pipeline_class(self):
+    def test_data(self):
         #### DOC START
-        class PrepareData(PipelineTask):
-            data = parameter.data
-
-            prepared_data = output.csv.data
-
-            def band(self):
-                self.prepared_data = prepare_data(data=self.data)
+        @task
+        def prepare_data(data: DataFrame) -> DataFrame:
+            data["new_column"] = 5
+            return data
 
         #### DOC END
-        PrepareData(data=data_repo.wines).dbnd_run()
+        prepare_data.dbnd_run(data=data_repo.wines)

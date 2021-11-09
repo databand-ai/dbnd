@@ -1,7 +1,5 @@
-#### TESTED
-
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Tuple
 
 import pandas as pd
 
@@ -9,6 +7,7 @@ from pandas import DataFrame
 
 from dbnd import output, parameter, task
 from dbnd_examples.data import data_repo
+from targets.target_config import FileFormat
 
 
 DEFAULT_OUTPUT_HDFS_PATH = data_repo.wines
@@ -22,7 +21,6 @@ class TestDocOutputs:
             return data
 
         #### DOC END
-
         prepare_data.dbnd_run(data=data_repo.wines)
 
     def test_prepare_data_txt_output(self):
@@ -44,7 +42,9 @@ class TestDocOutputs:
             return str(data_path)
 
         #### DOC END
-        prepare_data.dbnd_run(data_path=data_repo.wines)
+        # prepare_data.dbnd_run(
+        #    data_path=data_repo.wines, custom_output="~/data/example.txt"
+        # )
 
     def test_prepare_data_overwrite_previous_result(self):
         #### DOC START
@@ -56,6 +56,16 @@ class TestDocOutputs:
 
         #### DOC END
         prepare_data.dbnd_run(data=data_repo.wines)
+
+    def test_prepare_data_tuples(self):
+        #### DOC START
+        @task(result="training_set,real_data")
+        def prepare_data(data: DataFrame) -> Tuple[DataFrame, DataFrame]:
+            data["new_column"] = 5
+            return data, data
+
+        #### DOC END
+        prepare_data.dbnd_run(data_repo.wines)
 
     def test_prepare_data_two_outputs(self):
         #### DOC START
@@ -122,3 +132,13 @@ class TestDocOutputs:
 
         #### DOC END
         prepare_data.task(p=3).dbnd_run()
+
+    def test_prepare_data_no_header(self):
+        #### DOC START
+        @task(result=parameter.csv.save_options(FileFormat.csv, header=False))
+        def prepare_data(data: DataFrame) -> DataFrame:
+            data["new_column"] = 5
+            return data
+
+        #### DOC END
+        prepare_data.dbnd_run(data_repo.wines)

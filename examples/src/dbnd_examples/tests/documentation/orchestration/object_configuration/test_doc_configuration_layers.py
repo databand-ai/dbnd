@@ -1,5 +1,3 @@
-#### TESTED
-
 from dbnd import task
 
 

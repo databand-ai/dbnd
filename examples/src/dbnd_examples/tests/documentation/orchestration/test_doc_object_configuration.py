@@ -1,5 +1,3 @@
-#### TESTED
-
 import time
 
 from pandas import DataFrame
@@ -28,6 +26,6 @@ def calculate_alpha():
 
 class TestDocObjectConfiguration:
     def test_doc(self):
-        train_model.task(
+        train_model.dbnd_run(
             training_set=data_repo.wines, task_version=calculate_alpha()
-        ).dbnd_run()
+        )

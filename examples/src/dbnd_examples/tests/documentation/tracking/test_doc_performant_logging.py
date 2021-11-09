@@ -2,7 +2,7 @@ from dbnd import parameter
 from dbnd._core.settings.tracking_config import ValueTrackingLevel
 
 
-class TestDocZeroComputationalCostLogging:
+class TestDocPerformantLogging:
     def test_doc(self):
         #### DOC START
         value_reporting_strategy = parameter(

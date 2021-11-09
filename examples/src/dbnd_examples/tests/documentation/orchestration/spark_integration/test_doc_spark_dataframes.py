@@ -11,6 +11,10 @@ def custom_load_save_options(
     print(data.show())
     return data
 
-
+@spark_task
+def prepare_data(data_path=parameter[PathStr]):
+    df = get_spark_session()read.format("csv").options(header=False, sep="\t").load(data_path)
+    print(data.show())
+    return data
 #### DOC END
 """
