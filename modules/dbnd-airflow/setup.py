@@ -41,6 +41,7 @@ setuptools.setup(
         airflow_1_10_14=requirements_for_airflow + ["apache-airflow==1.10.14"],
         airflow_1_10_15=requirements_for_airflow + ["apache-airflow==1.10.15"],
         airflow_2_0_2=[
+            "WTForms<2.3.0",
             "psycopg2-binary>=2.7.4",
             "apache-airflow==2.0.2",
             "apache-airflow-providers-apache-spark==1.0.3",
