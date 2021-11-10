@@ -301,6 +301,7 @@ class SyncedTransaction(object):
         default=attr.Factory(list)
     )  # type: List[SyncedTransactionOperation]
     query_string = attr.ib(default=None)  # type: Optional[str]
+    data_schema = attr.ib(default=None)  # type: Optional[dict]
 
     def as_dict(self):
         return attr.asdict(self)
@@ -355,7 +356,8 @@ class SyncedTransactionSchema(ApiStrictSchema):
         SyncedTransactionOperationSchema, many=True, allow_none=True
     )
 
-    query_string = fields.String()
+    query_string = fields.String(allow_none=True)
+    data_schema = fields.Dict(allow_none=True)
 
     @post_load
     def make_object(self, data):
