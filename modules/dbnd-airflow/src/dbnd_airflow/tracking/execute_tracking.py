@@ -16,6 +16,7 @@ from dbnd._core.tracking.script_tracking_manager import (
 )
 from dbnd._core.utils.basics.environ_utils import env
 from dbnd._core.utils.basics.nested_context import nested
+from dbnd_airflow.raw_constants import MONITOR_DAG_NAME
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_tracking_information, get_xcoms
 from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_info
@@ -53,9 +54,14 @@ def get_tracking_dag_ids_from_airflow_json():
         return []
 
 
+def is_monitor_dag(dag_id):
+    return dag_id == MONITOR_DAG_NAME
+
+
 def is_dag_eligable_for_tracking(dag_id):
+    # If return value is None, we track all dags. If it's empty list - we don't track anything.
     tracking_list = get_tracking_dag_ids_from_airflow_json()
-    return tracking_list is None or dag_id in tracking_list
+    return tracking_list is None or dag_id in tracking_list or is_monitor_dag(dag_id)
 
 
 def new_execute(context):

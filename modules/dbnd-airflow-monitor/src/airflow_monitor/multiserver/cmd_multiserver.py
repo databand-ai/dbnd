@@ -1,5 +1,6 @@
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.multiserver import start_multi_server_monitor
+from airflow_monitor.validations import run_validations
 from dbnd._vendor import click
 
 
@@ -21,8 +22,9 @@ from dbnd._vendor import click
 @click.option("--syncer-name", type=click.STRING, help="Sync only specified instance")
 def airflow_monitor_v2(*args, **kwargs):
     # remove all None values to not override defaults/env configured params
-    actual_kwargs = {k: v for k, v in kwargs.items() if v is not None}
-    monitor_config = AirflowMonitorConfig(**actual_kwargs)
+    monitor_config_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+    monitor_config = AirflowMonitorConfig(**monitor_config_kwargs)
+    run_validations()
     start_multi_server_monitor(monitor_config)
 
 

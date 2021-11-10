@@ -7,6 +7,10 @@ from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 
 
+# Do not change this name unless you change the same constant in constants.py in dbnd-airflow
+MONITOR_DAG_NAME = "databand_airflow_monitor"
+
+
 @attr.s
 class AirflowServerConfig(BaseServerConfig):
     state_sync_enabled = attr.ib(default=False)  # type: bool
@@ -58,6 +62,10 @@ class AirflowServerConfig(BaseServerConfig):
             if k in attr.fields_dict(cls)
         }
 
+        dag_ids = server_config["dag_ids"]
+        if dag_ids is not None:
+            dag_ids = dag_ids + "," + MONITOR_DAG_NAME
+
         conf = cls(
             source_type="airflow",
             source_name=server_config["name"],
@@ -67,7 +75,7 @@ class AirflowServerConfig(BaseServerConfig):
             api_mode=server_config["api_mode"],
             fetcher_type=monitor_config.fetcher or server_config["fetcher"],
             composer_client_id=server_config["composer_client_id"],
-            dag_ids=server_config["dag_ids"],
+            dag_ids=dag_ids,
             sql_alchemy_conn=monitor_config.sql_alchemy_conn,  # TODO: currently support only one server!
             json_file_path=monitor_config.json_file_path,  # TODO: currently support only one server!
             rbac_username=monitor_config.rbac_username,  # TODO: currently support only one server!
