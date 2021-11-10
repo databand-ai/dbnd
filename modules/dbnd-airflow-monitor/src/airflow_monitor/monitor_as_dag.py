@@ -15,6 +15,9 @@ from airflow.utils.dates import days_ago
 import psutil
 
 
+# Do not change this name unless you change the same constant in constants.py in dbnd-airflow
+MONITOR_DAG_NAME = "databand_airflow_monitor"
+
 CHECK_INTERVAL = 10
 AUTO_RESTART_TIMEOUT = 30 * 60
 MEMORY_LIMIT = 8 * 1024 * 1024 * 1024
@@ -162,7 +165,7 @@ def start_guard_thread(memory_guard_limit, guard_sleep=10):
 
 
 def get_monitor_dag(
-    dag_id="databand_airflow_monitor",
+    dag_id=MONITOR_DAG_NAME,
     check_interval=CHECK_INTERVAL,
     auto_restart_timeout=AUTO_RESTART_TIMEOUT,
     force_restart_timeout=FORCE_RESTART_TIMEOUT,

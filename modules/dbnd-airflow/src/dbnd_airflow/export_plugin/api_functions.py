@@ -33,6 +33,7 @@ from dbnd_airflow.export_plugin.queries import (
 )
 from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
 from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
+from dbnd_airflow.raw_constants import MONITOR_DAG_NAME
 
 
 logger = logging.getLogger(__name__)
