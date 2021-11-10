@@ -150,7 +150,7 @@ class SqlQueryExtractor:
         else:
             table_alias = self.get_identifier_name(next_token)
             table_name = self.get_full_name(next_token)
-            if table_name.startswith("@"):
+            if table_name.split(".")[-1].startswith("@"):
                 columns = [
                     Column(
                         dataset_name=table_name,
