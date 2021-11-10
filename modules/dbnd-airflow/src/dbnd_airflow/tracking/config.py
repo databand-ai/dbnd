@@ -35,5 +35,5 @@ class AirflowTrackingConfig(Config):
     )[bool]
 
     sql_reporting = parameter(
-        default=True, description="Enable targets reporting from sql queries",
+        default=False, description="Enable targets reporting from sql queries",
     )[bool]
