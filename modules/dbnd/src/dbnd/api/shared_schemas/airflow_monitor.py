@@ -12,6 +12,8 @@ class MonitorConfigSchema(ApiStrictSchema):
     include_sources = fields.Boolean(required=False)
     dag_run_bulk_size = fields.Integer(required=False)
     start_time_window = fields.Integer(required=False)
+    log_bytes_from_head = fields.Integer(required=False)
+    log_bytes_from_end = fields.Integer(required=False)
 
 
 class AirflowServerInfoSchema(ApiStrictSchema):
