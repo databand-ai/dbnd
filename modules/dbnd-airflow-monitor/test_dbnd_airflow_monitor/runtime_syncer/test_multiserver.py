@@ -15,7 +15,7 @@ from airflow_monitor.multiserver.monitor_component_manager import (
     AirflowMonitorComponentManager,
 )
 from airflow_monitor.multiserver.multiserver import AirflowMultiServerMonitor
-from airflow_monitor.multiserver.runners import RUNNER_FACTORY
+from airflow_monitor.shared.runners import RUNNER_FACTORY
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 
 

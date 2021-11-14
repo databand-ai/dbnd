@@ -12,7 +12,7 @@ from airflow_monitor.multiserver.monitor_component_manager import (
     AirflowMonitorComponentManager,
 )
 from airflow_monitor.multiserver.multiserver import AirflowMultiServerMonitor
-from airflow_monitor.multiserver.runners import RUNNER_FACTORY
+from airflow_monitor.shared.runners import RUNNER_FACTORY
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from airflow_monitor.tracking_service import get_servers_configuration_service
 from dbnd.utils.api_client import ApiClient
