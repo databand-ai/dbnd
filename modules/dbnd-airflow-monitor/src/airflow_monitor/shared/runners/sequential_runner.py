@@ -2,9 +2,9 @@ import logging
 
 from typing import Optional
 
-from airflow_monitor.common import capture_monitor_exception
-from airflow_monitor.common.base_component import BaseMonitorSyncer
-from airflow_monitor.shared.base_runner import BaseRunner
+from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
+from airflow_monitor.shared.error_handler import capture_monitor_exception
+from airflow_monitor.shared.runners.base_runner import BaseRunner
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -34,6 +34,8 @@ class SequentialRunner(BaseRunner):
     @capture_monitor_exception
     def heartbeat(self):
         if self._running:
+            # Refresh _running config incaese sleep_interval changed
+            self._running.refresh_config()
             if (
                 self.last_heartbeat
                 and (utcnow() - self.last_heartbeat).total_seconds()
@@ -43,6 +45,7 @@ class SequentialRunner(BaseRunner):
 
             try:
                 self._iteration += 1
+                logger.info("Running sync for %s", self)
                 self._running.sync_once()
             except Exception as e:
                 self._running = None

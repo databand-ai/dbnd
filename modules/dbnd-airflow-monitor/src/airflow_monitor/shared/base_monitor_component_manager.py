@@ -1,13 +1,11 @@
 import logging
 
-from datetime import datetime
-from typing import Any, Callable, Dict, Type
+from typing import Callable, Dict, Type
 
-from airflow_monitor.shared.base_runner import BaseRunner
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
 from airflow_monitor.shared.error_handler import capture_monitor_exception
-from dbnd._core.utils.timezone import utcnow
+from airflow_monitor.shared.runners import BaseRunner
 
 
 logger = logging.getLogger(__name__)
@@ -27,9 +25,6 @@ class BaseMonitorComponentManager(object):
 
         # Services to run
         self.services_components = services_components
-        # Mapping between componenet name and last heartbeat_time. Used to detrmine if component should be started
-        # TODO: Save & fetch from webserver DB
-        self.components_heartbeat_time: Dict[str, datetime] = {}
 
         self.active_components: Dict[str, BaseRunner] = {}
         self._is_stopping: bool = False
@@ -51,20 +46,12 @@ class BaseMonitorComponentManager(object):
         return not self._is_component_enabled(component_name)
 
     def _should_start_component(self, component_name: str) -> bool:
-        # Start component if sync_interval has met last or if not stored yet
         if (
             self._is_component_enabled(component_name)
             and component_name not in self.active_components
             and not self._is_stopping
         ):
-
-            last_heartbeat = self.components_heartbeat_time.get(component_name, None)
-            if (
-                last_heartbeat is None
-                or (utcnow() - last_heartbeat).total_seconds()
-                > self.server_config.sync_interval - 1
-            ):
-                return True
+            return True
 
         return False
 
@@ -87,9 +74,7 @@ class BaseMonitorComponentManager(object):
                     tracking_service=self.tracking_service,
                     tracking_source_uid=self.server_config.tracking_source_uid,
                 )
-                self.components_heartbeat_time[component_name] = self.active_components[
-                    component_name
-                ].start()
+                self.active_components[component_name].start()
             elif self._should_stop_component(component_name):
                 component = self.active_components.pop(component_name)
                 component.stop()

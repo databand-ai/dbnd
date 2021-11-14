@@ -11,6 +11,7 @@ from airflow_monitor.shared.base_server_monitor_config import (
 from airflow_monitor.shared.error_aggregator import ErrorAggregator
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.timezone import utcnow
+from dbnd._vendor.cachetools import TTLCache, cached
 from dbnd.api.serialization.tracking import (
     BaseSourceMonitorState,
     BaseSourceMonitorStateSchema,
@@ -21,6 +22,7 @@ from dbnd.utils.api_client import ApiClient
 DEFAULT_REQUEST_TIMEOUT = 30  # Seconds
 
 logger = logging.getLogger(__name__)
+monitor_config_cache = TTLCache(maxsize=5, ttl=10)
 
 
 def _get_api_client(tracking_service_config: TrackingServiceConfig) -> "ApiClient":
@@ -85,6 +87,8 @@ class BaseDbndTrackingService(object):
         configs = response.get("data")
         return configs
 
+    # Cached to avoid excessive webserver calles to get config
+    @cached(monitor_config_cache)
     def get_monitor_configuration(self) -> BaseServerConfig:
         configs = self._fetch_source_monitor_config()
         if not configs:

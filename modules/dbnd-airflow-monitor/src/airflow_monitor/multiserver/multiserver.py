@@ -9,10 +9,9 @@ from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.monitor_component_manager import (
     AirflowMonitorComponentManager,
 )
-from airflow_monitor.multiserver.runners import RUNNER_FACTORY
 from airflow_monitor.shared.base_multiserver import BaseMultiServerMonitor
-from airflow_monitor.shared.base_runner import BaseRunner
 from airflow_monitor.shared.base_tracking_service import WebServersConfigurationService
+from airflow_monitor.shared.runners import RUNNER_FACTORY, BaseRunner
 from airflow_monitor.tracking_service import (
     get_servers_configuration_service,
     get_tracking_service,

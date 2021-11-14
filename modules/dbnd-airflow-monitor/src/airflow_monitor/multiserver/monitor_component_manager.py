@@ -11,7 +11,7 @@ from airflow_monitor.fixer.runtime_fixer import start_runtime_fixer
 from airflow_monitor.shared.base_monitor_component_manager import (
     BaseMonitorComponentManager,
 )
-from airflow_monitor.shared.base_runner import BaseRunner
+from airflow_monitor.shared.runners import BaseRunner
 from airflow_monitor.syncer.runtime_syncer import start_runtime_syncer
 from airflow_monitor.tracking_service import AirflowDbndTrackingService
 

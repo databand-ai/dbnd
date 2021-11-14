@@ -9,13 +9,13 @@ from airflow_monitor.shared.base_monitor_component_manager import (
     BaseMonitorComponentManager,
 )
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
-from airflow_monitor.shared.base_runner import BaseRunner
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import (
     BaseDbndTrackingService,
     WebServersConfigurationService,
 )
 from airflow_monitor.shared.liveness_probe import create_liveness_file
+from airflow_monitor.shared.runners import BaseRunner
 from dbnd._core.errors.base import DatabandConnectionException
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.tenacity import (
