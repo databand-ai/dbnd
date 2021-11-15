@@ -341,6 +341,18 @@ class LogDatasetArgs(object):
     def asdict(self):
         return attr.asdict(self, recurse=False)
 
+    @property
+    def records(self):
+        return self.data_dimensions[0] if self.data_dimensions else None
+
+    @property
+    def columns(self):
+        return self.data_dimensions[1] if self.data_dimensions else None
+
+    @property
+    def operation_status_value(self):
+        return "SUCCESS" if self.operation_status.value == "OK" else "FAILED"
+
 
 @attr.s
 class LogDataframeHistogramsArgs(object):
