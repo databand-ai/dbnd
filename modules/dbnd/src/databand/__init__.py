@@ -66,7 +66,7 @@ dbnd_config = config
 # shortcuts for useful objects
 str(_set_patches)  # NOQA
 
-__version__ = "0.53.3"
+__version__ = "0.53.4"
 
 __title__ = "databand"
 __description__ = "Machine Learning Orchestration"
