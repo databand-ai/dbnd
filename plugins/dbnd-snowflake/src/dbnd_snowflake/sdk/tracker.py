@@ -168,13 +168,15 @@ class SnowflakeTracker(object):
             success = False
             raise
         finally:
-            # TODO: try catch exceptions
-            operations = build_snowflake_operations(
-                cursor, command, success, self.result_set
-            )
-            if operations:
-                # Only extend self.operations if read or write operation occurred in command
-                self.operations.extend(operations)
+            try:
+                operations = build_snowflake_operations(
+                    cursor, command, success, self.result_set
+                )
+                if operations:
+                    # Only extend self.operations if read or write operation occurred in command
+                    self.operations.extend(operations)
+            except Exception:
+                logging.exception("Error parsing snowflake query")
 
 
 def get_snowflake_table_schema(connection, table) -> Optional[DTypes]:
