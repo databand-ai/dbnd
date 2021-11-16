@@ -115,6 +115,7 @@ class SnowflakeTracker(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.unpatch_method(SnowflakeCursor, "execute")
+        self.unpatch_method(SnowflakeCursor, "_execute_helper")
         self.unpatch_method(SnowflakeConnection, "close")
         if self._connection:
             self.flush_operations(self._connection)

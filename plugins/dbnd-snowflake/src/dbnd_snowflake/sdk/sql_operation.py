@@ -47,18 +47,18 @@ class SqlOperation:
     op_type: DbndDatasetOperationType = attr.ib()
 
     @property
-    def columns(self) -> Optional[List[str]]:
+    def columns(self) -> List[str]:
         try:
             return list(self.dtypes)
         except TypeError:
-            return None
+            return []
 
     @property
-    def columns_count(self) -> Optional[int]:
+    def columns_count(self) -> int:
         try:
             return len(self.dtypes)
         except TypeError:
-            return None
+            return 0
 
     @property
     def is_file(self) -> bool:
