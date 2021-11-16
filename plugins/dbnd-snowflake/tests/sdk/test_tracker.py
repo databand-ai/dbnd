@@ -66,6 +66,10 @@ COPY_INTO_TABLE_WITH_COLUMNS_PARTIAL_PATH_FROM_STAGE_FILE_PARTIAL_PATH_QUERY = "
     copy into SCHEMA.TEST ("column_a", "column_b") from SCHEMA.TEST.@STAGE;
                 """
 
+COPY_INTO_TABLE_FROM_S3_FILE_APOSTROPHE_FAIL_QUERY = """
+    copy into TEST from 's3://test/test.json' CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
+    """
+
 
 def _authenticate(self_auth, *args, **kwargs):
     self_auth._rest._connection._session_id = random.randint(0, 2000000000)
@@ -84,9 +88,14 @@ def mock_snowflake():
         # type: (SnowflakeCursor, str, ..., ...) -> SnowflakeCursor
         execute_mock(command, *args, **kwargs)
         self_cursor._sfqid = SFQID
-
         # call execute _helper to mock number of rows inserted
         self_cursor._execute_helper()
+        if "desc" in command:
+            result = [
+                {"name": "column_a", "type": "int"},
+                {"name": "column_b", "type": "int"},
+            ]
+            self_cursor._result = (x for x in result)
         return self_cursor
 
     with patch.object(
@@ -686,6 +695,7 @@ def _snowflake_connect():
                 ),
             ],
         ),
+        (COPY_INTO_TABLE_FROM_S3_FILE_APOSTROPHE_FAIL_QUERY, [],),
     ],
 )
 def test_run_simple_query_with_close_conn(mock_snowflake, query, expected):
