@@ -26,6 +26,7 @@ class AirflowServerInfoSchema(ApiStrictSchema):
     api_mode = fields.String(allow_none=True)
     sync_interval = fields.Integer(allow_none=True)
     is_sync_enabled = fields.Boolean(allow_none=True)
+    create_system_alert_definitions = fields.Boolean(allow_none=True)
     fetcher = fields.String(allow_none=True)
     composer_client_id = fields.String(allow_none=True)
     dag_ids = fields.String(allow_none=True)
@@ -65,6 +66,7 @@ class AirflowServerInfo(object):
     synced_to = attr.ib(default=None)  # type: Optional[datetime.datetime]
     api_mode = attr.ib(default="rbac")  # type: Optional[str]
     is_sync_enabled = attr.ib(default=None)  # type: Optional[bool]
+    create_system_alert_definitions = attr.ib(default=False)  # type: bool
     fetcher = attr.ib(default=None)  # type: Optional[str]
     composer_client_id = attr.ib(default=None)  # type: Optional[str]
     dag_ids = attr.ib(default=None)  # type: Optional[str]
