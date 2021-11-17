@@ -45,6 +45,8 @@ setuptools.setup(
             "psycopg2-binary>=2.7.4",
             "apache-airflow==2.0.2",
             "apache-airflow-providers-apache-spark==1.0.3",
+            # Airflow 2.0 installs versions 3.3.5 which has bad dependency to newer version of importlib-metadata
+            "Markdown==3.3.4",
         ],
         airflow=requirements_for_airflow + ["apache-airflow==1.10.10"],
         tests=[
