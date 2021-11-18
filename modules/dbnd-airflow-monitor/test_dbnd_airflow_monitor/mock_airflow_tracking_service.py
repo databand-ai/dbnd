@@ -90,6 +90,8 @@ class MockTrackingService(BaseDbndTrackingService):
             interval=0,
             sync_interval=0,
             fix_interval=0,
+            config_updater_enabled=False,
+            config_updater_interval=0,
         )
         self.last_seen_dag_run_id = None
         self.last_seen_log_id = None
@@ -200,6 +202,11 @@ class MockTrackingService(BaseDbndTrackingService):
     @ticking
     def update_monitor_state(self, monitor_state: MonitorState):
         self.monitor_state_updates.append(monitor_state.as_dict())
+
+    @can_be_dead
+    @ticking
+    def get_syncer_info(self):
+        return {}
 
     @property
     def current_monitor_state(self):
