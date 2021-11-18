@@ -6,6 +6,9 @@ import airflow_monitor
 
 from airflow_monitor.common import MonitorState, capture_monitor_exception
 from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.config_updater.runtime_config_updater import (
+    start_runtime_config_updater,
+)
 from airflow_monitor.data_fetcher import get_data_fetcher
 from airflow_monitor.fixer.runtime_fixer import start_runtime_fixer
 from airflow_monitor.shared.base_monitor_component_manager import (
@@ -23,6 +26,7 @@ SERVICES_COMPONENTS = {
     # "xcom_sync": Component,
     # "dag_sync": Component,
     "fixer": start_runtime_fixer,
+    "config_updater": start_runtime_config_updater,
 }
 
 

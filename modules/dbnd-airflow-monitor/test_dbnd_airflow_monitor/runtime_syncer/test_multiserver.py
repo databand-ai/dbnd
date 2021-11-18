@@ -20,22 +20,26 @@ from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 
 
 MOCK_SERVER_1_CONFIG = {
+    "config_updater_enabled": False,
     "source_type": "airflow",
     "source_name": "mock_server_1",
     "tracking_source_uid": uuid.uuid4(),
 }
 MOCK_SERVER_2_CONFIG = {
+    "config_updater_enabled": False,
     "source_type": "airflow",
     "source_name": "mock_server_2",
     "tracking_source_uid": uuid.uuid4(),
 }
 MOCK_SERVER_3_CONFIG = {
+    "config_updater_enabled": False,
     "source_type": "airflow",
     "source_name": "mock_server_3",
     "tracking_source_uid": uuid.uuid4(),
     "state_sync_enabled": True,
 }
 MOCK_SERVER_4_CONFIG = {
+    "config_updater_enabled": False,
     "source_type": "airflow",
     "source_name": "mock_server_4",
     "tracking_source_uid": uuid.uuid4(),
