@@ -63,7 +63,7 @@ class AirflowServerConfig(BaseServerConfig):
         }
 
         dag_ids = server_config["dag_ids"]
-        if dag_ids is not None:
+        if dag_ids:
             dag_ids = dag_ids + "," + MONITOR_DAG_NAME
 
         conf = cls(
