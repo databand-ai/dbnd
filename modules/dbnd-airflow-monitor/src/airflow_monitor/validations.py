@@ -41,7 +41,7 @@ class CheckPackages(ValidationStep):
             import dbnd_airflow
         except ImportError:
             self.errors_list.append(
-                "Did not find dbnd-airflow package required for tracking"
+                "Did not find dbnd-airflow package required for monitor"
             )
 
         try:
@@ -82,6 +82,8 @@ class CheckAirflow2Support(ValidationStep):
 
 
 def run_validations():
+    logger.info("Running validations")
+
     # We don't need package validation, since if dbnd-airflow-monitor does not exist, the dag would be broken in Airflow
     errors_list = []
 
@@ -90,5 +92,6 @@ def run_validations():
         errors_list.extend(validation_step.errors_list)
 
     if len(errors_list) != 0:
-        errors_string = ",".join(errors_list)
-        logger.warning("The following problems found: {}".format(errors_string))
+        logger.warning("The following problems found:")
+        for error_message in errors_list:
+            logger.warning(error_message)
