@@ -85,6 +85,13 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
                 dag_ids=self.config.dag_ids,
             )
 
+        logger.debug(
+            "Getting new dag runs from Airflow with parameters last_seen_dag_run_id=%s, last_seen_log_id=%s, extra_dag_run_ids=%s, dag_ids=%s",
+            dbnd_response.last_seen_dag_run_id,
+            dbnd_response.last_seen_log_id,
+            ",".join(map(str, dbnd_response.dag_run_ids)),
+            self.config.dag_ids,
+        )
         airflow_response = self.data_fetcher.get_airflow_dagruns_to_sync(
             last_seen_dag_run_id=dbnd_response.last_seen_dag_run_id,
             last_seen_log_id=dbnd_response.last_seen_log_id,
