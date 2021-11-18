@@ -1,13 +1,17 @@
+import collections
+import json
 import logging
 
 from functools import wraps
 
+from airflow.hooks.base_hook import BaseHook
 from airflow.models import DagModel
 from airflow.utils.db import provide_session
 from airflow.version import version as airflow_version
 
 import dbnd_airflow
 
+from dbnd._core.utils.json_utils import flatten_dict
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow.export_plugin.dag_operations import (
     get_current_dag_model,
@@ -36,6 +40,9 @@ from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
 
 
 logger = logging.getLogger(__name__)
+
+
+DATABAND_AIRFLOW_CONN_ID = "dbnd_config"
 
 
 def safe_rich_result(f):
@@ -196,3 +203,44 @@ def get_dag_runs_states_data(dag_run_ids, session=None):
         task_instances=task_instances, dag_runs=dag_runs
     )
     return dag_runs_states_data
+
+
+def deep_update(source, overrides):
+    """
+     Update a nested dictionary or similar mapping.
+     Modify ``source`` in place.
+     """
+    for key, value in overrides.items():
+        if isinstance(value, collections.Mapping) and value:
+            returned = deep_update(source.get(key, {}), value)
+            source[key] = returned
+        else:
+            source[key] = overrides[key]
+    return source
+
+
+def remove_place_holders(dbnd_response):
+    """Remove from configurations value which only have placeholders, so they won't override valid values."""
+    dbnd_response["core"].pop("databand_access_token")
+    dbnd_response["core"].pop("databand_url")
+    if dbnd_response["core"] is None:
+        dbnd_response.pop("core")
+
+
+def is_subset(subset, superset):
+    return not (flatten_dict(subset).items() <= flatten_dict(superset).items())
+
+
+@safe_rich_result
+@provide_session
+def check_syncer_config_and_set(dbnd_response, session=None):
+    airflow_databand_connection = BaseHook.get_connection(DATABAND_AIRFLOW_CONN_ID)
+    airflow_response = airflow_databand_connection.extra_dejson
+    remove_place_holders(dbnd_response)
+    if is_subset(dbnd_response, airflow_response):
+        deep_update(airflow_response, dbnd_response)
+        airflow_databand_connection.set_extra(json.dumps(airflow_response, indent=True))
+        session.add(airflow_databand_connection)
+        session.commit()
+
+    return AirflowExportData()

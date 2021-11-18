@@ -17,6 +17,7 @@ class AirflowServerConfig(BaseServerConfig):
     xcom_sync_enabled = attr.ib(default=False)  # type: bool
     dag_sync_enabled = attr.ib(default=False)  # type: bool
     fixer_enabled = attr.ib(default=False)  # type: bool
+    config_updater_enabled = attr.ib(default=False)  # type: bool
     include_sources = attr.ib(default=False)  # type: bool
 
     base_url = attr.ib(default=None)  # type: str
@@ -47,6 +48,9 @@ class AirflowServerConfig(BaseServerConfig):
 
     # runtime fixer config
     fix_interval = attr.ib(default=600)  # type: int
+
+    # runtime config updater config
+    config_updater_interval = attr.ib(default=60)  # type: int
 
     @classmethod
     def create(

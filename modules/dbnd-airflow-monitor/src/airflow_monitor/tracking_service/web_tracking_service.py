@@ -116,3 +116,6 @@ class AirflowDbndTrackingService(BaseDbndTrackingService):
             request_timeout=LONG_REQUEST_TIMEOUT,
         )
         return response
+
+    def get_syncer_info(self):
+        return self._make_request("server_info", method="GET", data={})
