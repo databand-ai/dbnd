@@ -50,7 +50,6 @@ class MonitorOperator(BashOperator):
         self.guard_memory = guard_memory
 
     def execute(self, context):
-
         with start_guard_thread(self.guard_memory):
             if self.custom_env:
                 self.env.update(self.custom_env)
