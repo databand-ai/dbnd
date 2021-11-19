@@ -32,6 +32,12 @@ logger = logging.getLogger(__name__)
 _DBND_ENVIRON_RE = re.compile(r"^DBND__([\w\d_\-]+)__([\w\d_\-]+)$")
 _SECTION_NAME_RE = re.compile(r"(.*)\.([^.]*)")
 
+extra_locations = []
+
+
+def add_config_locations(*args):
+    extra_locations.extend(args)
+
 
 def _default_configuration_paths():
     # we always have "library config"
@@ -54,6 +60,8 @@ def _default_configuration_paths():
     env_config = get_dbnd_environ_config_file()
     if env_config:
         possible_locations.append(env_config)
+    if extra_locations:
+        possible_locations.extend(extra_locations)
     for value in possible_locations:
         value = expand_env_var(value)
         if os.path.isfile(value):
