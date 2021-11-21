@@ -68,13 +68,13 @@ class BaseMonitorComponentManager(object):
                         logger.warning(
                             "Monitored Server is not responsive, will skip starting new syncers"
                         )
-            if is_monitored_server_alive:
-                self.active_components[component_name] = self.runner(
-                    target=runnable,
-                    tracking_service=self.tracking_service,
-                    tracking_source_uid=self.server_config.tracking_source_uid,
-                )
-                self.active_components[component_name].start()
+                if is_monitored_server_alive:
+                    self.active_components[component_name] = self.runner(
+                        target=runnable,
+                        tracking_service=self.tracking_service,
+                        tracking_source_uid=self.server_config.tracking_source_uid,
+                    )
+                    self.active_components[component_name].start()
             elif self._should_stop_component(component_name):
                 component = self.active_components.pop(component_name)
                 component.stop()
