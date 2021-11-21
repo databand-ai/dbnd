@@ -2,17 +2,19 @@ package ai.databand.schema;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.List;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DatasetOperationRes {
 
     private String latestOperationStatus;
-    private String latestOperationError;
     private long records;
     private long operations;
     private String datasetPath;
     private String taskRunUid;
     private String operationType;
     private String taskRunName;
+    private List<Issue> issues;
 
     public String getLatestOperationStatus() {
         return latestOperationStatus;
@@ -20,14 +22,6 @@ public class DatasetOperationRes {
 
     public void setLatestOperationStatus(String latestOperationStatus) {
         this.latestOperationStatus = latestOperationStatus;
-    }
-
-    public String getLatestOperationError() {
-        return latestOperationError;
-    }
-
-    public void setLatestOperationError(String latestOperationError) {
-        this.latestOperationError = latestOperationError;
     }
 
     public long getRecords() {
@@ -76,5 +70,52 @@ public class DatasetOperationRes {
 
     public void setTaskRunName(String taskRunName) {
         this.taskRunName = taskRunName;
+    }
+
+    public List<Issue> getIssues() {
+        return issues;
+    }
+
+    public void setIssues(List<Issue> issues) {
+        this.issues = issues;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Issue {
+
+        private String type;
+        private Data data;
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public Data getData() {
+            return data;
+        }
+
+        public void setData(Data data) {
+            this.data = data;
+        }
+
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Data {
+        private String operationError;
+
+        public String getOperationError() {
+            return operationError;
+        }
+
+        public void setOperationError(String operationError) {
+            this.operationError = operationError;
+        }
+
+
     }
 }
