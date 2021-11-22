@@ -1,4 +1,28 @@
 # History
+## DBND v 0.53.0
+
+### Breaking changes
+* \#1200944564541400: The final state of sub-pipeline tasks that have failed child tasks is now called "Failed" instead of "Upstream Failed".
+
+### New features
+* \#1200875727993229: Observe metric trends over time: missing charts, run state charts, state metrics charts, schema change metric trends, etc.
+
+### Improvements
+* \#1201110693029241: Operations merged from the SDK and BigQuery logged with `log_dataset_op` are now recognized and displayed accordingly (with BigQuery ID) in the Dataset Operations tab, including with stateful issues.
+* \#1201314083672982: Resolved notifications are no longer the default configuration for Slack receivers.
+* \#1201141157594482: Alert dialog loads promptly and displays the correct state.
+* \#1201257264431636: Added support for tracking specific DAGs.
+* \#1201226401826259: Syncer memory guard limit is now configurable.
+* \#1201266020003308: Pipelines with zero associated runs are hidden in the Databand UI.
+* \#1201260807813998: Resolved notifications are now correctly delivered to the update/validate receivers.
+* \#1201036807083630: In the Alert Definitions' editor, individual tasks can be addressed when DAG has multiple tasks with the same name.
+* \#1200991140831460: `COPY INTO` queries are now supported for Snowflake.
+* \#1201154986480578: Operations section on the Datasets tab notifies of unusual activity in an operation (schema change or failed operation).
+* \#1201080247459590: Operations are now tracked with BigQuery even when no SDK is installed.
+* \#1201080247459582: Dataset Overview section combines the data from SDK and from BigQuery.
+
+### Bug fixes
+* \#1201160985639176: Solved a bug that emerged when deleting a DAG.
 
 ## DBND v 0.50.0
 
