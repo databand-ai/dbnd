@@ -119,9 +119,10 @@ class DatabandClient(object):
         return runs_info
 
     def _get_task_start_time(self, task_run):
-        return dateutil.parser.isoparse(
-            task_run["latest_task_run_attempt"].get("end_date", None)
-        )
+        attempt_end_time = task_run["latest_task_run_attempt"].get("end_date", None)
+        if attempt_end_time is None:
+            return None
+        return dateutil.parser.isoparse(attempt_end_time)
 
     def get_first_task_run_error(self, run_uid):
         run_info = self.get_run_info(run_uid)
