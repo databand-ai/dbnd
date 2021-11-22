@@ -81,10 +81,7 @@ def _to_conf(kwargs):
 )
 @click.option("--describe", is_flag=True, help="Describe the current run")
 @click.option(
-    "--env",
-    default="local",
-    show_default=True,
-    help="task environment: local/aws/aws_prod/gcp/prod",
+    "--env", help="task environment: local/aws/aws_prod/gcp/prod",
 )
 @click.option("--parallel", is_flag=True, help="Run tasks in parallel")
 @click.option("--conf-file", help="List of files to read from")
