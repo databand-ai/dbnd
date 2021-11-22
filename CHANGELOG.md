@@ -1,53 +1,65 @@
 # History
+
+## DBND v 0.54.0
+
 ## DBND v 0.53.0
 
 ### Breaking changes
-* \#1200944564541400: The final state of sub-pipeline tasks that have failed child tasks is now called "Failed" instead of "Upstream Failed".
+
+-   \#1200944564541400: The final state of sub-pipeline tasks that have failed child tasks is now called "Failed" instead of "Upstream Failed".
 
 ### New features
-* \#1200875727993229: Observe metric trends over time: missing charts, run state charts, state metrics charts, schema change metric trends, etc.
+
+-   \#1200875727993229: Observe metric trends over time: missing charts, run state charts, state metrics charts, schema change metric trends, etc.
 
 ### Improvements
-* \#1201110693029241: Operations merged from the SDK and BigQuery logged with `log_dataset_op` are now recognized and displayed accordingly (with BigQuery ID) in the Dataset Operations tab, including with stateful issues.
-* \#1201314083672982: Resolved notifications are no longer the default configuration for Slack receivers.
-* \#1201141157594482: Alert dialog loads promptly and displays the correct state.
-* \#1201257264431636: Added support for tracking specific DAGs.
-* \#1201226401826259: Syncer memory guard limit is now configurable.
-* \#1201266020003308: Pipelines with zero associated runs are hidden in the Databand UI.
-* \#1201260807813998: Resolved notifications are now correctly delivered to the update/validate receivers.
-* \#1201036807083630: In the Alert Definitions' editor, individual tasks can be addressed when DAG has multiple tasks with the same name.
-* \#1200991140831460: `COPY INTO` queries are now supported for Snowflake.
-* \#1201154986480578: Operations section on the Datasets tab notifies of unusual activity in an operation (schema change or failed operation).
-* \#1201080247459590: Operations are now tracked with BigQuery even when no SDK is installed.
-* \#1201080247459582: Dataset Overview section combines the data from SDK and from BigQuery.
+
+-   \#1201110693029241: Operations merged from the SDK and BigQuery logged with `log_dataset_op` are now recognized and displayed accordingly (with BigQuery ID) in the Dataset Operations tab, including with stateful issues.
+-   \#1201314083672982: Resolved notifications are no longer the default configuration for Slack receivers.
+-   \#1201141157594482: Alert dialog loads promptly and displays the correct state.
+-   \#1201257264431636: Added support for tracking specific DAGs.
+-   \#1201226401826259: Syncer memory guard limit is now configurable.
+-   \#1201266020003308: Pipelines with zero associated runs are hidden in the Databand UI.
+-   \#1201260807813998: Resolved notifications are now correctly delivered to the update/validate receivers.
+-   \#1201036807083630: In the Alert Definitions' editor, individual tasks can be addressed when DAG has multiple tasks with the same name.
+-   \#1200991140831460: `COPY INTO` queries are now supported for Snowflake.
+-   \#1201154986480578: Operations section on the Datasets tab notifies of unusual activity in an operation (schema change or failed operation).
+-   \#1201080247459590: Operations are now tracked with BigQuery even when no SDK is installed.
+-   \#1201080247459582: Dataset Overview section combines the data from SDK and from BigQuery.
 
 ### Bug fixes
-* \#1201160985639176: Solved a bug that emerged when deleting a DAG.
+
+-   \#1201160985639176: Solved a bug that emerged when deleting a DAG.
 
 ## DBND v 0.50.0
 
 ### New features
-* \#1200764884086970: Added SDK Client for Metadata (basic access API endpoint for collecting all errors in a Run).
+
+-   \#1200764884086970: Added SDK Client for Metadata (basic access API endpoint for collecting all errors in a Run).
 
 ### Improvements
-* \#1201013784336315: Improved behavior of Reset Selection in Affected Datasets.
-* \#1200766175220432: Now you can create alerts directly from the redesigned Metrics tab.
+
+-   \#1201013784336315: Improved behavior of Reset Selection in Affected Datasets.
+-   \#1200766175220432: Now you can create alerts directly from the redesigned Metrics tab.
 
 ### Bug fixes
-* \#1200964944935744: Each step on the X-axis in Dataset Overview now equals 24 hours from the previous point.
-* \#1200964944935725: "Reported from" and "Dataset Type" columns in the Datasets tab follow the same logic as elsewhere in the Databand UI.
+
+-   \#1200964944935744: Each step on the X-axis in Dataset Overview now equals 24 hours from the previous point.
+-   \#1200964944935725: "Reported from" and "Dataset Type" columns in the Datasets tab follow the same logic as elsewhere in the Databand UI.
 
 ## DBND v0.49.0
 
 ### New features
-* \#1200638623009192: Datasets can be archived now.
-* \#1200713291030116: Added empty state clickable component.
-* \#1200920981691825: Default operation is pre-selected on the Alert definition screen.
+
+-   \#1200638623009192: Datasets can be archived now.
+-   \#1200713291030116: Added empty state clickable component.
+-   \#1200920981691825: Default operation is pre-selected on the Alert definition screen.
 
 ### Improvements
-* \#1200948790296167: Dropped all `python 2.7` support.
-* \#1200766175220434: All alerted metrics that are being reported are now visible.
-* \#1200892336582865: Reviewed documentation links in the code.
+
+-   \#1200948790296167: Dropped all `python 2.7` support.
+-   \#1200766175220434: All alerted metrics that are being reported are now visible.
+-   \#1200892336582865: Reviewed documentation links in the code.
 
 ## DBND v0.48.0
 
