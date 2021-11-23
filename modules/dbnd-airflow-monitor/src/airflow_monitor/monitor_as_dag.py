@@ -22,6 +22,8 @@ CHECK_INTERVAL = 10
 AUTO_RESTART_TIMEOUT = 30 * 60
 MEMORY_LIMIT = 8 * 1024 * 1024 * 1024
 
+MEMORY_DIFF_BETWEEN_LOG_PRINTS_IN_MB = 5
+
 FORCE_RESTART_TIMEOUT = timedelta(seconds=AUTO_RESTART_TIMEOUT + 5 * 60)
 LOG_LEVEL = "WARN"
 DATABAND_AIRFLOW_CONN_ID = "dbnd_config"
@@ -112,7 +114,7 @@ def _check_memory_usage():
     current_process = psutil.Process(os.getpid())
     current_process_memory = current_process.memory_full_info()
     total_usage = current_process_memory.rss
-    logger.info(
+    logger.debug(
         "Current process %s (%s) usage: %s",
         current_process.pid,
         current_process.name(),
@@ -123,10 +125,9 @@ def _check_memory_usage():
     for child in children:
         child_memory = child.memory_full_info()
         total_usage += child_memory.rss
-        logger.info(
+        logger.debug(
             "Child process %s (%s) usage: %s", child.pid, child.name(), child_memory,
         )
-    logger.info("Total memory usage: %s mb", int(total_usage / 1024 / 1024))
     return children, total_usage
 
 
@@ -140,11 +141,20 @@ def start_guard_thread(memory_guard_limit, guard_sleep=10):
             memory_guard_limit,
             guard_sleep,
         )
+        current_usage_in_mb = 0
         while not should_stop:
             try:
-                processe, total_usage = _check_memory_usage()
+                processes, total_usage = _check_memory_usage()
+                total_usage_in_mb = int(total_usage / 1024 / 1024)
+                # Print log message every time we have a spike in memory usage
+                if (
+                    total_usage_in_mb
+                    >= current_usage_in_mb + MEMORY_DIFF_BETWEEN_LOG_PRINTS_IN_MB
+                ):
+                    current_usage_in_mb = total_usage_in_mb
+                    logger.info("Total memory usage: %s mb", current_usage_in_mb)
                 if memory_guard_limit and total_usage > memory_guard_limit:
-                    kill_processes(processe)
+                    kill_processes(processes)
                     return
             except Exception:
                 logger.exception(
