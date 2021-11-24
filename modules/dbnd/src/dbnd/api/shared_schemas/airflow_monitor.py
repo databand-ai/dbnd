@@ -40,6 +40,8 @@ class AirflowServerInfoSchema(ApiStrictSchema):
     monitor_status = fields.String(allow_none=True)
     monitor_config = fields.Nested(MonitorConfigSchema, allow_none=True)
     airflow_environment = fields.String(allow_none=True)
+    last_seen_dag_run_id = fields.Integer(allow_none=True)
+    last_seen_log_id = fields.Integer(allow_none=True)
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -72,3 +74,5 @@ class AirflowServerInfo(object):
     dag_ids = attr.ib(default=None)  # type: Optional[str]
     monitor_config = attr.ib(default=None)  # type: Optional[Dict]
     airflow_environment = attr.ib(default=None)  # type: Optional[str]
+    last_seen_dag_run_id = attr.ib(default=None)  # type: Optional[int]
+    last_seen_log_id = attr.ib(default=None)  # type: Optional[int]
