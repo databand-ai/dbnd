@@ -43,6 +43,9 @@ class AlertDefsSchema(ApiStrictSchema):
     dataset_schema_uri = fields.Str(allow_none=True)
     datasets_uids = fields.List(fields.Str(), allow_none=True)
 
+    # Read only value
+    affected_datasets = fields.List(fields.Dict(), allow_none=True)
+
     @pre_load
     def prepere(self, data: dict, **kwargs):
         value = data.get("value", None)
