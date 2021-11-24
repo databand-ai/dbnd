@@ -414,7 +414,7 @@ class LogDatasetSchema(ApiStrictSchema):
     operation_error = fields.String(allow_none=True)
 
     value_preview = fields.String(allow_none=True)
-    data_dimensions = fields.List(fields.Integer(), allow_none=True)
+    data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
     data_schema = fields.String(allow_none=True)
 
     @post_load
