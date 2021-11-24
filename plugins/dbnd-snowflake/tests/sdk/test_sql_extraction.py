@@ -224,3 +224,36 @@ def test_invalid_query(sqlquery, expected):
         SqlQueryExtractor().extract_operations_schemas(parse_first_query(sqlquery))
         == expected
     )
+
+
+@pytest.mark.parametrize(
+    "sqlquery, expected",
+    [
+        (
+            """
+    COPY INTO TEST FROM "s3://some/url/to/file.txt" CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
+            """,
+            "COPY INTO TEST FROM s3://some/url/to/file.txt CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');",
+        ),
+        (
+            """
+    COPY INTO TEST FROM 's3://some/url/to/file.txt' CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
+            """,
+            "COPY INTO TEST FROM s3://some/url/to/file.txt CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');",
+        ),
+        (
+            """
+    COPY INTO TEST FROM "@stage";
+            """,
+            "COPY INTO TEST FROM @stage;",
+        ),
+        (
+            """
+    COPY INTO TEST FROM '@stage';
+            """,
+            "COPY INTO TEST FROM @stage;",
+        ),
+    ],
+)
+def test_clean_query(sqlquery, expected):
+    assert SqlQueryExtractor().clean_query(sqlquery) == expected

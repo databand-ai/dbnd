@@ -2,7 +2,7 @@ import pytest
 
 from mock import MagicMock
 
-from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
+from dbnd._core.constants import DbndTargetOperationType
 from dbnd_snowflake.sdk import sql_operation
 from dbnd_snowflake.sdk.sql_extract import Column
 from dbnd_snowflake.sdk.sql_operation import Connection, SqlOperation
