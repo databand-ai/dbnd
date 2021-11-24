@@ -51,14 +51,14 @@ class SqlOperation:
         try:
             return list(self.dtypes)
         except TypeError:
-            return []
+            return None
 
     @property
     def columns_count(self) -> int:
         try:
             return len(self.dtypes)
         except TypeError:
-            return 0
+            return None
 
     @property
     def is_file(self) -> bool:
@@ -106,7 +106,7 @@ class SqlOperation:
                 )
                 if col_type:
                     dtypes[col_name] = col_type
-        return dtypes
+        return dtypes if dtypes else None
 
     def evolve_table_name(self, connection: Connection) -> "SqlOperation":
         schema: Schema = defaultdict(list)
