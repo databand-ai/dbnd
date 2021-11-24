@@ -19,56 +19,45 @@ NUMBER_OF_ROWS_INSERTED = 10
 RESULT_SET = {"data": {"stats": {"numRowsInserted": NUMBER_OF_ROWS_INSERTED}}}
 
 
-COPY_INTO_TABLE_FROM_S3_FILE_QUERY = """
-    copy into TEST from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
-                """
-COPY_INTO_TABLE_FULL_PATH_FROM_S3_FILE_QUERY = """
-    copy into DATABASE.SCHEMA.TEST from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
-                """
+COPY_INTO_TABLE_FROM_S3_FILE_QUERY = """copy into TEST from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
 
-COPY_INTO_TABLE_PARTIAL_PATH_FROM_S3_FILE_QUERY = """
-    copy into SCHEMA.TEST from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
-                """
+COPY_INTO_TABLE_FULL_PATH_FROM_S3_FILE_QUERY = """copy into DATABASE.SCHEMA.TEST from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
 
-COPY_INTO_TABLE_WITH_COLUMNS_FROM_S3_FILE_QUERY = """
-    copy into TEST ("column_a", "column_b") from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
-                """
+COPY_INTO_TABLE_PARTIAL_PATH_FROM_S3_FILE_QUERY = """copy into SCHEMA.TEST from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
 
-COPY_INTO_TABLE_FULL_PATH_WITH_COLUMNS_FROM_S3_FILE_QUERY = """
-    copy into DATABASE.SCHEMA.TEST ("column_a", "column_b") from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
-                """
+COPY_INTO_TABLE_WITH_COLUMNS_FROM_S3_FILE_QUERY = """copy into TEST ("column_a", "column_b") from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
 
-COPY_INTO_TABLE_PARTIAL_PATH_WITH_COLUMNS_FROM_S3_FILE_QUERY = """
-    copy into SCHEMA.TEST ("column_a", "column_b") from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
-                """
+COPY_INTO_TABLE_FULL_PATH_WITH_COLUMNS_FROM_S3_FILE_QUERY = """copy into DATABASE.SCHEMA.TEST ("column_a", "column_b") from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
 
-COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY = """
-    copy into TEST from @STAGE;
-                """
+COPY_INTO_TABLE_PARTIAL_PATH_WITH_COLUMNS_FROM_S3_FILE_QUERY = """copy into SCHEMA.TEST ("column_a", "column_b") from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
 
-COPY_INTO_TABLE_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY = """
-    copy into DATABASE.SCHEMA.TEST from DATABASE.SCHEMA.TEST.@STAGE;
-                """
+COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY = """copy into TEST from @STAGE;"""
 
-COPY_INTO_TABLE_PARTIAL_PATH_FROM_STAGE_FILE_PARTIAL_PATH_QUERY = """
-    copy into SCHEMA.TEST from SCHEMA.@STAGE;
-                """
+COPY_INTO_TABLE_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY = (
+    """copy into DATABASE.SCHEMA.TEST from DATABASE.SCHEMA.TEST.@STAGE;"""
+)
 
-COPY_INTO_TABLE_WITH_COLUMNS_FROM_STAGE_FILE_QUERY = """
-    copy into TEST ("column_a", "column_b") from @STAGE;
-                """
+COPY_INTO_TABLE_PARTIAL_PATH_FROM_STAGE_FILE_PARTIAL_PATH_QUERY = (
+    """copy into SCHEMA.TEST from SCHEMA.@STAGE;"""
+)
 
-COPY_INTO_TABLE_WITH_COLUMNS_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY = """
-    copy into DATABASE.SCHEMA.TEST ("column_a", "column_b") from DATABASE.SCHEMA.TEST.@STAGE;
-                """
+COPY_INTO_TABLE_WITH_COLUMNS_FROM_STAGE_FILE_QUERY = (
+    """copy into TEST ("column_a", "column_b") from @STAGE;"""
+)
 
-COPY_INTO_TABLE_WITH_COLUMNS_PARTIAL_PATH_FROM_STAGE_FILE_PARTIAL_PATH_QUERY = """
-    copy into SCHEMA.TEST ("column_a", "column_b") from SCHEMA.TEST.@STAGE;
-                """
+COPY_INTO_TABLE_WITH_COLUMNS_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY = """copy into DATABASE.SCHEMA.TEST ("column_a", "column_b") from DATABASE.SCHEMA.TEST.@STAGE;"""
 
-COPY_INTO_TABLE_FROM_S3_FILE_APOSTROPHE_FAIL_QUERY = """
-    copy into TEST from 's3://test/test.json' CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');
-    """
+COPY_INTO_TABLE_WITH_COLUMNS_PARTIAL_PATH_FROM_STAGE_FILE_PARTIAL_PATH_QUERY = (
+    """copy into SCHEMA.TEST ("column_a", "column_b") from SCHEMA.TEST.@STAGE;"""
+)
+
+COPY_INTO_TABLE_FROM_S3_FILE_APOSTROPHE_QUERY = """copy into TEST from 's3://test/test.json' CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
+
+COPY_INTO_TABLE_FROM_S3_FILE_QUOTES_QUERY = """copy into TEST from "s3://test/test.json" CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
+
+COPY_INTO_TABLE_FROM_STAGE_FILE_APOSTROPHE_QUERY = """copy into TEST from '@STAGE';"""
+
+COPY_INTO_TABLE_FROM_STAGE_FILE_QUOTES_QUERY = """copy into TEST from "@STAGE";"""
 
 
 def _authenticate(self_auth, *args, **kwargs):
@@ -169,49 +158,6 @@ def _snowflake_connect():
             ],
         ),
         (
-            COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
-            [
-                SqlOperation(
-                    extracted_schema={
-                        "@STAGE.*": [
-                            Column(
-                                dataset_name="@STAGE",
-                                alias="@STAGE.*",
-                                name="*",
-                                is_file=False,
-                                is_stage=True,
-                            )
-                        ]
-                    },
-                    dtypes=None,
-                    records_count=NUMBER_OF_ROWS_INSERTED,
-                    query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
-                    query_id=SFQID,
-                    success=True,
-                    op_type=DbndTargetOperationType.read,
-                ),
-                SqlOperation(
-                    extracted_schema={
-                        "TEST.*": [
-                            Column(
-                                dataset_name="TEST",
-                                alias="TEST.*",
-                                name="*",
-                                is_file=False,
-                                is_stage=False,
-                            )
-                        ]
-                    },
-                    dtypes=None,
-                    records_count=NUMBER_OF_ROWS_INSERTED,
-                    query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
-                    query_id=SFQID,
-                    success=True,
-                    op_type=DbndTargetOperationType.write,
-                ),
-            ],
-        ),
-        (
             COPY_INTO_TABLE_WITH_COLUMNS_FROM_S3_FILE_QUERY,
             [
                 SqlOperation(
@@ -264,58 +210,6 @@ def _snowflake_connect():
             ],
         ),
         (
-            COPY_INTO_TABLE_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
-            [
-                SqlOperation(
-                    extracted_schema={
-                        "@STAGE.*": [
-                            Column(
-                                dataset_name="@STAGE",
-                                alias="@STAGE.*",
-                                name="*",
-                                is_file=False,
-                                is_stage=True,
-                            )
-                        ]
-                    },
-                    dtypes=None,
-                    records_count=NUMBER_OF_ROWS_INSERTED,
-                    query=COPY_INTO_TABLE_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
-                    query_id=SFQID,
-                    success=True,
-                    op_type=DbndTargetOperationType.read,
-                ),
-                SqlOperation(
-                    extracted_schema={
-                        "column_a": [
-                            Column(
-                                dataset_name="TEST",
-                                alias="column_a",
-                                name="column_a",
-                                is_file=False,
-                                is_stage=False,
-                            )
-                        ],
-                        "column_b": [
-                            Column(
-                                dataset_name="TEST",
-                                alias="column_b",
-                                name="column_b",
-                                is_file=False,
-                                is_stage=False,
-                            )
-                        ],
-                    },
-                    dtypes=None,
-                    records_count=NUMBER_OF_ROWS_INSERTED,
-                    query=COPY_INTO_TABLE_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
-                    query_id=SFQID,
-                    success=True,
-                    op_type=DbndTargetOperationType.write,
-                ),
-            ],
-        ),
-        (
             COPY_INTO_TABLE_FULL_PATH_FROM_S3_FILE_QUERY,
             [
                 SqlOperation(
@@ -352,49 +246,6 @@ def _snowflake_connect():
                     dtypes=None,
                     records_count=NUMBER_OF_ROWS_INSERTED,
                     query=COPY_INTO_TABLE_FULL_PATH_FROM_S3_FILE_QUERY,
-                    query_id=SFQID,
-                    success=True,
-                    op_type=DbndTargetOperationType.write,
-                ),
-            ],
-        ),
-        (
-            COPY_INTO_TABLE_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY,
-            [
-                SqlOperation(
-                    extracted_schema={
-                        "DATABASE.SCHEMA.TEST.@STAGE.*": [
-                            Column(
-                                dataset_name="DATABASE.SCHEMA.TEST.@STAGE",
-                                alias="DATABASE.SCHEMA.TEST.@STAGE.*",
-                                name="*",
-                                is_file=False,
-                                is_stage=True,
-                            )
-                        ]
-                    },
-                    dtypes=None,
-                    records_count=NUMBER_OF_ROWS_INSERTED,
-                    query=COPY_INTO_TABLE_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY,
-                    query_id=SFQID,
-                    success=True,
-                    op_type=DbndTargetOperationType.read,
-                ),
-                SqlOperation(
-                    extracted_schema={
-                        "DATABASE.SCHEMA.TEST.*": [
-                            Column(
-                                dataset_name="DATABASE.SCHEMA.TEST",
-                                alias="DATABASE.SCHEMA.TEST.*",
-                                name="*",
-                                is_file=False,
-                                is_stage=False,
-                            )
-                        ]
-                    },
-                    dtypes=None,
-                    records_count=NUMBER_OF_ROWS_INSERTED,
-                    query=COPY_INTO_TABLE_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY,
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
@@ -549,6 +400,239 @@ def _snowflake_connect():
             ],
         ),
         (
+            COPY_INTO_TABLE_FROM_S3_FILE_APOSTROPHE_QUERY,
+            [
+                SqlOperation(
+                    extracted_schema={
+                        "s3://test/test.json.*": [
+                            Column(
+                                dataset_name="s3://test/test.json",
+                                alias="s3://test/test.json.*",
+                                name="*",
+                                is_file=True,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_S3_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.read,
+                ),
+                SqlOperation(
+                    extracted_schema={
+                        "TEST.*": [
+                            Column(
+                                dataset_name="TEST",
+                                alias="TEST.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_S3_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.write,
+                ),
+            ],
+        ),
+        (
+            COPY_INTO_TABLE_FROM_S3_FILE_QUOTES_QUERY,
+            [
+                SqlOperation(
+                    extracted_schema={
+                        "s3://test/test.json.*": [
+                            Column(
+                                dataset_name="s3://test/test.json",
+                                alias="s3://test/test.json.*",
+                                name="*",
+                                is_file=True,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_S3_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.read,
+                ),
+                SqlOperation(
+                    extracted_schema={
+                        "TEST.*": [
+                            Column(
+                                dataset_name="TEST",
+                                alias="TEST.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_S3_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.write,
+                ),
+            ],
+        ),
+    ],
+)
+def test_copy_into_s3(mock_snowflake, query, expected):
+    return run_tracker_custom_query(mock_snowflake, query, expected)
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        (
+            COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
+            [
+                SqlOperation(
+                    extracted_schema={
+                        "@STAGE.*": [
+                            Column(
+                                dataset_name="@STAGE",
+                                alias="@STAGE.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=True,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.read,
+                ),
+                SqlOperation(
+                    extracted_schema={
+                        "TEST.*": [
+                            Column(
+                                dataset_name="TEST",
+                                alias="TEST.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.write,
+                ),
+            ],
+        ),
+        (
+            COPY_INTO_TABLE_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
+            [
+                SqlOperation(
+                    extracted_schema={
+                        "@STAGE.*": [
+                            Column(
+                                dataset_name="@STAGE",
+                                alias="@STAGE.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=True,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.read,
+                ),
+                SqlOperation(
+                    extracted_schema={
+                        "column_a": [
+                            Column(
+                                dataset_name="TEST",
+                                alias="column_a",
+                                name="column_a",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ],
+                        "column_b": [
+                            Column(
+                                dataset_name="TEST",
+                                alias="column_b",
+                                name="column_b",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ],
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.write,
+                ),
+            ],
+        ),
+        (
+            COPY_INTO_TABLE_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY,
+            [
+                SqlOperation(
+                    extracted_schema={
+                        "DATABASE.SCHEMA.TEST.@STAGE.*": [
+                            Column(
+                                dataset_name="DATABASE.SCHEMA.TEST.@STAGE",
+                                alias="DATABASE.SCHEMA.TEST.@STAGE.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=True,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.read,
+                ),
+                SqlOperation(
+                    extracted_schema={
+                        "DATABASE.SCHEMA.TEST.*": [
+                            Column(
+                                dataset_name="DATABASE.SCHEMA.TEST",
+                                alias="DATABASE.SCHEMA.TEST.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FULL_PATH_FROM_STAGE_FILE_FULL_PATH_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.write,
+                ),
+            ],
+        ),
+        (
             COPY_INTO_TABLE_PARTIAL_PATH_FROM_STAGE_FILE_PARTIAL_PATH_QUERY,
             [
                 SqlOperation(
@@ -695,10 +779,99 @@ def _snowflake_connect():
                 ),
             ],
         ),
-        (COPY_INTO_TABLE_FROM_S3_FILE_APOSTROPHE_FAIL_QUERY, [],),
+        (
+            COPY_INTO_TABLE_FROM_STAGE_FILE_APOSTROPHE_QUERY,
+            [
+                SqlOperation(
+                    extracted_schema={
+                        "@STAGE.*": [
+                            Column(
+                                dataset_name="@STAGE",
+                                alias="@STAGE.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=True,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.read,
+                ),
+                SqlOperation(
+                    extracted_schema={
+                        "TEST.*": [
+                            Column(
+                                dataset_name="TEST",
+                                alias="TEST.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.write,
+                ),
+            ],
+        ),
+        (
+            COPY_INTO_TABLE_FROM_STAGE_FILE_QUOTES_QUERY,
+            [
+                SqlOperation(
+                    extracted_schema={
+                        "@STAGE.*": [
+                            Column(
+                                dataset_name="@STAGE",
+                                alias="@STAGE.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=True,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.read,
+                ),
+                SqlOperation(
+                    extracted_schema={
+                        "TEST.*": [
+                            Column(
+                                dataset_name="TEST",
+                                alias="TEST.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.write,
+                ),
+            ],
+        ),
     ],
 )
-def test_run_simple_query_with_close_conn(mock_snowflake, query, expected):
+def test_copy_into_stage(mock_snowflake, query, expected):
+    return run_tracker_custom_query(mock_snowflake, query, expected)
+
+
+def run_tracker_custom_query(mock_snowflake, query, expected):
     snowflake_connection = _snowflake_connect()
     snowflake_tracker = SnowflakeTracker()
     with snowflake_tracker:

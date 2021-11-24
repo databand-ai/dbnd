@@ -224,10 +224,11 @@ def build_snowflake_operations(
     cursor: SnowflakeCursor, command: str, success: bool, result_set: Dict
 ) -> List[SqlOperation]:
     operations = []
-
+    sql_query_extractor = SqlQueryExtractor()
+    command = sql_query_extractor.clean_query(command)
     # find the relevant operations schemas from the command
     parsed_query = sqlparse.parse(command)[0]
-    extracted = SqlQueryExtractor().extract_operations_schemas(parsed_query)
+    extracted = sql_query_extractor.extract_operations_schemas(parsed_query)
 
     if not extracted:
         # This is DML statement and no read or write occurred

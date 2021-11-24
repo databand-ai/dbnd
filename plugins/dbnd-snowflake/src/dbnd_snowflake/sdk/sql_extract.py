@@ -44,6 +44,8 @@ READ_OPERATIONS = {
 }
 CLOUD_SERVICE_URI_REGEX = re.compile(r"s3://\S+|azure://\S+|gcs://\S+")
 
+STAGE_REGEX = re.compile(r"@\S+")
+
 
 class SqlQueryExtractor:
     def extract_operations_schemas(self, statement: TokenList) -> Dict[OP_TYPE, Schema]:
@@ -128,6 +130,29 @@ class SqlQueryExtractor:
 
         return extracted, idx, columns
 
+    def clean_query(self, query: str) -> str:
+        """
+        Cleans apostrophe and quote characters from cloud url or stage in query to parse it successfully by sqlparse
+         :param str query: query statement
+        """
+
+        command_list = query.split(" ")
+        clean_query_list = []
+        for command in command_list:
+            if command and (self.find_cloud_regex(command) or self.is_stage(command)):
+                command = command.replace("'", "").replace('"', "")
+            clean_query_list.append(command)
+        return " ".join(clean_query_list).strip()
+
+    def is_stage(self, table_name: str) -> str:
+        """
+                  Returns a pattern of snowflake stage if exits
+                  :param str table_name: name of a snowflake table
+
+                  """
+        if table_name:
+            return STAGE_REGEX.findall(table_name.split(".")[-1])
+
     def generate_schema(
         self, columns: Columns, next_token: Identifier
     ) -> Tuple[Schema, Columns]:
@@ -150,7 +175,7 @@ class SqlQueryExtractor:
         else:
             table_alias = self.get_identifier_name(next_token)
             table_name = self.get_full_name(next_token)
-            if table_name.split(".")[-1].startswith("@"):
+            if self.is_stage(table_name):
                 columns = [
                     Column(
                         dataset_name=table_name,
@@ -281,17 +306,19 @@ class SqlQueryExtractor:
     def get_identifier_name(identifier):
         return identifier.get_alias() or identifier.value.split(".")[-1]
 
-    @staticmethod
-    def extract_cloud_uri(identifier: Identifier) -> str:
+    def extract_cloud_uri(self, identifier: Identifier) -> str:
         """
           Search for cloud providers pattern in snowflake query identifier,
           if pattern exists returns the URI as string
 
           :param Identifier identifier: snowflake query identifier
             """
-        if identifier.value.upper() in ["S3", "AZURE", "GCS"]:
-            cloud_uri = CLOUD_SERVICE_URI_REGEX.findall(identifier.parent.value)
-            return cloud_uri[0] if cloud_uri else None
+        if identifier.value.lower() in ["s3", "azure", "gcs"]:
+            return self.find_cloud_regex(identifier.parent.value)
+
+    def find_cloud_regex(self, identifier: str) -> str:
+        cloud_uri = CLOUD_SERVICE_URI_REGEX.findall(identifier.lower())
+        return cloud_uri[0] if cloud_uri else None
 
     @staticmethod
     def get_full_name(identifier):
