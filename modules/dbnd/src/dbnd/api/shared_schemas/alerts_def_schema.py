@@ -28,7 +28,7 @@ class AlertDefsSchema(ApiStrictSchema):
     value = fields.Str(allow_none=True)
     job_id = fields.Int(allow_none=True)
     summary = fields.Str(allow_none=True)
-    job_name = fields.Str(allow_none=True)
+    job_name = fields.Str(attribute="job.name", allow_none=True)
     task_repr = fields.Str(allow_none=True)
     task_name = fields.Str(allow_none=True)
     custom_name = fields.Str(allow_none=True)
