@@ -1,6 +1,6 @@
 plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.0'
-    id "com.vanniktech.maven.publish" version "0.15.1"
+    id "com.vanniktech.maven.publish" version "0.18.0"
 }
 
 /**
@@ -46,6 +46,28 @@ configure(subprojects.findAll { projectsToPublish.contains(it.name) }) {
             sonatypeHost = "S01"
         }
     }
+
+    publishing {
+        repositories {
+            maven {
+                url "https://gitlab.com/api/v4/projects/7965327/packages/maven"
+                name "GitLab"
+                credentials(HttpHeaderCredentials) {
+                    name = 'Job-Token'
+                    value = System.getenv("CI_JOB_TOKEN")
+                }
+                authentication {
+                    header(HttpHeaderAuthentication)
+                }
+            }
+        }
+    }
+}
+
+plugins.withId("com.vanniktech.maven.publish") {
+    mavenPublish {
+        sonatypeHost = "S01"
+    }
 }
 
 /**
@@ -66,9 +88,8 @@ configure(subprojects.findAll { fatJarProjects.contains(it.name) }) {
         }
     }
 
-    shadowJar.finalizedBy shadowJarLatest
-
     task fatJar(dependsOn: shadowJar)
+    fatJar.finalizedBy shadowJarLatest
 }
 
 /**
