@@ -1,0 +1,187 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.1.0'
+    id "com.vanniktech.maven.publish" version "0.18.0"
+}
+
+/**
+ * ****************************************************************************
+ * All projects configuration (java plugin, publishing, etc).
+ * ****************************************************************************
+ */
+subprojects {
+    apply plugin: 'java'
+
+    group = 'ai.databand'
+    version = '0.54.0'
+    if (project.hasProperty('snapshot')) {
+        version = "0.54.0-${System.env.CI_COMMIT_SHORT_SHA}"
+    }
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    repositories {
+        mavenCentral()
+    }
+
+    compileJava {
+        options.compilerArgs << '-parameters'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    configurations.all {
+        exclude group: "junit", module: "junit"
+    }
+}
+
+def projectsToPublish = ["dbnd-api", "dbnd-api-deequ", "dbnd-client", "dbnd-mlflow", "dbnd-agent", "dbnd-azkaban-agent"]
+
+configure(subprojects.findAll { projectsToPublish.contains(it.name) }) {
+    apply plugin: "com.vanniktech.maven.publish"
+
+    plugins.withId("com.vanniktech.maven.publish") {
+        mavenPublish {
+            sonatypeHost = "S01"
+        }
+    }
+
+    publishing {
+        repositories {
+            maven {
+                url "https://gitlab.com/api/v4/projects/7965327/packages/maven"
+                name "GitLab"
+                credentials(HttpHeaderCredentials) {
+                    name = 'Job-Token'
+                    value = System.getenv("CI_JOB_TOKEN")
+                }
+                authentication {
+                    header(HttpHeaderAuthentication)
+                }
+            }
+        }
+    }
+}
+
+plugins.withId("com.vanniktech.maven.publish") {
+    mavenPublish {
+        sonatypeHost = "S01"
+    }
+}
+
+/**
+ * ****************************************************************************
+ * Projects with fat jars.
+ * ****************************************************************************
+ */
+def fatJarProjects = ["dbnd-agent", "dbnd-azkaban-event-reporter", "dbnd-azkaban-agent"]
+
+configure(subprojects.findAll { fatJarProjects.contains(it.name) }) {
+    apply plugin: 'com.github.johnrengelman.shadow'
+
+    task shadowJarLatest(type: Copy) {
+        from shadowJar
+        into 'build/libs'
+        rename { String fileName ->
+            fileName.replace("$project.version", "latest")
+        }
+    }
+
+    task fatJar(dependsOn: shadowJar)
+    fatJar.finalizedBy shadowJarLatest
+}
+
+/**
+ * ****************************************************************************
+ * API-only projects (no real implementation goes here).
+ * ****************************************************************************
+ */
+def apiOnlyProjects = ['dbnd-api', 'dbnd-api-deequ'].toSet()
+
+configure(subprojects.findAll { !apiOnlyProjects.contains(it.name) }) {
+    dependencies {
+        // logging
+        implementation 'org.slf4j:slf4j-api:1.7.16'
+        runtimeOnly 'org.slf4j:slf4j-log4j12:1.7.16'
+        // tests
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.6.0'
+        testImplementation 'org.hamcrest:hamcrest:2.2'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+}
+
+/**
+ * ****************************************************************************
+ * Projects with dependency on Spark.
+ * Spark dependencies should be declared directly,
+ * because gradle does not resolve transitive dependencies
+ * ****************************************************************************
+ */
+def sparkProjects = ['dbnd-client', 'dbnd-agent'].toSet()
+
+configure(subprojects.findAll { sparkProjects.contains(it.name) }) {
+    dependencies {
+        // spark & scala
+        compileOnly('org.apache.spark:spark-sql_2.11:2.4.6') {
+            exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        }
+        testImplementation('org.apache.spark:spark-sql_2.11:2.4.6') {
+            exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        }
+    }
+}
+
+/**
+ * ****************************************************************************
+ * Cross-project dependencies.
+ * ****************************************************************************
+ */
+
+project(':dbnd-client') {
+    dependencies {
+        implementation project(':dbnd-api')
+    }
+}
+
+project(':dbnd-api-deequ') {
+    dependencies {
+        implementation project(':dbnd-client')
+    }
+}
+
+project(':dbnd-agent') {
+    dependencies {
+        implementation project(':dbnd-api')
+        implementation project(':dbnd-api-deequ')
+        implementation project(':dbnd-client')
+    }
+}
+
+project(':dbnd-mlflow') {
+    dependencies {
+        implementation project(':dbnd-client')
+    }
+}
+
+project(':dbnd-azkaban') {
+    dependencies {
+        implementation project(':dbnd-client')
+    }
+}
+project(':dbnd-azkaban-event-reporter') {
+    dependencies {
+        implementation project(':dbnd-client')
+        implementation project(':dbnd-azkaban')
+    }
+}
+
+project(':dbnd-azkaban-agent') {
+    dependencies {
+        implementation project(':dbnd-client')
+        implementation project(':dbnd-azkaban')
+    }
+}
