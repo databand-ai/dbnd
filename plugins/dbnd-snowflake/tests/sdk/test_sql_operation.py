@@ -36,6 +36,7 @@ def generate_sql_operation_mock(op_type, table, is_file, is_stage):
         query_id=1,
         success=True,
         op_type=op_type,
+        error=None,
     )
 
 

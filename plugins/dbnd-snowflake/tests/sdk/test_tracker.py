@@ -18,6 +18,7 @@ NUMBER_OF_ROWS_INSERTED = 10
 
 RESULT_SET = {"data": {"stats": {"numRowsInserted": NUMBER_OF_ROWS_INSERTED}}}
 
+ERROR_MESSAGE = "Exception Mock"
 
 COPY_INTO_TABLE_FROM_S3_FILE_QUERY = """copy into TEST from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
 
@@ -59,6 +60,8 @@ COPY_INTO_TABLE_FROM_STAGE_FILE_APOSTROPHE_QUERY = """copy into TEST from '@STAG
 
 COPY_INTO_TABLE_FROM_STAGE_FILE_QUOTES_QUERY = """copy into TEST from "@STAGE";"""
 
+COPY_INTO_TABLE_FAIL_QUERY = """copy into FAIL from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
+
 
 def _authenticate(self_auth, *args, **kwargs):
     self_auth._rest._connection._session_id = random.randint(0, 2000000000)
@@ -77,6 +80,8 @@ def mock_snowflake():
         # type: (SnowflakeCursor, str, ..., ...) -> SnowflakeCursor
         execute_mock(command, *args, **kwargs)
         self_cursor._sfqid = SFQID
+        if "FAIL" in command:
+            raise Exception(ERROR_MESSAGE)
         # call execute _helper to mock number of rows inserted
         self_cursor._execute_helper()
         if "desc" in command:
@@ -135,6 +140,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -154,6 +160,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -178,6 +185,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -206,6 +214,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -230,6 +239,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -249,6 +259,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -273,6 +284,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -301,6 +313,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -325,6 +338,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -344,6 +358,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -368,6 +383,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -396,6 +412,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -420,6 +437,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -439,6 +457,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -463,6 +482,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -482,6 +502,7 @@ def _snowflake_connect():
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -515,6 +536,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -534,6 +556,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -558,6 +581,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -586,6 +610,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -610,6 +635,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -629,6 +655,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -653,6 +680,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -672,6 +700,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -696,6 +725,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -724,6 +754,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -748,6 +779,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -776,6 +808,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -800,6 +833,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -819,6 +853,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -843,6 +878,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.read,
+                    error=None,
                 ),
                 SqlOperation(
                     extracted_schema={
@@ -862,6 +898,7 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
+                    error=None,
                 ),
             ],
         ),
@@ -871,15 +908,69 @@ def test_copy_into_stage(mock_snowflake, query, expected):
     return run_tracker_custom_query(mock_snowflake, query, expected)
 
 
+def test_copy_into_failure(mock_snowflake):
+    expected = [
+        SqlOperation(
+            extracted_schema={
+                "s3://test/test.json.*": [
+                    Column(
+                        dataset_name="s3://test/test.json",
+                        alias="s3://test/test.json.*",
+                        name="*",
+                        is_file=True,
+                        is_stage=False,
+                    )
+                ]
+            },
+            dtypes=None,
+            records_count=0,
+            query=COPY_INTO_TABLE_FAIL_QUERY,
+            query_id=SFQID,
+            success=False,
+            op_type=DbndTargetOperationType.read,
+            error=ERROR_MESSAGE,
+        ),
+        SqlOperation(
+            extracted_schema={
+                "FAIL.*": [
+                    Column(
+                        dataset_name="FAIL",
+                        alias="FAIL.*",
+                        name="*",
+                        is_file=False,
+                        is_stage=False,
+                    )
+                ]
+            },
+            dtypes=None,
+            records_count=0,
+            query=COPY_INTO_TABLE_FAIL_QUERY,
+            query_id=SFQID,
+            success=False,
+            op_type=DbndTargetOperationType.write,
+            error=ERROR_MESSAGE,
+        ),
+    ]
+    with pytest.raises(Exception) as e:
+        run_tracker_custom_query(mock_snowflake, COPY_INTO_TABLE_FAIL_QUERY, expected)
+    assert str(e.value) == ERROR_MESSAGE
+
+
 def run_tracker_custom_query(mock_snowflake, query, expected):
     snowflake_connection = _snowflake_connect()
     snowflake_tracker = SnowflakeTracker()
+    expected_result_set = RESULT_SET
     with snowflake_tracker:
         with snowflake_connection as con:
             c = con.cursor()
-            c.execute(query)
-            assert snowflake_tracker._connection == snowflake_connection
-            assert snowflake_tracker.operations == expected
-            assert snowflake_tracker.result_set == RESULT_SET
+            try:
+                c.execute(query)
+            except Exception as e:
+                expected_result_set = None
+                raise e
+            finally:
+                assert snowflake_tracker._connection == snowflake_connection
+                assert snowflake_tracker.operations == expected
+                assert snowflake_tracker.result_set == expected_result_set
         # flush operations
     assert snowflake_tracker.operations == []

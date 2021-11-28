@@ -65,7 +65,8 @@ class SnowflakeTracker(object):
     def __init__(self):
         self.operations = []
         self._connection = None
-        self.result_set = None
+        # result set of executed snowflake statement
+        self.result_set: dict = None
 
     def __enter__(self):
         if not hasattr(SnowflakeCursor.execute, "__dbnd_patched__"):
@@ -156,22 +157,24 @@ class SnowflakeTracker(object):
                 data=op,
                 with_schema=True,
                 send_metrics=True,
+                error=op.error,
             )
 
     @contextlib.contextmanager
     def track_execute(self, cursor, command, *args, **kwargs):
         self._connection = cursor.connection
         success = True
+        error = None
         try:
             yield
         except Exception as e:
-            # TODO: report exception to databand
             success = False
+            error = str(e)
             raise
         finally:
             try:
                 operations = build_snowflake_operations(
-                    cursor, command, success, self.result_set
+                    cursor, command, success, self.result_set, error
                 )
                 if operations:
                     # Only extend self.operations if read or write operation occurred in command
@@ -221,7 +224,7 @@ def extract_inserted_rows(result_set: Dict) -> int:
 
 
 def build_snowflake_operations(
-    cursor: SnowflakeCursor, command: str, success: bool, result_set: Dict
+    cursor: SnowflakeCursor, command: str, success: bool, result_set: Dict, error: str
 ) -> List[SqlOperation]:
     operations = []
     sql_query_extractor = SqlQueryExtractor()
@@ -241,6 +244,7 @@ def build_snowflake_operations(
         query=command,
         query_id=cursor.sfqid,
         success=success,
+        error=error,
     )
 
     if READ in extracted and WRITE not in extracted:
