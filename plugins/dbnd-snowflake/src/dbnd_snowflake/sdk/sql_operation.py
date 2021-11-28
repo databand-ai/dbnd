@@ -45,6 +45,7 @@ class SqlOperation:
     query_id: str = attr.ib()
     success: bool = attr.ib()
     op_type: DbndDatasetOperationType = attr.ib()
+    error: str = attr.ib()
 
     @property
     def columns(self) -> List[str]:
