@@ -167,6 +167,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             operation_status=operation_status,
             operation_error=operation_error,
             value_preview=data_meta.value_preview,
+            columns_stats=data_meta.columns_stats,
             data_dimensions=data_meta.data_dimensions,
             data_schema=data_schema,
         )

@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 def is_describe_stat(item):
     name, _ = item
-    return name in ["min", "25%", "50%", "75%", "max"]
+    return name in ["min_value", "quartile_1", "quartile_2", "quartile_3", "max_value"]
 
 
 def two_columns_table(stats, split_by):
@@ -177,17 +177,19 @@ class ConsoleStore(TrackingStore):
         """
         Iterate over histograms and for each its build a all the lines to print to the console
         """
-        for hist_name, hist_values in value_meta.histograms.items():
+        for column_name, hist_values in value_meta.histograms.items():
             console_graph = self.ascii_graph.graph(
-                label="Histogram logged: {}.{}".format(key, hist_name),
+                label=f"Histogram logged: {key}.{column_name}",
                 data=list(zip(*reversed(hist_values))),
             )
 
             # not will exists, but when it does - we need to add the stats as a table to the console
-            if value_meta.descriptive_stats:
-                stats = value_meta.descriptive_stats.get(hist_name)
-                if stats:
-                    stats_table = two_columns_table(stats, is_describe_stat)
+            if value_meta.columns_stats:
+                column_stats = value_meta.get_column_stats_by_col_name(column_name)
+                if column_stats:
+                    stats_table = two_columns_table(
+                        column_stats.as_dict(), is_describe_stat
+                    )
                     # channing the printable graph and status table
                     console_graph = chain(console_graph, stats_table.splitlines())
 

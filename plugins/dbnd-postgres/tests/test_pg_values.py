@@ -1,14 +1,15 @@
 import mock
 
-from dbnd_postgres.postgres_contreoller import PostgresController
+from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs
+from dbnd_postgres.postgres_controller import PostgresController
 from dbnd_postgres.postgres_values import PostgresTable, PostgresTableValueType
 from targets.value_meta import ValueMetaConf
 
 
 def postgres_controller_mock():
     res = mock.MagicMock(PostgresController)
-    res.get_column_types.return_value = {"name": "varchar"}
-    res.get_histograms_and_stats.return_value = {}, {}
+    res.columns_types.return_value = {"name": "varchar"}
+    res.get_histograms_and_stats.return_value = [], {}
     res.to_preview.return_value = "test preview"
     res.return_value = res  # Mock constructor
     res.__enter__.return_value = res  # mock context manager
@@ -31,7 +32,7 @@ class TestPostgresTableValueType:
             PostgresTableValueType().get_value_meta(postgres_table, meta_conf=meta_conf)
 
             # Assert
-            assert postgres.get_column_types.called
+            assert postgres.columns_types.called
             assert postgres.get_histograms_and_stats.called
             assert postgres.to_preview.called
 
@@ -61,14 +62,15 @@ class TestPostgresController:
                 information_schema_columns_data,
             ]
 
-            expected_stats = {
-                "customer": {
-                    "count": 10,
-                    "distinct": 8,
-                    "type": "varchar",
-                    "null-count": 5,
-                }
-            }
+            expected_columns_stats = [
+                ColumnStatsArgs(
+                    column_name="customer",
+                    column_type="varchar",
+                    records_count=10,
+                    distinct_count=8,
+                    null_count=5,
+                )
+            ]
             expected_histograms = {
                 "customer": ([2, 2, 1], ["customerA", "customerB", "_others"])
             }
@@ -76,8 +78,8 @@ class TestPostgresController:
             # Act
             postgres = PostgresController("user@database", "data_table")
             meta_conf = ValueMetaConf.enabled()
-            stats, histograms = postgres.get_histograms_and_stats(meta_conf)
+            columns_stats, histograms = postgres.get_histograms_and_stats(meta_conf)
 
             # Assert
-            assert stats == expected_stats
+            assert columns_stats == expected_columns_stats
             assert histograms == expected_histograms

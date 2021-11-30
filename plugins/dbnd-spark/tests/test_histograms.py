@@ -17,6 +17,7 @@ from dbnd_test_scenarios.test_common.histogram_tests import (
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.skip("Spark Historgrams are not supported at the moment")
 @pytest.mark.spark
 class TestSparkHistograms(BaseHistogramTests):
     def data_to_value(self, data):
@@ -36,7 +37,9 @@ class TestSparkHistograms(BaseHistogramTests):
         value_meta = get_value_meta_from_value("complex", df, meta_conf)
 
         assert list(value_meta.histograms.keys()) == ["test_column_0"]
-        assert list(value_meta.descriptive_stats.keys()) == ["test_column_0"]
+        assert [col_stats.column_name for col_stats in value_meta.columns_stats] == [
+            "test_column_0"
+        ]
         self.validate_numeric_histogram_and_stats(value_meta, "test_column_0")
 
     def test_null_int_column(self, spark_session, meta_conf):
@@ -46,8 +49,8 @@ class TestSparkHistograms(BaseHistogramTests):
         value_meta = SparkDataFrameValueType().get_value_meta(null_df, meta_conf)
 
         assert value_meta.histograms == {}
-        stats = value_meta.descriptive_stats["null_column"]
-        assert stats["type"] == "integer"
+        col_stats = value_meta.get_column_stats_by_col_name("null_column")
+        assert col_stats.column_type == "integer"
 
     def test_null_str_column(self, spark_session, meta_conf):
         nulls = [(None,) for _ in range(20)]
@@ -56,5 +59,5 @@ class TestSparkHistograms(BaseHistogramTests):
         value_meta = SparkDataFrameValueType().get_value_meta(null_df, meta_conf)
 
         assert value_meta.histograms["null_column"] == ([20], [None])
-        stats = value_meta.descriptive_stats["null_column"]
-        assert stats["type"] == "string"
+        col_stats = value_meta.get_column_stats_by_col_name("null_column")
+        assert col_stats.column_type == "string"

@@ -34,9 +34,9 @@ class TestPandasHistograms(BaseHistogramTests):
         assert histogram[0] == [20]
         assert histogram[1] == [None]
 
-        stats = value_meta.descriptive_stats["test_column_0"]
-        assert stats["count"] == 20
-        assert stats["non-null"] == 0
-        assert stats["null-count"] == 20
-        assert stats["distinct"] == 1
-        assert stats["type"] == "object"
+        col_stats = value_meta.get_column_stats_by_col_name("test_column_0")
+        assert col_stats.records_count == 20
+        assert col_stats.non_null_count == 0
+        assert col_stats.null_count == 20
+        assert col_stats.distinct_count == 1
+        assert col_stats.column_type == "object"

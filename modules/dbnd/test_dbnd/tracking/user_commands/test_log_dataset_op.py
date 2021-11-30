@@ -2,6 +2,7 @@ import itertools
 import json
 import os
 
+import pandas as pd
 import pytest
 
 from dbnd import task
@@ -25,7 +26,7 @@ class TestLogDataSetOpMetrics(object):
         self, mock_channel_tracker, preview, schema,
     ):
         with open(THIS_DIR + "/nested_data.json", encoding="utf-8-sig") as f:
-            nested_json = json.load(f)
+            nested_json = pd.json_normalize(json.load(f))
 
         @task()
         def task_log_dataset_op_nested_json_data():
@@ -35,7 +36,7 @@ class TestLogDataSetOpMetrics(object):
                 data=nested_json,
                 with_schema=schema,
                 with_preview=preview,
-                with_histograms=False,
+                with_histograms=True,
             )
 
         task_log_dataset_op_nested_json_data()
