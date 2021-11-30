@@ -14,7 +14,7 @@ from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.utils import seven
 from targets import Target
-from targets.value_meta import ValueMeta, ValueMetaConf
+from targets.value_meta import ValueMetaConf
 
 
 if typing.TYPE_CHECKING:

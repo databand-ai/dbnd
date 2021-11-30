@@ -74,14 +74,14 @@ class DataFrameValueType(DataValueType):
 
         if meta_conf.log_histograms:
             start_time = time.time()
-            stats, histograms = PandasHistograms(
+            columns_stats, histograms = PandasHistograms(
                 value, meta_conf
             ).get_histograms_and_stats()
             hist_sys_metrics = {
                 "histograms_and_stats_calc_time": time.time() - start_time
             }
         else:
-            stats, histograms = {}, {}
+            columns_stats, histograms = [], {}
             hist_sys_metrics = None
 
         return ValueMeta(
@@ -89,7 +89,7 @@ class DataFrameValueType(DataValueType):
             data_dimensions=value.shape,
             data_schema=data_schema,
             data_hash=data_hash,
-            descriptive_stats=stats,
+            columns_stats=columns_stats,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histograms,
         )

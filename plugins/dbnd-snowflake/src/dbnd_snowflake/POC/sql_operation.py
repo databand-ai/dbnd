@@ -169,8 +169,8 @@ class SqlOperationValueMeta(DataValueType):
             data_schema["shape"] = data_dimensions
             # todo: size?
 
-        # currently stats and histogram are not supported
-        stats, histograms = {}, {}
+        # currently columns_stats and histogram are not supported
+        columns_stats, histograms = [], {}
         hist_sys_metrics = None
 
         return ValueMeta(
@@ -178,7 +178,7 @@ class SqlOperationValueMeta(DataValueType):
             data_dimensions=data_dimensions,
             data_schema=data_schema,
             data_hash=str(hash(self.to_signature(value))),
-            descriptive_stats=stats,
+            columns_stats=columns_stats,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histograms,
         )

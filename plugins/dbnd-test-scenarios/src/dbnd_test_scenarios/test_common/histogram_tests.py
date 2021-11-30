@@ -4,7 +4,7 @@ import logging
 
 from pytest import fixture
 
-from targets.value_meta import ValueMetaConf
+from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 def get_value_meta_from_value(name, value, meta_conf):
@@ -46,8 +46,10 @@ class BaseHistogramTests(object):
         """
         raise NotImplementedError()
 
-    def validate_numeric_histogram_and_stats(self, value_meta, column_name):
-        """ assuming numbers fixture is used """
+    def validate_numeric_histogram_and_stats(
+        self, value_meta: ValueMeta, column_name: str
+    ) -> None:
+        """assuming numbers fixture is used"""
         assert column_name in value_meta.histograms
         histogram = value_meta.histograms[column_name]
         assert len(histogram) == 2
@@ -55,26 +57,12 @@ class BaseHistogramTests(object):
         assert len(histogram[1]) == 21
         assert sum(histogram[0]) == 8
 
-        stats = value_meta.descriptive_stats[column_name]
-        assert set(stats.keys()) == {
-            "count",
-            "mean",
-            "min",
-            "25%",
-            "50%",
-            "75%",
-            "max",
-            "std",
-            "type",
-            "distinct",
-            "null-count",
-            "non-null",
-        }
-        assert stats["count"] == 10
-        assert stats["non-null"] == 8
-        assert stats["distinct"] == 4
-        assert stats["min"] == 1
-        assert stats["max"] == 5
+        col_stats = value_meta.get_column_stats_by_col_name(column_name)
+        assert col_stats.records_count == 10
+        assert col_stats.non_null_count == 8
+        assert col_stats.distinct_count == 4
+        assert col_stats.min_value == 1
+        assert col_stats.max_value == 5
 
     def test_int_column(self, meta_conf, numbers_value):
         value_meta = get_value_meta_from_value("numbers", numbers_value, meta_conf)
@@ -98,9 +86,9 @@ class BaseHistogramTests(object):
         assert histogram[0] == [30, 20, 10]
         assert histogram[1] == [True, False, None]
 
-        stats = value_meta.descriptive_stats["test_column_0"]
-        assert stats["count"] == 60
-        assert stats["type"] in ["bool", "boolean"]
+        col_stats = value_meta.get_column_stats_by_col_name("test_column_0")
+        assert col_stats.records_count == 60
+        assert col_stats.column_type in ["bool", "boolean"]
 
     @fixture
     def strings_value(self):
@@ -120,12 +108,12 @@ class BaseHistogramTests(object):
         assert histogram[0] == [30, 20, 15, 5]
         assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!", None]
 
-        stats = value_meta.descriptive_stats["test_column_0"]
-        assert stats["count"] == 70
-        assert stats["non-null"] == 65
-        assert stats["null-count"] == 5
-        assert stats["distinct"] == 4
-        assert stats["type"] in ["str", "string"]
+        col_stats = value_meta.get_column_stats_by_col_name("test_column_0")
+        assert col_stats.records_count == 70
+        assert col_stats.non_null_count == 65
+        assert col_stats.null_count == 5
+        assert col_stats.distinct_count == 4
+        assert col_stats.column_type in ["str", "string"]
 
     def test_histogram_others(self, meta_conf):
         strings = []
@@ -146,12 +134,12 @@ class BaseHistogramTests(object):
         assert histogram[0][-2] == 52 and histogram[1][-2] == "str-52"
         assert histogram[0][-1] == sum(range(1, 52)) and histogram[1][-1] == "_others"
 
-        stats = value_meta.descriptive_stats["test_column_0"]
-        assert stats["count"] == 5050 == sum(histogram[0])
-        assert stats["non-null"] == 5050
-        assert stats["null-count"] == 0
-        assert stats["distinct"] == 100
-        assert stats["type"] in ["str", "string"]
+        col_stats = value_meta.get_column_stats_by_col_name("test_column_0")
+        assert col_stats.records_count == 5050 == sum(histogram[0])
+        assert col_stats.non_null_count == 5050
+        assert col_stats.null_count == 0
+        assert col_stats.distinct_count == 100
+        assert col_stats.column_type in ["str", "string"]
 
     def test_multiple_columns(self, meta_conf, numbers):
         values = [(i, float(i), str(i), str(i)) if i else [None] * 4 for i in numbers]

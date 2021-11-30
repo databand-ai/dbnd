@@ -7,9 +7,7 @@ from targets.values.pandas_values import DataFrameValueType
 
 class TestSparkDataFrameValueType(object):
     @pytest.mark.spark
-    def test_spark_df_value_meta(
-        self, spark_data_frame, spark_data_frame_histograms, spark_data_frame_stats
-    ):
+    def test_spark_df_value_meta(self, spark_data_frame):
         expected_data_schema = {
             "type": SparkDataFrameValueType.type_str,
             "columns": list(spark_data_frame.schema.names),
@@ -33,8 +31,8 @@ class TestSparkDataFrameValueType(object):
             data_dimensions=(spark_data_frame.count(), len(spark_data_frame.columns)),
             data_hash=SparkDataFrameValueType().to_signature(spark_data_frame),
             data_schema=expected_data_schema,
-            descriptive_stats=spark_data_frame_stats,
-            histograms=spark_data_frame_histograms,
+            columns_stats=[],
+            histograms={},
         )
 
         df_value_meta = SparkDataFrameValueType().get_value_meta(
@@ -46,14 +44,9 @@ class TestSparkDataFrameValueType(object):
         assert df_value_meta.data_dimensions == expected_value_meta.data_dimensions
         assert df_value_meta.data_schema == expected_value_meta.data_schema
         # it changes all the time, it has different formats, and it's already tested in histogram tests
-        # assert df_value_meta.descriptive_stats == expected_value_meta.descriptive_stats
 
         # histogram_system_metrics values are too dynamic, so checking only keys, but not values
-        assert (
-            set(df_value_meta.histogram_system_metrics.keys())
-            == expected_hist_sys_metrics
-        )
-        df_value_meta.histogram_system_metrics = None
+        assert df_value_meta.histogram_system_metrics == None
 
         # assert df_value_meta.histograms == expected_value_meta.histograms
         # assert attr.asdict(df_value_meta) == attr.asdict(expected_value_meta)

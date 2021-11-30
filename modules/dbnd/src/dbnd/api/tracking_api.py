@@ -15,6 +15,7 @@ from dbnd._core.constants import (
 )
 from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
+from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs, ColumnStatsSchema
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.tracking.schemas.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._core.utils.dotdict import _as_dotted_dict
@@ -31,7 +32,7 @@ from dbnd.api.serialization.task_run_env import TaskRunEnvInfoSchema
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, List, Dict, Tuple, Sequence
+    from typing import Optional, List, Sequence
     from dbnd._core.tracking.schemas.tracking_info_objects import (
         ErrorInfo,
         TaskRunEnvInfo,
@@ -333,6 +334,7 @@ class LogDatasetArgs(object):
     data_dimensions = attr.ib()  # type: Sequence[int]
     data_schema = attr.ib()  # type: str
 
+    columns_stats = attr.ib(default=None)  # type: Optional[List[ColumnStatsArgs]]
     operation_error = attr.ib(
         default=None
     )  # type: str # default=None :-> for compatibility with SDK < 51.0.0
@@ -352,29 +354,6 @@ class LogDatasetArgs(object):
     @property
     def operation_status_value(self):
         return "SUCCESS" if self.operation_status.value == "OK" else "FAILED"
-
-
-@attr.s
-class LogDataframeHistogramsArgs(object):
-    run_uid = attr.ib()  # type: UUID
-    task_run_uid = attr.ib()  # type: UUID
-    task_run_name = attr.ib()  # type: str
-    task_run_attempt_uid = attr.ib()  # type: UUID
-    target_path = attr.ib()  # type: str
-    operation_type = attr.ib()  # type: DbndTargetOperationType
-    operation_status = attr.ib()  # type: DbndTargetOperationStatus
-
-    value_preview = attr.ib()  # type: str
-    data_dimensions = attr.ib()  # type: Sequence[int]
-    data_schema = attr.ib()  # type: str
-    data_hash = attr.ib()  # type: str
-
-    descriptive_stats = attr.ib()  # type: Dict[str, Dict]
-    histograms = attr.ib()  # type: Dict[str, Tuple]
-    timestamp = attr.ib()  # type: datetime.datetime
-
-    param_name = attr.ib(default=None)  # type: Optional[str]
-    task_def_uid = attr.ib(default=None)  # type: Optional[UUID]
 
 
 class LogTargetSchema(ApiStrictSchema):
@@ -416,6 +395,7 @@ class LogDatasetSchema(ApiStrictSchema):
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
     data_schema = fields.String(allow_none=True)
+    columns_stats = fields.Nested(ColumnStatsSchema, many=True, allow_none=True)
 
     @post_load
     def make_object(self, data):

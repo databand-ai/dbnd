@@ -5,7 +5,6 @@ import typing
 
 import pyspark.sql as spark
 
-from dbnd_spark.spark_targets.spark_histograms import SparkHistograms
 from targets.value_meta import ValueMeta
 from targets.values.builtins_values import DataValueType
 
@@ -66,20 +65,20 @@ class SparkDataFrameValueType(DataValueType):
         else:
             data_dimensions = None
 
+        df_columns_stats, histogram_dict = [], {}
+        hist_sys_metrics = None
+
         if meta_conf.log_histograms or meta_conf.log_stats:
-            spark_histograms = SparkHistograms(value, meta_conf)
-            df_stats, histogram_dict = spark_histograms.get_histograms_and_stats()
-            hist_sys_metrics = spark_histograms.system_metrics
-        else:
-            df_stats, histogram_dict = {}, {}
-            hist_sys_metrics = None
+            logger.warning(
+                "log_histograms and log_stats are not supported for spark dataframe"
+            )
 
         return ValueMeta(
             value_preview=data_preview,
             data_dimensions=data_dimensions,
             data_schema=data_schema,
             data_hash=self.to_signature(value),
-            descriptive_stats=df_stats,
+            columns_stats=df_columns_stats,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histogram_dict,
         )

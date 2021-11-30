@@ -3,7 +3,7 @@ import typing
 
 import attr
 
-from dbnd_postgres.postgres_contreoller import PostgresController
+from dbnd_postgres.postgres_controller import PostgresController
 from targets.value_meta import ValueMeta
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType
@@ -38,19 +38,19 @@ class PostgresTableValueType(DataValueType):
         with PostgresController(value.connection_string, value.table_name) as postgres:
             if meta_conf.log_histograms or meta_conf.log_stats:
                 start_time = time.time()
-                stats, histograms = postgres.get_histograms_and_stats(meta_conf)
+                columns_stats, histograms = postgres.get_histograms_and_stats(meta_conf)
                 hist_sys_metrics = {
                     "histograms_and_stats_calc_time": time.time() - start_time
                 }
             else:
-                stats, histograms = {}, {}
+                columns_stats, histograms = [], {}
                 hist_sys_metrics = None
             if meta_conf.log_preview:
                 data_preview = postgres.to_preview()
             if meta_conf.log_schema:
                 data_schema = {
                     "type": self.type_str,
-                    "column_types": postgres.get_column_types(),
+                    "column_types": postgres.columns_types,
                 }
 
         return ValueMeta(
@@ -58,7 +58,7 @@ class PostgresTableValueType(DataValueType):
             data_dimensions=None,
             data_schema=data_schema,
             data_hash=self.to_signature(value),
-            descriptive_stats=stats,
+            columns_stats=columns_stats,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histograms,
         )

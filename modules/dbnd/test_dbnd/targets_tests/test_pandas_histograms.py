@@ -1,7 +1,9 @@
+from collections import ChainMap
 from datetime import datetime
 
 import pandas as pd
 
+from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs
 from targets.value_meta import ValueMetaConf
 from targets.values.pandas_histograms import PandasHistograms
 
@@ -60,71 +62,71 @@ diverse_df = pd.DataFrame({
 def test_pandas_v0_histograms():
     # Tests pandas histograms calculation is stable across Pandas v1 & v0
     meta_conf = ValueMetaConf.enabled()
-    stats, histograms = PandasHistograms(
+    columns_stats, histograms = PandasHistograms(
         diverse_df, meta_conf
     ).get_histograms_and_stats()
 
     # fmt: off
-    assert stats == {
-        "bool_column": {
-            "count": 100,
-            "distinct": 3,
-            "freq": 33,
-            "non-null": 65,
-            "null-count": 35,
-            "top": False,
-            "type": "bool",
-            "unique": 2,
-        },
-        "float_column": {
-            "25%": 2.0,
-            "50%": 5.0,
-            "75%": 7.0,
-            "count": 100,
-            "distinct": 11,
-            "max": 9.0,
-            "mean": 4.7127659574,
-            "min": 0.0,
-            "non-null": 94,
-            "null-count": 6,
-            "std": 2.8572576537,
-            "type": "float64",
-        },
-        "int_column": {
-            "25%": 2.0,
-            "50%": 5.0,
-            "75%": 7.0,
-            "count": 100,
-            "distinct": 11,
-            "max": 9.0,
-            "mean": 4.8804347826,
-            "min": 0.0,
-            "non-null": 92,
-            "null-count": 8,
-            "std": 2.7449950111,
-            "type": "float64",
-        },
-        "str_column": {
-            "count": 100,
-            "distinct": 5,
-            "freq": 22,
-            "non-null": 79,
-            "null-count": 21,
-            "top": "foo",
-            "type": "str",
-            "unique": 4,
-        },
-        "multi_data_types": {
-            "count": 100,
-            "distinct": 8,
-            "freq": 11,
-            "non-null": 90,
-            "null-count": 10,
-            "top": "foo",
-            "type": "str",
-            "unique": 18,
-        },
-    }
+    columns_stats == [
+        ColumnStatsArgs(
+            column_name="bool_column",
+            column_type="bool",
+            records_count=100,
+            distinct_count=3,
+            null_count=35,
+            top_value=False,
+            top_freq_count=33,
+            unique_count=2,
+        ),
+        ColumnStatsArgs(
+            column_name="float_column",
+            column_type="float64",
+            records_count=100,
+            distinct_count=11,
+            null_count=6,
+            quartile_1=2.0,
+            quartile_2=5.0,
+            quartile_3=7.0,
+            max_value=9.0,
+            mean_value=4.7127659574,
+            min_value=0.0,
+            std_value=2.8572576537,
+        ),
+        ColumnStatsArgs(
+            column_name="int_column",
+            column_type="float64",
+            records_count=100,
+            distinct_count=11,
+            null_count=8,
+            quartile_1=2.0,
+            quartile_2=5.0,
+            quartile_3=7.0,
+            max_value=9.0,
+            mean_value=4.8804347826,
+            min_value=0.0,
+            std_value=2.7449950111,
+        ),
+        ColumnStatsArgs(
+            column_name="str_column",
+            column_type="str",
+            records_count=100,
+            distinct_count=5,
+            null_count=21,
+            top_value="foo",
+            top_freq_count=22,
+            unique_count=4,
+        ),
+        ColumnStatsArgs(
+            column_name="multi_data_types",
+            column_type="str",
+            records_count=100,
+            distinct_count=8,
+            null_count=10,
+            top_value="foo",
+            top_freq_count=11,
+            unique_count=18,
+        ),
+    ]
     # "str_column" calculation is unstable hence these unpacked assertions
     assert set(histograms.keys()) == {"bool_column", "float_column", "int_column", "str_column", "multi_data_types"}
     assert histograms["bool_column"] == [[35, 33, 32], [None, False, True]]
@@ -154,13 +156,17 @@ def test_pandas_histograms_work_with_NaNs_and_nonseq_index(pandas_data_frame):
     meta_conf = ValueMetaConf.enabled()
 
     # Act
-    stats, histograms = PandasHistograms(
+    columns_stats, histograms = PandasHistograms(
         pandas_data_frame, meta_conf
     ).get_histograms_and_stats()
 
     # Assert
-    assert sorted(stats.keys()) == sorted(["Births", "foo"])  # noqa
     assert sorted(histograms.keys()) == sorted(["Births", "foo"])  # noqa
+    # Test `dump_to_stats_dict` is working as expected - legacy stats dict used in ValueMeta.build_metrics_for_key
+    stats = dict(
+        ChainMap(*[col_stats.dump_to_stats_dict() for col_stats in columns_stats])
+    )
+    assert sorted(list(stats.keys())) == sorted(["Births", "foo"])  # noqa
     assert stats == {
         "Births": {
             "25%": 155.0,

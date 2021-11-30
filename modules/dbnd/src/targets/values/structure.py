@@ -284,7 +284,7 @@ class ListValueType(_StructureValueType, Iterable):
                 logger.warning("Could not hash list %s! Exception: %s", value, e)
 
         # calculating stats, metrics and histograms are out of scope at the moment
-        stats, histograms = {}, {}
+        stats, histograms = [], {}
         hist_sys_metrics = None
 
         return ValueMeta(
@@ -292,7 +292,7 @@ class ListValueType(_StructureValueType, Iterable):
             data_dimensions=data_dimensions,
             data_schema=data_schema if meta_conf.log_schema else None,
             data_hash=data_hash,
-            descriptive_stats=stats,
+            columns_stats=stats,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histograms,
         )
@@ -300,9 +300,9 @@ class ListValueType(_StructureValueType, Iterable):
     def get_list_metrics(self, value, meta_conf):
         # type: (list, ValueMetaConf)-> dict
         """
-           caculates list schema, in case of dict objects aggregate total columns, types and dimension of all objects in list
+        caculates list schema, in case of dict objects aggregate total columns, types and dimension of all objects in list
 
-           """
+        """
         data_schema = {}
         columns = set()
         dtypes = {}

@@ -1,16 +1,18 @@
-import typing
+from collections import ChainMap
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import attr
 import six
 
 from dbnd._core.constants import MetricSource
 from dbnd._core.tracking.log_data_request import LogDataRequest
+from dbnd._core.tracking.schemas.column_stats import (
+    ColumnStatsArgs,
+    get_column_stats_by_col_name,
+)
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 
-
-if typing.TYPE_CHECKING:
-    from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 # keep it below VALUE_PREVIEW_MAX_LEN at web
 _DEFAULT_VALUE_PREVIEW_MAX_LEN = 10000
@@ -22,9 +24,7 @@ class ValueMeta(object):
     data_dimensions = attr.ib(default=None)  # type: Optional[Sequence[int]]
     data_schema = attr.ib(default=None)  # type: Optional[Dict[str,Any]]
     data_hash = attr.ib(default=None)  # type: Optional[str]
-    descriptive_stats = attr.ib(
-        default=None
-    )  # type: Optional[Dict[str, Dict[str, Union[int, float]]]]
+    columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
     histograms = attr.ib(default=None)  # type: Optional[Dict[str, Tuple]]
     histogram_system_metrics = attr.ib(default=None)  # type: Optional[Dict]
 
@@ -37,15 +37,15 @@ class ValueMeta(object):
         if self.data_dimensions:
             dataframe_metric_value["data_dimensions"] = self.data_dimensions
             for dim, size in enumerate(self.data_dimensions):
-                key_name = "{}.shape{}".format(key, dim)
+                key_name = f"{key}.shape{dim}"
                 self.append_metric(data_metrics, key_name, metric_source, size, ts)
                 name = "rows" if dim == 0 else "columns"
-                key_name = "{}.{}".format(key, name)
+                key_name = f"{key}.{name}"
                 self.append_metric(data_metrics, key_name, metric_source, size, ts)
 
         if meta_conf and meta_conf.log_schema:
             dataframe_metric_value["schema"] = self.data_schema
-            key_name = "{}.schema".format(key)
+            key_name = f"{key}.schema"
             self.append_metric(
                 data_metrics, key_name, metric_source, None, ts, self.data_schema
             )
@@ -60,7 +60,7 @@ class ValueMeta(object):
 
         metric_source = MetricSource.histograms
         if self.histogram_system_metrics:
-            key_name = "{}.histogram_system_metrics".format(key)
+            key_name = f"{key}.histogram_system_metrics"
             self.append_metric(
                 hist_metrics,
                 key_name,
@@ -71,21 +71,36 @@ class ValueMeta(object):
             )
 
         if self.histograms:
-            key_name = "{}.histograms".format(key)
+            key_name = f"{key}.histograms"
             self.append_metric(
                 hist_metrics, key_name, metric_source, None, ts, self.histograms
             )
 
-        if self.descriptive_stats:
-            key_name = "{}.stats".format(key)
+        if self.columns_stats:
+            # We dump_column_stats to old stats_dict for backward compatibility support
+            stats_dict = self.get_stats_dict_from_columns_stats()
+            key_name = f"{key}.stats"
             self.append_metric(
-                hist_metrics, key_name, metric_source, None, ts, self.descriptive_stats
+                hist_metrics, key_name, metric_source, None, ts, stats_dict
             )
-            for column, stats in self.descriptive_stats.items():
+            for col_name, stats in stats_dict.items():
                 for stat, value in stats.items():
-                    key_name = "{}.{}.{}".format(key, column, stat)
+                    key_name = f"{key}.{col_name}.{stat}"
                     self.append_metric(hist_metrics, key_name, metric_source, value, ts)
         return {"user": data_metrics, "histograms": hist_metrics}
+
+    def get_column_stats_by_col_name(
+        self, column_name: str
+    ) -> Optional[ColumnStatsArgs]:
+        return get_column_stats_by_col_name(self.columns_stats, column_name)
+
+    def get_stats_dict_from_columns_stats(self) -> Optional[dict]:
+        # Returns legacy stats dict for backward compatability support
+        return dict(
+            ChainMap(
+                *[col_stats.dump_to_stats_dict() for col_stats in self.columns_stats]
+            )
+        )
 
     def append_metric(
         self, data_metrics, key_name, metric_source, value, ts, value_json=None

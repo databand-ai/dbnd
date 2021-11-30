@@ -45,5 +45,7 @@ class TestDataFrameValueType(object):
         assert df_value_meta.data_schema == expected_value_meta.data_schema
 
         # histograms and stats are tested in histogram tests and they change a lot, no need to test also here
-        assert set(df_value_meta.descriptive_stats.keys()) == {"Names", "Births"}
+        assert set(
+            [col_stats.column_name for col_stats in df_value_meta.columns_stats]
+        ) == {"Names", "Births"}
         assert set(df_value_meta.histograms.keys()) == {"Names", "Births"}

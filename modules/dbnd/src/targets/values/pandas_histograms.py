@@ -3,14 +3,20 @@ import json
 import logging
 import typing
 
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
 
 from pandas.core.dtypes.common import is_bool_dtype, is_numeric_dtype, is_string_dtype
 
+from dbnd._core.tracking.schemas.column_stats import (
+    ColumnStatsArgs,
+    get_column_stats_by_col_name,
+)
+
 
 if typing.TYPE_CHECKING:
-    from typing import Tuple, Dict, Optional, List
     from targets.value_meta import ValueMetaConf
     from dbnd._core.tracking.log_data_request import LogDataRequest
 
@@ -27,11 +33,12 @@ class PandasHistograms(object):
         self.df = df
         self.meta_conf = meta_conf
 
-    def get_histograms_and_stats(self):
-        # type: () -> Tuple[Dict[str, Dict], Dict[str, List[List]]]
-        stats, histograms = dict(), dict()
+    def get_histograms_and_stats(
+        self,
+    ) -> Tuple[List[ColumnStatsArgs], Dict[str, List[List]]]:
+        columns_stats, histograms = [], {}
         if self.meta_conf.log_stats:
-            stats = self._calculate_stats(self.df)
+            columns_stats = self._calculate_stats(self.df)
 
         if self.meta_conf.log_histograms:
             hist_column_names = self._get_column_names_from_request(
@@ -42,15 +49,17 @@ class PandasHistograms(object):
                 # return_type="expand" and orient="list" are used to stabilize produced
                 # histograms data structure across pandas v0 & v1
                 histograms = df_histograms.apply(
-                    self._calculate_histograms, result_type="expand", args=(stats,)
+                    self._calculate_histograms,
+                    result_type="expand",
+                    args=(columns_stats,),
                 ).to_dict(orient="list")
             else:
                 histograms = df_histograms.apply(
-                    self._calculate_histograms, args=(stats,)
+                    self._calculate_histograms, args=(columns_stats,)
                 ).to_dict()
                 histograms = {k: list(v) for k, v in histograms.items()}
 
-        return stats, histograms
+        return columns_stats, histograms
 
     def _get_column_names_from_request(self, df, data_request):
         # type: (pd.DataFrame, LogDataRequest) -> List[str]
@@ -83,25 +92,45 @@ class PandasHistograms(object):
             stats = df.explode().describe(include="all").to_json()
         stats = json.loads(stats)
         stats = self._remove_none_values(stats)
-        for col in stats.keys():
-            stats[col]["null-count"] = np.count_nonzero(pd.isnull(df[col]))
-            stats[col]["count"] = df[col].size
-            stats[col]["non-null"] = stats[col]["count"] - stats[col]["null-count"]
+        columns_stats: List[ColumnStatsArgs] = []
+        for column_name in stats.keys():
+            # Calculate ColumnStatsArgs metrics
+            records_count = df[column_name].size
+            null_count = np.count_nonzero(pd.isnull(df[column_name]))
             try:
-                distinct_count = len(df[col].unique())
+                distinct_count = len(df[column_name].unique())
             except Exception:
-                logger.warning("Failed to determine column type for: %s.", col)
+                logger.warning("Failed to determine column type for: %s.", column_name)
                 try:
-                    distinct_count = len(df[col].astype("str").unique())
+                    distinct_count = len(df[column_name].astype("str").unique())
                 except Exception:
                     # Support pandas >= v1.0
-                    distinct_count = len(df[col].astype("string").unique())
-            stats[col]["distinct"] = distinct_count
-            stats[col]["type"] = self._get_column_type(df[col])
-        return stats
+                    distinct_count = len(df[column_name].astype("string").unique())
+
+            column_type = self._get_column_type(df[column_name])
+            column_stats = ColumnStatsArgs(
+                column_name=column_name,
+                column_type=column_type,
+                records_count=records_count,
+                null_count=null_count,
+                distinct_count=distinct_count,
+                top_value=stats[column_name].get("top"),
+                top_freq_count=stats[column_name].get("freq"),
+                unique_count=stats[column_name].get("unique"),
+                mean_value=stats[column_name].get("mean"),
+                min_value=stats[column_name].get("min"),
+                max_value=stats[column_name].get("max"),
+                std_value=stats[column_name].get("std"),
+                quartile_1=stats[column_name].get("25%"),
+                quartile_2=stats[column_name].get("50%"),
+                quartile_3=stats[column_name].get("75%"),
+            )
+            columns_stats.append(column_stats)
+
+        return columns_stats
 
     def _remove_none_values(self, input_dict):
-        """ remove none values from dict recursively """
+        """remove none values from dict recursively"""
         for key, value in list(input_dict.items()):
             if value is None:
                 input_dict.pop(key)
@@ -117,8 +146,8 @@ class PandasHistograms(object):
         first_value = column.at[first_index]
         return type(first_value).__name__
 
-    def _calculate_histograms(self, df_column, stats):
-        # type: (pd.Series, Dict) -> Optional[Tuple[List, List]]
+    def _calculate_histograms(self, df_column, columns_stats):
+        # type: (pd.Series, List[ColumnStatsArgs]) -> Optional[Tuple[List, List]]
         try:
             if len(df_column) == 0:
                 return
@@ -129,13 +158,11 @@ class PandasHistograms(object):
                 column_type = column_type.lower()
             if is_string_dtype(column_type) or is_bool_dtype(column_type):
                 counts = df_column.value_counts()  # type: pd.Series
-                if (
-                    stats
-                    and df_column.name in stats
-                    and "null-count" in stats[df_column.name]
-                ):
-                    null_count = stats[df_column.name]["null-count"]
-                    null_column = pd.Series([null_count], index=[None])
+                column_stats = get_column_stats_by_col_name(
+                    columns_stats, df_column.name
+                )
+                if column_stats and column_stats.null_count:
+                    null_column = pd.Series([column_stats.null_count], index=[None])
                     counts = counts.append(null_column)
                     counts = counts.sort_values(ascending=False)
                 if len(counts) > 50:
@@ -147,7 +174,7 @@ class PandasHistograms(object):
                 df_column = df_column.dropna()
                 counts, values = np.histogram(
                     df_column, bins=20
-                )  # type: np.array, np.array
+                )  # Tuple[np.array, np.array]
             else:
                 return
 
