@@ -43,9 +43,24 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
             runner, server_config, tracking_service, SERVICES_COMPONENTS,
         )
 
+    def _get_tracking_errors(self):
+        from airflow_monitor.validations import (
+            get_tracking_validation_steps,
+            get_all_errors,
+        )
+
+        errors_list = get_all_errors(get_tracking_validation_steps())
+
+        if len(errors_list) == 0:
+            return None
+
+        return ", ".join(errors_list)
+
     def _set_running_monitor_state(self, is_monitored_server_alive: bool):
         if not is_monitored_server_alive or self._plugin_metadata is not None:
             return
+
+        tracking_errors = self._get_tracking_errors()
 
         plugin_metadata = get_data_fetcher(self.server_config).get_plugin_metadata()
         self.tracking_service.update_monitor_state(
@@ -55,6 +70,7 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
                 airflow_version=plugin_metadata.airflow_version,
                 airflow_export_version=plugin_metadata.plugin_version,
                 airflow_instance_uid=plugin_metadata.airflow_instance_uid,
+                monitor_error_message=tracking_errors,
             ),
         )
 

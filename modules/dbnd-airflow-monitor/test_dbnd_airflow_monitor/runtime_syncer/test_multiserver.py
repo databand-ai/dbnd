@@ -65,6 +65,9 @@ def multi_server(
         "airflow_monitor.multiserver.monitor_component_manager.get_data_fetcher",
         return_value=mock_data_fetcher,
     ), patch(
+        "airflow_monitor.multiserver.monitor_component_manager.AirflowMonitorComponentManager._get_tracking_errors",
+        return_value=None,
+    ), patch(
         "airflow_monitor.multiserver.multiserver.get_tracking_service",
         return_value=mock_tracking_service,
     ), patch(
