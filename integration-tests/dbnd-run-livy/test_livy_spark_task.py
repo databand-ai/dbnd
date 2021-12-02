@@ -37,11 +37,17 @@ def add_proxy_as_external_link(spark_ctrl, batch_response):
 
 
 STATE = False
+CALL_COUNT = 0
 
 
 def side_effect(*args, **kwargs):
     global STATE
     STATE = True
+
+
+def side_effect_status_update(*args, **kwargs):
+    global CALL_COUNT
+    CALL_COUNT += 1
 
 
 class SpecialException(Exception):
@@ -50,6 +56,10 @@ class SpecialException(Exception):
 
 def hook_with_raise(*args, **kwargs):
     raise SpecialException()
+
+
+def disable_tracker_api():
+    return {"core": {"tracker_api": "disabled",}}
 
 
 conf_override = {
@@ -71,7 +81,7 @@ def mock_channel_tracker():
 
 class TestEmrSparkTasks(object):
     def test_word_count_spark(self):
-        with dbnd_config({"core": {"tracker_api": "disabled"}}):
+        with dbnd_config(disable_tracker_api()):
             actual = WordCountTask(
                 text=TEXT_FILE,
                 task_version=str(random.random()),
@@ -81,7 +91,7 @@ class TestEmrSparkTasks(object):
             print(target(actual.counters.path, "part-00000").read())
 
     def test_word_count_pyspark(self):
-        with dbnd_config({"core": {"tracker_api": "disabled"}}):
+        with dbnd_config(disable_tracker_api()):
             actual = WordCountPySparkTask(
                 text=TEXT_FILE,
                 task_version=str(random.random()),
@@ -92,7 +102,7 @@ class TestEmrSparkTasks(object):
 
     @pytest.mark.skip("Some issue with cloud pickler")
     def test_word_spark_with_error(self):
-        with dbnd_config({"core": {"tracker_api": "disabled"}}):
+        with dbnd_config(disable_tracker_api()):
             actual = WordCountThatFails(
                 text=TEXT_FILE,
                 task_version=str(random.random()),
@@ -102,7 +112,7 @@ class TestEmrSparkTasks(object):
                 actual.dbnd_run()
 
     def test_word_count_inline(self):
-        with dbnd_config({"core": {"tracker_api": "disabled"}}):
+        with dbnd_config(disable_tracker_api()):
             assert_run_task(
                 word_count_inline.t(
                     text=TEXT_FILE,
@@ -116,10 +126,10 @@ class TestEmrSparkTasks(object):
 
         # add post submit hook location to the livy config
         _config["livy"][
-            "post_submit_hook"
+            "job_submitted_hook"
         ] = "test_livy_spark_task.add_proxy_as_external_link"
 
-        with dbnd_config({"core": {"tracker_api": "disabled"}}):
+        with dbnd_config(disable_tracker_api()):
             WordCountTask(
                 text=TEXT_FILE, task_version=str(random.random()), override=_config,
             ).dbnd_run()
@@ -134,16 +144,16 @@ class TestEmrSparkTasks(object):
             "proxy": "https://proxy.proxy.local:12345/gateway//resource?scheme=http&host=livy&port=8998"
         }
 
-    def test_word_count_with_hook_side_effect(self):
+    def test_word_count_with_job_submitted_hook_side_effect(self):
         _config = conf_override.copy()
 
         global STATE
         STATE = False
 
-        # add post submit hook location to the livy config
-        _config["livy"]["post_submit_hook"] = "test_livy_spark_task.side_effect"
+        # add job submitted hook location to the livy config
+        _config["livy"]["job_submitted_hook"] = "test_livy_spark_task.side_effect"
 
-        with dbnd_config({"core": {"tracker_api": "disabled"}}):
+        with dbnd_config(disable_tracker_api()):
             WordCountTask(
                 text=TEXT_FILE, task_version=str(random.random()), override=_config,
             ).dbnd_run()
@@ -151,12 +161,31 @@ class TestEmrSparkTasks(object):
         # calling the hook will call side_effect which will change the STATE to True
         assert STATE
 
+    def test_word_count_with_job_status_hook_side_effect_3_times(self):
+        _config = conf_override.copy()
+
+        global CALL_COUNT
+        CALL_COUNT = 0
+
+        # add job status hook location to the livy config
+        _config["livy"][
+            "job_status_hook"
+        ] = "test_livy_spark_task.side_effect_status_update"
+
+        with dbnd_config(disable_tracker_api()):
+            WordCountTask(
+                text=TEXT_FILE, task_version=str(random.random()), override=_config,
+            ).dbnd_run()
+
+        # calling the hook will call side_effect which will change the STATE to True
+        assert CALL_COUNT == 3, "Status update hook should be called 3 times"
+
     def test_word_count_with_hook_raise(self):
         _config = conf_override.copy()
 
         # add post submit hook location to the livy config
-        _config["livy"]["post_submit_hook"] = "test_livy_spark_task.hook_with_raise"
-        with dbnd_config({"core": {"tracker_api": "disabled"}}):
+        _config["livy"]["job_submitted_hook"] = "test_livy_spark_task.hook_with_raise"
+        with dbnd_config(disable_tracker_api()):
             with pytest.raises(DatabandRunError):
                 WordCountTask(
                     text=TEXT_FILE, task_version=str(random.random()), override=_config,

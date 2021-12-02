@@ -86,19 +86,22 @@ class _LivySparkCtrl(SparkCtrl):
             ignore_ssl_errors=self.get_livy_ignore_ssl_errors(),
         )
         batch = livy.post_batch(data)
-        self._run_post_submit_hook(batch)
+        self._run_hook(batch, self.livy_config.job_submitted_hook)
         livy.track_batch_progress(
             batch["id"], status_reporter=self._report_livy_batch_status,
         )
 
-    def _run_post_submit_hook(self, batch_response):
+    @property
+    def livy_config(self) -> LivySparkConfig:
+        return self.task_run.task.spark_engine
+
+    def _run_hook(self, batch_response: Dict[str, Any], hook_function_path: str):
         """running a callable after submitting the batch to Livy"""
 
-        livy_config = self.task_run.task.spark_engine  # type: LivySparkConfig
-        user_callable_path = livy_config.post_submit_hook
+        user_callable_path = hook_function_path
         if user_callable_path is not None:
             logger.debug(
-                "Executing Livy post submit hook callable at {callable}".format(
+                "Executing Livy hook; callable at {callable}".format(
                     callable=user_callable_path
                 )
             )
@@ -125,12 +128,13 @@ class _LivySparkCtrl(SparkCtrl):
                     raise
 
                 logger.debug(
-                    "Successfully executed Livy post submit hook callable at `{callable}`".format(
-                        callable=user_callable_path
+                    "Successfully executed Livy hook;  callable at `{callable}`".format(
+                        callable=user_callable_path,
                     )
                 )
 
     def _report_livy_batch_status(self, batch_response):
+        self._run_hook(batch_response, self.livy_config.job_status_hook)
         logger.info(self._get_batch_progresss_banner(batch_response))
 
     def _get_batch_progresss_banner(self, batch_response):
