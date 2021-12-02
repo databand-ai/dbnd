@@ -23,8 +23,14 @@ class LivySparkConfig(SparkEngineConfig):
 
     ignore_ssl_errors = parameter(description="ignore ssl error", default=False)[bool]
 
-    post_submit_hook = parameter(
+    job_submitted_hook = parameter(
         description="User code to run after livy batch submit (a reference to a function)"
+        "expected interface (LivySparkCtrl, Dict[str, Any]) -> None",
+        default=None,
+    )[str]
+
+    job_status_hook = parameter(
+        description="User code to run at each livy batch status update (a reference to a function)"
         "expected interface (LivySparkCtrl, Dict[str, Any]) -> None",
         default=None,
     )[str]
