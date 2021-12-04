@@ -60,7 +60,12 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
         if not is_monitored_server_alive or self._plugin_metadata is not None:
             return
 
-        tracking_errors = self._get_tracking_errors()
+        # Check for tracking errors only in the monitor as dag scenario
+        error_message = (
+            self._get_tracking_errors()
+            if self.server_config.fetcher_type == "db"
+            else None
+        )
 
         plugin_metadata = get_data_fetcher(self.server_config).get_plugin_metadata()
         self.tracking_service.update_monitor_state(
@@ -70,7 +75,7 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
                 airflow_version=plugin_metadata.airflow_version,
                 airflow_export_version=plugin_metadata.plugin_version,
                 airflow_instance_uid=plugin_metadata.airflow_instance_uid,
-                monitor_error_message=tracking_errors,
+                monitor_error_message=error_message,
             ),
         )
 
