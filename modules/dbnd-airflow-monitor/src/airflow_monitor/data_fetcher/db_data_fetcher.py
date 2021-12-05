@@ -99,7 +99,7 @@ class DbFetcher(AirflowDataFetcher):
                 last_seen_log_id=last_seen_log_id,
                 extra_dag_runs_ids=extra_dag_run_ids,
                 dag_ids=dag_ids_list,
-                include_subdags=False,
+                include_subdags=True,
                 session=session,
             )
         json_data = json_conv(data)

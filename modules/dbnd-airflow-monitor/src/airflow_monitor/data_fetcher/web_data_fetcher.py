@@ -192,7 +192,7 @@ class WebFetcher(AirflowDataFetcher):
         params_dict = dict(
             last_seen_dag_run_id=last_seen_dag_run_id,
             last_seen_log_id=last_seen_log_id,
-            include_subdags=False,
+            include_subdags=True,
         )
         if extra_dag_run_ids:
             params_dict["extra_dag_runs_ids"] = ",".join(map(str, extra_dag_run_ids))
