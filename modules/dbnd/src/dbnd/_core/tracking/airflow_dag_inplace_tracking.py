@@ -67,10 +67,13 @@ class AirflowTaskContext(object):
     airflow_instance_uid = attr.ib(default=None)  # type: Optional[UUID]
 
     root_dag_id = attr.ib(init=False, repr=False)  # type: str
-    is_subdag = attr.ib(init=False, repr=False)  # type: bool
+    is_subdag = attr.ib(default=None, repr=False)  # type: bool
 
     def __attrs_post_init__(self):
-        self.is_subdag = "." in self.dag_id and not disable_airflow_subdag_tracking()
+        if self.is_subdag is None:
+            self.is_subdag = (
+                "." in self.dag_id
+            ) and not disable_airflow_subdag_tracking()
         if self.is_subdag:
             dag_breadcrumb = self.dag_id.split(".", 1)
             self.root_dag_id = dag_breadcrumb[0]
@@ -108,6 +111,7 @@ def extract_airflow_context(airflow_context):
             try_number=try_number,
             context=airflow_context,
             airflow_instance_uid=get_airflow_instance_uid(),
+            is_subdag=airflow_context.get("dag").is_subdag,
         )
 
     logger.debug(

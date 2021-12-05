@@ -20,7 +20,12 @@ class AirflowRuntimeConfigUpdater(BaseMonitorSyncer):
 
     @capture_monitor_exception("sync_once")
     def _sync_once(self):
-        from dbnd_airflow.export_plugin.api_functions import check_syncer_config_and_set
+        try:
+            from dbnd_airflow.export_plugin.api_functions import (
+                check_syncer_config_and_set,
+            )
+        except ModuleNotFoundError:
+            return
 
         self.tracking_service: AirflowDbndTrackingService
         dbnd_response = self.tracking_service.get_syncer_info()

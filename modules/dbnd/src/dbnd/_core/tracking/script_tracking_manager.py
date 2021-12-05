@@ -28,9 +28,11 @@ from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     override_airflow_log_system_for_tracking,
 )
 from dbnd._core.tracking.managers.callable_tracking import _handle_tracking_error
+from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo
 from dbnd._core.utils import seven
 from dbnd._core.utils.airflow_utils import get_project_name_from_airflow_tags
 from dbnd._core.utils.timezone import utcnow
+from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd._vendor import pendulum
 
 
@@ -115,6 +117,21 @@ class _DbndScriptTrackingManager(object):
         if airflow_user:
             self._run.context.task_run_env.user = airflow_user
 
+        if airflow_context.is_subdag:
+            root_run_uid = get_job_run_uid(
+                airflow_instance_uid=airflow_context.airflow_instance_uid,
+                dag_id=airflow_context.root_dag_id,
+                execution_date=airflow_context.execution_date,
+            )
+            self._run.root_run_info = RootRunInfo(
+                root_run_uid=root_run_uid,
+                root_task_run_uid=get_task_run_uid(
+                    run_uid=root_run_uid,
+                    dag_id=airflow_context.root_dag_id,
+                    task_id=airflow_context.dag_id.split(".")[-1],
+                ),
+            )
+
     def start(self, root_task_name=None, airflow_context=None):
         if self._run or self._active or try_get_databand_run():
             return
@@ -161,6 +178,7 @@ class _DbndScriptTrackingManager(object):
                 tracking_source=tracking_source,
             )
         )  # type: DatabandRun
+
         self._run.root_task = root_task
 
         self.update_run_from_airflow_context(airflow_context)
