@@ -76,6 +76,7 @@ class TestSyncerWorks(WebAppTest):
                 "api_mode": "rbac",
                 "airflow_environment": "on_prem",
                 "dag_ids": "",
+                "monitor_config": {"include_sources": False},
             },
         )
         return random_name
