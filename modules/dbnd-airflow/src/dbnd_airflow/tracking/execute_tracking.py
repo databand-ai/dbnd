@@ -43,6 +43,10 @@ def get_tracking_dag_ids_from_airflow_json():
                 dag_ids_config = monitor_config.get(
                     DAG_IDS_FOR_TRACKING_CONFIG_NAME, None
                 )
+
+                if dag_ids_config and isinstance(dag_ids_config, str):
+                    return dag_ids_config.split(",")
+
                 if isinstance(dag_ids_config, list):
                     return dag_ids_config
         return None

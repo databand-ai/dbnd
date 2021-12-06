@@ -14,6 +14,7 @@ from dbnd._core.task_run.log_preview import read_dbnd_log_preview
 from dbnd._core.tracking.airflow_dag_inplace_tracking import calc_task_key_from_af_ti
 from dbnd._core.utils.basics import environ_utils
 from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_from_af_ti
+from dbnd_airflow.tracking.execute_tracking import is_dag_eligable_for_tracking
 from dbnd_airflow.tracking.fakes import FakeTaskRun
 
 
@@ -52,6 +53,9 @@ class DbndAirflowHandler(logging.Handler):
         """
         # we setting up only when we are not in our own orchestration dag
         if ti.dag_id.startswith(AD_HOC_DAG_PREFIX):
+            return
+
+        if not is_dag_eligable_for_tracking(ti.dag_id):
             return
 
         if config.getboolean("mlflow_tracking", "databand_tracking"):
