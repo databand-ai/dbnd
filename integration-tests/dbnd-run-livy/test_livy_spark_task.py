@@ -176,9 +176,10 @@ class TestEmrSparkTasks(object):
             WordCountTask(
                 text=TEXT_FILE, task_version=str(random.random()), override=_config,
             ).dbnd_run()
-
         # calling the hook will call side_effect which will change the STATE to True
-        assert CALL_COUNT == 3, "Status update hook should be called 3 times"
+        assert (
+            CALL_COUNT >= 3
+        ), "Status update hook should be called at least 3 times (queued -> pending -> success)"
 
     def test_word_count_with_hook_raise(self):
         _config = conf_override.copy()
