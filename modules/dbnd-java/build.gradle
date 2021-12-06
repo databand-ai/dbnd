@@ -83,7 +83,7 @@ configure(subprojects.findAll { fatJarProjects.contains(it.name) }) {
     task shadowJarLatest(type: Copy) {
         from shadowJar
         into 'build/libs'
-        rename { String fileName ->
+        rename { fileName ->
             fileName.replace("$project.version", "latest")
         }
     }
@@ -126,10 +126,10 @@ def sparkProjects = ['dbnd-client', 'dbnd-agent'].toSet()
 configure(subprojects.findAll { sparkProjects.contains(it.name) }) {
     dependencies {
         // spark & scala
-        compileOnly('org.apache.spark:spark-sql_2.11:2.4.6') {
+        compileOnly('org.apache.spark:spark-sql_2.11:2.4.8') {
             exclude group: 'org.slf4j', module: 'slf4j-log4j12'
         }
-        testImplementation('org.apache.spark:spark-sql_2.11:2.4.6') {
+        testImplementation('org.apache.spark:spark-sql_2.11:2.4.8') {
             exclude group: 'org.slf4j', module: 'slf4j-log4j12'
         }
     }
