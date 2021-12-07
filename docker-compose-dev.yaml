@@ -20,7 +20,7 @@ services:
       - ./.dbnd/airflow/dags/:/root/airflow/dags/
 
   postgres:
-    image: postgres:10
+    image: postgres:12.8-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=airflow
