@@ -221,10 +221,11 @@ def deep_update(source, overrides):
 
 def remove_place_holders(dbnd_response):
     """Remove from configurations value which only have placeholders, so they won't override valid values."""
-    dbnd_response["core"].pop("databand_access_token")
-    dbnd_response["core"].pop("databand_url")
-    if dbnd_response["core"] is None:
-        dbnd_response.pop("core")
+    if dbnd_response.get("core") is not None:
+        dbnd_response["core"].pop("databand_access_token", None)
+        dbnd_response["core"].pop("databand_url", None)
+        if not dbnd_response["core"]:
+            dbnd_response.pop("core", None)
 
 
 def is_subset(subset, superset):
