@@ -7,8 +7,8 @@ from mock import Mock, patch
 from snowflake.connector.cursor import SnowflakeCursor
 
 from dbnd._core.constants import DbndTargetOperationType
-from dbnd_snowflake.sdk.sql_extract import Column
-from dbnd_snowflake.sdk.sql_operation import SqlOperation
+from dbnd._core.sql_tracker_common.sql_extract import Column
+from dbnd._core.sql_tracker_common.sql_operation import SqlOperation
 from dbnd_snowflake.sdk.tracker import SnowflakeTracker
 
 

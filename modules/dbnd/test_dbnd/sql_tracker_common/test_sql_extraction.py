@@ -2,7 +2,7 @@ import pytest
 import sqlparse
 
 from dbnd._core.constants import DbndTargetOperationType
-from dbnd_snowflake.sdk.sql_extract import Column, SqlQueryExtractor
+from dbnd._core.sql_tracker_common.sql_extract import Column, SqlQueryExtractor
 
 
 def parse_first_query(sqlquery):

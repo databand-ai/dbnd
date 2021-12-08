@@ -17,7 +17,7 @@ from sqlparse.sql import (
 from sqlparse.tokens import Keyword, Name, Token as TokenType, Whitespace, Wildcard
 
 from dbnd._core.constants import DbndTargetOperationType
-from dbnd_snowflake.sdk.utils import ddict2dict
+from dbnd._core.sql_tracker_common.utils import ddict2dict
 
 
 @attr.s
@@ -146,8 +146,8 @@ class SqlQueryExtractor:
 
     def is_stage(self, table_name: str) -> str:
         """
-                  Returns a pattern of snowflake stage if exits
-                  :param str table_name: name of a snowflake table
+                  Returns a pattern of file stage if exits
+                  :param str table_name: name of a table
 
                   """
         if table_name:
@@ -160,7 +160,7 @@ class SqlQueryExtractor:
           generate schema object and columns for table, file or stage
 
           :param Columns columns: name of a table we want to track
-          :param Identifier next_token: snowflake query identifier
+          :param Identifier next_token: query identifier
 
           """
         cloud_uri_path = self.extract_cloud_uri(next_token)
@@ -308,10 +308,10 @@ class SqlQueryExtractor:
 
     def extract_cloud_uri(self, identifier: Identifier) -> str:
         """
-          Search for cloud providers pattern in snowflake query identifier,
+          Search for cloud providers pattern in query identifier,
           if pattern exists returns the URI as string
 
-          :param Identifier identifier: snowflake query identifier
+          :param Identifier identifier: query identifier
             """
         if identifier.value.lower() in ["s3", "azure", "gcs"]:
             return self.find_cloud_regex(identifier.parent.value)

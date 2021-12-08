@@ -8,7 +8,7 @@ import attr
 from more_itertools import first, padded
 
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
-from dbnd_snowflake.sdk.sql_extract import Column, Schema
+from dbnd._core.sql_tracker_common.sql_extract import Column, Schema
 from targets.connections import build_conn_path
 from targets.value_meta import ValueMeta
 from targets.values import register_value_type
@@ -63,7 +63,7 @@ class SqlOperation:
 
     @property
     def is_file(self) -> bool:
-        # files are only in snowflake read operations
+        # files are in scope of read operations
         return (
             self.op_type is DbndTargetOperationType.read
             and first(self.extracted_columns).is_file
@@ -71,7 +71,7 @@ class SqlOperation:
 
     @property
     def is_stage(self) -> bool:
-        # stage are only in snowflake read operations
+        # stage are in scope of read operations
         return (
             self.op_type is DbndTargetOperationType.read
             and first(self.extracted_columns).is_stage
