@@ -205,10 +205,6 @@ def track_operator(operator):
         if not issubclass(operator, BaseOperator):
             return operator
 
-        # we are not tracking sub dags through this mechanism
-        if issubclass(operator, SubDagOperator):
-            return operator
-
         # the operator class is already tracked
         if (
             hasattr(operator, "_tracked_class")

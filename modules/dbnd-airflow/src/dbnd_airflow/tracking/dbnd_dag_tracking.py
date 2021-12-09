@@ -15,11 +15,10 @@ def _track_task(task):
     if should_not_track(task):
         return
 
+    track_operator(task)
     if is_instance_by_class_name(task, SubDagOperator.__name__):
-        # we do not track the execute of a SubDag, only its tasks
+        # we also track the subdag's inner tasks
         track_dag(task.subdag)
-    else:
-        track_operator(task)
 
 
 def _is_verbose():
