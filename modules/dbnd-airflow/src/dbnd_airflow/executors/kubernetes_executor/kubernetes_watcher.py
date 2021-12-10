@@ -310,6 +310,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         after it's terminated by Executor. If termination happens
         while watcher fetch data from k8s, `SIGTERM` might be handled by internal
         kubeclient implementation, and the watcher will stay running forever.
+
         Executor will be stacked at "kube_watcher.join()" call.
 
         Workaround: try to kill watcher multiple times.

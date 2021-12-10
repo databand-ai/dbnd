@@ -517,19 +517,12 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         else:
             # we got a corruption here, pod has finished, but the AF state is not "final" state
             # meaning: AF execution was interrupted in the middle
-            error_msg = (
+            self.log.error(
                 "Pod %s has finished with SUCCESS, but task instance state is %s, failing the job."
                 % (pod_name, ti.state)
             )
-            error_help = "Please check pod logs/eviction retry"
-            task_run_error = TaskRunError.build_from_message(
-                task_run, error_msg, help_msg=error_help
-            )
-            self._handle_crashed_task_instance(
-                failure_reason=PodFailureReason.err_pod_evicted,
-                task_run_error=task_run_error,
-                task_run=task_run,
-            )
+
+            self._process_pod_failed(submitted_pod, PodFailureReason.err_pod_evicted)
             return
 
         # only print to console
@@ -539,9 +532,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             % (task_run, pod_name, ti.state, ti._try_number)
         )
 
-    def _process_pod_failed(self, submitted_pod):
-        # type: (SubmittedPodState) -> None
-
+    def _process_pod_failed(
+        self,
+        submitted_pod: SubmittedPodState,
+        known_fail_reason: Optional[PodFailureReason] = None,
+    ):
         task_run = submitted_pod.task_run
         pod_name = submitted_pod.pod_name
 
@@ -628,13 +623,13 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self._handle_crashed_task_instance(
             task_run=task_run,
             task_run_error=task_run_error,
-            failure_reason=failure_reason,
+            failure_reason=known_fail_reason or failure_reason,
         )
 
     def _find_pod_failure_reason(
         self, pod_name, pod_data,
     ):
-        # type: (str, V1Pod) -> (Optional[PodFailureReason],Optional[str])
+        # type: (str, V1Pod) -> (Optional[PodFailureReason], Optional[str])
         if not pod_data:
             return (
                 PodFailureReason.err_pod_deleted,
@@ -668,11 +663,23 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 % (pod_name, pod_data.metadata.deletion_timestamp),
             )
 
-        pod_exit_code = _try_get_pod_exit_code(pod_data)
-        if pod_exit_code:
-            self.log.info("Found pod exit code %d for pod %s", pod_exit_code, pod_name)
+        pod_exit_code, termination_reason = _try_get_pod_exit_code(pod_data)
+        if pod_exit_code or termination_reason:
+            self.log.info(
+                "Found pod exit code %d for pod %s; Termination reason: %s",
+                pod_exit_code,
+                pod_name,
+                termination_reason,
+            )
+            exit_code_message = ""
+            if pod_exit_code:
+                exit_code_message = "Pod exit code %s; "
             pod_exit_code = str(pod_exit_code)
-            return pod_exit_code, "Pod exit code %s" % pod_exit_code
+
+            return (
+                pod_exit_code,
+                "%sTermination reason: %s" % (exit_code_message, termination_reason),
+            )
         return None, None
 
     @provide_session

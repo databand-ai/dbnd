@@ -363,18 +363,23 @@ def _get_status_log_safe(pod_data):
         return "Pod Status: failed to get %s: %s" % (pod_data.metadata.name, ex)
 
 
-def _try_get_pod_exit_code(pod_data):
-    # TODO: look at base container only
+def _try_get_pod_exit_code(pod_data) -> (str, str):
     found_exit_code = False
     pod_exit_code = None
+    termination_reason = None
     if pod_data.status.container_statuses:
         for container_status in pod_data.status.container_statuses:
             # Searching for the container that was terminated
             if container_status.state.terminated:
                 pod_exit_code = container_status.state.terminated.exit_code
+                termination_reason = container_status.state.terminated.reason
                 found_exit_code = True
+                if container_status.name == "base":
+                    break
+
         if found_exit_code:
-            return pod_exit_code
+            return pod_exit_code, termination_reason
+    return None, None
 
 
 def get_task_run_from_pod_data(pod_data):
