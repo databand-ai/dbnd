@@ -158,9 +158,12 @@ clean-python:  ## Remove bulid artifacts.
 ##@ Development
 .PHONY: install-dev
 
-CURRENT_PY_VERSION = $(shell python -c "import sys; print('{0}{1}'.format(*sys.version_info[:2]))")
+CURRENT_PY_VERSION = $(shell python -c "import sys; print('{0}.{1}'.format(*sys.version_info[:2]))")
 VENV_TARGET ?= dbnd-core
-VENV_TARGET_NAME ?= venv-${VENV_TARGET}-py${CURRENT_PY_VERSION}
+VENV_TARGET_NAME ?= venv-${VENV_TARGET}-py$(subst .,,${CURRENT_PY_VERSION})
+
+CURRENT_AIRFLOW_VERSION = 1.10.10
+
 
 create-venv:  ## Create virtual env for dbnd-core
 	@echo 'Virtual env "${VENV_TARGET_NAME}" with python version from a current shell is going to be created'
@@ -187,16 +190,34 @@ __is_venv_activated:  ## (Hidden target) check if correct virtual env is activat
 	echo Virtual env check passed, current venv is $$CURRENT_VENV_NAME
 
 
-install-dev: ## Install all modules in editable mode to the active Python's site-packages.
-	@make __is_venv_activated
-	make __uninstall-dev
-	pip install -U pip
+install-airflow: ## Installs Airflow with strictly pinned dependencies into current virtual environment.
+	@make __is_venv_activated; \
+	echo Will install Airflow==${CURRENT_AIRFLOW_VERSION}; \
 
+	pip install apache-airflow==${CURRENT_AIRFLOW_VERSION} -c https://raw.githubusercontent.com/apache/airflow/constraints-${CURRENT_AIRFLOW_VERSION}/constraints-${CURRENT_PY_VERSION}.txt
+
+
+install-dev: ## Installs Airflow + all dbnd-core modules in editable mode to the active Python's site-packages.
+	@make __is_venv_activated; \
+  	make install-airflow;\
+  	make install-dev-without-airflow
+
+
+install-dev-without-airflow: ## Install all modules, except Airflow, in editable mode to the active Python's site-packages.
+	@make __is_venv_activated; \
+ 	make __uninstall-dev; \
+ 	pip install -U pip; \
 	for m in $(prj_dev) ; do \
-		echo "Installing '$$m'..." ;\
-		(cd $$m && pip install -e .) ;\
-	done
+		all_reqs="$$all_reqs -e $$m"; \
+		export CURRENT_DEPS=$$all_reqs; \
+	done; \
+	echo "Running all deps installation at once:";  \
+	echo pip install $$all_reqs; \
+	pip install $$all_reqs; \
+
+
 
 __uninstall-dev:  ## (Hidden target) Remove all dbnd modules from the current virtual environment.
 	pip uninstall databand -y || true
-	pip freeze | grep "dbnd" | egrep -o '#egg=dbnd[a-z_]*' | egrep -o 'dbnd[a-z_]*' | xargs pip uninstall -y
+	pip freeze | grep "dbnd" | egrep -o '#egg=dbnd[a-z_]*' | egrep -o 'dbnd[a-z_]*' | (xargs pip uninstall -y || true)
+

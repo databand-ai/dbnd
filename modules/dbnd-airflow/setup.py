@@ -31,6 +31,10 @@ setuptools.setup(
         "packaging",
         "idna<3,>=2.5",  # fix compatibility with requests==2.23.0 from apache-airflow
     ],
+    # Only for orchestration, tracking users should install Airflow manually before DBND
+    # The best way to install airflow is manually with constraints beforehand.
+    # For example:
+    # pip install apache-airflow  --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-{PYTHON_VERSION}.txt
     extras_require=dict(
         airflow_1_10_7=requirements_for_airflow + ["apache-airflow==1.10.7"],
         airflow_1_10_8=requirements_for_airflow + ["apache-airflow==1.10.8"],
