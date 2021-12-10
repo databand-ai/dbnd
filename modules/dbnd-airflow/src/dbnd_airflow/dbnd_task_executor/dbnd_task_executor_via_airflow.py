@@ -123,6 +123,7 @@ def create_dagrun_from_dbnd_run(
         if task_run.is_reused:
             # this task is completed and we don't need to run it anymore
             ti.state = State.SUCCESS
+            ti.try_number = 1
 
     session.commit()
 

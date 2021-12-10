@@ -633,6 +633,12 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
                 af_task_try_number = get_af_task_try_number(ti)
                 if task_run and task_run.attempt_number != af_task_try_number:
+                    self.log.info(
+                        "Found a new attempt for task %60s (%s -> %s) in Airflow. Submitting to Databand.",
+                        ti.task_id,
+                        task_run.attempt_number,
+                        af_task_try_number,
+                    )
                     # update in memory object with new attempt number
                     task_run.update_task_run_attempt(af_task_try_number)
                     # sync the tracker with the new task_run_attempt
