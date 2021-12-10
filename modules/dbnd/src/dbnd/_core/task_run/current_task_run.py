@@ -1,3 +1,4 @@
+import logging
 import os
 import typing
 
@@ -5,7 +6,6 @@ from typing import Optional
 
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import try_get_current_task_run
-from dbnd._vendor.colorlog import logging
 
 
 if typing.TYPE_CHECKING:

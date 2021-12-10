@@ -1,4 +1,3 @@
-
 """ VENDORIZED python-colorlog
     https://github.com/borntyping/python-colorlog
     version 4.1.0
@@ -27,17 +26,67 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
   A logging formatter for colored output."""
 
-from __future__ import absolute_import
+import sys
+import warnings
 
-from .colorlog import (
-    escape_codes, default_log_colors,
-    ColoredFormatter, LevelFormatter, TTYColoredFormatter)
+from .formatter import (
+    ColoredFormatter,
+    LevelFormatter,
+    TTYColoredFormatter,
+    default_log_colors,
+)
+from .wrappers import (
+    CRITICAL,
+    DEBUG,
+    ERROR,
+    FATAL,
+    INFO,
+    NOTSET,
+    StreamHandler,
+    WARN,
+    WARNING,
+    basicConfig,
+    critical,
+    debug,
+    error,
+    exception,
+    getLogger,
+    info,
+    log,
+    root,
+    warning,
+)
 
-from .logging import (
-    basicConfig, root, getLogger, log,
-    debug, info, warning, error, exception, critical, StreamHandler)
+__all__ = (
+    "CRITICAL",
+    "DEBUG",
+    "ERROR",
+    "FATAL",
+    "INFO",
+    "NOTSET",
+    "WARN",
+    "WARNING",
+    "ColoredFormatter",
+    "LevelFormatter",
+    "StreamHandler",
+    "TTYColoredFormatter",
+    "basicConfig",
+    "critical",
+    "debug",
+    "default_log_colors",
+    "error",
+    "exception",
+    "exception",
+    "getLogger",
+    "info",
+    "log",
+    "root",
+    "warning",
+)
 
-__all__ = ('ColoredFormatter', 'default_log_colors', 'escape_codes',
-           'basicConfig', 'root', 'getLogger', 'debug', 'info', 'warning',
-           'error', 'exception', 'critical', 'log', 'exception',
-           'StreamHandler', 'LevelFormatter', 'TTYColoredFormatter')
+if sys.version_info < (3, 6):
+    warnings.warn(
+        "Colorlog requires Python 3.6 or above. Pin 'colorlog<5' to your dependencies "
+        "if you require compatibility with older versions of Python. See "
+        "https://github.com/borntyping/python-colorlog#status for more information."
+    )
