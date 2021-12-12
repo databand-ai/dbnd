@@ -81,17 +81,19 @@ class CheckAirflow2TrackingSupport(ValidationStep):
         if LooseVersion(airflow.version.version) < LooseVersion("2.0.0"):
             return
 
-        load_plugins = False
+        load_plugins = True
         from airflow.configuration import conf
 
         try:
             load_plugins = conf.getboolean("core", "lazy_load_plugins")
-            logger.info("Airflow 2.0 support is set")
         except:
             pass
 
-        if not load_plugins:
+        # lazy_load plugins must be set to false in order for tracking to work
+        if load_plugins is None or load_plugins is True:
             self.errors_list.append(MISSING_AIRFLOW_2_TRACKING_SUPPORT_CONFIG_MESSAGE)
+        else:
+            logger.info("Airflow 2.0 support is set")
 
 
 def get_monitor_validation_steps():
