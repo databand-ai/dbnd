@@ -20,6 +20,10 @@ def log_exception_to_server(exception=None):
     try:
         from dbnd._core.current import get_databand_context
 
+        client = get_databand_context().databand_api_client
+        if client is None or not client.is_configured():
+            return
+
         e_type, e_value, e_traceback = sys.exc_info()
         if exception:
             e_type, e_value, e_traceback = (
@@ -29,9 +33,6 @@ def log_exception_to_server(exception=None):
             )
 
         trace = _format_exception(e_type, e_value, e_traceback)
-        client = get_databand_context().databand_api_client
-        if client is None:
-            return
 
         data = {
             "source": "tracking-sdk",

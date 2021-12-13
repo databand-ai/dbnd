@@ -255,6 +255,9 @@ class ApiClient(object):
     def has_credentials(self) -> bool:
         return bool(self.credentials)
 
+    def is_configured(self) -> bool:
+        return bool(self._api_base_url)
+
     def authenticated_session(self):
         if not self.session or self.is_session_expired():
             logger.info(
