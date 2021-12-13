@@ -378,3 +378,4 @@ class AirflowEnvironment(EnumWithAll):
 class AutomaticAlertDefTypes(object):
     FAILED_STATE = "failed_state"
     ML_RUN_DURATION = "ml_run_duration"
+    RUN_SCHEMA_CHANGE = "run_schema_change"
