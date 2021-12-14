@@ -334,7 +334,7 @@ class LogDatasetArgs(object):
     data_dimensions = attr.ib()  # type: Sequence[int]
     data_schema = attr.ib()  # type: str
 
-    columns_stats = attr.ib(default=None)  # type: Optional[List[ColumnStatsArgs]]
+    columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
     operation_error = attr.ib(
         default=None
     )  # type: str # default=None :-> for compatibility with SDK < 51.0.0
@@ -395,7 +395,7 @@ class LogDatasetSchema(ApiStrictSchema):
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
     data_schema = fields.String(allow_none=True)
-    columns_stats = fields.Nested(ColumnStatsSchema, many=True, allow_none=True)
+    columns_stats = fields.Nested(ColumnStatsSchema, many=True, required=False)
 
     @post_load
     def make_object(self, data):
