@@ -12,6 +12,7 @@ RESULT_PARAM = "result"
 CURRENT_DATETIME = utcnow()
 CURRENT_TIME_STR = CURRENT_DATETIME.strftime("%Y%m%d_%H%M%S")
 CURRENT_DATE = CURRENT_DATETIME.date()
+DATABAND_DAGS_USER = "Databand"
 
 
 class EnvLabel(object):  # env label
