@@ -162,9 +162,11 @@ def test_pandas_histograms_work_with_NaNs_and_nonseq_index(pandas_data_frame):
 
     # Assert
     assert sorted(histograms.keys()) == sorted(["Births", "foo"])  # noqa
-    # Test `dump_to_stats_dict` is working as expected - legacy stats dict used in ValueMeta.build_metrics_for_key
+    # Test `dump_to_legacy_stats_dict` is working as expected - legacy stats dict used in ValueMeta.build_metrics_for_key
     stats = dict(
-        ChainMap(*[col_stats.dump_to_stats_dict() for col_stats in columns_stats])
+        ChainMap(
+            *[col_stats.dump_to_legacy_stats_dict() for col_stats in columns_stats]
+        )
     )
     assert sorted(list(stats.keys())) == sorted(["Births", "foo"])  # noqa
     assert stats == {

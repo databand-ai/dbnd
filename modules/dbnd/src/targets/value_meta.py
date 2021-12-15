@@ -98,7 +98,10 @@ class ValueMeta(object):
         # Returns legacy stats dict for backward compatability support
         return dict(
             ChainMap(
-                *[col_stats.dump_to_stats_dict() for col_stats in self.columns_stats]
+                *[
+                    col_stats.dump_to_legacy_stats_dict()
+                    for col_stats in self.columns_stats
+                ]
             )
         )
 

@@ -38,6 +38,10 @@ class AlertDefsSchema(ApiStrictSchema):
     custom_description = fields.Str(allow_none=True)
     ml_alert = fields.Nested(MLAlert, allow_none=True)
 
+    dataset_uid = fields.Str(allow_none=True)
+    # Used to build OperationColumnStatAdvancedAlert alert
+    # Type of MetricRule found in dbnd_web
+    metrics_rules = fields.List(fields.Dict(), allow_none=True)
     # Used by DatasetMetricAlert/DatasetSlaAdvancedAlert
     seconds_delta = fields.Int(allow_none=True)  # Converts to datetime.timedelta
     dataset_schema_uri = fields.Str(allow_none=True)
