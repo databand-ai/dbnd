@@ -374,9 +374,3 @@ class AirflowEnvironment(EnumWithAll):
     GCP_AF1 = "gcp_af1"
     GCP_AF2 = "gcp_af2"
     MWAA = "mwaa"
-
-
-class AutomaticAlertDefTypes(object):
-    FAILED_STATE = "failed_state"
-    ML_RUN_DURATION = "ml_run_duration"
-    RUN_SCHEMA_CHANGE = "run_schema_change"
