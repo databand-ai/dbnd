@@ -195,6 +195,7 @@ def log_dataset_op(
     with_schema=None,
     with_histograms=None,
     send_metrics=True,
+    with_partition=None,
 ):
     """
     Logs dataset operation and meta data to dbnd.
@@ -234,6 +235,7 @@ def log_dataset_op(
             data=data,
             meta_conf=meta_conf,
             send_metrics=send_metrics,
+            with_partition=with_partition,
         )
         return
 
@@ -278,6 +280,7 @@ class DatasetOperationLogger(object):
     with_schema = attr.ib(default=None)
     with_histograms = attr.ib(default=None)
     send_metrics = attr.ib(default=None)
+    with_partition = attr.ib(default=None)
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
@@ -300,6 +303,7 @@ def dataset_op_logger(
     with_schema=True,
     with_histograms=False,
     send_metrics=True,
+    with_partition=None,
 ):
     """
     Wrapper to Log dataset operation and meta data to dbnd.
@@ -321,20 +325,29 @@ def dataset_op_logger(
             unrelated_func()
             # If unrelated_func raise exception, failed read operation is reported to databand.
 
-    @param op_path: Target object to log or a unique path representing the target logic location
-    @param op_type: the type of operation that been done with the dataset - read, write, delete.
-    @param data: optional value of data to use build meta-data on the dataset
-    @param with_preview: should extract preview of the data as meta-data of the dataset - relevant only with data param
-    @param with_schema: should extract schema of the data as meta-data of the dataset - relevant only with data param
-    @param with_histograms: should calculate histogram and stats of the given data - relevant only with data param
-    @param send_metrics: should report preview, schemas and histograms as metrics
+    Args:
+        op_path: Target object to log or a unique path representing the target logic location.
+        op_type: the type of operation that been done with the dataset - read, write, delete.
+        data: optional value of data to use build meta-data on the dataset.
+        with_preview: should extract preview of the data as meta-data of the dataset - relevant only with data param.
+        with_schema: should extract schema of the data as meta-data of the dataset - relevant only with data param.
+        with_histograms: should calculate histogram and stats of the given data - relevant only with data param.
+        send_metrics: should report preview, schemas and histograms as metrics.
+        with_partition: should we strip any partition from the path or not, use None for BE default.
     """
     if isinstance(op_type, str):
         # If str type is not of DbndDatasetOperationType, raise.
         op_type = DbndDatasetOperationType[op_type]
 
     op = DatasetOperationLogger(
-        op_path, op_type, data, with_preview, with_schema, with_histograms, send_metrics
+        op_path,
+        op_type,
+        data,
+        with_preview,
+        with_schema,
+        with_histograms,
+        send_metrics,
+        with_partition,
     )
 
     try:

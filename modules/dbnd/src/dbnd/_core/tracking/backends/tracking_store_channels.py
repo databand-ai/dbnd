@@ -25,7 +25,7 @@ from targets.value_meta import ValueMeta
 
 
 if typing.TYPE_CHECKING:
-    from typing import List, Optional, Iterable, Union
+    from typing import List, Optional, Iterable, Union, Any
     from uuid import UUID
 
     from dbnd._core.constants import TaskRunState
@@ -151,6 +151,7 @@ class TrackingStoreThroughChannel(TrackingStore):
         operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
         operation_error,  # type: str
+        with_partition=None,  # type: Optional[bool]
     ):
         data_schema = (
             json_utils.dumps(data_meta.data_schema)
@@ -170,11 +171,12 @@ class TrackingStoreThroughChannel(TrackingStore):
             columns_stats=data_meta.columns_stats,
             data_dimensions=data_meta.data_dimensions,
             data_schema=data_schema,
+            with_partition=with_partition,
         )
         res = self.log_datasets(datasets_info=[dataset_info])
         return res
 
-    def log_datasets(self, datasets_info):  # type: (List[LogDatasetArgs]) -> None
+    def log_datasets(self, datasets_info):  # type: (List[LogDatasetArgs]) -> Any
         return self._m(self.channel.log_datasets, datasets_info=datasets_info)
 
     def log_target(

@@ -211,7 +211,8 @@ class TaskRunTracker(TaskRunCtrl):
         operation_error,  # type: str
         data=None,  # type: Optional[Any]
         meta_conf=None,  # type: Optional[ValueMetaConf]
-        send_metrics=True,
+        send_metrics=True,  # type: bool
+        with_partition=None,  # type: Optional[bool]
     ):
         data_meta = None
         if data is not None and meta_conf is not None:
@@ -238,6 +239,7 @@ class TaskRunTracker(TaskRunCtrl):
             operation_type=operation_type,
             operation_status=operation_status,
             operation_error=operation_error,
+            with_partition=with_partition,
         )
 
         if send_metrics:

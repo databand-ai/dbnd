@@ -340,6 +340,8 @@ class LogDatasetArgs(object):
     )  # type: str # default=None :-> for compatibility with SDK < 51.0.0
     timestamp = attr.ib(default=None)  # type: datetime
 
+    with_partition = attr.ib(default=None)  # type: Optional[bool]
+
     def asdict(self):
         return attr.asdict(self, recurse=False)
 

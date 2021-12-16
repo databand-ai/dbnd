@@ -115,6 +115,7 @@ class TrackingStore(object):
         operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
         operation_error,  # type: str
+        with_partition=None,  # type: Optional[bool]
     ):  # type: (...) -> None
         pass
 
