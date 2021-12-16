@@ -38,17 +38,23 @@ class AlertDefsSchema(ApiStrictSchema):
     custom_description = fields.Str(allow_none=True)
     ml_alert = fields.Nested(MLAlert, allow_none=True)
 
-    dataset_uid = fields.Str(allow_none=True)
-    # Used to build OperationColumnStatAdvancedAlert alert
-    # Type of MetricRule found in dbnd_web
-    metrics_rules = fields.List(fields.Dict(), allow_none=True)
-    # Used by DatasetMetricAlert/DatasetSlaAdvancedAlert
+    # Fields for DatasetSlaAlert/DatasetSlaAdvancedAlert alert
+    # --------------------------------------
     seconds_delta = fields.Int(allow_none=True)  # Converts to datetime.timedelta
     dataset_schema_uri = fields.Str(allow_none=True)
     datasets_uids = fields.List(fields.Str(), allow_none=True)
 
-    # Read only value
-    affected_datasets = fields.List(fields.Dict(), allow_none=True)
+    # Fields for OperationColumnStatAdvancedAlert alert
+    # --------------------------------------
+    dataset_uid = fields.Str(allow_none=True)
+    # Operation type (e.g. "read", "write", None=any) to filter stats by
+    operation_type = fields.Str(allow_none=True)
+
+    # Type of MetricRule, found in dbnd_web. Used to build advanced_json
+    metrics_rules = fields.List(fields.Dict(), allow_none=True)
+
+    # Used only used by the UI
+    affected_datasets = fields.List(fields.Dict(), allow_none=True, dump_only=True)
 
     @pre_load
     def prepere(self, data: dict, **kwargs):
