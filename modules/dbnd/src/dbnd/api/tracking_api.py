@@ -339,7 +339,6 @@ class LogDatasetArgs(object):
         default=None
     )  # type: str # default=None :-> for compatibility with SDK < 51.0.0
     timestamp = attr.ib(default=None)  # type: datetime
-
     with_partition = attr.ib(default=None)  # type: Optional[bool]
 
     def asdict(self):
@@ -393,11 +392,14 @@ class LogDatasetSchema(ApiStrictSchema):
     operation_type = EnumField(DbndDatasetOperationType)
     operation_status = EnumField(DbndTargetOperationStatus)
     operation_error = fields.String(allow_none=True)
+    timestamp = fields.DateTime(required=True)
 
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
     data_schema = fields.String(allow_none=True)
     columns_stats = fields.Nested(ColumnStatsSchema, many=True, required=False)
+
+    with_partition = fields.Boolean(required=False, allow_none=True)
 
     @post_load
     def make_object(self, data):

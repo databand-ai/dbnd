@@ -172,6 +172,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             data_dimensions=data_meta.data_dimensions,
             data_schema=data_schema,
             with_partition=with_partition,
+            timestamp=utcnow(),
         )
         res = self.log_datasets(datasets_info=[dataset_info])
         return res
