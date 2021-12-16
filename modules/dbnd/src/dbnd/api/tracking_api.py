@@ -392,7 +392,7 @@ class LogDatasetSchema(ApiStrictSchema):
     operation_type = EnumField(DbndDatasetOperationType)
     operation_status = EnumField(DbndTargetOperationStatus)
     operation_error = fields.String(allow_none=True)
-    timestamp = fields.DateTime(required=True)
+    timestamp = fields.DateTime(required=False, allow_none=True)
 
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
