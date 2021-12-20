@@ -29,6 +29,7 @@ from dbnd._core.settings.engine import build_engine_config
 from dbnd._core.task import Task
 from dbnd._core.task_build.task_context import current_task, has_current_task
 from dbnd._core.task_run.task_run import TaskRun
+from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.date_utils import unique_execution_date
@@ -91,8 +92,8 @@ class DatabandRun(SingletonContext):
 
         self.run_uid = run_uid or get_uuid()
         # if user provided name - use it
-        # otherwise - generate human friendly name for the run
-        self.name = s.run.name or get_random_name(seed=self.run_uid)
+        # otherwise - generate a name for the run
+        self.name = s.run.name or self._generate_run_name(af_context)
         self.execution_date = (
             self.context.settings.run.execution_date or unique_execution_date()
         )
@@ -153,6 +154,16 @@ class DatabandRun(SingletonContext):
         self.start_time = None
         self.finished_time = None
         self._result_location = None
+
+    def _generate_run_name(self, af_context: Optional[AirflowTaskContext]) -> str:
+        """
+        If this is an airflow run, generate a name to reflect it still
+        awaits a sync.
+        Otherwise, generate a human friendly name for the run.
+        """
+        if af_context is not None:
+            return f"Airflow-run-await-sync_{self.run_uid}"
+        return get_random_name(seed=self.run_uid)
 
     def get_task_runs(self, without_executor=True, without_system=False):
         """
