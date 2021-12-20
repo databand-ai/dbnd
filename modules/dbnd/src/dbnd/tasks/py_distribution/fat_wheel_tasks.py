@@ -32,6 +32,7 @@ class ProjectWheelFile(Task):
         local_wheel_file_zip = self.current_task_run.local_task_run_root.partition(
             name="project_wheel_file.zip"
         )  # type: FileTarget
+        local_wheel_file_zip.mkdir_parent()
         # we need a temp folder to create our wheel file,
         # pip build doesn't take "output" parameter
         with _create_temp_working_dir() as tmp_build_dir:
