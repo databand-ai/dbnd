@@ -54,8 +54,8 @@ def two_columns_table(stats, split_by):
 
 
 class ConsoleStore(TrackingStore):
-    def __init__(self):
-        super(ConsoleStore, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(ConsoleStore, self).__init__(*args, **kwargs)
         self.max_log_value_len = 50
         self.verbose = is_verbose()
         self.ascii_graph = Pyasciigraph()

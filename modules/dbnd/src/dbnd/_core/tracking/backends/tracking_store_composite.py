@@ -105,7 +105,13 @@ class CompositeTrackingStore(TrackingStore):
                         store_name=store_name, store=str(self._stores.get(store_name))
                     )
                 )
-                self._stores.pop(store_name, None)
+                store = self._stores.pop(store_name)
+                try:
+                    store.shutdown()
+                except Exception:
+                    logger.exception(
+                        f"Error during shutdown of {store_name} tracking backend"
+                    )
 
             if not self._stores:
                 logger.warning("You are running without any tracking store configured.")
@@ -204,3 +210,16 @@ class CompositeTrackingStore(TrackingStore):
 
     def is_ready(self, **kwargs):
         return all(store.is_ready() for store in self._stores.values())
+
+    def shutdown(self):
+        failed = False
+
+        for name, store in self._stores.items():
+            try:
+                store.shutdown()
+            except Exception as exc:
+                failed = exc
+                logger.exception(f"Error during shutdown of {name} tracking backend")
+
+        if failed and self._raise_on_error:
+            raise failed

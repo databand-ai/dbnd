@@ -26,6 +26,7 @@ _BACKENDS_REGISTRY = {
     "console": ConsoleStore,
     "debug": TrackingStoreThroughChannel.build_with_console_debug_channel,
     ("api", "web"): TrackingStoreThroughChannel.build_with_web_channel,
+    ("api", "async-web"): TrackingStoreThroughChannel.build_with_async_web_channel,
     ("api", "proto"): TrackingStoreThroughChannel.build_with_proto_web_channel,
     ("api", "disabled"): TrackingStoreThroughChannel.build_with_disabled_channel,
 }
@@ -38,6 +39,7 @@ def register_store(name, store_builder):
 
 
 def get_tracking_store(
+    databand_ctx,
     tracking_store_names,
     api_channel_name,
     max_retires,
@@ -70,7 +72,7 @@ def get_tracking_store(
         if tracking_store_builder is None:
             raise friendly_error.config.wrong_store_name(name)
 
-        instance = tracking_store_builder()
+        instance = tracking_store_builder(databand_ctx)
         if isinstance(name, tuple):
             store_name = build_store_name(*name)
         else:

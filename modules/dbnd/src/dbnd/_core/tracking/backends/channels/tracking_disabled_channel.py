@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class DisabledTrackingChannel(MarshmallowMixin, TrackingChannel):
-    def __init__(self):
-        super(DisabledTrackingChannel, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(DisabledTrackingChannel, self).__init__(*args, **kwargs)
         logger.info("Tracking store is disable at core.tracker_api.")
 
     def is_ready(self):

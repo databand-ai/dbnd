@@ -183,13 +183,14 @@ class CoreConfig(Config):
         if self.silence_tracking_mode:
             self.tracker = [t for t in self.tracker if t != "console"]
 
-    def build_tracking_store(self, remove_failed_store=None):
+    def build_tracking_store(self, databand_ctx, remove_failed_store=None):
         from dbnd._core.tracking.registry import get_tracking_store
 
         if remove_failed_store is None:
             remove_failed_store = self.remove_failed_store
 
         return get_tracking_store(
+            databand_ctx,
             tracking_store_names=self.tracker,
             api_channel_name=self.tracker_api,
             max_retires=self.max_tracking_store_retries,

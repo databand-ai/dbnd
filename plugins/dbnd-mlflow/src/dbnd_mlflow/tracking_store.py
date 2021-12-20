@@ -9,6 +9,7 @@ from mlflow.utils.rest_utils import MlflowHostCreds
 
 import dbnd
 
+from dbnd import get_databand_context
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.tracking.schemas.metrics import Metric
@@ -185,6 +186,7 @@ def get_dbnd_store(store_uri=None, artifact_uri=None):
         duplication_store = _get_store(duplicate_tracking_to, artifact_uri)
 
     dbnd_store = get_tracking_store(
+        get_databand_context(),
         tracking_store_names=["api"],
         api_channel_name="web",
         max_retires=1,

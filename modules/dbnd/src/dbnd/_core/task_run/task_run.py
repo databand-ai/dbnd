@@ -81,6 +81,7 @@ class TaskRun(object):
             tracking_store = self.run.context.tracking_store
         else:
             tracking_store = get_tracking_store(
+                self.run.context,
                 tracking_store_names=["console"],
                 api_channel_name=None,
                 max_retires=1,

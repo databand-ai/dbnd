@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 class ConsoleDebugTrackingChannel(MarshmallowMixin, TrackingChannel):
     """Json API client implementation."""
 
-    def __init__(self, print_func=None):
-        super(ConsoleDebugTrackingChannel, self).__init__()
+    def __init__(self, print_func=None, *args, **kwargs):
+        super(ConsoleDebugTrackingChannel, self).__init__(*args, **kwargs)
         self.print_func = print_func or logger.info
         self._printer = pprint.PrettyPrinter(indent=2, width=140)
 

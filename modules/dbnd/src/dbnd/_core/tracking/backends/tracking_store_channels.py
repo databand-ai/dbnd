@@ -38,8 +38,8 @@ logger = logging.getLogger(__name__)
 class TrackingStoreThroughChannel(TrackingStore):
     """Track data to Tracking API"""
 
-    def __init__(self, channel):
-        # type: (TrackingChannel) -> None
+    def __init__(self, channel: TrackingChannel, *args, **kwargs):
+        super(TrackingStoreThroughChannel, self).__init__(*args, **kwargs)
         self.channel = channel
 
     def init_scheduled_job(self, scheduled_job, update_existing):
@@ -269,6 +269,9 @@ class TrackingStoreThroughChannel(TrackingStore):
         #     resp = resp_schema.load(resp)
         return resp
 
+    def shutdown(self):
+        self.channel.shutdown()
+
     def is_ready(self):
         return self.channel.is_ready()
 
@@ -276,7 +279,7 @@ class TrackingStoreThroughChannel(TrackingStore):
         return "TrackingStoreThroughChannel with channel=%s" % (str(self.channel),)
 
     @staticmethod
-    def build_with_disabled_channel():
+    def build_with_disabled_channel(databand_ctx):
         from dbnd._core.tracking.backends.channels.tracking_disabled_channel import (
             DisabledTrackingChannel,
         )
@@ -284,7 +287,7 @@ class TrackingStoreThroughChannel(TrackingStore):
         return TrackingStoreThroughChannel(channel=DisabledTrackingChannel())
 
     @staticmethod
-    def build_with_console_debug_channel():
+    def build_with_console_debug_channel(databand_ctx):
         from dbnd._core.tracking.backends.channels.tracking_debug_channel import (
             ConsoleDebugTrackingChannel,
         )
@@ -292,17 +295,43 @@ class TrackingStoreThroughChannel(TrackingStore):
         return TrackingStoreThroughChannel(channel=ConsoleDebugTrackingChannel())
 
     @staticmethod
-    def build_with_web_channel():
+    def build_with_web_channel(databand_ctx):
         from dbnd._core.tracking.backends.channels.tracking_web_channel import (
             TrackingWebChannel,
         )
 
-        return TrackingStoreThroughChannel(channel=TrackingWebChannel())
+        return TrackingStoreThroughChannel(
+            channel=TrackingWebChannel(
+                databand_api_client=databand_ctx.databand_api_client
+            )
+        )
 
     @staticmethod
-    def build_with_proto_web_channel():
+    def build_with_async_web_channel(databand_ctx):
+        from dbnd._core.tracking.backends.channels.tracking_async_web_channel import (
+            TrackingAsyncWebChannel,
+        )
+
+        parameters = {
+            "max_retries": databand_ctx.settings.core.max_tracking_store_retries,
+            "remove_failed_store": databand_ctx.settings.core.remove_failed_store,
+            "tracker_raise_on_error": databand_ctx.settings.core.tracker_raise_on_error,
+            "is_verbose": databand_ctx.system_settings.verbose,
+            "databand_api_client": databand_ctx.databand_api_client,
+        }
+
+        return TrackingStoreThroughChannel(
+            channel=TrackingAsyncWebChannel(**parameters)
+        )
+
+    @staticmethod
+    def build_with_proto_web_channel(databand_ctx):
         from dbnd._core.tracking.backends.channels.tracking_proto_web_channel import (
             TrackingProtoWebChannel,
         )
 
-        return TrackingStoreThroughChannel(channel=TrackingProtoWebChannel())
+        return TrackingStoreThroughChannel(
+            channel=TrackingProtoWebChannel(
+                databand_api_client=databand_ctx.databand_api_client
+            )
+        )

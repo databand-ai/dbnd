@@ -90,6 +90,8 @@ class DatabandContext(SingletonContext):
         self.settings = None  # type: DatabandSettings
         self._is_initialized = False
 
+        self._tracking_store = None
+
     def _on_enter(self):
         pm.hook.dbnd_on_pre_init_context(ctx=self)
         run_user_func(config.get("core", "user_pre_init"))
@@ -138,14 +140,10 @@ class DatabandContext(SingletonContext):
         pm.hook.dbnd_post_enter_context(ctx=self)
 
     @property
-    @cached()
     def tracking_store(self):
-        return self.settings.core.build_tracking_store()
-
-    @property
-    @cached()
-    def tracking_store_allow_errors(self):
-        return self.settings.core.build_tracking_store(remove_failed_store=False)
+        if self._tracking_store is None:
+            self._tracking_store = self.settings.core.build_tracking_store(self)
+        return self._tracking_store
 
     @property
     @cached()
@@ -162,6 +160,8 @@ class DatabandContext(SingletonContext):
             MARSHALERS[pd.DataFrame][FileFormat.hdf5] = DataFrameToHdf5Table()
 
     def _on_exit(self):
+        if self._tracking_store:
+            self.tracking_store.shutdown()
         pm.hook.dbnd_on_exit_context(ctx=self)
 
     def is_interactive(self):

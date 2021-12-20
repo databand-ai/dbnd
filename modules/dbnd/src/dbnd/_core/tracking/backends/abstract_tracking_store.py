@@ -41,6 +41,9 @@ def is_state_call(func_name):
 
 
 class TrackingStore(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
     @state_call
     def init_scheduled_job(self, scheduled_job, update_existing):
         pass
@@ -141,4 +144,7 @@ class TrackingStore(object):
 
     def is_ready(self):
         # type: () -> bool
+        pass
+
+    def shutdown(self):
         pass

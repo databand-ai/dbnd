@@ -72,3 +72,6 @@ class TrackingChannel(object):
 
     def get_schema_by_handler_name(self, handler_name):
         raise NotImplementedError()
+
+    def shutdown(self):
+        pass

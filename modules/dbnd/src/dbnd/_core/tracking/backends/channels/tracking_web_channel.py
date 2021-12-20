@@ -15,10 +15,9 @@ from dbnd._core.utils.basics.memoized import cached
 class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
     """Json API client implementation."""
 
-    @property
-    @cached()
-    def client(self):
-        return get_databand_context().databand_api_client
+    def __init__(self, databand_api_client, *args, **kwargs):
+        super(TrackingWebChannel, self).__init__(*args, **kwargs)
+        self.client = databand_api_client
 
     def _handle(self, name, data):
         try:
