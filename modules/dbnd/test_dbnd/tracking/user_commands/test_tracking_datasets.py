@@ -166,10 +166,10 @@ class TestTrackingDatasets(object):
         log_metrics_args = get_log_metrics(mock_channel_tracker)
         metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
         assert metrics_names == {
-            "path.to.schema",
-            "path.to.shape0",
-            "path.to.shape1",
-            "path.to.rows",
-            "path.to.columns",
-            "path.to",
+            "path.to.value.csv.schema",
+            "path.to.value.csv.shape0",
+            "path.to.value.csv.shape1",
+            "path.to.value.csv.rows",
+            "path.to.value.csv.columns",
+            "path.to.value.csv",
         }

@@ -37,6 +37,7 @@ class TestLogDataSetOpMetrics(object):
                 with_schema=schema,
                 with_preview=preview,
                 with_histograms=True,
+                with_partition=True,
             )
 
         task_log_dataset_op_nested_json_data()
@@ -163,6 +164,7 @@ class TestLogDataSetOpMetrics(object):
                 with_schema=schema,
                 with_preview=preview,
                 with_histograms=False,
+                with_partition=True,
             )
 
         task_log_dataset_op_flat_json_data()

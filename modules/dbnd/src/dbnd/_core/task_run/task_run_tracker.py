@@ -1,6 +1,7 @@
 import logging
 import typing
 
+import attr
 import six
 
 from dbnd._core.constants import (
@@ -15,7 +16,7 @@ from dbnd._core.log.external_exception_logging import (
     log_exception_to_server,
 )
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
-from dbnd._core.settings.tracking_config import get_value_meta
+from dbnd._core.settings.tracking_config import TrackingConfig, get_value_meta
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
@@ -203,17 +204,29 @@ class TaskRunTracker(TaskRunCtrl):
         if not (metrics["user"] or metrics["histograms"]):
             logger.info("No metrics to log_data(key={})".format(key))
 
-    def log_dataset(
-        self,
-        operation_path,  # type: Union[Target,str]
-        operation_type,  # type: DbndDatasetOperationType
-        operation_status,  # type: DbndTargetOperationStatus
-        operation_error,  # type: str
-        data=None,  # type: Optional[Any]
-        meta_conf=None,  # type: Optional[ValueMetaConf]
-        send_metrics=True,  # type: bool
-        with_partition=None,  # type: Optional[bool]
-    ):
+    def log_dataset(self, op_report):
+        # type: (DatasetOperationReport) -> None
+        data_meta = self._calc_meta_data(op_report.data, op_report.meta_conf)
+
+        self.tracking_store.log_dataset(
+            task_run=self.task_run,
+            operation_path=op_report.op_path,
+            data_meta=data_meta,
+            operation_type=op_report.op_type,
+            operation_status=op_report.status,
+            operation_error=op_report.error,
+            with_partition=op_report.with_partition,
+        )
+
+        if op_report.send_metrics:
+            dataset_name = _get_dataset_name(
+                op_report.op_path, op_report.with_partition
+            )
+
+            self.log_value_metrics(dataset_name, op_report.meta_conf, data_meta)
+
+    def _calc_meta_data(self, data, meta_conf):
+        # type: (Any, ValueMetaConf) -> ValueMeta
         data_meta = None
         if data is not None and meta_conf is not None:
             # Combine meta_conf with the config settings
@@ -223,31 +236,14 @@ class TaskRunTracker(TaskRunCtrl):
                 )
             except Exception as e:
                 log_exception_to_server(e)
-                logger.exception(
-                    "Failed to get value meta info for operation_path {}".format(
-                        str(operation_path)
-                    )
-                )
 
         if data_meta is None:
             data_meta = ValueMeta("")
 
-        self.tracking_store.log_dataset(
-            task_run=self.task_run,
-            operation_path=operation_path,
-            data_meta=data_meta,
-            operation_type=operation_type,
-            operation_status=operation_status,
-            operation_error=operation_error,
-            with_partition=with_partition,
-        )
-
-        if send_metrics:
-            dataset_name = _get_dataset_name(operation_path)
-            self.log_value_metrics(dataset_name, meta_conf, data_meta)
+        return data_meta
 
 
-def _get_dataset_name(operation_path):
+def _get_dataset_name(operation_path, with_partition):
     """
     This is a temporary patch to report metrics with log_dataset.
     Should be removed in favor of reporting the metrics with the dataset operation
@@ -262,21 +258,86 @@ def _get_dataset_name(operation_path):
     import itertools
 
     path = urlparse(str(operation_path)).path  # type: str
-    dirname, basename = os.path.split(path)
-    dataset_path = dirname
-    if "." not in basename or path.endswith("/"):
-        dataset_path = path
 
-    # removing any partition
-    path_parts = list(
-        itertools.takewhile(
-            lambda part: "=" not in part, dataset_path.strip("/").split("/")
-        )
-    )
+    if with_partition:
+        dirname, basename = os.path.split(path)
+        if "." in basename and not path.endswith("/"):
+            path = dirname
+
+    path_parts = path.strip("/").split("/")
+    if with_partition:
+        path_parts = list(itertools.takewhile(lambda part: "=" not in part, path_parts))
+
     dataset_name = ".".join(path_parts)
+
     # we might not successfully extract a name from the path so as a
     # fallback we return the original value
     if dataset_name == "":
         return operation_path
 
     return dataset_name
+
+
+@attr.s(slots=True, frozen=False, kw_only=True)
+class DatasetOperationReport(object):
+    """
+    Holds the information about an operation to report
+    """
+
+    op_path = attr.ib(default=None)
+    op_type = attr.ib(
+        default=None,
+        # convert str of "read" or "write" to operation type
+        converter=lambda op_type: DbndDatasetOperationType[op_type]
+        if isinstance(op_type, str)
+        else op_type,
+    )
+    data = attr.ib(default=None)
+    success = attr.ib(default=None)
+    error = attr.ib(default=None)
+
+    with_preview = attr.ib(default=None)
+    with_schema = attr.ib(default=None)
+    with_histograms = attr.ib(default=None)
+
+    send_metrics = attr.ib(default=None)
+    with_partition = attr.ib(default=None)
+
+    def set(self, **kwargs):
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                logger.warning(
+                    "Can't set attribute {} for DatasetOperationLogger, no such attribute".format(
+                        k
+                    )
+                )
+
+    def set_data(self, data):
+        self.set(data=data)
+
+    def set_error(self, error):
+        # type: (str) -> None
+        self.set(success=False, error=error)
+
+    def set_success(self):
+        self.set(success=True)
+
+    @property
+    def meta_conf(self):
+        return ValueMetaConf(
+            log_preview=self.with_preview,
+            log_schema=self.with_schema,
+            log_size=self.with_schema,
+            log_stats=self.with_histograms,
+            log_histograms=self.with_histograms,
+        )
+
+    @property
+    def status(self):
+        return (
+            DbndTargetOperationStatus.OK
+            if self.success
+            else DbndTargetOperationStatus.NOK
+        )

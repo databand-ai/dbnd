@@ -10,7 +10,7 @@ from dbnd._core.constants import (
     DbndTargetOperationType,
 )
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
-from dbnd._core.task_run.task_run_tracker import TaskRunTracker
+from dbnd._core.task_run.task_run_tracker import DatasetOperationReport, TaskRunTracker
 from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.utils import seven
 from targets import Target
@@ -185,69 +185,6 @@ def log_artifact(key, artifact):
     logger.info("Artifact %s=%s", key, artifact)
 
 
-def log_dataset_op(
-    op_path,  # type: Union[Target,str]
-    op_type,  # type: Union[DbndDatasetOperationType, str]
-    success=True,  # type: bool
-    error=None,  # type: str
-    data=None,
-    with_preview=None,
-    with_schema=None,
-    with_histograms=None,
-    send_metrics=True,
-    with_partition=None,
-):
-    """
-    Logs dataset operation and meta data to dbnd.
-
-    @param op_path: Target object to log or a unique path representing the operation location
-    @param op_type: the type of operation that been done with the target - read, write, delete.
-    @param success: True if the operation succeeded, False otherwise.
-    @param error: optional error message.
-    @param data: optional value of data to use build meta-data on the target
-    @param with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
-    @param with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
-    @param with_histograms:
-    """
-    if isinstance(op_type, str):
-        # If str type is not of DbndDatasetOperationType, raise.
-        op_type = DbndDatasetOperationType[op_type]
-
-    tracker = _get_tracker()
-    if tracker:
-        meta_conf = ValueMetaConf(
-            log_preview=with_preview,
-            log_schema=with_schema,
-            log_size=with_schema,
-            log_stats=with_histograms,
-            log_histograms=with_histograms,
-        )
-
-        status = (
-            DbndTargetOperationStatus.OK if success else DbndTargetOperationStatus.NOK
-        )
-
-        tracker.log_dataset(
-            operation_path=op_path,
-            operation_type=op_type,
-            operation_status=status,
-            operation_error=error,
-            data=data,
-            meta_conf=meta_conf,
-            send_metrics=send_metrics,
-            with_partition=with_partition,
-        )
-        return
-
-    logger.info(
-        "Operation {operation} executed {status} on target {path}.".format(
-            operation=op_type,
-            status=("successfully" if success else "unsuccessfully"),
-            path=str(op_path),
-        )
-    )
-
-
 @seven.contextlib.contextmanager
 def log_duration(metric_key, source="user"):
     """
@@ -271,27 +208,56 @@ def log_duration(metric_key, source="user"):
         log_metric(metric_key, end_time - start_time, source)
 
 
-@attr.s(slots=True, frozen=False)
-class DatasetOperationLogger(object):
-    op_path = attr.ib(default=None)
-    op_type = attr.ib(default=None)
-    data = attr.ib(default=None)
-    with_preview = attr.ib(default=None)
-    with_schema = attr.ib(default=None)
-    with_histograms = attr.ib(default=None)
-    send_metrics = attr.ib(default=None)
-    with_partition = attr.ib(default=None)
+def _report_operation(operation_report):
+    # type: (DatasetOperationReport) -> None
+    tracker = _get_tracker()
+    if not tracker:
+        logger.warning(f"No tracker, can't report operation: {operation_report}")
+        return
 
-    def set(self, **kwargs):
-        for k, v in kwargs.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
-            else:
-                logger.warning(
-                    "Can't set attribute {} for DatasetOperationLogger, no such attribute".format(
-                        k
-                    )
-                )
+    tracker.log_dataset(op_report=operation_report)
+
+
+def log_dataset_op(
+    op_path,  # type: Union[Target,str]
+    op_type,  # type: Union[DbndDatasetOperationType, str]
+    success=True,  # type: bool
+    error=None,  # type: str
+    data=None,  # type: Optional[Any]
+    with_preview=None,  # type: Optional[bool]
+    with_schema=None,  # type: Optional[bool]
+    with_histograms=None,  # type: Optional[bool]
+    send_metrics=True,  # type: bool
+    with_partition=None,  # type: Optional[bool]
+):
+    """
+    Logs dataset operation and meta data to dbnd.
+
+    Args:
+        op_path: Target object to log or a unique path representing the target logic location.
+        op_type: the type of operation that been done with the dataset - read, write, delete.
+        success: True if the operation succeeded, False otherwise.
+        error: optional error message.
+        data: optional value of data to use build meta-data on the dataset.
+        with_preview: should extract preview of the data as meta-data of the dataset - relevant only with data param.
+        with_schema: should extract schema of the data as meta-data of the dataset - relevant only with data param.
+        with_histograms: should calculate histogram and stats of the given data - relevant only with data param.
+        send_metrics: should report preview, schemas and histograms as metrics.
+        with_partition: should we strip any partition from the path or not, use None for BE default.
+    """
+    operation_report = DatasetOperationReport(
+        op_path=op_path,
+        op_type=op_type,
+        data=data,
+        success=success,
+        error=error,
+        with_preview=with_preview,
+        with_schema=with_schema,
+        with_histograms=with_histograms,
+        send_metrics=send_metrics,
+        with_partition=with_partition,
+    )
+    _report_operation(operation_report)
 
 
 @seven.contextlib.contextmanager
@@ -335,25 +301,23 @@ def dataset_op_logger(
         send_metrics: should report preview, schemas and histograms as metrics.
         with_partition: should we strip any partition from the path or not, use None for BE default.
     """
-    if isinstance(op_type, str):
-        # If str type is not of DbndDatasetOperationType, raise.
-        op_type = DbndDatasetOperationType[op_type]
-
-    op = DatasetOperationLogger(
-        op_path,
-        op_type,
-        data,
-        with_preview,
-        with_schema,
-        with_histograms,
-        send_metrics,
-        with_partition,
+    operation_report = DatasetOperationReport(
+        op_path=op_path,
+        op_type=op_type,
+        data=data,
+        with_preview=with_preview,
+        with_schema=with_schema,
+        with_histograms=with_histograms,
+        send_metrics=send_metrics,
+        with_partition=with_partition,
     )
 
     try:
-        yield op
+        yield operation_report
     except Exception as e:
-        log_dataset_op(success=False, **attr.asdict(op), error=str(e))
+        operation_report.set_error(error=str(e))
         raise
     else:
-        log_dataset_op(success=True, **attr.asdict(op))
+        operation_report.set_success()
+    finally:
+        _report_operation(operation_report)
