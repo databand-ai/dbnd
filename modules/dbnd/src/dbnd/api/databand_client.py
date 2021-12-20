@@ -5,6 +5,7 @@ from pprint import pprint
 import dateutil.parser
 
 from dbnd import get_databand_context
+from dbnd._core.errors.base import DatabandApiError
 
 
 logger = logging.getLogger(__name__)
@@ -119,13 +120,21 @@ class DatabandClient(object):
         return runs_info
 
     def _get_task_start_time(self, task_run):
-        attempt_end_time = task_run["latest_task_run_attempt"].get("end_date", None)
+        if not task_run.get("latest_task_run_attempt"):
+            return None
+        attempt_end_time = task_run["latest_task_run_attempt"].get("end_date")
         if attempt_end_time is None:
             return None
         return dateutil.parser.isoparse(attempt_end_time)
 
     def get_first_task_run_error(self, run_uid):
-        run_info = self.get_run_info(run_uid)
+        try:
+            run_info = self.get_run_info(run_uid)
+        except DatabandApiError as error:
+            if error.resp_code == 404:
+                return None
+            raise
+
         first_error_time = first_error_task = None
         for task_run in run_info["task_runs"]:
             task_time = self._get_task_start_time(task_run)

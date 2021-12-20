@@ -77,7 +77,7 @@ class TaskRunInfoSchema(ApiStrictSchema):
     task_signature_source = fields.String()
 
     task_af_id = fields.String()
-    execution_date = fields.DateTime()
+    execution_date = fields.DateTime(allow_none=True)
 
     name = fields.String()
 
