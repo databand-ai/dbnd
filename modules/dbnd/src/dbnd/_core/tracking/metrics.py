@@ -97,6 +97,27 @@ def log_data(
 
 # logging dataframe is the same as logging data
 log_dataframe = log_data
+log_dataframe.__doc__ = f"""Logs a dataframe to dbnd.
+
+    Args:
+        key: Name of the dataframe.
+        value: The dataframe itself.
+        path: Optional target or path representing a target to connect the dataframe to.
+        operation_type: Type of the operation doing with the target - reading or writing the dataframe?
+        with_preview: True if should log a preview of the dataframe.
+        with_size: True if should log the size of the dataframe.
+        with_schema: True if should log the schema of the dataframe.
+        with_stats: True if should calculate and log stats of the dataframe.
+        with_histograms: True if should calculate and log histogram of the dataframe.
+        raise_on_error: raise if error occur.
+
+    Example::
+
+        @task
+        def process_customers_data(data) -> pd.DataFrame:
+            log_dataframe("customers_data", data)
+
+"""
 
 
 def log_pg_table(
@@ -142,9 +163,16 @@ def log_metric(key, value, source="user"):
     """
     Log key-value pair as a metric to dbnd.
 
-    @param key: Name of the metric.
-    @param value: Value of the metric.
-    @param source: The source of the metric, default is user.
+    Args:
+        key: Name of the metric.
+        value: Value of the metric.
+        source: The source of the metric, default is user.
+
+    Example::
+
+        def calculate_alpha(alpha):
+            alpha *= 1.1
+            log_metric("alpha", alpha)
     """
     tracker = _get_tracker()
     if tracker:
@@ -157,11 +185,19 @@ def log_metric(key, value, source="user"):
 def log_metrics(metrics_dict, source="user", timestamp=None):
     # type: (Dict[str, Any], str, datetime) -> None
     """
-    Log multiple key-value pairs as a metrics to dbnd.
+    Log multiple key-value pairs as metrics to dbnd.
 
-    @param metrics_dict: Key-value pairs of metrics to log.
-    @param source: Optional name of the metrics source, default is user.
-    @param timestamp: Optional timestamp of the metrics.
+    Args:
+        metrics_dict: Key-value pairs of metrics to log.
+        source: Optional name of the metrics source, default is user.
+        timestamp: Optional timestamp of the metrics.
+
+    Example::
+
+        @task
+        def log_lowercase_letters():
+            # all lower alphabet chars -> {"a": 97,..., "z": 122}
+            log_metrics({chr(i): i for i in range(97, 123)})
     """
 
     tracker = _get_tracker()
@@ -177,6 +213,20 @@ def log_metrics(metrics_dict, source="user", timestamp=None):
 
 
 def log_artifact(key, artifact):
+    """
+    Log a local file or directory as an artifact of the currently active run.
+
+    Args:
+        key: The key by which to log the artifact
+        artifact: The artifact to log
+
+    Example::
+
+        def prepare_data(data):
+            lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt"
+            data.write(lorem)
+            log_artifact("my_tmp_file", str(data))
+    """
     tracker = _get_tracker()
     if tracker:
         tracker.log_artifact(key, artifact)
@@ -191,12 +241,14 @@ def log_duration(metric_key, source="user"):
     Measure time of function or code block, and log to Databand as a metric.
     Can be used as a decorator and in "with" statement as a context manager.
 
-    Example 1:
+    Example 1::
+
         @log_duration("f_time_duration")
         def f():
             sleep(1)
 
-    Example 2:
+    Example 2::
+
         with log_duration("my_code_duration"):
             sleep(1)
     """
@@ -234,16 +286,25 @@ def log_dataset_op(
     Logs dataset operation and meta data to dbnd.
 
     Args:
-        op_path: Target object to log or a unique path representing the target logic location.
-        op_type: the type of operation that been done with the dataset - read, write, delete.
+        op_path: Target object to log or a unique path representing the operation location
+        op_type: the type of operation that been done with the target - read, write, delete.
         success: True if the operation succeeded, False otherwise.
         error: optional error message.
-        data: optional value of data to use build meta-data on the dataset.
-        with_preview: should extract preview of the data as meta-data of the dataset - relevant only with data param.
-        with_schema: should extract schema of the data as meta-data of the dataset - relevant only with data param.
-        with_histograms: should calculate histogram and stats of the given data - relevant only with data param.
-        send_metrics: should report preview, schemas and histograms as metrics.
-        with_partition: should we strip any partition from the path or not, use None for BE default.
+        data: optional value of data to use build meta-data on the target
+        with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
+        with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
+
+    Example::
+
+        @task
+        def prepare_data():
+            log_dataset_op(
+                "/path/to/value.csv",
+                DbndDatasetOperationType.read,
+                data=pandas_data_frame,
+                with_preview=True,
+                with_schema=True,
+            )
     """
     operation_report = DatasetOperationReport(
         op_path=op_path,
@@ -273,7 +334,17 @@ def dataset_op_logger(
 ):
     """
     Wrapper to Log dataset operation and meta data to dbnd.
-    ** Make sure to wrap only operation related code **
+
+    Make sure to only wrap operation related code!
+
+    Args:
+        op_path: Target object to log or a unique path representing the target logic location
+        op_type: the type of operation that been done with the dataset - read, write, delete.
+        data: optional value of data to use build meta-data on the dataset
+        with_preview: should extract preview of the data as meta-data of the dataset - relevant only with data param
+        with_schema: should extract schema of the data as meta-data of the dataset - relevant only with data param
+        with_histograms: should calculate histogram and stats of the given data - relevant only with data param
+        send_metrics: should report preview, schemas and histograms as metrics
 
     Good Example::
 
@@ -289,17 +360,7 @@ def dataset_op_logger(
             value = read_from()
             # Read is successful
             unrelated_func()
-            # If unrelated_func raise exception, failed read operation is reported to databand.
-
-    Args:
-        op_path: Target object to log or a unique path representing the target logic location.
-        op_type: the type of operation that been done with the dataset - read, write, delete.
-        data: optional value of data to use build meta-data on the dataset.
-        with_preview: should extract preview of the data as meta-data of the dataset - relevant only with data param.
-        with_schema: should extract schema of the data as meta-data of the dataset - relevant only with data param.
-        with_histograms: should calculate histogram and stats of the given data - relevant only with data param.
-        send_metrics: should report preview, schemas and histograms as metrics.
-        with_partition: should we strip any partition from the path or not, use None for BE default.
+            # If unrelated_func raises an exception, failed read operation is reported to databand.
     """
     operation_report = DatasetOperationReport(
         op_path=op_path,

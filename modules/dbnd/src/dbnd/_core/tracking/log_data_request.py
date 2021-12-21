@@ -22,7 +22,17 @@ def columns_converter(columns):
 
 @attr.s
 class LogDataRequest(object):
-    """ Used in log_data() for with_stats, with_histograms params """
+    """
+    Used in log_data() for with_stats, with_histograms params
+
+    Example::
+
+        @task
+        def process_customers_data(data):
+            log_dataframe("customers_data", data,
+                          with_histograms=LogDataRequest(include_all_numeric=True,
+                                                           exclude_columns=["name", "phone"]))
+    """
 
     include_columns = attr.ib(
         converter=columns_converter, factory=list
