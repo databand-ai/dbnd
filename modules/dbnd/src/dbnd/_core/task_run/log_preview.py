@@ -69,6 +69,20 @@ def read_dbnd_log_preview(log_path, spark_log_path=None):
     return merge_msg.join(joined_parts)
 
 
+def adjust_log_lines_to_size(log_lines, size, reverse=False):
+    # readlines() is not accurate, so need to perform an extra check on size
+    # https://stackoverflow.com/a/14541029/6517749
+    result = []
+    current_size = 0
+    for line in log_lines if not reverse else reversed(log_lines):
+        current_size += len(line)
+        if current_size <= size:
+            result.append(line)
+        else:
+            break
+    return result if not reverse else reversed(result)
+
+
 def read_head_and_tail(path, head_size, tail_size):
     """
     Safe reading of the file:
@@ -91,11 +105,16 @@ def read_head_and_tail(path, head_size, tail_size):
         if head_size + tail_size < file_size:
             # readlines(0) returns all the lines but in our case we need no lines
             head_content = f.readlines(head_size) if head_size else []
+            head_content = adjust_log_lines_to_size(head_content, head_size)
 
             if f.seekable():
                 f.seek(-tail_size, io.SEEK_END)
             # removing the first line cause it may not be a complete line
             tail_content = f.readlines(tail_size)[1:]
+            # reverse tail_content to remove an element from a beginning of log + reverse back
+            tail_content = adjust_log_lines_to_size(
+                tail_content, tail_size, reverse=True
+            )
 
             return _decode_lines(head_content), _decode_lines(tail_content)
 

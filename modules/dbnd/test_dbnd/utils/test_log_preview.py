@@ -69,7 +69,6 @@ def open_mock(path, *args, **kwargs):
                     "[2020-01-01 00:00:01,000] first log line",
                     "[2020-01-01 00:00:11,000] second log line",
                     "[2020-01-01 00:00:20,000] keep with logs",
-                    "[2020-01-01 00:00:35,000] more and more and more",
                 ],
                 [],
             ],
@@ -85,7 +84,6 @@ def open_mock(path, *args, **kwargs):
                     "[2020-01-01 00:00:01,000] first log line",
                     "[2020-01-01 00:00:11,000] second log line",
                     "[2020-01-01 00:00:20,000] keep with logs",
-                    "[2020-01-01 00:00:35,000] more and more and more",
                 ],
                 [],
             ],
@@ -96,10 +94,7 @@ def open_mock(path, *args, **kwargs):
             110,  # tail size
             [
                 # two line of head
-                [
-                    "[2020-01-01 00:00:01,000] first log line",
-                    "[2020-01-01 00:00:11,000] second log line",
-                ],
+                ["[2020-01-01 00:00:01,000] first log line",],
                 # two lines of tail
                 [
                     "[2020-01-01 00:00:38,000] 0,1,1,2,3,5,8,13,21,34,55",
@@ -145,8 +140,6 @@ def test_file_head_and_tail(monkeypatch, path, head_size, tail_size, expected):
                     "[2020-01-01 00:00:11,000] second log line",
                     "[2020-01-01 00:00:13,000] sure sure",
                     "[2020-01-01 00:00:15,000] cool log line man",
-                    "[2020-01-01 00:00:20,000] keep with logs",
-                    "[2020-01-01 00:00:24,000] make sense?",
                 ],
                 [
                     "[2020-01-01 00:00:33,000] damn",
@@ -165,8 +158,6 @@ def test_file_head_and_tail(monkeypatch, path, head_size, tail_size, expected):
                     "[2020-01-01 00:00:11,000] second log line",
                     "[2020-01-01 00:00:13,000] sure sure",
                     "[2020-01-01 00:00:15,000] cool log line man",
-                    "[2020-01-01 00:00:20,000] keep with logs",
-                    "[2020-01-01 00:00:24,000] make sense?",
                 ],
                 [],
             ],
