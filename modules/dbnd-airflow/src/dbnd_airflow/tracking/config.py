@@ -16,12 +16,12 @@ class AirflowTrackingConfig(Config):
     )[str]
 
     track_airflow_execute_result = parameter(
-        default=True,
+        default=False,
         description="Allow saving the results of tracked airflow operator",
     )[bool]
 
     track_xcom_values = parameter(
-        default=True,
+        default=False,
         description="Allow logging the values of xcom variables from airflow",
     )[bool]
 
