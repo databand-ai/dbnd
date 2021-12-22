@@ -225,12 +225,13 @@ public class DbndWrapper {
                                     Dataset<?> data,
                                     Throwable error,
                                     boolean withPreview,
-                                    boolean withSchema) {
+                                    boolean withSchema,
+                                    Boolean withPartition) {
         DbndRun run = currentRun();
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, data, error, withPreview, withSchema);
+        run.logDatasetOperation(path, type, status, data, error, withPreview, withSchema, withPartition);
     }
 
     public void logDatasetOperation(String path,
@@ -238,12 +239,13 @@ public class DbndWrapper {
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
                                     boolean withPreview,
-                                    boolean withSchema) {
+                                    boolean withSchema,
+                                    Boolean withPartition) {
         DbndRun run = currentRun();
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, data, null, withPreview, withSchema);
+        run.logDatasetOperation(path, type, status, data, null, withPreview, withSchema, withPartition);
     }
 
     public void logDatasetOperation(String path,
@@ -251,12 +253,13 @@ public class DbndWrapper {
                                     DatasetOperationStatus status,
                                     String valuePreview,
                                     List<Long> dataDimensions,
-                                    String dataSchema) {
+                                    String dataSchema,
+                                    Boolean withPartition) {
         DbndRun run = currentRun();
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema);
+        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition);
     }
 
     public void logMetrics(Map<String, Object> metrics) {

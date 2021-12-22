@@ -69,7 +69,8 @@ public class NoopDbndRun implements DbndRun {
                                     String error,
                                     String valuePreview,
                                     List<Long> dataDimensions,
-                                    Object dataSchema) {
+                                    Object dataSchema,
+                                    Boolean withPartition) {
         // do nothing
     }
 
@@ -80,7 +81,8 @@ public class NoopDbndRun implements DbndRun {
                                     Dataset<?> data,
                                     Throwable error,
                                     boolean withPreview,
-                                    boolean withSchema) {
+                                    boolean withSchema,
+                                    Boolean withPartition) {
         // do nothing
     }
 

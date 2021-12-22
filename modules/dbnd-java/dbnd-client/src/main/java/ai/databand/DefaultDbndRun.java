@@ -628,7 +628,8 @@ public class DefaultDbndRun implements DbndRun {
                                     String error,
                                     String valuePreview,
                                     List<Long> dataDimensions,
-                                    Object dataSchema) {
+                                    Object dataSchema,
+                                    Boolean withPartition) {
         try {
             TaskRun currentTask = stack.peek();
             if (currentTask == null) {
@@ -643,7 +644,8 @@ public class DefaultDbndRun implements DbndRun {
                     error,
                     valuePreview,
                     dataDimensions,
-                    dataSchema
+                    dataSchema,
+                    withPartition
                 )
             ));
         } catch (Exception e) {
@@ -658,7 +660,8 @@ public class DefaultDbndRun implements DbndRun {
                                     Dataset<?> data,
                                     Throwable error,
                                     boolean withPreview,
-                                    boolean withSchema) {
+                                    boolean withSchema,
+                                    Boolean withPartition) {
         TaskParameterPreview preview = withSchema ? new DatasetOperationPreview() : new NullPreview();
         String errorStr = null;
         if (error != null) {
@@ -668,7 +671,7 @@ public class DefaultDbndRun implements DbndRun {
                 errorStr = sw.toString();
             }
         }
-        logDatasetOperation(path, type, status, errorStr, preview.full(data), preview.dimensions(data), preview.schema(data));
+        logDatasetOperation(path, type, status, errorStr, preview.full(data), preview.dimensions(data), preview.schema(data), withPartition);
     }
 
     public void logMetric(TaskRun taskRun, String key, Object value, String source) {

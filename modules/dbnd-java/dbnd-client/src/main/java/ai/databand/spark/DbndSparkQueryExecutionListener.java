@@ -52,7 +52,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                     DatasetOperationStatus.OK,
                     "",
                     schema.right(),
-                    schema.left()
+                    schema.left(),
+                    true
                 );
             }
         }
@@ -73,7 +74,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                         DatasetOperationStatus.OK,
                         "",
                         schema.right(),
-                        schema.left()
+                        schema.left(),
+                        true
                     );
                 }
             }

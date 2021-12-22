@@ -88,23 +88,24 @@ public interface DbndRun {
     /**
      * Log dataset operations.
      *
-     * @param operationPath
-     * @param operationType
-     * @param operationStatus
+     * @param path
+     * @param type
+     * @param status
      * @param valuePreview
      * @param dataDimensions
      * @param dataSchema
      */
-    void logDatasetOperation(String operationPath,
-                             DatasetOperationType operationType,
-                             DatasetOperationStatus operationStatus,
+    void logDatasetOperation(String path,
+                             DatasetOperationType type,
+                             DatasetOperationStatus status,
                              String valuePreview,
                              String error,
                              List<Long> dataDimensions,
-                             Object dataSchema);
+                             Object dataSchema,
+                             Boolean withPartition);
 
     /**
-     * Log dataset operations.
+     * Log dataset operations with options like preview and schema generation.
      *
      * @param path
      * @param type
@@ -119,7 +120,8 @@ public interface DbndRun {
                              Dataset<?> data,
                              Throwable error,
                              boolean withPreview,
-                             boolean withSchema);
+                             boolean withSchema,
+                             Boolean withPartition);
 
     /**
      * Log Deequ result
