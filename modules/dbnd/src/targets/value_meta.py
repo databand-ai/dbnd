@@ -77,7 +77,7 @@ class ValueMeta(object):
             )
 
         if self.columns_stats:
-            # We dump_column_stats to old stats_dict for backward compatibility support
+            # We dump_op_column_stats to old stats_dict for backward compatibility support
             stats_dict = self.get_stats_dict_from_columns_stats()
             key_name = f"{key}.stats"
             self.append_metric(
