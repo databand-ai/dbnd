@@ -13,7 +13,6 @@ from dbnd._core.tracking.backends import (
     CompositeTrackingStore,
     ConsoleStore,
     FileTrackingStore,
-    TbSummaryFileStore,
     TrackingStore,
     TrackingStoreThroughChannel,
 )
