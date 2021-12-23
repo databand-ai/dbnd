@@ -9,6 +9,7 @@ from more_itertools import first, padded
 
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
 from dbnd._core.sql_tracker_common.sql_extract import Column, Schema
+from dbnd._core.sql_tracker_common.utils import strip_quotes
 from targets.connections import build_conn_path
 from targets.value_meta import ValueMeta
 from targets.values import register_value_type
@@ -130,11 +131,9 @@ def split_table_name(table_name: str) -> Tuple[str, Optional[str], Optional[str]
 
 def render_table_name(connection: Connection, table_name: str, sep: str = ".") -> str:
     database, schema, table = split_table_name(table_name)
-
-    database = database or connection.database
-    schema = schema or connection.schema
-
-    path = sep.join(filter(None, [database, schema, table],))
+    database = connection.database or database
+    schema = connection.schema or schema
+    path = sep.join(map(strip_quotes, filter(None, [database, schema, table],)))
     return path
 
 

@@ -17,7 +17,7 @@ from sqlparse.sql import (
 from sqlparse.tokens import Keyword, Name, Token as TokenType, Whitespace, Wildcard
 
 from dbnd._core.constants import DbndTargetOperationType
-from dbnd._core.sql_tracker_common.utils import ddict2dict
+from dbnd._core.sql_tracker_common.utils import ddict2dict, strip_quotes
 
 
 @attr.s
@@ -47,7 +47,14 @@ CLOUD_SERVICE_URI_REGEX = re.compile(r"s3://\S+|azure://\S+|gcs://\S+")
 STAGE_REGEX = re.compile(r"@\S+")
 
 
+def calculate_file_path_default(file_path):
+    return file_path
+
+
 class SqlQueryExtractor:
+    def __init__(self, calculate_file_path=calculate_file_path_default):
+        self.calculate_file_path = calculate_file_path
+
     def extract_operations_schemas(self, statement: TokenList) -> Dict[OP_TYPE, Schema]:
         """
         This function go over the statement and extract the used tables names and the operation that it is been done
@@ -82,8 +89,12 @@ class SqlQueryExtractor:
             if token.ttype in Keyword:
                 operation_name = token.value.upper()
                 idx_potential, next_token = self._next_non_empty_token(idx, statement)
+                next_operation_name = next_token.value.upper()
 
-                if operation_name == "INTO":
+                # copy and copy into statement are handled once per query
+                if operation_name == "INTO" or (
+                    operation_name == "COPY" and next_operation_name != "INTO"
+                ):
                     extracted, idx = self.handle_into(
                         idx_potential, next_token, statement
                     )
@@ -140,7 +151,7 @@ class SqlQueryExtractor:
         clean_query_list = []
         for command in command_list:
             if command and (self.find_cloud_regex(command) or self.is_stage(command)):
-                command = command.replace("'", "").replace('"', "")
+                command = strip_quotes(command)
             clean_query_list.append(command)
         return " ".join(clean_query_list).strip()
 
@@ -165,7 +176,7 @@ class SqlQueryExtractor:
           """
         cloud_uri_path = self.extract_cloud_uri(next_token)
         if cloud_uri_path:
-            table_alias = cloud_uri_path
+            table_alias = self.calculate_file_path(cloud_uri_path)
             table_name = table_alias
             columns = [
                 Column(

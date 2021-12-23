@@ -8,3 +8,8 @@ def ddict2dict(d: Union[defaultdict, dict]) -> dict:
         if isinstance(v, dict):
             d[k] = ddict2dict(v)
     return dict(d)
+
+
+def strip_quotes(command: str) -> str:
+    if command:
+        return command.replace("'", "").replace('"', "")

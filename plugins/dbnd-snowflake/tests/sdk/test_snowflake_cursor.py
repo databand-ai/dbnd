@@ -1,6 +1,6 @@
 import pytest
 
-from dbnd_snowflake.sdk.tracker import extract_schema_from_sf_desc
+from dbnd_snowflake.sdk.snowflake_tracker import extract_schema_from_sf_desc
 
 
 @pytest.mark.parametrize(

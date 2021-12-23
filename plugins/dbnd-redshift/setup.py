@@ -12,6 +12,6 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-redshift",
     package_dir={"": "src"},
-    install_requires=["psycopg2-binary", "dbnd==" + version],
+    install_requires=["psycopg2-binary", "dbnd==" + version, "redshift_connector"],
     entry_points={},
 )
