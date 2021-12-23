@@ -19,7 +19,7 @@ def log_received_tasks(url, fetched_data):
         )
         if "since" in fetched_data:
             d.append(("since", fetched_data["since"]))
-        logger.info(
+        logger.debug(
             "Received data from %s with: {%s}",
             url,
             ", ".join(["{}: {}".format(k, v) for k, v in d]),

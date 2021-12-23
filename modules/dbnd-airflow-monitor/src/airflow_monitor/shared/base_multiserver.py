@@ -114,6 +114,12 @@ class BaseMultiServerMonitor(object):
 
     def _heartbeat(self):
         for monitor in self.active_monitors.values():
+            logger.info(
+                "Starting new sync iteration for tracking_source_uid=%s, name=%s, iteration %d",
+                monitor.server_config.tracking_source_uid,
+                monitor.server_config.source_name,
+                self.iteration,
+            )
             monitor.heartbeat()
 
     def run(self):
@@ -122,10 +128,10 @@ class BaseMultiServerMonitor(object):
         while True:
             self.iteration += 1
             try:
-                logger.info(f"Starting {self.iteration} iteration")
+                logger.debug(f"Starting {self.iteration} iteration")
                 self.run_once()
                 self._send_metrics()
-                logger.info(f"Iteration {self.iteration} done")
+                logger.debug(f"Iteration {self.iteration} done")
             except Exception:
                 logger.exception("Unknown exception during iteration", exc_info=True)
 

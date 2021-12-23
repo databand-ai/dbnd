@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from itertools import islice
 from typing import Optional
 
-from dbnd import log_metric, log_metrics
+from dbnd import dbnd_config, log_metric, log_metrics
 from dbnd._core.constants import TaskRunState
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
@@ -83,6 +83,10 @@ def new_execute(context):
         execute = get_execute_function(copied_operator)
         result = execute(copied_operator, context)
         return result
+
+    # Do not print console logs for monitor dag
+    if is_monitor_dag(context["task_instance"].dag_id):
+        dbnd_config.set_values({"core": {"tracker": ["api"]}}, "tracking")
 
     try:
         task_context = extract_airflow_context(context)

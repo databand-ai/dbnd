@@ -120,6 +120,11 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
             dag_runs_full_data = self.data_fetcher.get_full_dag_runs(
                 dag_run_ids, self.config.include_sources
             )
+            logger.info(
+                "Syncing new %d dag runs and %d task instances",
+                len(dag_runs_full_data.dag_runs),
+                len(dag_runs_full_data.task_instances),
+            )
             self.tracking_service.init_dagruns(
                 dag_runs_full_data, max(dag_run_ids), self.SYNCER_TYPE
             )
@@ -149,6 +154,11 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
             dagruns_chunk = dagruns[i : i + bulk_size]
             dag_run_ids = [dr.id for dr in dagruns_chunk]
             dag_runs_state_data = self.data_fetcher.get_dag_runs_state_data(dag_run_ids)
+            logger.info(
+                "Updating states for %d dag runs and %d task instances",
+                len(dag_runs_state_data.dag_runs),
+                len(dag_runs_state_data.task_instances),
+            )
             max_logs_ids = [dr.max_log_id for dr in dagruns_chunk if dr.max_log_id]
             self.tracking_service.update_dagruns(
                 dag_runs_state_data,

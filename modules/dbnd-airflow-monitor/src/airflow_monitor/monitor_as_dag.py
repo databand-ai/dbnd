@@ -25,8 +25,16 @@ MEMORY_LIMIT = 8 * 1024 * 1024 * 1024
 MEMORY_DIFF_BETWEEN_LOG_PRINTS_IN_MB = 5
 
 FORCE_RESTART_TIMEOUT = timedelta(seconds=AUTO_RESTART_TIMEOUT + 5 * 60)
-LOG_LEVEL = "WARN"
+LOG_LEVEL = "INFO"
 DATABAND_AIRFLOW_CONN_ID = "dbnd_config"
+
+# This is the interval that we use to check that memory consumption does not cross the limit. Do NOT change it.
+GUARD_SLEEP_INTERVAL_IN_SECONDS = 10
+
+PRINT_MEMORY_CONSUMPTION_INTERVAL_IN_SECONDS = 60
+ITERATION_PRINT_INTERVAL = (
+    PRINT_MEMORY_CONSUMPTION_INTERVAL_IN_SECONDS / GUARD_SLEEP_INTERVAL_IN_SECONDS
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +73,10 @@ class MonitorOperator(BashOperator):
             self.flatten(json_config, parent_key="DBND", sep="__")
         )
 
+        # AirflowMonitorConfig doesn't really have dag_ids config, so we avoid setting this environment variable
+        # to avoid unnecessary warnings
+        dbnd_config.pop("DBND__AIRFLOW_MONITOR__DAG_IDS", None)
+
         self.env = os.environ.copy()
         self.env.update(dbnd_config)
         self.env.update(
@@ -73,6 +85,8 @@ class MonitorOperator(BashOperator):
                 "DBND__AIRFLOW_MONITOR__SQL_ALCHEMY_CONN": settings.SQL_ALCHEMY_CONN,
                 "DBND__AIRFLOW_MONITOR__LOCAL_DAG_FOLDER": settings.DAGS_FOLDER,
                 "DBND__AIRFLOW_MONITOR__FETCHER": "db",
+                "DBND__LOG__DISABLE_COLORS": "TRUE",
+                "DBND__LOG__FORMATTER_SIMPLE": "%(task)-5s - %(message)s",
             }
         )
 
@@ -132,7 +146,7 @@ def _check_memory_usage():
 
 
 @contextlib.contextmanager
-def start_guard_thread(memory_guard_limit, guard_sleep=10):
+def start_guard_thread(memory_guard_limit, guard_sleep=GUARD_SLEEP_INTERVAL_IN_SECONDS):
     should_stop = False
 
     def memory_guard():
@@ -142,20 +156,27 @@ def start_guard_thread(memory_guard_limit, guard_sleep=10):
             guard_sleep,
         )
         current_usage_in_mb = 0
+        iteration_number = 0
         while not should_stop:
             try:
                 processes, total_usage = _check_memory_usage()
                 total_usage_in_mb = int(total_usage / 1024 / 1024)
-                # Print log message every time we have a spike in memory usage
                 if (
                     total_usage_in_mb
                     >= current_usage_in_mb + MEMORY_DIFF_BETWEEN_LOG_PRINTS_IN_MB
                 ):
+                    logger.info(
+                        "Memory usage changed from: %s mb to %s mb",
+                        current_usage_in_mb,
+                        total_usage_in_mb,
+                    )
                     current_usage_in_mb = total_usage_in_mb
-                    logger.info("Total memory usage: %s mb", current_usage_in_mb)
+                elif iteration_number % ITERATION_PRINT_INTERVAL == 0:
+                    logger.info("Memory usage is %s mb", current_usage_in_mb)
                 if memory_guard_limit and total_usage > memory_guard_limit:
                     kill_processes(processes)
                     return
+                iteration_number += 1
             except Exception:
                 logger.exception(
                     "Failed to run memory guard with limit=%s", memory_guard_limit
