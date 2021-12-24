@@ -19,6 +19,7 @@ from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs, ColumnStat
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.tracking.schemas.tracking_info_run import RunInfo, ScheduledRunInfo
 from dbnd._core.utils.dotdict import _as_dotted_dict
+from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
 from dbnd.api.serialization.common import (
@@ -299,6 +300,80 @@ class LogMetricArgs(object):
 
 
 @attr.s
+class LogDatasetArgs(object):
+    run_uid = attr.ib()  # type: UUID
+    task_run_uid = attr.ib()  # type: UUID
+    task_run_name = attr.ib()  # type: str
+    task_run_attempt_uid = attr.ib()  # type: UUID
+
+    operation_path = attr.ib()  # type: Optional[str]
+    dataset_uri = attr.ib()  # type: Optional[str]
+
+    operation_type = attr.ib()  # type: DbndDatasetOperationType
+    operation_status = attr.ib()  # type: DbndTargetOperationStatus
+
+    value_preview = attr.ib()  # type: Optional[str]
+    data_dimensions = attr.ib()  # type: Optional[Sequence[int]]
+    data_schema = attr.ib()  # type: Optional[str]
+
+    columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
+
+    operation_error = attr.ib(
+        default=None
+    )  # type: str # default=None :-> for compatibility with SDK < 51.0.0
+    timestamp = attr.ib(default=attr.Factory(utcnow))  # type: datetime
+    with_partition = attr.ib(default=None)  # type: Optional[bool]
+
+    def asdict(self):
+        return attr.asdict(self, recurse=False)
+
+    @property
+    def records(self):
+        return self.data_dimensions[0] if self.data_dimensions else None
+
+    @property
+    def columns(self):
+        return self.data_dimensions[1] if self.data_dimensions else None
+
+    @property
+    def operation_status_value(self):
+        return "SUCCESS" if self.operation_status.value == "OK" else "FAILED"
+
+
+class LogDatasetSchema(ApiStrictSchema):
+    run_uid = fields.UUID(required=True)
+    task_run_uid = fields.UUID(required=True)
+    task_run_name = fields.String(required=True)
+    task_run_attempt_uid = fields.UUID(required=True)
+
+    operation_path = fields.String(allow_none=True)
+    dataset_uri = fields.String(allow_none=True)  # todo: validate as uri?
+
+    operation_type = EnumField(DbndDatasetOperationType)
+    operation_status = EnumField(DbndTargetOperationStatus)
+    operation_error = fields.String(allow_none=True)
+    timestamp = fields.DateTime(required=False, allow_none=True)
+
+    value_preview = fields.String(allow_none=True)
+    data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
+    data_schema = fields.String(allow_none=True)
+    columns_stats = fields.Nested(ColumnStatsSchema, many=True, required=False)
+
+    with_partition = fields.Boolean(required=False, allow_none=True)
+
+    @post_load
+    def make_object(self, data):
+        return LogDatasetArgs(**data).asdict()
+
+
+class LogDatasetsSchema(ApiStrictSchema):
+    datasets_info = fields.Nested(LogDatasetSchema, many=True)
+
+
+log_datasets_schema = LogDatasetsSchema()
+
+
+@attr.s
 class LogTargetArgs(object):
     run_uid = attr.ib()  # type: UUID
     task_run_uid = attr.ib()  # type: UUID
@@ -318,43 +393,6 @@ class LogTargetArgs(object):
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
-
-
-@attr.s
-class LogDatasetArgs(object):
-    run_uid = attr.ib()  # type: UUID
-    task_run_uid = attr.ib()  # type: UUID
-    task_run_name = attr.ib()  # type: str
-    task_run_attempt_uid = attr.ib()  # type: UUID
-    operation_path = attr.ib()  # type: str
-    operation_type = attr.ib()  # type: DbndDatasetOperationType
-    operation_status = attr.ib()  # type: DbndTargetOperationStatus
-
-    value_preview = attr.ib()  # type: str
-    data_dimensions = attr.ib()  # type: Sequence[int]
-    data_schema = attr.ib()  # type: str
-
-    columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
-    operation_error = attr.ib(
-        default=None
-    )  # type: str # default=None :-> for compatibility with SDK < 51.0.0
-    timestamp = attr.ib(default=None)  # type: datetime
-    with_partition = attr.ib(default=None)  # type: Optional[bool]
-
-    def asdict(self):
-        return attr.asdict(self, recurse=False)
-
-    @property
-    def records(self):
-        return self.data_dimensions[0] if self.data_dimensions else None
-
-    @property
-    def columns(self):
-        return self.data_dimensions[1] if self.data_dimensions else None
-
-    @property
-    def operation_status_value(self):
-        return "SUCCESS" if self.operation_status.value == "OK" else "FAILED"
 
 
 class LogTargetSchema(ApiStrictSchema):
@@ -380,37 +418,6 @@ class LogTargetsSchema(ApiStrictSchema):
 
 
 log_targets_schema = LogTargetsSchema()
-
-
-class LogDatasetSchema(ApiStrictSchema):
-    run_uid = fields.UUID(required=True)
-    task_run_uid = fields.UUID(required=True)
-    task_run_name = fields.String(required=True)
-    task_run_attempt_uid = fields.UUID(required=True)
-
-    operation_path = fields.String()
-    operation_type = EnumField(DbndDatasetOperationType)
-    operation_status = EnumField(DbndTargetOperationStatus)
-    operation_error = fields.String(allow_none=True)
-    timestamp = fields.DateTime(required=False, allow_none=True)
-
-    value_preview = fields.String(allow_none=True)
-    data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
-    data_schema = fields.String(allow_none=True)
-    columns_stats = fields.Nested(ColumnStatsSchema, many=True, required=False)
-
-    with_partition = fields.Boolean(required=False, allow_none=True)
-
-    @post_load
-    def make_object(self, data):
-        return LogDatasetArgs(**data).asdict()
-
-
-class LogDatasetsSchema(ApiStrictSchema):
-    datasets_info = fields.Nested(LogDatasetSchema, many=True)
-
-
-log_datasets_schema = LogDatasetsSchema()
 
 
 class HeartbeatSchema(ApiStrictSchema):
