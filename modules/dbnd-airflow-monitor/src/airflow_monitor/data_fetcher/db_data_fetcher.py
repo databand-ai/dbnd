@@ -142,9 +142,11 @@ class DbFetcher(AirflowDataFetcher):
     def get_plugin_metadata(self) -> PluginMetadata:
         from airflow import version as airflow_version
         import dbnd_airflow
+        from dbnd_airflow.export_plugin.compat import get_api_mode
 
         return PluginMetadata(
             airflow_version=airflow_version.version,
             plugin_version=dbnd_airflow.__version__ + " v2",
             airflow_instance_uid=get_airflow_instance_uid(),
+            api_mode=get_api_mode(),
         )

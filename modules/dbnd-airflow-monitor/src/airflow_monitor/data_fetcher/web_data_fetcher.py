@@ -37,7 +37,6 @@ logger = logging.getLogger(__name__)
 AIRFLOW_API_MODE_TO_SUFFIX = {
     "flask-admin": "/admin/data_export_plugin",
     "rbac": "/exportdataviewappbuilder",
-    "experimental": "/api/experimental",
 }
 
 CSRF_TOKEN_PATTERN = (
@@ -66,12 +65,27 @@ class WebFetcher(AirflowDataFetcher):
         self.env = "Airflow"
         self.base_url = config.base_url
         self.login_url = self.base_url + "/login/"
-        self.api_mode = config.api_mode
-        self.endpoint_url = get_endpoint_url(config.base_url, config.api_mode)
+
         self.rbac_username = config.rbac_username
         self.rbac_password = config.rbac_password
         self.session = requests.session()
         self.is_logged_in = False
+
+        self._configure_api_mode_and_endpoint(config.base_url)
+
+    def _configure_api_mode_and_endpoint(self, base_url):
+        for api_mode in AIRFLOW_API_MODE_TO_SUFFIX:
+            self.api_mode = api_mode
+            self.endpoint_url = get_endpoint_url(base_url, api_mode)
+            if self._validate_api_mode_and_endpoints():
+                return
+
+    def _validate_api_mode_and_endpoints(self):
+        try:
+            self.get_plugin_metadata()
+            return True
+        except AirflowFetchingException:
+            return False
 
     def _get_csrf_token(self):
         # IMPORTANT: Airflow doesn't return the relevant csrf token in a cookie,

@@ -23,8 +23,6 @@ logger = logging.getLogger(__name__)
 
 SERVICES_COMPONENTS = {
     "state_sync": start_runtime_syncer,
-    # "xcom_sync": Component,
-    # "dag_sync": Component,
     "fixer": start_runtime_fixer,
     "config_updater": start_runtime_config_updater,
 }
@@ -37,7 +35,6 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
         server_config: AirflowServerConfig,
         tracking_service: AirflowDbndTrackingService,
     ):
-
         self._plugin_metadata = None
         super(AirflowMonitorComponentManager, self).__init__(
             runner, server_config, tracking_service, SERVICES_COMPONENTS,
@@ -76,6 +73,7 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
                 airflow_export_version=plugin_metadata.plugin_version,
                 airflow_instance_uid=plugin_metadata.airflow_instance_uid,
                 monitor_error_message=error_message,
+                api_mode=plugin_metadata.api_mode,
             ),
         )
 

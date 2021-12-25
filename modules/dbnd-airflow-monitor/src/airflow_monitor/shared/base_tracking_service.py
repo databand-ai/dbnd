@@ -97,7 +97,7 @@ class BaseDbndTrackingService(object):
             )
         return self.server_monitor_config.create(configs[0])
 
-    def update_monitor_state(self, monitor_state: BaseSourceMonitorState):
+    def update_monitor_state(self, monitor_state):
         data, _ = self.monitor_state_schema().dump(monitor_state.as_dict())
 
         self._api_client.api_request(

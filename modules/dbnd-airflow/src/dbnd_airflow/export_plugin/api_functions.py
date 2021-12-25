@@ -13,6 +13,7 @@ import dbnd_airflow
 
 from dbnd._core.utils.json_utils import flatten_dict
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
+from dbnd_airflow.export_plugin.compat import get_api_mode
 from dbnd_airflow.export_plugin.dag_operations import (
     get_current_dag_model,
     get_dags,
@@ -70,6 +71,7 @@ def get_meta(metrics):
         airflow_version=airflow_version,
         plugin_version=" ".join([dbnd_airflow.__version__, "v2"]),
         airflow_instance_uid=get_airflow_instance_uid(),
+        api_mode=get_api_mode(),
         request_args=dict(flask.request.args) if flask.has_request_context() else {},
         metrics={
             "performance": metrics.get("perf_metrics", {}),

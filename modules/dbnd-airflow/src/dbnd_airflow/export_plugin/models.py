@@ -350,6 +350,7 @@ class AirflowExportMeta(object):
     airflow_version = attr.ib(default=None)  # type: str
     plugin_version = attr.ib(default=None)  # type: str
     airflow_instance_uid = attr.ib(default=None)  # type: str
+    api_mode = attr.ib(default=None)  # type: str
     request_args = attr.ib(default=None)  # type: dict
     metrics = attr.ib(default=None)  # type: dict
 
@@ -358,6 +359,7 @@ class AirflowExportMeta(object):
             airflow_version=self.airflow_version,
             plugin_version=self.plugin_version,
             airflow_instance_uid=self.airflow_instance_uid,
+            api_mode=self.api_mode,
             request_args=self.request_args,
             metrics=self.metrics,
         )

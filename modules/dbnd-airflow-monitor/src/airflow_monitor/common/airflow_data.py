@@ -30,12 +30,14 @@ class PluginMetadata:
     airflow_version = attr.ib(default=None)
     plugin_version = attr.ib(default=None)
     airflow_instance_uid = attr.ib(default=None)
+    api_mode = attr.ib(default=None)
 
     def as_dict(self):
         return dict(
             airflow_version=self.airflow_version,
             plugin_version=self.plugin_version,
             airflow_instance_uid=self.airflow_instance_uid,
+            is_rbac_enabled=self.api_mode,
         )
 
     @classmethod
@@ -44,6 +46,7 @@ class PluginMetadata:
             airflow_version=data.get("airflow_version"),
             plugin_version=data.get("plugin_version"),
             airflow_instance_uid=data.get("airflow_instance_uid"),
+            api_mode=data.get("api_mode"),
         )
 
 
@@ -55,6 +58,7 @@ class MonitorState:
     monitor_status = attr.ib(default=NOTHING)
     monitor_error_message = attr.ib(default=NOTHING)
     airflow_instance_uid = attr.ib(default=NOTHING)
+    api_mode = attr.ib(default=NOTHING)
 
     def as_dict(self):
         # don't serialize data which didn't changed: as_dict should be able to return
@@ -68,6 +72,7 @@ class MonitorState:
             monitor_status=self.monitor_status,
             monitor_error_message=self.monitor_error_message,
             airflow_instance_uid=self.airflow_instance_uid,
+            api_mode=self.api_mode,
         )
         # allow partial dump
         return {k: v for k, v in d.items() if v is not NOTHING}

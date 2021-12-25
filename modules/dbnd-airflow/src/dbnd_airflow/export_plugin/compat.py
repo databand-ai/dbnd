@@ -21,3 +21,7 @@ def get_task_log_reader():
         return conf.get("core", "task_log_reader")
     except AirflowConfigException:
         return conf.get("logging", "task_log_reader")
+
+
+def get_api_mode():
+    return "rbac" if is_rbac_enabled() else "flask-admin"

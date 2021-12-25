@@ -106,7 +106,6 @@ try:
 
         except Exception as e:
             logging.error("Export data could not be added to experimental api: %s", e)
-
     else:
         from airflow.www.app import csrf as rbac_csrf
         from airflow.www.utils import CustomSQLAInterface

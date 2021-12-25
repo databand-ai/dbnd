@@ -27,6 +27,7 @@ class UpdateAirflowMonitorStateRequestSchema(ApiStrictSchema):
     monitor_status = fields.String(required=False, allow_none=True)
     monitor_error_message = fields.String(required=False, allow_none=True)
     airflow_instance_uid = fields.UUID(required=False, allow_none=True)
+    api_mode = fields.String(required=False, allow_none=True)
 
 
 class GetAllDagRunsRequestSchema(ApiStrictSchema):
