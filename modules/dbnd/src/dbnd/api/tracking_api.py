@@ -307,7 +307,6 @@ class LogDatasetArgs(object):
     task_run_attempt_uid = attr.ib()  # type: UUID
 
     operation_path = attr.ib()  # type: Optional[str]
-    dataset_uri = attr.ib()  # type: Optional[str]
 
     operation_type = attr.ib()  # type: DbndDatasetOperationType
     operation_status = attr.ib()  # type: DbndTargetOperationStatus
@@ -316,6 +315,7 @@ class LogDatasetArgs(object):
     data_dimensions = attr.ib()  # type: Optional[Sequence[int]]
     data_schema = attr.ib()  # type: Optional[str]
 
+    dataset_uri = attr.ib(default=None)  # type: Optional[str]
     columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
 
     operation_error = attr.ib(
@@ -347,7 +347,7 @@ class LogDatasetSchema(ApiStrictSchema):
     task_run_attempt_uid = fields.UUID(required=True)
 
     operation_path = fields.String(allow_none=True)
-    dataset_uri = fields.String(allow_none=True)  # todo: validate as uri?
+    dataset_uri = fields.String(allow_none=True, default=None)
 
     operation_type = EnumField(DbndDatasetOperationType)
     operation_status = EnumField(DbndTargetOperationStatus)
