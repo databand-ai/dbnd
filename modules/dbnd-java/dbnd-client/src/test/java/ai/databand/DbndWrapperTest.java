@@ -21,4 +21,13 @@ class DbndWrapperTest {
         assertThat("Wrong truncation result", truncated, Matchers.equalTo("ai.databand.examples.JavaSparkPipeline.execute"));
     }
 
+    @Test
+    public void testCreateAgentlessRunDbndRunIsNotNull() {
+        // setting null context classloader to throw class not found exception
+        Thread.currentThread().setContextClassLoader(null);
+        DbndWrapper.instance().logMetric("some_metric", "some_value");
+        DbndRun run = DbndWrapper.instance().currentRun();
+        assertThat("dbnd run is null", run, Matchers.notNullValue());
+    }
+
 }

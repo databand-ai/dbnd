@@ -18,16 +18,7 @@ import org.apache.spark.sql.Dataset;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * AspectJ wrapper for @Pipeline and @Task annonations.
@@ -350,7 +341,10 @@ public class DbndWrapper {
                 if (main == null) {
                     main = stackTrace[stackTrace.length - 1];
                 }
-                Class<?> entryPoint = Class.forName(main.getClassName());
+                // workaround to prevent class not found exception when scala is using layered classloader
+                // source: https://github.com/sbt/sbt/issues/4760
+                Class<?> entryPoint = Class.forName(main.getClassName(), true, Thread.currentThread().getContextClassLoader());
+
                 for (Method method : entryPoint.getMethods()) {
                     if (method.getName().contains(main.getMethodName())) {
                         Object[] args = new Object[method.getParameterCount()];
@@ -359,16 +353,20 @@ public class DbndWrapper {
                     }
                 }
             } catch (ClassNotFoundException e) {
+                System.out.println(String.format("Class not found: %s", e.getMessage()));
                 // do nothing
             }
         }
-
+        if (Objects.isNull(run)) {
+            // in case pipeline is not annotated and class not found exception initializing run with no args
+            getOrCreateRun(null, null);
+        }
         // add jvm shutdown hook so run will be completed after spark job will stop
         Runtime.getRuntime().addShutdownHook(new Thread(run::stop));
         return run;
     }
 
-    private DbndRun currentRun() {
+    protected DbndRun currentRun() {
         return run;
     }
 
