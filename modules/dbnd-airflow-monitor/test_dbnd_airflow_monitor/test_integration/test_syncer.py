@@ -15,7 +15,7 @@ from airflow_monitor.multiserver.multiserver import AirflowMultiServerMonitor
 from airflow_monitor.shared.runners import RUNNER_FACTORY
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from airflow_monitor.tracking_service import get_servers_configuration_service
-from dbnd.utils.api_client import ApiClient
+from dbnd._core.errors import DatabandConfigError
 
 from .conftest import WebAppTest
 
@@ -56,14 +56,20 @@ class TestSyncerWorks(WebAppTest):
     def set_monitor_unarchived(self, url):
         self.client.post(self._url("AirflowServersApi.unarchive"), json=url)
 
-    def get_server_info(self, name):
+    def get_server_info_by_url(self, url):
         servers = self.client.get(self._url("AirflowServersApi.get_airflow_monitors"))
         for server in servers.json["data"]:
-            if server["name"] == name:
+            if server["base_url"] == url:
+                return server
+
+    def get_archived_server_info_by_url(self, url):
+        servers = self.client.get(self._url("AirflowServersApi.get_airflow_monitors"))
+        for server in servers.json["data"]:
+            if server["base_url"].startswith(url):
                 return server
 
     @pytest.fixture
-    def syncer_name(self, _set_values):
+    def syncer_url(self, _set_values):
         random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
         self.client.post(
             self._url("AirflowServersApi.add"),
@@ -82,7 +88,7 @@ class TestSyncerWorks(WebAppTest):
         return random_name
 
     @pytest.fixture
-    def multi_server(self, mock_data_fetcher, syncer_name):
+    def multi_server(self, mock_data_fetcher, syncer_url):
         with patch(
             "airflow_monitor.multiserver.monitor_component_manager.get_data_fetcher",
             return_value=mock_data_fetcher,
@@ -91,7 +97,7 @@ class TestSyncerWorks(WebAppTest):
             return_value=mock_data_fetcher,
         ), self.patch_api_client():
 
-            monitor_config = AirflowMonitorConfig(syncer_name=syncer_name)
+            monitor_config = AirflowMonitorConfig(syncer_name=syncer_url)
             yield AirflowMultiServerMonitor(
                 runner=RUNNER_FACTORY[monitor_config.runner_type],
                 monitor_component_manager=AirflowMonitorComponentManager,
@@ -100,54 +106,66 @@ class TestSyncerWorks(WebAppTest):
             )
 
     def test_01_server_sync_enable_disable(
-        self, multi_server, syncer_name, mock_sync_once
+        self, multi_server, syncer_url, mock_sync_once
     ):
-        server_info = self.get_server_info(syncer_name)
+        server_info = self.get_server_info_by_url(syncer_url)
         assert server_info["last_sync_time"] is None
 
         multi_server.run_once()
         assert mock_sync_once.call_count == 1
 
-        server_info = self.get_server_info(syncer_name)
+        server_info = self.get_server_info_by_url(syncer_url)
         assert server_info["last_sync_time"] is not None
         last_sync_time = server_info["last_sync_time"]
 
-        self.set_is_monitor_enabled(syncer_name, False)
+        self.set_is_monitor_enabled(syncer_url, False)
         multi_server.run_once()
         assert mock_sync_once.call_count == 1
 
-        server_info = self.get_server_info(syncer_name)
+        server_info = self.get_server_info_by_url(syncer_url)
         assert server_info["last_sync_time"] == last_sync_time
 
-        self.set_is_monitor_enabled(syncer_name, True)
+        self.set_is_monitor_enabled(syncer_url, True)
         multi_server.run_once()
         assert mock_sync_once.call_count == 2
 
-        server_info = self.get_server_info(syncer_name)
+        server_info = self.get_server_info_by_url(syncer_url)
         assert server_info["last_sync_time"] > last_sync_time
 
     def test_02_server_archive_unarchive(
-        self, multi_server, syncer_name, mock_sync_once
+        self, multi_server, syncer_url, mock_sync_once
     ):
         multi_server.run_once()
         assert mock_sync_once.call_count == 1
 
-        self.set_monitor_archived(syncer_name)
-        multi_server.run_once()
+        self.set_monitor_archived(syncer_url)
+
+        with pytest.raises(DatabandConfigError):
+            multi_server.run_once()
+
         assert mock_sync_once.call_count == 1
 
-        self.set_monitor_unarchived(syncer_name)
+        archived_server_info = self.get_archived_server_info_by_url(syncer_url)
+
+        self.set_monitor_unarchived(archived_server_info["base_url"])
+
+        # We need to clean all inactive components so that in the next sync_once() we will create them from scratch.
+        # This is crucial as otherwise we will have a last_heartbeat value in SequentialRunner, which will result in
+        # a quick return from the heartbeat function without executing sync_once.
+        # This is because the sync_once above raises exception instead of cleaning and then we reuse the same object.
+        multi_server._ensure_monitored_servers([])
+
         multi_server.run_once()
         assert mock_sync_once.call_count == 2
 
     def test_03_source_instance_uid(
-        self, multi_server, syncer_name, mock_sync_once, mock_data_fetcher
+        self, multi_server, syncer_url, mock_sync_once, mock_data_fetcher
     ):
         mock_data_fetcher.airflow_version = "1.10.10"
         mock_data_fetcher.plugin_version = "0.40.1 v2"
         mock_data_fetcher.airflow_instance_uid = "34db92af-a525-522e-8f27-941cd4746d7b"
 
-        server_info = self.get_server_info(syncer_name)
+        server_info = self.get_server_info_by_url(syncer_url)
         assert (
             server_info["airflow_version"],
             server_info["airflow_export_version"],
@@ -156,7 +174,7 @@ class TestSyncerWorks(WebAppTest):
 
         multi_server.run_once()
 
-        server_info = self.get_server_info(syncer_name)
+        server_info = self.get_server_info_by_url(syncer_url)
         assert (
             server_info["airflow_version"],
             server_info["airflow_export_version"],
