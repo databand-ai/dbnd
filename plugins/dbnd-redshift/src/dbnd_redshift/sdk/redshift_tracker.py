@@ -133,6 +133,7 @@ class RedshiftTracker:
                 with_schema=True,
                 send_metrics=True,
                 error=op.error,
+                with_partition=True,
             )
 
 
