@@ -37,7 +37,7 @@ class TestLogDataSetOpMetrics(object):
                 with_schema=schema,
                 with_preview=preview,
                 with_histograms=True,
-                with_partition=True,
+                with_partition=False,
             )
 
         task_log_dataset_op_nested_json_data()
@@ -54,10 +54,10 @@ class TestLogDataSetOpMetrics(object):
         for m in metrics_info:
             print(m["metric"], m["metric"].value)
 
-        assert "my.path.to.shape0" in map_metrics
-        assert map_metrics["my.path.to.shape0"].value == 3
-        assert "my.path.to.shape1" in map_metrics
-        assert map_metrics["my.path.to.shape1"].value == 22
+        assert "my.path.to.nested_data.json.shape0" in map_metrics
+        assert map_metrics["my.path.to.nested_data.json.shape0"].value == 3
+        assert "my.path.to.nested_data.json.shape1" in map_metrics
+        assert map_metrics["my.path.to.nested_data.json.shape1"].value == 22
 
         # Tests for schema
         # ------------------
@@ -65,8 +65,8 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             schema,
             (
-                "my.path.to.schema" in map_metrics
-                and map_metrics["my.path.to.schema"].source == "user"
+                "my.path.to.nested_data.json.schema" in map_metrics
+                and map_metrics["my.path.to.nested_data.json.schema"].source == "user"
             ),
         )
 
@@ -76,8 +76,9 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             schema,
             (
-                "my.path.to.schema" in map_metrics
-                and "size.bytes" in map_metrics["my.path.to.schema"].value
+                "my.path.to.nested_data.json.schema" in map_metrics
+                and "size.bytes"
+                in map_metrics["my.path.to.nested_data.json.schema"].value
             ),
         )
 
@@ -87,8 +88,8 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             preview,
             (
-                "my.path.to" in map_metrics
-                and "value_preview" in map_metrics["my.path.to"].value
+                "my.path.to.nested_data.json" in map_metrics
+                and "value_preview" in map_metrics["my.path.to.nested_data.json"].value
             ),
         )
 
@@ -97,8 +98,8 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             (preview and schema),
             (
-                "my.path.to" in map_metrics
-                and "schema" in map_metrics["my.path.to"].value
+                "my.path.to.nested_data.json" in map_metrics
+                and "schema" in map_metrics["my.path.to.nested_data.json"].value
             ),
         )
         #
@@ -107,9 +108,10 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             (preview and schema),
             (
-                "my.path.to" in map_metrics
-                and "schema" in map_metrics["my.path.to"].value
-                and "size.bytes" in map_metrics["my.path.to"].value["schema"]
+                "my.path.to.nested_data.json" in map_metrics
+                and "schema" in map_metrics["my.path.to.nested_data.json"].value
+                and "size.bytes"
+                in map_metrics["my.path.to.nested_data.json"].value["schema"]
             ),
         )
 
@@ -140,9 +142,9 @@ class TestLogDataSetOpMetrics(object):
             "company",
         }
         if schema:
-            assert set(map_metrics["my.path.to.schema"].value["columns"]) == set(
-                expected_columns
-            )
+            assert set(
+                map_metrics["my.path.to.nested_data.json.schema"].value["columns"]
+            ) == set(expected_columns)
 
     @pytest.mark.parametrize(
         "preview,schema",
@@ -164,7 +166,7 @@ class TestLogDataSetOpMetrics(object):
                 with_schema=schema,
                 with_preview=preview,
                 with_histograms=False,
-                with_partition=True,
+                with_partition=False,
             )
 
         task_log_dataset_op_flat_json_data()
@@ -181,10 +183,10 @@ class TestLogDataSetOpMetrics(object):
         for m in metrics_info:
             print(m["metric"], m["metric"].value)
 
-        assert "my.path.to.shape0" in map_metrics
-        assert map_metrics["my.path.to.shape0"].value == 6
-        assert "my.path.to.shape1" in map_metrics
-        assert map_metrics["my.path.to.shape1"].value == 5
+        assert "my.path.to.flat_data.json.shape0" in map_metrics
+        assert map_metrics["my.path.to.flat_data.json.shape0"].value == 6
+        assert "my.path.to.flat_data.json.shape1" in map_metrics
+        assert map_metrics["my.path.to.flat_data.json.shape1"].value == 5
 
         # Tests for schema
         # ------------------
@@ -192,8 +194,8 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             schema,
             (
-                "my.path.to.schema" in map_metrics
-                and map_metrics["my.path.to.schema"].source == "user"
+                "my.path.to.flat_data.json.schema" in map_metrics
+                and map_metrics["my.path.to.flat_data.json.schema"].source == "user"
             ),
         )
         #
@@ -202,8 +204,9 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             schema,
             (
-                "my.path.to.schema" in map_metrics
-                and "size.bytes" in map_metrics["my.path.to.schema"].value
+                "my.path.to.flat_data.json.schema" in map_metrics
+                and "size.bytes"
+                in map_metrics["my.path.to.flat_data.json.schema"].value
             ),
         )
 
@@ -213,8 +216,8 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             preview,
             (
-                "my.path.to" in map_metrics
-                and "value_preview" in map_metrics["my.path.to"].value
+                "my.path.to.flat_data.json" in map_metrics
+                and "value_preview" in map_metrics["my.path.to.flat_data.json"].value
             ),
         )
         #
@@ -222,8 +225,8 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             (preview and schema),
             (
-                "my.path.to" in map_metrics
-                and "schema" in map_metrics["my.path.to"].value
+                "my.path.to.flat_data.json" in map_metrics
+                and "schema" in map_metrics["my.path.to.flat_data.json"].value
             ),
         )
         #
@@ -232,9 +235,10 @@ class TestLogDataSetOpMetrics(object):
         assert if_and_only_if(
             (preview and schema),
             (
-                "my.path.to" in map_metrics
-                and "schema" in map_metrics["my.path.to"].value
-                and "size.bytes" in map_metrics["my.path.to"].value["schema"]
+                "my.path.to.flat_data.json" in map_metrics
+                and "schema" in map_metrics["my.path.to.flat_data.json"].value
+                and "size.bytes"
+                in map_metrics["my.path.to.flat_data.json"].value["schema"]
             ),
         )
 
@@ -248,7 +252,7 @@ class TestLogDataSetOpMetrics(object):
         }
         if schema:
             assert (
-                set(map_metrics["my.path.to.schema"].value["columns"])
+                set(map_metrics["my.path.to.flat_data.json.schema"].value["columns"])
                 == expected_columns
             )
 
