@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs
 from dbnd.testing.test_config_setter import add_test_configuration
 
 
@@ -102,8 +103,3 @@ def spark_data_frame(pandas_data_frame, spark_session):
 @pytest.fixture
 def spark_data_frame_histograms(pandas_data_frame_histograms):
     return pandas_data_frame_histograms
-
-
-@pytest.fixture
-def spark_data_frame_stats(pandas_data_frame_stats):
-    return pandas_data_frame_stats
