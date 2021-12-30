@@ -7,6 +7,8 @@ from typing import Dict, List, Optional
 
 import sqlparse
 
+from psycopg2.extras import DictConnection as DatabaseConnection, DictCursor as Cursor
+
 from dbnd import log_dataset_op
 from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd._core.sql_tracker_common.sql_extract import READ, WRITE, SqlQueryExtractor
@@ -15,7 +17,6 @@ from dbnd._core.sql_tracker_common.sql_operation import (
     SqlOperation,
     render_connection_path,
 )
-from redshift_connector import Connection as RedshiftConnection, Cursor
 
 
 logger = logging.getLogger(__name__)
@@ -42,8 +43,8 @@ class RedshiftTracker:
             redshift_cursor_execute.__dbnd_patched__ = execute_original
             Cursor.execute = redshift_cursor_execute
 
-        if not hasattr(RedshiftConnection.close, "__dbnd_patched__"):
-            close_original = RedshiftConnection.close
+        if not hasattr(DatabaseConnection.close, "__dbnd_patched__"):
+            close_original = DatabaseConnection.close
 
             @functools.wraps(close_original)
             def redshift_connection_close(connection_self, *args, **kwargs):
@@ -58,7 +59,7 @@ class RedshiftTracker:
                 return close_original(connection_self, *args, **kwargs)
 
             redshift_connection_close.__dbnd_patched__ = close_original
-            RedshiftConnection.close = redshift_connection_close
+            DatabaseConnection.close = redshift_connection_close
 
         return self
 
@@ -72,18 +73,18 @@ class RedshiftTracker:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.unpatch_method(Cursor, "execute")
-        self.unpatch_method(RedshiftConnection, "close")
+        self.unpatch_method(DatabaseConnection, "close")
         if self._connection:
             self.flush_operations(self._connection)
 
-    def flush_operations(self, connection: RedshiftConnection):
+    def flush_operations(self, connection: DatabaseConnection):
         self.report_operations(connection, self.operations)
         # we clean all the batch of operations we reported so we don't report twice
         self.operations = []
 
     @contextlib.contextmanager
     def track_execute(self, cursor, command, *args, **kwargs):
-        self._connection = RedshiftConnectionWrapper(cursor.connection)
+        self._connection = PostgresConnectionWrapper(cursor.connection)
         success = True
         error = None
         try:
@@ -105,7 +106,7 @@ class RedshiftTracker:
                 log_exception_to_server(e)
 
     def report_operations(
-        self, connection: RedshiftConnection, operations: List[SqlOperation]
+        self, connection: DatabaseConnection, operations: List[SqlOperation]
     ):
         # update the tables names
         operations = [op.evolve_table_name(connection) for op in operations]
@@ -156,7 +157,7 @@ def get_redshift_table_schema(connection, table) -> Optional[DTypes]:
     return schema
 
 
-def get_last_query_records_count(connection: RedshiftConnection):
+def get_last_query_records_count(connection: DatabaseConnection):
     """
     Returns the number of rows that were loaded by the last COPY command run in the current session.
     """
@@ -166,7 +167,7 @@ def get_last_query_records_count(connection: RedshiftConnection):
         return result_set[0][0]
 
 
-def redshift_query(connection: RedshiftConnection, query: str, params=None):
+def redshift_query(connection: DatabaseConnection, query: str, params=None):
     try:
         with connection.cursor() as cursor:
             cursor.execute(query, params)
@@ -226,22 +227,22 @@ def build_redshift_operations(
     return operations
 
 
-class RedshiftConnectionWrapper:
-    def __init__(self, connection: RedshiftConnection):
+class PostgresConnectionWrapper:
+    def __init__(self, connection: DatabaseConnection):
         self.connection = connection
         self._schema = None
 
     @property
     def host(self) -> str:
-        return None
+        return self.connection.info.host
 
     @property
     def port(self) -> Optional[int]:
-        return None
+        return self.connection.info.port
 
     @property
     def database(self) -> Optional[str]:
-        return self.connection._database
+        return self.connection.info.dbname
 
     @property
     def schema(self) -> Optional[str]:
