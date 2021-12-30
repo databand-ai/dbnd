@@ -29,6 +29,10 @@ NAMESPACE_DBND_RUN = uuid.uuid5(NAMESPACE_DBND, "run")
 NAMESPACE_DBND_TASK_DEF = uuid.uuid5(NAMESPACE_DBND, "task_definition")
 
 
+def get_stable_uid(payload: str, namespace=uuid.NAMESPACE_DNS):
+    return uuid.uuid5(namespace, payload)
+
+
 def get_task_def_uid(dag_id, task_id, code_hash):
     return uuid.uuid5(
         NAMESPACE_DBND_TASK_DEF, "{}.{}.{}".format(dag_id, task_id, code_hash)

@@ -123,7 +123,7 @@ class InitRunArgs(object):
     source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
     af_with_monitor = attr.ib(default=True)  # type: bool
     af_context = attr.ib(default=None)  # type: Optional[AirflowTaskContext]
-    tracking_source = attr.ib(default=None)  # type: Optional[TrackingSourceSchema]
+    tracking_source = attr.ib(default=None)  # type: Optional[TrackingSource]
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
