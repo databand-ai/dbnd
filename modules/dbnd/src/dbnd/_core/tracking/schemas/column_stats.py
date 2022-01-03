@@ -52,7 +52,7 @@ class ColumnStatsArgs:
 
     @property
     def null_percent(self) -> Optional[float]:
-        if self.null_count is None:
+        if self.null_count is None or self.records_count == 0:
             return None
 
         return (self.null_count / self.records_count) * 100
