@@ -42,7 +42,7 @@ class AlertDefsSchema(ApiStrictSchema):
     # Fields for DatasetSlaAlert/DatasetSlaAdvancedAlert alert
     # --------------------------------------
     seconds_delta = fields.Int(allow_none=True)  # Converts to datetime.timedelta
-    dataset_schema_uri = fields.Str(allow_none=True)
+    dataset_partial_name = fields.Str(allow_none=True)
     datasets_uids = fields.List(fields.Str(), allow_none=True)
 
     # Fields for OperationColumnStatAdvancedAlert alert
