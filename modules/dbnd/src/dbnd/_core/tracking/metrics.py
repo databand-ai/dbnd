@@ -280,6 +280,8 @@ def log_dataset_op(
     with_preview: bool = False,
     with_schema: bool = False,
     send_metrics: bool = True,
+    row_count:Optional[int]=None, 
+    column_count:Optional[int]=None,  
 ):
     """
     Logs dataset operation and meta data to dbnd.
@@ -299,6 +301,8 @@ def log_dataset_op(
         with_preview: Should extract preview of the data as meta-data of the target - relevant only with data param.
         with_schema: Should extract schema of the data as meta-data of the target - relevant only with data param.
         send_metrics: Should report preview, schemas and histograms as metrics.
+        row_count: should report row count no matter what is the data
+        column_count: should report column count no matter what is the data
     Example::
 
         @task
@@ -323,6 +327,8 @@ def log_dataset_op(
         with_stats=with_stats,
         send_metrics=send_metrics,
         with_partition=with_partition,
+        row_count=row_count,
+        column_count=column_count,
     )
     _report_operation(operation_report)
 
@@ -339,6 +345,8 @@ def dataset_op_logger(
     with_preview: bool = True,
     with_schema: bool = True,
     send_metrics: bool = True,
+    row_count:Optional[int]=None, 
+    column_count:Optional[int]=None,  
 ):
     """
     Wrapper to Log dataset operation and meta data to dbnd.
@@ -358,6 +366,8 @@ def dataset_op_logger(
         with_preview: Should extract preview of the data as meta-data of the dataset - relevant only with data param.
         with_schema: Should extract schema of the data as meta-data of the dataset - relevant only with data param.
         send_metrics: Should report preview, schemas and histograms as metrics.
+        row_count: should report row count no matter what is the data
+        column_count: should report column count no matter what is the data
     Good Example::
 
         with dataset_op_logger("location://path/to/value.csv", "read"):
@@ -384,6 +394,8 @@ def dataset_op_logger(
         with_stats=with_stats,
         send_metrics=send_metrics,
         with_partition=with_partition,
+        row_count=row_count,
+        column_count=column_count,
     )
 
     try:

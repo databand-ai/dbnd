@@ -211,6 +211,18 @@ class TaskRunTracker(TaskRunCtrl):
         # type: (DatasetOperationReport) -> None
         data_meta = self._calc_meta_data(op_report.data, op_report.meta_conf)
 
+        records, columns = data_meta.data_dimensions or (None, None)
+        # if the row count or column count exist,
+        # we need to override the match field(row/column) in data dimension
+        # if one of them not exist we need to leave it with the original value
+        # examples:
+        # row_count=4, data_dimensions=(777,5) => data_dimensions=(4,5)
+        # column_count=2, data_dimensions=(777,5) => data_dimensions=(777,2)
+        if op_report.row_count or op_report.column_count:
+            data_meta.data_dimensions = (
+                op_report.row_count or records,
+                op_report.column_count or columns,
+            )
         self.tracking_store.log_dataset(
             task_run=self.task_run,
             operation_path=op_report.op_path,
@@ -305,6 +317,10 @@ class DatasetOperationReport(object):
 
     success: bool = attr.ib(default=True)
     error: Optional[str] = attr.ib(default=None)
+    send_metrics = attr.ib(default=None)
+    with_partition = attr.ib(default=None)
+    row_count = attr.ib(default=None)
+    column_count = attr.ib(default=None)
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
