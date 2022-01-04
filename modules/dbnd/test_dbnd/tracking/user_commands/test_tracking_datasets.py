@@ -6,14 +6,9 @@ from more_itertools import one
 
 from dbnd import dataset_op_logger, log_dataset_op, task
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationStatus
-from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd.testing.helpers_mocks import set_tracking_context
 from targets import target
-from test_dbnd.tracking.tracking_helpers import (
-    get_log_datasets,
-    get_log_metrics,
-    get_log_targets,
-)
+from test_dbnd.tracking.tracking_helpers import get_log_datasets, get_log_metrics
 
 
 @pytest.mark.usefixtures(set_tracking_context.__name__)
@@ -165,11 +160,13 @@ class TestTrackingDatasets(object):
 
         log_metrics_args = get_log_metrics(mock_channel_tracker)
         metrics_names = {metric_row["metric"].key for metric_row in log_metrics_args}
-        assert metrics_names == {
-            "path.to.value.csv.schema",
-            "path.to.value.csv.shape0",
-            "path.to.value.csv.shape1",
-            "path.to.value.csv.rows",
-            "path.to.value.csv.columns",
-            "path.to.value.csv",
-        }
+        assert metrics_names.issuperset(
+            {
+                "path.to.value.csv.schema",
+                "path.to.value.csv.shape0",
+                "path.to.value.csv.shape1",
+                "path.to.value.csv.rows",
+                "path.to.value.csv.columns",
+                "path.to.value.csv",
+            }
+        )

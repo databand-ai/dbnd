@@ -72,7 +72,9 @@ class DataFrameValueType(DataValueType):
                     "Could not hash dataframe object %s! Exception: %s", value, e
                 )
 
-        if meta_conf.log_histograms:
+        columns_stats, histograms = [], {}
+        hist_sys_metrics = None
+        if meta_conf.log_histograms or meta_conf.log_stats:
             start_time = time.time()
             columns_stats, histograms = PandasHistograms(
                 value, meta_conf
@@ -80,9 +82,6 @@ class DataFrameValueType(DataValueType):
             hist_sys_metrics = {
                 "histograms_and_stats_calc_time": time.time() - start_time
             }
-        else:
-            columns_stats, histograms = [], {}
-            hist_sys_metrics = None
 
         return ValueMeta(
             value_preview=value_preview,

@@ -2,13 +2,10 @@ import logging
 import time
 import typing
 
-import attr
+from pickle import TRUE
+from typing import Any, Dict, List, Optional, Union
 
-from dbnd._core.constants import (
-    DbndDatasetOperationType,
-    DbndTargetOperationStatus,
-    DbndTargetOperationType,
-)
+from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd._core.task_run.task_run_tracker import DatasetOperationReport, TaskRunTracker
 from dbnd._core.tracking.log_data_request import LogDataRequest
@@ -19,7 +16,7 @@ from targets.value_meta import ValueMetaConf
 
 if typing.TYPE_CHECKING:
     from datetime import datetime
-    from typing import Optional, Union, List, Dict, Any
+
     import pandas as pd
     import pyspark.sql as spark
 
@@ -271,29 +268,37 @@ def _report_operation(operation_report):
 
 
 def log_dataset_op(
-    op_path,  # type: Union[Target,str]
-    op_type,  # type: Union[DbndDatasetOperationType, str]
-    success=True,  # type: bool
-    error=None,  # type: str
-    data=None,  # type: Optional[Any]
-    with_preview=None,  # type: Optional[bool]
-    with_schema=None,  # type: Optional[bool]
-    with_histograms=None,  # type: Optional[bool]
-    send_metrics=True,  # type: bool
-    with_partition=None,  # type: Optional[bool]
+    op_path: Union[Target, str],
+    op_type: Union[DbndDatasetOperationType, str],
+    *,
+    success: bool = True,
+    error: Optional[str] = None,
+    data: Optional[Any] = None,
+    with_histograms: Optional[bool] = None,
+    with_partition: Optional[bool] = None,
+    with_stats: Optional[bool] = True,
+    with_preview: bool = False,
+    with_schema: bool = False,
+    send_metrics: bool = True,
 ):
     """
     Logs dataset operation and meta data to dbnd.
 
     Args:
-        op_path: Target object to log or a unique path representing the operation location
-        op_type: the type of operation that been done with the target - read, write, delete.
+        op_path: Target object to log or a unique path representing the operation location.
+        op_type: Type of operation that been done with the target - read, write, delete.
         success: True if the operation succeeded, False otherwise.
-        error: optional error message.
-        data: optional value of data to use build meta-data on the target
-        with_preview: should extract preview of the data as meta-data of the target - relevant only with data param
-        with_schema: should extract schema of the data as meta-data of the target - relevant only with data param
-
+        error: Optional error message.
+        data: Optional value of data to use build meta-data on the target.
+        with_histograms: Should calculate histogram of the given data - relevant only with data param.
+            - Boolean to calculate or not on all the data columns.
+        with_stats: Should extract schema of the data as meta-data of the target - relevant only with data param.
+            - Boolean to calculate or not on all the data columns.
+        with_partition: If True, the webserver tries to detect partitions of our datasets and extract them from the path,
+                        otherwise not manipulating the dataset path at all.
+        with_preview: Should extract preview of the data as meta-data of the target - relevant only with data param.
+        with_schema: Should extract schema of the data as meta-data of the target - relevant only with data param.
+        send_metrics: Should report preview, schemas and histograms as metrics.
     Example::
 
         @task
@@ -315,6 +320,7 @@ def log_dataset_op(
         with_preview=with_preview,
         with_schema=with_schema,
         with_histograms=with_histograms,
+        with_stats=with_stats,
         send_metrics=send_metrics,
         with_partition=with_partition,
     )
@@ -323,14 +329,16 @@ def log_dataset_op(
 
 @seven.contextlib.contextmanager
 def dataset_op_logger(
-    op_path,  # type: Union[Target,str]
-    op_type,  # type: Union[DbndDatasetOperationType, str]
-    data=None,
-    with_preview=True,
-    with_schema=True,
-    with_histograms=False,
-    send_metrics=True,
-    with_partition=None,
+    op_path: Union[Target, str],
+    op_type: Union[DbndDatasetOperationType, str],
+    *,
+    data: Optional[Any] = None,
+    with_histograms: Optional[bool] = None,
+    with_partition: Optional[bool] = None,
+    with_stats: Optional[bool] = True,
+    with_preview: bool = True,
+    with_schema: bool = True,
+    send_metrics: bool = True,
 ):
     """
     Wrapper to Log dataset operation and meta data to dbnd.
@@ -338,14 +346,18 @@ def dataset_op_logger(
     Make sure to only wrap operation related code!
 
     Args:
-        op_path: Target object to log or a unique path representing the target logic location
-        op_type: the type of operation that been done with the dataset - read, write, delete.
-        data: optional value of data to use build meta-data on the dataset
-        with_preview: should extract preview of the data as meta-data of the dataset - relevant only with data param
-        with_schema: should extract schema of the data as meta-data of the dataset - relevant only with data param
-        with_histograms: should calculate histogram and stats of the given data - relevant only with data param
-        send_metrics: should report preview, schemas and histograms as metrics
-
+        op_path: Target object to log or a unique path representing the target logic location.
+        op_type: Type of operation that been done with the dataset - read, write, delete.
+        data: Optional value of data to use build meta-data on the dataset.
+        with_histograms: Should calculate histogram of the given data - relevant only with data param.
+            - Boolean to calculate or not on all the data columns.
+        with_stats: Should extract schema of the data as meta-data of the target - relevant only with data param.
+            - Boolean to calculate or not on all the data columns.
+        with_partition: If True, the webserver tries to detect partitions of our datasets and extract them from the path,
+                        otherwise not manipulating the dataset path at all.
+        with_preview: Should extract preview of the data as meta-data of the dataset - relevant only with data param.
+        with_schema: Should extract schema of the data as meta-data of the dataset - relevant only with data param.
+        send_metrics: Should report preview, schemas and histograms as metrics.
     Good Example::
 
         with dataset_op_logger("location://path/to/value.csv", "read"):
@@ -369,6 +381,7 @@ def dataset_op_logger(
         with_preview=with_preview,
         with_schema=with_schema,
         with_histograms=with_histograms,
+        with_stats=with_stats,
         send_metrics=send_metrics,
         with_partition=with_partition,
     )

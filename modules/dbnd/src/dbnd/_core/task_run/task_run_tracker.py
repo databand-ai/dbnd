@@ -1,6 +1,8 @@
 import logging
 import typing
 
+from typing import Any, Dict, List, Optional, Union
+
 import attr
 import six
 
@@ -18,6 +20,7 @@ from dbnd._core.log.external_exception_logging import (
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.settings.tracking_config import TrackingConfig, get_value_meta
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
+from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
 from targets import Target
@@ -25,14 +28,14 @@ from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 if typing.TYPE_CHECKING:
+    from datetime import datetime
+
+    import pandas as pd
+    import pyspark.sql as spark
+
     from dbnd._core.tracking.backends import TrackingStore
     from dbnd_postgres.postgres_values import PostgresTable
     from dbnd_snowflake.snowflake_values import SnowflakeTable
-
-    from datetime import datetime
-    from typing import Any, Optional, Union, List, Dict
-    import pandas as pd
-    import pyspark.sql as spark
 
 logger = logging.getLogger(__name__)
 
@@ -254,8 +257,8 @@ def _get_dataset_name(operation_path, with_partition):
     except ImportError:
         from urlparse import urlparse
 
-    import os
     import itertools
+    import os
 
     path = urlparse(str(operation_path)).path  # type: str
 
@@ -284,24 +287,24 @@ class DatasetOperationReport(object):
     Holds the information about an operation to report
     """
 
-    op_path = attr.ib(default=None)
-    op_type = attr.ib(
-        default=None,
+    op_path: Union[Target, str] = attr.ib()
+    op_type: Union[DbndDatasetOperationType, str] = attr.ib(
         # convert str of "read" or "write" to operation type
         converter=lambda op_type: DbndDatasetOperationType[op_type]
         if isinstance(op_type, str)
         else op_type,
     )
-    data = attr.ib(default=None)
-    success = attr.ib(default=None)
-    error = attr.ib(default=None)
+    with_preview: bool = attr.ib()
+    with_schema: bool = attr.ib()
+    send_metrics: bool = attr.ib()
 
-    with_preview = attr.ib(default=None)
-    with_schema = attr.ib(default=None)
-    with_histograms = attr.ib(default=None)
+    data: Optional[Any] = attr.ib()
+    with_histograms: Optional[Union[bool, str, List[str], LogDataRequest]] = attr.ib()
+    with_stats: Optional[Union[bool, str, List[str], LogDataRequest]] = attr.ib()
+    with_partition: Optional[bool] = attr.ib()
 
-    send_metrics = attr.ib(default=None)
-    with_partition = attr.ib(default=None)
+    success: bool = attr.ib(default=True)
+    error: Optional[str] = attr.ib(default=None)
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
@@ -330,7 +333,7 @@ class DatasetOperationReport(object):
             log_preview=self.with_preview,
             log_schema=self.with_schema,
             log_size=self.with_schema,
-            log_stats=self.with_histograms,
+            log_stats=self.with_stats,
             log_histograms=self.with_histograms,
         )
 

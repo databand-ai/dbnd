@@ -5,11 +5,14 @@ import os
 import pandas as pd
 import pytest
 
+from more_itertools import one
+
 from dbnd import task
 from dbnd._core.constants import DbndDatasetOperationType
 from dbnd._core.tracking.metrics import log_dataset_op
+from dbnd.api.tracking_api import LogDatasetArgs
 from dbnd.testing.helpers_mocks import set_tracking_context
-from test_dbnd.tracking.tracking_helpers import get_log_metrics, get_log_targets
+from test_dbnd.tracking.tracking_helpers import get_log_datasets, get_log_metrics
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -255,6 +258,49 @@ class TestLogDataSetOpMetrics(object):
                 set(map_metrics["my.path.to.flat_data.json.schema"].value["columns"])
                 == expected_columns
             )
+
+    @pytest.mark.parametrize(
+        "with_histograms,with_stats",
+        # repeat the tests for each combination of the flags -> 2^2 tests == 4 tests!!
+        list(itertools.product([False, True], repeat=2)),
+    )
+    def test_log_dataset_op_histograms_stats_flags(
+        self, mock_channel_tracker, with_histograms, with_stats,
+    ):
+        # Test with_histograms/with_stats flag for pandas dataframe
+
+        with open(THIS_DIR + "/nested_data.json", encoding="utf-8-sig") as f:
+            nested_json = pd.json_normalize(json.load(f))
+
+        @task()
+        def task_log_dataset_op_nested_json_data():
+            log_dataset_op(
+                op_path="/my/path/to/nested_data.json",
+                op_type=DbndDatasetOperationType.write,
+                data=nested_json,
+                with_histograms=with_histograms,
+                with_stats=with_stats,
+            )
+
+        task_log_dataset_op_nested_json_data()
+
+        log_dataset_arg: LogDatasetArgs = one(get_log_datasets(mock_channel_tracker))
+        metrics_info = list(get_log_metrics(mock_channel_tracker))
+        histograms_metrics = list(
+            filter(lambda m: m["metric"].key.endswith("histograms"), metrics_info)
+        )
+        if with_histograms and with_stats:
+            assert histograms_metrics
+            assert log_dataset_arg.columns_stats
+        elif with_histograms:
+            assert histograms_metrics
+            assert not log_dataset_arg.columns_stats
+        elif with_stats:
+            assert not histograms_metrics
+            assert log_dataset_arg.columns_stats
+        else:
+            assert not histograms_metrics
+            assert not log_dataset_arg.columns_stats
 
 
 def if_and_only_if(left, right):

@@ -7,23 +7,22 @@ from uuid import UUID
 if typing.TYPE_CHECKING:
     from typing import List, Optional, Union
 
-    from targets.base_target import Target
-    from targets.value_meta import ValueMeta
-
+    from dbnd._core.constants import (
+        DbndDatasetOperationType,
+        DbndTargetOperationStatus,
+        DbndTargetOperationType,
+        UpdateSource,
+    )
+    from dbnd._core.run.databand_run import DatabandRun
+    from dbnd._core.task_run.task_run import TaskRun
     from dbnd.api.tracking_api import (
-        InitRunArgs,
         AirflowTaskInfo,
+        InitRunArgs,
         LogDatasetArgs,
         LogTargetArgs,
     )
-    from dbnd._core.constants import (
-        DbndTargetOperationType,
-        DbndDatasetOperationType,
-        DbndTargetOperationStatus,
-        UpdateSource,
-    )
-    from dbnd._core.task_run.task_run import TaskRun
-    from dbnd._core.run.databand_run import DatabandRun
+    from targets.base_target import Target
+    from targets.value_meta import ValueMeta
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +116,7 @@ class TrackingStore(object):
         data_meta,  # type: ValueMeta
         operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
-        operation_error,  # type: str
+        operation_error,  # type: Optional[str]
         with_partition=None,  # type: Optional[bool]
     ):  # type: (...) -> None
         pass

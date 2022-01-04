@@ -173,10 +173,10 @@ class TestTrackingMetrics(object):
             ),
         )
         #
-        # This is a tricky one - when we have both histogram and stats on
-        # we create for each of the columns multiple histograms.
+        # This is a tricky one - when we have stats on
+        # we create for each of the columns multiple histograms metrics.
         assert if_and_only_if(
-            histograms and stats,
+            stats,
             all(
                 any(header in metric_name for metric_name in map_metrics)
                 for header in pandas_data_frame.columns

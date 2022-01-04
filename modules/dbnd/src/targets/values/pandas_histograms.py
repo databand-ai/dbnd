@@ -17,8 +17,8 @@ from dbnd._core.tracking.schemas.column_stats import (
 
 
 if typing.TYPE_CHECKING:
-    from targets.value_meta import ValueMetaConf
     from dbnd._core.tracking.log_data_request import LogDataRequest
+    from targets.value_meta import ValueMetaConf
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ class PandasHistograms(object):
         self,
     ) -> Tuple[List[ColumnStatsArgs], Dict[str, List[List]]]:
         columns_stats, histograms = [], {}
+
         if self.meta_conf.log_stats:
             columns_stats = self._calculate_stats(self.df)
 
