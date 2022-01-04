@@ -280,8 +280,8 @@ def log_dataset_op(
     with_preview: bool = False,
     with_schema: bool = False,
     send_metrics: bool = True,
-    row_count:Optional[int]=None, 
-    column_count:Optional[int]=None,  
+    row_count: Optional[int] = None,
+    column_count: Optional[int] = None,
 ):
     """
     Logs dataset operation and meta data to dbnd.
@@ -345,8 +345,8 @@ def dataset_op_logger(
     with_preview: bool = True,
     with_schema: bool = True,
     send_metrics: bool = True,
-    row_count:Optional[int]=None, 
-    column_count:Optional[int]=None,  
+    row_count: Optional[int] = None,
+    column_count: Optional[int] = None,
 ):
     """
     Wrapper to Log dataset operation and meta data to dbnd.
