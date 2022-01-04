@@ -135,7 +135,7 @@ class ConsoleStore(TrackingStore):
                 level, task.ctrl.visualiser.banner(task_msg, color, task_run=task_run)
             )
         except Exception as ex:
-            logger.log(level, "%s \nfailed to create banner: %s" % (task_msg, ex))
+            logger.log(level, "%s , failed to create banner: %s" % (task_msg, ex))
 
     def add_task_runs(self, run, task_runs):
         pass
@@ -145,12 +145,10 @@ class ConsoleStore(TrackingStore):
         attempt_uid = task_run.task_run_attempt_uid
 
         logger.info(
-            "%s %s has registered URLs to external resources: \n\t%s",
+            "%s %s has registered URLs to external resources: %s",
             task,
             attempt_uid,
-            "\n\t".join(
-                "%s: %s" % (k, v) for k, v in six.iteritems(external_links_dict)
-            ),
+            ", ".join("%s: %s" % (k, v) for k, v in six.iteritems(external_links_dict)),
         )
 
     def is_ready(self):
@@ -225,7 +223,7 @@ class ConsoleStore(TrackingStore):
                 )
             )
         else:
-            metrics_str = "\n\t".join(
+            metrics_str = ", ".join(
                 ["{}={}".format(m.key, self._format_value(m.value)) for m in metrics]
             )
-            logger.info("Task %s metrics:\n\t%s", task_run.task_af_id, metrics_str)
+            logger.info("Task %s metrics: %s", task_run.task_af_id, metrics_str)
