@@ -21,6 +21,8 @@ class DbndCursorWrapper:
     def __getattr__(self, name):
         return getattr(self.original_cursor, name)
 
+    # psycopg2 inspects the type of object, sqla_unwrap used to get the underlying object and pass it to psycopg.
+    # source: https://gist.github.com/mjallday/3d4c92e7e6805af1e024
     @property
     def _sqla_unwrap(self):
         return self.original_cursor

@@ -151,7 +151,7 @@ class RedshiftTracker:
                 with_schema=True,
                 send_metrics=True,
                 error=op.error,
-                with_partition=True,
+                with_partition=None,
             )
 
 
@@ -222,7 +222,7 @@ def build_redshift_operations(
         records_count=get_last_query_records_count(cursor.connection),
         query=command,
         # TODO: extract query id
-        query_id=0,
+        query_id=None,
         success=success,
         error=error,
     )
