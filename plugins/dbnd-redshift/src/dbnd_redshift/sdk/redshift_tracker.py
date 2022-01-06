@@ -5,9 +5,10 @@ import logging
 from itertools import chain, takewhile
 from typing import Dict, List, Optional
 
+import psycopg2
 import sqlparse
 
-from psycopg2.extras import DictConnection as DatabaseConnection, DictCursor as Cursor
+from psycopg2.extensions import connection as psycopg2_connection
 
 from dbnd import log_dataset_op
 from dbnd._core.log.external_exception_logging import log_exception_to_server
@@ -16,6 +17,11 @@ from dbnd._core.sql_tracker_common.sql_operation import (
     DTypes,
     SqlOperation,
     render_connection_path,
+)
+from dbnd_redshift.sdk.wrappers import (
+    DbndConnectionWrapper,
+    DbndCursorWrapper,
+    PostgresConnectionWrapper,
 )
 
 
@@ -32,8 +38,19 @@ class RedshiftTracker:
         self.calculate_file_path = calculate_file_path
 
     def __enter__(self):
-        if not hasattr(Cursor.execute, "__dbnd_patched__"):
-            execute_original = Cursor.execute
+        if not hasattr(psycopg2.connect, "__dbnd_patched__"):
+            connect_original = psycopg2.connect
+
+            @functools.wraps(connect_original)
+            def redshift_connect(*args, **kwargs):
+                original_connection = connect_original(*args, **kwargs)
+                return DbndConnectionWrapper(original_connection)
+
+            redshift_connect.__dbnd_patched__ = connect_original
+            psycopg2.connect = redshift_connect
+
+        if not hasattr(DbndCursorWrapper.execute, "__dbnd_patched__"):
+            execute_original = DbndCursorWrapper.execute
 
             @functools.wraps(execute_original)
             def redshift_cursor_execute(cursor_self, *args, **kwargs):
@@ -41,25 +58,25 @@ class RedshiftTracker:
                     return execute_original(cursor_self, *args, **kwargs)
 
             redshift_cursor_execute.__dbnd_patched__ = execute_original
-            Cursor.execute = redshift_cursor_execute
+            DbndCursorWrapper.execute = redshift_cursor_execute
 
-        if not hasattr(DatabaseConnection.close, "__dbnd_patched__"):
-            close_original = DatabaseConnection.close
+        if not hasattr(DbndConnectionWrapper.close, "__dbnd_patched__"):
+            close_original = DbndConnectionWrapper.close
 
             @functools.wraps(close_original)
             def redshift_connection_close(connection_self, *args, **kwargs):
                 # track connection before closing it (Example 1)
-                self.unpatch_method(Cursor, "execute")
+                self.unpatch_method(DbndCursorWrapper, "execute")
                 if self._connection:
                     conn = self._connection
                 else:
-                    conn = connection_self
+                    conn = PostgresConnectionWrapper(connection_self)
                 self.flush_operations(conn)
 
                 return close_original(connection_self, *args, **kwargs)
 
             redshift_connection_close.__dbnd_patched__ = close_original
-            DatabaseConnection.close = redshift_connection_close
+            DbndConnectionWrapper.close = redshift_connection_close
 
         return self
 
@@ -68,16 +85,16 @@ class RedshiftTracker:
         method = getattr(obj, original_attr)
         if hasattr(method, patched_attr):
             setattr(
-                Cursor, original_attr, getattr(method, patched_attr),
+                obj, original_attr, getattr(method, patched_attr),
             )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.unpatch_method(Cursor, "execute")
-        self.unpatch_method(DatabaseConnection, "close")
+        self.unpatch_method(DbndCursorWrapper, "execute")
+        self.unpatch_method(DbndConnectionWrapper, "close")
         if self._connection:
             self.flush_operations(self._connection)
 
-    def flush_operations(self, connection: DatabaseConnection):
+    def flush_operations(self, connection: PostgresConnectionWrapper):
         self.report_operations(connection, self.operations)
         # we clean all the batch of operations we reported so we don't report twice
         self.operations = []
@@ -106,7 +123,7 @@ class RedshiftTracker:
                 log_exception_to_server(e)
 
     def report_operations(
-        self, connection: DatabaseConnection, operations: List[SqlOperation]
+        self, connection: PostgresConnectionWrapper, operations: List[SqlOperation]
     ):
         # update the tables names
         operations = [op.evolve_table_name(connection) for op in operations]
@@ -134,7 +151,7 @@ class RedshiftTracker:
                 with_schema=True,
                 send_metrics=True,
                 error=op.error,
-                with_partition=True,
+                with_partition=None,
             )
 
 
@@ -157,7 +174,7 @@ def get_redshift_table_schema(connection, table) -> Optional[DTypes]:
     return schema
 
 
-def get_last_query_records_count(connection: DatabaseConnection):
+def get_last_query_records_count(connection: psycopg2_connection):
     """
     Returns the number of rows that were loaded by the last COPY command run in the current session.
     """
@@ -167,7 +184,7 @@ def get_last_query_records_count(connection: DatabaseConnection):
         return result_set[0][0]
 
 
-def redshift_query(connection: DatabaseConnection, query: str, params=None):
+def redshift_query(connection: psycopg2_connection, query: str, params=None):
     try:
         with connection.cursor() as cursor:
             cursor.execute(query, params)
@@ -179,10 +196,17 @@ def redshift_query(connection: DatabaseConnection, query: str, params=None):
 
 
 def build_redshift_operations(
-    cursor: Cursor, command: str, success: bool, calculate_file_path, error: str
+    cursor: DbndCursorWrapper,
+    command: str,
+    success: bool,
+    calculate_file_path,
+    error: str,
 ) -> List[SqlOperation]:
     operations = []
-    sql_query_extractor = SqlQueryExtractor(calculate_file_path)
+    if calculate_file_path:
+        sql_query_extractor = SqlQueryExtractor(calculate_file_path)
+    else:
+        sql_query_extractor = SqlQueryExtractor()
     command = sql_query_extractor.clean_query(command)
     # find the relevant operations schemas from the command
     parsed_query = sqlparse.parse(command)[0]
@@ -198,7 +222,7 @@ def build_redshift_operations(
         records_count=get_last_query_records_count(cursor.connection),
         query=command,
         # TODO: extract query id
-        query_id=0,
+        query_id=None,
         success=success,
         error=error,
     )
@@ -225,32 +249,3 @@ def build_redshift_operations(
         )
         operations.append(write)
     return operations
-
-
-class PostgresConnectionWrapper:
-    def __init__(self, connection: DatabaseConnection):
-        self.connection = connection
-        self._schema = None
-
-    @property
-    def host(self) -> str:
-        return self.connection.info.host
-
-    @property
-    def port(self) -> Optional[int]:
-        return self.connection.info.port
-
-    @property
-    def database(self) -> Optional[str]:
-        return self.connection.info.dbname
-
-    @property
-    def schema(self) -> Optional[str]:
-        return self._schema
-
-    @schema.setter
-    def schema(self, schema):
-        self._schema = schema
-
-    def cursor(self):
-        return self.connection.cursor()
