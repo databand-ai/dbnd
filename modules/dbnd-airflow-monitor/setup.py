@@ -16,14 +16,7 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=["dbnd==" + version, "setuptools", "prometheus_client",],
     extras_require={
-        "tests": [
-            "pytest==4.5.0",
-            "mock",
-            "WTForms<2.3.0",
-            "apache-airflow>=1.10.9,<=1.10.11",
-            "sh",
-            "SQLAlchemy==1.3.18",
-        ],
+        "tests": ["pytest==4.5.0", "mock", "WTForms<2.3.0", "sh"],
         "composer": [
             "PyJWT==1.7.1",
             "cryptography==2.8",
