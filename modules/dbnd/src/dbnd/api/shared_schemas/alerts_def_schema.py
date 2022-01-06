@@ -75,6 +75,7 @@ class GroupAlertDefsSchema(ApiStrictSchema):
     operator = fields.Str(allow_none=True)
     ml_alert = fields.Nested(MLAlert, allow_none=True)
     owner = fields.Str(allow_none=True)
+    jobs = fields.List(fields.Int(), allow_none=True)
 
     custom_name = fields.Str(allow_none=True)
     custom_description = fields.Str(allow_none=True)
