@@ -23,7 +23,6 @@ from typing import Dict, Optional
 
 import attr
 
-from airflow.utils.dag_processing import SimpleTaskInstance
 from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from airflow.utils.timezone import utcnow
@@ -39,6 +38,10 @@ from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd_airflow.airflow_extensions.dal import (
     get_airflow_task_instance,
     get_airflow_task_instance_state,
+)
+from dbnd_airflow.compat.airflow_multi_version_shim import (
+    SimpleTaskInstance,
+    is_task_instance_finished,
 )
 from dbnd_airflow.compat.kubernetes_executor import (
     AirflowKubernetesScheduler,
@@ -357,7 +360,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             for submitted_pod in pods_to_delete:
                 task_run = submitted_pod.task_run
                 ti_state = get_airflow_task_instance_state(task_run)
-                if ti_state in State.finished():
+                if is_task_instance_finished(ti_state):
                     if task_run.task_run_state not in TaskRunState.final_states():
                         self.log.info(
                             "%s with pod %s is not finished: airflow state - %s and databand state - %s."
@@ -584,7 +587,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             task_run=task_run, msg=error_msg, help_msg=error_help_msg,
         )
 
-        if ti_state in State.finished():
+        if is_task_instance_finished(ti_state):
             # Pod has failed, however, Airflow managed to update the state
             # that means - all code (including dbnd) were executed
             # let just notify the error, so we can show it in the summary

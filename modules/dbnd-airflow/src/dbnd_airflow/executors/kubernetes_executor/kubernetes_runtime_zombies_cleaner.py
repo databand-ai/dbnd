@@ -6,7 +6,7 @@ from typing import List
 import airflow
 import six
 
-from airflow import DAG, LoggingMixin, conf as af_conf
+from airflow import DAG
 from airflow.models import TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import provide_session
@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd_airflow.airflow_extensions.dal import get_airflow_task_instance
+from dbnd_airflow.compat.airflow_multi_version_shim import LoggingMixin
+from dbnd_airflow.constants import AIRFLOW_VERSION_2
 
 
 if typing.TYPE_CHECKING:
@@ -123,7 +125,10 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
         heartbeat for too long
         """
         # to avoid circular imports
-        from airflow.jobs import LocalTaskJob as LJ
+        if AIRFLOW_VERSION_2:
+            from airflow.jobs.local_task_job import LocalTaskJob as LJ
+        else:
+            from airflow.jobs import LocalTaskJob as LJ
 
         limit_dttm = timezone.utcnow() - datetime.timedelta(
             seconds=self.zombie_threshold_secs

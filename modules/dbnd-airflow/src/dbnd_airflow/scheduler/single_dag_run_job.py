@@ -3,10 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import datetime
 import logging
 
-from airflow import executors, models
-from airflow.jobs import BackfillJob, BaseJob
+from airflow import models
 from airflow.models import DagRun, TaskInstance as TI
-from airflow.ti_deps.dep_context import RUNNABLE_STATES, RUNNING_DEPS, DepContext
 from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy
 from airflow.utils.db import provide_session
@@ -21,7 +19,12 @@ from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
+from dbnd_airflow.compat.airflow_multi_version_shim import (
+    is_task_instance_finished,
+    reset_state_for_orphaned_tasks,
+)
 from dbnd_airflow.config import AirflowConfig
+from dbnd_airflow.constants import AIRFLOW_VERSION_2
 from dbnd_airflow.dbnd_task_executor.task_instance_state_manager import (
     AirflowTaskInstanceStateManager,
 )
@@ -30,6 +33,20 @@ from dbnd_airflow.executors.kubernetes_executor.kubernetes_runtime_zombies_clean
 )
 from dbnd_airflow.scheduler.dagrun_zombies import fix_zombie_dagrun_task_instances
 
+
+if AIRFLOW_VERSION_2:
+    from airflow.executors.local_executor import LocalExecutor
+    from airflow.executors.sequential_executor import SequentialExecutor
+    from airflow.jobs.backfill_job import BackfillJob
+    from airflow.jobs.base_job import BaseJob
+
+    from airflow.ti_deps.dep_context import DepContext
+    from airflow.ti_deps.dependencies_deps import RUNNING_DEPS
+    from airflow.ti_deps.dependencies_states import RUNNABLE_STATES
+else:
+    from airflow.executors import LocalExecutor, SequentialExecutor
+    from airflow.jobs import BackfillJob, BaseJob
+    from airflow.ti_deps.dep_context import RUNNABLE_STATES, RUNNING_DEPS, DepContext
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +64,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
     # ID_PREFIX should be based on BackfillJob
     # there is a lot of checks that are "not scheduled_job"
     # they uses run_name string
-    ID_PREFIX = BackfillJob.ID_PREFIX + "manual_    "
+    ID_PREFIX = "backfill_manual_    "
     ID_FORMAT_PREFIX = ID_PREFIX + "{0}"
 
     # if we use real name of the class we need to load it at Airflow Webserver
@@ -276,7 +293,14 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             return tasks_to_run
 
         # check if we have orphaned tasks
-        self.reset_state_for_orphaned_tasks(filter_by_dag_run=dag_run, session=session)
+        if AIRFLOW_VERSION_2:
+            reset_state_for_orphaned_tasks(
+                self, filter_by_dag_run=dag_run, session=session
+            )
+        else:
+            self.reset_state_for_orphaned_tasks(
+                filter_by_dag_run=dag_run, session=session
+            )
 
         # for some reason if we don't refresh the reference to run is lost
         dag_run.refresh_from_db()
@@ -293,7 +317,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 TI.state: State.SCHEDULED,
                 TI.start_date: timezone.utcnow(),
                 TI.end_date: timezone.utcnow(),
-            }
+            },
+            synchronize_session="fetch",
         )
         # TODO(edgarRd): AIRFLOW-1464 change to batch query to improve perf
         #
@@ -513,8 +538,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
                                 cfg_path = None
                                 if executor.__class__ in (
-                                    executors.LocalExecutor,
-                                    executors.SequentialExecutor,
+                                    LocalExecutor,
+                                    SequentialExecutor,
                                 ):
                                     cfg_path = tmp_configuration_copy()
 
@@ -602,7 +627,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
                 self._update_databand_task_run_states(dag_run)
 
-                if dag_run.state in State.finished():
+                if is_task_instance_finished(dag_run.state):
                     ti_status.finished_runs += 1
                     ti_status.active_runs.remove(dag_run)
                     executed_run_dates.append(dag_run.execution_date)
@@ -905,7 +930,7 @@ def get_af_task_try_number(af_task_instance):
     rerunning                               2               2               2
     finished (success/fail/...)             2               3               2
     """
-    if af_task_instance.state in State.finished():
+    if is_task_instance_finished(af_task_instance.state):
         return af_task_instance.try_number - 1
 
     return af_task_instance.try_number

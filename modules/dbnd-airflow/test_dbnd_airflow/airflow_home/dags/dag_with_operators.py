@@ -7,10 +7,16 @@ import airflow
 
 from airflow import DAG
 from airflow.models import TaskInstance
-from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 
 from dbnd import task
+from dbnd_airflow.constants import AIRFLOW_VERSION_2
+
+
+if AIRFLOW_VERSION_2:
+    from airflow.operators.python import PythonOperator
+else:
+    from airflow.operators.python_operator import PythonOperator
 
 
 default_args = {

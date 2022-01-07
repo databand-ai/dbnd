@@ -39,13 +39,15 @@ def run_and_get(dag, task_id, execution_date=None):
     execution_date = execution_date or utcnow()
     try:
         _run_dag(dag, execution_date=execution_date)
-    except Exception:
+    except Exception as ex:
         logger.exception("Failed to run %s %s %s", dag.dag_id, task_id, execution_date)
 
-        from airflow.configuration import conf as airflow_conf
+        from dbnd_airflow.compat.airflow_multi_version_shim import (
+            get_airflow_conf_log_folder,
+        )
 
         iso = execution_date.isoformat()
-        log = os.path.expanduser(airflow_conf.get("core", "BASE_LOG_FOLDER"))
+        log = os.path.expanduser(get_airflow_conf_log_folder())
         log_path = os.path.join(log, dag.dag_id, task_id, iso)
         logger.info("Check logs at %s", log_path)
         raise

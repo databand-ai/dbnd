@@ -2,11 +2,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import contextlib
 import logging
+import os
 import typing
 
 from airflow import DAG
 from airflow.configuration import conf as airflow_conf
-from airflow.executors import LocalExecutor, SequentialExecutor
 from airflow.models import DagPickle, DagRun, Pool, TaskInstance
 from airflow.utils import timezone
 from airflow.utils.db import create_session, provide_session
@@ -19,7 +19,13 @@ from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
 from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
+from dbnd_airflow.compat.airflow_multi_version_shim import (
+    LocalExecutor,
+    SequentialExecutor,
+    get_airflow_conf_log_folder,
+)
 from dbnd_airflow.config import AirflowConfig, get_dbnd_default_args
+from dbnd_airflow.constants import AIRFLOW_VERSION_2
 from dbnd_airflow.db_utils import remove_listener_by_name
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
     AirflowDagAsDbndTask,
@@ -52,6 +58,13 @@ DAG_UNPICKABLE_PROPERTIES = (
 )
 
 
+def compute_log_filepath_from_ti(ti, execution_date) -> str:
+    iso = execution_date.isoformat()
+    log_folder = get_airflow_conf_log_folder()
+    log = os.path.expanduser(log_folder)
+    return f"{log}/{ti.dag_id}/{ti.task_id}/{iso}/{ti.try_number}.log"
+
+
 @provide_session
 def create_dagrun_from_dbnd_run(
     databand_run,
@@ -72,14 +85,22 @@ def create_dagrun_from_dbnd_run(
         .first()
     )
     if dagrun is None:
+        if AIRFLOW_VERSION_2:
+            from airflow.utils.types import DagRunType
+
+            version_specific_params = dict(
+                state=state, run_type=DagRunType.BACKFILL_JOB,
+            )
+        else:
+            version_specific_params = dict(_state=state,)
         dagrun = DagRun(
             run_id=run_id,
             execution_date=execution_date,
             start_date=dag.start_date,
-            _state=state,
             external_trigger=external_trigger,
             dag_id=dag.dag_id,
             conf=conf,
+            **version_specific_params,
         )
         session.add(dagrun)
     else:
@@ -117,8 +138,8 @@ def create_dagrun_from_dbnd_run(
         # all tasks part of the backfill are scheduled to dagrun
 
         # Set log file path to expected airflow log file path
-        task_run.log.local_log_file.path = ti.log_filepath.replace(
-            ".log", "/{0}.log".format(ti.try_number)
+        task_run.log.local_log_file.path = compute_log_filepath_from_ti(
+            ti, execution_date
         )
         if task_run.is_reused:
             # this task is completed and we don't need to run it anymore
@@ -369,7 +390,11 @@ class AirflowTaskExecutor(TaskExecutor):
 
         self.airflow_task_executor.fail_fast = s_run.fail_fast
         # we don't want to be stopped by zombie jobs/tasks
-        airflow_conf.set("core", "dag_concurrency", str(10000))
+        if AIRFLOW_VERSION_2:
+            airflow_conf.set("core", "max_active_tasks_per_dag", str(10000))
+        else:
+            airflow_conf.set("core", "dag_concurrency", str(10000))
+
         airflow_conf.set("core", "max_active_runs_per_dag", str(10000))
 
         job = SingleDagRunJob(

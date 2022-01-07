@@ -11,6 +11,7 @@ from airflow.utils.trigger_rule import TriggerRule
 
 from dbnd import pipeline, task
 from dbnd._core.errors import MissingParameterError
+from dbnd_airflow.constants import AIRFLOW_VERSION_2
 from test_dbnd_airflow.airflow_home.dags.dag_test_examples import default_args_test
 
 
@@ -109,6 +110,7 @@ class TestFunctionalDagBuild(object):
                 task1("check")
                 task2()
 
+    @pytest.mark.skipif(AIRFLOW_VERSION_2, reason="Airflow 2 has different internals")
     def test_task_and_operator_lshift_fail(self):
         @task
         def task1():
@@ -117,7 +119,13 @@ class TestFunctionalDagBuild(object):
         with pytest.raises(AirflowException):
             with DAG(dag_id="test_simple_build", default_args=default_args_test):
                 bash_task = BashOperator(task_id="bash_task", bash_command="echo 'Ni!'")
-                bash_task >> task1()  # should be task1().op -> next test
+                # TODO: Airflow 2.2 internals _set_relatives will no longer convert task instance to list using the code:
+                #   try:
+                #             task_list = list(task_or_task_list)
+                #         except TypeError:
+                #             task_list = [task_or_task_list]
+                task_ = task1()
+                bash_task >> task_  # should be task1().op -> next test
 
     def test_task_and_operator_lshift_requires_op(self):
         @task

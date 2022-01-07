@@ -22,7 +22,6 @@ import subprocess
 
 from airflow.configuration import conf as airflow_conf
 from airflow.executors.base_executor import BaseExecutor
-from airflow.utils.dag_processing import SimpleTaskInstance
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.state import State
@@ -30,6 +29,11 @@ from airflow.utils.state import State
 from dbnd._core import current
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.errors import DatabandError, show_error_once
+from dbnd_airflow.compat.airflow_multi_version_shim import (
+    SimpleTaskInstance,
+    get_airflow_conf_remote_logging,
+)
+from dbnd_airflow.constants import AIRFLOW_VERSION_2
 
 
 logger = logging.getLogger(__name__)
@@ -138,10 +142,14 @@ class InProcessExecutor(BaseExecutor):
         # self.heartbeat()
 
     # overriding default implementation with better logging messages
-    def change_state(self, key, state):
+    def change_state(self, key, state, info=None):
         logger.debug("popping: {}".format(key))
-        self.running.pop(key)
-        self.event_buffer[key] = state
+        if AIRFLOW_VERSION_2:
+            self.running.remove(key)
+            self.event_buffer[key] = state, info
+        else:
+            self.running.pop(key)
+            self.event_buffer[key] = state
 
     @provide_session
     def _run_task_instance(self, ti, mark_success, pool, session=None):
@@ -173,7 +181,7 @@ class InProcessExecutor(BaseExecutor):
             self._sync_remote_logs(ti)
 
     def _sync_remote_logs(self, ti):
-        if not airflow_conf.getboolean("core", "remote_logging"):
+        if not get_airflow_conf_remote_logging():
             return
         logging.info("Syncing remote logs...")
         try:

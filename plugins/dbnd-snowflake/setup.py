@@ -15,6 +15,7 @@ setuptools.setup(
     name="dbnd-snowflake",
     package_dir={"": "src"},
     install_requires=[
+        "sqlparse",
         "snowflake-connector-python<2.6.0",
         "numpy",
         "dbnd==" + version,

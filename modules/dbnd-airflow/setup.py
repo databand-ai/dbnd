@@ -26,11 +26,7 @@ requirements_for_airflow = [
 setuptools.setup(
     name="dbnd-airflow",
     package_dir={"": "src"},
-    install_requires=[
-        "dbnd==" + version,
-        "packaging",
-        "idna<3,>=2.5",  # fix compatibility with requests==2.23.0 from apache-airflow
-    ],
+    install_requires=["dbnd==" + version, "packaging",],
     # Only for orchestration, tracking users should install Airflow manually before DBND
     # The best way to install airflow is manually with constraints beforehand.
     # For example:
@@ -46,6 +42,7 @@ setuptools.setup(
         airflow_1_10_14=requirements_for_airflow + ["apache-airflow==1.10.14"],
         airflow_1_10_15=requirements_for_airflow + ["apache-airflow==1.10.15"],
         airflow_2_0_2=[
+            # This is only used to build Docker image for integration tests.
             "WTForms<2.3.0",
             "psycopg2-binary>=2.7.4",
             "apache-airflow==2.0.2",
@@ -55,32 +52,10 @@ setuptools.setup(
         ],
         airflow=requirements_for_airflow + ["apache-airflow==1.10.10"],
         tests=[
-            # airflow support
-            "pandas<2.0.0,>=0.17.1",
-            # azure
-            "azure-storage-blob",
-            # aws
-            "httplib2>=0.9.2",
-            "boto3<=1.15.18",
-            "s3fs",
-            # gcs
-            "httplib2>=0.9.2",
-            "google-api-python-client>=1.6.0, <2.0.0dev",
-            "google-auth>=1.0.0, <2.0.0dev",
-            "google-auth-httplib2>=0.0.1",
-            "google-cloud-container>=0.1.1",
-            "PyOpenSSL",
-            "pandas-gbq",
-            # docker
-            "docker~=3.0",
-            "idna<=2.7",  # conflict with requests (require 2.8 <)
-            # k8s
-            "kubernetes==9.0.0",
-            "cryptography>=2.0.0",
-            "WTForms<2.3.0",  # fixing ImportError: cannot import name HTMLString at 2.3.0
+            # # airflow support
             "dbnd_test_scenarios==" + version,
-            "SQLAlchemy==1.3.18",
             "pytest==4.5.0",
+            "boto3<=1.15.18",
             "mock",
             "sh",
         ],
