@@ -44,10 +44,10 @@ def mock_decorator(method_to_decorate):
 
 
 class TestSyncerWorks(WebAppTest):
-    def set_is_monitor_enabled(self, uid, is_sync_enabled):
+    def set_is_monitor_enabled(self, url, is_sync_enabled):
         self.client.post(
             self._url("AirflowServersApi.set_is_enabled"),
-            json={"uid": uid, "is_enabled": is_sync_enabled},
+            json={"base_url": url, "is_enabled": is_sync_enabled},
         )
 
     def set_monitor_archived(self, url):
@@ -69,9 +69,9 @@ class TestSyncerWorks(WebAppTest):
                 return server
 
     @pytest.fixture
-    def syncer(self, _set_values):
+    def syncer_url(self, _set_values):
         random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
-        created_syncer = self.client.post(
+        self.client.post(
             self._url("AirflowServersApi.add"),
             json={
                 "base_url": random_name,
@@ -85,11 +85,10 @@ class TestSyncerWorks(WebAppTest):
                 "monitor_config": {"include_sources": False},
             },
         )
-
-        return {"base_url": random_name, **created_syncer.json["server_info_dict"]}
+        return random_name
 
     @pytest.fixture
-    def multi_server(self, mock_data_fetcher, syncer):
+    def multi_server(self, mock_data_fetcher, syncer_url):
         with patch(
             "airflow_monitor.multiserver.monitor_component_manager.get_data_fetcher",
             return_value=mock_data_fetcher,
@@ -97,8 +96,8 @@ class TestSyncerWorks(WebAppTest):
             "airflow_monitor.common.base_component.get_data_fetcher",
             return_value=mock_data_fetcher,
         ), self.patch_api_client():
-            syncer_name = syncer["base_url"]
-            monitor_config = AirflowMonitorConfig(syncer_name=syncer_name)
+
+            monitor_config = AirflowMonitorConfig(syncer_name=syncer_url)
             yield AirflowMultiServerMonitor(
                 runner=RUNNER_FACTORY[monitor_config.runner_type],
                 monitor_component_manager=AirflowMonitorComponentManager,
@@ -106,9 +105,9 @@ class TestSyncerWorks(WebAppTest):
                 monitor_config=monitor_config,
             )
 
-    def test_01_server_sync_enable_disable(self, multi_server, syncer, mock_sync_once):
-        syncer_uid = syncer["uid"]
-        syncer_url = syncer["base_url"]
+    def test_01_server_sync_enable_disable(
+        self, multi_server, syncer_url, mock_sync_once
+    ):
         server_info = self.get_server_info_by_url(syncer_url)
         assert server_info["last_sync_time"] is None
 
@@ -119,22 +118,23 @@ class TestSyncerWorks(WebAppTest):
         assert server_info["last_sync_time"] is not None
         last_sync_time = server_info["last_sync_time"]
 
-        self.set_is_monitor_enabled(syncer_uid, False)
+        self.set_is_monitor_enabled(syncer_url, False)
         multi_server.run_once()
         assert mock_sync_once.call_count == 1
 
         server_info = self.get_server_info_by_url(syncer_url)
         assert server_info["last_sync_time"] == last_sync_time
 
-        self.set_is_monitor_enabled(syncer_uid, True)
+        self.set_is_monitor_enabled(syncer_url, True)
         multi_server.run_once()
         assert mock_sync_once.call_count == 2
 
         server_info = self.get_server_info_by_url(syncer_url)
         assert server_info["last_sync_time"] > last_sync_time
 
-    def test_02_server_archive_unarchive(self, multi_server, syncer, mock_sync_once):
-        syncer_url = syncer["base_url"]
+    def test_02_server_archive_unarchive(
+        self, multi_server, syncer_url, mock_sync_once
+    ):
         multi_server.run_once()
         assert mock_sync_once.call_count == 1
 
@@ -159,9 +159,8 @@ class TestSyncerWorks(WebAppTest):
         assert mock_sync_once.call_count == 2
 
     def test_03_source_instance_uid(
-        self, multi_server, syncer, mock_sync_once, mock_data_fetcher
+        self, multi_server, syncer_url, mock_sync_once, mock_data_fetcher
     ):
-        syncer_url = syncer["base_url"]
         mock_data_fetcher.airflow_version = "1.10.10"
         mock_data_fetcher.plugin_version = "0.40.1 v2"
         mock_data_fetcher.airflow_instance_uid = "34db92af-a525-522e-8f27-941cd4746d7b"
