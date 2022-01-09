@@ -89,8 +89,7 @@ class SqlQueryExtractor:
             if token.ttype in Keyword:
                 operation_name = token.value.upper()
                 idx_potential, next_token = self._next_non_empty_token(idx, statement)
-                next_operation_name = next_token.value.upper()
-
+                next_operation_name = next_token.value.upper() if next_token else None
                 # copy and copy into statement are handled once per query
                 if operation_name == "INTO" or (
                     operation_name == "COPY" and next_operation_name != "INTO"
