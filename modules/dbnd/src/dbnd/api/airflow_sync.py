@@ -10,6 +10,16 @@ def list_synced_airflow_instances():
     return schema.load(data=response["data"], many=True).data
 
 
+def generate_access_token(name, lifespan):
+    client = get_databand_context().databand_api_client
+    resp = client.api_request(
+        "/api/v1/auth/personal_access_token",
+        {"label": name, "lifespan": lifespan},
+        method="POST",
+    )
+    return resp
+
+
 def create_airflow_instance(
     url,
     external_url,
@@ -22,6 +32,7 @@ def create_airflow_instance(
     last_seen_dag_run_id,
     last_seen_log_id,
     name,
+    generate_token,
 ):
     client = get_databand_context().databand_api_client
     endpoint = "airflow_monitor/add"
@@ -38,7 +49,18 @@ def create_airflow_instance(
         "last_seen_log_id": last_seen_log_id,
         "name": name,
     }
-    client.api_request(endpoint, request_data, method="POST")
+    resp = client.api_request(endpoint, request_data, method="POST")
+    config_json = resp["server_info_dict"]
+    config_json["core"][
+        "databand_url"
+    ] = get_databand_context().settings.core.databand_url
+
+    if generate_token:
+        token_resp = generate_access_token(name, generate_token)
+
+        config_json["core"]["databand_access_token"] = token_resp["token"]
+
+    return config_json
 
 
 def edit_airflow_instance(

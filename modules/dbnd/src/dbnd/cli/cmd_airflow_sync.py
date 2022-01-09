@@ -1,3 +1,4 @@
+import json
 import logging
 
 from dbnd._core.constants import AirflowEnvironment
@@ -124,6 +125,18 @@ def build_instances_table(instances_data):
 @click.option(
     "--name", help="Name for the syncer", type=click.STRING, default=None,
 )
+@click.option(
+    "--generate-token",
+    help="Generate access token for the syncer, value is token lifespan",
+    type=click.INT,
+    default=None,
+)
+@click.option(
+    "--output",
+    help="Store syncer config json to file",
+    type=click.File("w"),
+    default="-",
+)
 def add(
     url,
     external_url,
@@ -136,9 +149,11 @@ def add(
     last_seen_dag_run_id,
     last_seen_log_id,
     name,
+    generate_token,
+    output,
 ):
     try:
-        create_airflow_instance(
+        config_json = create_airflow_instance(
             url,
             external_url,
             fetcher,
@@ -150,7 +165,10 @@ def add(
             last_seen_dag_run_id,
             last_seen_log_id,
             name,
+            generate_token,
         )
+        if output:
+            json.dump(config_json, output, indent=4)
     except DatabandApiError as e:
         logger.warning("failed with - {}".format(e.response))
     else:
