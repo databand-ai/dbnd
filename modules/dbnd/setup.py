@@ -58,7 +58,7 @@ setuptools.setup(
             "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
             "tox==3.12.1",
             "matplotlib==3.3.0",
-            "tables==3.5.1",
+            "tables==3.7.0",
             "feather-format",
             "pyarrow",
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element

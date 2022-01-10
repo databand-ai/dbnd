@@ -35,6 +35,7 @@ services:
       - DBND__LOG_SPARK=True
       - DBND__SPARK__LISTENER_INJECT_ENABLED=True
       - PYTEST_ADDOPTS=--junit-xml /app/junit/inttest-dbnd-run-spark-${IMAGE_EXTRA_TAG}.xml
+      - DBND_MANAGE__DOCKER_IMAGE_EXTRA_TAG=py36
     command:
       - bash
       - -c

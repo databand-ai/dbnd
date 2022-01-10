@@ -11,6 +11,8 @@ services:
     image: ${DOCKER_IMAGE_INT_LIVY}
     volumes:
       - .:/app/integration-test
+    environment:
+      - DBND_MANAGE__DOCKER_IMAGE_EXTRA_TAG=py36
     ports:
       - 8998:8998
 
@@ -27,6 +29,7 @@ services:
       - DBND_HOME=/app/integration-test
       - DBND__LOG_SPARK=True
       - PYTEST_ADDOPTS=--junit-xml /app/junit/inttest-dbnd-run-livy-${IMAGE_EXTRA_TAG}.xml
+      - DBND_MANAGE__DOCKER_IMAGE_EXTRA_TAG=py36
     command:
       - bash
       - -c

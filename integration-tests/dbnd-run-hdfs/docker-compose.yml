@@ -80,6 +80,7 @@ services:
     environment:
       - PYTEST_ADDOPTS=--junit-xml junit/inttest-dbnd-run-hdfs-${IMAGE_EXTRA_TAG}.xml
       - DBND_HOME=/app/integration-test
+      - DBND_MANAGE__DOCKER_IMAGE_EXTRA_TAG=py36
     working_dir: /app/integration-test
     command:
       - bash
