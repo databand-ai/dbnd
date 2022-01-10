@@ -44,14 +44,17 @@ class ColumnStatsArgs:
     quartile_2: float = attr.ib(default=None)
     quartile_3: float = attr.ib(default=None)
 
-    @property
-    def non_null_count(self) -> Optional[int]:
+    non_null_count: Optional[int] = attr.ib()
+    null_percent: Optional[float] = attr.ib()
+
+    @non_null_count.default
+    def _non_null_count(self) -> Optional[int]:
         if self.records_count is None or self.null_count is None:
             return None
         return self.records_count - self.null_count
 
-    @property
-    def null_percent(self) -> Optional[float]:
+    @null_percent.default
+    def _null_percent(self) -> Optional[float]:
         if self.null_count is None or self.records_count == 0:
             return None
 
@@ -98,11 +101,8 @@ class ColumnStatsArgs:
         }
         return {k: v for k, v in stats.items() if v is not None}
 
-    def as_dict(self, with_property_methods: bool = True) -> dict:
-        if with_property_methods:
-            attr_dict = build_dict_from_instance_properties(self)
-        else:
-            attr_dict = attr.asdict(self)
+    def as_dict(self) -> dict:
+        attr_dict = attr.asdict(self)
         return {k: v for k, v in attr_dict.items() if v is not None}
 
 
