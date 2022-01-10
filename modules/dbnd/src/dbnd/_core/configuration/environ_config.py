@@ -130,6 +130,10 @@ def in_tracking_mode():
     return get_dbnd_project_config().is_tracking_mode()
 
 
+def in_airflow_tracking_mode():
+    return get_dbnd_project_config().is_in_airflow_tracking_mode()
+
+
 def is_unit_test_mode():
     return get_dbnd_project_config().unit_test_mode
 
@@ -233,6 +237,7 @@ class DbndProjectConfig(object):
         self.airflow_auto_tracking = environ_enabled(
             ENV_DBND__AUTO_TRACKING, default=True
         )
+        self._is_airflow_runtime = None
 
     @property
     def disabled(self):
@@ -257,9 +262,15 @@ class DbndProjectConfig(object):
             return False
 
         if self._dbnd_tracking is None:
-            return bool(self.airflow_context())
+            return self.is_in_airflow_tracking_mode()
 
         return self._dbnd_tracking
+
+    def is_in_airflow_tracking_mode(self):
+        if self._is_airflow_runtime is None:
+            self._is_airflow_runtime = bool(self.airflow_context())
+
+        return self._is_airflow_runtime
 
     def is_verbose(self):
         from dbnd._core.current import try_get_databand_context
@@ -289,6 +300,9 @@ class DbndProjectConfig(object):
 
     def validate_init(self):
         _debug_init_print("Successfully created dbnd project config")
+
+    def set_is_airflow_runtime(self):
+        self._is_airflow_runtime = True
 
 
 def _debug_init_print(msg):

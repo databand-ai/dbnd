@@ -10,7 +10,9 @@ import six
 
 from more_itertools import collapse, partition
 
-from dbnd._core.constants import SystemTaskName, TaskRunState, UpdateSource
+from dbnd._core.configuration.dbnd_config import config as dbnd_config
+from dbnd._core.configuration.environ_config import in_airflow_tracking_mode
+from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.tracking.schemas.metrics import Metric
@@ -59,6 +61,7 @@ class ConsoleStore(TrackingStore):
         self.max_log_value_len = 50
         self.verbose = is_verbose()
         self.ascii_graph = Pyasciigraph()
+        self._is_in_airflow_tracking_mode = in_airflow_tracking_mode()
 
     def init_run(self, run):
         if run.is_orchestration:
@@ -87,7 +90,17 @@ class ConsoleStore(TrackingStore):
 
     def set_task_run_state(self, task_run, state, error=None, timestamp=None):
         super(ConsoleStore, self).set_task_run_state(task_run=task_run, state=state)
+
         task = task_run.task
+
+        if self._is_in_airflow_tracking_mode:
+            if state == TaskRunState.RUNNING:
+                logger.info(
+                    "Tracking %s task at %s",
+                    task.task_name,
+                    dbnd_config.get("core", "databand_url"),
+                )
+            return
 
         # optimize, don't print success banner for fast running tasks
         start_time = task_run.start_time or utcnow()
