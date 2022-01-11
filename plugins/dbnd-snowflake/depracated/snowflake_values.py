@@ -94,7 +94,7 @@ class SnowflakeTableValueType(DataValueType):
         if meta_conf.log_schema:
             data_schema = {
                 "type": self.type_str,
-                "column_types": value.snowflake_ctrl.get_column_types(value),
+                "dtypes": value.snowflake_ctrl.get_column_types(value),
             }
 
         if meta_conf.log_size:

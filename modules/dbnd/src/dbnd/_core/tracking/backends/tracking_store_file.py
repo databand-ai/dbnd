@@ -30,7 +30,7 @@ from targets import target
 
 
 if typing.TYPE_CHECKING:
-    from typing import List, Iterable
+    from typing import Iterable, List
 
     from dbnd._core.task_run.task_run import TaskRun
     from targets.value_meta import ValueMeta
@@ -82,11 +82,12 @@ class FileTrackingStore(TrackingStore):
         metric_path = task_run.meta_files.get_metric_target(
             "{}.json".format(key), source=MetricSource.histograms
         )
+        data_schema = value_meta.data_schema.as_dict() if value_meta.data_schema else {}
         data = json.dumps(
             {
                 "timestamp": int(timestamp.timestamp()),
                 "metrics": {
-                    "schema": value_meta.data_schema,
+                    "schema": data_schema,
                     "preview": value_meta.value_preview,
                     "shape": value_meta.data_dimensions,
                     "stats": value_meta.get_stats_dict_from_columns_stats(),

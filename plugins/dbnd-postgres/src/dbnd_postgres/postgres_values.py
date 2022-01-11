@@ -50,7 +50,7 @@ class PostgresTableValueType(DataValueType):
             if meta_conf.log_schema:
                 data_schema = {
                     "type": self.type_str,
-                    "column_types": postgres.columns_types,
+                    "dtypes": postgres.columns_types,
                 }
 
         return ValueMeta(

@@ -1,5 +1,5 @@
 from collections import ChainMap
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import attr
 import six
@@ -12,6 +12,7 @@ from dbnd._core.tracking.schemas.column_stats import (
 )
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
+from targets.data_schema import DataSchemaArgs, data_schema_from_dict
 
 
 # keep it below VALUE_PREVIEW_MAX_LEN at web
@@ -21,8 +22,12 @@ _DEFAULT_VALUE_PREVIEW_MAX_LEN = 10000
 @attr.s(slots=True)
 class ValueMeta(object):
     value_preview = attr.ib()  # type: str
-    data_dimensions = attr.ib(default=None)  # type: Optional[Sequence[int]]
-    data_schema = attr.ib(default=None)  # type: Optional[Dict[str,Any]]
+    data_dimensions = attr.ib(
+        default=None
+    )  # type: Optional[Tuple[Optional[int], Optional[int]]]
+    data_schema = attr.ib(
+        default=None, converter=data_schema_from_dict
+    )  # type: Optional[DataSchemaArgs]
     data_hash = attr.ib(default=None)  # type: Optional[str]
     columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
     histograms = attr.ib(default=None)  # type: Optional[Dict[str, Tuple]]
@@ -44,10 +49,11 @@ class ValueMeta(object):
                 self.append_metric(data_metrics, key_name, metric_source, size, ts)
 
         if meta_conf and meta_conf.log_schema:
-            dataframe_metric_value["schema"] = self.data_schema
+            data_schema = self.data_schema.as_dict() if self.data_schema else None
+            dataframe_metric_value["schema"] = data_schema
             key_name = f"{key}.schema"
             self.append_metric(
-                data_metrics, key_name, metric_source, None, ts, self.data_schema
+                data_metrics, key_name, metric_source, None, ts, data_schema
             )
 
         if meta_conf and meta_conf.log_preview:

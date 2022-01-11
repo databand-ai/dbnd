@@ -38,9 +38,8 @@ class TestDataFrameValueType(object):
 
         assert df_value_meta.value_preview == expected_value_meta.value_preview
         assert df_value_meta.data_hash == expected_value_meta.data_hash
-        assert json_utils.dumps(df_value_meta.data_schema) == json_utils.dumps(
-            expected_value_meta.data_schema
-        )
+        assert df_value_meta.data_schema == expected_value_meta.data_schema
+
         assert df_value_meta.data_dimensions == expected_value_meta.data_dimensions
         assert df_value_meta.data_schema == expected_value_meta.data_schema
 

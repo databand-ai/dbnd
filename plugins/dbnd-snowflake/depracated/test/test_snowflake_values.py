@@ -70,9 +70,9 @@ class TestSnowflakeTableValueType:
         # Assert
         assert value_meta.value_preview == "test preview"
         assert value_meta.data_dimensions == [42, 12]
-        assert value_meta.data_schema == {
+        assert value_meta.data_schema.as_dict() == {
             "type": "SnowflakeTable",
-            "column_types": {"name": "varchar"},
+            "dtypes": {"name": "varchar"},
             "size.bytes": 500,
         }
         assert value_meta.data_hash == EXPECTED_SNOWFLAKE_TABLE_HASH

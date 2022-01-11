@@ -48,7 +48,7 @@ class TestTrackingConfig:
         )
 
         assert result.value_preview == expected_value_preview
-        assert result.data_schema == expected_data_schema
+        assert result.data_schema.as_dict() == expected_data_schema
 
     @pytest.mark.parametrize(
         "value, value_type, target, expected_value_preview, expected_data_schema",

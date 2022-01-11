@@ -1,6 +1,7 @@
-import datetime
 import typing
 
+from datetime import datetime
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 import attr
@@ -18,8 +19,10 @@ from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs, ColumnStatsSchema
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.tracking.schemas.tracking_info_run import RunInfo, ScheduledRunInfo
+from dbnd._core.utils import json_utils
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.timezone import utcnow
+from dbnd._vendor._marshmallow.decorators import pre_load
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
 from dbnd.api.serialization.common import (
@@ -30,16 +33,16 @@ from dbnd.api.serialization.common import (
 from dbnd.api.serialization.run import RunInfoSchema, ScheduledRunInfoSchema
 from dbnd.api.serialization.task import TaskDefinitionInfoSchema, TaskRunInfoSchema
 from dbnd.api.serialization.task_run_env import TaskRunEnvInfoSchema
+from targets.data_schema import DataSchemaArgs, StructuredDataSchema
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, List, Sequence
     from dbnd._core.tracking.schemas.tracking_info_objects import (
         ErrorInfo,
-        TaskRunEnvInfo,
         TargetInfo,
-        TaskRunInfo,
         TaskDefinitionInfo,
+        TaskRunEnvInfo,
+        TaskRunInfo,
     )
 
 AIRFLOW_SOURCE_TYPE = "airflow"
@@ -155,12 +158,12 @@ class InitRunArgsSchema(ApiStrictSchema):
 class TaskRunAttemptUpdateArgs(object):
     task_run_uid = attr.ib(repr=False)  # type: UUID
     task_run_attempt_uid = attr.ib(repr=False)  # type: UUID
-    timestamp = attr.ib()  # type:  datetime.datetime
+    timestamp = attr.ib()  # type:  datetime
     state = attr.ib()  # type: TaskRunState
     error = attr.ib(default=None)  # type: Optional[ErrorInfo]
     attempt_number = attr.ib(default=None)  # type: int
     source = attr.ib(default=UpdateSource.dbnd)  # type: UpdateSource
-    start_date = attr.ib(default=None)  # type: datetime.datetime
+    start_date = attr.ib(default=None)  # type: datetime
     external_links_dict = attr.ib(default=None)
 
 
@@ -312,8 +315,8 @@ class LogDatasetArgs(object):
     operation_status = attr.ib()  # type: DbndTargetOperationStatus
 
     value_preview = attr.ib()  # type: Optional[str]
-    data_dimensions = attr.ib()  # type: Optional[Sequence[int]]
-    data_schema = attr.ib()  # type: Optional[str]
+    data_dimensions = attr.ib()  # type: Optional[Tuple[Optional[int], Optional[int]]]
+    data_schema = attr.ib()  # type: Optional[DataSchemaArgs]
 
     dataset_uri = attr.ib(default=None)  # type: Optional[str]
     columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
@@ -356,10 +359,19 @@ class LogDatasetSchema(ApiStrictSchema):
 
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
-    data_schema = fields.String(allow_none=True)
+    data_schema = fields.Nested(StructuredDataSchema, allow_none=True)
     columns_stats = fields.Nested(ColumnStatsSchema, many=True, required=False)
 
     with_partition = fields.Boolean(required=False, allow_none=True)
+
+    @pre_load
+    def pre_load(self, data: dict) -> dict:
+        data_schema = data.get("data_schema")
+        if data_schema:
+            # Backwared compatible with older SDK versions < v60.0.0
+            if isinstance(data_schema, str):
+                data["data_schema"] = json_utils.loads(data_schema)
+        return data
 
     @post_load
     def make_object(self, data):
@@ -384,7 +396,7 @@ class LogTargetArgs(object):
     operation_status = attr.ib()  # type: DbndTargetOperationStatus
 
     value_preview = attr.ib()  # type: str
-    data_dimensions = attr.ib()  # type: Sequence[int]
+    data_dimensions = attr.ib()  # type: Optional[Tuple[Optional[int], Optional[int]]]
     data_schema = attr.ib()  # type: str
     data_hash = attr.ib()  # type: str
 
@@ -474,17 +486,17 @@ class ScheduledJobInfo(object):
     uid = attr.ib()  # type: UUID
     name = attr.ib()  # type: str
     cmd = attr.ib()  # type: str
-    start_date = attr.ib()  # type: datetime.datetime
+    start_date = attr.ib()  # type: datetime
     create_user = attr.ib()  # type: str
-    create_time = attr.ib()  # type: datetime.datetime
-    end_date = attr.ib(default=None)  # type: Optional[datetime.datetime]
+    create_time = attr.ib()  # type: datetime
+    end_date = attr.ib(default=None)  # type: Optional[datetime]
     schedule_interval = attr.ib(default=None)  # type: Optional[str]
     catchup = attr.ib(default=None)  # type: Optional[bool]
     depends_on_past = attr.ib(default=None)  # type: Optional[bool]
     retries = attr.ib(default=None)  # type: Optional[int]
     active = attr.ib(default=None)  # type: Optional[bool]
     update_user = attr.ib(default=None)  # type: Optional[str]
-    update_time = attr.ib(default=None)  # type: Optional[datetime.datetime]
+    update_time = attr.ib(default=None)  # type: Optional[datetime]
     from_file = attr.ib(default=False)  # type: bool
     deleted_from_file = attr.ib(default=False)  # type: bool
     list_order = attr.ib(default=None)  # type: Optional[List[int]]
@@ -526,11 +538,11 @@ scheduled_job_args_schema = ScheduledJobArgsSchema()
 
 @attr.s
 class AirflowTaskInfo(object):
-    execution_date = attr.ib()  # type: datetime.datetime
+    execution_date = attr.ib()  # type: datetime
     dag_id = attr.ib()  # type: str
     task_id = attr.ib()  # type: str
     task_run_attempt_uid = attr.ib()  # type: UUID
-    last_sync = attr.ib(default=None)  # type: Optional[datetime.datetime]
+    last_sync = attr.ib(default=None)  # type: Optional[datetime]
     retry_number = attr.ib(default=None)  # type: Optional[int]
 
     def asdict(self):

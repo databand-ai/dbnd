@@ -71,7 +71,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
         assert log_dataset_arg.value_preview is not None
         assert log_dataset_arg.data_dimensions == (5, 3)
-        assert set(json.loads(log_dataset_arg.data_schema).keys()) == {
+        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
             "columns",
             "dtypes",
             "shape",
@@ -97,7 +97,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
         assert log_dataset_arg.value_preview is not None
         assert log_dataset_arg.data_dimensions == (999, 3)
-        assert set(json.loads(log_dataset_arg.data_schema).keys()) == {
+        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
             "columns",
             "dtypes",
             "shape",
@@ -123,7 +123,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
         assert log_dataset_arg.value_preview is not None
         assert log_dataset_arg.data_dimensions == (5, 8)
-        assert set(json.loads(log_dataset_arg.data_schema).keys()) == {
+        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
             "columns",
             "dtypes",
             "shape",
@@ -153,7 +153,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.NOK
         assert log_dataset_arg.value_preview is not None
         assert log_dataset_arg.data_dimensions == (5, 3)
-        assert set(json.loads(log_dataset_arg.data_schema).keys()) == {
+        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
             "columns",
             "dtypes",
             "shape",
@@ -222,7 +222,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
         assert log_dataset_arg.value_preview is not None
         assert log_dataset_arg.data_dimensions == (5, 3)
-        assert set(json.loads(log_dataset_arg.data_schema).keys()) == {
+        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
             "columns",
             "dtypes",
             "shape",
