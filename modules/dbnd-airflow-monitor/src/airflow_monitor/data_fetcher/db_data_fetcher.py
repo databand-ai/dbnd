@@ -13,6 +13,7 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
+from airflow_monitor.errors import AirflowFetchingException
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
 
@@ -73,11 +74,22 @@ class DbFetcher(AirflowDataFetcher):
             session.rollback()
             raise
 
+    def _raise_on_plugin_error_message(self, data, function_name):
+        error_message = getattr(data, "error_message", None)
+        if error_message:
+            raise AirflowFetchingException(
+                "Exception occurred in function %s in Airflow: %s"
+                % (function_name, error_message)
+            )
+
     def get_last_seen_values(self) -> LastSeenValues:
         from dbnd_airflow.export_plugin.api_functions import get_last_seen_values
 
         with self._get_session() as session:
             data = get_last_seen_values(session=session)
+
+        self._raise_on_plugin_error_message(data, "get_last_seen_values")
+
         json_data = json_conv(data)
         self._on_data_received(json_data, "get_last_seen_values")
         return LastSeenValues.from_dict(json_data)
@@ -102,6 +114,7 @@ class DbFetcher(AirflowDataFetcher):
                 include_subdags=True,
                 session=session,
             )
+        self._raise_on_plugin_error_message(data, "get_airflow_dagruns_to_sync")
         json_data = json_conv(data)
         self._on_data_received(json_data, "get_airflow_dagruns_to_sync")
         return AirflowDagRunsResponse.from_dict(json_data)
@@ -122,6 +135,7 @@ class DbFetcher(AirflowDataFetcher):
                 session=session,
             )
 
+        self._raise_on_plugin_error_message(data, "get_full_dag_runs")
         json_data = json_conv(data)
         self._on_data_received(json_data, "get_full_dag_runs")
         return DagRunsFullData.from_dict(json_data)
@@ -132,6 +146,7 @@ class DbFetcher(AirflowDataFetcher):
         with self._get_session() as session:
             data = get_dag_runs_states_data(dag_run_ids=dag_run_ids, session=session)
 
+        self._raise_on_plugin_error_message(data, "get_dag_runs_state_data")
         json_data = json_conv(data)
         self._on_data_received(json_data, "get_dag_runs_state_data")
         return DagRunsStateData.from_dict(json_data)

@@ -188,11 +188,21 @@ class WebFetcher(AirflowDataFetcher):
             )
         return resp
 
+    def _raise_on_plugin_error_message(self, data, function_name):
+        error_message = data.get("error_message", None)
+        if error_message:
+            raise AirflowFetchingException(
+                "Exception occurred in function %s in Airflow: %s"
+                % (function_name, error_message)
+            )
+
     def get_source(self):
         return self.endpoint_url
 
     def get_last_seen_values(self) -> LastSeenValues:
         data = self._make_request("last_seen_values", {}, method="GET")
+        self._raise_on_plugin_error_message(data, "get_last_seen_values")
+        self._on_data_received(data, "get_last_seen_values")
         return LastSeenValues.from_dict(data)
 
     def get_airflow_dagruns_to_sync(
@@ -215,6 +225,8 @@ class WebFetcher(AirflowDataFetcher):
             params_dict["dag_ids"] = dag_ids
 
         data = self._make_request("new_runs", params_dict, timeout=LONG_REQUEST_TIMEOUT)
+        self._raise_on_plugin_error_message(data, "get_airflow_dagruns_to_sync")
+        self._on_data_received(data, "get_airflow_dagruns_to_sync")
         return AirflowDagRunsResponse.from_dict(data)
 
     def get_full_dag_runs(
@@ -227,6 +239,9 @@ class WebFetcher(AirflowDataFetcher):
         data = self._make_request(
             "full_runs", params_dict, timeout=LONG_REQUEST_TIMEOUT
         )
+
+        self._raise_on_plugin_error_message(data, "get_full_dag_runs")
+        self._on_data_received(data, "get_full_dag_runs")
         return DagRunsFullData.from_dict(data)
 
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
@@ -237,6 +252,8 @@ class WebFetcher(AirflowDataFetcher):
         data = self._make_request(
             "runs_states_data", params_dict, timeout=LONG_REQUEST_TIMEOUT
         )
+        self._raise_on_plugin_error_message(data, "get_dag_runs_state_data")
+        self._on_data_received(data, "get_dag_runs_state_data")
         return DagRunsStateData.from_dict(data)
 
     def is_alive(self):

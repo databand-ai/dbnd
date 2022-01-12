@@ -11,7 +11,6 @@ from airflow_monitor.common.airflow_data import (
     PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
-from airflow_monitor.errors import AirflowFetchingException
 
 
 logger = logging.getLogger(__name__)
@@ -48,9 +47,5 @@ class AirflowDataFetcher(object):
         return PluginMetadata()
 
     def _on_data_received(self, json_data, data_source):
-        if "error" in json_data:
-            logger.error("Error in Airflow Export Plugin: \n%s", json_data["error"])
-            raise AirflowFetchingException(json_data["error"])
-
         log_received_tasks(data_source, json_data)
         send_metrics(self.source_name, json_data.get("airflow_export_meta"))

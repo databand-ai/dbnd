@@ -4,6 +4,9 @@ from typing import List
 
 from airflow_monitor.common import capture_monitor_exception
 from airflow_monitor.common.base_component import BaseMonitorSyncer, start_syncer
+from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.data_fetcher import AirflowDataFetcher
+from airflow_monitor.tracking_service import AirflowDbndTrackingService
 
 
 logger = logging.getLogger(__name__)
@@ -11,6 +14,10 @@ logger = logging.getLogger(__name__)
 
 class AirflowRuntimeFixer(BaseMonitorSyncer):
     SYNCER_TYPE = "runtime_fixer"
+
+    tracking_service: AirflowDbndTrackingService
+    config: AirflowServerConfig
+    data_fetcher: AirflowDataFetcher
 
     def __init__(self, *args, **kwargs):
         super(AirflowRuntimeFixer, self).__init__(*args, **kwargs)
