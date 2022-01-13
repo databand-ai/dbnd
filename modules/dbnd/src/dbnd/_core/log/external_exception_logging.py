@@ -4,6 +4,8 @@ import traceback
 
 from functools import wraps
 
+import dbnd
+
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -35,6 +37,7 @@ def log_exception_to_server(exception=None):
         trace = _format_exception(e_type, e_value, e_traceback)
 
         data = {
+            "dbnd_version": dbnd.__version__,
             "source": "tracking-sdk",
             "stack_trace": trace,
             "timestamp": utcnow().isoformat(),

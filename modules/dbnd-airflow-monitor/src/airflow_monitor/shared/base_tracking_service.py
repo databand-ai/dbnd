@@ -1,7 +1,8 @@
-import json
 import logging
 
 from typing import List, Optional, Type
+
+import dbnd
 
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.base_server_monitor_config import (
@@ -115,6 +116,7 @@ class BaseDbndTrackingService(object):
 
     def report_exception(self, exception: str):
         data = {
+            "dbnd_version": dbnd.__version__,
             "source": f"{self.monitor_type}_monitor",
             "stack_trace": exception,
             "timestamp": utcnow().isoformat(),
@@ -166,6 +168,7 @@ class WebServersConfigurationService(object):
 
     def report_exception(self, exception: str):
         data = {
+            "dbnd_version": dbnd.__version__,
             "source": f"{self.monitor_type}_monitor",
             "stack_trace": exception,
             "timestamp": utcnow().isoformat(),
