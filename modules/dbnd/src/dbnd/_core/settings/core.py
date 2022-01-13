@@ -172,7 +172,7 @@ class CoreConfig(Config):
             self.tracker = [t for t in self.tracker if t != "api"]
 
         if self.databand_access_token and (self.dbnd_user or self.dbnd_password):
-            logger.warning(
+            logger.debug(
                 "core.databand_access_token is used instead of defined dbnd_user and dbnd_password."
             )
 

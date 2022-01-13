@@ -181,7 +181,7 @@ def set_dbnd_config_from_airflow_connections():
             priority=ConfigValuePriority.NORMAL,
             source=AIRFLOW_DBND_CONNECTION_SOURCE,
         )
-        logger.info(
+        logger.debug(
             "Databand config was set using {0} connection.".format(
                 DATABAND_AIRFLOW_CONN_ID
             )

@@ -37,7 +37,6 @@ class RunTracker(RunCtrl):
         if not self.run.is_tracked:
             return
         self.tracking_store.init_run(run=self.run)
-        logger.info("Run tracking info has been committed.")
 
     def set_run_state(self, state):
         if not self.run.is_tracked:

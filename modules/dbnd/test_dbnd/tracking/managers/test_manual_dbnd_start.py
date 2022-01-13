@@ -39,7 +39,6 @@ class TestManualDbndStart(object):
 
     def test_manual_dbnd_start(self):
         result = run_dbnd_subprocess__current_file([USE_DBND_START])
-        assert "Run tracking info has been committed" in result
 
         for task_name, count in self.expected_task_names + ((self.auto_task_name, 1),):
             assert count == len(re.findall(RE_TASK_COMPLETED.format(task_name), result))
@@ -50,7 +49,6 @@ class TestManualDbndStart(object):
     def test_no_dbnd_start(self):
         result = run_dbnd_subprocess__current_file([])
         assert "Running Databand!" not in result
-        assert "Run tracking info has been committed" not in result
 
         for task_name, count in self.expected_task_names + ((self.auto_task_name, 1),):
             assert 0 == len(re.findall(r"Task {}__\w+".format(task_name), result))

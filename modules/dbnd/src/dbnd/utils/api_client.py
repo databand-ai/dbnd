@@ -181,7 +181,7 @@ class ApiClient(object):
             raise DatabandAuthenticationError("Failed to init a webserver session", e)
 
     def create_session(self):
-        logger.info("Initialising session for webserver")
+        logger.debug("Initialising session for webserver")
         self.session = requests.session()
         self.session_creation_time = datetime.now()
 
@@ -260,7 +260,7 @@ class ApiClient(object):
 
     def authenticated_session(self):
         if not self.session or self.is_session_expired():
-            logger.info(
+            logger.debug(
                 "Webserver session does not exist or timed out, creating new one"
             )
             self.create_session()
