@@ -4,6 +4,7 @@ import logging
 import typing
 
 from collections import defaultdict
+from typing import List
 
 import pyspark.sql as spark
 
@@ -119,30 +120,41 @@ class SparkDataFrameValueType(DataValueType):
             for col in df.columns:
                 stats[col][metric_name] = metric_row.get(col)
 
-        result = []  # type: List[ColumnStatsArgs]
+        result: List[ColumnStatsArgs] = []
         for col in df.schema.fields:
             if not isinstance(
                 col.dataType, (spark.types.NumericType, spark.types.StringType)
             ):
-                # we calculate descriptive statistics only for numeric and string columns
+                # We calculate descriptive statistics only for numeric and string columns
                 continue
+
             name = col.name
             col_stats = stats[name]
-            result.append(
-                ColumnStatsArgs(
-                    column_name=name,
-                    column_type=str(col.dataType),
-                    records_count=total_count,
-                    null_count=total_count - int(col_stats["count"]),
-                    min_value=col_stats["min"],
-                    max_value=col_stats["max"],
-                    std_value=col_stats["stddev"],
-                    mean_value=col_stats["mean"],
-                    quartile_1=col_stats["25%"],
-                    quartile_2=col_stats["50%"],
-                    quartile_3=col_stats["75%"],
+            if isinstance(col.dataType, spark.types.StringType):
+                result.append(
+                    ColumnStatsArgs(
+                        column_name=name,
+                        column_type=str(col.dataType),
+                        records_count=total_count,
+                        null_count=total_count - int(col_stats["count"]),
+                    )
                 )
-            )
+            elif isinstance(col.dataType, spark.types.NumericType):
+                result.append(
+                    ColumnStatsArgs(
+                        column_name=name,
+                        column_type=str(col.dataType),
+                        records_count=total_count,
+                        null_count=total_count - int(col_stats["count"]),
+                        min_value=col_stats["min"],
+                        max_value=col_stats["max"],
+                        std_value=col_stats["stddev"],
+                        mean_value=col_stats["mean"],
+                        quartile_1=col_stats["25%"],
+                        quartile_2=col_stats["50%"],
+                        quartile_3=col_stats["75%"],
+                    )
+                )
 
         return result
 
