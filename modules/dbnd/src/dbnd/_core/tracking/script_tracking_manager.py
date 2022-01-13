@@ -209,27 +209,29 @@ class _DbndScriptTrackingManager(object):
 
         return self._task_run
 
-    def stop(self):
+    def stop(self, finalize_run=True):
         if not self._active:
             return
         self._active = False
         try:
-            databand_run = self._run
-            root_tr = self._task_run
-            root_tr.finished_time = utcnow()
+            # Required for scripts tracking which do not set the state to SUCCESS
+            if finalize_run:
+                databand_run = self._run
+                root_tr = self._task_run
+                root_tr.finished_time = utcnow()
 
-            if root_tr.task_run_state not in TaskRunState.finished_states():
-                for tr in databand_run.task_runs:
-                    if tr.task_run_state == TaskRunState.FAILED:
-                        root_tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED)
-                        break
+                if root_tr.task_run_state not in TaskRunState.finished_states():
+                    for tr in databand_run.task_runs:
+                        if tr.task_run_state == TaskRunState.FAILED:
+                            root_tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED)
+                            break
+                    else:
+                        root_tr.set_task_run_state(TaskRunState.SUCCESS)
+
+                if root_tr.task_run_state == TaskRunState.SUCCESS:
+                    databand_run.set_run_state(RunState.SUCCESS)
                 else:
-                    root_tr.set_task_run_state(TaskRunState.SUCCESS)
-
-            if root_tr.task_run_state == TaskRunState.SUCCESS:
-                databand_run.set_run_state(RunState.SUCCESS)
-            else:
-                databand_run.set_run_state(RunState.FAILED)
+                    databand_run.set_run_state(RunState.FAILED)
 
             self._close_all_context_managers()
 
@@ -342,13 +344,14 @@ def dbnd_tracking_start(name=None, airflow_context=None):
         return _dbnd_script_manager._task_run
 
 
-def dbnd_tracking_stop():
+def dbnd_tracking_stop(finalize_run=True):
     """
     Stops and clears the script tracking if exists
+    @param finalize_run: Should complete the run by setting it's state to a complete one (success or failed)
     """
     global _dbnd_script_manager
     if _dbnd_script_manager:
-        _dbnd_script_manager.stop()
+        _dbnd_script_manager.stop(finalize_run)
         _dbnd_script_manager = None
 
 

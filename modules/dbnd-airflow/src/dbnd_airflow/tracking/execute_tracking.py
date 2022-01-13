@@ -98,6 +98,7 @@ def new_execute(context):
         return result
 
     try:
+
         # Set that we are in Airflow tracking mode
         get_dbnd_project_config().set_is_airflow_runtime()
 
@@ -114,17 +115,24 @@ def new_execute(context):
             exc_info=True,
         )
 
+    from airflow.exceptions import AirflowRescheduleException
+
     # running the operator's original execute function
     try:
         with af_tracking_context(task_run, context, copied_operator):
             execute = get_execute_function(copied_operator)
             result = execute(copied_operator, context)
 
+    # Check if this is sensor task that is retrying - normal behavior and not really an exception
+    except AirflowRescheduleException:
+        dbnd_tracking_stop(finalize_run=False)
+        raise
     # catch if the original execute failed
     except Exception as ex:
         if task_run:
             error = TaskRunError.build_from_ex(ex, task_run)
             task_run.set_task_run_state(state=TaskRunState.FAILED, error=error)
+
         dbnd_tracking_stop()
         raise
 
