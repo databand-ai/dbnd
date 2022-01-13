@@ -74,8 +74,8 @@ def test_pandas_v0_histograms():
             records_count=100,
             distinct_count=3,
             null_count=35,
-            top_value=False,
-            top_freq_count=33,
+            most_freq_value=False,
+            most_freq_value_count=33,
             unique_count=2,
         ),
         ColumnStatsArgs(
@@ -112,8 +112,8 @@ def test_pandas_v0_histograms():
             records_count=100,
             distinct_count=5,
             null_count=21,
-            top_value="foo",
-            top_freq_count=22,
+            most_freq_value="foo",
+            most_freq_value_count=22,
             unique_count=4,
         ),
         ColumnStatsArgs(
@@ -122,8 +122,8 @@ def test_pandas_v0_histograms():
             records_count=100,
             distinct_count=8,
             null_count=10,
-            top_value="foo",
-            top_freq_count=11,
+            most_freq_value="foo",
+            most_freq_value_count=11,
             unique_count=18,
         ),
     ]

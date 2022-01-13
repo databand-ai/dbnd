@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import attr
 
@@ -25,24 +25,24 @@ class ColumnStatsArgs:
     column_type: str = attr.ib()
 
     records_count: int = attr.ib()
-    distinct_count: int = attr.ib(default=None)
-    null_count: int = attr.ib(default=None)
+    distinct_count: Optional[int] = attr.ib(default=None)
+    null_count: Optional[int] = attr.ib(default=None)
 
     # Metric for non-numeric column type
-    unique_count: int = attr.ib(default=None)
+    unique_count: Optional[int] = attr.ib(default=None)
     # Most frequent value
-    top_value: any = attr.ib(default=None)
-    top_freq_count: int = attr.ib(default=None)
+    most_freq_value: Optional[Any] = attr.ib(default=None)
+    most_freq_value_count: Optional[int] = attr.ib(default=None)
 
     # Metric for numeric column type
-    mean_value: float = attr.ib(default=None)
-    min_value: float = attr.ib(default=None)
-    max_value: float = attr.ib(default=None)
-    std_value: float = attr.ib(default=None)
+    mean_value: Optional[float] = attr.ib(default=None)
+    min_value: Optional[float] = attr.ib(default=None)
+    max_value: Optional[float] = attr.ib(default=None)
+    std_value: Optional[float] = attr.ib(default=None)
     # Percentiles
-    quartile_1: float = attr.ib(default=None)
-    quartile_2: float = attr.ib(default=None)
-    quartile_3: float = attr.ib(default=None)
+    quartile_1: Optional[float] = attr.ib(default=None)
+    quartile_2: Optional[float] = attr.ib(default=None)
+    quartile_3: Optional[float] = attr.ib(default=None)
 
     non_null_count: Optional[int] = attr.ib()
     null_percent: Optional[float] = attr.ib()
@@ -68,8 +68,8 @@ class ColumnStatsArgs:
             "distinct": self.distinct_count,
             "null-count": self.null_count,
             "non-null": self.non_null_count,
-            "top": self.top_value,
-            "freq": self.top_freq_count,
+            "top": self.most_freq_value,
+            "freq": self.most_freq_value_count,
             "unique": self.unique_count,
             "mean": self.mean_value,
             "min": self.min_value,
@@ -87,8 +87,8 @@ class ColumnStatsArgs:
             "distinct_count": self.distinct_count,
             "null_count": self.null_count,
             "unique_count": self.unique_count,
-            "top_value": self.top_value,
-            "top_freq_count": self.top_freq_count,
+            "most_freq_value": self.most_freq_value,
+            "most_freq_value_count": self.most_freq_value_count,
             "mean_value": self.mean_value,
             "min_value": self.min_value,
             "max_value": self.max_value,
@@ -116,9 +116,11 @@ class ColumnStatsSchema(ApiStrictSchema):
 
     # Metric for non-numeric column type
     unique_count = fields.Integer(required=False, allow_none=True)
-    # Most frequent value
-    top_value = fields.Raw(required=False, allow_none=True)
-    top_freq_count = fields.Integer(required=False, allow_none=True)
+    # Most frequent value - load_from attrs to support backward compatibility with SDK < 0.59.0
+    most_freq_value = fields.Raw(required=False, allow_none=True, load_from="top_value")
+    most_freq_value_count = fields.Integer(
+        required=False, allow_none=True, load_from="top_freq_count"
+    )
 
     # Metric for numeric column type
     mean_value = fields.Float(required=False, allow_none=True)
