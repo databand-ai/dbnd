@@ -7,6 +7,7 @@ import attr
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._vendor.marshmallow import fields, post_load
+from targets.data_schema import DataSchemaArgs, StructuredDataSchema
 
 
 class GetRunningDagRunsResponseSchema(ApiStrictSchema):
@@ -195,7 +196,7 @@ class DatasourceMonitorStateSchema(ApiStrictSchema):
 class SyncedDatasetMetadata(object):
     num_bytes = attr.ib()  # type: int
     records = attr.ib()  # type: int
-    schema = attr.ib()  # type: dict
+    schema = attr.ib()  # type: DataSchemaArgs
 
     def as_dict(self):
         return attr.asdict(self)
@@ -220,7 +221,7 @@ class DatasetsReport(object):
     monitor_state = attr.ib()  # type: DatasourceMonitorState
 
     sync_event_timestamp = attr.ib()  # type: datetime
-    datasets = attr.ib()  # type: SyncedDataset
+    datasets = attr.ib()  # type: List[SyncedDataset]
 
     source_type = attr.ib(default=None)  # type: Optional[str]
     syncer_type = attr.ib(default=None)  # type: Optional[str]
@@ -234,7 +235,7 @@ class SyncedDatasetMetadataSchema(ApiStrictSchema):
     num_bytes = fields.Integer()
     records = fields.Integer()
 
-    schema = fields.Dict()
+    schema = fields.Nested(StructuredDataSchema)
 
     # TODO: ADD -> Preview
 
@@ -302,7 +303,7 @@ class SyncedTransaction(object):
         default=attr.Factory(list)
     )  # type: List[SyncedTransactionOperation]
     query_string = attr.ib(default=None)  # type: Optional[str]
-    data_schema = attr.ib(default=None)  # type: Optional[dict]
+    data_schema = attr.ib(default=None)  # type: Optional[DataSchemaArgs]
 
     def as_dict(self):
         return attr.asdict(self)
@@ -358,7 +359,7 @@ class SyncedTransactionSchema(ApiStrictSchema):
     )
 
     query_string = fields.String(allow_none=True)
-    data_schema = fields.Dict(allow_none=True)
+    data_schema = fields.Nested(StructuredDataSchema, allow_none=True)
 
     @post_load
     def make_object(self, data):

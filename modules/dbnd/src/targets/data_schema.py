@@ -37,11 +37,15 @@ class DataSchemaArgs:
 
 class StructuredDataSchema(ApiStrictSchema):
     type = fields.String(allow_none=True)
-    columns_names = fields.List(fields.String(), load_from="columns", allow_none=True)
-    columns_types = fields.Dict(load_from="dtypes", allow_none=True)
+    columns_names = fields.List(
+        fields.String(), load_from="columns", dump_to="columns", allow_none=True
+    )
+    columns_types = fields.Dict(load_from="dtypes", dump_to="dtypes", allow_none=True)
     # Shape: Tuple of ints-> (records, columns) -> fields.Tuple() added in marshmallow 3.0.0.
     shape = fields.List(fields.Integer(allow_none=True), allow_none=True)
-    byte_size = fields.Integer(load_from="size.bytes", allow_none=True)
+    byte_size = fields.Integer(
+        load_from="size.bytes", dump_to="size.bytes", allow_none=True
+    )
 
     @pre_load
     def pre_load(self, data: dict) -> dict:
