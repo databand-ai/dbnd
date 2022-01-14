@@ -1,4 +1,5 @@
 .DEFAULT_GOAL:=help
+SHELL := /bin/bash
 
 ##@ Helpers
 .PHONY: help
@@ -221,4 +222,3 @@ install-dev-without-airflow: ## Install all modules, except Airflow, in editable
 __uninstall-dev:  ## (Hidden target) Remove all dbnd modules from the current virtual environment.
 	pip uninstall databand -y || true
 	pip freeze | grep "dbnd" | egrep -o '#egg=dbnd[a-z_]*' | egrep -o 'dbnd[a-z_]*' | (xargs pip uninstall -y || true)
-
