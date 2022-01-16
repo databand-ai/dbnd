@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional, Union
 
 import attr
 
@@ -82,7 +82,17 @@ class ColumnStatsArgs:
         filtered_stats = {k: v for k, v in stats.items() if v is not None}
         return {self.column_name: filtered_stats}
 
-    def get_stats(self) -> dict:
+    def get_stats(self, stats_filter: Optional[Callable] = None) -> dict:
+        """Get the column's stats filtered by given filter or by a non-null values filter
+
+        Args:
+            stats_filter: Callable that takes two arguments: the stat's name and the stat's value.
+            The return code determines whether a stat is included (``True``) or dropped (``False``).
+            Defaults to non-null values filter.
+
+        Returns:
+            dict: Filtered stats dict
+        """
         stats = {
             "distinct_count": self.distinct_count,
             "null_count": self.null_count,
@@ -99,11 +109,21 @@ class ColumnStatsArgs:
             "non_null_count": self.non_null_count,
             "null_percent": self.null_percent,
         }
-        return {k: v for k, v in stats.items() if v is not None}
+        stats_filter = stats_filter or (lambda _, value: value is not None)
+        return {k: v for k, v in stats.items() if stats_filter(k, v)}
+
+    def get_numeric_stats(self) -> dict:
+        """Get all the column's numeric stats
+        Returns:
+            dict: Filter stats dict by numeric values
+        """
+        numberic_stats_filter = lambda _, value: isinstance(
+            value, Union[float, int].__args__
+        )
+        return self.get_stats(stats_filter=numberic_stats_filter)
 
     def as_dict(self) -> dict:
-        attr_dict = attr.asdict(self)
-        return {k: v for k, v in attr_dict.items() if v is not None}
+        return attr.asdict(self, filter=lambda _, value: value is not None)
 
 
 class ColumnStatsSchema(ApiStrictSchema):
