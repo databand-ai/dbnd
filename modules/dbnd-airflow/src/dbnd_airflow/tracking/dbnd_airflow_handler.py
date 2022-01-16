@@ -75,6 +75,12 @@ class DbndAirflowHandler(logging.Handler):
         task_key = calc_task_key_from_af_ti(ti)
         if os.environ.get(task_key, False):
             # This key is already set which means we are in `--raw run`
+            return
+        else:
+            # We are in the outer `run`
+            self.task_env_key = task_key
+            # marking the environment with the current key for the
+            environ_utils.set_on(task_key)
             from dbnd_airflow.tracking.dbnd_airflow_conf import (
                 set_dbnd_config_from_airflow_connections,
             )
@@ -85,12 +91,6 @@ class DbndAirflowHandler(logging.Handler):
             # which made some of the features to run with different configurations.
             # it still runs twice, but know with the same configurations.
             set_dbnd_config_from_airflow_connections()
-            return
-        else:
-            # We are in the outer `run`
-            self.task_env_key = task_key
-            # marking the environment with the current key for the
-            environ_utils.set_on(task_key)
 
         self.task_run_attempt_uid = get_task_run_attempt_uid_from_af_ti(ti)
 

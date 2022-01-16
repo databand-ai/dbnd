@@ -1,14 +1,30 @@
 from typing import List, Union
 
-from airflow.models import DagModel, DagRun, Log, TaskInstance
+from airflow.models import DagModel, DagRun, Log
 from airflow.settings import Session
 from sqlalchemy import and_, func, or_, tuple_
+from sqlalchemy.orm import joinedload, relationship
 
 from dbnd_airflow.export_plugin.metrics import measure_time, save_result_size
 from dbnd_airflow.export_plugin.models import AirflowTaskInstance, EDagRun
+from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_BEFORE_2_2
 
 
 MAX_PARAMETERS_INSIDE_IN_CLAUSE = 900
+
+
+if AIRFLOW_VERSION_BEFORE_2_2:
+
+    class DagRunExt(DagRun):
+        task_instances = relationship(
+            "TaskInstance",
+            primaryjoin="and_(TaskInstance.dag_id == foreign(DagRunExt.dag_id), TaskInstance.execution_date == foreign(DagRunExt.execution_date))",
+            uselist=True,
+        )
+
+    DagRunModel = DagRunExt
+else:
+    DagRunModel = DagRun
 
 
 def _get_new_dag_runs_base_query(dag_ids, include_subdags, session):
@@ -153,31 +169,38 @@ def find_max_log_run_id(session):
 @measure_time
 def find_full_dag_runs(dag_run_ids, session):
     # type: (List[int], Session) -> (List[AirflowTaskInstance], List[EDagRun])
-
-    result_fields = (
-        session.query(*EDagRun.query_fields(), *AirflowTaskInstance.query_fields())
-        .outerjoin(
-            TaskInstance,
-            (
-                (TaskInstance.dag_id == DagRun.dag_id)
-                & (TaskInstance.execution_date == DagRun.execution_date)
-                | (TaskInstance.task_id.is_(None))
-            ),
-        )
-        .filter(DagRun.id.in_(dag_run_ids))
+    result_dag_runs = (
+        session.query(DagRunModel)
+        .options(joinedload(DagRunModel.task_instances))
+        .filter(DagRunModel.id.in_(dag_run_ids))
         .all()
     )
 
     task_instances = []
     dag_runs = set()
-    for fields in result_fields:
-        dag_run_fields = fields[: len(EDagRun.db_fields)]
-        dag_run = EDagRun.from_db_fields(*dag_run_fields)
-        dag_runs.add(dag_run)
+    for dag_run in result_dag_runs:
+        new_dag_run = EDagRun.from_db_fields(
+            dag_id=dag_run.dag_id,
+            dagrun_id=dag_run.id,
+            start_date=dag_run.start_date,
+            state=dag_run.state,
+            end_date=dag_run.end_date,
+            execution_date=dag_run.execution_date,
+            conf=dag_run.conf,
+            run_id=dag_run.run_id,
+        )
+        dag_runs.add(new_dag_run)
 
-        task_instance_fields = fields[len(EDagRun.db_fields) :]
-        if any(task_instance_fields):
-            task_instance = AirflowTaskInstance(*task_instance_fields)
-            task_instances.append(task_instance)
+        for task_instance in dag_run.task_instances:
+            new_task_instance = AirflowTaskInstance(
+                dag_id=task_instance.dag_id,
+                task_id=task_instance.task_id,
+                execution_date=task_instance.execution_date,
+                state=task_instance.state,
+                try_number=task_instance.try_number,
+                start_date=task_instance.start_date,
+                end_date=task_instance.end_date,
+            )
+            task_instances.append(new_task_instance)
 
     return task_instances, dag_runs

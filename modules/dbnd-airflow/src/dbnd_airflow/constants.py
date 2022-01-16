@@ -3,6 +3,9 @@ from distutils.version import LooseVersion
 import airflow
 
 
+AIRFLOW_VERSION_BEFORE_2_2 = LooseVersion(airflow.version.version) < LooseVersion(
+    "2.2.0"
+)
 AIRFLOW_VERSION_2 = LooseVersion(airflow.version.version) >= LooseVersion("2.0.0")
 AIRFLOW_VERSION_1 = LooseVersion(airflow.version.version) < LooseVersion("2.0.0")
 
