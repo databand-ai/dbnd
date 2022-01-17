@@ -33,6 +33,7 @@ def create_airflow_instance(
     last_seen_log_id,
     name,
     generate_token,
+    system_alert_definitions,
 ):
     client = get_databand_context().databand_api_client
     endpoint = "airflow_monitor/add"
@@ -48,6 +49,7 @@ def create_airflow_instance(
         "last_seen_dag_run_id": last_seen_dag_run_id,
         "last_seen_log_id": last_seen_log_id,
         "name": name,
+        "system_alert_definitions": system_alert_definitions,
     }
     resp = client.api_request(endpoint, request_data, method="POST")
     config_json = resp["server_info_dict"]

@@ -137,6 +137,12 @@ def build_instances_table(instances_data):
     type=click.File("w"),
     default="-",
 )
+@click.option(
+    "--with-auto-alerts",
+    help="Create syncer with auto alert config",
+    type=click.BOOL,
+    default=True,
+)
 def add(
     url,
     external_url,
@@ -151,8 +157,19 @@ def add(
     name,
     generate_token,
     output,
+    with_auto_alerts,
 ):
     try:
+
+        if with_auto_alerts:
+            system_alert_definitions = {
+                "failed_state": True,
+                "ml_run_duration": True,
+                "run_schema_change": True,
+            }
+        else:
+            system_alert_definitions = {}
+
         config_json = create_airflow_instance(
             url,
             external_url,
@@ -166,6 +183,7 @@ def add(
             last_seen_log_id,
             name,
             generate_token,
+            system_alert_definitions,
         )
         if output:
             json.dump(config_json, output, indent=4)
