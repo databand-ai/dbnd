@@ -16,10 +16,10 @@ class AlertDefsSchema(ApiStrictSchema):
 
     created_at = fields.DateTime()
     scheduled_job_name = fields.Str(attribute="scheduled_job.name")
-    source_instance_name = fields.Str(attribute="job.tracking_source.name")
-    env = fields.Str(attribute="job.tracking_source.env")
+    source_instance_name = fields.Method("get_tracking_source_name")
+    env = fields.Method("get_tracking_source_env")
     # TODO_CORE: API: Deprecate airflow_server_info
-    airflow_instance_name = fields.Str(attribute="job.tracking_source.name")
+    airflow_instance_name = fields.Method("get_tracking_source_name")
     project_id = fields.Int(attribute="job.project_id")
     project_name = fields.Str(attribute="job.project.name")
     alert_on_historical_runs = fields.Bool()
@@ -56,6 +56,22 @@ class AlertDefsSchema(ApiStrictSchema):
 
     # Used only used by the UI
     affected_datasets = fields.List(fields.Dict(), allow_none=True, dump_only=True)
+
+    is_system = fields.Function(
+        lambda alert_def: alert_def.owner == "system", dump_only=True,
+    )
+
+    def get_tracking_source_name(self, obj):
+        return self._get_tracking_source_instance(obj).name
+
+    def get_tracking_source_env(self, obj):
+        return self._get_tracking_source_instance(obj).env
+
+    def _get_tracking_source_instance(self, obj):
+        if obj.job:
+            return obj.job.tracking_source
+
+        return obj.tracking_source
 
     @pre_load
     def prepere(self, data: dict, **kwargs):
