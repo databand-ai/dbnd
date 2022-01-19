@@ -131,6 +131,26 @@ class InitRunArgs(object):
     def asdict(self):
         return attr.asdict(self, recurse=False)
 
+    @property
+    def source_instance_uid(self) -> Optional[UUID]:
+        """
+        Currently (2022/01) this data is sent only when we have some known
+        orchestration, i.e airflow or azkaban. If tracking data is sent from
+        unknown/unsupported orchestrator (including also standalone script execution),
+        or from dbnd orchestration - there will be no source_instance_uid.
+
+        Will return source_instance_uid from any of specific contexts -
+        either from airflow_context or from more generic tracking_source
+
+        Will return None if no tracking_sources defined.
+        """
+        if self.af_context and self.af_context.airflow_instance_uid:
+            return self.af_context.airflow_instance_uid
+
+        if self.tracking_source and self.tracking_source.source_instance_uid:
+            return self.tracking_source.source_instance_uid
+        return None
+
 
 class InitRunArgsSchema(ApiStrictSchema):
     run_uid = fields.UUID()
