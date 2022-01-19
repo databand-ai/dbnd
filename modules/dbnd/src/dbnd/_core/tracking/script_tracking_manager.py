@@ -13,7 +13,7 @@ from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import try_get_script_name
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
-from dbnd._core.current import is_verbose, try_get_databand_run
+from dbnd._core.current import try_get_databand_run
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import TrackingConfig
@@ -45,7 +45,7 @@ if typing.TYPE_CHECKING:
     T = typing.TypeVar("T")
 
 
-def set_tracking_config_overide(airflow_context=None, use_dbnd_log=None):
+def set_tracking_config_overide(airflow_context=None):
     # Ceate proper DatabandContext so we can create other objects
     # There should be no Orchestrations tasks.
     # However, let's disable any orchestrations side effects
@@ -66,10 +66,11 @@ def set_tracking_config_overide(airflow_context=None, use_dbnd_log=None):
             airflow_context.execution_date, tz=pytz.UTC
         ).date()
         use_dbnd_log = override_airflow_log_system_for_tracking()
+        if use_dbnd_log is not None:
+            config_for_tracking["log"] = {"disabled": not use_dbnd_log}
+
         config_for_tracking["task"]["task_target_date"] = task_target_date
 
-    if use_dbnd_log is not None:
-        config_for_tracking["log"] = {"disabled": not use_dbnd_log}
     return config.set_values(
         config_values=config_for_tracking,
         priority=ConfigValuePriority.OVERRIDE,
@@ -142,8 +143,7 @@ class _DbndScriptTrackingManager(object):
         if airflow_context:
             _set_dbnd_config_from_airflow_connections()
 
-        set_tracking_config_overide(use_dbnd_log=True, airflow_context=airflow_context)
-
+        set_tracking_config_overide(airflow_context=airflow_context)
         dc = self._enter_cm(
             new_dbnd_context(name="inplace_tracking")
         )  # type: DatabandContext
