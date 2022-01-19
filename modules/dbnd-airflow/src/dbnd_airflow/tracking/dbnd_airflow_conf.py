@@ -74,7 +74,7 @@ def extract_airflow_conf(context):
 
     dag_id = task_instance.dag_id
     task_id = task_instance.task_id
-    execution_date = str(task_instance.execution_date)
+    execution_date = task_instance.execution_date.isoformat()
     try_number = str(task_instance.try_number)
 
     if dag_id and task_id and execution_date:
