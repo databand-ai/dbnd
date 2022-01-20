@@ -62,10 +62,23 @@ def is_monitor_dag(dag_id):
     return dag_id == MONITOR_DAG_NAME
 
 
+def is_subdag_eligible_for_tracking(dag_id, tracking_list):
+    for tracked_dag_id in tracking_list:
+        if dag_id.startswith(f"{tracked_dag_id}."):
+            return True
+
+    return False
+
+
 def is_dag_eligable_for_tracking(dag_id):
     # If return value is None, we track all dags. If it's empty list - we don't track anything.
     tracking_list = get_tracking_dag_ids_from_airflow_json()
-    return tracking_list is None or dag_id in tracking_list or is_monitor_dag(dag_id)
+    return (
+        tracking_list is None
+        or dag_id in tracking_list
+        or is_subdag_eligible_for_tracking(dag_id, tracking_list)
+        or is_monitor_dag(dag_id)
+    )
 
 
 def new_execute(context):

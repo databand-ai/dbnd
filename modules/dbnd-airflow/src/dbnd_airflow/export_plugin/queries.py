@@ -27,6 +27,14 @@ else:
     DagRunModel = DagRun
 
 
+def _build_query_for_subdag_prefixes(column, dag_ids):
+    subdag_dag_id_prefixes = [f"{dag_id}." for dag_id in dag_ids]
+    return or_(
+        column.in_(dag_ids),
+        or_(column.startswith(prefix) for prefix in subdag_dag_id_prefixes),
+    )
+
+
 def _get_new_dag_runs_base_query(dag_ids, include_subdags, session):
     new_runs_base_query = session.query(
         DagRun.id,
@@ -37,7 +45,9 @@ def _get_new_dag_runs_base_query(dag_ids, include_subdags, session):
     ).join(DagModel, DagModel.dag_id == DagRun.dag_id)
 
     if dag_ids:
-        new_runs_base_query = new_runs_base_query.filter(DagRun.dag_id.in_(dag_ids))
+        new_runs_base_query = new_runs_base_query.filter(
+            _build_query_for_subdag_prefixes(DagRun.dag_id, dag_ids)
+        )
 
     if not include_subdags:
         new_runs_base_query = new_runs_base_query.filter(DagModel.is_subdag.is_(False))
@@ -134,7 +144,7 @@ def find_all_logs_grouped_by_runs(last_seen_log_id, dag_ids, session):
         events_field = func.group_concat(Log.event.distinct()).label("events")
 
     if dag_ids:
-        dag_ids_filter_condition = Log.dag_id.in_(dag_ids)
+        dag_ids_filter_condition = _build_query_for_subdag_prefixes(Log.dag_id, dag_ids)
     else:
         dag_ids_filter_condition = Log.dag_id.isnot(None)
 
