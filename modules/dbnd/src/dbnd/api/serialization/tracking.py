@@ -76,13 +76,13 @@ class DagSchema(ApiStrictSchema):
 
 
 class DagRunSchema(ApiStrictSchema):
-    dag_id = fields.String()
+    dag_id = fields.String(allow_none=True)
     run_id = fields.String(required=False)
     dagrun_id = fields.Integer()
     start_date = fields.DateTime(allow_none=True)
     state = fields.String()
     end_date = fields.DateTime(allow_none=True)
-    execution_date = fields.DateTime()
+    execution_date = fields.DateTime(allow_none=True)
     task_args = fields.Dict()
 
 
