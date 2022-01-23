@@ -207,7 +207,7 @@ def find_full_dag_runs(dag_run_ids, session):
                 task_id=task_instance.task_id,
                 execution_date=task_instance.execution_date,
                 state=task_instance.state,
-                try_number=task_instance.try_number,
+                try_number=task_instance._try_number,
                 start_date=task_instance.start_date,
                 end_date=task_instance.end_date,
             )
