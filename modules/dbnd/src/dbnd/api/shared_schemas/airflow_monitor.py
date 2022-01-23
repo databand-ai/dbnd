@@ -34,7 +34,6 @@ class AirflowServerInfoSchema(ApiStrictSchema):
     base_url = fields.String()
     external_url = fields.String(allow_none=True)
     source_instance_uid = fields.String(allow_none=True)
-    tracking_source_uid = fields.String()
     airflow_instance_uid = fields.String(allow_none=True)  # TODO_API: deprecate
     name = fields.String(allow_none=True)
     env = fields.String(allow_none=True)
@@ -60,7 +59,6 @@ class AirflowServerInfo(object):
     env = attr.ib(default=None)  # type: Optional[str]
     external_url = attr.ib(default=None)  # type: Optional[str]
     source_instance_uid = attr.ib(default=None)  # type: str
-    tracking_source_uid = attr.ib(default=None)  # type: str
     airflow_instance_uid = attr.ib(default=None)  # type: str #TODO_API: derperate
     airflow_version = attr.ib(default=None)  # type: Optional[str]
     airflow_export_version = attr.ib(default=None)  # type: Optional[str]

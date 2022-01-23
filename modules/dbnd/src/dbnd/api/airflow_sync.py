@@ -25,16 +25,15 @@ def create_airflow_instance(
     external_url,
     fetcher,
     api_mode,
-    airflow_mode,
-    env,
+    airflow_environment,
     composer_client_id,
+    include_sources,
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
     name,
     generate_token,
     system_alert_definitions,
-    monitor_config,
 ):
     client = get_databand_context().databand_api_client
     endpoint = "airflow_monitor/add"
@@ -43,20 +42,15 @@ def create_airflow_instance(
         "external_url": external_url,
         "fetcher": fetcher,
         "api_mode": api_mode,
-        "env": env,
-        "airflow_environment": airflow_mode,
+        "airflow_environment": airflow_environment,
         "composer_client_id": composer_client_id,
-        "monitor_config": monitor_config,
+        "monitor_config": {"include_sources": include_sources},
         "dag_ids": dag_ids,
         "last_seen_dag_run_id": last_seen_dag_run_id,
         "last_seen_log_id": last_seen_log_id,
         "name": name,
         "system_alert_definitions": system_alert_definitions,
     }
-
-    if monitor_config:
-        request_data["monitor_config"] = monitor_config
-
     resp = client.api_request(endpoint, request_data, method="POST")
     config_json = resp["server_info_dict"]
     config_json["core"][
@@ -72,40 +66,34 @@ def create_airflow_instance(
 
 
 def edit_airflow_instance(
-    tracking_source_uid,
     url,
     external_url,
     fetcher,
     api_mode,
-    airflow_mode,
-    env,
+    airflow_environment,
     composer_client_id,
+    include_sources,
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
     name,
-    system_alert_definitions,
-    monitor_config,
 ):
     client = get_databand_context().databand_api_client
     endpoint = "airflow_monitor/edit"
     request_data = {
-        "tracking_source_uid": tracking_source_uid,
         "base_url": url,
+        "old_base_url": url,
         "external_url": external_url,
         "fetcher": fetcher,
         "api_mode": api_mode,
-        "env": env,
-        "airflow_environment": airflow_mode,
+        "airflow_environment": airflow_environment,
         "composer_client_id": composer_client_id,
-        "monitor_config": monitor_config,
+        "monitor_config": {"include_sources": include_sources},
         "dag_ids": dag_ids,
         "last_seen_dag_run_id": last_seen_dag_run_id,
         "last_seen_log_id": last_seen_log_id,
         "name": name,
-        "system_alert_definitions": system_alert_definitions,
     }
-
     client.api_request(endpoint, request_data, method="POST")
 
 
