@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import subprocess
 import warnings
 
 import dbnd
@@ -62,9 +63,15 @@ def dbnd_system_bootstrap():
 
         # this will also initialize env if it's not initialized
         project_config = get_dbnd_project_config()
-
         if not project_config.quiet_mode:
             logger.info("Starting Databand %s!\n%s", dbnd.__version__, _env_banner())
+            dbnd_run_info_source_version = os.environ.get(
+                "DBND__RUN_INFO__SOURCE_VERSION"
+            )
+            if dbnd_run_info_source_version:
+                logger.info(
+                    "revision: %s", dbnd_run_info_source_version,
+                )
         from databand import dbnd_config
 
         dbnd_config.load_system_configs()
