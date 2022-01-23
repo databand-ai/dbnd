@@ -20,7 +20,6 @@ requirements_for_airflow = [
     "marshmallow-sqlalchemy<0.24.0,>=0.16.1;python_version>='3.0'",
     "itsdangerous<2.0,>=0.24",
     "tenacity>=4.12",
-    "pyparsing<3,>=2.0.2",  # Fix requirement of packaging library
 ]
 
 setuptools.setup(
