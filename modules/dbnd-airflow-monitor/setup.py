@@ -16,7 +16,7 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=["dbnd==" + version, "setuptools", "prometheus_client",],
     extras_require={
-        "tests": ["pytest==4.5.0", "mock", "WTForms<2.3.0", "sh"],
+        "tests": ["pytest", "mock", "sh"],
         "composer": [
             "PyJWT==1.7.1",
             "cryptography==2.8",
