@@ -14,6 +14,7 @@ from dbnd.api.airflow_sync import (
 )
 
 
+BYTES_IN_KB = 1024
 logger = logging.getLogger(__name__)
 
 
@@ -42,13 +43,17 @@ def print_table(header, instances_list):
 
 def build_instances_table(instances_data):
     extract_keys = (
+        "name",
         "is_sync_enabled",
+        "tracking_source_uid",
         "base_url",
         "external_url",
         "api_mode",
     )
     headers = (
+        "Name",
         "Active",
+        "Tracking source UID",
         "Base url",
         "External url",
         "Api Mode",
@@ -69,14 +74,18 @@ def build_instances_table(instances_data):
     "--url", "-u", help="base url for instance", type=click.STRING, required=True
 )
 @click.option(
-    "--external-url", "-e", help="external url for instance", type=click.STRING
+    "--external-url",
+    "-e",
+    help="External url for instance",
+    type=click.STRING,
+    default=None,
 )
 @click.option(
     "--fetcher",
     "-f",
-    help="Fetcher to use ofr data (web, db)",
+    help="Fetcher to use for data (web, db)",
     type=click.Choice(["web", "db"], case_sensitive=False),
-    required=True,
+    default="db",
 )
 @click.option(
     "--api-mode",
@@ -86,21 +95,25 @@ def build_instances_table(instances_data):
     default="rbac",
 )
 @click.option(
-    "--airflow-environment",
+    "--airflow-mode",
     "-t",
-    help="Airflow environment",
+    help="Airflow mode",
     type=click.Choice(AirflowEnvironment.all_values()),
-    default="on_prem",
+    default=AirflowEnvironment.ON_PREM.value,
+)
+@click.option(
+    "--env", help="Environment", type=click.STRING, default=None,
 )
 @click.option(
     "--composer-client-id",
     "-c",
-    help="client id for Google Cloud Composer connection",
+    help="Client id for Google Cloud Composer connection",
     type=click.STRING,
+    default=None,
 )
 @click.option(
-    "--exclude-sources",
-    help="Don't monitor source code for tasks",
+    "--include-sources",
+    help="Monitor source code for tasks",
     type=click.BOOL,
     is_flag=True,
 )
@@ -127,66 +140,107 @@ def build_instances_table(instances_data):
 )
 @click.option(
     "--generate-token",
-    help="Generate access token for the syncer, value is token lifespan",
+    help="Generate access token for the syncer, value is token lifespan (in seconds)",
     type=click.INT,
     default=None,
 )
 @click.option(
-    "--output",
+    "--config-file-output",
     help="Store syncer config json to file",
     type=click.File("w"),
     default="-",
 )
 @click.option(
     "--with-auto-alerts",
-    help="Create syncer with auto alert config",
+    help="Create syncer with auto alerts config",
     type=click.BOOL,
-    default=True,
+    is_flag=True,
+)
+@click.option(
+    "--include-logs-bytes-from-head",
+    help="Include the number of bytes from the head of the log file",
+    type=click.IntRange(min=0, max=8096),
+    default=0,
+)
+@click.option(
+    "--include-logs-bytes-from-end",
+    help="Include the number of bytes from the end of the log file",
+    type=click.IntRange(min=0, max=8096),
+    default=0,
+)
+@click.option(
+    "--dag-run-bulk-size",
+    help="DAG run bulk size for the syncer",
+    type=click.INT,
+    default=None,
+)
+@click.option(
+    "--start-time-window",
+    help="Start time window for the syncer (in days)",
+    type=click.INT,
+    default=None,
 )
 def add(
     url,
     external_url,
     fetcher,
     api_mode,
-    airflow_environment,
+    airflow_mode,
+    env,
     composer_client_id,
-    exclude_sources,
+    include_sources,
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
     name,
     generate_token,
-    output,
+    config_file_output,
     with_auto_alerts,
+    include_logs_bytes_from_head,
+    include_logs_bytes_from_end,
+    dag_run_bulk_size,
+    start_time_window,
 ):
     try:
+        if not env:
+            env = name
 
-        if with_auto_alerts:
-            system_alert_definitions = {
-                "failed_state": True,
-                "ml_run_duration": True,
-                "run_schema_change": True,
-            }
-        else:
-            system_alert_definitions = {}
+        system_alert_definitions = {
+            "failed_state": bool(with_auto_alerts),
+            "ml_run_duration": bool(with_auto_alerts),
+            "run_schema_change": bool(with_auto_alerts),
+        }
+
+        monitor_config = {
+            "include_sources": bool(include_sources),
+            "log_bytes_from_end": include_logs_bytes_from_end * BYTES_IN_KB,
+            "log_bytes_from_head": include_logs_bytes_from_head * BYTES_IN_KB,
+        }
+
+        if dag_run_bulk_size:
+            monitor_config["dag_run_bulk_size"] = dag_run_bulk_size
+
+        if start_time_window:
+            monitor_config["start_time_window"] = start_time_window
 
         config_json = create_airflow_instance(
             url,
             external_url,
             fetcher,
             api_mode,
-            airflow_environment,
+            airflow_mode,
+            env,
             composer_client_id,
-            not exclude_sources,
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,
             name,
             generate_token,
             system_alert_definitions,
+            monitor_config,
         )
-        if output:
-            json.dump(config_json, output, indent=4)
+        if config_file_output:
+            json.dump(config_json, config_file_output, indent=4)
     except DatabandApiError as e:
         logger.warning("failed with - {}".format(e.response))
     else:
@@ -195,17 +249,28 @@ def add(
 
 @airflow_sync.command()
 @click.option(
+    "--tracking-source-uid",
+    "-u",
+    help='Tracking source uid of the edited airflow syncer. (you can get this with the "list" command)',
+    type=click.STRING,
+    required=True,
+)
+@click.option(
     "--url", "-u", help="base url for instance", type=click.STRING, required=True
 )
 @click.option(
-    "--external-url", "-e", help="external url for instance", type=click.STRING
+    "--external-url",
+    "-e",
+    help="External url for instance",
+    type=click.STRING,
+    default=None,
 )
 @click.option(
     "--fetcher",
     "-f",
-    help="Fetcher to use ofr data (web, db)",
+    help="Fetcher to use for data (web, db)",
     type=click.Choice(["web", "db"], case_sensitive=False),
-    required=True,
+    default="db",
 )
 @click.option(
     "--api-mode",
@@ -215,11 +280,14 @@ def add(
     default="rbac",
 )
 @click.option(
-    "--airflow-environment",
+    "--airflow-mode",
     "-t",
-    help="Airflow environment",
+    help="Airflow mode",
     type=click.Choice(AirflowEnvironment.all_values()),
-    default="on_prem",
+    default=AirflowEnvironment.ON_PREM.value,
+)
+@click.option(
+    "--env", help="Environment", type=click.STRING, default=None,
 )
 @click.option(
     "--composer-client-id",
@@ -228,7 +296,7 @@ def add(
     type=click.STRING,
 )
 @click.option(
-    "--exclude-sources",
+    "--include-sources",
     help="Don't monitor source code for tasks",
     type=click.BOOL,
     is_flag=True,
@@ -254,32 +322,90 @@ def add(
 @click.option(
     "--name", help="Name for the syncer", type=click.STRING, default=None,
 )
+@click.option(
+    "--with-auto-alerts",
+    help="Create syncer with auto alerts config",
+    type=click.BOOL,
+    is_flag=True,
+)
+@click.option(
+    "--include-logs-bytes-from-head",
+    help="Include the number of bytes from the head of the log file",
+    type=click.IntRange(min=0, max=8096),
+    default=0,
+)
+@click.option(
+    "--include-logs-bytes-from-end",
+    help="Include the number of bytes from the end of the log file",
+    type=click.IntRange(min=0, max=8096),
+    default=0,
+)
+@click.option(
+    "--dag-run-bulk-size",
+    help="DAG run bulk size for the syncer",
+    type=click.INT,
+    default=None,
+)
+@click.option(
+    "--start-time-window",
+    help="Start time window for the syncer (in days)",
+    type=click.INT,
+    default=None,
+)
 def edit(
+    tracking_source_uid,
     url,
     external_url,
     fetcher,
     api_mode,
-    airflow_environment,
+    airflow_mode,
+    env,
     composer_client_id,
-    exclude_sources,
+    include_sources,
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
     name,
+    with_auto_alerts,
+    include_logs_bytes_from_head,
+    include_logs_bytes_from_end,
+    dag_run_bulk_size,
+    start_time_window,
 ):
     try:
+        system_alert_definitions = {
+            "failed_state": bool(with_auto_alerts),
+            "ml_run_duration": bool(with_auto_alerts),
+            "run_schema_change": bool(with_auto_alerts),
+        }
+
+        monitor_config = {
+            "include_sources": bool(include_sources),
+            "log_bytes_from_end": include_logs_bytes_from_end * BYTES_IN_KB,
+            "log_bytes_from_head": include_logs_bytes_from_head * BYTES_IN_KB,
+        }
+
+        if dag_run_bulk_size:
+            monitor_config["dag_run_bulk_size"] = dag_run_bulk_size
+
+        if start_time_window:
+            monitor_config["start_time_window"] = start_time_window
+
         edit_airflow_instance(
+            tracking_source_uid,
             url,
             external_url,
             fetcher,
             api_mode,
-            airflow_environment,
+            airflow_mode,
+            env,
             composer_client_id,
-            not exclude_sources,
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,
             name,
+            system_alert_definitions,
+            monitor_config,
         )
     except DatabandApiError as e:
         logger.warning("failed with - {}".format(e.response))
