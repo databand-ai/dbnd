@@ -88,13 +88,6 @@ def build_instances_table(instances_data):
     default="db",
 )
 @click.option(
-    "--api-mode",
-    "-a",
-    help="Airflow API connection mode",
-    type=click.Choice(["rbac", "flask-admin", "experimental"]),
-    default="rbac",
-)
-@click.option(
     "--airflow-mode",
     "-t",
     help="Airflow mode",
@@ -103,13 +96,6 @@ def build_instances_table(instances_data):
 )
 @click.option(
     "--env", help="Environment", type=click.STRING, default=None,
-)
-@click.option(
-    "--composer-client-id",
-    "-c",
-    help="Client id for Google Cloud Composer connection",
-    type=click.STRING,
-    default=None,
 )
 @click.option(
     "--include-sources",
@@ -184,10 +170,8 @@ def add(
     url,
     external_url,
     fetcher,
-    api_mode,
     airflow_mode,
     env,
-    composer_client_id,
     include_sources,
     dag_ids,
     last_seen_dag_run_id,
@@ -227,10 +211,8 @@ def add(
             url,
             external_url,
             fetcher,
-            api_mode,
             airflow_mode,
             env,
-            composer_client_id,
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,
@@ -273,13 +255,6 @@ def add(
     default="db",
 )
 @click.option(
-    "--api-mode",
-    "-a",
-    help="Airflow API connection mode",
-    type=click.Choice(["rbac", "flask-admin", "experimental"]),
-    default="rbac",
-)
-@click.option(
     "--airflow-mode",
     "-t",
     help="Airflow mode",
@@ -288,12 +263,6 @@ def add(
 )
 @click.option(
     "--env", help="Environment", type=click.STRING, default=None,
-)
-@click.option(
-    "--composer-client-id",
-    "-c",
-    help="client id for Google Cloud Composer connection",
-    type=click.STRING,
 )
 @click.option(
     "--include-sources",
@@ -357,10 +326,8 @@ def edit(
     url,
     external_url,
     fetcher,
-    api_mode,
     airflow_mode,
     env,
-    composer_client_id,
     include_sources,
     dag_ids,
     last_seen_dag_run_id,
@@ -396,10 +363,8 @@ def edit(
             url,
             external_url,
             fetcher,
-            api_mode,
             airflow_mode,
             env,
-            composer_client_id,
             dag_ids,
             last_seen_dag_run_id,
             last_seen_log_id,
