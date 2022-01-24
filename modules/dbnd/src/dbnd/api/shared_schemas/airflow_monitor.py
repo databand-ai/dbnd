@@ -14,6 +14,7 @@ class MonitorConfigSchema(ApiStrictSchema):
     start_time_window = fields.Integer(required=False)
     log_bytes_from_head = fields.Integer(required=False)
     log_bytes_from_end = fields.Integer(required=False)
+    use_async_tracking = fields.Boolean(required=False)
 
 
 class AirflowServerInfoSchema(ApiStrictSchema):
