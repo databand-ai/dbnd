@@ -3,13 +3,14 @@ import os
 import queue
 import threading
 
-from time import sleep
+from time import sleep, time
 from typing import Any, Dict
 
 import attr
 
 from dbnd._core.current import in_tracking_run, is_orchestration_run
 from dbnd._core.errors.base import TrackerPanicError
+from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
 from dbnd._core.tracking.backends.channels.marshmallow_mixin import MarshmallowMixin
@@ -17,6 +18,7 @@ from dbnd._core.tracking.backends.channels.tracking_web_channel import (
     TrackingWebChannel,
 )
 from dbnd._core.tracking.backends.tracking_store_composite import try_run_handler
+from dbnd._vendor.pendulum import utcnow
 
 
 logger = logging.getLogger(__name__)
@@ -65,16 +67,42 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
                 self._thread.start()
                 self._thread_for_pid = os.getpid()
 
-    def flush(self) -> None:
+    def flush(self, timeout) -> None:
         logger.debug("background worker got flush request")
         with self.lock:
-            if self._thread:
+            if self.is_alive:
                 self.queue.put(_TERMINATOR)
-                self.queue.join()
+                self._wait_flush(timeout)
                 self._thread = None
                 self._thread_for_pid = None
                 self._lock = None
                 self._queue = None
+
+    def _wait_flush(self, timeout: float) -> None:
+        initial_timeout = min(0.1, timeout)
+        if not self._timed_queue_join(initial_timeout):
+            logger.debug("%d event(s) pending on flush", self.get_qsize())
+
+            if not self._timed_queue_join(timeout - initial_timeout):
+                raise TimeoutError(
+                    "flush timed out, dropped %s events", self.get_qsize()
+                )
+
+    def _timed_queue_join(self, timeout: float) -> bool:
+        deadline = time() + timeout
+
+        self.queue.all_tasks_done.acquire()
+
+        try:
+            while self.queue.unfinished_tasks:
+                delay = deadline - time()
+                if delay <= 0:
+                    return False
+                self.queue.all_tasks_done.wait(timeout=delay)
+
+            return True
+        finally:
+            self.queue.all_tasks_done.release()
 
     def _thread_worker(self) -> None:
         failed_on_previous_iteration = False
@@ -87,12 +115,11 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
                     self.item_processing_handler(item)
                 else:
                     self.skip_processing_callback(item)
-            except Exception as exc:
+            except Exception as e:
                 # It's better to continue cleanning the queue with queue.task_done() to avoid hanging on queue.join()
                 failed_on_previous_iteration = True
-                logger.warning(
-                    "TrackingAsyncWebChannelBackgroundWorker will skip processing next events"
-                )
+                err_msg = "TrackingAsyncWebChannelBackgroundWorker will skip processing next events"
+                log_exception(err_msg, e, logger)
             finally:
                 self.queue.task_done()
             sleep(0)
@@ -104,6 +131,9 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
     def submit(self, item: Any) -> None:
         self._ensure_thread()
         self.queue.put(item)
+
+    def get_qsize(self) -> int:
+        return self._queue.qsize() + 1
 
 
 @attr.s
@@ -142,6 +172,7 @@ class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
         self._is_verbose = is_verbose
         self._log_fn = logger.info if self._is_verbose else logger.debug
         self._shutting_down = False
+        self._start_time = utcnow()
 
     def _handle(self, name, data):
         if self._shutting_down:
@@ -201,12 +232,24 @@ class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
         if not self._background_worker.is_alive:
             return
         # process remaining items in the queue
-        logger.info("Waiting for TrackingAsyncWebChannel to complete async tasks...")
+
+        tracking_duration = (utcnow() - self._start_time).in_seconds()
+        # don't exceed 10% of whole tracking duration while flushing but not less then 2m and no more then 30m
+        flush_limit = min(max(tracking_duration * 0.1, 120), 30 * 60)
+
+        logger.info(
+            f"Waiting {flush_limit}s for TrackingAsyncWebChannel to complete async tasks..."
+        )
         self._shutting_down = True
-        self._background_worker.flush()
-        self.web_channel.flush()
-        self._shutting_down = False
-        logger.info("TrackingAsyncWebChannel completed all tasks")
+        try:
+            self._background_worker.flush(flush_limit)
+            self.web_channel.flush()
+            logger.info("TrackingAsyncWebChannel completed all tasks")
+        except TimeoutError as e:
+            err_msg = f"TrackingAsyncWebChannel flush exceeded {flush_limit}s timeout"
+            log_exception(err_msg, e, logger)
+        finally:
+            self._shutting_down = False
 
     def is_ready(self):
         return self.web_channel.is_ready() and not self._shutting_down
