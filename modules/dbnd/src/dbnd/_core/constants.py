@@ -343,6 +343,17 @@ class AlertSeverity(object):
         return [cls.CRITICAL, cls.HIGH, cls.MEDIUM, cls.LOW]
 
 
+class AlertDefOperator(EnumWithAll):
+    ANOMALY = "ML"
+    RANGE = "range"
+    EQUAL = "=="
+    NOT_EQUAL = "!="
+    GREATER_THAN = ">"
+    NOT_LESS_THAN = ">="
+    LESS_THAN = "<"
+    NOT_GREATER_THAN = "<="
+
+
 TASK_ESSENCE_ATTR = "task_essence"
 
 

@@ -1,5 +1,7 @@
+import json
 import logging
 
+from dbnd._core.constants import AlertDefOperator
 from dbnd._core.current import get_databand_context
 from dbnd.api.jobs import is_job_exists
 from dbnd.api.query_params import build_query_api_params, create_filters_builder
@@ -8,40 +10,6 @@ from dbnd.api.shared_schemas.alerts_def_schema import AlertDefsSchema
 
 
 logger = logging.getLogger(__name__)
-
-
-def not_none_dict(d):
-    return {key: value for key, value in d.items() if value is not None}
-
-
-def _build_alert(
-    job_name,
-    job_id,
-    task_name,
-    task_repr,
-    uid,
-    alert_class,
-    severity,
-    operator,
-    value,
-    user_metric,
-):
-    """build alert for job"""
-
-    return not_none_dict(
-        {
-            "type": alert_class,
-            "job_name": job_name,
-            "job_id": job_id,
-            "task_name": task_name,
-            "task_repr": task_repr,
-            "uid": uid,
-            "operator": operator,
-            "value": str(value),
-            "severity": severity,
-            "user_metric": user_metric,
-        }
-    )
 
 
 def run_if_job_exists(func):
@@ -70,20 +38,35 @@ def create_alert(
     operator,
     value,
     user_metric,
+    alert_on_historical_runs=True,
+    is_str_value=False,
+    **optional_fields,
 ):
-    """add alert for existing job or scheduled job"""
-    alert = _build_alert(
-        job_name,
-        job_id,
-        task_name,
-        task_repr,
-        uid,
-        alert_class,
-        severity,
-        operator,
-        value,
-        user_metric,
-    )
+    alert = {
+        "type": alert_class,
+        "job_name": job_name,
+        "job_id": job_id,
+        "task_name": task_name,
+        "task_repr": task_repr,
+        "uid": uid,
+        "operator": operator,
+        "value": value,
+        "severity": severity,
+        "user_metric": user_metric,
+        "alert_on_historical_runs": alert_on_historical_runs,
+        "is_str_value": is_str_value,
+    }
+    if operator == AlertDefOperator.ANOMALY.value:
+        alert["ml_alert"] = {
+            "look_back": optional_fields["look_back"],
+            "sensitivity": optional_fields["sensitivity"],
+        }
+    if operator == AlertDefOperator.RANGE.value:
+        alert["operator"] = "RangeAlert"
+        alert["value"] = json.dumps(
+            {"baseline": optional_fields["baseline"], "range": optional_fields["range"]}
+        )
+    alert = {key: value for key, value in alert.items() if value is not None}
     alert_def_uid = _post_alert(get_databand_context().databand_api_client, alert)
     return alert_def_uid
 
