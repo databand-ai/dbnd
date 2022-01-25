@@ -8,7 +8,6 @@ import typing
 from typing import List, Optional
 
 from dbnd._core.errors import friendly_error
-from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
 from dbnd._core.tracking.backends import (
     CompositeTrackingStore,
     ConsoleStore,
@@ -62,11 +61,6 @@ def get_tracking_store(
     for name in tracking_store_names:
         if name == "api":
             name = (name, api_channel_name)
-
-        if name == ("api", "db"):
-            assert_web_enabled(
-                "It is required when trying to use local db connection (tracker_api=db)."
-            )
 
         tracking_store_builder = _BACKENDS_REGISTRY.get(name)
         if tracking_store_builder is None:

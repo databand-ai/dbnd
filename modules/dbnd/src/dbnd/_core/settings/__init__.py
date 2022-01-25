@@ -4,7 +4,6 @@ from typing import Union
 
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.base import ConfigLookupError
-from dbnd._core.plugin.dbnd_plugins import assert_web_enabled
 from dbnd._core.settings.core import CoreConfig, DatabandSystemConfig
 from dbnd._core.settings.describe import DescribeConfig
 from dbnd._core.settings.engine import EngineConfig
@@ -49,22 +48,10 @@ class DatabandSettings(object):
         for user_config in self.core.user_configs:
             self.user_configs[user_config] = build_task_from_config(user_config)
 
-        self._web = None
-
     @property
     def system(self):
         # type:()->DatabandSystemConfig
         return self.databand_context.system_settings
-
-    @property
-    def web(self):
-        assert_web_enabled()
-
-        if not self._web:
-            from dbnd_web.dbnd_configs import WebserverConfig
-
-            self._web = WebserverConfig()
-        return self._web
 
     def get_env_config(self, name_or_env):
         # type: ( Union[str, EnvConfig]) -> EnvConfig

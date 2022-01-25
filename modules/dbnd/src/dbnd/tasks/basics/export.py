@@ -30,17 +30,9 @@ def export_db(
 
         if include_db:
             dbnd_context = get_databand_context()
-            conn_string = dbnd_context.settings.web.get_sql_alchemy_conn()
-            if conn_string.startswith("sqlite:"):
-                from dbnd_web.utils.dbnd_db import get_sqlite_db_location
-
-                db_file = get_sqlite_db_location(conn_string)
-                logger.info("Exporting DB=%s", db_file)
-                tar.add(db_file, arcname="dbnd.db")
-            elif conn_string.startswith("postgresql"):
+            conn_string = dbnd_context.config.get("webserver", "sql_alchemy_conn")
+            if conn_string.startswith("postgresql"):
                 with tempfile.NamedTemporaryFile(prefix="dbdump.", suffix=".sql") as tf:
-                    from dbnd_web.utils.dbnd_db import dump_postgres
-
                     dump_postgres(conn_string, tf.name)
                     tar.add(tf.name, arcname="postgres-dbnd.sql")
             else:

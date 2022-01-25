@@ -13,10 +13,5 @@ def created_deprecated_command(cmd):
 
 
 def add_deprecated_commands(cli):
-    try:
-        import dbnd_web
-    except Exception:
-        pass
-    else:
-        for cmd in ["db", "webserver", "keycloak", "command"]:
-            cli.add_command(created_deprecated_command(cmd))
+    for cmd in ["db", "webserver", "keycloak", "command"]:
+        cli.add_command(created_deprecated_command(cmd))

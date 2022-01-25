@@ -104,11 +104,3 @@ def assert_plugin_enabled(module, reason=None, module_import=None):
     if not is_plugin_enabled(module, module_import=module_import):
         raise friendly_error.config.missing_module(module, reason)
     return True
-
-
-def is_web_enabled():
-    return is_plugin_enabled("dbnd-web", "dbnd_web")
-
-
-def assert_web_enabled(reason=None):
-    return assert_plugin_enabled("dbnd-web", reason=reason, module_import="dbnd_web")
