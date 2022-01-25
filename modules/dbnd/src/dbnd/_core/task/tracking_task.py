@@ -342,7 +342,13 @@ def build_func_parameter_values(task_definition, task_args, task_kwargs):
         )
         values.append(varkw_param)
 
+    # Exclude the self param just like it's excluded in DecoratedCallableParamBuilder
+    excluded_params = {"self"}
+
     for name, value in known_kwargs:
+        if name in excluded_params:
+            continue
+
         # build the parameters for the expected parameters
         param_value = build_user_parameter_value(
             name, value, source=task_definition.full_task_family_short
