@@ -26,15 +26,25 @@ _TERMINATOR = object()
 
 class TrackingAsyncWebChannelBackgroundWorker(object):
     def __init__(self, item_processing_handler, skip_processing_callback):
-
-        self._lock = threading.Lock()
-
         self.item_processing_handler = item_processing_handler
         self.skip_processing_callback = skip_processing_callback
 
-        self._queue = queue.Queue()
+        self._lock = None
+        self._queue = None
         self._thread = None
         self._thread_for_pid = None
+
+    @property
+    def queue(self):
+        if self._queue is None:
+            self._queue = queue.Queue()
+        return self._queue
+
+    @property
+    def lock(self):
+        if self._lock is None:
+            self._lock = threading.Lock()
+        return self._lock
 
     @property
     def is_alive(self) -> bool:
@@ -45,7 +55,7 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
         return self._thread.is_alive()
 
     def start(self) -> None:
-        with self._lock:
+        with self.lock:
             if not self.is_alive:
                 self._thread = threading.Thread(
                     target=self._thread_worker,
@@ -57,17 +67,19 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
 
     def shutdown(self) -> None:
         logger.debug("background worker got shutdown request")
-        with self._lock:
+        with self.lock:
             if self._thread:
-                self._queue.put(_TERMINATOR)
-                self._queue.join()
+                self.queue.put(_TERMINATOR)
+                self.queue.join()
                 self._thread = None
                 self._thread_for_pid = None
+                self._lock = None
+                self._queue = None
 
     def _thread_worker(self) -> None:
         failed_on_previous_iteration = False
         while True:
-            item = self._queue.get()
+            item = self.queue.get()
             try:
                 if item is _TERMINATOR:
                     break
@@ -82,7 +94,7 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
                     "TrackingAsyncWebChannelBackgroundWorker will skip processing next events"
                 )
             finally:
-                self._queue.task_done()
+                self.queue.task_done()
             sleep(0)
 
     def _ensure_thread(self) -> None:
@@ -91,7 +103,7 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
 
     def submit(self, item: Any) -> None:
         self._ensure_thread()
-        self._queue.put(item)
+        self.queue.put(item)
 
 
 @attr.s
@@ -133,8 +145,8 @@ class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
 
     def _handle(self, name, data):
         if self._shutting_down:
-            # May happen if the store is used after databand ctx is exited
-            raise RuntimeError("TrackingAsyncWebChannel is invoked after shutdown")
+            # May happen if the store is used during databand ctx exiting
+            raise RuntimeError("TrackingAsyncWebChannel is invoked during shutdown")
 
         # read tracking args from current runtime to avoid thread from reading a newer runtime context
         stop_tracking_on_failure = self._remove_failed_store or (
@@ -193,7 +205,11 @@ class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
         self._shutting_down = True
         self._background_worker.shutdown()
         self.web_channel.shutdown()
+        self._shutting_down = False
         logger.info("TrackingAsyncWebChannel completed all tasks")
+
+    def is_ready(self):
+        return self.web_channel.is_ready() and not self._shutting_down
 
     def __str__(self):
         return "AsyncWeb"

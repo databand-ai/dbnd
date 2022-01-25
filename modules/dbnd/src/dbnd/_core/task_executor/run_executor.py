@@ -249,6 +249,10 @@ class RunExecutor(object):
         """
         t = target_file or self.driver_dump
         logger.info("Saving current run into %s", t)
+
+        # Ensure tracking is completed before pickling
+        self.run.tracker.tracking_store.shutdown()
+
         with t.open("wb") as fp:
             cloudpickle.dump(obj=self.run, file=fp)
 

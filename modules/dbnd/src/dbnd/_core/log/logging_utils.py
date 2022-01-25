@@ -143,6 +143,13 @@ class StreamLogWriter(object):
         """
         return False
 
+    def close(self):
+        """
+        Provide close method, for compatibility with the io.IOBase interface.
+        This is a no-op method.
+        """
+        pass
+
 
 @contextmanager
 def redirect_stdout(logger, level):

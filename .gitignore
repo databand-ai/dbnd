@@ -28,6 +28,8 @@ plugins/dbnd-luigi/data
 modules/dbnd-airflow/test_dbnd_airflow/airflow_home
 examples/src/dbnd_examples/tests/orchestration/customizations/catboost_info
 
+mlruns/*
+outputs/*
 logs/*
 .tox
 .pytest_cache

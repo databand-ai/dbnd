@@ -24,7 +24,7 @@ secrets = [
    ]
 
 pod_exit_code_to_retry_count = { 255:3 }
-pod_retry_delay = 3m"""
+pod_default_retry_delay = 3m"""
 
 """secrets = [   { "type":"env", "target": "AWS_ACCESS_KEY_ID", "secret" : "aws-secrets" , "key" :"aws_access_key_id"},
           { "type":"env", "target": "AWS_SECRET_ACCESS_KEY", "secret" : "aws-secrets" , "key" :"aws_secret_access_key"}]"""
