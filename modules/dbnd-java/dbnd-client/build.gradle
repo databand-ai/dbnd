@@ -1,6 +1,8 @@
 dependencies {
     // scala
     compileOnly 'org.scala-lang:scala-library:2.11.12'
+    // spark hive
+    compileOnly 'org.apache.spark:spark-hive_2.11:2.4.8'
     // deequ
     implementation('com.amazon.deequ:deequ:1.2.2-spark-2.2') {
         exclude group: "org.apache.spark"

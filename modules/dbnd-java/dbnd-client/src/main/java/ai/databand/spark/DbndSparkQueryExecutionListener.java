@@ -12,7 +12,11 @@ import org.apache.spark.sql.execution.SparkPlan;
 import org.apache.spark.sql.execution.WholeStageCodegenExec;
 import org.apache.spark.sql.execution.command.DataWritingCommandExec;
 import org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand;
+import org.apache.spark.sql.hive.execution.HiveTableScanExec;
+import org.apache.spark.sql.hive.execution.InsertIntoHiveTable;
 import org.apache.spark.sql.util.QueryExecutionListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Deque;
@@ -21,12 +25,24 @@ import java.util.List;
 
 public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DbndSparkQueryExecutionListener.class);
+
     private final DbndWrapper dbnd;
     private final DatasetOperationPreview operationPreview;
+    private final boolean isHiveEnabled;
 
     public DbndSparkQueryExecutionListener(DbndWrapper dbnd) {
         this.dbnd = dbnd;
         this.operationPreview = new DatasetOperationPreview();
+        // test if Hive is installed on cluster to avoid ClassNotFoundException in runtime
+        try {
+            Class.forName("org.apache.spark.sql.hive.execution.HiveTableScanExec", false, getClass().getClassLoader());
+            Class.forName("org.apache.spark.sql.hive.execution.InsertIntoHiveTable", false, getClass().getClassLoader());
+        } catch (ClassNotFoundException e) {
+            isHiveEnabled = false;
+            return;
+        }
+        isHiveEnabled = true;
     }
 
     public DbndSparkQueryExecutionListener() {
@@ -35,6 +51,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
     @Override
     public void onSuccess(String funcName, QueryExecution qe, long durationNs) {
+        // Instanceof chain used instead of pattern-matching for the sake of simplicity here.
+        // When new implementations will be added, this part should be refactored to use pattern-matching (strategies)
         if (qe.executedPlan() instanceof DataWritingCommandExec) {
             DataWritingCommandExec writePlan = (DataWritingCommandExec) qe.executedPlan();
             if (writePlan.cmd() instanceof InsertIntoHadoopFsRelationCommand) {
@@ -45,16 +63,22 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 long rows = cmd.metrics().get("numOutputRows").get().value();
 
                 Pair<String, List<Long>> schema = operationPreview.extractSchema(cmd.query().schema(), rows);
+                log(path, DatasetOperationType.WRITE, schema);
+            }
+            if (isHiveEnabled) {
+                if (writePlan.cmd() instanceof InsertIntoHiveTable) {
+                    try {
+                        InsertIntoHiveTable cmd = (InsertIntoHiveTable) writePlan.cmd();
 
-                dbnd.logDatasetOperation(
-                    path,
-                    DatasetOperationType.WRITE,
-                    DatasetOperationStatus.OK,
-                    "",
-                    schema.right(),
-                    schema.left(),
-                    true
-                );
+                        String path = cmd.table().identifier().table();
+                        long rows = cmd.metrics().get("numOutputRows").get().value();
+
+                        Pair<String, List<Long>> schema = operationPreview.extractSchema(cmd.query().schema(), rows);
+                        log(path, DatasetOperationType.WRITE, schema);
+                    } catch (Exception e) {
+                        LOG.error("Unable to extract dataset information from InsertIntoHiveTable", e);
+                    }
+                }
             }
         }
         if (qe.executedPlan() instanceof WholeStageCodegenExec || qe.executedPlan() instanceof CollectLimitExec) {
@@ -67,19 +91,41 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
                     long rows = fileSourceScan.metrics().get("numOutputRows").get().value();
                     Pair<String, List<Long>> schema = operationPreview.extractSchema(fileSourceScan.schema(), rows);
+                    log(path, DatasetOperationType.READ, schema);
+                }
+                if (isHiveEnabled) {
+                    if (next instanceof HiveTableScanExec) {
+                        try {
+                            HiveTableScanExec hiveTableScan = (HiveTableScanExec) next;
 
-                    dbnd.logDatasetOperation(
-                        path,
-                        DatasetOperationType.READ,
-                        DatasetOperationStatus.OK,
-                        "",
-                        schema.right(),
-                        schema.left(),
-                        true
-                    );
+                            // Path resolved by Hive Metastore
+                            String path = hiveTableScan.relation().tableMeta().storage().locationUri().get().toString();
+
+                            // Hive Table name, may be reused in future
+                            // String tableName = hiveTableScan.relation().tableMeta().identifier().table();
+
+                            long rows = hiveTableScan.metrics().get("numOutputRows").get().value();
+                            Pair<String, List<Long>> schema = operationPreview.extractSchema(hiveTableScan.schema(), rows);
+                            log(path, DatasetOperationType.READ, schema);
+                        } catch (Exception e) {
+                            LOG.error("Unable to extract dataset information from HiveTableScanExec", e);
+                        }
+                    }
                 }
             }
         }
+    }
+
+    protected void log(String path, DatasetOperationType operationType, Pair<String, List<Long>> schema) {
+        dbnd.logDatasetOperation(
+            path,
+            operationType,
+            DatasetOperationStatus.OK,
+            "",
+            schema.right(),
+            schema.left(),
+            true
+        );
     }
 
     /**
