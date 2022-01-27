@@ -85,7 +85,7 @@ class TrackingConfig(Config):
     ).enum(ValueTrackingLevel)
 
     track_source_code = parameter(
-        default=True,
+        default=False,
         description="Enable tracking of function, module and file source code",
     )[bool]
 

@@ -97,15 +97,15 @@ class LoggingConfig(config.Config):
     )[bool]
 
     preview_head_bytes = parameter(
-        default=15 * 1024,  # 15KB
+        default=0,  # Disabled
         description="Max head size of the log file, bytes to be sent to server.\n"
-        "Default: 15KB.",
+        "Default: 0KB.",
     )[int]
 
     preview_tail_bytes = parameter(
-        default=15 * 1024,  # 15KB
+        default=0,  # Disabled
         description="Max tail size of the log file, bytes to be sent to server.\n"
-        "Default: 15KB.",
+        "Default: 0KB.",
     )[int]
 
     remote_logging_disabled = parameter.help(
