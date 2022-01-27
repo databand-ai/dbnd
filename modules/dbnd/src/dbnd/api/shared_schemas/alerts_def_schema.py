@@ -79,26 +79,3 @@ class AlertDefsSchema(ApiStrictSchema):
         if value is not None:
             data["value"] = str(data["value"])
         return data
-
-
-class GroupAlertDefsSchema(ApiStrictSchema):
-    type = fields.Str(required=True)
-    tracking_source_uid = fields.UUID(required=True)
-    severity = fields.Str(required=True)
-    user_metric = fields.Str(required=True)
-
-    value = fields.Str(allow_none=True)
-    operator = fields.Str(allow_none=True)
-    ml_alert = fields.Nested(MLAlert, allow_none=True)
-    owner = fields.Str(allow_none=True)
-    jobs = fields.List(fields.Int(), allow_none=True)
-
-    custom_name = fields.Str(allow_none=True)
-    custom_description = fields.Str(allow_none=True)
-
-    @pre_load
-    def prepere(self, data: dict, **kwargs):
-        value = data.get("value", None)
-        if value is not None:
-            data["value"] = str(data["value"])
-        return data
