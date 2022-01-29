@@ -30,7 +30,6 @@ include_task_args = True ; Whether or not to include task arguments
 fetch_quantity = 100 ; Max number of tasks or dag runs to retrieve at each fetch
 fetch_period = 60 ; Time in minutes for window fetching size (start: since, end: since + period)
 dag_ids = ['ingest_data_dag', 'simple_dag'] ; Limit fetching to these specific dag ids
-operator_user_kwargs = {"PythonOperator": "python_callable", "BashOperator": "bash_command"} ; Control which task arguments should be treated as user instead of system
 
 ## DB Fetcher
 ### Pay attention, when using this system airflow version must be equal to databand's airflow version

@@ -30,13 +30,4 @@ class AirflowMonitorConfig(BaseMonitorConfig):
         default=None, description="A json file to be read ExportData information from"
     )[str]
 
-    operator_user_kwargs = parameter(
-        default=[],
-        description="Control which task arguments should be treated as user instead of system",
-    )[Dict[str, List[str]]]
-
-    debug_sync_log_dir_path = parameter(default=None)[str]
-
-    allow_duplicates = parameter(default=False)[bool]
-
     fetcher = parameter(default=None)[str]

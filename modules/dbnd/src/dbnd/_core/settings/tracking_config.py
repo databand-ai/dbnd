@@ -103,13 +103,6 @@ class TrackingConfig(Config):
         default=False, description="Enable log capturing for tracking tasks"
     )[bool]
 
-    # example config for flatten return_value and add counts for extracted fields:
-    # [ {"name": "flatten_metrics", "key_match": "return_value"}, {"name": "add_counts", "key_match": "return_value\\..*"} ]
-    # it's actually List[Dict[str, Any]] but in this case parsing fails
-    metric_processors = parameter(default=None, description="Custom metric processors")[
-        List[object]
-    ]
-
     def get_value_meta_conf(self, meta_conf, value_type, target=None):
         # type: (ValueMetaConf, ValueType, Optional[Target]) -> ValueMetaConf
         meta_conf_by_type = calc_meta_conf_for_value_type(

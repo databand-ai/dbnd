@@ -14,7 +14,6 @@ from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._core.utils.project.project_fs import databand_system_path
-from dbnd._vendor.tbvaccine import TBVaccine
 
 
 logger = logging.getLogger(__name__)
@@ -121,7 +120,6 @@ class LoggingConfig(config.Config):
 
     sqlalchemy_print = parameter(description="enable sqlalchemy logger").value(False)
     sqlalchemy_trace = parameter(description="trace sqlalchemy queries").value(False)
-    api_profile = parameter(description="profile api calls").value(False)
 
     def _initialize(self):
         super(LoggingConfig, self)._initialize()
@@ -132,6 +130,8 @@ class LoggingConfig(config.Config):
             return format_exception_as_str(exc_info)
 
         try:
+            from dbnd._vendor.tbvaccine import TBVaccine
+
             tbvaccine = TBVaccine(
                 no_colors=self.exception_no_color,
                 show_vars=False,
