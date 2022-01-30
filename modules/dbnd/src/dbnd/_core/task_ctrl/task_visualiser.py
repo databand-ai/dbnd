@@ -542,6 +542,7 @@ class _ParamRecordBuilder(object):
 
     def add_value(self):
         from dbnd._core.settings import DescribeConfig
+        from targets.values import DataFrameValueType
 
         console_value_preview_size = (
             DescribeConfig.from_databand_context().console_value_preview_size
@@ -550,9 +551,12 @@ class _ParamRecordBuilder(object):
         if self.value is None:
             value_str = "@None"
         else:
+            # We want to always use self.definition.to_str for panda's Dataframe value.
+            # otherwise, the value blows up the log, and is not readable.
             value_str = (
                 TextBanner.f_io(self.value)
                 if self._param_kind() in ["input", "output"]
+                and not self.definition.value_type_str == DataFrameValueType.type_str
                 else self.definition.to_str(self.value)
             )
 

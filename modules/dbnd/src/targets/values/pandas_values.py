@@ -42,6 +42,13 @@ class DataFrameValueType(DataValueType):
     def to_preview(self, df, preview_size):  # type: (pd.DataFrame, int) -> str
         return df.to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
 
+    def to_str(self, value: pd.DataFrame) -> str:
+        if not isinstance(value, pd.DataFrame):
+            return super(DataFrameValueType, self).to_str(value)
+
+        size = value.size
+        return f"@{self.type_str} Size:{size}"
+
     def get_value_meta(self, value, meta_conf):
         # type: (pd.DataFrame, ValueMetaConf) -> ValueMeta
         data_schema = {}
