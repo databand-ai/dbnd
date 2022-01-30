@@ -240,7 +240,7 @@ class RunExecutor(object):
             )
         )
         return DatabandRunError(
-            "Run has failed: %s" % ex, run=self, nested_exceptions=ex
+            "Run has failed: %s" % ex, run=self.run, nested_exceptions=ex
         )
 
     def save_run_pickle(self, target_file=None):
