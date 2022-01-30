@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from dbnd import dbnd_tracking_start, dbnd_tracking_stop, task
+from dbnd import dbnd_tracking_start, dbnd_tracking_stop, log_metric, task
 from dbnd.testing.helpers import run_dbnd_subprocess
 
 
@@ -11,6 +11,7 @@ FAIL_F2 = "fail_f2"
 FAIL_MAIN = "fail_main"
 USE_DBND_START = "use_dbnd_start"
 USE_DBND_STOP = "use_dbnd_stop"
+RUN_TASK_DECORATED_METHOD = "run_task_decorated_method"
 
 RE_TASK_COMPLETED = r"Task {}[_\w]*.+ has been completed!"
 RE_TASK_FAILED = r"Task {}[_\w]*.+ has failed!"
@@ -19,10 +20,17 @@ RE_F_RUNNING = r"Running {} function"
 CURRENT_PY_FILE = __file__.replace(".pyc", ".py")
 
 
+class MyClass:
+    @task
+    def do_something(self):
+        log_metric("evgeny", 10)
+
+
 def run_dbnd_subprocess__current_file(args, **kwargs):
     args = args or []
     env = os.environ.copy()
-    env["DBND__CORE__TRACKER"] = "['file', 'console']"
+    env["DBND__CORE__TRACKER"] = "['file', 'console', 'api']"
+    env["DBND__CORE__TRACKER_API"] = "web"
     return run_dbnd_subprocess(
         [sys.executable, CURRENT_PY_FILE] + args, env=env, **kwargs
     )
@@ -73,6 +81,15 @@ class TestManualDbndStart(object):
         for task_name, count in self.expected_task_names:
             _assert_output(RE_TASK_FAILED.format(task_name), result)
 
+    def test_manual_dbnd_start_with_decorated_function(self):
+        # This test is checking that decorating a function in class works
+        result = run_dbnd_subprocess__current_file(
+            [USE_DBND_START, USE_DBND_STOP, RUN_TASK_DECORATED_METHOD]
+        )
+        assert "evgeny=10" in result
+        # Verify that we did not send the 'self' param to the web server and received KeyError
+        assert "KeyError:" not in result
+
 
 @task
 def f2(p):
@@ -106,6 +123,9 @@ if __name__ == "__main__":
 
     if FAIL_MAIN in sys.argv:
         raise Exception("main bummer!")
+
+    if RUN_TASK_DECORATED_METHOD:
+        MyClass().do_something()
 
     if USE_DBND_STOP in sys.argv:
         dbnd_tracking_stop()
