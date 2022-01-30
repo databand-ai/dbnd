@@ -22,7 +22,11 @@ from dbnd._core.errors.errors_utils import (
 from dbnd._core.utils import console_utils, seven
 from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._core.utils.basics.helpers import indent
+from dbnd._core.utils.string_utils import truncate_msg
 
+
+ERROR_MESSAGE_HEAD_SIZE = 2048
+ERROR_MESSAGE_TAIL_SIZE = 2048
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +84,8 @@ def get_databand_error_message(ex, args=None, sys_exit=True):
     ):
         error_info = sys.exc_info()
         extra_msg_lines.append(format_exception_as_str(error_info))
+
+    msg = truncate_msg(msg, ERROR_MESSAGE_HEAD_SIZE, ERROR_MESSAGE_TAIL_SIZE)
 
     if please_report:
         extra_msg_lines.append(

@@ -4,6 +4,7 @@ from dbnd._core.utils.string_utils import (
     clean_job_name,
     merge_dbnd_and_spark_logs,
     strip_by,
+    truncate_msg,
 )
 
 
@@ -70,3 +71,18 @@ class TestStringUtils(object):
     )
     def test_strip_by(self, predicate, input_str, expected):
         assert strip_by(predicate, input_str) == expected
+
+    def test_truncate_msg_1(self):
+        assert (
+            truncate_msg("abcdef", 2, 3) == "ab... (first 2 of 6)\n"
+            "(last 3 of 6) ...def"
+        )
+
+    def test_truncate_msg_2(self):
+        assert truncate_msg("abcdef", 4, 0) == "abcd... (first 4 of 6)"
+
+    def test_truncate_msg_3(self):
+        assert truncate_msg("abcdef", 0, 1) == "(last 1 of 6) ...f"
+
+    def test_truncate_msg_34(self):
+        assert truncate_msg("abcdef", 4, 2) == "abcdef"

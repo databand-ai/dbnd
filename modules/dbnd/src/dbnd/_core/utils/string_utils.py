@@ -1,4 +1,5 @@
 import re
+import sys
 
 from typing import Callable, Optional
 
@@ -197,3 +198,22 @@ def strip_by(predicate, string):
     >>> strip_by(lambda c: not c.isalnum(), "...123123.123213.123..asd.22..") == "123123.123213.123..asd.22"
     """
     return "".join(more_itertools.strip(string, predicate))
+
+
+def truncate_msg(msg, head_size, tail_size):
+    msg_size = len(msg)
+    if msg_size <= head_size + tail_size:
+        return msg
+
+    if tail_size <= 0 and head_size <= 0:
+        return ""
+
+    truncated_msg_head = f"{msg[:head_size]}... (first {head_size} of {len(msg)})"
+    if tail_size <= 0:
+        return truncated_msg_head
+
+    truncated_msg_tail = f"(last {tail_size} of {len(msg)}) ...{msg[-tail_size:]}"
+    if head_size <= 0:
+        return truncated_msg_tail
+
+    return f"{truncated_msg_head}\n{truncated_msg_tail}"
