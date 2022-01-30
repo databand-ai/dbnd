@@ -264,8 +264,8 @@ class TrackingStoreThroughChannel(TrackingStore):
         #     resp = resp_schema.load(resp)
         return resp
 
-    def shutdown(self):
-        self.channel.shutdown()
+    def flush(self):
+        self.channel.flush()
 
     def is_ready(self):
         return self.channel.is_ready()

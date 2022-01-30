@@ -65,8 +65,8 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
                 self._thread.start()
                 self._thread_for_pid = os.getpid()
 
-    def shutdown(self) -> None:
-        logger.debug("background worker got shutdown request")
+    def flush(self) -> None:
+        logger.debug("background worker got flush request")
         with self.lock:
             if self._thread:
                 self.queue.put(_TERMINATOR)
@@ -146,7 +146,7 @@ class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
     def _handle(self, name, data):
         if self._shutting_down:
             # May happen if the store is used during databand ctx exiting
-            raise RuntimeError("TrackingAsyncWebChannel is invoked during shutdown")
+            raise RuntimeError("TrackingAsyncWebChannel is invoked during flush")
 
         # read tracking args from current runtime to avoid thread from reading a newer runtime context
         stop_tracking_on_failure = self._remove_failed_store or (
@@ -196,15 +196,15 @@ class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
             f"TrackingAsyncWebChannel skips {item.name} tracking event due to a previous failure"
         )
 
-    def shutdown(self):
+    def flush(self):
         # skip the handler if worker already exited to avoid hanging
         if not self._background_worker.is_alive:
             return
         # process remaining items in the queue
         logger.info("Waiting for TrackingAsyncWebChannel to complete async tasks...")
         self._shutting_down = True
-        self._background_worker.shutdown()
-        self.web_channel.shutdown()
+        self._background_worker.flush()
+        self.web_channel.flush()
         self._shutting_down = False
         logger.info("TrackingAsyncWebChannel completed all tasks")
 

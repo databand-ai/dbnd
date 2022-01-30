@@ -107,10 +107,10 @@ class CompositeTrackingStore(TrackingStore):
                 )
                 store = self._stores.pop(store_name)
                 try:
-                    store.shutdown()
+                    store.flush()
                 except Exception:
                     logger.exception(
-                        f"Error during shutdown of {store_name} tracking backend"
+                        f"Error during flush of {store_name} tracking backend"
                     )
 
             if not self._stores:
@@ -211,15 +211,15 @@ class CompositeTrackingStore(TrackingStore):
     def is_ready(self, **kwargs):
         return all(store.is_ready() for store in self._stores.values())
 
-    def shutdown(self):
+    def flush(self):
         failed = False
 
         for name, store in self._stores.items():
             try:
-                store.shutdown()
+                store.flush()
             except Exception as exc:
                 failed = exc
-                logger.exception(f"Error during shutdown of {name} tracking backend")
+                logger.exception(f"Error during flush of {name} tracking backend")
 
         if failed and self._raise_on_error:
             raise failed

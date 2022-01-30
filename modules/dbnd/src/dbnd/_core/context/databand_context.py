@@ -161,7 +161,7 @@ class DatabandContext(SingletonContext):
 
     def _on_exit(self):
         if self._tracking_store:
-            self.tracking_store.shutdown()
+            self.tracking_store.flush()
         pm.hook.dbnd_on_exit_context(ctx=self)
 
     def is_interactive(self):

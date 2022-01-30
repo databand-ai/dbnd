@@ -251,7 +251,7 @@ class RunExecutor(object):
         logger.info("Saving current run into %s", t)
 
         # Ensure tracking is completed before pickling
-        self.run.tracker.tracking_store.shutdown()
+        self.run.tracker.tracking_store.flush()
 
         with t.open("wb") as fp:
             cloudpickle.dump(obj=self.run, file=fp)

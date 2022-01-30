@@ -145,5 +145,5 @@ class TrackingStore(object):
         # type: () -> bool
         pass
 
-    def shutdown(self):
+    def flush(self):
         pass
