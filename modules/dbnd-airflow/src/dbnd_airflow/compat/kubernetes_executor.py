@@ -5,16 +5,16 @@ from dbnd_airflow.constants import AIRFLOW_ABOVE_10
 if AIRFLOW_ABOVE_10:
     from airflow.executors.kubernetes_executor import (
         AirflowKubernetesScheduler,
-        KubernetesJobWatcher,
-        KubernetesExecutor,
         KubeConfig,
+        KubernetesExecutor,
+        KubernetesJobWatcher,
     )
 else:
     from airflow.contrib.executors.kubernetes_executor import (
         AirflowKubernetesScheduler,
-        KubernetesJobWatcher,
-        KubernetesExecutor,
         KubeConfig,
+        KubernetesExecutor,
+        KubernetesJobWatcher,
     )
 
 

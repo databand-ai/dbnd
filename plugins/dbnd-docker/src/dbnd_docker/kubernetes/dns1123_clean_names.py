@@ -16,8 +16,9 @@ from dbnd._core.utils.string_utils import clean_job_name, strip_by
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task_run.task_run import TaskRun
     from typing import Optional
+
+    from dbnd._core.task_run.task_run import TaskRun
 
 MAX_CLEAN_SUBDOMAIN_NAME_DNS1123_LEN = 253
 MAX_CLEAN_LABEL_NAME_DNS1123_LEN = 63

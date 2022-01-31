@@ -25,8 +25,9 @@ from dbnd_docker.kubernetes.kubernetes_engine_config import (
 
 if typing.TYPE_CHECKING:
     from airflow.contrib.kubernetes.pod import Pod
-    from dbnd._core.task_run.task_run import TaskRun
     from kubernetes.client import CoreV1Api, V1Pod
+
+    from dbnd._core.task_run.task_run import TaskRun
 logger = logging.getLogger(__name__)
 
 

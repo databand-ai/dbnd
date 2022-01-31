@@ -33,11 +33,14 @@ class TestDocTrackingQuickstart:
     def test_integrating_dataframe_tracking(self):
         #### DOC START
         # Python 3.6.8
+        import logging
+
+        from typing import Tuple
+
+        from pandas import DataFrame, Series
         from sklearn import datasets
         from sklearn.model_selection import train_test_split
-        from pandas import DataFrame, Series
-        import logging
-        from typing import Tuple
+
         from dbnd import log_dataframe, log_metric
 
         logging.basicConfig(level=logging.INFO)
@@ -74,14 +77,17 @@ class TestDocTrackingQuickstart:
     def test_step_two(self):
         #### DOC START
         # Python 3.6.8
-        from sklearn import datasets
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import mean_squared_error
-        from pandas import DataFrame, Series
         import logging
+
         from typing import Tuple
-        from dbnd import log_dataframe
+
+        from pandas import DataFrame, Series
+        from sklearn import datasets
         from sklearn.linear_model import LinearRegression
+        from sklearn.metrics import mean_squared_error
+        from sklearn.model_selection import train_test_split
+
+        from dbnd import log_dataframe
 
         logging.basicConfig(level=logging.INFO)
 
@@ -138,14 +144,17 @@ class TestDocTrackingQuickstart:
 
     def test_tracking_more_metrics(self):
         #### DOC START
-        from sklearn import datasets
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import mean_squared_error
-        from pandas import DataFrame, Series
         import logging
+
         from typing import Tuple
-        from dbnd import log_dataframe, log_metric
+
+        from pandas import DataFrame, Series
+        from sklearn import datasets
         from sklearn.linear_model import LinearRegression
+        from sklearn.metrics import mean_squared_error
+        from sklearn.model_selection import train_test_split
+
+        from dbnd import log_dataframe, log_metric
 
         logging.basicConfig(level=logging.INFO)
 

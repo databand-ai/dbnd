@@ -16,15 +16,16 @@ from dbnd._core.utils.traversing import traverse_to_str
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, Dict, Any
-    from dbnd._core.task_run.task_run import TaskRun
-    from dbnd._core.settings import EnvConfig, DatabandSettings
-    from dbnd._core.parameter.parameter_value import Parameters
-    from dbnd._core.task_ctrl.task_relations import TaskRelations
-    from dbnd._core.task_ctrl.task_dag import _TaskDagNode
+    from typing import Any, Dict, Optional
+
     from dbnd._core.context.databand_context import DatabandContext
-    from dbnd._core.task_ctrl.task_validator import TaskValidator
+    from dbnd._core.parameter.parameter_value import Parameters
+    from dbnd._core.settings import DatabandSettings, EnvConfig
+    from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_ctrl.task_descendant import TaskDescendants
+    from dbnd._core.task_ctrl.task_relations import TaskRelations
+    from dbnd._core.task_ctrl.task_validator import TaskValidator
+    from dbnd._core.task_run.task_run import TaskRun
 
 logger = logging.getLogger(__name__)
 
@@ -99,10 +100,10 @@ class _BaseTaskCtrl(TaskSubCtrl):
         super(_BaseTaskCtrl, self).__init__(task)
 
         from dbnd._core.task_ctrl.task_dag import _TaskDagNode  # noqa: F811
-        from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser  # noqa: F811
         from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
         from dbnd._core.task_ctrl.task_descendant import TaskDescendants
         from dbnd._core.task_ctrl.task_repr import TaskRepr
+        from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser  # noqa: F811
 
         self._task_dag = _TaskDagNode(task)
         self.descendants = TaskDescendants(task)

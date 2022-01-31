@@ -1,10 +1,9 @@
 import glob
 
 import pytest
+import sh
 
 from pytest import fixture
-
-import sh
 
 
 @fixture(autouse=True, scope="module")

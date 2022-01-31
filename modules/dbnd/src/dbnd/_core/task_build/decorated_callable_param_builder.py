@@ -29,8 +29,8 @@ from targets.values.builtins_values import DefaultObjectValueType
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.utils.callable_spec import CallableSpec
     from dbnd._core.task_build.task_decorator import TaskDecorator
+    from dbnd._core.utils.callable_spec import CallableSpec
 logger = logging.getLogger(__name__)
 
 

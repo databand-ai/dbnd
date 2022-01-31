@@ -4,8 +4,9 @@ class TestDocTrackingDatabricks:
         from random import randint
         from time import sleep
 
-        from dbnd import log_metric, dataset_op_logger, dbnd_tracking
         import pandas as pd
+
+        from dbnd import dataset_op_logger, dbnd_tracking, log_metric
 
         def execute():
             for int in range(randint(0, 10)):

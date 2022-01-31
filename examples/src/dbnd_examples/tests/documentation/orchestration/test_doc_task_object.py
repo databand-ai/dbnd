@@ -40,6 +40,7 @@ class TestDocTaskObject:
     def test_task_in_task(self):
         #### DOC START
         import logging
+
         from dbnd import task
 
         @task

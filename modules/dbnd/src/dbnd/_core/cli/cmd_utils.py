@@ -13,9 +13,11 @@ logger = logging.getLogger(__name__)
 def ipython():
     """Get ipython shell with Databand's context"""
     # noinspection PyUnresolvedReferences
-    from dbnd import new_dbnd_context
-    from airflow.utils.db import create_session
     import IPython
+
+    from airflow.utils.db import create_session
+
+    from dbnd import new_dbnd_context
 
     with new_dbnd_context(name="ipython") as ctx, create_session() as session:
         header = "\n\t".join(

@@ -2,7 +2,6 @@ from __future__ import absolute_import, unicode_literals
 
 import json
 import os
-
 from tempfile import mkstemp
 
 from airflow import configuration as conf

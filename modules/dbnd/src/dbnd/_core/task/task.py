@@ -37,10 +37,10 @@ from targets.values.version_value import VersionStr
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task_ctrl.task_dag import _TaskDagNode
-    from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.task_build.task_cls__call_state import TaskCallState
+    from dbnd._core.task_ctrl.task_dag import _TaskDagNode
+    from dbnd._core.task_run.task_run import TaskRun
 
 DEFAULT_CLASS_VERSION = ""
 

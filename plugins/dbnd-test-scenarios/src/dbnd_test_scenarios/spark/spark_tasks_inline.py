@@ -11,6 +11,7 @@ def word_count_inline(
 ):
     # type:  (spark.DataFrame, PathStr) -> spark.DataFrame
     from operator import add
+
     from dbnd_spark import get_spark_session
 
     lines = text.rdd.map(lambda r: r[0])

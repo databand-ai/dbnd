@@ -22,12 +22,13 @@ from dbnd.api.tracking_api import InitRunArgs, TaskRunsInfo
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.context.databand_context import DatabandContext
     from typing import Dict, List
-    from targets import Target
-    from dbnd._core.task import Task
+
+    from dbnd._core.context.databand_context import DatabandContext
     from dbnd._core.run.databand_run import DatabandRun
+    from dbnd._core.task import Task
     from dbnd._core.task_run.task_run import TaskRun
+    from targets import Target
 
 logger = logging.getLogger(__name__)
 

@@ -65,10 +65,11 @@ from dbnd_docker.kubernetes.kube_dbnd_client import (
 
 
 if typing.TYPE_CHECKING:
-    from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
-    from dbnd._core.task_run.task_run import TaskRun
     from kubernetes.client import V1Pod
     from sqlalchemy.orm import Session
+
+    from dbnd._core.task_run.task_run import TaskRun
+    from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
 
 @attr.s

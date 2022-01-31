@@ -5,8 +5,11 @@ class TestDocPysparkDataframe:
     def test_doc(self):
         #### DOC START
         import sys
+
         from operator import add
+
         from pyspark.sql import SparkSession
+
         from dbnd import log_metric, task
 
         @task

@@ -31,6 +31,7 @@ class DataTarget(Target):
 
         try:
             import pandas
+
             from targets.extras.pandas_ctrl import PandasMarshallingCtrl
 
             self.as_pandas = PandasMarshallingCtrl(self)
@@ -113,8 +114,11 @@ class DataTarget(Target):
         return self.dump(value=value)
 
     def dump(self, value, value_type=None, **kwargs):
-        from targets.values import get_value_type_of_obj, get_value_type_of_type
-        from targets.values import ObjectValueType
+        from targets.values import (
+            ObjectValueType,
+            get_value_type_of_obj,
+            get_value_type_of_type,
+        )
 
         if value_type:
             value_type = get_value_type_of_type(value_type)

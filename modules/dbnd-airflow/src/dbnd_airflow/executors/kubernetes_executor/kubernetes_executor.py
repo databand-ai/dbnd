@@ -25,6 +25,7 @@ from queue import Empty
 from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from kubernetes.client.rest import ApiException
+from urllib3.exceptions import HTTPError
 
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
@@ -39,7 +40,6 @@ from dbnd_airflow.executors.kubernetes_executor.utils import (
     mgr_init,
 )
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
-from urllib3.exceptions import HTTPError
 
 
 if typing.TYPE_CHECKING:

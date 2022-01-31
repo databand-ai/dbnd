@@ -40,7 +40,6 @@ if AIRFLOW_VERSION_2:
     from airflow.executors.sequential_executor import SequentialExecutor
     from airflow.jobs.backfill_job import BackfillJob
     from airflow.jobs.base_job import BaseJob
-
     from airflow.ti_deps.dep_context import DepContext
     from airflow.ti_deps.dependencies_deps import RUNNING_DEPS
     from airflow.ti_deps.dependencies_states import RUNNABLE_STATES

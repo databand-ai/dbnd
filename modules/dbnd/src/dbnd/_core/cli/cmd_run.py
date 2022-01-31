@@ -196,9 +196,9 @@ def cmd_run(
     `dbnd show-configs` will print all available configs.
     """
 
-    from dbnd._core.context.databand_context import new_dbnd_context, DatabandContext
-    from dbnd._core.utils.structures import combine_mappings
     from dbnd import config
+    from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
+    from dbnd._core.utils.structures import combine_mappings
 
     task_registry = get_task_registry()
 

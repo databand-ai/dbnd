@@ -13,6 +13,7 @@ def operator_to_dbnd_task(operator):
 
 def try_operator_to_dbnd_task(operator):
     from airflow.models import BaseOperator
+
     from dbnd._core.current import get_task_by_task_id
 
     if isinstance(

@@ -63,6 +63,7 @@ def register_basic_data_marshallers():
 
     try:
         import numpy
+
         from targets.marshalling.numpy import (
             NumpyArrayMarshaller,
             NumpyArrayPickleMarshaler,
@@ -128,6 +129,7 @@ def register_basic_data_marshallers():
         pass
     try:
         from matplotlib import figure
+
         from targets.marshalling.matplotlib import MatplotlibFigureMarshaller
 
         register_marshallers(

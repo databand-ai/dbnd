@@ -5,11 +5,14 @@ import six
 
 if six.PY3:
     import contextlib
+
     from collections.abc import Callable
+
     from dbnd._vendor import cloudpickle
 else:
-    import contextlib2 as contextlib
     from collections import Callable
+
+    import contextlib2 as contextlib
 
     from dbnd._vendor.cloudpickle_py2 import cloudpickle
 

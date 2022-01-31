@@ -169,7 +169,7 @@ def job(
     retries,
 ):
     """Manage scheduled jobs"""
-    from dbnd._core.utils.timezone import make_aware, is_localized
+    from dbnd._core.utils.timezone import is_localized, make_aware
 
     if start_date and not is_localized(start_date):
         start_date = make_aware(start_date)

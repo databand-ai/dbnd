@@ -16,8 +16,8 @@ def _data_for_spark_path(*path):
 class TestPysparkTasks(object):
     def test_spark_inline_same_context(self):
         from pyspark.sql import SparkSession
-        from dbnd_examples.orchestration.dbnd_spark.word_count import word_count_inline
 
+        from dbnd_examples.orchestration.dbnd_spark.word_count import word_count_inline
         from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 
         with SparkSession.builder.getOrCreate() as sc:
@@ -28,10 +28,10 @@ class TestPysparkTasks(object):
     def test_read_from_multiple_sources(self):
         from pyspark.sql import SparkSession
 
-        from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
         from dbnd_examples.orchestration.dbnd_spark.read_from_multiple_sources import (
             data_source_complicated_pipeline,
         )
+        from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 
         with SparkSession.builder.getOrCreate() as sc:
             with config({SparkLocalEngineConfig.enable_spark_context_inplace: True}):

@@ -126,6 +126,7 @@ def get_dbnd_json_config_from_airflow_connections():
     Read about setting DBND Connection at: https://dbnd.readme.io/docs/setting-up-configurations-using-airflow-connections
     """
     from airflow.exceptions import AirflowException
+
     from dbnd_airflow.compat import BaseHook
 
     try:

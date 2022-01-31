@@ -31,6 +31,7 @@ def t_A(p_str="check", p_int=2):
 @spark_task
 def word_count_inline(text: DataFrame) -> DataFrame:
     from operator import add
+
     from dbnd_spark.spark import get_spark_session
 
     lines = text.rdd.map(lambda r: r[0])

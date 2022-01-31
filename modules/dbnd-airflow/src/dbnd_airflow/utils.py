@@ -12,8 +12,8 @@ def dbnd_airflow_path(*path):
 
 
 def create_airflow_pool(pool_name):
-    from airflow.utils.db import create_session
     from airflow.models import Pool
+    from airflow.utils.db import create_session
 
     print("Creating Airflow pool '%s'" % pool_name)
     with create_session() as session:

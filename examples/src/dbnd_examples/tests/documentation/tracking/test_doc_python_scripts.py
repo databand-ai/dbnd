@@ -14,7 +14,7 @@ class TestDocPythonScripts:
 
         from typing import Tuple
 
-        from dbnd import task, dbnd_tracking
+        from dbnd import dbnd_tracking, task
 
         @task
         def prepare_data(data: DataFrame = data_repo.wines):

@@ -32,6 +32,7 @@ class TestLocalApacheBeam(object):
 
     def test_beam_inline_options_object(self):
         import apache_beam as beam
+
         from apache_beam.io import ReadFromText, WriteToText
         from apache_beam.options.pipeline_options import PipelineOptions
 

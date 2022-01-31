@@ -5,6 +5,8 @@ from time import sleep
 from typing import Dict, List, Type
 from uuid import UUID
 
+from urllib3.exceptions import HTTPError
+
 from airflow_monitor.shared.base_monitor_component_manager import (
     BaseMonitorComponentManager,
 )
@@ -25,7 +27,6 @@ from dbnd._vendor.tenacity import (
     stop_after_delay,
     wait_exponential,
 )
-from urllib3.exceptions import HTTPError
 
 
 logger = logging.getLogger(__name__)

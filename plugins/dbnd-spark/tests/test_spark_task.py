@@ -138,6 +138,7 @@ class TestSparkTasksLocally(object):
 
     def test_spark_inline_same_context(self):
         from pyspark.sql import SparkSession
+
         from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
 
         with SparkSession.builder.getOrCreate() as sc:
@@ -146,6 +147,7 @@ class TestSparkTasksLocally(object):
 
     def test_spark_inline_with_inplace_df(self):
         from pyspark.sql import SparkSession
+
         from dbnd_test_scenarios.spark.spark_tasks_inline import word_count_inline
 
         with SparkSession.builder.getOrCreate() as sc:

@@ -42,8 +42,8 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
 
     def _get_tracking_errors(self):
         from airflow_monitor.validations import (
-            get_tracking_validation_steps,
             get_all_errors,
+            get_tracking_validation_steps,
         )
 
         errors_list = get_all_errors(get_tracking_validation_steps())

@@ -24,9 +24,10 @@ try:
     from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
 
     if not AIRFLOW_VERSION_2:
+        import flask_admin
+
         from airflow.www.app import csrf as rbac_csrf
         from airflow.www_rbac.utils import CustomSQLAInterface
-        import flask_admin
 
         class ExportDataViewAdmin(flask_admin.BaseView):
             def __init__(self, *args, **kwargs):
@@ -70,8 +71,8 @@ try:
             api.load_auth()
             from airflow.www_rbac.api.experimental.endpoints import (
                 api_experimental,
-                requires_authentication,
                 csrf,
+                requires_authentication,
             )
 
             @csrf.exempt

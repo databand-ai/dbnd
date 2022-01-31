@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 def project_init(ctx, overwrite, dbnd_home, dbnd_system):
     """Initialize the project structure"""
 
-    from dbnd._core.errors import DatabandSystemError
     from dbnd import databand_lib_path
+    from dbnd._core.errors import DatabandSystemError
 
     os.environ["SKIP_DAGS_PARSING"] = "True"  # Exclude airflow dag examples
 

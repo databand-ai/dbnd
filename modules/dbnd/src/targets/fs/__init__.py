@@ -90,6 +90,7 @@ def get_file_system_name(path):
 
 def get_windows_drives():
     import string
+
     from ctypes import windll
 
     drives = []

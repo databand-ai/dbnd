@@ -127,8 +127,8 @@ class TestTensorflowMarshalling:
     def test_model_marshalling_target_to_value_remote_target(self, model):
         pytest.importorskip("dbnd_aws")
         model_marshaller = TensorflowKerasModelMarshaller()
-        from targets.fs import FileSystems, register_file_system
         from dbnd_aws.fs import build_s3_fs_client
+        from targets.fs import FileSystems, register_file_system
 
         register_file_system(FileSystems.s3, build_s3_fs_client)
         t = target("s3://path_to/my_bucket")

@@ -59,10 +59,11 @@ def add_tracking_to_policy():
 def patch_airflow_context_vars():
     """ Used for tracking bash operators """
     import airflow
+
     from airflow.utils import operator_helpers
-    from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars
 
     from dbnd._core.utils.object_utils import patch_models
+    from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars
 
     if hasattr(airflow.utils.operator_helpers, "context_to_airflow_vars"):
         patches = [
@@ -78,12 +79,14 @@ def patch_airflow_context_vars():
 def patch_snowflake_hook():
     # In order to use this patch the user need to have both `dbnd-snowflake` and `snowflake` installed
     try:
-        from dbnd_snowflake.sql_tracking import (
-            patch_airflow_db_hook,
-            config_base_target_reporter,
-        )
         import snowflake
+
         from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
+
+        from dbnd_snowflake.sql_tracking import (
+            config_base_target_reporter,
+            patch_airflow_db_hook,
+        )
     except ImportError:
         # one of them is not available
         return

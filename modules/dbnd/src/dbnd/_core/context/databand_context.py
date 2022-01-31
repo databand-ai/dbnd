@@ -154,6 +154,7 @@ class DatabandContext(SingletonContext):
         output_config = self.settings.output  # type: OutputConfig
         if output_config.hdf_format == "table":
             import pandas as pd
+
             from targets.marshalling import MARSHALERS
             from targets.marshalling.pandas import DataFrameToHdf5Table
 

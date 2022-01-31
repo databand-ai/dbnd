@@ -56,9 +56,8 @@ class MarshallerCtrl(object):
 
     def dump(self, value, **kwargs):
         target = self.target
+        from targets.marshalling import StrLinesMarshaller, StrMarshaller
         from targets.multi_target import MultiTarget
-
-        from targets.marshalling import StrMarshaller, StrLinesMarshaller
 
         if isinstance(self.marshaller, StrMarshaller):
             mode = kwargs.get("mode")

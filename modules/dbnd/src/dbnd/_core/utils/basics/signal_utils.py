@@ -30,7 +30,10 @@ def sigquit_handler__dump_stack(sig, frame):
 
 
 def dump_trace(dump_file=None):
-    import threading, traceback, sys, os
+    import os
+    import sys
+    import threading
+    import traceback
 
     try:
 

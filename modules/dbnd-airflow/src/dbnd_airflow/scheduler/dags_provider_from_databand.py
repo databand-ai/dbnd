@@ -86,7 +86,7 @@ class DbndSchedulerDBDagsProvider(object):
 def get_dags_from_databand():
     if environ_enabled(ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD):
         return None
-    from dbnd._core.errors.base import DatabandConnectionException, DatabandApiError
+    from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
 
     try:
 

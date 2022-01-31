@@ -7,9 +7,9 @@ from dbnd._core.run.run_ctrl import RunCtrl
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task_run.task_run import TaskRun
     from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.settings import EngineConfig
+    from dbnd._core.task_run.task_run import TaskRun
 
 
 class TaskExecutor(RunCtrl):

@@ -2,11 +2,18 @@ def get_windows_compatible_patches():
     import getpass
     import sys
 
-    from airflow.utils import configuration as airflow_configuration, timeout
+    from airflow.utils import configuration as airflow_configuration
+    from airflow.utils import timeout
 
-    from dbnd_airflow.airflow_override.dbnd_airflow_windows import timeout as timeout_patch
-    from dbnd_airflow.airflow_override.dbnd_airflow_windows.configuration import tmp_configuration_copy
-    from dbnd_airflow.airflow_override.dbnd_airflow_windows.getuser import find_runnable_getuser_function
+    from dbnd_airflow.airflow_override.dbnd_airflow_windows import (
+        timeout as timeout_patch
+    )
+    from dbnd_airflow.airflow_override.dbnd_airflow_windows.configuration import (
+        tmp_configuration_copy
+    )
+    from dbnd_airflow.airflow_override.dbnd_airflow_windows.getuser import (
+        find_runnable_getuser_function
+    )
 
     patches = [
         (timeout, "timeout", timeout_patch.timeout),

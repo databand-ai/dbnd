@@ -1,16 +1,16 @@
-﻿import json
+﻿# copypasted from sparkmagic package
+# Copyright (c) 2015  aggftw@gmail.com
+# Distributed under the terms of the Modified BSD License.
+#
+import json
 import logging
+
 from time import sleep
 
 import requests
 
-from dbnd._core.errors import DatabandError, DatabandConfigError
+from dbnd._core.errors import DatabandConfigError, DatabandError
 from dbnd._core.utils.http import constants
-
-# copypasted from sparkmagic package
-# Copyright (c) 2015  aggftw@gmail.com
-# Distributed under the terms of the Modified BSD License.
-#
 
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class ReliableHttpClient(object):
         self._headers = headers
         self._retry_policy = retry_policy
         if self._endpoint.auth == constants.AUTH_KERBEROS:
-            from requests_kerberos import HTTPKerberosAuth, REQUIRED
+            from requests_kerberos import REQUIRED, HTTPKerberosAuth
 
             self._auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
         elif self._endpoint.auth == constants.AUTH_BASIC:

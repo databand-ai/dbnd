@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
     from airflow.contrib.executors.kubernetes_executor import KubeConfig
+
     from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
 

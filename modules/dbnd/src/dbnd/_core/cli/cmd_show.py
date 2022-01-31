@@ -29,8 +29,8 @@ COMMON_PARAMS = {"task_version", "task_env", "task_target_date"}
 
 def _list_tasks(ctx, module, search, is_config):
     from dbnd import Config
-    from dbnd._core.parameter.parameter_definition import _ParameterKind
     from dbnd._core.context.databand_context import new_dbnd_context
+    from dbnd._core.parameter.parameter_definition import _ParameterKind
 
     formatter = ctx.make_formatter()
 

@@ -8,6 +8,7 @@ def notebook_run(path):
        :returns (parsed nb object, execution errors)
     """
     import nbformat
+
     from nbconvert import nbconvertapp
 
     # file can't be open multiple times on windows

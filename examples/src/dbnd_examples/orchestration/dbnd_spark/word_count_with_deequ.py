@@ -19,12 +19,13 @@ import sys
 
 from operator import add
 
-from dbnd import log_dataframe, task
-from dbnd_spark.deequ_metrics_repository import DbndMetricsRepository
 from pydeequ import Check, CheckLevel
 from pydeequ.analyzers import *
 from pydeequ.repository import *
 from pydeequ.verification import VerificationSuite
+
+from dbnd import log_dataframe, task
+from dbnd_spark.deequ_metrics_repository import DbndMetricsRepository
 
 
 @task

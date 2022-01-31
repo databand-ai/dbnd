@@ -34,7 +34,6 @@ from targets.values.builtins_values import STR_VALUE_TYPE
 if typing.TYPE_CHECKING:
     from dbnd._core.configuration.config_store import _TConfigStore
     from dbnd._core.parameter.parameter_definition import ParameterDefinition
-
     from targets import Target
 
 logger = logging.getLogger(__name__)

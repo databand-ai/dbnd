@@ -66,6 +66,7 @@ def word_count_new_cluster():
 def word_count_inline(text=parameter.csv[spark.DataFrame], counters=output.txt.data):
     # type:  (spark.DataFrame, Target) -> spark.DataFrame
     from operator import add
+
     from dbnd_spark.spark import get_spark_session
 
     lines = text.rdd.map(lambda r: r[0])
@@ -91,6 +92,7 @@ class WordCountSparkInline(PySparkInlineTask):
 
     def run(self):
         from operator import add
+
         from dbnd_spark.spark import get_spark_session
 
         lines = self.text.rdd.map(lambda r: r[0])

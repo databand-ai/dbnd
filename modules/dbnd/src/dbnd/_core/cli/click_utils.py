@@ -13,8 +13,8 @@ class ConfigValueType(click.ParamType):
         self.name = "config"
 
     def convert(self, value, param, ctx):
-        from targets.values.structure import _PARSABLE_PARAM_PREFIX
         from dbnd._core.utils import json_utils
+        from targets.values.structure import _PARSABLE_PARAM_PREFIX
 
         value = value.strip()
         # support for --set '{ "a":2, "b":33}'

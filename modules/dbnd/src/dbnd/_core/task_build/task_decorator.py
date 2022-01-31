@@ -234,7 +234,7 @@ class TaskDecorator(object):
         # type: (TaskDecorator, Task, *Any, **Any) -> TaskRun
         # task is running from another task
         task_cls = self.get_task_cls()
-        from dbnd import pipeline, PipelineTask
+        from dbnd import PipelineTask, pipeline
         from dbnd._core.task_build.dbnd_decorator import _default_output
 
         dbnd_run = get_databand_run()

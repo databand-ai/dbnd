@@ -161,8 +161,8 @@ class TestHdfsTarget(_HdfsBaseTestCase, FileTargetTestMixin):
     def test_kerberos_client(self):
         from dbnd_hdfs.hdfs_config import (
             HdfsConfig,
-            WebHdfsClientType,
             KerberosMutualAuthentication,
+            WebHdfsClientType,
         )
 
         conf = HdfsConfig(

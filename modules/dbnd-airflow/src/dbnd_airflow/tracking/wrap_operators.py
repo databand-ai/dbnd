@@ -35,14 +35,14 @@ from dbnd_airflow.tracking.fakes import FakeRun, FakeTask, FakeTaskRun
 
 
 if typing.TYPE_CHECKING:
-    from airflow.models import BaseOperator
-    from airflow.contrib.operators.ecs_operator import ECSOperator
-    from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
+    from airflow.contrib.hooks.databricks_hook import RunState as DatabricksRunState
     from airflow.contrib.operators.databricks_operator import (
+        DatabricksHook,
         DatabricksSubmitRunOperator,
     )
-    from airflow.contrib.operators.databricks_operator import DatabricksHook
-    from airflow.contrib.hooks.databricks_hook import RunState as DatabricksRunState
+    from airflow.contrib.operators.ecs_operator import ECSOperator
+    from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
+    from airflow.models import BaseOperator
 
 logger = logging.getLogger(__name__)
 

@@ -386,7 +386,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         return None
 
     def get_kube_client(self, in_cluster=None):
-        from kubernetes import config, client
+        from kubernetes import client, config
 
         # if in_cluster is set to None, we set it dynamically by trying to set
         # the k8s's config as if we are in a cluster, and if it fails, we set it

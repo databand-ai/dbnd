@@ -1,8 +1,9 @@
 import logging
 
-from dbnd import log_metrics
 from py4j.protocol import Py4JJavaError
 from pydeequ.repository import MetricsRepository
+
+from dbnd import log_metrics
 
 
 logger = logging.getLogger(__name__)

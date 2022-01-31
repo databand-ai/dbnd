@@ -2,10 +2,11 @@ import inspect
 import logging
 import re
 
-import dbnd
 import pydocstyle
 
 from pydocstyle.checker import ConventionChecker
+
+import dbnd
 
 
 verbosity = 2

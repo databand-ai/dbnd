@@ -33,14 +33,16 @@ from targets.values.version_value import VersionValueType
 
 if typing.TYPE_CHECKING:
     from typing import Any, Optional
-    from targets.value_meta import ValueMetaConf, ValueMeta
+
+    from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 # Note: order matters. Examples:
 # isinstance(True, int) == True, so it's important to have bool check before int
 # isinstance(datetime.datetime.utc(), date) == True
 if typing.TYPE_CHECKING:
-    from typing import Optional, Any
+    from typing import Any, Optional
+
     from targets.value_meta import ValueMeta, ValueMetaConf
 
 logger = logging.getLogger(__name__)
@@ -49,6 +51,7 @@ logger = logging.getLogger(__name__)
 known_values = []
 try:
     import matplotlib
+
     from targets.values.matplotlib_values import MatplotlibFigureValueType
 
     known_values.append(MatplotlibFigureValueType())
@@ -56,12 +59,13 @@ except ImportError:
     pass
 
 try:
-    import pandas
     import numpy
+    import pandas
+
     from targets.values.pandas_values import (
+        DataFramesDictValueType,
         DataFrameValueType,
         PandasSeriesValueType,
-        DataFramesDictValueType,
     )
 
     known_values.append(DataFrameValueType())
@@ -72,6 +76,7 @@ except ImportError:
 
 try:
     import numpy
+
     from targets.values.numpy_values import NumpyArrayValueType
 
     known_values.append(NumpyArrayValueType())

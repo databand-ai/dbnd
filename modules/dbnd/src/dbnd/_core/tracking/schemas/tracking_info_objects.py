@@ -7,9 +7,10 @@ from dbnd._core.constants import TaskRunState, _DbndDataClass
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional, List
-    from datetime import datetime, date
+    from datetime import date, datetime
+    from typing import List, Optional
     from uuid import UUID
+
     from dbnd._core.parameter.parameter_definition import ParameterDefinition
 
 

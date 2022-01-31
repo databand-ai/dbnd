@@ -9,8 +9,8 @@ from dbnd._core.parameter.constants import ParameterScope
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task.base_task import _BaseTask
     from dbnd._core.parameter.parameter_definition import ParameterDefinition
+    from dbnd._core.task.base_task import _BaseTask
 
 
 @attr.s(slots=True)

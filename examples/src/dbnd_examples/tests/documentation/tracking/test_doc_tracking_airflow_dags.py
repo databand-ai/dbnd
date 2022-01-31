@@ -13,6 +13,7 @@ class TestDocTrackingAirflowDags:
     def test_prepare_data_operator(self):
         #### DOC START
         from airflow.models import BaseOperator
+
         from dbnd import log_metric, task
 
         class PrepareData(BaseOperator):

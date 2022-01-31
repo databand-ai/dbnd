@@ -35,7 +35,9 @@ class DbFetcher(AirflowDataFetcher):
         super(DbFetcher, self).__init__(config)
         # It's important to do this import to prevent import issues
         import airflow
+
         from sqlalchemy import create_engine
+
         from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
 
         self.dag_folder = config.local_dag_folder
@@ -156,7 +158,9 @@ class DbFetcher(AirflowDataFetcher):
 
     def get_plugin_metadata(self) -> PluginMetadata:
         from airflow import version as airflow_version
+
         import dbnd_airflow
+
         from dbnd_airflow.export_plugin.compat import get_api_mode
 
         return PluginMetadata(

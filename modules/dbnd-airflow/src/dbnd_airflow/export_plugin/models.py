@@ -23,7 +23,8 @@ from dbnd_airflow.export_plugin.helpers import (
 
 if typing.TYPE_CHECKING:
     from typing import List
-    from airflow.models import DagModel, DagTag, DAG
+
+    from airflow.models import DAG, DagModel, DagTag
 
 
 class ETask(object):

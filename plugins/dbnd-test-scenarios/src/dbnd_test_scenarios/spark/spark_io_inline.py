@@ -21,6 +21,7 @@ def dataframes_io_pandas_spark(text=parameter.txt[spark.DataFrame]):
 def word_count_inline(text=parameter.txt[spark.DataFrame]):
     # type:  (spark.DataFrame) -> spark.DataFrame
     from operator import add
+
     from dbnd_spark.spark import get_spark_session
 
     lines = text.rdd.map(lambda r: r[0])
@@ -40,6 +41,7 @@ def word_count_inline(text=parameter.txt[spark.DataFrame]):
 def word_count_inline_folder(text=parameter.folder.csv[spark.DataFrame]):
     # type:  (spark.DataFrame) -> spark.DataFrame
     from operator import add
+
     from dbnd_spark.spark import get_spark_session
 
     lines = text.rdd.filter(lambda r: r[0] is not None).map(lambda r: r[0])

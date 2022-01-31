@@ -120,10 +120,9 @@ def dbnd_bootstrap():
     register_dbnd_plugins()
 
     from dbnd._core.configuration import environ_config
-    from dbnd._core.utils.basics.load_python_module import run_user_func
-    from dbnd._core.plugin.dbnd_plugins import pm
-
     from dbnd._core.configuration.dbnd_config import config
+    from dbnd._core.plugin.dbnd_plugins import pm
+    from dbnd._core.utils.basics.load_python_module import run_user_func
 
     user_plugins = config.get("core", "plugins", None)
     if user_plugins:

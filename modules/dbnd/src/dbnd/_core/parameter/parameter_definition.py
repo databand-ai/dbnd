@@ -47,9 +47,9 @@ from targets.values.target_values import _TargetValueType
 
 logger = logging.getLogger(__name__)
 if typing.TYPE_CHECKING:
+    from dbnd._core.parameter import ParameterValue
     from dbnd._core.task.task import Task
     from dbnd._core.task_build.task_definition import TaskDefinition
-    from dbnd._core.parameter import ParameterValue
 
 
 class _ParameterKind(enum.Enum):

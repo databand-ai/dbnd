@@ -9,9 +9,12 @@ from dbnd_examples.data import data_repo
 class TestDocTrackingSparkJobs:
     def test_doc(self):
         #### DOC START
-        from operator import add
-        from pyspark.sql import SparkSession
         import logging
+
+        from operator import add
+
+        from pyspark.sql import SparkSession
+
         from dbnd import log_metric, task
 
         logger = logging.getLogger(__name__)

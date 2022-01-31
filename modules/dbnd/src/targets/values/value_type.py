@@ -14,6 +14,7 @@ from targets.value_meta import ValueMeta
 
 if typing.TYPE_CHECKING:
     from typing import Any, Union
+
     from targets import DataTarget, Target
     from targets.value_meta import ValueMetaConf
 
@@ -178,9 +179,9 @@ class ValueType(object):
         """
 
         from dbnd._core.utils.task_utils import to_targets
+        from targets import Target
         from targets.inmemory_target import InMemoryTarget
         from targets.values.target_values import _TargetValueType
-        from targets import Target
 
         if load_value is None:
             load_value = self.load_on_build
@@ -257,7 +258,7 @@ class ValueType(object):
         if not value:
             return value
 
-        from targets import InMemoryTarget, DataTarget
+        from targets import DataTarget, InMemoryTarget
 
         if isinstance(value, InMemoryTarget):
             return value.load()

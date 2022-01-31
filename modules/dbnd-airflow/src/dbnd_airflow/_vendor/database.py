@@ -2,11 +2,9 @@
 # License is BSD
 
 import os
-
 from copy import copy
 
 import sqlalchemy as sa
-
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import OperationalError, ProgrammingError
 

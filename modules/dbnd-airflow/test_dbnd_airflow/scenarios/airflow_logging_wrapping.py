@@ -10,15 +10,14 @@ logger = logging.getLogger(__name__)
 def main():
     dbnd_bootstrap()
 
-    from dbnd._core.task_run.task_run import TaskRun
-
     from airflow.models import TaskInstance
+    from airflow.utils.log.logging_mixin import redirect_stderr, redirect_stdout
     from airflow.utils.timezone import utcnow
 
-    from airflow.utils.log.logging_mixin import redirect_stdout, redirect_stderr
     from dbnd import config
     from dbnd._core.constants import TaskExecutorType
     from dbnd._core.settings import RunConfig
+    from dbnd._core.task_run.task_run import TaskRun
     from dbnd.tasks.basics import dbnd_sanity_check
     from dbnd_examples.dbnd_airflow import bash_dag
 

@@ -42,12 +42,10 @@ from targets.utils.path import path_to_bucket_and_key
 logger = logging.getLogger(__name__)
 
 try:
+    import google.auth
     import httplib2
 
-    import google.auth
-    from googleapiclient import errors
-    from googleapiclient import discovery
-    from googleapiclient import http
+    from googleapiclient import discovery, errors, http
 except ImportError:
     logger.warning(
         "Loading GCS module without the python packages googleapiclient & google-auth. \
@@ -333,8 +331,8 @@ class GCSClient(FileSystem):
         ]
 
         if num_process > 1:
-            from multiprocessing import Pool
             from contextlib import closing
+            from multiprocessing import Pool
 
             with closing(Pool(num_process)) as p:
                 return p.map(self._forward_args_to_put, put_kwargs_list)

@@ -6,13 +6,13 @@ import time
 
 from datetime import timedelta
 
+import psutil
+
 from airflow import settings
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.utils.dates import days_ago
-
-import psutil
 
 
 # Do not change this name unless you change the same constant in constants.py in dbnd-airflow

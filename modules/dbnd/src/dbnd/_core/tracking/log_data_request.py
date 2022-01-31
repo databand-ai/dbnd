@@ -6,7 +6,7 @@ import attr
 
 
 if typing.TYPE_CHECKING:
-    from typing import Callable, List, Union, Optional
+    from typing import Callable, List, Optional, Union
 
 
 def columns_converter(columns):

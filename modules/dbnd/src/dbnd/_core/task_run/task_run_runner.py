@@ -55,8 +55,8 @@ class TaskRunRunner(TaskRunCtrl):
         if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
             return
         try:
-            from pyspark import SparkContext
             from py4j import java_gateway
+            from pyspark import SparkContext
 
             if SparkContext._jvm is None:
                 # spark context is not initialized at this step

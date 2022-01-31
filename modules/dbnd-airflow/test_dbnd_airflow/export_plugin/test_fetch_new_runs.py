@@ -171,11 +171,11 @@ class TestNewRuns(object):
 
     def test_13_fetch_in_chunks(self):
         from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
-        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
         from dbnd_airflow.export_plugin.queries import (
             MAX_PARAMETERS_INSIDE_IN_CLAUSE,
             _find_dag_runs_by_list_in_chunks,
         )
+        from test_dbnd_airflow.export_plugin.db_data_generator import insert_dag_runs
 
         with mock.patch(
             "dbnd_airflow.export_plugin.queries._find_dag_runs_by_list_in_chunks",

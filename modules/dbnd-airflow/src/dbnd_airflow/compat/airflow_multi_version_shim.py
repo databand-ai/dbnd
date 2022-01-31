@@ -10,8 +10,8 @@ from dbnd_airflow.constants import AIRFLOW_VERSION_2
 
 
 if AIRFLOW_VERSION_2:
-    from airflow.utils.log.logging_mixin import LoggingMixin
     from airflow.models.taskinstance import SimpleTaskInstance
+    from airflow.utils.log.logging_mixin import LoggingMixin
 else:
     from airflow import LoggingMixin
     from airflow.utils.dag_processing import SimpleTaskInstance

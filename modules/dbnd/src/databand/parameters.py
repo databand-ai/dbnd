@@ -66,6 +66,7 @@ TaskParameter = parameter.type(TaskValueType)
 
 try:
     import pandas
+
     from targets.values.pandas_values import DataFramesDictValueType, DataFrameValueType
 
     DataFrameParameter = parameter.type(DataFrameValueType)
@@ -75,6 +76,7 @@ except ImportError:
 
 try:
     import numpy
+
     from targets.values.numpy_values import NumpyArrayValueType
 
     NumpyArrayParameter = parameter.type(NumpyArrayValueType)
