@@ -1,3 +1,4 @@
+# isort: skip_file
 from typing import Any, Callable, List, Type, TypeVar, Union, overload
 
 import numpy
