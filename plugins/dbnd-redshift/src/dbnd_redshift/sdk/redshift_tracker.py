@@ -99,6 +99,28 @@ class RedshiftTracker:
         # we clean all the batch of operations we reported so we don't report twice
         self.operations = []
 
+    def set_schema(self, dataframe, operation_type=READ):
+        """
+        set schema from dataframe to operation(read/write)
+        Args:
+            dataframe(pandas.DF): data structure with columns Which represents the information we have read
+            operation_type: Type of the operation
+        """
+        try:
+            df_dtypes = dataframe.dtypes.to_dict()
+            for operation in filter(
+                lambda op: (op.op_type == operation_type), self.operations
+            ):
+                operation.dtypes = {key: str(value) for key, value in df_dtypes.items()}
+
+        except Exception as e:
+            logger.exception(
+                "Error occurred during set %s schema from df, df: %s",
+                operation_type.value,
+                dataframe,
+            )
+            log_exception_to_server(e)
+
     @contextlib.contextmanager
     def track_execute(self, cursor, command, *args, **kwargs):
         self._connection = PostgresConnectionWrapper(cursor.connection)
