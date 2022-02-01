@@ -308,10 +308,12 @@ class DatasetOperationReport(object):
     )
     with_preview: bool = attr.ib()
     with_schema: bool = attr.ib()
+    send_metrics: bool = attr.ib()
 
     data: Optional[Any] = attr.ib()
     with_histograms: Optional[Union[bool, str, List[str], LogDataRequest]] = attr.ib()
     with_stats: Optional[Union[bool, str, List[str], LogDataRequest]] = attr.ib()
+    with_partition: Optional[bool] = attr.ib()
 
     success: bool = attr.ib(default=True)
     error: Optional[str] = attr.ib(default=None)
