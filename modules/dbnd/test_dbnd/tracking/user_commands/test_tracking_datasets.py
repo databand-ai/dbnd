@@ -37,7 +37,9 @@ class TestTrackingDatasets(object):
         @task()
         def task_with_log_datasets():
             log_dataset_op(
-                "location://path/to/value.csv", DbndDatasetOperationType.read
+                "location://path/to/value.csv",
+                DbndDatasetOperationType.read,
+                with_schema=False,
             )
 
         task_with_log_datasets()
@@ -58,7 +60,7 @@ class TestTrackingDatasets(object):
         @task()
         def task_with_log_dataset_wrapper():
             with dataset_op_logger(
-                op_path=target("/path/to/value.csv"), op_type="read",
+                op_path=target("/path/to/value.csv"), op_type="read", with_preview=True
             ) as logger:
                 ans = 42
                 logger.set(data=pandas_data_frame)
@@ -85,7 +87,7 @@ class TestTrackingDatasets(object):
         @task()
         def task_with_log_dataset_wrapper():
             with dataset_op_logger(
-                op_path=target("/path/to/value.csv"), op_type="read",
+                op_path=target("/path/to/value.csv"), op_type="read", with_preview=True
             ) as logger:
                 logger.set(data=pandas_data_frame, row_count=999)
 
@@ -111,7 +113,7 @@ class TestTrackingDatasets(object):
         @task()
         def task_with_log_dataset_wrapper():
             with dataset_op_logger(
-                op_path=target("/path/to/value.csv"), op_type="read",
+                op_path=target("/path/to/value.csv"), op_type="read", with_preview=True
             ) as logger:
                 logger.set(data=pandas_data_frame, column_count=8)
 
@@ -138,6 +140,7 @@ class TestTrackingDatasets(object):
                 op_path=target("/path/to/value.csv"),
                 data=pandas_data_frame,
                 op_type="write",
+                with_preview=True,
             ) as logger:
                 ans = 42
                 ans / 0
@@ -168,6 +171,7 @@ class TestTrackingDatasets(object):
                 "location://path/to/value.csv",
                 "read",  # Check passing str values too
                 success=False,
+                with_schema=False,
             )
 
         task_with_log_datasets()
@@ -187,7 +191,7 @@ class TestTrackingDatasets(object):
         @task()
         def task_with_log_datasets():
             a_target = target("/path/to/value.csv")
-            log_dataset_op(a_target, DbndDatasetOperationType.read)
+            log_dataset_op(a_target, DbndDatasetOperationType.read, with_schema=False)
 
         task_with_log_datasets()
 
