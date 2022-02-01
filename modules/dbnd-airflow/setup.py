@@ -57,6 +57,8 @@ setuptools.setup(
             # Airflow 2.0 installs versions 3.3.5 which has bad dependency to newer version of importlib-metadata
             "Markdown==3.3.4",
             "apache-airflow-providers-apache-spark",
+            # Airflow 2.2 requires lower version of SQLalchemy to be installed
+            "SQLAlchemy<1.4",
         ],
         airflow=requirements_for_airflow + ["apache-airflow==1.10.10"],
         tests=[
