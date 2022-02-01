@@ -30,9 +30,9 @@ import errno
 import os
 import sys
 
-from collections import (
+from collections import OrderedDict
+from collections.abc import (
     Iterable,
-    OrderedDict,
     MutableMapping,
 )
 

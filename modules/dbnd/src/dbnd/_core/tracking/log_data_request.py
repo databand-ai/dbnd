@@ -1,6 +1,6 @@
 import typing
 
-from collections import Iterable
+from collections.abc import Iterable
 
 import attr
 

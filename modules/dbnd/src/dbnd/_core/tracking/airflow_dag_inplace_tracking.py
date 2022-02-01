@@ -6,7 +6,7 @@ import logging
 import os
 import uuid
 
-from collections import Mapping
+from collections.abc import Mapping
 from typing import Any, Dict, Iterable, Optional, Tuple
 from uuid import UUID
 

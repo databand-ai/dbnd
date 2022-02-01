@@ -1,7 +1,7 @@
 import logging
 import typing
 
-from collections import Callable
+from collections.abc import Callable
 from datetime import timedelta
 from itertools import chain
 from math import floor, log10

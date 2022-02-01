@@ -3,7 +3,8 @@ import logging
 import os
 import re
 
-from collections import Mapping
+from collections.abc import Mapping
+from configparser import ConfigParser
 from typing import Any
 
 import attr
@@ -73,8 +74,6 @@ def read_from_config_stream(config_fp, source="<stream>"):
     """
     Read config from config file (.ini, .cfg)
     """
-    from backports.configparser import ConfigParser
-
     parser = ConfigParser()
     parser._read(config_fp, source)
 
