@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import datetime
 import logging
+import typing
 
 from airflow import models
 from airflow.models import DagRun, TaskInstance as TI
@@ -47,6 +48,9 @@ else:
     from airflow.executors import LocalExecutor, SequentialExecutor
     from airflow.jobs import BackfillJob, BaseJob
     from airflow.ti_deps.dep_context import RUNNABLE_STATES, RUNNING_DEPS, DepContext
+
+if typing.TYPE_CHECKING:
+    from airflow.models import TaskInstance
 
 logger = logging.getLogger(__name__)
 
@@ -689,6 +693,12 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         task_runs = []
 
         # sync all states
+
+        # These tasks need special treatment because Airflow doesn't manage sub-pipelines
+        #   for this, we need to process failures in child tasks first
+        #   and decide if the parent sub-pipeline has failed
+        upstream_failed_tasks: typing.List[TaskInstance] = []
+
         for ti in run.get_task_instances():
             task_run = databand_run.get_task_run_by_af_id(ti.task_id)  # type: TaskRun
             if not task_run:
@@ -699,11 +709,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti.state == State.UPSTREAM_FAILED
                 and task_run.task_run_state != TaskRunState.UPSTREAM_FAILED
             ):
-                state = databand_run.get_upstream_failed_task_run_state(task_run)
+                upstream_failed_tasks.append(ti)
 
-                logger.info("Setting %s to %s", task_run.task.task_id, state)
-                task_run.set_task_run_state(state, track=False)
-                task_runs.append(task_run)
             # update only in memory state
             if (
                 ti.state == State.SUCCESS
@@ -715,6 +722,15 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 and task_run.task_run_state != TaskRunState.FAILED
             ):
                 task_run.set_task_run_state(TaskRunState.FAILED, track=False)
+
+        # process them at the last step, when we have knowledge about the child tasks
+        for ti in upstream_failed_tasks:
+            task_run: TaskRun = databand_run.get_task_run_by_af_id(ti.task_id)
+
+            state = databand_run.get_upstream_failed_task_run_state(task_run)
+            logger.info("Setting %s to %s", task_run.task.task_id, state)
+            task_run.set_task_run_state(state, track=False)
+            task_runs.append(task_run)
 
         # optimization to write all updates in batch
         if task_runs:
