@@ -4,10 +4,13 @@ import ai.databand.config.DbndConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import okhttp3.Request;
+import okhttp3.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 public class DbndApiBuilder {
@@ -31,6 +34,11 @@ public class DbndApiBuilder {
             .readTimeout(60, TimeUnit.SECONDS)
             .connectTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
+            // we will handle redirects manually
+            .followRedirects(false)
+            .followSslRedirects(false)
+            // enforce HTTP 1 to avoid threads hanging, see https://github.com/square/okhttp/issues/4029
+            .protocols(Collections.singletonList(Protocol.HTTP_1_1))
             .retryOnConnectionFailure(true);
 
         /*
@@ -49,6 +57,28 @@ public class DbndApiBuilder {
                 }
             );
         }
+        /*
+         * OkHttp doesn't do proper redirects on 301: https://github.com/square/okhttp/issues/6627
+         * This interceptor introduces workaround — if request is being redirected we will handle it manually.
+         */
+        clientBuilder.addInterceptor(
+            chain -> {
+                Request origin = chain.request();
+                Response response = chain.proceed(origin);
+                if (!response.isRedirect()) {
+                    return response;
+                }
+                String newLocation = response.header("Location");
+                if (newLocation == null) {
+                    return response;
+                }
+                Request withNewLocation = origin
+                    .newBuilder()
+                    .url(newLocation)
+                    .build();
+                return chain.proceed(withNewLocation);
+            }
+        );
 
 //        disabled until we'll figure out way to upgrade okio library
 //        if (config.isVerbose()) {
