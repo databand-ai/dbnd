@@ -410,12 +410,13 @@ class DatabandRun(SingletonContext):
         """
         state = TaskRunState.UPSTREAM_FAILED
         child_task_runs = task_run.task.descendants
-        # Since task run has children, IT'S a pipeline task ,so we need to calculate it's state based on children states
+        # Since task run has children, IT'S a pipeline task, so we need to calculate it's state based on children states
         if child_task_runs:
             for task_run_id in child_task_runs.children:
                 child_tr_instance = self.get_task_run_by_id(task_run_id)
                 if child_tr_instance.task_run_state == TaskRunState.FAILED:
-                    # Im case one of it's children fail,task run state is updated from upstream failed to failed
+                    # In case one of its children fail,task run state is force updated from upstream failed to failed
+                    #   because upstream_failed means task dependency is not met, while actually inner task has errors
                     state = TaskRunState.FAILED
 
         return state
