@@ -46,8 +46,8 @@ class DataFrameValueType(DataValueType):
         if not isinstance(value, pd.DataFrame):
             return super(DataFrameValueType, self).to_str(value)
 
-        size = value.size
-        return f"@{self.type_str} Size:{size}"
+        dimensions = "[%s]" % (",".join(map(str, value.shape)))
+        return f"DataFrame{dimensions}"
 
     def get_value_meta(self, value, meta_conf):
         # type: (pd.DataFrame, ValueMetaConf) -> ValueMeta
