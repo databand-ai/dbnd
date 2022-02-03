@@ -83,7 +83,7 @@ public class DbndWrapper {
             pipelineInitialized = false;
             return;
         }
-        // log4j system is not initialized properly at this point so we're using stdout directly
+        // log4j system is not initialized properly at this point, so we're using stdout directly
         System.out.println("Running Databand!");
         System.out.printf("TRACKER URL: %s%n", config.databandUrl());
         System.out.printf("CMD: %s%n", config.cmd());
@@ -313,6 +313,9 @@ public class DbndWrapper {
     }
 
     private DbndRun createAgentlessRun() {
+        // add jvm shutdown hook so run will be completed after spark job will stop
+        // hook should be added before, because listener is called asynchronously and spark can initialize stop sequence
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
         // check if we're running inside databand task context
         if (config.databandTaskContext().isPresent()) {
             // don't init run from the scratch, reuse values
@@ -350,6 +353,7 @@ public class DbndWrapper {
                         Object[] args = new Object[method.getParameterCount()];
                         Arrays.fill(args, null);
                         beforePipeline(main.getClassName(), method.getName(), args);
+                        break;
                     }
                 }
             } catch (ClassNotFoundException e) {
@@ -361,9 +365,13 @@ public class DbndWrapper {
             // in case pipeline is not annotated and class not found exception initializing run with no args
             getOrCreateRun(null, null);
         }
-        // add jvm shutdown hook so run will be completed after spark job will stop
-        Runtime.getRuntime().addShutdownHook(new Thread(run::stop));
         return run;
+    }
+
+    protected void stop() {
+        if (run != null) {
+            run.stop();
+        }
     }
 
     protected DbndRun currentRun() {
@@ -382,7 +390,7 @@ public class DbndWrapper {
             System.out.printf("Running pipeline %s%n", run.getTaskName(method));
         } catch (Exception e) {
             run = new NoopDbndRun();
-            System.out.printf("Unable to init run: %s%n", e.getMessage());
+            System.out.println("Unable to init run:");
             e.printStackTrace();
         }
     }
@@ -398,6 +406,27 @@ public class DbndWrapper {
         }
         buffer.append(']');
         LOG.info(buffer.toString());
+    }
+
+    /**
+     * Set tracking context from external source.
+     * This allow to set context externally (for instance when calling pyspark script) and avoid runs duplication.
+     *
+     * @param runUid
+     * @param taskRunUid
+     * @param taskRunAttemptUid
+     * @param taskName
+     */
+    public void setExternalTaskContext(String runUid, String taskRunUid, String taskRunAttemptUid, String taskName) {
+        if (run == null) {
+            run = new DefaultDbndRun(dbnd, config);
+        }
+        TaskRun task = new TaskRun();
+        task.setRunUid(runUid);
+        task.setTaskRunUid(taskRunUid);
+        task.setTaskRunAttemptUid(taskRunAttemptUid);
+        task.setName(taskName);
+        run.setDriverTask(task);
     }
 }
 
