@@ -1,8 +1,12 @@
+from collections import defaultdict
+
+import mock
 import pandas as pd
 import psycopg2
 import pytest
 
 from mock import Mock, patch
+from more_itertools import one
 
 from dbnd._core.constants import DbndTargetOperationType
 from dbnd._core.sql_tracker_common.sql_extract import Column
@@ -98,10 +102,24 @@ def mock_redshift():
         yield execute_mock
 
 
+@pytest.fixture
+def mock_channel_tracker():
+    with mock.patch(
+        "dbnd_redshift.sdk.redshift_tracker.RedshiftTracker.report_operations",
+    ) as mock_store:
+        yield mock_store
+
+
 def _redshift_connect():
     return psycopg2.connect(
         host="test", port=12345, database="db", user="user", password="password",
     )
+
+
+def get_operations(mock_channel_tracker):
+    if mock_channel_tracker and mock_channel_tracker.call_args_list:
+        for call in mock_channel_tracker.call_args_list:
+            yield call.args[1]
 
 
 def test_copy_into_s3(mock_redshift):
@@ -150,102 +168,31 @@ def test_copy_into_s3(mock_redshift):
     return run_tracker_custom_query(COPY_INTO_TABLE_FROM_S3_FILE_QUERY, expected)
 
 
-def test_copy_into_s3_set_read_schema(mock_redshift):
-    expected = [
-        SqlOperation(
-            extracted_schema={
-                "s3://my/bucket/file.csv.*": [
-                    Column(
-                        dataset_name="s3://my/bucket/file.csv",
-                        name="*",
-                        alias="s3://my/bucket/file.csv.*",
-                        is_file=True,
-                        is_stage=False,
-                    )
-                ]
-            },
-            dtypes=dict(c1="object", c2="int64"),
-            records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
-            query_id=None,
-            success=True,
-            op_type=DbndTargetOperationType.read,
-            error=None,
-        ),
-        SqlOperation(
-            extracted_schema={
-                '"MY_TABLE".*': [
-                    Column(
-                        dataset_name='"MY_TABLE"',
-                        name="*",
-                        alias='"MY_TABLE".*',
-                        is_file=False,
-                        is_stage=False,
-                    )
-                ]
-            },
-            dtypes=None,
-            records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
-            query_id=None,
-            success=True,
-            op_type=DbndTargetOperationType.write,
-            error=None,
-        ),
-    ]
-    return run_tracker_custom_query(
+def test_copy_into_s3_set_read_schema(mock_redshift, mock_channel_tracker):
+    run_tracker_custom_df(
         COPY_INTO_TABLE_FROM_S3_FILE_QUERY,
-        expected,
-        pd.DataFrame(data=[["p", 1]], columns=["c1", "c2"]),
+        dataframe=pd.DataFrame(data=[["p", 1]], columns=["c1", "c2"]),
     )
+    report_operations_arg = one(get_operations(mock_channel_tracker))
+
+    for op in report_operations_arg:
+        if op.op_type == DbndTargetOperationType.read:
+            assert op.columns == ["c1", "c2"]
+            assert op.columns_count == 2
+            assert op.dtypes == {"c1": "object", "c2": "int64"}
 
 
-def test_copy_into_s3_set_read_schema_wrong_df(mock_redshift):
-    expected = [
-        SqlOperation(
-            extracted_schema={
-                "s3://my/bucket/file.csv.*": [
-                    Column(
-                        dataset_name="s3://my/bucket/file.csv",
-                        name="*",
-                        alias="s3://my/bucket/file.csv.*",
-                        is_file=True,
-                        is_stage=False,
-                    )
-                ]
-            },
-            dtypes=None,
-            records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
-            query_id=None,
-            success=True,
-            op_type=DbndTargetOperationType.read,
-            error=None,
-        ),
-        SqlOperation(
-            extracted_schema={
-                '"MY_TABLE".*': [
-                    Column(
-                        dataset_name='"MY_TABLE"',
-                        name="*",
-                        alias='"MY_TABLE".*',
-                        is_file=False,
-                        is_stage=False,
-                    )
-                ]
-            },
-            dtypes=None,
-            records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
-            query_id=None,
-            success=True,
-            op_type=DbndTargetOperationType.write,
-            error=None,
-        ),
-    ]
-    return run_tracker_custom_query(
-        COPY_INTO_TABLE_FROM_S3_FILE_QUERY, expected, ["c1", "c2"],
+def test_copy_into_s3_set_read_schema_wrong_df(mock_redshift, mock_channel_tracker):
+    run_tracker_custom_df(
+        COPY_INTO_TABLE_FROM_S3_FILE_QUERY, ["c1", "c2"],
     )
+    report_operations_arg = one(get_operations(mock_channel_tracker))
+
+    for op in report_operations_arg:
+        if op.op_type == DbndTargetOperationType.read:
+            assert op.columns is None
+            assert op.columns_count is None
+            assert op.dtypes is None
 
 
 def test_copy_into_operation_failure(mock_redshift):
@@ -344,16 +291,24 @@ def test_copy_into_s3_graceful_failure(mock_redshift):
     )
 
 
-def run_tracker_custom_query(query, expected, dataframe=None):
+def run_tracker_custom_query(query, expected):
     redshift_tracker = RedshiftTracker()
     with redshift_tracker as tracker:
         with _redshift_connect() as con:
             c = con.cursor()
             try:
                 c.execute(query)
-                if dataframe is not None:
-                    tracker.set_schema(dataframe)
             finally:
                 assert redshift_tracker.operations == expected
         # flush operations
     assert redshift_tracker.operations == []
+
+
+def run_tracker_custom_df(query, dataframe=None):
+    redshift_tracker = RedshiftTracker()
+    with redshift_tracker as tracker:
+        with _redshift_connect() as con:
+            if dataframe is not None:
+                tracker.set_read_dataframe(dataframe)
+            c = con.cursor()
+            c.execute(query)
