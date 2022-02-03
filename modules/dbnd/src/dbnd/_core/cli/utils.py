@@ -101,16 +101,3 @@ def no_errors(ret=None):
         return wrapped
 
     return decorator
-
-
-def with_fast_dbnd_context(f):
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        from dbnd import new_dbnd_context, config
-        from dbnd._core.settings import CoreConfig
-
-        with config({CoreConfig.tracker: ""}, source="fast_dbnd_context"):
-            with new_dbnd_context(name="fast_dbnd_context"):
-                f(*args, **kwargs)
-
-    return wrapper

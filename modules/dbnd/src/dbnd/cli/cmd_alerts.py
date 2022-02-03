@@ -4,7 +4,6 @@ import logging
 
 import click_logging
 
-from dbnd._core.cli.utils import with_fast_dbnd_context
 from dbnd._core.constants import AlertDefOperator, AlertSeverity, RunState, TaskRunState
 from dbnd._core.errors.base import DatabandApiError
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_tabulate
@@ -163,7 +162,6 @@ def validate_passed_options(ctx, with_task, operator, str_value, **more_options)
 def bind_create_to_supported_alert(
     name, alert_type, with_task, value_help, value_type, operator, metric, is_str_value
 ):
-    @with_fast_dbnd_context
     @click.option("--value", "-v", help=value_help, type=value_type, required=False)
     @click.option(
         "--baseline",
@@ -289,7 +287,6 @@ def create(ctx, pipeline, pipeline_id, severity, task, uid):
 @click.option(
     "--pipeline", "-p", help="Pipeline name", type=click.STRING, required=True
 )
-@with_fast_dbnd_context
 def list_jobs(pipeline):
     try:
         alerts_list = list_job_alerts(job_name=pipeline)
@@ -302,7 +299,6 @@ def list_jobs(pipeline):
 
 
 @alerts.command(help=DELETE_HELP_MSG)
-@with_fast_dbnd_context
 @options_dependency("pipeline", "name")
 @required_mutually_exclusive_options("uid", "wipe", "pipeline")
 @click.option("--uid", "-u", help="alert uid", type=click.STRING)
