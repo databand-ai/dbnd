@@ -86,18 +86,25 @@ class SqlOperation:
     def extracted_columns(self) -> Iterable[Column]:
         return chain.from_iterable(self.extracted_schema.values())
 
-    def evolve_schema(self, tables_schemas: Dict[str, DTypes]) -> "SqlOperation":
+    def evolve_schema(
+        self, tables_schemas: Dict[str, DTypes], file_schema: DTypes = None
+    ) -> "SqlOperation":
         if self.dtypes is not None:
             return self
 
-        dtypes = self.build_dtypes(tables_schemas)
+        dtypes = self.build_dtypes(tables_schemas, file_schema)
         return attr.evolve(self, dtypes=dtypes)
 
-    def build_dtypes(self, tables_schemas: Dict[str, DTypes]) -> DTypes:
+    def build_dtypes(
+        self, tables_schemas: Dict[str, DTypes], file_schema: DTypes = None
+    ) -> DTypes:
         dtypes = {}
         for col in self.extracted_columns:
             if col.is_file or col.is_stage:
-                continue
+                if file_schema:
+                    dtypes.update(file_schema)
+                else:
+                    continue
             if col.is_wildcard:
                 all_columns = tables_schemas.get(col.dataset_name, {})
                 dtypes.update(all_columns)

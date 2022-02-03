@@ -36,6 +36,7 @@ class RedshiftTracker:
         self._connection = None
         # custom function for file path calculation
         self.calculate_file_path = calculate_file_path
+        self.dataframe = None  # type: Pandas.DF
 
     def __enter__(self):
         if not hasattr(psycopg2.connect, "__dbnd_patched__"):
@@ -95,31 +96,25 @@ class RedshiftTracker:
             self.flush_operations(self._connection)
 
     def flush_operations(self, connection: PostgresConnectionWrapper):
-        self.report_operations(connection, self.operations)
+        operations: List[SqlOperation] = self.enrich_operations(
+            connection, self.operations
+        )
+        self.report_operations(connection, operations)
         # we clean all the batch of operations we reported so we don't report twice
         self.operations = []
 
-    def set_schema(self, dataframe, operation_type=READ):
+    def set_read_dataframe(self, dataframe):
         """
-        set schema from dataframe to operation(read/write)
+        set dataframe
         Args:
             dataframe(pandas.DF): data structure with columns Which represents the information we have read
-            operation_type: Type of the operation
         """
-        try:
-            df_dtypes = dataframe.dtypes.to_dict()
-            for operation in filter(
-                lambda op: (op.op_type == operation_type), self.operations
-            ):
-                operation.dtypes = {key: str(value) for key, value in df_dtypes.items()}
-
-        except Exception as e:
+        if dataframe.__class__.__name__ == "DataFrame":
+            self.dataframe = dataframe
+        else:
             logger.exception(
-                "Error occurred during set %s schema from df, df: %s",
-                operation_type.value,
-                dataframe,
+                "Error occurred during set dataframe. provided dataframe is not valid",
             )
-            log_exception_to_server(e)
 
     @contextlib.contextmanager
     def track_execute(self, cursor, command, *args, **kwargs):
@@ -144,7 +139,7 @@ class RedshiftTracker:
                 logging.exception("Error parsing redshift query")
                 log_exception_to_server(e)
 
-    def report_operations(
+    def enrich_operations(
         self, connection: PostgresConnectionWrapper, operations: List[SqlOperation]
     ):
         # update the tables names
@@ -152,6 +147,12 @@ class RedshiftTracker:
 
         # looks for tables schemas
         tables = chain.from_iterable(op.tables for op in operations if not op.is_file)
+        # get df schema if exist
+        if self.dataframe is not None:
+            df_schema = self.dataframe.dtypes.to_dict()
+            df_schema.update((k, str(v)) for k, v in df_schema.items())
+        else:
+            df_schema = None
 
         tables_schemas: Dict[str, DTypes] = {}
 
@@ -161,9 +162,13 @@ class RedshiftTracker:
                 tables_schemas[table] = table_schema
 
         operations: List[SqlOperation] = [
-            op.evolve_schema(tables_schemas) for op in operations
+            op.evolve_schema(tables_schemas, df_schema) for op in operations
         ]
+        return operations
 
+    def report_operations(
+        self, connection: PostgresConnectionWrapper, operations: List[SqlOperation]
+    ):
         for op in operations:
             log_dataset_op(
                 op_path=render_connection_path(connection, op, "redshift"),
