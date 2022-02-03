@@ -170,10 +170,10 @@ public class DbndClient {
             LOG.info("[task_run: {}] Run created", runId);
             return runUid;
         } else {
-            LOG.error("[task_run: {}] Unable to create run", runId);
+            LOG.error("[task_run: {}] Init run HTTP request to tracker failed", runId);
         }
 
-        throw new RuntimeException("Unable to create run");
+        throw new RuntimeException("Unable to init run because HTTP request to tracker failed");
     }
 
     /**
@@ -450,6 +450,10 @@ public class DbndClient {
             if (res.isSuccessful()) {
                 return Optional.of(new Object());
             } else {
+                LOG.error("HTTP request failed: {}/{}", res.code(), res.message());
+                if (res.code() == 401) {
+                    LOG.error("Check DBND__CORE__DATABAND_ACCESS_TOKEN variable. Looks like token is missing or wrong");
+                }
                 return Optional.empty();
             }
         } catch (ConnectException ex) {
