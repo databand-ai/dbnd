@@ -381,5 +381,3 @@ class TaskEssence(enum.Enum):
 
 class AirflowEnvironment(EnumWithAll):
     ON_PREM = "on_prem"
-    GCP = "gcp"
-    MWAA = "mwaa"

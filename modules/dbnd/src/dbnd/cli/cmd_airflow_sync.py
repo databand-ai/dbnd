@@ -1,7 +1,6 @@
 import json
 import logging
 
-from dbnd._core.constants import AirflowEnvironment
 from dbnd._core.errors.base import DatabandApiError
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_tabulate
 from dbnd._vendor import click
@@ -88,13 +87,6 @@ def build_instances_table(instances_data):
     default="db",
 )
 @click.option(
-    "--airflow-mode",
-    "-t",
-    help="Airflow mode",
-    type=click.Choice(AirflowEnvironment.all_values()),
-    default=AirflowEnvironment.ON_PREM.value,
-)
-@click.option(
     "--env", help="Environment", type=click.STRING, default=None,
 )
 @click.option(
@@ -170,7 +162,6 @@ def add(
     url,
     external_url,
     fetcher,
-    airflow_mode,
     env,
     include_sources,
     dag_ids,
@@ -211,7 +202,6 @@ def add(
             url,
             external_url,
             fetcher,
-            airflow_mode,
             env,
             dag_ids,
             last_seen_dag_run_id,
@@ -253,13 +243,6 @@ def add(
     help="Fetcher to use for data (web, db)",
     type=click.Choice(["web", "db"], case_sensitive=False),
     default="db",
-)
-@click.option(
-    "--airflow-mode",
-    "-t",
-    help="Airflow mode",
-    type=click.Choice(AirflowEnvironment.all_values()),
-    default=AirflowEnvironment.ON_PREM.value,
 )
 @click.option(
     "--env", help="Environment", type=click.STRING, default=None,
@@ -326,7 +309,6 @@ def edit(
     url,
     external_url,
     fetcher,
-    airflow_mode,
     env,
     include_sources,
     dag_ids,
@@ -363,7 +345,6 @@ def edit(
             url,
             external_url,
             fetcher,
-            airflow_mode,
             env,
             dag_ids,
             last_seen_dag_run_id,
