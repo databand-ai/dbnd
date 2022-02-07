@@ -14,6 +14,7 @@ from targets.connections import build_conn_path
 from targets.value_meta import ValueMeta
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType
+from targets.values.pandas_histograms import PandasHistograms
 
 
 class Connection:
@@ -47,6 +48,7 @@ class SqlOperation:
     success: bool = attr.ib()
     op_type: DbndDatasetOperationType = attr.ib()
     error: str = attr.ib()
+    dataframe = attr.ib(default=None)  # type: pd.DataFrame
 
     @property
     def columns(self) -> List[str]:
@@ -190,6 +192,10 @@ class SqlOperationValueMeta(DataValueType):
         # currently columns_stats and histogram are not supported
         columns_stats, histograms = [], {}
         hist_sys_metrics = None
+        if meta_conf.log_stats and value.dataframe is not None:
+            columns_stats, _ = PandasHistograms(
+                value.dataframe, meta_conf
+            ).get_histograms_and_stats()
 
         return ValueMeta(
             value_preview=None,
