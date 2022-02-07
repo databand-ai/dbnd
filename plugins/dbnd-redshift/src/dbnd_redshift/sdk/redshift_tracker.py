@@ -109,12 +109,18 @@ class RedshiftTracker:
         Args:
             dataframe(pandas.DF): data structure with columns Which represents the information we have read
         """
-        if dataframe.__class__.__name__ == "DataFrame":
-            self.dataframe = dataframe
-        else:
-            logger.exception(
-                "Error occurred during set dataframe. provided dataframe is not valid",
-            )
+        try:
+            import pandas as pd
+
+            if isinstance(dataframe, pd.DataFrame):
+                self.dataframe = dataframe
+            else:
+                logger.exception(
+                    "Error occurred during set dataframe. provided dataframe is not valid",
+                )
+        except Exception as e:
+            logger.exception("Error occurred during set dataframe: %s", self.dataframe)
+            log_exception_to_server(e)
 
     @contextlib.contextmanager
     def track_execute(self, cursor, command, *args, **kwargs):
@@ -154,8 +160,16 @@ class RedshiftTracker:
         tables = chain.from_iterable(op.tables for op in operations if not op.is_file)
         # get df schema if exist
         if self.dataframe is not None:
-            df_schema = self.dataframe.dtypes.to_dict()
-            df_schema.update((k, str(v)) for k, v in df_schema.items())
+            try:
+                df_schema = self.dataframe.dtypes.to_dict()
+                df_schema = ((k, str(v)) for k, v in df_schema.items())
+            except Exception as e:
+                df_schema = None
+                logger.exception(
+                    "Error occurred during build schema from dataframe: %s",
+                    self.dataframe,
+                )
+                log_exception_to_server(e)
         else:
             df_schema = None
 
