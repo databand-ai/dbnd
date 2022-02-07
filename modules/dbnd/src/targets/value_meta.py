@@ -12,7 +12,7 @@ from dbnd._core.tracking.schemas.column_stats import (
 )
 from dbnd._core.tracking.schemas.metrics import Metric
 from dbnd._core.utils.timezone import utcnow
-from targets.data_schema import DataSchemaArgs, data_schema_from_dict
+from targets.data_schema import DataSchemaArgs, load_data_schema
 
 
 # keep it below VALUE_PREVIEW_MAX_LEN at web
@@ -26,7 +26,7 @@ class ValueMeta(object):
         default=None
     )  # type: Optional[Tuple[Optional[int], Optional[int]]]
     data_schema = attr.ib(
-        default=None, converter=data_schema_from_dict
+        default=None, converter=load_data_schema
     )  # type: Optional[DataSchemaArgs]
     data_hash = attr.ib(default=None)  # type: Optional[str]
     columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]

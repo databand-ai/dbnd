@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import attr
 
@@ -60,7 +60,12 @@ class StructuredDataSchema(ApiStrictSchema):
         return DataSchemaArgs(**data)
 
 
-def data_schema_from_dict(field: Optional[dict]) -> Optional[DataSchemaArgs]:
+def load_data_schema(
+    field: Optional[Union[dict, DataSchemaArgs]]
+) -> Optional[DataSchemaArgs]:
     if field is None:
         return None
+
+    if isinstance(field, DataSchemaArgs):
+        return field
     return StructuredDataSchema().load(field).data
