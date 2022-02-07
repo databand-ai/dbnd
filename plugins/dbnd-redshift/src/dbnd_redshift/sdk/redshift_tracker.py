@@ -130,7 +130,12 @@ class RedshiftTracker:
         finally:
             try:
                 operations = build_redshift_operations(
-                    cursor, command, success, self.calculate_file_path, error
+                    cursor,
+                    command,
+                    success,
+                    self.calculate_file_path,
+                    error,
+                    self.dataframe,
                 )
                 if operations:
                     # Only extend self.operations if read or write operation occurred in command
@@ -228,6 +233,7 @@ def build_redshift_operations(
     success: bool,
     calculate_file_path,
     error: str,
+    dataframe=None,  # type: pd.DataFrame
 ) -> List[SqlOperation]:
     operations = []
     if calculate_file_path:
@@ -259,7 +265,10 @@ def build_redshift_operations(
         # description contains the schema of the operation.
         schema = None
         read = build_operation(
-            extracted_schema=extracted[READ], dtypes=schema, op_type=READ
+            extracted_schema=extracted[READ],
+            dtypes=schema,
+            op_type=READ,
+            dataframe=dataframe,
         )
         operations.append(read)
     else:
@@ -267,7 +276,10 @@ def build_redshift_operations(
         # schema.
         if READ in extracted:
             read = build_operation(
-                extracted_schema=extracted[READ], dtypes=None, op_type=READ
+                extracted_schema=extracted[READ],
+                dtypes=None,
+                op_type=READ,
+                dataframe=dataframe,
             )
             operations.append(read)
 
