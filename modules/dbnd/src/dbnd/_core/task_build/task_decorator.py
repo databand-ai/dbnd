@@ -178,6 +178,10 @@ class TaskDecorator(object):
         if not current:
             # no tracking/no orchestration,
             # falling back to "natural call" of the class_or_func
+            logger.warning(
+                "Can't report tracking info. %s is decorated with @task, but no tracking context was found",
+                self.class_or_func.__name__,
+            )
             return self.class_or_func(*call_args, **call_kwargs)
 
         ######

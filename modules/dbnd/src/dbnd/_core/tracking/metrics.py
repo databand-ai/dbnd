@@ -25,6 +25,10 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+TRACKER_MISSING_MESSAGE = (
+    "Can't report %s because no tracker was found (did you call dbnd_tracking_start?)"
+)
+
 
 def _get_tracker():
     # type: ()-> Optional[TaskRunTracker]
@@ -68,9 +72,7 @@ def log_data(
     """
     tracker = _get_tracker()
     if not tracker:
-        logger.warning(
-            "Couldn't log data - {key}. Tracker is not found".format(key=key)
-        )
+        logger.warning(TRACKER_MISSING_MESSAGE, "log_data")
         return
 
     meta_conf = ValueMetaConf(
@@ -175,7 +177,9 @@ def log_metric(key, value, source="user"):
         tracker.log_metric(key, value, source=source)
         return
 
+    logger.warning(TRACKER_MISSING_MESSAGE, "log_metric")
     logger.info("Log {} Metric '{}'='{}'".format(source.capitalize(), key, value))
+    return
 
 
 def log_metrics(metrics_dict, source="user", timestamp=None):
@@ -200,6 +204,7 @@ def log_metrics(metrics_dict, source="user", timestamp=None):
         tracker.log_metrics(metrics_dict, source=source, timestamp=timestamp)
         return
 
+    logger.warning(TRACKER_MISSING_MESSAGE, "log_metrics")
     logger.info(
         "Log multiple metrics from {source}: {metrics}".format(
             source=source.capitalize(), metrics=metrics_dict
@@ -227,6 +232,7 @@ def log_artifact(key, artifact):
         tracker.log_artifact(key, artifact)
         return
 
+    logger.warning(TRACKER_MISSING_MESSAGE, "log_artifact")
     logger.info("Artifact %s=%s", key, artifact)
 
 
@@ -260,7 +266,7 @@ def _report_operation(operation_report):
     # type: (DatasetOperationReport) -> None
     tracker = _get_tracker()
     if not tracker:
-        logger.warning(f"No tracker, can't report operation: {operation_report}")
+        logger.warning(TRACKER_MISSING_MESSAGE, "report_operation")
         return
 
     tracker.log_dataset(op_report=operation_report)
