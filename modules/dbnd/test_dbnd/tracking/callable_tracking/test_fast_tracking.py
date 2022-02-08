@@ -54,6 +54,12 @@ def task_pass_through_exception():
     1 / 0
 
 
+@task
+def task_pass_through_keyboard_interrupt():
+    # print needed to test that log is sent
+    raise KeyboardInterrupt
+
+
 def _assert_tracked_params(mock_channel_tracker, task_func, **kwargs):
     tdi, tri = _get_tracked_task_run_info(mock_channel_tracker, task_func)
     tdi_params = {tpd.name: tpd for tpd in tdi.task_param_definitions}
@@ -271,6 +277,49 @@ def test_tracking_user_exception(mock_channel_tracker):
         TaskRunState.FAILED,  # task
         TaskRunState.UPSTREAM_FAILED,  # DAG
     ] == update_task_run_attempts_chain
+
+
+@pytest.mark.usefixtures(tracking_config.__name__)
+@pytest.mark.usefixtures(set_airflow_context.__name__)
+def test_tracking_keyboard_interrupt(mock_channel_tracker):
+    # we'll pass string instead of defined expected DataFrame and it should work
+    try:
+        task_pass_through_keyboard_interrupt()
+    except BaseException:
+        _check_tracking_calls(
+            mock_channel_tracker,
+            {
+                "init_run": 1,
+                "add_task_runs": 1,
+                "update_task_run_attempts": 3,
+                "save_task_run_log": 1,
+            },
+        )
+
+        # this should happen on process exit in normal circumstances
+        dbnd_tracking_stop()
+
+        _check_tracking_calls(
+            mock_channel_tracker,
+            {
+                "init_run": 1,
+                "add_task_runs": 1,
+                "update_task_run_attempts": 4,
+                "save_task_run_log": 2,
+            },
+        )
+
+        update_task_run_attempts_chain = [
+            call.kwargs["task_run_attempt_updates"][0].state
+            for call in mock_channel_tracker.call_args_list
+            if call.args[0].__name__ == "update_task_run_attempts"
+        ]
+        assert [
+            TaskRunState.RUNNING,  # DAG
+            TaskRunState.RUNNING,  # root_task
+            TaskRunState.FAILED,  # task
+            TaskRunState.UPSTREAM_FAILED,  # DAG
+        ] == update_task_run_attempts_chain
 
 
 def test_dbnd_pass_through_default(pandas_data_frame_on_disk, mock_channel_tracker):

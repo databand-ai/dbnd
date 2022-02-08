@@ -175,12 +175,14 @@ class CallableTrackingManager(object):
                     # if we reached this line, this means that user code finished
                     # successfully without any exceptions
                     user_code_finished = True
-                except Exception as ex:
+                # We catch BaseException since we want to catch KeyboardInterrupts as well
+                except BaseException as ex:
                     task_run.finished_time = utcnow()
 
                     error = TaskRunError.build_from_ex(ex, task_run)
                     task_run.set_task_run_state(TaskRunState.FAILED, error=error)
                     raise
+
                 else:
                     task_run.finished_time = utcnow()
 
@@ -188,7 +190,7 @@ class CallableTrackingManager(object):
                     _log_result(task_run, func_call.result)
 
                     task_run.set_task_run_state(TaskRunState.SUCCESS)
-        except Exception:
+        except BaseException:
             if user_code_called and not user_code_finished:
                 # if we started to call the user code and not got to user_code_finished
                 # line - it means there was user code exception - so just re-raise it

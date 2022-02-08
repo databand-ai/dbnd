@@ -226,7 +226,11 @@ class _DbndScriptTrackingManager(object):
                             root_tr.set_task_run_state(TaskRunState.UPSTREAM_FAILED)
                             break
                     else:
-                        root_tr.set_task_run_state(TaskRunState.SUCCESS)
+                        # We can reach here in case of raising exception tracking stand alone python script
+                        if sys.exc_info()[1]:
+                            root_tr.set_task_run_state(TaskRunState.FAILED)
+                        else:
+                            root_tr.set_task_run_state(TaskRunState.SUCCESS)
 
                 if root_tr.task_run_state == TaskRunState.SUCCESS:
                     databand_run.set_run_state(RunState.SUCCESS)
