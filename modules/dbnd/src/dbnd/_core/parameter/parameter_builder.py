@@ -521,9 +521,37 @@ class ParameterFactory(object):
 
 PARAMETER_FACTORY = ParameterFactory()
 parameter = PARAMETER_FACTORY
+parameter.__doc__ = """
+    Makes a class variable become a Task or Pipeline parameter.
+
+    Parameters are DBND's equivalent to creation of a constructor for each task.
+    This is only used when using a Task or Pipeline class, otherwise the function's parameters are automatically made into
+    DBND parameter.
+    In this example, ``data`` is set as PrepareData's parameter::
+
+        class PrepareData(Task):
+            data = parameter.data
+            ..."""
 
 output = parameter.output  # type: ParameterFactory
+output.__doc__ = """
+    Makes a class variable become a Task or Pipeline Output.
+
+    You can customize the output type, and it can be set inside Run or Band.
+    This is only used when using a Task or Pipeline class, otherwise the function's return value is automatically set as
+    the Task or Pipeline output.
+
+    In this example, prepared_data is set as PrepareData's output, and is set inside the run method::
+
+        class PrepareData(Task):
+            data = parameter.data
+
+            prepared_data = output.csv.data
+
+            def run(self):
+                self.prepared_data = do_something_with_data(self.data)"""
 data = parameter.target.data  # type: ParameterFactory
+data.__doc__ = """Marks a parameter as data."""
 
 
 def build_parameter(parameter, context="inline"):

@@ -344,6 +344,7 @@ def __set_target(target, target_source):
 
 
 def as_task(task_or_result):
+    """Extracts task from `task_or_result`."""
     from dbnd import Task
 
     if isinstance(task_or_result, Target):

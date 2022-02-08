@@ -268,10 +268,7 @@ config = DbndConfig.build_empty(name="empty")
 
 
 def config_deco(config_values, **deco_kwargs):
-    """
-    do not use it in PY3, use config instead
-    function decorator for PY2
-    """
+    """Do not use it in PY3, use config instead. Function decorator for PY2."""
 
     def decorator(method):
         @functools.wraps(method)

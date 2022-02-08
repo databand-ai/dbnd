@@ -251,7 +251,7 @@ def load_user_modules(dbnd_config, modules=None):
 @seven.contextlib.contextmanager
 def new_dbnd_context(conf=None, name=None, **kwargs):
     # type: (...) -> ContextManager[DatabandContext]
-
+    """Creates a new DatabandContext."""
     with config(config_values=conf, source="inplace"):
         with DatabandContext.new_context(
             name=name, allow_override=True, **kwargs

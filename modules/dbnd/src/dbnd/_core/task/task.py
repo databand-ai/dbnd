@@ -55,33 +55,15 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
     A dbnd Task describes a unit or work.
 
-    The key methods of a Task, which must be implemented in a subclass are:
+    A ``run`` method must be present in a subclass
 
-    * :py:meth:`run` - the computation done by this task.
-
-    Each :py:class:`~dbnd.parameter` of the Task should be declared as members:
-
-    .. code:: python
+    Each ``parameter`` of the Task should be declared as members::
 
         class MyTask(dbnd.Task):
             count = dbnd.parameter[int]
             second_param = dbnd.parameter[str]
-
-    In addition to any declared properties and methods, there are a few
-    non-declared properties, which are created by the :py:class:`TaskMetaclass`
-    metaclass:
-
     """
 
-    """
-        This value can be overriden to set the namespace that will be used.
-        (See :ref:`Task.namespaces_famlies_and_ids`)
-        If it's not specified and you try to read this value anyway, it will return
-        garbage. Please use :py:meth:`get_task_namespace` to read the namespace.
-
-        Note that setting this value with ``@property`` will not work, because this
-        is a class level value.
-    """
     _conf_confirm_on_kill_msg = None  # get user confirmation on task kill if not empty
     _conf__require_run_dump_file = False
 
@@ -173,9 +155,10 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
     def band(self):
         """
-        Please, do not override this function only in Pipeline/External tasks! we do all wiring work in Meta classes only
+        Please, do not override this function only in Pipeline/External tasks!
+
+        We do all wiring work in Meta classes only.
         Our implementation should never be coupled to code!
-        :return:
         """
         return
 
@@ -194,7 +177,6 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
         The output of the Task determines if the Task needs to be run--the task
         is considered finished iff the outputs all exist.
-        See :ref:`Task.task_outputs`
         """
         return self.ctrl.relations.task_outputs_user
 
@@ -209,8 +191,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
     def _complete(self):
         """
-        If the task has any outputs, return ``True`` if all outputs exist.
-        Otherwise, return ``False``.
+        If the task has any outputs, return ``True`` if all outputs exist. Otherwise, return ``False``.
 
         However, you may freely override this method with custom logic.
         """
@@ -255,25 +236,23 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
     def _output(self):
         """
-        The default output that this Task produces. Use outputs! Override only if you are writing "base" class
+        The default output that this Task produces.
+
+        Use outputs! Override only if you are writing "base" class.
         """
         return NOTHING
 
     def _requires(self):
         """
-        Override in "template" tasks which themselves are supposed to be
-        subclassed
+        Override in "template" tasks which themselves are supposed to be subclassed.
 
-        Must return an iterable which among others contains the _requires() of
+        Must return an iterable which, among others, contains the _requires() of
         the superclass.
-        See :ref:`Task.requires`
         """
         pass
 
     def _task_submit(self):
-        """
-        Task submission logic, by default we just call -> _task_run() -> run()
-        """
+        """Task submission logic, by default we just call -> ``_task_run()`` -> ``run()``."""
         return self._task_run()
 
     def _task_run(self):
@@ -315,19 +294,20 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
     def on_kill(self):
         """
-        Override this method to cleanup subprocesses when a task instance
-        gets killed. Any use of the threading, subprocess or multiprocessing
+        Override this method to cleanup subprocesses when a task instance gets killed.
+
+        Any use of the threading, subprocess or multiprocessing
         module within an operator needs to be cleaned up or it will leave
         ghost processes behind.
         """
         pass
 
     def _get_task_output_path_format(self, output_mode):
-        """"
-        Defines the format string used to generate all task outputs
+        """
+        Defines the format string used to generate all task outputs.
+
         For example:
            {root}/{env_label}/{task_target_date}/{task_name}/{task_name}{task_class_version}_{task_signature}/{output_name}{output_ext}
-        :return str
         """
         if self.task_output_path_format:
             # explicit input - first priority
@@ -410,9 +390,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
     @dbnd_handle_errors(exit_on_error=False)
     def dbnd_run(self):
         # type: (...)-> DatabandRun
-        """
-        Run task via Databand execution system
-        """
+        """Run task via Databand execution system."""
         # this code should be executed under context!
         from dbnd._core.current import get_databand_context
 

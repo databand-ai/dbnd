@@ -7,15 +7,11 @@ API reference
 ================================
 
 This page provides a brief description of the objects, functions, and methods provided by DBND.
-If the information granted henceforth is not enough, or if practical examples are needed, see the `databand documentation website`_.
+If the information granted henceforth is not enough, or if practical examples are needed, see the `docs section`_ of the website.
 
-.. _databand documentation website: https://docs.databand.ai/docs
+.. _docs section: https://docs.databand.ai/docs
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 1
 
-   configuration
-   logging
-   TasksAndPipelines
-
-
+    logging

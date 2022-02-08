@@ -26,18 +26,61 @@ _default_output = parameter.output.pickle[object]
 
 
 def task(*args, **kwargs):
+    """
+    Decorator that makes the following function a dbnd task.
+
+    In DBND, a task is a modular unit of computation, usually a data transformation with an input and an output.
+    To create a task, you need to decorate your function with the @task decorator.
+    Under the hood, the task object is created, the function parameters are mapped to the task parameters,
+    and the function returns value to task outputs.
+
+    Example::
+
+        @task
+        def prepare_data(data: pd.DataFrame) -> pd.DataFrame:
+            return data
+    """
     kwargs.setdefault("_task_type", DecoratedPythonTask)
     kwargs.setdefault("_task_default_result", _default_output)
     return build_task_decorator(*args, **kwargs)
 
 
 def pipeline(*args, **kwargs):
+    """
+    Decorator that makes the following function a dbnd pipeline.
+
+    A pipeline is a collection of tasks wired together to run in a specific order.
+    Pipelines define tasks and data flow.
+    Pipelines encapsulate an execution plan that can run as a typical python function.
+
+    Example::
+
+        @pipeline
+        def prepare_data_pipeline(data: pd.DataFrame):
+            prepared_data = prepare_data(data)
+            model = train_model(prepared_data)
+            return model
+    """
     kwargs.setdefault("_task_type", DecoratedPipelineTask)
     kwargs.setdefault("_task_default_result", parameter.output)
     return build_task_decorator(*args, **kwargs)
 
 
 band = pipeline
+"""
+This is the method you should override while using PipelineTask.
+
+Your Pipeline.band() call should have one or more tasks wired one into another.
+
+Example::
+
+    class PrepareData(PipelineTask):
+        data = parameter.data
+        prepared_data = output.csv.data
+
+        def band(self):
+            self.prepared_data = gather_data.dbnd_run()"""
+
 data_source_pipeline = pipeline
 
 

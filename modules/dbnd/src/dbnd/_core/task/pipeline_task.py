@@ -7,25 +7,32 @@ from dbnd._core.task.task import Task
 class PipelineTask(Task):
     """
     Use for tasks that only wrap other tasks and that by definition are done if all their requirements exist.
+
+    Example::
+
+        class PrepareData(PipelineTask):
+            data = parameter.data
+            prepared_data = output.csv.data
+
+            def band(self):
+                self.prepared_data = gather_data.dbnd_run()
     """
 
     _conf__task_type_name = TaskType.pipeline
 
     def _task_run(self):
-        """
-        we override, as we don't want to automatically load deferred inputs as we do it in regular task
-        """
+        """We override, as we don't want to automatically load deferred inputs as we do it in regular task."""
         result = self.run()
         return result
 
     @abc.abstractmethod
     def band(self):
         """
-            This is the method you should override while using PipelineTask.
-            we need to implement result of this function to be "output" of the task (task_output, and vars)
-            Your Pipeline.band() call should have one or more tasks wired one into another.
-            See examples!"
-        :return:
+        This is the method you should override while using PipelineTask.
+
+        we need to implement result of this function to be "output" of the task (task_output, and vars)
+        Your Pipeline.band() call should have one or more tasks wired one into another.
+        See examples!"
         """
         return
 

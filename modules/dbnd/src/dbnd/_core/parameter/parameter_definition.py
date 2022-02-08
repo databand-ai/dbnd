@@ -71,9 +71,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     Parameter whose value is a ``str``, and a base class for other parameter types.
 
     Parameters are objects set on the Task class level to make it possible to parameterize tasks.
-    For instance:
-
-    .. code:: python
+    For instance::
 
         class MyTask(dbnd.Task):
             foo = databand.parameter[str]
@@ -98,7 +96,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
           - Then to the class, using the qualified task name syntax (eg. ``--TaskA-param xyz``).
 
-        * With ``[TASK_NAME]>PARAM_NAME: <serialized value>`` syntax. See :ref:`ParamConfigIngestion`
+        * With ``[TASK_NAME]>PARAM_NAME: <serialized value>`` syntax.
 
         * Any default value set using the ``default`` flag.
 
@@ -401,11 +399,10 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
     def next_in_enumeration(self, value):
         """
-        If your Parameter type has an enumerable ordering of values. You can
-        choose to override this method. This method is used by the
-        :py:mod:`databand.execution_summary` module for pretty printing
-        purposes. Enabling it to pretty print tasks like ``MyTask(num=1),
-        MyTask(num=2), MyTask(num=3)`` to ``MyTask(num=1..3)``.
+        This method is used by the :py:mod:`databand.execution_summary` module for pretty printing purposes.
+
+        If your Parameter type has an enumerable ordering of values. You can choose to override this method.
+        Enable it to pretty print tasks like ``MyTask(num=1), MyTask(num=2), MyTask(num=3)`` to ``MyTask(num=1..3)``.
 
         :param value: The value
         :return: The next value, like "value + 1". Or ``None`` if there's no enumerable ordering.

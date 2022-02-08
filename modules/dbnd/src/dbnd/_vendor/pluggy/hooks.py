@@ -30,7 +30,8 @@ from .callers import _legacymulticall, _multicall
 
 
 class HookspecMarker(object):
-    """ Decorator helper class for marking functions as hook specifications.
+    """
+    Decorator helper class for marking functions as hook specifications.
 
     You can instantiate it with a project_name to get a decorator.
     Calling PluginManager.add_hookspecs later will discover all marked functions
@@ -43,7 +44,8 @@ class HookspecMarker(object):
     def __call__(
         self, function=None, firstresult=False, historic=False, warn_on_impl=None
     ):
-        """ if passed a function, directly sets attributes on the function
+        """
+        if passed a function, directly sets attributes on the function
         which will make it discoverable to add_hookspecs().  If passed no
         function, returns a decorator which can be applied to a function
         later using the attributes supplied.
@@ -78,7 +80,8 @@ class HookspecMarker(object):
 
 
 class HookimplMarker(object):
-    """ Decorator helper class for marking functions as hook implementations.
+    """
+    Decorator helper class for marking functions as hook implementations.
 
     You can instantiate with a project_name to get a decorator.
     Calling PluginManager.register later will discover all marked functions
@@ -97,7 +100,8 @@ class HookimplMarker(object):
         trylast=False,
     ):
 
-        """ if passed a function, directly sets attributes on the function
+        """
+        if passed a function, directly sets attributes on the function
         which will make it discoverable to register().  If passed no function,
         returns a decorator which can be applied to a function later using
         the attributes supplied.
@@ -162,7 +166,8 @@ _PYPY3 = hasattr(sys, "pypy_version_info") and sys.version_info.major == 3
 
 
 def varnames(func):
-    """Return tuple of positional and keywrord argument names for a function,
+    """
+    Return tuple of positional and keywrord argument names for a function,
     method, class or callable.
 
     In case of a class, its ``__init__`` method is considered.

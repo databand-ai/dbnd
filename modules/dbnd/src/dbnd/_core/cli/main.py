@@ -87,9 +87,10 @@ def dbnd_cmd(command, args):
     """
     Invokes the passed dbnd command with CLI args emulation.
 
-    Parameters:
+    Args:
         command (str): the command to be invoked
-        args (Union[list, str]): list with CLI args to be emulated (if str is passed, it will be splitted)
+        args (Union[list, str]): list with CLI args to be emulated (if str is passed, it will be split)
+
     Returns:
         str: result of command execution
     """
@@ -111,9 +112,7 @@ dbnd_schedule_cmd = partial(dbnd_cmd, "schedule")
 
 
 def dbnd_run_cmd_main(task, env=None, args=None):
-    """
-    A wrapper for dbnd_cmd_run with error handling
-    """
+    """A wrapper for dbnd_cmd_run with error handling."""
     from dbnd import Task
 
     if isinstance(task, Task):
@@ -141,6 +140,7 @@ def dbnd_run_cmd_main(task, env=None, args=None):
 
 
 def main():
+    """Script's main function and start point."""
     _dbnd_exception_handling()
     configure_basic_logging(None)
     if should_fix_pyspark_imports():

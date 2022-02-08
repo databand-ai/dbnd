@@ -112,6 +112,7 @@ def get_databand_error_message(ex, args=None, sys_exit=True):
 
 @seven.contextlib.contextmanager
 def dbnd_handle_errors(exit_on_error=True):
+    """Handles dbnd Exceptions."""
     try:
         yield
     except Exception as ex:

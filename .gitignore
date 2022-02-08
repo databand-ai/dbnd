@@ -103,7 +103,7 @@ venv
 
 # Sphinx documentation
 docs/_build/
-docs/api
+docs/reference/api/
 
 # PyBuilder
 target/

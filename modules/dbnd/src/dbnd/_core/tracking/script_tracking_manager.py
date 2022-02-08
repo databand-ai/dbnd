@@ -312,10 +312,13 @@ _dbnd_script_manager = None  # type: Optional[_DbndScriptTrackingManager]
 def dbnd_tracking_start(name=None, airflow_context=None):
     """
     Starts handler for tracking the current running script.
+
     Would not start a new one if script manager if already exists
 
-    @param name: Can be used to name the run
-    @param airflow_context: injecting the airflow context to the run, meaning we start tracking some airflow execution
+    Args:
+        name: Can be used to name the run
+        airflow_context: Injecting the airflow context to the run, meaning we start tracking some airflow execution
+
     """
     dbnd_project_config = get_dbnd_project_config()
     if dbnd_project_config.disabled:
@@ -350,8 +353,10 @@ def dbnd_tracking_start(name=None, airflow_context=None):
 
 def dbnd_tracking_stop(finalize_run=True):
     """
-    Stops and clears the script tracking if exists
-    @param finalize_run: Should complete the run by setting it's state to a complete one (success or failed)
+    Stop and clears the script tracking if exists.
+
+    Args:
+        finalize_run: Should complete the run by setting its state to a complete one (success or failed)
     """
     global _dbnd_script_manager
     if _dbnd_script_manager:
@@ -362,6 +367,15 @@ def dbnd_tracking_stop(finalize_run=True):
 @seven.contextlib.contextmanager
 def dbnd_tracking(name=None, conf=None):
     # type: (...) -> TaskRun
+    """
+    Uses configuration to instantiate the Databand context during execution.
+
+    Any processes executed inside the dbnd_tracking() context will be displayed in Databand for monitoring.
+
+    Args:
+        name: Will be used to identify the run in the Pipelines screen of your Databand application.
+        conf: The configuration used by the function.
+    """
     try:
         with config(config_values=conf, source="tracking context"):
             tr = dbnd_tracking_start(name=name)

@@ -39,7 +39,7 @@ def _track_function(function):
 
 
 def track_functions(*args):
-    """ Track functions by decorating them with @task """
+    """Track functions by decorating them with @task."""
     for arg in args:
         try:
             _track_function(arg)
@@ -54,6 +54,7 @@ def _is_module(obj):
 def track_module_functions(module):
     """
     Track functions inside module by decorating them with @task.
+
     Only functions implemented in module will be tracked, imported functions won't be tracked.
     """
     try:
@@ -70,6 +71,7 @@ def track_module_functions(module):
 def track_modules(*args):
     """
     Track functions inside modules by decorating them with @task.
+
     Only functions implemented in module will be tracked, imported functions won't be tracked.
     """
     for arg in args:

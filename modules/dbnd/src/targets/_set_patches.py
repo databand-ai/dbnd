@@ -5,6 +5,7 @@ logger = logging.getLogger(__name__)
 
 
 def target_to_databand(df, target, **kwargs):
+    """Targets to databand."""
     return target.as_pandas.to(df, **kwargs)
 
 

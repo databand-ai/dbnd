@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class DataSourceTask(Task):
-    """
-    Subclass for references to data sources.
-    """
+    """Subclass for references to data sources."""
 
     _conf__task_type_name = "data"
     task_target_date = None

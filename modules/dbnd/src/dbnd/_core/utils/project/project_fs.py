@@ -12,6 +12,11 @@ from dbnd._core.utils.basics.path_utils import (
 
 
 def databand_lib_path(*path):
+    """
+    Deprecated function.
+
+    Look at dbnd_project_config at dbnd._core.configuration.environ_config.
+    """
     return get_dbnd_project_config().dbnd_lib_path(*path)
 
 
@@ -20,10 +25,20 @@ def databand_config_path(*path):
 
 
 def databand_system_path(*path):
+    """
+    Deprecated function.
+
+    Look at dbnd_project_config at dbnd._core.configuration.environ_config.
+    """
     return get_dbnd_project_config().dbnd_system_path(*path)
 
 
 def project_path(*path):
+    """
+    Gets a local path from databand directory and returns its absolute path.
+
+    Deprecated. Look at dbnd_project_config at dbnd._core.configuration.environ_config
+    """
     return get_dbnd_project_config().dbnd_project_path(*path)
 
 

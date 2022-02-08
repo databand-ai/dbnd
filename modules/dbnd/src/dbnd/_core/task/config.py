@@ -6,7 +6,8 @@ from dbnd._core.utils.basics.singleton_context import SingletonContext
 
 class Config(_TaskWithParams, SingletonContext):
     """
-    Class for configuration. See :ref:`ConfigClasses`.
+    Class for configuration, See ``ConfigClasses``.
+
     The nice thing is that we can instantiate this class
     and get an object with all the environment variables set.
     This is arguably a bit of a hack.
@@ -23,9 +24,7 @@ class Config(_TaskWithParams, SingletonContext):
 
     @classmethod
     def from_databand_context(cls, name=None):
-        """
-        Syntax sugar for accessing the current config instance.
-        """
+        """Syntax sugar for accessing the current config instance."""
         from dbnd._core.current import get_databand_context
 
         if not name:

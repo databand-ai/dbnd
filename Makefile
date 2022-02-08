@@ -48,6 +48,7 @@ SOURCE_DATE_EPOCH=1577836800  # 2020-01-01T00:00:00Z
 
 lint: ## Check style with flake8.
 	tox -e pre-commit,lint
+	(cd docs; make validate-doc-style)
 
 test: ## Run tests quickly with the default Python.
 	py.test modules/dbnd/test_dbnd

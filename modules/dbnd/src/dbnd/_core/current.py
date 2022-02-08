@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
 
 def get_databand_context():
     # type: () -> DatabandContext
-
+    """Databand Context get or create instance."""
     from dbnd._core.context.databand_context import DatabandContext  # noqa: F811
 
     return DatabandContext.try_instance()
@@ -33,6 +33,7 @@ def try_get_databand_context():
 
 
 def dbnd_context():
+    """Get or create databand context."""
     context = try_get_databand_context()
     if not context:
         # we are running without Databand Context
@@ -45,6 +46,7 @@ def dbnd_context():
 
 def get_databand_run():
     # type: () -> DatabandRun
+    """Returns current Task/Pipeline/Flow instance."""
     from dbnd._core.run.databand_run import DatabandRun  # noqa: F811
 
     v = DatabandRun.get_instance()
@@ -80,6 +82,17 @@ def is_orchestration_run():
 
 def current_task():
     # type: () -> Task
+    """
+    Returns the current task's object.
+
+    Example::
+
+        from dbnd import current_task, task
+
+        @task
+        def calculate_alpha(alpha: int = 0.5):
+            return current_task().task_version
+    """
     from dbnd._core.task_build.task_context import current_task as ct
 
     return ct()
@@ -110,6 +123,17 @@ def try_get_current_task_run():
 
 def current_task_run():
     # type: () -> TaskRun
+    """
+    Returns the current task run.
+
+    Example::
+
+        from dbnd import current_task_run, task
+
+        @task
+        def calculate_alpha(alpha: int = 0.5):
+            return current_task_run()
+    """
     return get_databand_run().get_task_run(current_task().task_id)
 
 
@@ -147,5 +171,6 @@ def is_killed():
 
 
 def cancel_current_run(message=None):
+    """Kills a run's execution from within the execution."""
     current_databand_run = get_databand_run()
     return current_databand_run.kill_run(message)

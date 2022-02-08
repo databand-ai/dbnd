@@ -23,7 +23,7 @@ def columns_converter(columns):
 @attr.s
 class LogDataRequest(object):
     """
-    Used in log_data() for with_stats, with_histograms params
+    Used in log_data() for with_stats, with_histograms params.
 
     Example::
 
@@ -47,22 +47,26 @@ class LogDataRequest(object):
     # TODO: Make these helpers class properties
     @classmethod
     def ALL_BOOLEAN(cls):
-        """Calculate statistics and histograms for all columns of boolean type(s)"""
+        """Calculate statistics and histograms for all columns of boolean type(s)."""
         return cls(include_all_boolean=True)
 
     @classmethod
     def ALL_NUMERIC(cls):
-        """Calculate statistics and histograms for all columns of Numeric type(s)"""
+        """Calculate statistics and histograms for all columns of Numeric type(s)."""
         return cls(include_all_numeric=True)
 
     @classmethod
     def ALL_STRING(cls):
-        """Calculate statistics and histograms for all columns of String type(s). Usually this means all non boolean, non numeric types"""
+        """
+        Calculate statistics and histograms for all columns of String type(s).
+
+        Usually this means all non boolean, non numeric types
+        """
         return cls(include_all_string=True)
 
     @classmethod
     def ALL(cls):
-        """Calculate statistics and histograms for all columns"""
+        """Calculate statistics and histograms for all columns."""
         return cls(
             include_all_boolean=True, include_all_numeric=True, include_all_string=True
         )
@@ -85,7 +89,8 @@ class LogDataRequest(object):
     def from_user_param(cls, user_param):
         # type: (Optional[Union[bool, str, List[str], LogDataRequest]]) -> LogDataRequest
         """
-        To allow flexibility for the user, those parameter can also be:
+        To allow flexibility for the user, the parameters can have other types.
+
         - boolean to calculate or not on all the data
         - list and str to specify specific column names
         """

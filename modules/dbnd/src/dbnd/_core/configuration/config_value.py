@@ -45,6 +45,7 @@ class ConfigValue(object):
 
 
 def override(value):
+    """Returns configuration with priority override, which is the top configuration priority."""
     return ConfigValue(value=value, source=None, priority=ConfigValuePriority.OVERRIDE)
 
 
@@ -53,6 +54,22 @@ def default(value):
 
 
 def extend(value):
+    """
+    You can extend any parameter in your environment with the help of extend.
+
+    Lets assume we have our KubernetesConfig with those labels in our cfg.
+    ::
+
+        [kubernetes]
+        ...
+        labels = {"team": "databand_team"}
+
+    And we want to extend those labels for my tasks.
+    You can use extend like this::
+
+        @task(task_config={KubernetesConfig.labels: extend({"owner": "Joey"} )})
+        ...
+    """
     if not (isinstance(value, list) or isinstance(value, dict)):
         raise ValueError(
             "extend is not supported for type {value_type}.\n help: consider using list or dict instead of {value}".format(

@@ -98,6 +98,7 @@ _dbnd_bootstrap_started = False
 
 
 def dbnd_bootstrap():
+    """Runs dbnd bootstrapping."""
     global _dbnd_bootstrap
     global _dbnd_bootstrap_started
     if _dbnd_bootstrap_started:

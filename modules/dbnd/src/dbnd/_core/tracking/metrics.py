@@ -66,7 +66,6 @@ def log_data(
     @param with_histograms: True if should calculate and log histogram of the data.
     @param raise_on_error: raise if error occur.
     """
-
     tracker = _get_tracker()
     if not tracker:
         logger.warning(
@@ -94,7 +93,8 @@ def log_data(
 
 # logging dataframe is the same as logging data
 log_dataframe = log_data
-log_dataframe.__doc__ = f"""Logs a dataframe to dbnd.
+log_dataframe.__doc__ = """
+    Logs a dataframe to dbnd.
 
     Args:
         key: Name of the dataframe.
@@ -113,7 +113,6 @@ log_dataframe.__doc__ = f"""Logs a dataframe to dbnd.
         @task
         def process_customers_data(data) -> pd.DataFrame:
             log_dataframe("customers_data", data)
-
 """
 
 
@@ -196,7 +195,6 @@ def log_metrics(metrics_dict, source="user", timestamp=None):
             # all lower alphabet chars -> {"a": 97,..., "z": 122}
             log_metrics({chr(i): i for i in range(97, 123)})
     """
-
     tracker = _get_tracker()
     if tracker:
         tracker.log_metrics(metrics_dict, source=source, timestamp=timestamp)
@@ -236,6 +234,7 @@ def log_artifact(key, artifact):
 def log_duration(metric_key, source="user"):
     """
     Measure time of function or code block, and log to Databand as a metric.
+
     Can be used as a decorator and in "with" statement as a context manager.
 
     Example 1::

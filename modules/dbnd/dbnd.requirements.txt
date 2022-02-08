@@ -11,5 +11,6 @@ configparser<3.6.0,>=3.5.0
 pygments>=2.6.1
 python-dateutil
 sqlparse
+pydocstyle~=6.1
 typing; python_version < "3.7"
 colorama; sys_platform == "win32"

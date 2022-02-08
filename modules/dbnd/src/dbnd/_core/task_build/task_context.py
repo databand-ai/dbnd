@@ -52,6 +52,17 @@ def try_get_current_task():
 
 
 def current():
+    """
+    Returns the current task's object.
+
+    Example::
+
+        from dbnd import current, task
+
+        @task
+        def calculate_alpha(alpha: int = 0.5):
+            return current().task_version
+    """
     return current_task()
 
 

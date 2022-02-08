@@ -3,11 +3,13 @@ from dbnd._core.constants import AD_HOC_DAG_PREFIX
 
 def dont_track(obj):
     """
-    will not track obj. support airflow operators, DAGs, and functions.
+    Will not track obj.
+
+    support airflow operators, DAGs, and functions.
     allows excluding from tracking when using dbnd-airflow-auto-tracking, track_modules, and track_dag.
     can be used as a function and decorator as shown in examples below.
+    As a function::
 
-    Usage examples:
         dag = DAG()
         with dag:
             operator = PythonOperator()
@@ -15,10 +17,11 @@ def dont_track(obj):
         dont_track(operator)
         dont_track(dag)
 
+    As a decorator::
+
         @dont_track
         def f():
             pass
-
     """
     obj._dont_track = True
     return obj
