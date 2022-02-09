@@ -19,5 +19,5 @@ repos:
     rev: 5.10.1
     hooks:
       - id: isort
-        args: [--settings-path setup.cfg]
+        args: [--resolve-all-configs]
         language_version: python3.6

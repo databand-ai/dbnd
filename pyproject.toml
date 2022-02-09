@@ -4,3 +4,64 @@ requires = ["setuptools", "wheel"]
 
 [tool.black]
 exclude = "dbnd/_vendor|dbnd_spark/_vendor|.tox|dist|build|__pycache__|airflow_override"
+
+
+[tool.isort]
+skip = [
+    "dbnd/tasks/__init__.py",
+    "dbnd/__init__.py"
+]
+skip_glob = [
+    "dbnd/_vendor/*",
+    "dbnd/_vendor_package/*"
+]
+
+# Vertical Hanging Indent
+# https://pycqa.github.io/isort/docs/configuration/multi_line_output_modes.html
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+combine_as_imports = true
+line_length = 88
+atomic = true
+lines_after_imports = 2
+lines_between_types = 1
+
+float_to_top = true
+ensure_newline_before_comments = true
+remove_redundant_aliases = true
+use_parentheses = true
+
+known_first_party = [
+    "databand",
+    "dbnd",
+    "dbnd_airflow",
+    "dbnd_airflow_operator",
+    "dbnd_airflow_contrib",
+    "dbnd_airflow_export",
+    "dbnd_airflow_windows",
+    "airflow_monitor",
+    "dbnd_aws",
+    "dbnd_azure",
+    "dbnd_databricks",
+    "dbnd_tensorflow",
+    "dbnd_docker",
+    "dbnd_redshift",
+    "dbnd_examples",
+    "dbnd_gcp",
+    "dbnd_luigi",
+    "dbnd_postgres",
+    "dbnd_hdfs",
+    "dbnd_mlflow",
+    "dbnd_qubole",
+    "dbnd_spark",
+    "dbnd_snowflake",
+    "dbnd_test_scenarios",
+    "tests",
+    "test_dbnd",
+    "test_dbnd_airflow",
+    "test_dbnd_airflow_monitor",
+    "test_dbnd_airflow",
+    "targets",
+    "process_data_spark_with_track_functions_2"
+]
