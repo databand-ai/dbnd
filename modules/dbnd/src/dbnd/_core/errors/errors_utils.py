@@ -18,6 +18,7 @@ _inner_call_functions_regexp = re.compile(
             r"_core/task_build",
             r"_core/utils",
             r"_core/failures",
+            r"contextlib.py",
         ]
     )
 )
@@ -152,6 +153,8 @@ class UserCodeDetector(object):
 
         if sys.platform != "win32" and not file.startswith("/"):
             return True
+
+        return False
 
     def _is_user_frame(self, frame_info, user_side_only=True):
         if not frame_info.filename:
