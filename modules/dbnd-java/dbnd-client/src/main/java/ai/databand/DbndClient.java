@@ -417,6 +417,9 @@ public class DbndClient {
      * @param logBody           log body
      */
     public void saveTaskLog(String taskRunAttemptUid, String logBody) {
+        if (logBody == null) {
+            return;
+        }
         LOG.info("[task_run: {}] saving task log, log size: {} characters", taskRunAttemptUid, logBody.length());
         SaveTaskRunLog body = new SaveTaskRunLog(config, taskRunAttemptUid, logBody);
         Optional<Object> res = safeExecuteVoid(dbnd.saveTaskRunLog(body));

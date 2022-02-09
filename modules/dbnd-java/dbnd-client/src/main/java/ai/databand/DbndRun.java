@@ -55,6 +55,11 @@ public interface DbndRun {
     void stop();
 
     /**
+     * Submit driver task metrics when run context was external.
+     */
+    void stopExternal();
+
+    /**
      * Stop run. Set run state to 'failed'.
      *
      * @param error
