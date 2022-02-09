@@ -43,6 +43,11 @@ public class NoopDbndRun implements DbndRun {
     }
 
     @Override
+    public void stopExternal() {
+        // do nothing
+    }
+
+    @Override
     public void error(Throwable error) {
         // do nothing
     }

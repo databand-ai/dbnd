@@ -30,7 +30,8 @@ public class DbndSparkListener extends SparkListener {
         if (event instanceof SparkListenerSQLExecutionStart) {
             SparkListenerSQLExecutionStart sqlEvent = (SparkListenerSQLExecutionStart) event;
             // QueryExecution queryExecution = SQLExecution.getQueryExecution(sqlEvent.executionId());
-            extractIoInfo(sqlEvent.sparkPlanInfo());
+            // SQL query info will be extracted by SQL Query Listener
+            //extractIoInfo(sqlEvent.sparkPlanInfo());
         }
     }
 

@@ -410,7 +410,8 @@ public class DbndWrapper {
 
     /**
      * Set tracking context from external source.
-     * This allow to set context externally (for instance when calling pyspark script) and avoid runs duplication.
+     * This allows us to set context externally (for instance when calling pyspark script) and avoid runs duplication.
+     * TODO: since context can be controlled externally in this way, it may sense to start/stop JVM tasks from the Python
      *
      * @param runUid
      * @param taskRunUid
@@ -420,7 +421,12 @@ public class DbndWrapper {
     public void setExternalTaskContext(String runUid, String taskRunUid, String taskRunAttemptUid, String taskName) {
         if (run == null) {
             run = new DefaultDbndRun(dbnd, config);
+            // before spark will be stopped we have to submit all saved metrics from the last external task
+            Runtime.getRuntime().addShutdownHook(new Thread(run::stopExternal));
         }
+        // before setting context we should submit all gathered metrics from a previous context
+        run.stopExternal();
+        // and then set new context
         TaskRun task = new TaskRun();
         task.setRunUid(runUid);
         task.setTaskRunUid(taskRunUid);

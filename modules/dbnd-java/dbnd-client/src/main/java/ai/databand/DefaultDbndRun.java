@@ -552,6 +552,15 @@ public class DefaultDbndRun implements DbndRun {
         dbnd.setRunState(rootRunUid, "SUCCESS");
     }
 
+    @Override
+    public void stopExternal() {
+        if (driverTask == null) {
+            return;
+        }
+        dbnd.saveTaskLog(driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
+        dbnd.logMetrics(driverTask.getTaskRunAttemptUid(), driverTask.getMetrics(), "spark");
+    }
+
     public void error(Throwable error) {
         String stackTrace = extractStackTrace(error);
         ErrorInfo errorInfo = new ErrorInfo(
