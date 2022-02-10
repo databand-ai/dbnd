@@ -122,7 +122,7 @@ class BaseDbndTrackingService(object):
             "timestamp": utcnow().isoformat(),
         }
         return self._api_client.api_request(
-            endpoint="log_exception", method="POST", data=data,
+            endpoint="log_exception", method="POST", data=data
         )
 
 
@@ -174,5 +174,5 @@ class WebServersConfigurationService(object):
             "timestamp": utcnow().isoformat(),
         }
         return self._api_client.api_request(
-            endpoint="log_exception", method="POST", data=data,
+            endpoint="log_exception", method="POST", data=data
         )

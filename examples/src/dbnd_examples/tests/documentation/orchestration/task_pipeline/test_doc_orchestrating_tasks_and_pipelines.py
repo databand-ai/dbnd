@@ -25,7 +25,7 @@ def prepare_data(raw_data: DataFrame) -> Tuple[DataFrame, DataFrame]:
 
 @task
 def train_model(
-    training_set: DataFrame, alpha: float = 0.5, l1_ratio: float = 0.5,
+    training_set: DataFrame, alpha: float = 0.5, l1_ratio: float = 0.5
 ) -> ElasticNet:
     lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
     lr.fit(training_set.drop(["quality"], 1), training_set[["quality"]])
@@ -35,7 +35,7 @@ def train_model(
 
 @pipeline(result=("model", "validation_set"))
 def predict_wine_quality(
-    raw_data: DataFrame, alpha: float = 0.5, l1_ratio: float = 0.5,
+    raw_data: DataFrame, alpha: float = 0.5, l1_ratio: float = 0.5
 ):
     training_set, validation_set = prepare_data(raw_data=raw_data)
 

@@ -65,7 +65,7 @@ def tabulate_objects(
 
 def _timestamp(value):
     # type: (datetime.datetime)->float
-    """ backward support for timestamp in py2"""
+    """backward support for timestamp in py2"""
     if six.PY3:
         return value.timestamp()
 

@@ -336,7 +336,7 @@ class TestRuntimeSyncer:
             key=lambda _: random.random(),
         )
         mock_data_fetcher.logs = sorted(
-            [MockLog(id=i) for i in range(22)], key=lambda _: random.random(),
+            [MockLog(id=i) for i in range(22)], key=lambda _: random.random()
         )
         runtime_syncer.sync_once()
 

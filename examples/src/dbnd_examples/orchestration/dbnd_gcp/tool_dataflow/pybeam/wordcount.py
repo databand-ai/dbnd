@@ -44,14 +44,14 @@ class WordExtractingDoFn(beam.DoFn):
     def process(self, element):
         """Returns an iterator over the words of this element.
 
-    The element is a line of text.  If the line is blank, note that, too.
+        The element is a line of text.  If the line is blank, note that, too.
 
-    Args:
-      element: the element being processed
+        Args:
+          element: the element being processed
 
-    Returns:
-      The processed element.
-    """
+        Returns:
+          The processed element.
+        """
         text_line = element.strip()
         if not text_line:
             self.empty_line_counter.inc(1)

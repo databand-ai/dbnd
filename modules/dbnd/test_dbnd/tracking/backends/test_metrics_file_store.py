@@ -52,9 +52,7 @@ class TestFileMetricsStore(object):
         tr_tracker.settings.tracking.get_value_meta_conf = Mock(
             return_value=ValueMetaConf.enabled()
         )
-        tr_tracker.log_data(
-            "df", pandas_data_frame, meta_conf=ValueMetaConf.enabled(),
-        )
+        tr_tracker.log_data("df", pandas_data_frame, meta_conf=ValueMetaConf.enabled())
 
         hist_metrics = TaskRunMetricsFileStoreReader(
             metrics_folder

@@ -15,7 +15,7 @@ class TestDocTrackingQuickstart:
         from sklearn.model_selection import train_test_split
 
         def prepare_data() -> Tuple[DataFrame, DataFrame]:
-            """ load dataset from sklearn. split into training and testing sets"""
+            """load dataset from sklearn. split into training and testing sets"""
             raw_data = datasets.load_diabetes()
 
             # create a pandas DataFrame from sklearn dataset
@@ -46,7 +46,7 @@ class TestDocTrackingQuickstart:
         logging.basicConfig(level=logging.INFO)
 
         def prepare_data() -> Tuple[DataFrame, DataFrame]:
-            """ load dataset from sklearn. split into training and testing sets"""
+            """load dataset from sklearn. split into training and testing sets"""
             raw_data = datasets.load_diabetes()
 
             # create a pandas DataFrame from sklearn dataset
@@ -92,7 +92,7 @@ class TestDocTrackingQuickstart:
         logging.basicConfig(level=logging.INFO)
 
         def prepare_data() -> Tuple[DataFrame, DataFrame]:
-            """ load dataset from sklearn. split into training and testing sets"""
+            """load dataset from sklearn. split into training and testing sets"""
             raw_data = datasets.load_diabetes()
 
             # create a pandas DataFrame from sklearn dataset
@@ -118,7 +118,7 @@ class TestDocTrackingQuickstart:
             return training_data, testing_data
 
         def train_model(training_data: DataFrame) -> LinearRegression:
-            """ train a linear regression model """
+            """train a linear regression model"""
             model = LinearRegression()
 
             # train a linear regression model
@@ -126,7 +126,7 @@ class TestDocTrackingQuickstart:
             return model
 
         def test_model(model: LinearRegression, testing_data: DataFrame) -> str:
-            """ test the model, output mean squared error and r2 score"""
+            """test the model, output mean squared error and r2 score"""
             testing_x = testing_data.drop("target", axis=1)
             testing_y = testing_data["target"]
             predictions = model.predict(testing_x)
@@ -159,7 +159,7 @@ class TestDocTrackingQuickstart:
         logging.basicConfig(level=logging.INFO)
 
         def prepare_data() -> Tuple[DataFrame, DataFrame]:
-            """ load dataset from sklearn. split into training and testing sets"""
+            """load dataset from sklearn. split into training and testing sets"""
             raw_data = datasets.load_diabetes()
 
             # create a pandas DataFrame from sklearn dataset
@@ -185,7 +185,7 @@ class TestDocTrackingQuickstart:
             return training_data, testing_data
 
         def train_model(training_data: DataFrame) -> LinearRegression:
-            """ train a linear regression model """
+            """train a linear regression model"""
             model = LinearRegression()
 
             # train a linear regression model
@@ -197,7 +197,7 @@ class TestDocTrackingQuickstart:
             return model
 
         def test_model(model: LinearRegression, testing_data: DataFrame) -> str:
-            """ test the model, output mean squared error and r2 score"""
+            """test the model, output mean squared error and r2 score"""
             testing_x = testing_data.drop("target", axis=1)
             testing_y = testing_data["target"]
             predictions = model.predict(testing_x)

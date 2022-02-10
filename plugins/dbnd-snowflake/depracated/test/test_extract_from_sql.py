@@ -269,7 +269,7 @@ def test_extract_tables_operations_insert(sqlquery, expected):
                 ('"database"."public"."table"', DbndTargetOperationType.write),
                 ('"database"."private"."staging_table"', DbndTargetOperationType.read),
             ],
-        ),
+        )
     ],
 )
 def test_extract_tables_operations_merge(sqlquery, expected):
@@ -352,21 +352,11 @@ def test_extract_tables_operations_copy(sqlquery, expected):
     [
         (
             """delete from "SALES_DATA"."PUBLIC"."STAGING_TABLE";""",
-            [
-                (
-                    '"SALES_DATA"."PUBLIC"."STAGING_TABLE"',
-                    DbndTargetOperationType.delete,
-                ),
-            ],
+            [('"SALES_DATA"."PUBLIC"."STAGING_TABLE"', DbndTargetOperationType.delete)],
         ),
         (
             """TRUNCATE TABLE "SALES_DATA"."PUBLIC"."STAGING_TABLE";""",
-            [
-                (
-                    '"SALES_DATA"."PUBLIC"."STAGING_TABLE"',
-                    DbndTargetOperationType.delete,
-                ),
-            ],
+            [('"SALES_DATA"."PUBLIC"."STAGING_TABLE"', DbndTargetOperationType.delete)],
         ),
     ],
 )
@@ -382,10 +372,10 @@ def test_extract_tables_operations_delete(sqlquery, expected):
             create table mytable_copy (b) as select * from mytable;
             """,
             [
-                ("mytable_copy", DbndTargetOperationType.write,),
-                ("mytable", DbndTargetOperationType.read,),
+                ("mytable_copy", DbndTargetOperationType.write),
+                ("mytable", DbndTargetOperationType.read),
             ],
-        ),
+        )
     ],
 )
 def test_extract_tables_operations_create_table(sqlquery, expected):
@@ -405,7 +395,7 @@ def test_extract_tables_operations_create_table(sqlquery, expected):
             file_format = "SALES_DATA"."PUBLIC"."SALES_CSV"
             """,
             [
-                ("@sales_data.public.sales_data_stage", DbndTargetOperationType.write,),
+                ("@sales_data.public.sales_data_stage", DbndTargetOperationType.write),
                 (
                     "'s3://bucket/data/data_lineage/processed_data/2021-03-31_sales.csv'",
                     DbndTargetOperationType.read,
@@ -422,7 +412,7 @@ def test_extract_tables_operations_create_table(sqlquery, expected):
             file_format = "SALES_DATA"."PUBLIC"."SALES_CSV"
             """,
             [
-                ("@sales_data.public.sales_data_stage", DbndTargetOperationType.write,),
+                ("@sales_data.public.sales_data_stage", DbndTargetOperationType.write),
                 (
                     "'s3://bucket/data/data_lineage/processed_data/2021-03-31_sales.csv'",
                     DbndTargetOperationType.read,
@@ -464,7 +454,7 @@ def test_extract_tables_operations_create_staging(sqlquery, expected):
             from cte2
         """,
             {"cte0", "cte2"},
-        ),
+        )
     ],
 )
 def test_detect_cte_tables(sqlquery, expected):

@@ -84,14 +84,14 @@ from dbnd._core.configuration.config_value import (
         pytest.param(
             [
                 ConfigValue(
-                    value={"a": 11}, extend=True, priority=ConfigValuePriority.OVERRIDE,
+                    value={"a": 11}, extend=True, priority=ConfigValuePriority.OVERRIDE
                 )
             ],
             ConfigValue(value={"b": 12}),
             [
                 ConfigValue(value={"b": 12}),
                 ConfigValue(
-                    value={"a": 11}, extend=True, priority=ConfigValuePriority.OVERRIDE,
+                    value={"a": 11}, extend=True, priority=ConfigValuePriority.OVERRIDE
                 ),
             ],
             id="Merge Override into normal gets normal priority",
@@ -99,16 +99,16 @@ from dbnd._core.configuration.config_value import (
         pytest.param(
             [
                 ConfigValue(
-                    value=[11], extend=True, priority=ConfigValuePriority.OVERRIDE,
+                    value=[11], extend=True, priority=ConfigValuePriority.OVERRIDE
                 )
             ],
             ConfigValue(value=[12], extend=True, priority=ConfigValuePriority.OVERRIDE),
             [
                 ConfigValue(
-                    value=[12], extend=True, priority=ConfigValuePriority.OVERRIDE,
+                    value=[12], extend=True, priority=ConfigValuePriority.OVERRIDE
                 ),
                 ConfigValue(
-                    value=[11], extend=True, priority=ConfigValuePriority.OVERRIDE,
+                    value=[11], extend=True, priority=ConfigValuePriority.OVERRIDE
                 ),
             ],
             id="Two overrides can be merged",
@@ -118,7 +118,7 @@ from dbnd._core.configuration.config_value import (
             ConfigValue(value=[12], extend=True, priority=ConfigValuePriority.FALLBACK),
             [
                 ConfigValue(
-                    value=[12], extend=True, priority=ConfigValuePriority.FALLBACK,
+                    value=[12], extend=True, priority=ConfigValuePriority.FALLBACK
                 ),
                 ConfigValue(
                     value=[11], extend=True, priority=ConfigValuePriority.NORMAL
@@ -131,7 +131,7 @@ from dbnd._core.configuration.config_value import (
             ConfigValue(value=[12], extend=True, priority=ConfigValuePriority.FALLBACK),
             [
                 ConfigValue(
-                    value=[12], extend=True, priority=ConfigValuePriority.FALLBACK,
+                    value=[12], extend=True, priority=ConfigValuePriority.FALLBACK
                 ),
                 ConfigValue(
                     value=[11], extend=True, priority=ConfigValuePriority.NORMAL
@@ -142,20 +142,20 @@ from dbnd._core.configuration.config_value import (
         pytest.param(
             [
                 ConfigValue(
-                    value=[12], extend=True, priority=ConfigValuePriority.NORMAL,
+                    value=[12], extend=True, priority=ConfigValuePriority.NORMAL
                 ),
                 ConfigValue(
-                    value=[11], extend=True, priority=ConfigValuePriority.OVERRIDE,
+                    value=[11], extend=True, priority=ConfigValuePriority.OVERRIDE
                 ),
             ],
             ConfigValue(value=[13], priority=ConfigValuePriority.NORMAL),
             [
                 ConfigValue(value=[13], priority=ConfigValuePriority.NORMAL),
                 ConfigValue(
-                    value=[12], extend=True, priority=ConfigValuePriority.NORMAL,
+                    value=[12], extend=True, priority=ConfigValuePriority.NORMAL
                 ),
                 ConfigValue(
-                    value=[11], extend=True, priority=ConfigValuePriority.OVERRIDE,
+                    value=[11], extend=True, priority=ConfigValuePriority.OVERRIDE
                 ),
             ],
             id="priority is checked only for the top of the stack",
@@ -163,10 +163,10 @@ from dbnd._core.configuration.config_value import (
         pytest.param(
             [
                 ConfigValue(
-                    value={"b": 12}, extend=True, priority=ConfigValuePriority.NORMAL,
+                    value={"b": 12}, extend=True, priority=ConfigValuePriority.NORMAL
                 ),
                 ConfigValue(
-                    value={"a": 11}, extend=True, priority=ConfigValuePriority.OVERRIDE,
+                    value={"a": 11}, extend=True, priority=ConfigValuePriority.OVERRIDE
                 ),
             ],
             ConfigValue(value=[13], priority=ConfigValuePriority.OVERRIDE),

@@ -88,7 +88,7 @@ class _LivySparkCtrl(SparkCtrl):
         batch = livy.post_batch(data)
         self._run_hook(batch, self.livy_config.job_submitted_hook)
         livy.track_batch_progress(
-            batch["id"], status_reporter=self._report_livy_batch_status,
+            batch["id"], status_reporter=self._report_livy_batch_status
         )
 
     @property
@@ -129,7 +129,7 @@ class _LivySparkCtrl(SparkCtrl):
 
                 logger.debug(
                     "Successfully executed Livy hook;  callable at `{callable}`".format(
-                        callable=user_callable_path,
+                        callable=user_callable_path
                     )
                 )
 

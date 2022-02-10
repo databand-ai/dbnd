@@ -36,7 +36,7 @@ def try_extract_tables(command):
     # doesn't support recursive with (with recursive a(n) as ())
     # 2. extract only with-related part (WITH A as , B as)
     with_stmt_match = re.search(
-        r"\bWITH\s+(([a-zA-Z._\d]+)\s+as\s*,?\s*)+", cmd, re.IGNORECASE,
+        r"\bWITH\s+(([a-zA-Z._\d]+)\s+as\s*,?\s*)+", cmd, re.IGNORECASE
     )
     if with_stmt_match:
         # 3. extract all "tables" names (A , B)

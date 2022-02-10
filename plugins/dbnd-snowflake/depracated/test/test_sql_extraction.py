@@ -186,7 +186,7 @@ SELECT CASE WHEN a.col0 > 250 then 1 else 0 end as x
 """,
             {
                 DbndTargetOperationType.read: {
-                    "x": [Column(table=None, name="x", alias="x")],
+                    "x": [Column(table=None, name="x", alias="x")]
                 }
             },
         ),
@@ -398,7 +398,7 @@ WHERE CustomerID = 1;
                         )
                     ],
                     "City": [Column(table="Customers", name="City", alias="City")],
-                },
+                }
             },
         )
     ],

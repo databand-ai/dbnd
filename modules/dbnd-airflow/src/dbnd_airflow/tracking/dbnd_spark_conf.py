@@ -64,7 +64,7 @@ def get_dbnd_tracking_spark_flat_conf(**kwargs):
 
 
 def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
-    """ This functions augments spark-submit command with dbnd tracking metadata aka dbnd_context. If context
+    """This functions augments spark-submit command with dbnd tracking metadata aka dbnd_context. If context
     is not provided, a default Airflow templates are set for DAG Id, Task Id, and execution date
 
     Adds 3 configuration properties to spark-submit to associate spark run with airflow DAG that initiated this run.

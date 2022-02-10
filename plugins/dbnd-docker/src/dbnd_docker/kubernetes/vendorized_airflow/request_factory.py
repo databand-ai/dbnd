@@ -120,7 +120,7 @@ class DbndPodRequestFactory(object):
                     "name": AIRFLOW_LOG_MOUNT_NAME,
                     "mountPath": self.kubernetes_engine_config.container_airflow_log_path,
                 },
-                {"name": "trap", "mountPath": trap_dir,},
+                {"name": "trap", "mountPath": trap_dir},
             ]
         )
 
@@ -134,7 +134,7 @@ class DbndPodRequestFactory(object):
                 {
                     "name": "AIRFLOW__CORE__HOSTNAME_CALLABLE",
                     "value": "airflow.utils.net:get_host_ip_address",
-                },
+                }
             )
 
         # build the log sidecar and add it
@@ -159,7 +159,7 @@ class DbndPodRequestFactory(object):
             ],
             "volumeMounts": [
                 {"name": AIRFLOW_LOG_MOUNT_NAME, "mountPath": log_folder},
-                {"name": "trap", "mountPath": trap_dir,},
+                {"name": "trap", "mountPath": trap_dir},
             ],
             "ports": [{"containerPort": int(log_port)}],
         }
@@ -173,11 +173,11 @@ class DbndPodRequestFactory(object):
         # those env variable are used by `airflow serve_logs` to access the log and with the relevant port
         if "AIRFLOW__CORE__BASE_LOG_FOLDER" not in existing_keys:
             side_car["env"].append(
-                {"name": "AIRFLOW__CORE__BASE_LOG_FOLDER", "value": log_folder,}
+                {"name": "AIRFLOW__CORE__BASE_LOG_FOLDER", "value": log_folder}
             )
         if "AIRFLOW__CELERY__WORKER_LOG_SERVER_PORT" not in existing_keys:
             side_car["env"].append(
-                {"name": "AIRFLOW__CELERY__WORKER_LOG_SERVER_PORT", "value": log_port},
+                {"name": "AIRFLOW__CELERY__WORKER_LOG_SERVER_PORT", "value": log_port}
             )
 
         req["spec"]["containers"].append(side_car)

@@ -58,7 +58,7 @@ class AlertDefsSchema(ApiStrictSchema):
     affected_datasets = fields.List(fields.Dict(), allow_none=True, dump_only=True)
 
     is_system = fields.Function(
-        lambda alert_def: alert_def.owner == "system", dump_only=True,
+        lambda alert_def: alert_def.owner == "system", dump_only=True
     )
 
     def get_tracking_source_name(self, obj):

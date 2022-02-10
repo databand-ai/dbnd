@@ -109,7 +109,7 @@ class DbndFunctionalOperator(BaseOperator):
 
             # create databand run
             with new_databand_run(
-                context=dc, job_name=dag.dag_id, run_uid=run_uid, existing_run=False,
+                context=dc, job_name=dag.dag_id, run_uid=run_uid, existing_run=False
             ) as dr:  # type: DatabandRun
                 dr.run_executor = run_executor = RunExecutor(
                     run=dr, root_task_or_task_name=dag_task, send_heartbeat=False

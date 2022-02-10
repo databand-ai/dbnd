@@ -157,7 +157,7 @@ class ValueMetaConf(object):
         Disabling any config that can be expensive to calculate
         """
         return ValueMetaConf(
-            log_preview=False, log_histograms=False, log_stats=False, log_size=False,
+            log_preview=False, log_histograms=False, log_stats=False, log_size=False
         )
 
     def merge_if_none(self, other):

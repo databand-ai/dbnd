@@ -20,8 +20,10 @@ CONN_FAILED_INFO_MSG = "The conn_id `{0}` isn't defined".format(
 CONN_FAILED_WARNING_MSG = "No extra config provided to {0} connection.".format(
     DATABAND_AIRFLOW_CONN_ID
 )
-CONN_FAILED_ERROR_MSG = "Extra config for {0} connection, should be formated as a valid json.".format(
-    DATABAND_AIRFLOW_CONN_ID
+CONN_FAILED_ERROR_MSG = (
+    "Extra config for {0} connection, should be formated as a valid json.".format(
+        DATABAND_AIRFLOW_CONN_ID
+    )
 )
 
 # JSONS for Extra section in DBND Airflow connection
@@ -36,11 +38,7 @@ BAD_JSONS_FOR_AIRFLOW_CONNECTION = [
         "value": "{NOT,{} A VALID} JSON",
         "log_msg": CONN_FAILED_ERROR_MSG,
     },
-    {
-        "name": "empty_dbnd_config_conn",
-        "value": "",
-        "log_msg": CONN_FAILED_WARNING_MSG,
-    },
+    {"name": "empty_dbnd_config_conn", "value": "", "log_msg": CONN_FAILED_WARNING_MSG},
     {"name": "no_dbnd_conn", "value": "", "log_msg": CONN_FAILED_INFO_MSG},
 ]
 
@@ -49,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestConfigFromConnection(object):
-    """ Check that setting dbnd_connection in airflow configures dbnd global config correctly."""
+    """Check that setting dbnd_connection in airflow configures dbnd global config correctly."""
 
     def set_dbnd_airflow_connection(self, af_session, json_for_connection):
         from airflow.models.connection import Connection

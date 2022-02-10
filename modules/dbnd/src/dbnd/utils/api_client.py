@@ -68,9 +68,7 @@ class ApiClient(object):
 
         self._api_base_url = api_base_url
         self.credentials = credentials
-        self.default_headers = {
-            "Accept": "application/json",
-        }
+        self.default_headers = {"Accept": "application/json"}
 
         self.session: Optional[requests.Session] = None
         self.session_creation_time = None
@@ -169,9 +167,7 @@ class ApiClient(object):
 
             if "username" in credentials and "password" in credentials:
                 logger.debug("Attempting to login to webserver")
-                self.api_request(
-                    "auth/login", method="POST", data=credentials,
-                )
+                self.api_request("auth/login", method="POST", data=credentials)
             else:
                 logger.warning(
                     "ApiClient._authenticate: username or password is not provided"

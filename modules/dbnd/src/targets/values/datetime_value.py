@@ -15,34 +15,34 @@ class DateAlias(object):
 
 class DateValueType(ValueType):
     """
-       ValueType whose value is a :py:class:`~datetime.date`.
+    ValueType whose value is a :py:class:`~datetime.date`.
 
-       A DateValueType is a Date string formatted ``YYYY-MM-DD``. For example, ``2013-07-10`` specifies
-       July 10, 2013.
+    A DateValueType is a Date string formatted ``YYYY-MM-DD``. For example, ``2013-07-10`` specifies
+    July 10, 2013.
 
-       DateValueTypes are 90% of the time used to be interpolated into file system paths or the like.
-       Here is a gentle reminder of how to interpolate date parameters into strings:
+    DateValueTypes are 90% of the time used to be interpolated into file system paths or the like.
+    Here is a gentle reminder of how to interpolate date parameters into strings:
 
-       .. code:: python
+    .. code:: python
 
-           class MyTask(dbnd.Task):
-               date = databand.DateValueType()
+        class MyTask(dbnd.Task):
+            date = databand.DateValueType()
 
-               def run(self):
-                   templated_path = "/my/path/to/my/dataset/{date:%Y/%m/%d}/"
-                   instantiated_path = templated_path.format(date=self.date)
-                   # print(instantiated_path) --> /my/path/to/my/dataset/2016/06/09/
-                   # ... use instantiated_path ...
+            def run(self):
+                templated_path = "/my/path/to/my/dataset/{date:%Y/%m/%d}/"
+                instantiated_path = templated_path.format(date=self.date)
+                # print(instantiated_path) --> /my/path/to/my/dataset/2016/06/09/
+                # ... use instantiated_path ...
 
-       To set this parameter to default to the current day. You can write code like this:
+    To set this parameter to default to the current day. You can write code like this:
 
-       .. code:: python
+    .. code:: python
 
-           import datetime
+        import datetime
 
-           class MyTask(dbnd.Task):
-               date = databand.DateValueType(default=datetime.date.today())
-       """
+        class MyTask(dbnd.Task):
+            date = databand.DateValueType(default=datetime.date.today())
+    """
 
     type = datetime.date
     date_format = "%Y-%m-%d"

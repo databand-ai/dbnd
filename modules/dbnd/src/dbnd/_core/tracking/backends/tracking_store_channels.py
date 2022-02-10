@@ -63,9 +63,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             task_runs=task_runs, dynamic_task_run_update=True
         )
         return self._m(
-            self.channel.add_task_runs,
-            task_runs_info=task_runs_info,
-            source=run.source,
+            self.channel.add_task_runs, task_runs_info=task_runs_info, source=run.source
         )
 
     def set_run_state(self, run, state, error=None, timestamp=None):
@@ -231,7 +229,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             }
             for metric in metrics
         ]
-        return self._m(self.channel.log_metrics, metrics_info=metrics_info,)
+        return self._m(self.channel.log_metrics, metrics_info=metrics_info)
 
     def log_artifact(self, task_run, name, artifact, artifact_target):
         return self._m(

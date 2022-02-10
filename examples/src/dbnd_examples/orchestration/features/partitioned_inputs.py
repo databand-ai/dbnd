@@ -13,7 +13,7 @@ from targets.target_config import folder
 
 
 class RawDeviceLog(DataSourceTask):
-    """ raw device logs for partitioned pipeline """
+    """raw device logs for partitioned pipeline"""
 
     task_target_date = parameter[datetime.date]
     root_location = data.default(data_repo.partitioned_data)
@@ -29,7 +29,7 @@ class RawDeviceLog(DataSourceTask):
 
 
 class DeviceLogProjection(PythonTask):
-    """ normalize device logs for partitioned pipeline """
+    """normalize device logs for partitioned pipeline"""
 
     raw_logs = data.target
 
@@ -40,7 +40,7 @@ class DeviceLogProjection(PythonTask):
 
 
 class DeviceLogsPipeline(dbnd.PipelineTask):
-    """ project device logs for partitioned pipeline """
+    """project device logs for partitioned pipeline"""
 
     period = parameter(default=timedelta(days=2))[timedelta]
     projected = output
@@ -55,7 +55,7 @@ class DeviceLogsPipeline(dbnd.PipelineTask):
 
 
 class Features(PythonTask):
-    """ create features for partitioned pipeline """
+    """create features for partitioned pipeline"""
 
     projected_logs = data.target
     features = output.target
@@ -66,7 +66,7 @@ class Features(PythonTask):
 
 
 class ExamplePartitionedPipeline(dbnd.PipelineTask):
-    """ Entry point for partitioned pipeline """
+    """Entry point for partitioned pipeline"""
 
     features = output.target
 

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class PStepA(PythonTask):
-    """ First step of partitioned calculations """
+    """First step of partitioned calculations"""
 
     data_partitioned = output.folder.csv.data
 
@@ -25,7 +25,7 @@ class PStepA(PythonTask):
 
 # noinspection PyMethodMayBeStatic
 class PStepB(PythonTask):
-    """ Second step of partitioned calculations """
+    """Second step of partitioned calculations"""
 
     data_partitioned = parameter.data
     step_b_value = output.folder.csv.data
@@ -41,7 +41,7 @@ class PStepB(PythonTask):
 
 
 class ExamplePartitionedCalculations(PipelineTask):
-    """ Entry point of partitioned calculations """
+    """Entry point of partitioned calculations"""
 
     step_b_value = output.data
 

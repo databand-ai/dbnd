@@ -76,7 +76,7 @@ class _TaskWithParams(_BaseTask):
         object.__setattr__(self, name, value)
 
     def _update_property_on_parameter_value_set(self, name, value):
-        """ called from param.update_value() , we don't want to call back p._update_param_value_from_task_set()"""
+        """called from param.update_value() , we don't want to call back p._update_param_value_from_task_set()"""
         object.__setattr__(self, name, value)
 
     def _initialize(self):

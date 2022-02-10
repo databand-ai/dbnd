@@ -104,8 +104,8 @@ class TestTaskParameters(object):
         assert "foo" not in str(t2)
 
     def test_environ_parameter_in_default(self):
-        """ Obviously, if anything should be positional, so should local
-        significant parameters """
+        """Obviously, if anything should be positional, so should local
+        significant parameters"""
 
         import os
 

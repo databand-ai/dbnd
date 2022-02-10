@@ -135,7 +135,7 @@ class PodResult(object):
             key, state, pod_id, resource_version = result
             namespace = None
 
-        return PodResult(key, state, pod_id, namespace, resource_version,)
+        return PodResult(key, state, pod_id, namespace, resource_version)
 
     def as_tuple(self):
         if AIRFLOW_ABOVE_9:
@@ -147,12 +147,7 @@ class PodResult(object):
                 self.resource_version,
             )
         else:
-            return (
-                self.key,
-                self.state,
-                self.pod_id,
-                self.resource_version,
-            )
+            return (self.key, self.state, self.pod_id, self.resource_version)
 
 
 AIRFLOW_TO_DBND_STATE_MAP = {
@@ -585,7 +580,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         from dbnd._core.task_run.task_run_error import TaskRunError
 
         task_run_error = TaskRunError.build_from_message(
-            task_run=task_run, msg=error_msg, help_msg=error_help_msg,
+            task_run=task_run, msg=error_msg, help_msg=error_help_msg
         )
 
         if is_task_instance_finished(ti_state):
@@ -630,9 +625,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             failure_reason=known_fail_reason or failure_reason,
         )
 
-    def _find_pod_failure_reason(
-        self, pod_name, pod_data,
-    ):
+    def _find_pod_failure_reason(self, pod_name, pod_data):
         # type: (str, V1Pod) -> (Optional[PodFailureReason], Optional[str])
         if not pod_data:
             return (
@@ -767,7 +760,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             return None
 
         self.log.info(
-            "Processing zombie task instance %s as failed", zombie_task_instance,
+            "Processing zombie task instance %s as failed", zombie_task_instance
         )
         zombie_pod_state = zombie_pod_state[0]
         self._process_pod_failed(zombie_pod_state)

@@ -174,12 +174,12 @@ class SqlQueryExtractor:
         self, columns: Columns, next_token: Identifier
     ) -> Tuple[Schema, Columns]:
         """
-          generate schema object and columns for table or file
+        generate schema object and columns for table or file
 
-          :param Columns columns: name of a table we want to track
-          :param Identifier next_token: snowflake query identifier
+        :param Columns columns: name of a table we want to track
+        :param Identifier next_token: snowflake query identifier
 
-          """
+        """
         cloud_uri_path = self.extract_cloud_uri(next_token)
         if cloud_uri_path:
             table_alias = cloud_uri_path
@@ -272,11 +272,11 @@ class SqlQueryExtractor:
 
     def extract_file(self, file_name: str, columns: Columns) -> Tuple[Schema, Columns]:
         """
-                  Collects a schema and a wildcard column for a file
+          Collects a schema and a wildcard column for a file
 
-                :param str file_name: full path and name of a file
-                  :param Columns columns: array of columns for a file (in basic use-case would be a wildcard)
-                  """
+        :param str file_name: full path and name of a file
+          :param Columns columns: array of columns for a file (in basic use-case would be a wildcard)
+        """
         collected_schema = defaultdict(list)
         left_columns = []
         for col in columns:
@@ -294,7 +294,7 @@ class SqlQueryExtractor:
         return token_list.token_next(idx, skip_ws=True, skip_cm=True)
 
     def enrich_with_dynamic(
-        self, extracted: Schema, dynamic: Dict[str, Schema],
+        self, extracted: Schema, dynamic: Dict[str, Schema]
     ) -> Schema:
         if not dynamic:
             return extracted
@@ -352,11 +352,11 @@ class SqlQueryExtractor:
     @staticmethod
     def extract_cloud_uri(identifier: Identifier) -> str:
         """
-          Search for cloud providers pattern in snowflake query identifier,
-          if pattern exists returns the URI as string
+        Search for cloud providers pattern in snowflake query identifier,
+        if pattern exists returns the URI as string
 
-          :param Identifier identifier: snowflake query identifier
-            """
+        :param Identifier identifier: snowflake query identifier
+        """
         if identifier.value.upper() in ["S3", "AZURE", "GCS"]:
             cloud_uri = CLOUD_SERVICE_URI_REGEX.findall(identifier.parent.value)
             return cloud_uri[0] if cloud_uri else None

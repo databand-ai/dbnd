@@ -59,12 +59,12 @@ def hook_with_raise(*args, **kwargs):
 
 
 def disable_tracker_api():
-    return {"core": {"tracker_api": "disabled",}}
+    return {"core": {"tracker_api": "disabled"}}
 
 
 conf_override = {
     "task": {"spark_engine": "livy"},
-    "livy": {"url": "http://livy:8998",},
+    "livy": {"url": "http://livy:8998"},
     SparkConfig.jars: "",
     SparkConfig.main_jar: "/app/spark_jvm/target/ai.databand.examples-1.0-SNAPSHOT.jar",
     "log": {"level": "DEBUG"},
@@ -131,7 +131,7 @@ class TestEmrSparkTasks(object):
 
         with dbnd_config(disable_tracker_api()):
             WordCountTask(
-                text=TEXT_FILE, task_version=str(random.random()), override=_config,
+                text=TEXT_FILE, task_version=str(random.random()), override=_config
             ).dbnd_run()
 
         calls = [
@@ -155,7 +155,7 @@ class TestEmrSparkTasks(object):
 
         with dbnd_config(disable_tracker_api()):
             WordCountTask(
-                text=TEXT_FILE, task_version=str(random.random()), override=_config,
+                text=TEXT_FILE, task_version=str(random.random()), override=_config
             ).dbnd_run()
 
         # calling the hook will call side_effect which will change the STATE to True
@@ -174,7 +174,7 @@ class TestEmrSparkTasks(object):
 
         with dbnd_config(disable_tracker_api()):
             WordCountTask(
-                text=TEXT_FILE, task_version=str(random.random()), override=_config,
+                text=TEXT_FILE, task_version=str(random.random()), override=_config
             ).dbnd_run()
         # calling the hook will call side_effect which will change the STATE to True
         assert (
@@ -189,5 +189,5 @@ class TestEmrSparkTasks(object):
         with dbnd_config(disable_tracker_api()):
             with pytest.raises(DatabandRunError):
                 WordCountTask(
-                    text=TEXT_FILE, task_version=str(random.random()), override=_config,
+                    text=TEXT_FILE, task_version=str(random.random()), override=_config
                 ).dbnd_run()

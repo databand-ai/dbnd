@@ -54,9 +54,9 @@ def mock_snowflake():
     with patch.object(
         snowflake.connector.auth.Auth, "authenticate", new=_authenticate
     ), patch.object(
-        snowflake.connector.cursor.SnowflakeCursor, "execute", new=_execute,
+        snowflake.connector.cursor.SnowflakeCursor, "execute", new=_execute
     ), patch.object(
-        snowflake.connector.network.SnowflakeRestful, "delete_session",
+        snowflake.connector.network.SnowflakeRestful, "delete_session"
     ):
         yield execute_mock
 
@@ -197,7 +197,7 @@ class TestSnowflakeQueryTracker:
     @pytest.mark.parametrize("run_query", QUERY_RUNNERS)
     def test_resource_and_table(self, mock_snowflake, run_query):
         session_id, (query_id,) = run_query(
-            mock_snowflake, log_tables=True, log_resource_usage=True,
+            mock_snowflake, log_tables=True, log_resource_usage=True
         )
 
         # 1 for actual query + COMMIT

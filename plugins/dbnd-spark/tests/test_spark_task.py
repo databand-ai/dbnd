@@ -121,7 +121,7 @@ class TestSparkTasksLocally(object):
 
         # Solve "tests" module conflict on pickle loading after spark-submit
         parent_directory = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory,}}):
+        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory}}):
             assert_run_task(word_count_inline.t(text=__file__))
 
     def test_spark_complete(self, monkeypatch):
@@ -129,7 +129,7 @@ class TestSparkTasksLocally(object):
 
         # Solve "tests" module conflict on pickle loading after spark-submit
         parent_directory = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory,}}):
+        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory}}):
             t = word_count_inline.t(text=__file__)
             dir_target = mock.MagicMock(DirTarget)
             dir_target.exists = mock.Mock(return_value=False)
@@ -160,9 +160,7 @@ class TestSparkTasksLocally(object):
 
         # Solve "tests" module conflict on pickle loading after spark-submit
         parent_directory = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        with dbnd_config(
-            {SparkConfig.env_vars: {"PYTHONPATH": parent_directory},}
-        ):
+        with dbnd_config({SparkConfig.env_vars: {"PYTHONPATH": parent_directory}}):
             assert_run_task(dataframes_io_pandas_spark.t(text=__file__))
 
     @mock.patch("airflow.contrib.hooks.spark_submit_hook.SparkSubmitHook")

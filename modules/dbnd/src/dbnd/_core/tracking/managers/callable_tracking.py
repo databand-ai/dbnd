@@ -107,8 +107,8 @@ class CallableTrackingManager(object):
             # 2. Start or reuse existing "main tracking task" that is root for tracked tasks
             if not try_get_current_task():
                 """
-                 try to get existing task, and if not exists - try to get/create inplace_task_run
-                 """
+                try to get existing task, and if not exists - try to get/create inplace_task_run
+                """
                 from dbnd._core.tracking.script_tracking_manager import (
                     try_get_inplace_tracking_task_run,
                 )
@@ -129,7 +129,7 @@ class CallableTrackingManager(object):
             )
             # replace any position argument with kwarg if it possible
             args, kwargs = args_to_kwargs(
-                callable_spec.args, func_call.call_args, func_call.call_kwargs,
+                callable_spec.args, func_call.call_args, func_call.call_kwargs
             )
 
             # instantiate inline task
@@ -217,9 +217,7 @@ def _handle_tracking_error(msg, func_call=None):
         location,
     )
     if is_verbose():
-        logger.warning(
-            msg, exc_info=True,
-        )
+        logger.warning(msg, exc_info=True)
     else:
         logger.info(msg)
 
@@ -240,9 +238,7 @@ def _log_inputs(task_run):
             if isinstance(param_value, InMemoryTarget):
                 try:
                     param = param.modify(
-                        value_meta_conf=ValueMetaConf(
-                            log_preview=True, log_schema=True,
-                        )
+                        value_meta_conf=ValueMetaConf(log_preview=True, log_schema=True)
                     )
 
                     task_run.tracker.log_parameter_data(

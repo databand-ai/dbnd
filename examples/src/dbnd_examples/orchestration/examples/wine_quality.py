@@ -48,7 +48,7 @@ def calculate_metrics(actual, pred):
 
 @task(result="training_set, test_set, validation_set")
 def prepare_data(raw_data: DataFrame) -> Tuple[DataFrame, DataFrame, DataFrame]:
-    """ Split data into train, test and validation """
+    """Split data into train, test and validation"""
     train_df, test_df = train_test_split(raw_data)
     test_df, validation_df = train_test_split(test_df, test_size=0.5)
 
@@ -63,7 +63,7 @@ def prepare_data(raw_data: DataFrame) -> Tuple[DataFrame, DataFrame, DataFrame]:
 
 @task
 def calculate_alpha(alpha: float = 0.5) -> float:
-    """ Calculates alpha for train_model """
+    """Calculates alpha for train_model"""
     alpha += 0.1
     return alpha
 
@@ -75,7 +75,7 @@ def train_model(
     alpha: float = 0.5,
     l1_ratio: float = 0.5,
 ) -> ElasticNet:
-    """ Train wine prediction model """
+    """Train wine prediction model"""
     lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
     lr.fit(training_set.drop(["quality"], 1), training_set[["quality"]])
     prediction = lr.predict(test_set.drop(["quality"], 1))
@@ -100,7 +100,7 @@ def train_model(
 
 @task
 def validate_model(model: ElasticNet, validation_dataset: DataFrame) -> str:
-    """ Calculates metrics of wine prediction model """
+    """Calculates metrics of wine prediction model"""
     log_dataframe("validation", validation_dataset)
     # support for py3 parqeut
     validation_dataset = validation_dataset.rename(str, axis="columns")
@@ -124,7 +124,7 @@ def predict_wine_quality(
     l1_ratio: float = 0.5,
     good_alpha: bool = False,
 ):
-    """ Entry point for wine quality prediction """
+    """Entry point for wine quality prediction"""
     if data is None:
         data = fetch_data()
     training_set, test_set, validation_set = prepare_data(raw_data=data)

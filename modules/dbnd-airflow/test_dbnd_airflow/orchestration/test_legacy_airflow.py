@@ -21,9 +21,7 @@ class TestLegacyAirflowIntegration(object):
         """
         additional = []
         if AIRFLOW_VERSION_2:
-            additional = [
-                "dags",
-            ]
+            additional = ["dags"]
         run_subprocess__airflow(
             additional
             + [
@@ -46,9 +44,7 @@ class TestLegacyAirflowIntegration(object):
         """
         additional = []
         if AIRFLOW_VERSION_2:
-            additional = [
-                "tasks",
-            ]
+            additional = ["tasks"]
         run_subprocess__airflow(
             additional
             + [

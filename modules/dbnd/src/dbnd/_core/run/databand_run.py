@@ -404,9 +404,9 @@ class DatabandRun(SingletonContext):
     def get_upstream_failed_task_run_state(self, task_run):
         # type: (TaskRun)-> TaskRunState
         """
-            This function is a helper function to decide task final state only for orchestration runs.
-            param: task_run - the task  which we want to get it's state
-            return: TaskRunState
+        This function is a helper function to decide task final state only for orchestration runs.
+        param: task_run - the task  which we want to get it's state
+        return: TaskRunState
         """
         state = TaskRunState.UPSTREAM_FAILED
         child_task_runs = task_run.task.descendants

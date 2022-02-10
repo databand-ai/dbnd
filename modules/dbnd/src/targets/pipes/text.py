@@ -106,8 +106,7 @@ class TextWrapper(io.TextIOWrapper):
 
 
 class MixedUnicodeBytesWrapper(BaseWrapper):
-    """
-    """
+    """ """
 
     def __init__(self, stream, encoding=None):
         if encoding is None:

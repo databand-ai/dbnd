@@ -59,7 +59,7 @@ class _TaskCtrlMixin(object):
         )
 
     def log_system_metric(self, key, value):
-        """Shortcut for log_metric(..., source="system") """
+        """Shortcut for log_metric(..., source="system")"""
         return self.log_metric(key, value, source="system")
 
     def log_artifact(self, name, artifact):

@@ -107,7 +107,7 @@ class TestBuildTaskWithMergeOperator(object):
         with config({DummyConfig.dict_config: override({"override": "win"})}):
             with config(config_sections):
                 example_task_with_task_config_extend.task(
-                    expected_dict={"override": "win"},
+                    expected_dict={"override": "win"}
                 ).dbnd_run()
 
     def test_with_task_class_extend_and_override_layer(self, config_sections):
@@ -115,5 +115,5 @@ class TestBuildTaskWithMergeOperator(object):
             with config({DummyConfig.dict_config: override({"override": "win"})}):
                 # can't merge into override value
                 example_task_with_task_config_extend.task(
-                    expected_dict={"override": "win"},
+                    expected_dict={"override": "win"}
                 ).dbnd_run()

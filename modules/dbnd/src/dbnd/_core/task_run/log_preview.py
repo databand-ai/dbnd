@@ -40,7 +40,7 @@ def read_dbnd_log_preview(log_path, spark_log_path=None):
         # we need to read and than merge the content of dbnd log and spark log
         # using half of the max_bytes for each of the logs to make sure we are not exceeding the max after merging
         parts = merge_read_log_files(
-            log_path, spark_log_path, max_head_size // 2, max_tail_size // 2,
+            log_path, spark_log_path, max_head_size // 2, max_tail_size // 2
         )
 
     else:
@@ -144,7 +144,7 @@ def merge_read_log_files(dbnd_log_path, spark_log_path, head_size, tail_size):
     # 1) we create tuples of parts (heads together and tails together).
     #    if there is no tail for only one of them will have :
     #               [(dbnd_head, spark_head), (dbnd_tail, [])]
-    parts = zip_longest(dbnd_log, spark_log, fillvalue=[],)
+    parts = zip_longest(dbnd_log, spark_log, fillvalue=[])
 
     # 2) merging each part (heads, tails) separately
     merged_parts = []

@@ -12,7 +12,7 @@ from dbnd._vendor import click
     help="Limit the number of periodic monitor runs",
 )
 @click.option(
-    "--stop-after", type=click.INT, help="Limit time for monitor to run, in seconds",
+    "--stop-after", type=click.INT, help="Limit time for monitor to run, in seconds"
 )
 @click.option(
     "--runner-type",

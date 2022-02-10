@@ -15,14 +15,14 @@ def is_sub_dict(left, right):
 def pod_builder(config_name):
     # explicitly build config for k8s
     k8s_config = build_task_from_config(task_name=config_name)
-    pod = k8s_config.build_pod(task_run=try_get_current_task_run(), cmds=["dummy"],)
+    pod = k8s_config.build_pod(task_run=try_get_current_task_run(), cmds=["dummy"])
     return pod
 
 
 @task
 def request_builder(config_name):
     k8s_config = build_task_from_config(task_name=config_name)
-    pod = k8s_config.build_pod(task_run=try_get_current_task_run(), cmds=["dummy"],)
+    pod = k8s_config.build_pod(task_run=try_get_current_task_run(), cmds=["dummy"])
     return k8s_config.build_kube_pod_req(pod)
 
 
@@ -76,10 +76,10 @@ class TestKubernetesPodBuild(object):
             "requests": {"memory": "1536Mi", "cpu": "1"},
         }
 
-    def test_pod_building(self,):
+    def test_pod_building(self):
         with dbnd_config(K8S_CONFIG):
 
-            run = pod_builder.dbnd_run(config_name="gcp_k8s_engine",)
+            run = pod_builder.dbnd_run(config_name="gcp_k8s_engine")
             pod = run.run_executor.result.load("result")
 
         assert is_sub_dict(
@@ -106,7 +106,7 @@ class TestKubernetesPodBuild(object):
 
         assert pod.namespace == "test_namespace"
 
-    def test_custom_yaml(self,):
+    def test_custom_yaml(self):
         with dbnd_config(
             {
                 "kubernetes": {
@@ -116,16 +116,16 @@ class TestKubernetesPodBuild(object):
                 }
             }
         ):
-            run = request_builder.dbnd_run(config_name="gcp_k8s_engine",)
+            run = request_builder.dbnd_run(config_name="gcp_k8s_engine")
             req = run.run_executor.result.load("result")
 
         spec = req["spec"]
 
         assert spec["dnsPolicy"] == "ClusterFirstWithHostNet"
 
-    def test_req_building(self,):
+    def test_req_building(self):
         with dbnd_config(K8S_CONFIG):
-            run = request_builder.dbnd_run(config_name="gcp_k8s_engine",)
+            run = request_builder.dbnd_run(config_name="gcp_k8s_engine")
             req = run.run_executor.result.load("result")
         assert is_sub_dict(
             req["metadata"]["labels"],

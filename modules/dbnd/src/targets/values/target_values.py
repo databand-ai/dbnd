@@ -7,19 +7,19 @@ from targets.values.value_type import ValueType
 
 class _TargetValueType(ValueType):  # extracted for generics support
     """
-      ValueType whose value is a ```target```.
+    ValueType whose value is a ```target```.
 
-      In the task definition, use
+    In the task definition, use
 
-      .. code-block:: python
+    .. code-block:: python
 
-          class MyTask(dbnd.Task):
-              some_input = TargetValueType()
+        class MyTask(dbnd.Task):
+            some_input = TargetValueType()
 
-              def run(self):
-                    self.some_input.open('r')
+            def run(self):
+                  self.some_input.open('r')
 
-      """
+    """
 
     support_from_str = False
     config_name = "target"

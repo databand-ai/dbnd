@@ -63,7 +63,7 @@ def get_task_run_attempt_uid_from_af_ti(ti):
         dag_id=ti.dag_id,
         execution_date=ti.execution_date,
     )
-    return get_task_run_attempt_uid(run_uid, ti.dag_id, ti.task_id, ti.try_number,)
+    return get_task_run_attempt_uid(run_uid, ti.dag_id, ti.task_id, ti.try_number)
 
 
 def get_job_run_uid(airflow_instance_uid, dag_id, execution_date):
@@ -98,7 +98,7 @@ def get_job_uid(airflow_server_info_uid, dag_id):
 
 @cached()
 def get_airflow_instance_uid():
-    """ used to distinguish between jobs of different airflow instances """
+    """used to distinguish between jobs of different airflow instances"""
     import airflow
 
     db_url = airflow.settings.Session.bind.engine.url

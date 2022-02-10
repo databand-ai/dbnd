@@ -11,7 +11,7 @@ class TestSaladExample(object):
         salad = prepare_salad.t()
         assert_run_task(salad)
 
-    def test_prepare_salad_deco(self,):
+    def test_prepare_salad_deco(self):
         assert_run_task(prepare_salad.t(vegetables=data_repo.vegetables))
 
     @fixture

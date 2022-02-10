@@ -24,19 +24,7 @@ from targets.types import PathStr
 
 
 TARGET_LABEL = "target_label"
-SELECTED_FEATURES = [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    TARGET_LABEL,
-]
+SELECTED_FEATURES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", TARGET_LABEL]
 logger = logging.getLogger(__name__)
 matplotlib.use("Agg")
 

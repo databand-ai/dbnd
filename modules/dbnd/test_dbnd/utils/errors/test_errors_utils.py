@@ -12,10 +12,7 @@ class TestUserCodeDetector:
 
     @pytest.fixture
     def user_code_detector(self):
-        system_code_dirs = [
-            databand_lib_path(),
-            databand_lib_path("../targets"),
-        ]
+        system_code_dirs = [databand_lib_path(), databand_lib_path("../targets")]
         return UserCodeDetector(
             code_dir=self.code_dir, system_code_dirs=system_code_dirs
         )

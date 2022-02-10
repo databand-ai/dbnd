@@ -253,7 +253,7 @@ def build_task_run_info(task_run):
             value = "***"
         else:
             value = safe_short_string(
-                param_meta.parameter.signature(value), max_value_len=5000,
+                param_meta.parameter.signature(value), max_value_len=5000
             )
         task_run_params.append(
             TaskRunParamInfo(

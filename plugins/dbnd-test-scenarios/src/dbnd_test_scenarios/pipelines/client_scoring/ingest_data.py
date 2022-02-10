@@ -195,7 +195,7 @@ def run_create_report(input_path, output_path):
         with_histograms=True,
         operation_type=DbndTargetOperationType.write,
     )
-    create_report(data,).to_csv(output_path, index=False)
+    create_report(data).to_csv(output_path, index=False)
     return output_path
 
 

@@ -34,7 +34,7 @@ def t_d_1(
 
 
 @task
-def t_d_df(some_df: DataFrame,) -> DataFrame:
+def t_d_df(some_df: DataFrame) -> DataFrame:
     assert isinstance(some_df, DataFrame)
     return some_df.tail(1)
 

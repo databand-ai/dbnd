@@ -23,14 +23,14 @@ class DummyTask(Task):
 
 
 class TestAccessHelpers(object):
-    def test_get_remote_engine_name(self,):
+    def test_get_remote_engine_name(self):
         run = access_engine_name_mid_run.dbnd_run()
         assert run.load_from_result() == "local_machine_engine"
 
     def test_get_remote_engine_name_without_run(self):
         assert get_remote_engine_name() is None
 
-    def test_get_task_params(self,):
+    def test_get_task_params(self):
         t = DummyTask(b="boom")
         params = get_task_params_values(t)
         assert all(
@@ -38,11 +38,11 @@ class TestAccessHelpers(object):
             for k, v in [("a", 1), ("b", "boom"), ("c", 1.2)]
         )
 
-    def test_get_task_params_defs(self,):
+    def test_get_task_params_defs(self):
         t = DummyTask()
         params_defs = get_task_params_defs(t)
         assert all(k in params_defs for k in ["a", "b", "c"])
 
-    def test_get_task_cls_params_defs(self,):
+    def test_get_task_cls_params_defs(self):
         params_defs = get_task_params_defs(DummyTask)
         assert all(k in params_defs for k in ["a", "b", "c"])

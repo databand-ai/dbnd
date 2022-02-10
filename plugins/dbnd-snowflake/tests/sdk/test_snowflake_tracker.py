@@ -95,13 +95,13 @@ def mock_snowflake():
     with patch.object(
         snowflake.connector.auth.Auth, "authenticate", new=_authenticate
     ), patch.object(
-        snowflake.connector.cursor.SnowflakeCursor, "execute", new=_execute,
+        snowflake.connector.cursor.SnowflakeCursor, "execute", new=_execute
     ), patch.object(
         snowflake.connector.cursor.SnowflakeCursor,
         "_execute_helper",
         new=__execute_helper,
     ), patch.object(
-        snowflake.connector.network.SnowflakeRestful, "delete_session",
+        snowflake.connector.network.SnowflakeRestful, "delete_session"
     ):
         yield execute_mock
 

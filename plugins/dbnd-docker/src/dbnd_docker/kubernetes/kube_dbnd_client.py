@@ -96,7 +96,7 @@ class DbndPodCtrl(object):
             self.log.info("Pod has been deleted.")
         except ApiException as e:
             self.log.info(
-                "Failed to delete pod: %s", e if e.status != 404 else "pod not found",
+                "Failed to delete pod: %s", e if e.status != 404 else "pod not found"
             )
             # If the pod is already deleted, don't raise
             # if e.status != 404:
@@ -182,7 +182,7 @@ class DbndPodCtrl(object):
                 ):
                     if self.kube_config.check_cluster_resource_capacity:
                         kube_resources_checker = DbndKubeResourcesChecker(
-                            kube_client=self.kube_client, kube_config=self.kube_config,
+                            kube_client=self.kube_client, kube_config=self.kube_config
                         )
                         kube_resources_checker.check_if_resource_request_above_max_capacity(
                             condition.message

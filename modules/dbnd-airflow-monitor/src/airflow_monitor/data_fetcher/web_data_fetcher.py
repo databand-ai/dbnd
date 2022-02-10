@@ -157,7 +157,7 @@ class WebFetcher(AirflowDataFetcher):
             raise failed_to_decode_data_from_airflow(self.base_url, e, data_sample)
 
         self._on_data_received(
-            json_data, self.endpoint_url + "/" + endpoint_name.strip("/"),
+            json_data, self.endpoint_url + "/" + endpoint_name.strip("/")
         )
         return json_data
 

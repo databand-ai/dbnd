@@ -80,9 +80,7 @@ def _to_conf(kwargs):
     "--print-task-band", is_flag=True, help="Print task_band in the logging output."
 )
 @click.option("--describe", is_flag=True, help="Describe the current run")
-@click.option(
-    "--env", help="task environment: local/aws/aws_prod/gcp/prod",
-)
+@click.option("--env", help="task environment: local/aws/aws_prod/gcp/prod")
 @click.option("--parallel", is_flag=True, help="Run tasks in parallel")
 @click.option("--conf-file", help="List of files to read from")
 @click.option("--task-version", help="Task version directly affects the task signature")
@@ -144,9 +142,7 @@ def _to_conf(kwargs):
     flag_value=0,
     help="Disable task submission, run tasks in the driver process.",
 )
-@click.option(
-    "--disable-web-tracker", help="Disable web tracking", is_flag=True,
-)
+@click.option("--disable-web-tracker", help="Disable web tracking", is_flag=True)
 @click.option("--interactive", is_flag=True, help="Run submission in blocking mode")
 @click.option(
     "--open-web-tab", help="Open the tracker URL in the Databand UI", is_flag=True
@@ -262,7 +258,7 @@ def cmd_run(
         cmd_line_config.update(_parse_cli(_sets_config, source="--set-config"))
     if _extend:
         cmd_line_config.update(
-            _parse_cli(_extend, source="--extend-config", extend=True,)
+            _parse_cli(_extend, source="--extend-config", extend=True)
         )
     if _overrides:
         cmd_line_config.update(
@@ -280,7 +276,7 @@ def cmd_run(
         # adding root task to configuration
         cmd_line_config.update(
             parse_and_build_config_store(
-                config_values={task_section: root_task_config}, source="--set-root",
+                config_values={task_section: root_task_config}, source="--set-root"
             )
         )
 

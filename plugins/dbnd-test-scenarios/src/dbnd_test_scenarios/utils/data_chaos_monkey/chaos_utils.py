@@ -14,9 +14,5 @@ def chaos_float(value):
 
 
 if __name__ == "__main__":
-    print(
-        chaos_int(200), chaos_int(0.5), chaos_int(15),
-    )
-    print(
-        chaos_float(200), chaos_float(0.5), chaos_float(15),
-    )
+    print(chaos_int(200), chaos_int(0.5), chaos_int(15))
+    print(chaos_float(200), chaos_float(0.5), chaos_float(15))

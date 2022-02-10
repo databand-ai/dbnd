@@ -5,7 +5,7 @@ import tempfile
 # see https://blog.thedataincubator.com/2016/06/testing-jupyter-notebooks/
 def notebook_run(path):
     """Execute a notebook via nbconvert and collect output.
-       :returns (parsed nb object, execution errors)
+    :returns (parsed nb object, execution errors)
     """
     import nbformat
 

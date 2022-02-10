@@ -95,22 +95,22 @@ class _TaskDagNode(TaskSubCtrl):
 
     @property
     def upstream_task_ids(self):  # type: ()->Set[str]
-        """ list of tasks directly upstream"""
+        """list of tasks directly upstream"""
         return self._upstream_tasks
 
     @property
     def upstream(self):  # type: ()->Set[Task]
-        """ list of tasks directly upstream"""
+        """list of tasks directly upstream"""
         return self._task_id_to_tasks(self._upstream_tasks)
 
     @property
     def downstream_task_ids(self):  # type: ()->Set[str]
-        """ list of tasks directly downstream"""
+        """list of tasks directly downstream"""
         return self._downstream_tasks
 
     @property
     def downstream(self):  # type: ()->Set[Task]
-        """ list of tasks directly downstream"""
+        """list of tasks directly downstream"""
         return self._task_id_to_tasks(self._downstream_tasks)
 
     def set_upstream(self, task_or_task_list):

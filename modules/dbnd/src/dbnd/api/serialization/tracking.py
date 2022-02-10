@@ -175,7 +175,7 @@ class DatasourceMonitorState(object):
         # don't serialize data which didn't changed: as_dict should be able to return
         # None value when it set, specifically for monitor_error_message - when not set
         # at all (=NOTHING, didn't changed, =None changed)
-        return attr.asdict(self, filter=lambda field, value: value is not NOTHING,)
+        return attr.asdict(self, filter=lambda field, value: value is not NOTHING)
 
 
 class DatasourceMonitorStateSchema(ApiStrictSchema):

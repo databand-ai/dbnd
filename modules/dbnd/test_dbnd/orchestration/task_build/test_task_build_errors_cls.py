@@ -58,7 +58,7 @@ class TestTaskBuildErrors(object):
         assert "MyPTWithError" in exc_info.value.help_msg
 
     def test_local_insignificant_param(self):
-        """ Ensure we have the same behavior as in before a78338c  """
+        """Ensure we have the same behavior as in before a78338c"""
 
         class MyTask(TTask):
             # This could typically be "--num-threads=True"

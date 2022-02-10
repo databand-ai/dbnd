@@ -103,10 +103,7 @@ class TestValueMetaConf(object):
             ObjectValueType(),
             None,
             ValueMetaConf(
-                log_preview=False,
-                log_histograms=False,
-                log_stats=False,
-                log_size=False,
+                log_preview=False, log_histograms=False, log_stats=False, log_size=False
             ),
         ),
         (
@@ -114,10 +111,7 @@ class TestValueMetaConf(object):
             LazyValueType(),
             None,
             ValueMetaConf(
-                log_preview=False,
-                log_histograms=False,
-                log_stats=False,
-                log_size=False,
+                log_preview=False, log_histograms=False, log_stats=False, log_size=False
             ),
         ),
         (
@@ -125,10 +119,7 @@ class TestValueMetaConf(object):
             LazyValueType(),
             FileTarget("mock_path", MockFileSystem()),
             ValueMetaConf(
-                log_preview=False,
-                log_histograms=False,
-                log_stats=False,
-                log_size=False,
+                log_preview=False, log_histograms=False, log_stats=False, log_size=False
             ),
         ),
         (
@@ -136,23 +127,17 @@ class TestValueMetaConf(object):
             LazyValueType(),
             FileTarget("mock_path", MockFileSystem(), config=file.parquet),
             ValueMetaConf(
-                log_preview=False,
-                log_histograms=False,
-                log_stats=False,
-                log_size=False,
+                log_preview=False, log_histograms=False, log_stats=False, log_size=False
             ),
         ),
         # ValueTrackingLevel.SMART
-        (ValueTrackingLevel.SMART, ObjectValueType(), None, ValueMetaConf(),),
+        (ValueTrackingLevel.SMART, ObjectValueType(), None, ValueMetaConf()),
         (
             ValueTrackingLevel.SMART,
             LazyValueType(),
             None,
             ValueMetaConf(
-                log_preview=False,
-                log_histograms=False,
-                log_stats=False,
-                log_size=False,
+                log_preview=False, log_histograms=False, log_stats=False, log_size=False
             ),
         ),
         (
@@ -160,10 +145,7 @@ class TestValueMetaConf(object):
             LazyValueType(),
             FileTarget("mock_path", MockFileSystem(), config=file),
             ValueMetaConf(
-                log_preview=False,
-                log_histograms=False,
-                log_stats=False,
-                log_size=False,
+                log_preview=False, log_histograms=False, log_stats=False, log_size=False
             ),
         ),
         (
@@ -171,14 +153,11 @@ class TestValueMetaConf(object):
             LazyValueType(),
             FileTarget("mock_path", MockFileSystem(), config=file.parquet),
             ValueMetaConf(
-                log_preview=False,
-                log_histograms=False,
-                log_stats=False,
-                log_size=False,
+                log_preview=False, log_histograms=False, log_stats=False, log_size=False
             ),
         ),
-        (ValueTrackingLevel.ALL, ObjectValueType(), None, ValueMetaConf(),),
-        (ValueTrackingLevel.ALL, LazyValueType(), None, ValueMetaConf(),),
+        (ValueTrackingLevel.ALL, ObjectValueType(), None, ValueMetaConf()),
+        (ValueTrackingLevel.ALL, LazyValueType(), None, ValueMetaConf()),
         (
             ValueTrackingLevel.ALL,
             LazyValueType(),

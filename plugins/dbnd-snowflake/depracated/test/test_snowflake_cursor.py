@@ -6,7 +6,7 @@ from dbnd_snowflake.POC.tracker import extract_schema_from_sf_desc
 @pytest.mark.parametrize(
     "description, expected",
     [
-        ([("UNIQUE_KEY", 0, None, None, 38, 0, True),], {"UNIQUE_KEY": "NUMBER"},),
+        ([("UNIQUE_KEY", 0, None, None, 38, 0, True)], {"UNIQUE_KEY": "NUMBER"}),
         (
             [
                 ("UNIQUE_KEY", 0, None, None, 38, 0, True),

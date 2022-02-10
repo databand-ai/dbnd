@@ -34,7 +34,7 @@ class TestWineQualityClasses(object):
             {"local_prod": {"_from": "local", "env_label": "prod", "production": True}}
         ):
             task = wine_quality.predict_wine_quality.t(
-                alpha=0.5, override={wine_quality.fetch_data.t.task_env: "local_prod"},
+                alpha=0.5, override={wine_quality.fetch_data.t.task_env: "local_prod"}
             )
             assert_run_task(task)
 

@@ -29,9 +29,7 @@ logger = logging.getLogger(__name__)
 class TaskRunRunner(TaskRunCtrl):
     @contextlib.contextmanager
     def task_run_execution_context(self, handle_sigterm=True, capture_log=True):
-        ctx_managers = [
-            self.task.ctrl.task_context(phase=TaskContextPhase.RUN),
-        ]
+        ctx_managers = [self.task.ctrl.task_context(phase=TaskContextPhase.RUN)]
 
         if capture_log:
             ctx_managers.append(self.task_run.log.capture_task_log())

@@ -37,7 +37,7 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
     ):
         self._plugin_metadata = None
         super(AirflowMonitorComponentManager, self).__init__(
-            runner, server_config, tracking_service, SERVICES_COMPONENTS,
+            runner, server_config, tracking_service, SERVICES_COMPONENTS
         )
 
     def _get_tracking_errors(self):
@@ -74,7 +74,7 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
                 airflow_instance_uid=plugin_metadata.airflow_instance_uid,
                 monitor_error_message=error_message,
                 api_mode=plugin_metadata.api_mode,
-            ),
+            )
         )
 
         self._plugin_metadata = plugin_metadata
@@ -85,7 +85,7 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
                 monitor_status="Scheduled",
                 airflow_monitor_version=airflow_monitor.__version__ + " v2",
                 monitor_error_message=None,
-            ),
+            )
         )
 
     @capture_monitor_exception("checking monitor alive")

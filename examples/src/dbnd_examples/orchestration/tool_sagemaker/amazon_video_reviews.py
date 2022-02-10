@@ -165,8 +165,7 @@ def save_as_protobuf(X, Y, target):
 
 
 def chunk(x, batch_size):
-    """split array into chunks of batch_size
-    """
+    """split array into chunks of batch_size"""
     chunk_range = range(0, x.shape[0], batch_size)
     chunks = [x[p : p + batch_size] for p in chunk_range]
     return chunks

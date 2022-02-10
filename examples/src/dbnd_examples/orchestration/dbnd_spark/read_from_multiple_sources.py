@@ -46,7 +46,7 @@ def existing_data(
     data_a=tsv_df,
     data_b=tsv_df,
     data_c=tsv_df,
-    task_config={SparkConfig.conf: extend({"spark.default.parallelism": "2",})},
+    task_config={SparkConfig.conf: extend({"spark.default.parallelism": "2"})},
     result=parquet_df.output(name="filtered_data"),
 )
 def filter_data(

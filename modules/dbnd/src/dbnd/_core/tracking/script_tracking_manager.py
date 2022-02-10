@@ -385,7 +385,7 @@ def dbnd_tracking(name=None, conf=None):
 
 
 def _set_dbnd_config_from_airflow_connections():
-    """ Set Databand config from Extra section in Airflow dbnd_config connection. """
+    """Set Databand config from Extra section in Airflow dbnd_config connection."""
     try:
         from dbnd_airflow.tracking.dbnd_airflow_conf import (
             set_dbnd_config_from_airflow_connections,

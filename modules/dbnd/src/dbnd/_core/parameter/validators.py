@@ -127,11 +127,13 @@ class NumericalValidator(Validator):
 
         self._left_op = left_op
         self._right_op = right_op
-        self._permitted_range = " {left_endpoint}{min_value}, {max_value}{right_endpoint}".format(
-            min_value=self._min_value,
-            max_value=self._max_value,
-            left_endpoint="[" if left_op == operator.le else "(",
-            right_endpoint=")" if right_op == operator.lt else "]",
+        self._permitted_range = (
+            " {left_endpoint}{min_value}, {max_value}{right_endpoint}".format(
+                min_value=self._min_value,
+                max_value=self._max_value,
+                left_endpoint="[" if left_op == operator.le else "(",
+                right_endpoint=")" if right_op == operator.lt else "]",
+            )
         )
 
     @property

@@ -29,7 +29,7 @@ class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
         except DatabandConnectionException as e:
             # connection problems are not recoverable for web tracker
             six.raise_from(
-                TrackerPanicError("Failed to connect the tracking api", inner_error=e,),
+                TrackerPanicError("Failed to connect the tracking api", inner_error=e),
                 from_value=None,
             )
 

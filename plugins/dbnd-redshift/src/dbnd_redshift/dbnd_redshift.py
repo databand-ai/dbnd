@@ -59,7 +59,7 @@ def get_redshift_query_id(statement, connection=None, connection_string=None):
 
 
 def _connect_and_query(connection, connection_string, query, *args):
-    """ connect if needed, then query. """
+    """connect if needed, then query."""
     if (connection is None) and (connection_string is None):
         logger.error(
             "connection and connection string are None, one of them is required to query redshift"

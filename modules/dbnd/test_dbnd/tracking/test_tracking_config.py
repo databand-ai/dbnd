@@ -34,7 +34,7 @@ class TestTrackingConfig:
         ],
     )
     def test_get_value_meta(
-        self, value, value_type, target, expected_value_preview, expected_data_schema,
+        self, value, value_type, target, expected_value_preview, expected_data_schema
     ):
         tracking_config = TrackingConfig.from_databand_context()
         tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
@@ -73,7 +73,7 @@ class TestTrackingConfig:
                     "size.bytes": 56,
                     "type": "List",
                 },
-            ),
+            )
         ],
     )
     def test_get_value_meta_list_of_flat_dict(
@@ -139,7 +139,7 @@ class TestTrackingConfig:
                     "size.bytes": 56,
                     "type": "List",
                 },
-            ),
+            )
         ],
     )
     def test_get_value_meta_list_of_nested_dict(
@@ -189,7 +189,7 @@ class TestTrackingConfig:
                     "size.bytes": 56,
                     "type": "List",
                 },
-            ),
+            )
         ],
     )
     def test_get_value_meta_list_of_dict_with_list_of_flat_dict(
@@ -286,7 +286,7 @@ class TestTrackingConfig:
                     "size.bytes": 56,
                     "type": "List",
                 },
-            ),
+            )
         ],
     )
     def test_get_value_meta_list_of_dict_with_list_of_nested_dicts(
@@ -387,7 +387,7 @@ class TestTrackingConfig:
                     "size.bytes": 56,
                     "type": "List",
                 },
-            ),
+            )
         ],
     )
     def test_get_value_meta_list_of_dict_with_list_of_nested_dicts_with_different_keys(
@@ -421,11 +421,11 @@ class TestTrackingConfig:
                 '[{"a": "a", "b": "b"}, {"a": "c", "b": "d"}, {"a": "e", "b": "f"}, {"a": '
                 '"g", "b": "h"}, {"a": "i", "b": "j"}, {"a": "k", "b": "l"}, {"a": "m", "b": '
                 '"n"}, {"a": "o", "b": "p"}, {"a": "q", "b": "r"}, {"a": "s", "b": "t"}]',
-            ),
+            )
         ],
     )
     def test_get_value_meta_preview_size_default_max_elements(
-        self, value, value_type, target, expected_value_preview,
+        self, value, value_type, target, expected_value_preview
     ):
         tracking_config = TrackingConfig.from_databand_context()
         tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
@@ -463,11 +463,11 @@ class TestTrackingConfig:
                 None,
                 '[{"a": "a", "b": "b"}, {"a": "c", "b": "d"}, {"a": "e", "b": "f"}, {"a": '
                 '"g", "b": "h"}, {"a": "i", "b": "j"}]',
-            ),
+            )
         ],
     )
     def test_get_value_meta_preview_size_config_max_elements(
-        self, value, value_type, target, expected_value_preview,
+        self, value, value_type, target, expected_value_preview
     ):
         tracking_config = TrackingConfig.from_databand_context()
         tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL
@@ -484,10 +484,10 @@ class TestTrackingConfig:
 
     @pytest.mark.parametrize(
         "value, value_type, target, expected_value_preview",
-        [([{"a": "a", "b": "b"},], ListValueType(), None, '[{"a": "a", "b": "b"}]',),],
+        [([{"a": "a", "b": "b"}], ListValueType(), None, '[{"a": "a", "b": "b"}]')],
     )
     def test_get_value_meta_preview_small_size(
-        self, value, value_type, target, expected_value_preview,
+        self, value, value_type, target, expected_value_preview
     ):
         tracking_config = TrackingConfig.from_databand_context()
         tracking_config.value_reporting_strategy = ValueTrackingLevel.ALL

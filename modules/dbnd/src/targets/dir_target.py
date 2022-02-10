@@ -16,23 +16,23 @@ DEFAULT_FLAG_FILE_NAME = "_SUCCESS"
 class DirTarget(FileTarget):
     def __init__(self, path, fs, config=None, io_pipe=None, source=None):
         """
-         If `flag` Defines a target directory with a flag-file (defaults to `_SUCCESS`) used
-    to signify job success.
+             If `flag` Defines a target directory with a flag-file (defaults to `_SUCCESS`) used
+        to signify job success.
 
-        This checks for two things:
+            This checks for two things:
 
-        * the path exists (just like the S3Target)
-        * the _SUCCESS file exists within the directory.
+            * the path exists (just like the S3Target)
+            * the _SUCCESS file exists within the directory.
 
-        Because Hadoop outputs into a directory and not a single file,
-        the path is assumed to be a directory.
+            Because Hadoop outputs into a directory and not a single file,
+            the path is assumed to be a directory.
 
-        :param path:
-        :param fs:
-        :param config:
-        :param io_pipe:
-        :param flag:
-        :param source:
+            :param path:
+            :param fs:
+            :param config:
+            :param io_pipe:
+            :param flag:
+            :param source:
         """
 
         super(DirTarget, self).__init__(

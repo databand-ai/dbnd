@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 @task
 def airflow_status():
     """
-        Raises error if required tracking plugin is not installed.
-        Logs plugins versions if installed.
+    Raises error if required tracking plugin is not installed.
+    Logs plugins versions if installed.
     """
     report = DoctorStatusReportBuilder("Airflow Status")
     logger.info("Checking Databand+Airflow installation")

@@ -34,7 +34,7 @@ def get_retry_policy(name, policy=None, seconds_to_sleep=5, max_retries=5):
             seconds_to_sleep=seconds_to_sleep, max_retries=max_retries
         )
     else:
-        raise DatabandConfigError(u"Retry policy '{}' not supported".format(policy))
+        raise DatabandConfigError("Retry policy '{}' not supported".format(policy))
 
 
 class LinearRetryPolicy(object):
@@ -72,7 +72,7 @@ class ConfigurableRetryPolicy(LinearRetryPolicy):
             retry_seconds_to_sleep_list = [5]
         elif not all(n > 0 for n in retry_seconds_to_sleep_list):
             raise DatabandConfigError(
-                u"All items in the list in your config need to be positive for configurable retry policy"
+                "All items in the list in your config need to be positive for configurable retry policy"
             )
 
         self.retry_seconds_to_sleep_list = retry_seconds_to_sleep_list

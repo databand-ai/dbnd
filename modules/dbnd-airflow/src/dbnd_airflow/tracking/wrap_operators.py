@@ -128,21 +128,17 @@ def set_task_run_state_safe(tracking_store, task_run, state):
     try:
         tracking_store.set_task_run_state(task_run=task_run, state=state)
     except Exception as exc:
-        logger.error(
-            "Unable to set task run state: %s", exc,
-        )
+        logger.error("Unable to set task run state: %s", exc)
 
 
 def save_extrnal_links_safe(tracking_store, task_run, links_dict):
     # (TrackingStore, Any, Dict[str, str]) -> None
     try:
         tracking_store.save_external_links(
-            task_run=task_run, external_links_dict=links_dict,
+            task_run=task_run, external_links_dict=links_dict
         )
     except Exception as exc:
-        logger.error(
-            "Unable to set external links: %s", exc,
-        )
+        logger.error("Unable to set external links: %s", exc)
 
 
 @contextmanager

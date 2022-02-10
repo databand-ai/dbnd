@@ -24,9 +24,7 @@ MAX_CLEAN_SUBDOMAIN_NAME_DNS1123_LEN = 253
 MAX_CLEAN_LABEL_NAME_DNS1123_LEN = 63
 
 
-def clean_name_dns1123(
-    value, max_size, postfix=None,
-):
+def clean_name_dns1123(value, max_size, postfix=None):
     # type:(str, int, Optional[str]) -> str
     """
     Create a dns-1123 compatible name.
@@ -67,7 +65,7 @@ def create_pod_id(task_run):
 
     return clean_subdomain_name_dns1123(
         "dbnd.{task_family}.{task_name}".format(
-            task_family=task_run.task.task_family, task_name=task_run.task.task_name,
+            task_family=task_run.task.task_family, task_name=task_run.task.task_name
         ),
         postfix=".%s" % str(task_run.task_run_uid)[:8],
     )

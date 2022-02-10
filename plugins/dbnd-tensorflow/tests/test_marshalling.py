@@ -54,9 +54,7 @@ def history_passer(history):
 
 
 @task(result=output.tfhistory[tf.keras.callbacks.History])
-def train_model(
-    model, learning_rate=0.001, epochs=1, batch_size=128,
-):
+def train_model(model, learning_rate=0.001, epochs=1, batch_size=128):
     data = load_data()
 
     model.compile(

@@ -77,7 +77,7 @@ def set_scheduled_job_active(name, value, ctx=None):
 def _get_scheduled_jobs(client, query_api_args):
     endpoint = "?".join(["scheduled_jobs", query_api_args])
     schema = ScheduledJobSchemaV2(strict=False)
-    response = client.api_request(endpoint=endpoint, data=None, method="GET",)
+    response = client.api_request(endpoint=endpoint, data=None, method="GET")
     return schema.load(data=response["data"], many=True).data
 
 

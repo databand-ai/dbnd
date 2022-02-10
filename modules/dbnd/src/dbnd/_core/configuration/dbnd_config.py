@@ -139,7 +139,7 @@ class DbndConfig(object):
         Global override, changing current layout
         """
         self.config_layer = self._new_config_layer(
-            config_values, source=source, priority=priority,
+            config_values, source=source, priority=priority
         )
         return self.config_layer
 
@@ -155,9 +155,7 @@ class DbndConfig(object):
         )
 
     def set(self, section, key, value, priority=None, source=None):
-        self.set_values(
-            {section: {key: value}}, source=source, priority=priority,
-        )
+        self.set_values({section: {key: value}}, source=source, priority=priority)
 
     def set_parameter(self, parameter, value, source=None):
         # type: (ParameterDefinition, object, str) -> None

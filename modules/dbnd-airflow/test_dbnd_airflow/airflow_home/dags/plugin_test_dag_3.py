@@ -23,8 +23,8 @@ def task3():
     return "Ola Mundo!"
 
 
-op1 = PythonOperator(task_id="task1", python_callable=task1, dag=dag,)
-op2 = PythonOperator(task_id="task2", python_callable=task2, dag=dag,)
-op3 = PythonOperator(task_id="task3", python_callable=task3, dag=dag,)
+op1 = PythonOperator(task_id="task1", python_callable=task1, dag=dag)
+op2 = PythonOperator(task_id="task2", python_callable=task2, dag=dag)
+op3 = PythonOperator(task_id="task3", python_callable=task3, dag=dag)
 
 op1 >> op2 >> op3

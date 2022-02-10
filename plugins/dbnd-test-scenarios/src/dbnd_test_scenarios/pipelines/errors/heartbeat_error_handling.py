@@ -64,7 +64,7 @@ if __name__ == "__main__":
     logger.info("Message via logger")
     from dbnd import config
 
-    with config({"core": {"tracker": "",}}):
+    with config({"core": {"tracker": ""}}):
         dbnd_bootstrap()
 
         context = get_databand_context()

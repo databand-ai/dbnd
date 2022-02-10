@@ -47,7 +47,7 @@ class TestBuildTaskWithTaskBand(object):
         assert run.run_executor.result.load("result") == 1
 
     def test_build_task_with_task_band_from_cli(self, task_band_file):
-        run = dbnd_run_cmd(["First", "--set", "First.input_1=3",])
+        run = dbnd_run_cmd(["First", "--set", "First.input_1=3"])
 
         assert run.run_executor.result.load("result") == 3
 

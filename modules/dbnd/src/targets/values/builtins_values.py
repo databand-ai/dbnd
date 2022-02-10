@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class DataValueType(ValueType):
     """
-      ValueType whose value is a ```target```.
-      It will be "dereferenced accordingly to value_type
+    ValueType whose value is a ```target```.
+    It will be "dereferenced accordingly to value_type
     """
 
     support_from_str = False
@@ -73,7 +73,7 @@ STR_VALUE_TYPE = StrValueType()
 
 
 class NullableStrValueType(ValueType):
-    """ A ValueType that treats empty string as None """
+    """A ValueType that treats empty string as None"""
 
     type = NullableStr
     discoverable = False

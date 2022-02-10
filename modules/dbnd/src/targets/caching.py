@@ -100,7 +100,7 @@ class DbndLocalFileMetadataRegistry(object):
     default_ttl = "1d"
 
     def __init__(
-        self, file_path, local_md5=None, remote_md5=None, created_at=None, ttl=None,
+        self, file_path, local_md5=None, remote_md5=None, created_at=None, ttl=None
     ):
         self._file_path = file_path
         self._cache_file_path = self._resolve_cache_file_name(file_path)
@@ -201,10 +201,7 @@ class DbndLocalFileMetadataRegistry(object):
     @property
     def expired(self):
         """Check if cache file is still valid"""
-        time_map = {
-            "d": timedelta(days=1),
-            "h": timedelta(hours=1),
-        }
+        time_map = {"d": timedelta(days=1), "h": timedelta(hours=1)}
         interval_type = self._ttl[-1]
         interval_value = int(self._ttl[:-1])
         expired_at = self._created_at + interval_value * time_map[interval_type]

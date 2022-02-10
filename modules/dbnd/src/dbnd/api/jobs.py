@@ -19,7 +19,7 @@ def is_job_exists(job_name):
 def _get_job(client, query_api_args):
     endpoint = "?".join(["jobs", query_api_args])
     schema = JobSchemaV2(strict=False)
-    response = client.api_request(endpoint=endpoint, data="", method="GET",)
+    response = client.api_request(endpoint=endpoint, data="", method="GET")
     return schema.load(data=response["data"], many=True).data
 
 

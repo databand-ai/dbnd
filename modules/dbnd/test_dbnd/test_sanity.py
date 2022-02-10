@@ -21,8 +21,7 @@ class TestSanityTasks(object):
         dbnd_run_cmd(["dbnd_sanity_check"])
 
     def test_import_package(self):
-        """Test that all module can be imported
-        """
+        """Test that all module can be imported"""
 
         project_dir = os.path.join(os.path.dirname(__file__), "..", "src")
         good_modules = import_all_modules(

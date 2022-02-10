@@ -17,7 +17,7 @@ def parse_bool(s):
 
 
 def indent(string, prefix):
-    """ a backward compatible textwrap.indent replacement """
+    """a backward compatible textwrap.indent replacement"""
     if not string:
         return ""
 

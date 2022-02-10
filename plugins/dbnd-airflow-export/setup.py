@@ -19,6 +19,6 @@ setuptools.setup(
     entry_points={
         "airflow.plugins": [
             "dbnd_airflow_export = dbnd_airflow.export_plugin.dbnd_airflow_export_plugin:DataExportAirflowPlugin"
-        ],
+        ]
     },
 )

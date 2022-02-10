@@ -229,7 +229,7 @@ class RunExecutor(object):
         )
 
         logger.warning(
-            u"\n\n{sep}\n{banner}\n{sep}".format(
+            "\n\n{sep}\n{banner}\n{sep}".format(
                 sep=console_utils.error_separator(),
                 banner=self.run.describe.run_banner(
                     "Your run has failed! See more info above.",
@@ -635,7 +635,7 @@ class _RunExecutor_Task(Task):
             # we print it on any exception
             logger.warning("Run failure: %s" % ex)
             logger.warning(
-                u"\n\n\n\n{sep}\n\n   -= Your run has failed, please review errors below =-\n\n{sep}\n".format(
+                "\n\n\n\n{sep}\n\n   -= Your run has failed, please review errors below =-\n\n{sep}\n".format(
                     sep=console_utils.error_separator()
                 )
             )
@@ -660,15 +660,15 @@ class _RunExecutor_Task(Task):
 
             if canceled_msgs:
                 logger.warning(
-                    u"\nNumber of canceled tasks={count}:\n{banner}\n".format(
-                        banner=u"\n".join(canceled_msgs), count=len(canceled_msgs)
+                    "\nNumber of canceled tasks={count}:\n{banner}\n".format(
+                        banner="\n".join(canceled_msgs), count=len(canceled_msgs)
                     )
                 )
 
             if failed_msgs:
                 logger.warning(
-                    u"\nNumber of failed tasks={count}:\n{banner}\n".format(
-                        banner=u"\n".join(failed_msgs), count=len(failed_msgs)
+                    "\nNumber of failed tasks={count}:\n{banner}\n".format(
+                        banner="\n".join(failed_msgs), count=len(failed_msgs)
                     )
                 )
             raise

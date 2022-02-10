@@ -86,9 +86,7 @@ def build_instances_table(instances_data):
     type=click.Choice(["web", "db"], case_sensitive=False),
     default="db",
 )
-@click.option(
-    "--env", help="Environment", type=click.STRING, default=None,
-)
+@click.option("--env", help="Environment", type=click.STRING, default=None)
 @click.option(
     "--include-sources",
     help="Monitor source code for tasks",
@@ -113,9 +111,7 @@ def build_instances_table(instances_data):
     type=click.STRING,
     default=None,
 )
-@click.option(
-    "--name", help="Name for the syncer", type=click.STRING, default=None,
-)
+@click.option("--name", help="Name for the syncer", type=click.STRING, default=None)
 @click.option(
     "--generate-token",
     help="Generate access token for the syncer, value is token lifespan (in seconds)",
@@ -244,9 +240,7 @@ def add(
     type=click.Choice(["web", "db"], case_sensitive=False),
     default="db",
 )
-@click.option(
-    "--env", help="Environment", type=click.STRING, default=None,
-)
+@click.option("--env", help="Environment", type=click.STRING, default=None)
 @click.option(
     "--include-sources",
     help="Don't monitor source code for tasks",
@@ -271,9 +265,7 @@ def add(
     type=click.STRING,
     default=None,
 )
-@click.option(
-    "--name", help="Name for the syncer", type=click.STRING, default=None,
-)
+@click.option("--name", help="Name for the syncer", type=click.STRING, default=None)
 @click.option(
     "--with-auto-alerts",
     help="Create syncer with auto alerts config",

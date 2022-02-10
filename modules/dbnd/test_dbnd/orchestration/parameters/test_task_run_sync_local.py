@@ -132,7 +132,7 @@ class TestTaskRunSyncLocal(TargetTestBase):
             assert mocked_fs_download.call_count == 2
             mocked_fs_download.assert_has_calls(
                 [
-                    call(remote_subtarget.path, TMP_FILE_PATH,)
+                    call(remote_subtarget.path, TMP_FILE_PATH)
                     for remote_subtarget, local_subtarget in zip(
                         my_multitarget.targets, local_multitarget.targets
                     )
@@ -172,9 +172,7 @@ class TestTaskRunSyncLocal(TargetTestBase):
             monkeypatch.setattr(FileTarget, "tmp", mock_tmp)
 
             sync_local.sync_pre_execute()
-            mocked_fs_download.assert_called_once_with(
-                my_target.path, TMP_FILE_PATH,
-            )
+            mocked_fs_download.assert_called_once_with(my_target.path, TMP_FILE_PATH)
 
         assert test_task.input_ == local_target
 

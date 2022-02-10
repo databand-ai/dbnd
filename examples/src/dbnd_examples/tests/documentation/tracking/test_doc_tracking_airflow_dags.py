@@ -54,7 +54,7 @@ class TestDocTrackingAirflowDags:
             return 0.5
 
         PythonOperator(
-            task_id="calculate_alpha", python_callable=calculate_alpha, dag=dag,
+            task_id="calculate_alpha", python_callable=calculate_alpha, dag=dag
         )
 
         track_dag(dag)

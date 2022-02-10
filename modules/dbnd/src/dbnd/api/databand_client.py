@@ -42,9 +42,7 @@ class DatabandClient(object):
         return task_runs_info[-1]
 
     def get_metrics(self, task_run_attempt_uid, source=None):
-        query = {
-            "task_run_attempt_uid": task_run_attempt_uid,
-        }
+        query = {"task_run_attempt_uid": task_run_attempt_uid}
         if source:
             query["source"] = source
         metrics = self.api_client.api_request(
@@ -71,13 +69,13 @@ class DatabandClient(object):
 
     def get_run_info(self, run_uid):
         run_info = self.api_client.api_request(
-            "/api/client/v1/run/%s" % run_uid, None, method="GET",
+            "/api/client/v1/run/%s" % run_uid, None, method="GET"
         )
         return run_info
 
     def get_all_runs_info(self):
         runs_info = self.api_client.api_request(
-            "/api/client/v1/run_info", None, method="GET",
+            "/api/client/v1/run_info", None, method="GET"
         )
         return runs_info
 

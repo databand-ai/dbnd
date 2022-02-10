@@ -94,7 +94,7 @@ def open_mock(path, *args, **kwargs):
             110,  # tail size
             [
                 # two line of head
-                ["[2020-01-01 00:00:01,000] first log line",],
+                ["[2020-01-01 00:00:01,000] first log line"],
                 # two lines of tail
                 [
                     "[2020-01-01 00:00:38,000] 0,1,1,2,3,5,8,13,21,34,55",

@@ -17,7 +17,7 @@ class DatabricksCloud(object):
 
 
 class DatabricksConfig(SparkEngineConfig):
-    """Databricks cloud for Apache Spark """
+    """Databricks cloud for Apache Spark"""
 
     _conf__task_family = "databricks"
     cluster_type = SparkClusters.databricks

@@ -57,9 +57,7 @@ class TaskRunError(object):
         :return: TaskRunError
         """
         try:
-            raise ex_class(
-                msg, show_exc_info=False, help_msg=help_msg,
-            )
+            raise ex_class(msg, show_exc_info=False, help_msg=help_msg)
         except DatabandError:
             return TaskRunError(
                 exc_info=sys.exc_info(),

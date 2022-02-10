@@ -49,7 +49,7 @@ def _add_tracking_to_policy():
 
 
 def add_tracking_to_policy():
-    """ Add tracking to all tasks as part of airflow policy """
+    """Add tracking to all tasks as part of airflow policy"""
     try:
         _add_tracking_to_policy()
     except Exception as e:
@@ -57,7 +57,7 @@ def add_tracking_to_policy():
 
 
 def patch_airflow_context_vars():
-    """ Used for tracking bash operators """
+    """Used for tracking bash operators"""
     import airflow
 
     from airflow.utils import operator_helpers

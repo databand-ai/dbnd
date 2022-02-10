@@ -41,7 +41,7 @@ class JobFromFileSchema(Schema):
     owner = fields.Str(allow_none=False)
 
     end_date = fields.DateTime(allow_none=True, format="iso")
-    depends_on_past = fields.Boolean(allow_none=True,)
+    depends_on_past = fields.Boolean(allow_none=True)
 
     catchup = fields.Boolean(allow_none=True)
     retries = fields.Int(allow_none=True)

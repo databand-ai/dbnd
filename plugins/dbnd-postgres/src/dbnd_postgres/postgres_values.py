@@ -48,10 +48,7 @@ class PostgresTableValueType(DataValueType):
             if meta_conf.log_preview:
                 data_preview = postgres.to_preview()
             if meta_conf.log_schema:
-                data_schema = {
-                    "type": self.type_str,
-                    "dtypes": postgres.columns_types,
-                }
+                data_schema = {"type": self.type_str, "dtypes": postgres.columns_types}
 
         return ValueMeta(
             value_preview=data_preview,

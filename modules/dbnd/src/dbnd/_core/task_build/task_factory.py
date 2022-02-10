@@ -260,8 +260,7 @@ class TaskFactory(object):
 
             if param_def.config_path:
                 config_path = self.config.get_config_value(
-                    section=param_def.config_path.section,
-                    key=param_def.config_path.key,
+                    section=param_def.config_path.section, key=param_def.config_path.key
                 )
                 if config_path:
                     return [config_path]

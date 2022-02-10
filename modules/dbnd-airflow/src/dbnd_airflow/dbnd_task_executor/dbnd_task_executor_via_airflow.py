@@ -89,10 +89,10 @@ def create_dagrun_from_dbnd_run(
             from airflow.utils.types import DagRunType
 
             version_specific_params = dict(
-                state=state, run_type=DagRunType.BACKFILL_JOB,
+                state=state, run_type=DagRunType.BACKFILL_JOB
             )
         else:
-            version_specific_params = dict(_state=state,)
+            version_specific_params = dict(_state=state)
         dagrun = DagRun(
             run_id=run_id,
             execution_date=execution_date,
@@ -193,8 +193,10 @@ class AirflowTaskExecutor(TaskExecutor):
         )
         not_initialised_help_mdg = "Make sure that you run the command: airflow initdb"
 
-        err_msg = "You are running in Airflow mode (task_executor={}) with DB at {}".format(
-            RunConfig().task_executor_type, conn_string_url.__repr__()
+        err_msg = (
+            "You are running in Airflow mode (task_executor={}) with DB at {}".format(
+                RunConfig().task_executor_type, conn_string_url.__repr__()
+            )
         )
 
         from dbnd_airflow._vendor.database import database_exists

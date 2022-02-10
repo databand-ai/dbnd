@@ -43,7 +43,7 @@ class AdvancedSparkConfigExample(PySparkInlineTask):
         self.my_p = 10
 
     def run(self):
-        """ simple map function, it will run inside spark context (after submission by dbnd) """
+        """simple map function, it will run inside spark context (after submission by dbnd)"""
         from operator import add
 
         lines = self.text.rdd.map(lambda r: r[0])
@@ -83,7 +83,7 @@ class AdvancedConfigTaskMetaclass(TaskMetaclass):
 
 @six.add_metaclass(AdvancedConfigTaskMetaclass)
 class PySparkInlineWithAdvancedConfig(PySparkInlineTask):
-    """ you can apply AdvancedConfigTaskMetaclass to specific task or to some `base` class """
+    """you can apply AdvancedConfigTaskMetaclass to specific task or to some `base` class"""
 
     @classmethod
     def get_custom_config(cls):
@@ -100,7 +100,7 @@ class AdvancedSparkConfigAtMetaclassExample(PySparkInlineWithAdvancedConfig):
     my_p = parameter.value(3)
 
     def run(self):
-        """ simple map function, it will run inside spark context (after submission by dbnd) """
+        """simple map function, it will run inside spark context (after submission by dbnd)"""
         from operator import add
 
         lines = self.text.rdd.map(lambda r: r[0])

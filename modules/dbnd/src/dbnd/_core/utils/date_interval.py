@@ -68,7 +68,7 @@ class DateInterval(object):
         self.date_b = date_b
 
     def dates(self):
-        """ Returns a list of dates in this date interval."""
+        """Returns a list of dates in this date interval."""
         dates = []
         d = self.date_a
         while d < self.date_b:
@@ -78,7 +78,7 @@ class DateInterval(object):
         return dates
 
     def hours(self):
-        """ Same as dates() but returns 24 times more info: one for each hour."""
+        """Same as dates() but returns 24 times more info: one for each hour."""
         for date in self.dates():
             for hour in xrange(24):
                 yield datetime.datetime.combine(date, datetime.time(hour))
@@ -90,11 +90,11 @@ class DateInterval(object):
         return self.to_string()
 
     def prev(self):
-        """ Returns the preceding corresponding date interval (eg. May -> April)."""
+        """Returns the preceding corresponding date interval (eg. May -> April)."""
         return self.from_date(self.date_a - datetime.timedelta(1))
 
     def next(self):
-        """ Returns the subsequent corresponding date interval (eg. 2014 -> 2015)."""
+        """Returns the subsequent corresponding date interval (eg. 2014 -> 2015)."""
         return self.from_date(self.date_b)
 
     def to_string(self):
@@ -102,14 +102,14 @@ class DateInterval(object):
 
     @classmethod
     def from_date(cls, d):
-        """ Abstract class method.
+        """Abstract class method.
 
         For instance, ``Month.from_date(datetime.date(2012, 6, 6))`` returns a ``Month(2012, 6)``."""
         raise NotImplementedError
 
     @classmethod
     def parse(cls, s):
-        """ Abstract class method.
+        """Abstract class method.
 
         For instance, ``Year.parse("2014")`` returns a ``Year(2014)``."""
         raise NotImplementedError
@@ -165,7 +165,7 @@ class DateInterval(object):
 
 class Date(DateInterval):
 
-    """ Most simple :class:`DateInterval` where ``date_b == date_a + datetime.timedelta(1)``."""
+    """Most simple :class:`DateInterval` where ``date_b == date_a + datetime.timedelta(1)``."""
 
     def __init__(self, y, m, d):
         a = datetime.date(y, m, d)
@@ -187,13 +187,13 @@ class Date(DateInterval):
 
 class Week(DateInterval):
 
-    """ ISO 8601 week. Note that it has some counterintuitive behavior around new year.
+    """ISO 8601 week. Note that it has some counterintuitive behavior around new year.
     For instance Monday 29 December 2008 is week 2009-W01, and Sunday 3 January 2010 is week 2009-W53
     This example was taken from from http://en.wikipedia.org/wiki/ISO_8601#Week_dates
     """
 
     def __init__(self, y, w):
-        """ Python datetime does not have a method to convert from ISO weeks, so the constructor uses some stupid brute force"""
+        """Python datetime does not have a method to convert from ISO weeks, so the constructor uses some stupid brute force"""
         for d in xrange(-10, 370):
             date = datetime.date(y, 1, 1) + datetime.timedelta(d)
             if date.isocalendar() == (y, w, 1):

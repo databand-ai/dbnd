@@ -25,7 +25,7 @@ requirements_for_airflow = [
 setuptools.setup(
     name="dbnd-airflow",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version, "packaging",],
+    install_requires=["dbnd==" + version, "packaging"],
     # Only for orchestration, tracking users should install Airflow manually before DBND
     # The best way to install airflow is manually with constraints beforehand.
     # For example:
@@ -70,5 +70,5 @@ setuptools.setup(
             "sh",
         ],
     ),
-    entry_points={"dbnd": ["dbnd-airflow = dbnd_airflow._plugin"],},
+    entry_points={"dbnd": ["dbnd-airflow = dbnd_airflow._plugin"]},
 )

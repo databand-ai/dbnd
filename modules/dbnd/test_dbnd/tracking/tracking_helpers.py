@@ -60,9 +60,7 @@ def get_log_metrics(mock_channel_tracker):
                 yield metric_info
 
 
-def get_task_target_result(
-    mock_channel_tracker, task_name,
-):
+def get_task_target_result(mock_channel_tracker, task_name):
     return first(
         filter(
             lambda target_info: (

@@ -24,8 +24,7 @@ class MultiTarget(DataTarget):
         return self._targets
 
     def open(self, mode="r"):
-        """
-        """
+        """ """
         if "r" in mode:
             return MultiTargetOpen(targets=self.list_partitions(), mode=mode)
         elif "w" in mode:

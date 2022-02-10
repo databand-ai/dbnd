@@ -30,9 +30,11 @@ def generate_airflow_func_call(
             )
         )
     elif task_id is not None:
-        return "{operator}(task_id='{task_id}', retries='{retries}', {command}))".format(
-            operator=task_type,
-            task_id=task_id,
-            retries=task_retries,
-            command=task_command,
+        return (
+            "{operator}(task_id='{task_id}', retries='{retries}', {command}))".format(
+                operator=task_type,
+                task_id=task_id,
+                retries=task_retries,
+                command=task_command,
+            )
         )

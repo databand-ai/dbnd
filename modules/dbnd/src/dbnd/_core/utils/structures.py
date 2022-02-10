@@ -7,12 +7,12 @@ logger = logging.getLogger(__file__)
 
 
 def inverse_dict(x):
-    """ Make keys or values and values of keys """
+    """Make keys or values and values of keys"""
     return {v: k for k, v in six.iteritems(x)}
 
 
 def list_to_tuple(x):
-    """ Make tuples out of lists and sets to allow hashing """
+    """Make tuples out of lists and sets to allow hashing"""
     if isinstance(x, list) or isinstance(x, set):
         return tuple(x)
     else:

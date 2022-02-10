@@ -45,7 +45,7 @@ class RunStateChoice(click.Choice):
 class TaskRunStateChoice(click.Choice):
     def __init__(self):
         super(TaskRunStateChoice, self).__init__(
-            choices=TaskRunState.all_values(), case_sensitive=False,
+            choices=TaskRunState.all_values(), case_sensitive=False
         )
 
     def convert(self, value, param, ctx):
@@ -237,12 +237,12 @@ def bind_create_to_supported_alert(
 
     if metric is None:
         create_alert_command = click.option(
-            "--metric-name", "-m", help=METRIC_HELP, type=click.STRING, required=True,
+            "--metric-name", "-m", help=METRIC_HELP, type=click.STRING, required=True
         )(create_alert_command)
 
     if is_str_value is None:
         create_alert_command = click.option(
-            "--str-value", help=IS_STR_VALUE_HELP, type=click.BOOL, required=True,
+            "--str-value", help=IS_STR_VALUE_HELP, type=click.BOOL, required=True
         )(create_alert_command)
 
     create_alert_command.__name__ = name

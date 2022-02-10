@@ -44,7 +44,7 @@ class AtomicLocalFile(io.BufferedWriter):
         return self.__tmp_path
 
     def __exit__(self, exc_type, exc, traceback):
-        " Close/commit the file if there are no exception "
+        "Close/commit the file if there are no exception"
         if exc_type:
             return
         return super(AtomicLocalFile, self).__exit__(exc_type, exc, traceback)

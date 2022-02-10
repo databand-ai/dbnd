@@ -31,9 +31,9 @@ class AirflowTrackingConfig(Config):
 
     # This shouldn't be set to None. In webserver None evaluates to True.
     af_with_monitor = parameter(
-        default=True, description="Activate when airflow monitor is not in use",
+        default=True, description="Activate when airflow monitor is not in use"
     )[bool]
 
     sql_reporting = parameter(
-        default=False, description="Enable targets reporting from sql queries",
+        default=False, description="Enable targets reporting from sql queries"
     )[bool]

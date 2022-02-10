@@ -80,8 +80,7 @@ def reset_state_for_orphaned_tasks(
         resettable_tis = (
             session.query(TI)
             .join(
-                DR,
-                and_(TI.dag_id == DR.dag_id, TI.execution_date == DR.execution_date),
+                DR, and_(TI.dag_id == DR.dag_id, TI.execution_date == DR.execution_date)
             )
             .filter(
                 DR.state == State.RUNNING,
@@ -130,8 +129,6 @@ def reset_state_for_orphaned_tasks(
     session.commit()
 
     single_dag_run_job.log.info(
-        "Reset the following %s TaskInstances:\n\t%s",
-        len(reset_tis),
-        task_instance_str,
+        "Reset the following %s TaskInstances:\n\t%s", len(reset_tis), task_instance_str
     )
     return reset_tis

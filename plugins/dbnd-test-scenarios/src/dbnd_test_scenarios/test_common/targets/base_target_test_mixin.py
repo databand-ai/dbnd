@@ -65,7 +65,7 @@ class FileTargetTestMixin(object):
     def test_unicode_obj(self):
         target = self.create_target()
 
-        origdata = u"lol\n"
+        origdata = "lol\n"
         fobj = target.open("w")
         fobj.write(origdata)
         fobj.close()
@@ -126,7 +126,7 @@ class FileTargetTestMixin(object):
 
     def test_text(self):
         t = self.create_target(targets.pipes.UTF8)
-        a = u"我éçф"
+        a = "我éçф"
         with t.open("w") as f:
             f.write(a)
         with t.open("r") as f:
@@ -136,7 +136,7 @@ class FileTargetTestMixin(object):
     def test_del_with_Text(self):
         t = self.create_target(targets.pipes.UTF8)
         p = t.open("w")
-        print(u"test", file=p)
+        print("test", file=p)
         tp = getattr(p, "tmp_path", "")
         del p
 

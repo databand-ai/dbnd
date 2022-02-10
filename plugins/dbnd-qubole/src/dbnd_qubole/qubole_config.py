@@ -13,7 +13,7 @@ class Qubole(object):
 
 
 class QuboleConfig(SparkEngineConfig):
-    """Databricks cloud for Apache Spark """
+    """Databricks cloud for Apache Spark"""
 
     _conf__task_family = "qubole"
     cluster_type = SparkClusters.qubole

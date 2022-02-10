@@ -17,7 +17,7 @@ class TestDocInputsOutputs:
         #### DOC START
         @task
         def train_model(
-            training_set: DataFrame, alpha: float = 0.5, l1_ratio: float = 0.5,
+            training_set: DataFrame, alpha: float = 0.5, l1_ratio: float = 0.5
         ) -> ElasticNet:
             lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
             lr.fit(training_set.drop(["quality"], 1), training_set[["quality"]])

@@ -3,7 +3,4 @@ from airflow_monitor.shared.runners.multi_process_runner import MultiProcessRunn
 from airflow_monitor.shared.runners.sequential_runner import SequentialRunner
 
 
-RUNNER_FACTORY = {
-    "seq": SequentialRunner,
-    "mp": MultiProcessRunner,
-}
+RUNNER_FACTORY = {"seq": SequentialRunner, "mp": MultiProcessRunner}

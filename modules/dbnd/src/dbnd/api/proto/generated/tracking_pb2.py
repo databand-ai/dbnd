@@ -195,7 +195,7 @@ _EVENT = _descriptor.Descriptor(
         ),
     ],
     extensions=[],
-    nested_types=[_EVENT_LABELSENTRY,],
+    nested_types=[_EVENT_LABELSENTRY],
     enum_types=[],
     serialized_options=None,
     is_extendable=False,
@@ -449,7 +449,7 @@ _SEARCHEVENTRESPONSE = _descriptor.Descriptor(
             serialized_options=None,
             file=DESCRIPTOR,
             create_key=_descriptor._internal_create_key,
-        ),
+        )
     ],
     extensions=[],
     nested_types=[],

@@ -7,19 +7,19 @@ from dbnd._core.utils.task_utils import to_targets
 @attr.s(hash=False, repr=False, str=False)
 class _TargetParameter(ParameterDefinition):  # extracted for generics support
     """
-      Parameter whose value is a ```target```.
+    Parameter whose value is a ```target```.
 
-      In the task definition, use
+    In the task definition, use
 
-      .. code-block:: python
+    .. code-block:: python
 
-          class MyTask(dbnd.Task):
-              some_input = data
+        class MyTask(dbnd.Task):
+            some_input = data
 
-              def run(self):
-                    self.some_input.open('r')
+            def run(self):
+                  self.some_input.open('r')
 
-      """
+    """
 
     def normalize(self, x):
         # can not move to value_type, we need target_config

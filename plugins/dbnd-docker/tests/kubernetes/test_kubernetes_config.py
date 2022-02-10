@@ -96,7 +96,7 @@ class TestTaskConfig(object):
         ],
     )
     def test_extend_k8s_labels(self, name, test_config, expected):
-        with new_dbnd_context(conf={CoreConfig.tracker: "console"},):
+        with new_dbnd_context(conf={CoreConfig.tracker: "console"}):
             ts = read_from_config_stream(seven.StringIO(test_config))
             with config(ts):
                 task_with_extend.dbnd_run(name, expected)

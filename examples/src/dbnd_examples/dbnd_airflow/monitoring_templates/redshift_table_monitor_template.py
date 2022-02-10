@@ -36,10 +36,10 @@ DEFAULT_ARGS = {
 
 def monitor_redshift_table(**op_kwarg):
     """Redshift table monitor collects the following metrics:
-        - record count
-        - duplicate records
-        - Null/NaN record counts in each column
-        - mean, median, min, max, std of each numeric column
+    - record count
+    - duplicate records
+    - Null/NaN record counts in each column
+    - mean, median, min, max, std of each numeric column
     """
 
     hook = PostgresHook(REDSHIFT_CONNECTION_ID)

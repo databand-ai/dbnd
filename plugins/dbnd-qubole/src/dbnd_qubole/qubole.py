@@ -129,9 +129,7 @@ class QuboleCtrl(SparkCtrl):
             else:
                 time.sleep(self.qubole_config.status_polling_interval_seconds)
 
-    def _handle_done_job(
-        self, status,
-    ):
+    def _handle_done_job(self, status):
         pass
 
     def _qubole_banner(self, status):

@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 
 @task(result="training_data, testing_data")
 def prepare_data() -> Tuple[DataFrame, DataFrame]:
-    """ load dataset from sklearn. split into training and testing sets """
+    """load dataset from sklearn. split into training and testing sets"""
     raw_data = datasets.load_diabetes()
 
     # create a pandas DataFrame from sklearn dataset
@@ -42,7 +42,7 @@ def prepare_data() -> Tuple[DataFrame, DataFrame]:
 
 @task(result="model")
 def train_model(training_data: DataFrame) -> LinearRegression:
-    """ train a linear regression model """
+    """train a linear regression model"""
     model = LinearRegression()
 
     # train a linear regression model
@@ -56,7 +56,7 @@ def train_model(training_data: DataFrame) -> LinearRegression:
 
 @task(result="performance_metrics")
 def test_model(model: LinearRegression, testing_data: DataFrame) -> str:
-    """ test the model, output mean squared error and r2 score """
+    """test the model, output mean squared error and r2 score"""
     testing_x = testing_data.drop("target", axis=1)
     testing_y = testing_data["target"]
     predictions = model.predict(testing_x)

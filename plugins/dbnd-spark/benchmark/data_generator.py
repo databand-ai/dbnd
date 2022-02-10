@@ -46,7 +46,7 @@ _start_time = None
 def generate_data(
     rows, boolean_columns, str_columns, numerical_columns, output_file, output_format
 ):
-    """ Generate files with data for histogram tests """
+    """Generate files with data for histogram tests"""
     global _start_time
     _start_time = time()
 
@@ -80,7 +80,7 @@ def generate_data(
 
 
 def generate_parquet(
-    rows, boolean_columns, str_columns, numerical_columns, output_file, column_names,
+    rows, boolean_columns, str_columns, numerical_columns, output_file, column_names
 ):
     writer = None
     rows_per_write = int(rows / 50)
@@ -104,7 +104,7 @@ def generate_parquet(
 
 
 def generate_csv(
-    rows, boolean_columns, str_columns, numerical_columns, output_file, column_names,
+    rows, boolean_columns, str_columns, numerical_columns, output_file, column_names
 ):
     with open(output_file, "w", newline="") as f:
         writer = csv.writer(f, delimiter=",")

@@ -39,9 +39,7 @@ Schema = Dict[str, Columns]
 OP_TYPE = DbndTargetOperationType
 READ = DbndTargetOperationType.read
 WRITE = DbndTargetOperationType.write
-READ_OPERATIONS = {
-    "FROM",
-}
+READ_OPERATIONS = {"FROM"}
 CLOUD_SERVICE_URI_REGEX = re.compile(r"s3://\S+|azure://\S+|gcs://\S+")
 
 STAGE_REGEX = re.compile(r"@\S+")
@@ -156,10 +154,10 @@ class SqlQueryExtractor:
 
     def is_stage(self, table_name: str) -> str:
         """
-                  Returns a pattern of file stage if exits
-                  :param str table_name: name of a table
+        Returns a pattern of file stage if exits
+        :param str table_name: name of a table
 
-                  """
+        """
         if table_name:
             return STAGE_REGEX.findall(table_name.split(".")[-1])
 
@@ -167,12 +165,12 @@ class SqlQueryExtractor:
         self, columns: Columns, next_token: Identifier
     ) -> Tuple[Schema, Columns]:
         """
-          generate schema object and columns for table, file or stage
+        generate schema object and columns for table, file or stage
 
-          :param Columns columns: name of a table we want to track
-          :param Identifier next_token: query identifier
+        :param Columns columns: name of a table we want to track
+        :param Identifier next_token: query identifier
 
-          """
+        """
         cloud_uri_path = self.extract_cloud_uri(next_token)
         if cloud_uri_path:
             table_alias = self.calculate_file_path(cloud_uri_path)
@@ -261,7 +259,7 @@ class SqlQueryExtractor:
         return token_list.token_next(idx, skip_ws=True, skip_cm=True)
 
     def enrich_with_dynamic(
-        self, extracted: Schema, dynamic: Dict[str, Schema],
+        self, extracted: Schema, dynamic: Dict[str, Schema]
     ) -> Schema:
         if not dynamic:
             return extracted
@@ -318,11 +316,11 @@ class SqlQueryExtractor:
 
     def extract_cloud_uri(self, identifier: Identifier) -> str:
         """
-          Search for cloud providers pattern in query identifier,
-          if pattern exists returns the URI as string
+        Search for cloud providers pattern in query identifier,
+        if pattern exists returns the URI as string
 
-          :param Identifier identifier: query identifier
-            """
+        :param Identifier identifier: query identifier
+        """
         if identifier.value.lower() in ["s3", "azure", "gcs"]:
             return self.find_cloud_regex(identifier.parent.value)
 

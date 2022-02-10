@@ -10,11 +10,11 @@ from dbnd._vendor.marshmallow import fields, post_dump, post_load
 
 
 def get_column_stats_by_col_name(
-    columns_stats: List["ColumnStatsArgs"], column_name: str,
+    columns_stats: List["ColumnStatsArgs"], column_name: str
 ) -> Optional["ColumnStatsArgs"]:
     # Returns column_stats if column_name is found in columns_stats list
     return first(
-        filter(lambda col_stats: col_stats.column_name == column_name, columns_stats,),
+        filter(lambda col_stats: col_stats.column_name == column_name, columns_stats),
         None,
     )
 

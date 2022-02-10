@@ -59,10 +59,7 @@ class WatcherPodEvent(object):
 
         pod_id, state, labels, resource_version = task
         return WatcherPodEvent(
-            pod_id=pod_id,
-            state=state,
-            labels=labels,
-            resource_version=resource_version,
+            pod_id=pod_id, state=state, labels=labels, resource_version=resource_version
         )
 
     def as_tuple_with_state(self, state):
@@ -161,7 +158,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 # we want to process the message
                 task = event["object"]
                 self.log.debug(
-                    " %s had an event of type %s", task.metadata.name, event["type"],
+                    " %s had an event of type %s", task.metadata.name, event["type"]
                 )
 
                 if event["type"] == "ERROR":
@@ -245,9 +242,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 pod_ctrl.check_deploy_errors(pod_data)
                 self.log.info("%s: pod is Pending", event_msg)
             except Exception as ex:
-                self.log.error(
-                    "Event: %s Pending: failing with %s", pod_id, str(ex),
-                )
+                self.log.error("Event: %s Pending: failing with %s", pod_id, str(ex))
                 self.watcher_queue.put(_fail_event)
 
         elif phase == "Running":
@@ -261,9 +256,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 self.watcher_queue.put(pod_event.as_tuple_with_state(State.RUNNING))
 
             except Exception as ex:
-                self.log.error(
-                    "Event: %s Pending: failing with %s", pod_id, str(ex),
-                )
+                self.log.error("Event: %s Pending: failing with %s", pod_id, str(ex))
                 self.watcher_queue.put(pod_event.as_tuple_with_state(State.FAILED))
 
         elif phase == "Failed":

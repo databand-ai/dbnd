@@ -173,7 +173,7 @@ class TestLocalTarget(FileTargetTestMixin):
     def test_format_chain(self):
         UTF8WIN = targets.pipes.TextPipeline(encoding="utf8", newline="\r\n")
         t = target(self.path, io_pipe=UTF8WIN >> targets.pipes.Gzip)
-        a = u"我é\nçф"
+        a = "我é\nçф"
 
         with t.open("w") as f:
             f.write(a)
@@ -195,7 +195,7 @@ class TestLocalTarget(FileTargetTestMixin):
         with t.open("r") as f:
             b = f.read()
 
-        assert u"我é\nçф" == b
+        assert "我é\nçф" == b
 
     @mock.patch("os.linesep", "\r\n")
     def test_format_newline(self):

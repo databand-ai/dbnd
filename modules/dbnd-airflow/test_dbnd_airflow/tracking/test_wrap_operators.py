@@ -146,7 +146,7 @@ class TestTrackOperator(object):
             cluster="cluster",
             task_definition="definition",
             overrides={
-                "containerOverrides": [{"command": ["some", "command"], "cpu": 50,}]
+                "containerOverrides": [{"command": ["some", "command"], "cpu": 50}]
             },
         )
 

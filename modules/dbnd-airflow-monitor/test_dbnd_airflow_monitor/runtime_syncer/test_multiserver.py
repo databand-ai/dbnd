@@ -317,14 +317,18 @@ class TestMultiServer(object):
         assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
         assert mock_tracking_service.current_monitor_state.monitor_error_message
 
-        first_error_lines = mock_tracking_service.current_monitor_state.monitor_error_message.split(
-            "\n"
+        first_error_lines = (
+            mock_tracking_service.current_monitor_state.monitor_error_message.split(
+                "\n"
+            )
         )
 
         multi_server.run_once()
         assert mock_tracking_service.current_monitor_state.monitor_error_message
-        new_error_lines = mock_tracking_service.current_monitor_state.monitor_error_message.split(
-            "\n"
+        new_error_lines = (
+            mock_tracking_service.current_monitor_state.monitor_error_message.split(
+                "\n"
+            )
         )
         # should be same message except for last (Timestamp) line
         assert first_error_lines[:-1] == new_error_lines[:-1]

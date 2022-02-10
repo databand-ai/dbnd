@@ -334,7 +334,7 @@ class LoggingConfig(config.Config):
         return handler
 
     def disable_color_logs(self):
-        """ Removes colors from any console related config"""
+        """Removes colors from any console related config"""
         logger.debug("disabling color logs")
 
         os.environ["ANSI_COLORS_DISABLED"] = "True"  # disabling termcolor.colored

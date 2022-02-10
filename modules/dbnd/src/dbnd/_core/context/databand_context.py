@@ -75,9 +75,7 @@ class DatabandContext(SingletonContext):
 
         # we are running from python notebook, let start to print to stdout
         if self.name == "interactive" or is_unit_test_mode():
-            self.config.set(
-                "log", "stream_stdout", "True", source="log",
-            )
+            self.config.set("log", "stream_stdout", "True", source="log")
 
         self.task_instance_cache = TaskInstanceCache()
         self.user_code_detector = UserCodeDetector.build_code_detector()

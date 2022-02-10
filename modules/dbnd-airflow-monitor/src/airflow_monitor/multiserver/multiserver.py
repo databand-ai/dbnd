@@ -49,7 +49,7 @@ class AirflowMultiServerMonitor(BaseMultiServerMonitor):
     def _send_metrics(self):
         metrics = generate_latest_metrics().decode("utf-8")
         self.servers_configuration_service.send_prometheus_metrics(
-            metrics, self.monitor_config.syncer_name,
+            metrics, self.monitor_config.syncer_name
         )
 
     def _assert_valid_config(self):

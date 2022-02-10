@@ -209,9 +209,9 @@ def get_dag_runs_states_data(dag_run_ids, session=None):
 
 def deep_update(source, overrides):
     """
-     Update a nested dictionary or similar mapping.
-     Modify ``source`` in place.
-     """
+    Update a nested dictionary or similar mapping.
+    Modify ``source`` in place.
+    """
     for key, value in overrides.items():
         if isinstance(value, collections.Mapping) and value:
             returned = deep_update(source.get(key, {}), value)

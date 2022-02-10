@@ -89,7 +89,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
                     # we want to get the parameter evolved with the task_definition as owner
                     inner_param = task_definition.task_param_defs[param_name]
                     result_param_value = build_result_param(
-                        task_definition.task_passport, param_def=inner_param,
+                        task_definition.task_passport, param_def=inner_param
                     )
 
                     param_values.append(result_param_value)
@@ -329,7 +329,7 @@ def build_func_parameter_values(task_definition, task_args, task_kwargs):
 
     # distinguish between the parameter we expect to create vs those we don't
     unknown_kwargs, known_kwargs = more_itertools.partition(
-        lambda kwarg: kwarg[0] in callable_spec.args, six.iteritems(task_kwargs),
+        lambda kwarg: kwarg[0] in callable_spec.args, six.iteritems(task_kwargs)
     )
 
     # the parameter of the ** argument

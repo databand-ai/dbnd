@@ -14,7 +14,7 @@ from test_dbnd.tracking.tracking_helpers import get_log_metrics, get_log_targets
 class TestTrackingMetrics(object):
     @pytest.mark.parametrize(
         "value, attribute",
-        [(1, "value_int"), (0.2, "value_float"), ("asdasd", "value_str"),],
+        [(1, "value_int"), (0.2, "value_float"), ("asdasd", "value_str")],
     )
     def test_log_metric(self, mock_channel_tracker, value, attribute):
         @task()

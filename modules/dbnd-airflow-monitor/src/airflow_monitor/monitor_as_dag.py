@@ -38,10 +38,7 @@ ITERATION_PRINT_INTERVAL = (
 
 logger = logging.getLogger(__name__)
 
-args = {
-    "owner": "Databand",
-    "start_date": days_ago(2),
-}
+args = {"owner": "Databand", "start_date": days_ago(2)}
 
 
 class MonitorOperator(BashOperator):
@@ -140,7 +137,7 @@ def _check_memory_usage():
         child_memory = child.memory_full_info()
         total_usage += child_memory.rss
         logger.debug(
-            "Child process %s (%s) usage: %s", child.pid, child.name(), child_memory,
+            "Child process %s (%s) usage: %s", child.pid, child.name(), child_memory
         )
     return children, total_usage
 

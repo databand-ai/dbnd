@@ -34,7 +34,7 @@ def cb_data_dump_path(task, target_date, name):
 
 
 class FetchIds(PythonTask):
-    """ Fetch ids by period """
+    """Fetch ids by period"""
 
     period = parameter[timedelta]
     ids = output.prod_immutable[List[str]]
@@ -49,7 +49,7 @@ class FetchIds(PythonTask):
 
 
 class FetchData(PythonTask):
-    """ Fetch data of ids """
+    """Fetch data of ids"""
 
     ids = data[List[str]]
     data = output.prod_immutable[List[str]]
@@ -62,7 +62,7 @@ class FetchData(PythonTask):
 
 
 class IdsAndData(dbnd.PipelineTask):
-    """ Enrich Ids with data """
+    """Enrich Ids with data"""
 
     period = parameter.value(one_day)
 
@@ -87,7 +87,7 @@ class IdsAndData(dbnd.PipelineTask):
 
 
 class ProductionIdsAndData(IdsAndData):
-    """ Enrich Ids with data (Production) """
+    """Enrich Ids with data (Production)"""
 
     task_env = "aws_prod"
 
@@ -123,12 +123,12 @@ def features_df(ids, data):
 @task
 def features_simple(ids, data):
     # type: (DataList[str],DataList[str]) -> List[str]
-    """ Create features """
+    """Create features"""
     return ["%s -> %s\n" % (k.strip(), v.strip()) for k, v in zip(ids, data)]
 
 
 class FeaturesPartitioned(PythonTask):
-    """ Create partitioned features """
+    """Create partitioned features"""
 
     ids = parameter.data
     data = parameter.data
@@ -150,7 +150,7 @@ class FeaturesPartitioned(PythonTask):
 
 
 class ByDayExamplePipeline(dbnd.PipelineTask):
-    """ Entry point of partitioned_by_day """
+    """Entry point of partitioned_by_day"""
 
     period = parameter(default=one_day, scope=ParameterScope.children)[timedelta]
     features = output

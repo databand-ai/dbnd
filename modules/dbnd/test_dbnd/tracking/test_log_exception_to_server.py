@@ -37,7 +37,7 @@ class TestLogExceptionToServer:
                 )
 
     def test_log_exception_to_server_no_url(self):
-        """ Shouldn't try to send data if api is not configured """
+        """Shouldn't try to send data if api is not configured"""
         with new_dbnd_context({"core": {"databand_url": ""}}):
             with patch(
                 "dbnd.utils.api_client.ApiClient._send_request"

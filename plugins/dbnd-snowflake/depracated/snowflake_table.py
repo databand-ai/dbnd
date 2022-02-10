@@ -41,7 +41,7 @@ def log_snowflake_table(
     ), SnowflakeController(connection_string) as snowflake_ctrl:
         config = SnowflakeConfig()
         snowflake_table = snowflake_values.SnowflakeTable(
-            snowflake_ctrl, database, schema, table_name, config.table_preview_rows,
+            snowflake_ctrl, database, schema, table_name, config.table_preview_rows
         )
         log_data(
             key or "snowflake_table.{}".format(snowflake_table),

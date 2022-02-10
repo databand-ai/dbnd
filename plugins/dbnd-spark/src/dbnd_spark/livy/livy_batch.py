@@ -30,9 +30,7 @@ class LivyBatchClient(object):
         self._safe_retry_policy = safe_retry_policy
 
     @staticmethod
-    def from_endpoint(
-        endpoint, status_code_retries, ignore_ssl_errors=False,
-    ):
+    def from_endpoint(endpoint, status_code_retries, ignore_ssl_errors=False):
         headers = {"Content-Type": "application/json"}
         custom_headers = {}
         headers.update(custom_headers)

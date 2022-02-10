@@ -26,7 +26,7 @@ class TestLogDataSetOpMetrics(object):
         list(itertools.product([False, True], repeat=2)),
     )
     def test_log_dataset_op_nested_json_data(
-        self, mock_channel_tracker, preview, schema,
+        self, mock_channel_tracker, preview, schema
     ):
         with open(THIS_DIR + "/nested_data.json", encoding="utf-8-sig") as f:
             nested_json = pd.json_normalize(json.load(f))
@@ -51,7 +51,7 @@ class TestLogDataSetOpMetrics(object):
         }
 
         print(
-            "preview={preview}, schema={schema}".format(preview=preview, schema=schema,)
+            "preview={preview}, schema={schema}".format(preview=preview, schema=schema)
         )
 
         for m in metrics_info:
@@ -154,9 +154,7 @@ class TestLogDataSetOpMetrics(object):
         # repeat the tests for each combination of the flags -> 2^2 tests == 4 tests!!
         list(itertools.product([False, True], repeat=2)),
     )
-    def test_log_dataset_op_flat_json_data(
-        self, mock_channel_tracker, preview, schema,
-    ):
+    def test_log_dataset_op_flat_json_data(self, mock_channel_tracker, preview, schema):
         with open(THIS_DIR + "/flat_data.json", encoding="utf-8-sig") as f:
             flat_json = json.load(f)
 
@@ -180,7 +178,7 @@ class TestLogDataSetOpMetrics(object):
         }
 
         print(
-            "preview={preview}, schema={schema}".format(preview=preview, schema=schema,)
+            "preview={preview}, schema={schema}".format(preview=preview, schema=schema)
         )
 
         for m in metrics_info:
@@ -265,7 +263,7 @@ class TestLogDataSetOpMetrics(object):
         list(itertools.product([False, True], repeat=2)),
     )
     def test_log_dataset_op_histograms_stats_flags(
-        self, mock_channel_tracker, with_histograms, with_stats,
+        self, mock_channel_tracker, with_histograms, with_stats
     ):
         # Test with_histograms/with_stats flag for pandas dataframe
 

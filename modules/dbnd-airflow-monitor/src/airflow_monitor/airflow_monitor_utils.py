@@ -54,4 +54,4 @@ def observe_many(airflow_instance_label, summary, data):
         return
 
     for metric_name, value in data.items():
-        summary.labels(airflow_instance_label, metric_name.lstrip("_"),).observe(value)
+        summary.labels(airflow_instance_label, metric_name.lstrip("_")).observe(value)

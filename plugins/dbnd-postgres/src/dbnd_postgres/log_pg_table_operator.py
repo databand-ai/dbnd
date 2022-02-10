@@ -17,6 +17,4 @@ class LogPostgresTableOperator(BaseOperator):
     def execute(self, context):
         hook = PostgresHook(postgres_conn_id=self.conn_id)
         connection_string = hook.get_uri()
-        log_pg_table(
-            self.table_name, connection_string, with_histograms=True,
-        )
+        log_pg_table(self.table_name, connection_string, with_histograms=True)

@@ -24,8 +24,10 @@ class DatabandError(Exception):
 
         from dbnd._core.errors.errors_utils import UserCodeDetector
 
-        self.user_frame_info = UserCodeDetector.build_code_detector().find_user_side_frame(
-            user_side_only=True
+        self.user_frame_info = (
+            UserCodeDetector.build_code_detector().find_user_side_frame(
+                user_side_only=True
+            )
         )
 
         if nested_exceptions:
@@ -59,10 +61,12 @@ class WrapperDatabandError(DatabandError):
 
     def __init__(self, message, inner_error, **kwargs):
         # type: (str, Exception, dict) -> WrapperDatabandError
-        extended_msg = "{message}, caused by: \n\t {cause_name}: {cause_message} ".format(
-            message=message,
-            cause_name=inner_error.__class__.__name__,
-            cause_message=str(inner_error),
+        extended_msg = (
+            "{message}, caused by: \n\t {cause_name}: {cause_message} ".format(
+                message=message,
+                cause_name=inner_error.__class__.__name__,
+                cause_message=str(inner_error),
+            )
         )
         super(WrapperDatabandError, self).__init__(extended_msg, **kwargs)
         self.inner_error = inner_error

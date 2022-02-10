@@ -357,6 +357,6 @@ def snowflake_query_tracker(
             )
 
     with SnowflakeQueryTracker(
-        track_connection_handler=_track_connection, database=database, schema=schema,
+        track_connection_handler=_track_connection, database=database, schema=schema
     ) as st:
         yield st

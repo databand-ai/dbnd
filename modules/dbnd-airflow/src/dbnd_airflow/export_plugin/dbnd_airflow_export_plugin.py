@@ -149,11 +149,7 @@ try:
             return process_metadata_request()
 
     flask_appbuilder_views_list.append(
-        {
-            "category": "Admin",
-            "name": "Export Data",
-            "view": ExportDataViewAppBuilder(),
-        }
+        {"category": "Admin", "name": "Export Data", "view": ExportDataViewAppBuilder()}
     )
 
 except Exception:

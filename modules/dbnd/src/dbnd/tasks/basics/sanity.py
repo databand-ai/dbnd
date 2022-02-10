@@ -28,7 +28,7 @@ def dbnd_sanity_check(check_time=datetime.datetime.now(), fail_chance=0.0):
 
 @task
 def dbnd_simple_task(
-    check_time=datetime.datetime.now(), fail_chance=0.0, sleep=0.0, loop=1,
+    check_time=datetime.datetime.now(), fail_chance=0.0, sleep=0.0, loop=1
 ):  # type: (datetime.datetime, float, float, int) -> str
     logger.info("Running dbnd_simple_task!")
     log_metric("metric_check", "OK")

@@ -72,8 +72,7 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
     @capture_monitor_exception("sync_once")
     def _sync_once(self):
         dbnd_response = self.tracking_service.get_active_dag_runs(
-            start_time_window=self.config.start_time_window,
-            dag_ids=self.config.dag_ids,
+            start_time_window=self.config.start_time_window, dag_ids=self.config.dag_ids
         )
         if (
             dbnd_response.last_seen_dag_run_id is None
@@ -146,9 +145,7 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
             # if there is no dagruns to update - do empty update to set last_sync_time
             # otherwise we might get false alarms that monitor is not syncing
             self.tracking_service.update_dagruns(
-                DagRunsStateData(task_instances=[], dag_runs=[]),
-                None,
-                self.SYNCER_TYPE,
+                DagRunsStateData(task_instances=[], dag_runs=[]), None, self.SYNCER_TYPE
             )
             return
 

@@ -38,7 +38,7 @@ def test_get_first_task_run_error(mock_get_run_info, databand_client):
                         "traceback": 'Traceback (most recent call last):\n  File "/Users/adam_elgressy/dbnd-alpha/databand/dbnd-core/modules/dbnd/src/dbnd/_core/task_run/task_run_error.py", line 60, in build_from_message\n    msg, show_exc_info=False, help_msg=help_msg,\ndbnd._core.errors.base.DatabandError: Task was killed by the user\n',
                     },
                 },
-            },
+            }
         ],
         "run_uid": "bf57cba2-0a78-11ec-b5ea-acde48001122",
     }
@@ -83,7 +83,7 @@ def test_get_first_task_run_error_with_no_end_date(mock_get_run_info, databand_c
                         "traceback": 'Traceback (most recent call last):\n  File "/Users/adam_elgressy/dbnd-alpha/databand/dbnd-core/modules/dbnd/src/dbnd/_core/task_run/task_run_error.py", line 60, in build_from_message\n    msg, show_exc_info=False, help_msg=help_msg,\ndbnd._core.errors.base.DatabandError: Task was killed by the user\n',
                     },
                 },
-            },
+            }
         ],
         "run_uid": "bf57cba2-0a78-11ec-b5ea-acde48001122",
     }

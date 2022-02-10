@@ -13,7 +13,7 @@ def task1():
     return "Hello World!"
 
 
-op1 = PythonOperator(task_id="task1", python_callable=task1, dag=dag,)
+op1 = PythonOperator(task_id="task1", python_callable=task1, dag=dag)
 
 op1
 exit(2)

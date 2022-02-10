@@ -51,7 +51,7 @@ def wrap_luigi_task(luigi_task):
 
     param_values = []
     luigi_param_value_builder = functools.partial(
-        ParameterValue, source="luigi_param", source_value=None,
+        ParameterValue, source="luigi_param", source_value=None
     )
     for name, param_definition in six.iteritems(
         dbnd_tracking_task_definition.task_param_defs
@@ -74,8 +74,8 @@ def wrap_luigi_task(luigi_task):
 def _build_luigi_task_definition(luigi_task_cls):
     # type: (Type[luigi.Task]) -> Type[_LuigiTask]
     """
-     build a classdict as needed in the creation of TaskMetaclass
-     """
+    build a classdict as needed in the creation of TaskMetaclass
+    """
     task_family = luigi_task_cls.get_task_family()
     task_passport = TaskPassport.build_task_passport(
         task_family=task_family,

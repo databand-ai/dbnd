@@ -41,7 +41,7 @@ class TestDagRunCategorization:
         dag_runs = gen_dag_runs(0, 10, events="graph", state="SUCCESS") + gen_dag_runs(
             10, 20, events="graph", state="FAILED"
         )
-        to_init, to_update = categorize_dag_runs(dag_runs, [100, 101],)
+        to_init, to_update = categorize_dag_runs(dag_runs, [100, 101])
         assert not to_init
         assert dag_runs == to_update
 

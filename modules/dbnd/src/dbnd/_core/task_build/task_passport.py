@@ -67,7 +67,7 @@ class TaskPassport(object):
 
     @classmethod
     def build_task_passport(
-        cls, cls_name, module_name, task_namespace=NOTHING, task_family=None,
+        cls, cls_name, module_name, task_namespace=NOTHING, task_family=None
     ):
         full_task_family = "%s.%s" % (module_name, cls_name)
         full_task_family_short = "%s.%s" % (_short_name(module_name), cls_name)

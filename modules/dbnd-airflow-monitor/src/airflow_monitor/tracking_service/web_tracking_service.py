@@ -46,7 +46,7 @@ class AirflowDbndTrackingService(BaseDbndTrackingService):
 
     def update_last_seen_values(self, last_seen_values: LastSeenValues):
         self._make_request(
-            "update_last_seen_values", method="POST", data=last_seen_values.as_dict(),
+            "update_last_seen_values", method="POST", data=last_seen_values.as_dict()
         )
 
     def get_all_dag_runs(
@@ -77,7 +77,7 @@ class AirflowDbndTrackingService(BaseDbndTrackingService):
             params["dag_ids"] = dag_ids
 
         response = self._make_request(
-            "get_running_dag_runs", method="GET", data=None, query=params,
+            "get_running_dag_runs", method="GET", data=None, query=params
         )
         dags_to_sync = DbndDagRunsResponse.from_dict(response)
 

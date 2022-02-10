@@ -26,7 +26,7 @@ class SingletonContext(object):
 
     @classmethod
     def get_instance(cls):
-        """ Singleton getter """
+        """Singleton getter"""
         if not cls._instance:
             raise DatabandSystemError(
                 "%s is not set, call .global_instance or .try_instance first"
@@ -41,12 +41,12 @@ class SingletonContext(object):
 
     @classmethod
     def has_instance(cls):
-        """ Singleton getter """
+        """Singleton getter"""
         return bool(cls._instance)
 
     @classmethod
     def try_instance(cls, *args, **kwargs):
-        """ Singleton get or create"""
+        """Singleton get or create"""
         if cls._instance is None:
             cls._instance = cls.new_context(*args, **kwargs).__enter__()
         return cls._instance

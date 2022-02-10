@@ -78,7 +78,7 @@ def extend(value):
         )
 
     return ConfigValue(
-        value=value, source=None, priority=ConfigValuePriority.NORMAL, extend=True,
+        value=value, source=None, priority=ConfigValuePriority.NORMAL, extend=True
     )
 
 

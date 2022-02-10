@@ -96,23 +96,21 @@ def mock_redshift():
     def _connect(*args, **kwargs):
         return ConnectionMock()
 
-    with patch.object(
-        psycopg2, "connect", new=_connect,
-    ):
+    with patch.object(psycopg2, "connect", new=_connect):
         yield execute_mock
 
 
 @pytest.fixture
 def mock_channel_tracker():
     with mock.patch(
-        "dbnd_redshift.sdk.redshift_tracker.RedshiftTracker.report_operations",
+        "dbnd_redshift.sdk.redshift_tracker.RedshiftTracker.report_operations"
     ) as mock_store:
         yield mock_store
 
 
 def _redshift_connect():
     return psycopg2.connect(
-        host="test", port=12345, database="db", user="user", password="password",
+        host="test", port=12345, database="db", user="user", password="password"
     )
 
 
@@ -183,9 +181,7 @@ def test_copy_into_s3_set_read_schema(mock_redshift, mock_channel_tracker):
 
 
 def test_copy_into_s3_set_read_schema_wrong_df(mock_redshift, mock_channel_tracker):
-    run_tracker_custom_df(
-        COPY_INTO_TABLE_FROM_S3_FILE_QUERY, ["c1", "c2"],
-    )
+    run_tracker_custom_df(COPY_INTO_TABLE_FROM_S3_FILE_QUERY, ["c1", "c2"])
     report_operations_arg = one(get_operations(mock_channel_tracker))
 
     for op in report_operations_arg:

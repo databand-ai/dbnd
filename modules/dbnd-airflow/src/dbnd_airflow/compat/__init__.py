@@ -10,6 +10,4 @@ elif AIRFLOW_VERSION_2:
 else:
     raise NotImplementedError
 
-__all__ = [
-    "BaseHook",
-]
+__all__ = ["BaseHook"]

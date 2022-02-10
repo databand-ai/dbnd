@@ -219,7 +219,7 @@ class TaskDecorator(object):
                 and current.task_supports_dynamic_tasks
             ):
                 return self._run_task_from_another_task_execution(
-                    parent_task=current, call_args=call_args, call_kwargs=call_kwargs,
+                    parent_task=current, call_args=call_args, call_kwargs=call_kwargs
                 )
             # we can not call it in "dbnd" way, fallback to normal call
             if self.is_class:

@@ -202,7 +202,7 @@ class TaskRunTracker(TaskRunCtrl):
 
         if metrics["histograms"]:
             self.tracking_store.log_histograms(
-                task_run=self.task_run, key=key, value_meta=value_meta, timestamp=ts,
+                task_run=self.task_run, key=key, value_meta=value_meta, timestamp=ts
             )
         if not (metrics["user"] or metrics["histograms"]):
             logger.info("No metrics to log_data(key={})".format(key))
@@ -304,7 +304,7 @@ class DatasetOperationReport(object):
         # convert str of "read" or "write" to operation type
         converter=lambda op_type: DbndDatasetOperationType[op_type]
         if isinstance(op_type, str)
-        else op_type,
+        else op_type
     )
     with_preview: bool = attr.ib()
     with_schema: bool = attr.ib()

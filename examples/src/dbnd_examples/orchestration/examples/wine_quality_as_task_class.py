@@ -35,7 +35,7 @@ def calculate_metrics(actual, pred):
 
 
 class PrepareData(PythonTask):
-    """ Split data into train, test and validation """
+    """Split data into train, test and validation"""
 
     raw_data = parameter[DataFrame]
 
@@ -59,7 +59,7 @@ class PrepareData(PythonTask):
 
 
 class TrainModel(PythonTask):
-    """ Train wine prediction model """
+    """Train wine prediction model"""
 
     alpha = parameter.value(0.5)
     l1_ratio = parameter.value(0.5)
@@ -100,7 +100,7 @@ class TrainModel(PythonTask):
 
 
 class ValidateModel(PythonTask):
-    """ Calculates metrics of wine prediction model """
+    """Calculates metrics of wine prediction model"""
 
     model = parameter.data
     validation_dataset = parameter[DataFrame]
@@ -128,7 +128,7 @@ class ValidateModel(PythonTask):
 
 
 class PredictWineQuality(PipelineTask):
-    """ Entry point for wine quality prediction """
+    """Entry point for wine quality prediction"""
 
     data = parameter(default=test_data_csv).data
     alpha = parameter.value(0.5)

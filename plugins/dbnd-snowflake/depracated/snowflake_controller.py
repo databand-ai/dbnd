@@ -35,11 +35,7 @@ def conn_str_to_conn_params(conn_str):
             )
         )
 
-    return {
-        "account": conn.hostname,
-        "user": conn.username,
-        "password": conn.password,
-    }
+    return {"account": conn.hostname, "user": conn.username, "password": conn.password}
 
 
 SNOWFLAKE_METRIC_TO_UI_NAME = {
@@ -63,7 +59,7 @@ RESULT_LIMIT_INC = 10
 
 
 class SnowflakeController:
-    """ Interacts with Snowflake, queries it"""
+    """Interacts with Snowflake, queries it"""
 
     def __init__(self, connection_or_connection_string):
         # type: (Union[str, SnowflakeConnection]) -> SnowflakeController

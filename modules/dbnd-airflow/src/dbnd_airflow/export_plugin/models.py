@@ -310,7 +310,7 @@ class AirflowNewDagRun(object):
 
 class AirflowTaskInstance(object):
     def __init__(
-        self, dag_id, task_id, execution_date, state, try_number, start_date, end_date,
+        self, dag_id, task_id, execution_date, state, try_number, start_date, end_date
     ):
         self.execution_date = execution_date
         self.dag_id = dag_id

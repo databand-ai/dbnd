@@ -41,10 +41,12 @@ class TriggerRuleDepOptimizied(TriggerRuleDep):
             yield self._passing_status(reason="The task had a dummy trigger rule set.")
             return
 
-        status = SingleDagRunJob.instance().ti_state_manager.get_aggregated_state_status(
-            dag_id=ti.dag_id,
-            execution_date=ti.execution_date,
-            task_ids=ti.task.upstream_task_ids,
+        status = (
+            SingleDagRunJob.instance().ti_state_manager.get_aggregated_state_status(
+                dag_id=ti.dag_id,
+                execution_date=ti.execution_date,
+                task_ids=ti.task.upstream_task_ids,
+            )
         )
 
         successes = status[State.SUCCESS]

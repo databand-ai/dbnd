@@ -34,6 +34,5 @@ def _init_windows_python_path(databand_package):
     # patch pwd and resource system modules
     if os.name == "nt":
         sys.path.insert(
-            0,
-            os.path.join(databand_package, "utils", "platform", "windows_compatible"),
+            0, os.path.join(databand_package, "utils", "platform", "windows_compatible")
         )

@@ -29,5 +29,5 @@ class TestTaskDefinition(object):
         class TdTask(Task):
             pass
 
-        td = TaskDefinition.from_task_cls(TdTask, {},)
+        td = TaskDefinition.from_task_cls(TdTask, {})
         assert td

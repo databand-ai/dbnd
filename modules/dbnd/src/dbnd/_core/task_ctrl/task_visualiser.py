@@ -103,7 +103,7 @@ class TaskVisualiser(object):
 
         except Exception as ex:
             log_exception(
-                "Failed to calculate banner for '%s'" % task_id, ex, non_critical=True,
+                "Failed to calculate banner for '%s'" % task_id, ex, non_critical=True
             )
             return msg + (" ( task_id=%s)" % task_id)
 
@@ -565,7 +565,7 @@ class _ParamRecordBuilder(object):
         # add preview
         if isinstance(self.value, Target) and self.value.target_meta:
             preview_value = safe_string(
-                self.value.target_meta.value_preview, console_value_preview_size,
+                self.value.target_meta.value_preview, console_value_preview_size
             )
             # we should add minimal preview
             if len(preview_value) < 100:

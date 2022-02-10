@@ -117,15 +117,11 @@ class TestSnowflakeController:
                 [
                     mock.call(
                         'SHOW TABLES LIKE \'CUSTOMER\' in schema "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF100TCL"'
-                    ),
+                    )
                 ],
                 any_order=True,
             )
-            assert dimensions == {
-                "rows": 100,
-                "cols": 2,
-                "bytes": 543,
-            }
+            assert dimensions == {"rows": 100, "cols": 2, "bytes": 543}
 
     def test_get_column_types(self, snowflake_conn_str, snowflake_table):
         # Arrange
@@ -144,7 +140,7 @@ class TestSnowflakeController:
                         "SELECT column_name, data_type\n"
                         'FROM "SNOWFLAKE_SAMPLE_DATA".information_schema.columns\n'
                         "WHERE LOWER(table_name) = LOWER('CUSTOMER') and LOWER(table_schema) = LOWER('TPCDS_SF100TCL')"
-                    ),
+                    )
                 ],
                 any_order=True,
             )
@@ -168,7 +164,7 @@ class TestSnowflakeController:
                 [
                     mock.call(
                         'select TRY_HEX_DECODE_STRING(HEX_ENCODE("foo")) AS foo,TRY_HEX_DECODE_STRING(HEX_ENCODE("bar")) AS bar from "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF100TCL"."CUSTOMER" limit 20'
-                    ),
+                    )
                 ],
                 any_order=True,
             )

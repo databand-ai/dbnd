@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class PartitionedDataTask(PythonTask):
-    """ Create partitioned data """
+    """Create partitioned data"""
 
     partitioned_data = output.folder.csv.target
 
@@ -22,7 +22,7 @@ class PartitionedDataTask(PythonTask):
 
 
 class PartitionedDataReader(PythonTask):
-    """ Read partitioned data """
+    """Read partitioned data"""
 
     partitioned_data = dbnd.data[List[str]]
     concat = output.data
@@ -34,7 +34,7 @@ class PartitionedDataReader(PythonTask):
 
 
 class ExamplePartitionedDataPipeline(dbnd.PipelineTask):
-    """ Entry point of partitioned data pipeline """
+    """Entry point of partitioned data pipeline"""
 
     concat = output.data
 

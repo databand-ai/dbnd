@@ -14,10 +14,7 @@ def task_pass_through_result_param(result):
 
 @task
 def task_pass_through_args_kwargs(*args, **kwargs):
-    return {
-        "args": args,
-        "kwargs": kwargs,
-    }
+    return {"args": args, "kwargs": kwargs}
 
 
 @task

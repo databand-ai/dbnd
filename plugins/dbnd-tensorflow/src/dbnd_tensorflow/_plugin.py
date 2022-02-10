@@ -20,10 +20,10 @@ def dbnd_setup_plugin():
     )
 
     register_marshaller(
-        models.Model, FileFormat.tfmodel, TensorflowKerasModelMarshaller(),
+        models.Model, FileFormat.tfmodel, TensorflowKerasModelMarshaller()
     )
     register_marshaller(
-        History, FileFormat.tfhistory, TensorflowKerasHistoryMarshaller(),
+        History, FileFormat.tfhistory, TensorflowKerasHistoryMarshaller()
     )
 
     register_value_type(TensorflowModelValueType())

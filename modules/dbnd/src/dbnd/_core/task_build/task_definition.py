@@ -265,7 +265,7 @@ def get_base_task_definitions(task_class):
     for cls in reversed(task_class.__bases__):  # type: TaskMetaclass
         if not hasattr(cls, "task_definition"):
             logger.debug(
-                "you should inherit from Task objects only: %s -> %s ", task_class, cls,
+                "you should inherit from Task objects only: %s -> %s ", task_class, cls
             )
             continue
         task_definitions.append(cls.task_definition)

@@ -140,7 +140,7 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
             .filter(TaskInstance.state == State.RUNNING)
             .filter(TaskInstance.dag_id == dag.dag_id)
             .filter(TaskInstance.execution_date == execution_date)
-            .filter(or_(LJ.state != State.RUNNING, LJ.latest_heartbeat < limit_dttm,))
+            .filter(or_(LJ.state != State.RUNNING, LJ.latest_heartbeat < limit_dttm))
             .all()
         )
 

@@ -64,7 +64,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
         local_sync_cache_path = get_or_create_folder_in_dir(
             LOCAL_SYNC_CACHE_NAME, self.task.task_env.dbnd_local_root.path
         )
-        return target(local_sync_cache_path, path, config=target_.config,)
+        return target(local_sync_cache_path, path, config=target_.config)
 
     def _local_cache_multitarget(self, multitarget):
         return MultiTarget(
@@ -93,7 +93,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                     local_target = self._local_cache_multitarget(remote_target)
 
                     logger.info(
-                        "Downloading  %s %s to %s", p_def, remote_target, local_target,
+                        "Downloading  %s %s to %s", p_def, remote_target, local_target
                     )
 
                     for remote_subtarget, local_subtarget in zip(
@@ -111,14 +111,14 @@ class TaskRunLocalSyncer(TaskRunCtrl):
                     local_target = self._local_cache_target(remote_target)
 
                     logger.info(
-                        "Downloading  %s %s to %s", p_def, remote_target, local_target,
+                        "Downloading  %s %s to %s", p_def, remote_target, local_target
                     )
 
                     self._sync_remote_to_local(remote_target, local_target)
 
             except Exception as e:
                 logger.exception(
-                    "Failed to create local cache for %s %s", p_def, remote_target,
+                    "Failed to create local cache for %s %s", p_def, remote_target
                 )
                 raise
 

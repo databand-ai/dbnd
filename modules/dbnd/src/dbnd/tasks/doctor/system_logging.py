@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 def logging_status():
     # type: ()->str
     """
-      Shows the status of the logging system
-      All known loggers, logging configuration and so on.
-      :return:
+    Shows the status of the logging system
+    All known loggers, logging configuration and so on.
+    :return:
     """
     report = DoctorStatusReportBuilder("Logging Status")
 
@@ -59,9 +59,7 @@ def logging_status():
     logging_status = "\n{sep}\n{msg}\n{sep}s\n".format(msg=logging_status, sep="*" * 40)
     logger.info(logging_status)
     # if we run this check we might have a problem with logs, we don't know how we are going to see the message
-    print(
-        "\n\nLogging Status (via __stderr__)%s" % logging_status, file=sys.__stderr__,
-    )
+    print("\n\nLogging Status (via __stderr__)%s" % logging_status, file=sys.__stderr__)
 
     logger.info("Running logging validation.. (you will see a lot of messages)")
 

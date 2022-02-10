@@ -65,7 +65,7 @@ class TestSparkRun(object):
         files = [
             x
             for x in glob.glob(
-                "data/dbnd/log/*/*word_count_plain*/**/1-spark.log", recursive=True,
+                "data/dbnd/log/*/*word_count_plain*/**/1-spark.log", recursive=True
             )
         ]
         assert len(files) == 3

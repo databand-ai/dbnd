@@ -7,11 +7,11 @@ class Endpoint(object):
         self, url, auth=NO_AUTH, username="", password="", implicitly_added=False
     ):
         if not url:
-            raise DatabandConfigError(u"URL must not be empty")
+            raise DatabandConfigError("URL must not be empty")
         if auth not in AUTHS_SUPPORTED:
-            raise DatabandConfigError(u"Auth '{}' not supported".format(auth))
+            raise DatabandConfigError("Auth '{}' not supported".format(auth))
 
-        self.url = url.rstrip(u"/")
+        self.url = url.rstrip("/")
         self.username = username
         self.password = password
         self.auth = auth
@@ -37,4 +37,4 @@ class Endpoint(object):
         return not self == other
 
     def __str__(self):
-        return u"Endpoint({})".format(self.url)
+        return "Endpoint({})".format(self.url)

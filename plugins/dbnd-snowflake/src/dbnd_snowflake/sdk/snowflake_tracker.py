@@ -110,9 +110,7 @@ class SnowflakeTracker(object):
     def unpatch_method(obj, original_attr, patched_attr="__dbnd_patched__"):
         method = getattr(obj, original_attr)
         if hasattr(method, patched_attr):
-            setattr(
-                SnowflakeCursor, original_attr, getattr(method, patched_attr),
-            )
+            setattr(SnowflakeCursor, original_attr, getattr(method, patched_attr))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.unpatch_method(SnowflakeCursor, "execute")

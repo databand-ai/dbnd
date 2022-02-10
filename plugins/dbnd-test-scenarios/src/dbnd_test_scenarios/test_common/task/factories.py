@@ -32,7 +32,7 @@ class CaseSensitiveParameterTask(PythonTask):
     TParam = parameter.value(1)
 
     def run(self):
-        return self.TParam ** 2
+        return self.TParam**2
 
 
 class RequiredConfig(dbnd.Config):

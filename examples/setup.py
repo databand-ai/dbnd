@@ -10,9 +10,7 @@ config = read_configuration(CFG_PATH)
 
 version = config["metadata"]["version"]
 
-EXTRAS_REQUIRE = {
-    "airflow": ["dbnd-airflow[airflow]==" + version],
-}
+EXTRAS_REQUIRE = {"airflow": ["dbnd-airflow[airflow]==" + version]}
 
 INSTALL_REQUIRES = [
     # we are still installing 'databand' in dockers.. "dbnd==" + version,

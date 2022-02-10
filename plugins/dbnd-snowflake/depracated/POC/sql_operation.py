@@ -122,7 +122,7 @@ def render_table_name(connection: Connection, table_name: str, sep: str = ".") -
     database = database or connection.database
     schema = schema or connection.schema
 
-    path = sep.join(filter(None, [database, schema, table],))
+    path = sep.join(filter(None, [database, schema, table]))
     return path
 
 
@@ -142,7 +142,7 @@ def render_connection_path(
     else:
         path = render_table_name(connection, table_name, sep="/")
     return build_conn_path(
-        conn_type=conn_type, hostname=connection.host, port=connection.port, path=path,
+        conn_type=conn_type, hostname=connection.host, port=connection.port, path=path
     )
 
 
@@ -159,10 +159,7 @@ class SqlOperationValueMeta(DataValueType):
         data_dimensions = None
 
         if meta_conf.log_schema:
-            data_schema = {
-                "type": self.type_str,
-                "dtypes": value.dtypes,
-            }
+            data_schema = {"type": self.type_str, "dtypes": value.dtypes}
 
         if meta_conf.log_size:
             data_dimensions = [value.records_count, value.columns_count]

@@ -644,7 +644,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                     msg,
                 )
                 raise DatabandFailFastError(
-                    "Failing whole pipeline as it has failed/canceled tasks %s" % msg,
+                    "Failing whole pipeline as it has failed/canceled tasks %s" % msg
                 )
 
         # return updated status

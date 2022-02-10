@@ -124,12 +124,12 @@ def convert_to_safe_types(obj):
 
 def flatten_dict(json_input: dict) -> dict:
     """
-       Flatten nested json dict to 1 level dict
-       list values will no further drilled down
+    Flatten nested json dict to 1 level dict
+    list values will no further drilled down
 
-        Example input: {"attribute":"value","object_array":[{"attribute":1},{"attribute":2}],"some_nested_object":{"nested_attribute":"nested_value"}}
-        output: {"attribute":"value","object_array":"[{'attribute': 1}, {'attribute': 2}]","some_nested_object.nested_attribute":"nested_value"}
-       """
+     Example input: {"attribute":"value","object_array":[{"attribute":1},{"attribute":2}],"some_nested_object":{"nested_attribute":"nested_value"}}
+     output: {"attribute":"value","object_array":"[{'attribute': 1}, {'attribute': 2}]","some_nested_object.nested_attribute":"nested_value"}
+    """
     json_output = {}
 
     def flatten(value, name=""):

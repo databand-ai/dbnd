@@ -13,7 +13,7 @@ class FastSingletonContext(object):
 
     @classmethod
     def try_instance(cls, *args, **kwargs):
-        """ Singleton get or create"""
+        """Singleton get or create"""
         if cls._instance is None:
             cls._instance = cls(*args, **kwargs)
         return cls._instance

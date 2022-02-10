@@ -99,7 +99,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
         ],
     )
     def test_log_stats(
-        self, tracking_config, param_log_stats, config_log_stats, expected_log_stats,
+        self, tracking_config, param_log_stats, config_log_stats, expected_log_stats
     ):  # type: (Callable[[], TrackingConfig], bool, bool, bool) -> None
         # Arrange
         tc = tracking_config()
@@ -260,7 +260,7 @@ class TestTrackingConfigEmptyGetValueMetaConf(object):
         ],
     )
     def test_log_schema(
-        self, tracking_config, param_log_schema, config_log_schema, expected_log_schema,
+        self, tracking_config, param_log_schema, config_log_schema, expected_log_schema
     ):  # type: (Callable[[], TrackingConfig], bool, bool, bool) -> None
         # Arrange
         tracking_config = tracking_config()

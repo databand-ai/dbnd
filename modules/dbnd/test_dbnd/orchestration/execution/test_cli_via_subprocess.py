@@ -78,9 +78,5 @@ class TestHelpAndMisspelledOverCmdline(object):
         run_dbnd_subprocess_test(args)
 
     def test_describe_simple(self):
-        args = [
-            "-m",
-            pipe_4tasks.__name__,
-            "scenario_4_tasks.MainPipeline",
-        ]
+        args = ["-m", pipe_4tasks.__name__, "scenario_4_tasks.MainPipeline"]
         run_dbnd_subprocess_test(args)
