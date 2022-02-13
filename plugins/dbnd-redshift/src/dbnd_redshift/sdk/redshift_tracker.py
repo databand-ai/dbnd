@@ -101,7 +101,7 @@ class RedshiftTracker:
         # we clean all the batch of operations we reported so we don't report twice
         self.operations = []
 
-    def set_read_dataframe(self, dataframe):
+    def set_dataframe(self, dataframe):
         """
         set dataframe
         Args:
@@ -157,26 +157,16 @@ class RedshiftTracker:
         # looks for tables schemas
         tables = chain.from_iterable(op.tables for op in operations if not op.is_file)
         # get df schema if exist
-        if self.dataframe is not None:
-            try:
-                df_schema = self.dataframe.dtypes.to_dict()
-                df_schema = ((k, str(v)) for k, v in df_schema.items())
-            except Exception as e:
-                df_schema = None
-                logger.exception(
-                    "Error occurred during build schema from dataframe: %s",
-                    self.dataframe,
-                )
-                log_exception_to_server(e)
-        else:
-            df_schema = None
+        df_schema = build_schema_from_dataframe(self.dataframe)
 
         tables_schemas: Dict[str, DTypes] = {}
-
         for table in tables:
-            table_schema = get_redshift_table_schema(connection, table)
-            if table_schema:
-                tables_schemas[table] = table_schema
+            if df_schema:
+                tables_schemas[table] = df_schema
+            else:
+                table_schema = get_redshift_table_schema(connection, table)
+                if table_schema:
+                    tables_schemas[table] = table_schema
 
         operations: List[SqlOperation] = [
             op.evolve_schema(tables_schemas, df_schema) for op in operations
@@ -197,6 +187,22 @@ class RedshiftTracker:
                 error=op.error,
                 with_partition=None,
             )
+
+
+def build_schema_from_dataframe(dataframe):
+    if dataframe is not None:
+        try:
+            df_schema = dataframe.dtypes.to_dict()
+            df_schema = dict((k, str(v)) for k, v in df_schema.items())
+        except Exception as e:
+            df_schema = None
+            logger.exception(
+                "Error occurred during build schema from dataframe: %s", dataframe,
+            )
+            log_exception_to_server(e)
+    else:
+        df_schema = None
+    return df_schema
 
 
 def get_redshift_table_schema(connection, table) -> Optional[DTypes]:
@@ -270,6 +276,7 @@ def build_redshift_operations(
         query_id=None,
         success=success,
         error=error,
+        dataframe=dataframe,
     )
 
     if READ in extracted and WRITE not in extracted:
@@ -277,10 +284,7 @@ def build_redshift_operations(
         # description contains the schema of the operation.
         schema = None
         read = build_operation(
-            extracted_schema=extracted[READ],
-            dtypes=schema,
-            op_type=READ,
-            dataframe=dataframe,
+            extracted_schema=extracted[READ], dtypes=schema, op_type=READ,
         )
         operations.append(read)
     else:
@@ -288,15 +292,12 @@ def build_redshift_operations(
         # schema.
         if READ in extracted:
             read = build_operation(
-                extracted_schema=extracted[READ],
-                dtypes=None,
-                op_type=READ,
-                dataframe=dataframe,
+                extracted_schema=extracted[READ], dtypes=None, op_type=READ,
             )
             operations.append(read)
 
         write = build_operation(
-            extracted_schema=extracted[WRITE], dtypes=None, op_type=WRITE
+            extracted_schema=extracted[WRITE], dtypes=None, op_type=WRITE,
         )
         operations.append(write)
     return operations

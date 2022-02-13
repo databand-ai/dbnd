@@ -174,10 +174,9 @@ def test_copy_into_s3_set_read_schema(mock_redshift, mock_channel_tracker):
     report_operations_arg = one(get_operations(mock_channel_tracker))
 
     for op in report_operations_arg:
-        if op.op_type == DbndTargetOperationType.read:
-            assert op.columns == ["c1", "c2"]
-            assert op.columns_count == 2
-            assert op.dtypes == {"c1": "object", "c2": "int64"}
+        assert op.columns == ["c1", "c2"]
+        assert op.columns_count == 2
+        assert op.dtypes == {"c1": "object", "c2": "int64"}
 
 
 def test_copy_into_s3_set_read_schema_wrong_df(mock_redshift, mock_channel_tracker):
@@ -189,6 +188,10 @@ def test_copy_into_s3_set_read_schema_wrong_df(mock_redshift, mock_channel_track
             assert op.columns is None
             assert op.columns_count is None
             assert op.dtypes is None
+        if op.op_type == DbndTargetOperationType.write:
+            assert op.columns == ["column_1", "column_2"]
+            assert op.columns_count == 2
+            assert op.dtypes == {"column_1": "integer", "column_2": "character varying"}
 
 
 def test_copy_into_operation_failure(mock_redshift):
@@ -305,6 +308,6 @@ def run_tracker_custom_df(query, dataframe=None):
     with redshift_tracker as tracker:
         with _redshift_connect() as con:
             if dataframe is not None:
-                tracker.set_read_dataframe(dataframe)
+                tracker.set_dataframe(dataframe)
             c = con.cursor()
             c.execute(query)
