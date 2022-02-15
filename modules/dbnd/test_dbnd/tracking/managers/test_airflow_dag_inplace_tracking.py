@@ -11,8 +11,8 @@ from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     get_task_run_uid_for_inline_script,
 )
 from dbnd._core.tracking.script_tracking_manager import (
+    dbnd_airflow_tracking_start,
     dbnd_tracking,
-    dbnd_tracking_start,
     dbnd_tracking_stop,
 )
 from dbnd._core.utils.basics.environ_utils import env
@@ -83,18 +83,18 @@ def test_script_tracking_with_airflow_context_from_env():
         AIRFLOW_CTX_EXECUTION_DATE="1970-01-01T00:00:00.571846+00:00",
         AIRFLOW_CTX_TASK_ID="test_task",
         AIRFLOW_CTX_TRY_NUMBER="6",
-    ), dbnd_tracking(name="boom") as task_run:
+    ), dbnd_tracking(job_name="boom") as task_run:
         assert task_run.task.task_name == "test_task_boom"
 
 
 def test_script_tracking():
-    with dbnd_tracking(name="boom") as task_run:
+    with dbnd_tracking(job_name="boom") as task_run:
         assert task_run.task.task_name == "boom"
 
 
 def test_tracking():
     af_context = af_context_w_context()
-    dbnd_tracking_start(airflow_context=af_context)
+    dbnd_airflow_tracking_start(airflow_context=af_context)
     log_metric("test", "test_value")
     dbnd_tracking_stop()
 

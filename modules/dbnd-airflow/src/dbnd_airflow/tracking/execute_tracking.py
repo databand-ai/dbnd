@@ -11,7 +11,7 @@ from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import extract_airflow_context
 from dbnd._core.tracking.managers.callable_tracking import _log_result
 from dbnd._core.tracking.script_tracking_manager import (
-    dbnd_tracking_start,
+    dbnd_airflow_tracking_start,
     dbnd_tracking_stop,
 )
 from dbnd._core.utils.basics.environ_utils import env
@@ -104,7 +104,7 @@ def new_execute(context):
 
         task_context = extract_airflow_context(context)
         # start operator execute run with current airflow context
-        task_run = dbnd_tracking_start(
+        task_run = dbnd_airflow_tracking_start(
             airflow_context=task_context
         )  # type: Optional[TaskRun]
 

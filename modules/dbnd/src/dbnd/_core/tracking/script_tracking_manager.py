@@ -45,7 +45,10 @@ if typing.TYPE_CHECKING:
     T = typing.TypeVar("T")
 
 
-def set_tracking_config_overide(airflow_context=None):
+# Helper functions
+
+
+def _set_tracking_config_overide(airflow_context=None):
     # Ceate proper DatabandContext so we can create other objects
     # There should be no Orchestrations tasks.
     # However, let's disable any orchestrations side effects
@@ -76,6 +79,67 @@ def set_tracking_config_overide(airflow_context=None):
         priority=ConfigValuePriority.OVERRIDE,
         source="dbnd_tracking_config",
     )
+
+
+def _set_process_exit_handler(handler):
+    atexit.register(handler)
+
+    # https://docs.python.org/3/library/atexit.html
+    # The functions registered via this module are not called when the program
+    # is killed by a signal not handled by Python, when a Python fatal internal
+    # error is detected, or when os._exit() is called.
+    #                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+    # and os._exit is the one used by airflow (and maybe other libraries)
+    # so we'd like to monkey-patch os._exit to stop dbnd inplace run manager
+    original_os_exit = os._exit
+
+    def _dbnd_os_exit(*args, **kwargs):
+        try:
+            handler()
+        finally:
+            original_os_exit(*args, **kwargs)
+
+    os._exit = _dbnd_os_exit
+
+
+def _build_inline_root_task(root_task_name):
+    # create "root task" with default name as current process executable file name
+
+    task_definition = TaskDefinition(
+        task_passport=TaskPassport.from_module(
+            TrackingTask.__module__
+        ),  # we need to fix that
+        source_code=TaskSourceCode.from_callstack(),
+    )
+
+    root_task = TrackingTask(
+        task_name=root_task_name,
+        task_definition=task_definition,
+        task_params=Parameters(source="inline_root_task", param_values=[]),
+    )
+
+    root_task.ctrl.task_repr.task_command_line = list2cmdline(sys.argv)
+    root_task.ctrl.task_repr.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
+
+    return root_task
+
+
+def _set_dbnd_config_from_airflow_connections():
+    """ Set Databand config from Extra section in Airflow dbnd_config connection. """
+    try:
+        from dbnd_airflow.tracking.dbnd_airflow_conf import (
+            set_dbnd_config_from_airflow_connections,
+        )
+
+        set_dbnd_config_from_airflow_connections()
+
+    except ImportError:
+        logger.info(
+            "dbnd_airflow is not installed. Config will not load from Airflow Connections"
+        )
+
+
+# _DbndScriptTrackingManager class
 
 
 class _DbndScriptTrackingManager(object):
@@ -133,7 +197,7 @@ class _DbndScriptTrackingManager(object):
                 ),
             )
 
-    def start(self, root_task_name=None, airflow_context=None):
+    def start(self, root_task_name=None, project_name=None, airflow_context=None):
         if self._run or self._active or try_get_databand_run():
             return
 
@@ -143,13 +207,13 @@ class _DbndScriptTrackingManager(object):
         if airflow_context:
             _set_dbnd_config_from_airflow_connections()
 
-        set_tracking_config_overide(airflow_context=airflow_context)
+        _set_tracking_config_overide(airflow_context=airflow_context)
         dc = self._enter_cm(
             new_dbnd_context(name="inplace_tracking")
         )  # type: DatabandContext
 
         if not root_task_name:
-            # extract the name of the script we are running
+            # extract the name of the script we are running (in Airflow scenario it will be just "airflow")
             root_task_name = sys.argv[0].split(os.path.sep)[-1]
 
         if airflow_context:
@@ -159,7 +223,7 @@ class _DbndScriptTrackingManager(object):
             try_number = airflow_context.try_number
         else:
             root_task = _build_inline_root_task(root_task_name)
-            job_name = root_task.task_name
+            job_name = root_task_name
             source = UpdateSource.generic_tracking
             run_uid = None
             try_number = 1
@@ -176,6 +240,7 @@ class _DbndScriptTrackingManager(object):
                 source=source,
                 af_context=airflow_context,
                 tracking_source=tracking_source,
+                project_name=project_name,
             )
         )  # type: DatabandRun
 
@@ -256,47 +321,7 @@ class _DbndScriptTrackingManager(object):
         sys.__excepthook__(type, value, traceback)
 
 
-def _set_process_exit_handler(handler):
-    atexit.register(handler)
-
-    # https://docs.python.org/3/library/atexit.html
-    # The functions registered via this module are not called when the program
-    # is killed by a signal not handled by Python, when a Python fatal internal
-    # error is detected, or when os._exit() is called.
-    #                       ^^^^^^^^^^^^^^^^^^^^^^^^^
-    # and os._exit is the one used by airflow (and maybe other libraries)
-    # so we'd like to monkey-patch os._exit to stop dbnd inplace run manager
-    original_os_exit = os._exit
-
-    def _dbnd_os_exit(*args, **kwargs):
-        try:
-            handler()
-        finally:
-            original_os_exit(*args, **kwargs)
-
-    os._exit = _dbnd_os_exit
-
-
-def _build_inline_root_task(root_task_name):
-    # create "root task" with default name as current process executable file name
-
-    task_definition = TaskDefinition(
-        task_passport=TaskPassport.from_module(
-            TrackingTask.__module__
-        ),  # we need to fix that
-        source_code=TaskSourceCode.from_callstack(),
-    )
-
-    root_task = TrackingTask(
-        task_name=root_task_name,
-        task_definition=task_definition,
-        task_params=Parameters(source="inline_root_task", param_values=[]),
-    )
-
-    root_task.ctrl.task_repr.task_command_line = list2cmdline(sys.argv)
-    root_task.ctrl.task_repr.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
-
-    return root_task
+# API functions
 
 
 def try_get_inplace_tracking_task_run():
@@ -309,24 +334,15 @@ def try_get_inplace_tracking_task_run():
 _dbnd_script_manager = None  # type: Optional[_DbndScriptTrackingManager]
 
 
-def dbnd_tracking_start(name=None, airflow_context=None):
+def tracking_start_base(job_name, project_name=None, airflow_context=None):
     """
     Starts handler for tracking the current running script.
-
     Would not start a new one if script manager if already exists
-
-    Args:
-        name: Can be used to name the run
-        airflow_context: Injecting the airflow context to the run, meaning we start tracking some airflow execution
-
     """
     dbnd_project_config = get_dbnd_project_config()
     if dbnd_project_config.disabled:
         # we are not tracking if dbnd is disabled
         return None
-
-    if name is None:
-        name = try_get_script_name()
 
     global _dbnd_script_manager
     if not _dbnd_script_manager:
@@ -335,7 +351,8 @@ def dbnd_tracking_start(name=None, airflow_context=None):
 
         dsm = _DbndScriptTrackingManager()
         try:
-            dsm.start(name, airflow_context)
+            # we use job name for both job_name and root_task_name of the run
+            dsm.start(job_name, project_name, airflow_context)
             if dsm._active:
                 _dbnd_script_manager = dsm
 
@@ -351,12 +368,52 @@ def dbnd_tracking_start(name=None, airflow_context=None):
         return _dbnd_script_manager._task_run
 
 
-def dbnd_tracking_stop(finalize_run=True):
+def dbnd_airflow_tracking_start(airflow_context):
+    """This function is meant to be used only from inside Airflow for Airflow tracking only."""
+    job_name = try_get_script_name()
+    return tracking_start_base(job_name=job_name, airflow_context=airflow_context)
+
+
+def dbnd_tracking_start(job_name=None, run_name=None, project_name=None, conf=None):
     """
-    Stop and clears the script tracking if exists.
+    This function is used for tracking Python scripts only and should be added at the beginning of the script.
+
+    When the script execution ends, dbnd_tracking_stop will be called automatically, there is no need to add it manually.
 
     Args:
-        finalize_run: Should complete the run by setting its state to a complete one (success or failed)
+        job_name: Name of the pipeline
+        run_name: Name of the run
+        project_name: Name of the project
+        conf: Configuration dict with values for Databand configurations
+    """
+    if not conf:
+        conf = {}
+
+    if run_name:
+        if "run" in conf:
+            conf["run"]["name"] = run_name
+        else:
+            conf["run"] = {"name": run_name}
+
+    if conf:
+        config.set_values(
+            config_values=conf,
+            priority=ConfigValuePriority.OVERRIDE,
+            source="dbnd_tracking_start",
+        )
+
+    if job_name is None:
+        job_name = try_get_script_name()
+
+    return tracking_start_base(job_name=job_name, project_name=project_name)
+
+
+def dbnd_tracking_stop(finalize_run=True):
+    """
+    Stops and clears the script tracking if exists.
+
+    Args:
+        finalize_run: Should complete the run by setting it's state to a complete one (success or failed).
     """
     global _dbnd_script_manager
     if _dbnd_script_manager:
@@ -365,35 +422,24 @@ def dbnd_tracking_stop(finalize_run=True):
 
 
 @seven.contextlib.contextmanager
-def dbnd_tracking(name=None, conf=None):
+def dbnd_tracking(job_name=None, run_name=None, project_name=None, conf=None):
     # type: (...) -> TaskRun
     """
-    Uses configuration to instantiate the Databand context during execution.
-
-    Any processes executed inside the dbnd_tracking() context will be displayed in Databand for monitoring.
+    This function is used for tracking Python scripts only and should be used with a with statement.
 
     Args:
-        name: Will be used to identify the run in the Pipelines screen of your Databand application.
-        conf: The configuration used by the function.
+        job_name: Name of the pipeline
+        run_name: Name of the run
+        project_name: Name of the project
+        conf: Configuration dict with values for Databand configurations
     """
     try:
-        with config(config_values=conf, source="tracking context"):
-            tr = dbnd_tracking_start(name=name)
-            yield tr
+        tr = dbnd_tracking_start(
+            job_name=job_name,
+            run_name=run_name,
+            project_name=project_name,
+            conf=conf,
+        )
+        yield tr
     finally:
         dbnd_tracking_stop()
-
-
-def _set_dbnd_config_from_airflow_connections():
-    """Set Databand config from Extra section in Airflow dbnd_config connection."""
-    try:
-        from dbnd_airflow.tracking.dbnd_airflow_conf import (
-            set_dbnd_config_from_airflow_connections,
-        )
-
-        set_dbnd_config_from_airflow_connections()
-
-    except ImportError:
-        logger.info(
-            "dbnd_airflow is not installed. Config will not load from Airflow Connections"
-        )
