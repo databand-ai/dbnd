@@ -1,6 +1,6 @@
 from pytest import raises
 
-from dbnd import PythonTask, parameter, task
+from dbnd import PythonTask, parameter
 
 
 class PrepareData(PythonTask):

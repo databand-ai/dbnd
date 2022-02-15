@@ -1,7 +1,3 @@
-from dbnd import output, parameter
-from dbnd_spark import SparkConfig, SparkTask
-
-
 class TestDocSparkConfiguration:
     def test_doc(self):
         """

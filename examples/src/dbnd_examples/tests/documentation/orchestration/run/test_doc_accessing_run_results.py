@@ -35,3 +35,4 @@ class TestDocAccessingRunResults:
         model = run.load_from_result("model", value_type=ElasticNet)
         validation = run.load_from_result("validation")
         #### DOC END
+        assert model and validation

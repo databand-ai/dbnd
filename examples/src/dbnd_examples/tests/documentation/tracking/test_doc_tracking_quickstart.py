@@ -1,7 +1,4 @@
-from pandas import read_csv
-
 from dbnd import log_metric
-from dbnd_examples.data import data_repo
 
 
 class TestDocTrackingQuickstart:
@@ -215,3 +212,5 @@ class TestDocTrackingQuickstart:
         model = train_model(training_set)
         metrics = test_model(model, testing_set)
         #### DOC END
+
+        assert metrics

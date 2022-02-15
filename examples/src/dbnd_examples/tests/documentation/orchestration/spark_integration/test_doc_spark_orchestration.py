@@ -1,11 +1,3 @@
-import pandas
-
-from dbnd import output, parameter
-from dbnd_examples.data import data_repo
-from dbnd_examples.dbnd_spark import spark_folder
-from dbnd_spark import PySparkTask, SparkConfig, SparkTask
-
-
 """
 class TestDocSparkOrchestration:
     def test_prepare_data_spark_task(self):

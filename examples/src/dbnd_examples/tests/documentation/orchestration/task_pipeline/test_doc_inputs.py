@@ -1,8 +1,4 @@
-import os
-
 from pathlib import Path
-
-import pandas as pd
 
 from pandas import DataFrame
 from sklearn.linear_model import ElasticNet

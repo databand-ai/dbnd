@@ -1,7 +1,6 @@
 from pandas import DataFrame
 
 from dbnd import parameter
-from dbnd._core.task.data_source_task import DataTask
 from dbnd_spark import SparkConfig, SparkTask
 
 

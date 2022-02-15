@@ -71,6 +71,7 @@ class TestDocDecoratedDags:
             ) as dag_operators:
                 t1 = calculate_alpha(2, task_airflow_op_kwargs=airflow_op_kwargs)
         #### DOC END
+        assert t1_op
 
     def test_prepare_data_jinja_templating(self):
         #### DOC START

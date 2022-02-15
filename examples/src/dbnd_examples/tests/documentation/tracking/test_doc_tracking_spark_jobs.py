@@ -1,9 +1,4 @@
-import shutil
 import sys
-
-from time import sleep
-
-from dbnd_examples.data import data_repo
 
 
 class TestDocTrackingSparkJobs:

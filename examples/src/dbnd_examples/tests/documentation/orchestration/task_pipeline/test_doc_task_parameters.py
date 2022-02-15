@@ -1,16 +1,11 @@
 import datetime
-import pathlib
 
 from pathlib import Path
 from typing import List
 
-import pandas as pd
-
 from pandas import DataFrame
 
-import targets
-
-from dbnd import PythonTask, parameter, task
+from dbnd import parameter, task
 from dbnd_examples.data import data_repo
 from targets import Target
 from targets.types import PathStr
@@ -86,7 +81,6 @@ class TestDocTaskParameters:
             pathlib_path: Path, str_as_path: PathStr, target_path: Target
         ) -> str:
             assert isinstance(str_as_path, str)
-            pass
 
         #### DOC END
 
@@ -114,7 +108,7 @@ class TestDocTaskParameters:
 
     def test_insignificant_parameters(self):
         #### DOC START
-        from dbnd import PythonTask, parameter
+        from dbnd import parameter
 
         @task
         def calculate_alpha(

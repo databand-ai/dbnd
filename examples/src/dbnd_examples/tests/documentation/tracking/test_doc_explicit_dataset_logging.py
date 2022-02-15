@@ -1,8 +1,3 @@
-from dbnd import log_dataset_op, task
-from dbnd._core.constants import DbndDatasetOperationType
-from dbnd_examples.data import data_repo
-
-
 class TestDocExplicitDatasetLogging:
     def test_doc(self):
         """

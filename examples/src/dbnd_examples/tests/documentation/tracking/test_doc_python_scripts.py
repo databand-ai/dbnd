@@ -2,7 +2,6 @@
 
 from pandas import DataFrame
 
-from dbnd import dbnd_tracking
 from dbnd_examples.data import data_repo
 
 
@@ -10,7 +9,6 @@ class TestDocPythonScripts:
     def test_doc(self):
         #### DOC START
         import logging
-        import os
 
         from typing import Tuple
 

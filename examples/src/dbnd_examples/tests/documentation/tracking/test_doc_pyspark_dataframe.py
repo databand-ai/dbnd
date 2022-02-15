@@ -1,6 +1,3 @@
-from dbnd_examples.data import data_repo
-
-
 class TestDocPysparkDataframe:
     def test_doc(self):
         #### DOC START
