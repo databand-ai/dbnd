@@ -104,7 +104,7 @@ class BaseMultiServerMonitor(object):
             if monitor:
                 monitor.update_config(server_config)
             else:
-                logger.info(f"Starting new monitor for {server_id}")
+                logger.info("Starting new monitor for %s", server_id)
                 monitor = self.monitor_component_manager(
                     self.runner,
                     server_config,
@@ -115,7 +115,7 @@ class BaseMultiServerMonitor(object):
 
     def _heartbeat(self):
         for monitor in self.active_monitors.values():
-            logger.info(
+            logger.debug(
                 "Starting new sync iteration for tracking_source_uid=%s, name=%s, iteration %d",
                 monitor.server_config.tracking_source_uid,
                 monitor.server_config.source_name,
@@ -129,10 +129,10 @@ class BaseMultiServerMonitor(object):
         while True:
             self.iteration += 1
             try:
-                logger.debug(f"Starting {self.iteration} iteration")
+                logger.debug("Starting %s iteration", self.iteration)
                 self.run_once()
                 self._send_metrics()
-                logger.debug(f"Iteration {self.iteration} done")
+                logger.debug("Iteration %s done", self.iteration)
             except Exception:
                 logger.exception("Unknown exception during iteration", exc_info=True)
 

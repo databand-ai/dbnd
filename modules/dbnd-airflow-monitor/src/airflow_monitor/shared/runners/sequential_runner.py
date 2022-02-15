@@ -45,7 +45,7 @@ class SequentialRunner(BaseRunner):
 
             try:
                 self._iteration += 1
-                logger.debug("Running sync for %s", self)
+                logger.info("Running sync for %s", self)
                 self._running.sync_once()
             except Exception as e:
                 self._running = None
