@@ -31,7 +31,6 @@ def inject_spark_listener(session):
     sc = session.sparkContext
     if find_dbnd_listener(sc):
         logger.info("Databand Spark Listener was already injected")
-        pass
     else:
         logger.info("Injecting Databand Spark Listener")
         sc._gateway.start_callback_server()

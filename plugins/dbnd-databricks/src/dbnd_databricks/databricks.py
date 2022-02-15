@@ -4,7 +4,7 @@ import time
 
 from airflow import AirflowException
 
-from dbnd._core.current import current_task, current_task_run
+from dbnd._core.current import current_task_run
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
@@ -18,7 +18,7 @@ from dbnd_databricks.errors import (
     failed_to_run_databricks_job,
     failed_to_submit_databricks_job,
 )
-from dbnd_spark.spark import SparkTask, _BaseSparkTask
+from dbnd_spark.spark import SparkTask
 from dbnd_spark.spark_ctrl import SparkCtrl
 
 

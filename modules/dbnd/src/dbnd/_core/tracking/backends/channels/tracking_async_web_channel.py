@@ -222,7 +222,6 @@ class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
                 if self._tracker_raise_on_error:
                     raise exc
             # in all other cases continue
-            pass
 
     def _background_worker_skip_processing_callback(
         self, item: AsyncWebChannelQueueItem

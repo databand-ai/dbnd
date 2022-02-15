@@ -1,12 +1,9 @@
 import logging
-import os
 import sys
 
-from contextlib import contextmanager
 from logging.config import dictConfig
 from typing import Optional
 
-from dbnd._core.configuration.dbnd_config import config as dbnd_config
 from dbnd._core.log.logging_utils import setup_log_file
 
 

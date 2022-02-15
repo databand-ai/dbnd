@@ -20,7 +20,6 @@
 import logging
 import subprocess
 
-from airflow.configuration import conf as airflow_conf
 from airflow.executors.base_executor import BaseExecutor
 from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
@@ -90,7 +89,7 @@ class InProcessExecutor(BaseExecutor):
                 self.log.error("Failed to execute task: %s.", str(e))
             except KeyboardInterrupt as e:
                 task_failed = True
-                fail_fast = True
+                self.fail_fast = True
                 self.change_state(key, State.FAILED)
                 self.log.exception("Interrupted to execute task: %s.", str(e))
             except Exception as e:

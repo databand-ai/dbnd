@@ -28,8 +28,7 @@ import luigi.contrib.hdfs
 import luigi.contrib.postgres
 import luigi.contrib.spark
 
-from dbnd import dbnd_config, log_metric
-from dbnd._core.settings import CoreConfig
+from dbnd import log_metric
 from dbnd._vendor.namesgenerator import get_random_name
 
 

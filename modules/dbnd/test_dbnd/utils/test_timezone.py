@@ -1,5 +1,4 @@
 import datetime
-import logging
 
 from dbnd._core.utils.timezone import convert_to_utc
 

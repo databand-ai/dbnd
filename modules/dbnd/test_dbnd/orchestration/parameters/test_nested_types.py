@@ -2,7 +2,6 @@ import logging
 
 from typing import Dict
 
-import pandas as pd
 import six
 
 from dbnd import band, task

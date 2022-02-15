@@ -4,7 +4,7 @@ from typing import List
 
 import pandas as pd
 
-from dbnd import config, dbnd_handle_errors, new_dbnd_context, pipeline, task
+from dbnd import config, dbnd_handle_errors, pipeline, task
 
 
 logger = logging.getLogger(__name__)

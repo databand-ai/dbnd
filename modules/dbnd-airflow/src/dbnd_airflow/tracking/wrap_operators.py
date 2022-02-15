@@ -1,6 +1,5 @@
 import logging
 import typing
-import uuid
 
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -9,18 +8,13 @@ from typing import Any, ContextManager, Dict, Optional
 import six
 
 from dbnd import dbnd_context
-from dbnd._core.configuration.environ_config import (
-    DBND_ROOT_RUN_UID,
-    ENV_DBND_SCRIPT_NAME,
-)
+from dbnd._core.configuration.environ_config import ENV_DBND_SCRIPT_NAME
 from dbnd._core.constants import TaskRunState, UpdateSource
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
-    get_task_family_for_inline_script,
     get_task_run_uid_for_inline_script,
 )
 from dbnd._core.tracking.backends import TrackingStore
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
-from dbnd._core.utils.uid_utils import get_task_run_attempt_uid, get_task_run_uid
 from dbnd_airflow.tracking.conf_operations import flat_conf
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_databand_url_conf
 from dbnd_airflow.tracking.dbnd_spark_conf import (
@@ -42,7 +36,6 @@ if typing.TYPE_CHECKING:
     )
     from airflow.contrib.operators.ecs_operator import ECSOperator
     from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
-    from airflow.models import BaseOperator
 
 logger = logging.getLogger(__name__)
 

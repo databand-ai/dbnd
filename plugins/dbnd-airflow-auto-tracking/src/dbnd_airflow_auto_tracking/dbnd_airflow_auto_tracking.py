@@ -1,5 +1,3 @@
-import logging
-
 from airflow.plugins_manager import AirflowPlugin
 
 from dbnd import get_dbnd_project_config

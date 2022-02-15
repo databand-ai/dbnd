@@ -6,8 +6,6 @@ import sys
 
 from typing import Dict
 
-import pkg_resources
-
 from airflow.models import BaseOperator
 
 from dbnd._core.utils.basics.memoized import cached
@@ -68,7 +66,7 @@ def _get_log(ti, task):
             MAX_LOGS_SIZE_IN_BYTES, len(all_logs)
         )
         return result
-    except Exception as e:
+    except Exception:
         pass
     finally:
         del ti.task
@@ -95,7 +93,7 @@ def _get_source_code(t):
             return inspect.getsource(t.python_callable)
         elif isinstance(t, BashOperator):
             return t.bash_command
-    except Exception as ex:
+    except Exception:
         pass
 
 
@@ -108,7 +106,7 @@ def _get_module_code(t):
             import inspect
 
             return inspect.getsource(inspect.getmodule(t.python_callable))
-    except Exception as ex:
+    except Exception:
         pass
 
 
@@ -167,7 +165,7 @@ def _read_dag_file(dag_file):
         with open(dag_file) as file:
             try:
                 return file.read()
-            except Exception as e:
+            except Exception:
                 pass
 
     return ""

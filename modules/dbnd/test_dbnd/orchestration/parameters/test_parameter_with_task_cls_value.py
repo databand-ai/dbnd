@@ -8,7 +8,6 @@ from dbnd_test_scenarios.test_common.task.factories import TTask
 
 class MNTask1(TTask):
     task_namespace = "mynamespace"
-    pass
 
 
 class MNTask2(TTask):

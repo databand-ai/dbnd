@@ -52,15 +52,13 @@ def add_tracking_to_policy():
     """Add tracking to all tasks as part of airflow policy"""
     try:
         _add_tracking_to_policy()
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to add tracking in policy")
 
 
 def patch_airflow_context_vars():
     """Used for tracking bash operators"""
     import airflow
-
-    from airflow.utils import operator_helpers
 
     from dbnd._core.utils.object_utils import patch_models
     from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars
@@ -78,7 +76,7 @@ def patch_airflow_context_vars():
 def patch_snowflake_hook():
     # In order to use this patch the user need to have both `dbnd-snowflake` and `snowflake` installed
     try:
-        import snowflake
+        import snowflake  # noqa: F401
 
         from airflow.contrib.hooks.snowflake_hook import SnowflakeHook
 

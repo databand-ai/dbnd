@@ -44,8 +44,6 @@ class DefaultObjectValueType(ObjectValueType):
     used by func decorators to mark that it's "auto" type
     """
 
-    pass
-
 
 class StrValueType(ValueType):
     type = str

@@ -243,7 +243,7 @@ class SnowflakeController:
                     "No more retries left to fetch Snoflake query resources. Giving up."
                 )
 
-        except Exception as exc:
+        except Exception:
             logger.exception(
                 "Failed to log_snowflake_resource_usage (query_text=%s, connection_string=%s)\n"
                 "Last query params used to search for resource usage: query_id - '%s', "

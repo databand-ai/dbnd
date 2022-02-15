@@ -2,14 +2,6 @@ from __future__ import print_function
 
 import os
 
-from datetime import datetime
-
-import numpy as np
-import pandas as pd
-import pytest
-
-from pytest import fixture
-
 # import dbnd should be first!
 import dbnd
 

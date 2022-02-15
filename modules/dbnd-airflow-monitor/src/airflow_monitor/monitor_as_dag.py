@@ -117,7 +117,7 @@ def kill_processes(processes):
         try:
             logger.fatal("killing %s", process.pid)
             process.kill()
-        except Exception as e:
+        except Exception:
             logger.fatal("Error while killing process %s", process.pid, exc_info=True)
 
 

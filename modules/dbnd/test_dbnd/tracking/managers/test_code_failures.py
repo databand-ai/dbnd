@@ -11,7 +11,7 @@ from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 
 
 def raise_exception():
-    x = 2 / 0
+    2 / 0
 
 
 def fake_context_on_enter(self):

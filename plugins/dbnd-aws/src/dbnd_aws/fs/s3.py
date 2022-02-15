@@ -45,11 +45,6 @@ from targets.fs import FileSystems
 from targets.utils.path import path_to_bucket_and_key
 
 
-try:
-    from urlparse import urlsplit
-except ImportError:
-    from urllib.parse import urlsplit
-
 logger = logging.getLogger(__name__)
 
 # two different ways of marking a directory

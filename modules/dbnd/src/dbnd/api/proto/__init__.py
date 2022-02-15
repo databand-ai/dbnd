@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def is_google_installed():
     try:
-        import google
+        import google  # noqa: F401
 
         return True
     except ImportError:
@@ -21,7 +21,7 @@ def is_google_installed():
 
 def is_potobuf_installed():
     try:
-        from google import protobuf
+        from google import protobuf  # noqa: F401
 
         return True
     except ImportError:

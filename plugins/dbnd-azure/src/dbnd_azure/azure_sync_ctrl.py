@@ -1,10 +1,6 @@
 import logging
-import os
 
 from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
-from dbnd_azure.fs import AZURE_BLOB_FS_NAME
-from dbnd_azure.fs.azure_blob import AzureBlobStorageClient
-from targets.fs import FileSystems
 
 
 logger = logging.getLogger(__name__)

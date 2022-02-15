@@ -620,7 +620,7 @@ def _update_parameter_from_runtime_value_type(parameter, value):
 def build_parameter_value(parameter, cf_value):
     # type: (ParameterDefinition, ConfigValue) -> ParameterValue
 
-    from dbnd._core.parameter.parameter_value import ParameterValue
+    from dbnd._core.parameter.parameter_value import ParameterValue as _ParameterValue
 
     warnings = []
     value = cf_value.value
@@ -649,7 +649,7 @@ def build_parameter_value(parameter, cf_value):
                 # warn anyway
                 warnings.append(message)
 
-    except Exception as ex:
+    except Exception:
         # we don't want to fail user code on failed value discovery
         # we only print message from "friendly exception" and show real stack
         logger.exception("Failed to discover runtime for %s" % parameter)
@@ -675,7 +675,7 @@ def build_parameter_value(parameter, cf_value):
             "validate value='%s'" % safe_string(p_val), ex=ex
         )
 
-    p_value = ParameterValue(
+    p_value = _ParameterValue(
         parameter=parameter,
         source=cf_value.source,
         source_value=cf_value.value,

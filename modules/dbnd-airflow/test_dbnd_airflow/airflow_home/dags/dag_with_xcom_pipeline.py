@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Tuple
 
-from airflow import DAG
 from airflow.utils.dates import days_ago
 
 from dbnd import pipeline, task

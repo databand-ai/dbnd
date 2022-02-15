@@ -3,14 +3,14 @@ from dbnd_airflow.constants import AIRFLOW_ABOVE_10
 
 
 if AIRFLOW_ABOVE_10:
-    from airflow.executors.kubernetes_executor import (
+    from airflow.executors.kubernetes_executor import (  # noqa: F401
         AirflowKubernetesScheduler,
         KubeConfig,
         KubernetesExecutor,
         KubernetesJobWatcher,
     )
 else:
-    from airflow.contrib.executors.kubernetes_executor import (
+    from airflow.contrib.executors.kubernetes_executor import (  # noqa: F401
         AirflowKubernetesScheduler,
         KubeConfig,
         KubernetesExecutor,

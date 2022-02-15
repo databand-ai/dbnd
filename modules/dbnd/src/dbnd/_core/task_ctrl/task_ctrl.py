@@ -22,7 +22,6 @@ if typing.TYPE_CHECKING:
     from dbnd._core.parameter.parameter_value import Parameters
     from dbnd._core.settings import DatabandSettings, EnvConfig
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
-    from dbnd._core.task_ctrl.task_descendant import TaskDescendants
     from dbnd._core.task_ctrl.task_relations import TaskRelations
     from dbnd._core.task_ctrl.task_validator import TaskValidator
     from dbnd._core.task_run.task_run import TaskRun
@@ -101,12 +100,14 @@ class _BaseTaskCtrl(TaskSubCtrl):
 
         from dbnd._core.task_ctrl.task_dag import _TaskDagNode  # noqa: F811
         from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
-        from dbnd._core.task_ctrl.task_descendant import TaskDescendants
+        from dbnd._core.task_ctrl.task_descendant import (
+            TaskDescendants as _TaskDescendants,
+        )
         from dbnd._core.task_ctrl.task_repr import TaskRepr
         from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser  # noqa: F811
 
         self._task_dag = _TaskDagNode(task)
-        self.descendants = TaskDescendants(task)
+        self.descendants = _TaskDescendants(task)
 
         self._visualiser = TaskVisualiser(task)
         self.describe_dag = DescribeDagCtrl(task)

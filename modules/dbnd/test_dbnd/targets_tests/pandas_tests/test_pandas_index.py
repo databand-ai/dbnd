@@ -7,7 +7,6 @@ import pytest
 from pandas.util.testing import assert_frame_equal
 
 from targets import target
-from targets.target_config import FileCompressions, file
 
 
 logger = logging.getLogger(__name__)

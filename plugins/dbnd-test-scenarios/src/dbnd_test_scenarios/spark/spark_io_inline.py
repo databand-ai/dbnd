@@ -3,7 +3,6 @@ import pyspark.sql as spark
 from databand import output, parameter
 from dbnd import pipeline, task
 from dbnd_spark.spark import spark_output, spark_task
-from targets.target_config import FileFormat
 
 
 @pipeline(result=spark_output.csv[spark.DataFrame])

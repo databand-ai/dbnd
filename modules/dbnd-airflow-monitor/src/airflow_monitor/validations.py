@@ -49,7 +49,7 @@ class CheckMonitorPackages(ValidationStep):
         # We don't need to validate all packages, since if dbnd-airflow-monitor does not exist,
         # the dag would be broken in Airflow
         try:
-            import dbnd_airflow
+            import dbnd_airflow  # noqa: F401
         except ImportError:
             self.errors_list.append(
                 "Did not find dbnd-airflow package required for monitor"
@@ -62,7 +62,7 @@ class CheckMonitorPackages(ValidationStep):
 class CheckTrackingPackages(ValidationStep):
     def run_validation(self):
         try:
-            import dbnd_airflow_auto_tracking
+            import dbnd_airflow_auto_tracking  # noqa: F401
         except ImportError:
             self.errors_list.append(AUTO_TRACKING_PACKAGE_IS_MISSING_MESSAGE)
 

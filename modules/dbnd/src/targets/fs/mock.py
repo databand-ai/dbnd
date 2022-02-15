@@ -102,7 +102,6 @@ class MockFileSystem(FileSystem):
         """
         mkdir is a noop.
         """
-        pass
 
     def clear(self):
         self.get_all_data().clear()

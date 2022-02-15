@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 import mock
 import pandas as pd
 import psycopg2

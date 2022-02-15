@@ -40,7 +40,6 @@ def main():
         with config({RunConfig.task_executor_type: TaskExecutorType.local}):
             run = dbnd_sanity_check.dbnd_run()
             tr = run.root_task_run  # type: TaskRun
-        pass
 
     logger.warning("TR: %s %s %s", tr, tr.task_tracker_url, tr.log.local_log_file)
 

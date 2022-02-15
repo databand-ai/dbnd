@@ -20,7 +20,6 @@ def remove_listener_by_name(target, identifier, name):
     import ctypes
 
     from sqlalchemy import event
-    from sqlalchemy.event.registry import _key_to_collection
 
     all_keys = list(event.registry._key_to_collection.items())
     for key, values in all_keys:

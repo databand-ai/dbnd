@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def long_sleeping_task(sleep_sec=10):
     logger.info("I am going to sleep, wake me with cancel, please!")
     time.sleep(sleep_sec)
-    tr = current_task_run()
+    current_task_run()
     return True
 
 

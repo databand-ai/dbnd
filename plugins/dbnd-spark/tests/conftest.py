@@ -1,7 +1,6 @@
 import pandas as pd
 import pytest
 
-from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs
 from dbnd.testing.test_config_setter import add_test_configuration
 
 

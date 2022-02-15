@@ -63,20 +63,22 @@ class TestDocFunctions:
         calculate_all()
 
     def test_alternate_calculate_coefficient(self):
+        module1 = None
+
         #### DOC START
         # module2.py
 
         from dbnd import track_module_functions
 
-        """from module1 import calculate_alpha, calculate_beta, calculate_gamma
-        import module1
+        # from module1 import calculate_alpha, calculate_beta, calculate_gamma
+        # import module1
 
-        track_module_functions(module1)"""
+        track_module_functions(module1)
 
         def calculate_coefficient():
             calculate_alpha()
             calculate_beta()
             calculate_gamma()
 
-        #### DOC START
+        #### DOC END
         calculate_coefficient()

@@ -1,5 +1,4 @@
 import logging
-import multiprocessing
 import signal
 import time
 

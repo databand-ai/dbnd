@@ -38,7 +38,6 @@ class _DateCustom(DateValueType):
         """
         Override me with a :py:meth:`~datetime.date.strftime` string.
         """
-        pass
 
     def to_str(self, dt):
         """
@@ -130,7 +129,6 @@ class _DatetimeCustom(DateTimeValueType):
         """
         Override me with a :py:meth:`~datetime.date.strftime` string.
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -138,7 +136,6 @@ class _DatetimeCustom(DateTimeValueType):
         """
         How to move one interval of this type forward (i.e. not counting self.interval).
         """
-        pass
 
     def to_str(self, dt):
         """

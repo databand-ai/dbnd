@@ -1,5 +1,4 @@
 import re
-import sys
 
 from typing import Callable, Optional
 

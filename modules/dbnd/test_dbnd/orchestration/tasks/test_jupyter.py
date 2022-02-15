@@ -1,7 +1,6 @@
 import sys
 
 import pytest
-import six
 
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd.testing.helpers import run_test_notebook

@@ -24,8 +24,8 @@ def dbnd_spark_bootstrap():
     try:
         _debug_init_print("importing pyspark")
 
-        import pyspark
-    except import_errors as ex:
+        import pyspark  # noqa: F401
+    except import_errors:
         # pyspark is not installed, user will not be able to use pyspark types
         return
     # we register spark types only if we have spark installed

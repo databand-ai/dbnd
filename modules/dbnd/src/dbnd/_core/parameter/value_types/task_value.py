@@ -1,5 +1,5 @@
 from dbnd._core.constants import _TaskParamContainer
-from dbnd._core.current import get_databand_context, get_settings
+from dbnd._core.current import get_settings
 from dbnd._core.task import Config
 from dbnd._core.task_build.task_registry import (
     build_task_from_config,

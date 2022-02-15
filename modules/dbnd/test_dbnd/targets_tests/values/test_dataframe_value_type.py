@@ -1,8 +1,5 @@
-import attr
-
 from pandas.core.util.hashing import hash_pandas_object
 
-from dbnd._core.utils import json_utils
 from dbnd._vendor import fast_hasher
 from targets.value_meta import ValueMeta, ValueMetaConf
 from targets.values.pandas_values import DataFrameValueType

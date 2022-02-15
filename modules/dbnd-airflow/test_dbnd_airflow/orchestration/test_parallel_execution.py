@@ -6,7 +6,6 @@ from airflow import settings
 
 from dbnd import PipelineTask, dbnd_run_cmd, parameter
 from dbnd._core.errors import DatabandConfigError
-from dbnd._core.errors.base import DatabandRunError
 from dbnd.tasks.basics import SimplestTask
 from dbnd.testing.helpers_pytest import assert_run_task, skip_on_windows
 

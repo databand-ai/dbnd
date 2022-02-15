@@ -1,7 +1,6 @@
 import logging
 import typing
 
-from dbnd._core.errors.errors_utils import log_exception
 from targets.values.builtins_values import (
     BoolValueType,
     CallableValueType,
@@ -27,30 +26,20 @@ from targets.values.target_values import (
     TargetValueType,
 )
 from targets.values.timedelta_value import DateIntervalValueType, TimeDeltaValueType
-from targets.values.value_type import InlineValueType
+from targets.values.value_type import InlineValueType  # noqa: F401
 from targets.values.version_value import VersionValueType
 
 
 if typing.TYPE_CHECKING:
-    from typing import Any, Optional
+    from typing import Optional
 
-    from targets.value_meta import ValueMeta, ValueMetaConf
-
-
-# Note: order matters. Examples:
-# isinstance(True, int) == True, so it's important to have bool check before int
-# isinstance(datetime.datetime.utc(), date) == True
-if typing.TYPE_CHECKING:
-    from typing import Any, Optional
-
-    from targets.value_meta import ValueMeta, ValueMetaConf
 
 logger = logging.getLogger(__name__)
 
 
 known_values = []
 try:
-    import matplotlib
+    import matplotlib  # noqa: F401
 
     from targets.values.matplotlib_values import MatplotlibFigureValueType
 
@@ -59,8 +48,8 @@ except ImportError:
     pass
 
 try:
-    import numpy
-    import pandas
+    import numpy  # noqa: F401
+    import pandas  # noqa: F401
 
     from targets.values.pandas_values import (
         DataFramesDictValueType,
@@ -75,7 +64,7 @@ except ImportError:
     pass
 
 try:
-    import numpy
+    import numpy  # noqa: F401
 
     from targets.values.numpy_values import NumpyArrayValueType
 
@@ -83,6 +72,10 @@ try:
 except ImportError:
     pass
 
+
+# Note: order matters. Examples:
+# isinstance(True, int) == True, so it's important to have bool check before int
+# isinstance(datetime.datetime.utc(), date) == True
 known_values.extend(
     [
         # simple

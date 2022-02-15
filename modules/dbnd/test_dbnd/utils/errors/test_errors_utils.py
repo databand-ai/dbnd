@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from dbnd._core.errors.errors_utils import UserCodeDetector

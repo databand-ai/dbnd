@@ -5,13 +5,9 @@ from functools import partial
 from typing import Dict
 
 from dbnd._core.configuration.environ_config import ENV_DBND_SCRIPT_NAME
-from dbnd._core.errors import DatabandError
 from dbnd_airflow.tracking.conf_operations import fix_keys, flat_conf
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
-from dbnd_airflow.tracking.dbnd_airflow_conf import (
-    extract_airflow_tracking_conf,
-    get_airflow_conf,
-)
+from dbnd_airflow.tracking.dbnd_airflow_conf import get_airflow_conf
 from dbnd_airflow.utils import logger
 
 

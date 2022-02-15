@@ -249,7 +249,6 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         Must return an iterable which, among others, contains the _requires() of
         the superclass.
         """
-        pass
 
     def _task_submit(self):
         """Task submission logic, by default we just call -> ``_task_run()`` -> ``run()``."""
@@ -300,7 +299,6 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         module within an operator needs to be cleaned up or it will leave
         ghost processes behind.
         """
-        pass
 
     def _get_task_output_path_format(self, output_mode):
         """

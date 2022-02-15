@@ -1,5 +1,4 @@
 from dbnd import auto_namespace, band, parameter
-from dbnd._core.constants import CloudType
 from dbnd_test_scenarios.test_common.task.factories import FooConfig, TTask
 
 

@@ -1,7 +1,6 @@
 import pandas as pd
 
 from dbnd import pipeline, task
-from targets.value_meta import ValueMetaConf
 
 
 @task

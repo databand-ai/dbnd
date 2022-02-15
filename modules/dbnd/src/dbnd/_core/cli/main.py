@@ -50,7 +50,6 @@ def cli():
     # this will prevent from every airflow command to access dbnd web api
     if config.getboolean("airflow", "auto_disable_scheduled_dags_load"):
         os.environ["DBND_DISABLE_SCHEDULED_DAGS_LOAD"] = "True"
-    pass
 
 
 # project

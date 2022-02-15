@@ -13,7 +13,7 @@ class GSCredentials(GoogleCloudBaseHook):
     def get_credentials(self):
         try:
             return self._get_credentials()
-        except (Exception) as e:
+        except (Exception):
             logger.exception(
                 "Failed to load GCP credentials using connection id - "
                 + self.gcp_conn_id

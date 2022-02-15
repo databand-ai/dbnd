@@ -81,7 +81,7 @@ log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds()
 def _log_exception_to_server(exception_message: str, client):
     try:
         client.report_exception(exception_message)
-    except Exception as e:
+    except Exception:
         logger.warning("Error sending monitoring exception message")
 
 
@@ -95,5 +95,5 @@ def _report_error(obj, f, err_message):
         return
     try:
         tracking_service.report_error(f, err_message)
-    except Exception as e:
+    except Exception:
         logger.warning("Error sending error message", exc_info=True)

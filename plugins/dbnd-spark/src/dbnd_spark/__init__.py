@@ -6,3 +6,6 @@ from dbnd_spark.spark_session import get_spark_session
 
 
 dbnd_spark_bootstrap()
+
+
+__all__ = ["PySparkTask", "SparkTask", "spark_task", "SparkConfig", "get_spark_session"]

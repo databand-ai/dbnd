@@ -3,7 +3,6 @@
 from __future__ import absolute_import, print_function
 
 import abc
-import os
 import random
 
 import pandas as pd
@@ -17,7 +16,7 @@ import targets.errors
 import targets.pipes
 
 from dbnd.testing.helpers_pytest import skip_on_windows
-from targets import DataTarget, target
+from targets import DataTarget
 
 
 class TestException(Exception):

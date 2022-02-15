@@ -3,7 +3,6 @@ Tracking store backends registry
 """
 
 import logging
-import typing
 
 from typing import List, Optional
 
@@ -12,7 +11,6 @@ from dbnd._core.tracking.backends import (
     CompositeTrackingStore,
     ConsoleStore,
     FileTrackingStore,
-    TrackingStore,
     TrackingStoreThroughChannel,
 )
 from dbnd._core.tracking.backends.tracking_store_composite import build_store_name

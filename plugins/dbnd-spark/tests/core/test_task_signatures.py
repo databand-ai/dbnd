@@ -4,8 +4,6 @@ import logging
 from pytest import fixture
 
 from dbnd import PipelineTask, Task, data, output, parameter
-from dbnd._core.current import get_databand_context
-from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.utils.project.project_fs import project_path
 from dbnd_spark.spark import SparkTask
 

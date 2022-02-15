@@ -1,8 +1,4 @@
-import os
-
-import six
-
-from targets.pipes.base import IOPipeline, NopPipeline
+from targets.pipes.base import IOPipeline, NopPipeline  # noqa: F401
 from targets.pipes.bzip2 import Bzip2Pipeline
 from targets.pipes.gzip import GzipPipeline
 from targets.pipes.text import MixedUnicodeBytesFormat, NewlinePipeline, TextPipeline

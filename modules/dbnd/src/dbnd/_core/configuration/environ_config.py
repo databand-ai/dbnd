@@ -13,7 +13,6 @@ from dbnd._core.configuration.project_env import (
     _is_init_mode,
 )
 from dbnd._core.utils.basics.environ_utils import (
-    env,
     environ_enabled,
     environ_int,
     set_env_dir,

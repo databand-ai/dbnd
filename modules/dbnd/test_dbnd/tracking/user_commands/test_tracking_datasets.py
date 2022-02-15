@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from more_itertools import one
@@ -62,7 +60,6 @@ class TestTrackingDatasets(object):
             with dataset_op_logger(
                 op_path=target("/path/to/value.csv"), op_type="read", with_preview=True
             ) as logger:
-                ans = 42
                 logger.set(data=pandas_data_frame)
 
         task_with_log_dataset_wrapper()

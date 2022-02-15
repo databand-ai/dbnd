@@ -447,7 +447,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         try_number=None,
         include_system_secrets=False,
     ):
-        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int], bool) ->Pod
+        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int], bool) -> Pod
         pod_name = self.get_pod_name(task_run=task_run, try_number=try_number)
 
         image = self.full_image
@@ -523,7 +523,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         secrets = self.get_secrets(include_system_secrets=include_system_secrets)
 
-        from airflow.contrib.kubernetes.pod import Pod
+        from airflow.contrib.kubernetes.pod import Pod as _Pod
 
         if self.trap_exit_file_flag:
             args = [
@@ -556,7 +556,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                 help_msg="Container tag should be assigned",
             )
 
-        pod = Pod(
+        pod = _Pod(
             namespace=self.namespace,
             name=pod_name,
             envs=env_vars,

@@ -1,12 +1,5 @@
-import os
+from mock import Mock
 
-import pytest
-
-from mock import MagicMock, Mock, patch
-
-import dbnd_qubole
-
-from dbnd import PythonTask, Task
 from dbnd_qubole import QuboleConfig
 from dbnd_qubole.qubole import QuboleCtrl
 

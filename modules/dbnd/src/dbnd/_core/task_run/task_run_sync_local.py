@@ -1,9 +1,5 @@
 import logging
-import os
-import shutil
 
-from contextlib import contextmanager
-from tempfile import mkdtemp, mkstemp
 from typing import Type
 
 from dbnd._core.parameter.parameter_definition import (
@@ -13,14 +9,7 @@ from dbnd._core.parameter.parameter_definition import (
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._vendor._marshmallow.compat import urlparse
-from targets import (
-    DbndLocalFileMetadataRegistry,
-    DirTarget,
-    FileAlreadyExists,
-    FileTarget,
-    LocalFileSystem,
-    target,
-)
+from targets import DbndLocalFileMetadataRegistry, FileTarget, target
 from targets.caching import get_or_create_folder_in_dir
 from targets.multi_target import MultiTarget
 
@@ -116,7 +105,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
 
                     self._sync_remote_to_local(remote_target, local_target)
 
-            except Exception as e:
+            except Exception:
                 logger.exception(
                     "Failed to create local cache for %s %s", p_def, remote_target
                 )

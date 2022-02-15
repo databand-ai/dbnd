@@ -1,7 +1,5 @@
 import logging
 
-import dbnd
-
 from dbnd import register_config_cls
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 

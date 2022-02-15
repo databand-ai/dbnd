@@ -10,11 +10,11 @@ from dbnd_airflow.constants import AIRFLOW_VERSION_2
 
 
 if AIRFLOW_VERSION_2:
-    from airflow.models.taskinstance import SimpleTaskInstance
-    from airflow.utils.log.logging_mixin import LoggingMixin
+    from airflow.models.taskinstance import SimpleTaskInstance  # noqa: F401
+    from airflow.utils.log.logging_mixin import LoggingMixin  # noqa: F401
 else:
-    from airflow import LoggingMixin
-    from airflow.utils.dag_processing import SimpleTaskInstance
+    from airflow import LoggingMixin  # noqa: F401
+    from airflow.utils.dag_processing import SimpleTaskInstance  # noqa: F401
 
 
 def get_airflow_conf_log_folder() -> str:
@@ -41,10 +41,10 @@ def is_task_instance_finished(current_state: str) -> bool:
 
 
 if AIRFLOW_VERSION_2:
-    from airflow.executors.local_executor import LocalExecutor
-    from airflow.executors.sequential_executor import SequentialExecutor
+    from airflow.executors.local_executor import LocalExecutor  # noqa: F401
+    from airflow.executors.sequential_executor import SequentialExecutor  # noqa: F401
 else:
-    from airflow.executors import LocalExecutor, SequentialExecutor
+    from airflow.executors import LocalExecutor, SequentialExecutor  # noqa: F401
 
 
 @provide_session

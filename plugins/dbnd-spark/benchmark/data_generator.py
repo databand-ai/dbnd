@@ -6,8 +6,6 @@ import click
 import pandas
 import pyarrow
 
-from pyarrow.parquet import ParquetWriter
-
 
 _start_time = None
 

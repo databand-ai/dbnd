@@ -223,7 +223,6 @@ def track_operator(operator):
 
     if inspect.isclass(operator):
         from airflow.models import BaseOperator
-        from airflow.operators.subdag_operator import SubDagOperator
 
         # we only track operators which base on Airflow BaseOperator
         if not issubclass(operator, BaseOperator):

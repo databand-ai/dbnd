@@ -22,7 +22,7 @@ def _load_module(module, description):
     try:
         try:
             return importlib.import_module(module)
-        except import_errors as ex:
+        except import_errors:
 
             # in some cases it will not help
             # like "tests" package.

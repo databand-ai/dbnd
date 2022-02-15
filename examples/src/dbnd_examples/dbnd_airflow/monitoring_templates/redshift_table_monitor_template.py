@@ -1,18 +1,13 @@
 import os
 
-from warnings import warn
-
 import airflow
 
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
-from numpy import issubdtype, mean, median, number
-from pandas import DataFrame
+from numpy import issubdtype, number
 
 from dbnd import log_dataframe, log_metric
-from dbnd._core.constants import DbndTargetOperationType
 
 
 REDSHIFT_CONNECTION_ID = os.getenv("REDSHIFT_CONN", default="redshift_conn")

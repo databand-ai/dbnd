@@ -3,8 +3,7 @@ from typing import List, Optional, Set, Tuple
 import attr
 import sqlparse
 
-from sqlparse import tokens as T
-from sqlparse.sql import Comparison, IdentifierList, Parenthesis, TokenList
+from sqlparse.sql import IdentifierList, Parenthesis, TokenList
 from sqlparse.tokens import CTE, Keyword, Token
 
 from dbnd._core.constants import DbndTargetOperationType

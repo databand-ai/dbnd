@@ -1,5 +1,5 @@
 from collections import ChainMap
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import attr
 import six

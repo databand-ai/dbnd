@@ -4,7 +4,6 @@ import re
 from dbnd._core.utils.better_subprocess import run_cmd
 from dbnd_gcp.apache_beam.apache_beam_ctrl import ApacheBeamJobCtrl
 from dbnd_gcp.dataflow.dataflow_config import DataflowConfig
-from dbnd_gcp.gs_sync_ctrl import GsSyncCtrl
 
 
 logger = logging.getLogger(__name__)

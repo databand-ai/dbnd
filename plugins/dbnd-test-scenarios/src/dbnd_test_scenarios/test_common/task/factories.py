@@ -86,8 +86,6 @@ class FooBaseTask(TTask):
     used by all command line checkers
     """
 
-    pass
-
 
 class FooConfig(Config):
     bar = parameter(default="from_constr")[str]

@@ -4,7 +4,6 @@ import os
 from contextlib import contextmanager
 
 import pytest
-import six
 
 from mock import patch
 

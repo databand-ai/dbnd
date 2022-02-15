@@ -17,7 +17,7 @@ def dbnd_setup_plugin():
     str([wine_quality])
     try:
         config.set_from_config_file(dbnd_examples_data_path("examples_config.cfg"))
-    except Exception as e:
+    except Exception:
         logger.warning(
             "Could not load examples_config.cfg! Automatic data loading for dbnd-examples is disabled!"
         )

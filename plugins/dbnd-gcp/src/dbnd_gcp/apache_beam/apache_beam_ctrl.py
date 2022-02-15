@@ -3,7 +3,7 @@ import typing
 
 import six
 
-from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl, TaskRunCtrl
+from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.json_utils import dumps_canonical
 from dbnd._core.utils.string_utils import camel_to_snake
 

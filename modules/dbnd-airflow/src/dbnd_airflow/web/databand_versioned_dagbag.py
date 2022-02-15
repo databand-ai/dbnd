@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 
 import airflow
-import pkg_resources
 
 from airflow.models import DagBag, DagModel, DagPickle, TaskInstance
 from airflow.utils.db import provide_session

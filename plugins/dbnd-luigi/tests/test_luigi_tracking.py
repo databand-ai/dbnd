@@ -20,7 +20,6 @@ from dbnd_luigi.luigi_tracking import (
     get_luigi_run_manager,
 )
 from tests.conftest import delete_task_output
-from tests.luigi_examples.top_artists import LuigiTestException
 
 
 def _find_param(task, param_name):  # type: (_BaseTask,str)->ParameterValue

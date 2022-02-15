@@ -15,7 +15,17 @@ from dbnd.api.alerts import (
     get_alerts_filtered,
     list_job_alerts,
 )
-from dbnd.cli.cmd_alerts_constants import *
+from dbnd.cli.cmd_alerts_constants import (
+    ANOMALY_ALERT_LOOK_BACK_HELP,
+    ANOMALY_ALERT_SENSITIVITY_HELP,
+    CREATE_HELP_MSG,
+    DELETE_HELP_MSG,
+    IS_STR_VALUE_HELP,
+    LIST_HELP_MSG,
+    METRIC_HELP,
+    RANGE_ALERT_BASE_LINE_HELP,
+    RANGE_ALERT_RANGE_HELP,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -253,7 +263,6 @@ def bind_create_to_supported_alert(
 @click.pass_context
 def alerts(ctx):
     """Manage Databand alerts"""
-    pass
 
 
 @alerts.group(help=CREATE_HELP_MSG)

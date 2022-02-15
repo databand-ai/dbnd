@@ -1,7 +1,5 @@
 import logging
 
-from itertools import islice
-
 import six
 
 from dbnd._core.configuration.environ_config import (

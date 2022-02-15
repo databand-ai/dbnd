@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import logging
 
@@ -8,7 +7,7 @@ import six
 
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.task_utils import targets_to_str
-from targets import DbndLocalFileMetadataRegistry, Target, target
+from targets import Target, target
 from targets.fs import FileSystems
 
 

@@ -4,12 +4,11 @@ import airflow
 
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 from numpy import mean, median
 from pandas import DataFrame
 
-from dbnd import log_dataframe, log_metric
+from dbnd import log_metric
 
 
 # get environment variables:

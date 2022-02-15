@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from dbnd import parameter
 

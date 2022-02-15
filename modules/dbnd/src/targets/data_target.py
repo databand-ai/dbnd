@@ -30,7 +30,7 @@ class DataTarget(Target):
         super(DataTarget, self).__init__(properties=properties, source=source)
 
         try:
-            import pandas
+            import pandas  # noqa: F401
 
             from targets.extras.pandas_ctrl import PandasMarshallingCtrl
 
@@ -52,7 +52,6 @@ class DataTarget(Target):
                          open the DataTarget in write mode. Subclasses can implement
                          additional options.
         """
-        pass
 
     def _dt(self):
         from targets.data_transaction import DataTransaction
@@ -66,14 +65,12 @@ class DataTarget(Target):
 
         This method is implemented by using :py:attr:`fs`.
         """
-        pass
 
     def mark_success(self):
         """
         marks current target as exists.
         :return:
         """
-        pass
 
     def list_partitions(self):
         return [self]

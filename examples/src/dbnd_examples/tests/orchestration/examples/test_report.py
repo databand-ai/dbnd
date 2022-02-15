@@ -1,5 +1,3 @@
-from typing import List
-
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.orchestration.examples.report import dump_db, partners_report
 

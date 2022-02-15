@@ -66,7 +66,7 @@ def ingest_customer_data(data: spark.DataFrame) -> spark.DataFrame:
     data = data.repartition(1)
     imputed = unit_imputation(data, columns_to_impute)
     clean = dedup_records(imputed, key_columns)
-    report = create_report(clean)
+    create_report(clean)
     return clean
 
 

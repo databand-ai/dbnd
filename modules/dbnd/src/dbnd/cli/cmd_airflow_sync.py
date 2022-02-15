@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def airflow_sync(ctx):
     """Manage synced Airflow instances"""
-    pass
 
 
 @airflow_sync.command("list")

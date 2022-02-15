@@ -1,5 +1,3 @@
-from abc import ABCMeta
-
 import pytest
 import six
 

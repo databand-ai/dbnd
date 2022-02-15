@@ -3,7 +3,7 @@ import logging
 from pytest import fixture
 
 from dbnd._core.task_build.task_signature import build_signature
-from targets import Target, target
+from targets import target
 
 
 logger = logging.getLogger(__name__)

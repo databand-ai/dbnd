@@ -4,7 +4,6 @@ import pytest
 import snowflake
 
 from mock import Mock, call, patch
-from snowflake.connector.cursor import SnowflakeCursor
 
 from dbnd.testing.helpers_mocks import set_airflow_context
 from dbnd_snowflake.snowflake_controller import SNOWFLAKE_METRIC_TO_UI_NAME

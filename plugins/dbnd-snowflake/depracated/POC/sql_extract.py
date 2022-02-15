@@ -14,7 +14,7 @@ from sqlparse.sql import (
     Token,
     TokenList,
 )
-from sqlparse.tokens import Keyword, Name, Token as TokenType, Whitespace, Wildcard
+from sqlparse.tokens import Keyword, Name, Whitespace, Wildcard
 
 from dbnd._core.constants import DbndTargetOperationType
 from dbnd_snowflake.POC.utils import ddict2dict

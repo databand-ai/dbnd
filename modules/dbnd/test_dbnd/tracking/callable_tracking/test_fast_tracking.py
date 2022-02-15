@@ -7,7 +7,7 @@ import pytest
 import six
 
 from dbnd import config, dbnd_tracking_stop, log_metric, task
-from dbnd._core.constants import RunState, TaskRunState
+from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandRunError
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TaskDefinitionInfo,

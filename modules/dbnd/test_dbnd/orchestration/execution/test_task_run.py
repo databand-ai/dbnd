@@ -178,8 +178,6 @@ class TestTaskRun(TargetTestBase):
         )
 
     def test_inconsistent_output(self, monkeypatch):
-        from dbnd._core.task_run.task_run_runner import TaskRunRunner
-
         task = TTask()
         validator = task.ctrl.validator
 

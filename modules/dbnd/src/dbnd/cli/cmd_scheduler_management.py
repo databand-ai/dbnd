@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-from functools import update_wrapper
-
 from dbnd._vendor import click
 from dbnd._vendor.click import get_current_context
 from dbnd._vendor.click_tzdatetime import TZAwareDateTime

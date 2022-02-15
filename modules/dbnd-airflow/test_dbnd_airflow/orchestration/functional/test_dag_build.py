@@ -33,7 +33,7 @@ class TestFunctionalOperatorAirflowKwargs:
         # This should rise an error during parsing
         with pytest.raises(AttributeError):
             with DAG(dag_id="test_simple_build", default_args=default_args_test) as dag:
-                bool_value = sample_callable()
+                sample_callable()
 
 
 class TestFunctionalDagBuild(object):

@@ -1,5 +1,3 @@
-import airflow
-
 from airflow.ti_deps.deps.trigger_rule_dep import TriggerRuleDep
 from airflow.utils.db import provide_session
 from airflow.utils.state import State

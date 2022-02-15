@@ -6,10 +6,7 @@ import six
 
 from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandError
-from dbnd._core.utils.basics.load_python_module import (
-    load_python_callable,
-    run_user_func,
-)
+from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.http.constants import AUTHS_SUPPORTED, NO_AUTH
 from dbnd._core.utils.http.endpoint import Endpoint

@@ -148,7 +148,6 @@ class StreamLogWriter(object):
         Provide close method, for compatibility with the io.IOBase interface.
         This is a no-op method.
         """
-        pass
 
 
 @contextmanager

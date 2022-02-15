@@ -42,7 +42,6 @@ class FileSystem(object):
 
         :param str path: a path within the FileSystem to check for existence.
         """
-        pass
 
     @abc.abstractmethod
     def remove(self, path, recursive=True, skip_trash=True):
@@ -52,7 +51,6 @@ class FileSystem(object):
         :param bool recursive: if the path is a directory, recursively remove the directory and all
                                of its descendants. Defaults to ``True``.
         """
-        pass
 
     def mkdir(self, path, parents=True, raise_if_exists=False):
         """

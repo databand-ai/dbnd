@@ -28,6 +28,7 @@ def dbnd_doctor(
     main_report.log("check_time", check_time)
 
     system_report = system_dbnd.dbnd_status()
+    logger.debug("system_report: %s", system_report)
 
     if python_sanity:
         system_python_report = system_python.python_status(

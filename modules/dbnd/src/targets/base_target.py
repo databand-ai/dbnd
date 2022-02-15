@@ -73,7 +73,6 @@ class Target(object):
         """
         Returns ``True`` if the :py:class:`Target` exists and ``False`` otherwise.
         """
-        pass
 
     def exist_after_write_consistent(self):
         return True

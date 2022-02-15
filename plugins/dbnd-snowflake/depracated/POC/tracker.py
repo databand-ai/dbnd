@@ -2,7 +2,7 @@ import contextlib
 import functools
 import logging
 
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from itertools import chain, takewhile
 from typing import Dict, List, Optional
 
@@ -149,7 +149,7 @@ class PocSnowflakeTracker(object):
         success = True
         try:
             yield
-        except Exception as e:
+        except Exception:
             success = False
             raise
         finally:

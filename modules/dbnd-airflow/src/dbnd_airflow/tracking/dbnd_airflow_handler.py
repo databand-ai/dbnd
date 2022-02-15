@@ -153,7 +153,6 @@ class DbndAirflowHandler(logging.Handler):
         """
         This handler is not really writing records, so ignoring.
         """
-        pass
 
 
 def set_dbnd_handler():

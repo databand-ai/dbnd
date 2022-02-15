@@ -4,7 +4,6 @@ import datetime
 import logging
 import typing
 
-from airflow import models
 from airflow.models import DagRun, TaskInstance as TI
 from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy

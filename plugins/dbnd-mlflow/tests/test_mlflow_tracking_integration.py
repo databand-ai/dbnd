@@ -6,16 +6,8 @@ import shutil
 from random import randint, random
 
 import mock
-import pytest
 
-from mlflow import (
-    end_run,
-    get_tracking_uri,
-    log_artifacts,
-    log_metric,
-    log_param,
-    start_run,
-)
+from mlflow import end_run, get_tracking_uri, log_metric, log_param, start_run
 
 from dbnd import new_dbnd_context
 from dbnd._core.task_build.dbnd_decorator import task

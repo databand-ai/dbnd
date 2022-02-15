@@ -8,7 +8,6 @@ from dbnd_examples.orchestration.dbnd_spark.scripts import spark_script
 from dbnd_spark.spark import PySparkInlineTask, spark_task
 from dbnd_spark.spark_config import SparkConfig
 from targets import Target
-from targets.target_config import FileFormat
 
 
 COUNT_WITH_HTML_MAIN_CLASS = "ai.databand.examples.WordCountWithHtml"

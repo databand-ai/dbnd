@@ -178,7 +178,7 @@ def _is_dbnd_spark_installed():
         return _IS_SPARK_INSTALLED
     try:
         try:
-            from pyspark import SparkContext
+            from pyspark import SparkContext  # noqa: F401
 
             from dbnd_spark import dbnd_spark_bootstrap
 

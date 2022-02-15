@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from dbnd import task
 from dbnd_docker.docker.docker_task import DockerRunTask
 
 

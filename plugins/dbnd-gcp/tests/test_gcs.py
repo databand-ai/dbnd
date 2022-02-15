@@ -30,7 +30,7 @@ import google.auth
 import google.oauth2.service_account
 import pytest
 
-from dbnd import config, dbnd_config
+from dbnd import config
 from dbnd_gcp.fs import gcs
 from dbnd_test_scenarios.test_common.targets.base_target_test_mixin import (
     FileTargetTestMixin,

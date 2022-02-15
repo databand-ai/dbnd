@@ -1,6 +1,5 @@
 import base64
 
-from dbnd._core.current import get_databand_context
 from dbnd._core.settings.run_info import RunInfoConfig
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
 from dbnd._core.tracking.backends.channels.protobuf_mixin import ProtobufMixin

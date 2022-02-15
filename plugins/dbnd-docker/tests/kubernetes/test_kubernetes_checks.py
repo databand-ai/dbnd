@@ -232,4 +232,4 @@ def test_raise_error_on_running_bad():
         "metadata": {},
     }
     with pytest.raises(KubernetesRunningPodConditionFailure):
-        r = _check_runtime(running_bad)
+        _check_runtime(running_bad)

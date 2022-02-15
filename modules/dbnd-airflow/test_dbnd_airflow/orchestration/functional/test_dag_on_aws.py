@@ -26,6 +26,7 @@ class TestDagOnAws(object):
             t_A()
 
         t_a = dag_operators.task_dict["t_A"]
+        assert t_a == "checkcheck"
 
     @pytest.mark.skipif("not TEST_ENV__AWS_ROOT")
     def test_aws_config(self):

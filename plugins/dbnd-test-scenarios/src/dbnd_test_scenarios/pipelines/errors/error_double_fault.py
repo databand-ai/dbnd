@@ -1,5 +1,4 @@
 import logging
-import sys
 
 from dbnd import PipelineTask, PythonTask, output, parameter
 

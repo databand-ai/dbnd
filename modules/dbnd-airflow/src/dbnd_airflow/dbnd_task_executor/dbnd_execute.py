@@ -6,7 +6,6 @@ import typing
 
 from dbnd import dbnd_bootstrap
 from dbnd._core.task_executor.run_executor import RunExecutor, set_active_run_context
-from dbnd._core.utils.basics.signal_utils import dump_trace
 from dbnd_airflow.bootstrap import dbnd_airflow_bootstrap
 from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
     AirflowOperatorAsDbndTask,
@@ -62,7 +61,6 @@ def _dbnd_operator_to_taskrun(operator):
 
 def dbnd_operator__execute(dbnd_operator, context):
     from dbnd._core.current import try_get_databand_run
-    from dbnd._core.run.databand_run import DatabandRun
     from targets import target
 
     run = try_get_databand_run()

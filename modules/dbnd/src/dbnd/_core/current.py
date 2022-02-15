@@ -17,17 +17,17 @@ if typing.TYPE_CHECKING:
 def get_databand_context():
     # type: () -> DatabandContext
     """Databand Context get or create instance."""
-    from dbnd._core.context.databand_context import DatabandContext  # noqa: F811
+    from dbnd._core.context.databand_context import DatabandContext as _DatabandContext
 
-    return DatabandContext.try_instance()
+    return _DatabandContext.try_instance()
 
 
 def try_get_databand_context():
     # type: () -> Optional[DatabandContext]
 
-    from dbnd._core.context.databand_context import DatabandContext  # noqa: F811
+    from dbnd._core.context.databand_context import DatabandContext as _DatabandContext
 
-    if not DatabandContext.has_instance():
+    if not _DatabandContext.has_instance():
         return None
     return get_databand_context()
 
@@ -38,26 +38,28 @@ def dbnd_context():
     if not context:
         # we are running without Databand Context
         # let create one inplace
-        from dbnd._core.context.databand_context import DatabandContext  # noqa: F811
+        from dbnd._core.context.databand_context import (
+            DatabandContext as _DatabandContext,
+        )
 
-        context = DatabandContext.try_instance(name="inplace_run")
+        context = _DatabandContext.try_instance(name="inplace_run")
     return context
 
 
 def get_databand_run():
     # type: () -> DatabandRun
     """Returns current Task/Pipeline/Flow instance."""
-    from dbnd._core.run.databand_run import DatabandRun  # noqa: F811
+    from dbnd._core.run.databand_run import DatabandRun as _DatabandRun
 
-    v = DatabandRun.get_instance()
+    v = _DatabandRun.get_instance()
     return v
 
 
 def try_get_databand_run():
     # type: () -> Optional[DatabandRun]
-    from dbnd._core.run.databand_run import DatabandRun  # noqa: F811
+    from dbnd._core.run.databand_run import DatabandRun as _DatabandRun
 
-    if DatabandRun.has_instance():
+    if _DatabandRun.has_instance():
         return get_databand_run()
     return None
 
@@ -139,8 +141,6 @@ def current_task_run():
 
 def get_settings():
     # type: () -> DatabandSettings
-    from dbnd._core.settings import DatabandSettings  # noqa: F811
-
     v = get_databand_context().settings  # type: DatabandSettings
     return v
 

@@ -3,9 +3,8 @@ import logging
 
 import pytest
 
-from dbnd import config, log_metric
+from dbnd import config
 from dbnd._core.configuration.environ_config import DATABAND_AIRFLOW_CONN_ID
-from dbnd._core.utils.basics.environ_utils import env
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
     set_dbnd_config_from_airflow_connections,
 )

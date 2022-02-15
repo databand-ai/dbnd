@@ -71,7 +71,6 @@ class FuncResultParameter(ParameterDefinition):
         """
         We don't need to dump this value, it's just a map to all other outputs
         """
-        pass
 
     def _validate_result(self, result):
         if not isinstance(result, (tuple, list, dict)):

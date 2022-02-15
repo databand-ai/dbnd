@@ -1,4 +1,4 @@
-from dbnd._core.parameter.parameter_builder import (
+from dbnd._core.parameter.parameter_builder import (  # noqa: 401
     PARAMETER_FACTORY,
     ParameterFactory,
     build_parameter,

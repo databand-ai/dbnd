@@ -3,8 +3,6 @@ import random
 
 import pytest
 
-from pytest import fixture, mark
-
 from dbnd import config
 from dbnd._core.constants import CloudType, SparkClusters
 from dbnd._core.errors import DatabandRunError

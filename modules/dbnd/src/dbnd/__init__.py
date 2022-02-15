@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-
 from dbnd._core.access import (
     get_remote_engine_name,
     get_task_params_defs,
@@ -103,6 +101,8 @@ __all__ = [
     "dbnd_tracking_start",
     "dbnd_tracking_stop",
     "auto_namespace",
+    "register_config_cls",
+    "register_task",
     "namespace",
     "task_namespace",
     "as_task",
@@ -113,6 +113,7 @@ __all__ = [
     "data_source_pipeline",
     "task",
     "Task",
+    "basics",
     # class tasks
     "Config",
     "DataSourceTask",
@@ -130,6 +131,9 @@ __all__ = [
     "config_deco",
     "ConfigPath",
     "ParameterDefinition",
+    "ParameterScope",
+    "replace_section_with",
+    "default",
     # dbnd run cmds functions
     "dbnd_main",
     "dbnd_cmd",

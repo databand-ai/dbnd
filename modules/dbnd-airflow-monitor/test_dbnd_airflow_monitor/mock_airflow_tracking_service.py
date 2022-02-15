@@ -1,6 +1,6 @@
 from copy import copy
 from functools import wraps
-from typing import List, Optional
+from typing import List
 
 import attr
 

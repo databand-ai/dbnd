@@ -34,7 +34,7 @@ class DbFetcher(AirflowDataFetcher):
         # type: (AirflowServerConfig) -> DbFetcher
         super(DbFetcher, self).__init__(config)
         # It's important to do this import to prevent import issues
-        import airflow
+        import airflow  # noqa: F401
 
         from sqlalchemy import create_engine
 

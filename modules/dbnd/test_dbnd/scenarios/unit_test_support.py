@@ -10,4 +10,3 @@ class TestUnitTestSupport(unittest.TestCase):
         dbnd_sanity_check.dbnd_run()
 
         print(sys.stdout)
-        pass

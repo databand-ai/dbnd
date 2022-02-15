@@ -55,7 +55,6 @@ class DirTarget(FileTarget):
         self.meta_files = config.meta_files
 
     def exists(self):
-        path = self.path
         if self.flag_target:
             return self.flag_target.exists()
 

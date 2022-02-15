@@ -8,16 +8,16 @@ class PathStr(str):
 
 if sys.version_info > (3, 5):  # pragma: nocover
     # noinspection PyUnresolvedReferences
-    import pathlib
+    import pathlib  # noqa: F401
 
     # noinspection PyUnresolvedReferences
-    from pathlib import Path
+    from pathlib import Path  # noqa: F401
 else:  # pragma: nocover
     # noinspection PyUnresolvedReferences
-    import pathlib2 as pathlib
+    import pathlib2 as pathlib  # noqa: F401
 
     # noinspection PyUnresolvedReferences
-    from pathlib2 import Path
+    from pathlib2 import Path  # noqa: F401
 
 
 class NullableStr(str):

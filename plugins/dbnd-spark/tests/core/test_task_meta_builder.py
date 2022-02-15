@@ -1,7 +1,6 @@
 import logging
 
 from dbnd import new_dbnd_context
-from dbnd.tasks.basics import SimplestTask
 from dbnd_spark.spark import PySparkTask
 from dbnd_spark.spark_config import SparkConfig
 

@@ -18,7 +18,7 @@ class TestProtobufImportability(object):
         # testing env should not include protobuf package
         # otherwise this test is useless
         with pytest.raises(ImportError):
-            from google import protobuf
+            from google import protobuf  # noqa: F401
 
         with new_dbnd_context(
             conf={
@@ -37,4 +37,4 @@ class TestProtobufImportability(object):
                 ts.channel.__class__.__name__ == "TrackingProtoWebChannel"
             ), ts.channel
             # an extra check that protobuf is available:
-            from google import protobuf
+            from google import protobuf  # noqa: F401

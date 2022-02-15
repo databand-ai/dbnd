@@ -18,7 +18,7 @@ from dbnd._core.log.external_exception_logging import (
     log_exception_to_server,
 )
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
-from dbnd._core.settings.tracking_config import TrackingConfig, get_value_meta
+from dbnd._core.settings.tracking_config import get_value_meta
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.tracking.schemas.metrics import Metric

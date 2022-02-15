@@ -66,7 +66,6 @@ def _file_open_mode(target, mode="r"):
         mode = mode + "b" if target.config.is_binary else mode
     except Exception as ex:
         logger.warning("Could not calculate file open mode, returning %s. %s", mode, ex)
-        pass
 
     return mode
 

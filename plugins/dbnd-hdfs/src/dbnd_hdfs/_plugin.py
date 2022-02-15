@@ -1,7 +1,7 @@
 import dbnd
 
 from dbnd import register_config_cls
-from targets.fs import FileSystems, register_file_system
+from targets.fs import register_file_system
 
 
 @dbnd.hookimpl

@@ -114,7 +114,7 @@ class Connection:
         if self.extra:
             try:
                 obj = json.loads(self.extra)
-            except JSONDecodeError as e:
+            except JSONDecodeError:
                 pass
         return obj
 

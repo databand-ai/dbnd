@@ -1,11 +1,10 @@
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional
 
 import attr
 
 from more_itertools import first
 
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
-from dbnd._core.utils.dotdict import build_dict_from_instance_properties
 from dbnd._vendor.marshmallow import fields, post_dump, post_load
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-from mock import MagicMock, patch
+from mock import patch
 
 from dbnd.api.databand_client import DatabandClient
 

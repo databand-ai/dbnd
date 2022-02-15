@@ -39,7 +39,7 @@ def run_and_get(dag, task_id, execution_date=None):
     execution_date = execution_date or utcnow()
     try:
         _run_dag(dag, execution_date=execution_date)
-    except Exception as ex:
+    except Exception:
         logger.exception("Failed to run %s %s %s", dag.dag_id, task_id, execution_date)
 
         from dbnd_airflow.compat.airflow_multi_version_shim import (

@@ -1,6 +1,6 @@
 import pytest
 
-from more_itertools import last, one
+from more_itertools import last
 
 from dbnd import task
 from dbnd._core.current import try_get_current_task_run

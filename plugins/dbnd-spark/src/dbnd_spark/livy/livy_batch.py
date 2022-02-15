@@ -7,10 +7,7 @@ import time
 
 from dbnd._core.errors import DatabandError
 from dbnd._core.utils.http.constants import LINEAR_RETRY, LINEAR_RETRY_ANY_ERROR
-from dbnd._core.utils.http.reliable_http_client import (
-    HttpClientException,
-    ReliableHttpClient,
-)
+from dbnd._core.utils.http.reliable_http_client import ReliableHttpClient
 from dbnd._core.utils.http.retry_policy import get_retry_policy
 
 

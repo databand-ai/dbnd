@@ -26,7 +26,7 @@ _dag_catcher = None
 
 
 def get_databand_op_catcher_dag():
-    import airflow
+    import airflow  # noqa: F401
 
     if safe_get_context_manager_dag():
         # we are inside native airflow DAG or already have DatabandOpCatcherDag

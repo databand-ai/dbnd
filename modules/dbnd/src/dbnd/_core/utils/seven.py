@@ -63,4 +63,5 @@ __all__ = [
     "get_ident",
     "fix_sys_path_str",
     "urlparse",
+    "StringIO",
 ]

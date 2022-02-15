@@ -54,7 +54,6 @@ from dbnd_airflow.executors.kubernetes_executor.kubernetes_watcher import (
     WatcherPodEvent,
 )
 from dbnd_airflow.executors.kubernetes_executor.utils import mgr_init
-from dbnd_airflow.scheduler.single_dag_run_job import report_airflow_task_instance
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 from dbnd_docker.kubernetes.dns1123_clean_names import create_pod_id
 from dbnd_docker.kubernetes.kube_dbnd_client import (
@@ -422,7 +421,6 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         )
 
         # we are not looking for key
-        task_run = submitted_pod.task_run
         result = PodResult.from_pod(submitted_pod, pod_event)
         if submitted_pod.processed:
             # we already processed this kind of event, as in this process we have failed status already
@@ -648,7 +646,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 return PodFailureReason.err_image_pull, str(ex)
             except KubernetesPodConfigFailure as ex:  # pod config error
                 return PodFailureReason.err_config_error, str(ex)
-            except Exception as ex:
+            except Exception:
                 # we don't want to handle that
                 pass
             return None, None

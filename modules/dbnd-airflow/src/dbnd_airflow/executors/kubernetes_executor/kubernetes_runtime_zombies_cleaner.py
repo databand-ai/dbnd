@@ -3,7 +3,6 @@ import typing
 
 from typing import List
 
-import airflow
 import six
 
 from airflow import DAG

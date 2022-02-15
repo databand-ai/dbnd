@@ -1,19 +1,15 @@
 import logging
 import os
 import signal
-import subprocess
 import warnings
 
 import dbnd
 
 from dbnd._core.configuration.environ_config import (
     _env_banner,
-    _initialize_dbnd_home,
     get_dbnd_project_config,
-    in_quiet_mode,
     is_unit_test_mode,
 )
-from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.plugin.dbnd_plugins_mng import (
     register_dbnd_plugins,
     register_dbnd_user_plugins,

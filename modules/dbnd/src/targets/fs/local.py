@@ -4,7 +4,6 @@ import logging
 import os
 import random
 import shutil
-import zipfile
 
 from targets.errors import FileAlreadyExists, MissingParentDirectory, NotADirectory
 from targets.fs.file_system import FileSystem

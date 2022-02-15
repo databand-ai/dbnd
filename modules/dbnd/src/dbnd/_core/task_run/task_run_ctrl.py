@@ -5,7 +5,6 @@ from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 
 if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
-    from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
 
 
 class TaskRunCtrl(TaskSubCtrl):

@@ -16,6 +16,7 @@ __all__ = [
     "PipelineTask",
     "PythonTask",
     "dbnd_doctor",
+    "basics",
 ]
 
 try:

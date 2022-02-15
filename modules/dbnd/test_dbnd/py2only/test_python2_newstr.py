@@ -12,7 +12,7 @@ from targets.values import ObjectValueType, StrValueType
 
 
 if six.PY2:
-    from future.builtins import *
+    from future.builtins import *  # noqa: F403
 
     __future_module__ = True
 

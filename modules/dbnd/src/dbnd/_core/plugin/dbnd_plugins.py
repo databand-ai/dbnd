@@ -1,7 +1,7 @@
 import importlib
 import logging
 
-from dbnd._core.configuration import environ_config, get_dbnd_project_config
+from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
 from dbnd._core.utils.seven import import_errors
@@ -27,7 +27,7 @@ def _is_airflow_enabled():
 
     # TODO: make decision based on plugin only
     try:
-        import dbnd_airflow
+        import dbnd_airflow  # noqa: F401
 
         return True
     except ImportError:
@@ -73,7 +73,7 @@ def assert_airflow_package_installed():
     global _AIRFLOW_PACKAGE_INSTALLED
     if _AIRFLOW_PACKAGE_INSTALLED is None:
         try:
-            import airflow
+            import airflow  # noqa: F401
 
             _AIRFLOW_PACKAGE_INSTALLED = True
         except Exception:

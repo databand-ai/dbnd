@@ -1,8 +1,6 @@
 import logging
 import os
 
-import dbnd._core.task_build.task_namespace
-
 from dbnd import dbnd_run_cmd
 from dbnd.tasks.basics import dbnd_sanity_check
 from dbnd.testing.helpers import import_all_modules

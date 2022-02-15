@@ -12,7 +12,6 @@ import pytest
 from numpy.testing import assert_array_equal
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
-from pytest import fixture
 
 from dbnd import band, data, dbnd_run_cmd, log_metric, output, parameter, task
 from dbnd._core.errors import DatabandBuildError

@@ -46,7 +46,6 @@ class EmrStepCtrl(EmrCtrl):
         self.emr_cluster.wait_for_step_completion(
             step_id, status_reporter=self._report_step_status
         )
-        pass
 
     def _get_step_banner(self, step):
         """

@@ -4,7 +4,6 @@ import difflib
 
 from dbnd._core.errors import DatabandBuildError, UnknownParameterError
 from dbnd._core.errors.friendly_error.helpers import _band_call_str
-from dbnd._core.utils.basics.text_banner import safe_string
 
 
 def no_databand_context():

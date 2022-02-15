@@ -4,7 +4,6 @@ from typing import Dict, List
 
 from dbnd import parameter
 from dbnd_docker.container_engine_config import ContainerEngineConfig
-from dbnd_docker.docker.docker_task import DockerRunTask
 
 
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@ import time
 from threading import Thread
 
 from dbnd import Task, parameter
-from dbnd._core.current import get_databand_context, try_get_databand_run
+from dbnd._core.current import try_get_databand_run
 from dbnd._core.task_build.task_context import try_get_current_task
 
 
