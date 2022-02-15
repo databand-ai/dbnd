@@ -10,10 +10,15 @@ repos:
     hooks:
       - id: black
         language_version: python3.6
-        files: \.pyi?$
-        exclude: dbnd/_vendor
         # support running black from parent dirrectory and from dbnd-core root:
-        entry: sh -c 'black --config dbnd-core/pyproject.toml $@ || black $@'
+        entry: >
+          sh -c '
+            if test -f "dbnd-core/pyproject.toml"; then
+              black --config dbnd-core/pyproject.toml "$@"
+            else
+              black "$@"
+            fi;
+          ' --
 
   - repo: https://github.com/timothycrosley/isort
     rev: 5.10.1
