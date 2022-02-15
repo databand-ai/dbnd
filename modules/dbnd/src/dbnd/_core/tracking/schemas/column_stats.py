@@ -117,10 +117,13 @@ class ColumnStatsArgs:
         Returns:
             dict: Filter stats dict by numeric values
         """
-        numberic_stats_filter = lambda _, value: isinstance(
-            value, Union[float, int].__args__
-        )
-        return self.get_stats(stats_filter=numberic_stats_filter)
+
+        def _numberic_stats_filter(_, value) -> bool:
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return True
+            return False
+
+        return self.get_stats(stats_filter=_numberic_stats_filter)
 
     def as_dict(self) -> dict:
         return attr.asdict(self, filter=lambda _, value: value is not None)
