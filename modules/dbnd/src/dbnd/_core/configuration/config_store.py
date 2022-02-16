@@ -17,6 +17,7 @@ CONFIG_REPLACE_SECTION_MARKER = "__config_replace_section"
 
 
 def replace_section_with(dict_value):
+    """Replace config section with passed values."""
     dict_value[CONFIG_REPLACE_SECTION_MARKER] = True
     return dict_value
 

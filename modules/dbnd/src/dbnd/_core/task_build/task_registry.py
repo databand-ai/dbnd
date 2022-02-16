@@ -310,10 +310,12 @@ def build_task_from_config(task_name, expected_type=None):
 
 
 def register_config_cls(config_cls):
+    """Register config class to be parsed and loaded in databand context."""
     logger.debug("Registered config %s", config_cls)
 
 
 def register_task(task):
+    """Register task in databand context."""
     logger.debug("Registered task %s", task)
 
 

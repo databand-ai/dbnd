@@ -50,6 +50,7 @@ def override(value):
 
 
 def default(value):
+    """Set default for a config parametr."""
     return ConfigValue(value=value, source=None, priority=ConfigValuePriority.FALLBACK)
 
 
