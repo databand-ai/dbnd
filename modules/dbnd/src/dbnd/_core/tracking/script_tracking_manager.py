@@ -125,7 +125,7 @@ def _build_inline_root_task(root_task_name):
 
 
 def _set_dbnd_config_from_airflow_connections():
-    """ Set Databand config from Extra section in Airflow dbnd_config connection. """
+    """Set Databand config from Extra section in Airflow dbnd_config connection."""
     try:
         from dbnd_airflow.tracking.dbnd_airflow_conf import (
             set_dbnd_config_from_airflow_connections,
@@ -435,10 +435,7 @@ def dbnd_tracking(job_name=None, run_name=None, project_name=None, conf=None):
     """
     try:
         tr = dbnd_tracking_start(
-            job_name=job_name,
-            run_name=run_name,
-            project_name=project_name,
-            conf=conf,
+            job_name=job_name, run_name=run_name, project_name=project_name, conf=conf
         )
         yield tr
     finally:

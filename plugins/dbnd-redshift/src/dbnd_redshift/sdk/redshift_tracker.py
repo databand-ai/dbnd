@@ -197,7 +197,7 @@ def build_schema_from_dataframe(dataframe):
         except Exception as e:
             df_schema = None
             logger.exception(
-                "Error occurred during build schema from dataframe: %s", dataframe,
+                "Error occurred during build schema from dataframe: %s", dataframe
             )
             log_exception_to_server(e)
     else:
@@ -284,7 +284,7 @@ def build_redshift_operations(
         # description contains the schema of the operation.
         schema = None
         read = build_operation(
-            extracted_schema=extracted[READ], dtypes=schema, op_type=READ,
+            extracted_schema=extracted[READ], dtypes=schema, op_type=READ
         )
         operations.append(read)
     else:
@@ -292,12 +292,12 @@ def build_redshift_operations(
         # schema.
         if READ in extracted:
             read = build_operation(
-                extracted_schema=extracted[READ], dtypes=None, op_type=READ,
+                extracted_schema=extracted[READ], dtypes=None, op_type=READ
             )
             operations.append(read)
 
         write = build_operation(
-            extracted_schema=extracted[WRITE], dtypes=None, op_type=WRITE,
+            extracted_schema=extracted[WRITE], dtypes=None, op_type=WRITE
         )
         operations.append(write)
     return operations

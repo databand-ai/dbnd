@@ -9,7 +9,7 @@ repos:
     rev: 22.1.0
     hooks:
       - id: black
-        language_version: python3.6
+        language_version: python3
         # support running black from parent dirrectory and from dbnd-core root:
         entry: >
           sh -c '
@@ -25,7 +25,7 @@ repos:
     hooks:
       - id: isort
         args: [--resolve-all-configs]
-        language_version: python3.6
+        language_version: python3
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.5.0
