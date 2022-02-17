@@ -3,10 +3,12 @@ requires = ["setuptools", "wheel"]
 
 
 [tool.black]
-exclude = "dbnd/_vendor|dbnd_spark/_vendor|.tox|dist|build|__pycache__|airflow_override"
 skip-magic-trailing-comma = 1
+extend-exclude = "dbnd/_vendor|dbnd/_vendor_package|dbnd_spark/_vendor|airflow_override"
 
 [tool.isort]
+profile = "black"
+skip_gitignore = true
 skip = [
     "dbnd/tasks/__init__.py",
     "dbnd/__init__.py"
@@ -16,21 +18,12 @@ skip_glob = [
     "dbnd/_vendor_package/*"
 ]
 
-# Vertical Hanging Indent
-# https://pycqa.github.io/isort/docs/configuration/multi_line_output_modes.html
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
 combine_as_imports = true
-line_length = 88
 atomic = true
 lines_after_imports = 2
 lines_between_types = 1
-
 float_to_top = true
-ensure_newline_before_comments = true
 remove_redundant_aliases = true
-use_parentheses = true
 
 known_first_party = [
     "databand",

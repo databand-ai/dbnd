@@ -396,7 +396,6 @@ def test_copy_into_s3_graceful_failure(mock_redshift):
 
 def run_tracker_custom_query(query, expected):
     redshift_tracker = RedshiftTracker()
-    connection_hash = None
 
     with redshift_tracker as tracker:
         with _redshift_connect() as con:

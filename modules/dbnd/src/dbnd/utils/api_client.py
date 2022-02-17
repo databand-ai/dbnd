@@ -176,7 +176,7 @@ class ApiClient(object):
         except DatabandConnectionException as e:
             self.remove_session()
             raise e
-        except Exception as e:
+        except Exception:
             self.remove_session()
             logger.debug("Fail authenticating Databand Webserver ", exc_info=True)
             raise DatabandAuthenticationError(

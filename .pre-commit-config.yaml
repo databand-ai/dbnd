@@ -13,7 +13,8 @@ repos:
     rev: v0.3.1
     hooks:
       - id: autoflake8
-        args: ['--in-place', '--verbose']
+        args: ['--in-place', '--verbose', '--expand-star-imports', '--remove-duplicate-keys', '--remove-unused-variables']
+        verbose: true
 
   - repo: https://github.com/psf/black
     rev: 22.1.0
@@ -29,13 +30,24 @@ repos:
               black "$@"
             fi;
           ' --
+        verbose: true
 
   - repo: https://github.com/timothycrosley/isort
     rev: 5.10.1
     hooks:
       - id: isort
-        args: [--resolve-all-configs]
         language_version: python3
+        # support running isort from parent dirrectory and from dbnd-core root:
+        args: [--resolve-all-configs]
+        entry: >
+          sh -c '
+            if test -f "dbnd-core/pyproject.toml"; then
+              isort --config-root dbnd-core "$@"
+            else
+              isort "$@"
+            fi;
+          ' --
+        verbose: true
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.5.0
