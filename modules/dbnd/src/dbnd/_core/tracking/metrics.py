@@ -2,7 +2,6 @@ import logging
 import time
 import typing
 
-from pickle import TRUE
 from typing import Any, Dict, List, Optional, Union
 
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
@@ -10,6 +9,7 @@ from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd._core.task_run.task_run_tracker import DatasetOperationReport, TaskRunTracker
 from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.utils import seven
+from dbnd._core.utils.one_time_logger import get_one_time_logger
 from targets import Target
 from targets.value_meta import ValueMetaConf
 
@@ -72,7 +72,8 @@ def log_data(
     """
     tracker = _get_tracker()
     if not tracker:
-        logger.warning(TRACKER_MISSING_MESSAGE, "log_data")
+        message = TRACKER_MISSING_MESSAGE % ("log_data",)
+        get_one_time_logger().log_once(message, "log_data", logging.WARNING)
         return
 
     meta_conf = ValueMetaConf(
@@ -177,7 +178,8 @@ def log_metric(key, value, source="user"):
         tracker.log_metric(key, value, source=source)
         return
 
-    logger.warning(TRACKER_MISSING_MESSAGE, "log_metric")
+    message = TRACKER_MISSING_MESSAGE % ("log_metric",)
+    get_one_time_logger().log_once(message, "log_metric", logging.WARNING)
     logger.info("Log {} Metric '{}'='{}'".format(source.capitalize(), key, value))
     return
 
@@ -204,7 +206,8 @@ def log_metrics(metrics_dict, source="user", timestamp=None):
         tracker.log_metrics(metrics_dict, source=source, timestamp=timestamp)
         return
 
-    logger.warning(TRACKER_MISSING_MESSAGE, "log_metrics")
+    message = TRACKER_MISSING_MESSAGE % ("log_metrics",)
+    get_one_time_logger().log_once(message, "log_metrics", logging.WARNING)
     logger.info(
         "Log multiple metrics from {source}: {metrics}".format(
             source=source.capitalize(), metrics=metrics_dict
@@ -232,7 +235,8 @@ def log_artifact(key, artifact):
         tracker.log_artifact(key, artifact)
         return
 
-    logger.warning(TRACKER_MISSING_MESSAGE, "log_artifact")
+    message = TRACKER_MISSING_MESSAGE % ("log_artifact",)
+    get_one_time_logger().log_once(message, "log_artifact", logging.WARNING)
     logger.info("Artifact %s=%s", key, artifact)
 
 
@@ -266,7 +270,8 @@ def _report_operation(operation_report):
     # type: (DatasetOperationReport) -> None
     tracker = _get_tracker()
     if not tracker:
-        logger.warning(TRACKER_MISSING_MESSAGE, "report_operation")
+        message = TRACKER_MISSING_MESSAGE % ("report_operation",)
+        get_one_time_logger().log_once(message, "report_operation", logging.WARNING)
         return
 
     tracker.log_dataset(op_report=operation_report)

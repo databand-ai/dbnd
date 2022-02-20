@@ -26,6 +26,7 @@ from dbnd._core.utils.callable_spec import (
     build_callable_spec,
 )
 from dbnd._core.utils.lazy_property_proxy import CallableLazyObjectProxy
+from dbnd._core.utils.one_time_logger import get_one_time_logger
 from targets.inline_target import InlineTarget
 
 
@@ -178,10 +179,11 @@ class TaskDecorator(object):
         if not current:
             # no tracking/no orchestration,
             # falling back to "natural call" of the class_or_func
-            logger.warning(
-                "Can't report tracking info. %s is decorated with @task, but no tracking context was found",
-                self.class_or_func.__name__,
+            message = (
+                "Can't report tracking info. %s is decorated with @task, but no tracking context was found"
+                % (self.class_or_func.__name__,)
             )
+            get_one_time_logger().log_once(message, "task_decorator", logging.WARNING)
             return self.class_or_func(*call_args, **call_kwargs)
 
         ######
