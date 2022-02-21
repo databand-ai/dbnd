@@ -50,6 +50,7 @@ class ApiClient(object):
         default_request_timeout: Union[
             float, Tuple[float, float]
         ] = DEFAULT_REQUEST_TIMEOUT,
+        extra_default_headers: Optional[Dict[str, str]] = None,
     ):
         """
         @param api_base_url: databand webserver url to build the request with
@@ -65,8 +66,12 @@ class ApiClient(object):
         """
 
         self._api_base_url = api_base_url
+
         self.credentials = credentials
-        self.default_headers = {"Accept": "application/json"}
+        self.default_headers = {
+            "Accept": "application/json",
+            **(extra_default_headers or {}),
+        }
 
         self.session: Optional[requests.Session] = None
         self.session_creation_time = None
