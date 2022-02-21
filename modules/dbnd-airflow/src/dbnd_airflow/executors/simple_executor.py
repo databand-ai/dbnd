@@ -34,6 +34,7 @@ from dbnd_airflow.compat.airflow_multi_version_shim import (
     get_airflow_conf_remote_logging,
 )
 from dbnd_airflow.constants import AIRFLOW_VERSION_2
+from dbnd_airflow.export_plugin.compat import get_task_log_reader
 
 
 logger = logging.getLogger(__name__)
@@ -190,7 +191,7 @@ class InProcessExecutor(BaseExecutor):
             ti._try_number -= 1
             ti.raw = True
             logger = logging.getLogger("airflow.task")
-            task_log_reader = airflow_conf.get("core", "task_log_reader")
+            task_log_reader = get_task_log_reader()
             handler = next(
                 (
                     handler

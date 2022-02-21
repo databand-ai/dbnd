@@ -65,15 +65,14 @@ def patch_airflow_context_vars():
     from dbnd._core.utils.object_utils import patch_models
     from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars
 
-    if hasattr(airflow.utils.operator_helpers, "context_to_airflow_vars"):
-        patches = [
-            (
-                airflow.utils.operator_helpers,
-                "context_to_airflow_vars",
-                context_to_airflow_vars,
-            )
-        ]
-        patch_models(patches)
+    import airflow.models.taskinstance  # isort:skip
+
+    modules_to_patch = [airflow.utils.operator_helpers, airflow.models.taskinstance]
+    patches = []
+    for module in modules_to_patch:
+        if hasattr(module, "context_to_airflow_vars"):
+            patches.append((module, "context_to_airflow_vars", context_to_airflow_vars))
+    patch_models(patches)
 
 
 def patch_snowflake_hook():
