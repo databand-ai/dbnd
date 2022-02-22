@@ -541,6 +541,8 @@ class _ParamRecordBuilder(object):
         self.row.append(str(self.definition.default))
 
     def add_value(self):
+        import dbnd  # noqa: 401 import dbnd before DataFrameValueType to avoid cyclic imports
+
         from dbnd._core.settings import DescribeConfig
         from targets.values import DataFrameValueType
 
