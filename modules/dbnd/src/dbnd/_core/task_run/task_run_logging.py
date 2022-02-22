@@ -9,6 +9,7 @@ from dbnd._core.settings import LocalEnvConfig
 from dbnd._core.settings.log import _safe_is_typeof
 from dbnd._core.task_run.log_preview import read_dbnd_log_preview
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
+from dbnd._core.utils.basics.environ_utils import environ_enabled
 from targets.target_config import TargetConfig
 
 
@@ -28,7 +29,7 @@ class TaskRunLogManager(TaskRunCtrl):
             name="%s.log" % task_run.attempt_number
         )  # type: FileTarget
 
-        if os.getenv("DBND__LOG_SPARK"):
+        if environ_enabled("DBND__LOG_SPARK"):
             self.local_spark_log_file = self.task_run.local_task_run_root.partition(
                 name="%s-spark.log" % task_run.attempt_number
             )  # type: FileTarget
@@ -120,15 +121,12 @@ class TaskRunLogManager(TaskRunCtrl):
             self._upload_task_log_preview()
 
     def attach_spark_logger(self):
-        if os.getenv("DBND__LOG_SPARK"):
+        if environ_enabled("DBND__LOG_SPARK"):
             spark_log_file = self.local_spark_log_file
             try:
-                from pyspark.sql import SparkSession
-
-                spark = SparkSession.builder.getOrCreate()
-                log4j = spark._jvm.org.apache.log4j
-
-                spark_logger = log4j.Logger.getLogger("org.apache.spark")
+                log4j, spark_logger = self.try_get_spark_logger()
+                if log4j is None:
+                    return
 
                 pattern = "[%d] {%c,%C{1}} %p - %m%n"
                 file_appender = log4j.FileAppender()
@@ -147,16 +145,12 @@ class TaskRunLogManager(TaskRunCtrl):
                 )
 
     def detach_spark_logger(self):
-        if os.getenv("DBND__LOG_SPARK"):
+        if environ_enabled("DBND__LOG_SPARK"):
             spark_log_file = self.local_spark_log_file
             try:
-                from pyspark.sql import SparkSession
-
-                spark = SparkSession.builder.getOrCreate()
-
-                jvm = spark._jvm
-                log4j = jvm.org.apache.log4j
-                spark_logger = log4j.Logger.getLogger("org.apache.spark")
+                log4j, spark_logger = self.try_get_spark_logger()
+                if log4j is None:
+                    return
 
                 spark_logger.removeAppender(spark_log_file.path)
             except Exception as task_ex:
@@ -165,6 +159,30 @@ class TaskRunLogManager(TaskRunCtrl):
                     spark_log_file,
                     task_ex,
                 )
+
+    def try_get_spark_logger(self):
+        try:
+            from pyspark import SparkContext
+        except Exception:
+            logger.warning(
+                "Spark log is enabled but pyspark is not available. Consider switching DBND__LOG_SPARK to False."
+            )
+            # pyspark is not available, just pass
+            return None, None
+
+        try:
+            if SparkContext._jvm is None:
+                # spark context is not initialized at this step and JVM is not available
+                return None, None
+
+            jvm = SparkContext._jvm
+            log4j = jvm.org.apache.log4j
+            return log4j, log4j.Logger.getLogger("org.apache.spark")
+        except Exception:
+            logger.warning(
+                "Failed to retrieve log4j context from Spark Context. Spark logs won't be captured."
+            )
+            return None, None
 
     def _upload_task_log_preview(self):
         try:
@@ -184,7 +202,9 @@ class TaskRunLogManager(TaskRunCtrl):
     def read_log_body(self):
         try:
             spark_log_file = (
-                self.local_spark_log_file.path if os.getenv("DBND__LOG_SPARK") else None
+                self.local_spark_log_file.path
+                if environ_enabled("DBND__LOG_SPARK")
+                else None
             )
             return read_dbnd_log_preview(self.local_log_file.path, spark_log_file)
 
