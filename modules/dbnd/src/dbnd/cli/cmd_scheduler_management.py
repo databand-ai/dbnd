@@ -35,6 +35,7 @@ SCHEDULED_JOB_VERBOSE_HEADERS = SCHEDULED_JOB_HEADERS + [
     "create_time",
     "update_user",
     "update_time",
+    "extra_args",
 ]
 
 datetime_formats = [
@@ -157,6 +158,11 @@ def delete(name, force):
     help="If a job with the given name already exists partially update it with the given params "
     "(unspecified params will be left as is)",
 )
+@click.option(
+    "--extra-args",
+    "-ea",
+    help="The JSON struct containing the extra arguments (any additional data)",
+)
 def job(
     name,
     cmd,
@@ -167,6 +173,7 @@ def job(
     depends_on_past,
     update,
     retries,
+    extra_args,
 ):
     """Manage scheduled jobs"""
     from dbnd._core.utils.timezone import is_localized, make_aware
@@ -184,6 +191,7 @@ def job(
         "catchup": catchup,
         "depends_on_past": depends_on_past,
         "retries": retries,
+        "extra_args": extra_args,
     }
 
     if update:

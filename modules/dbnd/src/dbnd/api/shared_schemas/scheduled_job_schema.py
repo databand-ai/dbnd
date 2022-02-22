@@ -75,6 +75,7 @@ class ScheduledJobSchemaV2(ApiStrictSchema):
     validation_errors = fields.Str(
         allow_none=True, attribute="DbndScheduledJob.validation_errors"
     )
+    extra_args = fields.Str(allow_none=True, attribute="DbndScheduledJob.extra_args")
     project_id = fields.Int(dump_only=True)
     project_name = fields.Str(dump_only=True)
 
