@@ -1,6 +1,7 @@
 import logging
 
 from datetime import datetime, timedelta
+from http import HTTPStatus
 from time import sleep
 from typing import Dict, Optional, Tuple, Union
 
@@ -14,10 +15,7 @@ from dbnd._core.errors.base import (
     DatabandAuthenticationError,
     DatabandConnectionException,
 )
-from dbnd._core.errors.friendly_error.api import (
-    api_connection_refused,
-    unauthorized_api_call,
-)
+from dbnd._core.errors.friendly_error.api import api_connection_refused
 from dbnd._core.log.logging_utils import create_file_handler
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
 from dbnd._vendor import curlify
@@ -104,22 +102,18 @@ class ApiClient(object):
     ):
         headers = dict(self.default_headers, **(headers or {}))
         url = urljoin(self._api_base_url, endpoint)
-        try:
-            headers["X-Databand-Trace-ID"] = get_tracing_id().hex
-            request_params = dict(
-                method=method,
-                url=url,
-                json=data,
-                headers=headers,
-                params=query,
-                timeout=request_timeout or self.default_request_timeout,
-            )
-            logger.debug("Sending the following request: %s", request_params)
-            resp = self._send_request(session, **request_params)
 
-        except requests.exceptions.ConnectionError as ce:
-            logger.info("Got connection error while sending request: {}".format(ce))
-            raise
+        headers["X-Databand-Trace-ID"] = get_tracing_id().hex
+        request_params = dict(
+            method=method,
+            url=url,
+            json=data,
+            headers=headers,
+            params=query,
+            timeout=request_timeout or self.default_request_timeout,
+        )
+        logger.debug("Sending the following request: %s", request_params)
+        resp = self._send_request(session, **request_params)
 
         if self.debug_mode:
             # save the curl of the current request
@@ -128,8 +122,10 @@ class ApiClient(object):
 
         if not resp.ok:
             logger.debug("Response is not ok, Raising DatabandApiError")
-            if resp.status_code in [403, 401]:
-                raise unauthorized_api_call(method, url, resp)
+            if resp.status_code in [HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN]:
+                raise DatabandAuthenticationError(
+                    "Authentication Error: Failed authenticating to Databand server, please check supplied credentials"
+                )
 
             raise DatabandApiError(
                 method, url, resp.status_code, resp.content.decode("utf-8")
@@ -172,9 +168,15 @@ class ApiClient(object):
                 logger.warning(
                     "ApiClient._authenticate: username or password is not provided"
                 )
+        except DatabandConnectionException as e:
+            self.remove_session()
+            raise e
         except Exception as e:
             self.remove_session()
-            raise DatabandAuthenticationError("Failed to init a webserver session", e)
+            logger.debug("Fail authenticating Databand Webserver ", exc_info=True)
+            raise DatabandAuthenticationError(
+                "Authentication Error: Failed authenticating to Databand server, please check supplied credentials"
+            )
 
     def create_session(self):
         logger.debug("Initialising session for webserver")

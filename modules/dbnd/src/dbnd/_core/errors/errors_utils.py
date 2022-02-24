@@ -205,7 +205,7 @@ def log_exception(msg, ex, logger_=None, verbose=None, non_critical=False):
         return
 
     if non_critical:
-        logger_.info(msg + ": %s" % str(ex))
+        logger_.debug(msg + ": %s" % str(ex))
         return
 
     if isinstance(ex, DatabandError):

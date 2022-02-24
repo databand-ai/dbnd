@@ -195,14 +195,6 @@ class UnknownParameterError(ParameterError):
     pass
 
 
-class DatabandConnectionException(DatabandError):
-    """
-    Error thrown when connecting with the server is not available.
-    """
-
-    pass
-
-
 class DbndCanceledRunError(DatabandError):
     """
     Error thrown when canceling a run.
@@ -259,19 +251,27 @@ class DatabandUnauthorizedApiError(DatabandApiError):
     pass
 
 
-class DatabandAuthenticationError(WrapperDatabandError):
+class DatabandBadRequest(DatabandError):
+    pass
+
+
+class DatabandWebserverNotReachableError(DatabandError):
+    """
+    Indicate that Databand webserver is not reachable
+    """
+
+    pass
+
+
+class DatabandAuthenticationError(DatabandWebserverNotReachableError):
     """Api error indicate we failed to authenticate to the server"""
 
     pass
 
 
-class DatabandBadRequest(DatabandError):
-    pass
-
-
-class TrackerPanicError(WrapperDatabandError):
+class DatabandConnectionException(DatabandWebserverNotReachableError):
     """
-    Indicate that tracker panic and need to be removed
+    Error thrown when connecting with the server is not available.
     """
 
     pass

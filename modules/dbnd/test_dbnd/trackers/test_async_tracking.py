@@ -3,7 +3,7 @@ import pytest
 from mock import patch
 
 from dbnd import get_databand_context, new_dbnd_context
-from dbnd._core.errors.base import TrackerPanicError
+from dbnd._core.errors.base import DatabandWebserverNotReachableError
 from dbnd._core.tracking.backends.channels.tracking_async_web_channel import (
     TrackingAsyncWebChannel,
 )
@@ -47,8 +47,8 @@ class TestAsyncTracking:
                 async_store = TrackingStoreThroughChannel.build_with_async_web_channel(
                     ctx
                 )
-                fake_api_request.side_effect = TrackerPanicError(
-                    "fake_message", Exception()
+                fake_api_request.side_effect = DatabandWebserverNotReachableError(
+                    "fake_message"
                 )
                 async_store.heartbeat(get_uuid())  # fail here
                 async_store.heartbeat(get_uuid())  # skip here
@@ -69,8 +69,8 @@ class TestAsyncTracking:
                 async_store = TrackingStoreThroughChannel.build_with_async_web_channel(
                     ctx
                 )
-                fake_api_request.side_effect = TrackerPanicError(
-                    "fake_message", Exception()
+                fake_api_request.side_effect = DatabandWebserverNotReachableError(
+                    "fake_message"
                 )
                 async_store.heartbeat(get_uuid())  # fail here
                 async_store.heartbeat(get_uuid())  # no skip here

@@ -2,7 +2,7 @@ import pytest
 
 from mock import Mock
 
-from dbnd._core.errors.base import TrackerPanicError
+from dbnd._core.errors.base import DatabandWebserverNotReachableError
 from dbnd._core.tracking.backends import tracking_store_composite
 from dbnd._core.tracking.backends.tracking_store_composite import (
     CompositeTrackingStore,
@@ -14,7 +14,7 @@ class TestCompositeTrackingStore(object):
     @pytest.fixture()
     def store(self):
         store = Mock()
-        store.panic_fails = Mock(side_effect=TrackerPanicError("msg", Exception()))
+        store.panic_fails = Mock(side_effect=DatabandWebserverNotReachableError("msg"))
         store.non_panic_fails = Mock(side_effect=Exception())
         store.success = Mock(return_value=True)
         store.fails_on_first = Mock(side_effect=[Exception(), True])
@@ -26,7 +26,7 @@ class TestCompositeTrackingStore(object):
         assert store.success.call_count == 1
 
     def test_try_run_handler_panic_fails(self, store):
-        with pytest.raises(TrackerPanicError):
+        with pytest.raises(DatabandWebserverNotReachableError):
             try_run_handler(10, store, "panic_fails", {})
 
         assert store.panic_fails.call_count == 10
@@ -77,7 +77,7 @@ class TestCompositeTrackingStore(object):
 
     def test_invoke_raise_on_panic_error(self, store):
         composite_store = self.get_composite_tracking_store(store)
-        with pytest.raises(TrackerPanicError):
+        with pytest.raises(DatabandWebserverNotReachableError):
             composite_store._invoke("panic_fails", {})
 
     def test_is_ready(self, store):

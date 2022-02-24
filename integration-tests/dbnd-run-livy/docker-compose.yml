@@ -35,4 +35,6 @@ services:
       - -c
       - |
         set -e
+        until nc -z livy 8998; do echo "Waiting for Livy..." && sleep 5; done
+        curl -s livy:8998/batches && echo " - Livy looks to be up and running"
         pytest integration-test -vv

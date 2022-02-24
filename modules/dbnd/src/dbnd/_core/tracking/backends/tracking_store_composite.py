@@ -5,7 +5,7 @@ from typing import Any, Dict
 import six
 
 from dbnd._core.current import in_tracking_run, is_orchestration_run
-from dbnd._core.errors.base import TrackerPanicError
+from dbnd._core.errors.base import DatabandWebserverNotReachableError
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
 from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
@@ -90,13 +90,17 @@ class CompositeTrackingStore(TrackingStore):
                 ):
                     failed_stores.append(store_name)
 
-                if isinstance(e, TrackerPanicError) and self._raise_on_error:
+                if isinstance(e, DatabandWebserverNotReachableError):
+                    if in_tracking_run():
+                        logger.warning(str(e))
+
                     if is_orchestration_run():
                         # in orchestration runs we have good error collection that's show error banner
                         # error should have good msg and no need to show full trace
                         e.show_exc_info = False
 
-                    raise e
+                    if self._raise_on_error:
+                        raise e
 
         if failed_stores:
             for store_name in failed_stores:

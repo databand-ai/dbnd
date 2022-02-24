@@ -6,6 +6,7 @@ from functools import wraps
 
 import dbnd
 
+from dbnd._core.errors.base import DatabandWebserverNotReachableError
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -43,8 +44,8 @@ def log_exception_to_server(exception=None):
             "timestamp": utcnow().isoformat(),
         }
         return client.api_request(endpoint="log_exception", method="POST", data=data)
-    except:  # noqa
-        logger.warning("Error sending monitoring exception message", exc_info=True)
+    except Exception:  # noqa
+        logger.debug("Error sending monitoring exception message", exc_info=True)
 
 
 def capture_tracking_exception(f):

@@ -9,7 +9,7 @@ from typing import Any, Dict
 import attr
 
 from dbnd._core.current import in_tracking_run, is_orchestration_run
-from dbnd._core.errors.base import TrackerPanicError
+from dbnd._core.errors.base import DatabandWebserverNotReachableError
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
@@ -210,13 +210,17 @@ class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
             if item.stop_tracking_on_failure:
                 raise exc
 
-            if isinstance(exc, TrackerPanicError) and self._tracker_raise_on_error:
+            if isinstance(exc, DatabandWebserverNotReachableError):
+                if in_tracking_run():
+                    logger.warning(str(exc))
+
                 if item.is_orchestration_run:
                     # in orchestration runs we have good error collection that's show error banner
                     # error should have good msg and no need to show full trace
                     exc.show_exc_info = False
 
-                raise exc
+                if self._tracker_raise_on_error:
+                    raise exc
             # in all other cases continue
             pass
 
