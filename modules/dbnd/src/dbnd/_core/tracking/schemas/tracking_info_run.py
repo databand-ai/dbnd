@@ -75,6 +75,7 @@ class ScheduledRunInfo(_DbndDataClass):
     scheduled_job_dag_run_id = attr.ib(default=None)  # type: int
     # for manual association with scheduled job from dbnd run cli
     scheduled_job_name = attr.ib(default=None)  # type: Optional[str]
+    scheduled_job_extra_args = attr.ib(default=None)  # type: Optional[str]
 
     @classmethod
     def from_env(cls, run_uid):

@@ -32,15 +32,17 @@ class DbndSchedulerOperator(BaseOperator):
         scheduled_job_uid,
         shell,
         with_name=True,
+        extra_args=None,
         **kwargs
     ):
-        # type: (str, str, Optional[UUID], bool, bool, **Any) ->  DbndSchedulerOperator
+        # type: (str, str, Optional[UUID], bool, bool, str, **Any) ->  DbndSchedulerOperator
         super(DbndSchedulerOperator, self).__init__(**kwargs)
         self.scheduled_job_name = scheduled_job_name
         self.scheduled_job_uid = scheduled_job_uid
         self.scheduled_cmd = scheduled_cmd
         self.shell = shell
         self.with_name = with_name
+        self.extra_args = extra_args
 
     def execute(self, context):
         scheduled_run_info = ScheduledRunInfo(
@@ -48,13 +50,17 @@ class DbndSchedulerOperator(BaseOperator):
             scheduled_job_dag_run_id=context.get("dag_run").id,
             scheduled_date=context.get("task_instance").execution_date,
             scheduled_job_name=self.scheduled_job_name if self.with_name else None,
+            scheduled_job_extra_args=self.extra_args,
         )
-
         # disable heartbeat at this level,
         # otherwise scheduled jobs that will run on Kubernetes
         # will always have a heartbeat even if the actual driver
         # sent to Kubernetes is lost down the line,
         # which is the main purpose of the heartbeat
+
+        self.launch(context, scheduled_run_info)
+
+    def launch(self, context, scheduled_run_info: ScheduledRunInfo):
         with new_dbnd_context(
             name="airflow",
             conf={
@@ -86,6 +92,7 @@ class Launcher(PythonTask):
         env = os.environ.copy()
         env[DBND_RUN_UID] = str(DatabandRun.get_instance().run_uid)
         env[DBND_RESUBMIT_RUN] = "true"
+
         return bash_cmd.callable(
             cmd=self.scheduled_cmd, env=env, dbnd_env=False, shell=self.shell
         )

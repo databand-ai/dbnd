@@ -1,6 +1,6 @@
 import logging
 
-from typing import List
+from typing import List, Optional
 
 from airflow import DAG
 
@@ -21,7 +21,10 @@ logger = logging.getLogger(__name__)
 
 class DbndSchedulerDBDagsProvider(object):
     # by default only run the file sync if we are in the scheduler (and not the webserver)
-    def __init__(self, default_retries):
+    def __init__(
+        self, default_retries: int, custom_operator_class: Optional[type] = None
+    ):
+        self.custom_operator_class = custom_operator_class
         self.default_retries = default_retries
 
     def get_dags(self):  # type: () -> List[DAG]
@@ -69,9 +72,11 @@ class DbndSchedulerDBDagsProvider(object):
             catchup=job.get("catchup", False),
         )
 
-        DbndSchedulerOperator(
+        custom_operator_class = self.custom_operator_class or DbndSchedulerOperator
+        custom_operator_class(
             scheduled_cmd=job["cmd"],
             scheduled_job_name=job_name,
+            extra_args=job.get("extra_args", None),
             with_name=False,
             scheduled_job_uid=job.get("uid", None),
             shell=config.getboolean("scheduler", "shell_cmd"),
@@ -83,7 +88,7 @@ class DbndSchedulerDBDagsProvider(object):
         return dag
 
 
-def get_dags_from_databand():
+def get_dags_from_databand(custom_operator_class: Optional[type] = None):
     if environ_enabled(ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD):
         return None
     from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
@@ -97,7 +102,9 @@ def get_dags_from_databand():
 
         default_retries = config.getint("scheduler", "default_retries")
 
-        dags = DbndSchedulerDBDagsProvider(default_retries=default_retries).get_dags()
+        dags = DbndSchedulerDBDagsProvider(
+            default_retries=default_retries, custom_operator_class=custom_operator_class
+        ).get_dags()
 
         if not in_quiet_mode():
             logger.info("providing %s dags from scheduled jobs" % len(dags))
