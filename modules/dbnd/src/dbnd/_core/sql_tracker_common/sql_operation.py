@@ -197,6 +197,7 @@ class SqlOperationValueMeta(DataValueType):
         return ValueMeta(
             value_preview=None,
             data_dimensions=data_dimensions,
+            query=value.query,
             data_schema=data_schema,
             data_hash=str(hash(self.to_signature(value))),
             columns_stats=columns_stats,

@@ -25,6 +25,7 @@ class ValueMeta(object):
     data_dimensions = attr.ib(
         default=None
     )  # type: Optional[Tuple[Optional[int], Optional[int]]]
+    query = attr.ib(default=None)  # type: Optional[str]
     data_schema = attr.ib(
         default=None, converter=load_data_schema
     )  # type: Optional[DataSchemaArgs]

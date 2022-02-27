@@ -164,6 +164,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             columns_stats=data_meta.columns_stats,
             data_dimensions=data_meta.data_dimensions,
             data_schema=data_meta.data_schema,
+            query=data_meta.query,
             with_partition=with_partition,
             timestamp=utcnow(),
             dataset_uri=None,

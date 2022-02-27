@@ -338,6 +338,7 @@ class LogDatasetArgs(object):
     data_dimensions = attr.ib()  # type: Optional[Tuple[Optional[int], Optional[int]]]
     data_schema = attr.ib()  # type: Optional[DataSchemaArgs]
 
+    query = attr.ib(default=None)  # type: Optional[str]
     dataset_uri = attr.ib(default=None)  # type: Optional[str]
     columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
 
@@ -380,6 +381,7 @@ class LogDatasetSchema(ApiStrictSchema):
     value_preview = fields.String(allow_none=True)
     data_dimensions = fields.List(fields.Integer(allow_none=True), allow_none=True)
     data_schema = fields.Nested(StructuredDataSchema, allow_none=True)
+    query = fields.String(allow_none=True)
     columns_stats = fields.Nested(ColumnStatsSchema, many=True, required=False)
 
     with_partition = fields.Boolean(required=False, allow_none=True)
