@@ -1,9 +1,15 @@
 package ai.databand.config;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 
 /**
  * Spark config properties source. Values are passed in uppercase+underscore format.
@@ -24,7 +30,20 @@ public class SparkConf implements PropertiesSource {
     public SparkConf(PropertiesSource parent, String command) {
         props = new HashMap<>(parent.values());
         Map<String, String> sparkProps = new HashMap<>();
+        boolean isNextPropsFilePath = false;
         for (String next : command.split(" ")) {
+            if (isNextPropsFilePath) {
+                for (Map.Entry<Object, Object> property : readPropertiesFile(next).entrySet()) {
+                    String key = (String) property.getKey();
+                    if (key.startsWith("spark.env.")) {
+                        sparkProps.put(key.replace("spark.env.", ""), (String) property.getValue());
+                    }
+                }
+                isNextPropsFilePath = false;
+            }
+            if (next.startsWith("--properties-file")) {
+                isNextPropsFilePath = true;
+            }
             if (next.startsWith("spark.env.") && next.contains("=")) {
                 String[] keyValue = next.split("=");
                 if (keyValue.length != 2) {
@@ -35,6 +54,19 @@ public class SparkConf implements PropertiesSource {
             }
         }
         props.putAll(new NormalizedProps(sparkProps).values());
+    }
+
+    private Properties readPropertiesFile(String propertiesPath) {
+        Properties properties = new Properties();
+        if (propertiesPath != null && Files.exists(Paths.get(propertiesPath))) {
+            try (InputStream input = new FileInputStream(propertiesPath)) {
+                properties.load(input);
+            } catch (IOException e) {
+                System.out.println("Unable to read Spark properties from file " + propertiesPath);
+                e.printStackTrace();
+            }
+        }
+        return properties;
     }
 
     public Map<String, String> values() {
