@@ -61,6 +61,9 @@ class TrackingChannel(object):
     def log_artifact(self, data):
         return self._handle(TrackingChannel.log_artifact.__name__, data)
 
+    def log_dbt_metadata(self, data):
+        return self._handle(TrackingChannel.log_dbt_metadata.__name__, data)
+
     def heartbeat(self, data):
         return self._handle(TrackingChannel.heartbeat.__name__, data)
 

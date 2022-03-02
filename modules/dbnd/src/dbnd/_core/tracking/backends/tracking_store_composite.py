@@ -193,6 +193,9 @@ class CompositeTrackingStore(TrackingStore):
     def log_artifact(self, **kwargs):
         return self._invoke(CompositeTrackingStore.log_artifact.__name__, kwargs)
 
+    def log_dbt_metadata(self, **kwargs):
+        return self._invoke(CompositeTrackingStore.log_dbt_metadata.__name__, kwargs)
+
     def close(self):
         pass
 

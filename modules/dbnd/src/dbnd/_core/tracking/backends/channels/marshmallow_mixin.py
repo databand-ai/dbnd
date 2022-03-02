@@ -6,6 +6,7 @@ from dbnd.api.tracking_api import (
     init_run_schema,
     log_artifact_schema,
     log_datasets_schema,
+    log_dbt_metadata_schema,
     log_metrics_schema,
     log_targets_schema,
     save_external_links_schema,
@@ -35,6 +36,7 @@ class MarshmallowMixin:
         TrackingChannel.log_artifact.__name__: log_artifact_schema,
         TrackingChannel.heartbeat.__name__: heartbeat_schema,
         TrackingChannel.save_airflow_task_infos.__name__: airflow_task_infos_schema,
+        TrackingChannel.log_dbt_metadata.__name__: log_dbt_metadata_schema,
     }
 
     def get_schema_by_handler_name(self, handler_name):

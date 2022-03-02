@@ -175,6 +175,9 @@ class TrackingStoreThroughChannel(TrackingStore):
     def log_datasets(self, datasets_info):  # type: (List[LogDatasetArgs]) -> Any
         return self._m(self.channel.log_datasets, datasets_info=datasets_info)
 
+    def log_dbt_metadata(self,dbt_run_metadata,task_run_id):
+        return self._m(self.channel.log_dbt_metadata,dbt_run_metadata=dbt_run_metadata,task_run_id=task_run_id)
+
     def log_target(
         self,
         task_run,
