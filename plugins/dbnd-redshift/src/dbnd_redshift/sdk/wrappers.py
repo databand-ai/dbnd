@@ -30,27 +30,27 @@ class DbndCursorWrapper:
 
 class DbndConnectionWrapper:
     def __init__(self, original_connection: psycopg2_connection):
-        self.original_connection = original_connection
+        self.connection = original_connection
 
     def cursor(self):
-        return DbndCursorWrapper(self.original_connection.cursor())
+        return DbndCursorWrapper(self.connection.cursor())
 
     def close(self):
-        return self.original_connection.close()
+        return self.connection.close()
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.original_connection.__exit__(exc_type, exc_val, exc_tb)
+        return self.connection.__exit__(exc_type, exc_val, exc_tb)
 
     # Delegate attribute lookup to internal obj
     def __getattr__(self, name):
-        return getattr(self.original_connection, name)
+        return getattr(self.connection, name)
 
     @property
     def _sqla_unwrap(self):
-        return self.original_connection
+        return self.connection
 
 
 class PostgresConnectionWrapper:
