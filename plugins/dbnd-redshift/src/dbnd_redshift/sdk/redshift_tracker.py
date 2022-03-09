@@ -18,6 +18,10 @@ from dbnd._core.sql_tracker_common.sql_operation import (
     SqlOperation,
     render_connection_path,
 )
+from dbnd_redshift.sdk.redshift_connection_collection import (
+    PostgresConnectionRuntime,
+    RedshiftConnectionCollection,
+)
 from dbnd_redshift.sdk.wrappers import (
     DbndConnectionWrapper,
     DbndCursorWrapper,
@@ -32,8 +36,10 @@ COPY_ROWS_COUNT_QUERY = "select pg_last_copy_count();"
 
 class RedshiftTracker:
     def __init__(self, calculate_file_path=None):
-        self.operations = []
-        self._connection = None
+        self.connections: RedshiftConnectionCollection[
+            int, PostgresConnectionRuntime
+        ] = RedshiftConnectionCollection(lambda: PostgresConnectionRuntime(None, []))
+
         # custom function for file path calculation
         self.calculate_file_path = calculate_file_path
         self.dataframe = None  # type: Pandas.DF
@@ -67,11 +73,10 @@ class RedshiftTracker:
             @functools.wraps(close_original)
             def redshift_connection_close(connection_self, *args, **kwargs):
                 # track connection before closing it (Example 1)
-                self.unpatch_method(DbndCursorWrapper, "execute")
-                if self._connection:
-                    conn = self._connection
-                else:
-                    conn = PostgresConnectionWrapper(connection_self)
+
+                conn = self.connections.get_connection(
+                    connection_self, PostgresConnectionWrapper(connection_self)
+                )
                 self.flush_operations(conn)
 
                 return close_original(connection_self, *args, **kwargs)
@@ -90,16 +95,18 @@ class RedshiftTracker:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.unpatch_method(DbndCursorWrapper, "execute")
         self.unpatch_method(DbndConnectionWrapper, "close")
-        if self._connection:
-            self.flush_operations(self._connection)
+
+        for connection in self.connections.values():
+            self.flush_operations(connection.connection)
 
     def flush_operations(self, connection: PostgresConnectionWrapper):
-        operations: List[SqlOperation] = self.enrich_operations(
-            connection, self.operations
-        )
-        self.report_operations(connection, operations)
-        # we clean all the batch of operations we reported so we don't report twice
-        self.operations = []
+        if connection in self.connections:
+            operations: List[SqlOperation] = self.enrich_operations(
+                connection, self.connections.get_operations(connection)
+            )
+            self.report_operations(connection, operations)
+            # we clean all the batch of operations we reported so we don't report twice
+            self.connections.clear_operations(connection)
 
     def set_dataframe(self, dataframe):
         """
@@ -122,7 +129,13 @@ class RedshiftTracker:
 
     @contextlib.contextmanager
     def track_execute(self, cursor, command, *args, **kwargs):
-        self._connection = PostgresConnectionWrapper(cursor.connection)
+        if cursor not in self.connections:
+            self.connections.new_connection(
+                cursor,
+                PostgresConnectionRuntime(
+                    PostgresConnectionWrapper(cursor.connection), []
+                ),
+            )
         success = True
         error = None
         try:
@@ -142,8 +155,10 @@ class RedshiftTracker:
                     self.dataframe,
                 )
                 if operations:
-                    # Only extend self.operations if read or write operation occurred in command
-                    self.operations.extend(operations)
+                    # Only extend self.connections obj operations
+                    # if read or write operation occurred in command
+                    self.connections.add_operations(cursor, operations)
+
             except Exception as e:
                 logging.exception("Error parsing redshift query")
                 log_exception_to_server(e)
