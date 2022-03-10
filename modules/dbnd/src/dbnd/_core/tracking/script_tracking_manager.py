@@ -14,6 +14,7 @@ from dbnd._core.configuration.environ_config import try_get_script_name
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import try_get_databand_run
+from dbnd._core.log.config import FORMAT_SIMPLE
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import TrackingConfig
@@ -139,7 +140,36 @@ def _set_dbnd_config_from_airflow_connections():
         )
 
 
-# _DbndScriptTrackingManager class
+def has_level_handler(loggr: logging.Logger):
+    """Check if there is a handler in the logging chain that will handle the
+    given logger's :meth:`effective level <~logging.Logger.getEffectiveLevel>`.
+
+    Arguments:
+        loggr : the logger to inspect
+    """
+    level = loggr.getEffectiveLevel()
+    current = loggr
+
+    while current:
+        if any(handler.level <= level for handler in current.handlers):
+            return True
+
+        if not current.propagate:
+            break
+
+        current = current.parent
+
+    return False
+
+
+def _configure_tracking_logging(conf):
+    dbnd_logger = logging.getLogger("dbnd")
+    logging_level = conf["log"].get("level", "WARNING")
+    dbnd_logger.setLevel(logging_level)
+    if not has_level_handler(dbnd_logger):
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter(FORMAT_SIMPLE))
+        dbnd_logger.addHandler(console_handler)
 
 
 class _DbndScriptTrackingManager(object):
@@ -390,10 +420,13 @@ def dbnd_tracking_start(job_name=None, run_name=None, project_name=None, conf=No
         conf = {}
 
     if run_name:
-        if "run" in conf:
-            conf["run"]["name"] = run_name
-        else:
-            conf["run"] = {"name": run_name}
+        conf.setdefault("run", {}).setdefault("name", run_name)
+
+    # do not apply our logger to a python script by default
+    conf.setdefault("log", {}).setdefault("disabled", True)
+
+    if conf["log"]["disabled"]:
+        _configure_tracking_logging(conf)
 
     if conf:
         config.set_values(

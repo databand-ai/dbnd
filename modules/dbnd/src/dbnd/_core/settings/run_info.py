@@ -19,6 +19,9 @@ from dbnd._core.utils.uid_utils import get_uuid
 from targets.values.version_value import VersionStr
 
 
+logger = logging.getLogger(__name__)
+
+
 def get_task_info_cmd():
     return subprocess.list2cmdline(sys.argv)
 
@@ -37,7 +40,7 @@ class RunInfoConfig(config.Config):
         task_run_env_uid = get_uuid()
         import dbnd
 
-        logging.debug("Created new task run env with uid '%s'", task_run_env_uid)
+        logger.debug("Created new task run env with uid '%s'", task_run_env_uid)
 
         machine = environ.get(ENV_DBND__ENV_MACHINE, "")
         if environ.get(ENV_DBND__ENV_IMAGE, None):

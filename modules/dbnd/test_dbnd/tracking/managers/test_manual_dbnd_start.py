@@ -114,8 +114,8 @@ def f1():
 
 if __name__ == "__main__":
     if USE_DBND_START in sys.argv:
-        dbnd_tracking_start()
-        dbnd_tracking_start()
+        dbnd_tracking_start(conf={"log": {"disabled": False}})
+        dbnd_tracking_start(conf={"log": {"disabled": False}})
 
     f1()
 
