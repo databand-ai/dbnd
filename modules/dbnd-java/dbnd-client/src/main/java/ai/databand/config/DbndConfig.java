@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_DAG_ID;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_EXECUTION_DATE;
@@ -29,13 +30,9 @@ import static ai.databand.DbndPropertyNames.DBND__LOG__PREVIEW_HEAD_BYTES;
 import static ai.databand.DbndPropertyNames.DBND__LOG__PREVIEW_TAIL_BYTES;
 import static ai.databand.DbndPropertyNames.DBND__RUN__JOB_NAME;
 import static ai.databand.DbndPropertyNames.DBND__RUN__NAME;
-import static ai.databand.DbndPropertyNames.DBND__SPARK__IO_TRACKING_ENABLED;
-import static ai.databand.DbndPropertyNames.DBND__SPARK__LISTENER_INJECT_ENABLED;
-import static ai.databand.DbndPropertyNames.DBND__SPARK__QUERY_LISTENER_INJECT_ENABLED;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING__DATA_PREVIEW;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING__LOG_VALUE_PREVIEW;
-import static ai.databand.DbndPropertyNames.DBND__TRACKING__VERBOSE;
 
 /**
  * Databand configuration.
@@ -49,7 +46,6 @@ public class DbndConfig implements PropertiesSource {
     private final DatabandTaskContext dbndCtx;
     private final boolean previewEnabled;
     private final boolean trackingEnabled;
-    private final boolean verbose;
     private final String databandUrl;
     private final String cmd;
     private final String runName;
@@ -86,7 +82,6 @@ public class DbndConfig implements PropertiesSource {
         dbndCtx = buildDatabandCtxFromEnv(this.props);
 
         previewEnabled = isTrue(this.props, DBND__TRACKING__DATA_PREVIEW) || isTrue(this.props, DBND__TRACKING__LOG_VALUE_PREVIEW);
-        verbose = isTrue(this.props, DBND__TRACKING__VERBOSE);
         databandUrl = this.props.getOrDefault(DBND__CORE__DATABAND_URL, "http://localhost:8080");
         // tracking should be explicitly opt int when we're not running inside Airflow
         trackingEnabled = afCtx != null
@@ -179,10 +174,6 @@ public class DbndConfig implements PropertiesSource {
         return trackingEnabled;
     }
 
-    public boolean isVerbose() {
-        return verbose;
-    }
-
     public Optional<AirflowTaskContext> airflowContext() {
         return Optional.ofNullable(afCtx);
     }
@@ -221,18 +212,6 @@ public class DbndConfig implements PropertiesSource {
 
     public int previewTailBytes() {
         return getInteger(DBND__LOG__PREVIEW_TAIL_BYTES, PREVIEW_HEAD_TAIL_DEFAULT);
-    }
-
-    public boolean sparkListenerInjectEnabled() {
-        return !isFalse(DBND__SPARK__LISTENER_INJECT_ENABLED);
-    }
-
-    public boolean sparkQueryListenerInjectEnabled() {
-        return isTrue(DBND__SPARK__QUERY_LISTENER_INJECT_ENABLED);
-    }
-
-    public boolean sparkIoTrackingEnabled() {
-        return isTrue(DBND__SPARK__IO_TRACKING_ENABLED);
     }
 
     protected Integer getInteger(String key, Integer defaultValue) {
@@ -289,5 +268,16 @@ public class DbndConfig implements PropertiesSource {
             return Optional.empty();
         }
         return Optional.of(value);
+    }
+
+    @Override
+    public String toString() {
+        if (props == null) {
+            return "{}";
+        }
+        return "\n" + props.keySet().stream()
+            .filter(key -> key.toLowerCase().startsWith("dbnd") || key.toLowerCase().startsWith("airflow"))
+            .map(key -> key + "=" + props.get(key))
+            .collect(Collectors.joining("\n"));
     }
 }

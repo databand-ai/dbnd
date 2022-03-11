@@ -18,7 +18,17 @@ import org.apache.spark.sql.Dataset;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * AspectJ wrapper for @Pipeline and @Task annonations.
@@ -87,6 +97,7 @@ public class DbndWrapper {
         System.out.println("Running Databand!");
         System.out.printf("TRACKER URL: %s%n", config.databandUrl());
         System.out.printf("CMD: %s%n", config.cmd());
+        System.out.println("Parsed Databand properties: " + config);
         getOrCreateRun(method, args);
         pipelineInitialized = true;
     }

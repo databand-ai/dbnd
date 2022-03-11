@@ -1,6 +1,6 @@
 package ai.databand.agent;
 
-import ai.databand.config.DbndConfig;
+import ai.databand.config.DbndAgentConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +25,7 @@ public class DbndAgent {
         } catch (Throwable e) {
             e.printStackTrace();
         }
-        DbndConfig config = new DbndConfig();
+        DbndAgentConfig config = new DbndAgentConfig(agentArgs);
         inst.addTransformer(new DbndTrackingTransformer(config));
         if (config.sparkIoTrackingEnabled()) {
             inst.addTransformer(new ActiveJobTransformer());

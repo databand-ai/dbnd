@@ -1,6 +1,6 @@
 package ai.databand.agent;
 
-import ai.databand.config.DbndConfig;
+import ai.databand.config.DbndAgentConfig;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -28,9 +28,9 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
 
     private static final String TASK_ANNOTATION = "ai.databand.annotations.Task";
 
-    private final DbndConfig config;
+    private final DbndAgentConfig config;
 
-    public DbndTrackingTransformer(DbndConfig config) {
+    public DbndTrackingTransformer(DbndAgentConfig config) {
         this.config = config;
     }
 
