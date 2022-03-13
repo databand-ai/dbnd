@@ -160,8 +160,6 @@ class ParseValueError(ParameterError):
     Error signifying that there was a error whily parsing Parameter.
     """
 
-    pass
-
 
 class ValueTypeError(DatabandConfigError):
     """
@@ -176,15 +174,11 @@ class ParseParameterError(ParameterError):
     Error signifying that there was a error whily parsing Parameter.
     """
 
-    pass
-
 
 class MissingParameterError(ParameterError):
     """
     Error signifying that there was a missing Parameter.
     """
-
-    pass
 
 
 class UnknownParameterError(ParameterError):
@@ -192,15 +186,11 @@ class UnknownParameterError(ParameterError):
     Error signifying that an unknown Parameter was supplied.
     """
 
-    pass
-
 
 class DbndCanceledRunError(DatabandError):
     """
     Error thrown when canceling a run.
     """
-
-    pass
 
 
 class TaskClassException(DatabandError):
@@ -248,8 +238,6 @@ class DatabandApiError(DatabandError):
 class DatabandUnauthorizedApiError(DatabandApiError):
     """Api error indicate unauthorized http request (status code: 403 or 401)"""
 
-    pass
-
 
 class DatabandBadRequest(DatabandError):
     pass
@@ -260,18 +248,12 @@ class DatabandWebserverNotReachableError(DatabandError):
     Indicate that Databand webserver is not reachable
     """
 
-    pass
-
 
 class DatabandAuthenticationError(DatabandWebserverNotReachableError):
     """Api error indicate we failed to authenticate to the server"""
-
-    pass
 
 
 class DatabandConnectionException(DatabandWebserverNotReachableError):
     """
     Error thrown when connecting with the server is not available.
     """
-
-    pass

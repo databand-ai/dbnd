@@ -6,7 +6,6 @@ from functools import wraps
 
 import dbnd
 
-from dbnd._core.errors.base import DatabandWebserverNotReachableError
 from dbnd._core.utils.timezone import utcnow
 
 

@@ -1,7 +1,4 @@
-from dbnd._core.errors.base import (
-    DatabandConnectionException,
-    DatabandUnauthorizedApiError,
-)
+from dbnd._core.errors.base import DatabandConnectionException
 
 
 def api_connection_refused(connection_details, ex):

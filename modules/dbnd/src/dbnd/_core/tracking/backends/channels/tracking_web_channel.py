@@ -1,10 +1,3 @@
-import six
-
-from dbnd._core.errors.base import (
-    DatabandAuthenticationError,
-    DatabandConnectionException,
-    DatabandUnauthorizedApiError,
-)
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
 from dbnd._core.tracking.backends.channels.marshmallow_mixin import MarshmallowMixin
 
