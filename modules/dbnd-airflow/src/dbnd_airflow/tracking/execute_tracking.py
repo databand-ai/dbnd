@@ -98,7 +98,6 @@ def new_execute(context):
         return result
 
     try:
-
         # Set that we are in Airflow tracking mode
         get_dbnd_project_config().set_is_airflow_runtime()
 

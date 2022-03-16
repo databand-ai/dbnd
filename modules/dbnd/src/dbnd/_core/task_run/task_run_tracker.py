@@ -104,9 +104,8 @@ class TaskRunTracker(TaskRunCtrl):
         return self.tracking_store.log_metrics(task_run=self.task_run, metrics=metrics)
 
     def log_dbt_metadata(self, dbt_metadata):
-        task_run = self.task_run
         self.tracking_store.log_dbt_metadata(
-            dbt_run_metadata=dbt_metadata, task_run_id=task_run.task_af_id
+            dbt_run_metadata=dbt_metadata, task_run=self.task_run
         )
 
     @capture_tracking_exception

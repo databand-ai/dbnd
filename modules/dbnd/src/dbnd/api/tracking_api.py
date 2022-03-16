@@ -293,8 +293,8 @@ log_metrics_schema = LogMetricsSchema()
 
 
 class DbtMetadataSchema(ApiStrictSchema):
-    task_run_id = fields.String()
-    dbt_run_metadata = fields.Dict()
+    task_run_attempt_uid = fields.UUID(required=True)
+    dbt_run_metadata = fields.Dict(required=True)
 
 
 log_dbt_metadata_schema = DbtMetadataSchema()

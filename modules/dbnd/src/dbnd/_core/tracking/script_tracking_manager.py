@@ -289,6 +289,7 @@ class _DbndScriptTrackingManager(object):
         root_task_run = run._build_and_add_task_run(
             root_task, task_af_id=root_task.task_name, try_number=try_number
         )
+
         root_task_run.is_root = True
 
         run.tracker.init_run()

@@ -28,3 +28,7 @@ def unique_execution_date():
         - timedelta(seconds=1)
         + timedelta(microseconds=_current_unique_execution_date_salt)
     )
+
+
+def parse_datetime(value, default=None):
+    return pendulum.parse(value) if value else default

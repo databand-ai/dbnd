@@ -145,7 +145,7 @@ class TrackingStore(object):
         # type: () -> bool
         pass
 
-    def log_dbt_metadata(self, dbt_run_metadata, task_run_id):
+    def log_dbt_metadata(self, dbt_run_metadata, task_run):
         pass
 
     def flush(self):

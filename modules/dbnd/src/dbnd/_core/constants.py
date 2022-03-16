@@ -315,6 +315,7 @@ class MetricSource(object):
     system = "system"
     histograms = "histograms"
     spark = "spark"
+    dbt = "dbt"
 
     @classmethod
     def all(cls):
