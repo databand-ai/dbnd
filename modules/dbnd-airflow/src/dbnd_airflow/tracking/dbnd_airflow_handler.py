@@ -103,7 +103,7 @@ class DbndAirflowHandler(logging.Handler):
 
         # tracking msg
         self.airflow_logger.info(
-            "Tracked by Databand {version}".format(version=dbnd.__version__)
+            "Databand Tracking Started {version}".format(version=dbnd.__version__)
         )
 
         # context with disabled logs

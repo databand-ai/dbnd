@@ -7,6 +7,8 @@ import typing
 from subprocess import list2cmdline
 from typing import Optional
 
+import dbnd
+
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.dbnd_config import config
@@ -428,6 +430,11 @@ def dbnd_tracking_start(job_name=None, run_name=None, project_name=None, conf=No
 
     if conf["log"]["disabled"]:
         _configure_tracking_logging(conf)
+
+    # We use print here and not log because the dbnd logger might be set to Warning (by default), and we want to
+    # inform the user that we started, without alerting him with a Warning or Error message.
+    # This should be a logger info message when tracking and orchestration split.
+    print("Databand Tracking Started {version}".format(version=dbnd.__version__))
 
     if conf:
         config.set_values(
