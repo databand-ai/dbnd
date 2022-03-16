@@ -3,6 +3,7 @@ exclude: >
       .+/airflow_override/.+|
       .+/_vendor/.+|
       .+/_vendor_package/.+|
+      .+/docs/sdk-docs/.+
   )$
 repos:
   # Keep autoflake as a first hook

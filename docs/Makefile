@@ -14,7 +14,7 @@ else
 endif
 
 build-sphinx-html: ## Build an up-to-date version of the docs.
-	python build_for_readme.py
+	python build_api_reference.py
 
 validate-doc-style: ## Ensures all docstrings in dbnd exist and use the Google Python Style Guide
 	python check_valid_docstring.py
