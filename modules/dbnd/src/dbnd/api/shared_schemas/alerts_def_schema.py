@@ -24,6 +24,7 @@ class AlertDefsSchema(ApiStrictSchema):
     project_name = fields.Str(attribute="job.project.name")
     alert_on_historical_runs = fields.Bool()
     group_uid = fields.Str(allow_none=True, load_from="alert_group_uid")
+    root_group_uid = fields.Str(allow_none=True, load_from="alert_root_group_uid")
 
     uid = fields.Str(allow_none=True)
     value = fields.Str(allow_none=True)
