@@ -81,7 +81,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 }
             }
         }
-        if (qe.executedPlan() instanceof WholeStageCodegenExec || qe.executedPlan() instanceof CollectLimitExec) {
+        if (qe.executedPlan() instanceof WholeStageCodegenExec) {
             List<SparkPlan> allChildren = getAllChildren(qe.executedPlan());
             for (SparkPlan next : allChildren) {
                 if (next instanceof FileSourceScanExec) {
