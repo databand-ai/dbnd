@@ -37,7 +37,7 @@ public class DbndWrapper {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(DbndWrapper.class);
 
-    private final DbndClient dbnd;
+    private DbndClient dbnd;
     private final DbndConfig config;
 
     // state
@@ -55,7 +55,13 @@ public class DbndWrapper {
 
     public DbndWrapper() {
         config = new DbndConfig();
-        dbnd = new DbndClient(config);
+        try {
+            dbnd = new DbndClient(config);
+        } catch (Exception e) {
+            dbnd = null;
+            LOG.error("Unable to initialize DbndClient, tracking will be disabled. Reason: {}", e.getMessage());
+            config.setTrackingEnabled(false);
+        }
         methodsCache = new HashMap<>(1);
         stack = new ArrayDeque<>(1);
         loadedClasses = new HashSet<>(1);
@@ -326,6 +332,9 @@ public class DbndWrapper {
     private DbndRun createAgentlessRun() {
         // add jvm shutdown hook so run will be completed after spark job will stop
         // hook should be added before, because listener is called asynchronously and spark can initialize stop sequence
+        if (!config.isTrackingEnabled()) {
+            return new NoopDbndRun();
+        }
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
         // check if we're running inside databand task context
         if (config.databandTaskContext().isPresent()) {
@@ -430,6 +439,10 @@ public class DbndWrapper {
      * @param taskName
      */
     public void setExternalTaskContext(String runUid, String taskRunUid, String taskRunAttemptUid, String taskName) {
+        if (!config.isTrackingEnabled()) {
+            run = new NoopDbndRun();
+            return;
+        }
         if (run == null) {
             run = new DefaultDbndRun(dbnd, config);
             // before spark will be stopped we have to submit all saved metrics from the last external task
