@@ -62,7 +62,7 @@ public class DbndConfig implements PropertiesSource {
      */
     public DbndConfig() {
         this(
-            new SparkConf(
+            new DbndSparkConf(
                 new Env(
                     new JavaOpts()
                 )
