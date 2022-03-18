@@ -17,3 +17,7 @@ dependencies {
     // should be removed after switching to apache http client
     compileOnly 'com.fasterxml.jackson.module:jackson-module-scala_2.11:2.10.2'
 }
+
+test {
+    environment "dbnd.tracking", "True"
+}

@@ -5,6 +5,7 @@ import ai.databand.schema.AirflowTaskContext;
 import ai.databand.schema.AzkabanTaskContext;
 import ai.databand.schema.DatabandTaskContext;
 import org.apache.spark.SparkContext;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,7 @@ public class DbndConfig implements PropertiesSource {
     private final AzkabanTaskContext azkbnCtx;
     private final DatabandTaskContext dbndCtx;
     private final boolean previewEnabled;
-    private final boolean trackingEnabled;
+    private boolean trackingEnabled;
     private final String databandUrl;
     private final String cmd;
     private final String runName;
@@ -174,6 +175,10 @@ public class DbndConfig implements PropertiesSource {
         return trackingEnabled;
     }
 
+    public void setTrackingEnabled(boolean trackingEnabled) {
+        this.trackingEnabled = trackingEnabled;
+    }
+
     public Optional<AirflowTaskContext> airflowContext() {
         return Optional.ofNullable(afCtx);
     }
@@ -230,7 +235,8 @@ public class DbndConfig implements PropertiesSource {
     public String sparkAppName() {
         // todo: detect we're running inside spark
         try {
-            SparkContext ctx = SparkContext.getOrCreate();
+            SparkSession session = SparkSession.active();
+            SparkContext ctx = session.sparkContext();
             return ctx.getConf().get("spark.app.name");
         } catch (Exception e) {
             return "none";
