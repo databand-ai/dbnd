@@ -2,14 +2,14 @@ package ai.databand;
 
 import ai.databand.config.DbndConfig;
 import ai.databand.config.SimpleProps;
-import ai.databand.config.SparkConf;
-import org.apache.spark.sql.SparkSession;
+import ai.databand.config.DbndSparkConf;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_DAG_ID;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_EXECUTION_DATE;
@@ -21,6 +21,10 @@ import static ai.databand.DbndPropertyNames.DBND__TRACKING__LOG_VALUE_PREVIEW;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 class DbndConfigTest {
+
+    private final Properties sparkProperties = System.getProperties();
+
+
 
     @Test
     public void testTrackingEnabledNonAf() {
@@ -42,32 +46,23 @@ class DbndConfigTest {
             false
         );
 
-        SparkSession sparkSession = SparkSession.builder()
-            .master("local[*]")
-            .config("spark.env.DBND__TRACKING", "True")
-            .getOrCreate();
-
+        sparkProperties.put("spark.env.DBND__TRACKING", "True");
         checkTrackingEnabled(
             "Tracking should be enabled when spark conf variable DBND__TRACKING set to True and we're running not in airflow",
             Collections.singletonMap(DBND__TRACKING, "False"),
             true
         );
 
-        sparkSession.stop();
-
-
-        sparkSession = SparkSession.builder()
-            .master("local[*]")
-            .config("spark.env.DBND__TRACKING", "False")
-            .getOrCreate();
+        sparkProperties.put("spark.env.DBND__TRACKING", "False");
 
         checkTrackingEnabled(
             "Tracking should be disabled when spark conf variable DBND__TRACKING set to False",
             Collections.singletonMap(DBND__TRACKING, "True"),
             false
         );
+        sparkProperties.remove("spark.env.DBND__TRACKING");
 
-        sparkSession.stop();
+
     }
 
     @Test
@@ -94,35 +89,26 @@ class DbndConfigTest {
     }
 
     protected void checkTrackingEnabled(String reason, Map<String, String> env, Object expectedValue) {
-        DbndConfig conf = new DbndConfig(new SparkConf(new SimpleProps(env)));
+        DbndConfig conf = new DbndConfig(new DbndSparkConf(new SimpleProps(env)));
         assertThat(reason, conf.isTrackingEnabled(), Matchers.equalTo(expectedValue));
     }
 
     @Test
     public void testPreviewEnabled() {
+        sparkProperties.put("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW", "True");
+
         checkPreviewEnabled(
             "Preview should be enabled when env variable DBND__TRACKING__LOG_VALUE_PREVIEW set to True",
             Collections.singletonMap(DBND__TRACKING__LOG_VALUE_PREVIEW, "True"),
             true
         );
-
-        SparkSession sparkSession = SparkSession.builder()
-            .master("local[*]")
-            .config("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW", "True")
-            .getOrCreate();
-
         checkPreviewEnabled(
             "Preview should be enabled when spark conf variable DBND__TRACKING__LOG_VALUE_PREVIEW set to True",
             Collections.singletonMap(DBND__TRACKING__LOG_VALUE_PREVIEW, "False"),
             true
         );
 
-        sparkSession.stop();
-
-        sparkSession = SparkSession.builder()
-            .master("local[*]")
-            .config("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW", "False")
-            .getOrCreate();
+        sparkProperties.put("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW", "False");
 
         checkPreviewEnabled(
             "Preview should be disabled when env variable DBND__TRACKING__LOG_VALUE_PREVIEW set to False",
@@ -130,36 +116,30 @@ class DbndConfigTest {
             false
         );
 
-        sparkSession.stop();
-
-        sparkSession = SparkSession.builder()
-            .master("local[*]")
-            .config("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW", "False")
-            .getOrCreate();
+        sparkProperties.put("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW", "False");
 
         checkPreviewEnabled(
             "Preview should be disabled when spark conf variable DBND__TRACKING__LOG_VALUE_PREVIEW set to False",
             Collections.singletonMap(DBND__TRACKING__LOG_VALUE_PREVIEW, "True"),
             false
         );
-
-        sparkSession.stop();
+        sparkProperties.remove("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW");
     }
 
     protected void checkPreviewEnabled(String reason, Map<String, String> env, Object expectedValue) {
-        DbndConfig conf = new DbndConfig(new SparkConf(new SimpleProps(env)));
+        DbndConfig conf = new DbndConfig(new DbndSparkConf(new SimpleProps(env)));
         assertThat(reason, conf.isPreviewEnabled(), Matchers.equalTo(expectedValue));
     }
 
     @Test
     public void testPipelineRunName() {
-        SparkSession sparkSession = SparkSession.builder()
-            .master("local[*]")
-            .config("spark.env.DBND__RUN__NAME", "pipeline_run")
-            .getOrCreate();
-        DbndConfig conf = new DbndConfig(new SparkConf(new SimpleProps()));
+        sparkProperties.put("spark.env.DBND__RUN__NAME", "pipeline_run");
+        sparkProperties.put("spark.env.AIRFLOW_CTX_TRY_NUMBER", "1");
+        DbndConfig conf = new DbndConfig(new DbndSparkConf(new SimpleProps()));
         assertThat("Wrong pipeline run name", conf.runName(), Matchers.equalTo("pipeline_run"));
-        sparkSession.stop();
+        sparkProperties.remove("spark.env.DBND__RUN__NAME");
+        sparkProperties.remove("spark.env.AIRFLOW_CTX_TRY_NUMBER");
+
     }
 
     @Test
@@ -170,10 +150,7 @@ class DbndConfigTest {
             "http://localhost:8080"
         );
 
-        SparkSession sparkSession = SparkSession.builder()
-            .master("local[*]")
-            .config("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW", "False")
-            .getOrCreate();
+        sparkProperties.put("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW", "False");
 
         checkDatabandUrl(
             "Databand URL should be read form env variables",
@@ -181,24 +158,21 @@ class DbndConfigTest {
             "https://tracker.databand.ai"
         );
 
-        sparkSession.stop();
 
-        sparkSession = SparkSession.builder()
-            .master("local[*]")
-            .config("spark.env.DBND__CORE__DATABAND_URL", "https://tracker2.databand.ai")
-            .getOrCreate();
+        sparkProperties.put("spark.env.DBND__CORE__DATABAND_URL", "https://tracker2.databand.ai");
 
         checkDatabandUrl(
             "Databand URL should be read form spark conf variables when no env variable is present",
             Collections.singletonMap(DBND__CORE__DATABAND_URL, "https://tracker.databand.ai"),
             "https://tracker2.databand.ai"
         );
+        sparkProperties.remove("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW");
+        sparkProperties.remove("spark.env.DBND__CORE__DATABAND_URL");
 
-        sparkSession.stop();
     }
 
     protected void checkDatabandUrl(String reason, Map<String, String> env, Object expectedValue) {
-        DbndConfig conf = new DbndConfig(new SparkConf(new SimpleProps(env)));
+        DbndConfig conf = new DbndConfig(new DbndSparkConf(new SimpleProps(env)));
         assertThat(reason, conf.databandUrl(), Matchers.equalTo(expectedValue));
     }
 
