@@ -5,7 +5,10 @@ from typing import Any, Dict
 import six
 
 from dbnd._core.current import in_tracking_run, is_orchestration_run
-from dbnd._core.errors.base import DatabandWebserverNotReachableError
+from dbnd._core.errors.base import (
+    DatabandAuthenticationError,
+    DatabandWebserverNotReachableError,
+)
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
 from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
@@ -35,10 +38,20 @@ def try_run_handler(tries, store, handler_name, kwargs):
         try:
             return handler(**kwargs)
 
+        except DatabandAuthenticationError as ex:
+            # No need to retry with the same credentials, log exception and exit immediately.
+            log_exception(
+                f"Auth Failed storing tracking information from {handler_name} at {str(store)}",
+                ex,
+                non_critical=True,
+            )
+            # Failed auth is also not a reson to stop attempting to track subsequent request.
+            # We have an option to process requests with failed auth on demand.
+            # So, fake success:
+            return {}
         except Exception as ex:
             log_exception(
-                "Try %s out of %s: Failed to store tracking information from %s at %s"
-                % (try_num, tries, handler_name, str(store)),
+                f"Try {try_num}/{tries}: Tracking failed from {handler_name} at {str(store)}",
                 ex,
                 non_critical=True,
             )
