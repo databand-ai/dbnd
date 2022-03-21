@@ -10,10 +10,12 @@ from dbnd_airflow.constants import AIRFLOW_VERSION_2
 
 
 if AIRFLOW_VERSION_2:
+    from airflow.kubernetes.secret import Secret  # noqa: F401
     from airflow.models.taskinstance import SimpleTaskInstance  # noqa: F401
     from airflow.utils.log.logging_mixin import LoggingMixin  # noqa: F401
 else:
     from airflow import LoggingMixin  # noqa: F401
+    from airflow.contrib.kubernetes.secret import Secret  # noqa: F401
     from airflow.utils.dag_processing import SimpleTaskInstance  # noqa: F401
 
 

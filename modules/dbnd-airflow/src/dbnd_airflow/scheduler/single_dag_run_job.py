@@ -4,6 +4,7 @@ import datetime
 import logging
 import typing
 
+from airflow import settings
 from airflow.models import DagRun, TaskInstance as TI
 from airflow.utils import timezone
 from airflow.utils.configuration import tmp_configuration_copy
@@ -797,13 +798,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         Initializes all components required to run a dag for a specified date range and
         calls helper method to execute the tasks.
         """
-        # Trigger cleaning
-        if self.airflow_config.clean_zombies_during_backfill:
-            from dbnd_airflow.scheduler.dagrun_zombies_clean_job import (
-                DagRunZombiesCleanerJob,
-            )
-
-            DagRunZombiesCleanerJob().run()
+        self._clean_zombie_dagruns_if_required()
 
         ti_status = BackfillJob._DagRunTaskStatus()
 
@@ -816,6 +811,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         #     executors.SequentialExecutor,
         # ):
         #     pickle_id = airflow_pickle(self.dag, session=session)
+
+        self._workaround_db_disconnection_in_forks()
 
         executor = self.executor
         executor.start()
@@ -884,6 +881,26 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 logger.exception("Failed to clean dag_run task instances")
 
         self.log.info("Run is completed. Exiting.")
+
+    def _clean_zombie_dagruns_if_required(self):
+        if self.airflow_config.clean_zombies_during_backfill:
+            from dbnd_airflow.scheduler.dagrun_zombies_clean_job import (
+                DagRunZombiesCleanerJob,
+            )
+
+            DagRunZombiesCleanerJob().run()
+
+    def _workaround_db_disconnection_in_forks(self):
+        if AIRFLOW_VERSION_2:
+            if self.executor.__class__ in [LocalExecutor]:
+                # this is what Airflow calls right after fork is created inside (LocalWorkerBase.run)
+                #   Even though connection pool is forked, closing it for will also close it in a parent process
+                #   Using `session` object after that will cause all kind of weird errors
+                #   such as `unexpected postmaster exit` or `can't reconnect until invalid transaction is rolled back`
+                #
+                # Do not wait until our db connection ends up in inconsistent state - manually close all of them
+                settings.engine.pool.dispose()
+                settings.engine.dispose()
 
     @provide_session
     def heartbeat_callback(self, session=None):

@@ -24,10 +24,12 @@ from dbnd_docker.kubernetes.kubernetes_engine_config import (
 
 
 if typing.TYPE_CHECKING:
-    from airflow.contrib.kubernetes.pod import Pod
+    import kubernetes.client.models as k8s
+
     from kubernetes.client import CoreV1Api, V1Pod
 
     from dbnd._core.task_run.task_run import TaskRun
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,10 +56,6 @@ class DbndKubernetesClient(object):
             kube_client=self.kube_client,
             kube_config=config or self.engine_config,
         )
-
-    def get_pod_ctrl_for_pod(self, pod, config=None):
-        # type: (Pod, Optional[KubernetesEngineConfig])-> DbndPodCtrl
-        return self.get_pod_ctrl(pod.name, namespace=pod.namespace, config=config)
 
     def delete_pod(self, name, namespace):
         self.get_pod_ctrl(name=name, namespace=namespace).delete_pod()
@@ -274,27 +272,17 @@ class DbndPodCtrl(object):
             )
         return self
 
-    def run_pod(self, task_run, pod, detach_run=False):
-        # type: (TaskRun, Pod, bool) -> DbndPodCtrl
+    def run_pod(
+        self, task_run: "TaskRun", pod: "k8s.V1Pod", detach_run: bool = False
+    ) -> "DbndPodCtrl":
         kc = self.kube_config
-
         detach_run = detach_run or kc.detach_run
-        if kc.show_pod_log:
-            logger.info(
-                "%s is True, %s will send every docker in blocking mode",
-                "show_pod_logs",
-                kc.task_name,
-            )
-            detach_run = False
-        if kc.debug:
-            logger.info(
-                "%s is True, %s will send every docker in blocking mode",
-                "debug",
-                kc.task_name,
-            )
+        if not self.is_possible_to_detach_run():
             detach_run = False
 
         req = kc.build_kube_pod_req(pod)
+        self._attach_live_logs_container(req)
+
         readable_req_str = readable_pod_request(req)
 
         if kc.debug:
@@ -303,24 +291,19 @@ class DbndPodCtrl(object):
             pod_file.write(readable_req_str)
             logger.debug("Pod Request has been saved to %s", pod_file)
 
-        dashboard_url = kc.get_dashboard_link(pod)
-        pod_log = kc.get_pod_log_link(pod)
-        external_link_dict = dict()
-        if dashboard_url:
-            external_link_dict["k8s_dashboard"] = dashboard_url
-        if pod_log:
-            external_link_dict["pod_log"] = pod_log
+        external_link_dict = self.build_external_links(pod)
         if external_link_dict:
             task_run.set_external_resource_urls(external_link_dict)
+
         task_run.set_task_run_state(TaskRunState.QUEUED)
 
         try:
             resp = self.kube_client.create_namespaced_pod(
-                body=req, namespace=pod.namespace
+                body=req, namespace=pod.metadata.namespace
             )
             logger.info(
                 "%s has been submitted at pod '%s' at namespace '%s'"
-                % (task_run, pod.name, pod.namespace)
+                % (task_run, pod.metadata.name, pod.metadata.namespace)
             )
             self.log.debug("Pod Creation Response: %s", resp)
         except ApiException as ex:
@@ -337,6 +320,43 @@ class DbndPodCtrl(object):
 
         self.wait()
         return self
+
+    def _attach_live_logs_container(self, req: typing.Dict[str, typing.Any]):
+        from dbnd_docker.kubernetes.vendorized_airflow.request_factory import (
+            DbndPodRequestFactory,
+        )
+
+        DbndPodRequestFactory(self.kube_config).attach_logs_container(req)
+
+    def build_external_links(self, pod: "k8s.V1Pod"):
+        kc = self.kube_config
+        dashboard_url = kc.get_dashboard_link(pod.metadata.namespace, pod.metadata.name)
+        pod_log = kc.get_pod_log_link(pod.metadata.namespace, pod.metadata.name)
+        external_link_dict = dict()
+        if dashboard_url:
+            external_link_dict["k8s_dashboard"] = dashboard_url
+        if pod_log:
+            external_link_dict["pod_log"] = pod_log
+        return external_link_dict
+
+    def is_possible_to_detach_run(self):
+        kc = self.kube_config
+        can_detach_run = True
+        if kc.show_pod_log:
+            logger.info(
+                "%s is True, %s will send every docker in blocking mode",
+                "show_pod_logs",
+                kc.task_name,
+            )
+            can_detach_run = False
+        if kc.debug:
+            logger.info(
+                "%s is True, %s will send every docker in blocking mode",
+                "debug",
+                kc.task_name,
+            )
+            can_detach_run = False
+        return can_detach_run
 
     def get_pod_logs(self, tail_lines=100):
         try:

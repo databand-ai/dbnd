@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
+import datetime
 import time
 import typing
 
@@ -48,12 +47,11 @@ from dbnd_airflow.compat.kubernetes_executor import (
     get_job_watcher_kwargs,
     make_safe_label_value,
 )
-from dbnd_airflow.constants import AIRFLOW_ABOVE_9
+from dbnd_airflow.constants import AIRFLOW_ABOVE_9, AIRFLOW_VERSION_2
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_watcher import (
     DbndKubernetesJobWatcher,
     WatcherPodEvent,
 )
-from dbnd_airflow.executors.kubernetes_executor.utils import mgr_init
 from dbnd_airflow_contrib.kubernetes_metrics_logger import KubernetesMetricsLogger
 from dbnd_docker.kubernetes.dns1123_clean_names import create_pod_id
 from dbnd_docker.kubernetes.kube_dbnd_client import (
@@ -64,10 +62,14 @@ from dbnd_docker.kubernetes.kube_dbnd_client import (
 
 
 if typing.TYPE_CHECKING:
+    import kubernetes.client.models as k8s
+
+    from airflow.executors.kubernetes_executor import KubernetesJobType
     from kubernetes.client import V1Pod
     from sqlalchemy.orm import Session
 
     from dbnd._core.task_run.task_run import TaskRun
+    from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
     from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
 
@@ -176,25 +178,32 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
     """
 
     def __init__(
-        self, kube_config, task_queue, result_queue, kube_client, worker_uuid, kube_dbnd
+        self,
+        kube_config,
+        task_queue,
+        result_queue,
+        kube_client,
+        scheduler_job_id,
+        kube_dbnd: "DbndKubernetesClient",
     ):
-        super(DbndKubernetesScheduler, self).__init__(
-            kube_config, task_queue, result_queue, kube_client, worker_uuid
+        super().__init__(
+            kube_config, task_queue, result_queue, kube_client, scheduler_job_id
         )
         self.kube_dbnd = kube_dbnd
 
         # PATCH watcher communication manager
         # we want to wait for stop, instead of "exit" inplace, so we can get all "not" received messages
-        from multiprocessing.managers import SyncManager
+        # from multiprocessing.managers import SyncManager
 
-        # TODO: why can't we use original SyncManager?
         # Scheduler <-> (via _manager) KubeWatcher
         # if _manager dies inplace, we will not get any "info" from KubeWatcher until shutdown
-        self._manager = SyncManager()
-        self._manager.start(mgr_init)
+        # self._manager = SyncManager()
+        # self._manager.start(mgr_init)
 
-        self.watcher_queue = self._manager.Queue()
+        # self.watcher_queue = self._manager.Queue()
         self.current_resource_version = 0
+
+        self.kube_config = kube_config
         self.kube_watcher = self._make_kube_watcher_dbnd()
 
         # pod_id to SubmittedPodState
@@ -211,11 +220,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
     def _make_kube_watcher(self):
         # prevent storing in db of the kubernetes resource version, because the kubernetes db model only stores a single value
-        # of the resource version while we need to store a sperate value for every kubernetes executor (because even in a basic flow
-        # we can have two Kubernets executors running at once, the one that launched the driver and the one inside the driver).
+        # of the resource version while we need to store a separate value for every kubernetes executor (because even in a basic flow
+        # we can have two Kubernetes executors running at once, the one that launched the driver and the one inside the driver).
         #
         # the resource version is the position inside the event stream of the kubernetes cluster and is used by the watcher to poll
-        # Kubernets for events. It's probably fine to not store this because by default Kubernetes will returns "the evens currently in cache"
+        # Kubernetes for events. It's probably fine to not store this because by default Kubernetes will returns "the evens currently in cache"
         # https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/CoreV1Api.md#list_namespaced_pod
         return None
 
@@ -239,20 +248,28 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             )
             self.kube_watcher = self._make_kube_watcher_dbnd()
 
-    def run_next(self, next_job):
+    def run_next(self, next_job: "KubernetesJobType"):
         """
-
         The run_next command will check the task_queue for any un-run jobs.
         It will then create a unique job-id, launch that job in the cluster,
         and store relevant info in the current_jobs map so we can track the job's
         status
         """
-        key, command, kube_executor_config = next_job
+        if AIRFLOW_VERSION_2:
+            # pod_template_file is included in Airflow 2, but not used by our executor.
+            key, command, kube_executor_config, pod_template_file = next_job
+        else:
+            key, command, kube_executor_config = next_job
+
+        self.run_next_kube_job(key, command)
+
+    def run_next_kube_job(self, key, command):
         dag_id, task_id, execution_date, try_number = key
         self.log.debug(
-            "Kube POD to submit: image=%s with %s",
+            "Kube POD to submit: image=%s with %s [%s]",
             self.kube_config.kube_image,
-            str(next_job),
+            str(key),
+            str(command),
         )
 
         databand_run = try_get_databand_run()
@@ -260,11 +277,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         pod_command = [str(c) for c in command]
         task_engine = task_run.task_engine  # type: KubernetesEngineConfig
-        pod = task_engine.build_pod(
+        pod: "k8s.V1Pod" = task_engine.build_pod(
             task_run=task_run,
             cmds=pod_command,
             labels={
-                "airflow-worker": self.worker_uuid,
+                "airflow-worker": self._version_independent_worker_id(),
                 "dag_id": make_safe_label_value(dag_id),
                 "task_id": make_safe_label_value(task_run.task_af_id),
                 "execution_date": self._datetime_to_label_safe_datestring(
@@ -275,16 +292,24 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             try_number=try_number,
             include_system_secrets=True,
         )
-        pod_ctrl = self.kube_dbnd.get_pod_ctrl_for_pod(pod, config=task_engine)
-        self.submitted_pods[pod.name] = SubmittedPodState(
-            pod_name=pod.name,
+        pod_ctrl = self.kube_dbnd.get_pod_ctrl(
+            pod.metadata.name, pod.metadata.namespace, config=task_engine
+        )
+        self.submitted_pods[pod.metadata.name] = SubmittedPodState(
+            pod_name=pod.metadata.name,
             task_run=task_run,
             scheduler_key=key,
             submitted_at=utcnow(),
         )
 
         pod_ctrl.run_pod(pod=pod, task_run=task_run, detach_run=True)
-        self.metrics_logger.log_pod_submitted(task_run.task, pod_name=pod.name)
+        self.metrics_logger.log_pod_submitted(task_run.task, pod_name=pod.metadata.name)
+
+    def _version_independent_worker_id(self):
+        if AIRFLOW_VERSION_2:
+            return self.scheduler_job_id
+        else:
+            return self.worker_uuid
 
     # in airflow>1.10.10 delete_pod method takes additional "namespace" arg
     # we do not use it in our overridden method but still we need to adjust
@@ -421,6 +446,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         )
 
         # we are not looking for key
+        task_run = submitted_pod.task_run
         result = PodResult.from_pod(submitted_pod, pod_event)
         if submitted_pod.processed:
             # we already processed this kind of event, as in this process we have failed status already
@@ -646,7 +672,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                 return PodFailureReason.err_image_pull, str(ex)
             except KubernetesPodConfigFailure as ex:  # pod config error
                 return PodFailureReason.err_config_error, str(ex)
-            except Exception:
+            except Exception as ex:
                 # we don't want to handle that
                 pass
             return None, None
@@ -763,3 +789,19 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         zombie_pod_state = zombie_pod_state[0]
         self._process_pod_failed(zombie_pod_state)
         return zombie_pod_state
+
+    @staticmethod
+    def _datetime_to_label_safe_datestring(datetime_obj):
+        """
+        Kubernetes doesn't like ":" in labels, since ISO datetime format uses ":" but
+        not "_" let's
+        replace ":" with "_"
+
+        :param datetime_obj: datetime.datetime object
+        :return: ISO-like string representing the datetime
+        """
+        formatted = datetime_obj
+        if isinstance(datetime_obj, datetime.datetime):
+            # Airflow 1 has real date, while Airflow 2.x - only str object
+            formatted = datetime_obj.isoformat()
+        return formatted.replace(":", "_").replace("+", "_plus_")

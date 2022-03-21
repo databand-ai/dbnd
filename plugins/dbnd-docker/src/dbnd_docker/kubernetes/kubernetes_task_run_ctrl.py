@@ -1,5 +1,6 @@
 import logging
 import shlex
+import typing
 
 from typing import Optional
 
@@ -8,6 +9,9 @@ from dbnd_docker.docker_ctrl import DockerRunCtrl
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndPodCtrl
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
+
+if typing.TYPE_CHECKING:
+    import kubernetes.client.models as k8s
 
 logger = logging.getLogger(__name__)
 
@@ -38,14 +42,17 @@ class KubernetesTaskRunCtrl(DockerRunCtrl):
                     "Received image %s is not in image format! Expected repo:tag. Exception: %s"
                     % (self.task.image, str(e))
                 )
-        pod = kubernetes_config.build_pod(
+
+        pod: "k8s.V1Pod" = kubernetes_config.build_pod(
             cmds=cmds,
             task_run=self.task_run,
             include_system_secrets=self.task.task_is_system,  # include only for driver,and other system tasks
         )
         kube_dbnd = kubernetes_config.build_kube_dbnd()
 
-        self.pod_ctrl = kube_dbnd.get_pod_ctrl_for_pod(pod)
+        self.pod_ctrl = kube_dbnd.get_pod_ctrl(
+            pod.metadata.name, pod.metadata.namespace
+        )
         try:
             self.pod_ctrl.run_pod(pod=pod, task_run=self.task_run)
             if not kubernetes_config.detach_run:

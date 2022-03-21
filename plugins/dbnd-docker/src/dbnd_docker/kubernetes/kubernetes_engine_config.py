@@ -6,8 +6,9 @@ import textwrap
 import typing
 
 from os import environ
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
+import kubernetes.client.models as k8s
 import six
 import yaml
 
@@ -32,8 +33,13 @@ from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.structures import combine_mappings
+from dbnd_airflow.constants import AIRFLOW_ABOVE_10, AIRFLOW_VERSION_2
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_task import DockerRunTask
+from dbnd_docker.kubernetes.compat import volume_shims
+from dbnd_docker.kubernetes.compat.pod_reconciler import reconcile_pods
+from dbnd_docker.kubernetes.compat.secrets_shim import attach_to_pod
+from dbnd_docker.kubernetes.compat.volume_shims import attach_volume_mount
 from dbnd_docker.kubernetes.dns1123_clean_names import (
     clean_label_name_dns1123,
     create_pod_id,
@@ -43,7 +49,7 @@ from targets.values import TimeDeltaValueType
 
 
 if typing.TYPE_CHECKING:
-    from airflow.contrib.kubernetes.pod import Pod
+    from dbnd_airflow.compat.airflow_multi_version_shim import Secret
 
 logger = logging.getLogger(__name__)
 
@@ -295,7 +301,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             logger.warning(
                 "Running in debug mode, setting all k8s loggers to debug, waiting for every pod completion!"
             )
-            from airflow.contrib import kubernetes
+            if AIRFLOW_VERSION_2:
+                from airflow import kubernetes
+            else:
+                from airflow.contrib import kubernetes
 
             set_module_logging_to_debug([dbnd_docker, kubernetes])
             self.detach_run = False
@@ -361,24 +370,24 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                 "Auto deleting pod as set, but pod name and pod namespace is not defined"
             )
 
-    def get_dashboard_link(self, pod):
+    def get_dashboard_link(self, pod_namespace: str, pod_name: str) -> Optional[str]:
         if not self.dashboard_url:
             return None
         try:
-            return self.dashboard_url.format(namespace=pod.namespace, pod=pod.name)
+            return self.dashboard_url.format(namespace=pod_namespace, pod=pod_name)
         except Exception:
             logger.exception(
                 "Failed to generate dashboard url from %s" % self.dashboard_url
             )
         return None
 
-    def get_pod_log_link(self, pod):
+    def get_pod_log_link(self, pod_namespace: str, pod_name: str) -> Optional[str]:
         if not self.pod_log_url:
             return None
         try:
             return self.pod_log_url.format(
-                namespace=pod.namespace,
-                pod=pod.name,
+                namespace=pod_namespace,
+                pod=pod_name,
                 timestamp=datetime.datetime.now().isoformat(),
             )
         except Exception:
@@ -440,19 +449,25 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     def build_pod(
         self,
-        task_run,
-        cmds,
-        args=None,
-        labels=None,
-        try_number=None,
-        include_system_secrets=False,
-    ):
-        # type: (TaskRun, List[str], Optional[List[str]], Optional[Dict[str,str]], Optional[int], bool) -> Pod
+        task_run: TaskRun,
+        cmds: List[str],
+        args: Optional[List[str]] = None,
+        labels: Optional[Dict[str, str]] = None,
+        try_number: Optional[int] = None,
+        include_system_secrets: bool = False,
+    ) -> k8s.V1Pod:
+        if not self.container_tag:
+            raise DatabandConfigError(
+                "Your container tag is None, please check your configuration",
+                help_msg="Container tag should be assigned",
+            )
+
         pod_name = self.get_pod_name(task_run=task_run, try_number=try_number)
 
         image = self.full_image
         labels = combine_mappings(labels, self.labels)
         labels["pod_name"] = pod_name
+
         labels["dbnd_run_uid"] = task_run.run.run_uid
         labels["dbnd_task_run_uid"] = task_run.task_run_uid
         labels["dbnd_task_run_attempt_uid"] = task_run.task_run_attempt_uid
@@ -504,6 +519,12 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             ENV_DBND_ENV: task_run.run.env.task_name,
             ENV_DBND__ENV_MACHINE: "%s at %s" % (pod_name, self.namespace),
         }
+
+        if AIRFLOW_VERSION_2:
+            env_vars[
+                "AIRFLOW__CORE__TASK_RUNNER"
+            ] = "dbnd_airflow.compat.dbnd_task_runner.DbndStandardTaskRunner"
+
         if self.auto_remove:
             env_vars[ENV_DBND_AUTO_REMOVE_POD] = "True"
         env_vars[self._params.get_param_env_key(self, "in_cluster")] = "True"
@@ -511,7 +532,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         env_vars[
             "DBND__RUN_INFO__SOURCE_VERSION"
         ] = task_run.run.context.task_run_env.user_code_version
-
+        env_vars["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
+        if not get_dbnd_project_config().is_tracking_mode():
+            env_vars[ENV_DBND__TRACKING] = "False"
         # we want that all next runs will be able to use the image that we have in our configuration
 
         env_vars.update(
@@ -522,8 +545,6 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         env_vars.update(task_run.run.get_context_spawn_env())
 
         secrets = self.get_secrets(include_system_secrets=include_system_secrets)
-
-        from airflow.contrib.kubernetes.pod import Pod as _Pod
 
         if self.trap_exit_file_flag:
             args = [
@@ -550,44 +571,113 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             )
             cmds = shlex.split(self.debug_with_command)
 
-        if not self.container_tag:
-            raise DatabandConfigError(
-                "Your container tag is None, please check your configuration",
-                help_msg="Container tag should be assigned",
-            )
+        base_pod = self._build_base_pod()
 
-        pod = _Pod(
+        pod = self._to_real_pod(
+            cmds=cmds,
+            args=args,
             namespace=self.namespace,
             name=pod_name,
             envs=env_vars,
             image=image,
-            cmds=cmds,
-            args=args,
             labels=labels,
-            image_pull_policy=self.image_pull_policy,
-            image_pull_secrets=self.image_pull_secrets,
             secrets=secrets,
-            service_account_name=self.service_account_name,
-            volumes=self.volumes,
-            volume_mounts=self.volume_mounts,
-            annotations=annotations,
-            node_selectors=self.node_selectors,
-            affinity=self.affinity,
-            tolerations=self.tolerations,
-            security_context=self.security_context,
-            configmaps=self.configmaps,
-            hostnetwork=self.hostnetwork,
             resources=resources,
+            annotations=annotations,
         )
 
-        if self.pod_yaml:
-            pod.pod_yaml = target(self.pod_yaml).read()
+        final_pod = reconcile_pods(base_pod, pod)
 
-        return pod
+        return final_pod
 
-    def get_secrets(self, include_system_secrets=True):
+    def _to_real_pod(
+        self,
+        cmds: List[str],
+        args: List[str],
+        namespace: str,
+        name: str,
+        image: str,
+        envs: Dict[str, str],
+        labels: Dict[str, str],
+        annotations: Dict[str, str],
+        resources: "DbndExtendedResources",
+        secrets: List["Secret"],
+    ) -> k8s.V1Pod:
+
+        # TODO add yaml template as basis
+        BASE_CONTAINER_NAME = "base"
+        kc: KubernetesEngineConfig = self
+        meta = k8s.V1ObjectMeta(
+            labels=labels, name=name, namespace=namespace, annotations=annotations
+        )
+        if kc.image_pull_secrets:
+            image_pull_secrets = [
+                k8s.V1LocalObjectReference(i) for i in kc.image_pull_secrets.split(",")
+            ]
+        else:
+            image_pull_secrets = []
+        spec = k8s.V1PodSpec(
+            # init_containers=kc.init_containers,
+            containers=[
+                k8s.V1Container(
+                    image=image,
+                    command=cmds,
+                    env_from=[],
+                    name=BASE_CONTAINER_NAME,
+                    env=[
+                        k8s.V1EnvVar(name=key, value=val) for key, val in envs.items()
+                    ],
+                    args=args,
+                    image_pull_policy=kc.image_pull_policy,
+                )
+            ],
+            image_pull_secrets=image_pull_secrets,
+            service_account_name=kc.service_account_name,
+            node_selector=kc.node_selectors,
+            # dns_policy=kc.dnspolicy,
+            host_network=kc.hostnetwork,
+            tolerations=kc.tolerations,
+            affinity=kc.affinity,
+            security_context=kc.security_context,
+        )
+
+        k8_pod = k8s.V1Pod(spec=spec, metadata=meta)
+        for configmap_name in kc.configmaps:
+            env_var = k8s.V1EnvFromSource(
+                config_map_ref=k8s.V1ConfigMapEnvSource(name=configmap_name)
+            )
+            k8_pod.spec.containers[0].env_from.append(env_var)
+
+        volumes = kc.volumes or []
+        for volume in volumes:
+            k8_pod = volume_shims.attach_to_pod(k8_pod, volume)
+
+        mounts = kc.volume_mounts or []
+        for volume_mount in mounts:
+            k8_pod = attach_volume_mount(k8_pod, volume_mount)
+
+        secret: Secret
+        for secret in secrets:
+            if AIRFLOW_ABOVE_10:
+                k8_pod = secret.attach_to_pod(k8_pod)
+            else:
+                k8_pod = attach_to_pod(secret, k8_pod)
+
+        k8_pod = resources.attach_to_pod(k8_pod)
+        return k8_pod
+
+    def _build_base_pod(self) -> k8s.V1Pod:
+        from kubernetes.client import ApiClient
+
+        basis_pod_yaml = target(self.pod_yaml).read()
+        basis_pod_dict = yaml.safe_load(basis_pod_yaml) or {}
+        api_client = ApiClient()
+        return api_client._ApiClient__deserialize_model(basis_pod_dict, k8s.V1Pod)
+
+    def get_secrets(self, include_system_secrets=True) -> List["Secret"]:
         """Defines any necessary secrets for the pod executor"""
-        from airflow.contrib.kubernetes.secret import Secret
+
+        from dbnd_airflow.compat.airflow_multi_version_shim import Secret
 
         result = []
         if include_system_secrets:
@@ -606,23 +696,12 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
         return result
 
-    def build_kube_pod_req(self, pod):
-        from dbnd_docker.kubernetes.vendorized_airflow.request_factory import (
-            DbndPodRequestFactory,
-        )
+    def build_kube_pod_req(self, pod: k8s.V1Pod) -> Dict[str, Any]:
+        from kubernetes.client import ApiClient
 
-        self.apply_env_vars_to_pod(pod)
+        return ApiClient().sanitize_for_serialization(pod)
 
-        pod_yaml = getattr(pod, "pod_yaml", "")
-        try:
-            kube_req_factory = DbndPodRequestFactory(self, pod_yaml)
-
-            req = kube_req_factory.create(pod)
-        except Exception:
-            logger.exception("Failed to materialize pod into k8s request: %s", pod)
-            raise
-        return req
-
+    # TODO: [#2] add them in-place?
     def apply_env_vars_to_pod(self, pod):
         pod.envs["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
         if not get_dbnd_project_config().is_tracking_mode():

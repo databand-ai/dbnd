@@ -65,7 +65,7 @@ setuptools.setup(
             # # airflow support
             "dbnd_test_scenarios==" + version,
             "pytest==4.5.0",
-            "boto3<=1.15.18",
+            "boto3",
             "mock",
             "sh",
         ],

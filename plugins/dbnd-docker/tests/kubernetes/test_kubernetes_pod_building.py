@@ -83,19 +83,19 @@ class TestKubernetesPodBuild(object):
             pod = run.run_executor.result.load("result")
 
         assert is_sub_dict(
-            pod.labels,
+            pod.metadata.labels,
             {
                 "dbnd_task_family": "t.k.t.pod-builder",
                 "dbnd_task_name": "pod-builder",
                 "dbnd_task_af_id": "pod-builder",
             },
         )
-
-        assert pod.resources.limits == {"test_limits": 1}
-        assert pod.resources.requests == {"memory": "1536Mi", "cpu": "1"}
-
+        container = pod.spec.containers[0]
+        assert container.resources.limits == {"test_limits": 1}
+        assert container.resources.requests == {"memory": "1536Mi", "cpu": "1"}
+        raw_env = {env_var.name: env_var.value for env_var in container.env}
         assert is_sub_dict(
-            pod.envs,
+            raw_env,
             {
                 "DBND__POD_NAMESPACE": "test_namespace",
                 "DBND__ENV_IMAGE": "gcr.io/dbnd-dev-260010/databand:dummy_tag",
@@ -104,7 +104,7 @@ class TestKubernetesPodBuild(object):
             },
         )
 
-        assert pod.namespace == "test_namespace"
+        assert pod.metadata.namespace == "test_namespace"
 
     def test_custom_yaml(self):
         with dbnd_config(

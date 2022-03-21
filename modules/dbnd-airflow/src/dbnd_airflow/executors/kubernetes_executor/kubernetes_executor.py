@@ -19,10 +19,10 @@ import json
 import logging
 import os
 import typing
+import uuid
 
 from queue import Empty
 
-from airflow.models import KubeWorkerIdentifier
 from airflow.utils.db import provide_session
 from kubernetes.client.rest import ApiException
 from urllib3.exceptions import HTTPError
@@ -30,16 +30,17 @@ from urllib3.exceptions import HTTPError
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd_airflow.compat.kubernetes_executor import KubernetesExecutor
-from dbnd_airflow.constants import AIRFLOW_ABOVE_9
+from dbnd_airflow.constants import AIRFLOW_VERSION_1, AIRFLOW_VERSION_2
 from dbnd_airflow.executors.kubernetes_executor.kubernetes_scheduler import (
     DbndKubernetesScheduler,
     PodResult,
 )
-from dbnd_airflow.executors.kubernetes_executor.utils import (
-    _update_airflow_kube_config,
-    mgr_init,
-)
+from dbnd_airflow.executors.kubernetes_executor.utils import _update_airflow_kube_config
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
+
+
+if AIRFLOW_VERSION_1:
+    from airflow.models import KubeWorkerIdentifier
 
 
 if typing.TYPE_CHECKING:
@@ -63,27 +64,27 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         environ["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
         super(DbndKubernetesExecutor, self).__init__()
 
-        from multiprocessing.managers import SyncManager
-
-        self._manager = SyncManager()
-
         self.kube_dbnd = kube_dbnd
         _update_airflow_kube_config(
             airflow_kube_config=self.kube_config, engine_config=kube_dbnd.engine_config
         )
+
         self._log = PrefixLoggerAdapter("k8s-executor", self.log)
 
     def start(self):
         self.log.info("Starting Kubernetes executor... PID: %s", os.getpid())
-        self._manager.start(mgr_init)
 
         dbnd_run = try_get_databand_run()
         if dbnd_run:
-            self.worker_uuid = str(dbnd_run.run_uid)
+            if AIRFLOW_VERSION_2:
+                self.worker_uuid = str(dbnd_run.run_uid)
+            else:
+                self.worker_uuid = (
+                    KubeWorkerIdentifier.get_or_create_current_kube_worker_uuid()
+                )
         else:
-            self.worker_uuid = (
-                KubeWorkerIdentifier.get_or_create_current_kube_worker_uuid()
-            )
+            self.worker_uuid = str(uuid.uuid4())
+
         self.log.debug("Start with worker_uuid: %s", self.worker_uuid)
 
         # always need to reset resource version since we don't know
@@ -108,7 +109,8 @@ class DbndKubernetesExecutor(KubernetesExecutor):
             self.log.setLevel(logging.DEBUG)
             self.kube_scheduler.log.setLevel(logging.DEBUG)
 
-        self._inject_secrets()
+        if AIRFLOW_VERSION_1:
+            self._inject_secrets()
         self.clear_not_launched_queued_tasks()
         self._flush_result_queue()
 
@@ -117,7 +119,7 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     # due to model override
     # + we don't want to change tasks statuses - maybe they are managed by other executors
     @provide_session
-    def clear_not_launched_queued_tasks(self, *args, **kwargs):
+    def clear_not_launched_queued_tasks(self, session=None, *args, **kwargs):
         # we don't clear kubernetes tasks from previous run
         pass
 
@@ -210,9 +212,6 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         if namespace is None:
             namespace = self.kube_scheduler.namespace
 
-        if AIRFLOW_ABOVE_9:
-            return super(DbndKubernetesExecutor, self)._change_state(
-                key, state, pod_id, namespace
-            )
-        else:
-            return super(DbndKubernetesExecutor, self)._change_state(key, state, pod_id)
+        return super(DbndKubernetesExecutor, self)._change_state(
+            key, state, pod_id, namespace
+        )

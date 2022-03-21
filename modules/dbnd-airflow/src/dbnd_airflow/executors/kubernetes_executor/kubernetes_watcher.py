@@ -13,18 +13,25 @@ import typing
 
 import attr
 
-from airflow.contrib.executors.kubernetes_executor import KubernetesJobWatcher
 from airflow.utils.state import State
+from kubernetes import client
+from kubernetes.client import Configuration
 
 from dbnd._core.current import is_verbose
-from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
-from dbnd_airflow.constants import AIRFLOW_ABOVE_9
+from dbnd_airflow.constants import AIRFLOW_ABOVE_9, AIRFLOW_ABOVE_10, AIRFLOW_VERSION_2
+
+
+if AIRFLOW_ABOVE_10:
+    from airflow.executors.kubernetes_executor import KubernetesJobWatcher
+else:
+    from airflow.contrib.executors.kubernetes_executor import KubernetesJobWatcher
 
 
 if typing.TYPE_CHECKING:
     from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
+
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +84,9 @@ class WatcherPodEvent(object):
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     """"""
 
-    def __init__(self, kube_dbnd, **kwargs):
-        super(DbndKubernetesJobWatcher, self).__init__(**kwargs)
-        self.kube_dbnd = kube_dbnd  # type: DbndKubernetesClient
+    def __init__(self, kube_dbnd: "DbndKubernetesClient", **kwargs):
+        super().__init__(**kwargs)
+        self.kube_dbnd = kube_dbnd
 
     def run(self):
         """
@@ -93,9 +100,8 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         # we are in the different process than Scheduler
         # 1. Must reset filesystem cache to avoid using out-of-cluster credentials within Kubernetes
         reset_fs_cache()
-
-        # DBND-AIRFLOW: thses code might run as part of dbnd task and
-        # this process is spown from context of the task
+        # DBND-AIRFLOW: this code might run as part of dbnd task and
+        # this process is spawn from context of the task
         # Must reset signal handlers to avoid driver and watcher sharing signal handlers
         signal.signal(signal.SIGINT, watcher_sig_handler)
         signal.signal(signal.SIGTERM, watcher_sig_handler)
@@ -111,11 +117,14 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         try:
             while True:
                 try:
+
+                    if AIRFLOW_VERSION_2:
+                        job_uid = self.scheduler_job_id
+                    else:
+                        job_uid = self.worker_uuid
+
                     self.resource_version = self._run(
-                        kube_client,
-                        self.resource_version,
-                        self.worker_uuid,
-                        self.kube_config,
+                        kube_client, self.resource_version, job_uid, self.kube_config
                     )
                 except DatabandSigTermError:
                     break
@@ -134,7 +143,13 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         except (KeyboardInterrupt, DatabandSigTermError):
             pass
 
-    def _run(self, kube_client, resource_version, worker_uuid, kube_config):
+    def _run(
+        self,
+        kube_client: client.CoreV1Api,
+        resource_version,
+        worker_uuid,
+        kube_config: Configuration,
+    ):
         from kubernetes import watch
 
         watcher = watch.Watch()
@@ -144,6 +159,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             "_request_timeout": (request_timeout, request_timeout),
             "timeout_seconds": self.kube_dbnd.engine_config.watcher_client_timeout_seconds,
         }
+
         if resource_version:
             kwargs["resource_version"] = resource_version
         if kube_config.kube_client_request_args:
@@ -276,26 +292,6 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 labels,
                 resource_version,
             )
-
-    def process_error(self, event):
-        # DBND-AIRFLOW: copy of original, removed log line with error to prevent redundant log
-        # there is no actual error, just reset of resource version)
-        # self.log.error(
-        #     'Encountered Error response from k8s list namespaced pod stream => %s',
-        #     event
-        # )
-        raw_object = event["raw_object"]
-        if raw_object["code"] == 410:
-            self.log.info(
-                "Kubernetes resource version is too old, resetting to 0 => %s",
-                (raw_object["message"],),
-            )
-            # Return resource version 0
-            return "0"
-        raise DatabandRuntimeError(
-            "Kubernetes failure for %s with code %s and message: %s"
-            % (raw_object["reason"], raw_object["code"], raw_object["message"])
-        )
 
     def safe_terminate(self):
         """
