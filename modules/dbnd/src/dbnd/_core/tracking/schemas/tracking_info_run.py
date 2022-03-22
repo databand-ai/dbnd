@@ -15,14 +15,10 @@ from dbnd._core.configuration.environ_config import (
     SCHEDULED_DAG_RUN_ID_ENV,
     SCHEDULED_DATE_ENV,
     SCHEDULED_JOB_UID_ENV,
-    spark_tracking_enabled,
 )
 from dbnd._core.constants import RunState, _DbndDataClass
 from dbnd._core.current import try_get_current_task_run, try_get_databand_run
-from dbnd._core.tracking.airflow_dag_inplace_tracking import (
-    _SPARK_ENV_FLAG,
-    _is_dbnd_spark_installed,
-)
+from dbnd._core.tracking.spark import get_value_from_spark_env
 from dbnd._core.utils import timezone
 
 
@@ -147,19 +143,4 @@ def get_from_env_or_spark_env(key):
     if value:
         return value
 
-    # spark guards
-    if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
-        return None
-
-    if not _is_dbnd_spark_installed():
-        return None
-
-    try:
-        from pyspark import SparkContext
-
-        conf = SparkContext.getOrCreate().getConf()
-        value = conf.get("spark.env." + key)
-        if value:
-            return value
-    except:
-        return None
+    return get_value_from_spark_env(key)

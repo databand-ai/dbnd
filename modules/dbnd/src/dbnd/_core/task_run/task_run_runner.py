@@ -4,7 +4,6 @@ import signal
 import typing
 import webbrowser
 
-from dbnd._core.configuration.environ_config import spark_tracking_enabled
 from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.errors import friendly_error, show_error_once
 from dbnd._core.errors.base import DatabandSigTermError
@@ -12,7 +11,7 @@ from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled, pm
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd._core.tracking.airflow_dag_inplace_tracking import _SPARK_ENV_FLAG
+from dbnd._core.tracking.spark import set_current_jvm_context
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.signal_utils import safe_signal
@@ -39,45 +38,15 @@ class TaskRunRunner(TaskRunCtrl):
 
         ctx_managers.extend(pm.hook.dbnd_task_run_context(task_run=self.task_run))
 
-        self.set_current_jvm_context()
+        set_current_jvm_context(
+            self.run.run_uid,
+            self.task_run_uid,
+            self.task_run_attempt_uid,
+            self.task_run.task_af_id,
+        )
 
         with nested(*ctx_managers):
             yield
-
-    def set_current_jvm_context(self):
-        """
-        When pyspark is called on the first place we want to ensure that spark listener will report metrics
-        to the proper task. To achieve this, we directly set current context to our JVM wrapper.
-        :return:
-        """
-        if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
-            return
-        try:
-            from py4j import java_gateway
-            from pyspark import SparkContext
-
-            if SparkContext._jvm is None:
-                # spark context is not initialized at this step
-                return
-
-            jvm_dbnd = SparkContext._jvm.ai.databand.DbndWrapper
-            if isinstance(jvm_dbnd, java_gateway.JavaPackage):
-                # if DbndWrapper class is not loaded then agent or IO listener is not attached
-                return
-            try:
-                jvm_dbnd.instance().setExternalTaskContext(
-                    str(self.run.run_uid),
-                    str(self.task_run_uid),
-                    str(self.task_run_attempt_uid),
-                    str(self.task_run.task_af_id),
-                )
-            except Exception as jvm_ex:
-                logger.info(
-                    "Failed to set DBND context to JVM during DbndWrapper call: %s",
-                    jvm_ex,
-                )
-        except Exception as ex:
-            logger.info("Failed to set DBND context to JVM: %s", ex)
 
     def execute(self, airflow_context=None, allow_resubmit=True, handle_sigterm=True):
         self.task_run.airflow_context = airflow_context
