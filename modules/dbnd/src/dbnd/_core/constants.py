@@ -189,6 +189,7 @@ class RunState(EnumWithAll):
     FAILED = "failed"
     SHUTDOWN = "shutdown"
     CANCELLED = "cancelled"
+    SCHEDULED = "scheduled"
 
     @staticmethod
     def finished_states_str():
