@@ -60,6 +60,10 @@ COPY_INTO_TABLE_FROM_STAGE_FILE_APOSTROPHE_QUERY = """copy into TEST from '@STAG
 
 COPY_INTO_TABLE_FROM_STAGE_FILE_QUOTES_QUERY = """copy into TEST from "@STAGE";"""
 
+COPY_INTO_TABLE_WITH_NESTED_QUERY_WITH_COLUMNS_FROM_STAGE_FILE_QUERY = (
+    """copy into TEST from (select "column_a", "column_b" from @STAGE);"""
+)
+
 COPY_INTO_TABLE_FAIL_QUERY = """copy into FAIL from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
 
 
@@ -895,6 +899,51 @@ def test_copy_into_s3(mock_snowflake, query, expected):
                     dtypes=None,
                     records_count=NUMBER_OF_ROWS_INSERTED,
                     query=COPY_INTO_TABLE_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.write,
+                    error=None,
+                ),
+            ],
+        ),
+        (
+            COPY_INTO_TABLE_WITH_NESTED_QUERY_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
+            [
+                SqlOperation(
+                    extracted_schema={
+                        "@STAGE.*": [
+                            Column(
+                                dataset_name="@STAGE",
+                                alias="@STAGE.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=True,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_WITH_NESTED_QUERY_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
+                    query_id=SFQID,
+                    success=True,
+                    op_type=DbndTargetOperationType.read,
+                    error=None,
+                ),
+                SqlOperation(
+                    extracted_schema={
+                        "TEST.*": [
+                            Column(
+                                dataset_name="TEST",
+                                alias="TEST.*",
+                                name="*",
+                                is_file=False,
+                                is_stage=False,
+                            )
+                        ]
+                    },
+                    dtypes=None,
+                    records_count=NUMBER_OF_ROWS_INSERTED,
+                    query=COPY_INTO_TABLE_WITH_NESTED_QUERY_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
                     query_id=SFQID,
                     success=True,
                     op_type=DbndTargetOperationType.write,
