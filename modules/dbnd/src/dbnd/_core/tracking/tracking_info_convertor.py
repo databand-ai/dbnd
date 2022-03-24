@@ -246,10 +246,18 @@ def build_task_run_info(task_run):
 
         if param_meta:
             value_source, value = param_meta.source, param_meta.value
+            param_meta.parameter = (
+                param_meta.parameter.update_value_meta_conf_from_runtime_value(
+                    value, t.settings.tracking
+                )
+            )
         else:
             value_source, value = "", ""
 
-        if param_meta.parameter.hidden:
+        if (
+            param_meta.parameter.hidden
+            or not param_meta.parameter.value_meta_conf.log_preview
+        ):
             value = "***"
         else:
             value = safe_short_string(

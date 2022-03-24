@@ -9,13 +9,14 @@ import pytest
 
 from mock import call, patch
 
-from dbnd import task
+from dbnd import LogDataRequest, task
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task_run.task_run_sync_local import LOCAL_SYNC_CACHE_NAME
 from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets import FileTarget, LocalFileSystem, target
 from targets.multi_target import MultiTarget
 from targets.target_config import TargetConfig
+from targets.value_meta import ValueMetaConf
 
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,18 @@ class TestTaskRunSyncLocal(TargetTestBase):
 
         assert len(sync_local.inputs_to_sync) == 1
         task_param, old_multitarget = sync_local.inputs_to_sync[0]
+        task_param.value_meta_conf = ValueMetaConf(
+            log_preview=True,
+            log_preview_size=10000,
+            log_schema=True,
+            log_size=True,
+            log_stats=LogDataRequest(
+                include_all_boolean=True,
+                include_all_numeric=True,
+                include_all_string=True,
+            ),
+            log_histograms=LogDataRequest(),
+        )
 
         assert task_param == test_task._params.get_param("input_")
         assert old_multitarget == my_multitarget
@@ -161,6 +174,18 @@ class TestTaskRunSyncLocal(TargetTestBase):
         assert len(sync_local.inputs_to_sync) == 1
 
         task_param, old_target = sync_local.inputs_to_sync[0]
+        task_param.value_meta_conf = ValueMetaConf(
+            log_preview=True,
+            log_preview_size=10000,
+            log_schema=True,
+            log_size=True,
+            log_stats=LogDataRequest(
+                include_all_boolean=True,
+                include_all_numeric=True,
+                include_all_string=True,
+            ),
+            log_histograms=LogDataRequest(),
+        )
 
         assert task_param == test_task._params.get_param("input_")
         assert old_target == my_target

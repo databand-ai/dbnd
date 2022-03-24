@@ -39,6 +39,7 @@ from targets.values import (
     ValueType,
     VersionValueType,
     get_types_registry,
+    get_value_type_of_obj,
 )
 from targets.values.builtins_values import DefaultObjectValueType
 from targets.values.structure import _StructureValueType
@@ -48,6 +49,7 @@ from targets.values.target_values import _TargetValueType
 logger = logging.getLogger(__name__)
 if typing.TYPE_CHECKING:
     from dbnd._core.parameter import ParameterValue
+    from dbnd._core.settings import TrackingConfig
     from dbnd._core.task.task import Task
     from dbnd._core.task_build.task_definition import TaskDefinition
 
@@ -560,6 +562,14 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     def get_value_meta(self, value, meta_conf):
         # do not use meta_conf directly, you should get it merged with main config
         return self.value_type.get_value_meta(value, meta_conf=meta_conf)
+
+    def update_value_meta_conf_from_runtime_value(self, value, tracking_config):
+        # type: (Any, TrackingConfig) -> ParameterDefinition
+        return self.modify(
+            value_meta_conf=tracking_config.get_value_meta_conf(
+                self.value_meta_conf, get_value_type_of_obj(value, ValueType())
+            )
+        )
 
 
 def _update_parameter_from_runtime_value_type(parameter, value):

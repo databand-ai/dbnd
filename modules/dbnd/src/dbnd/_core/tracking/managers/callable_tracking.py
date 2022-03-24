@@ -33,7 +33,6 @@ from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.callable_spec import args_to_kwargs
 from dbnd._core.utils.timezone import utcnow
 from targets import InMemoryTarget, Target
-from targets.value_meta import ValueMetaConf
 from targets.values import get_value_type_of_obj
 
 
@@ -237,8 +236,8 @@ def _log_inputs(task_run):
 
             if isinstance(param_value, InMemoryTarget):
                 try:
-                    param = param.modify(
-                        value_meta_conf=ValueMetaConf(log_preview=True, log_schema=True)
+                    param = param.update_value_meta_conf_from_runtime_value(
+                        value, task_run.run.context.settings.tracking
                     )
 
                     task_run.tracker.log_parameter_data(
@@ -313,8 +312,10 @@ def _log_result(task_run, result):
 def _log_parameter_value(task_run, parameter_definition, target, value):
     # type: (TaskRun, ParameterDefinition, Target, Any) -> None
     # make sure it will be logged correctly
-    parameter_definition = parameter_definition.modify(
-        value_meta_conf=ValueMetaConf(log_preview=True, log_schema=True)
+    parameter_definition = (
+        parameter_definition.update_value_meta_conf_from_runtime_value(
+            value, task_run.run.context.settings.tracking
+        )
     )
 
     try:

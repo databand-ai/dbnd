@@ -2,7 +2,7 @@ from typing import Any, Tuple
 
 import pytest
 
-from dbnd import task
+from dbnd import dbnd_config, task
 from dbnd._core.constants import RESULT_PARAM
 from dbnd.testing.helpers_mocks import set_tracking_context
 from test_dbnd.tracking.tracking_helpers import (
@@ -14,13 +14,31 @@ from test_dbnd.tracking.tracking_helpers import (
 
 @pytest.mark.usefixtures(set_tracking_context.__name__)
 class TestReportParams(object):
-    def test_decorated_report_params(self, mock_channel_tracker):
+    @pytest.mark.parametrize(
+        "log_value_preview, expected_input_param, expected_inputs_args, expected_inputs_kwargs, expected_result_value_preview",
+        [
+            [True, "a", "[1,2,3,4,5,5]", '{"b":20,"others":123}', "6"],
+            [False, "***", "***", "***", None],
+        ],
+    )
+    def test_decorated_report_params(
+        self,
+        log_value_preview,
+        expected_input_param,
+        expected_inputs_args,
+        expected_inputs_kwargs,
+        expected_result_value_preview,
+        mock_channel_tracker,
+    ):
         @task()
         def my_task(a, *args, **kwargs):
             return 6
 
         # executing the task
-        my_task("a", 1, 2, 3, 4, 5, 5, b=20, others=123)
+        with dbnd_config(
+            config_values={"tracking": {"log_value_preview": log_value_preview}}
+        ):
+            my_task("a", 1, 2, 3, 4, 5, 5, b=20, others=123)
 
         # get the parameters reported to the tracker
         # we want to compare that for each parameter value we have a definition
@@ -31,14 +49,19 @@ class TestReportParams(object):
         assert set(param_definitions) == set(run_time_params)
 
         # we want to be sure that the right parameter values where reported
-        assert run_time_params["args"].value == "[1,2,3,4,5,5]"
-        assert run_time_params["kwargs"].value == '{"b":20,"others":123}'
-        assert run_time_params["a"].value == "a"
+        assert run_time_params["args"].value == expected_inputs_args
+        assert run_time_params["kwargs"].value == expected_inputs_kwargs
+        assert run_time_params["a"].value == expected_input_param
 
         # we want to check that we report the result target correctly
         result_target_info = get_task_target_result(mock_channel_tracker, "my_task")
-        assert run_time_params[RESULT_PARAM].value == result_target_info.target_path
-        assert result_target_info.value_preview == "6"
+        if log_value_preview:
+            expected_target_path = result_target_info.target_path
+        else:
+            expected_target_path = "***"
+
+        assert run_time_params[RESULT_PARAM].value == expected_target_path
+        assert result_target_info.value_preview == expected_result_value_preview
 
 
 @pytest.mark.usefixtures(set_tracking_context.__name__)
