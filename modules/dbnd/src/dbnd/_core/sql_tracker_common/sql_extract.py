@@ -130,6 +130,8 @@ class SqlQueryExtractor:
         dynamic_tables: Dict[str, Schema],
     ) -> Tuple[Schema, int, Columns]:
         extracted = {}
+        if isinstance(next_token, Parenthesis):
+            return self.handle_nested_query(next_token)
         if next_token.ttype not in Keyword:
             # no subquery - just parse the source/dest name of the operator
             extracted, left_columns = self.generate_schema(columns, next_token)
@@ -137,6 +139,29 @@ class SqlQueryExtractor:
             extracted = self.enrich_with_dynamic(extracted, dynamic_tables)
 
         return extracted, idx, columns
+
+    def handle_nested_query(self, nested_statement):
+        columns = []
+        is_select_query = False
+        nested_idx = 0
+        for token in nested_statement.tokens:
+            # identify nested query is select
+            if token.normalized == "SELECT":
+                is_select_query = True
+            # only select nested queries are supported
+            elif is_select_query:
+                # TODO: we might want to parse query columns for nested read operations
+                # if isinstance(token, IdentifierList):
+                # columns.append(Column(dataset_name='',name=token.normalized, alias=token.normalized))
+                if token.normalized in READ_OPERATIONS:
+                    next = self._next_non_empty_token(nested_idx, nested_statement)
+                    if not next:
+                        continue
+                    extracted, nested_idx, columns = self.handle_read_operation(
+                        nested_idx, next[1], columns, {}
+                    )
+            nested_idx += 1
+        return extracted, nested_idx, columns
 
     def clean_query(self, query: str) -> str:
         """
