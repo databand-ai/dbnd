@@ -178,6 +178,10 @@ class SnowflakeTracker(object):
                 if operations:
                     # Only extend self.operations if read or write operation occurred in command
                     self.operations.extend(operations)
+                else:
+                    logger.warning(
+                        "Query %s is not supported by snowflake tracker", command
+                    )
             except Exception:
                 logging.exception("Error parsing snowflake query")
 
