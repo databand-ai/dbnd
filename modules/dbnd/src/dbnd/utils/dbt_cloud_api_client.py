@@ -44,9 +44,6 @@ class DbtCloudApiClient:
                 res = self.session.get(url=endpoint, params=data)
 
             if not res.ok:
-                logger.warning(
-                    "Got %s from dbt servers: %s", res.status_code, res.content
-                )
                 return None
 
             deserialized_res = res.json()
