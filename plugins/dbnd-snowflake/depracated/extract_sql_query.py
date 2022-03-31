@@ -36,12 +36,12 @@ SEQUENCE_OPERATIONS = {
 TableOperation = Tuple[str, DbndTargetOperationType]
 
 
-@attr.s(frozen=True)
+@attr.s(frozen=True, auto_attribs=True)
 class TableTargetOperation(object):
-    path = attr.ib(default=None)  # type: str
-    name = attr.ib(default=None)  # type: str
-    operation = attr.ib(default=None)  # type:DbndTargetOperationType
-    success = attr.ib(default=True)  # type: bool
+    path: Optional[str] = None
+    name: Optional[str] = None
+    operation: Optional[DbndTargetOperationType] = None
+    success: bool = True
 
 
 def detect_cte_tables(statement):
