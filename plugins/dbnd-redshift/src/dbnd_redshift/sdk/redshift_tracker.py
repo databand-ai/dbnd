@@ -2,26 +2,24 @@ import contextlib
 import functools
 import logging
 
-from itertools import chain, takewhile
-from typing import Dict, List, Optional
+from typing import List
 
+import attr
 import psycopg2
 import sqlparse
-
-from psycopg2.extensions import connection as psycopg2_connection
 
 from dbnd import log_dataset_op
 from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd._core.sql_tracker_common.sql_extract import READ, WRITE, SqlQueryExtractor
-from dbnd._core.sql_tracker_common.sql_operation import (
-    DTypes,
-    SqlOperation,
-    render_connection_path,
-)
 from dbnd_redshift.sdk.redshift_connection_collection import (
     PostgresConnectionRuntime,
     RedshiftConnectionCollection,
 )
+from dbnd_redshift.sdk.redshift_utils import (
+    copy_to_temp_table,
+    get_last_query_records_count,
+)
+from dbnd_redshift.sdk.redshift_values import RedshiftOperation
 from dbnd_redshift.sdk.wrappers import (
     DbndConnectionWrapper,
     DbndCursorWrapper,
@@ -31,11 +29,42 @@ from dbnd_redshift.sdk.wrappers import (
 
 logger = logging.getLogger(__name__)
 
-COPY_ROWS_COUNT_QUERY = "select pg_last_copy_count();"
+
+@attr.s
+class RedshiftTrackerConfig:
+    """
+    Config class for redshift tracker, copycats log_dataset_op args
+
+    Attributes:
+        with_histograms(bool): Should calculate histogram of the given data - relevant only with data param.
+            - Boolean to calculate or not on all the data columns.
+        with_stats(bool): Should extract schema of the data as meta-data of the target - relevant only with data param.
+            - Boolean to calculate or not on all the data columns.
+        with_partition(bool): If True, the webserver tries to detect partitions of our datasets and extract them from the path,
+                        otherwise not manipulating the dataset path at all.
+        with_preview(bool): Should extract preview of the data as meta-data of the target - relevant only with data param.
+        with_schema(bool): Should extract schema of the data as meta-data of the target - relevant only with data param.
+        send_metrics(bool): Should report preview, schemas and histograms as metrics.
+    """
+
+    with_preview: bool = attr.ib(default=True)
+    with_size: bool = attr.ib(default=True)
+    with_schema: bool = attr.ib(default=True)
+    with_stats: bool = attr.ib(default=True)
+    with_histograms: bool = attr.ib(default=True)
+    send_metrics: bool = attr.ib(default=True)
+    with_partition: bool = attr.ib(default=True)
 
 
 class RedshiftTracker:
-    def __init__(self, calculate_file_path=None):
+    def __init__(
+        self,
+        calculate_file_path=None,
+        conf: RedshiftTrackerConfig = RedshiftTrackerConfig(),
+    ):
+
+        self.conf = conf
+
         self.connections: RedshiftConnectionCollection[
             int, PostgresConnectionRuntime
         ] = RedshiftConnectionCollection(lambda: PostgresConnectionRuntime(None, []))
@@ -72,8 +101,6 @@ class RedshiftTracker:
 
             @functools.wraps(close_original)
             def redshift_connection_close(connection_self, *args, **kwargs):
-                # track connection before closing it (Example 1)
-
                 conn = self.connections.get_connection(
                     connection_self, PostgresConnectionWrapper(connection_self)
                 )
@@ -101,10 +128,28 @@ class RedshiftTracker:
 
     def flush_operations(self, connection: PostgresConnectionWrapper):
         if connection in self.connections:
-            operations: List[SqlOperation] = self.enrich_operations(
-                connection, self.connections.get_operations(connection)
-            )
-            self.report_operations(connection, operations)
+            for op in self.connections.get_operations(connection):
+
+                if self.conf.with_schema:
+                    op.extract_schema(connection)
+                    if self.conf.with_stats:
+                        op.extract_stats(connection)
+                if self.conf.with_preview:
+                    op.extract_preview(connection)
+
+                log_dataset_op(
+                    op_path=op.render_connection_path(connection),
+                    op_type=op.op_type,
+                    success=op.success,
+                    data=op,
+                    error=op.error,
+                    with_preview=self.conf.with_preview,
+                    send_metrics=self.conf.send_metrics,
+                    with_schema=self.conf.with_schema,
+                    with_partition=self.conf.with_partition,
+                    with_stats=self.conf.with_stats,
+                    with_histograms=self.conf.with_histograms,
+                )
             # we clean all the batch of operations we reported so we don't report twice
             self.connections.clear_operations(connection)
 
@@ -155,6 +200,10 @@ class RedshiftTracker:
                     self.dataframe,
                 )
                 if operations:
+                    if self.conf.with_stats:
+                        copy_to_temp_table(
+                            cursor.connection, operations[0].target_name, command
+                        )
                     # Only extend self.connections obj operations
                     # if read or write operation occurred in command
                     self.connections.add_operations(cursor, operations)
@@ -162,102 +211,6 @@ class RedshiftTracker:
             except Exception as e:
                 logging.exception("Error parsing redshift query")
                 log_exception_to_server(e)
-
-    def enrich_operations(
-        self, connection: PostgresConnectionWrapper, operations: List[SqlOperation]
-    ):
-        # update the tables names
-        operations = [op.evolve_table_name(connection) for op in operations]
-
-        # looks for tables schemas
-        tables = chain.from_iterable(op.tables for op in operations if not op.is_file)
-        # get df schema if exist
-        df_schema = build_schema_from_dataframe(self.dataframe)
-
-        tables_schemas: Dict[str, DTypes] = {}
-        for table in tables:
-            if df_schema:
-                tables_schemas[table] = df_schema
-            else:
-                table_schema = get_redshift_table_schema(connection, table)
-                if table_schema:
-                    tables_schemas[table] = table_schema
-
-        operations: List[SqlOperation] = [
-            op.evolve_schema(tables_schemas, df_schema) for op in operations
-        ]
-        return operations
-
-    def report_operations(
-        self, connection: PostgresConnectionWrapper, operations: List[SqlOperation]
-    ):
-        for op in operations:
-            log_dataset_op(
-                op_path=render_connection_path(connection, op, "redshift"),
-                op_type=op.op_type,
-                success=op.success,
-                data=op,
-                with_schema=True,
-                send_metrics=True,
-                error=op.error,
-                with_partition=None,
-            )
-
-
-def build_schema_from_dataframe(dataframe):
-    if dataframe is not None:
-        try:
-            df_schema = dataframe.dtypes.to_dict()
-            df_schema = dict((k, str(v)) for k, v in df_schema.items())
-        except Exception as e:
-            df_schema = None
-            logger.exception(
-                "Error occurred during build schema from dataframe: %s", dataframe
-            )
-            log_exception_to_server(e)
-    else:
-        df_schema = None
-    return df_schema
-
-
-def get_redshift_table_schema(connection, table) -> Optional[DTypes]:
-    desc_results = redshift_query(
-        connection,
-        f"select * from pg_table_def where tablename='{table.lower().split('.')[-1]}'",
-    )
-    schema = {}
-    if desc_results:
-        for col_desc in desc_results:
-            if len(col_desc) > 2:
-                # extract host to connection
-                connection.schema = col_desc[0]
-                normalized_col_type = "".join(
-                    takewhile(lambda c: c != "(", col_desc[3])
-                )
-                normalized_col_name = col_desc[2].lower()
-                schema[normalized_col_name] = normalized_col_type
-    return schema
-
-
-def get_last_query_records_count(connection: psycopg2_connection):
-    """
-    Returns the number of rows that were loaded by the last COPY command run in the current session.
-    """
-    # TODO: handle array extraction of rows num , handle NONE
-    result_set = redshift_query(connection, COPY_ROWS_COUNT_QUERY)
-    if result_set:
-        return result_set[0][0]
-
-
-def redshift_query(connection: psycopg2_connection, query: str, params=None):
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(query, params)
-            result = cursor.fetchall()
-            return result
-    except Exception as e:
-        logger.exception("Error occurred during querying redshift, query: %s", query)
-        log_exception_to_server(e)
 
 
 def build_redshift_operations(
@@ -267,52 +220,46 @@ def build_redshift_operations(
     calculate_file_path,
     error: str,
     dataframe=None,  # type: pd.DataFrame
-) -> List[SqlOperation]:
+) -> List[RedshiftOperation]:
     operations = []
     if calculate_file_path:
         sql_query_extractor = SqlQueryExtractor(calculate_file_path)
     else:
         sql_query_extractor = SqlQueryExtractor()
-    command = sql_query_extractor.clean_query(command)
+    clean_command = sql_query_extractor.clean_query(command)
     # find the relevant operations schemas from the command
-    parsed_query = sqlparse.parse(command)[0]
+    parsed_query = sqlparse.parse(clean_command)[0]
     extracted = sql_query_extractor.extract_operations_schemas(parsed_query)
 
     if not extracted:
         # This is DML statement and no read or write occurred
         return operations
 
-    # helper method for building an operation from common values
-    build_operation = functools.partial(
-        SqlOperation,
-        records_count=get_last_query_records_count(cursor.connection),
-        query=command,
-        # TODO: extract query id
-        query_id=None,
-        success=success,
-        error=error,
-        dataframe=dataframe,
-    )
+    source_name = None
+    target_name = None
+    if WRITE in extracted:
+        target_name = list(extracted[WRITE].values())[0][0].dataset_name
+    if READ in extracted:
+        source_name = list(extracted[READ].values())[0][0].dataset_name
 
-    if READ in extracted and WRITE not in extracted:
-        # In this case this is a read only operation which means the cursor holds the actual result and the
-        # description contains the schema of the operation.
-        schema = None
-        read = build_operation(
-            extracted_schema=extracted[READ], dtypes=schema, op_type=READ
-        )
-        operations.append(read)
-    else:
-        # This is write operation which means the cursor holds only the `effected_rows` result which holds no
-        # schema.
-        if READ in extracted:
-            read = build_operation(
-                extracted_schema=extracted[READ], dtypes=None, op_type=READ
+    for op_type, schema in extracted.items():
+        if op_type in [READ, WRITE]:
+            operation = RedshiftOperation(
+                # redshift_connection=cursor.connection,
+                records_count=get_last_query_records_count(cursor.connection),
+                query=command,
+                # TODO: extract query id
+                query_id=None,
+                success=success,
+                error=error,
+                dataframe=dataframe,
+                target_name=target_name,
+                source_name=source_name,
+                extracted_schema=schema,
+                dtypes=None,
+                op_type=op_type,
             )
-            operations.append(read)
 
-        write = build_operation(
-            extracted_schema=extracted[WRITE], dtypes=None, op_type=WRITE
-        )
-        operations.append(write)
+            operations.append(operation)
+
     return operations

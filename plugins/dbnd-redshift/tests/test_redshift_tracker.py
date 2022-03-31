@@ -1,15 +1,14 @@
-import mock
 import pandas as pd
 import psycopg2
 import pytest
 
 from mock import Mock, patch
-from more_itertools import one
 
 from dbnd._core.constants import DbndTargetOperationType
 from dbnd._core.sql_tracker_common.sql_extract import Column
-from dbnd._core.sql_tracker_common.sql_operation import SqlOperation
-from dbnd_redshift.sdk.redshift_tracker import COPY_ROWS_COUNT_QUERY, RedshiftTracker
+from dbnd_redshift.sdk.redshift_tracker import RedshiftTracker
+from dbnd_redshift.sdk.redshift_utils import COPY_ROWS_COUNT_QUERY
+from dbnd_redshift.sdk.redshift_values import RedshiftOperation
 
 
 NUMBER_OF_ROWS_INSERTED = 100
@@ -74,7 +73,7 @@ class ConnectionMock:
         self.mock_cursor = CursorMock(self)
         self.info = ConnectionInfoMock()
 
-    def cursor(self):
+    def cursor(self, cursor_factory=None):
         return self.mock_cursor
 
     def close(self):
@@ -98,29 +97,47 @@ def mock_redshift():
         yield execute_mock
 
 
-@pytest.fixture
-def mock_channel_tracker():
-    with mock.patch(
-        "dbnd_redshift.sdk.redshift_tracker.RedshiftTracker.report_operations"
-    ) as mock_store:
-        yield mock_store
-
-
 def _redshift_connect():
     return psycopg2.connect(
         host="test", port=12345, database="db", user="user", password="password"
     )
 
 
-def get_operations(mock_channel_tracker):
-    if mock_channel_tracker and mock_channel_tracker.call_args_list:
-        for call in mock_channel_tracker.call_args_list:
-            yield call.args[1]
+def compare_eq_op(operation: RedshiftOperation, expected: RedshiftOperation):
+    tests = {
+        "schema": operation.extracted_schema == expected.extracted_schema,
+        "query": operation.query == expected.query,
+        "source_name": operation.source_name == expected.source_name,
+        "target_name": operation.target_name == expected.target_name,
+        "op_type": operation.op_type == expected.op_type,
+    }
+
+    for test in tests.keys():
+        if not tests[test]:
+            return False
+
+    return True
+
+
+def compare_eq_operations(
+    operations: [RedshiftOperation], expected: [RedshiftOperation]
+):
+    for op in operations:
+        match = False
+        for expectation in expected:
+            if compare_eq_op(op, expectation):
+                match = True
+                break
+
+        if not match:
+            return False
+
+    return True
 
 
 def test_multiple_psycopg2_connections(mock_redshift):
     expected1 = [
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 "s3://my/bucket/file.csv.*": [
                     Column(
@@ -134,13 +151,15 @@ def test_multiple_psycopg2_connections(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
+            query="COPY \"MY_TABLE\" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv",
             query_id=None,
             success=True,
             op_type=DbndTargetOperationType.read,
             error=None,
+            source_name="s3://my/bucket/file.csv",
+            target_name="MY_TABLE",
         ),
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 '"MY_TABLE".*': [
                     Column(
@@ -154,15 +173,17 @@ def test_multiple_psycopg2_connections(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
+            query="COPY \"MY_TABLE\" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv",
             query_id=None,
             success=True,
             op_type=DbndTargetOperationType.write,
             error=None,
+            source_name="s3://my/bucket/file.csv",
+            target_name="MY_TABLE",
         ),
     ]
     expected2 = [
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 "s3://my/bucket/file2.csv.*": [
                     Column(
@@ -176,13 +197,15 @@ def test_multiple_psycopg2_connections(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file2.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
+            query="COPY \"MY_TABLE\" from 's3://my/bucket/file2.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv",
             query_id=None,
             success=True,
             op_type=DbndTargetOperationType.read,
             error=None,
+            source_name="s3://my/bucket/file2.csv",
+            target_name="MY_TABLE",
         ),
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 '"MY_TABLE".*': [
                     Column(
@@ -196,11 +219,13 @@ def test_multiple_psycopg2_connections(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file2.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
+            query="COPY \"MY_TABLE\" from 's3://my/bucket/file2.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv",
             query_id=None,
             success=True,
             op_type=DbndTargetOperationType.write,
             error=None,
+            source_name="s3://my/bucket/file2.csv",
+            target_name="MY_TABLE",
         ),
     ]
 
@@ -217,8 +242,12 @@ def test_multiple_psycopg2_connections(mock_redshift):
                 c1.execute(COPY_INTO_TABLE_FROM_S3_FILE_QUERY)
                 c2.execute(COPY_INTO_TABLE_FROM_S3_FILE_QUERY_2)
             finally:
-                assert redshift_tracker.connections.get_operations(c1) == expected1
-                assert redshift_tracker.connections.get_operations(c2) == expected2
+                assert compare_eq_operations(
+                    redshift_tracker.connections.get_operations(c1), expected1
+                )
+                assert compare_eq_operations(
+                    redshift_tracker.connections.get_operations(c2), expected2
+                )
         # flush operations
     assert redshift_tracker.connections.get_operations(c1) == []
     assert redshift_tracker.connections.get_operations(c2) == []
@@ -226,7 +255,7 @@ def test_multiple_psycopg2_connections(mock_redshift):
 
 def test_copy_into_s3(mock_redshift):
     expected = [
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 "s3://my/bucket/file.csv.*": [
                     Column(
@@ -240,13 +269,15 @@ def test_copy_into_s3(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
+            query="COPY \"MY_TABLE\" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv",
             query_id=None,
             success=True,
             op_type=DbndTargetOperationType.read,
             error=None,
+            source_name="s3://my/bucket/file.csv",
+            target_name="MY_TABLE",
         ),
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 '"MY_TABLE".*': [
                     Column(
@@ -260,34 +291,34 @@ def test_copy_into_s3(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"MY_TABLE\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
+            query="COPY \"MY_TABLE\" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv",
             query_id=None,
             success=True,
             op_type=DbndTargetOperationType.write,
             error=None,
+            source_name="s3://my/bucket/file.csv",
+            target_name="MY_TABLE",
         ),
     ]
     return run_tracker_custom_query(COPY_INTO_TABLE_FROM_S3_FILE_QUERY, expected)
 
 
-def test_copy_into_s3_set_read_schema(mock_redshift, mock_channel_tracker):
-    run_tracker_custom_df(
+def test_copy_into_s3_set_read_schema(mock_redshift):
+    operations = run_tracker_custom_df(
         COPY_INTO_TABLE_FROM_S3_FILE_QUERY,
         dataframe=pd.DataFrame(data=[["p", 1]], columns=["c1", "c2"]),
     )
-    report_operations_arg = one(get_operations(mock_channel_tracker))
 
-    for op in report_operations_arg:
+    for op in operations:
         assert op.columns == ["c1", "c2"]
         assert op.columns_count == 2
         assert op.dtypes == {"c1": "object", "c2": "int64"}
 
 
-def test_copy_into_s3_set_read_schema_wrong_df(mock_redshift, mock_channel_tracker):
-    run_tracker_custom_df(COPY_INTO_TABLE_FROM_S3_FILE_QUERY, ["c1", "c2"])
-    report_operations_arg = one(get_operations(mock_channel_tracker))
+def test_copy_into_s3_set_read_schema_wrong_df(mock_redshift):
+    operations = run_tracker_custom_df(COPY_INTO_TABLE_FROM_S3_FILE_QUERY, ["c1", "c2"])
 
-    for op in report_operations_arg:
+    for op in operations:
         if op.op_type == DbndTargetOperationType.read:
             assert op.columns is None
             assert op.columns_count is None
@@ -300,7 +331,7 @@ def test_copy_into_s3_set_read_schema_wrong_df(mock_redshift, mock_channel_track
 
 def test_copy_into_operation_failure(mock_redshift):
     expected = [
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 "s3://test/test.json.*": [
                     Column(
@@ -319,8 +350,10 @@ def test_copy_into_operation_failure(mock_redshift):
             success=False,
             op_type=DbndTargetOperationType.read,
             error="Exception Mock",
+            source_name="s3://test/test.json",
+            target_name="FAIL",
         ),
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 "FAIL.*": [
                     Column(
@@ -339,6 +372,8 @@ def test_copy_into_operation_failure(mock_redshift):
             success=False,
             op_type=DbndTargetOperationType.write,
             error="Exception Mock",
+            source_name="s3://test/test.json",
+            target_name="FAIL",
         ),
     ]
     with pytest.raises(Exception) as e:
@@ -348,7 +383,7 @@ def test_copy_into_operation_failure(mock_redshift):
 
 def test_copy_into_s3_graceful_failure(mock_redshift):
     expected = [
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 "s3://my/bucket/file.csv.*": [
                     Column(
@@ -362,13 +397,15 @@ def test_copy_into_s3_graceful_failure(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"schema_fail\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
+            query="COPY \"schema_fail\" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv",
             query_id=None,
             success=True,
             op_type=DbndTargetOperationType.read,
             error=None,
+            source_name="s3://my/bucket/file.csv",
+            target_name="schema_fail",
         ),
-        SqlOperation(
+        RedshiftOperation(
             extracted_schema={
                 '"schema_fail".*': [
                     Column(
@@ -382,11 +419,13 @@ def test_copy_into_s3_graceful_failure(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="COPY \"schema_fail\" from s3://my/bucket/file.csv iam_role 'arn:aws:iam::12345:role/myRole' csv",
+            query="COPY \"schema_fail\" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv",
             query_id=None,
             success=True,
             op_type=DbndTargetOperationType.write,
             error=None,
+            source_name="s3://my/bucket/file.csv",
+            target_name="schema_fail",
         ),
     ]
     return run_tracker_custom_query(
@@ -403,7 +442,9 @@ def run_tracker_custom_query(query, expected):
             try:
                 c.execute(query)
             finally:
-                assert redshift_tracker.connections.get_operations(c) == expected
+                assert compare_eq_operations(
+                    redshift_tracker.connections.get_operations(c), expected
+                )
         # flush operations
     assert redshift_tracker.connections.get_operations(c) == []
 
@@ -416,3 +457,5 @@ def run_tracker_custom_df(query, dataframe=None):
                 tracker.set_dataframe(dataframe)
             c = con.cursor()
             c.execute(query)
+
+            return tracker.connections.get_operations(con)

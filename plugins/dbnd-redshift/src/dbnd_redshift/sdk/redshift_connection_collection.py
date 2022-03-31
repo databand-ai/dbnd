@@ -5,7 +5,7 @@ import attr
 
 from psycopg2.extensions import connection
 
-from dbnd._core.sql_tracker_common.sql_operation import SqlOperation
+from dbnd_redshift.sdk.redshift_values import RedshiftOperation
 from dbnd_redshift.sdk.wrappers import (
     DbndConnectionWrapper,
     DbndCursorWrapper,
@@ -30,7 +30,7 @@ def get_object_hash(obj):
 @attr.s(auto_attribs=True)
 class PostgresConnectionRuntime:
     connection: PostgresConnectionWrapper
-    operations: List[SqlOperation]
+    operations: List[RedshiftOperation]
 
 
 KeyTypeUnion = Union[
@@ -77,7 +77,7 @@ class RedshiftConnectionCollection(defaultdict):
         else:
             return default
 
-    def get_operations(self, key: KeyTypeUnion) -> List[SqlOperation]:
+    def get_operations(self, key: KeyTypeUnion) -> List[RedshiftOperation]:
         """
         Gets operations for given key in map
         :param key: one of KeyTypeUnion union types
@@ -87,11 +87,11 @@ class RedshiftConnectionCollection(defaultdict):
         if hasattr(obj, "operations"):
             return obj.operations
 
-    def add_operations(self, key: KeyTypeUnion, operations: List[SqlOperation]):
+    def add_operations(self, key: KeyTypeUnion, operations: List[RedshiftOperation]):
         """
         Given a key and operations adds the operations to the PostgresConnectionRuntime object in the given key
         :param key: one of KeyTypeUnion union types
-        :param operations: list of SqlOperations to add
+        :param operations: list of RedshiftOperation to add
         :return: None
         """
         obj = self.get(key)
