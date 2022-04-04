@@ -48,6 +48,10 @@ setuptools.setup(
             "apache-airflow-providers-apache-spark==1.0.3",
             # Airflow 2.0 installs versions 3.3.5 which has bad dependency to newer version of importlib-metadata
             "Markdown==3.3.4",
+            # dbnd_snowflake depends on azure-core which depends on snowflake-connector-python<2.6.0, which depends on
+            # azure-storage-blob<13.0.0 which depends on azure-core <2.0.0,>=1.15.0 which needs typing-extensions>=4.0.1
+            # which conflicts with Airflow 2.0.2, so fixed on a good version
+            "azure-core==1.22.1",
         ],
         airflow_2_2_3=[
             # This is only used to build Docker image for integration tests.
