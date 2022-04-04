@@ -63,7 +63,7 @@ class TestSyncerWorks(WebAppTest):
                 return server
 
     @pytest.fixture
-    def syncer(self, _set_values):
+    def syncer(self, _web_app_ctrl_with_login):
         random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
         created_syncer = self.client.post(
             self._url("AirflowServersApi.add"),
