@@ -1,3 +1,5 @@
+from itertools import chain
+
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._vendor.marshmallow import fields, pre_load
 
@@ -58,6 +60,8 @@ class AlertDefsSchema(ApiStrictSchema):
     # Used only used by the UI
     affected_datasets = fields.List(fields.Dict(), allow_none=True, dump_only=True)
 
+    assigned_jobs = fields.Method(serialize="get_assigned_jobs", dump_only=True)
+
     is_system = fields.Function(
         lambda alert_def: alert_def.owner == "system", dump_only=True
     )
@@ -80,3 +84,17 @@ class AlertDefsSchema(ApiStrictSchema):
         if value is not None:
             data["value"] = str(data["value"])
         return data
+
+    def get_assigned_jobs(self, alert_def):
+        self_job = (alert_def.job_id, alert_def.job_name)
+        sub_alerts_jobs = (
+            (sub_alert.job_id, sub_alert.job_name)
+            for sub_alert in alert_def.sub_alert_definitions
+        )
+
+        alert_jobs = chain(sub_alerts_jobs, [self_job])
+        alert_jobs = set(filter(lambda l: l != (None, None), alert_jobs))
+        serialized_assigned_jobs = [
+            {"job_id": job_id, "job_name": job_name} for job_id, job_name in alert_jobs
+        ]
+        return serialized_assigned_jobs

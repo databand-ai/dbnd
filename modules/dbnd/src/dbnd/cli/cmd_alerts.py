@@ -318,7 +318,7 @@ def delete(uid, wipe, pipeline, name):
     if wipe:
         alerts_list = get_alerts_filtered()
     elif uid:
-        alerts_list = get_alerts_filtered(alert_uid=uid)
+        alerts_list = get_alerts_filtered(alert_def_uid=uid)
     else:
         alerts_list = get_alerts_filtered(job_name=pipeline, custom_name=name)
     if alerts_list:

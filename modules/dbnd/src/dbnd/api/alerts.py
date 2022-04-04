@@ -4,7 +4,6 @@ import logging
 from dbnd._core.constants import AlertDefOperator
 from dbnd._core.current import get_databand_context
 from dbnd.api.jobs import is_job_exists
-from dbnd.api.query_params import build_query_api_params, create_filters_builder
 from dbnd.api.scheduler import is_scheduled_job_exists
 from dbnd.api.shared_schemas.alerts_def_schema import AlertDefsSchema
 
@@ -83,21 +82,12 @@ def _get_alerts(client, query_api_args):
     return schema.load(data=response["data"], many=True).data
 
 
-build_alerts_filter = create_filters_builder(
-    job_name=("job_name", "eq"),
-    severity=("severity", "eq"),
-    alert_type=("type", "eq"),
-    task_name=("task_name", "eq"),
-    task_repr=("task_repr", "eq"),
-    scheduled_job_uid=("scheduled_job_uid", "eq"),
-    alert_uid=("uid", "eq"),
-    custom_name=("custom_name", "eq"),
-)
-
-
-def get_alerts_filtered(**kwargs):
+def get_alerts_filtered(alert_def_uid=None, job_name=None, custom_name=None):
     """get alerts by filters"""
-    query_params = build_query_api_params(filters=build_alerts_filter(**kwargs))
+    params = {"uids": alert_def_uid, "job_name": job_name, "custom_name": custom_name}
+    query_params = "&".join(
+        f"{key}={value}" for key, value in params.items() if value is not None
+    )
     return _get_alerts(get_databand_context().databand_api_client, query_params)
 
 
