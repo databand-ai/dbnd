@@ -36,6 +36,10 @@ class DbtCloudApiClient:
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
 
+    def get_account_details(self):
+        url = self._build_administrative_url(f"{self.account_id}")
+        return self.send_request(endpoint=url)
+
     def send_request(self, endpoint, method="GET", data={}):
         try:
             if method == "POST":
