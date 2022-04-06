@@ -46,6 +46,10 @@ class RedshiftOperation(SqlOperation):
     schema_cache = attr.ib(default=None)
     preview_cache = attr.ib(default=None)
 
+    @staticmethod
+    def expect_tmp_table(conf):
+        return conf.with_stats or conf.with_preview or conf.with_schema
+
     def extract_preview(self, connection: PostgresConnectionWrapper):
         """
         Fetches 100 rows from the temporary table for preview
@@ -262,7 +266,7 @@ class RedshiftTableValueType(DataValueType):
         if meta_conf.log_schema:
             data_schema = value.schema
 
-        column_stats = None
+        column_stats = {}
         if meta_conf.log_stats:
             if value.dataframe is not None:
                 column_stats, _ = PandasHistograms(
@@ -271,8 +275,12 @@ class RedshiftTableValueType(DataValueType):
             else:
                 column_stats = value.column_stats
 
+        preview = ""
+        if meta_conf.log_preview:
+            preview = value.preview
+
         return ValueMeta(
-            value_preview=value.preview,
+            value_preview=preview,
             data_dimensions=dimensions,
             data_schema=data_schema,
             data_hash=str(hash(self.to_signature(value))),
