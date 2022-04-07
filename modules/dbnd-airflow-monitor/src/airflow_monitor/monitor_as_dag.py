@@ -19,7 +19,7 @@ from airflow.utils.dates import days_ago
 MONITOR_DAG_NAME = "databand_airflow_monitor"
 
 CHECK_INTERVAL = 10
-AUTO_RESTART_TIMEOUT = 30 * 60
+AUTO_RESTART_TIMEOUT = 3 * 60 * 60
 MEMORY_LIMIT = 8 * 1024 * 1024 * 1024
 
 MEMORY_DIFF_BETWEEN_LOG_PRINTS_IN_MB = 5
