@@ -287,6 +287,7 @@ class RedshiftTableValueType(DataValueType):
             columns_stats=column_stats,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histograms,
+            query=value.query,
         )
 
 
