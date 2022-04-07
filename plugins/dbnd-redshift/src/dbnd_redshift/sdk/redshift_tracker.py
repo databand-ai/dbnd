@@ -47,13 +47,20 @@ class RedshiftTrackerConfig:
         send_metrics(bool): Should report preview, schemas and histograms as metrics.
     """
 
-    with_preview: bool = attr.ib(default=True)
-    with_size: bool = attr.ib(default=True)
+    with_preview: bool = attr.ib(default=False)
+    with_size: bool = attr.ib(default=None)
     with_schema: bool = attr.ib(default=True)
-    with_stats: bool = attr.ib(default=True)
-    with_histograms: bool = attr.ib(default=True)
+    with_stats: bool = attr.ib(default=False)
+    with_histograms: bool = attr.ib(default=None)
     send_metrics: bool = attr.ib(default=True)
-    with_partition: bool = attr.ib(default=True)
+    with_partition: bool = attr.ib(default=None)
+
+    def __attrs_post_init__(self):
+        if self.with_stats and not self.with_schema:
+            logger.warning(
+                "Column level stats require schema extraction, ignoring with_schema=False"
+            )
+            self.with_schema = True
 
 
 class RedshiftTracker:
@@ -200,9 +207,10 @@ class RedshiftTracker:
                     self.dataframe,
                 )
                 if operations:
-                    if self.conf.with_stats:
+                    first_op = operations[0]
+                    if first_op.expect_tmp_table(self.conf):
                         copy_to_temp_table(
-                            cursor.connection, operations[0].target_name, command
+                            cursor.connection, first_op.target_name, command
                         )
                     # Only extend self.connections obj operations
                     # if read or write operation occurred in command
