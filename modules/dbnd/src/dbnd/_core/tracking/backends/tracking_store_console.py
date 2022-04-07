@@ -10,7 +10,6 @@ import six
 
 from more_itertools import collapse, partition
 
-from dbnd._core.configuration.dbnd_config import config as dbnd_config
 from dbnd._core.configuration.environ_config import in_airflow_tracking_mode
 from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.current import is_verbose
@@ -96,9 +95,7 @@ class ConsoleStore(TrackingStore):
         if self._is_in_airflow_tracking_mode:
             if state == TaskRunState.RUNNING:
                 logger.info(
-                    "Tracking %s task at %s",
-                    task.task_name,
-                    dbnd_config.get("core", "databand_url"),
+                    "Tracking %s task at %s", task.task_name, task_run.task_tracker_url
                 )
             return
 
