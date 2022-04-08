@@ -1,7 +1,7 @@
 # Requirements:
 # * make dist
-# * dbnd-manage kaniko webserver
-# * dbnd-manage kaniko int-with-plugins
+# * dbnd-manage docker-build webserver
+# * dbnd-manage docker-build int-with-plugins
 
 version: "3.7"
 

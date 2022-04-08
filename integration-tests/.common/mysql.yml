@@ -1,6 +1,6 @@
 # Requirements:
 # * make dist
-# * dbnd-manage kaniko webserver
+# * dbnd-manage docker-build webserver
 
 version: "3.7"
 

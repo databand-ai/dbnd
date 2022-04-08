@@ -1,8 +1,8 @@
 # Requirements:
 # * make dist
-# * dbnd-manage kaniko webserver
-# * dbnd-manage kaniko int-livy
-# * dbnd-manage kaniko int-maven
+# * dbnd-manage docker-build webserver
+# * dbnd-manage docker-build int-livy
+# * dbnd-manage docker-build int-maven
 
 version: "3.7"
 
