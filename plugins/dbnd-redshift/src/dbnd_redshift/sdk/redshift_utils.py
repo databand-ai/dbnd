@@ -1,14 +1,10 @@
 import logging
 import re
 
-from itertools import takewhile
-from typing import Optional
-
 from psycopg2.extensions import connection as psycopg2_connection
 from psycopg2.extras import DictCursor
 
 from dbnd._core.log.external_exception_logging import log_exception_to_server
-from dbnd._core.sql_tracker_common.sql_operation import DTypes
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +25,7 @@ def redshift_query(
                 return cursor.fetchall()
 
     except Exception as e:
-        logger.exception("Error occurred during querying redshift, query: %s", query)
+        logger.exception(f"Error occurred during querying redshift, query: {query}")
         log_exception_to_server(e)
 
 
@@ -58,26 +54,6 @@ def build_schema_from_dataframe(dataframe):
     else:
         df_schema = None
     return df_schema
-
-
-def get_redshift_table_schema(connection, table) -> Optional[DTypes]:
-    desc_results = redshift_query(
-        connection,
-        f"select * from pg_table_def where tablename='{table.lower().split('.')[-1]}'",
-    )
-
-    schema = {}
-    if desc_results:
-        for col_desc in desc_results:
-            if len(col_desc) > 2:
-                # extract host to connection
-                connection.schema = col_desc[0]
-                normalized_col_type = "".join(
-                    takewhile(lambda c: c != "(", col_desc[3])
-                )
-                normalized_col_name = col_desc[2].lower()
-                schema[normalized_col_name] = normalized_col_type
-    return schema
 
 
 def copy_to_temp_table(redshift_connection, target_name, query):

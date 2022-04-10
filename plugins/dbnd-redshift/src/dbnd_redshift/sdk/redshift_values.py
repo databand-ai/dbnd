@@ -90,27 +90,39 @@ class RedshiftOperation(SqlOperation):
                     }
                 )
             else:
-                desc_results = redshift_query(
-                    connection.connection,
-                    f"select * from pg_table_def where tablename='{self.target_name.lower()}'",
-                )
+                if self.target_name is not None:
+                    if (
+                        self.target_name.find(".") != -1
+                    ):  # if there is schema name which is not public we should add it to search_path
+                        schema_name, table_name = self.target_name.lower().split(".")
+                        redshift_query(
+                            connection.connection,
+                            f"set search_path to '{schema_name}'",
+                            fetch_all=False,
+                        )
+                    else:
+                        table_name = self.target_name.lower()
 
-                if desc_results:
-                    for col_desc in desc_results:
-                        if len(col_desc) > 2:
-                            res_schema["columns"].append(col_desc[2])
-                            res_schema["dtypes"][col_desc[2]] = _type_conversion(
-                                col_desc[3]
-                            )
+                    desc_results = redshift_query(
+                        connection.connection,
+                        f"select * from pg_table_def where tablename='{table_name}'",
+                    )
 
-                res_schema["shape"] = (self.records_count, len(res_schema["columns"]))
+                    if desc_results:
+                        for col_desc in desc_results:
+                            if len(col_desc) > 2:
+                                res_schema["columns"].append(col_desc[2])
+                                res_schema["dtypes"][col_desc[2]] = _type_conversion(
+                                    col_desc[3]
+                                )
 
-                if desc_results is not None:
-                    self.schema_cache = res_schema
+                    res_schema["shape"] = (
+                        self.records_count,
+                        len(res_schema["columns"]),
+                    )
 
-                self.preview_cache = redshift_query(
-                    connection.connection, f"SELECT * FROM {TEMP_TABLE_NAME} LIMIT 100"
-                )
+                    if desc_results is not None:
+                        self.schema_cache = res_schema
 
     def extract_stats(self, connection: PostgresConnectionWrapper):
         """
