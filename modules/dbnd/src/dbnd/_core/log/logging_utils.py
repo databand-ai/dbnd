@@ -45,8 +45,11 @@ def symlink_latest_log(log_file, latest_log=None):
 
 
 def setup_logs_dir(log_dir):
-    if not os.path.exists(log_dir):
-        safe_mkdirs(log_dir, 0o777)
+    try:
+        if not os.path.exists(log_dir):
+            safe_mkdirs(log_dir, 0o777)
+    except PermissionError as ex:
+        logger.error("Failed to create %s: %s", log_dir, ex)
 
 
 def setup_log_file(log_file):
