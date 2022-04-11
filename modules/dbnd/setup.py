@@ -50,7 +50,7 @@ setuptools.setup(
         ':sys_platform=="win32"': ["colorama"],
         "tests": [
             "qtconsole==4.7.7",
-            "numpy<1.20",  # 1.20 has compatibility issue with HDF5 marshalling. Fix is in progress
+            "numpy<1.23",
             "coverage",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov==2.9.0",

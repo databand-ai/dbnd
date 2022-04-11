@@ -16,7 +16,8 @@ INSTALL_REQUIRES = [
     # we are still installing 'databand' in dockers.. "dbnd==" + version,
     "dbnd-airflow==" + version,
     "scikit-learn==0.23.2",
-    "scipy==1.1.0",
+    'scipy==1.1.0;python_version<"3.8"',
+    'scipy==1.8.0;python_version>="3.8"',
     "matplotlib==3.3.0",
     "pandas<2.0.0,>=0.17.1",
 ]

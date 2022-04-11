@@ -100,9 +100,8 @@ class SingletonContext(object):
             _track_context(context, "exit")
             if cls._instance is not context:
                 msg = (
-                    "Something wrong with %s context manager, "
-                    "somebody has change context while we were running: "
-                    "actual=%s(%s), expected=%s(%s)"
+                    "Current %s context manager wasn't cleaned as expected:"
+                    "actual value=%s(%s), expected value=%s(%s)"
                     % (
                         cls.__name__,
                         cls._instance,
@@ -135,8 +134,13 @@ class SingletonContext(object):
 
 def _track_context(context, op):
     # # uncomment it if we need to debug context before logging initialization
+    # import sys, traceback
+    # logging.error("_track_context")
     # print(
-    #     "\n\n-->CONTEXT: %s %s@%s" % (op, context, id(context)), file=sys.__stderr__
+    #     "\n\n-->CONTEXT: %s %s@%s" % (op, context, id(context))
     # )
+    # for line in traceback.format_stack():
+    #     print(line.strip())
+
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("%s@%s - %s", context, id(context), op)

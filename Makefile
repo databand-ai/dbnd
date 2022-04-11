@@ -164,8 +164,8 @@ CURRENT_PY_VERSION = $(shell python -c "import sys; print('{0}.{1}'.format(*sys.
 VENV_TARGET ?= dbnd-core
 VENV_TARGET_NAME ?= venv-${VENV_TARGET}-py$(subst .,,${CURRENT_PY_VERSION})
 
-CURRENT_AIRFLOW_VERSION = 1.10.10
-#CURRENT_AIRFLOW_VERSION = 2.2.2
+CURRENT_AIRFLOW_VERSION = 1.10.12
+#CURRENT_AIRFLOW_VERSION = 2.2.4
 
 
 create-venv:  ## Create virtual env for dbnd-core
