@@ -26,9 +26,7 @@ logger = logging.getLogger(__name__)
 monitor_config_cache = TTLCache(maxsize=5, ttl=10)
 
 
-def _get_api_client(tracking_service_config: TrackingServiceConfig) -> "ApiClient":
-    from dbnd.utils.api_client import ApiClient
-
+def _get_api_client(tracking_service_config: TrackingServiceConfig) -> ApiClient:
     if tracking_service_config.access_token:
         credentials = {"token": tracking_service_config.access_token}
     else:
@@ -61,7 +59,7 @@ class BaseDbndTrackingService(object):
         self._error_aggregator = ErrorAggregator()
 
     def _generate_url_for_tracking_service(self, name: str) -> str:
-        return f"tracking/{self.tracking_source_uid}/{name}"
+        return f"tracking-monitor/{self.tracking_source_uid}/{name}"
 
     def _make_request(
         self,
@@ -158,7 +156,7 @@ class WebServersConfigurationService(object):
 
     def send_prometheus_metrics(self, full_metrics: str, job_name: Optional[str]):
         self._api_client.api_request(
-            endpoint="tracking/save_monitor_metrics",
+            endpoint="tracking-monitor/save_monitor_metrics",
             method="POST",
             data={
                 "job_name": job_name or f"{self.monitor_type}-monitor",
