@@ -94,7 +94,6 @@ RUN ls ${AIRFLOW_FOLDER}
 USER airflow
 WORKDIR ${AIRFLOW_FOLDER}
 
-COPY ./deployment/airflow_example/Makefile /usr/local/airflow/Makefile
 ARG SOURCE_VERSION
 
 # DBND CONFIG
