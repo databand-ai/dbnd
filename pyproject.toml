@@ -58,3 +58,196 @@ known_first_party = [
     "targets",
     "process_data_spark_with_track_functions_2"
 ]
+
+[tool.pylint.messages_control]
+max-line-length = 120
+disable = [
+    "missing-function-docstring",          # 3327
+    "import-error",                        # 3148
+    "no-name-in-module",                   # 2089
+    "invalid-name",                        # 1303
+    "no-self-use",                         # 922
+    "missing-class-docstring",             # 841
+    "consider-using-f-string",             # 812
+    "missing-module-docstring",            # 716
+    "import-outside-toplevel",             # 518
+    "too-few-public-methods",              # 500
+    "useless-object-inheritance",          # 351
+    "unused-argument",                     # 335
+    "protected-access",                    # 322
+    "broad-except",                        # 176
+    "super-with-arguments",                # 169
+    "redefined-outer-name",                # 161
+    "duplicate-code",                      # 127
+    "too-many-arguments",                  # 92
+    "line-too-long",                       # 86
+    "unused-variable",                     # 71
+    "no-else-return",                      # 62
+    "inconsistent-return-statements",      # 62
+    "no-member",                           # 59
+    "fixme",                               # 56
+    "attribute-defined-outside-init",      # 53
+    "logging-format-interpolation",        # 51
+    "too-many-instance-attributes",        # 50
+    "logging-not-lazy",                    # 44
+    "unspecified-encoding",                # 38
+    "anomalous-backslash-in-string",       # 37
+    "unused-import",                       # 31
+    "too-many-locals",                     # 31
+    "use-dict-literal",                    # 26
+    "redefined-builtin",                   # 26
+    "global-statement",                    # 25
+    "raise-missing-from",                  # 20
+    "pointless-statement",                 # 19
+    "consider-using-with",                 # 17
+    "ungrouped-imports",                   # 16
+    "reimported",                          # 16
+    "too-many-branches",                   # 14
+    "too-many-public-methods",             # 13
+    "no-value-for-parameter",              # 13
+    "arguments-differ",                    # 13
+    "use-a-generator",                     # 12
+    "unnecessary-comprehension",           # 12
+    "wrong-import-position",               # 11
+    "too-many-return-statements",          # 11
+    "useless-super-delegation",            # 10
+    "unexpected-keyword-arg",              # 10
+    "logging-fstring-interpolation",       # 9
+    "bare-except",                         # 9
+    "function-redefined",                  # 8
+    "disallowed-name",                     # 8
+    "consider-using-sys-exit",             # 8
+    "redefined-argument-from-local",       # 7
+    "no-else-raise",                       # 7
+    "useless-return",                      # 6
+    "unused-format-string-argument",       # 6
+    "too-many-statements",                 # 6
+    "superfluous-parens",                  # 6
+    "dangerous-default-value",             # 6
+    "consider-using-in",                   # 6
+    "consider-merging-isinstance",         # 6
+    "bad-mcs-method-argument",             # 6
+    "raising-format-tuple",                # 5
+    "pointless-string-statement",          # 5
+    "consider-using-set-comprehension",    # 5
+    "comparison-with-callable",            # 5
+    "unidiomatic-typecheck",               # 4
+    "keyword-arg-before-vararg",           # 4
+    "format-string-without-interpolation", # 4
+    "f-string-without-interpolation",      # 4
+    "expression-not-assigned",             # 4
+    "arguments-renamed",                   # 4
+    "unnecessary-lambda",                  # 3
+    "missing-format-attribute",            # 3
+    "empty-docstring",                     # 3
+    "deprecated-method",                   # 3
+    "bad-classmethod-argument",            # 3
+    "assignment-from-no-return",           # 3
+    "access-member-before-definition",     # 3
+    "unsubscriptable-object",              # 2
+    "use-maxsplit-arg",                    # 2
+    "use-list-literal",                    # 2
+    "too-many-nested-blocks",              # 2
+    "subprocess-popen-preexec-fn",         # 2
+    "notimplemented-raised",               # 2
+    "not-callable",                        # 2
+    "no-else-continue",                    # 2
+    "logging-too-many-args",               # 2
+    "invalid-sequence-index",              # 2
+    "eval-used",                           # 2
+    "consider-using-from-import",          # 2
+    "consider-iterating-dictionary",       # 2
+    "confusing-with-statement",            # 2
+    "wildcard-import",                     # 1
+    "using-constant-test",                 # 1
+    "used-before-assignment",              # 1
+    "unnecessary-pass",                    # 1
+    "too-many-boolean-expressions",        # 1
+    "syntax-error",                        # 1
+    "super-init-not-called",               # 1
+    "singleton-comparison",                # 1
+    "self-assigning-variable",             # 1
+    "not-context-manager",                 # 1
+    "no-self-argument",                    # 1
+    "method-hidden",                       # 1
+    "lost-exception",                      # 1
+    "logging-too-few-args",                # 1
+    "invalid-repr-returned",               # 1
+    "global-variable-not-assigned",        # 1
+    "deprecated-class",                    # 1
+    "consider-using-enumerate",            # 1
+    "consider-using-dict-items",           # 1
+    "consider-using-dict-comprehension",   # 1
+    "c-extension-no-member",               # 1
+    "bad-super-call",                      # 1
+    "bad-mcs-classmethod-argument",        # 1
+    "assert-on-string-literal",            # 1
+    "abstract-method"                      # 1
+]
+
+[tool.pylint.MASTER]
+ignore-paths = [
+    # use ''' for a better escaping in toml files
+
+    # don't allow file path with "/.",
+    '''^.*\/\.\w+.*$''',
+    '''^.*\/node_modules\/.*$''',
+    '''^.*\/build\/.*$''',
+    '''^.*\/dist\/.*$''',
+    # eclude _vendor and _vendor_package
+    '''^.*\/_vendor.*$''',
+]
+
+# https://pylint.pycqa.org/en/latest/technical_reference/extensions.html
+load-plugins = [
+    # 'pylint.extensions.broad_try_clause',
+    # 'pylint.extensions.code_style',
+    # 'pylint.extensions.emptystring',
+    # 'pylint.extensions.comparetozero',
+    # 'pylint.extensions.comparison_placement',
+    # 'pylint.extensions.confusing_elif',
+    # 'pylint.extensions.for_any_all',
+    # 'pylint.extensions.consider_ternary_expression',
+    # 'pylint.extensions.bad_builtin',
+    # 'pylint.extensions.mccabe',
+    # 'pylint.extensions.docstyle',
+    # 'pylint.extensions.check_elif',
+    # 'pylint.extensions.eq_without_hash',
+    # 'pylint.extensions.private_import',
+    # 'pylint.extensions.redefined_variable_type',
+    # 'pylint.extensions.overlapping_exceptions',
+    # 'pylint.extensions.docparams',
+    # 'pylint.extensions.empty_comment',
+    # 'pylint.extensions.set_membership',
+    # 'pylint.extensions.typing',
+    # 'pylint.extensions.while_used',
+]
+
+# docstring-first-line-empty             # 502
+# consider-using-assignment-expr         # 269
+# too-many-try-statements                # 229
+# deprecated-typing-alias                # 195
+# empty-comment                          # 191
+# consider-alternative-union-syntax      # 111
+# compare-to-zero                        # 58
+# missing-type-doc                       # 55
+# bad-builtin                            # 52
+# misplaced-comparison-constant          # 47
+# too-complex                            # 39
+# while-used                             # 38
+# consider-ternary-expression            # 38
+# consider-using-tuple                   # 23
+# missing-param-doc                      # 16
+# redefined-variable-type                # 11
+# missing-raises-doc                     # 10
+# confusing-consecutive-elif             # 10
+# compare-to-empty-string                # 10
+# use-set-for-membership                 # 9
+# else-if-used                           # 8
+# redundant-returns-doc                  # 5
+# differing-param-doc                    # 5
+# consider-using-any-or-all              # 3
+# useless-param-doc                      # 1
+# differing-type-doc                     # 1
+# consider-using-namedtuple-or-dataclass # 1
+# bad-docstring-quotes                   # 1
