@@ -36,7 +36,8 @@ class LivySparkConfig(SparkEngineConfig):
     )[str]
 
     retry_on_status_error = parameter(
-        description="retries http requests if status code is not accepted", default=0
+        description="The number of retries for http requests if status code is not accepted",
+        default=5,
     )[int]
 
     def get_spark_ctrl(self, task_run):

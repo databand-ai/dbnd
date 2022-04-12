@@ -55,7 +55,9 @@ class ReliableHttpClient(object):
     def get(self, relative_url, accepted_status_codes, retry_policy=None):
         """Sends a get request. Returns a response."""
         logger.debug("Sending GET request to %s", self.compose_url(relative_url))
-        return self._send_request(relative_url, accepted_status_codes, requests.get)
+        return self._send_request(
+            relative_url, accepted_status_codes, requests.get, retry_policy=retry_policy
+        )
 
     def post(self, relative_url, accepted_status_codes, data):
         """Sends a post request. Returns a response."""
@@ -137,7 +139,13 @@ class ReliableHttpClient(object):
             if error or status not in accepted_status_codes:
                 retry_policy = retry_policy or self._retry_policy
                 if retry_policy.should_retry(status, error, retry_count):
-                    sleep(retry_policy.seconds_to_sleep(retry_count))
+                    delay_before_retry = retry_policy.seconds_to_sleep(retry_count)
+                    self.logger.warning(
+                        "Retrying request to '{}' in {} seconds; Status code: '{}' - {}; [#{}]".format(
+                            url, delay_before_retry, status, text, retry_count
+                        )
+                    )
+                    sleep(delay_before_retry)
                     retry_count += 1
                     continue
 

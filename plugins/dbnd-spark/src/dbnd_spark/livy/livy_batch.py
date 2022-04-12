@@ -35,11 +35,11 @@ class LivyBatchClient(object):
             http_client=ReliableHttpClient(
                 endpoint,
                 headers,
-                get_retry_policy("LivyBatch'", policy=LINEAR_RETRY),
+                get_retry_policy("LivyBatch", policy=LINEAR_RETRY),
                 ignore_ssl_errors=ignore_ssl_errors,
             ),
             safe_retry_policy=get_retry_policy(
-                "LivyBatch'",
+                "LivyBatch",
                 policy=LINEAR_RETRY_ANY_ERROR,
                 max_retries=status_code_retries,
             ),
