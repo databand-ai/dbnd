@@ -1,8 +1,8 @@
 package ai.databand;
 
 import ai.databand.config.DbndConfig;
-import ai.databand.config.SimpleProps;
 import ai.databand.config.DbndSparkConf;
+import ai.databand.config.SimpleProps;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +23,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 class DbndConfigTest {
 
     private final Properties sparkProperties = System.getProperties();
-
 
 
     @Test

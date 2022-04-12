@@ -137,7 +137,7 @@ public class DbndWrapper {
     protected void loadMethods(String classname) {
         Optional<Class<?>> pipelineClass = loadClass(classname);
         if (!pipelineClass.isPresent()) {
-            LOG.error("Unable to build method cache for class {}", classname);
+            LOG.error("Unable to build method cache for class {} because it can not be loaded", classname);
             pipelineInitialized = false;
             return;
         }
@@ -240,6 +240,7 @@ public class DbndWrapper {
             run = createAgentlessRun();
         }
         run.logDatasetOperation(path, type, status, data, error, withPreview, withSchema, withPartition);
+        LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 
     public void logDatasetOperation(String path,
@@ -254,6 +255,7 @@ public class DbndWrapper {
             run = createAgentlessRun();
         }
         run.logDatasetOperation(path, type, status, data, null, withPreview, withSchema, withPartition);
+        LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 
     public void logDatasetOperation(String path,
@@ -268,6 +270,7 @@ public class DbndWrapper {
             run = createAgentlessRun();
         }
         run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition);
+        LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 
     public void logMetrics(Map<String, Object> metrics) {
@@ -304,7 +307,7 @@ public class DbndWrapper {
             run = createAgentlessRun();
         }
         run.logDataframe(key, value, new HistogramRequest(withHistograms));
-        LOG.info("Dataframe logged");
+        LOG.info("Dataframe {} logged", key);
     }
 
     public void logSpark(SparkListenerEvent event) {
@@ -313,7 +316,7 @@ public class DbndWrapper {
         }
         if (event instanceof SparkListenerStageCompleted) {
             run.saveSparkMetrics((SparkListenerStageCompleted) event);
-            LOG.info("Spark metrics saved");
+            LOG.info("Spark metrics received from SparkListener saved");
         }
     }
 
@@ -377,7 +380,7 @@ public class DbndWrapper {
                     }
                 }
             } catch (ClassNotFoundException e) {
-                System.out.println(String.format("Class not found: %s", e.getMessage()));
+                System.out.printf("Class not found: %s%n", e.getMessage());
                 // do nothing
             }
         }
@@ -441,6 +444,7 @@ public class DbndWrapper {
     public void setExternalTaskContext(String runUid, String taskRunUid, String taskRunAttemptUid, String taskName) {
         if (!config.isTrackingEnabled()) {
             run = new NoopDbndRun();
+            LOG.info("Attempt to set external task context failed: tracking is not enabled");
             return;
         }
         if (run == null) {
@@ -457,6 +461,7 @@ public class DbndWrapper {
         task.setTaskRunAttemptUid(taskRunAttemptUid);
         task.setName(taskName);
         run.setDriverTask(task);
+        LOG.info("External task context was set. run_uid: {}, task_run_uid: {}, task_run_attempt_uid: {}, task_name: {}", runUid, taskRunUid, taskRunAttemptUid, taskName);
     }
 }
 

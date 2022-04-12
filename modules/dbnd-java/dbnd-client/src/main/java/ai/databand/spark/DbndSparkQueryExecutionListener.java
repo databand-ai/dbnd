@@ -5,7 +5,6 @@ import ai.databand.parameters.DatasetOperationPreview;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.Pair;
-import org.apache.spark.sql.execution.CollectLimitExec;
 import org.apache.spark.sql.execution.FileSourceScanExec;
 import org.apache.spark.sql.execution.QueryExecution;
 import org.apache.spark.sql.execution.SparkPlan;

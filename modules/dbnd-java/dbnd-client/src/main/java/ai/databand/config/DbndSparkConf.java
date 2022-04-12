@@ -1,14 +1,14 @@
 package ai.databand.config;
 
 import org.apache.spark.SparkConf;
-import org.apache.spark.sql.RuntimeConfig;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.internal.SQLConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.JavaConverters;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Spark config properties source. Values are passed in uppercase+underscore format.
@@ -41,7 +41,7 @@ public class DbndSparkConf implements PropertiesSource {
      * Puts spark application configuration in SparkConf object as key-value in map object
      *
      * @param sparkConf configuration for spark application
-     * @return  spark configuration as java map object
+     * @return spark configuration as java map object
      */
     private Map<String, String> sparkConfToMap(SparkConf sparkConf) {
         Map<String, String> result = new HashMap<>();

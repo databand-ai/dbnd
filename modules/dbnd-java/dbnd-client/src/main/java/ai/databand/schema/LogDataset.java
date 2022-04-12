@@ -115,4 +115,12 @@ public class LogDataset {
     public Boolean getWithPartition() {
         return withPartition;
     }
+
+    @Override
+    public String toString() {
+        if (operationPath == null || operationType == null) {
+            return "{empty operation}";
+        }
+        return String.format("{path: [%s], type: [%s], status: [%s]}", operationPath, operationType, operationStatus);
+    }
 }

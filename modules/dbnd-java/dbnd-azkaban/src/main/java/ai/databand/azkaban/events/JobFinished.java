@@ -32,7 +32,7 @@ public class JobFinished implements AzkabanEvent {
         if (!azConfig.isTrackingEnabled(azCtx)) {
             return;
         }
-        dbnd.saveTaskLog(azCtx.taskRunAttemptUid(), job.log());
+        dbnd.saveTaskLog(azCtx.taskRunUid(), azCtx.taskRunAttemptUid(), job.log());
         Optional<ErrorInfo> errorInfo = Optional.empty();
         if (job.isFailed()) {
             // todo: find failure description

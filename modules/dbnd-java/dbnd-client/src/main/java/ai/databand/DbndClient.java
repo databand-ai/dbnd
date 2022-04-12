@@ -167,10 +167,10 @@ public class DbndClient {
         Call<Void> call = dbnd.initRun(data);
         Optional<Object> res = safeExecuteVoid(call, true);
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] Run created", runId);
+            LOG.info("[root_run_uid: {}, job_name: {}, run_name: {}] run created", runUid, jobName, runName);
             return runUid;
         } else {
-            LOG.error("[task_run: {}] Init run HTTP request to tracker failed", runId);
+            LOG.error("[root_run_uid: {}, job_name: {}, run_name: {}] init_run HTTP request to tracker failed", runUid, jobName, runName);
         }
 
         throw new RuntimeException("Unable to init run because HTTP request to tracker failed");
@@ -211,9 +211,11 @@ public class DbndClient {
         Call<Void> call = dbnd.addTaskRuns(new AddTaskRuns(taskRunsInfo));
         Optional<Object> res = safeExecuteVoid(call);
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] Task created", runId);
+            for (TaskRun task : taskRuns) {
+                LOG.info("[task_run_uid: {}, task_name: {}] task created", task.getTaskRunUid(), task.getName());
+            }
         } else {
-            LOG.error("[task_run: {}] Unable to add task", runId);
+            LOG.error("[root_run_uid: {}] unable to add tasks", rootRunUid);
         }
 
         return taskRunsInfo;
@@ -269,9 +271,9 @@ public class DbndClient {
         Call<Void> call = dbnd.updateTaskRunAttempts(taskRunAttempts);
         Optional<Object> res = safeExecuteVoid(call);
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] [task_run_attempt: {}] Updated with status {}", taskRunUid, taskRunAttemptUid, state);
+            LOG.info("[task_run_uid: {}, task_run_attempt_uid: {}] task updated with state [{}]", taskRunUid, taskRunAttemptUid, state);
         } else {
-            LOG.error("[task_run: {}] Unable to complete task run attempt", taskRunUid);
+            LOG.error("[task_run_uid: {}, task_run_attempt_uid: {}] unable to update task with state [{}]", taskRunUid, taskRunAttemptUid, state);
         }
     }
 
@@ -291,22 +293,22 @@ public class DbndClient {
         Call<Void> call = dbnd.setRunState(data);
         Optional<Object> res = safeExecuteVoid(call);
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] Completed", runUid);
+            LOG.info("[root_run_uid: {}] run state set to [{}]", runUid, state);
         } else {
-            LOG.error("[task_run: {}] Unable to complete run", runUid);
+            LOG.error("[root_run_uid: {}] unable to set run state to [{}]", runUid, state);
         }
     }
 
     /**
      * Log task metrics.
      *
-     * @param taskRunUid task run UID
-     * @param key        metric key
-     * @param value      metric value
-     * @param source     metric source, e.g. "user", "system", "spark"
+     * @param taskRun task run
+     * @param key     metric key
+     * @param value   metric value
+     * @param source  metric source, e.g. "user", "system", "spark"
      */
-    public void logMetric(String taskRunUid, String key, String value, String source) {
-        logMetrics(taskRunUid, Collections.singletonMap(key, value), source);
+    public void logMetric(TaskRun taskRun, String key, String value, String source) {
+        logMetrics(taskRun, Collections.singletonMap(key, value), source);
     }
 
     private final static int MAX_METRICS_TO_DISPLAY = 10;
@@ -314,11 +316,11 @@ public class DbndClient {
     /**
      * Log task metrics.
      *
-     * @param taskRunUid task run UID
-     * @param metrics    metrics map
-     * @param source     metrics source, e.g. "user", "system", "spark"
+     * @param taskRun task run
+     * @param metrics metrics map
+     * @param source  metrics source, e.g. "user", "system", "spark"
      */
-    public void logMetrics(String taskRunUid, Map<String, Object> metrics, String source) {
+    public void logMetrics(TaskRun taskRun, Map<String, Object> metrics, String source) {
         if (metrics.isEmpty()) {
             return;
         }
@@ -327,11 +329,11 @@ public class DbndClient {
         Collection<String> keysToLog = metricsKeys.size() > MAX_METRICS_TO_DISPLAY
             ? metricsKeys.stream().limit(MAX_METRICS_TO_DISPLAY).collect(Collectors.toList())
             : metricsKeys;
-        LOG.info("[task_run: {}] Logging metrics. Total: {}, Keys: {}", taskRunUid, metricsKeys.size(), keysToLog);
+        LOG.info("[task_run_uid: {}, task_name: {}] logging metrics. Total: {}, Keys: {}", taskRun.getTaskRunUid(), taskRun.getName(), metricsKeys.size(), keysToLog);
 
         List<LogMetric> metricsInfo = metrics.entrySet().stream().map(
             m -> new LogMetric(
-                taskRunUid,
+                taskRun.getTaskRunAttemptUid(),
                 new Metric(
                     m.getKey(),
                     m.getValue(),
@@ -343,39 +345,42 @@ public class DbndClient {
 
         Optional<Object> res = safeExecuteVoid(dbnd.logMetrics(new LogMetrics(metricsInfo)));
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] Metrics logged: Total: {}, Keys: {}", taskRunUid, metricsKeys.size(), keysToLog);
+            LOG.info("[task_run_uid: {}, task_name: {}] metrics logged: Total: {}, Keys: {}", taskRun.getTaskRunUid(), taskRun.getName(), metricsKeys.size(), keysToLog);
         } else {
-            LOG.error("[task_run: {}] Unable to log metrics", taskRunUid);
+            LOG.error("[task_run_uid: {}, task_name: {}] unable to log metrics", taskRun.getTaskRunUid(), taskRun.getName());
         }
     }
 
     /**
      * Log task targets.
      *
-     * @param taskRunUid task run UID
-     * @param targets    targets to log
+     * @param taskRun task run
+     * @param targets targets to log
      */
-    public void logTargets(String taskRunUid, List<LogTarget> targets) {
+    public void logTargets(TaskRun taskRun, List<LogTarget> targets) {
         Optional<Object> res = safeExecuteVoid(dbnd.logTargets(new LogTargets(targets)));
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] target submitted", taskRunUid);
+            LOG.info("[task_run_uid: {}, task_name: {}] targets submitted", taskRun.getTaskRunUid(), taskRun.getName());
         } else {
-            LOG.error("[task_run: {}] Unable to submit target", taskRunUid);
+            LOG.error("[task_run_uid: {}, task_name: {}] unable to submit targets", taskRun.getTaskRunUid(), taskRun.getName());
         }
     }
 
     /**
      * Log task dataset operations.
      *
-     * @param taskRunUid task run UID
-     * @param datasets   dataset operations to log
+     * @param taskRun  task run
+     * @param datasets dataset operations to log
      */
-    public void logDatasetOperations(String taskRunUid, List<LogDataset> datasets) {
+    public void logDatasetOperations(TaskRun taskRun, List<LogDataset> datasets) {
+        for (LogDataset op : datasets) {
+            LOG.info("[task_run_uid: {}, task_name: {}] logging dataset operation {}", taskRun.getTaskRunUid(), taskRun.getName(), op);
+        }
         Optional<Object> res = safeExecuteVoid(dbnd.logDatasets(new LogDatasets(datasets)));
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] dataset operation submitted", taskRunUid);
+            LOG.info("[task_run_uid: {}, task_name: {}] dataset operations submitted", taskRun.getTaskRunUid(), taskRun.getName());
         } else {
-            LOG.error("[task_run: {}] Unable to submit dataset operation", taskRunUid);
+            LOG.error("[task_run_uid: {}, task_name: {}] unable to submit dataset operations", taskRun.getTaskRunUid(), taskRun.getName());
         }
     }
 
@@ -389,9 +394,9 @@ public class DbndClient {
     public void saveExternalLinks(String taskRunAttemptUid, String name, String url) {
         Optional<Object> res = safeExecuteVoid(dbnd.saveExternalLinks(new SaveExternalLinks(taskRunAttemptUid, Collections.singletonMap(name, url))));
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] external link saved", taskRunAttemptUid);
+            LOG.info("[task_run_attempt_uid: {}] external link saved", taskRunAttemptUid);
         } else {
-            LOG.error("[task_run: {}] Unable to save external link", taskRunAttemptUid);
+            LOG.error("[task_run_attempt_uid: {}] Unable to save external link", taskRunAttemptUid);
         }
     }
 
@@ -404,9 +409,9 @@ public class DbndClient {
     public void saveExternalLinks(String taskRunAttemptUid, Map<String, String> linksDict) {
         Optional<Object> res = safeExecuteVoid(dbnd.saveExternalLinks(new SaveExternalLinks(taskRunAttemptUid, linksDict)));
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] external link saved", taskRunAttemptUid);
+            LOG.info("[task_run_attempt_uid: {}] external link saved", taskRunAttemptUid);
         } else {
-            LOG.error("[task_run: {}] Unable to save external link", taskRunAttemptUid);
+            LOG.error("[task_run_attempt_uid: {}] Unable to save external link", taskRunAttemptUid);
         }
     }
 
@@ -416,17 +421,17 @@ public class DbndClient {
      * @param taskRunAttemptUid task run attempt UID
      * @param logBody           log body
      */
-    public void saveTaskLog(String taskRunAttemptUid, String logBody) {
+    public void saveTaskLog(String taskRunUid, String taskRunAttemptUid, String logBody) {
         if (logBody == null) {
             return;
         }
-        LOG.info("[task_run: {}] saving task log, log size: {} characters", taskRunAttemptUid, logBody.length());
+        LOG.info("[task_run_uid: {}, task_run_attempt_uid: {}] submitting task log, log size: {} characters", taskRunUid, taskRunAttemptUid, logBody.length());
         SaveTaskRunLog body = new SaveTaskRunLog(config, taskRunAttemptUid, logBody);
         Optional<Object> res = safeExecuteVoid(dbnd.saveTaskRunLog(body));
         if (res.isPresent()) {
-            LOG.info("[task_run: {}] task log submitted", taskRunAttemptUid);
+            LOG.info("[task_run_uid: {}, task_run_attempt_uid: {}] task log submitted", taskRunUid, taskRunAttemptUid);
         } else {
-            LOG.error("[task_run: {}] Unable to submit task log", taskRunAttemptUid);
+            LOG.error("[task_run_uid: {}, task_run_attempt_uid: {}] Unable to submit task log", taskRunUid, taskRunAttemptUid);
         }
     }
 

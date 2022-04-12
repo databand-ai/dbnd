@@ -268,11 +268,16 @@ public class DefaultDbndRun implements DbndRun {
         parentChildMap.add(Arrays.asList(parent.getTaskRunUid(), taskRun.getTaskRunUid()));
 
         dbnd.addTaskRuns(rootRunUid, runId, taskRuns, taskDefinitions, parentChildMap, upstreamsMap);
-        dbnd.logTargets(taskRun.getTaskRunUid(), runAndDefinition.targets());
+        dbnd.logTargets(taskRun, runAndDefinition.targets());
         dbnd.updateTaskRunAttempt(taskRun.getTaskRunUid(), taskRun.getTaskRunAttemptUid(), "RUNNING", null, taskRun.getStartDate());
-        LOG.info("TASK: task_id={}", taskRun.getTaskId());
-        LOG.info("TIME: start={}", taskRun.getExecutionDate());
-        LOG.info("TRACKER: {}/app/jobs/{}/{}/{}", config.databandUrl(), this.driverTask.getTaskAfId(), this.driverTask.getRunUid(), taskRun.getTaskRunUid());
+        LOG.info("[task_run_uid: {}, task_name: {}] task tracker url: {}/app/jobs/{}/{}/{}",
+            taskRun.getTaskRunUid(),
+            taskRun.getTaskId(),
+            config.databandUrl(),
+            this.driverTask.getTaskAfId(),
+            this.driverTask.getRunUid(),
+            taskRun.getTaskRunUid()
+        );
     }
 
     protected List<TaskParamDefinition> buildTaskParamDefinitions(Method method) {
@@ -480,8 +485,8 @@ public class DefaultDbndRun implements DbndRun {
 
         String stackTrace = extractStackTrace(error);
         task.appendLog(stackTrace);
-        dbnd.saveTaskLog(task.getTaskRunAttemptUid(), task.getTaskLog());
-        dbnd.logMetrics(task.getTaskRunAttemptUid(), task.getMetrics(), "spark");
+        dbnd.saveTaskLog(task.getTaskRunUid(), task.getTaskRunAttemptUid(), task.getTaskLog());
+        dbnd.logMetrics(task, task.getMetrics(), "spark");
         ErrorInfo errorInfo = new ErrorInfo(
             error.getLocalizedMessage(),
             "",
@@ -516,7 +521,7 @@ public class DefaultDbndRun implements DbndRun {
             String preview = taskParameter.full(result);
             taskRunOutputs.put(result.hashCode(), task);
             dbnd.logTargets(
-                task.getTaskRunUid(),
+                task,
                 Collections.singletonList(
                     new LogTarget(
                         rootRunUid,
@@ -535,15 +540,15 @@ public class DefaultDbndRun implements DbndRun {
                     )
                 ));
         }
-        dbnd.saveTaskLog(task.getTaskRunAttemptUid(), task.getTaskLog());
-        dbnd.logMetrics(task.getTaskRunAttemptUid(), task.getMetrics(), "spark");
+        dbnd.saveTaskLog(task.getTaskRunUid(), task.getTaskRunAttemptUid(), task.getTaskLog());
+        dbnd.logMetrics(task, task.getMetrics(), "spark");
         dbnd.updateTaskRunAttempt(task.getTaskRunUid(), task.getTaskRunAttemptUid(), "SUCCESS", null, task.getStartDate());
     }
 
     @Override
     public void stop() {
-        dbnd.saveTaskLog(driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
-        dbnd.logMetrics(driverTask.getTaskRunAttemptUid(), driverTask.getMetrics(), "spark");
+        dbnd.saveTaskLog(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
+        dbnd.logMetrics(driverTask, driverTask.getMetrics(), "spark");
         dbnd.updateTaskRunAttempt(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), "SUCCESS", null, driverTask.getStartDate());
         if (rootRunUid == null) {
             // for agentless runs created inside Databand Context (when root run is outside of JVM) we shouldn't complete run
@@ -557,8 +562,8 @@ public class DefaultDbndRun implements DbndRun {
         if (driverTask == null) {
             return;
         }
-        dbnd.saveTaskLog(driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
-        dbnd.logMetrics(driverTask.getTaskRunAttemptUid(), driverTask.getMetrics(), "spark");
+        dbnd.saveTaskLog(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
+        dbnd.logMetrics(driverTask, driverTask.getMetrics(), "spark");
     }
 
     public void error(Throwable error) {
@@ -574,8 +579,8 @@ public class DefaultDbndRun implements DbndRun {
             error.getClass().getCanonicalName()
         );
         driverTask.appendLog(stackTrace);
-        dbnd.saveTaskLog(driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
-        dbnd.logMetrics(driverTask.getTaskRunAttemptUid(), driverTask.getMetrics(), "spark");
+        dbnd.saveTaskLog(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
+        dbnd.logMetrics(driverTask, driverTask.getMetrics(), "spark");
         dbnd.updateTaskRunAttempt(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), "FAILED", errorInfo, driverTask.getStartDate());
         dbnd.setRunState(rootRunUid, "FAILED");
     }
@@ -611,7 +616,7 @@ public class DefaultDbndRun implements DbndRun {
                 currentTask = driverTask;
             }
             logMetric(currentTask, key, value, "user", false);
-            dbnd.logMetrics(currentTask.getTaskRunAttemptUid(), new Histogram(key, value, histogramRequest).metricValues(), "histograms");
+            dbnd.logMetrics(currentTask, new Histogram(key, value, histogramRequest).metricValues(), "histograms");
         } catch (Exception e) {
             LOG.error("Unable to log dataframe", e);
         }
@@ -624,7 +629,7 @@ public class DefaultDbndRun implements DbndRun {
             if (currentTask == null) {
                 currentTask = driverTask;
             }
-            dbnd.logMetrics(currentTask.getTaskRunAttemptUid(), histogram, "histograms");
+            dbnd.logMetrics(currentTask, histogram, "histograms");
         } catch (Exception e) {
             LOG.error("Unable to log histogram", e);
         }
@@ -644,7 +649,7 @@ public class DefaultDbndRun implements DbndRun {
             if (currentTask == null) {
                 currentTask = driverTask;
             }
-            dbnd.logDatasetOperations(currentTask.getTaskRunUid(), Collections.singletonList(
+            dbnd.logDatasetOperations(currentTask, Collections.singletonList(
                 new LogDataset(
                     currentTask,
                     path,
@@ -694,7 +699,7 @@ public class DefaultDbndRun implements DbndRun {
             }
             TaskParameterPreview taskParameter = parameters.get(value.getClass());
             dbnd.logMetric(
-                taskRun.getTaskRunAttemptUid(),
+                taskRun,
                 key,
                 compact ? taskParameter.compact(value) : taskParameter.full(value),
                 source
@@ -714,7 +719,7 @@ public class DefaultDbndRun implements DbndRun {
                 TaskParameterPreview taskParameter = parameters.get(entry.getValue().getClass());
                 result.put(entry.getKey(), taskParameter.compact(entry.getValue()));
             }
-            dbnd.logMetrics(taskRun.getTaskRunAttemptUid(), result, source);
+            dbnd.logMetrics(taskRun, result, source);
         } catch (Exception e) {
             LOG.error("Unable to log metrics");
         }

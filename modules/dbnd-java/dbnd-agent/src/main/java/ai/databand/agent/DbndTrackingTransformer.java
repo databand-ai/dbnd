@@ -49,7 +49,7 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
 
         try {
             CtClass ct = ctOpt.get();
-            System.out.printf("Instrumenting class %s%n", className);
+            System.out.printf("Instrumenting class %s with dbnd wrapper%n", className);
             CtMethod[] declaredMethods = ct.getDeclaredMethods();
 
             // add $dbnd variable
