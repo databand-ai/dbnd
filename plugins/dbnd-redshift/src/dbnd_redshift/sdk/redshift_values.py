@@ -44,7 +44,7 @@ class RedshiftOperation(SqlOperation):
     source_name = attr.ib(converter=_strip_quotes, default=None)  # type: str
     cls_cache = attr.ib(default=None)
     schema_cache = attr.ib(default=None)
-    preview_cache = attr.ib(default=None)
+    preview_cache: pd.DataFrame = attr.ib(default=None)
 
     @staticmethod
     def expect_tmp_table(conf):
@@ -57,10 +57,17 @@ class RedshiftOperation(SqlOperation):
             connection: RedShift connection object
 
         """
-        if connection:
-            self.preview_cache = redshift_query(
+        if self.dataframe is not None:
+            self.preview_cache = self.dataframe
+        elif connection:
+            db_preview_query = redshift_query(
                 connection.connection, f"SELECT * FROM {TEMP_TABLE_NAME} LIMIT 100"
             )
+            if db_preview_query:
+                first_row = db_preview_query[0]
+                self.preview_cache = pd.DataFrame(
+                    db_preview_query, columns=list(first_row.keys())
+                )
 
     def extract_schema(self, connection: PostgresConnectionWrapper):
         """
@@ -145,8 +152,8 @@ class RedshiftOperation(SqlOperation):
                 for index, key in enumerate(self.schema["dtypes"]):
                     query += f"""(SELECT
                                     '{key}' as name,
-                                    (SELECT COUNT("{key}") FROM {TEMP_TABLE_NAME}) AS row_count,
-                                    (SELECT COUNT("{key}") FROM {TEMP_TABLE_NAME} where "{key}" is null) AS null_count,
+                                    (SELECT COUNT(*) FROM {TEMP_TABLE_NAME}) AS row_count,
+                                    (SELECT COUNT(*) FROM {TEMP_TABLE_NAME} where "{key}" is null) AS null_count,
                                     (SELECT count(distinct "{key}") FROM {TEMP_TABLE_NAME}) AS distinct_count,
                                     (SELECT top 1 "{key}" FROM {TEMP_TABLE_NAME} group by "{key}" order by count("{key}") DESC)::varchar AS most_freq_value,
                                     (SELECT top 1 count("{key}") FROM {TEMP_TABLE_NAME} group by "{key}" order by count("{key}") DESC) AS most_freq_value_count
@@ -181,6 +188,11 @@ class RedshiftOperation(SqlOperation):
 
                 if column_stats:
                     for col in column_stats:
+                        null_percentage = 0
+                        if col["row_count"] > 0:
+                            null_percentage = (
+                                col["null_count"] / col["row_count"]
+                            ) * 100
                         stats.append(
                             ColumnStatsArgs(
                                 column_name=col["name"],
@@ -196,8 +208,7 @@ class RedshiftOperation(SqlOperation):
                                 distinct_count=col["distinct_count"],
                                 null_count=col["null_count"],
                                 non_null_count=col["row_count"] - col["null_count"],
-                                null_percent=(col["null_count"] / col["row_count"])
-                                * 100,
+                                null_percent=null_percentage,
                                 unique_count=col["distinct_count"],
                                 most_freq_value=col["most_freq_value"],
                                 most_freq_value_count=col["most_freq_value_count"],
@@ -241,12 +252,8 @@ class RedshiftOperation(SqlOperation):
 
     @property
     def preview(self):
-        if self.dataframe is not None:
-            return self.dataframe.to_string(index=False, max_rows=10)
-        else:
-            if self.preview_cache:
-                df = pd.DataFrame(self.preview_cache)
-                return df.to_string(index=False, max_rows=10)
+        if self.preview_cache is not None:
+            return self.preview_cache.to_string(index=False, max_rows=10)
         return None
 
     @property
