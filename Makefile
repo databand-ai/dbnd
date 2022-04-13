@@ -4,6 +4,13 @@ SHELL := /bin/bash
 ##@ Helpers
 .PHONY: help
 
+
+CURRENT_PY_VERSION = $(shell python -c "import sys; print('{0}.{1}'.format(*sys.version_info[:2]))")
+# use env value if exists
+AIRFLOW_VERSION ?= 1.10.12
+#AIRFLOW_VERSION = 2.2.4
+
+
 help:  ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z].[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
@@ -31,6 +38,20 @@ prj_plugins = plugins/dbnd-aws  \
 prj_plugins_spark  = plugins/dbnd-spark \
 				plugins/dbnd-databricks \
 				plugins/dbnd-qubole
+
+
+prj_dbnd_run = modules/dbnd modules/dbnd-airflow \
+            plugins/dbnd-aws  \
+			plugins/dbnd-azure \
+			plugins/dbnd-airflow-versioned-dag \
+			plugins/dbnd-databricks \
+			plugins/dbnd-docker \
+			plugins/dbnd-hdfs \
+			plugins/dbnd-gcp \
+			plugins/dbnd-tensorflow \
+			plugins/dbnd-test-scenarios \
+			plugins/dbnd-spark \
+			plugins/dbnd-qubole
 
 prj_examples = examples
 prj_test = plugins/dbnd-test-scenarios
@@ -160,12 +181,9 @@ clean-python:  ## Remove bulid artifacts.
 ##@ Development
 .PHONY: install-dev
 
-CURRENT_PY_VERSION = $(shell python -c "import sys; print('{0}.{1}'.format(*sys.version_info[:2]))")
 VENV_TARGET ?= dbnd-core
 VENV_TARGET_NAME ?= venv-${VENV_TARGET}-py$(subst .,,${CURRENT_PY_VERSION})
 
-CURRENT_AIRFLOW_VERSION = 1.10.12
-#CURRENT_AIRFLOW_VERSION = 2.2.4
 
 
 create-venv:  ## Create virtual env for dbnd-core
@@ -195,9 +213,9 @@ __is_venv_activated:  ## (Hidden target) check if correct virtual env is activat
 
 install-airflow: ## Installs Airflow with strictly pinned dependencies into current virtual environment.
 	@make __is_venv_activated; \
-	echo Will install Airflow==${CURRENT_AIRFLOW_VERSION}; \
+	echo Will install Airflow==${AIRFLOW_VERSION}; \
 
-	pip install apache-airflow==${CURRENT_AIRFLOW_VERSION} -c https://raw.githubusercontent.com/apache/airflow/constraints-${CURRENT_AIRFLOW_VERSION}/constraints-${CURRENT_PY_VERSION}.txt
+	pip install apache-airflow==${AIRFLOW_VERSION} -c https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${CURRENT_PY_VERSION}.txt
 
 
 install-dev: ## Installs Airflow + all dbnd-core modules in editable mode to the active Python's site-packages.
@@ -205,12 +223,21 @@ install-dev: ## Installs Airflow + all dbnd-core modules in editable mode to the
   	make install-airflow;\
   	make install-dev-without-airflow
 
+install-dev-dbnd-run: ## Installs Airflow + all dbnd-core modules in editable mode to the active Python's site-packages.
+	make install-airflow;\
+	for m in $(prj_dev) ; do \
+		all_reqs="$$all_reqs -e $$m"; \
+		export CURRENT_DEPS=$$all_reqs; \
+	done; \
+	echo "Running all deps installation at once:";  \
+	echo pip install $$all_reqs; \
+	pip install $$all_reqs; \
 
 install-dev-without-airflow: ## Install all modules, except Airflow, in editable mode to the active Python's site-packages.
 	@make __is_venv_activated; \
  	make __uninstall-dev; \
  	pip install -U pip; \
-	for m in $(prj_dev) ; do \
+	for m in $(prj_dbnd_run) ; do \
 		all_reqs="$$all_reqs -e $$m"; \
 		export CURRENT_DEPS=$$all_reqs; \
 	done; \
