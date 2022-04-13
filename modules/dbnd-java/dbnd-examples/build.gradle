@@ -1,0 +1,110 @@
+apply plugin: 'scala'
+apply plugin: 'application'
+
+mainClassName = "ai.databand.examples.ScalaSparkPipeline"
+
+repositories {
+    mavenLocal()
+    maven {
+        url "https://conjars.org/repo"
+    }
+}
+
+dependencies {
+    implementation 'com.squareup.retrofit2:retrofit:2.3.0'
+    implementation 'com.squareup.retrofit2:converter-jackson:2.3.0'
+    implementation 'org.mlflow:mlflow-client:1.5.0'
+    implementation('org.apache.spark:spark-sql_2.11:2.4.8') {
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    }
+
+    // fix for "Illegal pattern component: XXX" on spark read
+    implementation 'org.apache.commons:commons-lang3:3.5'
+
+    // deps for Hive Metastore PoC
+//    implementation 'org.apache.spark:spark-hive_2.11:2.4.8'
+//    implementation 'org.apache.hive.hcatalog:hive-hcatalog-core:2.3.7'
+//    implementation 'org.apache.hadoop:hadoop-aws:2.10.1'
+//    implementation 'org.apache.hadoop:hadoop-common:2.10.1'
+    /**
+     * Download libraries from
+     * https://databand-playground.s3.amazonaws.com/emr-hive/emrfs-hadoop-assembly-2.46.0.jar
+     * https://databand-playground.s3.amazonaws.com/emr-hive/hadoop-common-2.10.1-amzn-1.jar
+     * and put them into the dbnd-examples/lib folder
+     */
+//    implementation files('lib/emrfs-hadoop-assembly-2.46.0.jar')
+//    implementation files('lib/hadoop-common-2.10.1-amzn-1.jar')
+    // end Hive Metastore PoC deps
+
+    implementation("com.amazon.deequ:deequ:1.2.2-spark-2.2") {
+        exclude group: "org.apache.spark"
+        exclude group: "org.scala-lang"
+        exclude group: "org.scalanlp"
+    }
+    implementation 'com.fasterxml.jackson.module:jackson-module-scala_2.11:2.10.2'
+    implementation 'org.scala-lang:scala-library:2.11.12'
+
+    testImplementation "ai.databand:dbnd-client:${project.version}"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.6.0'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+}
+
+compileScala {
+    options.compilerArgs << '-parameters'
+}
+
+/**
+ * ****************************************************************************
+ * We don't want all transitive dependencies to be included into fatjar.
+ * Spark is provided dependency and we need to include only databand, retrofit,
+ * slf4j and javassist.
+ * ****************************************************************************
+ */
+shadowJar {
+    dependencies {
+        exclude(dependency {
+            !it.moduleGroup.contains('databand') \
+         && !it.moduleGroup.contains('squareup') \
+         && !it.moduleGroup.contains('ch.qos') \
+         && !it.moduleGroup.contains('deequ')
+        })
+    }
+}
+
+test {
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching "*"
+    }
+    environment "dbnd.spark.listener_inject_enabled", "False"
+    environment "dbnd.spark.query_listener_inject_enabled", "False"
+    environment "dbnd.tracking.log_value_preview", "True"
+    environment "dbnd.tracking", "True"
+    environment "dbnd.log.preview_head_bytes", "100000000"
+    environment "dbnd.log.preview_tail_bytes", "100000000"
+    jvmArgs "-javaagent:${projectDir}/../dbnd-agent/build/libs/dbnd-agent-${rootProject.version}-all.jar"
+    environment "EXAMPLES_JAR", "${projectDir}/build/libs/dbnd-examples-latest-all.jar"
+}
+
+/**
+ * This task is used to test spark listener auto-inject. It runs only one test—ScalaPipelineTest,
+ * with dbnd.spark.listener_inject_enabled environment variable set to true.
+ */
+task autoInjectTest(type: Test) {
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching "Scala*"
+    }
+    environment "dbnd.tracking.log_value_preview", "True"
+    environment "dbnd.spark.listener_inject_enabled", "True"
+    environment "dbnd.spark.query_listener_inject_enabled", "True"
+    environment "dbnd.tracking", "True"
+    environment "dbnd.log.preview_head_bytes", "100000000"
+    environment "dbnd.log.preview_tail_bytes", "100000000"
+    environment "dbnd.run.job_name", "overridden_scala_pipeline"
+    jvmArgs "-javaagent:${projectDir}/../dbnd-agent/build/libs/dbnd-agent-${rootProject.version}-all.jar=dbnd.spark.listener_inject_enabled=true,dbnd.spark.query_listener_inject_enabled=true"
+}
+
+check.dependsOn autoInjectTest

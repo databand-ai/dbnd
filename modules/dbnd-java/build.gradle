@@ -8,7 +8,7 @@ plugins {
  * All projects configuration (java plugin, publishing, etc).
  * ****************************************************************************
  */
-subprojects {
+allprojects {
     apply plugin: 'java'
 
     group = 'ai.databand'
@@ -75,7 +75,7 @@ plugins.withId("com.vanniktech.maven.publish") {
  * Projects with fat jars.
  * ****************************************************************************
  */
-def fatJarProjects = ["dbnd-agent", "dbnd-azkaban-event-reporter", "dbnd-azkaban-agent"]
+def fatJarProjects = ["dbnd-agent", "dbnd-azkaban-event-reporter", "dbnd-azkaban-agent", "dbnd-examples"]
 
 configure(subprojects.findAll { fatJarProjects.contains(it.name) }) {
     apply plugin: 'com.github.johnrengelman.shadow'
@@ -121,7 +121,7 @@ configure(subprojects.findAll { !apiOnlyProjects.contains(it.name) }) {
  * because gradle does not resolve transitive dependencies
  * ****************************************************************************
  */
-def sparkProjects = ['dbnd-client', 'dbnd-agent'].toSet()
+def sparkProjects = ['dbnd-examples', 'dbnd-client', 'dbnd-agent'].toSet()
 
 configure(subprojects.findAll { sparkProjects.contains(it.name) }) {
     dependencies {
@@ -172,6 +172,7 @@ project(':dbnd-azkaban') {
         implementation project(':dbnd-client')
     }
 }
+
 project(':dbnd-azkaban-event-reporter') {
     dependencies {
         implementation project(':dbnd-client')
@@ -183,5 +184,14 @@ project(':dbnd-azkaban-agent') {
     dependencies {
         implementation project(':dbnd-client')
         implementation project(':dbnd-azkaban')
+    }
+}
+
+project(':dbnd-examples') {
+    dependencies {
+        implementation project(':dbnd-api')
+        implementation project(':dbnd-api-deequ')
+        implementation project(':dbnd-client')
+        implementation project(':dbnd-mlflow')
     }
 }

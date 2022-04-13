@@ -1,0 +1,3 @@
+type=command
+command=/spark/bin/spark-submit --conf spark.sql.shuffle.partitions=1 --conf "spark.driver.extraJavaOptions=-javaagent:/azkaban/dbnd-agent-latest-all.jar=dbnd.spark.listener_inject_enabled=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5006" --class ai.databand.examples.ScalaSparkPipeline dbnd-examples-latest-all.jar sample.json
+dependencies=prepare-data

@@ -9,4 +9,5 @@ include(
     'dbnd-azkaban',
     'dbnd-azkaban-event-reporter',
     'dbnd-azkaban-agent',
+    'dbnd-examples',
 )

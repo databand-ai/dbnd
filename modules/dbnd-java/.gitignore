@@ -32,3 +32,8 @@ out/
 .vscode/
 
 tmp
+
+performance-test/spark-**
+performance-test/datasets/
+
+lib/
