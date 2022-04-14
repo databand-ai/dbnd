@@ -74,7 +74,6 @@ class _LivySparkCtrl(SparkCtrl):
         )
         data = {k: v for k, v in six.iteritems(data) if v is not None}
         livy_endpoint = self.get_livy_endpoint()
-        self.task_run.set_external_resource_urls({"Livy url": livy_endpoint.url})
         logger.info("Connecting to: %s", livy_endpoint)
         livy_config = self.task_run.task.spark_engine
         livy = LivyBatchClient.from_endpoint(
