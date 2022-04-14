@@ -13,5 +13,5 @@ def created_deprecated_command(cmd):
 
 
 def add_deprecated_commands(cli):
-    for cmd in ["db", "webserver", "keycloak", "command"]:
+    for cmd in ["db", "webserver", "command"]:
         cli.add_command(created_deprecated_command(cmd))
