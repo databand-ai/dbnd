@@ -236,7 +236,7 @@ install-dev-dbnd-run: ## Installs Airflow + all dbnd-core modules in editable mo
 install-dev-without-airflow: ## Install all modules, except Airflow, in editable mode to the active Python's site-packages.
 	@make __is_venv_activated; \
  	make __uninstall-dev; \
- 	pip install -U pip; \
+ 	pip install -U pip pylint==2.13.5; \
 	for m in $(prj_dbnd_run) ; do \
 		all_reqs="$$all_reqs -e $$m"; \
 		export CURRENT_DEPS=$$all_reqs; \
