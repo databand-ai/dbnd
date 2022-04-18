@@ -6,6 +6,7 @@ from typing import Any, Dict, Tuple
 
 import attr
 
+from dbnd import ParameterDefinition
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import (
     RESULT_PARAM,
@@ -21,7 +22,6 @@ from dbnd._core.current import (
 )
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.log.external_exception_logging import log_exception_to_server
-from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
@@ -329,7 +329,7 @@ def _log_parameter_value(task_run, parameter_definition, target, value):
 
     try:
         task_run.tracker.log_parameter_data(
-            parameter=parameter_definition,  # was: task_run.task.task_definition.task_class.result,
+            parameter=parameter_definition,
             target=target,
             value=value,
             operation_type=DbndTargetOperationType.write,  # is it write? (or log?)

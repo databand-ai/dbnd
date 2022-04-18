@@ -32,6 +32,8 @@ class ParameterValue(object):
     # any warnings caught while calculating the value
     warnings = attr.ib(factory=list)
 
+    MASKED_VALUE_PREVIEW = "***"
+
     @property
     def name(self):
         return self.parameter.name

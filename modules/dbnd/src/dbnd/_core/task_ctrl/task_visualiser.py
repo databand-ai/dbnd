@@ -7,6 +7,7 @@ from dbnd._core.constants import SystemTaskName, TaskEssence, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandBuildError, get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
+from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.task_run.task_run_error import task_call_source_to_str
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_string, safe_tabulate
@@ -17,6 +18,7 @@ from targets import DataTarget, InMemoryTarget, Target
 if typing.TYPE_CHECKING:
     from dbnd._core.task.task import Task
     from dbnd._core.task_run.task_run import TaskRun
+
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +76,8 @@ class TaskVisualiser(object):
     ):
         task_id = self.task.task_id
         try:
-            banner = TextBanner(msg, color)
+            # Saving banner for testability
+            self._banner = TextBanner(msg, color)
 
             if verbose or is_verbose():
                 verbosity = FormatterVerbosity.HIGH
@@ -83,7 +86,7 @@ class TaskVisualiser(object):
 
             builder = _TaskBannerBuilder(
                 task=self.task,
-                banner=banner,
+                banner=self._banner,
                 verbosity=verbosity,
                 print_task_band=print_task_band,
             )
@@ -99,7 +102,7 @@ class TaskVisualiser(object):
                         task_run=task_run, exc_info=exc_info
                     )
 
-            return banner.get_banner_str()
+            return self._banner.get_banner_str()
 
         except Exception as ex:
             log_exception(
@@ -373,6 +376,7 @@ class _ParamTableDirector(object):
     """
 
     def __init__(self, task, banner):
+        # type: (Task, TextBanner) -> None
         self.task = task
         self.banner = banner
         self.record_builder = _ParamRecordBuilder()
@@ -413,7 +417,11 @@ class _ParamTableDirector(object):
         # iterating over the params and building the data for the table
         for param_value in self.task._params:
             try:
-                param_def = param_value.parameter
+                param_def = (
+                    param_value.parameter.update_value_meta_conf_from_runtime_value(
+                        param_value.value, self.task.settings.tracking
+                    )
+                )
                 # filter switches
                 if not all_params:
                     if param_def.name in exclude:
@@ -422,7 +430,13 @@ class _ParamTableDirector(object):
                         continue
 
                 # building a single row
-                param_row = self.build_record(param_def, param_value, param_value.value)
+                if param_def.value_meta_conf.log_preview:
+                    param_value_preview = param_value.value
+                else:
+                    param_value_preview = ParameterValue.MASKED_VALUE_PREVIEW
+                param_row = self.build_record(
+                    param_def, param_value, param_value_preview
+                )
                 params_data.append(param_row)
 
                 # extract param warnings

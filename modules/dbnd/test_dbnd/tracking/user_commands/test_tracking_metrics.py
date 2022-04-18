@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from more_itertools import one
+from more_itertools import first_true, one
 
 from dbnd import log_metric, log_metrics, task
 from dbnd._core.tracking.metrics import log_data
@@ -174,7 +174,7 @@ class TestTrackingMetrics(object):
         )
         #
         # This is a tricky one - when we have stats on
-        # we create for each of the columns multiple histograms metrics.
+        # we create for each of the columns multiple histograms' metrics.
         assert if_and_only_if(
             stats,
             all(
@@ -184,7 +184,10 @@ class TestTrackingMetrics(object):
         )
 
         if path:
-            log_target = one(get_log_targets(mock_channel_tracker))
+            log_target = first_true(
+                get_log_targets(mock_channel_tracker),
+                pred=lambda t: not t.target_path.startswith("memory://"),
+            )
             assert log_target.target_path == "/my/path/to_file.txt"
             # the data dimensions is taken from the data frame
             assert log_target.data_dimensions == (5, 3)

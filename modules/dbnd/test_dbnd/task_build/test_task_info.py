@@ -3,9 +3,10 @@ import logging
 import shlex
 import sys
 
+from textwrap import dedent
 from typing import List
 
-from dbnd import dbnd_run_cmd, parameter, task
+from dbnd import dbnd_run_cmd, new_dbnd_context, parameter, task
 from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser
 from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import target
@@ -105,3 +106,49 @@ class TestTaskInfo(object):
         actual = TaskVisualiser(s).banner("Running task")
         logger.warning(actual)
         assert len(actual) < s.settings.describe.console_value_preview_size * 3
+
+
+class TestLogValuePreviewLogs:
+    def test_params_preview(self):
+        PARAMS_WITH_PREVIEWS = dedent(
+            """
+            Name        Kind    Type    Format    Source              -= Value =-
+            num_param   param   int               t.t.t.t_f[default]  12
+            list_param  param   List              t.t.t.t_f[default]  [1,2,3]
+            none_param  param   object            t.t.t.t_f[default]  @None
+            """
+        )
+
+        with new_dbnd_context(conf={"tracking": {"log_value_preview": True}}):
+
+            @task
+            def t_f(num_param=12, list_param=[1, 2, 3], none_param=None):
+                return "123"
+
+            run = t_f.dbnd_run()
+            task_run = run.root_task_run
+            actual = task_run.task.ctrl.visualiser._banner.get_banner_str()
+        assert PARAMS_WITH_PREVIEWS in actual
+        assert "result.pickle" in actual
+
+    def test_params_without_preview(self):
+        PARAMS_WITHOUT_PREVIEWS = dedent(
+            """
+            Name        Kind    Type    Format    Source              -= Value =-
+            num_param   param   int               t.t.t.t_f[default]  ***
+            list_param  param   List              t.t.t.t_f[default]  "***"
+            none_param  param   object            t.t.t.t_f[default]  ***
+            result      output  object  .pickle                       "***"
+            """
+        )
+
+        with new_dbnd_context(conf={"tracking": {"log_value_preview": False}}):
+
+            @task
+            def t_f(num_param=12, list_param=[1, 2, 3], none_param=None):
+                return "123"
+
+            run = t_f.dbnd_run()
+            task_run = run.root_task_run
+            actual = task_run.task.ctrl.visualiser._banner.get_banner_str()
+            assert PARAMS_WITHOUT_PREVIEWS in actual
