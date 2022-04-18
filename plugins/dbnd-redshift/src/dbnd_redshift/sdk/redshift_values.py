@@ -37,6 +37,96 @@ def _type_conversion(type_name: str) -> str:
     return converted_type
 
 
+def get_col_query(col_name: str, col_type: str):
+    query_list = []
+    query_list.append(f"""SELECT '{col_name}' as name""")
+    query_list.append(f"""(SELECT COUNT(*) FROM {TEMP_TABLE_NAME}) AS row_count""")
+    query_list.append(
+        f"""(SELECT COUNT(*) FROM {TEMP_TABLE_NAME} where "{col_name}" is null) AS null_count"""
+    )
+    query_list.append(
+        f"""(SELECT count(distinct "{col_name}") FROM {TEMP_TABLE_NAME}) AS distinct_count"""
+    )
+    query_list.append(
+        f"""(SELECT top 1 count("{col_name}") FROM {TEMP_TABLE_NAME}
+                        group by "{col_name}" order by count("{col_name}") DESC) AS most_freq_value_count"""
+    )
+
+    most_freq_value_cast = "integer::text" if col_type == "boolean" else "text"
+
+    query_list.append(
+        f"""(SELECT top 1 "{col_name}" FROM {TEMP_TABLE_NAME} group by "{col_name}"
+                            order by count("{col_name}") DESC)::{most_freq_value_cast} AS most_freq_value"""
+    )
+
+    query_list.append(
+        "({}) AS stddev".format(
+            "Null"
+            if col_type != "integer"
+            else f"""SELECT stddev("{col_name}") FROM {TEMP_TABLE_NAME}"""
+        )
+    )
+    query_list.append(
+        "({}) AS average".format(
+            "Null"
+            if col_type != "integer"
+            else f"""SELECT avg("{col_name}") FROM {TEMP_TABLE_NAME}"""
+        )
+    )
+    query_list.append(
+        "({}) AS minimum".format(
+            "Null"
+            if col_type != "integer"
+            else f"""SELECT min("{col_name}") FROM {TEMP_TABLE_NAME}"""
+        )
+    )
+    query_list.append(
+        "({}) AS maximum".format(
+            "Null"
+            if col_type != "integer"
+            else f"""SELECT max("{col_name}") FROM {TEMP_TABLE_NAME}"""
+        )
+    )
+    query_list.append(
+        "({}) AS percentile_25".format(
+            "Null"
+            if col_type != "integer"
+            else f"""SELECT percentile_cont(0.25) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME}"""
+        )
+    )
+    query_list.append(
+        "({}) AS percentile_50".format(
+            "Null"
+            if col_type != "integer"
+            else f"""SELECT percentile_cont(0.50) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME}"""
+        )
+    )
+    query_list.append(
+        "({}) AS percentile_75".format(
+            "Null"
+            if col_type != "integer"
+            else f"""SELECT percentile_cont(0.75) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME}"""
+        )
+    )
+
+    return query_list
+
+
+def query_list_to_text(cols_queries_lists):
+    query = ""
+    for col_index, col_query_list in enumerate(cols_queries_lists):
+        query += "("
+        for query_index, query_item in enumerate(col_query_list):
+            query += query_item
+            if query_index != len(col_query_list) - 1:
+                query += ",\n"
+
+        suffix = ") union all\n" if col_index != len(cols_queries_lists) - 1 else ")\n"
+        query += suffix
+
+    return query
+
+
 @attr.s
 class RedshiftOperation(SqlOperation):
     database = attr.ib(converter=_strip_quotes, default=None)  # type: str
@@ -146,43 +236,13 @@ class RedshiftOperation(SqlOperation):
         stats = []  # type: List[ColumnStatsArgs]
 
         if connection:
-            query = ""
-
             if self.schema:
-                for index, key in enumerate(self.schema["dtypes"]):
-                    query += f"""(SELECT
-                                    '{key}' as name,
-                                    (SELECT COUNT(*) FROM {TEMP_TABLE_NAME}) AS row_count,
-                                    (SELECT COUNT(*) FROM {TEMP_TABLE_NAME} where "{key}" is null) AS null_count,
-                                    (SELECT count(distinct "{key}") FROM {TEMP_TABLE_NAME}) AS distinct_count,
-                                    (SELECT top 1 "{key}" FROM {TEMP_TABLE_NAME} group by "{key}" order by count("{key}") DESC)::varchar AS most_freq_value,
-                                    (SELECT top 1 count("{key}") FROM {TEMP_TABLE_NAME} group by "{key}" order by count("{key}") DESC) AS most_freq_value_count
-                                """
-                    if self.schema["dtypes"][key] == "integer":
-                        query += f""",
-                                    (SELECT stddev("{key}") FROM {TEMP_TABLE_NAME}) AS stddev,
-                                    (SELECT avg("{key}") FROM {TEMP_TABLE_NAME}) AS average,
-                                    (SELECT min("{key}") from {TEMP_TABLE_NAME}) AS minimum,
-                                    (SELECT max("{key}") FROM {TEMP_TABLE_NAME}) AS maximum,
-                                    (SELECT percentile_cont(0.25) within group (order by "{key}" asc) from {TEMP_TABLE_NAME}) AS percentile_25,
-                                    (SELECT percentile_cont(0.50) within group (order by "{key}" asc) from {TEMP_TABLE_NAME}) AS percentile_50,
-                                    (SELECT percentile_cont(0.75) within group (order by "{key}" asc) from {TEMP_TABLE_NAME}) AS percentile_75
-                                """
-                    else:
-                        query += f""",
-                                    (Null) AS stddev,
-                                    (Null) AS average,
-                                    (Null) AS minimum,
-                                    (Null) AS maximum,
-                                    (Null) AS percentile_25,
-                                    (Null) AS percentile_50,
-                                    (Null) AS percentile_75
-                                """
+                queries = [
+                    list(get_col_query(col, col_type))
+                    for col, col_type in self.schema["dtypes"].items()
+                ]
 
-                    if index != len(self.schema["dtypes"]) - 1:
-                        query += ") union all"
-                    else:
-                        query += ")"
+                query = query_list_to_text(queries)
 
                 column_stats = redshift_query(connection.connection, query)
 
