@@ -65,7 +65,7 @@ def copy_to_temp_table(redshift_connection, target_name, query):
             fetch_all=False,
         )
         copy_tmp_table_query = re.sub(
-            re.escape(table_name), TEMP_TABLE_NAME, query, flags=re.IGNORECASE
+            re.escape(table_name), TEMP_TABLE_NAME, query, flags=re.IGNORECASE, count=1
         )
         redshift_query(redshift_connection, copy_tmp_table_query, fetch_all=False)
     else:
