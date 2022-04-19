@@ -1,7 +1,7 @@
 import pyspark.sql as spark
 
 from dbnd import output, parameter
-from dbnd.tasks import spark_task
+from dbnd_spark import spark_task
 from targets.types import PathStr
 
 

@@ -1,5 +1,5 @@
 from dbnd import data, output
-from dbnd.tasks import PySparkTask, SparkTask
+from dbnd_spark import PySparkTask, SparkTask
 from dbnd_spark.spark_config import SparkConfig
 from dbnd_test_scenarios.scenarios_repo import (
     scenario_pyspark_path,
