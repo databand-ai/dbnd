@@ -18,10 +18,3 @@ __all__ = [
     "dbnd_doctor",
     "basics",
 ]
-
-try:
-    from dbnd_spark.spark import PySparkTask, SparkTask, spark_task
-
-    __all__ += ["SparkTask", "PySparkTask", "spark_task"]
-except ImportError:
-    pass

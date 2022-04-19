@@ -1,7 +1,8 @@
 from databand import output, parameter, pipeline
-from databand.tasks import PipelineTask, PySparkTask, SparkTask
+from databand.tasks import PipelineTask
 from dbnd_examples.dbnd_spark import spark_folder
 from dbnd_examples.orchestration.dbnd_spark.scripts import spark_script
+from dbnd_spark import PySparkTask, SparkTask
 from dbnd_spark.spark_config import SparkConfig
 
 
