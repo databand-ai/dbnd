@@ -234,9 +234,12 @@ install-dev-dbnd-run: ## Installs Airflow + all dbnd-core modules in editable mo
 	pip install $$all_reqs; \
 
 install-dev-without-airflow: ## Install all modules, except Airflow, in editable mode to the active Python's site-packages.
-	@make __is_venv_activated; \
- 	make __uninstall-dev; \
- 	pip install -U pip pylint==2.13.5; \
+	@make __is_venv_activated
+	make __uninstall-dev
+
+	pip install -U pip pylint==2.13.5 mypy==0.942
+
+	set -e; \
 	for m in $(prj_dbnd_run) ; do \
 		all_reqs="$$all_reqs -e $$m"; \
 		export CURRENT_DEPS=$$all_reqs; \
@@ -244,8 +247,6 @@ install-dev-without-airflow: ## Install all modules, except Airflow, in editable
 	echo "Running all deps installation at once:";  \
 	echo pip install $$all_reqs; \
 	pip install $$all_reqs; \
-
-
 
 __uninstall-dev:  ## (Hidden target) Remove all dbnd modules from the current virtual environment.
 	pip uninstall databand -y || true
