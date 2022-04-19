@@ -40,38 +40,73 @@ def _is_dbnd_spark_installed():
     return _IS_SPARK_INSTALLED
 
 
-def try_get_airflow_context_from_spark_conf():
-    # type: ()-> Optional[AirflowTaskContext]
-    if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
+def verify_spark_pre_conditions():
+    if spark_tracking_enabled() and _SPARK_ENV_FLAG in os.environ:
+        if _is_dbnd_spark_installed():
+            return True
+        else:
+            _debug_init_print("failed to import pyspark or dbnd-spark")
+    else:
         _debug_init_print(
             "DBND__ENABLE__SPARK_CONTEXT_ENV or SPARK_ENV_LOADED are not set"
         )
-        return None
+    return False
 
-    if not _is_dbnd_spark_installed():
-        _debug_init_print("failed to import pyspark or dbnd-spark")
+
+def _safe_get_active_spark_context():
+    if not verify_spark_pre_conditions():
         return None
     try:
-        _debug_init_print("creating spark context to get spark conf")
         from pyspark import SparkContext
 
-        # we shouldn't instantiate SparkContext
-        conf = SparkContext.getOrCreate().getConf()
+        if SparkContext._jvm is not None:
+            return SparkContext._active_spark_context
+        else:
+            # spark context is not initialized at this step
+            logger.info("SparkContext._jvm is not set")
+    except Exception as ex:
+        logger.info("Failed to get SparkContext: %s", ex)
 
-        dag_id = conf.get("spark.env.AIRFLOW_CTX_DAG_ID")
-        execution_date = conf.get("spark.env.AIRFLOW_CTX_EXECUTION_DATE")
-        task_id = conf.get("spark.env.AIRFLOW_CTX_TASK_ID")
-        try_number = conf.get("spark.env.AIRFLOW_CTX_TRY_NUMBER")
-        airflow_instance_uid = conf.get("spark.env.AIRFLOW_CTX_UID")
 
-        if dag_id and task_id and execution_date:
-            return AirflowTaskContext(
-                dag_id=dag_id,
-                execution_date=execution_date,
-                task_id=task_id,
-                try_number=try_number,
-                airflow_instance_uid=airflow_instance_uid,
-            )
+def _safe_get_jvm_view():
+    try:
+        spark_context = _safe_get_active_spark_context()
+        if spark_context is not None:
+            return spark_context._jvm
+    except Exception as ex:
+        logger.info("Failed to get jvm from SparkContext : %s", ex)
+
+
+def _safe_get_spark_conf():
+    try:
+        spark_context = _safe_get_active_spark_context()
+        if spark_context is not None:
+            return spark_context.getConf()
+    except Exception as ex:
+        logger.info("Failed to get SparkConf from SparkContext : %s", ex)
+
+
+def try_get_airflow_context_from_spark_conf():
+    # type: ()-> Optional[AirflowTaskContext]
+    try:
+        conf = _safe_get_spark_conf()
+        if conf is not None:
+            dag_id = conf.get("spark.env.AIRFLOW_CTX_DAG_ID")
+            execution_date = conf.get("spark.env.AIRFLOW_CTX_EXECUTION_DATE")
+            task_id = conf.get("spark.env.AIRFLOW_CTX_TASK_ID")
+            try_number = conf.get("spark.env.AIRFLOW_CTX_TRY_NUMBER")
+            airflow_instance_uid = conf.get("spark.env.AIRFLOW_CTX_UID")
+
+            if dag_id and task_id and execution_date:
+                return AirflowTaskContext(
+                    dag_id=dag_id,
+                    execution_date=execution_date,
+                    task_id=task_id,
+                    try_number=try_number,
+                    airflow_instance_uid=airflow_instance_uid,
+                )
+            else:
+                logger.warning("Airflow context could not be loaded from spark conf")
     except Exception as ex:
         logger.info("Failed to get airflow context info from spark job: %s", ex)
 
@@ -79,17 +114,8 @@ def try_get_airflow_context_from_spark_conf():
 
 
 def get_value_from_spark_env(key):
-    # spark guards
-    if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
-        return None
-
-    if not _is_dbnd_spark_installed():
-        return None
-
     try:
-        from pyspark import SparkContext
-
-        conf = SparkContext.getOrCreate().getConf()
+        conf = _safe_get_spark_conf()
         value = conf.get("spark.env." + key)
         if value:
             return value
@@ -103,17 +129,14 @@ def set_current_jvm_context(run_uid, task_run_uid, task_run_attempt_uid, task_af
     to the proper task. To achieve this, we directly set current context to our JVM wrapper.
     :return:
     """
-    if not spark_tracking_enabled() or _SPARK_ENV_FLAG not in os.environ:
-        return
     try:
-        from py4j import java_gateway
-        from pyspark import SparkContext
-
-        if SparkContext._jvm is None:
-            # spark context is not initialized at this step
+        jvm = _safe_get_jvm_view()
+        if jvm is None:
             return
+        jvm_dbnd = jvm.ai.databand.DbndWrapper
 
-        jvm_dbnd = SparkContext._jvm.ai.databand.DbndWrapper
+        from py4j import java_gateway
+
         if isinstance(jvm_dbnd, java_gateway.JavaPackage):
             # if DbndWrapper class is not loaded then agent or IO listener is not attached
             return
@@ -171,20 +194,12 @@ def detach_spark_logger(spark_log_file):
 
 def try_get_spark_logger():
     try:
-        from pyspark import SparkContext
-    except Exception:
-        logger.warning(
-            "Spark log is enabled but pyspark is not available. Consider switching DBND__LOG_SPARK to False."
-        )
-        # pyspark is not available, just pass
-        return None, None
-
-    try:
-        if SparkContext._jvm is None:
-            # spark context is not initialized at this step and JVM is not available
+        jvm = _safe_get_jvm_view()
+        if jvm is None:
+            logger.warning(
+                "Spark log is enabled but SparkContext is not available. Consider switching DBND__LOG_SPARK to False."
+            )
             return None, None
-
-        jvm = SparkContext._jvm
         log4j = jvm.org.apache.log4j
         return log4j, log4j.Logger.getLogger("org.apache.spark")
     except Exception:

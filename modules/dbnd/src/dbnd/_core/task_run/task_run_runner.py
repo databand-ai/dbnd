@@ -11,7 +11,7 @@ from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled, pm
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd._core.tracking.spark import set_current_jvm_context
+from dbnd._core.tracking.dbnd_spark_init import set_current_jvm_context
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.signal_utils import safe_signal

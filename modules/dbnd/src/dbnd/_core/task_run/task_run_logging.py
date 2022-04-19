@@ -8,7 +8,7 @@ from dbnd._core.settings import LocalEnvConfig
 from dbnd._core.settings.log import _safe_is_typeof
 from dbnd._core.task_run.log_preview import read_dbnd_log_preview
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.tracking.spark import attach_spark_logger, detach_spark_logger
+from dbnd._core.tracking.dbnd_spark_init import attach_spark_logger, detach_spark_logger
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from targets.target_config import TargetConfig
 

@@ -23,7 +23,7 @@ from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCode
 from dbnd._core.tracking.airflow_task_context import AirflowTaskContext
-from dbnd._core.tracking.spark import try_get_airflow_context_from_spark_conf
+from dbnd._core.tracking.dbnd_spark_init import try_get_airflow_context_from_spark_conf
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd._core.utils.uid_utils import (

@@ -18,7 +18,7 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.constants import RunState, _DbndDataClass
 from dbnd._core.current import try_get_current_task_run, try_get_databand_run
-from dbnd._core.tracking.spark import get_value_from_spark_env
+from dbnd._core.tracking.dbnd_spark_init import get_value_from_spark_env
 from dbnd._core.utils import timezone
 
 
