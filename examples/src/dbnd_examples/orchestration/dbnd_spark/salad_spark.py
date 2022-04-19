@@ -8,9 +8,9 @@ import logging
 
 from dbnd import data, output, parameter
 from dbnd.tasks import PipelineTask
-from dbnd_spark import PySparkTask
 from dbnd_examples.data import data_repo
 from dbnd_examples.orchestration.dbnd_spark.scripts import spark_script
+from dbnd_spark import PySparkTask
 
 
 logger = logging.getLogger(__name__)
