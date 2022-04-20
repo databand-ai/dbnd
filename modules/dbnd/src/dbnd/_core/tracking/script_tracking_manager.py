@@ -300,7 +300,7 @@ class _DbndScriptTrackingManager(object):
         should_capture_log = TrackingConfig.from_databand_context().capture_tracking_log
         self._enter_cm(
             run.root_task_run.runner.task_run_execution_context(
-                capture_log=should_capture_log
+                capture_log=should_capture_log, handle_sigterm=False
             )
         )
         self._task_run = run.root_task_run
