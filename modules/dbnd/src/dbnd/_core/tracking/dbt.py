@@ -55,6 +55,11 @@ def collect_data_from_dbt_cloud(
         if not dbt_run_meta_data:
             logger.warning("Fail getting run data from dbt cloud ")
             return
+        env_id = dbt_run_meta_data.get("environment_id")
+        env = dbt_cloud_client.get_environment(env_id=env_id)
+
+        if env:
+            dbt_run_meta_data["environment"] = env
 
         for step in dbt_run_meta_data.get("run_steps", []):
             step_run_results_artifact = dbt_cloud_client.get_run_results_artifact(
@@ -62,6 +67,13 @@ def collect_data_from_dbt_cloud(
             )
             if step_run_results_artifact:
                 step["run_results"] = step_run_results_artifact
+
+            step_run_manifest_artifact = dbt_cloud_client.get_manifest_artifact(
+                dbt_job_run_id, step["index"]
+            )
+
+            if step_run_manifest_artifact:
+                step["manifest"] = step_run_manifest_artifact
 
         _report_dbt_metadata(dbt_run_meta_data)
     except Exception as e:

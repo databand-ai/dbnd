@@ -57,19 +57,36 @@ class DbtCloudApiClient:
             logger.warning("Fail getting data from  dbt cloud %s", endpoint)
             return None
 
-    def get_run_results_artifact(self, run_id, step=1):
-        path = f"{self.account_id}/runs/{run_id}/artifacts/run_results.json"
+    def _get_run_artifact(self, artifact_name, run_id, step=1):
+        path = f"{self.account_id}/runs/{run_id}/artifacts/{artifact_name}"
         url = self._build_administrative_url(path)
         return self.send_request(endpoint=url, data={"step": step})
+
+    def get_manifest_artifact(self, run_id, step=1):
+        return self._get_run_artifact(
+            artifact_name="manifest.json", run_id=run_id, step=step
+        )
+
+    def get_run_results_artifact(self, run_id, step=1):
+        return self._get_run_artifact(
+            artifact_name="run_results.json", run_id=run_id, step=step
+        )
 
     def get_run(self, run_id):
         path = f"{self.account_id}/runs/{run_id}"
         url = self._build_administrative_url(path)
         res = self.send_request(endpoint=url, data={"include_related": '["run_steps"]'})
-        run = None
-        if res and isinstance(res, dict):
-            run = res.get("data")
-        return run
+        return self._safe_get_response_data(res)
+
+    def get_environment(self, env_id: int):
+        url = self._build_administrative_url(f"{self.account_id}/environments/{env_id}")
+        res = self.send_request(endpoint=url)
+        return self._safe_get_response_data(res)
+
+    def list_environments(self):
+        url = self._build_administrative_url(f"{self.account_id}/environments/")
+        res = self.send_request(endpoint=url)
+        return self._safe_get_response_data(res)
 
     def query_dbt_run_results(self, job_id, run_id):
         query = self._build_graphql_query(
@@ -89,9 +106,7 @@ class DbtCloudApiClient:
         res = self.send_request(
             endpoint=self.metadata_api_url, method="POST", data={"query": query}
         )
-
-        if res and isinstance(res, dict):
-            return res.get("data")
+        return self._safe_get_response_data(res)
 
     def _build_graphql_query(self, resource, filters={}, requested_fields=[]):
         normalized_requested_fields = ",\n".join(requested_fields)
@@ -104,3 +119,8 @@ class DbtCloudApiClient:
 
     def _build_administrative_url(self, path):
         return urllib.parse.urljoin(self.administrative_api_url, path)
+
+    def _safe_get_response_data(self, res):
+        if res and isinstance(res, dict):
+            return res.get("data", None)
+        return None

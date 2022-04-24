@@ -46,15 +46,23 @@ class TestCollectDataFromDbtCloud:
         dbt_cloud_api_mocked_instance = dbt_cloud_api_client_mock.return_value
         run_steps = [{"index": 1}, {"index": 2}, {"index": 3}]
         run_results_res = {"test": "res"}
+        manifest_res = {"manifest": "www"}
+        env = {"env": 123}
 
         dbt_cloud_api_mocked_instance.get_run.return_value = {"run_steps": run_steps}
         dbt_cloud_api_mocked_instance.get_run_results_artifact.return_value = (
             run_results_res
         )
+        dbt_cloud_api_mocked_instance.get_manifest_artifact.return_value = manifest_res
+        dbt_cloud_api_mocked_instance.get_environment.return_value = env
         expected_steps_with_results = [
-            {**step, "run_results": run_results_res} for step in run_steps
+            {**step, "run_results": run_results_res, "manifest": manifest_res}
+            for step in run_steps
         ]
-        expected_dbt_metadata_report = {"run_steps": expected_steps_with_results}
+        expected_dbt_metadata_report = {
+            "run_steps": expected_steps_with_results,
+            "environment": env,
+        }
 
         collect_data_from_dbt_cloud(
             dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
