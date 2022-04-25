@@ -55,7 +55,8 @@ RUN set -ex && \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
     && useradd -ms /bin/bash -d ${DATABAND_USER_HOME} databand \
-    && pip install -U 'pip>=20,<20.3' 'setuptools<58' wheel apache-airflow[statsd] pytest mock \
+    && echo "install pip==21.3.1 for python 3.6" \
+    && pip install -U pip==21.3.1 'setuptools<58' wheel apache-airflow[statsd] pytest mock \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
     && apt-get clean \

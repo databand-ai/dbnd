@@ -25,7 +25,8 @@ RUN (cd /app/spark_jvm && mvn install -q)
 RUN apt-get update -y -qq && apt-get install -y -qq netcat
 
 # instrumentation:
-RUN pip install -U pytest sh pyspark tox 'pip>=20,<20.3' 'setuptools<58'
+# install pip==21.3.1 for python 3.6
+RUN pip install -U pytest sh pyspark tox pip==21.3.1 'setuptools<58'
 
 # Pre-install Airflow with correct deps
 ARG AIRFLOW_VERSION=1.10.10

@@ -3,9 +3,10 @@ FROM python:3.6-slim
 
 # MySQL dependencies:
 # https://github.com/PyMySQL/mysqlclient-python#linux
+# install pip==21.3.1 for python 3.6
 RUN apt-get update -yqq && \
     apt-get install -y python3-dev default-libmysqlclient-dev build-essential vim wget && \
-    pip install -U 'pip>=20,<20.3' mysqlclient
+    pip install -U pip==21.3.1 mysqlclient
 
 # install dbnd packages:
 COPY ./dbnd-core/dist-python/dbnd.requirements.txt \

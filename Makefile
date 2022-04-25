@@ -240,7 +240,10 @@ install-dev-without-airflow: ## Install all modules, except Airflow, in editable
 	@make __is_venv_activated
 	make __uninstall-dev
 
-	pip install -U pip pylint==2.13.5 mypy==0.942
+
+	pip install \
+		pylint==2.13.5 mypy==0.942 \
+		pip==21.3.1  # python 3.6
 
 	set -e; \
 	for m in $(prj_dbnd_run) ; do \
