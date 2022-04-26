@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_DAG_ID;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_EXECUTION_DATE;
@@ -25,6 +26,7 @@ import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_UID;
 import static ai.databand.DbndPropertyNames.DBND_PARENT_TASK_RUN_ATTEMPT_UID;
 import static ai.databand.DbndPropertyNames.DBND_PARENT_TASK_RUN_UID;
 import static ai.databand.DbndPropertyNames.DBND_ROOT_RUN_UID;
+import static ai.databand.DbndPropertyNames.DBND_TRACE_ID;
 import static ai.databand.DbndPropertyNames.DBND__CORE__DATABAND_ACCESS_TOKEN;
 import static ai.databand.DbndPropertyNames.DBND__CORE__DATABAND_URL;
 import static ai.databand.DbndPropertyNames.DBND__LOG__PREVIEW_HEAD_BYTES;
@@ -45,6 +47,7 @@ public class DbndConfig implements PropertiesSource {
     private final AirflowTaskContext afCtx;
     private final AzkabanTaskContext azkbnCtx;
     private final DatabandTaskContext dbndCtx;
+    private final String fallbackTraceId;
     private final boolean previewEnabled;
     private boolean trackingEnabled;
     private final String databandUrl;
@@ -82,6 +85,9 @@ public class DbndConfig implements PropertiesSource {
         azkbnCtx = buildAzkabanCtxFromEnv(this.props);
         dbndCtx = buildDatabandCtxFromEnv(this.props);
 
+        // used if no dbndCtx available
+        fallbackTraceId = UUID.randomUUID().toString();
+
         previewEnabled = isTrue(this.props, DBND__TRACKING__DATA_PREVIEW) || isTrue(this.props, DBND__TRACKING__LOG_VALUE_PREVIEW);
         databandUrl = this.props.getOrDefault(DBND__CORE__DATABAND_URL, "http://localhost:8080");
         // tracking should be explicitly opt int when we're not running inside Airflow
@@ -117,7 +123,8 @@ public class DbndConfig implements PropertiesSource {
             return new DatabandTaskContext(
                 env.get(DBND_ROOT_RUN_UID),
                 env.get(DBND_PARENT_TASK_RUN_UID),
-                env.get(DBND_PARENT_TASK_RUN_ATTEMPT_UID)
+                env.get(DBND_PARENT_TASK_RUN_ATTEMPT_UID),
+                env.getOrDefault(DBND_TRACE_ID, UUID.randomUUID().toString())
             );
         } else {
             return null;
@@ -189,6 +196,13 @@ public class DbndConfig implements PropertiesSource {
 
     public Optional<DatabandTaskContext> databandTaskContext() {
         return Optional.ofNullable(dbndCtx);
+    }
+
+    public String getTraceId() {
+        if (this.databandTaskContext().isPresent()) {
+            return this.databandTaskContext().get().getTraceId();
+        }
+        return fallbackTraceId;
     }
 
     public String cmd() {

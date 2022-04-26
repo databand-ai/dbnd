@@ -8,9 +8,11 @@ from dbnd._core.configuration.environ_config import (
     DBND_PARENT_TASK_RUN_UID,
     DBND_ROOT_RUN_TRACKER_URL,
     DBND_ROOT_RUN_UID,
+    DBND_TRACE_ID,
 )
 from dbnd._core.settings import CoreConfig, TrackingConfig
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
+from dbnd.utils.trace import get_tracing_id
 
 
 AIRFLOW_DBND_CONNECTION_SOURCE = "airflow_dbnd_connection"
@@ -98,6 +100,7 @@ def extend_airflow_ctx_with_dbnd_tracking_info(task_run, airflow_ctx_env):
     info[DBND_ROOT_RUN_TRACKER_URL] = task_run.run.root_run_info.root_run_url
     info[DBND_PARENT_TASK_RUN_UID] = task_run.task_run_uid
     info[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = task_run.task_run_attempt_uid
+    info[DBND_TRACE_ID] = get_tracing_id().hex
 
     core = CoreConfig.from_databand_context()
     info["DBND__CORE__DATABAND_URL"] = core.databand_url
