@@ -1,5 +1,3 @@
-rootProject.name = 'dbnd'
-
 include(
     'dbnd-api',
     'dbnd-api-deequ',
