@@ -223,15 +223,6 @@ install-dev: ## Installs Airflow + all dbnd-core modules in editable mode to the
   	make install-airflow;\
   	make install-dev-without-airflow
 
-install-dev-dbnd-run: ## Installs Airflow + all dbnd-core modules in editable mode to the active Python's site-packages.
-	make install-airflow;\
-	for m in $(prj_dev) ; do \
-		all_reqs="$$all_reqs -e $$m"; \
-		export CURRENT_DEPS=$$all_reqs; \
-	done; \
-	echo "Running all deps installation at once:";  \
-	echo pip install $$all_reqs; \
-	pip install $$all_reqs; \
 
 install-dev-without-airflow: ## Install all modules, except Airflow, in editable mode to the active Python's site-packages.
 	@make __is_venv_activated
