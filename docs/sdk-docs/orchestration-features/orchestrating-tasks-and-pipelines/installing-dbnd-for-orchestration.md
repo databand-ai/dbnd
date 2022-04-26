@@ -3,7 +3,7 @@
 ---
 # Installing DBND for Orchestration
 
-If you are looking for a tracking use-case, please check [Installing Python SDK for Tracking](doc:installing-dbnd) 
+If you are looking for a tracking use-case, please check [Installing Python SDK for Tracking](doc:installing-dbnd)
 
 From the command line, run the following command:
 ```shell
@@ -31,7 +31,7 @@ pip install databand[spark,airflow]
 
 
 ## Plugins for Orchestration
- 
+
 
 | Plugin name | Observability Mode |
 |---|---|
@@ -64,7 +64,7 @@ You will see the following log:
 [2021-01-21 10:37:55,701] INFO - Databand project has been initialized at <YOUR PATH>
 ```
 
-This command creates a project configuration file - **project.cfg**. 
+This command creates a project configuration file - **project.cfg**.
 
 You can also initialize your project folder by manually creating `project.cfg` inside any directory or setting the `DBND_HOME` environment variable. `$DBND_HOME` refers to the project root directory.
 
@@ -77,7 +77,7 @@ You can also initialize your project folder by manually creating `project.cfg` i
 
 To make sure DBND is operational and ready to be used,  run `dbnd_sanity_check` pipeline, available in the DBND package:
 
-```
+```bash
 dbnd run dbnd_sanity_check
 ```
 

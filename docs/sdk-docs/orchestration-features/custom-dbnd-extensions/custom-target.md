@@ -5,7 +5,13 @@ The goal of this example is to show how users can extend DBND and create custom 
 
 Define a custom target:
 
+<!-- xfail -->
 ```python
+from dbnd import parameter
+from targets import DirTarget
+from targets.values import TargetValueType
+
+
 class MyCustomFolder(DirTarget):
     def __init__(self, *args, **kwargs):
         super(MyCustomFolder, self).__init__(*args, **kwargs)
@@ -20,7 +26,10 @@ my_custom_target = parameter.type(TargetValueType).custom_target(
 
 A pipeline to demonstrate how we read and write such targets
 
+<!-- xfail -->
 ```python
+from dbnd import PythonTask, output, PipelineTask
+
 class TaskWithCustomOutput(PythonTask):
     custom = my_custom_target.output
 

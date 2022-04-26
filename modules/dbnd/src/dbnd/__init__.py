@@ -185,5 +185,5 @@ __doc__ = __description__ + " <" + __uri__ + ">"
 __author__ = "Evgeny Shulman"
 __email__ = "evgeny.shulman@databand.ai"
 
-__license__ = "Commercial Licenc e"
+__license__ = "OSI Approved Apache Software License"
 __copyright__ = "Copyright (c) 2018 databand.ai"

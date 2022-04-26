@@ -1,14 +1,12 @@
 ---
 "title": "Testing & Debugging"
 ---
-To make sure your functions work correctly, you need to implement unit tests. 
+To make sure your functions work correctly, you need to implement unit tests.
 We suggest that you test your DBND project by using the Pytest framework.
 
 ## Quickstart
 To make Databand bootstrap with the right test configuration, database settings, fixtures, etc., configure the `conftest.py` as follows:
 ```python
-import pytest
-
 from dbnd.testing.test_config_setter import add_test_configuration
 
 
@@ -27,12 +25,16 @@ Testing DBND is a straightforward process:
 
 
 * You can use `dbnd_run()` to run your tasks with the requested variables, for example:
+<!-- xfail -->
 ```python
 alpha = calculate_alpha.dbnd_run(task_env="local", task_version="now")
 ```
 
 * You can also use `dbnd_run_cmd()` to run `dbnd` with cmd parameters, for example:
+<!-- xfail -->
 ```python
+from dbnd import dbnd_run_cmd
+
 alpha = dbnd_run_cmd(["calculate_alpha", "-r alpha=0.4"])
 ```
 
@@ -40,6 +42,10 @@ alpha = dbnd_run_cmd(["calculate_alpha", "-r alpha=0.4"])
 To make sure that an exception has been thrown from your Databand process, you can use `run_locally__raises`.
 
 ```python
+from dbnd.testing.helpers_pytest import run_locally__raises
+from dbnd._core.errors import DatabandRunError
+
+
 def test_cli_raises_ex(self):
     run_locally__raises(
         DatabandRunError,
@@ -49,22 +55,21 @@ def test_cli_raises_ex(self):
     )
 ```
 
-## Databand Test Plugins 
+## Databand Test Plugins
 ### Setting Up Root for Testing
 
 To set up a temporary Root and make sure that every test runs in its own folder (no data caching):
 ```python
-import pytest
-from dbnd.testing.test_config_setter import add_test_configuration
-
 pytest_plugins = [
-    "dbnd.testing.pytest_dbnd_plugin", 
+    "dbnd.testing.pytest_dbnd_plugin",
 ]
 ```
 
 ### Autoload Test Configuration
 In order to load your test configuration for Databand automatically before every test, edit your `conftest.py`:
-```python   
+```python
+from dbnd.testing.test_config_setter import add_test_configuration
+
 def pytest_configure(config):
     add_test_configuration(__file__)
 ```
@@ -102,22 +107,22 @@ You also configure your `local` environment for Spark to be run, and your `aws_t
 
 
 ## Debugging with Remote PyCharm Debugger:
-1. Set up a Python debug server in your PyCharm. Follow [this link](https://www.jetbrains.com/help/pycharm/remote-debugging-with-product.html#remote-debug-config) for the detailed instructions. 
+1. Set up a Python debug server in your PyCharm. Follow [this link](https://www.jetbrains.com/help/pycharm/remote-debugging-with-product.html#remote-debug-config) for the detailed instructions.
 2. In PyCharm, set the host to `localhost` and the port to your arbitrary port in the range of 1024 to 65535.
-3. Install the relevant version of `pydevd_pycharm` with pip. PyCharm will tell you the current version number. 
+3. Install the relevant version of `pydevd_pycharm` with pip. PyCharm will tell you the current version number.
 
     `pip install pydevd-pycharm~=<version of PyCharm on the local machine>`
-    
+
     for example, `pip install pydevd-pycharm~=191.3490`
 
 4. Set this configuration `debug_pydevd_pycharm_port` in the `run` section to the same port you chose in Step 2.
 
     The port can be set using the env variable:
-    
+
     `export DBND__RUN__DEBUG_PYDEVD_PYCHARM_PORT=<the wanted port>`
-    
+
     Or on the execution:
-    
+
     `dbnd run dbnd_sanity_check --set-config run.debug_pydevd_pycharm_port=<the wanted port>`
 
 5. Once you run the pipeline, the debugger should catch the run right before the `driver task` executes.

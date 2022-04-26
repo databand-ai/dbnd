@@ -45,7 +45,9 @@ It’s crucial that you wrap only operation-related code in the `dataset_op_logg
 
 **Good Example:**
 <!-- xfail -->
-``` python
+```python
+from dbnd import dataset_op_logger
+
 with dataset_op_logger("file://path/to/value.csv", "read") as logger:
     value = read_from()
     logger.set(data=value)
@@ -56,7 +58,9 @@ unrelated_func()
 
 **Bad Example:**
 <!-- xfail -->
-``` python
+```python
+from dbnd import dataset_op_logger
+
 with dataset_op_logger("file://path/to/value.csv", "read") as logger:
     value = read_from()
     logger.set(data=value)
@@ -78,11 +82,16 @@ Histograms for the columns of your datasets can be logged using the dataset logg
 
 <!-- xfail -->
 ```python
+from dbnd import log_dataset_op
+from dbnd._core.constants import DbndDatasetOperationType
+
+
 log_dataset_op("location://path/to/value.csv", DbndDatasetOperationType.read,
                data=pandas_data_frame,
-               with_preview=True,
-               with_schema=True)
+               with_histograms=True)
 ```
+
+ Enable Databand to log and display histograms in config. To do this, set the `[tracking]/log_histograms` flag to `true`. For more information about these options, see [SDK Configuration](doc:dbnd-sdk-configuration).
 
 ## Descriptive Statistics Reporting
 While histograms calculation may seriously impact your pipeline performance, descriptive statistics can be calculated much faster. This calculation is enabled by default. To disable descriptive stats reporting, use `with_stats=False`. Statistics are calculated only for numeric and string columns. Following metrics are reported: `min`, `max`, `records_count`, `mean`, `stddev`, `null_count` and quartiles — 25%, 50%, 75%.
@@ -93,7 +102,7 @@ Descriptive statistics calculation supported for both Pandas and Spark DataFrame
 
 ### Dataset as List of Dictionaries (`List[Dict]`)
 When fetching data from an external API, you will often get data in the following form:
-``` python
+```python
 data = [
   {
     "Name": "Name 1",
@@ -110,7 +119,10 @@ data = [
 ```
 
 Providing this list of dictionaries as the data argument for the dataset logging function will allow you to report its schema and its volume:
-``` python
+<!-- xfail -->
+```python
+from dbnd import dataset_op_logger
+
 with dataset_op_logger("http://some/api/response.json", "read"):
     logger.set(data=data)
 ```

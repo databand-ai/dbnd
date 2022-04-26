@@ -1,7 +1,16 @@
 ---
 "title": "Custom Marshaller"
 ---
-This example shows how to write data in a custom file format or to reuse some known format. Here, we want to add support for marshalling SizedMessage into joblib object with `z` file extension.
+You can extend the existing Marshaller with new formats.
+```python
+import pyspark
+from dbnd_spark.spark_targets import SparkMarshaller
+from targets.marshalling import register_marshaller
+
+register_marshaller(pyspark.sql.DataFrame, "avro", SparkMarshaller(fmt="avro"))
+```
+
+This example shows how to write data in a custom file format or to reuse some known format. Here, we want to add support for marshaling SizedMessage into `joblib` object with `z` file extension.
 
 We need to register:
 1. The file extension.
@@ -9,7 +18,7 @@ We need to register:
 
 ```python
 """
-This is a way to add another format to serialize/deserialize SizedMessage example object
+This is a way to add another format to serialize/deserialize the SizedMessage example object
 """
 import logging
 

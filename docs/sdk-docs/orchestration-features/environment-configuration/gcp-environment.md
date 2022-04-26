@@ -8,10 +8,11 @@ You must have the `dbnd-gcp` plugin installed.
 1. Open the **project.cfg** file, and add `gcp` to the list of environments.
 ```ini
 [core]
-environments = ['local', 'gcp']```
+environments = ['local', 'gcp']
+```
 
 2. In the` [gcp]` section, set your Airflow connection ID, and optionally provide the root bucket/folder for your metadata store.
-```ini 
+```ini
 [gcp]
 root = gs://databand_examples
 conn_id =google_cloud_default

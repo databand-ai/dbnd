@@ -36,16 +36,19 @@ with psycopg2.connect(
 To log the results of your query with Databand, you should run all your SQL queries in the context of  `RedshiftTracker`:
 <!-- noqa -->
 ```python
-from dbnd_redshift import RedshiftTracker
+from dbnd_redshift import RedshiftTracker, RedshiftTrackerConfig
 
-with RedshiftTracker():
+with RedshiftTracker(conf=RedshiftTrackerConfig(
+                with_preview=True,
+                with_stats=True,
+                with_schema=True
+            )):
         ...
         c.execute(SQL_QUERY)
         ...
 ```
 
-Under the hood, RedshiftTracker will catch the execution of c.execute(SQL_QUERY). Only one query execution should be provided for each RedshiftTracker context.
-
+Under the hood, `RedshiftTracker` will catch the execution of c.execute(SQL_QUERY). Only one query execution should be provided for each RedshiftTracker context.
 
 ## COPY INTO Command
 Databand can track "COPY INTO" command. This will allow you to track both the read operation of your file from S3 as well as the write operation to DB.PUBLIC.TABLE in Redshift.
@@ -53,12 +56,16 @@ Databand can track "COPY INTO" command. This will allow you to track both the re
 ![](https://files.readme.io/25cf459-Screen_Shot_2022-01-10_at_14.13.15.png)
 
 Current COPY INTO Limitations are:
-1. Schema tracking is only supported for tables, not files.
-2. Nested queries are not supported (e.g.: COPY (SELECT * FROM TABLE) table FROM...).
+1. Nested queries are not supported (e.g.: COPY (SELECT * FROM TABLE) table FROM...).
 
 
 ## Tracking Schema and Column Statistics with RedshiftTracker
-To track the schema and column level statistics of the copied data, users can provide a DataFrame to RedshiftTracker. Providing the tracker with a DataFrame will result in loading it into memory, which might have a performance impact with large DataFrames. In these cases it is advised to read a small portion of the DataFrame by using the `nrows` param as seen in the example below.
+`ֿRedshiftTracker` will track schema by default, in order to enable also column level stats pass with_stats=True in `RedshiftTrackerConfiguration`, to also see preview of the data pass with_preview=True.
+
+
+Another option for tracking the schema and column level statistics of the copied data, users can provide a `DataFrame` to `RedshiftTracker`. Providing the tracker with a `DataFrame` will result in loading it into memory, which might have a performance impact with large DataFrames. In these cases it is advised to read a small portion of the `DataFrame` by using the `nrows` param as seen in the example below.
+
+Providing `DataFrame` will override schema extraction and column level stats calculated from the query.
 
 <!-- noqa -->
 ```python
@@ -72,3 +79,10 @@ with RedshiftTracker() as tracker:
         c.execute(SQL_QUERY)
         ...
 ```
+[block:callout]
+{
+  "type": "info",
+  "title": "RedshiftTracker config",
+  "body": "When using `with_stats=True`, `with_schema` is explicitly set to true and ignores the configured value, this is because there is no column level stats without schema extraction."
+}
+[/block]

@@ -14,12 +14,14 @@ $dbnd run --help
 The `run` command is used to run DBND tasks and pipelines from the command line. Run specific and global configuration parameters can also be set from the command line.
 
 ```python
+from dbnd import task
+
 @task
 def prepare_data(data: str) -> str:
     return data
 ```
 
-```bash 
+```bash
 $dbnd run prepare_data
 ```
 
@@ -31,8 +33,8 @@ It is possible to run tasks in a pipeline in parallel with the help of `local_pa
 
 
 Example:
-```
-dbnd run predict_wine_quality  --task-version now --parallel
+```bash
+dbnd run calculate_alpha --task-version now --parallel
 ```
 
 

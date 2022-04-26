@@ -19,7 +19,7 @@ To fully integrate Databand with your Airflow environment:
      * Create  `databand_airflow_monitor` DAG in Airflow.  Please create a new file `databand_airflow_monitor.py` with the following dag definition and add it to your project DAGs.
      * Deploy your new DAG and enable it in Airflow UI.
 
-<!-- noqa -->
+
 ```python
 # databand_airflow_monitor.py
 from airflow_monitor.monitor_as_dag import get_monitor_dag

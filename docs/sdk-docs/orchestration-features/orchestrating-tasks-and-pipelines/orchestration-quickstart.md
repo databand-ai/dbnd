@@ -39,7 +39,7 @@ dbnd run example.calculate_alpha
 * You will see a similar snippet near the bottom of the command line output:
 
 ```
-PARAMS:    : 
+PARAMS:    :
 Name    Kind    Type    Format    Source    -= Value =-
 alpha   param   float             default    0.5
 result  output  float   .pickle              /Users/name/databand/data/dev/2021-08-02/calculate_alpha/calculate_alpha_d869b45637/result.txt :='0.6'
@@ -93,18 +93,19 @@ Task 4: **Model Validation** - testing the model with test data to create perfor
 In addition to these four tasks, the workflow includes two input parameters that have been hardcoded.
 
 ```python
-import pandas as pd
+import pandas
 import numpy as np
 import logging
 from sklearn.linear_model import ElasticNet
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from dbnd_examples.data import data_repo
 
 logging.basicConfig(level=logging.INFO)
 
 def training_script():
     # load data
-    raw_data = pd.read_csv(data_repo.wines)
+    raw_data = pandas.read_csv(data_repo.wines)
 
     # split data into training and validation sets
     train_df, validation_df = train_test_split(raw_data)

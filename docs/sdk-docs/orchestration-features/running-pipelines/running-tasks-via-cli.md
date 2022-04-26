@@ -7,7 +7,7 @@ To run any command in DBND, use the following command pattern:
 To list the available DBND commands, run `dbnd --help`.
 To display arguments for any DBND command, use the `--help` argument.
 
-## Orchestration CLI Reference  
+## Orchestration CLI Reference
 
 | Command | Description |
 |---|---|
@@ -25,7 +25,7 @@ To display arguments for any DBND command, use the `--help` argument.
 |---|---|---|
 | -s, --set | Sets a configuration value | --set task_name.task_parameter=value |
 | --set-config | Sets a configuration value (key=value) |  |
-| -r, --set-root | Sets a main task parameter value without specifying task name. Allows to override specific parameters. | `dbnd run predict_wine_quality --set-root alpha=5`   In this example, **alpha** is overridden. |
+| -r, --set-root | Sets a main task parameter value without specifying task name. Allows to override specific parameters. | `dbnd run calculate_alpha --set-root alpha=0.5`   In this example, **alpha** is overridden. |
 | -o, --override | Overrides a configuration value (key=value). Has higher priority than any config source. |  |
 | --conf | Defines a list of files to read from. |  |
 | -m, --module | [Loads modules dynamically](doc:unpublished-cli-commands-reference). Allows to add a path of a module where DBND can search for tasks/pipelines. | `dbnd run dbnd_sanity_check --module /path/to/module.py` |

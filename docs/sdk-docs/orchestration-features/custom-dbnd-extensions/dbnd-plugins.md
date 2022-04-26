@@ -12,7 +12,7 @@ DBND uses the `pluggy` library to load plugins during the bootstrap phase, which
 
 ## Making Plugins Work with DBND
 
-There are two ways to make DBND to use your plugins: 
+There are two ways to make DBND to use your plugins:
 
 **Via dbnd configuration:**
 You can set the `plugins` config in the `core` section to your list of modules (separated by comma).
@@ -20,7 +20,7 @@ DBND will try to import each module and load it.
 
 For example:
 
-```python
+```
 [core]
 plugins = my_plugin._plugin
 ```
@@ -40,6 +40,8 @@ You need to place your setup code in your *_plugin.py* file.
 Your package source should contain the following function:
 
 ```python
+import dbnd
+
 @dbnd.hookimpl
 def dbnd_setup_plugin():
    pass
@@ -50,7 +52,11 @@ To change the order in which your plugin is called relatively to other plugins, 
 For example:
 
 ```python
+import dbnd
+
 @dbnd.hookimpl(trylast=True)
+def dbnd_setup_plugin():
+    pass
 ```
 
 **Useful functions to call in dbnd_setup_plugin:**

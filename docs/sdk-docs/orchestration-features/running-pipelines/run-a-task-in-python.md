@@ -1,7 +1,7 @@
 ---
 "title": "Run a Task in Python"
 ---
-We want DBND to fit your preferred way of doing work, regardless of the hardware or the IDE you are using to develop your code. 
+We want DBND to fit your preferred way of doing work, regardless of the hardware or the IDE you are using to develop your code.
 
 You can use DBND within tools like [Jupyter Notebook](https://jupyter.org), [IPython](https://ipython.org), [PyCharm](https://www.jetbrains.com/pycharm/), or simply from a Python script.
 
@@ -9,6 +9,8 @@ You can use DBND within tools like [Jupyter Notebook](https://jupyter.org), [IPy
 
 If you want to trigger your execution programmatically as part of a broader Python process, you can define a DBND run using a simple python code:
 ```python
+from dbnd import task, PythonTask, parameter, output
+
 @task
 def calculate_alpha(alpha = 0.5):
     return alpha

@@ -10,6 +10,8 @@ To enable these options, set  the `with_histogram` and `with_stats` parameters t
 
 <!-- xfail -->
 ```python
+from dbnd import log_dataframe
+
 log_dataframe("key",
               data=pandas_df,
               with_stats=True,
@@ -33,7 +35,10 @@ The `LogDataRequest` - can be use for more flexible options, such as calculating
 
 Here is an example of using the `LogDataRequest`:
 
-``` python
+<!-- xfail -->
+```python
+from dbnd import log_dataframe, LogDataRequest
+
 log_dataframe("customers_data", data,
                   with_histograms=LogDataRequest(include_all_numeric=True,
                                                    exclude_columns=["name", "phone"]))
@@ -51,27 +56,13 @@ Alternatively, you can use the following helper methods:
 
 ## Enabling Histograms for Python Functions Tracking
 
-There are two options to enable histograms logging:
-
-1. Enable Databand to log and display histograms in config. To do this, set the `[tracking]/log_histograms` and `[features_flags]/ui_histograms`  flags to `true`. For more information about these options, see [SDK Configuration](doc:dbnd-sdk-configuration).
-
-2. Enable histogram tracking in individual tasks. You can do this by using one of the following methods:
+ Enable histogram tracking in individual tasks. You can do this by using one of the following methods:
   * Add a decorator with histogram tracking enabled to your task functions:
 `@task (<parameter name>=parameter[DataFrame](log_histograms=True)` for task input or `@task(result=output.prod_immutable[DataFrame](log_histograms=True))` for task output.
 
   * Add the following line to your task code:
 `log_dataframe (with_histograms=True)`
 
-## Optimizing Histograms on Spark
-When calling `log_dataframe` with a dataframe that is not optimized for histogram calculation (e.g., read from CSV and not cached), we recommend setting `spark_parquet_cache_dir`, which will save the dataframe to a temporary parquet file and use it to calculate histograms.
-
-Another option is to cache the dataframe by setting `spark_cache_dataframe=True` which can improve performance if the dataframe fits in memory.
-
-```
-[histogram]
-spark_parquet_cache_dir = "hdfs://tmp/"
-spark_cache_dataframe = False
-```
 [block:html]
 {
   "html": "<style>\n  pre {\n      border: 0.2px solid #ddd;\n      border-left: 3px solid #c796ff;\n      color: #0061a6;\n  }\n\n.CodeTabs_initial{\n  /* box shadows with with legacy browser support - just in case */\n    -webkit-box-shadow: 0 10px 6px -6px #777; /* for Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */\n     -moz-box-shadow: 0 10px 6px -6px #777; /* for Firefox 3.5 - 3.6 */\n          box-shadow: 0 10px 6px -6px #777;/* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */\n  }\n</style>"

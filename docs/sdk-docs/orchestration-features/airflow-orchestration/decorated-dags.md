@@ -8,6 +8,7 @@ Fully tested on Airflow 1.10.X.
 ## Code Example
 Here is an example of how you achieve your goal:
 
+<!-- noqa -->
 ```python
 import logging
 
@@ -17,7 +18,6 @@ from typing import Tuple
 import airflow
 
 from airflow import DAG
-from airflow.models import TaskInstance
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 
@@ -89,6 +89,9 @@ Using this method to pass arguments between tasks improves the user experience a
 Let's look at the same example, but change the `default_args` defined at the very top:
 
 ```python
+from datetime import timedelta
+from airflow.utils.dates import days_ago
+
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -110,14 +113,16 @@ To see the further possibilities of changing configuration settings, see [Object
 ## Jinja Templating
 Airflow uses Jinja templates to pass macros to tasks. Jinja templates also work natively in DBND Airflow operator. To prevent errors, it is also possible to disable Jinja templates in DBND. Let's look at the following example:
 
-<!-- noqa -->
+<!-- xfail -->
 ```python
+from dbnd import pipeline
 from airflow import DAG
+
 @pipeline
 def current_date(p_date=None):
     return p_date
 
-with DAG(dag_id=f"current_date_dag", default_args=default_args) as dag:
+with DAG(dag_id="current_date_dag", default_args=default_args) as dag:
     current_date(p_date="{{ ts }}")
 ```
 
@@ -126,14 +131,16 @@ with DAG(dag_id=f"current_date_dag", default_args=default_args) as dag:
 
 The Airflow macro `{{ ts }}` marks the timestamp for execution. If we wanted to pass the actual literal argument `{{ ts }}`, we would have to disable Jinja templating for this parameter, as demonstrated:
 
-<!-- noqa -->
+<!-- xfail -->
 ```python
 from airflow import DAG
+from dbnd import parameter, pipeline
+
 @pipeline
 def current_date(p_date=parameter[str].disable_jinja_templating):
     return p_date
 
-with DAG(dag_id=f"current_date_dag", default_args=default_args) as dag:
+with DAG(dag_id="current_date_dag", default_args=default_args) as dag:
     current_date(p_date="{{ ts }}")
 ```
 
@@ -146,7 +153,7 @@ You can use the `task_airflow_op_kwargs`  to pass any BaseOperator parameters, s
 
 See the following example:
 
-<!-- noqa -->
+<!-- xfail -->
 ```python
 from airflow import DAG
 airflow_op_kwargs = {"priority_weight": 50}

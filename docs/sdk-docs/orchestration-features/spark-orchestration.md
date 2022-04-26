@@ -25,13 +25,11 @@ The example below shows a word count Spark function wrapped with a DBND decorato
 
 ```python
 import pyspark.sql as spark
-from dbnd import output, parameter
 from dbnd_spark.spark import spark_task
 
 @spark_task
 def prepare_data_spark(text: spark.DataFrame)->spark.DataFrame:
     from operator import add
-    from dbnd_spark.spark import get_spark_session
 
     lines = text.rdd.map(lambda r: r[0])
     counts = (
@@ -39,7 +37,7 @@ def prepare_data_spark(text: spark.DataFrame)->spark.DataFrame:
     )
 
     return  counts
-``` 
+```
 
 This task will run on a Spark cluster (the local Spark installation by default) and return a DataFrame with the word index.
 
@@ -49,12 +47,15 @@ To run this task on DBND:
 
 ```shell
 dbnd run prepare_data_spark --set text=<some file>
-``` 
+```
 
 ## PySpark Task
-Another common option is to run an existing PySpark script using DBND. To do this, specify the name of the script and define input/output parameters: 
+Another common option is to run an existing PySpark script using DBND. To do this, specify the name of the script and define input/output parameters:
 
+<!-- xfail -->
 ```python
+from dbnd import output, parameter
+from dbnd_spark import PySparkTask
 class PrepareDataPySparkTask(PySparkTask):
     text = parameter.data
     counters = output
@@ -68,9 +69,12 @@ class PrepareDataPySparkTask(PySparkTask):
 In the example above, you can see the `python_script` points to the Python Spark code, while `application_args` is a list of command-line arguments passed to the script.
 
 ## JVM Spark Task
-To run a Spark job implemented with Java/Scala, provide the name of the JAR and the name of the main class to be used by `spark_submit`:  
+To run a Spark job implemented with Java/Scala, provide the name of the JAR and the name of the main class to be used by `spark_submit`:
 
 ```python
+from dbnd import output, parameter
+from dbnd_spark import SparkTask, SparkConfig
+
 class PrepareDataSparkTask(SparkTask):
     text = parameter.data
     counters = output

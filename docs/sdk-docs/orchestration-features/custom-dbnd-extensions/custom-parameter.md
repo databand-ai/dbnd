@@ -4,6 +4,12 @@
 Implement and register FeatureStore as custom DataValueType.
 
 ```python
+import attr
+from targets.values.builtins_values import DataValueType
+from pandas import DataFrame
+from dbnd import parameter
+from dbnd._core.parameter import register_custom_parameter
+
 @attr.s
 class FeatureStore(object):
     features = attr.ib()  # type: DataFrame
@@ -30,12 +36,16 @@ FeatureStoreParameter = register_custom_parameter(
 ```
 
 Now, we can use ```FeatureStore``` within a pipeline:
+Decorators:
+<!-- xfail -->
+```python
+from dbnd import task, pipeline
+from pandas import DataFrame
 
-```python decorators
 @task(result=FeatureStoreParameter.output)
 def create_feature_store(ratio=1):
-    features = pd.DataFrame(data=[[ratio, 2], [2, 3]], columns=["Names", "Births"])
-    targets = pd.DataFrame(data=[[1, 22], [2, 33]], columns=["Names", "Class"])
+    features = DataFrame(data=[[ratio, 2], [2, 3]], columns=["Names", "Births"])
+    targets = DataFrame(data=[[1, 22], [2, 33]], columns=["Names", "Class"])
     return FeatureStore(features=features, targets=targets)
 
 
@@ -62,7 +72,14 @@ def calculate_features(ratio):
     return advance_features, store_validation
 
 ```
-```python classes
+
+Classes:
+<!-- xfail -->
+```python
+from dbnd import PythonTask, output, log_dataframe, pipeline
+from pandas import DataFrame
+
+
 class CreateFeatureStoreViaClass(PythonTask):
     store = FeatureStoreParameter.output
 

@@ -3,13 +3,13 @@
 ---
 Custom value types are used as parameters for tasks. They can be parsed from configuration files or the command line and then used in code.
 
-## Supporting advanced DataFrames  
+## Supporting advanced DataFrames
 You can enable support for other dataframe types by implementing a  new`DataFrameValueType` and registering it with `dbnd`.
 
 For example, you might want to log a Koalas dataframe. Koalas implements the pandas API on top of Spark.
- 
+
 In order to support Koalas, copy the code snippet below, and make sure it is running when your system is starting up:
-```
+```python
 import databricks.koalas as ks
 
 from targets.values import DataFrameValueType, register_value_type
@@ -28,6 +28,7 @@ Please notice that Koala implements Panadas API ,so base class `DataFrameValueTy
 ## To Define a Custom Value Type
 
 ```python
+from targets.values import ValueType, register_value_type
 # This is a custom object we want to use as a parameter in tasks
 class MyCustomObject(object):
     def __init__(self, custom):
@@ -51,9 +52,12 @@ register_value_type(_MyCustomObjectValueType())
 
 
 
-## To Use a Custom Value Type at Task definition [Task Class](doc:task-definitions-as-a-class) 
+## To Use a Custom Value Type at Task definition [Task Class](doc:task-definitions-as-a-class)
 
+<!-- xfail -->
 ```python
+from typing import List, Set, Dict
+from dbnd import PythonTask, parameter, output
 class TaskWithCustomValue(PythonTask):
     custom_value = parameter.type(_MyCustomObjectValueType)
     list_of_customs = parameter.sub_type(_MyCustomObjectValueType)[List]

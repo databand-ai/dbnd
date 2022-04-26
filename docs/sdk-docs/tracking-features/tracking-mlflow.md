@@ -1,7 +1,7 @@
 ---
 "title": "Tracking MLFlow"
 ---
-If you use [MLFlow](https://github.com/mlflow/mlflow), you can duplicate Databand metrics to the MLFlow store and maintain data in the MLFlow system as well. 
+If you use [MLFlow](https://github.com/mlflow/mlflow), you can duplicate Databand metrics to the MLFlow store and maintain data in the MLFlow system as well.
 
 ## To Integrate MLFlow with Databand
 
@@ -11,7 +11,7 @@ If you use [MLFlow](https://github.com/mlflow/mlflow), you can duplicate Databan
 pip install databand[mlflow]
 ```
 
-2. Add the following configuration to your [SDK Configuration](doc:dbnd-sdk-configuration) 
+2. Add the following configuration to your [SDK Configuration](doc:dbnd-sdk-configuration)
 
 ```ini
 
@@ -23,7 +23,7 @@ databand_tracking=True
 duplicate_tracking_to=http://mlflow-store/
 ```
 
- 
+
 
 ## Task Example
 
@@ -33,6 +33,7 @@ The following example code shows how the logging works.
 from dbnd import task
 from mlflow import start_run, end_run
 from mlflow import log_metric, log_param
+from random import random, randint
 
 @task
 def mlflow_example():
@@ -47,7 +48,7 @@ def mlflow_example():
 ```
 
 ## Execution Flow
-When you run `dbnd run mlflow_example`, the following happens in the backend: 
+When you run `dbnd run mlflow_example`, the following happens in the backend:
 1. Databand creates a new DBND context
 2. `dbnd_on_pre_init_context` hook from `dbnd_mlflow` is triggered
 3. A new URI is computed to be used by mlflow
@@ -55,7 +56,7 @@ For example: `dbnd://localhost:8081?duplicate_tracking_to=http%253A%252F%252Fmlf
 4. The new URI is set to be used with `mlflow.set_tracking_uri()`
 5. `mlflow_example` task starts:
 6. `mlflow.start_run()`
-7. `mlflow` reads `entry_points` for each installed package and finds: 
+7. `mlflow` reads `entry_points` for each installed package and finds:
   ```
   "dbnd = dbnd_mlflow.tracking_store:get_dbnd_store",
   "dbnd+s = dbnd_mlflow.tracking_store:get_dbnd_store",

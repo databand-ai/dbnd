@@ -26,7 +26,7 @@ The target (`target`) is a quantitative measurement of disease progression one y
 Note that in this dataset, each of the ten feature variables has been mean centered and scaled by the standard deviation times `n_samples` (i.e., the sum of squares of each column totals `1`).
 
 First, load this dataset, then split it into a training set and testing set for our model:
-``` python
+```python
 # Python 3.6.8
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
@@ -50,7 +50,7 @@ def prepare_data() -> Tuple[DataFrame, DataFrame]:
 As is, there is no good method to quickly understand this data. Are there biases in the data? What is the statistical composition? To answer these questions, you can track statistics, metadata, and visualize your data composition with DBND logging.
 
 ## Integrating DataFrame Tracking
-``` python
+```python
 # Python 3.6.8
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
@@ -93,15 +93,12 @@ See also [Tracking Histograms](doc:histogram) for more customization options.
 `log_metric` allows logging meaningful metrics of our data. For example, if you want to find the mean of the `s1` column, you can add `log_metric("mean s1", training_data['s1'].mean())`. `log_metric` can also be used to log larger data structures, such as a `numpy` array or Pandas `Series`.
 # Step 2. Training a Model and Tracking Metrics
 Now that the data is ready, you can start to train and test a `LinearRegression` model to predict patient disease progression.
-``` python
+```python
 # Python 3.6.8
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-from pandas import DataFrame, Series
+from pandas import DataFrame
 import logging
 from typing import Tuple
-from dbnd import log_dataframe
 from sklearn.linear_model import LinearRegression
 
 logging.basicConfig(level=logging.INFO)
@@ -133,7 +130,7 @@ def test_model(model: LinearRegression, testing_data:DataFrame) -> str:
 For an ML workflow like this, it's good practice to log our model's performance metrics. In addition, it is helpful to log important attributes of our model. For example, in a `LinearRegression` model you may want to evaluate the coefficients and intercept of the model and/or log them.
 
 ## Tracking More Metrics
-``` python
+```python
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error

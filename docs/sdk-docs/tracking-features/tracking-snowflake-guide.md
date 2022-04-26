@@ -71,3 +71,19 @@ Under the hood, `SnowflakeTracker` will catch the execution of `c.execute(SQL_QU
 - Schema tracking is only supported for tables, not files.
 - Only one query execution should be provided for each `SnowflakerTracker` context.
 - Nested queries are not supported (e.g.: `COPY INTO (SELECT * FROM TABLE) table FROM...`).
+
+
+# 3. Nested queries for read operations.
+
+Snowflake tracker supports nested queries for read operations.
+
+Example:
+```sql
+`copy into dband_poc from ( SELECT $1:dt::date , $1:acount::varchar from @dband_poc/dt=20220316/);`
+
+```
+
+##Limitations:
+
+- Only select nested queries are supported
+- Join operations are not supported

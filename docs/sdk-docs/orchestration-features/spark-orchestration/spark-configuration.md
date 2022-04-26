@@ -4,14 +4,14 @@
 Every Spark task has a `spark_engine` parameter that controls what Spark engine is used and a `spark_config` parameter that controls generic Spark configuration.
 
 You can set global values for all spark tasks in the pipeline using your [environment configuration](doc:environment-configuration)
- 
-For example,  the `local` environment uses local `spark_submit` by default, while the `aws` environment uses `emr`. 
+
+For example,  the `local` environment uses local `spark_submit` by default, while the `aws` environment uses `emr`.
 You can override the default `spark_engine` as a configuration setting or for any given run of the Spark task/pipeline
 
 
 ## Configure DBND Spark Engine
 >ℹ️ Note
-> To use remote Spark engines, you must have `dbnd-airflow` installed. 
+> To use remote Spark engines, you must have `dbnd-airflow` installed.
 To install `dbnd-airflow`, run `pip install dbnd-airflow`.
 
 DBND supports the following Spark Engines:
@@ -22,12 +22,12 @@ DBND supports the following Spark Engines:
 * [Qubole](https://www.qubole.com/)
 * Any Spark server via [Apache Livy](https://livy.incubator.apache.org/) (ie. Cloudera)
 
-  
+
 ## Configuring Spark Configuration
 
-Regardless of the engine type, numerous parameters are used to control the submission of a Spark job as described [here](https://spark.apache.org/docs/latest/submitting-applications.html). The most common parameters include an amount of memory/CPU per job, or additional JAR/EGG files. Each spark task has a `SparkConfig` object associated with it. You can change these parameters using the ```SparkConfig``` object. 
+Regardless of the engine type, numerous parameters are used to control the submission of a Spark job as described [here](https://spark.apache.org/docs/latest/submitting-applications.html). The most common parameters include an amount of memory/CPU per job, or additional JAR/EGG files. Each spark task has a `SparkConfig` object associated with it. You can change these parameters using the ```SparkConfig``` object.
 
-  
+
 The `SparkConfig` object can be mutated in the following ways:
 
 1. Adding values into a configuration file under `[spark]` section. This would affect all running spark tasks:
@@ -41,7 +41,11 @@ driver_memory = 2.5g
 
 2. Override config value as part of the task definition:
 
-``` python
+<!-- noqa -->
+```python
+from dbnd_spark import SparkTask, SparkConfig
+from dbnd import parameter, output
+
 class PrepareData(SparkTask):
     text = parameter.data
     counters = output
@@ -52,14 +56,14 @@ class PrepareData(SparkTask):
 
     def application_args(self):
         return [self.text, self.counters]
-``` 
+```
 
 3. From command-line:
 
 ``` bash
 dbnd run PrepareData --set spark.executor_memory 2.5g  --extend spark.conf={"spark.driver.memoryOverhead": "4G"}
 ```
- 
+
 | Parameter | Description |
 |---|---|
 |      spark.main_jar     |      Main application jar     |
@@ -84,7 +88,7 @@ dbnd run PrepareData --set spark.executor_memory 2.5g  --extend spark.conf={"spa
 
 
 
-To override specific task configuration, use `--set TASK_NAME.task_config="{ 'spark' { 'PARAMETER' : VALUE}}" `. For example: 
+To override specific task configuration, use `--set TASK_NAME.task_config="{ 'spark' { 'PARAMETER' : VALUE}}" `. For example:
 ```
 --set  PrepareData.task_config="{ 'spark' : {'num_executors' : 5} }"
 ```
@@ -93,8 +97,8 @@ Alternatively, you can also edit configuration from inside your code, or use env
 
 
 ### Q: Is it possible to edit `py_files` from CLI, without editing the project.cfg? Which environment variables can I set to change this configuration?
-A: You can always run set specific configuration for each run: 
+A: You can always run set specific configuration for each run:
 `dbnd run ….. --set spark.py_files=s3://…`
 
-### Q: How to use multiple clusters in the same pipeline? 
+### Q: How to use multiple clusters in the same pipeline?
 A: You can change the configuration of the specific task via. `--set prepare_data.spark_engine=another_engine`. Make sure you have a definition of the engine.  You can also change task_config of some pipeline, so all internal tasks will have specific `spark_engine`. For example   --set prepare_data.task_config="{ 'some_qubole_engine' : {'cluster_label' : "another_label"} }"

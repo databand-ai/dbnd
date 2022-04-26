@@ -1,7 +1,7 @@
 ---
 "title": "Introduction to Configuration"
 ---
-DBND configuration system provides fine-grained control over your executions. 
+DBND configuration system provides fine-grained control over your executions.
 The DBND configuration is built in layers. You can augment and change the configuration for every task by adding new configuration layers of your own.
 
 Metadata specified in a higher configuration layer is overridden with the configuration specified in a lower layer:
@@ -19,6 +19,8 @@ Metadata specified in a higher configuration layer is overridden with the config
 
 # Example:
 ```python
+from dbnd import task
+
 @task
 def calculate_alpha(alpha=0.5, beta=0.1):
     return alpha
@@ -49,5 +51,5 @@ alpha = 2
 beta = 2
 ```
 
-The value of the `beta` during execution is going to be  `2`. The configuration is given in the `project.cfg` file supersedes the task's default value, and hence overrides `beta`. 
+The value of the `beta` during execution is going to be  `2`. The configuration is given in the `project.cfg` file supersedes the task's default value, and hence overrides `beta`.
 However, `alpha` is going to stay `4` as the constructor has a higher priority.

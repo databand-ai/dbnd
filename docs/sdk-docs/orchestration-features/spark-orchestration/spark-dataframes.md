@@ -1,11 +1,11 @@
 ---
 "title": "Spark Input and Outputs (DataFrame)"
 ---
-Spark inline tasks load spark DataFrames automatically by providing the right configuration to Spark DataFrameReader/Writer objects. 
+Spark inline tasks load spark DataFrames automatically by providing the right configuration to Spark DataFrameReader/Writer objects.
 
 > Note that the **physical read is done directly by Spark**. DBND will map data loading/saving into standard pyspark calls.  While running Spark DBND  supports `s3`,  `gs` protocols only if your Spark Instance supports direct read for these storage types.
 
-By default, the data is loaded using [default read/write option set by Spark](https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html).  
+By default, the data is loaded using [default read/write option set by Spark](https://spark.apache.org/docs/latest/sql-data-sources-load-save-functions.html).
 
 CSV file is the only exception, where the default read option is:
 * `header = True`
@@ -16,10 +16,14 @@ The default write configuration is `header=True`.
 To perform an override, use `save_options` and `load_options` methods of parameter builder as in the example below:
 
 ```python
-from targets.target_configx import FileFormat
-@spark_task(result=output.save_options(FileFormat.csv, header=True)[spark.DataFrame])
+from dbnd_spark import spark_task
+from dbnd import output, parameter
+from targets.target_config import FileFormat
+from pyspark.sql import DataFrame
+
+@spark_task(result=output.save_options(FileFormat.csv, header=True)[DataFrame])
 def prepare_data(
-    data=parameter.load_options(FileFormat.csv, header=False, sep="\t")[spark.DataFrame]
+    data=parameter.load_options(FileFormat.csv, header=False, sep="\t")[DataFrame]
 ):
     print(data.show())
     return data
@@ -32,12 +36,16 @@ Supported file formats include:
 
 ### How to use your own code to read/write Spark
 If you want to use your own way of reading/writing Spark, see following example:
-``` python
+```python
+from dbnd_spark import spark_task, get_spark_session
+from dbnd import parameter
+from targets.types import PathStr
+
 @spark_task
 def prepare_data(data_path=parameter[PathStr]):
-    df =   get_spark_session()read.format("csv").options(header=False, sep="\t").load(data_path)
-    print(data.show())
-    return data
+    df = get_spark_session().read.format("csv").options(header=False, sep="\t").load(data_path)
+    print(df.show())
+    return df
 ```
 
 ### Known limitations

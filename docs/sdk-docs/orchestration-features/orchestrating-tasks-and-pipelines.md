@@ -1,9 +1,9 @@
 ---
 "title": "Getting Started with Orchestration"
 ---
-Databand's SDK ("DBND") enables data engineers to orchestrate dynamic pipelines. DBND is an advanced framework that allows you to manage your data flows and run them on supported orchestrators. You can use DBND by defining pipelines with DBND decorators and executing pipelines with DBND's runtime.  
+Databand's SDK ("DBND") enables data engineers to orchestrate dynamic pipelines. DBND is an advanced framework that allows you to manage your data flows and run them on supported orchestrators. You can use DBND by defining pipelines with DBND decorators and executing pipelines with DBND's runtime.
 
-Pipeline frameworks today did not provide an easy abstraction layer that enabled engineers to focus cleanly on their business logic while maintaining high development agility - and DBND successfully solves this problem.  
+Pipeline frameworks today did not provide an easy abstraction layer that enabled engineers to focus cleanly on their business logic while maintaining high development agility - and DBND successfully solves this problem.
 
 DBND provides the abstraction layer that enables you to:
 * Decouple pipeline code from data & compute infrastructure, making it easier to iterate
@@ -20,6 +20,10 @@ The code snippet below is a Python function that takes some input parameters and
 
 ```python
 from dbnd import task
+from pandas import DataFrame
+from sklearn.model_selection import train_test_split
+from typing import Tuple
+
 
 # define a function with a decorator
 
@@ -35,30 +39,23 @@ Decorators are powerful. They offer a lot of capabilities in a small package. Th
 
 We can define a pipeline by wiring together any number of tasks:
 
+<!-- xfail -->
 ```python
-@task
-def train_model(
-    training_set: DataFrame,
-    alpha: float = 0.5,
-    l1_ratio: float = 0.5,
-) -> ElasticNet:
-    lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio)
-    lr.fit(training_set.drop(["quality"], 1), training_set[["quality"]])
-    return lr
- 
-@pipeline
-def predict_wine_quality(
-    raw_data: DataFrame,
-    alpha: float = 0.5,
-    l1_ratio: float = 0.5,
-):
-    training_set, validation_set = prepare_data(raw_data=raw_data)
+from dbnd import task, pipeline
+from pandas import DataFrame
 
-    model = train_model(
-        training_set=training_set, alpha=alpha, l1_ratio=l1_ratio
-    )
-     
-    return model,validation_set
+@task
+def prepare_data(data: DataFrame, key: str) -> str:
+    result = data.get(key)
+    return result
+
+
+@pipeline
+def prepare_data_pipeline(raw_data: DataFrame):
+    key = acquire_key(raw_data)
+    treated_data = prepare_data(raw_data, key)
+
+    return treated_data
 ```
 
 When wiring pipelines with DBND, DBND will automate passing outputs between tasks, making it easier to iterate pipelines with new data files and parameters.
@@ -67,16 +64,16 @@ When wiring pipelines with DBND, DBND will automate passing outputs between task
 
 With DBND, you can manage single points of connection to data infrastructure. Since DBND takes care of passing outputs between tasks, you can centrally manage data set connections and run pipelines with new data files as needed.
 
-Data portability is especially useful for pipeline development. You can easily inject specific inputs during debugging and testing. Through a simple CLI switch, you can run the same pipeline with a data file from Amazon S3 or a data file from your local file system. 
+Data portability is especially useful for pipeline development. You can easily inject specific inputs during debugging and testing. Through a simple CLI switch, you can run the same pipeline with a data file from Amazon S3 or a data file from your local file system.
 
 ```bash
-$ dbnd run prepare_data --set prepeare_data.raw_data=s3://my_backet/myfile.json
-$ dbnd run prepare_data --set prepeare_data.raw_data=datafile.csv
+$ dbnd run prepare_data --set prepare_data.raw_data=s3://my_backet/myfile.json
+$ dbnd run prepare_data --set prepare_data.raw_data=datafile.csv
 ```
 
 Using this approach, you can read and write data from any data source (local, AWS S3, GCP GS, Azure blob, HDFS, etc.); inject parameters and new data from environment, command line, and configuration providers/files.
 
-For information about task configuration, see [Task Configuration](doc:object-configuration) 
+For information about task configuration, see [Task Configuration](doc:object-configuration)
 
 ## Data versioning
 

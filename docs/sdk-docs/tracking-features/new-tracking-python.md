@@ -11,7 +11,8 @@ These are the available tracking options for Python:
 
 # Tracking Context
 To enable tracking, call your code within the `dbnd_tracking()` context.
-``` python
+```python
+from dbnd import dbnd_tracking
 if __name__ == "__main__":
    with dbnd_tracking():
       pass
@@ -21,6 +22,7 @@ Any Python code executed inside the `dbnd_tracking()` context will be tracked by
 
 Alternatively, you can call `dbnd_tracking_start()` at the beginning of the script.
 ```python
+from dbnd import dbnd_tracking_start
 if __name__ == "__main__":
    dbnd_tracking_start()
    pass
@@ -36,7 +38,9 @@ You can pass the following parameters to both `dbnd_tracking()` and `dbnd_tracki
 
 In order to be able to connect to databand UI, you will need to provide the URL and the access token (see [Connecting DBND to Databand (Access Tokens)](doc:access-token))
 This can be done using the conf parameter:
-``` python
+```python
+from dbnd import dbnd_tracking_start
+
 conf_dict = {
     "core": {
         "databand_url": "<databand_url>",
@@ -60,7 +64,7 @@ If you are using [Tracking Airflow DAGs](doc:tracking-airflow-dags) you don't ne
 For a better visibility, you can also annotate your function with a decorator.
 Below is an example in a Python function, though decorators for [Java and Scala](doc:JVM) functions are supported as well.
 
-``` python
+```python
 from dbnd import task
 import pandas as pd
 
@@ -85,7 +89,7 @@ Let us say we would like to track a function (or functions) from a module. Inste
 
 Review the following example, where `module1` contains `f1` and  `f2` functions:
 <!-- xfail -->
-``` python
+```python
 from module1 import f1,f2
 
 from dbnd import track_functions
@@ -98,7 +102,7 @@ The `track_functions` function uses functions as arguments and automatically dec
 
 For an easier and faster approach, you can use the `track_module_functions` function to track all functions inside a named module. So, `module2.py` from the above example would look like this:
 <!-- xfail -->
-``` python
+```python
 import module1
 from dbnd import track_module_functions
 
@@ -107,7 +111,9 @@ track_module_functions(module1)
 
 To track all functions from multiple modules, there is also `track_modules` which gets modules as arguments and tracks all functions contained within those modules:
 <!-- xfail -->
-``` python
+```python
+from dbnd import track_modules
+
 import module1
 import module2
 
