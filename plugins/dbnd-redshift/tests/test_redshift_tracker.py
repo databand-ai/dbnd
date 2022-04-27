@@ -8,7 +8,11 @@ from dbnd._core.constants import DbndTargetOperationType
 from dbnd._core.sql_tracker_common.sql_extract import Column
 from dbnd_redshift.sdk.redshift_tracker import RedshiftTracker
 from dbnd_redshift.sdk.redshift_utils import COPY_ROWS_COUNT_QUERY
-from dbnd_redshift.sdk.redshift_values import RedshiftOperation
+from dbnd_redshift.sdk.redshift_values import (
+    RedshiftOperation,
+    get_col_query,
+    query_list_to_text,
+)
 
 
 NUMBER_OF_ROWS_INSERTED = 100
@@ -133,6 +137,27 @@ def compare_eq_operations(
             return False
 
     return True
+
+
+schema = {
+    "unique_key": "int",
+    "created_date": "str",
+    "agency": "str",
+    "agency_name": "boolean",
+}
+
+
+def test_boolean_type_get_col_query():
+    query = get_col_query("column1", "boolean")
+    for q in query:
+        if q.endswith("AS most_freq_value"):
+            assert "integer::text" in q
+
+
+def test_extract_stats_query():
+    queries = [list(get_col_query(col, col_type)) for col, col_type in schema.items()]
+    query = query_list_to_text(queries)
+    assert all(k in query for k in schema)
 
 
 def test_multiple_psycopg2_connections(mock_redshift):

@@ -18,15 +18,21 @@ TEMP_TABLE_NAME = "DBND_TEMP"
 def redshift_query(
     connection: psycopg2_connection, query: str, params=None, fetch_all=True
 ):
-    try:
+    if connection is not None and not connection.closed:
         with connection.cursor(cursor_factory=DictCursor) as cursor:
-            cursor.execute(query, params)
-            if fetch_all:
-                return cursor.fetchall()
+            try:
+                cursor.execute(query, params)
+                if fetch_all:
+                    return cursor.fetchall()
 
-    except Exception as e:
-        logger.exception(f"Error occurred during querying redshift, query: {query}")
-        log_exception_to_server(e)
+            except Exception as e:
+                cursor.execute("ROLLBACK")
+                logger.exception(
+                    f"Error occurred during querying redshift, query: {query}"
+                )
+                log_exception_to_server(e)
+    else:
+        logger.exception("Error with redshift connection")
 
 
 def get_last_query_records_count(connection: psycopg2_connection):
@@ -68,5 +74,6 @@ def copy_to_temp_table(redshift_connection, target_name, query):
             re.escape(table_name), TEMP_TABLE_NAME, query, flags=re.IGNORECASE, count=1
         )
         redshift_query(redshift_connection, copy_tmp_table_query, fetch_all=False)
+        redshift_query(redshift_connection, "COMMIT", fetch_all=False)
     else:
         logger.error("Couldn't extract table name")
