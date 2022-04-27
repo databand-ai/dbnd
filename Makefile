@@ -40,6 +40,10 @@ prj_plugins_spark  = plugins/dbnd-spark \
 				plugins/dbnd-qubole
 
 
+prj_dbnd_tracking_slim = modules/dbnd modules/dbnd-airflow \
+           modules/dbnd-airflow-monitor\
+          plugins/dbnd-airflow-auto-tracking
+
 prj_dbnd_run = modules/dbnd modules/dbnd-airflow \
             plugins/dbnd-aws  \
 			plugins/dbnd-azure \
@@ -148,6 +152,14 @@ dist-python:  ## Build all python modules.
 	@# Calculate md5 for generated packages (with osx and linux support)
 	@export MD5=md5; if ! command -v md5 &> /dev/null; then export MD5=md5sum; fi;\
 	for file in dist-python/*; do $$MD5 $$file || true; done > dist-python/hash-list.txt
+
+
+dist-python-tracking-slim:  ## Build only essential airflow trackign modules.
+	mkdir -p dist-python;
+	set -e;\
+	for m in $(prj_dbnd_tracking_slim); do \
+		MODULE=$$m make __dist-python-module;\
+	done;
 
 dist-java:  ## Build dbnd-java modules.
 	(cd modules/dbnd-java/ && ./gradlew build)
