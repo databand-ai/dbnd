@@ -9,11 +9,24 @@ from dbnd._core.sql_tracker_common.sql_extract import Column
 from dbnd_redshift.sdk.redshift_tracker import RedshiftTracker
 from dbnd_redshift.sdk.redshift_utils import COPY_ROWS_COUNT_QUERY
 from dbnd_redshift.sdk.redshift_values import (
+    NUMERIC_TYPES,
     RedshiftOperation,
-    get_col_query,
+    get_col_stats_queries,
     query_list_to_text,
 )
 
+
+NON_NUMERIC_TYPES = [
+    "char",
+    "varchar(max)",
+    "text",
+    "boolean",
+    "DATE",
+    "TIME",
+    "TIMETZ",
+    "TIMESTAMP",
+    "TIMESTAMPTZ",
+]
 
 NUMBER_OF_ROWS_INSERTED = 100
 
@@ -108,19 +121,15 @@ def _redshift_connect():
 
 
 def compare_eq_op(operation: RedshiftOperation, expected: RedshiftOperation):
-    tests = {
-        "schema": operation.extracted_schema == expected.extracted_schema,
-        "query": operation.query == expected.query,
-        "source_name": operation.source_name == expected.source_name,
-        "target_name": operation.target_name == expected.target_name,
-        "op_type": operation.op_type == expected.op_type,
-    }
+    tests = [
+        operation.extracted_schema == expected.extracted_schema,
+        operation.query == expected.query,
+        operation.source_name == expected.source_name,
+        operation.target_name == expected.target_name,
+        operation.op_type == expected.op_type,
+    ]
 
-    for test in tests.keys():
-        if not tests[test]:
-            return False
-
-    return True
+    return all(tests)
 
 
 def compare_eq_operations(
@@ -147,15 +156,79 @@ schema = {
 }
 
 
-def test_boolean_type_get_col_query():
-    query = get_col_query("column1", "boolean")
-    for q in query:
+def test_boolean_type_get_col_stats_queries():
+    queries = get_col_stats_queries("column1", "boolean")
+    for q in queries:
         if q.endswith("AS most_freq_value"):
             assert "integer::text" in q
 
 
+@pytest.mark.parametrize("col_type", NUMERIC_TYPES + NON_NUMERIC_TYPES)
+def test_get_type_agnostic_column_stats_queries(col_type):
+    col_name = "column"
+    most_freq_value_cast = "integer::text" if col_type == "boolean" else "text"
+    queries = get_col_stats_queries(col_name, col_type)
+
+    assert f"SELECT '{col_name}' AS name" in queries
+    assert f"(SELECT COUNT(*) FROM DBND_TEMP) AS row_count" in queries
+    assert (
+        f'(SELECT COUNT(*) FROM DBND_TEMP where "{col_name}" is null) AS null_count'
+        in queries
+    )
+    assert (
+        f'(SELECT count(distinct "{col_name}") FROM DBND_TEMP) AS distinct_count'
+        in queries
+    )
+    assert (
+        f"""(SELECT top 1 count("{col_name}") FROM DBND_TEMP group by "{col_name}" order by count("{col_name}") DESC) AS most_freq_value_count"""
+        in queries
+    )
+    assert (
+        f"""(SELECT top 1 "{col_name}" FROM DBND_TEMP group by "{col_name}" order by count("{col_name}") DESC)::{most_freq_value_cast} AS most_freq_value"""
+        in queries
+    )
+
+
+@pytest.mark.parametrize("col_type", NUMERIC_TYPES + ["decimal(10,5)", "numeric(3,14)"])
+def test_get_col_stats_queries_stats_numeric_types(col_type):
+    col_name = "column"
+    queries = get_col_stats_queries(col_name, col_type)
+    assert f'(SELECT stddev("{col_name}") FROM DBND_TEMP)::text AS stddev' in queries
+    assert f'(SELECT avg("{col_name}") FROM DBND_TEMP)::text AS average' in queries
+    assert f'(SELECT min("{col_name}") FROM DBND_TEMP)::text AS minimum' in queries
+    assert f'(SELECT max("{col_name}") FROM DBND_TEMP)::text AS maximum' in queries
+    assert (
+        f'(SELECT percentile_cont(0.25) within group (order by "{col_name}" asc) from DBND_TEMP)::text AS percentile_25'
+        in queries
+    )
+    assert (
+        f'(SELECT percentile_cont(0.50) within group (order by "{col_name}" asc) from DBND_TEMP)::text AS percentile_50'
+        in queries
+    )
+    assert (
+        f'(SELECT percentile_cont(0.75) within group (order by "{col_name}" asc) from DBND_TEMP)::text AS percentile_75'
+        in queries
+    )
+
+
+@pytest.mark.parametrize("col_type", NON_NUMERIC_TYPES)
+def test_get_col_stats_queries_stats_other_types(col_type):
+    col_name = "column"
+    queries = get_col_stats_queries(col_name, col_type)
+
+    assert "(SELECT Null) AS stddev" in queries
+    assert "(SELECT Null) AS average" in queries
+    assert "(SELECT Null) AS minimum" in queries
+    assert "(SELECT Null) AS maximum" in queries
+    assert "(SELECT Null) AS percentile_25" in queries
+    assert "(SELECT Null) AS percentile_50" in queries
+    assert "(SELECT Null) AS percentile_75" in queries
+
+
 def test_extract_stats_query():
-    queries = [list(get_col_query(col, col_type)) for col, col_type in schema.items()]
+    queries = [
+        list(get_col_stats_queries(col, col_type)) for col, col_type in schema.items()
+    ]
     query = query_list_to_text(queries)
     assert all(k in query for k in schema)
 

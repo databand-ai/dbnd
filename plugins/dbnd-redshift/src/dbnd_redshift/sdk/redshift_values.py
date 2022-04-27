@@ -1,7 +1,7 @@
 import logging
 
 from itertools import takewhile
-from typing import List
+from typing import List, Optional
 from urllib.parse import urlparse
 
 import attr
@@ -18,6 +18,23 @@ from targets.values.pandas_histograms import PandasHistograms
 
 
 logger = logging.getLogger(__name__)
+
+NUMERIC_TYPES = [
+    "SMALLINT",
+    "INT2",
+    "INTEGER",
+    "INT",
+    "INT4",
+    "BIGINT",
+    "INT8",
+    "REAL",
+    "FLOAT4",
+    "DOUBLE PRECISION",
+    "FLOAT8",
+    "FLOAT",
+    "DECIMAL",
+    "NUMERIC",
+]
 
 
 def _strip_quotes(v: str) -> str:
@@ -37,92 +54,56 @@ def _type_conversion(type_name: str) -> str:
     return converted_type
 
 
-def get_col_query(col_name: str, col_type: str):
-    query_list = []
-    query_list.append(f"""SELECT '{col_name}' as name""")
-    query_list.append(f"""(SELECT COUNT(*) FROM {TEMP_TABLE_NAME}) AS row_count""")
-    query_list.append(
-        f"""(SELECT COUNT(*) FROM {TEMP_TABLE_NAME} where "{col_name}" is null) AS null_count"""
-    )
-    query_list.append(
-        f"""(SELECT count(distinct "{col_name}") FROM {TEMP_TABLE_NAME}) AS distinct_count"""
-    )
-    query_list.append(
-        f"""(SELECT top 1 count("{col_name}") FROM {TEMP_TABLE_NAME}
-                        group by "{col_name}" order by count("{col_name}") DESC) AS most_freq_value_count"""
-    )
+def _is_numeric_type(col_type: str):
+    return any(num_type in col_type.upper() for num_type in NUMERIC_TYPES)
 
+
+def get_col_stats_queries(col_name: str, col_type: str):
     most_freq_value_cast = "integer::text" if col_type == "boolean" else "text"
 
-    query_list.append(
-        f"""(SELECT top 1 "{col_name}" FROM {TEMP_TABLE_NAME} group by "{col_name}"
-                            order by count("{col_name}") DESC)::{most_freq_value_cast} AS most_freq_value"""
-    )
+    query_list = [
+        f"SELECT '{col_name}' AS name",
+        f"(SELECT COUNT(*) FROM {TEMP_TABLE_NAME}) AS row_count",
+        f'(SELECT COUNT(*) FROM {TEMP_TABLE_NAME} where "{col_name}" is null) AS null_count',
+        f'(SELECT count(distinct "{col_name}") FROM {TEMP_TABLE_NAME}) AS distinct_count',
+        f'(SELECT top 1 count("{col_name}") FROM {TEMP_TABLE_NAME} group by "{col_name}" order by count("{col_name}") DESC) AS most_freq_value_count',
+        f'(SELECT top 1 "{col_name}" FROM {TEMP_TABLE_NAME} group by "{col_name}" order by count("{col_name}") DESC)::{most_freq_value_cast} AS most_freq_value',
+    ]
 
-    query_list.append(
-        "({}) AS stddev".format(
-            "Null"
-            if col_type != "integer"
-            else f"""SELECT stddev("{col_name}") FROM {TEMP_TABLE_NAME}"""
+    if _is_numeric_type(col_type):
+        query_list.extend(
+            [
+                f'(SELECT stddev("{col_name}") FROM {TEMP_TABLE_NAME})::text AS stddev',
+                f'(SELECT avg("{col_name}") FROM {TEMP_TABLE_NAME})::text AS average',
+                f'(SELECT min("{col_name}") FROM {TEMP_TABLE_NAME})::text AS minimum',
+                f'(SELECT max("{col_name}") FROM {TEMP_TABLE_NAME})::text AS maximum',
+                f'(SELECT percentile_cont(0.25) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_25',
+                f'(SELECT percentile_cont(0.50) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_50',
+                f'(SELECT percentile_cont(0.75) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_75',
+            ]
         )
-    )
-    query_list.append(
-        "({}) AS average".format(
-            "Null"
-            if col_type != "integer"
-            else f"""SELECT avg("{col_name}") FROM {TEMP_TABLE_NAME}"""
+    else:
+        query_list.extend(
+            [
+                "(SELECT Null) AS stddev",
+                "(SELECT Null) AS average",
+                "(SELECT Null) AS minimum",
+                "(SELECT Null) AS maximum",
+                "(SELECT Null) AS percentile_25",
+                "(SELECT Null) AS percentile_50",
+                "(SELECT Null) AS percentile_75",
+            ]
         )
-    )
-    query_list.append(
-        "({}) AS minimum".format(
-            "Null"
-            if col_type != "integer"
-            else f"""SELECT min("{col_name}") FROM {TEMP_TABLE_NAME}"""
-        )
-    )
-    query_list.append(
-        "({}) AS maximum".format(
-            "Null"
-            if col_type != "integer"
-            else f"""SELECT max("{col_name}") FROM {TEMP_TABLE_NAME}"""
-        )
-    )
-    query_list.append(
-        "({}) AS percentile_25".format(
-            "Null"
-            if col_type != "integer"
-            else f"""SELECT percentile_cont(0.25) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME}"""
-        )
-    )
-    query_list.append(
-        "({}) AS percentile_50".format(
-            "Null"
-            if col_type != "integer"
-            else f"""SELECT percentile_cont(0.50) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME}"""
-        )
-    )
-    query_list.append(
-        "({}) AS percentile_75".format(
-            "Null"
-            if col_type != "integer"
-            else f"""SELECT percentile_cont(0.75) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME}"""
-        )
-    )
 
     return query_list
 
 
-def query_list_to_text(cols_queries_lists):
+def query_list_to_text(cols_queries_lists: List[List[str]]):
     query = ""
     for col_index, col_query_list in enumerate(cols_queries_lists):
         query += "("
-        for query_index, query_item in enumerate(col_query_list):
-            query += query_item
-            if query_index != len(col_query_list) - 1:
-                query += ",\n"
-
-        suffix = ") union all\n" if col_index != len(cols_queries_lists) - 1 else ")\n"
-        query += suffix
+        query += ",\n".join(col_query_list)
+        query += ") union all\n" if col_index != len(cols_queries_lists) - 1 else ")\n"
 
     return query
 
@@ -166,6 +147,9 @@ class RedshiftOperation(SqlOperation):
             connection: RedShift connection object
 
         """
+        if not connection:
+            return
+
         res_schema = {
             "type": self.__class__.__name__,
             "columns": [],
@@ -174,52 +158,47 @@ class RedshiftOperation(SqlOperation):
             "size.bytes": 0,  # TODO: calculate operation size in bytes
         }
 
-        if connection:
-            if self.dataframe is not None:
-                res_schema.update(
-                    {
-                        "columns": list(self.dataframe.columns),
-                        "shape": self.dataframe.shape,
-                        "dtypes": {
-                            col: str(type_)
-                            for col, type_ in self.dataframe.dtypes.items()
-                        },
-                    }
-                )
-            else:
-                if self.target_name is not None:
-                    if (
-                        self.target_name.find(".") != -1
-                    ):  # if there is schema name which is not public we should add it to search_path
-                        schema_name, table_name = self.target_name.lower().split(".")
-                        redshift_query(
-                            connection.connection,
-                            f"set search_path to '{schema_name}'",
-                            fetch_all=False,
-                        )
-                    else:
-                        table_name = self.target_name.lower()
-
-                    desc_results = redshift_query(
+        if self.dataframe is not None:
+            res_schema.update(
+                {
+                    "columns": list(self.dataframe.columns),
+                    "shape": self.dataframe.shape,
+                    "dtypes": {
+                        col: str(type_) for col, type_ in self.dataframe.dtypes.items()
+                    },
+                }
+            )
+        else:
+            if self.target_name is not None:
+                if (
+                    self.target_name.find(".") != -1
+                ):  # if there is schema name which is not public we should add it to search_path
+                    schema_name, table_name = self.target_name.lower().split(".")
+                    redshift_query(
                         connection.connection,
-                        f"select * from pg_table_def where tablename='{table_name}'",
+                        f"set search_path to '{schema_name}'",
+                        fetch_all=False,
                     )
+                else:
+                    table_name = self.target_name.lower()
 
-                    if desc_results:
-                        for col_desc in desc_results:
-                            if len(col_desc) > 2:
-                                res_schema["columns"].append(col_desc[2])
-                                res_schema["dtypes"][col_desc[2]] = _type_conversion(
-                                    col_desc[3]
-                                )
+                desc_results = redshift_query(
+                    connection.connection,
+                    f"select * from pg_table_def where tablename='{table_name}'",
+                )
 
-                    res_schema["shape"] = (
-                        self.records_count,
-                        len(res_schema["columns"]),
-                    )
+                if desc_results:
+                    for col_desc in desc_results:
+                        if len(col_desc) > 2:
+                            res_schema["columns"].append(col_desc[2])
+                            res_schema["dtypes"][col_desc[2]] = _type_conversion(
+                                col_desc[3]
+                            )
 
-                    if desc_results is not None:
-                        self.schema_cache = res_schema
+                res_schema["shape"] = (self.records_count, len(res_schema["columns"]))
+
+                if desc_results is not None:
+                    self.schema_cache = res_schema
 
     def extract_stats(self, connection: PostgresConnectionWrapper):
         """
@@ -238,7 +217,7 @@ class RedshiftOperation(SqlOperation):
         if connection:
             if self.schema:
                 queries = [
-                    list(get_col_query(col, col_type))
+                    list(get_col_stats_queries(col, col_type))
                     for col, col_type in self.schema["dtypes"].items()
                 ]
 
@@ -297,14 +276,14 @@ class RedshiftOperation(SqlOperation):
             )
 
     @property
-    def columns(self) -> List[str]:
+    def columns(self) -> Optional[List[str]]:
         try:
             return list(self.schema["columns"])
         except TypeError:
             return None
 
     @property
-    def columns_count(self) -> int:
+    def columns_count(self) -> Optional[int]:
         try:
             return len(self.schema["dtypes"])
         except TypeError:
