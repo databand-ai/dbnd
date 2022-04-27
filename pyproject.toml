@@ -62,16 +62,26 @@ known_first_party = [
 [tool.pylint.messages_control]
 max-line-length = 120
 disable = [
-    "missing-function-docstring",          # 3327
+    # annoying: docstring
+    "missing-function-docstring",             # 3327
+    "missing-class-docstring",                # 841
+    "missing-module-docstring",               # 716
+    # annoying: complains about all one and two letter names
+    "invalid-name",                           # 1303
+    # annoying: many times self is unused to keep logic encapsulated to class
+    "no-self-use",                            # 922
+    # annoying: complains about all attrs/db models/etc
+    "too-few-public-methods",                 # 500
+    # annoying: we resolve cyclic imports this way
+    "import-outside-toplevel",                # 518
+    # annoying: we deal with utf-8 all the time
+    "unspecified-encoding",                   # 38
+    # annoying: we decided not to fix it
+    "arguments-renamed",                      # 4
+    # TODO: review following rules:
     "import-error",                        # 3148
     "no-name-in-module",                   # 2089
-    "invalid-name",                        # 1303
-    "no-self-use",                         # 922
-    "missing-class-docstring",             # 841
     "consider-using-f-string",             # 812
-    "missing-module-docstring",            # 716
-    "import-outside-toplevel",             # 518
-    "too-few-public-methods",              # 500
     "useless-object-inheritance",          # 351
     "unused-argument",                     # 335
     "protected-access",                    # 322
@@ -90,7 +100,6 @@ disable = [
     "logging-format-interpolation",        # 51
     "too-many-instance-attributes",        # 50
     "logging-not-lazy",                    # 44
-    "unspecified-encoding",                # 38
     "anomalous-backslash-in-string",       # 37
     "unused-import",                       # 31
     "too-many-locals",                     # 31
@@ -138,7 +147,6 @@ disable = [
     "format-string-without-interpolation", # 4
     "f-string-without-interpolation",      # 4
     "expression-not-assigned",             # 4
-    "arguments-renamed",                   # 4
     "unnecessary-lambda",                  # 3
     "missing-format-attribute",            # 3
     "empty-docstring",                     # 3
