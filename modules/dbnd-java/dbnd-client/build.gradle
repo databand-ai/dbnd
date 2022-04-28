@@ -16,6 +16,9 @@ dependencies {
 
     // should be removed after switching to apache http client
     compileOnly 'com.fasterxml.jackson.module:jackson-module-scala_2.11:2.10.2'
+
+    testImplementation 'org.mockito:mockito-all:1.10.19'
+
 }
 
 test {

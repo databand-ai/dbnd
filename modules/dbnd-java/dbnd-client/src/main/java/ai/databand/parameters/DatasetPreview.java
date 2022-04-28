@@ -6,6 +6,8 @@ import org.apache.spark.sql.Row;
 import java.util.Arrays;
 import java.util.List;
 
+import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
+
 public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
 
     @Override
@@ -15,8 +17,9 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
 
     @Override
     public String full(Dataset<Row> input) {
+        Dataset<?> previewAlias = input.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"PREVIEW"));
         try {
-            return input.showString(20, 2048, false);
+            return previewAlias.showString(20, 2048, false);
         } catch (Exception e) {
             return "";
         }
@@ -29,8 +32,9 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
 
     @Override
     public Object schema(Dataset<Row> input) {
+        Dataset<?> previewSchemaAlias = input.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"PREVIEW_SCHEMA"));
         try {
-            return input.schema().prettyJson();
+            return previewSchemaAlias.schema().prettyJson();
         } catch (Exception e) {
             return "";
         }
@@ -46,9 +50,10 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
      */
     @Override
     public List<Long> dimensions(Dataset<Row> input) {
+        Dataset<?> dimsAlias = input.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"DIMS"));
         try {
-            long rows = input.count();
-            long columns = input.columns().length;
+            long rows = dimsAlias.count();
+            long columns = dimsAlias.columns().length;
             return Arrays.asList(rows, columns);
         } catch (Exception e) {
             return Arrays.asList(0L, 0L);

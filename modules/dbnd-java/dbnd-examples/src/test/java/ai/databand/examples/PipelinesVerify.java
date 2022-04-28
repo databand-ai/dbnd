@@ -483,8 +483,8 @@ public class PipelinesVerify {
                     "resources",
                     DatasetOperationType.READ,
                     "SUCCESS",
-                    21,
-                    7,
+                    3,
+                    1,
                     datasetByTask
                 );
 
@@ -503,8 +503,8 @@ public class PipelinesVerify {
                     "resources",
                     DatasetOperationType.READ,
                     "SUCCESS",
-                    9,
-                    3,
+                    6,
+                    2,
                     datasetByTask
                 );
             }

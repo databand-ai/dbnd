@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.count;
 import static org.apache.spark.sql.functions.desc;
@@ -44,7 +45,7 @@ public class Histogram {
 
     public Histogram(String key, Dataset<?> dataset, HistogramRequest histogramRequest) {
         this.dfKey = key;
-        this.dataset = dataset;
+        this.dataset = dataset.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"STATS"));
         this.req = histogramRequest;
         result = new HashMap<>(1);
         summaries = new HashMap<>(1);

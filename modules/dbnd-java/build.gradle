@@ -101,6 +101,8 @@ configure(subprojects.findAll { !apiOnlyProjects.contains(it.name) }) {
         // tests
         testImplementation 'org.junit.jupiter:junit-jupiter:5.6.0'
         testImplementation 'org.hamcrest:hamcrest:2.2'
+        testImplementation 'org.mockito:mockito-all:1.10.19'
+
     }
 
     test {

@@ -33,20 +33,21 @@ class SparkDataFrameValueType(DataValueType):
         return id
 
     def to_preview(self, df, preview_size):  # type: (spark.DataFrame, int) -> str
+        preview_alias = df.alias("DBND_INTERNAL_PREVIEW")
         return (
-            df.limit(1000)
+            preview_alias.limit(1000)
             .toPandas()
             .to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
         )
 
     def get_value_meta(self, value, meta_conf):
         # type: (spark.DataFrame, ValueMetaConf) -> ValueMeta
-
         if meta_conf.log_schema:
+            schema_alias = value.alias("DBND_INTERNAL_SCHEMA")
             data_schema = {
                 "type": self.type_str,
-                "columns": list(value.schema.names),
-                "dtypes": {f.name: str(f.dataType) for f in value.schema.fields},
+                "columns": list(schema_alias.schema.names),
+                "dtypes": {f.name: str(f.dataType) for f in schema_alias.schema.fields},
             }
         else:
             data_schema = None
@@ -57,13 +58,14 @@ class SparkDataFrameValueType(DataValueType):
             data_preview = None
 
         if meta_conf.log_size:
+            size_alias = value.alias("DBND_INTERNAL_DIMS")
             data_schema = data_schema or {}
-            rows = value.count()
-            data_dimensions = (rows, len(value.columns))
+            rows = size_alias.count()
+            data_dimensions = (rows, len(size_alias.columns))
             data_schema.update(
                 {
-                    "size.bytes": int(rows * len(value.columns)),
-                    "shape": (rows, len(value.columns)),
+                    "size.bytes": int(rows * len(size_alias.columns)),
+                    "shape": (rows, len(size_alias.columns)),
                 }
             )
         else:
@@ -111,17 +113,18 @@ class SparkDataFrameValueType(DataValueType):
         :param df:
         :return:
         """
-        total_count = df.count()
+        stats_alias = df.alias("DBND_INTERNAL_STATS")
+        total_count = stats_alias.count()
         stats = defaultdict(dict)
 
-        for row in df.summary().collect():
+        for row in stats_alias.summary().collect():
             metric_row = row.asDict()
             metric_name = metric_row["summary"]
-            for col in df.columns:
+            for col in stats_alias.columns:
                 stats[col][metric_name] = metric_row.get(col)
 
         result: List[ColumnStatsArgs] = []
-        for col in df.schema.fields:
+        for col in stats_alias.schema.fields:
             if not isinstance(
                 col.dataType, (spark.types.NumericType, spark.types.StringType)
             ):
