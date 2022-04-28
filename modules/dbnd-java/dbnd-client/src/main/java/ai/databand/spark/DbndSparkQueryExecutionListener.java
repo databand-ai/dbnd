@@ -22,6 +22,8 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
+import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
+
 public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(DbndSparkQueryExecutionListener.class);
@@ -81,6 +83,10 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             }
         }
         if (qe.executedPlan() instanceof WholeStageCodegenExec) {
+            if (isDbndPlan(qe)){
+                LOG.warn("dbnd sdk Execution plan will not be reported");
+                return;
+            }
             List<SparkPlan> allChildren = getAllChildren(qe.executedPlan());
             for (SparkPlan next : allChildren) {
                 if (next instanceof FileSourceScanExec) {
@@ -113,6 +119,14 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 }
             }
         }
+    }
+
+    private boolean isDbndPlan(QueryExecution qe) {
+        if (qe.analyzed() != null && !qe.analyzed().children().isEmpty()) {
+            String dfAlias = qe.analyzed().children().apply(0).verboseString();
+            return dfAlias!= null && dfAlias.contains(DBND_INTERNAL_ALIAS);
+        }
+        return false;
     }
 
     protected void log(String path, DatasetOperationType operationType, Pair<String, List<Long>> schema) {

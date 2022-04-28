@@ -100,4 +100,9 @@ public abstract class DbndPropertyNames {
     public static final String DBND_ROOT_RUN_UID = "dbnd_root_run_uid";
     public static final String DBND_PARENT_TASK_RUN_UID = "dbnd_parent_task_run_uid";
     public static final String DBND_PARENT_TASK_RUN_ATTEMPT_UID = "dbnd_parent_task_run_attempt_uid";
+
+    /**
+     * Databand internal alias.
+     */
+    public static final String DBND_INTERNAL_ALIAS = "DBND_INTERNAL";
 }

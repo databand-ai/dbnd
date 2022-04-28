@@ -16,11 +16,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
+
 public class DatasetOperationPreview extends DatasetPreview {
 
     @Override
     public Object schema(Dataset<Row> input) {
-        return extractSchema(input.schema(), input.count()).left();
+        Dataset<?> schemaAlias = input.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"SCHEMA"));
+        return extractSchema(schemaAlias.schema(), schemaAlias.count()).left();
     }
 
     public Pair<String, List<Long>> extractSchema(StructType schema, long rows) {
