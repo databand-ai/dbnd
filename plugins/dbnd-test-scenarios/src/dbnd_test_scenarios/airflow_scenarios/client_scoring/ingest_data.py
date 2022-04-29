@@ -1,10 +1,11 @@
+import os
+
+from datetime import timedelta
+
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+from airflow.utils.dates import days_ago
 
-from dbnd_test_scenarios.airflow_scenarios.airflow_scenarios_config import (
-    dag_task_output,
-)
-from dbnd_test_scenarios.airflow_scenarios.utils import default_args_dbnd_scenarios_dag
 from dbnd_test_scenarios.pipelines.client_scoring.ingest_data import (
     run_clean_piis,
     run_create_report,
@@ -12,6 +13,25 @@ from dbnd_test_scenarios.pipelines.client_scoring.ingest_data import (
     run_enrich_missing_fields,
     run_get_customer_data,
 )
+
+
+default_args_dbnd_scenarios_dag = {
+    "owner": "test_scenarios",
+    "depends_on_past": False,
+    "start_date": days_ago(2),
+    "retries": 1,
+    "retry_delay": timedelta(seconds=10),
+}
+
+output_root = os.environ.get("SCENARIOS__OUTPUT_ROOT", "/tmp/staging/outputs")
+
+
+def dag_task_output(*path):
+    return os.path.join(output_root, *path)
+
+
+def dag_task_output_partition_csv(name):
+    return dag_task_output("%s.{{ds}}.csv", name)
 
 
 def publish_result(path):
