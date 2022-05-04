@@ -98,8 +98,19 @@ pre_commit:
     KUBERNETES_MEMORY_LIMIT: 1Gi
   image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
   script:
-    #    - tox -e pre-commit,lint,docs,readme
-    - tox -e pre-commit,lint,bumpversion-check
+    #    - tox -e pre-commit,docs,readme
+    - tox -e pre-commit,bumpversion-check
+
+lint:
+  <<: *template__python_test_job
+  variables:
+    KUBERNETES_CPU_REQUEST: 1200m
+    KUBERNETES_CPU_LIMIT: 2000m
+    KUBERNETES_MEMORY_REQUEST: 1Gi
+    KUBERNETES_MEMORY_LIMIT: 3Gi
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
+  script:
+    - tox -e lint
 
 manifest:
   <<: *template__python_test_job
