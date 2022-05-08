@@ -3,7 +3,7 @@
 ---
 The following pipeline shows how data can be passed into and returned from tasks:
 
-<!-- xfail -->
+
 ```python
 from dbnd import pipeline
 from pandas import DataFrame
@@ -23,7 +23,7 @@ Task dependencies are automatically created when `dbnd` inspects the source of t
 
 Additionally, you can have nested pipelines:
 
-<!-- xfail -->
+
 ```python
 from dbnd import task, pipeline
 from pandas import DataFrame
@@ -47,7 +47,7 @@ As you can see from this example `prepare_data_pipeline` contains `evaluate_data
 If you require two tasks to be dependent but have no parameter chain, you can simply use the task's `set_upstream` or `set_downstream` methods, similar to the method used in Airflow DAGs.
 
 For example:
-<!-- xfail -->
+
 ```python
 from dbnd import pipeline
 @pipeline(result=("model", "metrics", "validation_metrics"))
@@ -61,7 +61,7 @@ def linear_reg_pipeline():
 ```
 
 Looking at the example above, we have a scenario where we want `get_validation_metrics` to be executed last, regardless of the actual dependencies. To achieve this, we can add:
-<!-- xfail -->
+
 ```python
 validation_metrics = get_validation_metrics(testing_set)
 validation_metrics.task.set_upstream(metrics.task)

@@ -58,6 +58,7 @@ Following configuration properties are supported as a part of Azkaban integratio
 |---|---|
 | `DBND__AZKABAN__SYNC_PROJECTS` | List of Azkaban projects to sync. If not specified, all projects will be synced. |
 | `DBND__AZKABAN__SYNC_FLOWS` | List of Azkaban flows to sync. If not specified, all flows will be synced. |
+
 [block:html]
 {
   "html": "<style>\n  pre {\n      border: 0.2px solid #ddd;\n      border-left: 3px solid #c796ff;\n      color: #0061a6;\n  }\n\n.CodeTabs_initial{\n  /* box shadows with with legacy browser support - just in case */\n    -webkit-box-shadow: 0 10px 6px -6px #777; /* for Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */\n     -moz-box-shadow: 0 10px 6px -6px #777; /* for Firefox 3.5 - 3.6 */\n          box-shadow: 0 10px 6px -6px #777;/* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */\n  }\n</style>"

@@ -12,7 +12,7 @@ To use the Databand client, you are going to need to use `DatabandClient`'s `bui
 ## Getting Run Info
 In the following example we are getting detailed run information, of run with run uid: "example-run-uid", which also includes detailed data of the task runs in that run, and each task run attempts.
 
-<!-- noqa -->
+
 ```python
 from dbnd.api.databand_client import DatabandClient
 
@@ -24,7 +24,7 @@ run_info = client.get_run_info(run_uid="example-run-uid")
 What you need to do is use the `get_run_info` method, with the wanted run_uid.
 The returned value holds task_runs property, which is a list of all the task runs in that run, there you have a `latest_error` field, which is the latest error of the last task run attempt. If you want to check the error across the different attempts of that task, you have a `task_run_attempts` field, which has a `latest_error` field for every attempt.
 
-<!-- noqa -->
+
 ```python
 from dbnd.api.databand_client import DatabandClient
 
@@ -45,7 +45,7 @@ for task_run in run_info["task_runs"]:
 In order to get the error that cause a run to fail, you can use the `get_first_task_run_error` method, with the desired run_uid.
 This method is looking for the first task run that failed, and returns the latest error of that task run, what you get is a representation of the error, most notably:`msg` as the original error message.
 
-<!-- noqa -->
+
 ```python
 from dbnd.api.databand_client import DatabandClient
 

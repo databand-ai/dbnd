@@ -35,7 +35,6 @@ You can also use `log_metrics` to simultaneously submit multiple metrics.
 ### Tracking external resources within a specific task
 If the value that you want to track is URL, you can use `set_external_resource_urls`. That will log URL in the specific task context.   `set_external_resource_urls(links:dict)` function which accepts one parameter with dictionary of {"key": "URL"}
 
-<!-- noqa -->
 ```python
 from dbnd._core.tracking.commands import set_external_resource_urls
 

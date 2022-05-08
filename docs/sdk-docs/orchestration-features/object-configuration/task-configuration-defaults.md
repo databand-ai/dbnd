@@ -10,7 +10,6 @@ In some cases, defining defaults for parameters in the configuration or in the c
 ### task_config
 Represents a dictionary of arbitrary configuration params that will be applied to "current" configuration during task creation and run
 
-<!-- xfail -->
 ```python
 my_task(task_config={SparkConfig.num_of_executors:3})
 ```
@@ -19,7 +18,6 @@ my_task(task_config={SparkConfig.num_of_executors:3})
 ## To set a default value for a task
 Use the `defaults` attribute as shown in the following examples:
 
-<!-- xfail -->
 ```python
 class WordCountTask2(WordCountTask):
     defaults = {
@@ -29,7 +27,6 @@ class WordCountTask2(WordCountTask):
     }
 ```
 
-<!-- xfail -->
 ```python
 class AllWordCounts2(AllWordCounts):
     defaults = {

@@ -41,7 +41,7 @@ In this code example, there are a number of artifacts that will be reported to t
 
 The first one is the output of the following Python snippet:
 
-<!-- xfail -->
+
 ```python
 for (word, count) in output: print("%s: %i" % (word, count))
 ```
@@ -87,7 +87,7 @@ Make sure that DBND JVM client is part of your spark application including `ai.d
 ### DBND Python Deequ Metrics Repository
 In order to connect Databand to Deequ use `DbndDeequMetricsRepository` as in the following example. See more details at [Deequ Repository Documentation]( https://pydeequ.readthedocs.io/en/latest/README.html#repository):
 
-<!-- xfail -->
+
 ```python
 result_key = ResultKey(spark, ResultKey.current_milli_time(), {"name": "words"})
 analysis_runner = AnalysisRunner(spark).onData(lines)
@@ -100,6 +100,7 @@ analysis_runner.useRepository(DbndMetricsRepository(spark)).saveOrAppendResult(r
 
 > ℹ️ If you are running Scala or Java Spark
 > Please refer to our page for [Tracking Spark (Scala/Java)](doc:jvm).
+
 [block:html]
 {
   "html": "<style>\n  pre {\n      border: 0.2px solid #ddd;\n      border-left: 3px solid #c796ff;\n      color: #0061a6;\n  }\n\n.CodeTabs_initial{\n  /* box shadows with with legacy browser support - just in case */\n    -webkit-box-shadow: 0 10px 6px -6px #777; /* for Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */\n     -moz-box-shadow: 0 10px 6px -6px #777; /* for Firefox 3.5 - 3.6 */\n          box-shadow: 0 10px 6px -6px #777;/* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */\n  }\n</style>"

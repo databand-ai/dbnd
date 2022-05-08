@@ -8,7 +8,6 @@ Fully tested on Airflow 1.10.X.
 ## Code Example
 Here is an example of how you achieve your goal:
 
-<!-- noqa -->
 ```python
 import logging
 
@@ -113,7 +112,6 @@ To see the further possibilities of changing configuration settings, see [Object
 ## Jinja Templating
 Airflow uses Jinja templates to pass macros to tasks. Jinja templates also work natively in DBND Airflow operator. To prevent errors, it is also possible to disable Jinja templates in DBND. Let's look at the following example:
 
-<!-- xfail -->
 ```python
 from dbnd import pipeline
 from airflow import DAG
@@ -131,7 +129,6 @@ with DAG(dag_id="current_date_dag", default_args=default_args) as dag:
 
 The Airflow macro `{{ ts }}` marks the timestamp for execution. If we wanted to pass the actual literal argument `{{ ts }}`, we would have to disable Jinja templating for this parameter, as demonstrated:
 
-<!-- xfail -->
 ```python
 from airflow import DAG
 from dbnd import parameter, pipeline
@@ -153,7 +150,6 @@ You can use the `task_airflow_op_kwargs`  to pass any BaseOperator parameters, s
 
 See the following example:
 
-<!-- xfail -->
 ```python
 from airflow import DAG
 airflow_op_kwargs = {"priority_weight": 50}

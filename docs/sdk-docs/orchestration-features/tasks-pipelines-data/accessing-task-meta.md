@@ -11,7 +11,6 @@
 While Task Namespace and Task Family are the code's identifiers, the ID is the instance identifier.
 To override the default Namespace, you need to set `Task.task_namespace` property. Look at the `PrepareData` task in the example below:
 
-<!-- xfail -->
 ```python
 prepared_data = PrepareData(data='just some data')
 print(prepared_data)                 # --> "prepare_data__19d1172be0"
@@ -50,14 +49,14 @@ def calculate_alpha(alpha: int = 0.5):
 
 ### Q: How can I find the user running the pipeline in the `task_run`?
 A: Using the `task_run_env` property of `task_run` that holds the user's context of the run, including with the user name.
-<!-- xfail -->
+
 ```python
 task_run.task_run_env.user
 ```
 See more about `task_run_env` [here](doc:tasks-pipelines-data#run-info).
 
 ### How to access all user facing task parameters programmatically?
-<!-- xfail -->
+
 ```python
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd import task
@@ -65,7 +64,7 @@ from dbnd import task
 all_params = {param.name: param.value for param in task.task_params.get_param_values(ParameterFilters.USER)}
 ```
 ### How to access all input task parameters?
-<!-- xfail -->
+
 ```python
 from dbnd._core.parameter.parameter_value import ParameterFilters
 

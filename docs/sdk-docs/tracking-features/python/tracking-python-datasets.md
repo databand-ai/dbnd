@@ -5,7 +5,7 @@
 You can log datasets by using the `with dataset_op_logger...` context. With this approach, you don’t need to specify if the operation was successful because its status is already being tracked inside the context. See [Dataset Logging](doc:dataset-logging)
 
 Example:
-<!-- xfail -->
+
 ```python
 from dbnd import dataset_op_logger
 
@@ -44,7 +44,7 @@ For BigQuery you can use `bigquery://region/project/dataset/table`, for snowflak
 It’s crucial that you wrap only operation-related code in the `dataset_op_logger` context. Anything that’s not related to reading or writing your dataset should be placed outside the context so that unrelated errors do not potentially flag your dataset operation as having failed.
 
 **Good Example:**
-<!-- xfail -->
+
 ```python
 from dbnd import dataset_op_logger
 
@@ -57,7 +57,7 @@ unrelated_func()
 ```
 
 **Bad Example:**
-<!-- xfail -->
+
 ```python
 from dbnd import dataset_op_logger
 
@@ -80,7 +80,7 @@ Histograms and descriptive statistics calculations may impact the performance of
 ## Histogram Reporting
 Histograms for the columns of your datasets can be logged using the dataset logging feature. To enable histogram reporting, use `with_histograms=True` with `log_dataset_op` or `dataset_op_logger` . Your histograms along with a few key data profiling metrics will be accessible within the Databand UI.
 
-<!-- xfail -->
+
 ```python
 from dbnd import log_dataset_op
 from dbnd._core.constants import DbndDatasetOperationType
@@ -119,7 +119,7 @@ data = [
 ```
 
 Providing this list of dictionaries as the data argument for the dataset logging function will allow you to report its schema and its volume:
-<!-- xfail -->
+
 ```python
 from dbnd import dataset_op_logger
 

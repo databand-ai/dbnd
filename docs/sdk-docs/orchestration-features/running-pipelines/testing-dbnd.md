@@ -25,13 +25,13 @@ Testing DBND is a straightforward process:
 
 
 * You can use `dbnd_run()` to run your tasks with the requested variables, for example:
-<!-- xfail -->
+
 ```python
 alpha = calculate_alpha.dbnd_run(task_env="local", task_version="now")
 ```
 
 * You can also use `dbnd_run_cmd()` to run `dbnd` with cmd parameters, for example:
-<!-- xfail -->
+
 ```python
 from dbnd import dbnd_run_cmd
 

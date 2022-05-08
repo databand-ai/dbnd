@@ -8,7 +8,6 @@ Histograms that include data profiling information can be automatically fetched 
 By using the `log_dataframe` function, you can enable its advanced logging options: statistics and histograms.
 To enable these options, set  the `with_histogram` and `with_stats` parameters to `True`:
 
-<!-- xfail -->
 ```python
 from dbnd import log_dataframe
 
@@ -35,7 +34,6 @@ The `LogDataRequest` - can be use for more flexible options, such as calculating
 
 Here is an example of using the `LogDataRequest`:
 
-<!-- xfail -->
 ```python
 from dbnd import log_dataframe, LogDataRequest
 

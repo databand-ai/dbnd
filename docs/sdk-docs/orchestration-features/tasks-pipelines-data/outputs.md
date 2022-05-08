@@ -54,7 +54,7 @@ def some_pipeline():
 
 Or, alternately, the output path can be set via command-line arguments. Call argument (`prepare_data(result='custom_path.txt')`) takes precedence over the command line, and should be left empty:
 
-<!-- xfail -->
+
 ```python
 from dbnd import pipeline
 
@@ -130,7 +130,7 @@ For example, on a regular basis, you run a pipeline that consumes yesterday's da
 As an alternative to this manual approach, you can create another task that runs every day. It collects all customer data and then writes the output to the `s3://some-bucket/customers/data.csv`.
 
 To define this second task, we need to define an overwrite target. See the following example:
-<!-- xfail -->
+
 ```python
 from dbnd import task, output, parameter
 from pandas import DataFrame
@@ -173,7 +173,7 @@ def prepare_data(data: DataFrame) -> Tuple[DataFrame, DataFrame]:
 
 All tasks in this example return two `DataFrames`. Tasks show various syntaxes to name these outputs:
 
-<!-- noqa -->
+
 ```python
 from dbnd import task
 from pandas import DataFrame

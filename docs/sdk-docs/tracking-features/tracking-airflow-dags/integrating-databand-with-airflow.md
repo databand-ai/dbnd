@@ -93,7 +93,7 @@ def f():
 ### To Track Specific DAGs
 If you don't want to use automatic tracking, you can install `dbnd-airflow` package instead of `dbnd-airflow-auto-tracking`.
 For specific DAGs you want to track you can the `track_dag` function in your DAG definition.
-<!-- noqa -->
+
 ```python
 from dbnd_airflow import track_dag
 

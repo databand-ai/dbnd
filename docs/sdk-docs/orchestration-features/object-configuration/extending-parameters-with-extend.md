@@ -22,7 +22,7 @@ and we want to extend those labels for my tasks
 There are two ways to use extend:
 
 1. Like a parameter:
-<!-- xfail -->
+
 ```python
 from dbnd import task, extend
 
@@ -41,7 +41,7 @@ And now the kubernetes labels will include both the "owner" and "team" labels.
 ## Using --extend instead of override
 
 You can use `--extend` the way you use `override` - to wrap up the config dictionary with `--extend`. You can import `--extend` directly from DBND and wrap up the dictionary. As a result, you can extend the labels (e.g., task_name in the example code below) or any resources (e.g., limits).
-<!-- xfail -->
+
 ```python
 from dbnd import task, extend
 

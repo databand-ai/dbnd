@@ -57,7 +57,7 @@ Let us say we would like to track a function (or functions) from a module. Inste
 
 Review the following example, where `module1` contains `f1` and  `f2` functions:
 
-<!-- xfail -->
+
 ```python
 from module1 import f1,f2
 
@@ -71,7 +71,7 @@ The `track_functions` function uses functions as arguments and automatically dec
 
 For an easier and faster approach, you can use the `track_module_functions` function to track all functions inside a named module. So, `module2.py` from the above example would look like this:
 
-<!-- xfail -->
+
 ```python
 import module1
 from dbnd import track_module_functions
@@ -81,7 +81,7 @@ track_module_functions(module1)
 
 To track all functions from multiple modules, there is also `track_modules` which gets modules as arguments and tracks all functions contained within those modules:
 
-<!-- xfail -->
+
 ```python
 from dbnd import track_modules
 

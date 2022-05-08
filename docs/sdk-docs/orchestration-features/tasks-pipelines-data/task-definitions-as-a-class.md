@@ -4,7 +4,7 @@
 There are two main ways of defining tasks and pipelines with DBND. You can use @task and @pipeline decorators. You can also define tasks by creating a new task definition.  This approach is similar to what you can find in Python data classes, SQLAlchemy models, `marshmallow`, and many other famous Python frameworks.
 
 The same class from the main page example can be defined as a class:
-<!-- xfail -->
+
 ```python
 from dbnd import Task, parameter, output
 
@@ -23,7 +23,7 @@ DBND also creates a command line parser that automatically handles the conversio
 
 **_NOTE:_**  You can also use @task to set the Task Class.
 
-<!-- xfail -->
+
 ```python
 from dbnd import task, parameter, output
 
@@ -42,7 +42,7 @@ class PrepareData():
 ## Pipeline
 Using a similar approach, you can define the pipeline task as well.
 
-<!-- xfail -->
+
 ```python
 from dbnd import PipelineTask, parameter, output
 

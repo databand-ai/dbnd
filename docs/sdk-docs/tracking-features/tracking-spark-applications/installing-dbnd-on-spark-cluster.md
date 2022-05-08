@@ -56,7 +56,7 @@ python -m pip install databand[spark]==${DBND_VERSION}
 
 You need to define Environment Variables at the API call/`EmrCreateJobFlowOperator` Airflow Operator.  An alternative way is to provide all these variables via AWS UI where you create a new cluster. EMR cluster doesn't have a way of defining Environment Variables in the bootstrap.
 
-<!-- xfail -->
+
 ```python
 from airflow.hooks.base_hook import BaseHook
 
@@ -120,7 +120,7 @@ Under the Libraries tab of your cluster's configuration:
 | Do not use this mode in production, use it only for trying out DBND in specific Task.
 Ensure that the `dbnd` library is installed on the Databricks cluster by adding `databand[spark]` to the `libraries` parameter of the `DatabricksSubmitRunOperator`, shown in the example below:
 
-<!-- xfail -->
+
 ```python
 DatabricksSubmitRunOperator(
      ...
@@ -137,7 +137,7 @@ To configure [Tracking Spark Applications](doc:tracking-spark-applications) with
 
 Use the following configuration of the Databricks job to enable Databand Java Agent with automatic dataset tracking:
 
-<!-- xfail -->
+
 ```python
 spark_operator = DatabricksSubmitRunOperator(
     json={
@@ -161,7 +161,7 @@ For more configuration options, see the Databricks [Runs Submit API documentatio
 
 You can define environment variables during the cluster setup or add these variables to your bootstrap as described at [Installing on Spark Cluster](doc:installing-dbnd-on-spark-cluster) :
 
-<!-- xfail -->
+
 ```python
 from airflow.hooks.base_hook import BaseHook
 
@@ -181,7 +181,7 @@ cluster_create = DataprocClusterCreateOperator(
 )
 ```
 You can install Databand PySpark support via the same operator:
-<!-- xfail -->
+
 ```python
 cluster_create = DataprocClusterCreateOperator(
      ...
@@ -198,7 +198,7 @@ As Dataproc cluster has built-in support for bootstrap scripts, please, follow b
 ### Tracking Python Spark Jobs
 Use the following configuration of the PySpark DataProc job to enable Databand SparkQuery Listener with automatic dataset tracking:
 
-<!-- xfail -->
+
 ```python
 pyspark_operator = DataProcPySparkOperator(
     ...
@@ -216,6 +216,12 @@ See the list of all supported operators and extra information at [Tracking Subpr
 ## Next Steps
 
 See the [Tracking Python](doc:python) section for implementing `dbnd` within your PySpark jobs. See the [Tracking Spark/JVM Applications](doc:tracking-spark-applications) for Spark/JVM jobs
+[block:html]
+{
+  "html": "<style>\n  pre {\n      border: 0.2px solid #ddd;\n      border-left: 3px solid #c796ff;\n      color: #0061a6;\n  }\n\n.CodeTabs_initial{\n  /* box shadows with with legacy browser support - just in case */\n    -webkit-box-shadow: 0 10px 6px -6px #777; /* for Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */\n     -moz-box-shadow: 0 10px 6px -6px #777; /* for Firefox 3.5 - 3.6 */\n          box-shadow: 0 10px 6px -6px #777;/* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */\n  }\n</style>\t\t"
+}
+[/block]
+
 [block:html]
 {
   "html": "<style>\n  pre {\n      border: 0.2px solid #ddd;\n      border-left: 3px solid #c796ff;\n      color: #0061a6;\n  }\n\n.CodeTabs_initial{\n  /* box shadows with with legacy browser support - just in case */\n    -webkit-box-shadow: 0 10px 6px -6px #777; /* for Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */\n     -moz-box-shadow: 0 10px 6px -6px #777; /* for Firefox 3.5 - 3.6 */\n          box-shadow: 0 10px 6px -6px #777;/* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */\n  }\n</style>\t\t"

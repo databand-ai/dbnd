@@ -12,7 +12,6 @@ cancel_current_run()
 
 To kill a run execution, outside of execution code:
 
-<!-- xfail -->
 ```python
 databand_run.kill_run()
 ```
@@ -26,7 +25,7 @@ from dbnd import cancel_current_run
 cancel_current_run(message="custom cancel message")
 ```
 or
-<!-- xfail -->
+
 ```python
 databand_run.kill_run(message="custom cancel message")
 ```

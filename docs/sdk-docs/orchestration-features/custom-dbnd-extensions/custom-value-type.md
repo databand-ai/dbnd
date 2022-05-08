@@ -54,7 +54,6 @@ register_value_type(_MyCustomObjectValueType())
 
 ## To Use a Custom Value Type at Task definition [Task Class](doc:task-definitions-as-a-class)
 
-<!-- xfail -->
 ```python
 from typing import List, Set, Dict
 from dbnd import PythonTask, parameter, output

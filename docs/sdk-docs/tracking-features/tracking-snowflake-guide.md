@@ -17,7 +17,7 @@ pip install dbnd dbnd-snowflake
 
 Assume the following code is what you are currently using to copy some file into a Snowflake table:
 
-<!-- noqa -->
+
 ```python
 from snowflake import connector
 
@@ -39,7 +39,7 @@ with connector.connect(
 
 
 To log the results of `SQL_QUERY` with Databand, you can make the following changes:
-<!-- noqa -->
+
 ```python
 from snowflake import connector
 from dbnd_snowflake import SnowflakeTracker

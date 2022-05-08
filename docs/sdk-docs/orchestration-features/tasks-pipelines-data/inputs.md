@@ -30,7 +30,7 @@ dbnd run prepare_data --set data=dbnd-examples/data/wine_quality.csv.gz
 
 Running `prepare_data` as part of a pipeline:
 
-<!-- xfail -->
+
 ```python
 prepare_data.task(data="dbnd-examples/data/wine_quality.csv.gz").dbnd_run()
 ```

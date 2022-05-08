@@ -1,18 +1,18 @@
 ---
 "title": "Tracking Redshift"
 ---
-Databand allows you to log your dataset operations when using Python to call SQL commands on Redshift. Wrapping your Redshift cursor's execution with Databand's RedshiftTracker context manager will catch the cursor's result and extract [Dataset Tracking](doc:dataset-logging)  operations from it. Currently, only `COPY INTO` is supported.
+Databand allows you to log your dataset operations when using Python to call SQL commands on Redshift. Wrapping your Redshift cursor's execution with Databand's `RedshiftTracker` context manager will catch the cursor's result and extract [Dataset Logging](doc:dataset-logging)  operations from it. Currently, only [COPY queries](https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html) are supported.
 
 # Requirements
 This guide assumes that your Redshift is configured to accept inbound connections. We will be using `psycopg2` to connect to Redshift.  Currently, DBND only supports `psycopg2` connections as the connection parameter.
 
-Make sure that the package "dbnd-redshift" is installed (via `pip install databand[redshift]`, for example). See more info at [Installing DBND](doc:installing-dbnd)
+Make sure that the `dbnd-redshift` package is installed (via `pip install databand[redshift]`, for example). See more info at [Installing DBND](doc:installing-dbnd).
 
 
-# Integration with RedshiftTracker
+# Integrating RedshiftTracker
 
-Assume the following code is what you are currently using to copy some files into a Redshift table:
-<!-- noqa -->
+Assume the following code is what you are currently using to copy files into a Redshift table:
+
 ```python
 import psycopg2
 
@@ -33,56 +33,61 @@ with psycopg2.connect(
     c.execute(SQL_QUERY)
 ```
 
-To log the results of your query with Databand, you should run all your SQL queries in the context of  `RedshiftTracker`:
-<!-- noqa -->
+To log the results of your query with Databand, wrap the execution of your cursor with the `RedshiftTracker` context manager:
+
 ```python
 from dbnd_redshift import RedshiftTracker, RedshiftTrackerConfig
 
-with RedshiftTracker(conf=RedshiftTrackerConfig(
-                with_preview=True,
-                with_stats=True,
-                with_schema=True
-            )):
-        ...
-        c.execute(SQL_QUERY)
-        ...
+with RedshiftTracker(
+    conf=RedshiftTrackerConfig(with_preview=True, with_stats=True, with_schema=True)
+):
+    c.execute(SQL_QUERY)
 ```
 
-Under the hood, `RedshiftTracker` will catch the execution of c.execute(SQL_QUERY). Only one query execution should be provided for each RedshiftTracker context.
+The above will capture the results of the executed query. Only one query execution should be provided for each `RedshiftTracker` context.
 
-## COPY INTO Command
-Databand can track "COPY INTO" command. This will allow you to track both the read operation of your file from S3 as well as the write operation to DB.PUBLIC.TABLE in Redshift.
+# Optional Parameters
+By default, `RedshiftTracker` will capture the paths of your file and Redshift table, the column and row counts of the data being copied, and the schema of the data being copied. In addition to these metrics, additional metadata can be captured by passing the optional parameters below to `RedshiftTrackerConfig` as part of your `RedshiftTracker` integration:
+* `with_preview=True`: Display a sample of your data in Databand (approximately 10-20 records).
+* `with_stats=True`: Calculate column-level statistics for the data in motion. This includes but is not limited to metrics such as null counts and percentages, distinct counts, and statistical values such as the mean, standard deviation, and quartiles. 
+* `with_partition=True`: If your file path includes partitioning such as `/date=20220415/`, you can use this parameter to ignore partitions in the parsing of your dataset names. This will help ensure that datasets across runs that have different partitioning will still be evaluated as the same dataset for the sake of trends and alerts. 
 
-![](https://files.readme.io/25cf459-Screen_Shot_2022-01-10_at_14.13.15.png)
+# Viewing Redshift Operations in Databand
+Operations logged by `RedshiftTracker` will result in two datasets: the read from the file and the write to the Redshift table. Metrics related to these datasets such as the row counts, schemas, and column-level stats can be viewed on both the Affected Datasets tab of your pipeline run as well as the Datasets page in your Databand environment.
 
-Current COPY INTO Limitations are:
-1. Nested queries are not supported (e.g.: COPY (SELECT * FROM TABLE) table FROM...).
-
-
-## Tracking Schema and Column Statistics with RedshiftTracker
-`ֿRedshiftTracker` will track schema by default, in order to enable also column level stats pass with_stats=True in `RedshiftTrackerConfiguration`, to also see preview of the data pass with_preview=True.
-
-
-Another option for tracking the schema and column level statistics of the copied data, users can provide a `DataFrame` to `RedshiftTracker`. Providing the tracker with a `DataFrame` will result in loading it into memory, which might have a performance impact with large DataFrames. In these cases it is advised to read a small portion of the `DataFrame` by using the `nrows` param as seen in the example below.
-
-Providing `DataFrame` will override schema extraction and column level stats calculated from the query.
-
-<!-- noqa -->
-```python
-import pandas as pd
-from dbnd_redshift import RedshiftTracker
-source_file_path = "s3://some/path/file.csv"
-df = pd.read_csv(source_file_path, nrows=50) # <-- Partially reading the DataFrame
-with RedshiftTracker() as tracker:
-        ...
-        tracker.set_dataframe(dataframe=df)  # <-- Log the DataFrame's metadata
-        c.execute(SQL_QUERY)
-        ...
-```
-[block:callout]
+### Affected Datasets Tab
+[block:image]
 {
-  "type": "info",
-  "title": "RedshiftTracker config",
-  "body": "When using `with_stats=True`, `with_schema` is explicitly set to true and ignores the configured value, this is because there is no column level stats without schema extraction."
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/a3eac5f-Screen_Shot_2022-04-28_at_3.27.40_PM.png",
+        "Screen Shot 2022-04-28 at 3.27.40 PM.png",
+        1367,
+        177,
+        "#404141"
+      ],
+      "caption": ""
+    }
+  ]
 }
 [/block]
+### Datasets Page
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/a6d166b-Screen_Shot_2022-04-28_at_3.24.30_PM.png",
+        "Screen Shot 2022-04-28 at 3.24.30 PM.png",
+        2151,
+        705,
+        "#383838"
+      ],
+      "caption": ""
+    }
+  ]
+}
+[/block]
+# Limitations
+Nested queries are not supported by `RedshiftTracker` (e.g. COPY (SELECT * FROM TABLE) table FROM...).

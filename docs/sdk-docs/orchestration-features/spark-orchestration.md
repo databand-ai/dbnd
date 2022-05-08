@@ -52,7 +52,6 @@ dbnd run prepare_data_spark --set text=<some file>
 ## PySpark Task
 Another common option is to run an existing PySpark script using DBND. To do this, specify the name of the script and define input/output parameters:
 
-<!-- xfail -->
 ```python
 from dbnd import output, parameter
 from dbnd_spark import PySparkTask
