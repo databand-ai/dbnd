@@ -1,4 +1,7 @@
 import itertools
+import json
+
+from decimal import Decimal
 
 import pytest
 
@@ -6,6 +9,9 @@ from more_itertools import first_true, one
 
 from dbnd import log_metric, log_metrics, task
 from dbnd._core.tracking.metrics import log_data
+from dbnd._core.tracking.schemas.metrics import Metric
+from dbnd._core.utils.timezone import utcnow
+from dbnd.api.serialization.common import MetricSchema
 from dbnd.testing.helpers_mocks import set_tracking_context
 from test_dbnd.tracking.tracking_helpers import get_log_metrics, get_log_targets
 
@@ -29,6 +35,89 @@ class TestTrackingMetrics(object):
 
         assert metric.value == getattr(metric, attribute)
         assert metric.value == value
+
+    @pytest.mark.parametrize(
+        "metric_value", [Decimal("0"), Decimal("1"), Decimal("0.2"), Decimal("-1.001")]
+    )
+    def test_metric_decimal_serialization(self, metric_value):
+        def assert_metric_dump(value=None, value_json=None, expected_metric=None):
+            metric_schema = MetricSchema()
+            now = utcnow()
+            m = Metric(key="test", timestamp=now, value=value, value_json=value_json)
+            metric_json = metric_schema.dump(m).data
+            # ensure we can actually json dump the object
+            assert metric_json == json.loads(json.dumps(metric_json))
+
+            expected = {
+                "value_json": None,
+                "timestamp": now.isoformat(),
+                "key": "test",
+                "value_float": None,
+                "value_int": None,
+                "value": None,
+                "value_str": None,
+            }
+            expected.update(expected_metric)
+            assert metric_json == expected
+
+        assert_metric_dump(
+            value=metric_value,
+            expected_metric={
+                "value_float": float(metric_value),
+                "value": float(metric_value),
+            },
+        )
+
+        assert_metric_dump(
+            value={"name": metric_value},
+            expected_metric={
+                "value_json": {"name": float(metric_value)},
+                "value": {"name": float(metric_value)},
+            },
+        )
+
+        assert_metric_dump(
+            value_json=metric_value,
+            expected_metric={
+                "value_json": float(metric_value),
+                "value": float(metric_value),
+            },
+        )
+
+        assert_metric_dump(
+            value_json={"name": metric_value},
+            expected_metric={
+                "value_json": {"name": float(metric_value)},
+                "value": {"name": float(metric_value)},
+            },
+        )
+
+    @pytest.mark.parametrize(
+        "value", [Decimal("0"), Decimal("1"), Decimal("0.2"), Decimal("-1.001")]
+    )
+    def test_log_metric_decimal(self, mock_channel_tracker, value):
+        assert isinstance(value, Decimal)
+
+        @task()
+        def task_with_log_metric_decimal():
+            log_metric(key="test", value=value)
+            log_metric(key="test_json", value={"name": value})
+
+        task_with_log_metric_decimal()
+
+        # will raise if no exist
+        metric_info, metric_info_json = get_log_metrics(mock_channel_tracker)
+        metric = metric_info["metric"]
+
+        assert isinstance(metric.value, float)
+        assert metric.value == metric.value_float
+        assert metric.value == float(value)
+
+        metric_from_json = metric_info_json["metric"]
+        assert isinstance(metric_from_json.value["name"], float)
+        assert metric_from_json.value == {"name": float(value)}
+        assert metric_from_json.value_float is None
+        assert metric_from_json.value_json == metric_from_json.value
 
     def test_log_metrics(self, mock_channel_tracker):
         @task()

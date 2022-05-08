@@ -4,6 +4,7 @@ import json
 import operator
 
 from collections import OrderedDict
+from decimal import Decimal
 from typing import Mapping
 from uuid import UUID
 
@@ -78,6 +79,8 @@ def json_default(obj, safe=False):
 
     if isinstance(obj, UUID):
         return str(obj)
+    if isinstance(obj, Decimal):
+        return float(obj)
     if safe:
         return str(obj)
 

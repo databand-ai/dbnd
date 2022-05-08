@@ -1,10 +1,13 @@
 import json
 import logging
 
+from decimal import Decimal
+
 import attr
 import six
 
 from dbnd._core.constants import _DbndDataClass
+from dbnd._core.utils import json_utils
 from dbnd._core.utils.string_utils import safe_short_string
 
 
@@ -55,9 +58,13 @@ class Metric(_DbndDataClass):
         self.value_float = value_float
         self.value_str = value_str
         self.value_json = None
-        if value_json:
-            self.value_json = value_json
-            self.value_str = None
+        if value_json is not None:
+            try:
+                self.value_json = json.loads(json_utils.dumps_safe(value_json))
+                self.value_str = None
+            except Exception:
+                self.value_json = None
+                self.value_str = safe_value_to_str(value_json, self.VALUE_MAX_LEN)
         elif (value_int, value_float, value_str) == (None, None, None):
             self.value = value
 
@@ -80,7 +87,9 @@ class Metric(_DbndDataClass):
 
     @value.setter
     def value(self, value):
-        if isinstance(value, float):
+        if isinstance(value, Decimal):
+            self.value_float = float(value)
+        elif isinstance(value, float):
             self.value_float = value
         elif isinstance(value, int) and self.MIN_INT <= value <= self.MAX_INT:
             # need int() in case it's bool
