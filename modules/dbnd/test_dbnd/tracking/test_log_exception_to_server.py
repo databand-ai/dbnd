@@ -1,3 +1,6 @@
+import gzip
+import json
+
 import pytest
 
 from mock import patch
@@ -29,12 +32,10 @@ class TestLogExceptionToServer:
                 assert send_request_mock.call_count == 1
                 call_kwargs = send_request_mock.call_args.kwargs
                 assert call_kwargs["url"] == "/api/v1/log_exception"
-                assert call_kwargs["json"]["source"] == "tracking-sdk"
-                assert "in raising_function" in call_kwargs["json"]["stack_trace"]
-                assert (
-                    "TestException: some error message"
-                    in call_kwargs["json"]["stack_trace"]
-                )
+                data_dict = json.loads(gzip.decompress(call_kwargs["data"]))
+                assert data_dict["source"] == "tracking-sdk"
+                assert "in raising_function" in data_dict["stack_trace"]
+                assert "TestException: some error message" in data_dict["stack_trace"]
 
     def test_log_exception_to_server_no_url(self):
         """Shouldn't try to send data if api is not configured"""

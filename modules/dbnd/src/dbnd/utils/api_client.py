@@ -1,3 +1,5 @@
+import gzip
+import json
 import logging
 
 from datetime import datetime, timedelta
@@ -70,6 +72,8 @@ class ApiClient(object):
         self.credentials = credentials
         self.default_headers = {
             "Accept": "application/json",
+            "content-encoding": "gzip",
+            "Content-Type": "application/json",
             **(extra_default_headers or {}),
         }
 
@@ -112,7 +116,7 @@ class ApiClient(object):
         request_params = dict(
             method=method,
             url=url,
-            json=data,
+            data=gzip.compress(json.dumps(data).encode("utf-8")),
             headers=headers,
             params=query,
             timeout=request_timeout or self.default_request_timeout,
