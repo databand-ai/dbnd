@@ -40,6 +40,10 @@ def collect_data_from_dbt_cloud(
             dbt_job_run_id=12345
             )
     """
+    if not dbt_job_run_id:
+        logger.warning("Can't collect run  Data from dbt cloud,missing run id")
+        return
+
     if not dbt_cloud_api_token or not dbt_cloud_account_id:
         logger.warning(
             "Can't collect Data from dbt cloud, account id nor api key were supplied"
@@ -51,10 +55,11 @@ def collect_data_from_dbt_cloud(
             account_id=dbt_cloud_account_id, dbt_cloud_api_token=dbt_cloud_api_token
         )
 
-        dbt_run_meta_data = dbt_cloud_client.get_run(dbt_job_run_id)
+        dbt_run_meta_data = dbt_cloud_client.get_run(run_id=dbt_job_run_id)
         if not dbt_run_meta_data:
             logger.warning("Fail getting run data from dbt cloud ")
             return
+
         env_id = dbt_run_meta_data.get("environment_id")
         env = dbt_cloud_client.get_environment(env_id=env_id)
 
@@ -63,13 +68,13 @@ def collect_data_from_dbt_cloud(
 
         for step in dbt_run_meta_data.get("run_steps", []):
             step_run_results_artifact = dbt_cloud_client.get_run_results_artifact(
-                dbt_job_run_id, step["index"]
+                run_id=dbt_job_run_id, step=step["index"]
             )
             if step_run_results_artifact:
                 step["run_results"] = step_run_results_artifact
 
             step_run_manifest_artifact = dbt_cloud_client.get_manifest_artifact(
-                dbt_job_run_id, step["index"]
+                run_id=dbt_job_run_id, step=step["index"]
             )
 
             if step_run_manifest_artifact:
@@ -77,4 +82,7 @@ def collect_data_from_dbt_cloud(
 
         _report_dbt_metadata(dbt_run_meta_data)
     except Exception as e:
+        logger.warning(
+            "Failed collect and report data from dbt cloud api,continue execution"
+        )
         log_exception("Could not collect data from dbt cloud", e)

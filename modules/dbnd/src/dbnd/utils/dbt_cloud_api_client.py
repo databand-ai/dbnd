@@ -1,9 +1,13 @@
 import logging
 import urllib
 
-from requests import Session
+from http import HTTPStatus
+
+from requests import HTTPError, Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+
+from dbnd._core.errors.errors_utils import log_exception
 
 
 logger = logging.getLogger(__name__)
@@ -47,15 +51,22 @@ class DbtCloudApiClient:
             elif method == "GET":
                 res = self.session.get(url=endpoint, params=data)
 
-            if not res.ok:
-                return None
-
+            # raise exception for status code != 2**
+            res.raise_for_status()
             deserialized_res = res.json()
-            return deserialized_res
+        except HTTPError as http_error:
+            # We want to send server all errors that are not 404 response
+            if http_error.response.status_code != HTTPStatus.NOT_FOUND:
+                logger.debug("Received unexpected response code from dbt cloud api")
+                log_exception("unexpected response code from dbt cloud api", http_error)
 
-        except Exception:
-            logger.warning("Fail getting data from  dbt cloud %s", endpoint)
             return None
+
+        except Exception as e:
+            log_exception("Something went wrong getting data dbt cloud api", e)
+            return None
+
+        return deserialized_res
 
     def _get_run_artifact(self, artifact_name, run_id, step=1):
         path = f"{self.account_id}/runs/{run_id}/artifacts/{artifact_name}"
@@ -73,6 +84,11 @@ class DbtCloudApiClient:
         )
 
     def get_run(self, run_id):
+
+        if not run_id:
+            logger.debug("Can't get run without id")
+            return
+
         path = f"{self.account_id}/runs/{run_id}"
         url = self._build_administrative_url(path)
         res = self.send_request(endpoint=url, data={"include_related": '["run_steps"]'})

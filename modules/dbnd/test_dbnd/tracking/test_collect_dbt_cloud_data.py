@@ -21,8 +21,26 @@ class TestCollectDataFromDbtCloud:
             dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
         )
 
-        dbt_cloud_api_mocked_instance.get_run.assert_called_with(self.DBT_CLOUD_RUN_ID)
+        dbt_cloud_api_mocked_instance.get_run.assert_called_with(
+            run_id=self.DBT_CLOUD_RUN_ID
+        )
         dbt_cloud_api_mocked_instance.get_run_results_artifact.assert_not_called()
+        report_dbt_metadata_mock.assert_not_called()
+
+    def test_collect_dbt_data_without_run_id(
+        self, dbt_cloud_api_client_mock, report_dbt_metadata_mock
+    ):
+        dbt_cloud_api_mocked_instance = dbt_cloud_api_client_mock.return_value
+        dbt_cloud_api_mocked_instance.get_run.return_value = None
+        collect_data_from_dbt_cloud(
+            dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
+            dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
+            dbt_job_run_id="",
+        )
+
+        dbt_cloud_api_mocked_instance.get_run.assert_not_called()
+        dbt_cloud_api_mocked_instance.get_run_results_artifact.assert_not_called()
+        dbt_cloud_api_mocked_instance.get_environment.assert_not_called()
         report_dbt_metadata_mock.assert_not_called()
 
     def test_collect_dbt_data_without_run_steps(
@@ -36,7 +54,9 @@ class TestCollectDataFromDbtCloud:
             dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
         )
 
-        dbt_cloud_api_mocked_instance.get_run.assert_called_with(self.DBT_CLOUD_RUN_ID)
+        dbt_cloud_api_mocked_instance.get_run.assert_called_with(
+            run_id=self.DBT_CLOUD_RUN_ID
+        )
         dbt_cloud_api_mocked_instance.get_run_results_artifact.assert_not_called()
         report_dbt_metadata_mock.assert_called()
 
@@ -70,9 +90,60 @@ class TestCollectDataFromDbtCloud:
             dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
         )
 
-        dbt_cloud_api_mocked_instance.get_run.assert_called_with(self.DBT_CLOUD_RUN_ID)
+        dbt_cloud_api_mocked_instance.get_run.assert_called_with(
+            run_id=self.DBT_CLOUD_RUN_ID
+        )
         assert dbt_cloud_api_mocked_instance.get_run_results_artifact.call_count == len(
             run_steps
         )
         report_dbt_metadata_mock.assert_called()
         report_dbt_metadata_mock.assert_called_with(expected_dbt_metadata_report)
+
+    def test_run_steo_with_no_artifacts(
+        self, dbt_cloud_api_client_mock, report_dbt_metadata_mock
+    ):
+        dbt_cloud_api_mocked_instance = dbt_cloud_api_client_mock.return_value
+        run_steps = [{"index": 1}, {"index": 2}, {"index": 3}]
+        env = {"env": 123}
+
+        dbt_cloud_api_mocked_instance.get_run.return_value = {"run_steps": run_steps}
+        dbt_cloud_api_mocked_instance.get_run_results_artifact.return_value = None
+        dbt_cloud_api_mocked_instance.get_manifest_artifact.return_value = None
+        dbt_cloud_api_mocked_instance.get_environment.return_value = env
+        expected_steps_with_results = [{**step} for step in run_steps]
+        expected_dbt_metadata_report = {
+            "run_steps": expected_steps_with_results,
+            "environment": env,
+        }
+
+        collect_data_from_dbt_cloud(
+            dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
+            dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
+            dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
+        )
+
+        dbt_cloud_api_mocked_instance.get_run.assert_called_with(
+            run_id=self.DBT_CLOUD_RUN_ID
+        )
+        assert dbt_cloud_api_mocked_instance.get_run_results_artifact.call_count == len(
+            run_steps
+        )
+        report_dbt_metadata_mock.assert_called()
+        report_dbt_metadata_mock.assert_called_with(expected_dbt_metadata_report)
+
+    def test_run_not_found(self, dbt_cloud_api_client_mock, report_dbt_metadata_mock):
+        dbt_cloud_api_mocked_instance = dbt_cloud_api_client_mock.return_value
+        dbt_cloud_api_mocked_instance.get_run.return_value = None
+
+        collect_data_from_dbt_cloud(
+            dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
+            dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
+            dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
+        )
+
+        dbt_cloud_api_mocked_instance.get_run.assert_called_with(
+            run_id=self.DBT_CLOUD_RUN_ID
+        )
+        dbt_cloud_api_mocked_instance.get_environment.assert_not_called()
+        dbt_cloud_api_mocked_instance.get_run_results_artifact.assert_not_called()
+        report_dbt_metadata_mock.assert_not_called()
