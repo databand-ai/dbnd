@@ -73,7 +73,14 @@ public class DbndLogger {
     public static void logDatasetOperation(String path,
                                            DatasetOperationType type,
                                            Dataset<?> data) {
-        logDatasetOperation(path, type, DatasetOperationStatus.OK, data, true, true);
+        logDatasetOperation(path, type, DatasetOperationStatus.OK, data, new LogDatasetRequest());
+    }
+
+    public static void logDatasetOperation(String path,
+                                           DatasetOperationType type,
+                                           Dataset<?> data,
+                                           LogDatasetRequest params) {
+        logDatasetOperation(path, type, DatasetOperationStatus.OK, data, params);
     }
 
     /**
@@ -88,7 +95,23 @@ public class DbndLogger {
                                            DatasetOperationType type,
                                            DatasetOperationStatus status,
                                            Dataset<?> data) {
-        logDatasetOperation(path, type, status, data, true, true);
+        logDatasetOperation(path, type, status, data, new LogDatasetRequest());
+    }
+
+    /**
+     * Report dataset operation. Schema and preview will automatically be calculated.
+     *
+     * @param path   data path (S3, filesystem, GCS etc)
+     * @param type   operation type — read/write
+     * @param status operation status — success/failure
+     * @param data   spark dataset
+     */
+    public static void logDatasetOperation(String path,
+                                           DatasetOperationType type,
+                                           DatasetOperationStatus status,
+                                           Dataset<?> data,
+                                           LogDatasetRequest params) {
+        logDatasetOperation(path, type, status, data, null, params);
     }
 
     /**
@@ -105,94 +128,17 @@ public class DbndLogger {
                                            DatasetOperationStatus status,
                                            Dataset<?> data,
                                            Throwable error) {
-        try {
-            DbndWrapper.instance().logDatasetOperation(path, type, status, data, error, true, true, null);
-        } catch (Throwable e) {
-            System.out.println("DbndLogger: Unable to log dataset operation");
-            e.printStackTrace();
-        }
+        logDatasetOperation(path, type, status, data, error, new LogDatasetRequest());
     }
 
-    /**
-     * Report dataset operation and error operation if occurred. Schema and preview will automatically be calculated.
-     *
-     * @param path          data path (S3, filesystem, GCS etc)
-     * @param type          operation type — read/write
-     * @param status        operation status — success/failure
-     * @param data          spark dataset
-     * @param error         error when operation was failed
-     * @param withPartition pass true if you want to remove partition path from dataset path or false if you want to keep them
-     */
     public static void logDatasetOperation(String path,
                                            DatasetOperationType type,
                                            DatasetOperationStatus status,
                                            Dataset<?> data,
                                            Throwable error,
-                                           boolean withPartition) {
+                                           LogDatasetRequest params) {
         try {
-            DbndWrapper.instance().logDatasetOperation(path, type, status, data, error, true, true, withPartition);
-        } catch (Throwable e) {
-            System.out.println("DbndLogger: Unable to log dataset operation");
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Report dataset operation. Schema will be automatically calculated.
-     *
-     * @param path        data path (S3, filesystem, GCS etc)
-     * @param type        operation type — read/write
-     * @param status      operation status — success/failure
-     * @param data        spark dataset
-     * @param withPreview pass true if you want to generate preview (may impact performance)
-     */
-    public static void logDatasetOperation(String path,
-                                           DatasetOperationType type,
-                                           DatasetOperationStatus status,
-                                           Dataset<?> data,
-                                           boolean withPreview) {
-        logDatasetOperation(path, type, status, data, withPreview, true, null);
-    }
-
-    /**
-     * Report dataset operation.
-     *
-     * @param path        data path (S3, filesystem, GCS etc)
-     * @param type        operation type — read/write
-     * @param status      operation status — success/failure
-     * @param data        spark dataset
-     * @param withPreview pass true if you want to generate preview (may impact performance)
-     * @param withSchema  pass true if you want to calculate dataset schema
-     */
-    public static void logDatasetOperation(String path,
-                                           DatasetOperationType type,
-                                           DatasetOperationStatus status,
-                                           Dataset<?> data,
-                                           boolean withPreview,
-                                           boolean withSchema) {
-        logDatasetOperation(path, type, status, data, withPreview, withSchema, null);
-    }
-
-    /**
-     * Report dataset operation.
-     *
-     * @param path          data path (S3, filesystem, GCS etc)
-     * @param type          operation type — read/write
-     * @param status        operation status — success/failure
-     * @param data          spark dataset
-     * @param withPreview   pass true if you want to generate preview (may impact performance)
-     * @param withSchema    pass true if you want to calculate dataset schema
-     * @param withPartition pass true if you want to remove partition path from dataset path or false if you want to keep them
-     */
-    public static void logDatasetOperation(String path,
-                                           DatasetOperationType type,
-                                           DatasetOperationStatus status,
-                                           Dataset<?> data,
-                                           boolean withPreview,
-                                           boolean withSchema,
-                                           Boolean withPartition) {
-        try {
-            DbndWrapper.instance().logDatasetOperation(path, type, status, data, withPreview, withSchema, withPartition);
+            DbndWrapper.instance().logDatasetOperation(path, type, status, data, error, params);
         } catch (Throwable e) {
             System.out.println("DbndLogger: Unable to log dataset operation");
             e.printStackTrace();

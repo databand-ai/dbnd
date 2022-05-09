@@ -15,6 +15,7 @@ public class DatasetOperationRes {
     private String operationType;
     private String taskRunName;
     private List<Issue> issues;
+    private List<ColumnStats> columnsStats;
 
     public String getLatestOperationStatus() {
         return latestOperationStatus;
@@ -78,6 +79,14 @@ public class DatasetOperationRes {
 
     public void setIssues(List<Issue> issues) {
         this.issues = issues;
+    }
+
+    public List<ColumnStats> getColumnsStats() {
+        return columnsStats;
+    }
+
+    public void setColumnsStats(List<ColumnStats> columnsStats) {
+        this.columnsStats = columnsStats;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

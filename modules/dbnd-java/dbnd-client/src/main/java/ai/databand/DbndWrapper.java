@@ -2,6 +2,7 @@ package ai.databand;
 
 import ai.databand.config.DbndConfig;
 import ai.databand.log.HistogramRequest;
+import ai.databand.log.LogDatasetRequest;
 import ai.databand.schema.DatabandTaskContext;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -232,29 +234,12 @@ public class DbndWrapper {
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
                                     Throwable error,
-                                    boolean withPreview,
-                                    boolean withSchema,
-                                    Boolean withPartition) {
+                                    LogDatasetRequest params) {
         DbndRun run = currentRun();
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, data, error, withPreview, withSchema, withPartition);
-        LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
-    }
-
-    public void logDatasetOperation(String path,
-                                    DatasetOperationType type,
-                                    DatasetOperationStatus status,
-                                    Dataset<?> data,
-                                    boolean withPreview,
-                                    boolean withSchema,
-                                    Boolean withPartition) {
-        DbndRun run = currentRun();
-        if (run == null) {
-            run = createAgentlessRun();
-        }
-        run.logDatasetOperation(path, type, status, data, null, withPreview, withSchema, withPartition);
+        run.logDatasetOperation(path, type, status, data, error, params);
         LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 
@@ -269,7 +254,7 @@ public class DbndWrapper {
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition);
+        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition, Collections.emptyList());
         LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 

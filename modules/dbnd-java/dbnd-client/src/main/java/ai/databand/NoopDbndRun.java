@@ -1,6 +1,8 @@
 package ai.databand;
 
 import ai.databand.log.HistogramRequest;
+import ai.databand.log.LogDatasetRequest;
+import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.TaskRun;
@@ -75,7 +77,8 @@ public class NoopDbndRun implements DbndRun {
                                     String valuePreview,
                                     List<Long> dataDimensions,
                                     Object dataSchema,
-                                    Boolean withPartition) {
+                                    Boolean withPartition,
+                                    List<ColumnStats> columnStats) {
         // do nothing
     }
 
@@ -85,9 +88,7 @@ public class NoopDbndRun implements DbndRun {
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
                                     Throwable error,
-                                    boolean withPreview,
-                                    boolean withSchema,
-                                    Boolean withPartition) {
+                                    LogDatasetRequest params) {
         // do nothing
     }
 

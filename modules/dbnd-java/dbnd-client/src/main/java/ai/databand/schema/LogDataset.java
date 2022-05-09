@@ -16,6 +16,7 @@ public class LogDataset {
     private final List<Long> dataDimensions;
     private final Object dataSchema;
     private final Boolean withPartition;
+    private final List<ColumnStats> columnsStats;
 
     public LogDataset(TaskRun taskRun,
                       String operationPath,
@@ -25,7 +26,8 @@ public class LogDataset {
                       String valuePreview,
                       List<Long> dataDimensions,
                       Object dataSchema,
-                      Boolean withPartition) {
+                      Boolean withPartition,
+                      List<ColumnStats> columnStats) {
         this(
             taskRun.getRunUid(),
             taskRun.getTaskRunUid(),
@@ -38,7 +40,8 @@ public class LogDataset {
             valuePreview,
             dataDimensions,
             dataSchema,
-            withPartition
+            withPartition,
+            columnStats
         );
     }
 
@@ -53,7 +56,8 @@ public class LogDataset {
                       String valuePreview,
                       List<Long> dataDimensions,
                       Object dataSchema,
-                      Boolean withPartition) {
+                      Boolean withPartition,
+                      List<ColumnStats> columnStats) {
         this.runUid = runUid;
         this.taskRunUid = taskRunUid;
         this.taskRunName = taskRunName;
@@ -66,6 +70,7 @@ public class LogDataset {
         this.dataDimensions = dataDimensions;
         this.dataSchema = dataSchema;
         this.withPartition = withPartition;
+        this.columnsStats = columnStats;
     }
 
     public String getRunUid() {
@@ -114,6 +119,10 @@ public class LogDataset {
 
     public Boolean getWithPartition() {
         return withPartition;
+    }
+
+    public List<ColumnStats> getColumnsStats() {
+        return columnsStats;
     }
 
     @Override

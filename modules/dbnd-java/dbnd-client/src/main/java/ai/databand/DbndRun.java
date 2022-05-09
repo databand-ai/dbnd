@@ -1,6 +1,8 @@
 package ai.databand;
 
 import ai.databand.log.HistogramRequest;
+import ai.databand.log.LogDatasetRequest;
+import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.TaskRun;
@@ -99,6 +101,7 @@ public interface DbndRun {
      * @param valuePreview
      * @param dataDimensions
      * @param dataSchema
+     * @param columnStats
      */
     void logDatasetOperation(String path,
                              DatasetOperationType type,
@@ -107,7 +110,8 @@ public interface DbndRun {
                              String error,
                              List<Long> dataDimensions,
                              Object dataSchema,
-                             Boolean withPartition);
+                             Boolean withPartition,
+                             List<ColumnStats> columnStats);
 
     /**
      * Log dataset operations with options like preview and schema generation.
@@ -116,17 +120,14 @@ public interface DbndRun {
      * @param type
      * @param status
      * @param data
-     * @param withPreview
-     * @param withSchema
+     * @param params
      */
     void logDatasetOperation(String path,
                              DatasetOperationType type,
                              DatasetOperationStatus status,
                              Dataset<?> data,
                              Throwable error,
-                             boolean withPreview,
-                             boolean withSchema,
-                             Boolean withPartition);
+                             LogDatasetRequest params);
 
     /**
      * Log Deequ result

@@ -1,6 +1,7 @@
 package ai.databand.examples;
 
 import ai.databand.DbndApi;
+import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationRes;
 import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.ErrorInfo;
@@ -424,16 +425,7 @@ public class PipelinesVerify {
         }
 
         if (pipelineName.contains("scala")) {
-            Response<List<DatasetOperationRes>> datasetsRes = api.operations(job.getLatestRunUid()).execute();
-            List<DatasetOperationRes> datasets = datasetsRes.body();
-            assertThat("Dataset operations shouldn't be empty", datasets, Matchers.notNullValue());
-            assertThat("Dataset operations shouldn't be empty", datasets.isEmpty(), Matchers.equalTo(false));
-
-            Map<String, List<DatasetOperationRes>> datasetByTask = new HashMap<>(1);
-            for (DatasetOperationRes next : datasets) {
-                datasetByTask.putIfAbsent(next.getTaskRunName(), new ArrayList<>(1));
-                datasetByTask.get(next.getTaskRunName()).add(next);
-            }
+            Map<String, List<DatasetOperationRes>> datasetByTask = fetchDatasetOperations(job);
 
             assertDatasetOperationExists(
                 "loadTracks",
@@ -511,14 +503,14 @@ public class PipelinesVerify {
         }
     }
 
-    protected void assertDatasetOperationExists(String taskName,
-                                                String path,
-                                                DatasetOperationType type,
-                                                String status,
-                                                long records,
-                                                long operations,
-                                                Map<String, List<DatasetOperationRes>> datasets) {
-        assertDatasetOperationExists(taskName, path, type, status, records, operations, datasets, null);
+    protected DatasetOperationRes assertDatasetOperationExists(String taskName,
+                                                               String path,
+                                                               DatasetOperationType type,
+                                                               String status,
+                                                               long records,
+                                                               long operations,
+                                                               Map<String, List<DatasetOperationRes>> datasets) {
+        return assertDatasetOperationExists(taskName, path, type, status, records, operations, datasets, null);
     }
 
     /**
@@ -533,14 +525,14 @@ public class PipelinesVerify {
      * @param datasets
      * @param error
      */
-    protected void assertDatasetOperationExists(String taskName,
-                                                String path,
-                                                DatasetOperationType type,
-                                                String status,
-                                                long records,
-                                                long operations,
-                                                Map<String, List<DatasetOperationRes>> datasets,
-                                                String error) {
+    protected DatasetOperationRes assertDatasetOperationExists(String taskName,
+                                                               String path,
+                                                               DatasetOperationType type,
+                                                               String status,
+                                                               long records,
+                                                               long operations,
+                                                               Map<String, List<DatasetOperationRes>> datasets,
+                                                               String error) {
         List<DatasetOperationRes> taskDatasets = datasets.get(taskName);
         Optional<DatasetOperationRes> datasetOpt = taskDatasets.stream().filter(datasetOperationRes -> datasetOperationRes.getOperationType().equalsIgnoreCase(type.toString()) && datasetOperationRes.getDatasetPath().contains(path)).findFirst();
         if (datasetOpt.isPresent()) {
@@ -553,8 +545,10 @@ public class PipelinesVerify {
             if (error != null) {
                 assertThat(String.format("Wrong dataset operation error for task [%s]", taskName), dataset.getIssues().get(0).getData().getOperationError(), Matchers.containsString(error));
             }
+            return dataset;
         } else {
             fail(String.format("Dataset operation of type [%s] with path [%s] for task [%s] not found", type.toString(), path, taskName));
+            return null;
         }
     }
 
@@ -822,6 +816,47 @@ public class PipelinesVerify {
             ).findAny();
 
         assertThat(String.format("Metric [%s] for task [%s] does not exists", metricName, taskName), metricOpt.isPresent(), Matchers.is(true));
+    }
+
+    public Map<String, List<DatasetOperationRes>> fetchDatasetOperations(Job job) throws IOException {
+        Response<List<DatasetOperationRes>> datasetsRes = api.operations(job.getLatestRunUid()).execute();
+        List<DatasetOperationRes> datasets = datasetsRes.body();
+        assertThat("Dataset operations shouldn't be empty", datasets, Matchers.notNullValue());
+        assertThat("Dataset operations shouldn't be empty", datasets.isEmpty(), Matchers.equalTo(false));
+
+        Map<String, List<DatasetOperationRes>> datasetByTask = new HashMap<>(1);
+        for (DatasetOperationRes next : datasets) {
+            datasetByTask.putIfAbsent(next.getTaskRunName(), new ArrayList<>(1));
+            datasetByTask.get(next.getTaskRunName()).add(next);
+        }
+        return datasetByTask;
+    }
+
+    public void assertColumnStat(List<ColumnStats> columnsStats,
+                                 String columnName,
+                                 String columnType,
+                                 long recordsCount,
+                                 long distinctCount,
+                                 double meanValue,
+                                 double minValue,
+                                 double maxValue,
+                                 double stdValue,
+                                 double quartile1,
+                                 double quartile2,
+                                 double quartile3) {
+        Optional<ColumnStats> columnOpt = columnsStats.stream().filter(f -> f.getColumnName().equalsIgnoreCase(columnName)).findFirst();
+        assertThat(String.format("Column stats are missing for column [%s]", columnName), columnOpt.isPresent(), Matchers.equalTo(true));
+        ColumnStats col = columnOpt.get();
+        assertThat("Wrong column type", col.getColumnType(), Matchers.equalTo(columnType));
+        assertThat("Wrong records count", col.getRecordsCount(), Matchers.equalTo(recordsCount));
+        assertThat("Wrong distinct count", col.getDistinctCount(), Matchers.equalTo(distinctCount));
+        assertThat("Wrong mean", col.getMeanValue(), Matchers.closeTo(meanValue, 0.01));
+        assertThat("Wrong max", col.getMaxValue(), Matchers.closeTo(maxValue, 0.01));
+        assertThat("Wrong min", col.getMinValue(), Matchers.closeTo(minValue, 0.01));
+        assertThat("Wrong std", col.getStdValue(), Matchers.closeTo(stdValue, 0.01));
+        assertThat("Wrong 25%", col.getQuartile1(), Matchers.closeTo(quartile1, 0.01));
+        assertThat("Wrong 50%", col.getQuartile2(), Matchers.closeTo(quartile2, 0.01));
+        assertThat("Wrong 75%", col.getQuartile3(), Matchers.closeTo(quartile3, 0.01));
     }
 
 }

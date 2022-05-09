@@ -5,6 +5,7 @@ import ai.databand.id.Sha1Long;
 import ai.databand.id.Sha1Short;
 import ai.databand.id.Uuid5;
 import ai.databand.log.HistogramRequest;
+import ai.databand.log.LogDatasetRequest;
 import ai.databand.parameters.DatasetOperationPreview;
 import ai.databand.parameters.Histogram;
 import ai.databand.parameters.NullPreview;
@@ -12,6 +13,7 @@ import ai.databand.parameters.ParametersPreview;
 import ai.databand.parameters.TaskParameterPreview;
 import ai.databand.schema.AirflowTaskContext;
 import ai.databand.schema.AzkabanTaskContext;
+import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.ErrorInfo;
@@ -26,6 +28,7 @@ import ai.databand.schema.TaskRun;
 import ai.databand.schema.TaskRunParam;
 import ai.databand.schema.TaskRunsInfo;
 import ai.databand.schema.TrackingSource;
+import ai.databand.spark.SparkColumnStats;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.scheduler.SparkListenerStageCompleted;
 import org.apache.spark.scheduler.StageInfo;
@@ -643,25 +646,28 @@ public class DefaultDbndRun implements DbndRun {
                                     String valuePreview,
                                     List<Long> dataDimensions,
                                     Object dataSchema,
-                                    Boolean withPartition) {
+                                    Boolean withPartition,
+                                    List<ColumnStats> columnStats) {
         try {
             TaskRun currentTask = stack.peek();
             if (currentTask == null) {
                 currentTask = driverTask;
             }
-            dbnd.logDatasetOperations(currentTask, Collections.singletonList(
-                new LogDataset(
-                    currentTask,
-                    path,
-                    type,
-                    status,
-                    error,
-                    valuePreview,
-                    dataDimensions,
-                    dataSchema,
-                    withPartition
-                )
-            ));
+            dbnd.logDatasetOperations(currentTask,
+                Collections.singletonList(
+                    new LogDataset(
+                        currentTask,
+                        path,
+                        type,
+                        status,
+                        error,
+                        valuePreview,
+                        dataDimensions,
+                        dataSchema,
+                        withPartition,
+                        columnStats
+                    )
+                ));
         } catch (Exception e) {
             LOG.error("Unable to log dataset operation", e);
         }
@@ -673,10 +679,8 @@ public class DefaultDbndRun implements DbndRun {
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
                                     Throwable error,
-                                    boolean withPreview,
-                                    boolean withSchema,
-                                    Boolean withPartition) {
-        TaskParameterPreview preview = withSchema ? new DatasetOperationPreview() : new NullPreview();
+                                    LogDatasetRequest params) {
+        TaskParameterPreview preview = params.getWithSchema() ? new DatasetOperationPreview() : new NullPreview();
         String errorStr = null;
         if (error != null) {
             StringWriter sw = new StringWriter();
@@ -685,7 +689,18 @@ public class DefaultDbndRun implements DbndRun {
                 errorStr = sw.toString();
             }
         }
-        logDatasetOperation(path, type, status, errorStr, preview.full(data), preview.dimensions(data), preview.schema(data), withPartition);
+        SparkColumnStats columnStats = new SparkColumnStats(data, params);
+        logDatasetOperation(
+            path,
+            type,
+            status,
+            errorStr,
+            preview.full(data),
+            preview.dimensions(data),
+            preview.schema(data),
+            params.getWithPartition(),
+            columnStats.values()
+        );
     }
 
     public void logMetric(TaskRun taskRun, String key, Object value, String source) {

@@ -45,7 +45,7 @@ public class Histogram {
 
     public Histogram(String key, Dataset<?> dataset, HistogramRequest histogramRequest) {
         this.dfKey = key;
-        this.dataset = dataset.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"STATS"));
+        this.dataset = dataset.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "STATS"));
         this.req = histogramRequest;
         result = new HashMap<>(1);
         summaries = new HashMap<>(1);
@@ -75,7 +75,7 @@ public class Histogram {
         return result;
     }
 
-    protected Map<String, Map<String, Object>> summary() {
+    public Map<String, Map<String, Object>> summary() {
         Dataset<Row> summaryDf = dataset.summary();
 
         Map<String, Integer> colToIdx = new HashMap<>();
@@ -96,7 +96,7 @@ public class Histogram {
                 continue;
             }
             Column col = col(c.name());
-            // for some reason spark didn't escaping numeric column names like `10` in DISTINCT query
+            // for some reason spark didn't escape numeric column names like `10` in DISTINCT query
             // so we have to escape colum name with backticks manually
             exprs.add(String.format("count(DISTINCT `%s`) AS `%s_%s`", c.name(), c.name(), "distinct"));
             exprs.add(count(col).alias(String.format("%s_%s", c.name(), "non-null")).toString());
@@ -158,6 +158,10 @@ public class Histogram {
             summaries.put(c.name(), columnSummary);
         }
         return stats;
+    }
+
+    public Map<String, Summary> getSummaries() {
+        return summaries;
     }
 
     protected boolean isSimpleType(DataType dt) {

@@ -2,8 +2,9 @@ package ai.databand.examples
 
 import ai.databand.annotations.Task
 import ai.databand.deequ.DbndMetricsRepository
-import ai.databand.log.DbndLogger
-import ai.databand.schema.{DatasetOperationStatus, DatasetOperationType}
+import ai.databand.log.{DbndLogger, LogDatasetRequest}
+import ai.databand.schema.DatasetOperationStatus.{NOK, OK}
+import ai.databand.schema.DatasetOperationType.{READ, WRITE}
 import com.amazon.deequ.VerificationSuite
 import com.amazon.deequ.checks.{Check, CheckLevel}
 import com.amazon.deequ.profiles.ColumnProfilerRunner
@@ -61,10 +62,10 @@ object ScalaSparkPipeline {
     def loadTracks(path: String): DataFrame = {
         LOG.info("Loading tracks data from file {}", path)
         val data = sql.read.json(path)
-        DbndLogger.logDatasetOperation(path, DatasetOperationType.READ, DatasetOperationStatus.OK, data, true, true)
-        DbndLogger.logDatasetOperation("s3://datastore/sample1.json", DatasetOperationType.READ, DatasetOperationStatus.OK, data, true, true, true)
-        DbndLogger.logDatasetOperation("s3://datastore/sample2.json", DatasetOperationType.READ, DatasetOperationStatus.OK, data, true, true, false)
-        DbndLogger.logDatasetOperation("file:///broken/path", DatasetOperationType.WRITE, DatasetOperationStatus.NOK, data, new RuntimeException())
+        DbndLogger.logDatasetOperation(path, READ, OK, data, new LogDatasetRequest().withPreview().withSchema());
+        DbndLogger.logDatasetOperation("s3://datastore/sample1.json", READ, OK, data, new LogDatasetRequest().withPreview().withSchema().withPartition())
+        DbndLogger.logDatasetOperation("s3://datastore/sample2.json", READ, OK, data, new LogDatasetRequest().withPreview().withSchema().withPartition(false))
+        DbndLogger.logDatasetOperation("file:///broken/path", WRITE, NOK, data, new RuntimeException())
         val result = data.selectExpr("explode(recenttracks.track) as tracks")
         LOG.info("Tracks was loaded from file {}", path)
         result
