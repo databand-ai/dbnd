@@ -9,6 +9,7 @@ from datetime import timedelta
 import psutil
 
 from airflow import settings
+from airflow.exceptions import AirflowNotFoundException
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import DAG
 from airflow.operators.bash_operator import BashOperator
@@ -48,7 +49,7 @@ class MonitorOperator(BashOperator):
         log_level,
         custom_env=None,
         guard_memory=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.databand_airflow_conn_id = databand_airflow_conn_id
@@ -63,19 +64,25 @@ class MonitorOperator(BashOperator):
             return super(MonitorOperator, self).execute(context)
 
     def pre_execute(self, context):
-        dbnd_conn_config = BaseHook.get_connection(self.databand_airflow_conn_id)
-        json_config = dbnd_conn_config.extra_dejson
+        self.env = os.environ.copy()
 
-        dbnd_config = self.to_env(
-            self.flatten(json_config, parent_key="DBND", sep="__")
-        )
+        try:
+            dbnd_conn_config = BaseHook.get_connection(self.databand_airflow_conn_id)
+            json_config = dbnd_conn_config.extra_dejson
+            dbnd_config = self.to_env(
+                self.flatten(json_config, parent_key="DBND", sep="__")
+            )
+            self.env.update(dbnd_config)
+        except AirflowNotFoundException:
+            missing_env_variables = self._get_missing_env_variables()
+            if missing_env_variables:
+                raise Exception(
+                    f"No Connection or {missing_env_variables} environment variables found, please set connection in Airflow or see https://docs.databand.ai/docs/access-token"
+                )
 
         # AirflowMonitorConfig doesn't really have dag_ids config, so we avoid setting this environment variable
         # to avoid unnecessary warnings
-        dbnd_config.pop("DBND__AIRFLOW_MONITOR__DAG_IDS", None)
-
-        self.env = os.environ.copy()
-        self.env.update(dbnd_config)
+        self.env.pop("DBND__AIRFLOW_MONITOR__DAG_IDS", None)
         self.env.update(
             {
                 "DBND__LOG__LEVEL": self.log_level,
@@ -86,6 +93,17 @@ class MonitorOperator(BashOperator):
                 "DBND__LOG__FORMATTER_SIMPLE": "%(task)-5s - %(message)s",
             }
         )
+
+    def _get_missing_env_variables(self):
+        expected_connection_env_variables = {
+            "DBND__AIRFLOW_MONITOR__SYNCER_NAME",
+            "DBND__CORE__DATABAND_ACCESS_TOKEN",
+            "DBND__CORE__DATABAND_URL",
+        }
+        missing_connection_env_variables = expected_connection_env_variables.difference(
+            os.environ
+        )
+        return missing_connection_env_variables
 
     def flatten(self, d, parent_key="", sep="_"):
         """
