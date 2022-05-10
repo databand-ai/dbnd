@@ -45,7 +45,7 @@ public class Histogram {
 
     public Histogram(String key, Dataset<?> dataset, HistogramRequest histogramRequest) {
         this.dfKey = key;
-        this.dataset = dataset.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "STATS"));
+        this.dataset = dataset.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "HISTOGRAM"));
         this.req = histogramRequest;
         result = new HashMap<>(1);
         summaries = new HashMap<>(1);

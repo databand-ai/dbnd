@@ -23,7 +23,7 @@ public class SparkColumnStats {
     private final LogDatasetRequest params;
 
     public SparkColumnStats(Dataset<?> dataset, LogDatasetRequest params) {
-        this.dataset = dataset.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "STATS"));
+        this.dataset = dataset.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "COLUMN_STATS"));
         this.params = params;
     }
 

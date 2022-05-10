@@ -2,6 +2,7 @@ package ai.databand.spark;
 
 import ai.databand.DbndWrapper;
 import ai.databand.parameters.DatasetOperationPreview;
+import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.Pair;
@@ -13,6 +14,7 @@ import org.apache.spark.sql.execution.command.DataWritingCommandExec;
 import org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand;
 import org.apache.spark.sql.hive.execution.HiveTableScanExec;
 import org.apache.spark.sql.hive.execution.InsertIntoHiveTable;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.QueryExecutionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,11 +62,9 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 InsertIntoHadoopFsRelationCommand cmd = (InsertIntoHadoopFsRelationCommand) writePlan.cmd();
 
                 String path = exctractPath(cmd.outputPath().toString());
-
                 long rows = cmd.metrics().get("numOutputRows").get().value();
 
-                Pair<String, List<Long>> schema = operationPreview.extractSchema(cmd.query().schema(), rows);
-                log(path, DatasetOperationType.WRITE, schema);
+                log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows);
             }
             if (isHiveEnabled) {
                 if (writePlan.cmd() instanceof InsertIntoHiveTable) {
@@ -74,8 +74,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                         String path = cmd.table().identifier().table();
                         long rows = cmd.metrics().get("numOutputRows").get().value();
 
-                        Pair<String, List<Long>> schema = operationPreview.extractSchema(cmd.query().schema(), rows);
-                        log(path, DatasetOperationType.WRITE, schema);
+                        log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows);
                     } catch (Exception e) {
                         LOG.error("Unable to extract dataset information from InsertIntoHiveTable", e);
                     }
@@ -83,7 +82,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             }
         }
         if (qe.executedPlan() instanceof WholeStageCodegenExec) {
-            if (isDbndPlan(qe)){
+            if (isDbndPlan(qe)) {
                 LOG.warn("dbnd sdk Execution plan will not be reported");
                 return;
             }
@@ -93,25 +92,23 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                     FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
                     String path = exctractPath(fileSourceScan.metadata().get("Location").get());
-
                     long rows = fileSourceScan.metrics().get("numOutputRows").get().value();
-                    Pair<String, List<Long>> schema = operationPreview.extractSchema(fileSourceScan.schema(), rows);
-                    log(path, DatasetOperationType.READ, schema);
+
+                    log(path, DatasetOperationType.READ, fileSourceScan.schema(), rows);
                 }
                 if (isHiveEnabled) {
                     if (next instanceof HiveTableScanExec) {
                         try {
                             HiveTableScanExec hiveTableScan = (HiveTableScanExec) next;
 
-                            // Path resolved by Hive Metastore
-                            String path = hiveTableScan.relation().tableMeta().storage().locationUri().get().toString();
-
                             // Hive Table name, may be reused in future
                             // String tableName = hiveTableScan.relation().tableMeta().identifier().table();
 
+                            // Path resolved by Hive Metastore
+                            String path = hiveTableScan.relation().tableMeta().storage().locationUri().get().toString();
                             long rows = hiveTableScan.metrics().get("numOutputRows").get().value();
-                            Pair<String, List<Long>> schema = operationPreview.extractSchema(hiveTableScan.schema(), rows);
-                            log(path, DatasetOperationType.READ, schema);
+
+                            log(path, DatasetOperationType.READ, hiveTableScan.schema(), rows);
                         } catch (Exception e) {
                             LOG.error("Unable to extract dataset information from HiveTableScanExec", e);
                         }
@@ -124,12 +121,14 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
     private boolean isDbndPlan(QueryExecution qe) {
         if (qe.analyzed() != null && !qe.analyzed().children().isEmpty()) {
             String dfAlias = qe.analyzed().children().apply(0).verboseString();
-            return dfAlias!= null && dfAlias.contains(DBND_INTERNAL_ALIAS);
+            return dfAlias != null && dfAlias.contains(DBND_INTERNAL_ALIAS);
         }
         return false;
     }
 
-    protected void log(String path, DatasetOperationType operationType, Pair<String, List<Long>> schema) {
+    protected void log(String path, DatasetOperationType operationType, StructType datasetSchema, long rows) {
+        Pair<String, List<Long>> schema = operationPreview.extractSchema(datasetSchema, rows);
+        List<ColumnStats> columnStats = operationPreview.extractColumnStats(datasetSchema, rows);
         dbnd.logDatasetOperation(
             path,
             operationType,
@@ -137,7 +136,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             "",
             schema.right(),
             schema.left(),
-            true
+            true,
+            columnStats
         );
     }
 

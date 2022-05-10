@@ -3,6 +3,7 @@ package ai.databand;
 import ai.databand.config.DbndConfig;
 import ai.databand.log.HistogramRequest;
 import ai.databand.log.LogDatasetRequest;
+import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatabandTaskContext;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
@@ -249,12 +250,13 @@ public class DbndWrapper {
                                     String valuePreview,
                                     List<Long> dataDimensions,
                                     String dataSchema,
-                                    Boolean withPartition) {
+                                    Boolean withPartition,
+                                    List<ColumnStats> columnStats) {
         DbndRun run = currentRun();
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition, Collections.emptyList());
+        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition, columnStats);
         LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 

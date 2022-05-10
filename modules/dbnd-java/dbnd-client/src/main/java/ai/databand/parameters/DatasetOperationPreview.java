@@ -1,5 +1,6 @@
 package ai.databand.parameters;
 
+import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationSchema;
 import ai.databand.schema.Pair;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
 
@@ -22,7 +24,7 @@ public class DatasetOperationPreview extends DatasetPreview {
 
     @Override
     public Object schema(Dataset<Row> input) {
-        Dataset<?> schemaAlias = input.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"SCHEMA"));
+        Dataset<?> schemaAlias = input.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "SCHEMA"));
         return extractSchema(schemaAlias.schema(), schemaAlias.count()).left();
     }
 
@@ -43,5 +45,14 @@ public class DatasetOperationPreview extends DatasetPreview {
         } catch (Exception e) {
             return new Pair<>("", Collections.emptyList());
         }
+    }
+
+    public List<ColumnStats> extractColumnStats(StructType schema, long rows) {
+        return Arrays.stream(schema.fields())
+            .map(field -> new ColumnStats()
+                .setColumnName(field.name())
+                .setColumnType(field.dataType().typeName())
+                .setRecordsCount(rows))
+            .collect(Collectors.toList());
     }
 }
