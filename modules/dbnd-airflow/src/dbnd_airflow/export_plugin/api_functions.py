@@ -5,7 +5,7 @@ import logging
 from functools import wraps
 
 from airflow.hooks.base_hook import BaseHook
-from airflow.models import DagModel
+from airflow.models import Connection, DagModel
 from airflow.utils.db import provide_session
 from airflow.version import version as airflow_version
 
@@ -234,16 +234,38 @@ def is_subset(subset, superset):
     return not (flatten_dict(subset).items() <= flatten_dict(superset).items())
 
 
+def get_or_create_db_connection(airflow_connection_from_hook, session):
+    existing_db_connection = (
+        session.query(Connection)
+        .filter(Connection.conn_id == DATABAND_AIRFLOW_CONN_ID)
+        .first()
+    )
+
+    if existing_db_connection:
+        return existing_db_connection
+
+    session.add(airflow_connection_from_hook)
+    return airflow_connection_from_hook
+
+
 @safe_rich_result
 @provide_session
 def check_syncer_config_and_set(dbnd_response, session=None):
-    airflow_databand_connection = BaseHook.get_connection(DATABAND_AIRFLOW_CONN_ID)
-    airflow_response = airflow_databand_connection.extra_dejson
+    airflow_connection_from_hook = BaseHook.get_connection(DATABAND_AIRFLOW_CONN_ID)
+    airflow_response = airflow_connection_from_hook.extra_dejson
     remove_place_holders(dbnd_response)
-    if is_subset(dbnd_response, airflow_response):
-        deep_update(airflow_response, dbnd_response)
-        airflow_databand_connection.set_extra(json.dumps(airflow_response, indent=True))
-        session.add(airflow_databand_connection)
-        session.commit()
+
+    if not is_subset(dbnd_response, airflow_response):
+        return AirflowExportData()
+
+    deep_update(airflow_response, dbnd_response)
+
+    # A connection in Airflow can be set from the UI (saved in the DB) or from an environment variable (not in the db)
+    airflow_connection = get_or_create_db_connection(
+        airflow_connection_from_hook, session
+    )
+    airflow_connection.set_extra(json.dumps(airflow_response, indent=True))
+
+    session.commit()
 
     return AirflowExportData()
