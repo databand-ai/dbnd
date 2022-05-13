@@ -6,6 +6,7 @@ from typing import Optional
 
 from dbnd import get_dbnd_project_config, log_metric, log_metrics
 from dbnd._core.constants import TaskRunState
+from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import extract_airflow_context
@@ -47,15 +48,14 @@ def get_tracking_dag_ids_from_airflow_json():
                 if dag_ids_config and isinstance(dag_ids_config, str):
                     return dag_ids_config.split(",")
 
-                if isinstance(dag_ids_config, list):
+                if dag_ids_config and isinstance(dag_ids_config, list):
                     return dag_ids_config
         return None
     except Exception as e:
-        logger.error(
-            "exception caught while running on dbnd new execute {}".format(e),
-            exc_info=True,
+        log_exception(
+            "exception caught while running on dbnd new execute {}".format(e), e
         )
-        return []
+        return None
 
 
 def is_monitor_dag(dag_id):
