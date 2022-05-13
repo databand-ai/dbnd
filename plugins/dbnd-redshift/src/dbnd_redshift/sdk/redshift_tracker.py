@@ -10,11 +10,16 @@ import sqlparse
 
 from dbnd import log_dataset_op
 from dbnd._core.log.external_exception_logging import log_exception_to_server
-from dbnd._core.sql_tracker_common.sql_extract import READ, WRITE, SqlQueryExtractor
+from dbnd._core.utils.sql_tracker_common.sql_extract import (
+    READ,
+    WRITE,
+    SqlQueryExtractor,
+)
 from dbnd_redshift.sdk.redshift_connection_collection import (
     PostgresConnectionRuntime,
     RedshiftConnectionCollection,
 )
+from dbnd_redshift.sdk.redshift_connection_extractor import get_redshift_dataset
 from dbnd_redshift.sdk.redshift_utils import (
     copy_to_temp_table,
     get_last_query_records_count,
@@ -210,7 +215,10 @@ class RedshiftTracker:
                     first_op = operations[0]
                     if first_op.expect_tmp_table(self.conf):
                         copy_to_temp_table(
-                            cursor.connection, first_op.target_name, command
+                            cursor.connection,
+                            first_op.schema_name,
+                            first_op.table_name,
+                            command,
                         )
                     # Only extend self.connections obj operations
                     # if read or write operation occurred in command
@@ -243,10 +251,9 @@ def build_redshift_operations(
         # This is DML statement and no read or write occurred
         return operations
 
+    redshift_dataset = get_redshift_dataset(cursor.connection, clean_command)
+
     source_name = None
-    target_name = None
-    if WRITE in extracted:
-        target_name = list(extracted[WRITE].values())[0][0].dataset_name
     if READ in extracted:
         source_name = list(extracted[READ].values())[0][0].dataset_name
 
@@ -261,7 +268,10 @@ def build_redshift_operations(
                 success=success,
                 error=error,
                 dataframe=dataframe,
-                target_name=target_name,
+                schema_name=redshift_dataset.schema,
+                database=redshift_dataset.database,
+                table_name=redshift_dataset.table,
+                host=redshift_dataset.host,
                 source_name=source_name,
                 extracted_schema=schema,
                 dtypes=None,

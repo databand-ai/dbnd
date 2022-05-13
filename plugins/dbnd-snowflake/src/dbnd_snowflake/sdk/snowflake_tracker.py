@@ -13,8 +13,12 @@ from snowflake.connector.cursor import DictCursor, SnowflakeCursor
 
 from dbnd import log_dataset_op
 from dbnd._core.log.external_exception_logging import log_exception_to_server
-from dbnd._core.sql_tracker_common.sql_extract import READ, WRITE, SqlQueryExtractor
-from dbnd._core.sql_tracker_common.sql_operation import (
+from dbnd._core.utils.sql_tracker_common.sql_extract import (
+    READ,
+    WRITE,
+    SqlQueryExtractor,
+)
+from dbnd._core.utils.sql_tracker_common.sql_operation import (
     DTypes,
     SqlOperation,
     render_connection_path,

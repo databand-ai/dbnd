@@ -8,8 +8,8 @@ import attr
 from more_itertools import first, padded
 
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
-from dbnd._core.sql_tracker_common.sql_extract import Column, Schema
-from dbnd._core.sql_tracker_common.utils import strip_quotes
+from dbnd._core.utils.sql_tracker_common.sql_extract import Column, Schema
+from dbnd._core.utils.sql_tracker_common.utils import strip_quotes
 from targets.connections import build_conn_path
 from targets.value_meta import ValueMeta
 from targets.values import register_value_type

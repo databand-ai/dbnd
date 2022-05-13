@@ -7,7 +7,8 @@ from urllib.parse import urlparse
 import attr
 import pandas as pd
 
-from dbnd._core.sql_tracker_common.sql_operation import SqlOperation
+from dbnd._core.utils.sql_tracker_common.sql_operation import SqlOperation
+from dbnd._core.utils.sql_tracker_common.utils import get_redshift_uri
 from dbnd_redshift.sdk.redshift_utils import TEMP_TABLE_NAME, redshift_query
 from dbnd_redshift.sdk.wrappers import PostgresConnectionWrapper
 from targets.connections import build_conn_path
@@ -37,8 +38,10 @@ NUMERIC_TYPES = [
 ]
 
 
-def _strip_quotes(v: str) -> str:
-    return v.strip('"') if v else v
+def _strip_quotes_and_lower_case(v: str) -> str:
+    without_quotes = v.strip('"') if v else v
+    lower_case = without_quotes.lower() if without_quotes else without_quotes
+    return lower_case
 
 
 def _type_conversion(type_name: str) -> str:
@@ -110,9 +113,19 @@ def query_list_to_text(cols_queries_lists: List[List[str]]):
 
 @attr.s
 class RedshiftOperation(SqlOperation):
-    database = attr.ib(converter=_strip_quotes, default=None)  # type: str
-    target_name = attr.ib(converter=_strip_quotes, default=None)  # type: str
-    source_name = attr.ib(converter=_strip_quotes, default=None)  # type: str
+    database = attr.ib(
+        converter=_strip_quotes_and_lower_case, default=None
+    )  # type: str
+    source_name = attr.ib(
+        converter=_strip_quotes_and_lower_case, default=None
+    )  # type: str
+    host = attr.ib(converter=_strip_quotes_and_lower_case, default=None)  # type: str
+    schema_name = attr.ib(
+        converter=_strip_quotes_and_lower_case, default=None
+    )  # type: str
+    table_name = attr.ib(
+        converter=_strip_quotes_and_lower_case, default=None
+    )  # type: str
     cls_cache = attr.ib(default=None)
     schema_cache = attr.ib(default=None)
     preview_cache: pd.DataFrame = attr.ib(default=None)
@@ -169,22 +182,16 @@ class RedshiftOperation(SqlOperation):
                 }
             )
         else:
-            if self.target_name is not None:
-                if (
-                    self.target_name.find(".") != -1
-                ):  # if there is schema name which is not public we should add it to search_path
-                    schema_name, table_name = self.target_name.lower().split(".")
-                    redshift_query(
-                        connection.connection,
-                        f"set search_path to '{schema_name}'",
-                        fetch_all=False,
-                    )
-                else:
-                    table_name = self.target_name.lower()
+            if self.table_name is not None:
+                redshift_query(
+                    connection.connection,
+                    f"set search_path to '{self.schema_name}'",
+                    fetch_all=False,
+                )
 
                 desc_results = redshift_query(
                     connection.connection,
-                    f"select * from pg_table_def where tablename='{table_name}'",
+                    f"select * from pg_table_def where tablename='{self.table_name}'",
                 )
 
                 if desc_results:
@@ -268,11 +275,8 @@ class RedshiftOperation(SqlOperation):
                 path=urlparsed.path,
             )
         else:
-            return build_conn_path(
-                conn_type="redshift",
-                hostname=connection.host,
-                port=connection.port,
-                path=self.target_name,
+            return get_redshift_uri(
+                self.host, self.database, self.schema_name, self.table_name
             )
 
     @property

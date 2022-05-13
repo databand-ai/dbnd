@@ -13,3 +13,7 @@ def ddict2dict(d: Union[defaultdict, dict]) -> dict:
 def strip_quotes(command: str) -> str:
     if command:
         return command.replace("'", "").replace('"', "")
+
+
+def get_redshift_uri(host: str, db: str, schema: str, table: str) -> str:
+    return f"redshift://{host}/{db}/{schema}/{table}".lower()

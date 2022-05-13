@@ -3,9 +3,9 @@ import pytest
 from mock import MagicMock
 
 from dbnd._core.constants import DbndTargetOperationType
-from dbnd._core.sql_tracker_common import sql_operation
-from dbnd._core.sql_tracker_common.sql_extract import Column
-from dbnd._core.sql_tracker_common.sql_operation import SqlOperation
+from dbnd._core.utils.sql_tracker_common import sql_operation
+from dbnd._core.utils.sql_tracker_common.sql_extract import Column
+from dbnd._core.utils.sql_tracker_common.sql_operation import SqlOperation
 
 
 def generate_snowflake_connection_mock():

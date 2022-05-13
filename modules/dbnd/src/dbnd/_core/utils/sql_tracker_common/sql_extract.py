@@ -17,7 +17,7 @@ from sqlparse.sql import (
 from sqlparse.tokens import Keyword, Name, Whitespace, Wildcard
 
 from dbnd._core.constants import DbndTargetOperationType
-from dbnd._core.sql_tracker_common.utils import ddict2dict, strip_quotes
+from dbnd._core.utils.sql_tracker_common.utils import ddict2dict, strip_quotes
 
 
 @attr.s
@@ -74,6 +74,7 @@ class SqlQueryExtractor:
 
         # collect the operations and their schemas
         operations = defaultdict(lambda: defaultdict(list))
+        is_copy_into_handled = False
 
         while True:
             # each iteration we pick up the next token we didn't handle yet
@@ -89,13 +90,17 @@ class SqlQueryExtractor:
                 idx_potential, next_token = self._next_non_empty_token(idx, statement)
                 next_operation_name = next_token.value.upper() if next_token else None
                 # copy and copy into statement are handled once per query
-                if operation_name == "INTO" or (
-                    operation_name == "COPY" and next_operation_name != "INTO"
+                if (
+                    operation_name == "INTO"
+                    or (operation_name == "COPY" and next_operation_name != "INTO")
+                    and not is_copy_into_handled
                 ):
                     extracted, idx = self.handle_into(
                         idx_potential, next_token, statement
                     )
                     operations[WRITE].update(extracted)
+                    # There could be few `COPY` tokens, we're processing only the first one
+                    is_copy_into_handled = True
 
                 elif operation_name in READ_OPERATIONS:
                     extracted, idx, columns = self.handle_read_operation(
@@ -132,7 +137,7 @@ class SqlQueryExtractor:
         extracted = {}
         if isinstance(next_token, Parenthesis):
             return self.handle_nested_query(next_token)
-        if next_token.ttype not in Keyword:
+        if next_token.ttype not in Keyword and isinstance(next_token, Identifier):
             # no subquery - just parse the source/dest name of the operator
             extracted, left_columns = self.generate_schema(columns, next_token)
             columns = left_columns
@@ -228,15 +233,16 @@ class SqlQueryExtractor:
             for token in next_token.tokens:
                 if isinstance(token, Function):
                     next_token = token
-        table_alias = self.get_identifier_name(next_token)
-        table_name = self.get_full_name(next_token)
+        table_name = self.get_identifier_name(next_token)
+        table_full_name = self.get_full_name(next_token)
+
         if isinstance(next_token, Function):
             extracted = self.extract_write_schema(
-                next_token.get_parameters(), table_alias, table_alias
+                next_token.get_parameters(), table_name, table_name
             )
         else:
             extracted = self.extract_write_schema(
-                [Token(Wildcard, "*")], table_name, table_alias
+                [Token(Wildcard, "*")], table_full_name, table_name
             )
         return extracted, idx
 

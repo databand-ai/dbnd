@@ -1,5 +1,7 @@
 import logging
 import re
+import sys
+import traceback
 
 from psycopg2.extensions import connection as psycopg2_connection
 from psycopg2.extras import DictCursor
@@ -27,6 +29,7 @@ def redshift_query(
 
             except Exception as e:
                 cursor.execute("ROLLBACK")
+                traceback.print_exc(file=sys.stdout)
                 logger.exception(
                     f"Error occurred during querying redshift, query: {query}"
                 )
@@ -62,16 +65,24 @@ def build_schema_from_dataframe(dataframe):
     return df_schema
 
 
-def copy_to_temp_table(redshift_connection, target_name, query):
-    if target_name is not None:
-        table_name = target_name.lower()
+def copy_to_temp_table(redshift_connection, schema_name, table_name, query):
+    full_table_name = (
+        f"{schema_name}.{table_name}"
+        if schema_name is not None or schema_name != "public"
+        else table_name
+    )
+    if table_name is not None:
         redshift_query(
             redshift_connection,
-            f"CREATE TEMP TABLE {TEMP_TABLE_NAME} (LIKE {table_name});",
+            f"CREATE TEMP TABLE {TEMP_TABLE_NAME} (LIKE {full_table_name});",
             fetch_all=False,
         )
         copy_tmp_table_query = re.sub(
-            re.escape(table_name), TEMP_TABLE_NAME, query, flags=re.IGNORECASE, count=1
+            re.escape(full_table_name),
+            TEMP_TABLE_NAME,
+            query,
+            flags=re.IGNORECASE,
+            count=1,
         )
         redshift_query(redshift_connection, copy_tmp_table_query, fetch_all=False)
         redshift_query(redshift_connection, "COMMIT", fetch_all=False)
