@@ -66,7 +66,7 @@ def dbnd_system_bootstrap():
             )
             if dbnd_run_info_source_version:
                 logger.info("revision: %s", dbnd_run_info_source_version)
-        from databand import dbnd_config
+        from dbnd import dbnd_config
 
         dbnd_config.load_system_configs()
     except Exception:

@@ -2,7 +2,7 @@
 Fast cryptographic hash of Python objects, with a special case for fast
 hashing of numpy arrays.
 """
-
+# Vendorized from internet (copy/paste from a lot of numpy related projects)
 # Author: Gael Varoquaux <gael dot varoquaux at normalesup dot org>
 # Copyright (c) 2009 Gael Varoquaux
 # License: BSD Style, 3 clauses.

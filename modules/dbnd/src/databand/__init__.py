@@ -59,24 +59,3 @@ __all__ = [
     "basics",
     "_set_patches",
 ]
-
-dbnd_config = config
-# if you need advanced Tasks or Parameters please use
-# databand.tasks
-
-# shortcuts for useful objects
-str(_set_patches)  # NOQA
-
-__version__ = "0.73.0"
-
-__title__ = "databand"
-__description__ = "Machine Learning Orchestration"
-__url__ = "http://www.databand.ai/"
-__uri__ = __url__
-__doc__ = __description__ + " <" + __uri__ + ">"
-
-__author__ = "Evgeny Shulman"
-__email__ = "evgeny.shulman@databand.ai"
-
-__license__ = "OSI Approved Apache Software License"
-__copyright__ = "Copyright (c) 2018 databand.ai"

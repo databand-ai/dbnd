@@ -1,4 +1,4 @@
-# COPY PASTED FROM ansible 2.6 using BSD license
+# Vendorized from package ansible 2.6 with BSD license
 #
 # This code is part of Ansible, but is an independent component.
 # This particular file snippet, and this file snippet only, is BSD licensed.

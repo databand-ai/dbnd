@@ -17,8 +17,8 @@ from dbnd._core.context.databand_context import load_user_modules
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
+from dbnd._core.utils.click_tzdatetime import TZAwareDateTime
 from dbnd._vendor import click
-from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 
 
 logger = logging.getLogger(__name__)

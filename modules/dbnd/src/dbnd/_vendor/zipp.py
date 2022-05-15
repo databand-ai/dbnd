@@ -1,4 +1,6 @@
 # coding: utf-8
+# Vendorized zipp package
+# License: MIT License
 
 # Copyright Jason R. Coombs
 #

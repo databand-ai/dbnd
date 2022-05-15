@@ -2,14 +2,13 @@ import json
 import os
 
 from datetime import datetime
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import mock
 import pytest
 
 from mock import MagicMock
 
-from dbnd._vendor.backports_tempfile.tempfile import TemporaryDirectory
 from targets import DbndLocalFileMetadataRegistry, target
 
 

@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Implementation of a trie data structure.
+"""
+Vendorized from https://github.com/mina86/pygtrie
+License: Apache License 2.0
+
+Implementation of a trie data structure.
 `Trie data structure <http://en.wikipedia.org/wiki/Trie>`_, also known as radix
 or prefix tree, is a tree associating keys to values where all the descendants
 of a node have a common prefix (associated with that node).

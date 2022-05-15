@@ -3,7 +3,7 @@ import random
 import mock
 import pytest
 
-from databand import dbnd_config
+from dbnd import dbnd_config
 from dbnd._core.errors import DatabandRunError
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_spark.spark_config import SparkConfig

@@ -1,8 +1,8 @@
 from __future__ import print_function
 
+from dbnd._core.utils.click_tzdatetime import TZAwareDateTime
 from dbnd._vendor import click
 from dbnd._vendor.click import get_current_context
-from dbnd._vendor.click_tzdatetime import TZAwareDateTime
 from dbnd.api.scheduler import (
     ScheduledJobNamedTuple,
     delete_scheduled_job,

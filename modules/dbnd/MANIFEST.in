@@ -6,6 +6,9 @@ recursive-include src/dbnd *.pyi
 # All default configurations
 graft src/dbnd/conf
 
+recursive-include src/dbnd/_vendor LICENSE
+recursive-include src/dbnd/_vendor_package LICENSE
+
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 recursive-exclude * .ipynb_checkpoints

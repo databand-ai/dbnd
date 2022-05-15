@@ -1,6 +1,7 @@
 import logging
 import typing
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
 from dbnd._core.errors import DatabandRuntimeError
@@ -14,13 +15,6 @@ from dbnd._core.utils.task_utils import (
     tasks_summary,
     tasks_to_ids_set,
 )
-
-
-try:
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-except ImportError:
-    # we are python2
-    from dbnd._vendor.futures import ThreadPoolExecutor, as_completed
 
 
 if typing.TYPE_CHECKING:

@@ -1,26 +1,15 @@
+import contextlib
 import sys
+
+from collections.abc import Callable
 
 import six
 
-
-if six.PY3:
-    import contextlib
-
-    from collections.abc import Callable
-
-    from dbnd._vendor import cloudpickle
-else:
-    from collections import Callable
-
-    import contextlib2 as contextlib
-
-    from dbnd._vendor.cloudpickle_py2 import cloudpickle
+from dbnd._vendor import cloudpickle
 
 
 def qualname_func(func):
-    if six.PY3:
-        return func.__qualname__
-    return "%s.%s" % (func.__module__, func.__name__)
+    return func.__qualname__
 
 
 try:

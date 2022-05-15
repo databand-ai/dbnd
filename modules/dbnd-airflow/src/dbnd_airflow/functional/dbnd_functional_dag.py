@@ -6,8 +6,7 @@ import six
 
 from airflow.models import BaseOperator
 
-from databand import dbnd_config
-from dbnd import dbnd_handle_errors
+from dbnd import dbnd_config, dbnd_handle_errors
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.config_store import merge_config_stores
 from dbnd._core.context.databand_context import DatabandContext
