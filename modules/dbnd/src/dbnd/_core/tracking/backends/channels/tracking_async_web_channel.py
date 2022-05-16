@@ -13,7 +13,6 @@ from dbnd._core.errors.base import DatabandWebserverNotReachableError
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
-from dbnd._core.tracking.backends.channels.marshmallow_mixin import MarshmallowMixin
 from dbnd._core.tracking.backends.channels.tracking_web_channel import (
     TrackingWebChannel,
 )
@@ -144,7 +143,7 @@ class AsyncWebChannelQueueItem(object):
     stop_tracking_on_failure: str = attr.ib()
 
 
-class TrackingAsyncWebChannel(MarshmallowMixin, TrackingChannel):
+class TrackingAsyncWebChannel(TrackingChannel):
     """Json API client implementation with non-blocking calls."""
 
     def __init__(

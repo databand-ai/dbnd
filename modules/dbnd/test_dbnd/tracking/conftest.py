@@ -19,7 +19,7 @@ def databand_context_kwargs():
 @pytest.fixture
 def mock_channel_tracker():
     with mock.patch(
-        "dbnd._core.tracking.backends.tracking_store_channels.TrackingStoreThroughChannel._m"
+        "dbnd._core.tracking.backends.channels.tracking_debug_channel.ConsoleDebugTrackingChannel._handle"
     ) as mock_store:
         yield mock_store
 

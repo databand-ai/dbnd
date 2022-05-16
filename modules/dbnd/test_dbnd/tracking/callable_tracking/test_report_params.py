@@ -43,7 +43,7 @@ class TestReportParams(object):
         # get the parameters reported to the tracker
         # we want to compare that for each parameter value we have a definition
         # otherwise the webserver wouldn't have all the needed information
-        param_definitions, run_time_params = get_reported_params(
+        param_definitions, run_time_params, _ = get_reported_params(
             mock_channel_tracker, "my_task"
         )
         assert set(param_definitions) == set(run_time_params)
@@ -75,7 +75,7 @@ class TestReportResults(object):
         # executing the task
         my_task(1, 2)
 
-        param_definitions, run_time_params = get_reported_params(
+        param_definitions, run_time_params, _ = get_reported_params(
             mock_channel_tracker, "my_task"
         )
 
@@ -95,7 +95,7 @@ class TestReportResults(object):
         # executing the task
         my_task(1, 2)
 
-        param_definitions, run_time_params = get_reported_params(
+        param_definitions, run_time_params, _ = get_reported_params(
             mock_channel_tracker, "my_task"
         )
 
@@ -123,16 +123,23 @@ class TestReportResults(object):
         # executing the task
         my_task(1, 2)
 
-        param_definitions, run_time_params = get_reported_params(
-            mock_channel_tracker, "my_task"
-        )
+        (
+            param_definitions,
+            run_time_params,
+            param_def_task_def_uid,
+        ) = get_reported_params(mock_channel_tracker, "my_task")
 
         # reporting the definition of the result proxy
         assert RESULT_PARAM in param_definitions
 
         # 2 inner parameters of the proxy
-        assert len(param_definitions[RESULT_PARAM].names) == 2
-        for name in param_definitions[RESULT_PARAM].names:
+        result_params = [
+            name
+            for name, p in param_definitions.items()
+            if name != RESULT_PARAM and p.kind == "task_output"
+        ]
+        assert len(result_params) == 2
+        for name in result_params:
             # the inner parameters values reported on runtime
             assert name in run_time_params
 
@@ -145,15 +152,9 @@ class TestReportResults(object):
         assert run_time_params["first"].value == targets_info["first"].target_path
         assert targets_info["first"].value_preview == "1"
         assert targets_info["first"].task_def_uid is not None
-        assert (
-            targets_info["first"].task_def_uid
-            == param_definitions["first"].task_definition_uid
-        )
+        assert targets_info["first"].task_def_uid == param_def_task_def_uid["first"]
 
         assert run_time_params["second"].value == targets_info["second"].target_path
         assert targets_info["second"].value_preview == "2"
         assert targets_info["second"].task_def_uid is not None
-        assert (
-            targets_info["second"].task_def_uid
-            == param_definitions["second"].task_definition_uid
-        )
+        assert targets_info["second"].task_def_uid == param_def_task_def_uid["second"]

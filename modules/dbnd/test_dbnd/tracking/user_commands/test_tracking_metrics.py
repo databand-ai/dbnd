@@ -56,6 +56,7 @@ class TestTrackingMetrics(object):
                 "value_int": None,
                 "value": None,
                 "value_str": None,
+                "source": None,
             }
             expected.update(expected_metric)
             assert metric_json == expected
@@ -279,7 +280,7 @@ class TestTrackingMetrics(object):
             )
             assert log_target.target_path == "/my/path/to_file.txt"
             # the data dimensions is taken from the data frame
-            assert log_target.data_dimensions == (5, 3)
+            assert log_target.data_dimensions == [5, 3]
 
             has_data_schema = bool(eval(log_target.data_schema))
             assert if_and_only_if(schema or size, has_data_schema)

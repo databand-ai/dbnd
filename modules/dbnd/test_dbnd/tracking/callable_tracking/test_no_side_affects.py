@@ -4,6 +4,7 @@ from pytest import fixture
 
 from dbnd import config, task
 from dbnd._core.configuration.environ_config import get_max_calls_per_func
+from test_dbnd.tracking.tracking_helpers import get_call_args
 
 
 @task
@@ -76,9 +77,5 @@ class TestNoSideAffectsOnTracking(object):
         assert max_calls_allowed + extra_func_calls == n
 
         # check that there was only max_calls_allowed "tracked" calls
-        track_call = [
-            x
-            for x in mock_channel_tracker.call_args_list
-            if x.args[0].__name__ == "log_targets"
-        ]
-        assert max_calls_allowed == len(track_call)
+        track_call = get_call_args(mock_channel_tracker, ["log_targets"])
+        assert max_calls_allowed == len(list(track_call))

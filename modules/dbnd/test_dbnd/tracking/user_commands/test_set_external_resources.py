@@ -27,7 +27,9 @@ class TestSetExternalResourceURLS(object):
         assert save_external_links_call["external_links_dict"] == {
             "my_resource": "http://some_resource_name.com/path/to/resource/123456789"
         }
-        assert save_external_links_call["task_run_attempt_uid"] == task_run_attempt_uid
+        assert save_external_links_call["task_run_attempt_uid"] == str(
+            task_run_attempt_uid
+        )
 
     def test_set_external_resource_urls_without_links_values(
         self, mock_channel_tracker

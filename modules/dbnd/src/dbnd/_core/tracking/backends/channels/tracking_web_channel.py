@@ -1,8 +1,7 @@
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
-from dbnd._core.tracking.backends.channels.marshmallow_mixin import MarshmallowMixin
 
 
-class TrackingWebChannel(MarshmallowMixin, TrackingChannel):
+class TrackingWebChannel(TrackingChannel):
     """Json API client implementation."""
 
     def __init__(self, databand_api_client, *args, **kwargs):

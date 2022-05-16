@@ -13,9 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def _format_exception(e_type, e_value, e_traceback):
-    return "".join(
-        traceback.format_exception(etype=e_type, value=e_value, tb=e_traceback)
-    )
+    return "".join(traceback.format_exception(e_type, value=e_value, tb=e_traceback))
 
 
 def log_exception_to_server(exception=None):

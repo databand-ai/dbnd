@@ -15,6 +15,7 @@ from dbnd._core.tracking.schemas.tracking_info_objects import (
 )
 from dbnd._core.utils.timezone import utcnow
 from dbnd.testing.helpers_mocks import set_airflow_context, set_tracking_context
+from test_dbnd.tracking.tracking_helpers import get_call_args
 
 
 @task
@@ -64,7 +65,7 @@ def _assert_tracked_params(mock_channel_tracker, task_func, **kwargs):
     tdi, tri = _get_tracked_task_run_info(mock_channel_tracker, task_func)
     tdi_params = {tpd.name: tpd for tpd in tdi.task_param_definitions}
     tri_params = {tp.parameter_name: tp for tp in tri.task_run_params}
-    for name in kwargs.keys():
+    for name in kwargs:
         assert name in tdi_params
 
     for k, v in six.iteritems(kwargs):
@@ -73,25 +74,20 @@ def _assert_tracked_params(mock_channel_tracker, task_func, **kwargs):
 
 def _get_tracked_task_run_info(mock_channel_tracker, task_cls):
     tdi_result, tri_result = None, None
-    for call in mock_channel_tracker.call_args_list:
-        if call.args[0].__name__ == "add_task_runs":
-            for tdi in call.kwargs[
-                "task_runs_info"
-            ].task_definitions:  # type: TaskDefinitionInfo
-                if tdi.name == task_cls.__name__:
-                    tdi_result = tdi
-            for tri in call.kwargs["task_runs_info"].task_runs:  # type: TaskRunInfo
-                if tri.name == task_cls.__name__:
-                    tri_result = tri
+    for _, data in get_call_args(mock_channel_tracker, ["add_task_runs"]):
+        for tdi in data["task_runs_info"].task_definitions:  # type: TaskDefinitionInfo
+            if tdi.name == task_cls.__name__:
+                tdi_result = tdi
+        for tri in data["task_runs_info"].task_runs:  # type: TaskRunInfo
+            if tri.name == task_cls.__name__:
+                tri_result = tri
 
-            if tdi_result and tri_result:
-                return tdi_result, tri_result
+        if tdi_result and tri_result:
+            return tdi_result, tri_result
 
 
 def _check_tracking_calls(mock_store, expected_tracking_calls_counter):
-    actual_store_calls = Counter(
-        [call.args[0].__name__ for call in mock_store.call_args_list]
-    )
+    actual_store_calls = Counter([call.args[0] for call in mock_store.call_args_list])
     # assert expected_tracking_calls_counter == actual_store_calls would also work, but this
     # will make it easier to compare visually
     assert sorted(actual_store_calls.items()) == sorted(
@@ -267,15 +263,14 @@ def test_tracking_user_exception(mock_channel_tracker):
     )
 
     update_task_run_attempts_chain = [
-        call.kwargs["task_run_attempt_updates"][0].state
-        for call in mock_channel_tracker.call_args_list
-        if call.args[0].__name__ == "update_task_run_attempts"
+        data["task_run_attempt_updates"][0].state
+        for _, data in get_call_args(mock_channel_tracker, ["update_task_run_attempts"])
     ]
     assert [
-        TaskRunState.RUNNING,  # DAG
-        TaskRunState.RUNNING,  # root_task
-        TaskRunState.FAILED,  # task
-        TaskRunState.UPSTREAM_FAILED,  # DAG
+        TaskRunState.RUNNING.name,  # DAG
+        TaskRunState.RUNNING.name,  # root_task
+        TaskRunState.FAILED.name,  # task
+        TaskRunState.UPSTREAM_FAILED.name,  # DAG
     ] == update_task_run_attempts_chain
 
 
@@ -310,15 +305,16 @@ def test_tracking_keyboard_interrupt(mock_channel_tracker):
         )
 
         update_task_run_attempts_chain = [
-            call.kwargs["task_run_attempt_updates"][0].state
-            for call in mock_channel_tracker.call_args_list
-            if call.args[0].__name__ == "update_task_run_attempts"
+            data["task_run_attempt_updates"][0].state
+            for _, data in get_call_args(
+                mock_channel_tracker, ["update_task_run_attempts"]
+            )
         ]
         assert [
-            TaskRunState.RUNNING,  # DAG
-            TaskRunState.RUNNING,  # root_task
-            TaskRunState.FAILED,  # task
-            TaskRunState.UPSTREAM_FAILED,  # DAG
+            TaskRunState.RUNNING.name,  # DAG
+            TaskRunState.RUNNING.name,  # root_task
+            TaskRunState.FAILED.name,  # task
+            TaskRunState.UPSTREAM_FAILED.name,  # DAG
         ] == update_task_run_attempts_chain
 
 

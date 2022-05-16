@@ -1,8 +1,7 @@
 from collections import defaultdict
-from typing import Iterable, Set, Tuple
+from typing import Iterable, List, Set, Tuple
 
-from more_itertools import first
-
+from dbnd._core.utils.dotdict import rdotdict
 from dbnd.api.tracking_api import TaskRunsInfo
 
 
@@ -31,66 +30,73 @@ def build_tasks_connection_from_runs_info(multiple_task_runs_info):
     return child_connections, downstream_connections
 
 
-def get_task_runs_info(mock_channel_tracker):
+def get_call_args(mock_channel_tracker, calls: List[str]):
     for call in mock_channel_tracker.call_args_list:
-        if call.args[0].__name__ == "init_run":
-            yield call[1]["init_args"].task_runs_info
-        elif call.args[0].__name__ == "add_task_runs":
-            yield call[1]["task_runs_info"]
+        if call.args[0] in calls:
+            # we use rdotdict() here because many tests was written when it was possible
+            # to use dot-notation to access data of channel-tracker calls, as data was
+            # catched before convertion to json. This probably should be removed one day.
+            yield call.args[0], rdotdict.try_create(call.args[1])
+
+
+def get_task_runs_info(mock_channel_tracker):
+    for name, data in get_call_args(
+        mock_channel_tracker, ["init_run", "add_task_runs"]
+    ):
+        if name == "init_run":
+            yield data["init_args"].task_runs_info
+        else:
+            yield data["task_runs_info"]
 
 
 def get_log_targets(mock_channel_tracker):
-    for call in mock_channel_tracker.call_args_list:
-        if call.args[0].__name__ == "log_targets":
-            for target_info in call[1]["targets_info"]:
-                yield target_info
+    for _, data in get_call_args(mock_channel_tracker, ["log_targets"]):
+        for target_info in data["targets_info"]:
+            yield target_info
 
 
 def get_log_datasets(mock_channel_tracker):
-    for call in mock_channel_tracker.call_args_list:
-        if call.args[0].__name__ == "log_datasets":
-            for dataset_info in call[1]["datasets_info"]:
-                yield dataset_info
+    for _, data in get_call_args(mock_channel_tracker, ["log_datasets"]):
+        for dataset_info in data["datasets_info"]:
+            yield dataset_info
 
 
 def get_log_metrics(mock_channel_tracker):
-    for call in mock_channel_tracker.call_args_list:
-        if call.args[0].__name__ == "log_metrics":
-            for metric_info in call[1]["metrics_info"]:
-                yield metric_info
+    for _, data in get_call_args(mock_channel_tracker, ["log_metrics"]):
+        for metric_info in data["metrics_info"]:
+            yield metric_info
 
 
 def get_task_target_result(mock_channel_tracker, task_name):
-    return first(
-        filter(
-            lambda target_info: (
-                target_info.task_run_name == task_name
-                and target_info.param_name == "result"
-            ),
-            get_log_targets(mock_channel_tracker),
-        ),
-        default=None,
-    )
+    for target_info in get_log_targets(mock_channel_tracker):
+        if (
+            target_info.task_run_name == task_name
+            and target_info.param_name == "result"
+        ):
+            return target_info
+    return None
 
 
 def get_task_multi_target_result(mock_channel_tracker, task_name, names):
     return {
         target_info.param_name: target_info
-        for target_info in filter(
-            lambda target_info: (
-                target_info.task_run_name == task_name
-                and target_info.param_name in names
-            ),
-            get_log_targets(mock_channel_tracker),
-        )
+        for target_info in get_log_targets(mock_channel_tracker)
+        if target_info.task_run_name == task_name and target_info.param_name in names
     }
 
 
 def get_reported_params(mock_channel_tracker, task_name=None):
     param_definitions = defaultdict(dict)
     run_time_params = defaultdict(dict)
+    param_definition_task_def_uid = defaultdict(dict)
     for task_runs_info in get_task_runs_info(mock_channel_tracker):
         for task_definition_info in task_runs_info.task_definitions:
+            param_definition_task_def_uid[task_definition_info.name].update(
+                {
+                    p.name: task_definition_info["task_definition_uid"]
+                    for p in task_definition_info.task_param_definitions
+                }
+            )
             param_definitions[task_definition_info.name].update(
                 {p.name: p for p in task_definition_info.task_param_definitions}
             )
@@ -101,14 +107,17 @@ def get_reported_params(mock_channel_tracker, task_name=None):
             )
 
     if task_name:
-        return param_definitions[task_name], run_time_params[task_name]
-    return param_definitions, run_time_params
+        return (
+            param_definitions[task_name],
+            run_time_params[task_name],
+            param_definition_task_def_uid[task_name],
+        )
+    return param_definitions, run_time_params, param_definition_task_def_uid
 
 
 def get_save_external_links(mock_channel_tracker):
-    for call in mock_channel_tracker.call_args_list:
-        if call.args[0].__name__ == "save_external_links":
-            yield call.kwargs
+    for _, data in get_call_args(mock_channel_tracker, ["save_external_links"]):
+        yield data
 
 
 def get_reported_source_code(mock_channel_tracker):

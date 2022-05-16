@@ -9,13 +9,13 @@ from dbnd import new_dbnd_context
 from dbnd._core.log.external_exception_logging import capture_tracking_exception
 
 
-class TestException(Exception):
+class RandomException(Exception):
     pass
 
 
 @capture_tracking_exception
 def raising_function():
-    raise TestException("some error message")
+    raise RandomException("some error message")
 
 
 class TestLogExceptionToServer:
@@ -26,7 +26,7 @@ class TestLogExceptionToServer:
             with patch(
                 "dbnd.utils.api_client.ApiClient._send_request"
             ) as send_request_mock:
-                with pytest.raises(TestException):
+                with pytest.raises(RandomException):
                     raising_function()
 
                 assert send_request_mock.call_count == 1
@@ -35,7 +35,7 @@ class TestLogExceptionToServer:
                 data_dict = json.loads(gzip.decompress(call_kwargs["data"]))
                 assert data_dict["source"] == "tracking-sdk"
                 assert "in raising_function" in data_dict["stack_trace"]
-                assert "TestException: some error message" in data_dict["stack_trace"]
+                assert "RandomException: some error message" in data_dict["stack_trace"]
 
     def test_log_exception_to_server_no_url(self):
         """Shouldn't try to send data if api is not configured"""
@@ -43,7 +43,7 @@ class TestLogExceptionToServer:
             with patch(
                 "dbnd.utils.api_client.ApiClient._send_request"
             ) as send_request_mock:
-                with pytest.raises(TestException):
+                with pytest.raises(RandomException):
                     raising_function()
 
                 assert not send_request_mock.called

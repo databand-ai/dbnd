@@ -18,7 +18,7 @@ class TestReportParamsPY3(object):
         # get the parameters reported to the tracker
         # we want to compare that for each parameter value we have a definition
         # otherwise the webserver wouldn't have all the needed information
-        param_definitions, run_time_params = get_reported_params(
+        param_definitions, run_time_params, _ = get_reported_params(
             mock_channel_tracker, "my_task"
         )
         assert set(param_definitions) == set(run_time_params)

@@ -73,7 +73,7 @@ conf_override = {
 @pytest.fixture
 def mock_channel_tracker():
     with mock.patch(
-        "dbnd._core.tracking.backends.tracking_store_channels.TrackingStoreThroughChannel._m"
+        "dbnd._core.tracking.backends.channels.tracking_disabled_channel.DisabledTrackingChannel._handle"
     ) as mock_store:
         yield mock_store
 
@@ -136,10 +136,10 @@ class TestEmrSparkTasks(object):
         calls = [
             call
             for call in mock_channel_tracker.call_args_list
-            if call.args[0].__name__ == "save_external_links"
+            if call.args[0] == "save_external_links"
         ]
         assert len(calls) == 1
-        assert calls[0].kwargs["external_links_dict"] == {
+        assert calls[0].args[1]["external_links_dict"] == {
             "proxy": "https://proxy.proxy.local:12345/gateway//resource?scheme=http&host=livy&port=8998"
         }
 

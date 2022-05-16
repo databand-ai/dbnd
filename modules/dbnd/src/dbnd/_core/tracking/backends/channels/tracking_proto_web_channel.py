@@ -2,7 +2,6 @@ import base64
 
 from dbnd._core.settings.run_info import RunInfoConfig
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
-from dbnd._core.tracking.backends.channels.protobuf_mixin import ProtobufMixin
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd.api.proto.generated.tracking_pb2 import (
@@ -16,7 +15,7 @@ def str_type(obj):
     return "%s.%s" % (obj.__class__.__module__, obj.__class__.__name__)
 
 
-class TrackingProtoWebChannel(ProtobufMixin, TrackingChannel):
+class TrackingProtoWebChannel(TrackingChannel):
     """Proto API client implementation."""
 
     def __init__(self, databand_api_client, *args, **kwargs):
@@ -29,15 +28,13 @@ class TrackingProtoWebChannel(ProtobufMixin, TrackingChannel):
         return RunInfoConfig().source_version
 
     def _handle(self, name, data):
-        schema = self.get_schema_by_handler_name(name)
-
         labels = {
             "sender": "TrackingProtoWebChannel",
             "source_version": self.source_version,
             # TODO: add env details
         }
 
-        event = Event(uuid=str(get_uuid()), schema=str_type(schema), labels=labels)
+        event = Event(uuid=str(get_uuid()), schema=name, labels=labels)
         event.data.update(data)
 
         post_event_request = PostEventsRequest()

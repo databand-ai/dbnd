@@ -25,10 +25,10 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "location://path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
         assert log_dataset_arg.value_preview == ""
-        assert log_dataset_arg.data_dimensions == (987, 4)
+        assert log_dataset_arg.data_dimensions == [987, 4]
         assert log_dataset_arg.data_schema is None
 
     def test_log_dataset(self, mock_channel_tracker):
@@ -44,8 +44,8 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "location://path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
         assert log_dataset_arg.value_preview == ""
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
@@ -66,11 +66,11 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "/path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
         assert log_dataset_arg.value_preview is not None
-        assert log_dataset_arg.data_dimensions == (5, 3)
-        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
+        assert log_dataset_arg.data_dimensions == [5, 3]
+        assert set(log_dataset_arg.data_schema.keys()) == {
             "columns",
             "dtypes",
             "shape",
@@ -92,11 +92,11 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "/path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
         assert log_dataset_arg.value_preview is not None
-        assert log_dataset_arg.data_dimensions == (999, 3)
-        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
+        assert log_dataset_arg.data_dimensions == [999, 3]
+        assert set(log_dataset_arg.data_schema.keys()) == {
             "columns",
             "dtypes",
             "shape",
@@ -118,11 +118,11 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "/path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
         assert log_dataset_arg.value_preview is not None
-        assert log_dataset_arg.data_dimensions == (5, 8)
-        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
+        assert log_dataset_arg.data_dimensions == [5, 8]
+        assert set(log_dataset_arg.data_schema.keys()) == {
             "columns",
             "dtypes",
             "shape",
@@ -149,11 +149,11 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "/path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.write
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.NOK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.write.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.NOK.value
         assert log_dataset_arg.value_preview is not None
-        assert log_dataset_arg.data_dimensions == (5, 3)
-        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
+        assert log_dataset_arg.data_dimensions == [5, 3]
+        assert set(log_dataset_arg.data_schema.keys()) == {
             "columns",
             "dtypes",
             "shape",
@@ -175,8 +175,8 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "location://path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.NOK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.NOK.value
         assert log_dataset_arg.value_preview == ""
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
@@ -194,8 +194,8 @@ class TestTrackingDatasets(object):
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "/path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
         assert log_dataset_arg.value_preview == ""
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
@@ -219,11 +219,11 @@ class TestTrackingDatasets(object):
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
 
         assert log_dataset_arg.operation_path == "/path/to/value.csv"
-        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read
-        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
         assert log_dataset_arg.value_preview is not None
-        assert log_dataset_arg.data_dimensions == (5, 3)
-        assert set(log_dataset_arg.data_schema.as_dict().keys()) == {
+        assert log_dataset_arg.data_dimensions == [5, 3]
+        assert set(log_dataset_arg.data_schema.keys()) == {
             "columns",
             "dtypes",
             "shape",

@@ -2,13 +2,12 @@ import logging
 import pprint
 
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
-from dbnd._core.tracking.backends.channels.marshmallow_mixin import MarshmallowMixin
 
 
 logger = logging.getLogger(__name__)
 
 
-class ConsoleDebugTrackingChannel(MarshmallowMixin, TrackingChannel):
+class ConsoleDebugTrackingChannel(TrackingChannel):
     """Json API client implementation."""
 
     def __init__(self, print_func=None, *args, **kwargs):

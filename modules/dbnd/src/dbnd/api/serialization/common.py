@@ -26,6 +26,7 @@ class MetricSchema(ApiStrictSchema):
     value_int = fields.Integer(allow_none=True)
     value_float = fields.Float(allow_none=True)
     timestamp = fields.DateTime()
+    source = fields.String(allow_none=True, required=False)
 
     @post_load
     def make_object(self, data, **kwargs):
