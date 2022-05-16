@@ -428,6 +428,9 @@ def dbnd_tracking_start(job_name=None, run_name=None, project_name=None, conf=No
     # do not apply our logger to a python script by default
     conf.setdefault("log", {}).setdefault("disabled", True)
 
+    # send logs to webserver by default
+    conf.setdefault("tracking", {}).setdefault("capture_tracking_log", True)
+
     if conf["log"]["disabled"]:
         _configure_tracking_logging(conf)
 

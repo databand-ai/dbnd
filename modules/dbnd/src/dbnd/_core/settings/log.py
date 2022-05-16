@@ -8,6 +8,7 @@ from logging.config import DictConfigurator
 from typing import Callable, List, Optional
 
 from dbnd._core.configuration.environ_config import in_quiet_mode
+from dbnd._core.log.buffered_memory_handler import BufferedMemoryHandler
 from dbnd._core.log.config import configure_logging_dictConfig
 from dbnd._core.log.logging_utils import find_handler, setup_log_file, try_init_sentry
 from dbnd._core.parameter.parameter_builder import parameter
@@ -314,6 +315,22 @@ class LoggingConfig(config.Config):
         )
         return airflow_task_log_handler
 
+    def get_task_log_memory_handler(self):
+        if not self.task_log_file_formatter:
+            config = self.get_dbnd_logging_config()
+            configurator = DictConfigurator(config)
+            formatter_config = configurator.config.get("formatters").get(
+                self.file_formatter_name
+            )
+            self.task_log_file_formatter = configurator.configure_formatter(
+                formatter_config
+            )
+
+        handler = BufferedMemoryHandler()
+        handler.setFormatter(self.task_log_file_formatter)
+        handler.setLevel(self.level)
+        return handler
+
     def get_task_log_file_handler(self, log_file):
         if not self.task_log_file_formatter:
             config = self.get_dbnd_logging_config()
@@ -325,7 +342,6 @@ class LoggingConfig(config.Config):
                 file_formatter_config
             )
 
-        # "formatter": log_settings.file_formatter,
         log_file = str(log_file)
         setup_log_file(log_file)
         handler = logging.FileHandler(filename=log_file, encoding="utf-8")

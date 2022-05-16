@@ -3,9 +3,10 @@ import typing
 
 from contextlib import contextmanager
 
+from dbnd._core.log.buffered_memory_handler import BufferedMemoryHandler
 from dbnd._core.log.logging_utils import find_handler, redirect_stderr, redirect_stdout
 from dbnd._core.settings import LocalEnvConfig
-from dbnd._core.settings.log import _safe_is_typeof
+from dbnd._core.settings.log import LoggingConfig, _safe_is_typeof
 from dbnd._core.task_run.log_preview import read_dbnd_log_preview
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.tracking.dbnd_spark_init import attach_spark_logger, detach_spark_logger
@@ -24,17 +25,18 @@ CURRENT_TASK_HANDLER_LOG = None
 class TaskRunLogManager(TaskRunCtrl):
     def __init__(self, task_run):
         super(TaskRunLogManager, self).__init__(task_run)
-
-        self.local_log_file = self.task_run.local_task_run_root.partition(
-            name="%s.log" % task_run.attempt_number
-        )  # type: FileTarget
-
-        if environ_enabled("DBND__LOG_SPARK"):
-            self.local_spark_log_file = self.task_run.local_task_run_root.partition(
-                name="%s-spark.log" % task_run.attempt_number
+        self.local_log_file = self.local_spark_log_file = None
+        if self.run.is_orchestration:
+            self.local_log_file = self.task_run.local_task_run_root.partition(
+                name="%s.log" % task_run.attempt_number
             )  # type: FileTarget
-        else:
-            self.local_spark_log_file = None
+
+            if environ_enabled("DBND__LOG_SPARK"):
+                self.local_spark_log_file = self.task_run.local_task_run_root.partition(
+                    name="%s-spark.log" % task_run.attempt_number
+                )  # type: FileTarget
+            else:
+                self.local_spark_log_file = None
 
         self.remote_log_file = None
         if not isinstance(self.task.task_env, LocalEnvConfig):
@@ -76,12 +78,8 @@ class TaskRunLogManager(TaskRunCtrl):
         global CURRENT_TASK_HANDLER_LOG
         log_file = self.local_log_file
 
-        log_settings = self.task.settings.log
-        if (
-            self._log_task_run_into_file_active
-            or not log_settings.capture_task_run_log
-            or not log_file
-        ):
+        log_settings: LoggingConfig = self.task.settings.log
+        if self._log_task_run_into_file_active or not log_settings.capture_task_run_log:
             yield None
             return
 
@@ -93,12 +91,16 @@ class TaskRunLogManager(TaskRunCtrl):
             yield None
             return
 
-        handler = log_settings.get_task_log_file_handler(log_file)
+        if not log_file or not self.run.is_orchestration:
+            handler = log_settings.get_task_log_memory_handler()
+        else:
+            handler = log_settings.get_task_log_file_handler(log_file)
+            logger.debug("Capturing task log into '%s'", log_file)
+
         if not handler:
             yield None
             return
         target_logger = logging.root
-        logger.debug("Capturing task log into '%s'", log_file)
 
         try:
             attach_spark_logger(self.local_spark_log_file)
@@ -120,11 +122,18 @@ class TaskRunLogManager(TaskRunCtrl):
                 logger.warning("Failed to close file handler for log %s", log_file)
 
             self._log_task_run_into_file_active = False
-            self._upload_task_log_preview()
+            self._upload_task_log_preview(handler)
 
-    def _upload_task_log_preview(self):
+    def _upload_task_log_preview(self, log_handler):
         try:
-            log_body = self.read_log_body()
+            if isinstance(log_handler, logging.FileHandler):
+                log_body = self.read_log_body()
+            elif isinstance(log_handler, BufferedMemoryHandler):
+                log_body = log_handler.get_log_body()
+            else:
+                logger.exception("unable to read log body for %s", self)
+                return
+
         except Exception as read_log_err:
             logger.exception("failed to read log preview for %s:%s", self, read_log_err)
         else:
@@ -159,6 +168,7 @@ class TaskRunLogManager(TaskRunCtrl):
         if (
             self.task.settings.log.remote_logging_disabled
             or self.remote_log_file is None
+            or self.local_log_file is None
         ):
             return
 
