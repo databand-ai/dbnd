@@ -17,7 +17,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
+#
+# This file has been modified by databand.ai to support dbnd orchestration.
 """
 This is included in Airflow 2.x PodGenerator object, and we can switch to it once we drop Airflow 1.x
 """

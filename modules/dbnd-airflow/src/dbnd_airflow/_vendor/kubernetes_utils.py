@@ -16,6 +16,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+#
+# This file has been modified by databand.ai to support dbnd orchestration.
+
 
 import hashlib
 import re

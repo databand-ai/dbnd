@@ -1,4 +1,4 @@
-include LICENSE *.md *.toml
+include LICENSE NOTICE *.md *.toml
 
 # Stubs
 #include dbnd/py.typed
@@ -6,7 +6,7 @@ recursive-include src/dbnd *.pyi
 # All default configurations
 graft src/dbnd/conf
 
-recursive-include src/dbnd/_vendor LICENSE
+recursive-include src/dbnd/_vendor LICENSE LICENSE.txt
 recursive-include src/dbnd/_vendor_package LICENSE
 
 recursive-exclude * __pycache__

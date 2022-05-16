@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# This file has been modified by databand.ai to support dbnd tracking.
 
 """Source: https://github.com/GoogleCloudPlatform/python-docs-samples/blob/master/iap/make_iap_request.py"""
 """Example use of a service account to authenticate to Identity-Aware Proxy."""

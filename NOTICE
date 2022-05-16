@@ -1,0 +1,21 @@
+DBND
+Copyright 2018-2022 databand.ai
+
+This product includes software developed at databand.ai.
+
+=======================================================================
+
+Apache Airflow:
+-----
+This product contains a modified portion of 'Apache Airflow' developed by The Apache Software Foundation.
+(https://github.com/apache/airflow).
+
+* Copyright 2016-2021 The Apache Software Foundation
+
+
+Luigi:
+-----
+This product contains a modified portion of 'Luigi' developed by Spotify.
+(https://github.com/spotify/luigi).
+
+* Copyright 2012-2021 Spotify AB
