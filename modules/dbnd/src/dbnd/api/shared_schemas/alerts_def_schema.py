@@ -65,6 +65,10 @@ class AlertDefsSchema(ApiStrictSchema):
     is_system = fields.Function(
         lambda alert_def: alert_def.owner == "system", dump_only=True
     )
+    has_auto_pipelines_alert = fields.Method("is_auto_pipelines_alert")
+
+    def is_auto_pipelines_alert(self, obj) -> bool:
+        return bool(len(obj.dbnd_auto_alert_definition))
 
     def get_tracking_source_name(self, obj):
         return self._get_tracking_source_instance(obj).name
