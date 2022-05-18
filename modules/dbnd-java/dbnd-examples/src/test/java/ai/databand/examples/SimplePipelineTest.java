@@ -21,12 +21,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-class SamplePipelineTest {
-
-    @Test
-    public void testPipelineWithMain() {
-        StaticMainPipeline.main(new String[]{});
-    }
+class SimplePipelineTest {
 
     @Test
     public void testPipeline() throws IOException {
@@ -34,7 +29,7 @@ class SamplePipelineTest {
         int firstValue = random.nextInt(100000);
         String secondValue = String.valueOf(random.nextInt(100000));
 
-        SamplePipeline pipeline = new SamplePipeline(firstValue, secondValue);
+        SimplePipeline pipeline = new SimplePipeline(firstValue, secondValue);
         pipeline.doStuff();
 
         DbndApi api = new ApiWithTokenBuilder().api();

@@ -4,12 +4,15 @@ import ai.databand.annotations.Task;
 
 import java.security.SecureRandom;
 
-public class SamplePipeline {
+/**
+ * Very simple pipeline used to debug instrumentation and performing sanity checks without Spark-related heavy-lifting.
+ */
+public class SimplePipeline {
 
     private final int firstValue;
     private final String secondValue;
 
-    public SamplePipeline(int firstValue, String secondValue) {
+    public SimplePipeline(int firstValue, String secondValue) {
         this.firstValue = firstValue;
         this.secondValue = secondValue;
     }

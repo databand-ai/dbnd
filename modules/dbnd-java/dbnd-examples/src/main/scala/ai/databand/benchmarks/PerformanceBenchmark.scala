@@ -1,4 +1,4 @@
-package ai.databand.examples
+package ai.databand.benchmarks
 
 import ai.databand.annotations.Task
 import ai.databand.deequ.{DbndMetricsRepository, DbndResultKey}
@@ -7,7 +7,7 @@ import com.amazon.deequ.VerificationSuite
 import com.amazon.deequ.checks.{Check, CheckLevel}
 import com.amazon.deequ.profiles.ColumnProfilerRunner
 import com.amazon.deequ.repository.memory.InMemoryMetricsRepository
-import org.apache.spark.sql._
+import org.apache.spark.sql.{Dataset, Row, SQLContext, SparkSession}
 import org.slf4j.LoggerFactory
 
 import java.io.FileWriter

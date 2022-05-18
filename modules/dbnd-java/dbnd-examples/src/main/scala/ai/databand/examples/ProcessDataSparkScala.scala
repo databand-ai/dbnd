@@ -13,13 +13,21 @@ import org.slf4j.LoggerFactory
 
 import java.security.SecureRandom
 
-class ProcessDataSparkScala(spark: SparkSession) {
-    private val LOG = LoggerFactory.getLogger(classOf[ProcessDataSparkScala])
-    private val sql: SQLContext = spark.sqlContext
+object ProcessDataSparkScala {
+
+    private val LOG = LoggerFactory.getLogger(ProcessDataSparkScala.getClass)
     private val random: SecureRandom = new SecureRandom()
 
     @Task("process_data_scala")
-    def processCustomerData(inputFile: String, outputFile: String): Unit = {
+    def main(args: Array[String]): Unit = {
+        val spark = SparkSession.builder
+            .appName("CreateReportSparkScala")
+            .getOrCreate
+        val sql = spark.sqlContext
+
+        val inputFile = args(0)
+        val outputFile = args(1)
+
         val keyColumns = Array("name")
         val columnsToImpute = Array("10")
         val rawData = sql.read.format("csv").option("inferSchema", "true").option("header", "true").option("sep", ",").load(inputFile)
