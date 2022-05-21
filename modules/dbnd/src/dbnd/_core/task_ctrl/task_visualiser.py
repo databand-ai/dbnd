@@ -7,7 +7,6 @@ from dbnd._core.constants import SystemTaskName, TaskEssence, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandBuildError, get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
-from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.task_run.task_run_error import task_call_source_to_str
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_string, safe_tabulate
@@ -433,7 +432,7 @@ class _ParamTableDirector(object):
                 if param_def.value_meta_conf.log_preview:
                     param_value_preview = param_value.value
                 else:
-                    param_value_preview = ParameterValue.MASKED_VALUE_PREVIEW
+                    param_value_preview = "-"
                 param_row = self.build_record(
                     param_def, param_value, param_value_preview
                 )

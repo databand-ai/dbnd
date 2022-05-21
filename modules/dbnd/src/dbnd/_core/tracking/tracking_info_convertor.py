@@ -5,7 +5,6 @@ from functools import partial
 
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
-from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.plugin.dbnd_plugins import should_use_airflow_monitor
 from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.tracking.schemas.tracking_info_objects import (
@@ -255,11 +254,10 @@ def build_task_run_info(task_run):
         else:
             value_source, value = "", ""
 
-        if (
-            param_meta.parameter.hidden
-            or not param_meta.parameter.value_meta_conf.log_preview
-        ):
-            value = ParameterValue.MASKED_VALUE_PREVIEW
+        if param_meta.parameter.hidden:
+            value = "***"
+        elif not param_meta.parameter.value_meta_conf.log_preview:
+            value = None
         else:
             value = safe_short_string(
                 param_meta.parameter.signature(value), max_value_len=5000

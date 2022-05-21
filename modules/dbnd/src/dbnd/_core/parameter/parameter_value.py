@@ -10,7 +10,7 @@ from dbnd._core.parameter.constants import ParameterScope
 
 if typing.TYPE_CHECKING:
     from dbnd._core.parameter.parameter_definition import ParameterDefinition
-    from dbnd._core.task.base_task import _BaseTask
+    from dbnd._core.task.task_with_params import _TaskWithParams
 
 
 @attr.s(slots=True)
@@ -26,13 +26,11 @@ class ParameterValue(object):
     source = attr.ib()  # type: str
     source_value = attr.ib()  # type: Any
 
-    task = attr.ib(default=None)  # type: _BaseTask
+    task = attr.ib(default=None)  # type: _TaskWithParams
     parsed = attr.ib(default=True)  # type: bool
 
     # any warnings caught while calculating the value
     warnings = attr.ib(factory=list)
-
-    MASKED_VALUE_PREVIEW = "***"
 
     @property
     def name(self):
@@ -192,7 +190,7 @@ class Parameters(object):
         ]
 
     def to_env_map(self, task, *param_names):
-        # type: (_BaseTask, List[str]) -> Dict[str, str]
+        # type: (_TaskWithParams, List[str]) -> Dict[str, str]
         if param_names:
             params = [self.get_param_value(param_name) for param_name in param_names]
         else:

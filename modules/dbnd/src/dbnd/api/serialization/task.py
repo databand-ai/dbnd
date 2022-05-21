@@ -59,7 +59,7 @@ class TaskDefinitionInfoSchema(ApiStrictSchema):
 class TaskRunParamSchema(ApiStrictSchema):
     parameter_name = fields.String()
     value_origin = fields.String()
-    value = fields.String()
+    value = fields.String(allow_none=True)
 
     @post_load
     def make_task_run_param(self, data, **kwargs):

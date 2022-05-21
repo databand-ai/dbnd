@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Iterable, List, Set, Tuple
+from typing import Dict, Iterable, List, Set, Tuple
 
 from dbnd._core.utils.dotdict import rdotdict
 from dbnd.api.tracking_api import TaskRunsInfo
@@ -86,6 +86,7 @@ def get_task_multi_target_result(mock_channel_tracker, task_name, names):
 
 
 def get_reported_params(mock_channel_tracker, task_name=None):
+    # type: (...) -> Tuple[Dict, Dict, Dict]
     param_definitions = defaultdict(dict)
     run_time_params = defaultdict(dict)
     param_definition_task_def_uid = defaultdict(dict)

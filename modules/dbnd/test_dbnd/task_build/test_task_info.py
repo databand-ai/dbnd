@@ -135,10 +135,10 @@ class TestLogValuePreviewLogs:
         PARAMS_WITHOUT_PREVIEWS = dedent(
             """
             Name        Kind    Type    Format    Source              -= Value =-
-            num_param   param   int               t.t.t.t_f[default]  ***
-            list_param  param   List              t.t.t.t_f[default]  "***"
-            none_param  param   object            t.t.t.t_f[default]  ***
-            result      output  object  .pickle                       "***"
+            num_param   param   int               t.t.t.t_f[default]  -
+            list_param  param   List              t.t.t.t_f[default]  "-"
+            none_param  param   object            t.t.t.t_f[default]  -
+            result      output  object  .pickle                       "-"
             """
         )
 

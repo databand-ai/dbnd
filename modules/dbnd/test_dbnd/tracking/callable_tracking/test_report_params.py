@@ -18,7 +18,7 @@ class TestReportParams(object):
         "log_value_preview, expected_input_param, expected_inputs_args, expected_inputs_kwargs, expected_result_value_preview",
         [
             [True, "a", "[1,2,3,4,5,5]", '{"b":20,"others":123}', "6"],
-            [False, "***", "***", "***", None],
+            [False, None, None, None, None],
         ],
     )
     def test_decorated_report_params(
@@ -58,10 +58,8 @@ class TestReportParams(object):
         if log_value_preview:
             expected_target_path = result_target_info.target_path
         else:
-            expected_target_path = "***"
-
+            expected_target_path = None
         assert run_time_params[RESULT_PARAM].value == expected_target_path
-        assert result_target_info.value_preview == expected_result_value_preview
 
 
 @pytest.mark.usefixtures(set_tracking_context.__name__)
@@ -158,3 +156,36 @@ class TestReportResults(object):
         assert targets_info["second"].value_preview == "2"
         assert targets_info["second"].task_def_uid is not None
         assert targets_info["second"].task_def_uid == param_def_task_def_uid["second"]
+
+    def test_result_multiple_values_disabled(self, mock_channel_tracker):
+        @task()
+        def my_task(a, b):
+            # type: (int, int) -> Any
+            return 1
+
+        # executing the task
+        with dbnd_config(config_values={"tracking": {"log_value_preview": False}}):
+            my_task(1, 2)
+
+        param_definitions, run_time_params, _ = get_reported_params(
+            mock_channel_tracker, "my_task"
+        )
+
+        # reporting the definition of the result proxy
+        assert run_time_params == {
+            "a": {
+                "parameter_name": "a",
+                "value": None,
+                "value_origin": "t.t.c.t.my_task",
+            },
+            "b": {
+                "parameter_name": "b",
+                "value": None,
+                "value_origin": "t.t.c.t.my_task",
+            },
+            "result": {
+                "parameter_name": "result",
+                "value": None,
+                "value_origin": "t.t.c.t.my_task",
+            },
+        }
