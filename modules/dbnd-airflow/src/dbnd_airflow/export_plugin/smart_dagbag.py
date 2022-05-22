@@ -4,6 +4,8 @@ from collections import defaultdict
 
 from airflow.utils.db import provide_session
 
+from dbnd._core.errors.errors_utils import log_exception
+
 
 logger = logging.getLogger(__name__)
 
@@ -41,17 +43,23 @@ class DbndDagLoader(object):
             # Use DagBag module to load all dags from a given file
             dag_bag = models.DagBag(file_path, include_examples=False)
 
+            if dag_bag.import_errors:
+                import_errors = ", ".join(dag_bag.import_errors.values())
+                raise Exception(
+                    "The following import errors were found when loading dags from {}: {}".format(
+                        file_path, import_errors
+                    )
+                )
+
             # Now the DagBag object contains the 'dags' dict which maps between each dag id to the dag object
             return dag_bag.dags
-        except Exception:
-            logger.warning(
-                "Failed to load dag from %s. Exception:", file_path, exc_info=True
-            )
-        except SystemExit:
-            logger.warning(
-                "Failed to load dag from %s, due to SystemExit",
-                file_path,
-                exc_info=True,
+        except Exception as e:
+            log_exception("Failed to load dag from {}".format(file_path), e, logger)
+        except SystemExit as se:
+            log_exception(
+                "Failed to load dag from {} due to SystemExit".format(file_path),
+                se,
+                logger,
             )
 
         return None
