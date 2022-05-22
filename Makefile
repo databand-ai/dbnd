@@ -119,7 +119,7 @@ __dist-python-module:  ## (Hidden target) Build a single python module.
 		--wheel ${MODULE}/dist/*.whl \
 		--output ${MODULE}/dist/$$(basename ${MODULE}).requirements.txt \
 		--third-party-only \
-		--extras airflow,airflow_1_10_8,airflow_1_10_9,airflow_1_10_10,airflow_1_10_12,airflow_1_10_15,airflow_2_0_2,airflow_2_2_3,tests,composer,mysql,bigquery \
+		--extras airflow,airflow_1_10_8,airflow_1_10_9,airflow_1_10_10,airflow_1_10_12,airflow_1_10_15,airflow_2_0_2,airflow_2_2_3,airflow_2_3_0,tests,composer,mysql,bigquery \
 		--separate-extras;
 
 	# Move to root dist dir...
