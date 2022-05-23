@@ -21,6 +21,36 @@ def _report_dbt_metadata(dbt_metadata, tracker=None):
     tracker.log_dbt_metadata(dbt_metadata=dbt_metadata)
 
 
+def get_run_data_from_dbt(dbt_cloud_client, dbt_job_run_id):
+    dbt_run_meta_data = dbt_cloud_client.get_run(run_id=dbt_job_run_id)
+
+    if not dbt_run_meta_data:
+        logger.warning("Fail getting run data from dbt cloud ")
+        return None
+
+    env_id = dbt_run_meta_data.get("environment_id")
+    env = dbt_cloud_client.get_environment(env_id=env_id)
+
+    if env:
+        dbt_run_meta_data["environment"] = env
+
+    for step in dbt_run_meta_data.get("run_steps", []):
+        step_run_results_artifact = dbt_cloud_client.get_run_results_artifact(
+            run_id=dbt_job_run_id, step=step["index"]
+        )
+        if step_run_results_artifact:
+            step["run_results"] = step_run_results_artifact
+
+        step_run_manifest_artifact = dbt_cloud_client.get_manifest_artifact(
+            run_id=dbt_job_run_id, step=step["index"]
+        )
+
+        if step_run_manifest_artifact:
+            step["manifest"] = step_run_manifest_artifact
+
+    return dbt_run_meta_data
+
+
 def collect_data_from_dbt_cloud(
     dbt_cloud_account_id, dbt_cloud_api_token, dbt_job_run_id
 ):
@@ -55,30 +85,9 @@ def collect_data_from_dbt_cloud(
             account_id=dbt_cloud_account_id, dbt_cloud_api_token=dbt_cloud_api_token
         )
 
-        dbt_run_meta_data = dbt_cloud_client.get_run(run_id=dbt_job_run_id)
+        dbt_run_meta_data = get_run_data_from_dbt(dbt_cloud_client, dbt_job_run_id)
         if not dbt_run_meta_data:
-            logger.warning("Fail getting run data from dbt cloud ")
             return
-
-        env_id = dbt_run_meta_data.get("environment_id")
-        env = dbt_cloud_client.get_environment(env_id=env_id)
-
-        if env:
-            dbt_run_meta_data["environment"] = env
-
-        for step in dbt_run_meta_data.get("run_steps", []):
-            step_run_results_artifact = dbt_cloud_client.get_run_results_artifact(
-                run_id=dbt_job_run_id, step=step["index"]
-            )
-            if step_run_results_artifact:
-                step["run_results"] = step_run_results_artifact
-
-            step_run_manifest_artifact = dbt_cloud_client.get_manifest_artifact(
-                run_id=dbt_job_run_id, step=step["index"]
-            )
-
-            if step_run_manifest_artifact:
-                step["manifest"] = step_run_manifest_artifact
 
         _report_dbt_metadata(dbt_run_meta_data)
     except Exception as e:

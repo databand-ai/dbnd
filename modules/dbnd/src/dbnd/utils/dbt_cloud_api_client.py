@@ -84,14 +84,15 @@ class DbtCloudApiClient:
         )
 
     def get_run(self, run_id):
-
         if not run_id:
             logger.debug("Can't get run without id")
             return
 
         path = f"{self.account_id}/runs/{run_id}"
         url = self._build_administrative_url(path)
-        res = self.send_request(endpoint=url, data={"include_related": '["run_steps"]'})
+        res = self.send_request(
+            endpoint=url, data={"include_related": '["run_steps", "job"]'}
+        )
         return self._safe_get_response_data(res)
 
     def get_environment(self, env_id: int):
@@ -117,6 +118,15 @@ class DbtCloudApiClient:
             "tests", {"runId": run_id, "jobId": job_id}, ["uniqueId", "status"]
         )
         return self.query_meta_data_api(query)
+
+    def list_runs(self, limit, offset, order_by, job_id=None):
+        path = f"{self.account_id}/runs"
+        url = self._build_administrative_url(path)
+        data = {"limit": limit, "offset": offset, "order_by": order_by}
+        if job_id:
+            data["job_definition_id"] = job_id
+        res = self.send_request(endpoint=url, data=data)
+        return self._safe_get_response_data(res)
 
     def query_meta_data_api(self, query):
         res = self.send_request(

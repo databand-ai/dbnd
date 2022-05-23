@@ -24,7 +24,7 @@ class TestDbtCloudApiClient:
         dbt_cloud_client.send_request = self.send_request_mock
         self.send_request_mock.return_value = {"run_id": run_id}
         expected_endpoint = f"{dbt_cloud_client.administrative_api_url}{self.DBT_CLOUD_ACCOUNT_ID}/runs/{run_id}"
-        expected_params = {"include_related": '["run_steps"]'}
+        expected_params = {"include_related": '["run_steps", "job"]'}
         dbt_cloud_client.get_run(run_id)
         self.send_request_mock.assert_called()
         self.send_request_mock.assert_called_with(
@@ -97,7 +97,7 @@ class TestDbtCloudApiClient:
         session_mock.side_effect = ConnectionError
         dbt_cloud_client.session.get = session_mock
         expected_endpoint = f"{dbt_cloud_client.administrative_api_url}{self.DBT_CLOUD_ACCOUNT_ID}/runs/{run_id}"
-        expected_params = {"include_related": '["run_steps"]'}
+        expected_params = {"include_related": '["run_steps", "job"]'}
 
         res = dbt_cloud_client.get_run(run_id)
         session_mock.assert_called_with(url=expected_endpoint, params=expected_params)

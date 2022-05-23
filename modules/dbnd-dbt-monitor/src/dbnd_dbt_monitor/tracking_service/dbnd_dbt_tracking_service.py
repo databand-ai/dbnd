@@ -1,0 +1,93 @@
+import logging
+
+from typing import List, Type
+
+from dbnd_dbt_monitor.data.dbt_config_data import (
+    DbtServerConfig,
+    DbtUpdateMonitorStateRequestSchema,
+)
+
+from airflow_monitor.shared.base_server_monitor_config import TrackingServiceConfig
+from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
+from dbnd._core.errors import DatabandConfigError
+from dbnd._vendor.cachetools import TTLCache, cached
+
+
+logger = logging.getLogger(__name__)
+monitor_config_cache = TTLCache(maxsize=5, ttl=10)
+
+
+class DbndDbtTrackingService(BaseDbndTrackingService):
+    def __init__(
+        self,
+        monitor_type: str,
+        tracking_source_uid: str,
+        tracking_service_config: TrackingServiceConfig,
+        server_monitor_config: Type[DbtServerConfig],
+    ):
+        super(DbndDbtTrackingService, self).__init__(
+            monitor_type=monitor_type,
+            tracking_source_uid=tracking_source_uid,
+            tracking_service_config=tracking_service_config,
+            server_monitor_config=server_monitor_config,
+            monitor_state_schema=DbtUpdateMonitorStateRequestSchema,
+        )
+
+    def _fetch_source_monitor_config(self) -> List[dict]:
+        result = self._api_client.api_request(
+            endpoint=f"dbt_syncers/{self.tracking_source_uid}", method="GET", data=None
+        )
+        return [result]
+
+    # Cached to avoid excessive webserver calles to get config
+    @cached(monitor_config_cache)
+    def get_monitor_configuration(self) -> DbtServerConfig:
+        configs = self._fetch_source_monitor_config()
+        if not configs:
+            raise DatabandConfigError(
+                f"Missing configuration for tracking source: {self.tracking_source_uid}"
+            )
+        return self.server_monitor_config.create(configs[0])
+
+    def update_monitor_state(self, monitor_state):
+        data, _ = self.monitor_state_schema().dump(monitor_state.as_dict())
+        self._api_client.api_request(
+            endpoint=f"dbt_syncers/{self.tracking_source_uid}/state",
+            method="PATCH",
+            data=data,
+        )
+
+    def get_last_seen_run_id(self):
+        result = self._api_client.api_request(
+            endpoint=f"dbt_syncers/{self.tracking_source_uid}", method="GET", data=None
+        )
+        return result["last_seen_run_id"]
+
+    def update_last_seen_values(self, last_seen_run_id):
+        self._api_client.api_request(
+            endpoint=f"dbt_syncers/{self.tracking_source_uid}/last_seen_values",
+            method="PATCH",
+            data={"last_seen_run_id": last_seen_run_id},
+        )
+
+    def init_dbt_runs(self, dbt_runs_full_data):
+        self._api_client.api_request(
+            endpoint=f"tracking-monitor/{self.tracking_source_uid}/sync_dbt_runs",
+            method="POST",
+            data=dbt_runs_full_data,
+        )
+
+    def update_dbt_runs(self, dbt_runs_full_data):
+        self._api_client.api_request(
+            endpoint=f"tracking-monitor/{self.tracking_source_uid}/update_dbt_runs",
+            method="POST",
+            data=dbt_runs_full_data,
+        )
+
+    def get_running_dbt_run_ids(self):
+        response = self._api_client.api_request(
+            endpoint=f"tracking-monitor/{self.tracking_source_uid}/active_dbt_runs",
+            method="GET",
+            data=None,
+        )
+        return response.get("dbt_run_ids", [])
