@@ -12,12 +12,18 @@ import scala.collection.immutable.Seq;
 import java.util.Collections;
 
 import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyObject;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class DbndSparkQueryExecutionListenerTest {
 
-   private DbndSparkQueryExecutionListener dbndSparkQueryExecutionListener = new DbndSparkQueryExecutionListener();
+    private DbndSparkQueryExecutionListener dbndSparkQueryExecutionListener = new DbndSparkQueryExecutionListener();
     private QueryExecution queryExecutionMock = Mockito.mock(QueryExecution.class);
     private LogicalPlan logicalPlanMock = Mockito.mock(LogicalPlan.class);
     private Seq<LogicalPlan> logicalPlanSeqMock = Mockito.mock(Seq.class);
@@ -26,13 +32,12 @@ public class DbndSparkQueryExecutionListenerTest {
     private DbndSparkQueryExecutionListener dbndSparkQueryExecutionListenerSpy = spy(dbndSparkQueryExecutionListener);
 
     @BeforeAll
-    public void setup(){
+    public void setup() {
         spy(dbndSparkQueryExecutionListener);
         when(queryExecutionMock.analyzed()).thenReturn(logicalPlanMock);
         when(queryExecutionMock.executedPlan()).thenReturn(wholeStageCodegenExecMock);
         when(logicalPlanMock.children()).thenReturn(logicalPlanSeqMock);
         when(logicalPlanSeqMock.apply(0)).thenReturn(dbndAliasPlanMock);
-
     }
 
     @Test

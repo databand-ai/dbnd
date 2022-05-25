@@ -6,6 +6,8 @@ import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.Pair;
+import org.apache.spark.sql.catalyst.plans.QueryPlan;
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.apache.spark.sql.execution.FileSourceScanExec;
 import org.apache.spark.sql.execution.QueryExecution;
 import org.apache.spark.sql.execution.SparkPlan;
@@ -19,10 +21,14 @@ import org.apache.spark.sql.util.QueryExecutionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
 
@@ -56,8 +62,12 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
     public void onSuccess(String funcName, QueryExecution qe, long durationNs) {
         // Instanceof chain used instead of pattern-matching for the sake of simplicity here.
         // When new implementations will be added, this part should be refactored to use pattern-matching (strategies)
-        if (qe.executedPlan() instanceof DataWritingCommandExec) {
-            DataWritingCommandExec writePlan = (DataWritingCommandExec) qe.executedPlan();
+        SparkPlan executedPlan = qe.executedPlan();
+        if (isAdaptivePlan(executedPlan)) {
+            executedPlan = extractFinalFromAdaptive(executedPlan).orElse(executedPlan);
+        }
+        if (executedPlan instanceof DataWritingCommandExec) {
+            DataWritingCommandExec writePlan = (DataWritingCommandExec) executedPlan;
             if (writePlan.cmd() instanceof InsertIntoHadoopFsRelationCommand) {
                 InsertIntoHadoopFsRelationCommand cmd = (InsertIntoHadoopFsRelationCommand) writePlan.cmd();
 
@@ -81,12 +91,12 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 }
             }
         }
-        if (qe.executedPlan() instanceof WholeStageCodegenExec) {
+        if (executedPlan instanceof WholeStageCodegenExec) {
             if (isDbndPlan(qe)) {
                 LOG.warn("dbnd sdk Execution plan will not be reported");
                 return;
             }
-            List<SparkPlan> allChildren = getAllChildren(qe.executedPlan());
+            List<SparkPlan> allChildren = getAllChildren(executedPlan);
             for (SparkPlan next : allChildren) {
                 if (next instanceof FileSourceScanExec) {
                     FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
@@ -120,10 +130,58 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
     private boolean isDbndPlan(QueryExecution qe) {
         if (qe.analyzed() != null && !qe.analyzed().children().isEmpty()) {
-            String dfAlias = qe.analyzed().children().apply(0).verboseString();
+            String dfAlias = getPlanVerboseString(qe.analyzed().children().apply(0));
             return dfAlias != null && dfAlias.contains(DBND_INTERNAL_ALIAS);
         }
         return false;
+    }
+
+    protected boolean isAdaptivePlan(Object plan) {
+        return plan.getClass().getName().contains("AdaptiveSparkPlanExec");
+    }
+
+    /**
+     * This is workaround for Spark 3.
+     * verboseString() method was replaced in Spark 3 by verboseString(int).
+     *
+     * @param plan
+     * @return
+     */
+    protected String getPlanVerboseString(LogicalPlan plan) {
+        try {
+            return plan.verboseString();
+        } catch (NoSuchMethodError e) {
+            // we're in spark 3
+            try {
+                Class<?> clazz = QueryPlan.class;
+                Method method = clazz.getDeclaredMethod("verboseString", int.class);
+                return method.invoke(plan, 1).toString();
+            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
+                LOG.error("Unable to identify whenever spark query was triggered by log_dataset_op");
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Adaptive plans was introduced in Spark 2.4.8+ and turned on by default on some configurations.
+     * For proper reporting we use reflection to extract relevant pieces from Adaptive Plans.
+     * Reflection allows us to avoid direct dependency bump.
+     *
+     * @param adaptivePlan
+     * @return
+     */
+    protected Optional<SparkPlan> extractFinalFromAdaptive(Object adaptivePlan) {
+        try {
+            Class<?> clazz = Class.forName("org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec");
+            Field field = clazz.getDeclaredField("currentPhysicalPlan");
+            field.setAccessible(true);
+            SparkPlan value = (SparkPlan) field.get(adaptivePlan);
+            return Optional.of(value);
+        } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException e) {
+            LOG.error("Unable to extract final plan from the adaptive one using reflection. Dataset operation won't be logged.");
+            return Optional.empty();
+        }
     }
 
     protected void log(String path, DatasetOperationType operationType, StructType datasetSchema, long rows) {
