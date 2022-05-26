@@ -45,7 +45,10 @@ prj_dbnd_tracking_slim = modules/dbnd modules/dbnd-airflow \
           plugins/dbnd-airflow-auto-tracking
 
 prj_dbnd_run = modules/dbnd modules/dbnd-airflow \
+            modules/dbnd-airflow-monitor  \
+            plugins/dbnd-redshift  \
             plugins/dbnd-aws  \
+            plugins/dbnd-airflow-auto-tracking  \
 			plugins/dbnd-azure \
 			plugins/dbnd-airflow-versioned-dag \
 			plugins/dbnd-databricks \
