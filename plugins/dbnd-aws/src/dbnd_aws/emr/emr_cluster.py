@@ -112,8 +112,12 @@ class EmrCluster(object):
         return result_dict
 
     def run_spark_submit_step(
-        self, name, spark_submit_command, action_on_failure="CANCEL_AND_WAIT"
+        self,
+        name: str,
+        spark_submit_command,
+        action_on_failure: str = "CANCEL_AND_WAIT",
     ):
+
         step = dict(
             Name=name,
             ActionOnFailure=action_on_failure,

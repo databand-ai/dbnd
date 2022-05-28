@@ -25,6 +25,11 @@ class EmrConfig(SparkEngineConfig):
         default="spark_emr", description="spark emr connection settings"
     )
 
+    action_on_failure = parameter.c(
+        description="Action to take on failure of spark submit CANCEL_AND_WAIT/CONTINUE",
+        default="CANCEL_AND_WAIT",
+    )[str]
+
     client = parameter.c(
         default=EmrClient.STEP, description="Type of client used to run EMR jobs"
     )

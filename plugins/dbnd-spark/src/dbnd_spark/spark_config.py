@@ -58,6 +58,11 @@ class SparkConfig(Config):
     executor_cores = parameter(
         description="(Standalone & YARN only) Number of cores per executor"
     ).none[int]
+    status_poll_interval = parameter(
+        default=5,
+        description="Seconds to wait between polls of driver status in cluster",
+    )[int]
+
     executor_memory = parameter(
         description="Memory per executor (e.g. 1000M, 2G) (Default: 1G)"
     ).none[str]

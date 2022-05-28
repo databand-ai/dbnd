@@ -83,6 +83,7 @@ class TestSparkTasksLocally(object):
             repositories=mock.ANY,
             total_executor_cores=mock.ANY,
             verbose=mock.ANY,
+            status_poll_interval=mock.ANY,
         )
 
     @pytest.fixture(autouse=True)
@@ -204,6 +205,7 @@ class TestSparkTasksLocally(object):
             repositories=_config.repositories,
             total_executor_cores=_config.total_executor_cores,
             verbose=_config.verbose,
+            status_poll_interval=_config.status_poll_interval,
         )
 
         # The env vars contain more information but we want to check only the "DBND_TASK_RUN_ATTEMPT_UID" env_var

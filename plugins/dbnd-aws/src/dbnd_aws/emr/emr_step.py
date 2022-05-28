@@ -32,6 +32,7 @@ class EmrStepCtrl(EmrCtrl):
             num_executors=_config.num_executors,
             env_vars=self._get_env_vars(),
             verbose=_config.verbose,
+            status_poll_interval=_config.status_poll_interval,
         )
 
         step_id = self.emr_cluster.run_spark_submit_step(
@@ -39,6 +40,7 @@ class EmrStepCtrl(EmrCtrl):
             spark_submit_command=spark._build_spark_submit_command(
                 application=deploy.sync(file)
             ),
+            action_on_failure=self.emr_config.action_on_failure,
         )
         self.task_run.set_external_resource_urls(
             self.emr_cluster.get_emr_logs_dict(self.spark_application_logs)
