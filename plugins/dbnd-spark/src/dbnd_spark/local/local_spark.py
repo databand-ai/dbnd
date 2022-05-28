@@ -67,6 +67,7 @@ class LocalSparkExecutionCtrl(SparkCtrl):
             num_executors=_config.num_executors,
             env_vars=self._get_env_vars(),
             verbose=_config.verbose,
+            status_poll_interval=_config.status_poll_interval,
         )
         if not AIRFLOW_ON:
             # If there's no Airflow then there's no Connection so we
