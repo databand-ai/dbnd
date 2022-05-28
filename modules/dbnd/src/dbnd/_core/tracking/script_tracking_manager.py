@@ -326,7 +326,8 @@ class _DbndScriptTrackingManager(object):
                     else:
                         # We can reach here in case of raising exception tracking stand alone python script
                         if sys.exc_info()[1]:
-                            root_tr.set_task_run_state(TaskRunState.FAILED)
+                            error = TaskRunError.build_from_ex(None, root_tr)
+                            root_tr.set_task_run_state(TaskRunState.FAILED, error=error)
                         else:
                             root_tr.set_task_run_state(TaskRunState.SUCCESS)
 
