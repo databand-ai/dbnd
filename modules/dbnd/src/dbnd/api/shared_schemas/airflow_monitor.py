@@ -1,9 +1,11 @@
 import datetime
+import re
 
 from typing import Dict, Optional
 
 import attr
 
+from dbnd._core.errors.base import DatabandBadRequest
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._vendor.marshmallow import fields, post_load
 
@@ -53,13 +55,52 @@ class AirflowServerInfoSchema(ApiStrictSchema):
 airflow_server_info_schema = AirflowServerInfoSchema()
 
 
+def is_url_valid(url):
+    # TODO: Switch to marshmallow URL validator after we switch docker services to use `-` instead of `_`
+    # Added `_` and allow dotless hostnames into regex below to make our int-tests green
+    url_regex = r"".join(
+        (
+            r"^",
+            r"(?:[a-z0-9\.\-\+]*)://",  # scheme is validated separately
+            r"(?:[^:@]+?(:[^:@]*?)?@|)",  # basic auth
+            # r'(?:(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.)+',
+            # r'(?:[A-Z]{2,6}\.?|[A-Z0-9-_]{2,}\.?)|',  # domain...
+            r"(?:(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.)+",
+            r"(?:[A-Z]{2,6}\.?|[A-Z0-9-_]{2,}\.?)|",  # domain...
+            r"localhost|",  # localhost...
+            r"(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.?)|",
+            # (r'(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.?)|'
+            #  if not require_tld else r''),  # allow dotless hostnames
+            r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|",  # ...or ipv4
+            r"\[?[A-F0-9]*:[A-F0-9:]+\]?)",  # ...or ipv6
+            r"(?::\d+)?",  # optional port
+            r"(?:/?|[/?]\S+)$",
+        )
+    )
+    return bool(re.match(url_regex, url, re.IGNORECASE))
+
+
+def url_validation(obj, attribute, value):
+    if value is not None and value:
+        if is_url_valid(value):
+            return
+        else:
+            raise DatabandBadRequest(
+                "Could not edit airflow syncer because {} url {} was not a valid url".format(
+                    attribute.name, value
+                )
+            )
+
+
 @attr.s
 class AirflowServerInfo(object):
-    base_url = attr.ib()  # type: str
+    base_url = attr.ib(validator=url_validation)  # type: str
     monitor_status = attr.ib(default=None)  # type: Optional[str]
     name = attr.ib(default=None)  # type: Optional[str]
     env = attr.ib(default=None)  # type: Optional[str]
-    external_url = attr.ib(default=None)  # type: Optional[str]
+    external_url = attr.ib(
+        default=None, validator=url_validation
+    )  # type: Optional[str]
     source_instance_uid = attr.ib(default=None)  # type: str
     tracking_source_uid = attr.ib(default=None)  # type: str
     airflow_instance_uid = attr.ib(default=None)  # type: str #TODO_API: derperate
