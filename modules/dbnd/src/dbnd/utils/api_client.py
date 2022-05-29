@@ -1,6 +1,7 @@
 import gzip
 import json
 import logging
+import uuid
 
 from datetime import datetime, timedelta
 from http import HTTPStatus
@@ -112,6 +113,7 @@ class ApiClient(object):
         headers = dict(self.default_headers, **(headers or {}))
         url = urljoin(self._api_base_url, endpoint)
 
+        headers["X-Request-ID"] = uuid.uuid4().hex
         headers["X-Databand-Trace-ID"] = get_tracing_id().hex
         request_params = dict(
             method=method,
