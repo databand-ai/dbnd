@@ -1,7 +1,7 @@
 import logging
 
 from datetime import datetime, timedelta
-from typing import Type
+from typing import Optional, Type
 
 from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
@@ -21,7 +21,7 @@ LONG_REQUEST_TIMEOUT = 300
 logger = logging.getLogger(__name__)
 
 
-def _min_start_time(start_time_window: int) -> datetime:
+def _min_start_time(start_time_window: int) -> Optional[datetime]:
     if not start_time_window:
         return None
 
