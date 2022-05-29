@@ -11,6 +11,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import java.util.Collections;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 
@@ -54,6 +55,7 @@ public class DbndApiBuilder {
                         .newBuilder()
                         .addHeader("Authorization", String.format("Bearer %s", config.personalAccessToken().get()))
                         .addHeader("X-Databand-Trace-ID", config.getTraceId())
+                        .addHeader("X-Request-ID", UUID.randomUUID().toString())
                         .build();
                     return chain.proceed(withAuth);
                 }
