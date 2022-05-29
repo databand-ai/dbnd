@@ -68,7 +68,7 @@ class TestSyncerWorks(WebAppTest):
         created_syncer = self.client.post(
             self._url("AirflowServersApi.add"),
             json={
-                "base_url": random_name,
+                "base_url": f"https://{random_name}.local",
                 "name": random_name,
                 "fetcher": "web",
                 "external_url": "",
