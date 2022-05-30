@@ -320,13 +320,12 @@ class RedshiftTableValueType(DataValueType):
         histograms = {}
         hist_sys_metrics = None
 
-        dimensions = None
-        if meta_conf.log_size:
-            dimensions = value.schema["shape"]
+        dimensions = (value.records_count, None)
 
         data_schema = None
         if meta_conf.log_schema:
             data_schema = value.schema
+            dimensions = value.schema["shape"]
 
         column_stats = {}
         if meta_conf.log_stats:
