@@ -62,9 +62,7 @@ class SparkConfig(Config):
         default=5,
         description="Seconds to wait between polls of driver status in cluster",
     )[int]
-    emr_completion_poll_interval = parameter(
-        default=10, description="Seconds to wait between polls of step completion job"
-    )[int]
+
     executor_memory = parameter(
         description="Memory per executor (e.g. 1000M, 2G) (Default: 1G)"
     ).none[str]
