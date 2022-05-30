@@ -48,7 +48,7 @@ class EmrStepCtrl(EmrCtrl):
         self.emr_cluster.wait_for_step_completion(
             step_id,
             status_reporter=self._report_step_status,
-            emr_completion_poll_interval=_config.emr_completion_poll_interval,
+            emr_completion_poll_interval=self.emr_config.emr_completion_poll_interval,
         )
         pass
 
