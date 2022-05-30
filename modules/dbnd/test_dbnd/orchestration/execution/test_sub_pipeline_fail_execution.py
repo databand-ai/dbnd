@@ -17,7 +17,7 @@ def failing_task(input=None):
 
 @pipeline
 def failing_pipeline():
-    failing_task(successful_task("test123"))
+    return failing_task()
 
 
 @pipeline
@@ -50,7 +50,7 @@ class TestSubPipelineExecution(object):
             root_pipeline_with_failing_sub_pipeline.__name__: TaskRunState.FAILED,
             failing_pipeline.__name__: TaskRunState.FAILED,
             failing_task.__name__: TaskRunState.FAILED,
-            successful_task.__name__: TaskRunState.SUCCESS,
+            successful_task.__name__: TaskRunState.UPSTREAM_FAILED,
         }
         try:
             root_pipeline_with_failing_sub_pipeline.dbnd_run()
