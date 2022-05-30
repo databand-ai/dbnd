@@ -46,7 +46,9 @@ class EmrStepCtrl(EmrCtrl):
             self.emr_cluster.get_emr_logs_dict(self.spark_application_logs)
         )
         self.emr_cluster.wait_for_step_completion(
-            step_id, status_reporter=self._report_step_status
+            step_id,
+            status_reporter=self._report_step_status,
+            emr_completion_poll_interval=_config.emr_completion_poll_interval,
         )
 
     def _get_step_banner(self, step):
