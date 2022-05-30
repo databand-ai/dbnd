@@ -30,6 +30,10 @@ class EmrConfig(SparkEngineConfig):
         default="CANCEL_AND_WAIT",
     )[str]
 
+    emr_completion_poll_interval = parameter(
+        default=10, description="Seconds to wait between polls of step completion job"
+    )[int]
+
     client = parameter.c(
         default=EmrClient.STEP, description="Type of client used to run EMR jobs"
     )
