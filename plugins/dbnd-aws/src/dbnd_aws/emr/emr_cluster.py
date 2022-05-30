@@ -128,7 +128,9 @@ class EmrCluster(object):
         )
         return response["StepIds"][0]
 
-    def wait_for_step_completion(self, step_id, status_reporter=None):
+    def wait_for_step_completion(
+        self, step_id, status_reporter=None, emr_completion_poll_interval=10
+    ):
         status_reporter = status_reporter or self._default_status_reporter
         while True:
             step = self.get_step_info(step_id)
@@ -152,7 +154,7 @@ class EmrCluster(object):
             logger.debug(
                 "Emr step %s is %s", step, str(step["Step"]["Status"]["State"])
             )
-            time.sleep(10)
+            time.sleep(emr_completion_poll_interval)
 
     def _raise_error(self, step):
         if "FAILED" == step["Step"]["Status"]["State"]:
