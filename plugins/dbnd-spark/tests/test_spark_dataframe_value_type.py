@@ -49,7 +49,7 @@ class TestSparkDataFrameValueType(object):
         # it changes all the time, it has different formats, and it's already tested in histogram tests
 
         # histogram_system_metrics values are too dynamic, so checking only keys, but not values
-        assert df_value_meta.histogram_system_metrics == None
+        assert df_value_meta.histogram_system_metrics == {}
 
         # assert df_value_meta.histograms == expected_value_meta.histograms
         # assert attr.asdict(df_value_meta) == attr.asdict(expected_value_meta)

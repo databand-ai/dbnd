@@ -71,8 +71,7 @@ class SparkDataFrameValueType(DataValueType):
         else:
             data_dimensions = None
 
-        df_columns_stats, histogram_dict = [], {}
-        hist_sys_metrics = None
+        df_columns_stats, histogram_dict, hist_sys_metrics = [], {}, {}
 
         if meta_conf.log_histograms:
             logger.warning("log_histograms are not supported for spark dataframe")

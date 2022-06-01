@@ -25,7 +25,6 @@ try:
 except ImportError:
     from itertools import izip_longest as zip_longest
 
-
 if typing.TYPE_CHECKING:
     from typing import Any, Dict, Iterable, List, Tuple
 
@@ -174,11 +173,11 @@ class ConsoleStore(TrackingStore):
 
         if not self.verbose:
             return
-
-        for key, value in value_meta.histogram_system_metrics.items():
-            if isinstance(value, float):
-                value = round(value, 3)
-            logger.info("%s: %s", key, value)
+        if value_meta.histogram_system_metrics:
+            for key, value in value_meta.histogram_system_metrics.items():
+                if isinstance(value, float):
+                    value = round(value, 3)
+                logger.info("%s: %s", key, value)
 
     def get_console_histograms(self, key, value_meta):
         # type: (str, ValueMeta) -> Iterable[Iterable[str]]
