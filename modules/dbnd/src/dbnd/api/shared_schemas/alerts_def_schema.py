@@ -70,8 +70,21 @@ class AlertDefsSchema(ApiStrictSchema):
     def is_auto_pipelines_alert(self, obj) -> bool:
         return bool(len(obj.dbnd_auto_alert_definition))
 
-    def get_tracking_source_name(self, obj):
-        return self._get_tracking_source_instance(obj).name
+    def get_tracking_source_name(self, obj) -> str:
+        """Extracts tracking source name from alert definition. If source name is missing,
+           source type would be returned.
+           Used to fill schema fields.
+        Args:
+            obj: DbndAlertDefinition object from which to extract tracking source properties.
+        Returns:
+            str representing source name if exists otherwise source type as default name.
+        """
+        tracking_source = self._get_tracking_source_instance(obj)
+        return (
+            tracking_source.name
+            if tracking_source.name
+            else tracking_source.source_type
+        )
 
     def get_tracking_source_env(self, obj):
         return self._get_tracking_source_instance(obj).env
