@@ -16,7 +16,9 @@ conf_retry_seconds_to_sleep_list = [0.2, 0.5, 1, 3, 5]
 conf_retry_policy_max_retries = 5
 
 
-def get_retry_policy(name, policy=None, seconds_to_sleep=5, max_retries=5):
+def get_retry_policy(
+    name, policy: str = None, seconds_to_sleep: int = 5, max_retries: int = 5
+):
     # provide policy per name
     policy = policy or LINEAR_RETRY
 

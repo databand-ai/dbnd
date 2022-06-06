@@ -22,9 +22,9 @@ class TestLivyBatchRetry(unittest.TestCase):
     @mock.patch("requests.get", side_effect=mocked_requests_get_with_401)
     def test_get_batch_retries_on_invalid_status_code(self, requests_get_mock):
         max_retries = 5
-        x = LivyBatchClient.from_endpoint(self.fake_endpoint(), max_retries)
-
-        x._safe_retry_policy._seconds_to_sleep = 0.0
+        x = LivyBatchClient.from_endpoint(
+            self.fake_endpoint(), max_retries, status_code_retries_delay=0
+        )
 
         with pytest.raises(HttpClientException):
             x.get_batch("non-existing-batch")

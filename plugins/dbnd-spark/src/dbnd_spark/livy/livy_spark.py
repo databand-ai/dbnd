@@ -75,10 +75,11 @@ class _LivySparkCtrl(SparkCtrl):
         data = {k: v for k, v in six.iteritems(data) if v is not None}
         livy_endpoint = self.get_livy_endpoint()
         logger.info("Connecting to: %s", livy_endpoint)
-        livy_config = self.task_run.task.spark_engine
+        livy_config: LivySparkConfig = self.task_run.task.spark_engine
         livy = LivyBatchClient.from_endpoint(
             livy_endpoint,
             status_code_retries=livy_config.retry_on_status_error,
+            status_code_retries_delay=livy_config.retry_on_status_error_delay,
             ignore_ssl_errors=self.get_livy_ignore_ssl_errors(),
         )
         batch = livy.post_batch(data)
