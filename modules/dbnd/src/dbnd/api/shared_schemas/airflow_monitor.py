@@ -1,5 +1,4 @@
 import datetime
-import re
 
 from typing import Dict, Optional
 
@@ -7,7 +6,7 @@ import attr
 
 from dbnd._core.errors.base import DatabandBadRequest
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
-from dbnd._vendor.marshmallow import fields, post_load
+from dbnd._vendor.marshmallow import ValidationError, fields, post_load, validate
 
 
 class MonitorConfigSchema(ApiStrictSchema):
@@ -56,35 +55,14 @@ airflow_server_info_schema = AirflowServerInfoSchema()
 
 
 def is_url_valid(url):
-    # TODO: Switch to marshmallow URL validator after we switch docker services to use `-` instead of `_`
-    # Added `_` and allow dotless hostnames into regex below to make our int-tests green
-    url_regex = r"".join(
-        (
-            r"^",
-            r"(?:[a-z0-9\.\-\+]*)://",  # scheme is validated separately
-            r"(?:[^:@]+?(:[^:@]*?)?@|)",  # basic auth
-            # r'(?:(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.)+',
-            # r'(?:[A-Z]{2,6}\.?|[A-Z0-9-_]{2,}\.?)|',  # domain...
-            r"(?:(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.)+",
-            r"(?:[A-Z]{2,6}\.?|[A-Z0-9-_]{2,}\.?)|",  # domain...
-            r"localhost|",  # localhost...
-            r"(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.?)|",
-            # (r'(?:[A-Z0-9](?:[A-Z0-9-_]{0,61}[A-Z0-9])?\.?)|'
-            #  if not require_tld else r''),  # allow dotless hostnames
-            r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|",  # ...or ipv4
-            r"\[?[A-F0-9]*:[A-F0-9:]+\]?)",  # ...or ipv6
-            r"(?::\d+)?",  # optional port
-            r"(?:/?|[/?]\S+)$",
-        )
-    )
-    return bool(re.match(url_regex, url, re.IGNORECASE))
+    return validate.URL(schemes={"http", "https"}, require_tld=False)(url)
 
 
 def url_validation(obj, attribute, value):
     if value is not None and value:
-        if is_url_valid(value):
-            return
-        else:
+        try:
+            return is_url_valid(value)
+        except ValidationError:
             raise DatabandBadRequest(
                 "Could not edit airflow syncer because {} url {} was not a valid url".format(
                     attribute.name, value
