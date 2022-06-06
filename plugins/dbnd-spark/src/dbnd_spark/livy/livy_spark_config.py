@@ -37,7 +37,12 @@ class LivySparkConfig(SparkEngineConfig):
 
     retry_on_status_error = parameter(
         description="The number of retries for http requests if status code is not accepted",
-        default=5,
+        default=20,
+    )[int]
+
+    retry_on_status_error_delay = parameter(
+        description="The amount of time in seconds between retries for http requests",
+        default=15,
     )[int]
 
     def get_spark_ctrl(self, task_run):
