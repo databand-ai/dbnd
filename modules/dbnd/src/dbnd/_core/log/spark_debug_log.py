@@ -2,7 +2,7 @@ import os
 import pprint
 import sys
 
-from dbnd import dbnd_tracking_start, log_metric
+from dbnd import dataset_op_logger, dbnd_tracking_start, log_metric
 from dbnd._core.tracking.dbnd_spark_init import (
     _is_dbnd_spark_installed,
     try_get_airflow_context_from_spark_conf,
@@ -73,7 +73,70 @@ def print_dbnd_debug():
         custom_print("debug spark init exception: %s" % pp.pformat(e))
 
 
-def dbnd_debug_spark_integration():
+def create_dummy_dataframe(spark):
+    try:
+        from pyspark.sql.types import IntegerType, StringType, StructField, StructType
+
+        data = [
+            ("James", "", "Smith", "36636", "M", 3000),
+            ("Michael", "Rose", "", "40288", "M", 4000),
+            ("Robert", "", "Williams", "42114", "M", 4000),
+            ("Maria", "Anne", "Jones", "39192", "F", 4000),
+            ("Jen", "Mary", "Brown", "", "F", -1),
+        ]
+
+        schema = StructType(
+            [
+                StructField("firstname", StringType(), True),
+                StructField("middlename", StringType(), True),
+                StructField("lastname", StringType(), True),
+                StructField("id", StringType(), True),
+                StructField("gender", StringType(), True),
+                StructField("salary", IntegerType(), True),
+            ]
+        )
+        df = spark.createDataFrame(data=data, schema=schema)
+        return df
+    except Exception as e:
+        custom_print("create dummy dataframe exception: %s" % pp.pformat(e))
+
+
+def debug_log_dataset_op_read(spark):
+    with dataset_op_logger("dummy_df", "read", with_stats=True) as logger:
+        df = create_dummy_dataframe(spark)
+        logger.set(data=df)
+    return df
+
+
+def debug_log_dataset_op_write(df, output):
+    with dataset_op_logger("dummy_df", "write", with_stats=True) as logger:
+        df.write.format("csv").mode("overwrite").save(output)
+        logger.set(data=df)
+
+
+def dbnd_log_debug_dataframe(df):
+    if df:
+        data_schema = {
+            "columns": list(df.schema.names),
+            "dtypes": {f.name: str(f.dataType) for f in df.schema.fields},
+        }
+
+        rows = df.count()
+        data_dimensions = (rows, len(df.columns))
+        data_schema.update(
+            {"size.bytes": int(rows * len(df.columns)), "shape": data_dimensions}
+        )
+        custom_print("DATAFRAME SCHEMA:\n %s" % pp.pformat(data_schema))
+    else:
+        custom_print("DATAFRAME is None")
+
+
+def dbnd_debug_spark_operations(spark, output_path):
+    df = debug_log_dataset_op_read(spark)
+    debug_log_dataset_op_write(df, output_path)
+
+
+def dbnd_log_debug_spark():
     # print debug vars before calling dbnd_tracking_start
     print_dbnd_debug()
 
