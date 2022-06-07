@@ -23,6 +23,7 @@ There are two ways to use extend:
 
 1. Like a parameter:
 
+<!-- noqa -->
 ```python
 from dbnd import task, extend
 
@@ -42,6 +43,7 @@ And now the kubernetes labels will include both the "owner" and "team" labels.
 
 You can use `--extend` the way you use `override` - to wrap up the config dictionary with `--extend`. You can import `--extend` directly from DBND and wrap up the dictionary. As a result, you can extend the labels (e.g., task_name in the example code below) or any resources (e.g., limits).
 
+<!-- noqa -->
 ```python
 from dbnd import task, extend
 

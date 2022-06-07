@@ -9,7 +9,7 @@ Based on the task's main properties, task signature is calculated. When you run 
 ### Task Version
 Every task has a parameter called `task_version`. This parameter represents the current "version" of the task. If the code/external inputs of one of the tasks in the pipeline changed in a way it didn't affect the signature of the task, or you want to rerun a specific task for some reason, you need to change the `task_version` parameter. Task version is a part of the signature so the task will be re-executed.
 
-
+<!-- noqa -->
 ```python
 prepare_data(task_version="1")
 # Use any string value to create a version of the task.
@@ -46,6 +46,7 @@ Another important property of a  task is `task_target_date` - it is a date assoc
 
 In the code:
 
+<!-- noqa -->
 ```python
 import datetime
 prepare_data.dbnd_run(task_target_date=datetime.date.today())
@@ -62,7 +63,7 @@ In order to cut down on unnecessary computing time, DBND does not run non-unique
 
 By default, tasks are uniquely identified by their class name and the values of their parameters. Within the same worker, two tasks of the same class with parameters having the same values are not just equal but are the same instance. You can configure this behavior as desired.
 
-
+<!-- noqa -->
 ```python
 
 c = prepare_data(alpha=0.5)
@@ -75,6 +76,7 @@ If you have more than one instance of the same task class in your code, you need
 
 Let’s consider an example:
 
+<!-- noqa -->
 ```python
 from dbnd import pipeline
 
@@ -95,7 +97,7 @@ This will configure the data of the first  `prepare_data` to `special_data`, whi
 
 Dynamic runs will run the task as a function call and will not persist the task's intermediate results. In the following example, a `task` and a `pipeline` are running in memory as functions:
 
-
+<!-- noqa -->
 ```python
 import logging
 from dbnd import task

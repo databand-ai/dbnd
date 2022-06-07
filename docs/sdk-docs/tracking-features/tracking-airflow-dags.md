@@ -20,6 +20,7 @@ To fully integrate Databand with your Airflow environment:
      * Deploy your new DAG and enable it in Airflow UI.
 
 
+<!-- noqa -->
 ```python
 # databand_airflow_monitor.py
 from airflow_monitor.monitor_as_dag import get_monitor_dag

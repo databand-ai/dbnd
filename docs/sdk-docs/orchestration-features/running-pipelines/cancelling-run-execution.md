@@ -5,6 +5,7 @@ Canceling runs can be done externally and internally.
 
 To kill a run execution from within execution code:
 
+<!-- noqa -->
 ```python
 from dbnd import cancel_current_run
 cancel_current_run()
@@ -12,6 +13,7 @@ cancel_current_run()
 
 To kill a run execution, outside of execution code:
 
+<!-- noqa -->
 ```python
 databand_run.kill_run()
 ```
@@ -20,12 +22,15 @@ databand_run.kill_run()
 
 It is possible for to set a custom error message when you use the `kill_run` functionality. The resulting error message can be viewed on the Runs page.
 Example:
+
+<!-- noqa -->
 ```python
 from dbnd import cancel_current_run
 cancel_current_run(message="custom cancel message")
 ```
 or
 
+<!-- noqa -->
 ```python
 databand_run.kill_run(message="custom cancel message")
 ```

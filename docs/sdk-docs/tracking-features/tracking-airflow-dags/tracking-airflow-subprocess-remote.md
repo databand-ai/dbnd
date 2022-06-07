@@ -34,7 +34,7 @@ The Databand team is constantly integrating new operators for subprocess metadat
 ## Custom Integration
 The best way to inject these variables is to use the already built-in mechanism of your Remote Operator if it has any. For example, you can pass these variables to your Spark Operator via:
 
-f
+<!-- noqa -->
 ```python
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
@@ -60,6 +60,7 @@ MyCustomDataProcPySparkOperator(
  If your operator doesn't have a way to provide environment variables in one of the supported formats, you can directly change the command line that you are generating.
 
 
+<!-- noqa -->
 ```python
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 

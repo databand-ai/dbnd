@@ -42,6 +42,7 @@ In this code example, there are a number of artifacts that will be reported to t
 The first one is the output of the following Python snippet:
 
 
+<!-- noqa -->
 ```python
 for (word, count) in output: print("%s: %i" % (word, count))
 ```
@@ -67,8 +68,8 @@ spark-submit --conf "spark.env.DBND__RUN__NAME=my_run_name"  my_pyspark_script.p
 You can use the dataset logging API to track Spark DataFrame as described in [Tracking Datasets](doc:tracking-python-datasets).
 
 
-## Integrating with Databand Listeners.
-Your PySpark script can benefit from automatic tracking of Spark Metrics and IO information. Please see detailed information at [JVM SDK Configuration](doc:jvm-sdk-configuration).
+## Integrating with Databand Listener.
+Your PySpark script can benefit from automatic tracking of DatasetOperations. Please see detailed information at [JVM SDK Configuration](doc:jvm-sdk-configuration).
 
 ``` bash
 # Please export all relevant environment variables here.
@@ -88,6 +89,7 @@ Make sure that DBND JVM client is part of your spark application including `ai.d
 In order to connect Databand to Deequ use `DbndDeequMetricsRepository` as in the following example. See more details at [Deequ Repository Documentation]( https://pydeequ.readthedocs.io/en/latest/README.html#repository):
 
 
+<!-- noqa -->
 ```python
 result_key = ResultKey(spark, ResultKey.current_milli_time(), {"name": "words"})
 analysis_runner = AnalysisRunner(spark).onData(lines)

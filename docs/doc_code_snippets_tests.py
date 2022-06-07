@@ -2,18 +2,18 @@ import glob
 import logging
 import re
 
-from dataclasses import dataclass
 from io import StringIO
 from typing import List
 
 import pytest
 import steadymark
 
+from attrs import define
 from pyflakes.api import check
 from pyflakes.reporter import Reporter
 
 
-@dataclass
+@define
 class Snippet:
     source: str
     filename: str
@@ -35,7 +35,7 @@ def get_line_number(source: str, markdown: str):
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 PATTERN = r"(?:<!-- (\w+?) -->\n)?``` ?python[a-zA-Z0-9_\- ]*\n(.+?)\n```"
-files = glob.glob("./sdk-docs/**/*.md", recursive=True)
+files = glob.glob("docs/sdk-docs/**/*.md", recursive=True)
 
 snippets: List[
     Snippet
@@ -44,12 +44,7 @@ skipped: List[
     Snippet
 ] = (
     []
-)  # Noqa - Snippets that shouldn't be run (would cause damage, require connection details...)
-xfail: List[
-    Snippet
-] = (
-    []
-)  # Xfail - require parameters/variables to run, and so are unable to run on their own.
+)  # noqa - Snippets that shouldn't be run (would cause damage, require connection details...)
 
 
 for filename in files:
@@ -64,8 +59,6 @@ for filename in files:
             )
         elif match.group(1) == "noqa":
             skipped.append(Snippet(source=match.group(2), filename=filename, line=line))
-        elif match.group(1) == "xfail":
-            xfail.append(Snippet(source=match.group(2), filename=filename, line=line))
 
 
 @pytest.mark.parametrize(
@@ -84,9 +77,3 @@ def test_snippets(snippet):
 def test_skipped(snippet):
     snippet.log_action("skipping")
     pytest.skip()
-
-
-@pytest.mark.parametrize("snippet", xfail)
-def test_xfails(snippet):
-    snippet.log_action("xfailing")
-    pytest.xfail()

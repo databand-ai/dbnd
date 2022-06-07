@@ -99,24 +99,17 @@ AIRFLOW_CONTEXT parameters are supported as a part of Airflow integration. These
 ## Setup Listener
 
 You have to bring an extra package `ai.databand:dbnd-client` into the runtime of your spark application. You have the following options for doing that:
-* In case you have your JVM project built integrated with your spark environment, you can do that by changing your [JVM project config](doc:installing-jvm-dbnd#adding-databand-libraries-to-your-jvm-application). 
+* In case you have your JVM project built and integrated with your spark environment, you can do that by changing your [JVM project config](doc:installing-jvm-dbnd#adding-databand-libraries-to-your-jvm-application). 
 * Bring JAR directly to your spark application via [bootstrap](doc:installing-dbnd-on-spark-cluster#cluster-bootstrap) and add it to the `--jars` for you `spark-submit`. You can also use a direct link to Maven.
 * Via spark `--packages` option:  `spark-submit --packages "ai.databand:dbnd-client:REPLACE_WITH_VERSION"`.
 * With the Agent installed and enabled, you don't need to reference any specific DBND jar in your JVM project. Our agent jar already contains all relevant binaries.
 
-## Enable Listeners in your Application
+## Enable Listener in your Application
 
-You can enable these listeners explicitly in the spark command line.
+You can enable our listener explicitly in the spark command line.
 ``` bash
 spark-submit ... --conf 
  "spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener" 
-```
-
-Listeners can be automatically injected by the [DBND Agent](doc:installing-jvm-dbnd##dbnd-jvm-agent-configuration). You can also add listeners [programmatically](doc:tracking-spark-applications#enabling-tracking-spark-metrics-and-io).
-
-Databand supports [Spark Executor Metrics](https://spark.apache.org/docs/latest/monitoring.html#executor-metrics) monitoring in the context of DBND tracking as well.
-``` bash
-spark-submit  ... --conf "spark.extraListeners=ai.databand.spark.DbndSparkListener" 
 ```
 
 # DBND JVM Agent

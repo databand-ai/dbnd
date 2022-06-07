@@ -13,7 +13,7 @@ You can also specify the type that you want the output to be loaded into (`value
 
 For instance, let’s assume we have a `prepare_data_pipeline` Pipeline:
 
-
+<!-- noqa -->
 ```python
 from dbnd import pipeline
 from pandas import DataFrame
@@ -29,12 +29,14 @@ def prepare_data_pipeline(expected_data: DataFrame, raw_data: str):
 
 To run it from within Python code, use:
 
+<!-- noqa -->
 ```python
 run = prepare_data_pipeline.dbnd_run(task_version=now())
 ```
 
 Now, to access the results, use:
 
+<!-- noqa -->
 ```python
 data = run.load_from_result("data", value_type=DataFrame)
 validation = run.load_from_result("validation")

@@ -48,6 +48,7 @@ with config({"section": {"key": "value"}}):
 
 You can also load configuration from a file:
 
+<!-- noqa -->
 ```python
 from dbnd import config
 

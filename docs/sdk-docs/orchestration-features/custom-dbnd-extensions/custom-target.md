@@ -5,6 +5,7 @@ The goal of this example is to show how users can extend DBND and create custom 
 
 Define a custom target:
 
+<!-- noqa -->
 ```python
 from dbnd import parameter
 from targets import DirTarget
@@ -25,6 +26,7 @@ my_custom_target = parameter.type(TargetValueType).custom_target(
 
 A pipeline to demonstrate how we read and write such targets
 
+<!-- noqa -->
 ```python
 from dbnd import PythonTask, output, PipelineTask
 

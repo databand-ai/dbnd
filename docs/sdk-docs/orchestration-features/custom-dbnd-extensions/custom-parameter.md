@@ -38,6 +38,7 @@ FeatureStoreParameter = register_custom_parameter(
 Now, we can use ```FeatureStore``` within a pipeline:
 Decorators:
 
+<!-- noqa -->
 ```python
 from dbnd import task, pipeline
 from pandas import DataFrame
@@ -75,6 +76,7 @@ def calculate_features(ratio):
 
 Classes:
 
+<!-- noqa -->
 ```python
 from dbnd import PythonTask, output, log_dataframe, pipeline
 from pandas import DataFrame

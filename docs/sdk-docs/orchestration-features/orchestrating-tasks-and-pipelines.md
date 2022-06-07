@@ -39,6 +39,7 @@ Decorators are powerful. They offer a lot of capabilities in a small package. Th
 
 We can define a pipeline by wiring together any number of tasks:
 
+<!-- noqa -->
 ```python
 from dbnd import task, pipeline
 from pandas import DataFrame

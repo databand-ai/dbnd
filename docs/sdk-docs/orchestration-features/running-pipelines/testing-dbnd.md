@@ -6,6 +6,7 @@ We suggest that you test your DBND project by using the Pytest framework.
 
 ## Quickstart
 To make Databand bootstrap with the right test configuration, database settings, fixtures, etc., configure the `conftest.py` as follows:
+
 ```python
 from dbnd.testing.test_config_setter import add_test_configuration
 
@@ -26,12 +27,14 @@ Testing DBND is a straightforward process:
 
 * You can use `dbnd_run()` to run your tasks with the requested variables, for example:
 
+<!-- noqa -->
 ```python
 alpha = calculate_alpha.dbnd_run(task_env="local", task_version="now")
 ```
 
 * You can also use `dbnd_run_cmd()` to run `dbnd` with cmd parameters, for example:
 
+<!-- noqa -->
 ```python
 from dbnd import dbnd_run_cmd
 

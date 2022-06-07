@@ -20,7 +20,7 @@ def prepare_data(data: DataFrame) -> DataFrame:
 
 A pipeline is a collection of tasks wired together to run in a specific order. Pipelines define tasks and data flow. Pipelines encapsulate an execution plan that can run as a typical python function.
 
-
+<!-- noqa -->
 ```python
 from dbnd import task, pipeline
 from pandas import DataFrame

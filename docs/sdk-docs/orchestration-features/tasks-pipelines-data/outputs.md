@@ -54,7 +54,7 @@ def some_pipeline():
 
 Or, alternately, the output path can be set via command-line arguments. Call argument (`prepare_data(result='custom_path.txt')`) takes precedence over the command line, and should be left empty:
 
-
+<!-- noqa -->
 ```python
 from dbnd import pipeline
 
@@ -131,6 +131,8 @@ As an alternative to this manual approach, you can create another task that runs
 
 To define this second task, we need to define an overwrite target. See the following example:
 
+
+<!-- noqa -->
 ```python
 from dbnd import task, output, parameter
 from pandas import DataFrame
@@ -173,7 +175,7 @@ def prepare_data(data: DataFrame) -> Tuple[DataFrame, DataFrame]:
 
 All tasks in this example return two `DataFrames`. Tasks show various syntaxes to name these outputs:
 
-
+<!-- noqa -->
 ```python
 from dbnd import task
 from pandas import DataFrame

@@ -5,6 +5,7 @@ There are two main ways of defining tasks and pipelines with DBND. You can use @
 
 The same class from the main page example can be defined as a class:
 
+<!-- noqa -->
 ```python
 from dbnd import Task, parameter, output
 
@@ -23,7 +24,7 @@ DBND also creates a command line parser that automatically handles the conversio
 
 **_NOTE:_**  You can also use @task to set the Task Class.
 
-
+<!-- noqa -->
 ```python
 from dbnd import task, parameter, output
 
@@ -42,7 +43,7 @@ class PrepareData():
 ## Pipeline
 Using a similar approach, you can define the pipeline task as well.
 
-
+<!-- noqa -->
 ```python
 from dbnd import PipelineTask, parameter, output
 

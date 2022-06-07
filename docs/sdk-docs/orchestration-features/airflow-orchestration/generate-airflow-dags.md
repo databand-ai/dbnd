@@ -13,6 +13,7 @@ config_file=YOUR_DAGS_FILE.yaml
 ```
 2. You need to add the following code to your DAGs. Folder
 
+<!-- noqa -->
 ```python
 from dbnd_airflow.scheduler.dags_provider_from_file import get_dags_from_file
 
@@ -53,6 +54,7 @@ Every job defined at Databand Service will be transformed to DAG in a similar wa
 
 1.  Use this code to define Apache Airflow DAGs:
 
+<!-- noqa -->
 ```python
 from dbnd_airflow.scheduler.dags_provider_from_databand import get_dags_from_databand
 

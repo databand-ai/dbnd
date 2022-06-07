@@ -99,35 +99,6 @@ spark-submit ... --conf "spark.driver.extraJavaOptions=-javaagent:REPLACE_WITH_P
 ```
 
 
-
-## Logging Dataframes
-
-For logging dataframes, including with generated preview of the data, you can enable data preview tracking by setting `DBND__TRACKING__LOG_VALUE_PREVIEW` env variable to `True`.
-
-You can log Spark dataframes along with histograms by calling the `ai.databand.log.DbndLogger.logDataframe()` method:
-`DbndLogger.logDataframe("data", result, true)`
-
-### Customizing Histogram Logging
-You can customize histograms logging by passing `HistogramRequest` object to the ai.databand.log.DbndLogger.logDataframe() method:
-```java
-import ai.databand.log.HistogramRequest;
-import ai.databand.log.DbndLogger;
-
-//...
-
-    @Task("create_report")
-    public void createReport(Dataset<?> df) {
-        // include all string columns
-        DbndLogger.logDataframe("report_input", df, HistogramRequest.ALL_STRING);
-        // include some columns
-        HistogramRequest req = new HistogramRequest()
-            .includeColumns("name", "created_at");
-        DbndLogger.logDataframe("report_input", df, req);
-    }
-         
-//...    
-```
-
 ## Logging Dataset Operations
 
 Databand allows you to track your dataset operations. You need to use `DbndLogger.logDatasetOperation()`:

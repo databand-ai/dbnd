@@ -45,11 +45,9 @@ object GenerateReports {
 
 For the full guide please proceed to the [Tracking Spark (Scala/Java)](doc:JVM).
 
-## Automatic Tracking of Spark metrics and I/O via DBND Listeners
+## Automatic Tracking of Dataset operations via DBND Listener
 
 Databand can capture Spark I/O operations. Databand Query Execution listener will capture any read/write operation performed by spark and will track the following metrics: data path, schema, and rows count as a dataset operation. Follow [Dataset Tracking](doc:dataset-logging) for more details. For the installation details check [Installing JVM SDK and Agent](doc:installing-jvm-dbnd#dbnd-jvm-agent)
-
-In addition, Databand can capture [Spark Executor metrics](https://spark.apache.org/docs/latest/monitoring.html#executor-task-metrics),  for example - stage statistics captured in the Spark History UI - CPU usage, records read/written, etc using Spark Listener.
 
 ### Datasources supported by Databand Query Execution Listener:
 

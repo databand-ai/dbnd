@@ -9,6 +9,7 @@ To fully integrate Databand with your Airflow environment:
      * Create  `databand_airflow_monitor` DAG in Airflow.  Please create a new file `databand_airflow_monitor.py` with the following dag definition and add it to your project DAGs.
      * Deploy your new DAG and enable it in Airflow UI.
 
+<!-- noqa -->
 ```python
 # databand_airflow_monitor.py
 from airflow_monitor.monitor_as_dag import get_monitor_dag
@@ -94,6 +95,7 @@ def f():
 If you don't want to use automatic tracking, you can install `dbnd-airflow` package instead of `dbnd-airflow-auto-tracking`.
 For specific DAGs you want to track you can the `track_dag` function in your DAG definition.
 
+<!-- noqa -->
 ```python
 from dbnd_airflow import track_dag
 
@@ -105,6 +107,7 @@ When running the monitor DAG, it automatically limits the amount of memory it ca
 
 Add the `guard_memory` parameter to the `get_monitor_dag` function and set it to the maximum number of bytes the monitor can consume. For example, the below parameter would limit memory consumption to 5GB:
 
+<!-- noqa -->
 ```python
 from airflow_monitor.monitor_as_dag import get_monitor_dag
 

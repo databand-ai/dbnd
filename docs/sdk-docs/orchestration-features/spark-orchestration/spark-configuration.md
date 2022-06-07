@@ -41,6 +41,7 @@ driver_memory = 2.5g
 
 2. Override config value as part of the task definition:
 
+<!-- noqa -->
 ```python
 from dbnd_spark import SparkTask, SparkConfig
 from dbnd import parameter, output
