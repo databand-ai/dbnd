@@ -1,5 +1,3 @@
-from itertools import chain
-
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._vendor.marshmallow import fields, pre_load
 
@@ -61,6 +59,7 @@ class AlertDefsSchema(ApiStrictSchema):
     affected_datasets = fields.List(fields.Dict(), allow_none=True, dump_only=True)
 
     assigned_jobs = fields.Method(serialize="get_assigned_jobs", dump_only=True)
+    assigned_projects = fields.Method(serialize="get_assigned_projects", dump_only=True)
 
     is_system = fields.Function(
         lambda alert_def: alert_def.owner == "system", dump_only=True
@@ -103,15 +102,37 @@ class AlertDefsSchema(ApiStrictSchema):
         return data
 
     def get_assigned_jobs(self, alert_def):
-        self_job = (alert_def.job_id, alert_def.job_name)
-        sub_alerts_jobs = (
-            (sub_alert.job_id, sub_alert.job_name)
-            for sub_alert in alert_def.sub_alert_definitions
+        if alert_def.job:
+            alert_jobs = {(alert_def.job_id, alert_def.job_name)}
+        else:
+            alert_jobs = {
+                (sub_alert.job_id, sub_alert.job_name) if sub_alert.job else None
+                for sub_alert in alert_def.sub_alert_definitions
+            }
+        alert_jobs = filter(None, alert_jobs)
+        serialized_assigned_jobs = (
+            [
+                {"job_id": job_id, "job_name": job_name}
+                for job_id, job_name in alert_jobs
+            ]
+            if alert_jobs
+            else []
         )
-
-        alert_jobs = chain(sub_alerts_jobs, [self_job])
-        alert_jobs = set(filter(lambda l: l != (None, None), alert_jobs))
-        serialized_assigned_jobs = [
-            {"job_id": job_id, "job_name": job_name} for job_id, job_name in alert_jobs
-        ]
         return serialized_assigned_jobs
+
+    def get_assigned_projects(self, alert_def):
+        if alert_def.job:
+            alert_jobs = {(alert_def.job.project.name, alert_def.job.project.id)}
+        else:
+            alert_jobs = {
+                (sub_alert.job.project.name, sub_alert.job.project.id)
+                if sub_alert.job
+                else None
+                for sub_alert in alert_def.sub_alert_definitions
+            }
+        alert_jobs = set(filter(None, alert_jobs))
+        serialized_assigned_projects = [
+            {"project_name": project_name, "project_id": project_id}
+            for project_name, project_id in alert_jobs
+        ]
+        return serialized_assigned_projects
