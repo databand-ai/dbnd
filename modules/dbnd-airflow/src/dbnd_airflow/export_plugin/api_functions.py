@@ -59,7 +59,7 @@ def safe_rich_result(f):
                 result.error_message = str(e)
             finally:
                 result.airflow_export_meta = get_meta(metrics)
-                return result
+            return result
 
     return wrapped
 

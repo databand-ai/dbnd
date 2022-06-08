@@ -28,7 +28,8 @@ def setup_scheduled_dags(sub_dir=None, unlink_first=True):
         except Exception:
             logger.error(
                 "failed to unlink drop-in scheduler file at %s: %s",
-                (target_path, format_exception_as_str()),
+                target_path,
+                format_exception_as_str(),
             )
             return
 
@@ -40,6 +41,6 @@ def setup_scheduled_dags(sub_dir=None, unlink_first=True):
             os.symlink(source_path, target_path)
         except Exception:
             logger.error(
-                "failed to link drop-in scheduler in the airflow dags_folder: %s"
-                % format_exception_as_str()
+                "failed to link drop-in scheduler in the airflow dags_folder: %s",
+                format_exception_as_str(),
             )

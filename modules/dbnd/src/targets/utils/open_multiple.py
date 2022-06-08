@@ -84,7 +84,7 @@ class MultiTargetOpen(object):
             self.nextfile()
             # repeat with next file
 
-    def _readline(self):
+    def _readline(self):  # pylint: disable=method-hidden
         """
         first iteration runs here
         """
@@ -136,4 +136,4 @@ class MultiTargetOpen(object):
         self.close()
 
     def readlines(self):
-        return [l for l in self]
+        return list(self)

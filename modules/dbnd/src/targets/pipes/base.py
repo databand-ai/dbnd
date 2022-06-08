@@ -297,8 +297,8 @@ class IOPipeline(object):
     def pipe_writer(cls, output_pipe):
         raise NotImplementedError()
 
-    def __rshift__(a, b):
-        return ChainFormat(a, b)
+    def __rshift__(self, other):
+        return ChainFormat(self, other)
 
 
 class ChainFormat(IOPipeline):
