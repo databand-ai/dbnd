@@ -130,8 +130,10 @@ __dist-python-module:  ## (Hidden target) Build a single python module.
 	mv ${MODULE}/dist/* dist-python;
 
 dist-python:  ## Build all python modules.
+	rm -Rf dist-python
 	mkdir -p dist-python;
 	set -e;\
+	echo ${DBND_VERSION} > dist-python/dbnd-version.txt
 	for m in $(prj_dist); do \
 		MODULE=$$m make __dist-python-module;\
 	done;
