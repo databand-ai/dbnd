@@ -195,6 +195,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         "Time to wait for pod getting into Running state"
     )[datetime.timedelta]
 
+    max_retries_on_log_stream_failure = parameter(default=50).help(
+        "Determines maximum retry attempts while waiting for pod completion and streaming logs in --interactive mode. If set to 0 - no retries will be performed."
+    )[int]
+
     dashboard_url = parameter(default=None).help(
         "skeleton url to display as kubernetes dashboard"
     )[str]
