@@ -157,7 +157,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 Method method = clazz.getDeclaredMethod("verboseString", int.class);
                 return method.invoke(plan, 1).toString();
             } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
-                LOG.error("Unable to identify whenever spark query was triggered by log_dataset_op");
+                LOG.error("Unable to identify whenever spark query was triggered by log_dataset_op or not", ex);
                 return null;
             }
         }
@@ -171,7 +171,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
      * @param adaptivePlan
      * @return
      */
-    protected Optional<SparkPlan> extractFinalFromAdaptive(Object adaptivePlan) {
+    protected Optional<SparkPlan> extractFinalFromAdaptive(SparkPlan adaptivePlan) {
         try {
             Class<?> clazz = Class.forName("org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec");
             Field field = clazz.getDeclaredField("currentPhysicalPlan");
@@ -179,7 +179,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             SparkPlan value = (SparkPlan) field.get(adaptivePlan);
             return Optional.of(value);
         } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException e) {
-            LOG.error("Unable to extract final plan from the adaptive one using reflection. Dataset operation won't be logged.");
+            LOG.error("Unable to extract final plan from the adaptive one using reflection. Dataset operation won't be logged.", e);
             return Optional.empty();
         }
     }
@@ -226,10 +226,37 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
         while (!deque.isEmpty()) {
             SparkPlan next = deque.pop();
             result.add(next);
-            List<SparkPlan> children = scala.collection.JavaConverters.seqAsJavaListConverter(next.children()).asJava();
-            deque.addAll(children);
+            if (next.getClass().getName().contains("ShuffleQueryStageExec")) {
+                // Spark 3 feature
+                Optional<SparkPlan> shuffleChild = extractChildFromShuffle(next);
+                shuffleChild.ifPresent(deque::add);
+            } else {
+                List<SparkPlan> children = scala.collection.JavaConverters.seqAsJavaListConverter(next.children()).asJava();
+                deque.addAll(children);
+            }
         }
         return result;
+    }
+
+    /**
+     * Shuffle queries was introduced in Spark 3 and doesn't have "children" nodes.
+     * Instead, the child node can be accessed using plan() method.
+     * We use reflection to gain access to this method in runtime and avoid direct dependency to Spark 3.
+     *
+     * @param shuffleQuery
+     * @return
+     */
+    protected Optional<SparkPlan> extractChildFromShuffle(SparkPlan shuffleQuery) {
+        try {
+            Class<?> clazz = Class.forName("org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec");
+            Method method = clazz.getDeclaredMethod("plan");
+            SparkPlan value = (SparkPlan) method.invoke(shuffleQuery);
+            return Optional.of(value);
+        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException |
+                 InvocationTargetException e) {
+            LOG.error("Unable to extract child plan from the shuffle query using reflection. Dataset operation won't be logged.", e);
+            return Optional.empty();
+        }
     }
 
     @Override
