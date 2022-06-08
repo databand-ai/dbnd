@@ -8,6 +8,7 @@ from typing import Optional
 
 from kubernetes import client
 from kubernetes.client.rest import ApiException
+from urllib3.exceptions import HTTPError
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
@@ -142,7 +143,52 @@ class DbndPodCtrl(object):
             time.sleep(1)
             _logger.debug("Pod not yet started: %s", pod_status.status)
 
-    def stream_pod_logs(self, print_func=logger.info, follow=False, tail_lines=None):
+    def stream_pod_logs_with_retries(self) -> bool:
+        seconds_to_sleep_before_retries = 5
+        try_counter = 0
+        max_retries = self.kube_config.max_retries_on_log_stream_failure
+        while try_counter < 100:
+            try:
+                last_x_seconds = None
+                if try_counter > 0:
+                    last_x_seconds = seconds_to_sleep_before_retries * 2
+                logger.debug(
+                    f"Starting to stream logs; follow=True; since_seconds: %s",
+                    last_x_seconds,
+                )
+                self.stream_pod_logs(follow=True, since_seconds=last_x_seconds)
+                return True
+            except HTTPError as ex:
+                # Log streaming relies on blocking network request.
+                # We want to restart and block until the end of pod execution in case of network disconnection.
+                if try_counter >= max_retries:
+                    self.log.exception(
+                        "Failed to stream logs: %s; Max retries exceeded or kubernetes.max_retries_on_log_stream_failure setting is 0.",
+                        self.name,
+                    )
+                    return False
+
+                self.log.warning(
+                    "Failed to stream logs: %s, continuing after 5 seconds; try %d out of %d",
+                    self.name,
+                    try_counter,
+                    max_retries,
+                    exc_info=ex,
+                )
+                time.sleep(seconds_to_sleep_before_retries)
+                try_counter += 1
+                continue
+            except Exception:
+                self.log.exception("Failed to stream logs:  %s", self.name)
+                return False
+
+    def stream_pod_logs(
+        self,
+        print_func=logger.info,
+        follow: bool = False,
+        tail_lines=None,
+        since_seconds: Optional[int] = None,
+    ):
         kwargs = {
             "name": self.name,
             "namespace": self.namespace,
@@ -153,19 +199,19 @@ class DbndPodCtrl(object):
         if tail_lines:
             kwargs["tail_lines"] = tail_lines
 
+        if since_seconds:
+            kwargs["since_seconds"] = since_seconds
+
         logs = self.kube_client.read_namespaced_pod_log(**kwargs)
-        try:
-            if self.kube_config.prefix_remote_log:
-                # we want to remove regular header in log, and make it looks like '[pod_name] LOG FROM POD'
-                prefix = "[%s]" % self.name
-                with override_log_formatting(prefix + "%(message)s"):
-                    for line in logs:
-                        print_func(line[:-1].decode("utf-8"))
-            else:
+        if self.kube_config.prefix_remote_log:
+            # we want to remove regular header in log, and make it looks like '[pod_name] LOG FROM POD'
+            prefix = "[%s]" % self.name
+            with override_log_formatting(prefix + "%(message)s"):
                 for line in logs:
                     print_func(line[:-1].decode("utf-8"))
-        except Exception as ex:
-            self.log.error("Failed to stream logs:  %s", self.name, ex)
+        else:
+            for line in logs:
+                print_func(line[:-1].decode("utf-8"))
 
     def check_deploy_errors(self, pod_v1_resp):
         pod_status = pod_v1_resp.status
@@ -243,7 +289,7 @@ class DbndPodCtrl(object):
         """
         self._wait_for_pod_started()
         self.log.info("Pod is running, reading logs..")
-        self.stream_pod_logs(follow=True)
+        self.stream_pod_logs_with_retries()
         self.log.info("Successfully read pod logs")
 
         pod_phase = self.get_pod_phase()
