@@ -55,7 +55,7 @@ class TestSanityInvokeOverCmdline(object):
 class TestHelpAndMisspelledOverCmdline(object):
     def test_dbnd_help(self):
         stdout = run_dbnd_subprocess_test([TTask.get_task_family(), "--help"])
-        assert "-r", "t_param" in stdout
+        assert "-r t_param" in stdout
 
     def test_bin_mentions_misspelled_task(self):
         """

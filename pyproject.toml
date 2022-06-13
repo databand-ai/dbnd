@@ -179,19 +179,9 @@ disable = [
     "singleton-comparison",                # 1
     "self-assigning-variable",             # 1
     "not-context-manager",                 # 1
-    "global-variable-not-assigned",        # 1
-    "deprecated-class",                    # 1
-    "consider-using-enumerate",            # 1
-    "consider-using-dict-items",           # 1
-    "consider-using-dict-comprehension",   # 1
-    "c-extension-no-member",               # 1
     "bad-super-call",                      # 1
     "bad-mcs-classmethod-argument",        # 1
-    "assert-on-string-literal",            # 1
     "abstract-method",                     # 1
-    "unneeded-not",                        # 1
-    "unused-wildcard-import",              # 1
-    "unsupported-membership-test",         # 1
 ]
 
 [tool.pylint.MASTER]

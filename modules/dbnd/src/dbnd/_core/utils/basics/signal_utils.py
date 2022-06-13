@@ -41,7 +41,7 @@ def dump_trace(dump_file=None):
             sys.__stderr__.write("%s\n" % msg)
 
         _p("Dumping stack traces for all threads in PID {}".format(os.getpid()))
-        id_to_name = dict([(th.ident, th.name) for th in threading.enumerate()])
+        id_to_name = {th.ident: th.name for th in threading.enumerate()}
         code = []
         for thread_id, stack in sys._current_frames().items():
             code.append(
@@ -73,7 +73,8 @@ def dump_trace(dump_file=None):
 
 def register_sigquit_stack_dump_handler():
     logger.warning(
-        "SIGQUIT signal registered! Use `kill -%s %s` or CTRL+\\ for stacktrace dump."
-        % (signal.SIGQUIT, os.getpid())
+        "SIGQUIT signal registered! Use `kill -%s %s` or CTRL+\\ for stacktrace dump.",
+        signal.SIGQUIT,
+        os.getpid(),
     )
     signal.signal(signal.SIGQUIT, sigquit_handler__dump_stack)

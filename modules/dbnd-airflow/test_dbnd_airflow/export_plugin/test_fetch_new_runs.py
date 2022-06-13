@@ -42,17 +42,15 @@ class TestNewRuns(object):
                 ]
                 assert len(runs_with_updated_task_instances) == 0
             else:
-                for i in range(len(result.new_dag_runs)):
-                    assert result.new_dag_runs[i].max_log_id == expected_max_log_ids[i]
+                for i, new_dag_run in enumerate(result.new_dag_runs):
+                    assert new_dag_run.max_log_id == expected_max_log_ids[i]
                     if expected_max_log_ids[i] is not None:
-                        assert result.new_dag_runs[i].has_updated_task_instances is True
+                        assert new_dag_run.has_updated_task_instances is True
                     else:
-                        assert (
-                            result.new_dag_runs[i].has_updated_task_instances is False
-                        )
+                        assert new_dag_run.has_updated_task_instances is False
 
-                    if result.new_dag_runs[i].has_updated_task_instances:
-                        assert result.new_dag_runs[i].events == ["success"]
+                    if new_dag_run.has_updated_task_instances:
+                        assert new_dag_run.events == ["success"]
 
     def test_01_empty_db(self):
         from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
@@ -179,7 +177,7 @@ class TestNewRuns(object):
 
         with mock.patch(
             "dbnd_airflow.export_plugin.queries._find_dag_runs_by_list_in_chunks",
-            wraps=lambda a, b: _find_dag_runs_by_list_in_chunks(a, b),
+            wraps=_find_dag_runs_by_list_in_chunks,
         ) as m:
             insert_dag_runs(
                 dag_runs_count=MAX_PARAMETERS_INSIDE_IN_CLAUSE - 1, with_log=True

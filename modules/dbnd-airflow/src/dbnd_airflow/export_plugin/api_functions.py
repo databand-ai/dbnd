@@ -231,7 +231,7 @@ def remove_place_holders(dbnd_response):
 
 
 def is_subset(subset, superset):
-    return not (flatten_dict(subset).items() <= flatten_dict(superset).items())
+    return flatten_dict(subset).items() >= flatten_dict(superset).items()
 
 
 def get_or_create_db_connection(airflow_connection_from_hook, session):

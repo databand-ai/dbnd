@@ -30,8 +30,8 @@ def dbnd_tracking_env(
     new_vars, bypass_dbnd=True, bypass_airflow=True, bypass_rest=False
 ):
     environment = {
-        key: os.environ[key]
-        for key in os.environ.keys()
+        key: value
+        for key, value in os.environ.items()
         if _filter_vars(key, bypass_dbnd, bypass_airflow, bypass_rest)
     }
     environment.update(new_vars)

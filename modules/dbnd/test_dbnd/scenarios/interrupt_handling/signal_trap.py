@@ -17,8 +17,7 @@ def msg(s):
 
 
 def stop():
-    global current_work
-    msg("Doing something with current: %s" % (current_work))
+    msg("Doing something with current: %s" % current_work)
 
 
 def sig_handler(signum, frame):
