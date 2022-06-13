@@ -9,6 +9,7 @@ from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
+    PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
@@ -159,6 +160,7 @@ class MockTrackingService(BaseDbndTrackingService):
         dag_runs_full_data: DagRunsFullData,
         last_seen_dag_run_id: int,
         syncer_type: str,
+        plugin_meta_data: PluginMetadata,
     ):
         dag_runs_full_data = DagRunsFullData.from_dict(dag_runs_full_data.as_dict())
         for dag_run in dag_runs_full_data.dag_runs:

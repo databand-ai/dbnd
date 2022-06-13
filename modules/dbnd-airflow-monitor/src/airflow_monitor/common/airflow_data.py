@@ -129,11 +129,9 @@ class DagRunsFullData:
     @classmethod
     def from_dict(cls, data):
         return cls(
-            dags=[dag for dag in data.get("dags")],
-            dag_runs=[dag_run for dag_run in data.get("dag_runs")],
-            task_instances=[
-                task_instance for task_instance in data.get("task_instances")
-            ],
+            dags=list(data.get("dags")),
+            dag_runs=list(data.get("dag_runs")),
+            task_instances=list(data.get("task_instances")),
         )
 
 
@@ -148,8 +146,6 @@ class DagRunsStateData:
     @classmethod
     def from_dict(cls, data):
         return cls(
-            task_instances=[
-                task_instance for task_instance in data.get("task_instances")
-            ],
-            dag_runs=[dag_run for dag_run in data.get("dag_runs")],
+            task_instances=list(data.get("task_instances")),
+            dag_runs=list(data.get("dag_runs")),
         )

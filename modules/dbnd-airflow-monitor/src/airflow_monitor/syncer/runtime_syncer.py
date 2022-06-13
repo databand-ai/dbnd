@@ -117,6 +117,7 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
         if not dagruns:
             return
 
+        plugin_metadata = self.data_fetcher.get_plugin_metadata()
         dagruns = sorted(dagruns, key=lambda dr: dr.id)  # type: List[AirflowDagRun]
 
         bulk_size = self.config.dag_run_bulk_size or len(dagruns)
@@ -132,7 +133,7 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
                 len(dag_runs_full_data.task_instances),
             )
             self.tracking_service.init_dagruns(
-                dag_runs_full_data, max(dag_run_ids), self.SYNCER_TYPE
+                dag_runs_full_data, max(dag_run_ids), self.SYNCER_TYPE, plugin_metadata
             )
 
     @capture_monitor_exception

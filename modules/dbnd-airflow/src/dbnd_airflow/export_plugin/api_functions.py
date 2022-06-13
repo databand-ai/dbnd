@@ -69,7 +69,7 @@ def get_meta(metrics):
 
     meta = AirflowExportMeta(
         airflow_version=airflow_version,
-        plugin_version=" ".join([dbnd_airflow.__version__, "v2"]),
+        plugin_version=dbnd_airflow.__version__,
         airflow_instance_uid=get_airflow_instance_uid(),
         api_mode=get_api_mode(),
         request_args=dict(flask.request.args) if flask.has_request_context() else {},
