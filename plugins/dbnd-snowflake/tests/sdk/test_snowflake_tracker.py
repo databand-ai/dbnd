@@ -1,5 +1,7 @@
 import random
 
+from collections import defaultdict
+
 import pytest
 import snowflake
 
@@ -9,7 +11,10 @@ from snowflake.connector.cursor import SnowflakeCursor
 from dbnd._core.constants import DbndTargetOperationType
 from dbnd._core.utils.sql_tracker_common.sql_extract import Column
 from dbnd._core.utils.sql_tracker_common.sql_operation import SqlOperation
-from dbnd_snowflake.sdk.snowflake_tracker import SnowflakeTracker
+from dbnd_snowflake.sdk.snowflake_tracker import (
+    SNOWFLAKE_TRACKER_OP_SOURCE,
+    SnowflakeTracker,
+)
 
 
 SFQID = 12345
@@ -70,6 +75,20 @@ COPY_INTO_TABLE_FAIL_QUERY = """copy into FAIL from s3://test/test.json CREDENTI
 def _authenticate(self_auth, *args, **kwargs):
     self_auth._rest._connection._session_id = random.randint(0, 2000000000)
     return {}
+
+
+# TODO: Extract to common dbnd_(test_)utils module?
+def assert_dict_contains(superdict, subdict):
+    for key, value in subdict.items():
+        assert key in superdict, f"missing key {key} in the superdict {superdict}"
+        subdict_value = value
+        superdict_value = superdict[key]
+        if isinstance(subdict_value, list):
+            subdict_value = sorted(subdict_value)
+            superdict_value = sorted(superdict_value)
+        assert (
+            superdict_value == subdict_value
+        ), f"expected {key}={subdict_value} but got {key}={superdict_value} "
 
 
 @pytest.fixture
@@ -1003,6 +1022,58 @@ def test_copy_into_failure(mock_snowflake):
     with pytest.raises(Exception) as e:
         run_tracker_custom_query(mock_snowflake, COPY_INTO_TABLE_FAIL_QUERY, expected)
     assert str(e.value) == ERROR_MESSAGE
+
+
+def test_report_operations(mock_snowflake):
+    extracted_schema = defaultdict(list)
+    extracted_schema.update(
+        {
+            "TEST.*": [
+                Column(
+                    dataset_name="TEST",
+                    alias="TEST.*",
+                    name="*",
+                    is_file=False,
+                    is_stage=False,
+                )
+            ]
+        }
+    )
+    expected_schema = extracted_schema.copy()
+    expected_schema["TEST.*"][0].dataset_name = "test_database.test_schema.TEST"
+
+    operation = SqlOperation(
+        extracted_schema=extracted_schema,
+        dtypes={},
+        records_count=NUMBER_OF_ROWS_INSERTED,
+        query=COPY_INTO_TABLE_WITH_NESTED_QUERY_WITH_COLUMNS_FROM_STAGE_FILE_QUERY,
+        query_id=f"{SFQID}",
+        success=True,
+        op_type=DbndTargetOperationType.write,
+        error="",
+    )
+    snowflake_tracker = SnowflakeTracker()
+    snowflake_connection = _snowflake_connect()
+
+    with patch(
+        "dbnd_snowflake.sdk.snowflake_tracker.log_dataset_op"
+    ) as mock_log_dataset_op:
+        snowflake_tracker.report_operations(snowflake_connection, [operation])
+
+    assert_dict_contains(
+        mock_log_dataset_op.call_args.kwargs,
+        dict(
+            op_path="snowflake://test_account.snowflakecomputing.com:443/test_database/test_schema/TEST",
+            op_type=DbndTargetOperationType.write,
+            success=True,
+            data=operation,
+            with_schema=True,
+            send_metrics=True,
+            error="",
+            with_partition=True,
+            operation_source=SNOWFLAKE_TRACKER_OP_SOURCE,
+        ),
+    )
 
 
 def run_tracker_custom_query(mock_snowflake, query, expected):

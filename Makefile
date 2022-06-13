@@ -58,6 +58,7 @@ prj_dbnd_run = modules/dbnd modules/dbnd-airflow \
 			plugins/dbnd-gcp \
 			plugins/dbnd-tensorflow \
 			plugins/dbnd-test-scenarios \
+			plugins/dbnd-snowflake \
 			plugins/dbnd-spark \
 			plugins/dbnd-qubole
 

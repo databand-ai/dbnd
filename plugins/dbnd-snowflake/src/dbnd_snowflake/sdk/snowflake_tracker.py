@@ -56,6 +56,8 @@ ParsedResultMetadata = namedtuple(
     ],
 )
 
+SNOWFLAKE_TRACKER_OP_SOURCE = "snowflake_tracker"
+
 
 def extract_schema_from_sf_desc(description):
     # todo: support ResultMetadata in version 2.4.6
@@ -161,6 +163,7 @@ class SnowflakeTracker(object):
                 send_metrics=True,
                 error=op.error,
                 with_partition=True,
+                operation_source=SNOWFLAKE_TRACKER_OP_SOURCE,
             )
 
     @contextlib.contextmanager
