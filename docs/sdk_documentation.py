@@ -10,8 +10,8 @@ from dataclasses import dataclass
 import requests
 
 
-VERSION_SUFFIX = "-yoav-test-dont-alter"  # set to "" when publishing to release
-VERSION_HIDDEN = True  # Set to False when publishing to release
+VERSION_SUFFIX = ""
+VERSION_HIDDEN = False
 
 OUTPUT_FOLDER = "./sdk-docs/"
 PAGE_INFO_PATTERN = r"---\n(.+?)\n---\n"
@@ -85,10 +85,10 @@ def _version_get_or_create(current_version, readme_versions):
 def _create_version(version_name: str, fork: str):
     url = "https://dash.readme.com/api/v1/version"
     payload = {
-        "is_beta": True,
+        "is_beta": False,
         "version": version_name,
         "from": fork,
-        "is_stable": False,
+        "is_stable": True,
         "is_hidden": VERSION_HIDDEN,
         "is_deprecated": False,
     }

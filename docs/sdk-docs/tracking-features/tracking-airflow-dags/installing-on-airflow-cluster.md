@@ -127,6 +127,7 @@ dag = get_monitor_dag()
 ```
 2. Deploy your new DAG, and *enable* it in the Airflow UI.
 
+*NOTE: The monitor dag is being run automatically by the scheduler. There can be only one run at a given time, there is no need to trigger it manually. It is configured to restart itself every 3 hours. In case it's not running or failed for some reason, there is no lose of data, since when it's running, it will continue syncing data from where it stopped.*
 
 # Enable Airflow Syncer in Databand Service
 To complete the configuration, create an Airflow syncer in Databand, and create an Airflow connection with your Databand URL and configuration parameters in your Airflow deployment. See [Airflow Syncer Configuration](doc:apache-airflow-sync)  for detailed instructions.
