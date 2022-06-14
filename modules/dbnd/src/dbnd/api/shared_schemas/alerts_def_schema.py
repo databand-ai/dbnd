@@ -15,7 +15,6 @@ class AlertDefsSchema(ApiStrictSchema):
     is_str_value = fields.Bool()
 
     created_at = fields.DateTime()
-    scheduled_job_name = fields.Str(attribute="scheduled_job.name")
     # TODO_CORE: API: Deprecate airflow_server_info
     project_id = fields.Int(attribute="job.project_id")
     project_name = fields.Str(attribute="job.project.name")
@@ -34,6 +33,7 @@ class AlertDefsSchema(ApiStrictSchema):
     original_uid = fields.Str(allow_none=True)
     advanced_json = fields.Str(allow_none=True)
     scheduled_job_uid = fields.Str(allow_none=True)
+    scheduled_job_name = fields.Str(attribute="scheduled_job.name", allow_none=True)
     custom_description = fields.Str(allow_none=True)
     ml_alert = fields.Nested(MLAlert, allow_none=True)
 
