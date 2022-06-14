@@ -3,6 +3,7 @@ import typing
 
 from collections import OrderedDict
 from contextlib import contextmanager
+from itertools import chain
 from typing import Any, ContextManager, Dict, Optional
 
 import six
@@ -42,14 +43,53 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def track_emr_add_steps_operator(operator, tracking_info):
-    flat_spark_envs = flat_conf(add_spark_env_fields(tracking_info))
+    spark_envs = flat_conf(build_dbnd_spark_envs(tracking_info))
     for step in operator.steps:
         args = step["HadoopJarStep"]["Args"]
         if args and "spark-submit" in args[0]:
+            # Add dbnd and airflow context
             step["HadoopJarStep"]["Args"] = spark_submit_with_dbnd_tracking(
-                args, dbnd_context=flat_spark_envs
+                args, dbnd_context=spark_envs
             )
     yield
+
+
+def build_dbnd_spark_envs(tracking_info):
+    # type: (Dict[str, str]) -> Dict[str, str]
+    """
+    Takes dbnd context as dict (airflow context + databand task context), builds spark.env properties,
+    and enriches it with properties required for proper tracking in client and cluster modes
+    :param tracking_info:
+    :return:
+    """
+    return dict(
+        chain(
+            add_spark_env_fields(tracking_info).items(),
+            dbnd_spark_conf().items(),
+            spark_deploy_mode_cluster_conf().items(),
+        )
+    )
+
+
+def dbnd_spark_conf():
+    """
+    Explicitly enable tracking
+    :return:
+    """
+    return {"spark.env.DBND__TRACKING": "True"}
+
+
+def spark_deploy_mode_cluster_conf():
+    """
+    Those variables should be passed when cluster is used for deploy mode
+    :return:
+    """
+    return {
+        "spark.yarn.appMasterEnv.DBND__TRACKING": "True",
+        "spark.yarn.appMasterEnv.SPARK_ENV_LOADED": "1",
+        "spark.yarn.appMasterEnv.DBND__ENABLE__SPARK_CONTEXT_ENV": "True",
+        "spark.yarn.appMasterEnv.DBND_HOME": "/tmp/dbnd",
+    }
 
 
 @contextmanager
@@ -138,7 +178,7 @@ def save_extrnal_links_safe(tracking_store, task_run, links_dict):
 def track_data_proc_pyspark_operator(operator, tracking_info):
     if operator.dataproc_properties is None:
         operator.dataproc_properties = dict()
-    spark_envs = add_spark_env_fields(tracking_info)
+    spark_envs = build_dbnd_spark_envs(tracking_info)
     operator.dataproc_properties.update(spark_envs)
     yield
 
@@ -149,7 +189,7 @@ def track_spark_submit_operator(operator, tracking_info):
 
     if operator._conf is None:
         operator._conf = dict()
-    spark_envs = add_spark_env_fields(tracking_info)
+    spark_envs = build_dbnd_spark_envs(tracking_info)
     operator._conf.update(spark_envs)
 
     if operator._env_vars is None:
@@ -176,7 +216,7 @@ def _has_java_application(operator):
 def track_ecs_operator(operator, tracking_info):
     # type: (ECSOperator, Dict[str,str])-> None
     """
-    Adding the the tracking info to the ECS environment through the `override` -> `containerOverrides`.
+    Adding the tracking info to the ECS environment through the `override` -> `containerOverrides`.
     Notice that we require to have `overrides` and `containerOverrides` with containers names in-ordered to make it work
 
     Airflow pass the override to boto so here is the boto3 docs:
@@ -201,6 +241,7 @@ def track_ecs_operator(operator, tracking_info):
 _EXECUTE_TRACKING = OrderedDict(
     [
         ("EmrAddStepsOperator", track_emr_add_steps_operator),
+        ("EmrPySparkOperator", track_emr_add_steps_operator),
         ("DatabricksSubmitRunOperator", track_databricks_submit_run_operator),
         ("DataProcPySparkOperator", track_data_proc_pyspark_operator),
         ("SparkSubmitOperator", track_spark_submit_operator),

@@ -28,6 +28,11 @@ dbnd_spark_env_vars = (
     "spark.env.AIRFLOW_CTX_TASK_ID",
     "spark.env.AIRFLOW_CTX_TRY_NUMBER",
     "spark.env.AIRFLOW_CTX_UID",
+    "spark.env.DBND__TRACKING",
+    "spark.yarn.appMasterEnv.DBND__TRACKING",
+    "spark.yarn.appMasterEnv.SPARK_ENV_LOADED",
+    "spark.yarn.appMasterEnv.DBND__ENABLE__SPARK_CONTEXT_ENV",
+    "spark.yarn.appMasterEnv.DBND_HOME",
 )
 
 
