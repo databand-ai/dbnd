@@ -1,5 +1,6 @@
 import logging
 
+import mock
 import pendulum
 import pytest
 
@@ -9,23 +10,11 @@ from mock import Mock
 from dbnd_airflow.tracking.dbnd_airflow_handler import DbndAirflowHandler
 
 
-def airflow_log_factory(ti, try_number):
-    return "{dag_id}/{task_id}/{execution_date}/{try_number}.log".format(
-        dag_id=ti.dag_id,
-        task_id=ti.task_id,
-        execution_date=ti.execution_date,
-        try_number=try_number,
-    )
-
-
 class TestDbndAirflowHandler(object):
     @pytest.fixture(scope="function")
     def dbnd_airflow_handler(self):
-        return DbndAirflowHandler(
-            logger=Mock(logging.getLoggerClass()),
-            local_base="/logger_base",
-            log_file_name_factory=airflow_log_factory,
-        )
+        dbnd_airflow_handler = DbndAirflowHandler(logger=Mock(logging.getLoggerClass()))
+        return dbnd_airflow_handler
 
     @pytest.fixture(scope="function")
     def ti(self):
@@ -34,6 +23,7 @@ class TestDbndAirflowHandler(object):
         task_instance.dag_id = "dag"
         task_instance.execution_date = pendulum.datetime(1970, 1, 1)
         task_instance.try_number = 1
+        task_instance.raw = True
         return task_instance
 
     @pytest.fixture
@@ -47,10 +37,6 @@ class TestDbndAirflowHandler(object):
             "dbnd_airflow.tracking.dbnd_airflow_handler.config.getboolean",
             lambda x, y: False,
         )
-        monkeypatch.setattr(
-            "dbnd_airflow.tracking.dbnd_airflow_handler.read_dbnd_log_preview",
-            self.mock_read_lines,
-        )
 
         monkeypatch.setattr(
             "dbnd_airflow.tracking.dbnd_airflow_handler.get_dbnd_project_config",
@@ -58,8 +44,8 @@ class TestDbndAirflowHandler(object):
         )
 
         # initial state
-        assert dbnd_airflow_handler.log_file == ""
         assert dbnd_airflow_handler.dbnd_context is None
+        assert dbnd_airflow_handler.in_memory_log_manager is None
         assert dbnd_airflow_handler.task_run_attempt_uid is None
         assert dbnd_airflow_handler.dbnd_context_manage is None
         assert dbnd_airflow_handler.task_run_attempt_uid is None
@@ -67,24 +53,26 @@ class TestDbndAirflowHandler(object):
 
         # entering context
         dbnd_airflow_handler.set_context(ti)
-
-        assert (
-            dbnd_airflow_handler.log_file
-            == "/logger_base/dag/task/1970-01-01T00:00:00+00:00/1.log"
-        )
         assert dbnd_airflow_handler.dbnd_context is not None
         assert dbnd_airflow_handler.task_run_attempt_uid is not None
-
+        assert dbnd_airflow_handler.in_memory_log_manager is not None
         assert dbnd_airflow_handler.dbnd_context_manage is not None
         assert (
             dbnd_airflow_handler.task_env_key == "DBND__TRACKING_ATTEMPT_UID:dag:task"
         )
 
+        # patching created in memory log manager
+        mock.patch.object(
+            dbnd_airflow_handler.in_memory_log_manager,
+            "get_log_body",
+            new_callable=self.mock_read_lines,
+        )
         # closing
         dbnd_airflow_handler.dbnd_context = patched_context
         dbnd_airflow_handler.close()
         assert patched_context.tracking_store.save_task_run_log.call_count == 1
         assert dbnd_airflow_handler.dbnd_context is None
+        assert dbnd_airflow_handler.in_memory_log_manager is None
         assert dbnd_airflow_handler.dbnd_context_manage is None
         assert dbnd_airflow_handler.task_env_key is None
 

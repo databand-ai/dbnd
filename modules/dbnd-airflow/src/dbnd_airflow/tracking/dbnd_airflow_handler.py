@@ -10,7 +10,7 @@ import dbnd
 from dbnd import config, get_dbnd_project_config
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
 from dbnd._core.context.databand_context import new_dbnd_context
-from dbnd._core.task_run.log_preview import read_dbnd_log_preview
+from dbnd._core.log.buffered_log_manager import BufferedLogManager
 from dbnd._core.tracking.airflow_dag_inplace_tracking import calc_task_key_from_af_ti
 from dbnd._core.utils.basics import environ_utils
 from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_from_af_ti
@@ -30,7 +30,7 @@ class DbndAirflowHandler(logging.Handler):
     instance run, and getting close when the task instance is done.
     """
 
-    def __init__(self, logger, local_base, log_file_name_factory):
+    def __init__(self, logger):
         logging.Handler.__init__(self)
 
         self.dbnd_context = None
@@ -40,10 +40,8 @@ class DbndAirflowHandler(logging.Handler):
         self.task_env_key = None
 
         self.airflow_logger = logger
-        self.airflow_base_log_dir = local_base
-        self.log_file_name_factory = log_file_name_factory
 
-        self.log_file = ""
+        self.in_memory_log_manager = None
 
     def set_context(self, ti):
         """
@@ -73,6 +71,13 @@ class DbndAirflowHandler(logging.Handler):
         # But we want the handler to run only once (Idempotency)
         # So we are using an environment variable to sync those two process
         task_key = calc_task_key_from_af_ti(ti)
+
+        if ti.raw:
+            self.in_memory_log_manager = BufferedLogManager()
+            self.airflow_logger.debug(
+                f"Initiated In Memory Log Manager with task {task_key}"
+            )
+
         if os.environ.get(task_key, False):
             # This key is already set which means we are in `--raw run`
             return
@@ -94,40 +99,33 @@ class DbndAirflowHandler(logging.Handler):
 
         self.task_run_attempt_uid = get_task_run_attempt_uid_from_af_ti(ti)
 
-        # airflow calculation for the relevant log_file
-        log_relative_path = self.log_file_name_factory(ti, ti.try_number)
-        self.log_file = os.path.join(self.airflow_base_log_dir, log_relative_path)
-
         # make sure we are not polluting the airflow logs
         get_dbnd_project_config().quiet_mode = True
+
+        # context with disabled logs
+        self.dbnd_context_manage = new_dbnd_context(conf={"log": {"disabled": True}})
+        self.dbnd_context = self.dbnd_context_manage.__enter__()
 
         # tracking msg
         self.airflow_logger.info(
             "Databand Tracking Started {version}".format(version=dbnd.__version__)
         )
 
-        # context with disabled logs
-        self.dbnd_context_manage = new_dbnd_context(conf={"log": {"disabled": True}})
-        self.dbnd_context = self.dbnd_context_manage.__enter__()
-
     def close(self):
-        if self.dbnd_context:
+        if self.dbnd_context and self.in_memory_log_manager:
             try:
                 fake_task_run = FakeTaskRun(
                     task_run_attempt_uid=self.task_run_attempt_uid
                 )
-
-                log_body = read_dbnd_log_preview(self.log_file)
+                in_memory_log_body = self.in_memory_log_manager.get_log_body()
                 self.dbnd_context.tracking_store.save_task_run_log(
-                    task_run=fake_task_run,
-                    log_body=log_body,
-                    local_log_path=self.log_file,
+                    task_run=fake_task_run, log_body=in_memory_log_body
                 )
-
             except Exception:
                 self.airflow_logger.exception("Exception occurred when saving task log")
 
         self.dbnd_context = None
+        self.in_memory_log_manager = None
 
         try:
             if self.dbnd_context_manage:
@@ -150,9 +148,14 @@ class DbndAirflowHandler(logging.Handler):
             self.task_env_key = None
 
     def emit(self, record):
-        """
-        This handler is not really writing records, so ignoring.
-        """
+        if self.in_memory_log_manager:
+            try:
+                msg = self.format(record)
+                self.in_memory_log_manager.add_log_msg(msg)
+            except RecursionError:  # See issue 36272
+                raise
+            except Exception:
+                self.handleError(record)
 
 
 def set_dbnd_handler():
@@ -160,23 +163,16 @@ def set_dbnd_handler():
     Build and inject the dbnd handler to airflow's logger.
     """
     airflow_logger = logging.getLogger(AIRFLOW_TASK_LOGGER)
+    dbnd_handler = DbndAirflowHandler(logger=airflow_logger)
+
     base_file_handler = first_true(
         airflow_logger.handlers,
         pred=lambda handler: handler.__class__.__name__ == AIRFLOW_FILE_TASK_HANDLER,
         default=None,
     )
-
     if base_file_handler:
-        dbnd_handler = create_dbnd_handler(airflow_logger, base_file_handler)
-        airflow_logger.addHandler(dbnd_handler)
-
-
-def create_dbnd_handler(airflow_logger, airflow_file_handler):
-    """
-    Factory for creating dbnd handler with airflow's logger and airflow's file handler (<-log_handler)
-    """
-    return DbndAirflowHandler(
-        logger=airflow_logger,
-        local_base=airflow_file_handler.local_base,
-        log_file_name_factory=airflow_file_handler._render_filename,
-    )
+        handler_formatter = base_file_handler.formatter
+        dbnd_handler.setFormatter(handler_formatter)
+        for handler_filter in base_file_handler.filters:
+            dbnd_handler.addFilter(handler_filter)
+    airflow_logger.addHandler(dbnd_handler)
