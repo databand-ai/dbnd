@@ -14,6 +14,8 @@ from targets import Target
 from targets.value_meta import ValueMetaConf
 
 
+LOG_DATASET_OP_OP_SOURCE = "python_manual_logging"
+
 if typing.TYPE_CHECKING:
     from datetime import datetime
 
@@ -292,6 +294,7 @@ def log_dataset_op(
     send_metrics: bool = True,
     row_count: Optional[int] = None,
     column_count: Optional[int] = None,
+    operation_source: str = LOG_DATASET_OP_OP_SOURCE,
 ):
     """
     Logs dataset operation and meta data to dbnd.
@@ -311,8 +314,9 @@ def log_dataset_op(
         with_preview: Should extract preview of the data as meta-data of the target - relevant only with data param.
         with_schema: Should extract schema of the data as meta-data of the target - relevant only with data param.
         send_metrics: Should report preview, schemas and histograms as metrics.
-        row_count: should report row count no matter what is the data
-        column_count: should report column count no matter what is the data
+        row_count: Should report row count no matter what is the data
+        column_count: Should report column count no matter what is the data
+        operation_source: Optional source of operation, such as: redshift_tracker, dbt_sdk, etc...
     Example::
 
         @task
@@ -339,6 +343,7 @@ def log_dataset_op(
         with_partition=with_partition,
         row_count=row_count,
         column_count=column_count,
+        operation_source=operation_source,
     )
     _report_operation(operation_report)
 
@@ -357,6 +362,7 @@ def dataset_op_logger(
     send_metrics: bool = True,
     row_count: Optional[int] = None,
     column_count: Optional[int] = None,
+    operation_source: str = LOG_DATASET_OP_OP_SOURCE,
 ):
     """
     Wrapper to Log dataset operation and meta data to dbnd.
@@ -378,6 +384,7 @@ def dataset_op_logger(
         send_metrics: Should report preview, schemas and histograms as metrics.
         row_count: should report row count no matter what is the data
         column_count: should report column count no matter what is the data
+        operation_source: Optional source of operation, such as: redshift tracker, dbt sdk, etc...
     Good Example::
 
         with dataset_op_logger("location://path/to/value.csv", "read"):
@@ -406,6 +413,7 @@ def dataset_op_logger(
         with_partition=with_partition,
         row_count=row_count,
         column_count=column_count,
+        operation_source=operation_source,
     )
 
     try:

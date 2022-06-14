@@ -32,6 +32,8 @@ from dbnd_redshift.sdk.wrappers import (
 )
 
 
+REDSHIFT_TRACKER_OP_SOURCE = "redshift_tracker"
+
 logger = logging.getLogger(__name__)
 
 
@@ -161,6 +163,7 @@ class RedshiftTracker:
                     with_partition=self.conf.with_partition,
                     with_stats=self.conf.with_stats,
                     with_histograms=self.conf.with_histograms,
+                    operation_source=REDSHIFT_TRACKER_OP_SOURCE,
                 )
             # we clean all the batch of operations we reported so we don't report twice
             self.connections.clear_operations(connection)

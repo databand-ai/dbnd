@@ -183,6 +183,7 @@ class TrackingStoreThroughChannel(TrackingStore):
         operation_type,  # type: DbndDatasetOperationType
         operation_status,  # type: DbndTargetOperationStatus
         operation_error,  # type: str
+        operation_source=None,  # type: Optional[str]
         with_partition=None,  # type: Optional[bool]
     ):
         dataset_info = LogDatasetArgs(
@@ -194,6 +195,7 @@ class TrackingStoreThroughChannel(TrackingStore):
             operation_type=operation_type,
             operation_status=operation_status,
             operation_error=operation_error,
+            operation_source=operation_source,
             value_preview=data_meta.value_preview,
             columns_stats=data_meta.columns_stats,
             data_dimensions=data_meta.data_dimensions,

@@ -235,6 +235,7 @@ class TaskRunTracker(TaskRunCtrl):
             operation_type=op_report.op_type,
             operation_status=op_report.status,
             operation_error=op_report.error,
+            operation_source=op_report.operation_source,
             with_partition=op_report.with_partition,
         )
 
@@ -324,6 +325,8 @@ class DatasetOperationReport(object):
     with_partition = attr.ib(default=None)
     row_count = attr.ib(default=None)
     column_count = attr.ib(default=None)
+
+    operation_source: Optional[str] = attr.ib(default=None)
 
     def set(self, **kwargs):
         for k, v in kwargs.items():

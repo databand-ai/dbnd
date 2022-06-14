@@ -353,6 +353,7 @@ class LogDatasetArgs(object):
     operation_error = attr.ib(
         default=None
     )  # type: str # default=None :-> for compatibility with SDK < 51.0.0
+    operation_source = attr.ib(default=None)  # type: Optional[str]
     timestamp = attr.ib(default=attr.Factory(utcnow))  # type: datetime
     with_partition = attr.ib(default=None)  # type: Optional[bool]
 
@@ -384,6 +385,7 @@ class LogDatasetSchema(ApiStrictSchema):
     operation_type = EnumField(DbndDatasetOperationType)
     operation_status = EnumField(DbndTargetOperationStatus)
     operation_error = fields.String(allow_none=True)
+    operation_source = fields.String(allow_none=True)
     timestamp = fields.DateTime(required=False, allow_none=True)
 
     value_preview = fields.String(allow_none=True)
