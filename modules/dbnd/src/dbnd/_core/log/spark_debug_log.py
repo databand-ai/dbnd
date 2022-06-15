@@ -143,16 +143,15 @@ def dbnd_debug_spark_operations(spark):
         custom_print("dbnd debug spark operations exception: %s" % pp.pformat(e))
 
 
-def dbnd_log_debug_spark(task_run=None, dbnd_tracking_start=True):
+def dbnd_log_debug_spark():
     # print debug vars before calling dbnd_tracking_start
     print_dbnd_debug()
 
-    # Try to "manually" start dbnd tracking if dbnd_tracking_start is True and task run is None
+    # Try to "manually" start dbnd tracking
     try:
-        if dbnd_tracking_start and task_run is None:
-            from dbnd import dbnd_tracking_start
+        from dbnd import dbnd_tracking_start
 
-            task_run = dbnd_tracking_start()
+        task_run = dbnd_tracking_start()
         if task_run:
             custom_print("DBND_TRACKING_TASK_RUN: %s" % task_run)
             custom_print("DBND_TRACKING_RUN_UID: %s" % task_run.run.run_uid)
