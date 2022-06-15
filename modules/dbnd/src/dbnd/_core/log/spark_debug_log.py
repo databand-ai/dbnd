@@ -2,7 +2,6 @@ import os
 import pprint
 import sys
 
-from dbnd import dataset_op_logger, dbnd_tracking_start, log_metric
 from dbnd._core.tracking.dbnd_spark_init import (
     _is_dbnd_spark_installed,
     try_get_airflow_context_from_spark_conf,
@@ -101,16 +100,18 @@ def create_dummy_dataframe(spark):
         custom_print("create dummy dataframe exception: %s" % pp.pformat(e))
 
 
-def debug_log_dataset_op_read(spark):
+def debug_log_dataset_op_read(df):
+    from dbnd import dataset_op_logger
+
     with dataset_op_logger("dummy_df", "read", with_stats=True) as logger:
-        df = create_dummy_dataframe(spark)
         logger.set(data=df)
-    return df
 
 
-def debug_log_dataset_op_write(df, output):
+def debug_log_dataset_op_write(df):
+    from dbnd import dataset_op_logger
+
     with dataset_op_logger("dummy_df", "write", with_stats=True) as logger:
-        df.write.format("csv").mode("overwrite").save(output)
+        df.write.format("csv").mode("overwrite").save("dummy_df.csv")
         logger.set(data=df)
 
 
@@ -131,25 +132,36 @@ def dbnd_log_debug_dataframe(df):
         custom_print("DATAFRAME is None")
 
 
-def dbnd_debug_spark_operations(spark, output_path):
-    df = debug_log_dataset_op_read(spark)
-    debug_log_dataset_op_write(df, output_path)
+def dbnd_debug_spark_operations(spark):
+    try:
+        custom_print("dbnd debug spark operations")
+        df = create_dummy_dataframe(spark)
+        dbnd_log_debug_dataframe(df)
+        debug_log_dataset_op_read(df)
+        debug_log_dataset_op_write(df)
+    except Exception as e:
+        custom_print("dbnd debug spark operations exception: %s" % pp.pformat(e))
 
 
-def dbnd_log_debug_spark():
+def dbnd_log_debug_spark(task_run=None, dbnd_tracking_start=True):
     # print debug vars before calling dbnd_tracking_start
     print_dbnd_debug()
 
-    # Try to "manually" start dbnd tracking
+    # Try to "manually" start dbnd tracking if dbnd_tracking_start is True and task run is None
     try:
-        task_run = dbnd_tracking_start()
-        custom_print("DBND_TRACKING_TASK_RUN: %s" % task_run)
+        if dbnd_tracking_start and task_run is None:
+            from dbnd import dbnd_tracking_start
+
+            task_run = dbnd_tracking_start()
         if task_run:
+            custom_print("DBND_TRACKING_TASK_RUN: %s" % task_run)
             custom_print("DBND_TRACKING_RUN_UID: %s" % task_run.run.run_uid)
     except Exception as e:
         custom_print("dbnd tracking task run exception: %s" % e)
 
     # test log metric
+    from dbnd import log_metric
+
     log_metric("debug.metric", 10000)
 
     # print debug vars after calling dbnd_tracking_start

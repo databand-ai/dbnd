@@ -12,11 +12,15 @@ import dbnd
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import try_get_script_name
+from dbnd._core.configuration.environ_config import (
+    _debug_init_print,
+    try_get_script_name,
+)
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.log.config import FORMAT_SIMPLE
+from dbnd._core.log.spark_debug_log import dbnd_log_debug_spark
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import TrackingConfig
@@ -29,6 +33,10 @@ from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     build_run_time_airflow_task,
     override_airflow_log_system_for_tracking,
+)
+from dbnd._core.tracking.dbnd_spark_init import (
+    _safe_get_spark_conf,
+    verify_spark_pre_conditions,
 )
 from dbnd._core.tracking.managers.callable_tracking import _handle_tracking_error
 from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo
@@ -402,6 +410,20 @@ def tracking_start_base(job_name, project_name=None, airflow_context=None):
         return _dbnd_script_manager._task_run
 
 
+def dbnd_debug_spark(task_run):
+    """This function is meant to be used only from inside Spark for Spark tracking only."""
+    try:
+        if verify_spark_pre_conditions():
+            conf = _safe_get_spark_conf()
+            if conf:
+                verbose = conf.get("spark.env.DBND__VERBOSE")
+                if verbose:
+                    _debug_init_print("spark debug is enabled")
+                    dbnd_log_debug_spark(task_run=task_run, dbnd_tracking_start=False)
+    except Exception as e:
+        _debug_init_print("spark debug error %s" % e)
+
+
 def dbnd_airflow_tracking_start(airflow_context):
     """This function is meant to be used only from inside Airflow for Airflow tracking only."""
     job_name = try_get_script_name()
@@ -450,7 +472,11 @@ def dbnd_tracking_start(job_name=None, run_name=None, project_name=None, conf=No
     if job_name is None:
         job_name = try_get_script_name()
 
-    return tracking_start_base(job_name=job_name, project_name=project_name)
+    task_run = tracking_start_base(job_name=job_name, project_name=project_name)
+
+    dbnd_debug_spark(task_run)
+
+    return task_run
 
 
 def dbnd_tracking_stop(finalize_run=True):
