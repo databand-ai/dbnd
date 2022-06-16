@@ -1,6 +1,8 @@
 import logging
 import os
 
+from datetime import datetime
+
 from airflow.models import Variable
 
 from dbnd._core.utils.basics.helpers import parse_bool
@@ -49,7 +51,8 @@ def get_op_output(root_dir, output_format="csv"):
         root_dir,
         "{{dag.dag_id}}",
         "{{task.task_id}}",
-        "output_{{ts_nodash}}.%s" % output_format,
+        f"date={datetime.today().strftime('%Y-%m-%d')}",
+        "output.%s" % output_format,
     )
 
 
