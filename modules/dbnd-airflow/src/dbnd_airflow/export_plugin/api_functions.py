@@ -11,7 +11,6 @@ from airflow.version import version as airflow_version
 
 import dbnd_airflow
 
-from dbnd._core.utils.json_utils import flatten_dict
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow.export_plugin.compat import get_api_mode
 from dbnd_airflow.export_plugin.dag_operations import (
@@ -230,10 +229,6 @@ def remove_place_holders(dbnd_response):
             dbnd_response.pop("core", None)
 
 
-def is_subset(subset, superset):
-    return flatten_dict(subset).items() >= flatten_dict(superset).items()
-
-
 def get_or_create_db_connection(airflow_connection_from_hook, session):
     existing_db_connection = (
         session.query(Connection)
@@ -254,9 +249,6 @@ def check_syncer_config_and_set(dbnd_response, session=None):
     airflow_connection_from_hook = BaseHook.get_connection(DATABAND_AIRFLOW_CONN_ID)
     airflow_response = airflow_connection_from_hook.extra_dejson
     remove_place_holders(dbnd_response)
-
-    if not is_subset(dbnd_response, airflow_response):
-        return AirflowExportData()
 
     deep_update(airflow_response, dbnd_response)
 
