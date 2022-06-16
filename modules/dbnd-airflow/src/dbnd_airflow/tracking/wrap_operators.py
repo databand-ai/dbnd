@@ -43,14 +43,21 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def track_emr_add_steps_operator(operator, tracking_info):
+    logger.info("Tracking EmrAddStepsOperator")
     spark_envs = flat_conf(build_dbnd_spark_envs(tracking_info))
     for step in operator.steps:
+        logger.info("Updating properties for %s", operator)
         args = step["HadoopJarStep"]["Args"]
         if args and "spark-submit" in args[0]:
             # Add dbnd and airflow context
             step["HadoopJarStep"]["Args"] = spark_submit_with_dbnd_tracking(
                 args, dbnd_context=spark_envs
             )
+            logger.info(
+                "Properties for HadoopJarStep was updated for task %s", operator.task_id
+            )
+        else:
+            logger.info("spark-submit has been not found in the operator")
     yield
 
 
@@ -148,7 +155,7 @@ def track_databricks_submit_run_operator(operator, tracking_info):
             set_task_run_state_safe(tracking_store, task_run, TaskRunState.FAILED)
             return
 
-        save_extrnal_links_safe(tracking_store, task_run, {"databricks": run_page_url})
+        save_external_links_safe(tracking_store, task_run, {"databricks": run_page_url})
         if state.is_successful:
             set_task_run_state_safe(tracking_store, task_run, TaskRunState.SUCCESS)
         else:
@@ -164,7 +171,7 @@ def set_task_run_state_safe(tracking_store, task_run, state):
         logger.error("Unable to set task run state: %s", exc)
 
 
-def save_extrnal_links_safe(tracking_store, task_run, links_dict):
+def save_external_links_safe(tracking_store, task_run, links_dict):
     # (TrackingStore, Any, Dict[str, str]) -> None
     try:
         tracking_store.save_external_links(
@@ -175,11 +182,30 @@ def save_extrnal_links_safe(tracking_store, task_run, links_dict):
 
 
 @contextmanager
-def track_data_proc_pyspark_operator(operator, tracking_info):
+def track_dataproc_pyspark_operator(operator, tracking_info):
     if operator.dataproc_properties is None:
         operator.dataproc_properties = dict()
     spark_envs = build_dbnd_spark_envs(tracking_info)
     operator.dataproc_properties.update(spark_envs)
+    yield
+
+
+@contextmanager
+def track_dataproc_submit_job_operator(operator, tracking_info):
+    logger.info("Tracking DataprocSubmitJobOperator")
+    if operator.job is not None:
+        if "pyspark_job" in operator.job:
+            logger.info("Updating properties for %s", operator)
+            spark_envs = build_dbnd_spark_envs(tracking_info)
+
+            pyspark_job = operator.job["pyspark_job"]
+            pyspark_job.setdefault("properties", {})
+            pyspark_job["properties"].update(spark_envs)
+            logger.info(
+                "Properties for pyspark_job was updated for task %s", operator.task_id
+            )
+        else:
+            logger.info("pyspark_job has been not found in the operator")
     yield
 
 
@@ -243,7 +269,11 @@ _EXECUTE_TRACKING = OrderedDict(
         ("EmrAddStepsOperator", track_emr_add_steps_operator),
         ("EmrPySparkOperator", track_emr_add_steps_operator),
         ("DatabricksSubmitRunOperator", track_databricks_submit_run_operator),
-        ("DataProcPySparkOperator", track_data_proc_pyspark_operator),
+        # Airflow 1
+        ("DataProcPySparkOperator", track_dataproc_pyspark_operator),
+        # Airflow 2
+        ("DataprocSubmitJobOperator", track_dataproc_submit_job_operator),
+        ("DataprocSubmitPySparkJobOperator", track_dataproc_pyspark_operator),
         ("SparkSubmitOperator", track_spark_submit_operator),
         ("ECSOperator", track_ecs_operator),
     ]

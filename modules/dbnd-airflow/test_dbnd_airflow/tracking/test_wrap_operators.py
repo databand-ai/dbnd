@@ -63,7 +63,7 @@ class TestTrackDagFunction(object):
     @pytest.mark.skip(
         reason="can't import google.cloud.storage in ci (used by DataProcPySparkOperator)"
     )
-    def test_data_proc_pyspark_operator(self, dataproc_operator):
+    def test_dataproc_pyspark_operator(self, dataproc_operator):
         for env_var in dbnd_spark_env_vars:
             assert env_var in dataproc_operator.dataproc_properties
 
