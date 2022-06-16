@@ -18,10 +18,10 @@ class TestUserCodeDetector:
     @pytest.mark.parametrize(
         "file_name,expected_result",
         [
-            (f"test/site-packages/my_python_package/main.py", False),
-            (f"test/dist-packages/my_python_package/main.py", False),
+            ("test/site-packages/my_python_package/main.py", False),
+            ("test/dist-packages/my_python_package/main.py", False),
             (f"{databand_path}/module/databand_module", False),
-            (f"/etc/hosts", False),
+            ("/etc/hosts", False),
             (f"{code_dir}/dbnd_examples/dbnd_sanity_check", True),
             ("dbnd_examples/dbnd_sanity_check", True),
             (f"{code_dir}/my_scripy.py", True),

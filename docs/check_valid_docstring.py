@@ -65,7 +65,7 @@ fields = [
 
 
 def check_no_epydoc_rst(docstring, fields, sourcefile, objname):
-    if re.search(rf"[a-zA-Z_.,?!0-9]+\n *[=-]+ *\n", docstring):
+    if re.search(r"[a-zA-Z_.,?!0-9]+\n *[=-]+ *\n", docstring):
         yield f"{sourcefile}:1 in `{objname}`:\n\t\tDon't use reStructuredText-style headers, docstring must be in \
 accordance with the Google Python Style Guide!"
 

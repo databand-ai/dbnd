@@ -145,7 +145,6 @@ disable = [
     "unidiomatic-typecheck",               # 4
     "keyword-arg-before-vararg",           # 4
     "format-string-without-interpolation", # 4
-    "f-string-without-interpolation",      # 4
     "expression-not-assigned",             # 4
     "unnecessary-lambda",                  # 3
     "missing-format-attribute",            # 3

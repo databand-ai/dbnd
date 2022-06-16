@@ -74,7 +74,7 @@ def start_spark():
     if result is None:
         print("Master started")
     else:
-        print(f"Unable to start spark master")
+        print("Unable to start spark master")
         return
     start_worker_script = os.path.join(working_dir, SPARK_DIR, "sbin/start-slave.sh")
     output = os.popen(f"{start_worker_script} spark://127.0.0.1:7077")
@@ -83,7 +83,7 @@ def start_spark():
     if result is None:
         print("Worker started")
     else:
-        print(f"Unable to start spark worker")
+        print("Unable to start spark worker")
 
 
 def stop_spark():
@@ -93,14 +93,14 @@ def stop_spark():
     if result is None:
         print("Worker stopped")
     else:
-        print(f"Unable to stop spark worker. Maybe they're not running.")
+        print("Unable to stop spark worker. Maybe they're not running.")
     stop_master_script = os.path.join(working_dir, SPARK_DIR, "sbin/stop-master.sh")
     output = os.popen(stop_master_script)
     result = output.close()
     if result is None:
         print("Master stopped")
     else:
-        print(f"Unable to stop spark master. Maybe it's not running")
+        print("Unable to stop spark master. Maybe it's not running")
 
 
 if is_spark_running():
