@@ -7,14 +7,22 @@
 def azkabanVersion = "3.18.0"
 
 dependencies {
-    implementation("org.javassist:javassist:3.27.0-GA")
+    implementation("org.javassist:javassist:3.29.0-GA")
 
-    compileOnly("ai.databand.azkaban:azkaban-spi:${azkabanVersion}")
-    compileOnly("ai.databand.azkaban:azkaban-common:${azkabanVersion}")
-    compileOnly("ai.databand.azkaban:azkaban-exec-server:${azkabanVersion}")
-    compileOnly("ai.databand.azkaban:azkaban-web-server:${azkabanVersion}")
+    compileOnly("ai.databand.azkaban:azkaban-spi:${azkabanVersion}") {
+        transitive = false
+    }
+    compileOnly("ai.databand.azkaban:azkaban-common:${azkabanVersion}"){
+        transitive = false
+    }
+    compileOnly("ai.databand.azkaban:azkaban-exec-server:${azkabanVersion}"){
+        transitive = false
+    }
+    compileOnly("ai.databand.azkaban:azkaban-web-server:${azkabanVersion}"){
+        transitive = false
+    }
 
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.6.0'
+    testImplementation "org.junit.jupiter:junit-jupiter:5.8.2"
     testImplementation 'org.hamcrest:hamcrest:2.2'
 }
 
@@ -61,7 +69,7 @@ shadowJar {
         exclude(dependency {
             !it.moduleGroup.contains('databand') \
                && !it.moduleGroup.contains('squareup') \
-               && !it.moduleGroup.contains('ch.qos') \
+               && !it.moduleGroup.contains('ch.qos.logback') \
                && !it.moduleGroup.contains('javassist') \
                && !it.moduleGroup.contains('com.fasterxml')
         })

@@ -91,18 +91,17 @@ configure(subprojects.findAll { fatJarProjects.contains(it.name) }) {
  * API-only projects (no real implementation goes here).
  * ****************************************************************************
  */
-def apiOnlyProjects = ['dbnd-api', 'dbnd-api-deequ'].toSet()
+def apiOnlyProjects = ['dbnd-api'].toSet()
 
 configure(subprojects.findAll { !apiOnlyProjects.contains(it.name) }) {
     dependencies {
         // logging
-        implementation 'org.slf4j:slf4j-api:1.7.16'
-        runtimeOnly 'org.slf4j:slf4j-log4j12:1.7.16'
+        implementation "org.slf4j:slf4j-api:1.7.36"
+        runtimeOnly "org.slf4j:slf4j-log4j12:1.7.36"
         // tests
-        testImplementation 'org.junit.jupiter:junit-jupiter:5.6.0'
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
         testImplementation 'org.hamcrest:hamcrest:2.2'
         testImplementation 'org.mockito:mockito-all:1.10.19'
-
     }
 
     test {
@@ -122,8 +121,14 @@ def sparkProjects = ['dbnd-examples', 'dbnd-client', 'dbnd-agent'].toSet()
 configure(subprojects.findAll { sparkProjects.contains(it.name) }) {
     dependencies {
         // spark & scala
+        compileOnly('org.apache.spark:spark-core_2.11:2.4.8') {
+            transitive = false
+        }
         compileOnly('org.apache.spark:spark-sql_2.11:2.4.8') {
-            exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+            transitive = false
+        }
+        compileOnly('org.apache.spark:spark-catalyst_2.11:2.4.8') {
+            transitive = false
         }
         testImplementation('org.apache.spark:spark-sql_2.11:2.4.8') {
             exclude group: 'org.slf4j', module: 'slf4j-log4j12'
