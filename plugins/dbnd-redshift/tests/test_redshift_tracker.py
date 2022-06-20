@@ -31,6 +31,11 @@ NON_NUMERIC_TYPES = [
 
 NUMBER_OF_ROWS_INSERTED = 100
 
+# This is dummy data taken from AWS docs ( found here https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html)
+DUMMY_AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"
+DUMMY_AWS_ACCESS_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+
 ERROR_MESSAGE = "Exception Mock"
 
 COPY_INTO_TABLE_FROM_S3_FILE_QUERY = """COPY "MY_TABLE" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv"""
@@ -43,6 +48,8 @@ COPY_INTO_TABLE_FAIL_QUERY = """copy into FAIL from s3://test/test.json CREDENTI
 COPY_INTO_TABLE_FROM_S3_FILE_GRACEFUL_FAIL_QUERY = """COPY "schema_fail" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv"""
 
 GET_SCHEMA_FAIL_QUERY = "select * from pg_table_def where tablename='schema_fail'"
+
+COPY_INTO_TABLE_FROM_S3_FILE_WITH_AWS_CREDENTIALS = f"""COPY "MY_SCHEMA.MY_TABLE" from 's3://my/bucket/file.csv' credentials = (aws_key_id = '{DUMMY_AWS_ACCESS_KEY_ID}' aws_secret_key = '{DUMMY_AWS_ACCESS_SECRET}') csv"""
 
 
 class CursorMock:
@@ -753,6 +760,70 @@ def test_copy_into_with_schema(mock_redshift):
         ),
     ]
     run_tracker_custom_query(COPY_INTO_TABLE_FROM_S3_FILE_QUERY_SCHEMA, expected)
+
+
+def test_copy_into_with_aws_creds(mock_redshift):
+    expected = [
+        RedshiftOperation(
+            extracted_schema={
+                '"MY_SCHEMA.MY_TABLE".*': [
+                    Column(
+                        dataset_name='"MY_SCHEMA.MY_TABLE"',
+                        name="*",
+                        alias='"MY_SCHEMA.MY_TABLE".*',
+                        is_file=False,
+                        is_stage=False,
+                    )
+                ]
+            },
+            dtypes=None,
+            records_count=100,
+            query=COPY_INTO_TABLE_FROM_S3_FILE_WITH_AWS_CREDENTIALS,
+            query_id=None,
+            success=True,
+            op_type=DbndTargetOperationType.write,
+            error=None,
+            dataframe=None,
+            source_name="s3://my/bucket/file.csv",
+            host="redshift.mock.test",
+            database="mock_db",
+            schema_name="my_schema",
+            table_name="my_table",
+            cls_cache=None,
+            schema_cache=None,
+        ),
+        RedshiftOperation(
+            extracted_schema={
+                "s3://my/bucket/file.csv.*": [
+                    Column(
+                        dataset_name="s3://my/bucket/file.csv",
+                        name="*",
+                        alias="s3://my/bucket/file.csv.*",
+                        is_file=True,
+                        is_stage=False,
+                    )
+                ]
+            },
+            dtypes=None,
+            records_count=100,
+            query=COPY_INTO_TABLE_FROM_S3_FILE_WITH_AWS_CREDENTIALS,
+            query_id=None,
+            success=True,
+            op_type=DbndTargetOperationType.read,
+            error=None,
+            dataframe=None,
+            source_name="s3://my/bucket/file.csv",
+            host="redshift.mock.test",
+            database="mock_db",
+            schema_name="my_schema",
+            table_name="my_table",
+            cls_cache=None,
+            schema_cache=None,
+        ),
+    ]
+    run_tracker_custom_query(
+        COPY_INTO_TABLE_FROM_S3_FILE_WITH_AWS_CREDENTIALS, expected
+    )
 
 
 def run_tracker_custom_query(query, expected):
