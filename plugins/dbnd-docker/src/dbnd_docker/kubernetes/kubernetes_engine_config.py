@@ -398,13 +398,13 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             logger.exception("Internal error on generating pod log url")
         return None
 
-    def get_kube_client(self, in_cluster=None):
+    def get_kube_client(self):
         from kubernetes import client, config
 
         # if in_cluster is set to None, we set it dynamically by trying to set
         # the k8s's config as if we are in a cluster, and if it fails, we set it
         # as we are not running in a cluster.
-        if in_cluster is None:
+        if self.in_cluster is None:
             try:
                 config.load_incluster_config()
                 self.in_cluster = True
@@ -418,7 +418,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                 self.in_cluster = False
         else:
             try:
-                if in_cluster:
+                if self.in_cluster:
                     config.load_incluster_config()
                 else:
                     config.load_kube_config(
@@ -438,10 +438,10 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             Configuration.set_default(configuration)
         return client.CoreV1Api()
 
-    def build_kube_dbnd(self, in_cluster=None):
+    def build_kube_dbnd(self):
         from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
 
-        kube_client = self.get_kube_client(in_cluster=in_cluster)
+        kube_client = self.get_kube_client()
         kube_dbnd = DbndKubernetesClient(kube_client=kube_client, engine_config=self)
         return kube_dbnd
 
