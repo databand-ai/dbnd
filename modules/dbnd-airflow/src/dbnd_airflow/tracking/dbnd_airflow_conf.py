@@ -13,6 +13,7 @@ from dbnd._core.configuration.environ_config import (
 from dbnd._core.settings import CoreConfig, TrackingConfig
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd.utils.trace import get_tracing_id
+from dbnd_airflow.tracking.config import TrackingSparkConfig
 
 
 AIRFLOW_DBND_CONNECTION_SOURCE = "airflow_dbnd_connection"
@@ -102,9 +103,11 @@ def extend_airflow_ctx_with_dbnd_tracking_info(task_run, airflow_ctx_env):
     info[DBND_PARENT_TASK_RUN_ATTEMPT_UID] = task_run.task_run_attempt_uid
     info[DBND_TRACE_ID] = get_tracing_id().hex
 
-    core = CoreConfig.from_databand_context()
-    info["DBND__CORE__DATABAND_URL"] = core.databand_url
-    info["DBND__CORE__DATABAND_ACCESS_TOKEN"] = core.databand_access_token
+    tracking_spark_conf = TrackingSparkConfig.from_databand_context()
+    if tracking_spark_conf.provide_databand_service_endpoint:
+        core = CoreConfig.from_databand_context()
+        info["DBND__CORE__DATABAND_URL"] = core.databand_url
+        info["DBND__CORE__DATABAND_ACCESS_TOKEN"] = core.databand_access_token
 
     info = {n: str(v) for n, v in six.iteritems(info) if v is not None}
     return info

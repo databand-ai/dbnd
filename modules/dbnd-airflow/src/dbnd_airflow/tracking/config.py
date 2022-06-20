@@ -37,3 +37,13 @@ class AirflowTrackingConfig(Config):
     sql_reporting = parameter(
         default=False, description="Enable targets reporting from sql queries"
     )[bool]
+
+
+class TrackingSparkConfig(Config):
+    _conf__task_family = "tracking_spark"
+
+    provide_databand_service_endpoint = parameter(
+        default=True,
+        description="Should Databand inject tracker URL and access token into spark-submit cmd,"
+        "e.g. `spark-submit --conf DBND__CORE__DATABAND_URL=... --conf DBND__CORE__DATABAND_ACCESS_TOKEN=... script.py",
+    )
