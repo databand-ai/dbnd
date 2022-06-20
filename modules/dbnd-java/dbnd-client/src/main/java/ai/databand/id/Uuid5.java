@@ -18,23 +18,8 @@ public class Uuid5 {
     public Uuid5(String namespace, String name) {
         Sha1 digest = new Sha1(namespace, name);
 
-        byte[] msbBytes = new byte[8];
-        System.arraycopy(digest.value(), 0, msbBytes, 0, 8);
-
-        byte[] lsbBytes = new byte[8];
-        System.arraycopy(digest.value(), 8, lsbBytes, 0, 8);
-
-        UUID uuid = new UUID(bytesToLong(msbBytes), bytesToLong(lsbBytes));
+        UUID uuid = Uuid5Raw.bytesToUuid(digest.value());
         this.value = uuid.toString();
-    }
-
-    public static long bytesToLong(byte[] b) {
-        long result = 0;
-        for (int i = 0; i < 8; i++) {
-            result <<= 8;
-            result |= (b[i] & 0xFF);
-        }
-        return result;
     }
 
     @Override
