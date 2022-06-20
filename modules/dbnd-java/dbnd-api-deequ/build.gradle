@@ -1,3 +1,7 @@
 dependencies {
-    compileOnly 'com.amazon.deequ:deequ:1.2.2-spark-2.2'
+    // scala
+    compileOnly "org.scala-lang:scala-library:2.11.12"
+    compileOnly("com.amazon.deequ:deequ:1.2.2-spark-2.2") {
+        transitive = false
+    }
 }

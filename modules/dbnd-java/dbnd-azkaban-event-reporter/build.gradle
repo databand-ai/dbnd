@@ -8,19 +8,28 @@ def azkabanVersion = "3.90.0"
 
 dependencies {
     compileOnly("ai.databand.azkaban:az-core:${azkabanVersion}") {
-        exclude group: 'azkaban'
+        transitive = false
     }
     compileOnly("ai.databand.azkaban:azkaban-spi:${azkabanVersion}") {
-        exclude group: 'azkaban'
+        transitive = false
     }
     compileOnly("ai.databand.azkaban:azkaban-common:${azkabanVersion}") {
-        exclude group: 'azkaban'
+        transitive = false
     }
     compileOnly("ai.databand.azkaban:azkaban-exec-server:${azkabanVersion}") {
-        exclude group: 'azkaban'
+        transitive = false
     }
     compileOnly("ai.databand.azkaban:azkaban-web-server:${azkabanVersion}") {
-        exclude group: 'azkaban'
+        transitive = false
+    }
+    compileOnly("org.codehaus.jackson:jackson-core-asl:1.9.5") {
+        transitive = false
+    }
+    compileOnly("org.codehaus.jackson:jackson-core-asl:1.9.5") {
+        transitive = false
+    }
+    compileOnly("org.codehaus.jackson:jackson-mapper-asl:1.9.5") {
+        transitive = false
     }
 }
 

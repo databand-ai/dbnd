@@ -1,6 +1,8 @@
 dependencies {
-    implementation 'org.javassist:javassist:3.27.0-GA'
-    implementation 'com.amazon.deequ:deequ:1.2.2-spark-2.2'
+    implementation "org.javassist:javassist:3.29.0-GA"
+    compileOnly('com.amazon.deequ:deequ:1.2.2-spark-2.2') {
+        transitive = false
+    }
 }
 
 configurations.all {
@@ -32,7 +34,7 @@ shadowJar {
         exclude(dependency {
             !it.moduleGroup.contains('databand') \
               && !it.moduleGroup.contains('squareup') \
-              && !it.moduleGroup.contains('ch.qos') \
+              && !it.moduleGroup.contains('ch.qos.logback') \
               && !it.moduleGroup.contains('javassist')
         })
     }
