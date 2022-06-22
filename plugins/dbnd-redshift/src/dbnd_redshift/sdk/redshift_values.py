@@ -77,7 +77,7 @@ def get_col_stats_queries(col_name: str, col_type: str):
         query_list.extend(
             [
                 f'(SELECT stddev("{col_name}") FROM {TEMP_TABLE_NAME})::text AS stddev',
-                f'(SELECT avg("{col_name}") FROM {TEMP_TABLE_NAME})::text AS average',
+                f'(SELECT avg("{col_name}"::float8) FROM {TEMP_TABLE_NAME})::text AS average',  # avg calculates in mem, we're limiting the column datatype so it won't cause numeric overflow
                 f'(SELECT min("{col_name}") FROM {TEMP_TABLE_NAME})::text AS minimum',
                 f'(SELECT max("{col_name}") FROM {TEMP_TABLE_NAME})::text AS maximum',
                 f'(SELECT percentile_cont(0.25) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_25',
@@ -221,49 +221,54 @@ class RedshiftOperation(SqlOperation):
         """
         stats = []  # type: List[ColumnStatsArgs]
 
-        if connection:
-            if self.schema:
-                queries = [
-                    list(get_col_stats_queries(col, col_type))
-                    for col, col_type in self.schema["dtypes"].items()
-                ]
-
-                query = query_list_to_text(queries)
-
-                column_stats = redshift_query(connection.connection, query)
-
-                if column_stats:
-                    for col in column_stats:
-                        null_percentage = 0
-                        if col["row_count"] > 0:
-                            null_percentage = (
-                                col["null_count"] / col["row_count"]
-                            ) * 100
-                        stats.append(
-                            ColumnStatsArgs(
-                                column_name=col["name"],
-                                column_type=self.schema["dtypes"][col["name"]],
-                                records_count=col["row_count"],
-                                mean_value=col["average"],
-                                min_value=col["minimum"],
-                                max_value=col["maximum"],
-                                std_value=col["stddev"],
-                                quartile_1=col["percentile_25"],
-                                quartile_2=col["percentile_50"],
-                                quartile_3=col["percentile_75"],
-                                distinct_count=col["distinct_count"],
-                                null_count=col["null_count"],
-                                non_null_count=col["row_count"] - col["null_count"],
-                                null_percent=null_percentage,
-                                unique_count=col["distinct_count"],
-                                most_freq_value=col["most_freq_value"],
-                                most_freq_value_count=col["most_freq_value_count"],
-                            )
-                        )
-
-                self.cls_cache = stats
-        else:
+        if not connection:
             logger.warning("No redshift connection, can not extract column level stats")
+            return
+
+        if self.schema:
+            queries = [
+                list(get_col_stats_queries(col, col_type))
+                for col, col_type in self.schema["dtypes"].items()
+            ]
+
+            query = query_list_to_text(queries)
+
+            if not query:
+                logger.warning(
+                    "redshift_tracker: cannot execute empty query for column level stats"
+                )
+                return
+
+            column_stats = redshift_query(connection.connection, query)
+
+            if column_stats:
+                for col in column_stats:
+                    null_percentage = 0
+                    if col["row_count"] > 0:
+                        null_percentage = (col["null_count"] / col["row_count"]) * 100
+                    stats.append(
+                        ColumnStatsArgs(
+                            column_name=col["name"],
+                            column_type=self.schema["dtypes"][col["name"]],
+                            records_count=col["row_count"],
+                            mean_value=col["average"],
+                            min_value=col["minimum"],
+                            max_value=col["maximum"],
+                            std_value=col["stddev"],
+                            quartile_1=col["percentile_25"],
+                            quartile_2=col["percentile_50"],
+                            quartile_3=col["percentile_75"],
+                            distinct_count=col["distinct_count"],
+                            null_count=col["null_count"],
+                            non_null_count=col["row_count"] - col["null_count"],
+                            null_percent=null_percentage,
+                            unique_count=col["distinct_count"],
+                            most_freq_value=col["most_freq_value"],
+                            most_freq_value_count=col["most_freq_value_count"],
+                        )
+                    )
+
+            self.cls_cache = stats
 
     def render_connection_path(self, connection) -> str:
         if self.is_file:

@@ -92,4 +92,5 @@ Operations logged by `RedshiftTracker` will result in two datasets: the read fro
 }
 [/block]
 # Limitations
-Nested queries are not supported by `RedshiftTracker` (e.g. COPY (SELECT * FROM TABLE) table FROM...).
+* Nested queries are not supported by `RedshiftTracker` (e.g. COPY (SELECT * FROM TABLE) table FROM...).
+* As part of column level stats we're calculating average value, this is precise with "double" data type limit.
