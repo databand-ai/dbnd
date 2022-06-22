@@ -205,7 +205,9 @@ def test_get_col_stats_queries_stats_numeric_types(col_type):
     col_name = "column"
     queries = get_col_stats_queries(col_name, col_type)
     assert f'(SELECT stddev("{col_name}") FROM DBND_TEMP)::text AS stddev' in queries
-    assert f'(SELECT avg("{col_name}") FROM DBND_TEMP)::text AS average' in queries
+    assert (
+        f'(SELECT avg("{col_name}"::float8) FROM DBND_TEMP)::text AS average' in queries
+    )
     assert f'(SELECT min("{col_name}") FROM DBND_TEMP)::text AS minimum' in queries
     assert f'(SELECT max("{col_name}") FROM DBND_TEMP)::text AS maximum' in queries
     assert (
