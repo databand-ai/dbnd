@@ -20,10 +20,23 @@ Additionally, subprocess/remote execution should be able to access the Databand 
 * `DBND__CORE__DATABAND_ACCESS_TOKEN` - Databand tracker Access Token
 * `DBND__TRACKING` - explicitly enables tracking
 
+Note that by default sensitive data like access token will be added to your `spark-submit` command. To disable this use `tracking_spark.provide_databand_service_endpoint` option in `dbnd_config` Airflow connection properties:
+
+```json
+{
+    "tracking_spark": {
+       "provide_databand_service_endpoint": false
+    }
+}
+```
+
 Currently, bypassing execution context in addition to regular tracking is automatically supported for the following operators:
   * `EmrAddStepsOperator`
+  * `EmrPySparkOperator`
   * `DatabricksSubmitRunOperator`
-  * `DataProcPySparkOperator`
+  * `DataProcPySparkOperator` (Ariflow 1)
+  * `DataprocSubmitJobOperator` (Airflow 2+)
+  * `DataprocSubmitPySparkJobOperator` (Airflow 2+)
   * `SparkSubmitOperator`
   * `BashOperator`
   * `SubDagOperator`
