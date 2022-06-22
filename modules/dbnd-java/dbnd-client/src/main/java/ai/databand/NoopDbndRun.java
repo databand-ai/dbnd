@@ -78,7 +78,8 @@ public class NoopDbndRun implements DbndRun {
                                     List<Long> dataDimensions,
                                     Object dataSchema,
                                     Boolean withPartition,
-                                    List<ColumnStats> columnStats) {
+                                    List<ColumnStats> columnStats,
+                                    String operationSource) {
         // do nothing
     }
 
@@ -88,7 +89,8 @@ public class NoopDbndRun implements DbndRun {
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
                                     Throwable error,
-                                    LogDatasetRequest params) {
+                                    LogDatasetRequest params,
+                                    String operationSource) {
         // do nothing
     }
 

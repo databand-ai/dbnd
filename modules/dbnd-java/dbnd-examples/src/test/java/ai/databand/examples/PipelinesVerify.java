@@ -7,6 +7,7 @@ import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.ErrorInfo;
 import ai.databand.schema.GetRunsResponse;
 import ai.databand.schema.Job;
+import ai.databand.schema.LogDataset;
 import ai.databand.schema.MetricForAlerts;
 import ai.databand.schema.MetricsForAlertsResponse;
 import ai.databand.schema.NodeInfo;
@@ -435,7 +436,8 @@ public class PipelinesVerify {
                 1,
                 1,
                 datasetByTask,
-                "java.lang.RuntimeException"
+                "java.lang.RuntimeException",
+                LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
             );
 
             assertDatasetOperationExists(
@@ -445,7 +447,8 @@ public class PipelinesVerify {
                 "SUCCESS",
                 1,
                 1,
-                datasetByTask
+                datasetByTask,
+                LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
             );
 
             assertDatasetOperationExists(
@@ -455,7 +458,8 @@ public class PipelinesVerify {
                 "SUCCESS",
                 1,
                 1,
-                datasetByTask
+                datasetByTask,
+                LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
             );
 
             assertDatasetOperationExists(
@@ -465,7 +469,8 @@ public class PipelinesVerify {
                 "SUCCESS",
                 1,
                 1,
-                datasetByTask
+                datasetByTask,
+                LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
             );
 
 
@@ -477,7 +482,8 @@ public class PipelinesVerify {
                     "SUCCESS",
                     3,
                     1,
-                    datasetByTask
+                    datasetByTask,
+                    LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
                 );
 
                 assertDatasetOperationExists(
@@ -487,7 +493,8 @@ public class PipelinesVerify {
                     "SUCCESS",
                     9,
                     3,
-                    datasetByTask
+                    datasetByTask,
+                    LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
                 );
 
                 assertDatasetOperationExists(
@@ -497,7 +504,8 @@ public class PipelinesVerify {
                     "SUCCESS",
                     6,
                     2,
-                    datasetByTask
+                    datasetByTask,
+                    LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
                 );
             }
         }
@@ -509,8 +517,9 @@ public class PipelinesVerify {
                                                                String status,
                                                                long records,
                                                                long operations,
-                                                               Map<String, List<DatasetOperationRes>> datasets) {
-        return assertDatasetOperationExists(taskName, path, type, status, records, operations, datasets, null);
+                                                               Map<String, List<DatasetOperationRes>> datasets,
+                                                               String operationSource) {
+        return assertDatasetOperationExists(taskName, path, type, status, records, operations, datasets, null, operationSource);
     }
 
     /**
@@ -532,7 +541,8 @@ public class PipelinesVerify {
                                                                long records,
                                                                long operations,
                                                                Map<String, List<DatasetOperationRes>> datasets,
-                                                               String error) {
+                                                               String error,
+                                                               String operationSource) {
         List<DatasetOperationRes> taskDatasets = datasets.get(taskName);
         Optional<DatasetOperationRes> datasetOpt = taskDatasets.stream().filter(datasetOperationRes -> datasetOperationRes.getOperationType().equalsIgnoreCase(type.toString()) && datasetOperationRes.getDatasetPath().contains(path)).findFirst();
         if (datasetOpt.isPresent()) {
@@ -545,6 +555,7 @@ public class PipelinesVerify {
             if (error != null) {
                 assertThat(String.format("Wrong dataset operation error for task [%s]", taskName), dataset.getIssues().get(0).getData().getOperationError(), Matchers.containsString(error));
             }
+            assertThat(String.format("Wrong dataset operation source for task [%s]", taskName), dataset.getOperationSource(), Matchers.equalTo(operationSource));
             return dataset;
         } else {
             fail(String.format("Dataset operation of type [%s] with path [%s] for task [%s] not found", type.toString(), path, taskName));

@@ -5,6 +5,7 @@ import ai.databand.parameters.DatasetOperationPreview;
 import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
+import ai.databand.schema.LogDataset;
 import ai.databand.schema.Pair;
 import org.apache.spark.sql.catalyst.plans.QueryPlan;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
@@ -195,7 +196,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             schema.right(),
             schema.left(),
             true,
-            columnStats
+            columnStats,
+            LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
         );
     }
 
