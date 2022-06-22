@@ -647,7 +647,8 @@ public class DefaultDbndRun implements DbndRun {
                                     List<Long> dataDimensions,
                                     Object dataSchema,
                                     Boolean withPartition,
-                                    List<ColumnStats> columnStats) {
+                                    List<ColumnStats> columnStats,
+                                    String operationSource) {
         try {
             TaskRun currentTask = stack.peek();
             if (currentTask == null) {
@@ -665,7 +666,8 @@ public class DefaultDbndRun implements DbndRun {
                         dataDimensions,
                         dataSchema,
                         withPartition,
-                        columnStats
+                        columnStats,
+                        operationSource
                     )
                 ));
         } catch (Exception e) {
@@ -679,7 +681,8 @@ public class DefaultDbndRun implements DbndRun {
                                     DatasetOperationStatus status,
                                     Dataset<?> data,
                                     Throwable error,
-                                    LogDatasetRequest params) {
+                                    LogDatasetRequest params,
+                                    String operationSource) {
         TaskParameterPreview preview = params.getWithSchema() ? new DatasetOperationPreview() : new NullPreview();
         String errorStr = null;
         if (error != null) {
@@ -699,7 +702,8 @@ public class DefaultDbndRun implements DbndRun {
             preview.dimensions(data),
             preview.schema(data),
             params.getWithPartition(),
-            columnStats.values()
+            columnStats.values(),
+            operationSource
         );
     }
 

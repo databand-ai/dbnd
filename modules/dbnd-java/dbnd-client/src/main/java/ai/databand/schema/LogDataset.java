@@ -4,6 +4,9 @@ import java.util.List;
 
 public class LogDataset {
 
+    public static final String OP_SOURCE_SPARK_QUERY_LISTENER = "spark_query_listener";
+    public static final String OP_SOURCE_JAVA_MANUAL_LOGGING = "java_manual_logging";
+
     private final String runUid;
     private final String taskRunUid;
     private final String taskRunName;
@@ -17,6 +20,7 @@ public class LogDataset {
     private final Object dataSchema;
     private final Boolean withPartition;
     private final List<ColumnStats> columnsStats;
+    private final String operationSource;
 
     public LogDataset(TaskRun taskRun,
                       String operationPath,
@@ -27,7 +31,8 @@ public class LogDataset {
                       List<Long> dataDimensions,
                       Object dataSchema,
                       Boolean withPartition,
-                      List<ColumnStats> columnStats) {
+                      List<ColumnStats> columnStats,
+                      String operationSource) {
         this(
             taskRun.getRunUid(),
             taskRun.getTaskRunUid(),
@@ -41,7 +46,8 @@ public class LogDataset {
             dataDimensions,
             dataSchema,
             withPartition,
-            columnStats
+            columnStats,
+            operationSource
         );
     }
 
@@ -57,7 +63,8 @@ public class LogDataset {
                       List<Long> dataDimensions,
                       Object dataSchema,
                       Boolean withPartition,
-                      List<ColumnStats> columnStats) {
+                      List<ColumnStats> columnStats,
+                      String operationSource) {
         this.runUid = runUid;
         this.taskRunUid = taskRunUid;
         this.taskRunName = taskRunName;
@@ -71,6 +78,7 @@ public class LogDataset {
         this.dataSchema = dataSchema;
         this.withPartition = withPartition;
         this.columnsStats = columnStats;
+        this.operationSource = operationSource;
     }
 
     public String getRunUid() {
@@ -123,6 +131,10 @@ public class LogDataset {
 
     public List<ColumnStats> getColumnsStats() {
         return columnsStats;
+    }
+
+    public String getOperationSource() {
+        return operationSource;
     }
 
     @Override

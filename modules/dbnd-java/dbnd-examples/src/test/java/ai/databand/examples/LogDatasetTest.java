@@ -5,6 +5,7 @@ import ai.databand.log.DbndLogger;
 import ai.databand.log.LogDatasetRequest;
 import ai.databand.schema.DatasetOperationRes;
 import ai.databand.schema.Job;
+import ai.databand.schema.LogDataset;
 import ai.databand.schema.Pair;
 import ai.databand.schema.TaskFullGraph;
 import ai.databand.schema.TaskRun;
@@ -79,7 +80,8 @@ public class LogDatasetTest {
             "SUCCESS",
             41,
             1,
-            datasetOpsByTask
+            datasetOpsByTask,
+            LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
         );
 
         pipelinesVerify.assertColumnStat(

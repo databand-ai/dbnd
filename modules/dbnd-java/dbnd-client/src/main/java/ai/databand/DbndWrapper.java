@@ -7,6 +7,7 @@ import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatabandTaskContext;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
+import ai.databand.schema.LogDataset;
 import ai.databand.schema.TaskRun;
 import javassist.ClassPool;
 import javassist.Loader;
@@ -240,7 +241,7 @@ public class DbndWrapper {
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, data, error, params);
+        run.logDatasetOperation(path, type, status, data, error, params, LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING);
         LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 
@@ -251,12 +252,13 @@ public class DbndWrapper {
                                     List<Long> dataDimensions,
                                     String dataSchema,
                                     Boolean withPartition,
-                                    List<ColumnStats> columnStats) {
+                                    List<ColumnStats> columnStats,
+                                    String operationSource) {
         DbndRun run = currentRun();
         if (run == null) {
             run = createAgentlessRun();
         }
-        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition, columnStats);
+        run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition, columnStats, operationSource);
         LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 

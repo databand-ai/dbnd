@@ -13,6 +13,7 @@ public class DatasetOperationRes {
     private String datasetPath;
     private String taskRunUid;
     private String operationType;
+    private String operationSource;
     private String taskRunName;
     private List<Issue> issues;
     private List<ColumnStats> columnsStats;
@@ -63,6 +64,14 @@ public class DatasetOperationRes {
 
     public void setOperationType(String operationType) {
         this.operationType = operationType;
+    }
+
+    public String getOperationSource() {
+        return operationSource;
+    }
+
+    public void setOperationSource(String operationSource) {
+        this.operationSource = operationSource;
     }
 
     public String getTaskRunName() {

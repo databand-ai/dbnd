@@ -111,7 +111,8 @@ public interface DbndRun {
                              List<Long> dataDimensions,
                              Object dataSchema,
                              Boolean withPartition,
-                             List<ColumnStats> columnStats);
+                             List<ColumnStats> columnStats,
+                             String operationSource);
 
     /**
      * Log dataset operations with options like preview and schema generation.
@@ -127,7 +128,8 @@ public interface DbndRun {
                              DatasetOperationStatus status,
                              Dataset<?> data,
                              Throwable error,
-                             LogDatasetRequest params);
+                             LogDatasetRequest params,
+                             String operationSource);
 
     /**
      * Log Deequ result
