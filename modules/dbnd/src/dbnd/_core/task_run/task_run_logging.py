@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import typing
 
@@ -66,11 +67,19 @@ class TaskRunLogManager(TaskRunCtrl):
             yield None
             return
 
-        logging_target_stdout = logging_target or logging.getLogger("dbnd.stdout")
-        logging_target_stderr = logging_target or logging.getLogger("dbnd.stderr")
-        with redirect_stdout(logging_target_stderr, logging.INFO), redirect_stderr(
-            logging_target_stdout, logging.WARN
-        ):
+        with contextlib.ExitStack() as stack:
+            logging_target_stdout = logging_target or logging.getLogger("dbnd.stdout")
+            if logging_target_stdout.isEnabledFor(logging.INFO):
+                stack.enter_context(
+                    redirect_stdout(logging_target_stdout, logging.INFO)
+                )
+
+            logging_target_stderr = logging_target or logging.getLogger("dbnd.stderr")
+            if logging_target_stderr.isEnabledFor(logging.WARN):
+                stack.enter_context(
+                    redirect_stderr(logging_target_stderr, logging.WARN)
+                )
+
             yield
 
     @contextmanager
