@@ -3,15 +3,15 @@ import logging
 import os
 import re
 import shutil
-import sys
 
 from dataclasses import dataclass
 
+import click
 import requests
 
 
-VERSION_SUFFIX = ""
-VERSION_HIDDEN = False
+version_suffix = "-internal"
+version_main = False
 
 OUTPUT_FOLDER = "./sdk-docs/"
 PAGE_INFO_PATTERN = r"---\n(.+?)\n---\n"
@@ -69,7 +69,7 @@ def _version_get_or_create(current_version, readme_versions):
     current_version = ".".join(
         current_version.split(".")[:-1]
     )  # Removes the patch number
-    new_version = current_version + VERSION_SUFFIX
+    new_version = current_version + version_suffix
     current_version_exists = any(
         [new_version == version for version in readme_versions]
     )
@@ -85,11 +85,11 @@ def _version_get_or_create(current_version, readme_versions):
 def _create_version(version_name: str, fork: str):
     url = "https://dash.readme.com/api/v1/version"
     payload = {
-        "is_beta": False,
+        "is_beta": not version_main,
         "version": version_name,
         "from": fork,
-        "is_stable": True,
-        "is_hidden": VERSION_HIDDEN,
+        "is_stable": version_main,
+        "is_hidden": not version_main,
         "is_deprecated": False,
     }
     _request_url("POST", url, payload)
@@ -324,12 +324,24 @@ def main(apikey, target_version):
     update_categories(categories, True)
 
 
-if (
-    __name__ == "__main__"
-):  # to run sync, in terminal do ```py sdk_documentation.py <apikey> <latest dbnd version>
-    try:
-        _, apikey, target_version = sys.argv
-    except ValueError:
-        logger.error("Invalid number of parameters!")
-    else:
-        main(apikey, target_version)
+@click.command()
+@click.option("--api-key", required=True, help="Our Readme website apikey")
+@click.option("--version", default="0.1.1", help="Current DBND build version")
+@click.option(
+    "--is-main",
+    default=False,
+    is_flag=True,
+    help="Specified version should be the main version",
+)
+@click.option(
+    "--suffix", default="", help="What suffix should be added to the version number"
+)
+def upload_docs(api_key, version, is_main, suffix):
+    global version_main, version_suffix
+    version_main = is_main
+    version_suffix = suffix
+    main(api_key, version)
+
+
+if __name__ == "__main__":
+    upload_docs()
