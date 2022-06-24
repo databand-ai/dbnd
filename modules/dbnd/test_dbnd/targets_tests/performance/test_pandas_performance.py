@@ -15,13 +15,18 @@ from targets.target_config import file
 logger = logging.getLogger(__name__)
 
 
-# https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
-def sizeof_fmt(num, suffix="B"):
-    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
-        if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
-        num /= 1024.0
-    return "%.1f%s%s" % (num, "Yi", suffix)
+def format_readable_size(num):
+    byte_size = 1024.0
+    counter = 0
+    while abs(num) >= byte_size:
+        counter += 1
+        num /= byte_size
+
+    suffix_list = ["", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]
+    if counter >= len(suffix_list):
+        return f"{num:.1f}YiB"
+
+    return f"{num:.1f}{suffix_list[counter]}"
 
 
 def sample_path(*path):
@@ -82,7 +87,7 @@ class TestPandasPerformance(object):
         status = "{replication} {config}  - {size} on disk, {memory} in memory".format(
             replication=replication,
             config=config,
-            size=sizeof_fmt(os.stat(t.path).st_size),
+            size=format_readable_size(os.stat(t.path).st_size),
             memory=memory,
         )
         logger.info(status)
