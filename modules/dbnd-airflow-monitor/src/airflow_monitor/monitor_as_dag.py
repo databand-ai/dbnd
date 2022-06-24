@@ -69,9 +69,7 @@ class MonitorOperator(BashOperator):
         try:
             dbnd_conn_config = BaseHook.get_connection(self.databand_airflow_conn_id)
             json_config = dbnd_conn_config.extra_dejson
-            dbnd_config = self.to_env(
-                self.flatten(json_config, parent_key="DBND", sep="__")
-            )
+            dbnd_config = self.to_env(self._flatten_dict(json_config, d_key="DBND"))
             self.env.update(dbnd_config)
         except AirflowNotFoundException:
             missing_env_variables = self._get_missing_env_variables()
@@ -94,6 +92,23 @@ class MonitorOperator(BashOperator):
             }
         )
 
+    def _flatten_dict(self, d, d_key=""):
+        """
+        Flatten input dict to env variables:
+        { "core": { "conf1": "v1", "conf2": "v2" } } =>
+        { "dbnd__core__conf1": "v1", "dbnd__core__conf2": "v2" }
+        """
+        items = []
+        sep = "__"
+
+        for k, v in d.items():
+            new_key = d_key + sep + k if d_key else k
+            if isinstance(v, dict):
+                items.extend(self._flatten_dict(v, new_key).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
     def _get_missing_env_variables(self):
         expected_connection_env_variables = {
             "DBND__AIRFLOW_MONITOR__SYNCER_NAME",
@@ -104,23 +119,6 @@ class MonitorOperator(BashOperator):
             os.environ
         )
         return missing_connection_env_variables
-
-    def flatten(self, d, parent_key="", sep="_"):
-        """
-        Flatten input dict to env variables:
-        { "core": { "conf1": "v1", "conf2": "v2" } } =>
-        { "dbnd__core__conf1": "v1", "dbnd__core__conf2": "v2" }
-
-        source: https://stackoverflow.com/a/6027615/15495440
-        """
-        items = []
-        for k, v in d.items():
-            new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, dict):
-                items.extend(self.flatten(v, new_key, sep=sep).items())
-            else:
-                items.append((new_key, v))
-        return dict(items)
 
     def to_env(self, d):
         """
