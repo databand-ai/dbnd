@@ -17,7 +17,7 @@ setuptools.setup(
     install_requires=[
         "dbnd==" + version,
         "dbnd-airflow-monitor==" + version,
-        "requests==2.23.0",
+        "requests>=2.25.0",
     ],
     extras_require={"tests": ["pytest", "mock"]},
     entry_points={
