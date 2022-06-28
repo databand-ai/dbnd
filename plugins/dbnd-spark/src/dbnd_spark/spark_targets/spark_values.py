@@ -20,6 +20,26 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+"""
+    helper function to preview pyspark dataframe as string by using inner function _jdf.showString
+    :param DataFrame df
+            dataframe to preview
+    :param int n, optional
+            number of rows to preview
+    :param truncate : bool or int, optional
+            If set to ``True``, truncate strings longer than 20 chars by default.
+            If set to a number greater than one, truncates long strings to length ``truncate``
+            and align cells right.
+     :return: str
+     """
+
+
+def get_show_string(df, n=20, truncate=True):
+    if isinstance(truncate, bool) and truncate:
+        return df._jdf.showString(n, 20, False)
+    else:
+        return df._jdf.showString(n, int(truncate), False)
+
 
 class SparkDataFrameValueType(DataValueType):
     type = spark.DataFrame
@@ -36,11 +56,10 @@ class SparkDataFrameValueType(DataValueType):
 
     def to_preview(self, df, preview_size):  # type: (spark.DataFrame, int) -> str
         preview_alias = df.alias("DBND_INTERNAL_PREVIEW")
-        return (
-            preview_alias.limit(1000)
-            .toPandas()
-            .to_string(index=False, max_rows=20, max_cols=1000)[:preview_size]
-        )
+        try:
+            return get_show_string(df=preview_alias.limit(1000), truncate=True)
+        except Exception:
+            logger.exception("Unexpected error, dataframe preview cannot be shown")
 
     def get_value_meta(self, value, meta_conf):
         # type: (spark.DataFrame, ValueMetaConf) -> ValueMeta
