@@ -33,6 +33,7 @@ class ValueMeta(object):
     columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
     histograms = attr.ib(default=None)  # type: Optional[Dict[str, Tuple]]
     histogram_system_metrics = attr.ib(default=None)  # type: Optional[Dict]
+    op_source = attr.ib(default=None)  # type: Optional[str]
 
     def build_metrics_for_key(self, key, meta_conf=None):
         # type: (str, Optional[ValueMetaConf]) -> Dict[str, List[Metric]]

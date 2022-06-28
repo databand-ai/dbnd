@@ -13,6 +13,8 @@ from targets.value_meta import ValueMeta
 from targets.values.builtins_values import DataValueType
 
 
+LOG_DATASET_OP_PYSPARK_SOURCE = "pyspark_manual_logging"
+
 if typing.TYPE_CHECKING:
     from targets.value_meta import ValueMetaConf
 
@@ -87,6 +89,7 @@ class SparkDataFrameValueType(DataValueType):
             columns_stats=df_columns_stats,
             histogram_system_metrics=hist_sys_metrics,
             histograms=histogram_dict,
+            op_source=LOG_DATASET_OP_PYSPARK_SOURCE,
         )
 
     def calculate_spark_stats(

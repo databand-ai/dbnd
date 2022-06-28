@@ -235,7 +235,9 @@ class TaskRunTracker(TaskRunCtrl):
             operation_type=op_report.op_type,
             operation_status=op_report.status,
             operation_error=op_report.error,
-            operation_source=op_report.operation_source,
+            operation_source=data_meta.op_source
+            if data_meta.op_source
+            else op_report.operation_source,
             with_partition=op_report.with_partition,
         )
 
