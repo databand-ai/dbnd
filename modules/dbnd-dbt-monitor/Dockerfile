@@ -6,7 +6,15 @@ RUN apt-get update -yqq && \
 
 # constants:
 ENV DBND_HOME=/app
+ARG DBND_USER=databand
+ARG DBND_GROUP=databand
+ARG DBND_UID=11000
+ARG DBND_GID=11000
+
+RUN groupadd -g ${DBND_GID} ${DBND_GROUP} && \
+    useradd -u ${DBND_UID} -g ${DBND_GID} -d ${DBND_HOME} ${DBND_USER}
 WORKDIR ${DBND_HOME}
+RUN chown -R ${DBND_USER}:${DBND_GROUP} ${DBND_HOME}
 CMD dbnd tracker wait && dbnd-dbt-monitor
 
 # pre-install requirements:
@@ -34,6 +42,8 @@ COPY ./dbnd-core/LICENSE ./dbnd-core/setup.cfg /dist-databand/dbnd/
 COPY ./LICENSE ./setup.cfg /dist-databand/dbnd-airflow-monitor/
 COPY ./LICENSE ./setup.cfg /dist-databand/dbnd-dbt-monitor/
 RUN pip install /dist-databand/dbnd /dist-databand/dbnd-airflow-monitor /dist-databand/dbnd-dbt-monitor --no-index
+
+USER ${DBND_USER}
 
 # versioning:
 ARG SOURCE_VERSION
