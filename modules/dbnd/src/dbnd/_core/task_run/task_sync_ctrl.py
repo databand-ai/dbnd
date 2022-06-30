@@ -76,7 +76,25 @@ class TaskSyncCtrl(TaskRunCtrl):
         remote_file = self.remote_file(local_file, md5_hash)
 
         if not remote_file.exists():
-            self._upload(local_file, remote_file)
+            try:
+                self._upload(local_file, remote_file)
+            except:
+                if not remote_file.exists():
+                    logger.error(
+                        "Unexpected error occurred while trying to upload file `%s` to the remote server",
+                        remote_file,
+                    )
+                    raise
+                logger.warning(
+                    "File %s was copied from different process to the remote location, skipping upload...",
+                    remote_file,
+                )
+
+        else:
+            logger.info(
+                "File %s already exists at remote location, skipping upload...",
+                remote_file,
+            )
 
         return remote_file
 
