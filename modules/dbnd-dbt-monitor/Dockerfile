@@ -43,7 +43,7 @@ COPY ./LICENSE ./setup.cfg /dist-databand/dbnd-airflow-monitor/
 COPY ./LICENSE ./setup.cfg /dist-databand/dbnd-dbt-monitor/
 RUN pip install /dist-databand/dbnd /dist-databand/dbnd-airflow-monitor /dist-databand/dbnd-dbt-monitor --no-index
 
-USER ${DBND_USER}
+USER ${DBND_UID}
 
 # versioning:
 ARG SOURCE_VERSION
