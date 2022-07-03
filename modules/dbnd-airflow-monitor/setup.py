@@ -19,7 +19,7 @@ setuptools.setup(
         "tests": ["pytest", "mock", "sh"],
         "composer": [
             "PyJWT==1.7.1",
-            "cryptography==2.8",
+            "cryptography==37.0.2",
             "google-auth==1.10.0",
             "requests==2.22.0",
             "requests_toolbelt==0.9.1",
