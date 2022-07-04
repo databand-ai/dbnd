@@ -51,16 +51,6 @@ public abstract class DbndPropertyNames {
     public static final String DBND__LOG__PREVIEW_TAIL_BYTES = "dbnd.log.preview_tail_bytes";
 
     /**
-     * Turn on spark listener auto-injection.
-     */
-    public static final String DBND__SPARK__LISTENER_INJECT_ENABLED = "dbnd.spark.listener_inject_enabled";
-
-    /**
-     * Turn on spark query listener auto-injection.
-     */
-    public static final String DBND__SPARK__QUERY_LISTENER_INJECT_ENABLED = "dbnd.spark.query_listener_inject_enabled";
-
-    /**
      * Turn on advanced Spark I/O tracking.
      */
     public static final String DBND__SPARK__IO_TRACKING_ENABLED = "dbnd.spark.io_tracking_enabled";

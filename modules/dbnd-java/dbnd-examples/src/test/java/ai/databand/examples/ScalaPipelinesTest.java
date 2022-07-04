@@ -7,9 +7,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 
-import static ai.databand.DbndPropertyNames.DBND__SPARK__LISTENER_INJECT_ENABLED;
-import static ai.databand.DbndPropertyNames.DBND__SPARK__QUERY_LISTENER_INJECT_ENABLED;
-
 public class ScalaPipelinesTest {
 
     private static PipelinesVerify pipelinesVerify;
@@ -30,8 +27,6 @@ public class ScalaPipelinesTest {
         ScalaSparkPipeline.main(new String[]{});
         DbndConfig config = new DbndConfig();
         String jobName = config.jobName().orElse("spark_scala_pipeline");
-        final boolean verifySpark = Boolean.TRUE.toString().equalsIgnoreCase(System.getenv(DBND__SPARK__LISTENER_INJECT_ENABLED));
-        final boolean verifyDatasetOps = Boolean.TRUE.toString().equalsIgnoreCase(System.getenv(DBND__SPARK__QUERY_LISTENER_INJECT_ENABLED));
-        pipelinesVerify.verifyOutputs(jobName, now, verifySpark, verifyDatasetOps, "spark_scala_pipeline", true);
+        pipelinesVerify.verifyOutputs(jobName, now, true, true, "spark_scala_pipeline", true);
     }
 }

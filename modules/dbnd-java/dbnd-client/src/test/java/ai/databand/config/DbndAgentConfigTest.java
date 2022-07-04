@@ -13,8 +13,6 @@ class DbndAgentConfigTest {
     public void testNullArgs() {
         DbndAgentConfig config = new DbndAgentConfig(null);
         assertThat("Wrong config property value", config.isVerbose(), Matchers.equalTo(false));
-        assertThat("Wrong config property value", config.sparkListenerInjectEnabled(), Matchers.equalTo(false));
-        assertThat("Wrong config property value", config.sparkQueryListenerInjectEnabled(), Matchers.equalTo(false));
         assertThat("Wrong config property value", config.sparkIoTrackingEnabled(), Matchers.equalTo(false));
     }
 
@@ -22,8 +20,6 @@ class DbndAgentConfigTest {
     public void testEmptyArgs() {
         DbndAgentConfig config = new DbndAgentConfig("");
         assertThat("Wrong config property value", config.isVerbose(), Matchers.equalTo(false));
-        assertThat("Wrong config property value", config.sparkListenerInjectEnabled(), Matchers.equalTo(false));
-        assertThat("Wrong config property value", config.sparkQueryListenerInjectEnabled(), Matchers.equalTo(false));
         assertThat("Wrong config property value", config.sparkIoTrackingEnabled(), Matchers.equalTo(false));
     }
 
@@ -39,10 +35,8 @@ class DbndAgentConfigTest {
 
     @Test
     public void testCorrectnValue() {
-        DbndAgentConfig config = new DbndAgentConfig(DbndPropertyNames.DBND__TRACKING__VERBOSE + "=true," + DbndPropertyNames.DBND__SPARK__LISTENER_INJECT_ENABLED + "=true");
+        DbndAgentConfig config = new DbndAgentConfig(DbndPropertyNames.DBND__TRACKING__VERBOSE + "=true");
         assertThat("Wrong config property value", config.isVerbose(), Matchers.equalTo(true));
-        assertThat("Wrong config property value", config.sparkListenerInjectEnabled(), Matchers.equalTo(true));
-        assertThat("Wrong config property value", config.sparkQueryListenerInjectEnabled(), Matchers.equalTo(false));
         assertThat("Wrong config property value", config.sparkIoTrackingEnabled(), Matchers.equalTo(false));
     }
 }
