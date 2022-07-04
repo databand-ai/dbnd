@@ -3,8 +3,9 @@ package ai.databand.examples
 import ai.databand.annotations.Task
 import ai.databand.deequ.DbndMetricsRepository
 import ai.databand.log.{DbndLogger, LogDatasetRequest}
-import ai.databand.schema.DatasetOperationStatus.{NOK, OK}
-import ai.databand.schema.DatasetOperationType.{READ, WRITE}
+import ai.databand.schema.DatasetOperationStatus.OK
+import ai.databand.schema.DatasetOperationType.READ
+import ai.databand.spark.{DbndSparkListener, DbndSparkQueryExecutionListener}
 import com.amazon.deequ.VerificationSuite
 import com.amazon.deequ.checks.{Check, CheckLevel}
 import com.amazon.deequ.profiles.ColumnProfilerRunner
@@ -28,6 +29,9 @@ object ScalaSparkPipeline {
             .config("spark.sql.shuffle.partitions", 1)
             .master("local[*]")
             .getOrCreate
+
+        spark.listenerManager.register(new DbndSparkQueryExecutionListener())
+        spark.sparkContext.addSparkListener(new DbndSparkListener())
 
         sql = spark.sqlContext
         val path = if (args.length > 0) args(0) else getClass.getClassLoader.getResource("sample.json").getFile
