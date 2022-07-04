@@ -17,44 +17,18 @@ The following environment variables should be defined in your Spark context.
  * `DBND__CORE__DATABAND_ACCESS_TOKEN` - a  Databand server Access Token
  * `DBND__TRACKING=True`
  * `DBND__ENABLE__SPARK_CONTEXT_ENV=True`
+
 You should install `dbnd-spark`. See [Installing Python SDK](doc:installing-dbnd) and bootstrap example below
 
-# Cluster Bootstrap
-Most of the Spark clusters support bootstrap scripts (EMR, Dataproc, and others).
-
-## Configure Tracking Properties on Spark Cluster with Bootstrap script
-
-Add the following commands to your cluster initialization script:
-``` bash
-#!/bin/bash -x
-
-DBND_VERSION=REPLACE_WITH_DBND_VERSION
-
-#Configure your Databand Tracking Configuration (works only for generic cluster/dataproc, not for EMR)
-echo "export DBND__TRACKING=True" | tee -a /usr/lib/spark/conf/spark-env.sh
-echo "export DBND__ENABLE__SPARK_CONTEXT_ENV=True" | tee -a /usr/lib/spark/conf/spark-env.sh
-echo "export DBND__CORE__DATABAND_URL=REPLACE_WITH_DATABAND_URL" | tee -a /usr/lib/spark/conf/spark-env.sh
-echo "export DBND__CORE__DATABAND_ACCESS_TOKEN=REPLACE_WITH_DATABAND_TOKEN" | tee -a /usr/lib/spark/conf/spark-env.sh
-
-# if you use Listeners/Agent, download Databand Agent which includes all jars
-wget https://repo1.maven.org/maven2/ai/databand/dbnd-agent/${DBND_VERSION}/dbnd-agent-${DBND_VERSION}-all.jar -P /home/hadoop/
-
-# install Databand Python package together with Airflow support
-python -m pip install databand[spark]==${DBND_VERSION}
-```
-
-* Be sure to replace `<databand-url>` and `<databand-access-token>` with your environment-specific information.
-* Install the `dbnd` packages on the Spark master and Spark workers by running `pip install databand[spark]` at bootstrap or manually.
-* Make sure you don't install "dbnd-airflow" to the cluster.
-
-
 # Spark Clusters
+
+Most clusters support setting up Spark environment variables via cluster metadata or via bootstrap scripts. Below are provider-specific instructions.
 
 ## EMR Cluster
 
 ### Setting Databand Configuration via Environment Variables
 
-You need to define Environment Variables at the API call/`EmrCreateJobFlowOperator` Airflow Operator.  An alternative way is to provide all these variables via AWS UI where you create a new cluster. EMR cluster doesn't have a way of defining Environment Variables in the bootstrap.
+You need to define Environment Variables at the API call/`EmrCreateJobFlowOperator` Airflow Operator. An alternative way is to provide all these variables via AWS UI where you create a new cluster. EMR cluster doesn't have a way of defining Environment Variables in the bootstrap. Please consult with official [EMR documentation on Spark Configuration](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-spark-configure.html) if you use custom operator or creating cluster outside Ariflow.
 
 <!-- noqa -->
 ```python
@@ -67,7 +41,7 @@ databand_access_token = dbnd_config["core"]["databand_access_token"]
 emr_create_job_flow = EmrCreateJobFlowOperator(
     job_flow_overrides={
         "Name": "<EMR Cluster Name>",
-         ...
+        #...
         "Configurations": [
             {
                 "Classification": "spark-env",
@@ -85,20 +59,31 @@ emr_create_job_flow = EmrCreateJobFlowOperator(
             }
         ]
     }
-    ...
+    #...
 )
 
 ```
 
 ### Installing Databand on Cluster
 
-As EMR cluster has built-in support for bootstrap scripts, please, follow bootstrap option documentation to install python and JVM integrations.
+As EMR cluster has support for bootstrap actions, following snippet can be used to install python and jvm integrations:
+
+```shell
+#!/usr/bin/env bash
+
+DBND_VERSION=REPLACE_WITH_DBND_VERSION
+
+sudo python3 -m pip install pandas==1.2.0 pydeequ==1.0.1 databand[spark]==${DBND_VERSION}
+sudo wget https://repo1.maven.org/maven2/ai/databand/dbnd-agent/${DBND_VERSION/dbnd-agent-${DBND_VERSION}-all.jar -P /home/hadoop/
+```
+
+Add this script to your cluster bootstrap actions list. For more details please, please follow [bootstrap actions documentation](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-plan-bootstrap.html).
 
 
 ## Databricks Cluster
 ### Setting Databand Configuration via Environment Variables
 
-In the cluster configuration screen, click 'Edit'>>Advanced Options>>Spark.
+In the cluster configuration screen, click 'Edit'>>'Advanced Options'>>'Spark'.
 Inside the Environment Variables section, declare the configuration variables listed below. Be sure to replace `<databand-url>` and `<databand-access-token>` with your environment specific information:
 
 * `DBND__TRACKING="True"`
@@ -123,7 +108,7 @@ Ensure that the `dbnd` library is installed on the Databricks cluster by adding 
 <!-- noqa -->
 ```python
 DatabricksSubmitRunOperator(
-     ...
+     #...
      json={"libraries": [
         {"pypi": {"package": "databand[spark]==REPLACE_WITH_DBND_VERSION"}},
     ]},
@@ -141,15 +126,15 @@ Use the following configuration of the Databricks job to enable Databand Java Ag
 ```python
 spark_operator = DatabricksSubmitRunOperator(
     json={
-        ...
+        #...
         "new_cluster": {
-             ...
+            #...
             "spark_conf": {
                 "spark.sql.queryExecutionListeners": "ai.databand.spark.DbndSparkQueryExecutionListener",
                 "spark.driver.extraJavaOptions": "-javaagent:/dbfs/apps/dbnd-agent-0.xx.x-all.jar",
             },
         },
-        ...
+        #...
     })
 ```
 Make sure that you have published the agent to `/dbfs/apps/` first
@@ -171,14 +156,14 @@ databand_url = dbnd_config["core"]["databand_url"]
 databand_access_token = dbnd_config["core"]["databand_access_token"]
 
 cluster_create = DataprocClusterCreateOperator(
-     ...
+     # ...
      properties={
         "spark-env:DBND__TRACKING": "True",
         "spark-env:DBND__ENABLE__SPARK_CONTEXT_ENV": "True",
         "spark-env:DBND__CORE__DATABAND_URL": databand_url,
         "spark-env:DBND__CORE__DATABAND_ACCESS_TOKEN": databand_access_token,
     },
-    ...
+    # ...
 )
 ```
 You can install Databand PySpark support via the same operator:
@@ -186,34 +171,88 @@ You can install Databand PySpark support via the same operator:
 <!-- noqa -->
 ```python
 cluster_create = DataprocClusterCreateOperator(
-     ...
+     #...
      properties={
              "dataproc:pip.packages": "dbnd-spark==REPLACE_WITH_DATABAND_VERSION",
      }
-      ...
+     #...
 )
 ```
 
-As Dataproc cluster has built-in support for bootstrap scripts, please, follow bootstrap option documentation to enable python and JVM integrations via bootstrap [Installing on Spark Cluster](doc:installing-dbnd-on-spark-cluster#configure-jvm-tracking-properties-on-spark-cluster-via-bootstrap)
+Dataproc cluster has support for initialization actions. Following script installs Databand libraries and set up environment variables required for tracking:
 
+```shell
+#!/usr/bin/env bash
+
+DBND_VERSION=REPLACE_WITH_DBND_VERSION
+
+# to use conda-provided python instead of system one
+export PATH=/opt/conda/default/bin:${PATH}
+
+python3 -m pip install pydeequ==1.0.1 databand[spark]==${DBND_VERSION}
+
+DBND__CORE__DATABAND_ACCESS_TOKEN=$(/usr/share/google/get_metadata_value attributes/DBND__CORE__DATABAND_ACCESS_TOKEN)
+sh -c "echo DBND__CORE__DATABAND_ACCESS_TOKEN=${DBND__CORE__DATABAND_ACCESS_TOKEN} >> /usr/lib/spark/conf/spark-env.sh"
+DBND__CORE__DATABAND_URL=$(/usr/share/google/get_metadata_value attributes/DBND__CORE__DATABAND_URL)
+sh -c "echo DBND__CORE__DATABAND_URL=${DBND__CORE__DATABAND_URL} >> /usr/lib/spark/conf/spark-env.sh"
+sh -c "echo DBND__TRACKING=True >> /usr/lib/spark/conf/spark-env.sh"
+sh -c "echo DBND__ENABLE__SPARK_CONTEXT_ENV=True >> /usr/lib/spark/conf/spark-env.sh"
+```
+
+Note that variables like access token and tracker url should be passed to the initialization action via cluster metadata properties. Please refer to [official Dataproc documentation](https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/init-actions#passing_arguments_to_initialization_actions) for details.
 
 ### Tracking Python Spark Jobs
-Use the following configuration of the PySpark DataProc job to enable Databand SparkQuery Listener with automatic dataset tracking:
+Use the following configuration of the PySpark DataProc job to enable Databand Spark Query Listener with automatic dataset tracking:
 
 <!-- noqa -->
 ```python
 pyspark_operator = DataProcPySparkOperator(
-    ...
+    #...
     dataproc_pyspark_jars=[ "gs://.../dbnd-agent-REPLACE_WITH_DATABAND_VERSION-all.jar"],
     dataproc_pyspark_properties={
         "spark.sql.queryExecutionListeners": "ai.databand.spark.DbndSparkQueryExecutionListener",
-     },
-      ...
+    },
+    #...
 )
 ```
 * You should [publish](doc:installing-jvm-dbnd#manual) your jar to Google Storage first.
 
 See the list of all supported operators and extra information at [Tracking Subprocess/Remote Tasks](doc:tracking-airflow-subprocess-remote) section.
+
+# Cluster Bootstrap
+If you are using custom cluster installation, you have to install Databand packages, agent and configure environment variables for tracking.
+
+Add the following commands to your cluster initialization script:
+```bash
+#!/bin/bash -x
+
+DBND_VERSION=REPLACE_WITH_DBND_VERSION
+
+# Configure your Databand Tracking Configuration (works only for generic cluster/dataproc, not for EMR)
+sh -c "echo DBND__TRACKING=True >> /usr/lib/spark/conf/spark-env.sh"
+sh -c "echo DBND__ENABLE__SPARK_CONTEXT_ENV=True >> /usr/lib/spark/conf/spark-env.sh"
+
+
+# if you use Listeners/Agent, download Databand Agent which includes all jars
+wget https://repo1.maven.org/maven2/ai/databand/dbnd-agent/${DBND_VERSION}/dbnd-agent-${DBND_VERSION}-all.jar -P /home/hadoop/
+
+# install Databand Python package together with Airflow support
+python -m pip install databand[spark]==${DBND_VERSION}
+```
+
+* Install the `dbnd` packages on the Spark master and Spark workers by running `pip install databand[spark]` at bootstrap or manually.
+* Make sure you don't install "dbnd-airflow" to the cluster.
+
+## How to provide Databand credentials via cluster bootstrap
+
+In case you cluster type support configuring environment variables via a bootstrap script, you can use your bootstrap script to define Databand Credentials on cluster level:
+
+```bash
+sh -c "echo DBND__CORE__DATABAND_URL=REPLACE_WITH_DATABAND_URL >> /usr/lib/spark/conf/spark-env.sh"
+sh -c "echo DBND__CORE__DATABAND_ACCESS_TOKEN=REPLACE_WITH_DATABAND_TOKEN >> /usr/lib/spark/conf/spark-env.sh"
+```
+
+* Be sure to replace `<databand-url>` and `<databand-access-token>` with your environment-specific information.
 
 ## Next Steps
 
