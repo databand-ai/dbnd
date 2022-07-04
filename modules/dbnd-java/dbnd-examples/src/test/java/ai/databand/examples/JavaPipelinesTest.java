@@ -24,8 +24,8 @@ class JavaPipelinesTest {
     private static PipelinesVerify pipelinesVerify;
 
     @BeforeAll
-    static void beforeAll() throws Exception {
-        pipelinesVerify = new PipelinesVerify(new ApiWithTokenBuilder().api());
+    static void beforeAll() throws IOException {
+        pipelinesVerify = new PipelinesVerify();
     }
 
     /**
@@ -39,6 +39,7 @@ class JavaPipelinesTest {
         SparkSession spark = SparkSession
             .builder()
             .appName("DBND Spark Java Pipeline")
+            .config("spark.sql.shuffle.partitions", 1)
             .master("local[*]")
             .getOrCreate();
 
@@ -53,48 +54,4 @@ class JavaPipelinesTest {
         spark.stop();
     }
 
-    /**
-     * This pipeline does not inject listener automatically and manually.
-     *
-     * @throws IOException
-     */
-    @Test
-    public void testBadJavaPipeline() throws IOException {
-        ZonedDateTime now = ZonedDateTime.now();
-        SparkSession spark = SparkSession
-            .builder()
-            .appName("DBND Spark Java Bad Pipeline")
-            .master("local[*]")
-            .getOrCreate();
-
-        JavaSparkPipeline javaSparkPipeline = new JavaSparkPipeline(spark);
-        Assertions.assertThrows(RuntimeException.class, () -> javaSparkPipeline.executeBad("error"));
-
-        spark.stop();
-
-        String jobName = "spark_java_bad_pipeline";
-        Job job = pipelinesVerify.verifyJob(jobName);
-        Pair<Tasks, TaskFullGraph> tasksAndGraph = pipelinesVerify.verifyTasks(jobName, job);
-        TaskFullGraph graph = tasksAndGraph.right();
-        Tasks tasks = tasksAndGraph.left();
-
-        TaskRun executeBad = pipelinesVerify.assertTaskExists("spark_java_bad_pipeline-parent", tasks, "failed");
-        assertThat(
-            String.format("Last run was created before the test run, thus, it's not the run we're looking for. Now: %s, run start date: %s",
-                now, executeBad.getStartDate()),
-            executeBad.getEndDate().isAfter(now),
-            Matchers.is(true)
-        );
-
-        Map<String, Integer> tasksAttemptsIds = tasks.getTaskInstances().values()
-            .stream()
-            .collect(Collectors.toMap(TaskRun::getUid, TaskRun::getLatestTaskRunAttemptId));
-
-        pipelinesVerify.assertLogsInTask(
-            tasksAttemptsIds.get(executeBad.getUid()),
-            "java.lang.RuntimeException: Unable to complete the pipeline"
-        );
-
-        pipelinesVerify.assertTaskExists("loadTracks", tasks, "success");
-    }
 }

@@ -4,11 +4,14 @@ import ai.databand.annotations.Task;
 import ai.databand.log.DbndLogger;
 import org.junit.jupiter.api.Test;
 
+/**
+ * The purpose of this test is to make sure static methods are instrumented correctly.
+ */
 public class StaticMethodsTest {
 
     private static class StaticMainPipeline {
 
-        @Task
+        @Task("static_pipeline")
         public static void main(String args[]) {
             firstTask(null);
             secondTask();
@@ -26,7 +29,7 @@ public class StaticMethodsTest {
     }
 
     /**
-     * Ensure that pipeline with static methods only runs.
+     * Don't need any checks here, just making sure no exceptions are thrown.
      */
     @Test
     public void testPipelineWithMain() {

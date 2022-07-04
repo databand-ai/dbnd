@@ -73,11 +73,6 @@ shadowJar {
 
 test {
     useJUnitPlatform()
-    filter {
-        includeTestsMatching "*"
-    }
-    environment "dbnd.spark.listener_inject_enabled", "False"
-    environment "dbnd.spark.query_listener_inject_enabled", "False"
     environment "dbnd.tracking.log_value_preview", "True"
     environment "dbnd.tracking", "True"
     environment "dbnd.log.preview_head_bytes", "100000000"
@@ -85,26 +80,3 @@ test {
     jvmArgs "-javaagent:${projectDir}/../dbnd-agent/build/libs/dbnd-agent-${rootProject.version}-all.jar"
     environment "EXAMPLES_JAR", "${projectDir}/build/libs/dbnd-examples-latest-all.jar"
 }
-
-/**
- * This task is used to test spark listener auto-inject. It runs only one test—ScalaPipelineTest,
- * with dbnd.spark.listener_inject_enabled environment variable set to true.
- */
-task autoInjectTest(type: Test) {
-    useJUnitPlatform()
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-    filter {
-        includeTestsMatching "Scala*"
-    }
-    environment "dbnd.tracking.log_value_preview", "True"
-    environment "dbnd.spark.listener_inject_enabled", "True"
-    environment "dbnd.spark.query_listener_inject_enabled", "True"
-    environment "dbnd.tracking", "True"
-    environment "dbnd.log.preview_head_bytes", "100000000"
-    environment "dbnd.log.preview_tail_bytes", "100000000"
-    environment "dbnd.run.job_name", "overridden_scala_pipeline"
-    jvmArgs "-javaagent:${projectDir}/../dbnd-agent/build/libs/dbnd-agent-${rootProject.version}-all.jar=dbnd.spark.listener_inject_enabled=true,dbnd.spark.query_listener_inject_enabled=true"
-}
-
-check.dependsOn autoInjectTest
