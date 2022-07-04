@@ -53,51 +53,8 @@ public class PipelinesVerify {
 
     private final DbndApi api;
 
-    public PipelinesVerify(DbndApi api) {
-        this.api = api;
-    }
-
-    protected Job verifyJob(String jobName) throws IOException {
-        Response<PaginatedData<Job>> jobsRes = api.jobs().execute();
-
-        PaginatedData<Job> body = jobsRes.body();
-
-        assertThat("Jobs retrieved from databand should not be empty", body, notNullValue());
-
-        List<Job> jobs = body.getData();
-
-        Optional<Job> jvmJobOpt = jobs.stream()
-            .filter(j -> jobName.equals(j.getName()))
-            .findFirst();
-
-        List<String> jobNames = jobs.stream()
-            .map(Job::getName)
-            .collect(Collectors.toList());
-
-        assertThat(
-            String.format("Pipeline [%s] does not exists. Existing jobs: %s", jobName, jobNames),
-            jvmJobOpt.isPresent(),
-            equalTo(true)
-        );
-
-        return jvmJobOpt.get();
-    }
-
-    protected Pair<Tasks, TaskFullGraph> verifyTasks(String jobName, Job job) throws IOException {
-        Response<TaskFullGraph> graphRes = api.taskFullGraph(jobName, job.getLatestRunUid()).execute();
-
-        TaskFullGraph graph = graphRes.body();
-
-        List<String> uids = graph.getNodesInfo().values().stream()
-            .map(NodeInfo::getUid)
-            .collect(Collectors.toList());
-
-        Response<Tasks> tasksRes = api.tasks(new GetTasksReq(uids)).execute();
-
-        Tasks tasks = tasksRes.body();
-
-        assertThat("Tasks response from dbnd should not be empty.", tasks, Matchers.notNullValue());
-        return new Pair<>(tasks, graph);
+    public PipelinesVerify() throws IOException {
+        this.api = new ApiWithTokenBuilder().api();
     }
 
     protected void verifyOutputs(String jobName, ZonedDateTime now, String pipelineName) throws IOException {
@@ -109,10 +66,6 @@ public class PipelinesVerify {
         Pair<Tasks, TaskFullGraph> tasksAndGraph = verifyTasks(jobName, job);
         TaskFullGraph graph = tasksAndGraph.right();
         Tasks tasks = tasksAndGraph.left();
-
-        Map<String, Integer> taskIds = graph.getNodesInfo().values()
-            .stream()
-            .collect(Collectors.toMap(NodeInfo::getUid, NodeInfo::getId));
 
         Map<String, Integer> tasksAttemptsIds = tasks.getTaskInstances().values()
             .stream()
@@ -200,123 +153,33 @@ public class PipelinesVerify {
         );
 
         if (pipelineName.contains("scala")) {
-            assertMetricInTask(
-                countTracksByTrackName,
-                "additional_tracks_metric",
-                2,
-                "user"
-            );
+            assertMetricInTask(countTracksByTrackName, "additional_tracks_metric", 2, "user");
 
             if (verifySpark) {
-                assertMetricInTask(
-                    countTracksByTrackName,
-                    "internal.metrics.input.recordsRead",
-                    3,
-                    "spark"
-                );
-
-                assertMetricInTask(
-                    countTracksByArtist,
-                    "internal.metrics.shuffle.write.recordsWritten",
-                    36,
-                    "spark"
-                );
+                assertMetricInTask(countTracksByTrackName, "internal.metrics.input.recordsRead", 3, "spark");
+                assertMetricInTask(countTracksByArtist, "internal.metrics.shuffle.write.recordsWritten", 36, "spark");
             } else {
                 assertMetricNotInTask(countTracksByTrackName, "internal.metrics.input.recordsRead");
                 assertMetricNotInTask(countTracksByArtist, "internal.metrics.shuffle.write.recordsWritten");
             }
 
-            assertMetricInTask(
-                countTracksByTrackName,
-                "deequ.topTracks.*.Size",
-                407.0,
-                "user"
-            );
+            assertMetricInTask(countTracksByTrackName, "deequ.topTracks.*.Size", 407.0, "user");
+            assertMetricInTask(countTracksByTrackName, "job_start_time", String.valueOf(Long.MAX_VALUE), "user");
 
-            assertMetricInTask(
-                countTracksByTrackName,
-                "job_start_time",
-                String.valueOf(Long.MAX_VALUE),
-                "user"
-            );
+            assertMetricInTask(countTracksByArtist, "deequ.result.count is positive.Compliance", 1.0, "user");
+            assertMetricInTask(countTracksByArtist, "deequ.result.count.Completeness", 1.0, "user");
 
-            assertMetricInTask(
-                countTracksByArtist,
-                "deequ.result.count is positive.Compliance",
-                1.0,
-                "user"
-            );
-
-            assertMetricInTask(
-                countTracksByArtist,
-                "deequ.result.count.Completeness",
-                1.0,
-                "user"
-            );
-
-            assertMetricInTask(
-                countTracksByTrackName,
-                "deequ.topTracks.count.Completeness",
-                1.0,
-                "user"
-            );
-
-            assertMetricInTask(
-                countTracksByTrackName,
-                "topTracks.count.min",
-                1.0,
-                "histograms"
-            );
-
-            assertMetricInTask(
-                countTracksByTrackName,
-                "topTracks.count.max",
-                7.0,
-                "histograms"
-            );
-
-            assertMetricInTask(
-                countTracksByTrackName,
-                "topTracks.count.mean",
-                1.4742014742014742,
-                "histograms"
-            );
+            assertMetricInTask(countTracksByTrackName, "deequ.topTracks.count.Completeness", 1.0, "user");
+            assertMetricInTask(countTracksByTrackName, "topTracks.count.min", 1.0, "histograms");
+            assertMetricInTask(countTracksByTrackName, "topTracks.count.max", 7.0, "histograms");
+            assertMetricInTask(countTracksByTrackName, "topTracks.count.mean", 1.4742014742014742, "histograms");
         }
 
-        assertMetricInTask(
-            countTracksByTrackName,
-            "top_track_name",
-            "Radio Protector",
-            "user"
-        );
-
-        assertMetricInTask(
-            countTracksByTrackName,
-            "top_track_playcount",
-            7,
-            "user"
-        );
-
-        assertMetricInTask(
-            countTracksByTrackName,
-            "data.count.count",
-            407,
-            "histograms"
-        );
-
-        assertMetricInTask(
-            countTracksByTrackName,
-            "data.count.distinct",
-            7,
-            "histograms"
-        );
-
-        assertMetricInTask(
-            countTracksByTrackName,
-            "data.count.mean",
-            1.4742014742014742,
-            "histograms"
-        );
+        assertMetricInTask(countTracksByTrackName, "top_track_name", "Radio Protector", "user");
+        assertMetricInTask(countTracksByTrackName, "top_track_playcount", 7, "user");
+        assertMetricInTask(countTracksByTrackName, "data.count.count", 407, "histograms");
+        assertMetricInTask(countTracksByTrackName, "data.count.distinct", 7, "histograms");
+        assertMetricInTask(countTracksByTrackName, "data.count.mean", 1.4742014742014742, "histograms");
 
         Summary nameSummary = new ColumnSummary(
             407,
@@ -351,54 +214,18 @@ public class PipelinesVerify {
         stats.put("name", nameSummaryMap);
         stats.put("count", countSummaryMap);
 
-        assertMetricInTask(
-            countTracksByTrackName,
-            "data.stats",
-            stats,
-            "histograms"
-        );
+        assertMetricInTask(countTracksByTrackName, "data.stats", stats, "histograms");
 
-        assertLogsInTask(
-            tasksAttemptsIds.get(loadTracks.getUid()),
-            "Tracks was loaded from file "
-        );
+        assertLogsInTask(tasksAttemptsIds.get(loadTracks.getUid()), "Tracks was loaded from file ");
+        assertLogsInTask(tasksAttemptsIds.get(countTracksByArtist.getUid()), "Completed counting top artists");
+        assertLogsInTask(tasksAttemptsIds.get(countTracksByTrackName.getUid()), "Track: Radio Protector with playcount: 7");
 
-        assertLogsInTask(
-            tasksAttemptsIds.get(countTracksByArtist.getUid()),
-            "Completed counting top artists"
-        );
+        assertLogsInTask(tasksAttemptsIds.get(driverTask.getUid()), "Pipeline finished");
 
-        assertLogsInTask(
-            tasksAttemptsIds.get(countTracksByTrackName.getUid()),
-            "Track: Radio Protector with playcount: 7"
-        );
+        assertLogsInTask(tasksAttemptsIds.get(driverTask.getUid()), "Planning scan with bin packing, max size");
 
-        assertLogsInTask(
-            tasksAttemptsIds.get(driverTask.getUid()),
-            "Pipeline finished"
-        );
-
-        assertLogsInTask(
-            tasksAttemptsIds.get(driverTask.getUid()),
-            "Planning scan with bin packing, max size"
-        );
-
-        assertUpstreams(loadTracks, countTracksByArtist, graph, taskIds);
-        assertUpstreams(loadTracks, countTracksByTrackName, graph, taskIds);
-
-        TaskRun totalPlayCount = assertTaskExists("totalPlaycount", tasks, "failed");
-        assertErrors(
-            totalPlayCount,
-            tasks,
-            "Unable to count stuff",
-            "java.lang.RuntimeException: Unable to count stuff",
-            "java.lang.RuntimeException"
-        );
-
-        assertLogsInTask(
-            tasksAttemptsIds.get(totalPlayCount.getUid()),
-            "java.lang.RuntimeException: Unable to count stuff"
-        );
+        assertUpstreams(loadTracks, countTracksByArtist, graph);
+        assertUpstreams(loadTracks, countTracksByTrackName, graph);
 
         Response<MetricsForAlertsResponse> metricsForAlertsRes = api.metricsForAlerts(
                 "[{\"name\":\"run_uid\",\"op\":\"eq\",\"val\":\"" + driverTask.getRunUid() + "\"}]")
@@ -410,35 +237,13 @@ public class PipelinesVerify {
         assertThat(String.format("Numeric metrics are empty for pipeline [%s]", jobName), metricsForAlerts, Matchers.notNullValue());
 
         if (verifyAlerts) {
-            assertMetricsAvailableForAlerts(
-                jobName,
-                "countTracksByArtist",
-                "top_artist_playcount",
-                metricsForAlerts
-            );
+            assertMetricsAvailableForAlerts(jobName, "countTracksByArtist", "top_artist_playcount", metricsForAlerts);
 
-            assertMetricsAvailableForAlerts(
-                jobName,
-                "countTracksByTrackName",
-                "top_track_playcount",
-                metricsForAlerts
-            );
+            assertMetricsAvailableForAlerts(jobName, "countTracksByTrackName", "top_track_playcount", metricsForAlerts);
         }
 
         if (pipelineName.contains("scala")) {
             Map<String, List<DatasetOperationRes>> datasetByTask = fetchDatasetOperations(job);
-
-            assertDatasetOperationExists(
-                "loadTracks",
-                "file:///broken/path",
-                DatasetOperationType.WRITE,
-                "FAILED",
-                1,
-                1,
-                datasetByTask,
-                "java.lang.RuntimeException",
-                LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
-            );
 
             assertDatasetOperationExists(
                 "loadTracks",
@@ -450,29 +255,6 @@ public class PipelinesVerify {
                 datasetByTask,
                 LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
             );
-
-            assertDatasetOperationExists(
-                "loadTracks",
-                "s3://datastore/sample2.json",
-                DatasetOperationType.READ,
-                "SUCCESS",
-                1,
-                1,
-                datasetByTask,
-                LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
-            );
-
-            assertDatasetOperationExists(
-                "loadTracks",
-                "s3://datastore/",
-                DatasetOperationType.READ,
-                "SUCCESS",
-                1,
-                1,
-                datasetByTask,
-                LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
-            );
-
 
             if (verifyDatasetOps) {
                 assertDatasetOperationExists(
@@ -511,6 +293,49 @@ public class PipelinesVerify {
         }
     }
 
+    protected Job verifyJob(String jobName) throws IOException {
+        Response<PaginatedData<Job>> jobsRes = api.jobs().execute();
+
+        PaginatedData<Job> body = jobsRes.body();
+
+        assertThat("Jobs retrieved from databand should not be empty", body, notNullValue());
+
+        List<Job> jobs = body.getData();
+
+        Optional<Job> jvmJobOpt = jobs.stream()
+            .filter(j -> jobName.equals(j.getName()))
+            .findFirst();
+
+        List<String> jobNames = jobs.stream()
+            .map(Job::getName)
+            .collect(Collectors.toList());
+
+        assertThat(
+            String.format("Pipeline [%s] does not exists. Existing jobs: %s", jobName, jobNames),
+            jvmJobOpt.isPresent(),
+            equalTo(true)
+        );
+
+        return jvmJobOpt.get();
+    }
+
+    protected Pair<Tasks, TaskFullGraph> verifyTasks(String jobName, Job job) throws IOException {
+        Response<TaskFullGraph> graphRes = api.taskFullGraph(jobName, job.getLatestRunUid()).execute();
+
+        TaskFullGraph graph = graphRes.body();
+
+        List<String> uids = graph.getNodesInfo().values().stream()
+            .map(NodeInfo::getUid)
+            .collect(Collectors.toList());
+
+        Response<Tasks> tasksRes = api.tasks(new GetTasksReq(uids)).execute();
+
+        Tasks tasks = tasksRes.body();
+
+        assertThat("Tasks response from dbnd should not be empty.", tasks, Matchers.notNullValue());
+        return new Pair<>(tasks, graph);
+    }
+
     protected DatasetOperationRes assertDatasetOperationExists(String taskName,
                                                                String path,
                                                                DatasetOperationType type,
@@ -543,7 +368,7 @@ public class PipelinesVerify {
                                                                Map<String, List<DatasetOperationRes>> datasets,
                                                                String error,
                                                                String operationSource) {
-        List<DatasetOperationRes> taskDatasets = datasets.get(taskName);
+        List<DatasetOperationRes> taskDatasets = datasets.getOrDefault(taskName, Collections.emptyList());
         Optional<DatasetOperationRes> datasetOpt = taskDatasets.stream().filter(datasetOperationRes -> datasetOperationRes.getOperationType().equalsIgnoreCase(type.toString()) && datasetOperationRes.getDatasetPath().contains(path)).findFirst();
         if (datasetOpt.isPresent()) {
             DatasetOperationRes dataset = datasetOpt.get();
@@ -778,7 +603,11 @@ public class PipelinesVerify {
         assertThat("Log body should have actual content", logBody.getLogBody(), Matchers.containsString(logContent));
     }
 
-    protected void assertUpstreams(TaskRun upstream, TaskRun downstream, TaskFullGraph graph, Map<String, Integer> taskIds) {
+    protected void assertUpstreams(TaskRun upstream, TaskRun downstream, TaskFullGraph graph) {
+        Map<String, Integer> taskIds = graph.getNodesInfo().values()
+            .stream()
+            .collect(Collectors.toMap(NodeInfo::getUid, NodeInfo::getId));
+
         Integer upstreamId = taskIds.get(upstream.getUid());
         Integer downstreamId = taskIds.get(downstream.getUid());
 

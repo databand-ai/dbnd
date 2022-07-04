@@ -25,6 +25,7 @@ object ScalaSparkPipeline {
         LOG.info("Starting pipeline")
         val spark = SparkSession.builder
             .appName("DBND Spark Scala Pipeline")
+            .config("spark.sql.shuffle.partitions", 1)
             .master("local[*]")
             .getOrCreate
 
@@ -49,11 +50,6 @@ object ScalaSparkPipeline {
             tracksByNameResult.first().get(0).toString
         )
         collectRows(result)
-        try totalPlaycount(tracks)
-        catch {
-            case e: Exception =>
-                LOG.error("Unable to calculate total playcount", e)
-        }
         spark.stop
         LOG.info("Pipeline finished")
     }
@@ -63,9 +59,6 @@ object ScalaSparkPipeline {
         LOG.info("Loading tracks data from file {}", path)
         val data = sql.read.json(path)
         DbndLogger.logDatasetOperation(path, READ, OK, data, new LogDatasetRequest().withPreview().withSchema());
-        DbndLogger.logDatasetOperation("s3://datastore/sample1.json", READ, OK, data, new LogDatasetRequest().withPreview().withSchema().withPartition())
-        DbndLogger.logDatasetOperation("s3://datastore/sample2.json", READ, OK, data, new LogDatasetRequest().withPreview().withSchema().withPartition(false))
-        DbndLogger.logDatasetOperation("file:///broken/path", WRITE, NOK, data, new RuntimeException())
         val result = data.selectExpr("explode(recenttracks.track) as tracks")
         LOG.info("Tracks was loaded from file {}", path)
         result
@@ -122,9 +115,4 @@ object ScalaSparkPipeline {
         args.mkString("|")
     }
 
-    @Task
-    def totalPlaycount(tracks: Dataset[Row]): String = {
-        LOG.info("Counting total tracks playcount")
-        throw new RuntimeException("Unable to count stuff")
-    }
 }

@@ -27,33 +27,12 @@ public class JavaSparkPipeline {
         SparkSession spark = SparkSession.builder()
             .appName("DBND Spark Java Pipeline")
             .master("local[*]")
+            .config("spark.sql.shuffle.partitions", 1)
             .getOrCreate();
 
         JavaSparkPipeline pipeline = new JavaSparkPipeline(spark);
         String path = args.length > 0 ? args[0] : JavaSparkPipeline.class.getClassLoader().getResource("sample.json").getFile();
         pipeline.execute(path);
-    }
-
-    @Task("spark_java_bad_pipeline")
-    public Map<Dataset<Row>, Dataset<Row>> executeBad(String arg) {
-        LOG.info("Starting pipeline with arg {}", arg);
-        String path = getClass().getClassLoader().getResource("sample.json").getFile();
-        Dataset<Row> tracks = loadTracks(path);
-        Dataset<Row> tracksByArtist = countTracksByArtist(tracks);
-        if ("error".equals(arg)) {
-            LOG.error("Unable to complete the pipeline: error");
-            throw new RuntimeException("Unable to complete the pipeline");
-        }
-        // calculate top tracks
-        Dataset<Row> tracksByName = countTracksByTrackName(tracks);
-        LOG.info("Pipeline finished");
-        collectRows(new String[]{tracksByArtist.first().get(0).toString(), tracksByName.first().get(0).toString()});
-        try {
-            totalPlaycount(tracks);
-        } catch (Exception e) {
-            LOG.error("Unable to calculate total playcount", e);
-        }
-        return Collections.singletonMap(tracksByArtist, tracksByName);
     }
 
     @Task("spark_java_pipeline")
@@ -65,11 +44,6 @@ public class JavaSparkPipeline {
         Dataset<Row> tracksByName = countTracksByTrackName(tracks);
         LOG.info("Pipeline finished");
         collectRows(new String[]{tracksByArtist.first().get(0).toString(), tracksByName.first().get(0).toString()});
-        try {
-            totalPlaycount(tracks);
-        } catch (Exception e) {
-            LOG.error("Unable to calculate total playcount", e);
-        }
         LOG.info("Pipeline finished");
         return Collections.singletonMap(tracksByArtist, tracksByName);
     }
@@ -111,9 +85,4 @@ public class JavaSparkPipeline {
         return String.join("|", args);
     }
 
-    @Task
-    protected String totalPlaycount(Dataset<Row> tracks) {
-        LOG.info("Counting total tracks playcount");
-        throw new RuntimeException("Unable to count stuff");
-    }
 }

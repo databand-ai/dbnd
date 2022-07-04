@@ -17,7 +17,7 @@ public class SimplePipeline {
         this.secondValue = secondValue;
     }
 
-    @Task("jvm_pipeline")
+    @Task("simple_pipeline")
     public void doStuff() {
         String firstResult = stepOne(firstValue, secondValue);
         int secondResult = stepTwo(firstResult);

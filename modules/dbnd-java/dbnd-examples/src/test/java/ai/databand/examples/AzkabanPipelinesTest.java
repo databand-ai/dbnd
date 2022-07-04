@@ -39,8 +39,8 @@ public class AzkabanPipelinesTest {
     private static PipelinesVerify pipelinesVerify;
 
     @BeforeAll
-    static void beforeAll() throws Exception {
-        pipelinesVerify = new PipelinesVerify(new ApiWithTokenBuilder().api());
+    static void beforeAll() throws IOException {
+        pipelinesVerify = new PipelinesVerify();
     }
 
     @Test
