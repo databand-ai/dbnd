@@ -1,7 +1,7 @@
 FROM python:3.9-slim
 
 RUN apt-get update -yqq && \
-    apt-get install -y openssl && \
+    apt-get install -y openssl libssl1.1=1.1.1n-0+deb11u3 && \
     rm -rf /var/lib/apt/lists/*
 
 # constants:
