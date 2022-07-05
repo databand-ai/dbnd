@@ -21,12 +21,10 @@ import ai.databand.schema.TaskRun;
 import ai.databand.schema.TaskRunAttempt;
 import ai.databand.schema.TaskRunAttemptLog;
 import ai.databand.schema.TaskRunParam;
+import ai.databand.schema.TaskStates;
 import ai.databand.schema.Tasks;
 import ai.databand.schema.TasksMetricsRequest;
 import ai.databand.schema.TasksMetricsResponse;
-import ai.databand.schema.histograms.ColumnSummary;
-import ai.databand.schema.histograms.NumericSummary;
-import ai.databand.schema.histograms.Summary;
 import ai.databand.schema.tasks.GetTasksReq;
 import org.hamcrest.Matchers;
 import retrofit2.Response;
@@ -34,7 +32,6 @@ import retrofit2.Response;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -58,175 +55,85 @@ public class PipelinesVerify {
     }
 
     protected void verifyOutputs(String jobName, ZonedDateTime now, String pipelineName) throws IOException {
-        verifyOutputs(jobName, now, true, false, pipelineName, true);
+        verifyOutputs(jobName, now, pipelineName, false);
     }
 
-    protected void verifyOutputs(String jobName, ZonedDateTime now, boolean verifySpark, boolean verifyDatasetOps, String pipelineName, boolean verifyAlerts) throws IOException {
+    /**
+     * Verify outputs for test pipelines. They are the same across different tests scenarios.
+     *
+     * @param jobName
+     * @param now
+     * @param pipelineName
+     * @param subRun       indicates that run has sub-run. In this case we won't verify datasets and alert definitions.
+     * @throws IOException
+     */
+    protected void verifyOutputs(String jobName, ZonedDateTime now, String pipelineName, boolean subRun) throws IOException {
         Job job = verifyJob(jobName);
         Pair<Tasks, TaskFullGraph> tasksAndGraph = verifyTasks(jobName, job);
-        TaskFullGraph graph = tasksAndGraph.right();
         Tasks tasks = tasksAndGraph.left();
 
         Map<String, Integer> tasksAttemptsIds = tasks.getTaskInstances().values()
             .stream()
             .collect(Collectors.toMap(TaskRun::getUid, TaskRun::getLatestTaskRunAttemptId));
 
-        TaskRun driverTask = assertTaskExists(String.format("%s-parent", pipelineName), tasks, "success");
+        TaskRun driverTask = assertTaskExists(String.format("%s-parent", pipelineName), tasks);
 
-        TaskRun loadTracks = assertTaskExists("loadTracks", tasks, "success");
+        TaskRun unitImputation = assertTaskExists("unitImputation", tasks);
+
         assertThat(
             String.format(
                 "Last run was created before the test run, thus, it's not the run we're looking for. Now: %s, run start date: %s",
                 now,
-                loadTracks.getStartDate()
+                unitImputation.getStartDate()
             ),
-            loadTracks.getStartDate().isAfter(now),
+            unitImputation.getStartDate().isAfter(now),
             Matchers.is(true)
         );
-        TaskRun countTracksByTrackName = assertTaskExists("countTracksByTrackName", tasks, "success");
-        TaskRun countTracksByArtist = assertTaskExists("countTracksByArtist", tasks, "success");
 
-        assertTargetOperationExistsInTask(
-            pipelineName.contains("scala") ? "arg0" : "path",
-            "read",
-            tasks.getTargetsOperations(),
-            loadTracks,
-            10,
-            "sample.json",
-            "",
-            Collections.emptyList()
-        );
+        TaskRun dedupRecords = assertTaskExists("dedupRecords", tasks);
+        TaskRun createReport = assertTaskExists("createReport", tasks);
 
-        assertTargetOperationExistsInTask(
-            "result",
-            "write",
-            tasks.getTargetsOperations(),
-            loadTracks,
-            2000,
-            "Access All Arenas",
-            "\"name\" : \"image\"",
-            Arrays.asList(600L, 1L)
-        );
+        assertMetricInTask(unitImputation, "Replaced NaNs", 3, "user");
 
-        assertTargetOperationExistsInTask(
-            pipelineName.contains("scala") ? "arg0" : "tracks",
-            "read",
-            tasks.getTargetsOperations(),
-            countTracksByTrackName,
-            2000,
-            "Access All Arenas",
-            "\"name\" : \"image\"",
-            Arrays.asList(600L, 1L)
-        );
+        assertMetricInTask(dedupRecords, "deequ.dedupedData.score is positive.Compliance", 1.0, "user");
+        assertMetricInTask(dedupRecords, "deequ.dedupedData.score.Completeness", 1.0, "user");
+        assertMetricInTask(dedupRecords, "dedupedData.score.distinct", 17.0, "histograms");
+        assertMetricInTask(dedupRecords, "dedupedData.score.max", 80.0, "histograms");
+        assertMetricInTask(dedupRecords, "dedupedData.score.mean", 40.05, "histograms");
 
-        assertTargetOperationExistsInTask(
-            "result",
-            "write",
-            tasks.getTargetsOperations(),
-            countTracksByTrackName,
-            700,
-            "Radio Protector|    7",
-            "\"name\" : \"count\"",
-            Arrays.asList(407L, 2L)
-        );
+        assertMetricInTask(createReport, "Avg Score", 40.05, "user");
+        assertMetricInTask(createReport, "number of columns", 7, "user");
 
-        assertTargetOperationExistsInTask(
-            pipelineName.contains("scala") ? "arg0" : "tracks",
-            "read",
-            tasks.getTargetsOperations(),
-            countTracksByArtist,
-            2000,
-            "No way back",
-            "\"name\" : \"image\"",
-            Arrays.asList(600L, 1L)
-        );
+        Map<String, Object> clientIdStats = new HashMap<>();
+        clientIdStats.put("distinct", 15.0);
+        clientIdStats.put("max", 8.6);
+        clientIdStats.put("mean", 6.56);
+        clientIdStats.put("min", 5.4);
+        clientIdStats.put("stddev", 0.764460);
+        clientIdStats.put("type", "double");
 
-        assertTargetOperationExistsInTask(
-            "result",
-            "write",
-            tasks.getTargetsOperations(),
-            countTracksByArtist,
-            700,
-            "65daysofstatic|  126",
-            "\"name\" : \"count\"",
-            Arrays.asList(36L, 2L)
-        );
-
-        if (pipelineName.contains("scala")) {
-            assertMetricInTask(countTracksByTrackName, "additional_tracks_metric", 2, "user");
-
-            if (verifySpark) {
-                assertMetricInTask(countTracksByTrackName, "internal.metrics.input.recordsRead", 3, "spark");
-                assertMetricInTask(countTracksByArtist, "internal.metrics.shuffle.write.recordsWritten", 36, "spark");
-            } else {
-                assertMetricNotInTask(countTracksByTrackName, "internal.metrics.input.recordsRead");
-                assertMetricNotInTask(countTracksByArtist, "internal.metrics.shuffle.write.recordsWritten");
-            }
-
-            assertMetricInTask(countTracksByTrackName, "deequ.topTracks.*.Size", 407.0, "user");
-            assertMetricInTask(countTracksByTrackName, "job_start_time", String.valueOf(Long.MAX_VALUE), "user");
-
-            assertMetricInTask(countTracksByArtist, "deequ.result.count is positive.Compliance", 1.0, "user");
-            assertMetricInTask(countTracksByArtist, "deequ.result.count.Completeness", 1.0, "user");
-
-            assertMetricInTask(countTracksByTrackName, "deequ.topTracks.count.Completeness", 1.0, "user");
-            assertMetricInTask(countTracksByTrackName, "topTracks.count.min", 1.0, "histograms");
-            assertMetricInTask(countTracksByTrackName, "topTracks.count.max", 7.0, "histograms");
-            assertMetricInTask(countTracksByTrackName, "topTracks.count.mean", 1.4742014742014742, "histograms");
-        }
-
-        assertMetricInTask(countTracksByTrackName, "top_track_name", "Radio Protector", "user");
-        assertMetricInTask(countTracksByTrackName, "top_track_playcount", 7, "user");
-        assertMetricInTask(countTracksByTrackName, "data.count.count", 407, "histograms");
-        assertMetricInTask(countTracksByTrackName, "data.count.distinct", 7, "histograms");
-        assertMetricInTask(countTracksByTrackName, "data.count.mean", 1.4742014742014742, "histograms");
-
-        Summary nameSummary = new ColumnSummary(
-            407,
-            407,
-            407,
-            0,
-            "string"
-        );
-
-        Summary countSummary = new NumericSummary(
-            new ColumnSummary(
-                407,
-                7,
-                407,
-                0,
-                "integer"
-            ),
-            7.0,
-            1.4742014742014742,
-            1.0,
-            0.9008467766347343,
-            1.0,
-            1.0,
-            2.0
-        );
-
-        Map<String, Object> nameSummaryMap = nameSummary.toMap();
-        Map<String, Object> countSummaryMap = countSummary.toMap();
+        Map<String, Object> addressStats = new HashMap<>();
+        addressStats.put("distinct", 11.0);
+        addressStats.put("type", "string");
 
         Map<String, Map<String, Object>> stats = new HashMap<>(1);
+        stats.put("clientId", clientIdStats);
+        stats.put("address", addressStats);
 
-        stats.put("name", nameSummaryMap);
-        stats.put("count", countSummaryMap);
+        assertMetricInTask(dedupRecords, "dedupedData.stats", stats, "histograms");
 
-        assertMetricInTask(countTracksByTrackName, "data.stats", stats, "histograms");
-
-        assertLogsInTask(tasksAttemptsIds.get(loadTracks.getUid()), "Tracks was loaded from file ");
-        assertLogsInTask(tasksAttemptsIds.get(countTracksByArtist.getUid()), "Completed counting top artists");
-        assertLogsInTask(tasksAttemptsIds.get(countTracksByTrackName.getUid()), "Track: Radio Protector with playcount: 7");
-
+        assertLogsInTask(tasksAttemptsIds.get(driverTask.getUid()), "Output Data Schema: struct<value: string>");
+        assertLogsInTask(tasksAttemptsIds.get(dedupRecords.getUid()), "Dedup Records");
+        assertLogsInTask(tasksAttemptsIds.get(createReport.getUid()), "Create Report");
         assertLogsInTask(tasksAttemptsIds.get(driverTask.getUid()), "Pipeline finished");
 
-        assertLogsInTask(tasksAttemptsIds.get(driverTask.getUid()), "Planning scan with bin packing, max size");
+        if (!subRun) {
+            verifyOutputAlerts(driverTask, jobName);
+            verifyOutputDatasets(job, driverTask);
+        }
+    }
 
-        assertUpstreams(loadTracks, countTracksByArtist, graph);
-        assertUpstreams(loadTracks, countTracksByTrackName, graph);
-
+    protected void verifyOutputAlerts(TaskRun driverTask, String jobName) throws IOException {
         Response<MetricsForAlertsResponse> metricsForAlertsRes = api.metricsForAlerts(
                 "[{\"name\":\"run_uid\",\"op\":\"eq\",\"val\":\"" + driverTask.getRunUid() + "\"}]")
             .execute();
@@ -236,61 +143,35 @@ public class PipelinesVerify {
         MetricsForAlertsResponse metricsForAlerts = metricsForAlertsRes.body();
         assertThat(String.format("Numeric metrics are empty for pipeline [%s]", jobName), metricsForAlerts, Matchers.notNullValue());
 
-        if (verifyAlerts) {
-            assertMetricsAvailableForAlerts(jobName, "countTracksByArtist", "top_artist_playcount", metricsForAlerts);
+        assertMetricsAvailableForAlerts("createReport", "number of columns", metricsForAlerts);
+        assertMetricsAvailableForAlerts("createReport", "Avg Score", metricsForAlerts);
+        assertMetricsAvailableForAlerts("unitImputation", "Replaced NaNs", metricsForAlerts);
+    }
 
-            assertMetricsAvailableForAlerts(jobName, "countTracksByTrackName", "top_track_playcount", metricsForAlerts);
-        }
+    protected void verifyOutputDatasets(Job job, TaskRun driverTask) throws IOException {
+        Map<String, List<DatasetOperationRes>> datasetByTask = fetchDatasetOperations(job);
 
-        if (pipelineName.contains("scala")) {
-            Map<String, List<DatasetOperationRes>> datasetByTask = fetchDatasetOperations(job);
+        assertDatasetOperationExists(
+            "dedupRecords",
+            "",
+            DatasetOperationType.READ,
+            "SUCCESS",
+            750,
+            1,
+            datasetByTask,
+            LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
+        );
 
-            assertDatasetOperationExists(
-                "loadTracks",
-                "",
-                DatasetOperationType.READ,
-                "SUCCESS",
-                1,
-                1,
-                datasetByTask,
-                LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING
-            );
-
-            if (verifyDatasetOps) {
-                assertDatasetOperationExists(
-                    driverTask.getName(),
-                    "resources",
-                    DatasetOperationType.READ,
-                    "SUCCESS",
-                    3,
-                    1,
-                    datasetByTask,
-                    LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
-                );
-
-                assertDatasetOperationExists(
-                    "countTracksByArtist",
-                    "resources",
-                    DatasetOperationType.READ,
-                    "SUCCESS",
-                    9,
-                    3,
-                    datasetByTask,
-                    LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
-                );
-
-                assertDatasetOperationExists(
-                    "countTracksByTrackName",
-                    "resources",
-                    DatasetOperationType.READ,
-                    "SUCCESS",
-                    6,
-                    2,
-                    datasetByTask,
-                    LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
-                );
-            }
-        }
+        assertDatasetOperationExists(
+            driverTask.getName(),
+            "output",
+            DatasetOperationType.WRITE,
+            "SUCCESS",
+            20,
+            1,
+            datasetByTask,
+            LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
+        );
     }
 
     protected Job verifyJob(String jobName) throws IOException {
@@ -386,6 +267,10 @@ public class PipelinesVerify {
             fail(String.format("Dataset operation of type [%s] with path [%s] for task [%s] not found", type.toString(), path, taskName));
             return null;
         }
+    }
+
+    protected TaskRun assertTaskExists(String taskName, Tasks tasks) {
+        return assertTaskExists(taskName, tasks, TaskStates.SUCCESS);
     }
 
     protected TaskRun assertTaskExists(String taskName, Tasks tasks, String state) {
@@ -560,7 +445,7 @@ public class PipelinesVerify {
                         try {
                             double exceptedDouble = Double.parseDouble(exceptedValue);
                             Double actualDouble = Double.parseDouble(actualValue);
-                            assertThat("Summary value is incorrect", actualDouble, closeTo(exceptedDouble, 0.000001));
+                            assertThat("Summary value for [" + summaryValue.getKey() + "] is incorrect", actualDouble, closeTo(exceptedDouble, 0.000001));
                         } catch (NumberFormatException e) {
                             assertThat("Summary value is incorrect", actualValue, equalTo(exceptedValue));
                         }
@@ -649,13 +534,13 @@ public class PipelinesVerify {
         assertThat(String.format("Wrong error details for task [%s]", task.getTaskId()), error.getTraceback(), Matchers.containsString(stackTrace));
     }
 
-    protected void assertMetricsAvailableForAlerts(String jobName, String taskName, String metricName, MetricsForAlertsResponse res) {
+    protected void assertMetricsAvailableForAlerts(String taskName, String metricName, MetricsForAlertsResponse res) {
         Optional<MetricForAlerts> metricOpt = res.getData().stream()
             .filter(m -> taskName.equals(m.getTaskName())
                 && metricName.equals(m.getMetricName())
             ).findAny();
 
-        assertThat(String.format("Metric [%s] for task [%s] does not exists", metricName, taskName), metricOpt.isPresent(), Matchers.is(true));
+        assertThat(String.format("Metric [%s] for task [%s] is not available for alerts selection", metricName, taskName), metricOpt.isPresent(), Matchers.is(true));
     }
 
     public Map<String, List<DatasetOperationRes>> fetchDatasetOperations(Job job) throws IOException {

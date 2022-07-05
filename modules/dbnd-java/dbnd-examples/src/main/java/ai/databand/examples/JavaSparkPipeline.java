@@ -1,18 +1,28 @@
 package ai.databand.examples;
 
 import ai.databand.annotations.Task;
+import ai.databand.deequ.DbndMetricsRepository;
+import ai.databand.deequ.DbndResultKey;
 import ai.databand.log.DbndLogger;
-import ai.databand.schema.DatasetOperationType;
+import com.amazon.deequ.VerificationSuite;
+import com.amazon.deequ.checks.Check;
+import com.amazon.deequ.checks.CheckLevel;
+import com.amazon.deequ.constraints.Constraint;
+import com.amazon.deequ.profiles.ColumnProfilerRunner;
+import com.amazon.deequ.repository.ResultKey;
+import com.amazon.deequ.repository.memory.InMemoryMetricsRepository;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.functions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Option;
+import scala.Predef;
+import scala.collection.JavaConverters;
 
 import java.util.Collections;
-import java.util.Map;
 
 public class JavaSparkPipeline {
 
@@ -23,66 +33,61 @@ public class JavaSparkPipeline {
         this.sql = spark.sqlContext();
     }
 
-    public static void main(String[] args) {
-        SparkSession spark = SparkSession.builder()
-            .appName("DBND Spark Java Pipeline")
-            .master("local[*]")
-            .config("spark.sql.shuffle.partitions", 1)
-            .getOrCreate();
+    @Task("java_spark_pipeline")
+    public void main(String[] args) {
+        String inputFile = args[0];
+        String outputFile = args[1];
 
-        JavaSparkPipeline pipeline = new JavaSparkPipeline(spark);
-        String path = args.length > 0 ? args[0] : JavaSparkPipeline.class.getClassLoader().getResource("sample.json").getFile();
-        pipeline.execute(path);
-    }
-
-    @Task("spark_java_pipeline")
-    public Map<Dataset<Row>, Dataset<Row>> execute(String path) {
-        LOG.info("Starting pipeline with arg {}", path);
-        Dataset<Row> tracks = loadTracks(path);
-        Dataset<Row> tracksByArtist = countTracksByArtist(tracks);
-        // calculate top tracks
-        Dataset<Row> tracksByName = countTracksByTrackName(tracks);
+        Dataset<Row> rawData = sql.read().format("csv").option("inferSchema", "true").option("header", "true").option("sep", ",").load(inputFile);
+        Dataset<Row> imputed = unitImputation(rawData, new String[]{"10"}, "10");
+        Dataset<Row> clean = dedupRecords(imputed, new String[]{"name"});
+        Dataset<Row> report = createReport(clean);
+        report.write().mode(SaveMode.Overwrite).csv(outputFile);
         LOG.info("Pipeline finished");
-        collectRows(new String[]{tracksByArtist.first().get(0).toString(), tracksByName.first().get(0).toString()});
-        LOG.info("Pipeline finished");
-        return Collections.singletonMap(tracksByArtist, tracksByName);
     }
 
     @Task
-    protected Dataset<Row> loadTracks(String path) {
-        LOG.info("Loading tracks data from file {}", path);
-        Dataset<Row> data = sql.read().json(path);
-        Dataset<Row> result = data.selectExpr("explode(recenttracks.track) as tracks");
-        LOG.info("Tracks was loaded from file {}", path);
+    protected Dataset<Row> unitImputation(Dataset<?> rawData, String[] columnsToImpute, String value) {
+        int count = Integer.parseInt(rawData.describe().first().getString(2));
+        DbndLogger.logMetric("Replaced NaNs", rawData.count() - count);
+        return rawData.na().fill(value, columnsToImpute);
+    }
+
+    @Task
+    protected Dataset<Row> dedupRecords(Dataset<Row> data, String[] keyColumns) {
+        LOG.info("Dedup Records");
+        Dataset<Row> result = data.dropDuplicates(keyColumns);
+        DbndMetricsRepository metricsRepo = new DbndMetricsRepository(new InMemoryMetricsRepository());
+
+        new VerificationSuite()
+            .onData(result)
+            .addCheck(
+                new Check(CheckLevel.Error(), "Dedup testing", scala.collection.JavaConverters.collectionAsScalaIterableConverter(Collections.<Constraint>emptyList()).asScala().toSeq())
+                    .isUnique("name", Option.empty())
+                    .isUnique("id", Option.empty())
+                    .isComplete("name", Option.empty())
+                    .isComplete("id", Option.empty())
+                    .isPositive("score", Check.IsOne(), Option.empty()))
+            .useRepository(metricsRepo)
+            .saveOrAppendResult(
+                new ResultKey(System.currentTimeMillis(), JavaConverters.mapAsScalaMapConverter(Collections.singletonMap("name", "dedupedData")).asScala().toMap(Predef.$conforms())))
+            .run();
+        new ColumnProfilerRunner()
+            .onData(result)
+            .useRepository(metricsRepo)
+            .saveOrAppendResult(new DbndResultKey("dedupedData"))
+            .run();
         return result;
     }
 
     @Task
-    protected Dataset<Row> countTracksByTrackName(Dataset<Row> tracks) {
-        LOG.info("Counting top tracks");
-        Dataset<Row> result = tracks.groupBy("tracks.name").count().orderBy(functions.col("count").desc());
-        DbndLogger.logDataframe("data", result, true);
-        DbndLogger.logDatasetOperation("file:///reports/tracks.csv", DatasetOperationType.WRITE, result);
-        Row first = result.first();
-        DbndLogger.logMetric("top_track_name", first.get(0));
-        DbndLogger.logMetric("top_track_playcount", first.get(1));
-        LOG.info("Track: {} with playcount: {}", first.get(0), first.get(1));
-        LOG.info("Completed counting top tracks");
-        return result;
-    }
+    protected Dataset<Row> createReport(Dataset<Row> data) {
+        LOG.info("Create Report");
+        DbndLogger.logMetric("number of columns", data.columns().length);
+        double score = data.agg(Collections.singletonMap("score", "avg")).first().getAs("avg(score)");
+        DbndLogger.logMetric("Avg Score", score);
 
-    @Task
-    protected Dataset<Row> countTracksByArtist(Dataset<Row> tracks) {
-        LOG.info("Counting top artists");
-        Dataset<Row> result = tracks.groupBy("tracks.artist.name").count().orderBy(functions.col("count").desc());
-        DbndLogger.logMetric("top_artist_playcount", result.first().get(1));
-        LOG.info("Completed counting top artists");
-        return result;
-    }
-
-    @Task
-    protected String collectRows(String[] args) {
-        return String.join("|", args);
+        return data;
     }
 
 }

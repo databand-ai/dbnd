@@ -90,9 +90,9 @@ public class AzkabanPipelinesTest {
         String azkabanFlowName = "generate-report";
 
         Path examplesJar = Paths.get(System.getenv("EXAMPLES_JAR"));
-        Path sampleJson = Paths.get(getClass().getClassLoader().getResource("sample.json").toURI());
+        Path dataPath = Paths.get(getClass().getClassLoader().getResource("p_a_master_data.csv").toURI());
 
-        List<String> jobs = createProject(projectName, client, sessionId, Arrays.asList(examplesJar, sampleJson));
+        List<String> jobs = createProject(projectName, client, sessionId, Arrays.asList(examplesJar, dataPath));
 
         Optional<Integer> execId = client.executeFlow(sessionId, projectName, azkabanFlowName);
         assertThat("Flow should be executed", execId.isPresent(), Matchers.equalTo(true));
@@ -101,7 +101,7 @@ public class AzkabanPipelinesTest {
 
         verifyJob(databandPipelineName, jobs, azkabanFlowName, execId.get(), projectName);
 
-        pipelinesVerify.verifyOutputs("spark-flow__generate-report", now, true, false, "spark_scala_pipeline", false);
+        pipelinesVerify.verifyOutputs("spark-flow__generate-report", now, "scala_spark_pipeline", true);
     }
 
     public Optional<AzkabanClient> getClient() {

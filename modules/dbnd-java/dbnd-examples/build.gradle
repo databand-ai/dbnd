@@ -79,4 +79,5 @@ test {
     environment "dbnd.log.preview_tail_bytes", "100000000"
     jvmArgs "-javaagent:${projectDir}/../dbnd-agent/build/libs/dbnd-agent-${rootProject.version}-all.jar"
     environment "EXAMPLES_JAR", "${projectDir}/build/libs/dbnd-examples-latest-all.jar"
+    environment "PROCESS_DATA_OUTPUT", "${buildDir}/output/"
 }
