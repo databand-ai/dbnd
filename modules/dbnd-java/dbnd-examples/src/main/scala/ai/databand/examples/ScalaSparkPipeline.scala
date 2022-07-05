@@ -1,122 +1,83 @@
 package ai.databand.examples
 
 import ai.databand.annotations.Task
-import ai.databand.deequ.DbndMetricsRepository
-import ai.databand.log.{DbndLogger, LogDatasetRequest}
-import ai.databand.schema.DatasetOperationStatus.OK
-import ai.databand.schema.DatasetOperationType.READ
-import ai.databand.spark.{DbndSparkListener, DbndSparkQueryExecutionListener}
+import ai.databand.deequ.{DbndMetricsRepository, DbndResultKey}
+import ai.databand.log.DbndLogger
+import ai.databand.spark.DbndSparkQueryExecutionListener
 import com.amazon.deequ.VerificationSuite
 import com.amazon.deequ.checks.{Check, CheckLevel}
 import com.amazon.deequ.profiles.ColumnProfilerRunner
 import com.amazon.deequ.repository.ResultKey
 import com.amazon.deequ.repository.memory.InMemoryMetricsRepository
 import org.apache.spark.sql._
-import org.apache.spark.sql.functions.col
 import org.slf4j.LoggerFactory
 
 object ScalaSparkPipeline {
 
-    private val LOG = LoggerFactory.getLogger(this.getClass)
+    private val LOG = LoggerFactory.getLogger(ProcessDataSparkScala.getClass)
 
-    private var sql: SQLContext = _
-
-    @Task("spark_scala_pipeline")
+    @Task("scala_spark_pipeline")
     def main(args: Array[String]): Unit = {
-        LOG.info("Starting pipeline")
         val spark = SparkSession.builder
-            .appName("DBND Spark Scala Pipeline")
+            .appName("ScalaSparkPipeline")
             .config("spark.sql.shuffle.partitions", 1)
             .master("local[*]")
             .getOrCreate
-
         spark.listenerManager.register(new DbndSparkQueryExecutionListener())
-        spark.sparkContext.addSparkListener(new DbndSparkListener())
+        val sql = spark.sqlContext
 
-        sql = spark.sqlContext
-        val path = if (args.length > 0) args(0) else getClass.getClassLoader.getResource("sample.json").getFile
-        val tracks = loadTracks(path)
-        // there should be exactly 600 tracks
-        VerificationSuite()
-            .onData(tracks)
-            .addCheck(
-                Check(CheckLevel.Error, "Tracks testing")
-                    .hasSize(_ == 600)
-                    .isComplete("tracks"))
-            .useRepository(new DbndMetricsRepository(new InMemoryMetricsRepository))
-            .saveOrAppendResult(ResultKey(System.currentTimeMillis(), Map("name" -> "tracks")))
-            .run()
+        val inputFile = args(0)
+        val outputFile = args(1)
 
-        val tracksByArtistResult = countTracksByArtist(tracks)
-        val tracksByNameResult = countTracksByTrackName(tracks)
-        val result: Array[String] = Array(
-            tracksByArtistResult.first().get(0).toString,
-            tracksByNameResult.first().get(0).toString
-        )
-        collectRows(result)
+        val rawData = sql.read.format("csv").option("inferSchema", "true").option("header", "true").option("sep", ",").load(inputFile)
+        val imputed = unitImputation(rawData, Array("10"), "10")
+        val clean = dedupRecords(imputed, Array("name"))
+        val report = createReport(clean)
+        report.write.mode(SaveMode.Overwrite).csv(outputFile)
         spark.stop
         LOG.info("Pipeline finished")
     }
 
     @Task
-    def loadTracks(path: String): DataFrame = {
-        LOG.info("Loading tracks data from file {}", path)
-        val data = sql.read.json(path)
-        DbndLogger.logDatasetOperation(path, READ, OK, data, new LogDatasetRequest().withPreview().withSchema());
-        val result = data.selectExpr("explode(recenttracks.track) as tracks")
-        LOG.info("Tracks was loaded from file {}", path)
-        result
+    protected def unitImputation(rawData: DataFrame, columnsToImpute: Array[String], value: String): DataFrame = {
+        val count = rawData.describe().first().getString(2).toInt
+        DbndLogger.logMetric("Replaced NaNs", rawData.count() - count)
+        rawData.na.fill(value, columnsToImpute)
     }
 
     @Task
-    def countTracksByTrackName(tracks: Dataset[Row]): Dataset[Row] = {
-        LOG.info("Counting top tracks")
-        val result = tracks.groupBy("tracks.name").count.orderBy(col("count").desc)
-        DbndLogger.logDataframe("data", result, true)
-        DbndLogger.logMetric("job_start_time", Long.MaxValue);
-        DbndLogger.logMetric("job_start_time_test", System.currentTimeMillis());
-        ColumnProfilerRunner()
-            .onData(result)
-            .useRepository(new DbndMetricsRepository(new InMemoryMetricsRepository))
-            .saveOrAppendResult(ResultKey(System.currentTimeMillis(), Map("name" -> "topTracks")))
-            .run()
-        val topTrack = result.first()
-        DbndLogger.logMetric("top_track_name", topTrack.get(0))
-        DbndLogger.logMetric("top_track_playcount", topTrack.get(1))
-        LOG.info("Track: {} with playcount: {}", topTrack.get(0), topTrack.get(1))
-        additionalMetricTask(result)
-        LOG.info("Completed counting top tracks")
-        result
-    }
-
-    def additionalMetricTask(tracks: Dataset[Row]): Unit = {
-        DbndLogger.logMetric("additional_tracks_metric", tracks.columns.length)
-    }
-
-    @Task
-    def countTracksByArtist(tracks: Dataset[Row]): Dataset[Row] = {
-        LOG.info("Counting top artists")
-        val result = tracks.groupBy("tracks.artist.name").count.orderBy(col("count").desc)
+    protected def dedupRecords(data: Dataset[Row], keyColumns: Array[String]): DataFrame = {
+        LOG.info("Dedup Records")
+        val result = data.dropDuplicates(keyColumns)
+        val metricsRepo = new DbndMetricsRepository(new InMemoryMetricsRepository)
         VerificationSuite()
             .onData(result)
             .addCheck(
-                Check(CheckLevel.Error, "Tracks testing")
-                    .hasSize(_ == 36)
+                Check(CheckLevel.Error, "Dedup testing")
                     .isUnique("name")
-                    .isPositive("count")
+                    .isUnique("id")
                     .isComplete("name")
-                    .isComplete("count"))
-            .useRepository(new DbndMetricsRepository())
-            .saveOrAppendResult(ResultKey(System.currentTimeMillis(), Map("name" -> "result")))
+                    .isComplete("id")
+                    .isPositive("score"))
+            .useRepository(metricsRepo)
+            .saveOrAppendResult(ResultKey(System.currentTimeMillis(), Map("name" -> "dedupedData")))
             .run()
-        DbndLogger.logMetric("top_artist_playcount", result.first.get(1))
-        LOG.info("Completed counting top artists")
+        ColumnProfilerRunner()
+            .onData(result)
+            .useRepository(metricsRepo)
+            .saveOrAppendResult(new DbndResultKey("dedupedData"))
+            .run()
         result
     }
 
     @Task
-    def collectRows(args: Array[String]): String = {
-        args.mkString("|")
+    protected def createReport(data: Dataset[Row]): Dataset[Row] = {
+        LOG.info("Create Report")
+        DbndLogger.logMetric("number of columns", data.columns.length)
+        val score = data.agg(("score", "avg")).first.getAs[Double]("avg(score)")
+        DbndLogger.logMetric("Avg Score", score)
+
+        data
     }
 
 }

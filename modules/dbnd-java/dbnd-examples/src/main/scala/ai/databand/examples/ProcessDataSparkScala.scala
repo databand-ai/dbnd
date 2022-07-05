@@ -82,8 +82,8 @@ object ProcessDataSparkScala {
     protected def createReport(data: Dataset[Row]): Dataset[Row] = {
         LOG.info("Create Report")
         DbndLogger.logMetric("number of columns", data.columns.length)
-        val score = data.first.getAs[Int]("score")
-        DbndLogger.logMetric("Avg Score", score + (if (random.nextBoolean) 2 else -2) * random.nextInt(data.columns.length) + random.nextInt(10))
+        val score = data.agg(("score", "avg")).first.getAs[Double]("avg(score)")
+        DbndLogger.logMetric("Avg Score", score)
 
         data
     }
