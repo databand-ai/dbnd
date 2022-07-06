@@ -1,8 +1,4 @@
-FROM python:3.9-slim
-
-RUN apt-get update -yqq && \
-    apt-get install -y openssl libssl1.1=1.1.1n-0+deb11u3 && \
-    rm -rf /var/lib/apt/lists/*
+FROM us.gcr.io/dbnd-dev-260010/databand/dbnd-python.base:py39-slim
 
 # constants:
 ENV DBND_HOME=/app
