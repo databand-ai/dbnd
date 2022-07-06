@@ -2,7 +2,7 @@ package ai.databand.mlflow;
 
 import ai.databand.DbndApi;
 import ai.databand.config.DbndConfig;
-import ai.databand.examples.ApiWithTokenBuilder;
+import ai.databand.ApiWithTokenBuilder;
 import ai.databand.schema.NodeInfo;
 import ai.databand.schema.TaskFullGraph;
 import ai.databand.schema.TasksMetricsRequest;

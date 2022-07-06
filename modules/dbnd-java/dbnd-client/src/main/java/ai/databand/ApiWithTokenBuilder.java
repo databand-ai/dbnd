@@ -1,8 +1,5 @@
-package ai.databand.examples;
+package ai.databand;
 
-import ai.databand.DbndApi;
-import ai.databand.DbndClient;
-import ai.databand.DbndPropertyNames;
 import ai.databand.config.DbndConfig;
 import ai.databand.config.DbndSparkConf;
 import ai.databand.config.Env;
@@ -13,15 +10,16 @@ import ai.databand.schema.auth.CreateTokenRes;
 import ai.databand.schema.auth.LoginReq;
 import ai.databand.schema.auth.LoginRes;
 import okhttp3.Headers;
-import org.hamcrest.Matchers;
 import retrofit2.Response;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Objects;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-
+/**
+ * This api builder is used in unit tests.
+ * It has to be placed here, because okhttp3 packages has to be relocated to avoid conflicts with Spark distributions.
+ */
 public class ApiWithTokenBuilder {
 
     public DbndApi api() throws IOException {
@@ -36,7 +34,7 @@ public class ApiWithTokenBuilder {
 
         Response<CreateTokenRes> tokenRes = api.createPersonalAccessToken(new CreateTokenReq(), cookie).execute();
         CreateTokenRes tokenResBody = tokenRes.body();
-        assertThat("Token response body should not be empty", tokenResBody, Matchers.notNullValue());
+        Objects.requireNonNull(tokenResBody, "Token response body should not be empty");
         String token = tokenResBody.getToken();
 
         DbndConfig configWithToken = new DbndConfig(new DbndSparkConf(

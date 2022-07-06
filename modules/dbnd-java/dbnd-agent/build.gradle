@@ -38,4 +38,6 @@ shadowJar {
               && !it.moduleGroup.contains('javassist')
         })
     }
+    relocate 'okio', 'ai.databand.shadow.okio'
+    relocate 'okhttp3', 'ai.databand.shadow.okhttp3'
 }
