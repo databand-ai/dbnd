@@ -1,5 +1,6 @@
 package ai.databand.examples;
 
+import ai.databand.ApiWithTokenBuilder;
 import ai.databand.DbndApi;
 import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationRes;
