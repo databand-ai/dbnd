@@ -23,6 +23,7 @@ def try_get_or_create_task_run():
     from dbnd._core.configuration.environ_config import DBND_TASK_RUN_ATTEMPT_UID
 
     tra_uid = os.environ.get(DBND_TASK_RUN_ATTEMPT_UID)
+
     if tra_uid:
         return _get_task_run_mock(tra_uid)
 

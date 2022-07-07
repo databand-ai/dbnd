@@ -10,11 +10,26 @@ import psutil
 
 from airflow import settings
 from airflow.exceptions import AirflowNotFoundException
-from airflow.hooks.base_hook import BaseHook
 from airflow.models import DAG
-from airflow.operators.bash_operator import BashOperator
 from airflow.utils.dates import days_ago
+from airflow.version import version as airflow_version
+from packaging import version as packaging_version
 
+
+AIRFLOW_VERSION = packaging_version.parse(airflow_version)
+if AIRFLOW_VERSION.major == 1 or (
+    AIRFLOW_VERSION.major == 2 and AIRFLOW_VERSION.minor < 2
+):
+    TASK_CONCURRENCY_KEY = "task_concurrency"
+else:  # airflow 2.2+
+    TASK_CONCURRENCY_KEY = "max_active_tis_per_dag"
+
+if AIRFLOW_VERSION.major == 1:
+    from airflow.hooks.base_hook import BaseHook
+    from airflow.operators.bash_operator import BashOperator
+else:
+    from airflow.hooks.base import BaseHook
+    from airflow.operators.bash import BashOperator
 
 # Do not change this name unless you change the same constant in constants.py in dbnd-airflow
 MONITOR_DAG_NAME = "databand_airflow_monitor"
@@ -37,8 +52,8 @@ ITERATION_PRINT_INTERVAL = (
     PRINT_MEMORY_CONSUMPTION_INTERVAL_IN_SECONDS / GUARD_SLEEP_INTERVAL_IN_SECONDS
 )
 
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 args = {"owner": "Databand", "start_date": days_ago(2)}
 
 
@@ -244,12 +259,11 @@ def get_monitor_dag(
         opts = " --interval %d " % check_interval
         if auto_restart_timeout:
             opts += " --stop-after %d " % auto_restart_timeout
-
+        operator_kwargs = {TASK_CONCURRENCY_KEY: 1}
         run_monitor = MonitorOperator(
             databand_airflow_conn_id=databand_airflow_conn_id,
             log_level=log_level,
             task_id="monitor",
-            task_concurrency=1,
             retries=10,
             bash_command="python3 -m dbnd airflow-monitor-v2 %s" % opts,
             retry_delay=timedelta(seconds=1),
@@ -258,6 +272,7 @@ def get_monitor_dag(
             execution_timeout=force_restart_timeout,
             custom_env=monitor_env,
             guard_memory=guard_memory,
+            **operator_kwargs,
         )
 
     return dag
