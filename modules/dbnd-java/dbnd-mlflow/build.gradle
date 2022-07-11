@@ -4,4 +4,5 @@ dependencies {
     // http client
     compileOnly "com.squareup.retrofit2:retrofit:2.9.0"
     compileOnly "com.squareup.retrofit2:converter-jackson:2.9.0"
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.12.6.1")
 }
