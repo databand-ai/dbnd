@@ -13,6 +13,7 @@ repositories {
 dependencies {
     implementation "com.squareup.retrofit2:retrofit:2.9.0"
     implementation "com.squareup.retrofit2:converter-jackson:2.9.0"
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.12.6.1")
 
     implementation 'org.mlflow:mlflow-client:1.5.0'
     implementation('org.apache.spark:spark-sql_2.11:2.4.8') {
@@ -42,7 +43,7 @@ dependencies {
         exclude group: "org.scala-lang"
         exclude group: "org.scalanlp"
     }
-    implementation 'com.fasterxml.jackson.module:jackson-module-scala_2.11:2.10.2'
+    implementation("com.fasterxml.jackson.module:jackson-module-scala_2.11:2.12.7")
     implementation 'org.scala-lang:scala-library:2.11.12'
 
     testImplementation "ai.databand:dbnd-client:${project.version}"
