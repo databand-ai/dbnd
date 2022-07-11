@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from dbnd._core.current import is_verbose
+from dbnd._core.log import dbnd_log
 from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd._core.utils.basics.text_banner import safe_string
 from dbnd._core.utils.project.project_fs import databand_lib_path, project_path
@@ -197,7 +197,7 @@ def log_exception(msg, ex, logger_=None, verbose=None, non_critical=False):
     from dbnd._core.errors.base import DatabandError
 
     if verbose is None:
-        verbose = is_verbose()
+        verbose = dbnd_log.is_verbose()
 
     if verbose:
         # just show the exception

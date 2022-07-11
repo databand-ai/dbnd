@@ -1,5 +1,4 @@
-import logging
-
+from dbnd._core.log.dbnd_log import dbnd_log_exception, dbnd_log_init_msg
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_task
 
 
@@ -23,15 +22,17 @@ def _patch_policy(module):
         # airflow < 2.0, https://airflow.apache.org/docs/apache-airflow/1.10.10/concepts.html#cluster-policy
         new_policy = _wrap_policy_with_dbnd_track_task(module.policy)
         module.policy = new_policy
+        dbnd_log_init_msg("patched module.policy with dbnd auto tracking")
     if hasattr(module, "task_policy"):
         # airflow >= 2.0, https://airflow.apache.org/docs/apache-airflow/stable/concepts/cluster-policies.html
         new_policy = _wrap_policy_with_dbnd_track_task(module.task_policy)
         module.task_policy = new_policy
+        dbnd_log_init_msg("patched module.task_policy with dbnd auto tracking")
 
 
 def _add_tracking_to_policy():
     try:
-        # Use can have this file or not
+        # User can have this file or not
         import airflow_local_settings
 
         _patch_policy(airflow_local_settings)
@@ -52,13 +53,12 @@ def add_tracking_to_policy():
     """Add tracking to all tasks as part of airflow policy"""
     try:
         _add_tracking_to_policy()
-    except Exception:
-        logging.exception("Failed to add tracking in policy")
+    except Exception as ex:
+        dbnd_log_exception("Failed to add dbnd auto tracking to airflow policy %s" % ex)
 
 
 def patch_airflow_context_vars():
     """Used for tracking bash operators"""
-    import airflow
 
     from dbnd._core.utils.object_utils import patch_models
     from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars

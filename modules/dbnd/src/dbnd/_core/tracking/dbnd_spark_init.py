@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 from dbnd._core.configuration.environ_config import (
-    _debug_init_print,
+    dbnd_log_init_msg,
     spark_tracking_enabled,
 )
 from dbnd._core.tracking.airflow_task_context import AirflowTaskContext
@@ -45,10 +45,10 @@ def verify_spark_pre_conditions():
         if _is_dbnd_spark_installed():
             return True
         else:
-            _debug_init_print("failed to import pyspark or dbnd-spark")
+            dbnd_log_init_msg("No Spark: failed to import pyspark or dbnd-spark")
     else:
-        _debug_init_print(
-            "DBND__ENABLE__SPARK_CONTEXT_ENV or SPARK_ENV_LOADED are not set"
+        dbnd_log_init_msg(
+            "No Spark: DBND__ENABLE__SPARK_CONTEXT_ENV or SPARK_ENV_LOADED are not set"
         )
     return False
 

@@ -3,7 +3,7 @@ import typing
 
 from typing import Optional
 
-from dbnd._core.configuration import get_dbnd_project_config
+from dbnd._core.log import dbnd_log
 
 
 if typing.TYPE_CHECKING:
@@ -146,13 +146,7 @@ def get_settings():
 
 
 def is_verbose():
-    context = try_get_databand_context()
-    if context and getattr(context, "system_settings", None):
-        if context.system_settings.verbose:
-            # only if True, otherwise check project config too
-            return True
-
-    return get_dbnd_project_config().is_verbose()
+    return dbnd_log.is_verbose()
 
 
 def get_target_logging_level():

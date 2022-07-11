@@ -286,5 +286,11 @@ def wrap_operator_with_tracking_info(tracking_info, operator):
     Wrap the operator with relevant tracking method, if found such method.
     """
     for class_name, tracking_wrapper in _EXECUTE_TRACKING.items():
+        logger.debug(
+            " %s %s %s",
+            operator,
+            class_name,
+            is_instance_by_class_name(operator, class_name),
+        )
         if is_instance_by_class_name(operator, class_name):
             return tracking_wrapper(operator, tracking_info)

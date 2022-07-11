@@ -1,6 +1,6 @@
 import logging
 
-from dbnd._core.configuration.environ_config import get_dbnd_project_config
+from dbnd._core.log.dbnd_log import dbnd_log_exception, dbnd_log_init_msg
 from dbnd._core.tracking.no_tracking import should_not_track
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd_airflow.tracking.execute_tracking import track_operator
@@ -16,14 +16,10 @@ def _track_task(task):
         return
 
     track_operator(task)
+    dbnd_log_init_msg("%s is tracked by dbnd" % task.task_id)
     if is_instance_by_class_name(task, SubDagOperator.__name__):
         # we also track the subdag's inner tasks
         track_dag(task.subdag)
-
-
-def _is_verbose():
-    config = get_dbnd_project_config()
-    return config.is_verbose()
 
 
 def track_task(task):
@@ -32,10 +28,7 @@ def track_task(task):
     try:
         _track_task(task)
     except Exception:
-        if _is_verbose():
-            logger.exception("Failed to modify %s for tracking" % task.task_id)
-        else:
-            logger.info("Failed to modify %s for tracking" % task.task_id)
+        dbnd_log_exception("Failed to modify %s for tracking" % task.task_id)
 
 
 def track_dag(dag):
@@ -57,4 +50,4 @@ def track_dag(dag):
         for task in dag.tasks:
             track_task(task)
     except Exception:
-        logger.exception("Failed to modify %s for tracking" % dag.dag_id)
+        dbnd_log_exception("Failed to modify %s for tracking" % dag.dag_id)

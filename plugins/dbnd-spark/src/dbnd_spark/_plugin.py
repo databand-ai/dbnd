@@ -5,7 +5,7 @@ import dbnd
 from dbnd import dbnd_config, register_config_cls
 from dbnd._core.configuration.config_readers import get_environ_config_from_dict
 from dbnd._core.configuration.environ_config import (
-    _debug_init_print,
+    dbnd_log_init_msg,
     spark_tracking_enabled,
 )
 from dbnd_spark.livy.livy_spark_config import LivySparkConfig
@@ -29,7 +29,7 @@ def dbnd_setup_plugin():
         config_store = read_spark_environ_config()
         dbnd_config.set_values(config_store, "system")
     else:
-        _debug_init_print(
+        dbnd_log_init_msg(
             "spark conf is not loaded since pyspark is not imported or DBND__ENABLE__SPARK_CONTEXT_ENV is not set"
         )
 
@@ -39,7 +39,7 @@ def read_spark_environ_config():
 
     from pyspark import SparkContext
 
-    _debug_init_print("creating spark context to read spark conf")
+    dbnd_log_init_msg("creating spark context to read spark conf")
     spark_conf = SparkContext.getOrCreate().getConf()
     spark_conf = dict(spark_conf.getAll())
     spark_conf = {key.lstrip("spark.env."): value for key, value in spark_conf.items()}

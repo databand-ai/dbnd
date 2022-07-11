@@ -1,27 +1,18 @@
-import logging
-
-from dbnd._core.current import is_verbose
-
-
-logger = logging.getLogger(__name__)
-
-
-def dbnd_log_debug(msg, *args, **kwargs):
-    try:
-        if is_verbose():
-            logger.info(msg, *args, **kwargs)
-        else:
-            logger.debug(msg, *args, **kwargs)
-    except:
-        print("Failed to print dbnd info message")
+from dbnd._core.log.dbnd_log import (
+    dbnd_log_debug,
+    dbnd_log_exception,
+    dbnd_log_info_error,
+    dbnd_log_init_msg,
+    dbnd_log_tracking,
+    is_verbose,
+)
 
 
-def dbnd_log_info_error(msg, *args, **kwargs):
-    """we show exception only in verbose mode"""
-    try:
-        if is_verbose():
-            logger.exception(msg, *args, **kwargs)
-        else:
-            logger.info(msg, *args, **kwargs)
-    except Exception:
-        print("Failed to print dbnd error message")
+__all__ = [
+    "dbnd_log_debug",
+    "dbnd_log_info_error",
+    "is_verbose",
+    "dbnd_log_exception",
+    "dbnd_log_tracking",
+    "dbnd_log_init_msg",
+]

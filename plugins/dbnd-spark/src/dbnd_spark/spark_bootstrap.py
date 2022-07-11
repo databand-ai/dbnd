@@ -4,7 +4,7 @@ import logging
 import sys
 import traceback
 
-from dbnd._core.configuration.environ_config import _debug_init_print
+from dbnd._core.log import dbnd_log_init_msg
 from dbnd._core.utils.seven import import_errors
 
 
@@ -22,7 +22,7 @@ def dbnd_spark_bootstrap():
     _workaround_spark_namedtuple_serialization()
 
     try:
-        _debug_init_print("importing pyspark")
+        dbnd_log_init_msg("importing pyspark")
 
         import pyspark  # noqa: F401
     except import_errors:

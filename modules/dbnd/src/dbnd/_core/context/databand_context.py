@@ -10,6 +10,7 @@ from dbnd._core.configuration.dbnd_config import DbndConfig, config
 from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.errors.errors_utils import UserCodeDetector
+from dbnd._core.log import dbnd_log
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import DatabandSystemConfig, OutputConfig, RunInfoConfig
@@ -28,7 +29,6 @@ from targets.target_config import FileFormat
 
 if typing.TYPE_CHECKING:
     from dbnd._core.run.databand_run import DatabandRun
-
 
 if typing.TYPE_CHECKING:
     from typing import ContextManager
@@ -128,6 +128,12 @@ class DatabandContext(SingletonContext):
             # we get here if we are running at sub process that recreates the Context
             pm.hook.dbnd_on_existing_context(ctx=self)
 
+        if self.system_settings.verbose:
+            # propagate value of system_settings
+            # we need to do it also when we are loaded from pickle.
+            self._original_verbose = dbnd_log.is_verbose()
+            dbnd_log.set_verbose()
+
         # we do it every time we go into databand_config
         self.configure_targets()
         self.settings.log.configure_dbnd_logging()
@@ -161,6 +167,10 @@ class DatabandContext(SingletonContext):
     def _on_exit(self):
         if self._tracking_store:
             self.tracking_store.flush()
+
+        if self.system_settings.verbose:
+            dbnd_log.set_verbose(self._original_verbose)
+
         pm.hook.dbnd_on_exit_context(ctx=self)
 
     def is_interactive(self):

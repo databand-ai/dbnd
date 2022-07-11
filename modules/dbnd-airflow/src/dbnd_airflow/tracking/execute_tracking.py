@@ -7,6 +7,7 @@ from typing import Optional
 from dbnd import get_dbnd_project_config, log_metric, log_metrics
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.log.dbnd_log import dbnd_log_exception, dbnd_log_tracking
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import extract_airflow_context
@@ -24,7 +25,6 @@ from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_inf
 
 
 logger = logging.getLogger(__name__)
-
 
 AIRFLOW_MONITOR_CONFIG_NAME = "airflow_monitor"
 DAG_IDS_FOR_TRACKING_CONFIG_NAME = "dag_ids"
@@ -85,12 +85,15 @@ def new_execute(context):
     """
     This function replaces the operator's original `execute` function
     """
+
     # IMPORTANT!!: copied_operator:
     # ---------------------------------------
     # The task (=operator) is copied when airflow enters to TaskInstance._run_raw_task.
     # Then, only the copy_task (=copy_operator) is changed or called (render jinja, signal_handler,
     # pre_execute, execute, etc..).
     copied_operator = context["task_instance"].task
+
+    dbnd_log_tracking("Running tracked .execute for %s", copied_operator.task_id)
 
     if not is_dag_eligable_for_tracking(context["task_instance"].dag_id):
         execute = get_execute_function(copied_operator)
@@ -109,9 +112,8 @@ def new_execute(context):
 
     except Exception as e:
         task_run = None
-        logger.error(
-            "exception caught while running on dbnd new execute {}".format(e),
-            exc_info=True,
+        dbnd_log_exception(
+            "exception caught while running on dbnd new execute {}".format(e)
         )
 
     from airflow.exceptions import AirflowRescheduleException
@@ -150,9 +152,8 @@ def new_execute(context):
                 )
 
         except Exception as e:
-            logger.error(
-                "exception caught will tracking airflow operator {}".format(e),
-                exc_info=True,
+            dbnd_log_exception(
+                "exception caught while logging airflow operator results {}".format(e)
             )
 
     # make sure we close and return the original results
