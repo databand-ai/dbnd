@@ -17,8 +17,12 @@ dependencies {
     // http client
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     // implementation 'com.squareup.okhttp3:logging-interceptor:3.8.0'
-    implementation 'com.squareup.retrofit2:converter-jackson:2.9.0'
-    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.12.6.1")
+    implementation("com.squareup.retrofit2:converter-jackson:2.9.0") {
+        exclude group: "com.fasterxml.jackson"
+    }
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.12.6.1") {
+        transitive = false
+    }
 
     // should be removed after switching to apache http client
     compileOnly("com.fasterxml.jackson.module:jackson-module-scala_2.11:2.12.7") {
