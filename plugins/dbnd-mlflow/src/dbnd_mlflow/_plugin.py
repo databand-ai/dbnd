@@ -24,7 +24,15 @@ def dbnd_on_pre_init_context(ctx):
     if not config.getboolean("mlflow_tracking", "databand_tracking"):
         return
 
-    from mlflow import get_tracking_uri, set_tracking_uri
+    try:
+        from mlflow import get_tracking_uri, set_tracking_uri
+    except ImportError as e:
+        logger.warning(
+            "An import error has been occurred while trying to import mlflow, "
+            "make sure you have it installed in your python environment:\n%s",
+            e,
+        )
+        return
 
     databand_url = config.get("core", "databand_url")
     if not databand_url:
@@ -57,7 +65,15 @@ def dbnd_on_exit_context(ctx):
     if not config.getboolean("mlflow_tracking", "databand_tracking"):
         return
 
-    from mlflow import set_tracking_uri
+    try:
+        from mlflow import set_tracking_uri
+    except ImportError as e:
+        logger.warning(
+            "An import error has been occurred while trying to import mlflow, "
+            "make sure you have it installed in your python environment:\n%s",
+            e,
+        )
+        return
 
     global _original_mlflow_tracking_uri
     set_tracking_uri(_original_mlflow_tracking_uri)

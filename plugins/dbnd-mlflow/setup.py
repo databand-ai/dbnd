@@ -14,7 +14,7 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-mlflow",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version, "mlflow~=1.6.0", "six"],
+    install_requires=["dbnd==" + version, "six"],
     extras_require=dict(tests=[]),
     entry_points={
         "dbnd": ["dbnd-mlflow = dbnd_mlflow._plugin"],
