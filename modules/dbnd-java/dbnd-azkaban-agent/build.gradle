@@ -22,6 +22,16 @@ dependencies {
         transitive = false
     }
 
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.12.6.1") {
+        transitive = false
+    }
+    implementation("com.fasterxml.jackson.core:jackson-core:2.12.6") {
+        transitive = false
+    }
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.12.6") {
+        transitive = false
+    }
+
     testImplementation "org.junit.jupiter:junit-jupiter:5.8.2"
     testImplementation 'org.hamcrest:hamcrest:2.2'
 }
@@ -74,5 +84,7 @@ shadowJar {
                && !it.moduleGroup.contains('com.fasterxml')
         })
     }
-    relocate 'com.fasterxml', 'shadow.com.fasterxml'
+    relocate "okio", "shadow.okio"
+    relocate "okhttp3", "shadow.okhttp3"
+    relocate "com.fasterxml", 'shadow.com.fasterxml'
 }
