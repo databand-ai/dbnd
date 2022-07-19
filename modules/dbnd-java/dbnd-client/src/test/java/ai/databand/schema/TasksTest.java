@@ -34,7 +34,7 @@ class TasksTest {
             )
         );
         ObjectMapper mapper = new ObjectMapper();
-        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
 
         Tasks tasks = mapper.readValue(data, Tasks.class);
         MatcherAssert.assertThat("Tasks should not be empty", tasks, Matchers.notNullValue());
