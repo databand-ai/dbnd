@@ -99,6 +99,26 @@ class RedshiftTracker:
             redshift_connect.__dbnd_patched__ = connect_original
             psycopg2.connect = redshift_connect
 
+        if not hasattr(psycopg2.extensions.register_type, "__dbnd_patched__"):
+            register_type_original = psycopg2.extensions.register_type
+
+            @functools.wraps(register_type_original)
+            def psycopg_register_type(*args, **kwargs):
+                try:
+                    if isinstance(args[1], DbndConnectionWrapper):
+                        connection = args[1]._sqla_unwrap
+                    else:
+                        connection = args[1]
+                    return register_type_original(args[0], connection, **kwargs)
+                except Exception:
+                    logger.exception(
+                        "Error patching psycopg register_type, using original method"
+                    )
+                    return register_type_original(*args, **kwargs)
+
+            psycopg_register_type.__dbnd_patched__ = register_type_original
+            psycopg2.extensions.register_type = psycopg_register_type
+
         if not hasattr(DbndCursorWrapper.execute, "__dbnd_patched__"):
             execute_original = DbndCursorWrapper.execute
 
@@ -136,6 +156,8 @@ class RedshiftTracker:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.unpatch_method(DbndCursorWrapper, "execute")
         self.unpatch_method(DbndConnectionWrapper, "close")
+        self.unpatch_method(psycopg2, "connect")
+        self.unpatch_method(psycopg2.extensions, "register_type")
 
         for connection in self.connections.values():
             self.flush_operations(connection.connection)
