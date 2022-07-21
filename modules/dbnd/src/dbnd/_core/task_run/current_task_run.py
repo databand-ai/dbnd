@@ -49,9 +49,7 @@ def _get_task_run_mock(tra_uid):
         with config(
             {CoreConfig.tracker_raise_on_error: False}, source="on_demand_tracking"
         ):
-            with new_dbnd_context(
-                name="fast_dbnd_context", autoload_modules=False
-            ) as fast_dbnd_ctx:
+            with new_dbnd_context(name="fast_dbnd_context") as fast_dbnd_ctx:
                 trt = TaskRunTracker(task_run, fast_dbnd_ctx.tracking_store)
                 task_run.tracker = trt
                 return task_run
