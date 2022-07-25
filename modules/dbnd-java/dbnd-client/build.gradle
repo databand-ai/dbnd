@@ -16,20 +16,21 @@ dependencies {
     }
     // http client
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation "com.squareup.okhttp3:okhttp:4.10.0"
     // implementation 'com.squareup.okhttp3:logging-interceptor:3.8.0'
     implementation("com.squareup.retrofit2:converter-jackson:2.9.0") {
         transitive = false
     }
-    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.12.6.1") {
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.13.3") {
         transitive = false
     }
-    compileOnly("com.fasterxml.jackson.core:jackson-core:2.12.6") {
+    compileOnly("com.fasterxml.jackson.core:jackson-core:2.13.3") {
         transitive = false
     }
-    compileOnly("com.fasterxml.jackson.core:jackson-annotations:2.12.6") {
+    compileOnly("com.fasterxml.jackson.core:jackson-annotations:2.13.3") {
         transitive = false
     }
-    compileOnly("com.fasterxml.jackson.module:jackson-module-scala_2.11:2.12.7") {
+    compileOnly("com.fasterxml.jackson.module:jackson-module-scala_2.11:2.13.3") {
         transitive = false
     }
 

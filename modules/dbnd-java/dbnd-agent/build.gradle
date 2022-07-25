@@ -35,9 +35,11 @@ shadowJar {
             !it.moduleGroup.contains('databand') \
               && !it.moduleGroup.contains('squareup') \
               && !it.moduleGroup.contains('ch.qos.logback') \
-              && !it.moduleGroup.contains('javassist')
+              && !it.moduleGroup.contains('javassist') \
+              && !it.moduleGroup.contains("org.jetbrains.kotlin")
         })
     }
     relocate "okio", "shadow.okio"
     relocate "okhttp3", "shadow.okhttp3"
+    relocate "kotlin", "shadow.kotlin"
 }

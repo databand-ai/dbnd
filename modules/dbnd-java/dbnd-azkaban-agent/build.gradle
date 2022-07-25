@@ -22,13 +22,13 @@ dependencies {
         transitive = false
     }
 
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.12.6.1") {
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.3") {
         transitive = false
     }
-    implementation("com.fasterxml.jackson.core:jackson-core:2.12.6") {
+    implementation("com.fasterxml.jackson.core:jackson-core:2.13.3") {
         transitive = false
     }
-    implementation("com.fasterxml.jackson.core:jackson-annotations:2.12.6") {
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.13.3") {
         transitive = false
     }
 
@@ -81,10 +81,12 @@ shadowJar {
                && !it.moduleGroup.contains('squareup') \
                && !it.moduleGroup.contains('ch.qos.logback') \
                && !it.moduleGroup.contains('javassist') \
-               && !it.moduleGroup.contains('com.fasterxml')
+               && !it.moduleGroup.contains('com.fasterxml') \
+               && !it.moduleGroup.contains("org.jetbrains.kotlin")
         })
     }
     relocate "okio", "shadow.okio"
     relocate "okhttp3", "shadow.okhttp3"
     relocate "com.fasterxml", 'shadow.com.fasterxml'
+    relocate "kotlin", "shadow.kotlin"
 }

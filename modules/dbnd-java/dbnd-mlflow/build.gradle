@@ -3,10 +3,11 @@ dependencies {
 
     // http client
     compileOnly "com.squareup.retrofit2:retrofit:2.9.0"
+    implementation "com.squareup.okhttp3:okhttp:4.10.0"
     implementation("com.squareup.retrofit2:converter-jackson:2.9.0") {
         transitive = false
     }
-    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.12.6.1") {
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.13.3") {
         transitive = false
     }
 }
