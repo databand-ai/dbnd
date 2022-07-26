@@ -1,6 +1,13 @@
 ---
 "title": "Tracking dbt"
 ---
+
+### Overview
+
+dbt jobs can be tracked with Databand in two ways:
+1. Using Databand's SDK to track dbt jobs that are triggered by Airflow (or any other Python orchestration)
+2. Directly monitoring dbt Cloud using Databand's dbt monitor
+
 ### Track dbt runs triggered by Airflow:
 
 You can use Databand to track data from dbt jobs when these jobs are triggered by Airflow by using the `collect_data_from_dbt_cloud` function as shown below.
@@ -55,3 +62,18 @@ collect_data_from_dbt_cloud(dbt_cloud_account_id=account_id,
                             dbt_cloud_api_token=dbt_cloud_api_token,
                             dbt_job_run_id=dbt_cloud_run_id)
 ```
+
+### Tracking dbt Jobs in dbt Cloud
+You can use Databand's dbt monitor to track dbt jobs by directly monitoring your dbt Cloud environemnt. This will allow Databand to track your dbt jobs regardless of how they are triggered (Scheduled run, Airflow trigger, manual trigger etc..)
+
+To fully integrate Databand with your dbt Cloud environment:
+1. Configure a new [dbt syncer](https://docs.databand.ai/docs/dbt-tracker-configuration) at Databand's Application.
+2. After the dbt syncer is configured, you will be able to see your dbt job runs as pipelines in Databand.
+
+[block:callout]
+{
+  "type": "danger",
+  "title": "Tracking Airflow triggered jobs",
+  "body": "If you are tracking dbt data from Airflow, using the `collect_data_from_dbt_cloud` function, as explained above, you should NOT configure a dbt syncer to sync dbt job runs from the same account. Tracking the same dbt job runs twice is currently not supported in Databand."
+}
+[/block]
