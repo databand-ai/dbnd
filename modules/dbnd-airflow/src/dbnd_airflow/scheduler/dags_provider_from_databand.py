@@ -1,8 +1,10 @@
 import logging
 
+from datetime import datetime
 from typing import List, Optional
 
 from airflow import DAG
+from airflow.settings import TIMEZONE as AIRFLOW_TIMEZONE
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
@@ -53,12 +55,12 @@ class DbndSchedulerDBDagsProvider(object):
         if job.get("depends_on_past"):
             default_args["depends_on_past"] = job.get("depends_on_past")
 
-        start_date = convert_to_utc(job.get("start_date"))
+        start_date = self._to_airflow_datetime(job.get("start_date"))
         if start_date:
             default_args["start_day"] = start_date
 
         if job.get("end_date"):
-            default_args["end_date"] = convert_to_utc(job.get("end_date"))
+            default_args["end_date"] = self._to_airflow_datetime(job.get("end_date"))
 
         if job.get("owner"):
             default_args["owner"] = job.get("create_user")
@@ -86,6 +88,13 @@ class DbndSchedulerDBDagsProvider(object):
         )
 
         return dag
+
+    def _to_airflow_datetime(self, dt: datetime) -> datetime:
+        converted = convert_to_utc(dt)
+        if converted is not None:
+            converted = converted.replace(tzinfo=AIRFLOW_TIMEZONE)
+
+        return converted
 
 
 def get_dags_from_databand(custom_operator_class: Optional[type] = None):
