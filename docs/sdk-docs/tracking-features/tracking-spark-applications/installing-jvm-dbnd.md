@@ -8,8 +8,8 @@ Databand provides a set of Java libraries for tracking JVM-specific applications
 ## Adding Databand libraries to your JVM application
 Please add the DBND library to your spark project, you should include DBND libraries in your FatJar or any other way you deploy your JVM project and its third-party dependencies to the spark cluster.
 
-### Maven 
-You should include DBND JVM SDK in your Maven project by adding it as a dependency in your POM file. 
+### Maven
+You should include DBND JVM SDK in your Maven project by adding it as a dependency in your POM file.
 ``` xml
   <dependency>
       <groupId>ai.databand</groupId>
@@ -31,10 +31,10 @@ You should include DBND JVM SDK in your SBT project by adding the following line
 ```
 
 ### Manual
-If you don't use a build system, or you just running PySpark script, and you still want to use Databand JVM binaries for [Listeners](doc:installing-jvm-dbnd#dbnd-listeners), you can download and add our JARs to the spark application manually via `--jars` or `--packages`.
+If you don't use a build system, or you're just running PySpark script, and you still want to use Databand JVM binaries for [Listeners](doc:installing-jvm-dbnd#dbnd-listeners), you can download and add our JARs to the spark application manually via `--jars` or `--packages`.
 
 You can use a direct link to Maven Repo. For production usage, it's highly recommended to pre-download JAR to local or remote storage.
-Select the desired version of DBND and download `dbnd-agent-0.xx.x-all.jar` from [Maven Repository](https://repo1.maven.org/maven2/ai/databand/dbnd-agent/). For automation, you can use the following script. 
+Select the desired version of DBND and download `dbnd-agent-0.xx.x-all.jar` from [Maven Repository](https://repo1.maven.org/maven2/ai/databand/dbnd-agent/). For automation, you can use the following script.
 ``` bash
 DBND_VERSION=0.XX.X
 wget https://repo1.maven.org/maven2/ai/databand/dbnd-agent/${DBND_VERSION}/dbnd-agent-${DBND_VERSION}-all.jar -P /home/hadoop/
@@ -47,7 +47,7 @@ You should store the agent JAR at the location available to your JVM application
 Databand JVM SDK utilizes the same properties as Python SDK. However, not all of them are supported and ways of configuration are slightly different.
 
 In general, JVM SDK is configured by passing environment variables to executable. In the case of Spark, variables can be set up by utilizing `spark.env` properties.
- 
+
 ``` bash
 # via export
 export DBND__CORE__DATABAND_URL=...
@@ -73,19 +73,19 @@ Following configuration properties are supported in JVM SDK
 
 
 ### Minimal Spark Configuration
-The following environment variables should be defined in your Spark context/JVM Job. 
- * `DBND__CORE__DATABAND_URL` - a  Databand server URL  
- * `DBND__CORE__DATABAND_ACCESS_TOKEN` - a  Databand server Access Token  
- * `DBND__TRACKING=True` -enables JVM and Python in place tracking 
+The following environment variables should be defined in your Spark context/JVM Job.
+ * `DBND__CORE__DATABAND_URL` - a  Databand server URL
+ * `DBND__CORE__DATABAND_ACCESS_TOKEN` - a  Databand server Access Token
+ * `DBND__TRACKING=True` -enables JVM and Python in place tracking
 
 
 ### Configure local Spark submit
 | This is a "non-production" way of quickly trying and iterating around Databand Configuration at Spark Cluster.
 An alternative approach is to add these variables to the environment variables available to your Spark Application. For `spark-submit` scripts, use `spark.env` for passing variables:
- 
+
 ``` bash
 spark-submit \
-    --conf "spark.env.DBND__TRACKING=True" \ 
+    --conf "spark.env.DBND__TRACKING=True" \
     --conf "spark.env.DBND__CORE__DATABAND_URL=REPLACE_WITH_DATABAND_URL" \
     --conf "spark.env.DBND__CORE__DATABAND_ACCESS_TOKEN=REPLACE_WITH_DATABAND_TOKEN"
 ```
@@ -99,7 +99,7 @@ AIRFLOW_CONTEXT parameters are supported as a part of Airflow integration. These
 ## Setup Listener
 
 You have to bring an extra package `ai.databand:dbnd-client` into the runtime of your spark application. You have the following options for doing that:
-* In case you have your JVM project built and integrated with your spark environment, you can do that by changing your [JVM project config](doc:installing-jvm-dbnd#adding-databand-libraries-to-your-jvm-application). 
+* In case you have your JVM project built and integrated with your spark environment, you can do that by changing your [JVM project config](doc:installing-jvm-dbnd#adding-databand-libraries-to-your-jvm-application).
 * Bring JAR directly to your spark application via [bootstrap](doc:installing-dbnd-on-spark-cluster#cluster-bootstrap) and add it to the `--jars` for you `spark-submit`. You can also use a direct link to Maven.
 * Via spark `--packages` option:  `spark-submit --packages "ai.databand:dbnd-client:REPLACE_WITH_VERSION"`.
 * With the Agent installed and enabled, you don't need to reference any specific DBND jar in your JVM project. Our agent jar already contains all relevant binaries.
@@ -108,8 +108,8 @@ You have to bring an extra package `ai.databand:dbnd-client` into the runtime of
 
 You can enable our listener explicitly in the spark command line.
 ``` bash
-spark-submit ... --conf 
- "spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener" 
+spark-submit ... --conf
+ "spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener"
 ```
 
 # DBND JVM Agent

@@ -91,6 +91,8 @@ In order to connect Databand to Deequ use `DbndDeequMetricsRepository` as in the
 
 <!-- noqa -->
 ```python
+from dbnd_spark.deequ_metrics_repository import DbndMetricsRepository
+
 result_key = ResultKey(spark, ResultKey.current_milli_time(), {"name": "words"})
 analysis_runner = AnalysisRunner(spark).onData(lines)
 
