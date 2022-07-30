@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
 from datetime import datetime, timedelta

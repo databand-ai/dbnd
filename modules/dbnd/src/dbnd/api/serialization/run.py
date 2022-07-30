@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.constants import RunState
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.utils.dotdict import _as_dotted_dict

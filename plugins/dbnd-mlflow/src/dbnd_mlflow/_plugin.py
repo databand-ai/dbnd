@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import logging
 
 from dbnd import config, hookimpl, register_config_cls

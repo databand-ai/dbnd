@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from datetime import datetime, timedelta
 
 from dbnd import parameter

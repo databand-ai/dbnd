@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 This file is only used in Airflow 1.10.10 and bellow;
 Copied from Airflow 1.10.15 to unify secrets management

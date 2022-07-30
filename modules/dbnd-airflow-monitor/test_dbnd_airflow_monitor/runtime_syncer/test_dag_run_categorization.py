@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import random
 
 from airflow_monitor.common.airflow_data import AirflowDagRun

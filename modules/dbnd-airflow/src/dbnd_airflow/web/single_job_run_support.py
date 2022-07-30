@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 Support old version of SingleJobRun
 Once it has SingleJobRun as polymorfic name

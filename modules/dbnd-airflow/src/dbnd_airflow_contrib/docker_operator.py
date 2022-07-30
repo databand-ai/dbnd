@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# © Copyright Databand.ai, an IBM Company 2022
+
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file

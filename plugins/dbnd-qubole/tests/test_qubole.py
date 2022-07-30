@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from mock import Mock
 
 from dbnd_qubole import QuboleConfig

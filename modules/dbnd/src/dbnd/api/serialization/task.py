@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.constants import TaskRunState
 from dbnd._core.parameter.parameter_definition import ParameterGroup, _ParameterKind
 from dbnd._core.tracking.schemas.base import ApiStrictSchema

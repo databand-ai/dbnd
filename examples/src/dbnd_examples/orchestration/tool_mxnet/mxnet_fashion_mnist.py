@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from time import time
 
 from mxnet import autograd, gluon, init

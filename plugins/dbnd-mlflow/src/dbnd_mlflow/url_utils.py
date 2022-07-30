@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from six.moves.urllib.parse import (
     parse_qsl,
     quote_plus,

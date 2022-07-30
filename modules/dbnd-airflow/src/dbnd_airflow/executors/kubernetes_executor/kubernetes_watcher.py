@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 A lot of overrides on top of KubernetesJobWatcher
 1. handling resource version management

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 We want to define new custom object so we can run code like :
   dbnd run my_task --custom "some custom text for MyCustomObject constuctor"

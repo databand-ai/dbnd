@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # Please do not any airflow imports in this file
 # We want to allow importing constants from this file without any side effects
 

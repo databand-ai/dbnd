@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 def dbnd_task_as_bash_operator(task_cls, name=None, cmd_line=None, **kwargs):
     from airflow.operators.bash_operator import BashOperator
 

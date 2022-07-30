@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd import pipeline
 from dbnd_aws.sagemaker import SageMakerTrainTask
 from dbnd_aws.sagemaker.estimator_config import PyTorchEstimatorConfig

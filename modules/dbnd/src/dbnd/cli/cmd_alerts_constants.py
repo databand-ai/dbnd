@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 CREATE_HELP_MSG = """
 Create alert definition for given pipeline\n
 \n

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # we need to import databand module before airflow, otherwise we will not get airflow_bome
 
 import cProfile

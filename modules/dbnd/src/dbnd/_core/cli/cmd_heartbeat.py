@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.current import get_databand_context
 from dbnd._core.utils.basics import nested_context
 from dbnd._vendor import click

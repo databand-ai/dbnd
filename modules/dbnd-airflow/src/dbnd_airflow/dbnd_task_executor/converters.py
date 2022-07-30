@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 def operator_to_to_dbnd_task_id(operator):
     return getattr(operator, "dbnd_task_id", None)
 

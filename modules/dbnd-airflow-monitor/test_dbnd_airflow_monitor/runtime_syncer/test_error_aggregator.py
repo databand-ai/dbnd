@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow_monitor.shared.error_aggregator import ErrorAggregator
 
 from . import random_text

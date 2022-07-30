@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # Inspired by an tensorflow tutorial:
 #   https://www.tensorflow.org/guide/premade_estimators
 

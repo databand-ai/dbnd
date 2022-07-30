@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd_snowflake.snowflake_resources import log_snowflake_resource_usage
 from dbnd_snowflake.snowflake_table import log_snowflake_table
 from dbnd_snowflake.snowflake_tracker import snowflake_query_tracker

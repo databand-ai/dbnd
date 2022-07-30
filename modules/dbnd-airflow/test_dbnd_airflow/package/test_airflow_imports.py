@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 def test_import_databand():
     print("Starting Import")
     import dbnd

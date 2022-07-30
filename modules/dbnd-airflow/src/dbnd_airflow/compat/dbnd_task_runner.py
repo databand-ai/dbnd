@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow.task.task_runner.standard_task_runner import StandardTaskRunner
 
 from dbnd_airflow.constants import AIRFLOW_VERSION_2

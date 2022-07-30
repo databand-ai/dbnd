@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from threading import RLock
 
 from dbnd._core.utils.seven import get_ident

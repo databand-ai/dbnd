@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from pyspark.sql import SparkSession
 
 from dbnd import log_metric, task

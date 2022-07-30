@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 class MultiTargetOpen(object):
     """FileInput([files[, inplace[, backup[, bufsize[, mode[, openhook]]]]]])
 

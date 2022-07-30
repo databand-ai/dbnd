@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """ Parameters are one of the core concepts of databand.
 All Parameters sit on :class:`~dbnd.tasks.Task` classes.
 See :ref:`parameter` for more info on how to define parameters.

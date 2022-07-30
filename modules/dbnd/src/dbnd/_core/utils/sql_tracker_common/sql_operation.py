@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from collections import defaultdict
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple

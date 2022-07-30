@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import pytest
 
 from dbnd import PipelineTask, Task, dbnd_config, dbnd_run_cmd, output, parameter

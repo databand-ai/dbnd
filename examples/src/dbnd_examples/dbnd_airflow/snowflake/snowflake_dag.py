@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import airflow
 
 from airflow.contrib.hooks.snowflake_hook import SnowflakeHook

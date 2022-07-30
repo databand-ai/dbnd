@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """from dbnd import output, parameter
 from dbnd_spark import spark, spark_task
 from targets.target_config import FileFormat

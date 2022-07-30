@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from tzlocal import get_localzone
 
 from dbnd._core.utils.timezone import make_aware

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # dbnd should be first - we need to setup things!
 import logging
 

@@ -1,3 +1,7 @@
+/*
+ * © Copyright Databand.ai, an IBM Company 2022
+ */
+
 package ai.databand.schema;
 
 import com.fasterxml.jackson.annotation.JsonProperty;

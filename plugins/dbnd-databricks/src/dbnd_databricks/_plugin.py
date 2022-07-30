@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import dbnd
 
 from dbnd import register_config_cls

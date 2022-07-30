@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from subprocess import CalledProcessError, call
 from tempfile import NamedTemporaryFile
 

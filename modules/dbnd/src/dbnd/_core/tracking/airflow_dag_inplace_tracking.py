@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 Context: airflow operator/task is running a function with @task
 Here we create dbnd objects to represent them and send to webserver through tracking api.

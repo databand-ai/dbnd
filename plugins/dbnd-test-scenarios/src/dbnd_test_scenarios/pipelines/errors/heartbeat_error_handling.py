@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 This scenario can be used to test weird heartbeat behavior,
 in case heartbeat process is failing,

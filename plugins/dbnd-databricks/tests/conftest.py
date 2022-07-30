@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # inline conftest
 
 from dbnd.testing.test_config_setter import add_test_configuration

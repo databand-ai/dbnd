@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from collections import defaultdict
 from typing import List, Union
 

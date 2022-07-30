@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # do not import PySpark until we run run dbnd_spark_bootstrap
 import collections
 import logging

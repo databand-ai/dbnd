@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.task_build.task_const import _SAME_AS_PYTHON_MODULE
 from dbnd._core.task_build.task_registry import get_task_registry
 

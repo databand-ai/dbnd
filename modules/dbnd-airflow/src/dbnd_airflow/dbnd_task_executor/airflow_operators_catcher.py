@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow import DAG
 
 from dbnd_airflow.airflow_utils import safe_get_context_manager_dag

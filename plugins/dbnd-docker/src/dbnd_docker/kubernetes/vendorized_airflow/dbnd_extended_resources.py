@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import copy
 
 from typing import Any, Dict, Optional, Union

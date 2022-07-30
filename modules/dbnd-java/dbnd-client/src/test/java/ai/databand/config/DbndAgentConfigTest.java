@@ -1,3 +1,7 @@
+/*
+ * © Copyright Databand.ai, an IBM Company 2022
+ */
+
 package ai.databand.config;
 
 import ai.databand.DbndPropertyNames;

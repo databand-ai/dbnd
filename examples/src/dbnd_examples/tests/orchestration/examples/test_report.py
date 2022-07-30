@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.orchestration.examples.report import dump_db, partners_report
 

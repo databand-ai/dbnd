@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd_examples.data import dbnd_examples_src_path
 
 

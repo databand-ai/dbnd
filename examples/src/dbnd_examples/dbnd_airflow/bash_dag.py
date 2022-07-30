@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 Code that goes along with the Airflow tutorial located at:
 https://github.com/airbnb/airflow/blob/master/airflow/example_dags/tutorial.py

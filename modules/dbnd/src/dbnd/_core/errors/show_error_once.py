@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 _SHOWN_ATTR = "_dbnd_shown"
 
 

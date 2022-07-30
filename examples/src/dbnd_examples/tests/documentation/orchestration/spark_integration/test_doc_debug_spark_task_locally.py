@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """from dbnd import config, output, parameter
 from dbnd_spark import spark, spark_task
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig

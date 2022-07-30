@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.log.buffered_log_manager import (
     EMPTY_LOG_MSG,
     EMPTY_TRUNCATED_LOG_MSG,

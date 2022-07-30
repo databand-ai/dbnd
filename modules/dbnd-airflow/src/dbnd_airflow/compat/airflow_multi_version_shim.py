@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow import models
 from airflow.configuration import conf as airflow_conf
 from airflow.jobs.base_job import BaseJob

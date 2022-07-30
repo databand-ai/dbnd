@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import os
 
 from dbnd._core.configuration.environ_config import ENV_DBND_USER

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.parameter.parameter_builder import (  # noqa: 401
     PARAMETER_FACTORY,
     ParameterFactory,

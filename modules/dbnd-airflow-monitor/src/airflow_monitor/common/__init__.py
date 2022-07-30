@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow_monitor.common.airflow_data import MonitorState
 from airflow_monitor.shared.error_handler import CaptureMonitorExceptionDecorator
 from airflow_monitor.tracking_service import get_servers_configuration_service

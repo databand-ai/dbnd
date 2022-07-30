@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd_examples.orchestration.features.dynamic_tasks_with_pipeline import (
     say_hello_to_everybody,
 )

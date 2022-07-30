@@ -55,3 +55,44 @@ repos:
       - id: check-added-large-files
         args: [ '--maxkb=3000' ]
       - id: trailing-whitespace
+
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.3.0
+    hooks:
+      - id: insert-license
+        files: dbnd-core/.+/.+\.py$
+        args:
+          - --license-filepath
+          - COPYRIGHT.txt
+          - --skip-license-insertion
+          - "Copyright"
+          #- --remove-header
+        exclude: |
+          (?x)^(
+            .+/airflow_override/.+|
+            .+/_vendor/.+|
+            .+/_vendor_package/.+|
+            .+/docs/sdk-docs/.+|
+            .+/build/.+|
+            .+/dist/.+|
+          )$
+
+      - id: insert-license
+        files: dbnd-core/modules/dbnd-java/.+/.+\.java$
+        args:
+          - --license-filepath
+          - COPYRIGHT.txt
+          - --skip-license-insertion
+          - "Copyright"
+          - --comment-style
+          - /*| *| */
+          #- --remove-header
+        exclude: |
+          (?x)^(
+            .+/airflow_override/.+|
+            .+/_vendor/.+|
+            .+/_vendor_package/.+|
+            .+/docs/sdk-docs/.+|
+            .+/build/.+|
+            .+/dist/.+|
+          )$

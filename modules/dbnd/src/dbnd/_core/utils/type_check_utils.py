@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 def is_instance_by_class_name(obj, class_name):
     # If it's metaclass
     if issubclass(obj.__class__, type):

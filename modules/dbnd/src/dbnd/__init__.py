@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.access import (
     get_remote_engine_name,
     get_task_params_defs,

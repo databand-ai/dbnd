@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import attr
 
 from dbnd._core.parameter.parameter_definition import ParameterDefinition

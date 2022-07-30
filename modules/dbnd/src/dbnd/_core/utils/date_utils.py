@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from datetime import timedelta
 
 from dbnd._core.utils.timezone import utcnow

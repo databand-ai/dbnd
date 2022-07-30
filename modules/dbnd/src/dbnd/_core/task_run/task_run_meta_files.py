@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.task_build.task_signature import TASK_ID_INVALID_CHAR_REGEX
 from targets import target
 

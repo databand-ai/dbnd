@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils import json_utils
 from targets.base_target import Target

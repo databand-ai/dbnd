@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import os
 
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars

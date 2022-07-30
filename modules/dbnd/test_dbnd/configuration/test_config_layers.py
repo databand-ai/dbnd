@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.pprint_config import pformat_current_config
 

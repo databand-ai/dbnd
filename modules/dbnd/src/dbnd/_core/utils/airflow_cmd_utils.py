@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 def generate_airflow_cmd(dag_id, task_id, execution_date, is_root_task=False):
     return "airflow {sub_command} {dag_id}{task_id} {start_date} {end_date}".format(
         sub_command="backfill" if is_root_task else "test",

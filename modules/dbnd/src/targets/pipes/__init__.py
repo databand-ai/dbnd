@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from targets.pipes.base import IOPipeline, NopPipeline  # noqa: F401
 from targets.pipes.bzip2 import Bzip2Pipeline
 from targets.pipes.gzip import GzipPipeline

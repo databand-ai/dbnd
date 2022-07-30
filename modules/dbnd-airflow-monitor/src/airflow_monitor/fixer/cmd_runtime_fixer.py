@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow_monitor.fixer.runtime_fixer import start_runtime_fixer
 from dbnd._vendor import click
 

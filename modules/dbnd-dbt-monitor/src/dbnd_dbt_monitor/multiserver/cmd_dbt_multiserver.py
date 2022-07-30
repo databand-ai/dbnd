@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd_dbt_monitor.data.dbt_config_data import DbtMonitorConfig
 from dbnd_dbt_monitor.multiserver.dbt_multiserver import start_dbt_multi_server_monitor
 

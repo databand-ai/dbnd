@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 class CmdLineBuilder(object):
     def __init__(self):
         self._cmd_line = []

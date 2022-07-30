@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # Vendorized from Apache Airflow
 #
 # Licensed to the Apache Software Foundation (ASF) under one

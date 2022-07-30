@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # Based on https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-python-sdk/pytorch_mnist/mnist.py
 # Distriburted under Apache License 2.0
 # Converted into databand example

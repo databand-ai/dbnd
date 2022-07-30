@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 This is a retry scenario to test k8s execution with retries of a failed task.
 CMD:

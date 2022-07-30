@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 
+# © Copyright Databand.ai, an IBM Company 2022
+
 import glob
 import time
 

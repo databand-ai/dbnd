@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd_airflow.constants import AIRFLOW_VERSION_1, AIRFLOW_VERSION_2
 
 

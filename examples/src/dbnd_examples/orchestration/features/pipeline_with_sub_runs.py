@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import logging
 
 from dbnd import dbnd_config, get_databand_context, pipeline, task

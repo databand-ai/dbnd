@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from functools import wraps
 
 from prometheus_client import CollectorRegistry, Summary, generate_latest

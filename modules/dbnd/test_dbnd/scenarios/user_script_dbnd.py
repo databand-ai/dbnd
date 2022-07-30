@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd import config
 from dbnd.tasks.basics import dbnd_sanity_check
 

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd import auto_namespace, band, parameter
 from dbnd_test_scenarios.test_common.task.factories import FooConfig, TTask
 

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 #  << should be run before import to airflow >>
 # otherwise airflow.configuration will fail
 # fix AIRFLOW_HOME for all runs

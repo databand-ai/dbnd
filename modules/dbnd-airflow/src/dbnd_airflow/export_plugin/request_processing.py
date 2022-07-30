@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import flask
 
 from dbnd_airflow.export_plugin.api_functions import (

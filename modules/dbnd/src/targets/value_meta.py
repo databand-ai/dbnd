@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from collections import ChainMap
 from typing import Dict, List, Optional, Tuple, Union
 

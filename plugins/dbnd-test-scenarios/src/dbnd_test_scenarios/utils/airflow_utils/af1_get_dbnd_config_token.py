@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 Used by shell scripts to get current token
  logging - stderr

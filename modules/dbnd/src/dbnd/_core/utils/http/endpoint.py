@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.http.constants import AUTHS_SUPPORTED, NO_AUTH
 

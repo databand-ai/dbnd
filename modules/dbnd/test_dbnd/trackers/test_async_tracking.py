@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from mock import patch
 
 from dbnd import get_databand_context, new_dbnd_context

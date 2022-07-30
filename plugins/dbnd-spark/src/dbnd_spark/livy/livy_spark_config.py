@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd import parameter
 from dbnd._core.utils.http.constants import NO_AUTH
 from dbnd_spark.spark_config import SparkEngineConfig

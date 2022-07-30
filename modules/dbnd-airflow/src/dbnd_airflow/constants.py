@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from distutils.version import LooseVersion
 
 import airflow

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from targets.base_target import Target
 from targets.caching import DbndLocalFileMetadataRegistry
 from targets.data_target import DataTarget

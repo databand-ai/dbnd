@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
+# © Copyright Databand.ai, an IBM Company 2022
+
 try:
     from setuptools import setup
 except ImportError:

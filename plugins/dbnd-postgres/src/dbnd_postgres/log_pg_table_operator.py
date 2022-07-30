@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults

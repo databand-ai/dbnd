@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import tensorflow as tf
 
 from dbnd import dbnd_config, pipeline, task

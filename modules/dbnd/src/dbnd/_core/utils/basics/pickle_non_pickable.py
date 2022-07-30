@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from contextlib import contextmanager
 
 from dbnd._core.utils.basics.patch_properties import patched_properties

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 https://kubernetes.io/docs/concepts/overview/working-with-objects/names/
 A client-provided string that refers to an object in a resource URL, such as /api/v1/pods/some-name.

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 This is a way to add another format to serialize/deserialize SizedMessage example object
 """

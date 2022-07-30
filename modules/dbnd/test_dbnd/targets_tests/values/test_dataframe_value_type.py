@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._vendor import fast_hasher

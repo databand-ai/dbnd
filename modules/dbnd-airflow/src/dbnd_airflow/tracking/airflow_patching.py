@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.log.dbnd_log import dbnd_log_exception, dbnd_log_init_msg
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_task
 

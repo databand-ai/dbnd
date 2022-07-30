@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from unittest.mock import patch
 
 from dbnd._core.tracking.dbt import collect_data_from_dbt_cloud

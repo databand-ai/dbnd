@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from __future__ import print_function
 
 from dbnd._core.utils.click_tzdatetime import TZAwareDateTime

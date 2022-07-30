@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from tensorflow.keras import models
 from tensorflow.keras.callbacks import History
 

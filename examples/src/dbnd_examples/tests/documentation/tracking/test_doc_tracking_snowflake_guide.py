@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 '''
 class TestDocTrackingSnowflakeGuide:
     def test_doc(self):

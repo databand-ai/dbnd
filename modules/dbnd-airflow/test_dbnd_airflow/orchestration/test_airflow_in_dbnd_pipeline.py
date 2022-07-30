@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow.operators.bash_operator import BashOperator
 
 from dbnd import Task, dbnd_run_cmd, pipeline

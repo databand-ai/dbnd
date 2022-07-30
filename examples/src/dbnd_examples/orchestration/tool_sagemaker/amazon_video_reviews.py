@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 Based on https://github.com/aws-samples/sagemaker-ml-workflow-with-apache-airflow example by Amazon.
 distributed under permissive amazon licence: https://github.com/aws-samples/sagemaker-ml-workflow-with-apache-airflow/blob/master/LICENSE

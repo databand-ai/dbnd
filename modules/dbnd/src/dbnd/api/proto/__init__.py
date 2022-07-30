@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # The moment we access this module, we need to find out if we need to use vendored protobuf package
 
 import logging

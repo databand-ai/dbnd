@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.cli.click_utils import _help
 from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.dbnd_config import config

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# © Copyright Databand.ai, an IBM Company 2022
+
 import os
 import tarfile
 import time

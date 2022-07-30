@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import datetime
 
 from dbnd import Config, config, parameter

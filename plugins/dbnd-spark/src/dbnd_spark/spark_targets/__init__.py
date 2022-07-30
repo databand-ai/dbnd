@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import pyspark
 
 from dbnd_spark.spark_targets.spark_marshalling import (

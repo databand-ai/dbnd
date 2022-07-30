@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 class EmrClusterBuilder(object):
     def __init__(self, emr_client, ec2_client):
         super(EmrClusterBuilder, self).__init__()

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 This is the scenario to run for manual check on "preview" values.
 """

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import logging
 
 from dbnd_dbt_monitor.data.dbt_config_data import DbtServerConfig

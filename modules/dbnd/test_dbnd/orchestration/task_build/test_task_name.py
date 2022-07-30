@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd import PipelineTask, config, output, parameter
 from dbnd_test_scenarios.test_common.task.factories import TTask
 

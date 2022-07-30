@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd_examples.data import dbnd_examples_data_path
 from dbnd_gcp.apache_beam.apache_beam_task import ApacheBeamPythonTask
 from dbnd_gcp.apache_beam.parameters import beam_input, beam_output

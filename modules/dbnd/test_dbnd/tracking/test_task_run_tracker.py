@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from mock.mock import Mock
 
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker

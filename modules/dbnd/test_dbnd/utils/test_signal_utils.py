@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.utils.basics import signal_utils
 from dbnd._core.utils.basics.signal_utils import sigquit_handler__dump_stack
 

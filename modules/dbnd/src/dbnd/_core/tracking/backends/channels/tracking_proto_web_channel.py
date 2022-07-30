@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import base64
 
 from dbnd._core.settings.run_info import RunInfoConfig

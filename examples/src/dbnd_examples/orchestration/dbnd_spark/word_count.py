@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import pyspark.sql as spark
 
 from databand import output, parameter, pipeline

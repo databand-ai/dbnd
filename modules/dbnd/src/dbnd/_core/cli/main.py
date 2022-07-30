@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# © Copyright Databand.ai, an IBM Company 2022
+
 import logging
 import os
 import shlex

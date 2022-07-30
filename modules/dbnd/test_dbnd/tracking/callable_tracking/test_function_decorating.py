@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.tracking.python_tracking import (
     _is_function,
     _is_task,

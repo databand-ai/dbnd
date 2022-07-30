@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._vendor.croniter import croniter
 from dbnd._vendor.marshmallow import Schema, fields

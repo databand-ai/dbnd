@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.current import get_databand_context
 from dbnd.api.shared_schemas.airflow_monitor import AirflowServerInfoSchema
 

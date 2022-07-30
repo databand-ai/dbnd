@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from targets.target_config import TargetConfig, parse_target_config
 from targets.values import ValueType
 

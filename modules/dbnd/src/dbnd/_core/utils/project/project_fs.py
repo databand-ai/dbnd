@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 All code related to "getting" file from project based on databand library
 Deprecated in favor for dbnd_project_config at dbnd._core.configuration.environ_config

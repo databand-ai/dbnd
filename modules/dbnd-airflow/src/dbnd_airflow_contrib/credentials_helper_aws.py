@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow.contrib.hooks.aws_hook import AwsHook
 
 

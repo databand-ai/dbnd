@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import logging
 
 from dbnd._core.plugin.dbnd_plugins import use_airflow_connections

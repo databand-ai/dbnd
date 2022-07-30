@@ -1,3 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+
 class TestTarget(object):
     def test_http_to_wasb(self):
         from targets.marshalling.spark import _convert_http_to_wasb_for_azure

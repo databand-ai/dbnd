@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from functools import reduce, wraps
 from operator import xor
 

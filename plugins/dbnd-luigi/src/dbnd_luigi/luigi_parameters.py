@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """ This parameter dictionary is used to convert Luigi parameter types (keys) to databand parameter types (values)
 """
 from __future__ import absolute_import

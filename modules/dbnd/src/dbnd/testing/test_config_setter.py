@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import os
 
 from dbnd import dbnd_config, relative_path

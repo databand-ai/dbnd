@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import pytest
 
 from dbnd_snowflake.POC.tracker import extract_schema_from_sf_desc

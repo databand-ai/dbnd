@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd import PipelineTask, PythonTask, data, output
 from dbnd.tasks import DataSourceTask
 from dbnd.testing.helpers_pytest import assert_run_task

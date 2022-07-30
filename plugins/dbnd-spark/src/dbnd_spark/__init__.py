@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # we should run bootstrap first! before we import any other pyspark object
 from dbnd_spark.spark_bootstrap import dbnd_spark_bootstrap
 

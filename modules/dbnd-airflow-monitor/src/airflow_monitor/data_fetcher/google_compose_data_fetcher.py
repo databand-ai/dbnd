@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.web_data_fetcher import WebFetcher
 

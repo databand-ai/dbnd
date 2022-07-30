@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from typing import List, Union
 
 from airflow.models import DagModel, DagRun, Log

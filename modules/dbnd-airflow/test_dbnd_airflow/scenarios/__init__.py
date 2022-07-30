@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd import relative_path
 from dbnd._core.utils.project.project_fs import abs_join
 

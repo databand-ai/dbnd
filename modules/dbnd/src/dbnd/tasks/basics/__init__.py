@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """Module dbnd.tasks.basics contains some pipeline examples to start with."""
 from dbnd.tasks.basics.sanity import dbnd_sanity_check
 from dbnd.tasks.basics.shell import bash_cmd, bash_script

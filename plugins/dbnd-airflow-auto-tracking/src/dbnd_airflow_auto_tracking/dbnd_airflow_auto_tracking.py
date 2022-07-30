@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow.plugins_manager import AirflowPlugin
 
 from dbnd import get_dbnd_project_config

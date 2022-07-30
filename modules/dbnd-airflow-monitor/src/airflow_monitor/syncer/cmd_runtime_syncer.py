@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow_monitor.syncer.runtime_syncer import start_runtime_syncer
 from dbnd._vendor import click
 

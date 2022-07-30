@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """To run this example run the following command:
 dbnd  run dbnd_test_scenarios.pipelines.errors.canceled_run_pipeline.pipeline_that_cancel_itself  --task-version=now  --set long_sleeping_task.sleep_sec=20 --parallel
 """

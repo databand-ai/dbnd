@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import sys
 
 from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled

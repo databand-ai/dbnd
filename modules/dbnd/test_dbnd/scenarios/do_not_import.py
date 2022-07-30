@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # do not import
 # we use this file to check --module
 from dbnd import Task, output, parameter

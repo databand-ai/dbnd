@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.errors import DatabandError, DatabandRuntimeError
 from dbnd._core.errors.friendly_error.helpers import _run_name
 from dbnd._core.utils.console_utils import bold, cyan, red, underline

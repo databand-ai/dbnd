@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from airflow.configuration import conf
 from airflow.exceptions import AirflowConfigException
 

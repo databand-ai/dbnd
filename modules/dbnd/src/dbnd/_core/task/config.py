@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.constants import TaskEssence
 from dbnd._core.errors.base import ConfigLookupError
 from dbnd._core.task.task_with_params import _TaskWithParams

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd import PipelineTask, Task, output, parameter
 from dbnd_examples.data import data_repo
 

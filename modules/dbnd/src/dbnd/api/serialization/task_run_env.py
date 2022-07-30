@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.tracking.schemas.base import ApiStrictSchema
 from dbnd._core.tracking.schemas.tracking_info_objects import TaskRunEnvInfo
 from dbnd._vendor.marshmallow import fields, post_load

@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 """
 This is the example that shows how to write some data in your custom file format/reuse some known format
 

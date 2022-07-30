@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# © Copyright Databand.ai, an IBM Company 2022
+
 """This package is deprecated! Please use the dbnd package instead!"""
 
 from dbnd import (

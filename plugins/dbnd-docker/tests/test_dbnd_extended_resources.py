@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 import kubernetes.client.models as k8s
 
 from dbnd_docker.kubernetes.vendorized_airflow.dbnd_extended_resources import (

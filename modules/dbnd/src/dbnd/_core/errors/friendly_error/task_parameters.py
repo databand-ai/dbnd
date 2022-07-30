@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.errors import DatabandBuildError
 from dbnd._core.errors.errors_utils import safe_value
 

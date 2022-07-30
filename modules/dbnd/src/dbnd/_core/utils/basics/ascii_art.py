@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 # Source: http://patorjk.com/software/taag/#p=display&f=Speed&t=Databand
 simple = """\
 ________       _____       ______               _________

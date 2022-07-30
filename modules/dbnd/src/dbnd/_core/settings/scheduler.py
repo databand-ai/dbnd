@@ -1,3 +1,5 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
 
