@@ -69,6 +69,7 @@ class DagSchema(ApiStrictSchema):
     hostname = fields.String()
     source_code = fields.String(allow_none=True)
     module_source_hash = fields.String(allow_none=True)
+    tasks_hash_to_source = fields.Dict(allow_none=True)
     is_subdag = fields.Boolean()
     tags = fields.List(fields.String(), allow_none=True)
     task_type = fields.String()

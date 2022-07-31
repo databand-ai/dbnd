@@ -12,6 +12,7 @@ from airflow.utils.net import get_hostname
 
 from dbnd._core.utils.uid_utils import source_md5
 from dbnd_airflow.export_plugin.helpers import (
+    _add_source_code,
     _extract_args_from_dict,
     _get_command_from_operator,
     _get_module_code,
@@ -66,9 +67,7 @@ class ETask(object):
             upstream_task_ids=t.upstream_task_ids,
             downstream_task_ids=t.downstream_task_ids,
             task_type=t.task_type,
-            task_source_code=_get_source_code(t) if include_source else None,
             task_source_hash=source_md5(_get_source_code(t)),
-            task_module_code=module_code if include_source else None,
             module_source_hash=source_md5(module_code),
             dag_id=t.dag_id,
             task_id=t.task_id,
@@ -188,6 +187,7 @@ class EDag(object):
         hostname,
         source_code,
         module_source_hash,
+        tasks_hash_to_source,
         is_subdag,
         task_type,
         task_args,
@@ -211,6 +211,7 @@ class EDag(object):
         self.hostname = hostname
         self.source_code = source_code
         self.module_source_hash = module_source_hash
+        self.tasks_hash_to_source = tasks_hash_to_source
         self.is_subdag = is_subdag
         self.task_type = task_type
         self.task_args = task_args
@@ -233,6 +234,17 @@ class EDag(object):
         # type: (DAG, DagModel, str, bool, str, bool, bool, bool) -> EDag
         # Can be Dag from DagBag or from DB, therefore not all attributes may exist
         source_code = _read_dag_file(dag.fileloc)
+
+        tasks_hash_to_source = {}
+        if include_source:
+            tasks = getattr(dag, "tasks", [])
+            for task in tasks:
+                _add_source_code(
+                    tasks_hash_to_source,
+                    _get_module_code(task) or _read_dag_file(dag.fileloc),
+                )
+                _add_source_code(tasks_hash_to_source, _get_source_code(task))
+
         return EDag(
             description=dag.description or "",
             root_task_ids=[t.task_id for t in getattr(dag, "roots", [])],
@@ -251,6 +263,7 @@ class EDag(object):
             dag_folder=dag_folder,
             hostname=get_hostname(),
             source_code=source_code if not raw_data_only and include_source else "",
+            tasks_hash_to_source=tasks_hash_to_source,
             module_source_hash=source_md5(source_code),
             is_subdag=dag.is_subdag,
             tags=getattr(dm, "tags", []),
@@ -280,6 +293,7 @@ class EDag(object):
             hostname=self.hostname,
             source_code=self.source_code,
             module_source_hash=self.module_source_hash,
+            tasks_hash_to_source=self.tasks_hash_to_source,
             is_subdag=self.is_subdag,
             task_type=self.task_type,
             task_args=self.task_args,

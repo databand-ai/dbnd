@@ -12,6 +12,7 @@ from airflow.models import BaseOperator
 
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.git import get_git_commit, is_git_dirty
+from dbnd._core.utils.uid_utils import source_md5
 from dbnd_airflow.export_plugin.compat import get_task_log_reader
 
 
@@ -110,6 +111,12 @@ def _get_module_code(t):
             return inspect.getsource(inspect.getmodule(t.python_callable))
     except Exception:
         pass
+
+
+def _add_source_code(tasks_hash_to_source, source_code):
+    source_hash = source_md5(source_code)
+    tasks_hash_to_source[source_hash] = source_code
+    return source_hash
 
 
 def _get_command_from_operator(t):
