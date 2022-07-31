@@ -1,12 +1,13 @@
-dependencies {
-    implementation "org.javassist:javassist:3.29.0-GA"
-    compileOnly('com.amazon.deequ:deequ:1.2.2-spark-2.2') {
-        transitive = false
-    }
-}
-
 configurations.all {
+    /**
+     * If we bundle Deequ into agent, DbndMetricsRepository class won't be found
+     * because it will be loaded from root classloader while Deequ classes most
+     * likely will be loaded from child spark classloader. This will result in
+     * NoClassDefFoundError, because root classloader don't see classes from the child classloader.
+     * dbnd-api-deequ should be added to the classpath separately.
+     */
     exclude group: "ai.databand", module: "dbnd-api-deequ"
+    exclude group: "org.apache.spark"
 }
 
 jar {

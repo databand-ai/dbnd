@@ -7,8 +7,6 @@
 def azkabanVersion = "3.18.0"
 
 dependencies {
-    implementation("org.javassist:javassist:3.29.0-GA")
-
     compileOnly("ai.databand.azkaban:azkaban-spi:${azkabanVersion}") {
         transitive = false
     }

@@ -138,6 +138,19 @@ configure(subprojects.findAll { sparkProjects.contains(it.name) }) {
 
 /**
  * ****************************************************************************
+ * Javassist projects.
+ * ****************************************************************************
+ */
+def javassistProjects = ["dbnd-agent", "dbnd-azkaban-agent"].toSet()
+
+configure(subprojects.findAll { javassistProjects.contains(it.name) }) {
+    dependencies {
+        implementation "org.javassist:javassist:3.29.0-GA"
+    }
+}
+
+/**
+ * ****************************************************************************
  * Cross-project dependencies.
  * ****************************************************************************
  */
