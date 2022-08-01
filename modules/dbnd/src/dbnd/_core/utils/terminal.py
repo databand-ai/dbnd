@@ -12,9 +12,9 @@ def get_terminal_size():
     if _TERMINAL_SIZE:
         return _TERMINAL_SIZE
     try:
-        from click import get_terminal_size as click_terminal_size
+        from shutil import get_terminal_size
 
-        _TERMINAL_SIZE = click_terminal_size()
+        _TERMINAL_SIZE = get_terminal_size()
     except Exception:
         _TERMINAL_SIZE = (140, 25)
     return _TERMINAL_SIZE

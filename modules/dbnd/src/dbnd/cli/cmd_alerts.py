@@ -4,8 +4,6 @@ from __future__ import print_function
 
 import logging
 
-import click_logging
-
 from dbnd._core.constants import AlertDefOperator, AlertSeverity, RunState, TaskRunState
 from dbnd._core.errors.base import DatabandApiError
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_tabulate
@@ -31,7 +29,6 @@ from dbnd.cli.cmd_alerts_constants import (
 
 
 logger = logging.getLogger(__name__)
-click_logging.basic_config(logger)
 
 
 class Severity(click.Choice):

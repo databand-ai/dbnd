@@ -37,7 +37,6 @@ setuptools.setup(
         "pyyaml",  # yaml support in targets
         "pytz",  # python time zone for pendulum library
         "pytzdata",  # python time zone for pendulum library
-        "click-logging",  # python cli click package util to integrate with logger
         "requests>=2.18.0",  # API TRACKING
         "configparser<3.6.0,>=3.5.0",  # same versions as Airflow -- Moved library to _vendor
         "pygments>=2.6.1",
