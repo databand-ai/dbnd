@@ -20,7 +20,7 @@ class BaseRunner(object):
     def stop(self):
         raise NotImplementedError()
 
-    def heartbeat(self):
+    def heartbeat(self, is_last=False):
         raise NotImplementedError()
 
     def is_alive(self):

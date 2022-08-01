@@ -20,6 +20,10 @@ class AirflowMonitorConfig(BaseMonitorConfig):
 
     syncer_name = parameter(default=None)[str]
 
+    is_sync_enabled = parameter(
+        default=True, description="Syncer is enabled and syncing"
+    )[bool]
+
     rbac_password = parameter(
         default={},
         description="Password credentials to use when monitoring airflow with rbac enabled",

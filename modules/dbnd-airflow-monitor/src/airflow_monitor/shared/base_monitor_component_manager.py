@@ -78,7 +78,11 @@ class BaseMonitorComponentManager(object):
                     )
                     self.active_components[component_name].start()
             elif self._should_stop_component(component_name):
+                logger.warning(
+                    f"{component_name} Running last heartbeat before stopping..."
+                )
                 component = self.active_components.pop(component_name)
+                component.heartbeat(is_last=True)
                 component.stop()
 
         self._set_running_monitor_state(is_monitored_server_alive)
@@ -99,9 +103,9 @@ class BaseMonitorComponentManager(object):
         self._update_component_state()
 
     @capture_monitor_exception("heartbeat monitor")
-    def heartbeat(self):
+    def heartbeat(self, is_last=False):
         for component in self.active_components.values():
-            component.heartbeat()
+            component.heartbeat(is_last=is_last)
 
         self._clean_dead_components()
 

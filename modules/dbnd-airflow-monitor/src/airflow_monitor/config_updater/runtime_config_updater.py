@@ -15,6 +15,7 @@ class AirflowRuntimeConfigUpdater(BaseMonitorSyncer):
 
     def __init__(self, *args, **kwargs):
         super(AirflowRuntimeConfigUpdater, self).__init__(*args, **kwargs)
+        self.sync_last_heartbeat = True
 
     @property
     def sleep_interval(self):

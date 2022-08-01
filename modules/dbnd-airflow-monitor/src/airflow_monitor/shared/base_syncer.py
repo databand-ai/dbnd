@@ -30,6 +30,7 @@ class BaseMonitorSyncer:
         self.config = config
         self.tracking_service = tracking_service
         self.data_fetcher: Callable = data_fetcher
+        self.sync_last_heartbeat = False
 
     @property
     def sleep_interval(self):

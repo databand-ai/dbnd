@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 AIRFLOW_MONITOR_CONFIG_NAME = "airflow_monitor"
 DAG_IDS_FOR_TRACKING_CONFIG_NAME = "dag_ids"
+IS_SYNC_ENABLED_TRACKING_CONFIG_NAME = "is_sync_enabled"
 
 
 def get_tracking_dag_ids_from_airflow_json():
@@ -39,10 +40,14 @@ def get_tracking_dag_ids_from_airflow_json():
         )
 
         json = get_dbnd_json_config_from_airflow_connections()
-
         if json:
             monitor_config = json.get(AIRFLOW_MONITOR_CONFIG_NAME, None)
             if monitor_config:
+                is_sync_enabled = monitor_config.get(
+                    IS_SYNC_ENABLED_TRACKING_CONFIG_NAME, True
+                )
+                if not is_sync_enabled:
+                    return []
                 dag_ids_config = monitor_config.get(
                     DAG_IDS_FOR_TRACKING_CONFIG_NAME, None
                 )

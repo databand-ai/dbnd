@@ -10,6 +10,9 @@ import pytest
 from mock import MagicMock, patch
 
 from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.config_updater.runtime_config_updater import (
+    AirflowRuntimeConfigUpdater,
+)
 from airflow_monitor.multiserver.monitor_component_manager import (
     AirflowMonitorComponentManager,
 )
@@ -23,11 +26,21 @@ from .conftest import WebAppTest
 
 
 @pytest.fixture
-def mock_sync_once():
+def mock_runtime_syncer_sync_once():
     with patch.object(
         AirflowRuntimeSyncer,
         "_sync_once",
         new=mock_decorator(AirflowRuntimeSyncer._sync_once),
+    ) as patched_sync_once:
+        yield patched_sync_once.mock
+
+
+@pytest.fixture
+def mock_config_updater_sync_once():
+    with patch.object(
+        AirflowRuntimeConfigUpdater,
+        "_sync_once",
+        new=mock_decorator(AirflowRuntimeConfigUpdater._sync_once),
     ) as patched_sync_once:
         yield patched_sync_once.mock
 
@@ -72,13 +85,13 @@ class TestSyncerWorks(WebAppTest):
             json={
                 "base_url": f"https://{random_name}.local",
                 "name": random_name,
-                "fetcher": "web",
+                "fetcher": "db",
                 "external_url": "",
                 "composer_client_id": "",
                 "api_mode": "rbac",
                 "airflow_environment": "on_prem",
                 "dag_ids": "",
-                "monitor_config": {"include_sources": False},
+                "monitor_config": {"include_sources": False, "is_sync_enabled": True},
             },
         )
 
@@ -108,13 +121,19 @@ class TestSyncerWorks(WebAppTest):
                 monitor_config=monitor_config,
             )
 
-    def test_01_server_sync_enable_disable(self, multi_server, syncer, mock_sync_once):
+    def test_01_server_sync_enable_disable(
+        self,
+        multi_server,
+        syncer,
+        mock_runtime_syncer_sync_once,
+        mock_config_updater_sync_once,
+    ):
         tracking_source_uid = syncer["tracking_source_uid"]
         server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
         assert server_info["last_sync_time"] is None
 
         multi_server.run_once()
-        assert mock_sync_once.call_count == 1
+        assert mock_runtime_syncer_sync_once.call_count == 1
 
         server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
         assert server_info["last_sync_time"] is not None
@@ -122,29 +141,61 @@ class TestSyncerWorks(WebAppTest):
 
         self.set_is_monitor_enabled(tracking_source_uid, False)
         multi_server.run_once()
-        assert mock_sync_once.call_count == 1
+        assert mock_runtime_syncer_sync_once.call_count == 1
 
         server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
         assert server_info["last_sync_time"] == last_sync_time
 
         self.set_is_monitor_enabled(tracking_source_uid, True)
         multi_server.run_once()
-        assert mock_sync_once.call_count == 2
+        assert mock_runtime_syncer_sync_once.call_count == 2
 
         server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
         assert server_info["last_sync_time"] > last_sync_time
 
-    def test_02_server_archive_unarchive(self, multi_server, syncer, mock_sync_once):
+    def test_02_config_updater_sync_enable_disable(
+        self,
+        multi_server,
+        syncer,
+        mock_runtime_syncer_sync_once,
+        mock_config_updater_sync_once,
+    ):
+        tracking_source_uid = syncer["tracking_source_uid"]
+        server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
+        assert server_info["last_sync_time"] is None
+
+        multi_server.run_once()  # normal start, sync all
+        assert mock_runtime_syncer_sync_once.call_count == 1
+        assert mock_config_updater_sync_once.call_count == 1
+
+        self.set_is_monitor_enabled(tracking_source_uid, False)
+        multi_server.run_once()  # run only config updater once disabled, without runtime updater
+        assert mock_runtime_syncer_sync_once.call_count == 1
+        assert mock_config_updater_sync_once.call_count == 2
+
+        self.set_is_monitor_enabled(tracking_source_uid, True)
+        multi_server.run_once()  # run both once enabled
+        assert mock_runtime_syncer_sync_once.call_count == 2
+        assert mock_config_updater_sync_once.call_count == 3
+
+        self.set_is_monitor_enabled(tracking_source_uid, False)
+        multi_server.run_once()  # again run only config updater once disabled, without runtime updater
+        assert mock_runtime_syncer_sync_once.call_count == 2
+        assert mock_config_updater_sync_once.call_count == 4
+
+    def test_03_server_archive_unarchive(
+        self, multi_server, syncer, mock_runtime_syncer_sync_once
+    ):
         tracking_source_uid = syncer["tracking_source_uid"]
         multi_server.run_once()
-        assert mock_sync_once.call_count == 1
+        assert mock_runtime_syncer_sync_once.call_count == 1
 
         self.set_monitor_archived(tracking_source_uid)
 
         with pytest.raises(DatabandConfigError):
             multi_server.run_once()
 
-        assert mock_sync_once.call_count == 1
+        assert mock_runtime_syncer_sync_once.call_count == 1
 
         self.set_monitor_unarchived(tracking_source_uid)
 
@@ -155,10 +206,10 @@ class TestSyncerWorks(WebAppTest):
         multi_server._ensure_monitored_servers([])
 
         multi_server.run_once()
-        assert mock_sync_once.call_count == 2
+        assert mock_runtime_syncer_sync_once.call_count == 2
 
-    def test_03_source_instance_uid(
-        self, multi_server, syncer, mock_sync_once, mock_data_fetcher
+    def test_04_source_instance_uid(
+        self, multi_server, syncer, mock_runtime_syncer_sync_once, mock_data_fetcher
     ):
         tracking_source_uid = syncer["tracking_source_uid"]
         mock_data_fetcher.airflow_version = "1.10.10"
