@@ -13,6 +13,7 @@ import attr
 from dbnd._core.current import in_tracking_run, is_orchestration_run
 from dbnd._core.errors.base import DatabandWebserverNotReachableError
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
 from dbnd._core.tracking.backends.channels.abstract_channel import TrackingChannel
 from dbnd._core.tracking.backends.channels.tracking_web_channel import (
@@ -86,7 +87,7 @@ class TrackingAsyncWebChannelBackgroundWorker(object):
 
             if not self._timed_queue_join(timeout - initial_timeout):
                 raise TimeoutError(
-                    "flush timed out, dropped %s events", self.get_qsize()
+                    "Flush timed out and dropped some events", self.get_qsize(), timeout
                 )
 
     def _timed_queue_join(self, timeout: float) -> bool:
@@ -198,12 +199,16 @@ class TrackingAsyncWebChannel(TrackingChannel):
         try:
             tries = self._max_retries if is_state_call(item.name) else 1
             self._log_fn(
-                f"TrackingAsyncWebChannel.thread_worker processing {item.name} "
+                "TrackingAsyncWebChannel.thread_worker processing %s", item.name
             )
             try_run_handler(tries, self.web_channel, item.name, {"data": item.data})
-            self._log_fn(f"TrackingAsyncWebChannel.thread_worker completed {item.name}")
+            self._log_fn(
+                "TrackingAsyncWebChannel.thread_worker completed %s", item.name
+            )
 
         except Exception as exc:
+            log_exception_to_server()
+
             logger.warning(
                 "Exception in TrackingAsyncWebChannel in background worker",
                 exc_info=True,
@@ -228,7 +233,8 @@ class TrackingAsyncWebChannel(TrackingChannel):
         self, item: AsyncWebChannelQueueItem
     ):
         self._log_fn(
-            f"TrackingAsyncWebChannel skips {item.name} tracking event due to a previous failure"
+            "TrackingAsyncWebChannel skips %s tracking event due to a previous failure",
+            item.name,
         )
 
     def flush(self):
@@ -238,11 +244,12 @@ class TrackingAsyncWebChannel(TrackingChannel):
         # process remaining items in the queue
 
         tracking_duration = (utcnow() - self._start_time).in_seconds()
-        # don't exceed 10% of whole tracking duration while flushing but not less then 2m and no more then 30m
-        flush_limit = min(max(tracking_duration * 0.1, 120), 30 * 60)
+        # don't exceed 10% of whole tracking duration while flushing but not less then 5m and no more then 30m
+        flush_limit = min(max(tracking_duration * 0.1, 5 * 60), 30 * 60)
 
         logger.info(
-            f"Waiting {flush_limit}s for TrackingAsyncWebChannel to complete async tasks..."
+            "Waiting %ss for TrackingAsyncWebChannel to complete async tasks...",
+            flush_limit,
         )
         self._shutting_down = True
         try:
