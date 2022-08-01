@@ -125,6 +125,18 @@ class DatabandClient(object):
         )
         return af_syncers
 
+    def archive_syncer(self, tracking_source_uid):
+        af_syncers = self.api_client.api_request(
+            "/api/v1/airflow_monitor/archive", tracking_source_uid, method="POST"
+        )
+        return af_syncers
+
+    def unarchive_syncer(self, tracking_source_uid):
+        af_syncers = self.api_client.api_request(
+            "/api/v1/airflow_monitor/unarchive", tracking_source_uid, method="POST"
+        )
+        return af_syncers
+
     def get_airflow_validation(self, syncer_uid):
         validate_response = self.api_client.api_request(
             f"/api/v1/source_monitor/airflow/{syncer_uid}/validation_status",
