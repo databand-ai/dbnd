@@ -8,7 +8,6 @@ from typing import Dict
 
 from dbnd._core.configuration.environ_config import ENV_DBND_SCRIPT_NAME
 from dbnd_airflow.tracking.conf_operations import fix_keys, flat_conf
-from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_airflow_conf
 from dbnd_airflow.utils import logger
 
@@ -105,24 +104,6 @@ def spark_submit_with_dbnd_tracking(command_as_list, dbnd_context=None):
 logger = logging.getLogger(__name__)
 
 
-def get_spark_submit_java_agent_conf():
-    config = AirflowTrackingConfig.from_databand_context()
-    agent_jar = config.spark_submit_dbnd_java_agent
-    if agent_jar is None:
-        logger.warning("You are not using the dbnd java agent")
-        return
-    logger.debug("found agent_jar %s", agent_jar)
-    if not os.path.exists(agent_jar):
-        logger.warning(
-            "The wanted dbnd java agent is not found: {agent_path}".format(
-                agent_path=agent_jar
-            )
-        )
-        return
-
-    return create_spark_java_agent_conf(agent_jar)
-
-
 def get_databricks_python_script_name(raw_script_path):
     # type: (str) -> Dict[str,str]
     try:
@@ -141,22 +122,3 @@ def get_databricks_python_script_name(raw_script_path):
             exc,
         )
         return {}
-
-
-def get_databricks_java_agent_conf():
-    config = AirflowTrackingConfig.from_databand_context()
-    agent_jar = config.databricks_dbnd_java_agent
-    logger.debug("found agent_jar %s", agent_jar)
-    if agent_jar is None:
-        logger.warning("You are not using the dbnd java agent")
-        return
-
-    return create_spark_java_agent_conf(agent_jar)
-
-
-def create_spark_java_agent_conf(agent_jar):
-    return {
-        "spark.driver.extraJavaOptions": "-javaagent:{agent_jar}".format(
-            agent_jar=agent_jar
-        )
-    }

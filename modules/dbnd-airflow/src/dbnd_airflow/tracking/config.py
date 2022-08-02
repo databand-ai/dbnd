@@ -1,4 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
+from typing import Dict, List
 
 from dbnd import parameter
 from dbnd._core.task import Config
@@ -48,4 +49,63 @@ class TrackingSparkConfig(Config):
         default=True,
         description="Should Databand inject tracker URL and access token into spark-submit cmd,"
         "e.g. `spark-submit --conf DBND__CORE__DATABAND_URL=... --conf DBND__CORE__DATABAND_ACCESS_TOKEN=... script.py",
-    )
+    )[bool]
+
+    agent_path = parameter(
+        default=None,
+        description="Path to Databand Agent jar to be added to the spark job as java agent. Jar file has to be placed directly to the cluster filesystem.",
+    )[str]
+
+    jar_path = parameter(
+        default=None,
+        description="Path to Databand Agent jar to be added to the spark job as regular jar file. Jar file can be placed to the S3/GCS/DBFS as well as directly to the cluster filesystem.",
+    )[str]
+
+    query_listener = parameter(
+        default=False,
+        description="Should Databand turn on Spark Query Listener and automatically collect datasource operations",
+    )[bool]
+
+    def spark_conf(self):
+        result = {}
+        if self.agent_path:
+            result["spark.driver.extraJavaOptions"] = "-javaagent:{agent_path}".format(
+                agent_path=self.agent_path
+            )
+        if self.jar_path:
+            result["spark.jars"] = self.jar_path
+        if self.query_listener:
+            result[
+                "spark.sql.queryExecutionListeners"
+            ] = "ai.databand.spark.DbndSparkQueryExecutionListener"
+        return result
+
+    def merged_spark_conf(self, origin_spark_conf):
+        # type: (Dict[str, str])->Dict[str, str]
+        """
+        Operator spark conf can contain "spark.jars", "spark.driver.extraJavaOptions"
+        and "spark.sql.queryExecutionListeners".
+        To preserve existing properties we need to concat them with patched properties
+        """
+        new_spark_conf = self.spark_conf()
+        return self.concat_properties(
+            origin_spark_conf,
+            new_spark_conf,
+            [
+                "spark.driver.extraJavaOptions",
+                "spark.jars",
+                "spark.sql.queryExecutionListeners",
+            ],
+        )
+
+    def concat_properties(self, origin_conf, new_conf, property_names):
+        # type: (Dict[str, str], Dict[str, str], List[str])-> Dict[str, str]
+        result = {}
+        for property_name in property_names:
+            if property_name in origin_conf and property_name in new_conf:
+                result[property_name] = (
+                    origin_conf[property_name] + "," + new_conf[property_name]
+                )
+            elif property_name not in origin_conf and property_name in new_conf:
+                result[property_name] = new_conf[property_name]
+        return result
