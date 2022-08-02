@@ -39,6 +39,9 @@ COPY ./LICENSE ./setup.cfg /dist-databand/dbnd-airflow-monitor/
 COPY ./LICENSE ./setup.cfg /dist-databand/dbnd-dbt-monitor/
 RUN pip install /dist-databand/dbnd /dist-databand/dbnd-airflow-monitor /dist-databand/dbnd-dbt-monitor --no-index
 
+# remove pip for security reasons
+RUN pip uninstall -y pip
+
 USER ${DBND_UID}
 
 # versioning:
