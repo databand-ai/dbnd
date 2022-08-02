@@ -30,8 +30,6 @@ class JobSchemaV2(ApiStrictSchema):
     source_type = fields.Str()
     airflow_instance_name = fields.Str()  # TODO_SERVER: API: Deprecate
 
-    scheduled_job_count = fields.Number()
-
 
 class JobsSetArchiveSchema(ApiStrictSchema):
     ids = fields.List(fields.Integer(), required=True, validate=validate.Length(min=1))
