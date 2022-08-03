@@ -1,7 +1,7 @@
 ---
 "title": "Tracking Subprocess/Remote Tasks"
 ---
-Some of the operators cause "remote" execution, so the connection between the Airflow Operator and subprocess execution has to be established.
+Some operators cause "remote" execution, so the connection between the Airflow Operator and subprocess execution has to be established.
 
 # Bypassing context of the current Airflow Task Instance into subprocess
 Databand will be able to track subprocess/remote process execution in the context of your current Airflow DagRun and TaskInstance if it has the following variables available at the time of execution.
@@ -41,6 +41,8 @@ Currently, bypassing execution context in addition to regular tracking is automa
   * `BashOperator`
   * `SubDagOperator`
 
+For spark-related operators, Databand provides option to configure Spark job with Databand agent and query listener. Please refer to [Installing on Spark Cluster](doc:installing-dbnd-on-spark-cluster#databand-agent-path-and-query-listener-configuration-for-spark-operators) for details.
+
 The Databand team is constantly integrating new operators for subprocess metadata tracking. Contact us if you don't see your operator on the list.
 
 
@@ -52,7 +54,7 @@ The best way to inject these variables is to use the already built-in mechanism 
 from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
 MyCustomDataProcPySparkOperator(
-         ...
+        #...
         dataproc_pyspark_properties= {
             "spark.env.AIRFLOW_CTX_DAG_ID": "{{dag.dag_id}}",
             "spark.env.AIRFLOW_CTX_EXECUTION_DATE": "{{ds}}",
@@ -66,7 +68,7 @@ MyCustomDataProcPySparkOperator(
             "spark.env.DBND__CORE__DATABAND_URL": "https://tracker.databand.ai",
             "spark.env.DBND__CORE__DATABAND_ACCESS_TOKEN=TOKEN"
         }
-         ...
+        # ...
     )
 ```
 

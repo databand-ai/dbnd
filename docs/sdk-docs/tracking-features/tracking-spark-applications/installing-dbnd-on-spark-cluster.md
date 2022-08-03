@@ -28,7 +28,7 @@ Most clusters support setting up Spark environment variables via cluster metadat
 
 ### Setting Databand Configuration via Environment Variables
 
-You need to define Environment Variables at the API call/`EmrCreateJobFlowOperator` Airflow Operator. An alternative way is to provide all these variables via AWS UI where you create a new cluster. EMR cluster doesn't have a way of defining Environment Variables in the bootstrap. Please consult with official [EMR documentation on Spark Configuration](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-spark-configure.html) if you use custom operator or creating cluster outside Ariflow.
+You need to define Environment Variables at the API call or `EmrCreateJobFlowOperator` Airflow Operator. An alternative way is to provide all these variables via AWS UI where you create a new cluster. EMR cluster doesn't have a way of defining Environment Variables in the bootstrap. Please consult with official [EMR documentation on Spark Configuration](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-spark-configure.html) if you use custom operator or creating cluster outside Ariflow.
 
 <!-- noqa -->
 ```python
@@ -253,6 +253,26 @@ sh -c "echo DBND__CORE__DATABAND_ACCESS_TOKEN=REPLACE_WITH_DATABAND_TOKEN >> /us
 ```
 
 * Be sure to replace `<databand-url>` and `<databand-access-token>` with your environment-specific information.
+
+## Databand Agent Path and Query Listener configuration for Spark Operators
+
+Databand can automatically alter `spark-submit` command for variety for Spark operators and inject agent jar into the classpath and enable Query Listener. Following options are suitable for configuration in `dbnd_config` airflow connection:
+
+```json
+{
+    "tracking_spark": {
+        "query_listener": true,
+        "agent_path": "/home/hadoop/dbnd-agent-latest-all.jar",
+        "jar_path": null
+    }
+}
+```
+
+* `query_listener` — enables Databand Spark Query Listener for auto-capturing dataset operations from Spark jobs.
+* `agent_path` — path to the Databand Java Agent FatJar. If provided, Databand will include this agent into Spark Job via `spark.driver.extraJavaOptions` configuration option. Agent is required if you want to track Java/Scala jobs annotated with `@Task`. Agent has to be placed in a cluster local filesystem for proper functioning.
+* `jar_path` — path to the Databand Java Agent FatJar. If provided, Databand will include jar into Spark Job via `spark.jars` configuration option. Jar can be placed in a local filesystem as well as S3/GCS/DBFS path.
+
+Properties can be configured via environment variables or .cfg files. Please refer to the [SDK Configuration](doc:dbnd-sdk-configuration) for details.
 
 ## Next Steps
 
