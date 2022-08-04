@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_hash(value: str) -> str:
-    return hashlib.md5(value.encode()).hexdigest()
+    return hashlib.md5(value.encode()).hexdigest()  # nosec B324
 
 
 get_hash_udf = udf(get_hash)

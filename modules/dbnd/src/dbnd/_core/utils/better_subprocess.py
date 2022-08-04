@@ -39,7 +39,7 @@ def run_cmd(
         stderr=subprocess.STDOUT,
         bufsize=-1,
         universal_newlines=True,
-        shell=shell,
+        shell=shell,  # nosec B602 (Ignore this for bandit as this is code used for orchestration)
         **kwargs
     )
 

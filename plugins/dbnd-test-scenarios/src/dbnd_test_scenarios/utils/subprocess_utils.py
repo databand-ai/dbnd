@@ -24,7 +24,7 @@ def run_subproces_check_output(cmd, check=True):
             cmd_str,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            shell=True,
+            shell=True,  # nosec B602 (Ignore this for bandit as this is used only for test scenarios)
             check=check,
         )
 

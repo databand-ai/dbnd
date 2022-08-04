@@ -53,7 +53,7 @@ class TaskSyncCtrl(TaskRunCtrl):
 
     def _md5(self, local_path):
         with open(local_path, "rb+") as f:
-            checksum = hashlib.md5(f.read())
+            checksum = hashlib.md5(f.read())  # nosec B324
         return checksum.hexdigest()
 
     def remote_file(self, local_file, md5_hash):

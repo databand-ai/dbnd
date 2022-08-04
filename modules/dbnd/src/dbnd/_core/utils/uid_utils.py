@@ -15,9 +15,9 @@ from dbnd._vendor import pendulum
 def source_md5(source_code):
     if source_code:
         try:
-            return hashlib.md5(source_code.encode("utf-8")).hexdigest()
+            return hashlib.md5(source_code.encode("utf-8")).hexdigest()  # nosec B324
         except UnicodeDecodeError:
-            return hashlib.md5(source_code).hexdigest()
+            return hashlib.md5(source_code).hexdigest()  # nosec B324
 
 
 def get_uuid():

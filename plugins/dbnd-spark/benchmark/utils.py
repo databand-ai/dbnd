@@ -45,7 +45,9 @@ columns = [
 
 def _update_report(app_id, inputs_shape, input_keys, input_values):
     # Copy spark log files from hdfs file system to local file system for python access.
-    os.system(f"hdfs dfs -copyToLocal hdfs:///var/log/spark/apps/{app_id} ./logs/")
+    os.system(  # nosec B605 (Ignore this for bandit as this is used only for test scenarios)
+        f"hdfs dfs -copyToLocal hdfs:///var/log/spark/apps/{app_id} ./logs/"
+    )
 
     logs = [json.loads(line) for line in open(f"./logs/{app_id}").readlines()]
 

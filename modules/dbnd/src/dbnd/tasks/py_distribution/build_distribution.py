@@ -30,7 +30,9 @@ def _get_package_name_and_version_from_whl(whl_dir):
 
 
 def _run_command(generate_command):
-    if subprocess.call(generate_command, shell=True) != 0:
+    if (
+        subprocess.call(generate_command, shell=True) != 0  # nosec B602
+    ):  # (Ignore this for bandit as the generated command is not received from the user)
         raise Exception("Failed running {} command".format(generate_command))
 
 

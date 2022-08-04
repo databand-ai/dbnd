@@ -63,11 +63,11 @@ def build_signature(name, params, extra=None):
 def build_signature_from_values(name, struct):
     values = set([str(value) for value in flatten(struct)])
     signature_str = "|".join(sorted(values))
-    signature = hashlib.md5(signature_str.encode("utf-8")).hexdigest()
+    signature = hashlib.md5(signature_str.encode("utf-8")).hexdigest()  # nosec B324
     return Signature(name=name, signature=signature, signature_source=signature_str)
 
 
 def user_friendly_signature(str_value):
-    hash_md5 = hashlib.md5(str_value.encode("utf-8")).hexdigest()
+    hash_md5 = hashlib.md5(str_value.encode("utf-8")).hexdigest()  # nosec B324
 
     return hash_md5[:SIGNATURE_ID_TRUNCATE_HASH]

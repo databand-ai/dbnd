@@ -84,7 +84,7 @@ def bash_cmd(
         env=env,
         preexec_fn=preexec_fn,
         cwd=cwd,
-        shell=shell,
+        shell=shell,  # nosec B602 (Ignore this for bandit as this is code used for orchestration)
         **popen_kwargs
     )
 

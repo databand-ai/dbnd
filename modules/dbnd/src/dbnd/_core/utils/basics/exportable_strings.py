@@ -21,7 +21,7 @@ def get_hashed_name(s, paranoid=False):
     if paranoid:
         return get_exportable_value(s)
 
-    digest = hashlib.md5(str(s).encode()).digest()
+    digest = hashlib.md5(str(s).encode()).digest()  # nosec B324
     if isinstance(digest, six.string_types):
         # python 2
         import struct

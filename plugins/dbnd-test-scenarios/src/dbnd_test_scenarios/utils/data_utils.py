@@ -4,11 +4,11 @@ import hashlib
 
 
 def get_hash(value: str) -> str:
-    return hashlib.md5(value.encode()).hexdigest()
+    return hashlib.md5(value.encode()).hexdigest()  # nosec B324
 
 
 def get_hash_for_obj(value: object) -> str:
-    return hashlib.md5(str(value).encode()).hexdigest()
+    return hashlib.md5(str(value).encode()).hexdigest()  # nosec B324
 
 
 def dict_to_str(d):

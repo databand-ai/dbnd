@@ -39,7 +39,7 @@ class _DataSource(DataSourceTask):
 
 def data_source(data):
     a, b = os.path.split(str(data))
-    a = hashlib.md5(a.encode("utf-8")).hexdigest()[:6]
+    a = hashlib.md5(a.encode("utf-8")).hexdigest()[:6]  # nosec B324
     logger.debug("Creating external task %s", data)
     return _DataSource(data=data, task_name="file_%s__%s" % (a, b))
 
