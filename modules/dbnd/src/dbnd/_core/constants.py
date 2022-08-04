@@ -145,6 +145,10 @@ class TaskRunState(EnumWithAll):
         return {TaskRunState.SUCCESS, TaskRunState.FAILED, TaskRunState.CANCELLED}
 
     @staticmethod
+    def finished_states_str():
+        return [s.value for s in TaskRunState.finished_states()]
+
+    @staticmethod
     def direct_fail_states():
         return {TaskRunState.FAILED, TaskRunState.CANCELLED}
 
