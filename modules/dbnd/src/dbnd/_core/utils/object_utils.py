@@ -9,14 +9,6 @@ from dbnd._vendor import pendulum
 from dbnd._vendor.tabulate import tabulate
 
 
-def apply_patch(base, delta, fields_filter=lambda f: not f.startswith("_")):
-    delta_dict = delta if isinstance(delta, dict) else vars(delta)
-
-    for k, v in delta_dict.items():
-        if fields_filter(k) and v is not None:
-            base.__setattr__(k, v)
-
-
 def patch_module_attr(module, name, value):
     original_name = "_original_" + name
     if getattr(module, original_name, None):

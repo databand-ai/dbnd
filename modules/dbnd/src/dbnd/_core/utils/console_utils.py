@@ -28,11 +28,3 @@ def red(value):
 
 def cyan(value):
     return colored(value, color="cyan")
-
-
-COLOR_REGEX = re.compile(r"\x1b?\[(\d;)?\d*m")
-
-
-def uncolor(text):
-    """removes the ANSII color formatting from text"""
-    return COLOR_REGEX.sub("", text)
