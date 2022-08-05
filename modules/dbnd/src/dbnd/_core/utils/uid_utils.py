@@ -7,7 +7,6 @@ import uuid
 import pytz
 import six
 
-from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._vendor import pendulum
 
@@ -73,10 +72,6 @@ def get_job_run_uid(airflow_instance_uid, dag_id, execution_date):
     if isinstance(execution_date, six.string_types):
         execution_date = pendulum.parse(execution_date)
     if isinstance(execution_date, datetime.datetime):
-        # Temporary fix for existing databases with uids without microseconds
-        algo_threshold = config.get("webserver", "run_uid_execution_date_threshold")
-        if algo_threshold and execution_date <= pendulum.parse(algo_threshold):
-            execution_date = execution_date.replace(microsecond=0)
         execution_date = execution_date.astimezone(pytz.utc).isoformat()
     if airflow_instance_uid is None:
         return uuid.uuid5(NAMESPACE_DBND_RUN, "{}:{}".format(dag_id, execution_date))
