@@ -46,7 +46,6 @@ import sys
 from contextlib import closing
 from io import BufferedReader, BytesIO
 
-
 try:
     from urllib import quote as urlquote, unquote as urlunquote
 except ImportError:
@@ -177,7 +176,7 @@ class ReportStatusParser(object):
             raise UpdateRefsError(', '.join([
                 refname.decode('ascii') for refname in ref_status
                 if refname not in ok]) +
-                ' failed to update', ref_status=ref_status)
+                                  ' failed to update', ref_status=ref_status)
 
     def handle_packet(self, pkt):
         """Handle a packet.
@@ -227,10 +226,10 @@ class FetchPackResult(object):
     """
 
     _FORWARDED_ATTRS = [
-            'clear', 'copy', 'fromkeys', 'get', 'has_key', 'items',
-            'iteritems', 'iterkeys', 'itervalues', 'keys', 'pop', 'popitem',
-            'setdefault', 'update', 'values', 'viewitems', 'viewkeys',
-            'viewvalues']
+        'clear', 'copy', 'fromkeys', 'get', 'has_key', 'items',
+        'iteritems', 'iterkeys', 'itervalues', 'keys', 'pop', 'popitem',
+        'setdefault', 'update', 'values', 'viewitems', 'viewkeys',
+        'viewvalues']
 
     def __init__(self, refs, symrefs, agent, new_shallow=None,
                  new_unshallow=None):
@@ -278,7 +277,7 @@ class FetchPackResult(object):
 
     def __repr__(self):
         return "%s(%r, %r, %r)" % (
-                self.__class__.__name__, self.refs, self.symrefs, self.agent)
+            self.__class__.__name__, self.refs, self.symrefs, self.agent)
 
 
 def _read_shallow_updates(proto):
@@ -457,7 +456,7 @@ class GitClient(object):
                 ref_status[ref] = status
             raise UpdateRefsError(', '.join([
                 refname for refname in ref_status if refname not in ok]) +
-                b' failed to update', ref_status=ref_status)
+                                  b' failed to update', ref_status=ref_status)
 
     def _read_side_band64k_data(self, proto, channel_callbacks):
         """Read per-channel data.
@@ -521,10 +520,10 @@ class GitClient(object):
 
     def _negotiate_receive_pack_capabilities(self, server_capabilities):
         negotiated_capabilities = (
-            self._send_capabilities & server_capabilities)
+                self._send_capabilities & server_capabilities)
         unknown_capabilities = (  # noqa: F841
-            extract_capability_names(server_capabilities) -
-            KNOWN_RECEIVE_CAPABILITIES)
+                extract_capability_names(server_capabilities) -
+                KNOWN_RECEIVE_CAPABILITIES)
         # TODO(jelmer): warn about unknown capabilities
         return negotiated_capabilities
 
@@ -553,8 +552,8 @@ class GitClient(object):
 
     def _negotiate_upload_pack_capabilities(self, server_capabilities):
         unknown_capabilities = (  # noqa: F841
-            extract_capability_names(server_capabilities) -
-            KNOWN_UPLOAD_CAPABILITIES)
+                extract_capability_names(server_capabilities) -
+                KNOWN_UPLOAD_CAPABILITIES)
         # TODO(jelmer): warn about unknown capabilities
         symrefs = {}
         agent = None
@@ -567,7 +566,7 @@ class GitClient(object):
                 agent = v
 
         negotiated_capabilities = (
-            self._fetch_capabilities & server_capabilities)
+                self._fetch_capabilities & server_capabilities)
         return (negotiated_capabilities, symrefs, agent)
 
     def _handle_upload_pack_head(self, proto, capabilities, graph_walker,
@@ -653,7 +652,7 @@ class GitClient(object):
             self._read_side_band64k_data(proto, {
                 SIDE_BAND_CHANNEL_DATA: pack_data,
                 SIDE_BAND_CHANNEL_PROGRESS: progress}
-            )
+                                         )
         else:
             while True:
                 data = proto.read(rbufsize)
@@ -669,8 +668,8 @@ def check_wants(wants, refs):
     :param refs: Refs dictionary to check against
     """
     missing = set(wants) - {
-            v for (k, v) in refs.items()
-            if not k.endswith(ANNOTATED_TAG_SUFFIX)}
+        v for (k, v) in refs.items()
+        if not k.endswith(ANNOTATED_TAG_SUFFIX)}
     if missing:
         raise InvalidWants(missing)
 
@@ -810,8 +809,8 @@ class TraditionalGitClient(GitClient):
             except HangupException:
                 raise remote_error_from_stderr(stderr)
             negotiated_capabilities, symrefs, agent = (
-                    self._negotiate_upload_pack_capabilities(
-                            server_capabilities))
+                self._negotiate_upload_pack_capabilities(
+                    server_capabilities))
 
             if refs is None:
                 proto.write_pkt_line(None)
@@ -835,7 +834,7 @@ class TraditionalGitClient(GitClient):
                 proto, negotiated_capabilities, graph_walker, pack_data,
                 progress)
             return FetchPackResult(
-                    refs, symrefs, agent, new_shallow, new_unshallow)
+                refs, symrefs, agent, new_shallow, new_unshallow)
 
     def get_refs(self, path):
         """Retrieve the current refs from a git smart server."""
@@ -872,7 +871,7 @@ class TraditionalGitClient(GitClient):
                 pass
             elif pkt.startswith(b"ERR "):
                 raise GitProtocolError(
-                        pkt[4:].rstrip(b"\n").decode('utf-8', 'replace'))
+                    pkt[4:].rstrip(b"\n").decode('utf-8', 'replace'))
             else:
                 raise AssertionError("invalid response %r" % pkt)
             ret = proto.read_pkt_line()
@@ -1262,15 +1261,6 @@ class PLinkSSHVendor(SSHVendor):
         return SubprocessWrapper(proc)
 
 
-def ParamikoSSHVendor(**kwargs):
-    import warnings
-    warnings.warn(
-        "ParamikoSSHVendor has been moved to dulwich.contrib.paramiko_vendor.",
-        DeprecationWarning)
-    from dbnd._vendor.dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
-    return ParamikoSSHVendor(**kwargs)
-
-
 # Can be overridden by users
 get_ssh_vendor = SubprocessSSHVendor
 
@@ -1525,8 +1515,8 @@ class HttpGitClient(GitClient):
             # Something changed (redirect!), so let's update the base URL
             if not resp.redirect_location.endswith(tail):
                 raise GitProtocolError(
-                        "Redirected from URL %s to URL %s without %s" % (
-                            url, resp.redirect_location, tail))
+                    "Redirected from URL %s to URL %s without %s" % (
+                        url, resp.redirect_location, tail))
             base_url = resp.redirect_location[:-len(tail)]
 
         try:
@@ -1542,7 +1532,7 @@ class HttpGitClient(GitClient):
                 if pkt.rstrip(b'\n') != (b'# service=' + service):
                     raise GitProtocolError(
                         "unexpected first line %r from smart server" % pkt)
-                return read_pkt_refs(proto) + (base_url, )
+                return read_pkt_refs(proto) + (base_url,)
             else:
                 return read_info_refs(resp), set(), base_url
         finally:
@@ -1585,7 +1575,7 @@ class HttpGitClient(GitClient):
         old_refs, server_capabilities, url = self._discover_references(
             b"git-receive-pack", url)
         negotiated_capabilities = self._negotiate_receive_pack_capabilities(
-                server_capabilities)
+            server_capabilities)
         negotiated_capabilities.add(capability_agent())
 
         if CAPABILITY_REPORT_STATUS in negotiated_capabilities:
@@ -1604,8 +1594,8 @@ class HttpGitClient(GitClient):
         if not want and set(new_refs.items()).issubset(set(old_refs.items())):
             return new_refs
         pack_data_count, pack_data = generate_pack_data(
-                have, want,
-                ofs_delta=(CAPABILITY_OFS_DELTA in negotiated_capabilities))
+            have, want,
+            ofs_delta=(CAPABILITY_OFS_DELTA in negotiated_capabilities))
         if pack_data_count:
             write_pack_data(req_proto.write_file(), pack_data_count, pack_data)
         resp, read = self._smart_request("git-receive-pack", url,
@@ -1633,8 +1623,8 @@ class HttpGitClient(GitClient):
         refs, server_capabilities, url = self._discover_references(
             b"git-upload-pack", url)
         negotiated_capabilities, symrefs, agent = (
-                self._negotiate_upload_pack_capabilities(
-                        server_capabilities))
+            self._negotiate_upload_pack_capabilities(
+                server_capabilities))
         wants = determine_wants(refs)
         if wants is not None:
             wants = [cid for cid in wants if cid != ZERO_SHA]
@@ -1646,20 +1636,20 @@ class HttpGitClient(GitClient):
         req_data = BytesIO()
         req_proto = Protocol(None, req_data.write)
         (new_shallow, new_unshallow) = self._handle_upload_pack_head(
-                req_proto, negotiated_capabilities, graph_walker, wants,
-                can_read=None, depth=depth)
+            req_proto, negotiated_capabilities, graph_walker, wants,
+            can_read=None, depth=depth)
         resp, read = self._smart_request(
             "git-upload-pack", url, data=req_data.getvalue())
         try:
             resp_proto = Protocol(read, None)
             if new_shallow is None and new_unshallow is None:
                 (new_shallow, new_unshallow) = _read_shallow_updates(
-                        resp_proto)
+                    resp_proto)
             self._handle_upload_pack_tail(
                 resp_proto, negotiated_capabilities, graph_walker, pack_data,
                 progress)
             return FetchPackResult(
-                    refs, symrefs, agent, new_shallow, new_unshallow)
+                refs, symrefs, agent, new_shallow, new_unshallow)
         finally:
             resp.close()
 
