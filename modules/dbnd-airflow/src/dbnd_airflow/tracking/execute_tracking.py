@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from itertools import islice
 from typing import Optional
 
-from dbnd import get_dbnd_project_config, log_metric, log_metrics
+from dbnd import config, get_dbnd_project_config, log_metric, log_metrics
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.log.dbnd_log import dbnd_log_exception, dbnd_log_tracking
@@ -127,9 +127,11 @@ def new_execute(context):
 
     # running the operator's original execute function
     try:
-        with af_tracking_context(task_run, context, copied_operator):
-            execute = get_execute_function(copied_operator)
-            result = execute(copied_operator, context)
+        operator_config = getattr(copied_operator, "dbnd_config", {})
+        with config(operator_config, "airflow_operator_definition"):
+            with af_tracking_context(task_run, context, copied_operator):
+                execute = get_execute_function(copied_operator)
+                result = execute(copied_operator, context)
 
     # Check if this is sensor task that is retrying - normal behavior and not really an exception
     except AirflowRescheduleException:
