@@ -7,7 +7,6 @@ recursive-include src/dbnd *.pyi
 graft src/dbnd/conf
 
 recursive-include src/dbnd/_vendor LICENSE LICENSE.txt
-recursive-include src/dbnd/_vendor_package LICENSE
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]

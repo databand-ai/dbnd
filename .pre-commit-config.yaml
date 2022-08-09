@@ -2,7 +2,6 @@ exclude: >
   (?x)^(
       .+/airflow_override/.+|
       .+/_vendor/.+|
-      .+/_vendor_package/.+|
       .+/docs/sdk-docs/.+
   )$
 repos:
@@ -13,7 +12,14 @@ repos:
     rev: v0.3.1
     hooks:
       - id: autoflake8
-        args: ['--in-place', '--verbose', '--expand-star-imports', '--remove-duplicate-keys', '--remove-unused-variables']
+        args:
+          [
+            "--in-place",
+            "--verbose",
+            "--expand-star-imports",
+            "--remove-duplicate-keys",
+            "--remove-unused-variables",
+          ]
         verbose: true
 
   - repo: https://github.com/psf/black
@@ -53,7 +59,7 @@ repos:
     rev: v2.5.0
     hooks:
       - id: check-added-large-files
-        args: [ '--maxkb=3000' ]
+        args: ["--maxkb=3000"]
       - id: trailing-whitespace
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks
@@ -71,7 +77,6 @@ repos:
           (?x)^(
             .+/airflow_override/.+|
             .+/_vendor/.+|
-            .+/_vendor_package/.+|
             .+/docs/sdk-docs/.+|
             .+/build/.+|
             .+/dist/.+|
@@ -91,7 +96,6 @@ repos:
           (?x)^(
             .+/airflow_override/.+|
             .+/_vendor/.+|
-            .+/_vendor_package/.+|
             .+/docs/sdk-docs/.+|
             .+/build/.+|
             .+/dist/.+|

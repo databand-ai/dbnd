@@ -4,7 +4,7 @@ requires = ["setuptools", "wheel"]
 
 [tool.black]
 skip-magic-trailing-comma = 1
-extend-exclude = "dbnd/_vendor|dbnd/_vendor_package|dbnd_spark/_vendor|airflow_override"
+extend-exclude = "dbnd/_vendor|dbnd_spark/_vendor|airflow_override"
 
 [tool.isort]
 profile = "black"
@@ -15,7 +15,6 @@ skip = [
 ]
 skip_glob = [
     "dbnd/_vendor/*",
-    "dbnd/_vendor_package/*"
 ]
 
 combine_as_imports = true
@@ -192,7 +191,7 @@ ignore-paths = [
     '''^.*\/node_modules\/.*$''',
     '''^.*\/build\/.*$''',
     '''^.*\/dist\/.*$''',
-    # eclude _vendor and _vendor_package
+    # eclude _vendor
     '''^.*\/_vendor.*$''',
 ]
 

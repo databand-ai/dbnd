@@ -365,15 +365,3 @@ class TrackingStoreThroughChannel(TrackingStore):
         return TrackingStoreThroughChannel(
             channel=TrackingAsyncWebChannel(**parameters)
         )
-
-    @staticmethod
-    def build_with_proto_web_channel(databand_ctx):
-        from dbnd._core.tracking.backends.channels.tracking_proto_web_channel import (
-            TrackingProtoWebChannel,
-        )
-
-        return TrackingStoreThroughChannel(
-            channel=TrackingProtoWebChannel(
-                databand_api_client=databand_ctx.databand_api_client
-            )
-        )

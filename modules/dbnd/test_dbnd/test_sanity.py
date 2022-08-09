@@ -25,9 +25,7 @@ class TestSanityTasks(object):
 
         project_dir = os.path.join(os.path.dirname(__file__), "..", "src")
         good_modules = import_all_modules(
-            src_dir=project_dir,
-            package="dbnd",
-            excluded=["airflow_operators", "_vendor_package"],
+            src_dir=project_dir, package="dbnd", excluded=["airflow_operators"]
         )
 
         assert len(good_modules) > 20

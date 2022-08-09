@@ -21,7 +21,6 @@ dbnd_vendors_list = [
     "tabulate",
     "marshmallow==2.18.0",
     "croniter>=0.3.30,<0.4",
-    "protobuf==3.13.0",
     "psutil>=4.2.0,<5.7.0",  # extracted use to vendorized_psutil.py
 ]
 

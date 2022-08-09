@@ -131,9 +131,6 @@ class CoreConfig(Config):
     plugins = parameter(
         description="plugins to load on databand context creation", default=None
     )[str]
-    allow_vendored_package = parameter(
-        description="Allow adding dbnd/_vendor_package to sys.path", default=False
-    )[bool]
     fix_env_on_osx = parameter(
         description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
     )[bool]

@@ -26,7 +26,6 @@ _BACKENDS_REGISTRY = {
     "debug": TrackingStoreThroughChannel.build_with_console_debug_channel,
     ("api", "web"): TrackingStoreThroughChannel.build_with_web_channel,
     ("api", "async-web"): TrackingStoreThroughChannel.build_with_async_web_channel,
-    ("api", "proto"): TrackingStoreThroughChannel.build_with_proto_web_channel,
     ("api", "disabled"): TrackingStoreThroughChannel.build_with_disabled_channel,
 }
 
