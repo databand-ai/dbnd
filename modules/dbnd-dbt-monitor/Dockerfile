@@ -1,4 +1,4 @@
-FROM us.gcr.io/dbnd-dev-260010/databand/dbnd-python.base:py39-slim-v3
+FROM us.gcr.io/dbnd-dev-260010/databand/dbnd-python.base:py39-slim-v4
 
 # constants:
 ENV DBND_HOME=/app
