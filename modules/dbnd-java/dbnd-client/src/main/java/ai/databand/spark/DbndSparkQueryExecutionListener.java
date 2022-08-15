@@ -106,10 +106,17 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 if (next instanceof FileSourceScanExec) {
                     FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
+                    StructType schema = fileSourceScan.schema();
+                    // when performing operations like "count" schema is not reported in a FileSourceScanExec itself
+                    // but we can try to figure it out from the HadoopRelation.
+                    if (schema.isEmpty() && fileSourceScan.relation() != null) {
+                        schema = fileSourceScan.relation().schema();
+                    }
+
                     String path = exctractPath(fileSourceScan.metadata().get("Location").get());
                     long rows = fileSourceScan.metrics().get("numOutputRows").get().value();
 
-                    log(path, DatasetOperationType.READ, fileSourceScan.schema(), rows);
+                    log(path, DatasetOperationType.READ, schema, rows);
                 }
                 if (isHiveEnabled) {
                     if (next instanceof HiveTableScanExec) {

@@ -123,7 +123,6 @@ public class DatasetOperationRes {
         public void setData(Data data) {
             this.data = data;
         }
-
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -137,7 +136,10 @@ public class DatasetOperationRes {
         public void setOperationError(String operationError) {
             this.operationError = operationError;
         }
+    }
 
-
+    @Override
+    public String toString() {
+        return String.format("{path: \"%s\", type: %s, source: %s", datasetPath, operationType, operationSource);
     }
 }

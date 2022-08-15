@@ -13,18 +13,14 @@ import ai.databand.schema.Job;
 import ai.databand.schema.LogDataset;
 import ai.databand.schema.Pair;
 import ai.databand.schema.TaskFullGraph;
-import ai.databand.schema.TaskRun;
 import ai.databand.schema.Tasks;
 import ai.databand.spark.DbndSparkQueryExecutionListener;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -65,20 +61,9 @@ public class LogDatasetTest {
 
     }
 
-    private static PipelinesVerify pipelinesVerify;
-
-    @BeforeAll
-    static void beforeAll() throws IOException {
-        pipelinesVerify = new PipelinesVerify();
-    }
-
-    /**
-     * Scala pipeline test uses auto-inject listener.
-     *
-     * @throws IOException
-     */
     @Test
     public void testDatasets() throws IOException {
+        PipelinesVerify pipelinesVerify = new PipelinesVerify();
         LogDatasetPipeline.main(new String[]{});
 
         String jobName = "log_dataset_pipeline";

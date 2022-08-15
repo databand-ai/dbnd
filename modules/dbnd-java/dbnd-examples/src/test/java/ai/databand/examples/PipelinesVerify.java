@@ -269,7 +269,7 @@ public class PipelinesVerify {
             assertThat(String.format("Wrong dataset operation source for task [%s]", taskName), dataset.getOperationSource(), Matchers.equalTo(operationSource));
             return dataset;
         } else {
-            fail(String.format("Dataset operation of type [%s] with path [%s] for task [%s] not found", type.toString(), path, taskName));
+            fail(String.format("Dataset operation of type [%s] with path [%s] for task [%s] not found. Existing operations: %s", type.toString(), path, taskName, taskDatasets));
             return null;
         }
     }
@@ -587,6 +587,17 @@ public class PipelinesVerify {
         assertThat("Wrong 25%", col.getQuartile1(), Matchers.closeTo(quartile1, 0.01));
         assertThat("Wrong 50%", col.getQuartile2(), Matchers.closeTo(quartile2, 0.01));
         assertThat("Wrong 75%", col.getQuartile3(), Matchers.closeTo(quartile3, 0.01));
+    }
+
+    public void assertListenerColumnStat(List<ColumnStats> columnsStats,
+                                         String columnName,
+                                         String columnType,
+                                         long recordsCount) {
+        Optional<ColumnStats> columnOpt = columnsStats.stream().filter(f -> f.getColumnName().equalsIgnoreCase(columnName)).findFirst();
+        assertThat(String.format("Column stats are missing for column [%s]", columnName), columnOpt.isPresent(), Matchers.equalTo(true));
+        ColumnStats col = columnOpt.get();
+        assertThat("Wrong column type", col.getColumnType(), Matchers.equalTo(columnType));
+        assertThat("Wrong records count", col.getRecordsCount(), Matchers.equalTo(recordsCount));
     }
 
 }
