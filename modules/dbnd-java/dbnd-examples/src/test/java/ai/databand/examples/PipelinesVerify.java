@@ -49,6 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class PipelinesVerify {
@@ -534,9 +535,8 @@ public class PipelinesVerify {
         assertThat(String.format("Error is missing for task [%s]", task.getTaskId()), error, Matchers.notNullValue());
 
         assertThat(String.format("Wrong error description for task [%s]", task.getTaskId()), error.getMsg(), Matchers.containsString(errorText));
-        assertThat(String.format("Wrong error details for task [%s]", task.getTaskId()), error.getDatabandError(), equalTo(false));
-        assertThat(String.format("Wrong error type for task [%s]", task.getTaskId()), error.getExcType(), Matchers.equalTo(errorType));
-        assertThat(String.format("Wrong error details for task [%s]", task.getTaskId()), error.getTraceback(), Matchers.containsString(stackTrace));
+        assertThat(String.format("Wrong error details for task [%s]", task.getTaskId()), error.getDatabandError(), nullValue());
+        assertThat(String.format("Wrong error details for task [%s]", task.getTaskId()), error.getUserCodeTraceback(), Matchers.containsString(stackTrace));
     }
 
     protected void assertMetricsAvailableForAlerts(String taskName, String metricName, MetricsForAlertsResponse res) {

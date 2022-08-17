@@ -10,17 +10,12 @@ import ai.databand.schema.Pair;
 import ai.databand.schema.TaskFullGraph;
 import ai.databand.schema.TaskRun;
 import ai.databand.schema.Tasks;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * The purpose of this test is to make sure static methods are instrumented correctly.
@@ -55,7 +50,7 @@ public class FailedPipelineTest {
      * Don't need any checks here, just making sure no exceptions are thrown.
      */
     @Test
-    public void testFiledPipeline() throws IOException {
+    public void testFailedPipeline() throws IOException {
         Assertions.assertThrows(RuntimeException.class, () -> BadPipeline.main(new String[]{}));
 
         String jobName = "java_bad_pipeline";
