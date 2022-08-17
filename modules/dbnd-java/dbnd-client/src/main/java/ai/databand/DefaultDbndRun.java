@@ -500,8 +500,8 @@ public class DefaultDbndRun implements DbndRun {
             false,
             stackTrace,
             "",
-            "",
-            false,
+            stackTrace,
+            true,
             error.getClass().getCanonicalName()
         );
         dbnd.updateTaskRunAttempt(task.getTaskRunUid(), task.getTaskRunAttemptUid(), "FAILED", errorInfo, task.getStartDate());
@@ -581,7 +581,7 @@ public class DefaultDbndRun implements DbndRun {
             false,
             stackTrace,
             "",
-            "",
+            stackTrace,
             false,
             error.getClass().getCanonicalName()
         );
