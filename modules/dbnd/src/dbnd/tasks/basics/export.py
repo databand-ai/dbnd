@@ -40,7 +40,7 @@ def export_db(
             else:
                 raise DatabandRuntimeError(
                     "Can not export db! "
-                    "Currently, we support only sqlite and postgres db in automatic export"
+                    "Currently, we support only postgres db in automatic export"
                 )
 
         if include_logs:
