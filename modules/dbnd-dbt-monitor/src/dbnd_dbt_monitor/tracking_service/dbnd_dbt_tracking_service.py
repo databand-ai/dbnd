@@ -41,7 +41,7 @@ class DbndDbtTrackingService(BaseDbndTrackingService):
         )
         return [result]
 
-    # Cached to avoid excessive webserver calles to get config
+    # Cached to avoid excessive webserver calls to get config
     @cached(monitor_config_cache)
     def get_monitor_configuration(self) -> DbtServerConfig:
         configs = self._fetch_source_monitor_config()

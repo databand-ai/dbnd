@@ -2,6 +2,8 @@
 
 import logging
 
+import more_itertools
+
 from dbnd_dbt_monitor.data.dbt_config_data import DbtServerConfig
 from dbnd_dbt_monitor.fetcher.dbt_cloud_data_fetcher import DbtCloudDataFetcher
 from dbnd_dbt_monitor.syncer.base_syncer import start_syncer
@@ -29,16 +31,20 @@ class DbtRunsSyncer(BaseMonitorSyncer):
 
         if not dbnd_last_run_id:
             dbt_last_run_id = self.data_fetcher.get_last_seen_run_id()
-            dbnd_last_run_id = dbt_last_run_id
+            if dbt_last_run_id:
+                self.tracking_service.update_last_seen_values(dbt_last_run_id)
+            return
+
+        running_dbt_run_ids = self.tracking_service.get_running_dbt_run_ids()
+        self._update_runs(running_dbt_run_ids)
 
         new_dbt_run_ids = self.data_fetcher.get_run_ids_to_sync_from_dbt(
             dbnd_last_run_id
         )
-        self._init_runs(new_dbt_run_ids)
-        self._update_last_seen_values(new_dbt_run_ids)
 
-        running_dbt_run_ids = self.tracking_service.get_running_dbt_run_ids()
-        self._update_runs(running_dbt_run_ids)
+        if new_dbt_run_ids:
+            self._init_runs(new_dbt_run_ids)
+            self._update_last_seen_values(new_dbt_run_ids)
 
     @capture_monitor_exception
     def _init_runs(self, dbt_run_ids):
@@ -46,8 +52,8 @@ class DbtRunsSyncer(BaseMonitorSyncer):
             return
 
         bulk_size = self.config.runs_bulk_size or len(dbt_run_ids)
-        for i in range(0, len(dbt_run_ids), bulk_size):
-            runs_chunk = dbt_run_ids[i : i + bulk_size]
+        chunks = more_itertools.sliced(dbt_run_ids, bulk_size)
+        for runs_chunk in chunks:
             dbt_runs_full_data = self.data_fetcher.get_full_dbt_runs(runs_chunk)
             self.tracking_service.init_dbt_runs(dbt_runs_full_data)
 
@@ -57,8 +63,8 @@ class DbtRunsSyncer(BaseMonitorSyncer):
             return
 
         bulk_size = self.config.runs_bulk_size or len(dbt_run_ids)
-        for i in range(0, len(dbt_run_ids), bulk_size):
-            runs_chunk = dbt_run_ids[i : i + bulk_size]
+        chunks = more_itertools.sliced(dbt_run_ids, bulk_size)
+        for runs_chunk in chunks:
             dbt_runs_full_data = self.data_fetcher.get_full_dbt_runs(runs_chunk)
             self.tracking_service.update_dbt_runs(dbt_runs_full_data)
 
