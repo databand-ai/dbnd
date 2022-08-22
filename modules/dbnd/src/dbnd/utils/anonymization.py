@@ -48,15 +48,11 @@ class CompositeDataAnonymizer:
         return res
 
 
-aws_credentials_regexp = [
+secrets_regexp = [
     r"::(?P<IAM_TO_KEEP>\d{12}):role",  # IAM Role
     r"aws(?:_access)?_key_id[\s=']*(AKI[a-zA-Z0-9]+)[';]",  # Redshift access key
     r"aws_secret(?:_access)?_key[\s=']*([a-zA-Z0-9/]+)[';]",  # Redshift secret key
+    r"DATABAND_ACCESS_TOKEN=([a-zA-Z0-9\.]+)",  # Databand access token
 ]
 
-
-aws_secrets_anonymizer = CompositeDataAnonymizer.from_string_patterns(
-    aws_credentials_regexp
-)
-
-query_data_annonymizer = CompositeDataAnonymizer([aws_secrets_anonymizer])
+secrets_anonymizer = CompositeDataAnonymizer.from_string_patterns(secrets_regexp)

@@ -13,6 +13,7 @@ from dbnd._core.errors.errors_utils import (
 )
 from dbnd._core.tracking.schemas.tracking_info_objects import ErrorInfo
 from dbnd._core.utils.timezone import utcnow
+from dbnd.utils.anonymization import secrets_anonymizer
 
 
 def task_call_source_to_str(task_call_source):
@@ -79,8 +80,10 @@ class TaskRunError(object):
             databand_error=isinstance(ex, DatabandError),
             nested=nested_exceptions_str(ex, limit=1),
             traceback=self.traceback,
-            user_code_traceback=task.settings.log.format_exception_as_str(
-                exc_info=self.exc_info, isolate=isolate
+            user_code_traceback=secrets_anonymizer.anonymize(
+                task.settings.log.format_exception_as_str(
+                    exc_info=self.exc_info, isolate=isolate
+                )
             ),
             show_exc_info=bool(show_exc_info(ex)),
         )

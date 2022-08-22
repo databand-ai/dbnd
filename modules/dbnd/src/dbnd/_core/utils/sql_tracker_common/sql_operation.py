@@ -12,7 +12,7 @@ from more_itertools import first, padded
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
 from dbnd._core.utils.sql_tracker_common.sql_extract import Column, Schema
 from dbnd._core.utils.sql_tracker_common.utils import strip_quotes
-from dbnd.utils.anonymization import query_data_annonymizer
+from dbnd.utils.anonymization import secrets_anonymizer
 from targets.connections import build_conn_path
 from targets.value_meta import ValueMeta
 from targets.values import register_value_type
@@ -54,7 +54,7 @@ class SqlOperation:
     dataframe = attr.ib(default=None)  # type: pd.DataFrame
 
     def __attrs_post_init__(self):
-        self.query = query_data_annonymizer.anonymize(self.query)
+        self.query = secrets_anonymizer.anonymize(self.query)
 
     @property
     def columns(self) -> List[str]:

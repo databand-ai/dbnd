@@ -2,7 +2,7 @@
 
 import pytest
 
-from dbnd.utils.anonymization import query_data_annonymizer
+from dbnd.utils.anonymization import secrets_anonymizer
 
 
 @pytest.mark.parametrize(
@@ -101,5 +101,29 @@ def test_query_data_anonymyzation(query, masked_query):
     In this test function the 'secrets' are example values in order to match regex
     taken from https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
     """
-    result = query_data_annonymizer.anonymize(query)
+    result = secrets_anonymizer.anonymize(query)
     assert result == masked_query
+
+
+@pytest.mark.parametrize(
+    "spark_submit, masked_spark_submit",
+    [
+        (
+            "Cannot execute: /opt/spark/spark-2.4.5-bin-hadoop2.7/bin/spark-submit --master local "
+            "--conf spark.sql.shuffle.partitions=1"
+            "--conf spark.env.DBND__CORE__DATABAND_URL=https://databand.ai "
+            "--conf spark.env.DBND__CORE__DATABAND_ACCESS_TOKEN=eyJ0eXAiOiJKV1QGciOiJIUzI1NiJ9.eyJpYXQm5iZiI6MTY1Mjk3NTk1MCwianRpIjoiZGIzM2JjNTAtMGZlMS00MDExLWFiZmYtODJiNThjZDk2OTgyIiwiZXhwIjoxNzE2MDQ3OTUwLCJpZGVudGl0eSI6ImRhdGFiYW5kIiwiZnJlc2giOmZhbHNlLCJ0eXBlIjoiYWNjZXNzIiwidXNlcl9jbGFpbXMiOnsiZW52IjoiZGF0YWJhbmQtaW50ZXJuYWwtcmVsZWFzZSJ9fQ.cgoXFPGKoIU6yUd7IwW8rs "
+            "--conf spark.env.DBND__TRACKING=True"
+            "--conf spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener",
+            "Cannot execute: /opt/spark/spark-2.4.5-bin-hadoop2.7/bin/spark-submit --master local "
+            "--conf spark.sql.shuffle.partitions=1"
+            "--conf spark.env.DBND__CORE__DATABAND_URL=https://databand.ai "
+            "--conf spark.env.DBND__CORE__DATABAND_ACCESS_TOKEN=*** "
+            "--conf spark.env.DBND__TRACKING=True"
+            "--conf spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener",
+        )
+    ],
+)
+def test_dbnd_token_anonymization(spark_submit, masked_spark_submit):
+    result = secrets_anonymizer.anonymize(spark_submit)
+    assert result == masked_spark_submit
