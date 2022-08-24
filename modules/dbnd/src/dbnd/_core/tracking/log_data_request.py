@@ -78,11 +78,12 @@ class LogDataRequest(object):
         return cls()
 
     def __bool__(self):
-        return (
+        return bool(
             self.include_columns
             or self.include_all_numeric
             or self.include_all_boolean
             or self.include_all_string
+            or self.exclude_columns
         )
 
     __nonzero__ = __bool__

@@ -74,11 +74,16 @@ class PandasHistograms(object):
             elif data_request.include_all_numeric and is_numeric_dtype(column_type):
                 column_names.append(column_name)
 
-        column_names = [
-            column
-            for column in column_names
-            if column not in data_request.exclude_columns
-        ]
+        if len(data_request.exclude_columns) > 0:
+            if len(column_names) == 0 and len(df.dtypes.keys()) > 0:
+                column_names.extend(df.dtypes.keys())
+
+            column_names = [
+                column
+                for column in column_names
+                if column not in data_request.exclude_columns
+            ]
+
         return column_names
 
     def _calculate_stats(self, df):

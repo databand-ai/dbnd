@@ -53,8 +53,6 @@ Alternatively, you can use the following helper methods:
 `LogDataRequest.ALL_BOOLEAN()`
 `LogDataRequest.NONE()`
 
-
-
 ## Enabling Histograms for Python Functions Tracking
 
  Enable histogram tracking in individual tasks. You can do this by using one of the following methods:
