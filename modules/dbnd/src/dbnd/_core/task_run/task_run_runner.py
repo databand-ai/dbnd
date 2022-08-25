@@ -7,13 +7,14 @@ import typing
 import webbrowser
 
 from dbnd._core.constants import SystemTaskName, TaskRunState
+from dbnd._core.current import try_get_current_task_run
 from dbnd._core.errors import friendly_error, show_error_once
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled, pm
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd._core.tracking.dbnd_spark_init import set_current_jvm_context
+from dbnd._core.tracking.dbnd_spark_init import jvm_context_manager
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.signal_utils import safe_signal
@@ -30,6 +31,8 @@ logger = logging.getLogger(__name__)
 class TaskRunRunner(TaskRunCtrl):
     @contextlib.contextmanager
     def task_run_execution_context(self, handle_sigterm=True, capture_log=True):
+        parent_task = try_get_current_task_run()
+        current_task = self.task_run
         ctx_managers = [self.task.ctrl.task_context(phase=TaskContextPhase.RUN)]
 
         if capture_log:
@@ -39,13 +42,7 @@ class TaskRunRunner(TaskRunCtrl):
             ctx_managers.append(handle_sigterm_at_dbnd_task_run())
 
         ctx_managers.extend(pm.hook.dbnd_task_run_context(task_run=self.task_run))
-
-        set_current_jvm_context(
-            self.run.run_uid,
-            self.task_run_uid,
-            self.task_run_attempt_uid,
-            self.task_run.task_af_id,
-        )
+        ctx_managers.append(jvm_context_manager(parent_task, current_task))
 
         with nested(*ctx_managers):
             yield

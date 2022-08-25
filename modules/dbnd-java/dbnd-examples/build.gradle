@@ -89,4 +89,5 @@ test {
     jvmArgs "-javaagent:${projectDir}/../dbnd-agent/build/libs/dbnd-agent-${rootProject.version}-all.jar"
     environment "EXAMPLES_JAR", "${projectDir}/build/libs/dbnd-examples-latest-all.jar"
     environment "PROCESS_DATA_OUTPUT", "${buildDir}/output/"
+    environment("AGENT_JAR", "${projectDir}/../dbnd-agent/build/libs/dbnd-agent-${rootProject.version}-all.jar")
 }
