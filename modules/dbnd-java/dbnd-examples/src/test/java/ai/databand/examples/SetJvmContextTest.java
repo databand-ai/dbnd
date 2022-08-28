@@ -10,6 +10,7 @@ import ai.databand.schema.Job;
 import ai.databand.schema.LogDataset;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This test verifies that jvm context manager in python dbnd library properly sets context on task enter and exit.
@@ -54,35 +56,50 @@ public class SetJvmContextTest {
         Process exec = Runtime.getRuntime().exec(cmd);
 
         int returnCode = exec.waitFor();
+
         MatcherAssert.assertThat("Spark process should complete properly", returnCode, Matchers.equalTo(0));
 
         PipelinesVerify pipelinesVerify = new PipelinesVerify();
         String jobName = "context_set_test.py";
         Job job = pipelinesVerify.verifyJob(jobName);
-        Map<String, List<DatasetOperationRes>> ops = pipelinesVerify.fetchDatasetOperations(job);
 
-        pipelinesVerify.assertDatasetOperationExists(
-            "parent_task",
-            data.replace("/usa-education-budget.csv", ""),
-            DatasetOperationType.READ,
-            "SUCCESS",
-            41,
-            1,
-            ops,
-            null,
-            LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
-        );
+        int tries = 3;
+        while (tries > 0) {
+            Map<String, List<DatasetOperationRes>> ops = pipelinesVerify.fetchDatasetOperations(job);
 
-        pipelinesVerify.assertDatasetOperationExists(
-            "child_task",
-            data.replace("/usa-education-budget.csv", ""),
-            DatasetOperationType.READ,
-            "SUCCESS",
-            41,
-            1,
-            ops,
-            null,
-            LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
-        );
+            // wait until data ops calculation will be completed
+            if (ops.get("parent_task").isEmpty() || ops.get("child_task").isEmpty()) {
+                System.out.println("Waiting 5 seconds");
+                TimeUnit.SECONDS.sleep(5);
+                tries--;
+                continue;
+            }
+
+            pipelinesVerify.assertDatasetOperationExists(
+                "parent_task",
+                data.replace("/usa-education-budget.csv", ""),
+                DatasetOperationType.READ,
+                "SUCCESS",
+                41,
+                1,
+                ops,
+                null,
+                LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
+            );
+
+            pipelinesVerify.assertDatasetOperationExists(
+                "child_task",
+                data.replace("/usa-education-budget.csv", ""),
+                DatasetOperationType.READ,
+                "SUCCESS",
+                41,
+                1,
+                ops,
+                null,
+                LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
+            );
+            return;
+        }
+        Assertions.fail("Dataset ops was empty even after 15 seconds of timeout");
     }
 }

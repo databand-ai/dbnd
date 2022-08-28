@@ -270,7 +270,7 @@ public class PipelinesVerify {
             assertThat(String.format("Wrong dataset operation source for task [%s]", taskName), dataset.getOperationSource(), Matchers.equalTo(operationSource));
             return dataset;
         } else {
-            fail(String.format("Dataset operation of type [%s] with path [%s] for task [%s] not found. Existing operations: %s", type.toString(), path, taskName, taskDatasets));
+            fail(String.format("Dataset operation of type [%s] with path [%s] for task [%s] not found. Existing operations: %s", type.toString(), path, taskName, datasets));
             return null;
         }
     }
