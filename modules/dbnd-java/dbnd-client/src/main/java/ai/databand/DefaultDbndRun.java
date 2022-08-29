@@ -558,7 +558,7 @@ public class DefaultDbndRun implements DbndRun {
         dbnd.logMetrics(driverTask, driverTask.getMetrics(), "spark");
         dbnd.updateTaskRunAttempt(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), "SUCCESS", null, driverTask.getStartDate());
         if (rootRunUid == null) {
-            // for agentless runs created inside Databand Context (when root run is outside of JVM) we shouldn't complete run
+            // for agentless runs created inside Databand Context (when root run is outside JVM) we shouldn't complete run
             return;
         }
         dbnd.setRunState(rootRunUid, "SUCCESS");
@@ -571,6 +571,17 @@ public class DefaultDbndRun implements DbndRun {
         }
         dbnd.saveTaskLog(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), driverTask.getTaskLog());
         dbnd.logMetrics(driverTask, driverTask.getMetrics(), "spark");
+    }
+
+    /**
+     * Since listener can still process dataset operations AFTER the run completion,
+     * run should be explicitly stopped after listener will complete work
+     * because dataset operations may be missed/not calculated properly.
+     */
+    @Override
+    public void stopListener() {
+        dbnd.updateTaskRunAttempt(driverTask.getTaskRunUid(), driverTask.getTaskRunAttemptUid(), "SUCCESS", null, driverTask.getStartDate());
+        dbnd.setRunState(driverTask.getRunUid(), "SUCCESS");
     }
 
     public void error(Throwable error) {

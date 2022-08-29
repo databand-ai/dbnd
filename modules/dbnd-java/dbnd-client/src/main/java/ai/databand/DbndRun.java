@@ -66,6 +66,12 @@ public interface DbndRun {
     void stopExternal();
 
     /**
+     * When dataset operations was sent after Spark started to initialize shutdown sequence,
+     * we need to send stop signal to the run.
+     */
+    void stopListener();
+
+    /**
      * Stop run. Set run state to 'failed'.
      *
      * @param error

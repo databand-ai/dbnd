@@ -11,11 +11,13 @@ import ai.databand.schema.LogDataset;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +29,21 @@ import java.util.concurrent.TimeUnit;
 public class SetJvmContextTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetJvmContextTest.class);
+
+    private PipelinesVerify pipelinesVerify;
+    private String pyscriptPath;
+    private String dataPath;
+    private String agentJar;
+    private String examplesJar;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        pipelinesVerify = new PipelinesVerify();
+        pyscriptPath = getClass().getClassLoader().getResource("context_set_test.py").getPath();
+        dataPath = getClass().getClassLoader().getResource("usa-education-budget.csv").getPath();
+        agentJar = System.getenv("AGENT_JAR");
+        examplesJar = System.getenv("EXAMPLES_JAR");
+    }
 
     /**
      * This test takes python script and executes it via `spark-submit` command.
@@ -42,33 +59,81 @@ public class SetJvmContextTest {
             return;
         }
 
-        String pyscript = getClass().getClassLoader().getResource("context_set_test.py").getPath();
-        String data = getClass().getClassLoader().getResource("usa-education-budget.csv").getPath();
+        ProcessBuilder pb = new ProcessBuilder()
+            .command("spark-submit",
+                "--conf", "spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener",
+                "--conf", "spark.driver.extraJavaOptions=-javaagent:" + agentJar,
+                "--conf", "spark.sql.shuffle.partitions=1",
+                pyscriptPath, dataPath
+            );
 
-        String agentJar = System.getenv("AGENT_JAR");
+        System.out.println("Spark CMD: " + String.join(" ", pb.command()));
+        pb.redirectErrorStream(true);
+        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 
-        String cmd = "spark-submit " +
-            "--conf spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener " +
-            "--conf spark.driver.extraJavaOptions=-javaagent:" + agentJar + " " +
-            "--conf spark.sql.shuffle.partitions=1 " +
-            pyscript + " " + data;
-        LOG.info("Spark CMD: {}", cmd);
-        Process exec = Runtime.getRuntime().exec(cmd);
+        Process exec = pb.start();
+
+        int returnCode = exec.waitFor();
+        MatcherAssert.assertThat("Spark process should complete properly", returnCode, Matchers.equalTo(0));
+
+        Job job = pipelinesVerify.verifyJob("context_set_test.py");
+
+        // ops are reporting to the corresponding tasks
+        assertDatasetOps(job, "parent_task", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
+        assertDatasetOps(job, "child_task", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
+    }
+
+    /**
+     * This test ensures that dataset ops will be reported even if tracking will complete before listener will catch up.
+     *
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    @Test
+    public void testSlowListener() throws IOException, InterruptedException {
+        // this test won't run by default
+        if (!"True".equals(System.getenv().get("DBND__ENABLE__SPARK_CONTEXT_ENV"))) {
+            return;
+        }
+
+        ProcessBuilder pb = new ProcessBuilder()
+            .command("spark-submit",
+                "--conf", "spark.sql.queryExecutionListeners=ai.databand.examples.SlowDbndSparkQueryExecutionListener",
+                "--jars", agentJar + "," + examplesJar,
+                "--conf", "spark.sql.shuffle.partitions=1",
+                pyscriptPath, dataPath
+            );
+
+        System.out.println("Spark CMD: " + String.join(" ", pb.command()));
+        pb.redirectErrorStream(true);
+        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+
+        Process exec = pb.start();
 
         int returnCode = exec.waitFor();
 
         MatcherAssert.assertThat("Spark process should complete properly", returnCode, Matchers.equalTo(0));
 
-        PipelinesVerify pipelinesVerify = new PipelinesVerify();
-        String jobName = "context_set_test.py";
-        Job job = pipelinesVerify.verifyJob(jobName);
+        Job job = pipelinesVerify.verifyJob("context_set_test.py");
 
+        // since context is returned to the very parent task, op will be reported to this task and will be merged with second op
+        assertDatasetOps(job, "context_set_test.py", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
+    }
+
+    protected void assertDatasetOps(Job job,
+                                    String taskName,
+                                    String dataPath,
+                                    DatasetOperationType type,
+                                    String status,
+                                    int recordsCount,
+                                    int operationsCount) throws IOException, InterruptedException {
+        Map<String, List<DatasetOperationRes>> ops = null;
         int tries = 3;
         while (tries > 0) {
-            Map<String, List<DatasetOperationRes>> ops = pipelinesVerify.fetchDatasetOperations(job);
+            ops = pipelinesVerify.fetchDatasetOperations(job);
 
             // wait until data ops calculation will be completed
-            if (ops.get("parent_task").isEmpty() || ops.get("child_task").isEmpty()) {
+            if (ops.getOrDefault(taskName, Collections.emptyList()).isEmpty()) {
                 System.out.println("Waiting 5 seconds");
                 TimeUnit.SECONDS.sleep(5);
                 tries--;
@@ -76,30 +141,19 @@ public class SetJvmContextTest {
             }
 
             pipelinesVerify.assertDatasetOperationExists(
-                "parent_task",
-                data.replace("/usa-education-budget.csv", ""),
-                DatasetOperationType.READ,
-                "SUCCESS",
-                41,
-                1,
+                taskName,
+                dataPath,
+                type,
+                status,
+                recordsCount,
+                operationsCount,
                 ops,
                 null,
                 LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
             );
 
-            pipelinesVerify.assertDatasetOperationExists(
-                "child_task",
-                data.replace("/usa-education-budget.csv", ""),
-                DatasetOperationType.READ,
-                "SUCCESS",
-                41,
-                1,
-                ops,
-                null,
-                LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
-            );
             return;
         }
-        Assertions.fail("Dataset ops was empty even after 15 seconds of timeout");
+        Assertions.fail("Dataset ops was empty even after 15 seconds of timeout. Existing datasets: " + ops);
     }
 }

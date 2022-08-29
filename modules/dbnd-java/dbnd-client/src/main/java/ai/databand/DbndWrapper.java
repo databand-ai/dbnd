@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,6 +53,11 @@ public class DbndWrapper {
     private DbndRun run;
     private boolean pipelineInitialized;
     private final Deque<String> stack;
+
+    /**
+     * Indicates that Spark has started shutdown sequence.
+     */
+    private boolean isSparkShutdown = false;
 
     private static final DbndWrapper INSTANCE = new DbndWrapper();
 
@@ -264,6 +268,12 @@ public class DbndWrapper {
         }
         run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition, columnStats, operationSource);
         LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
+        if (isSparkShutdown) {
+            // If spark is in the shutdown sequence, pyspark tracking is already completed.
+            // This call ensures Spark Listener will send `stop` signal.
+            LOG.info("Sending \"SUCCESS\" signal to the task run");
+            run.stopListener();
+        }
     }
 
     public void logMetrics(Map<String, Object> metrics) {
@@ -390,6 +400,10 @@ public class DbndWrapper {
         }
     }
 
+    private void setSparkShutdown() {
+        isSparkShutdown = true;
+    }
+
     protected DbndRun currentRun() {
         return run;
     }
@@ -444,6 +458,10 @@ public class DbndWrapper {
             run = new DefaultDbndRun(dbnd, config);
             // before spark will be stopped we have to submit all saved metrics from the last external task
             Runtime.getRuntime().addShutdownHook(new Thread(run::stopExternal));
+            // when pyspark is running, py tracking will complete before Spark will start shutdown sequence
+            // Query Listener will still be working during shutdown. We need to know this because listener
+            // has to send signal to Databand Tracker to recalculate dataset operations
+            Runtime.getRuntime().addShutdownHook(new Thread(this::setSparkShutdown));
         }
         // before setting context we should submit all gathered metrics from a previous context
         run.stopExternal();
