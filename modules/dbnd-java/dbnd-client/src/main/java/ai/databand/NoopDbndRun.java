@@ -54,6 +54,11 @@ public class NoopDbndRun implements DbndRun {
     }
 
     @Override
+    public void stopListener() {
+        // do nothing
+    }
+
+    @Override
     public void error(Throwable error) {
         // do nothing
     }
