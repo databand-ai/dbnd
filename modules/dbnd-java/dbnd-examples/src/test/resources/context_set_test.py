@@ -5,7 +5,7 @@ import sys
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import max, min
 
-from dbnd import log_metric, task
+from dbnd import dbnd_tracking, log_metric, task
 
 
 @task
@@ -24,4 +24,5 @@ def child_task(df):
 
 
 if __name__ == "__main__":
-    parent_task(sys.argv[1])
+    with dbnd_tracking(sys.argv[2]):
+        parent_task(sys.argv[1])

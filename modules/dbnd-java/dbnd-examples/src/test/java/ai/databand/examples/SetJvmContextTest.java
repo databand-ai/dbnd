@@ -58,13 +58,13 @@ public class SetJvmContextTest {
         if (!"True".equals(System.getenv().get("DBND__ENABLE__SPARK_CONTEXT_ENV"))) {
             return;
         }
-
+        String jobName = "test_set_jvm_context";
         ProcessBuilder pb = new ProcessBuilder()
             .command("spark-submit",
                 "--conf", "spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener",
                 "--conf", "spark.driver.extraJavaOptions=-javaagent:" + agentJar,
                 "--conf", "spark.sql.shuffle.partitions=1",
-                pyscriptPath, dataPath
+                pyscriptPath, dataPath, jobName
             );
 
         System.out.println("Spark CMD: " + String.join(" ", pb.command()));
@@ -76,7 +76,7 @@ public class SetJvmContextTest {
         int returnCode = exec.waitFor();
         MatcherAssert.assertThat("Spark process should complete properly", returnCode, Matchers.equalTo(0));
 
-        Job job = pipelinesVerify.verifyJob("context_set_test.py");
+        Job job = pipelinesVerify.verifyJob(jobName);
 
         // ops are reporting to the corresponding tasks
         assertDatasetOps(job, "parent_task", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
@@ -95,13 +95,13 @@ public class SetJvmContextTest {
         if (!"True".equals(System.getenv().get("DBND__ENABLE__SPARK_CONTEXT_ENV"))) {
             return;
         }
-
+        String jobName = "test_slow_listener";
         ProcessBuilder pb = new ProcessBuilder()
             .command("spark-submit",
                 "--conf", "spark.sql.queryExecutionListeners=ai.databand.examples.SlowDbndSparkQueryExecutionListener",
                 "--jars", agentJar + "," + examplesJar,
                 "--conf", "spark.sql.shuffle.partitions=1",
-                pyscriptPath, dataPath
+                pyscriptPath, dataPath, jobName
             );
 
         System.out.println("Spark CMD: " + String.join(" ", pb.command()));
@@ -114,10 +114,10 @@ public class SetJvmContextTest {
 
         MatcherAssert.assertThat("Spark process should complete properly", returnCode, Matchers.equalTo(0));
 
-        Job job = pipelinesVerify.verifyJob("context_set_test.py");
+        Job job = pipelinesVerify.verifyJob(jobName);
 
         // since context is returned to the very parent task, op will be reported to this task and will be merged with second op
-        assertDatasetOps(job, "context_set_test.py", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
+        assertDatasetOps(job, jobName, dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
     }
 
     protected void assertDatasetOps(Job job,
