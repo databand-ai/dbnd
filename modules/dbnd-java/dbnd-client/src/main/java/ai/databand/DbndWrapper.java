@@ -53,6 +53,7 @@ public class DbndWrapper {
     private DbndRun run;
     private boolean pipelineInitialized;
     private final Deque<String> stack;
+    private boolean externalContextSet = false;
 
     /**
      * Indicates that Spark has started shutdown sequence.
@@ -449,6 +450,12 @@ public class DbndWrapper {
      * @param taskName
      */
     public void setExternalTaskContext(String runUid, String taskRunUid, String taskRunAttemptUid, String taskName) {
+        if (externalContextSet) {
+            // external context was already set
+            // listener will report all dataset ops to the root task
+            // no need to set context again
+            return;
+        }
         if (!config.isTrackingEnabled()) {
             run = new NoopDbndRun();
             LOG.info("Attempt to set external task context failed: tracking is not enabled");
@@ -472,6 +479,7 @@ public class DbndWrapper {
         task.setTaskRunAttemptUid(taskRunAttemptUid);
         task.setName(taskName);
         run.setDriverTask(task);
+        externalContextSet = true;
         LOG.info("External task context was set. run_uid: {}, task_run_uid: {}, task_run_attempt_uid: {}, task_name: {}", runUid, taskRunUid, taskRunAttemptUid, taskName);
     }
 }

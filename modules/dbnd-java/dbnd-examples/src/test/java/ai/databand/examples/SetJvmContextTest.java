@@ -80,8 +80,9 @@ public class SetJvmContextTest {
         Job job = pipelinesVerify.verifyJob(jobName);
 
         // ops are reporting to the corresponding tasks
-        assertDatasetOps(job, "parent_task", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
-        assertDatasetOps(job, "child_task", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
+        // only one operation will be reported because they will be merged
+        assertDatasetOps(job, jobName, dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
+//        assertDatasetOps(job, "child_task", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
     }
 
     /**
