@@ -181,7 +181,8 @@ public class PipelinesVerify {
     }
 
     protected Job verifyJob(String jobName) throws IOException {
-        Response<PaginatedData<Job>> jobsRes = api.jobs().execute();
+        // jobs has to be sorted by the latest run_start_time, because otherwise it will give us outdated jobs
+        Response<PaginatedData<Job>> jobsRes = api.jobs("-latest_run_start_time").execute();
 
         PaginatedData<Job> body = jobsRes.body();
 

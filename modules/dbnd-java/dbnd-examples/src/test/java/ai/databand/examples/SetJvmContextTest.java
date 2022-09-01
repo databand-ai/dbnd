@@ -10,7 +10,6 @@ import ai.databand.schema.Job;
 import ai.databand.schema.LogDataset;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -21,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * This test verifies that jvm context manager in python dbnd library properly sets context on task enter and exit.
@@ -154,6 +155,6 @@ public class SetJvmContextTest {
 
             return;
         }
-        Assertions.fail("Dataset ops was empty even after 15 seconds of timeout. Existing datasets: " + ops);
+        fail(String.format("Dataset operation of type [%s] with path [%s] for task [%s] not found. Existing operations: %s", type.toString(), dataPath, taskName, ops));
     }
 }

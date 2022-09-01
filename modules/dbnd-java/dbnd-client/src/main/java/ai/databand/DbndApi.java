@@ -84,7 +84,7 @@ public interface DbndApi {
     Call<TasksMetricsResponse> tasksMetrics(@Body TasksMetricsRequest data);
 
     @GET("/api/v1/jobs")
-    Call<PaginatedData<Job>> jobs();
+    Call<PaginatedData<Job>> jobs(@Query("sort") String filter);
 
     @POST("/api/v1/task/tasks")
     Call<Tasks> tasks(@Body GetTasksReq taskUids);
