@@ -26,3 +26,4 @@ def child_task(df):
 if __name__ == "__main__":
     with dbnd_tracking(sys.argv[2]):
         parent_task(sys.argv[1])
+    print("\n\nScript finished\n\n")
