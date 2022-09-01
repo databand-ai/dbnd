@@ -140,3 +140,33 @@ It is important to note that not all parameters are supported for every type of 
   "body": "Please be aware that the `with_stats` and `with_histograms` parameters will add additional overhead to the performance time of your pipeline since every value in every column must be profiled. These parameters should be tested in a development environment first against datasets that are representative of the size of datasets in your production environment to ensure that the performance tradeoff is acceptable."
 }
 [/block]
+
+The `LogDataRequest` - can be use for more flexible options, such as calculating only boolean columns. The `LogDataRequest` has the following attributes:
+
+* include_columns - list of column names to include
+* exclude_columns - list of column names to exclude
+* include_all_boolean, include_all_numeric, include_all_string - select all boolean, numeric, and/or string columns respectively. 
+
+The `LogDataRequest` is a valid parameter for the `with_stats` and `with_histogram` options.
+
+Here is an example of using the `LogDataRequest`, for the `with_histograms` option:
+
+<!-- noqa -->
+```python
+from dbnd import log_dataset_op, LogDataRequest
+
+log_dataset_op("customers_data",
+               data,
+               with_histograms=LogDataRequest(
+                   include_all_numeric=True,
+                   exclude_columns=["name", "phone"])
+               )
+```
+
+Alternatively, you can use the following helper methods:
+
+`LogDataRequest.ALL()`
+`LogDataRequest.ALL_STRING()`
+`LogDataRequest.ALL_NUMERIC()`
+`LogDataRequest.ALL_BOOLEAN()`
+`LogDataRequest.NONE()`

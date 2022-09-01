@@ -5,18 +5,18 @@
 
 Histograms that include data profiling information can be automatically fetched from Pandas DataFrames, Spark DataFrames and from warehouses like Amazon Redshift and PostgreSQL. See more information at [Histograms](doc:histograms)
 
-By using the `log_dataframe` function, you can enable its advanced logging options: statistics and histograms.
+By using the `log_dataset_op` function, you can enable its advanced logging options: statistics and histograms.
 To enable these options, set  the `with_histogram` and `with_stats` parameters to `True`:
 
 
 <!-- noqa -->
 ```python
-from dbnd import log_dataframe
+from dbnd import log_dataset_op
 
-log_dataframe("key",
-              data=pandas_df,
-              with_stats=True,
-              with_histograms=True)
+log_dataset_op("key",
+               data=pandas_df,
+               with_stats=True,
+               with_histograms=True)
 ```
 
 Calculating statistics and histograms can take a long time on large data chunks, as it requires analyzing the data. DBND provides a way of specifying which columns you want to analyze.
@@ -28,30 +28,6 @@ The following options are available for both `with_histogram` and `with_stats` p
 * True - calculate for all columns within a data frame
 * False - do not calculate; this behavior is the default
 
-The `LogDataRequest` - can be use for more flexible options, such as calculating only boolean columns. The `LogDataRequest` has the following attributes:
-
-* include_columns - list of column names to include
-* exclude_columns - list of column names to exclude
-* include_all_boolean, include_all_numeric, include_all_string - select all boolean, numeric, and/or string columns respectively. 
-
-Here is an example of using the `LogDataRequest`:
-
-<!-- noqa -->
-```python
-from dbnd import log_dataframe, LogDataRequest
-
-log_dataframe("customers_data", data,
-                  with_histograms=LogDataRequest(include_all_numeric=True,
-                                                   exclude_columns=["name", "phone"]))
-```
-
-Alternatively, you can use the following helper methods:
-
-`LogDataRequest.ALL()`
-`LogDataRequest.ALL_STRING()`
-`LogDataRequest.ALL_NUMERIC()`
-`LogDataRequest.ALL_BOOLEAN()`
-`LogDataRequest.NONE()`
 
 ## Enabling Histograms for Python Functions Tracking
 
