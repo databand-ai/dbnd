@@ -56,6 +56,7 @@ class ApiClient(object):
             float, Tuple[float, float]
         ] = DEFAULT_REQUEST_TIMEOUT,
         extra_default_headers: Optional[Dict[str, str]] = None,
+        ignore_ssl_errors: bool = False,
     ):
         """
         @param api_base_url: databand webserver url to build the request with
@@ -87,6 +88,8 @@ class ApiClient(object):
         self.default_max_retry = default_max_retry
         self.default_retry_sleep = default_retry_sleep
         self.default_request_timeout = default_request_timeout
+
+        self.ignore_ssl_errors = ignore_ssl_errors
 
         self.debug_mode = debug_server
         if debug_server:
@@ -124,6 +127,7 @@ class ApiClient(object):
             headers=headers,
             params=query,
             timeout=request_timeout or self.default_request_timeout,
+            verify=not self.ignore_ssl_errors,
         )
         logger.debug("Sending the following request: %s", request_params)
         resp = self._send_request(session, **request_params)

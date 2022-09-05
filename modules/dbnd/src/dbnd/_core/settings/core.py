@@ -59,6 +59,9 @@ class CoreConfig(Config):
         default=None,
         hidden=True,
     )[str]
+
+    ignore_ssl_errors = parameter(description="ignore ssl error", default=False)[bool]
+
     extra_default_headers = parameter(
         description="Specify extra headers to be used as defaults for databand_api_client.",
         default=None,
@@ -218,4 +221,5 @@ class CoreConfig(Config):
             default_max_retry=self.client_max_retry,
             default_retry_sleep=self.client_retry_sleep,
             extra_default_headers=self.extra_default_headers,
+            ignore_ssl_errors=self.ignore_ssl_errors,
         )
