@@ -70,7 +70,7 @@ def build_schema_from_dataframe(dataframe):
 def copy_to_temp_table(redshift_connection, schema_name, table_name, query):
     full_table_name = (
         f"{schema_name}.{table_name}"
-        if schema_name is not None or schema_name != "public"
+        if schema_name is not None and schema_name != "public"
         else table_name
     )
     if table_name is not None:
