@@ -1,6 +1,6 @@
 plugins {
     id "com.github.johnrengelman.shadow" version "7.1.2"
-    id "com.vanniktech.maven.publish" version "0.18.0" apply false
+    id "com.vanniktech.maven.publish" version "0.21.0" apply false
 }
 
 /**
@@ -40,12 +40,6 @@ def projectsToPublish = ["dbnd-api", "dbnd-api-deequ", "dbnd-client", "dbnd-mlfl
 
 configure(subprojects.findAll { projectsToPublish.contains(it.name) }) {
     apply plugin: "com.vanniktech.maven.publish"
-
-    plugins.withId("com.vanniktech.maven.publish") {
-        mavenPublish {
-            sonatypeHost = "S01"
-        }
-    }
 
     publishing {
         repositories {
