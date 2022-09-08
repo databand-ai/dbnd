@@ -394,7 +394,6 @@ def cmd_create_alert(
             operator=operator,
             value=value,
             user_metric=user_metric,
-            alert_on_historical_runs=False,
             is_str_value=str_value,
             **more_options,
         )
