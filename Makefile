@@ -14,7 +14,7 @@ AIRFLOW_VERSION ?= 1.10.12
 help:  ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z].[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-prj_modules = modules/dbnd modules/dbnd-airflow modules/dbnd-airflow-monitor modules/dbnd-dbt-monitor
+prj_modules = modules/dbnd modules/dbnd-airflow modules/dbnd-airflow-monitor modules/dbnd-dbt-monitor modules/dbnd-datastage-monitor
 
 prj_plugins = plugins/dbnd-aws  \
 			plugins/dbnd-azure \
@@ -47,6 +47,7 @@ prj_dbnd_tracking_slim = modules/dbnd modules/dbnd-airflow \
 prj_dbnd_run = modules/dbnd modules/dbnd-airflow \
             modules/dbnd-airflow-monitor  \
             modules/dbnd-dbt-monitor  \
+            modules/dbnd-datastage-monitor  \
             plugins/dbnd-redshift  \
             plugins/dbnd-aws  \
             plugins/dbnd-airflow-auto-tracking  \
