@@ -60,7 +60,10 @@ class CoreConfig(Config):
         hidden=True,
     )[str]
 
-    ignore_ssl_errors = parameter(description="ignore ssl error", default=False)[bool]
+    ignore_ssl_errors = parameter(
+        description="Ignore SSL errors to allow usage of the self-signed certificate on dbnd web server",
+        default=False,
+    )[bool]
 
     extra_default_headers = parameter(
         description="Specify extra headers to be used as defaults for databand_api_client.",
