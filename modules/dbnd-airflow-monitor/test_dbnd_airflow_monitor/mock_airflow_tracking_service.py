@@ -6,11 +6,11 @@ from typing import List
 
 import attr
 
-from airflow_monitor.common import MonitorState
 from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
+    MonitorState,
     PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig

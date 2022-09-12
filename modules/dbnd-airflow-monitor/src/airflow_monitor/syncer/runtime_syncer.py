@@ -4,7 +4,6 @@ import logging
 
 from typing import List
 
-from airflow_monitor.common import capture_monitor_exception
 from airflow_monitor.common.airflow_data import (
     AirflowDagRun,
     AirflowDagRunsResponse,
@@ -12,8 +11,11 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.base_component import BaseMonitorSyncer, start_syncer
 from airflow_monitor.common.config_data import AirflowServerConfig
-from airflow_monitor.data_fetcher import AirflowDataFetcher
-from airflow_monitor.tracking_service import AirflowDbndTrackingService
+from airflow_monitor.common.errors import capture_monitor_exception
+from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
+from airflow_monitor.tracking_service.web_tracking_service import (
+    AirflowDbndTrackingService,
+)
 
 
 logger = logging.getLogger(__name__)

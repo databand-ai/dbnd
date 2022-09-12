@@ -1,73 +1,47 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-import logging
-
-from typing import Type
-from uuid import UUID
-
 from dbnd_dbt_monitor.data.dbt_config_data import DbtMonitorConfig
-from dbnd_dbt_monitor.multiserver.dbt_component_manager import (
-    DbtMonitorComponentManager,
-)
-from dbnd_dbt_monitor.tracking_service.dbnd_dbt_tracking_service import (
-    DbndDbtTrackingService,
-)
-from dbnd_dbt_monitor.tracking_service.tracking_service_decorators import (
-    get_servers_configuration_service,
-    get_tracking_service,
-)
+from dbnd_dbt_monitor.multiserver.dbt_services_factory import get_dbt_services_factory
+from dbnd_dbt_monitor.syncer.dbt_runs_syncer import DbtRunsSyncer
 
-from airflow_monitor.common import capture_monitor_exception
+from airflow_monitor.shared.base_monitor_component_manager import (
+    BaseMonitorComponentManager,
+)
 from airflow_monitor.shared.base_multiserver import BaseMultiServerMonitor
-from airflow_monitor.shared.base_tracking_service import WebServersConfigurationService
-from airflow_monitor.shared.runners import RUNNER_FACTORY, BaseRunner
-
-
-logger = logging.getLogger(__name__)
-
-
-class DbtMultiServerMonitor(BaseMultiServerMonitor):
-    runner: Type[BaseRunner]
-    monitor_component_manager: Type[DbtMonitorComponentManager]
-    servers_configuration_service: WebServersConfigurationService
-    monitor_config: DbtMonitorConfig
-
-    def __init__(
-        self,
-        runner: Type[BaseRunner],
-        monitor_component_manager: Type[DbtMonitorComponentManager],
-        servers_configuration_service: WebServersConfigurationService,
-        monitor_config: DbtMonitorConfig,
-    ):
-        super(DbtMultiServerMonitor, self).__init__(
-            runner,
-            monitor_component_manager,
-            servers_configuration_service,
-            monitor_config,
-        )
-
-    @capture_monitor_exception
-    def _send_metrics(self):
-        pass
-
-    def _assert_valid_config(self):
-        pass
-
-    def _get_tracking_service(
-        self, tracking_source_uid: UUID
-    ) -> DbndDbtTrackingService:
-        return get_tracking_service(tracking_source_uid)
-
-    def _filter_servers(self, servers):
-        filtered_servers = [s for s in servers if s.is_sync_enabled]
-        return filtered_servers
+from dbnd._vendor import click
 
 
 def start_dbt_multi_server_monitor(monitor_config: DbtMonitorConfig):
-    runner = RUNNER_FACTORY[monitor_config.runner_type]
-    DbtMultiServerMonitor(
-        runner=runner,
-        monitor_component_manager=DbtMonitorComponentManager,
-        servers_configuration_service=get_servers_configuration_service(),
+    components_dict = {"dbt_runs_syncer": DbtRunsSyncer}
+
+    BaseMultiServerMonitor(
+        monitor_component_manager=BaseMonitorComponentManager,
         monitor_config=monitor_config,
+        components_dict=components_dict,
+        monitor_services_factory=get_dbt_services_factory(),
     ).run()
+
+
+@click.command()
+@click.option("--interval", type=click.INT, help="Interval between iterations")
+@click.option(
+    "--number-of-iterations",
+    type=click.INT,
+    help="Limit the number of periodic monitor runs",
+)
+@click.option(
+    "--stop-after", type=click.INT, help="Limit time for monitor to run, in seconds"
+)
+@click.option(
+    "--runner-type",
+    type=click.Choice(["seq", "mp"]),
+    help="Runner type. Options: seq for sequential, mp for multi-process",
+)
+def dbt_monitor(**kwargs):
+    monitor_config_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+    monitor_config = DbtMonitorConfig(**monitor_config_kwargs)
+    start_dbt_multi_server_monitor(monitor_config)
+
+
+if __name__ == "__main__":
+    dbt_monitor()

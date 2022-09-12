@@ -2,9 +2,6 @@
 
 import logging
 
-from typing import Optional
-
-from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
 from airflow_monitor.shared.error_handler import capture_monitor_exception
 from airflow_monitor.shared.runners.base_runner import BaseRunner
 from dbnd._core.utils.timezone import utcnow
@@ -18,32 +15,32 @@ class SequentialRunner(BaseRunner):
         super(SequentialRunner, self).__init__(target, **kwargs)
 
         self._iteration = -1
-        self._running = None  # type: Optional[BaseMonitorSyncer]
+        self._is_running = False
 
     @capture_monitor_exception
     def start(self):
-        if self._running:
+        if self._is_running:
             logger.warning("Already running")
             return
 
         self._iteration = -1
-        self._running = self.target(**self.kwargs, run=False)
+        self._is_running = True
 
     @capture_monitor_exception
     def stop(self):
-        self._running = None
+        self._is_running = False
 
     @capture_monitor_exception
     def heartbeat(self, is_last=False):
-        if self._running:
+        if self._is_running:
             # Refresh _running config incaese sleep_interval changed
-            self._running.refresh_config()
+            self.target.refresh_config()
             if self._should_sync(is_last):
                 try:
                     self._iteration += 1
-                    self._running.sync_once()
+                    self.target.sync_once()
                 except Exception:
-                    self._running = None
+                    self._is_running = False
                     raise
                 finally:
                     self.last_heartbeat = utcnow()
@@ -52,22 +49,22 @@ class SequentialRunner(BaseRunner):
         return (
             self.last_heartbeat
             and (utcnow() - self.last_heartbeat).total_seconds()
-            < self._running.sleep_interval - 1
+            < self.target.sleep_interval - 1
         )
 
     @capture_monitor_exception
     def is_alive(self):
-        return bool(self._running)
+        return self._is_running
 
     def __str__(self):
         s = super(SequentialRunner, self).__str__()
-        return f"{s}({self._running}, iter={self._iteration})"
+        return f"{s}({self.target}, iter={self._iteration})"
 
     def _should_sync(self, is_last):
-        if is_last and self._running.sync_last_heartbeat:
+        if is_last and self.target.sync_last_heartbeat:
             logger.info("Syncing last heartbeat for %s", self)
             return True
-        elif is_last and not self._running.sync_last_heartbeat:
+        elif is_last and not self.target.sync_last_heartbeat:
             logger.info("Shutting down %s", self)
             return False
         elif self._sleep_interval_not_met():

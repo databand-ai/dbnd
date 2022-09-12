@@ -6,13 +6,9 @@ import os
 
 import pytest
 
+from mock import MagicMock
 from pytest import fixture
 
-from airflow_monitor.data_fetcher import decorate_fetcher
-from airflow_monitor.tracking_service import (
-    decorate_configuration_service,
-    decorate_tracking_service,
-)
 from dbnd._core.configuration.environ_config import (
     ENV_DBND__NO_PLUGINS,
     reset_dbnd_project_config,
@@ -22,6 +18,7 @@ from dbnd.testing.test_config_setter import add_test_configuration
 
 from .mock_airflow_data_fetcher import MockDataFetcher
 from .mock_airflow_tracking_service import MockServersConfigService, MockTrackingService
+from .mock_service_factory import MockAirflowServicesFactory
 
 
 home = os.path.abspath(
@@ -55,16 +52,23 @@ def incomplete_data_db():
     return "incomplete-unittests.db"
 
 
-@pytest.fixture
-def mock_server_config_service() -> MockServersConfigService:
-    yield decorate_configuration_service(MockServersConfigService())
+@pytest.fixture()
+def mock_airflow_services_factory() -> MockAirflowServicesFactory:
+    yield MockAirflowServicesFactory()
 
 
 @pytest.fixture
-def mock_tracking_service() -> MockTrackingService:
-    yield decorate_tracking_service(MockTrackingService(), "mock_ts")
+def mock_server_config_service(
+    mock_airflow_services_factory,
+) -> MockServersConfigService:
+    yield mock_airflow_services_factory.get_servers_configuration_service()
 
 
 @pytest.fixture
-def mock_data_fetcher() -> MockDataFetcher:
-    yield decorate_fetcher(MockDataFetcher(), "mock_fetcher")
+def mock_tracking_service(mock_airflow_services_factory) -> MockTrackingService:
+    yield mock_airflow_services_factory.get_tracking_service(MagicMock())
+
+
+@pytest.fixture
+def mock_data_fetcher(mock_airflow_services_factory) -> MockDataFetcher:
+    yield mock_airflow_services_factory.get_data_fetcher(MagicMock())

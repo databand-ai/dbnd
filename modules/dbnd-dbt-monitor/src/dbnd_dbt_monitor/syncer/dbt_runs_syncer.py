@@ -6,16 +6,21 @@ import more_itertools
 
 from dbnd_dbt_monitor.data.dbt_config_data import DbtServerConfig
 from dbnd_dbt_monitor.fetcher.dbt_cloud_data_fetcher import DbtCloudDataFetcher
-from dbnd_dbt_monitor.syncer.base_syncer import start_syncer
+from dbnd_dbt_monitor.multiserver.dbt_services_factory import get_dbt_services_factory
 from dbnd_dbt_monitor.tracking_service.dbnd_dbt_tracking_service import (
     DbndDbtTrackingService,
 )
 
-from airflow_monitor.common import capture_monitor_exception
 from airflow_monitor.common.base_component import BaseMonitorSyncer
+from airflow_monitor.shared.error_handler import CaptureMonitorExceptionDecorator
 
 
 logger = logging.getLogger(__name__)
+
+
+capture_monitor_exception = CaptureMonitorExceptionDecorator(
+    configuration_service_provider=get_dbt_services_factory().get_servers_configuration_service
+)
 
 
 class DbtRunsSyncer(BaseMonitorSyncer):
@@ -51,6 +56,8 @@ class DbtRunsSyncer(BaseMonitorSyncer):
         if not dbt_run_ids:
             return
 
+        logger.info("Syncing new %d runs", len(dbt_run_ids))
+
         bulk_size = self.config.runs_bulk_size or len(dbt_run_ids)
         chunks = more_itertools.sliced(dbt_run_ids, bulk_size)
         for runs_chunk in chunks:
@@ -61,6 +68,8 @@ class DbtRunsSyncer(BaseMonitorSyncer):
     def _update_runs(self, dbt_run_ids):
         if not dbt_run_ids:
             return
+
+        logger.info("Updating %d runs", len(dbt_run_ids))
 
         bulk_size = self.config.runs_bulk_size or len(dbt_run_ids)
         chunks = more_itertools.sliced(dbt_run_ids, bulk_size)
@@ -74,7 +83,3 @@ class DbtRunsSyncer(BaseMonitorSyncer):
 
         new_last_sees_run_id = max(dbt_run_ids)
         self.tracking_service.update_last_seen_values(new_last_sees_run_id)
-
-
-def start_dbt_runs_syncer(tracking_source_uid, run=True):
-    return start_syncer(DbtRunsSyncer, tracking_source_uid=tracking_source_uid, run=run)

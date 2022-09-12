@@ -2,25 +2,27 @@
 
 import logging
 
-from typing import Type
-from uuid import UUID
+from typing import Dict, Type
 
-from airflow_monitor.common import capture_monitor_exception
+from airflow_monitor.common.errors import capture_monitor_exception
 from airflow_monitor.common.metric_reporter import generate_latest_metrics
 from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.config_updater.runtime_config_updater import (
+    AirflowRuntimeConfigUpdater,
+)
+from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
+from airflow_monitor.multiserver.airflow_services_factory import (
+    get_airflow_monitor_services_factory,
+)
 from airflow_monitor.multiserver.monitor_component_manager import (
     AirflowMonitorComponentManager,
 )
 from airflow_monitor.shared.base_multiserver import BaseMultiServerMonitor
+from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
 from airflow_monitor.shared.base_tracking_service import WebServersConfigurationService
-from airflow_monitor.shared.runners import RUNNER_FACTORY, BaseRunner
-from airflow_monitor.tracking_service import (
-    get_servers_configuration_service,
-    get_tracking_service,
-)
-from airflow_monitor.tracking_service.web_tracking_service import (
-    AirflowDbndTrackingService,
-)
+from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
+from airflow_monitor.shared.runners import BaseRunner
+from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from dbnd._core.errors.base import DatabandConfigError
 
 
@@ -32,19 +34,21 @@ class AirflowMultiServerMonitor(BaseMultiServerMonitor):
     monitor_component_manager: Type[AirflowMonitorComponentManager]
     servers_configuration_service: WebServersConfigurationService
     monitor_config: AirflowMonitorConfig
+    components_dict: Dict[str, Type[BaseMonitorSyncer]]
+    monitor_services_factory: MonitorServicesFactory
 
     def __init__(
         self,
-        runner: Type[BaseRunner],
         monitor_component_manager: Type[AirflowMonitorComponentManager],
-        servers_configuration_service: WebServersConfigurationService,
         monitor_config: AirflowMonitorConfig,
+        components_dict: Dict[str, Type[BaseMonitorSyncer]],
+        monitor_services_factory: MonitorServicesFactory,
     ):
         super(AirflowMultiServerMonitor, self).__init__(
-            runner,
             monitor_component_manager,
-            servers_configuration_service,
             monitor_config,
+            components_dict,
+            monitor_services_factory,
         )
 
     @capture_monitor_exception
@@ -61,11 +65,6 @@ class AirflowMultiServerMonitor(BaseMultiServerMonitor):
                 help_msg="Please provide correct syncer name (using --syncer-name parameter,"
                 " env variable DBND__AIRFLOW_MONITOR__SYNCER_NAME, or any other suitable way)",
             )
-
-    def _get_tracking_service(
-        self, tracking_source_uid: UUID
-    ) -> AirflowDbndTrackingService:
-        return get_tracking_service(tracking_source_uid)
 
     def _filter_servers(self, servers):
         if not self.monitor_config.syncer_name:
@@ -88,10 +87,15 @@ class AirflowMultiServerMonitor(BaseMultiServerMonitor):
 
 
 def start_multi_server_monitor(monitor_config: AirflowMonitorConfig):
-    runner = RUNNER_FACTORY[monitor_config.runner_type]
+    services_components = {
+        "state_sync": AirflowRuntimeSyncer,
+        "fixer": AirflowRuntimeFixer,
+        "config_updater": AirflowRuntimeConfigUpdater,
+    }
+
     AirflowMultiServerMonitor(
-        runner=runner,
         monitor_component_manager=AirflowMonitorComponentManager,
-        servers_configuration_service=get_servers_configuration_service(),
         monitor_config=monitor_config,
+        components_dict=services_components,
+        monitor_services_factory=get_airflow_monitor_services_factory(),
     ).run()

@@ -5,6 +5,7 @@ import logging
 from typing import List, Type
 
 from dbnd_dbt_monitor.data.dbt_config_data import (
+    DbtMonitorState,
     DbtServerConfig,
     DbtUpdateMonitorStateRequestSchema,
 )
@@ -57,6 +58,19 @@ class DbndDbtTrackingService(BaseDbndTrackingService):
             endpoint=f"dbt_syncers/{self.tracking_source_uid}/state",
             method="PATCH",
             data=data,
+        )
+
+    def set_running_monitor_state(self, is_monitored_server_alive: bool):
+        if not is_monitored_server_alive:
+            return
+
+        self.update_monitor_state(
+            DbtMonitorState(monitor_status="Running", monitor_error_message=None)
+        )
+
+    def set_starting_monitor_state(self):
+        self.update_monitor_state(
+            DbtMonitorState(monitor_status="Scheduled", monitor_error_message=None)
         )
 
     def get_last_seen_run_id(self):

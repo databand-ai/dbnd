@@ -14,12 +14,11 @@ from airflow_monitor.shared.base_monitor_component_manager import (
 )
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
-from airflow_monitor.shared.base_tracking_service import (
-    BaseDbndTrackingService,
-    WebServersConfigurationService,
-)
+from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
+from airflow_monitor.shared.base_tracking_service import WebServersConfigurationService
 from airflow_monitor.shared.liveness_probe import create_liveness_file
-from airflow_monitor.shared.runners import BaseRunner
+from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
+from airflow_monitor.shared.runners import RUNNER_FACTORY, BaseRunner
 from dbnd._core.errors.base import DatabandConnectionException
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.tenacity import (
@@ -39,18 +38,21 @@ class BaseMultiServerMonitor(object):
     monitor_component_manager: Type[BaseMonitorComponentManager]
     servers_configuration_service: WebServersConfigurationService
     monitor_config: BaseMonitorConfig
+    components_dict: Dict[str, Type[BaseMonitorSyncer]]
+    monitor_services_factory: MonitorServicesFactory
 
     def __init__(
         self,
-        runner: Type[BaseRunner],
         monitor_component_manager: Type[BaseMonitorComponentManager],
-        servers_configuration_service: WebServersConfigurationService,
         monitor_config: BaseMonitorConfig,
+        components_dict: Dict[str, Type[BaseMonitorSyncer]],
+        monitor_services_factory: MonitorServicesFactory,
     ):
-        self.runner = runner
+        self.runner = RUNNER_FACTORY[monitor_config.runner_type]
         self.monitor_component_manager = monitor_component_manager
-        self.servers_configuration_service = servers_configuration_service
         self.monitor_config = monitor_config
+        self.components_dict = components_dict
+        self.monitor_services_factory = monitor_services_factory
         self.active_monitors: Dict[UUID, BaseMonitorComponentManager] = {}
 
         self.iteration = 0
@@ -93,7 +95,7 @@ class BaseMultiServerMonitor(object):
         reraise=True,
     )
     def _get_servers_configs_safe(self):
-        return self.servers_configuration_service.get_all_servers_configuration(
+        return self.monitor_services_factory.get_servers_configuration_service().get_all_servers_configuration(
             self.monitor_config
         )
 
@@ -110,7 +112,8 @@ class BaseMultiServerMonitor(object):
                 monitor = self.monitor_component_manager(
                     self.runner,
                     server_config,
-                    tracking_service=self._get_tracking_service(server_id),
+                    monitor_services_factory=self.monitor_services_factory,
+                    services_components=self.components_dict,
                 )
                 monitor.start()
                 self.active_monitors[server_id] = monitor
@@ -156,18 +159,16 @@ class BaseMultiServerMonitor(object):
 
         self._ensure_monitored_servers(active_servers)
         self._heartbeat()
-        create_liveness_file(self.servers_configuration_service.monitor_type)
+        create_liveness_file(
+            self.monitor_services_factory.get_servers_configuration_service().monitor_type
+        )
 
     def _send_metrics(self):
-        raise NotImplementedError()
+        pass
 
     def _assert_valid_config(self):
-        raise NotImplementedError()
-
-    def _get_tracking_service(
-        self, tracking_source_uid: UUID
-    ) -> BaseDbndTrackingService:
-        raise NotImplementedError()
+        pass
 
     def _filter_servers(self, servers):
-        raise NotImplementedError()
+        filtered_servers = [s for s in servers if s.is_sync_enabled]
+        return filtered_servers

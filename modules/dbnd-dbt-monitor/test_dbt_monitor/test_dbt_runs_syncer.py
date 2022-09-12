@@ -10,11 +10,7 @@ from dbnd_dbt_monitor.data.dbt_config_data import (
     DbtUpdateMonitorStateRequestSchema,
 )
 from dbnd_dbt_monitor.fetcher.dbt_cloud_data_fetcher import DbtCloudDataFetcher
-from dbnd_dbt_monitor.fetcher.fetcher_decorators import decorate_fetcher
 from dbnd_dbt_monitor.syncer.dbt_runs_syncer import DbtRunsSyncer
-from dbnd_dbt_monitor.tracking_service.tracking_service_decorators import (
-    decorate_tracking_service,
-)
 from more_itertools import one
 
 from airflow_monitor.shared import get_tracking_service_config_from_dbnd
@@ -92,12 +88,12 @@ class MockDbtTrackingService(BaseDbndTrackingService):
 
 @pytest.fixture
 def mock_dbt_tracking_service() -> MockDbtTrackingService:
-    yield decorate_tracking_service(MockDbtTrackingService())
+    yield MockDbtTrackingService()
 
 
 @pytest.fixture
 def mock_dbt_fetcher() -> MockDbtFetcher:
-    yield decorate_fetcher(MockDbtFetcher(), "mock_fetcher")
+    yield MockDbtFetcher()
 
 
 @pytest.fixture

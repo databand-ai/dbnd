@@ -2,9 +2,11 @@
 
 import logging
 
-from airflow_monitor.common import capture_monitor_exception
 from airflow_monitor.common.base_component import BaseMonitorSyncer, start_syncer
-from airflow_monitor.tracking_service import AirflowDbndTrackingService
+from airflow_monitor.common.errors import capture_monitor_exception
+from airflow_monitor.tracking_service.web_tracking_service import (
+    AirflowDbndTrackingService,
+)
 
 
 logger = logging.getLogger(__name__)

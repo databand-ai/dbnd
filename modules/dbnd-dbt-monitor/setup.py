@@ -25,7 +25,7 @@ setuptools.setup(
     entry_points={
         "dbnd": ["dbt-monitor = dbnd_dbt_monitor._plugin"],
         "console_scripts": [
-            "dbnd-dbt-monitor = dbnd_dbt_monitor.multiserver.cmd_dbt_multiserver:dbt_monitor"
+            "dbnd-dbt-monitor = dbnd_dbt_monitor.multiserver.dbt_multiserver:dbt_monitor"
         ],
     },
 )

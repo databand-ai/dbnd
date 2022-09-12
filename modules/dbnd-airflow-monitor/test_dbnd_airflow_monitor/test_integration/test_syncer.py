@@ -13,13 +13,13 @@ from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.config_updater.runtime_config_updater import (
     AirflowRuntimeConfigUpdater,
 )
+from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
+from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
 from airflow_monitor.multiserver.monitor_component_manager import (
     AirflowMonitorComponentManager,
 )
 from airflow_monitor.multiserver.multiserver import AirflowMultiServerMonitor
-from airflow_monitor.shared.runners import RUNNER_FACTORY
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
-from airflow_monitor.tracking_service import get_servers_configuration_service
 from dbnd._core.errors import DatabandConfigError
 
 from .conftest import WebAppTest
@@ -106,19 +106,20 @@ class TestSyncerWorks(WebAppTest):
     @pytest.fixture
     def multi_server(self, mock_data_fetcher, syncer):
         with patch(
-            "airflow_monitor.multiserver.monitor_component_manager.get_data_fetcher",
-            return_value=mock_data_fetcher,
-        ), patch(
-            "airflow_monitor.common.base_component.get_data_fetcher",
+            "airflow_monitor.multiserver.airflow_services_factory.AirflowServicesFactory.get_data_fetcher",
             return_value=mock_data_fetcher,
         ), self.patch_api_client():
             syncer_name = syncer["name"]
             monitor_config = AirflowMonitorConfig(syncer_name=syncer_name)
             yield AirflowMultiServerMonitor(
-                runner=RUNNER_FACTORY[monitor_config.runner_type],
                 monitor_component_manager=AirflowMonitorComponentManager,
-                servers_configuration_service=get_servers_configuration_service(),
                 monitor_config=monitor_config,
+                components_dict={
+                    "state_sync": AirflowRuntimeSyncer,
+                    "fixer": AirflowRuntimeFixer,
+                    "config_updater": AirflowRuntimeConfigUpdater,
+                },
+                monitor_services_factory=AirflowServicesFactory(),
             )
 
     def test_01_server_sync_enable_disable(

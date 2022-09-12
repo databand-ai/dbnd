@@ -2,32 +2,22 @@
 
 import logging
 
-from typing import Type
+from typing import Dict, Type
 
 import airflow_monitor
 
-from airflow_monitor.common import MonitorState, capture_monitor_exception
+from airflow_monitor.common.airflow_data import MonitorState
 from airflow_monitor.common.config_data import AirflowServerConfig
-from airflow_monitor.config_updater.runtime_config_updater import (
-    start_runtime_config_updater,
-)
-from airflow_monitor.data_fetcher import get_data_fetcher
-from airflow_monitor.fixer.runtime_fixer import start_runtime_fixer
+from airflow_monitor.common.errors import capture_monitor_exception
+from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
 from airflow_monitor.shared.base_monitor_component_manager import (
     BaseMonitorComponentManager,
 )
+from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
 from airflow_monitor.shared.runners import BaseRunner
-from airflow_monitor.syncer.runtime_syncer import start_runtime_syncer
-from airflow_monitor.tracking_service import AirflowDbndTrackingService
 
 
 logger = logging.getLogger(__name__)
-
-SERVICES_COMPONENTS = {
-    "state_sync": start_runtime_syncer,
-    "fixer": start_runtime_fixer,
-    "config_updater": start_runtime_config_updater,
-}
 
 
 class AirflowMonitorComponentManager(BaseMonitorComponentManager):
@@ -35,11 +25,12 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
         self,
         runner: Type[BaseRunner],
         server_config: AirflowServerConfig,
-        tracking_service: AirflowDbndTrackingService,
+        services_components: Dict[str, Type[BaseMonitorSyncer]],
+        monitor_services_factory: AirflowServicesFactory,
     ):
         self._plugin_metadata = None
         super(AirflowMonitorComponentManager, self).__init__(
-            runner, server_config, tracking_service, SERVICES_COMPONENTS
+            runner, server_config, services_components, monitor_services_factory
         )
 
     def _get_tracking_errors(self):
@@ -66,7 +57,9 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
             else None
         )
 
-        plugin_metadata = get_data_fetcher(self.server_config).get_plugin_metadata()
+        plugin_metadata = self.monitor_services_factory.get_data_fetcher(
+            self.server_config
+        ).get_plugin_metadata()
         self.tracking_service.update_monitor_state(
             MonitorState(
                 monitor_status="Running",
@@ -92,4 +85,6 @@ class AirflowMonitorComponentManager(BaseMonitorComponentManager):
 
     @capture_monitor_exception("checking monitor alive")
     def is_monitored_server_alive(self):
-        return get_data_fetcher(self.server_config).is_alive()
+        return self.monitor_services_factory.get_data_fetcher(
+            self.server_config
+        ).is_alive()

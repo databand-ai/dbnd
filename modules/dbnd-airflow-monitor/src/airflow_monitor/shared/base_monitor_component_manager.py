@@ -2,11 +2,12 @@
 
 import logging
 
-from typing import Callable, Dict, Type
+from typing import Dict, Type
 
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
-from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
+from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
 from airflow_monitor.shared.error_handler import capture_monitor_exception
+from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
 from airflow_monitor.shared.runners import BaseRunner
 
 
@@ -18,12 +19,15 @@ class BaseMonitorComponentManager(object):
         self,
         runner: Type[BaseRunner],
         server_config: BaseServerConfig,
-        tracking_service: BaseDbndTrackingService,
-        services_components: Dict[str, Callable] = {},
+        services_components: Dict[str, Type[BaseMonitorSyncer]],
+        monitor_services_factory: MonitorServicesFactory,
     ):
         self.runner = runner
         self.server_config = server_config
-        self.tracking_service = tracking_service
+        self.monitor_services_factory = monitor_services_factory
+        self.tracking_service = monitor_services_factory.get_tracking_service(
+            server_config.tracking_source_uid
+        )
 
         # Services to run
         self.services_components = services_components
@@ -61,7 +65,7 @@ class BaseMonitorComponentManager(object):
         self._clean_dead_components()
 
         is_monitored_server_alive = None
-        for component_name, runnable in self.services_components.items():
+        for component_name, syncer_class in self.services_components.items():
             if self._should_start_component(component_name):
                 if is_monitored_server_alive is None:
                     # check it only once per iteration and only if need to start anything
@@ -71,8 +75,17 @@ class BaseMonitorComponentManager(object):
                             "Monitored Server is not responsive, will skip starting new syncers"
                         )
                 if is_monitored_server_alive:
+                    monitor_config = self.tracking_service.get_monitor_configuration()
+                    data_fetcher = self.monitor_services_factory.get_data_fetcher(
+                        monitor_config
+                    )
+                    syncer_instance: BaseMonitorSyncer = syncer_class(
+                        config=monitor_config,
+                        tracking_service=self.tracking_service,
+                        data_fetcher=data_fetcher,
+                    )
                     self.active_components[component_name] = self.runner(
-                        target=runnable,
+                        target=syncer_instance,
                         tracking_service=self.tracking_service,
                         tracking_source_uid=self.server_config.tracking_source_uid,
                     )
@@ -97,6 +110,12 @@ class BaseMonitorComponentManager(object):
         self._set_starting_monitor_state()
         self._update_component_state()
 
+    def _set_running_monitor_state(self, is_monitored_server_alive: bool):
+        self.tracking_service.set_running_monitor_state(is_monitored_server_alive)
+
+    def _set_starting_monitor_state(self):
+        self.tracking_service.set_starting_monitor_state()
+
     @capture_monitor_exception("updating monitor config")
     def update_config(self, server_config: BaseServerConfig):
         self.server_config = server_config
@@ -111,13 +130,7 @@ class BaseMonitorComponentManager(object):
 
     @capture_monitor_exception("checking monitor alive")
     def is_monitored_server_alive(self):
-        raise NotImplementedError()
-
-    def _set_running_monitor_state(self, is_monitored_server_alive: bool):
-        raise NotImplementedError()
-
-    def _set_starting_monitor_state(self):
-        raise NotImplementedError()
+        return True
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.server_config.source_name}|{self.server_config.tracking_source_uid})"

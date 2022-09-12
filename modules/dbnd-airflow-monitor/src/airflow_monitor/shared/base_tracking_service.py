@@ -107,6 +107,12 @@ class BaseDbndTrackingService(object):
             data=data,
         )
 
+    def set_running_monitor_state(self, is_monitored_server_alive: bool):
+        pass
+
+    def set_starting_monitor_state(self):
+        pass
+
     def report_error(self, reporting_obj_ref, err_message):
         res = self._error_aggregator.report(reporting_obj_ref, err_message)
         if res.should_update:

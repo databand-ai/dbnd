@@ -15,7 +15,7 @@ from airflow_monitor.common.airflow_data import (
     PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
-from airflow_monitor.data_fetcher import AirflowDataFetcher
+from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 
 
