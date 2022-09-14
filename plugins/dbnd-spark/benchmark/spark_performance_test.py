@@ -64,10 +64,10 @@ def histogram_test(input_file, app_name, stats):
 )
 def main(input_file, name, stats):
     if not input_file:
-        # input_file = "s3://dbnd-dev-playground/data/booleans_100_million.csv"
-        # input_file = "s3://dbnd-dev-playground/data/booleans_plusplus_5_million.csv"
-        # input_file = "s3://dbnd-dev-playground/data/booleans_plusplus_10k.csv"
-        input_file = "s3://dbnd-dev-playground/data/basic_1_million.csv"
+        # input_file = "s3://dbnd-dev-cicd-build-artifacts/data/booleans_100_million.csv"
+        # input_file = "s3://dbnd-dev-cicd-build-artifacts/data/booleans_plusplus_5_million.csv"
+        # input_file = "s3://dbnd-dev-cicd-build-artifacts/data/booleans_plusplus_10k.csv"
+        input_file = "s3://dbnd-dev-cicd-build-artifacts/data/basic_1_million.csv"
     histogram_test(input_file, name, stats)
 
 

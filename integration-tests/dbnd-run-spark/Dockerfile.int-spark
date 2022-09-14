@@ -12,7 +12,7 @@ RUN apt-get update -y -qq && \
 
 # Maven install
 ENV MAVEN_VERSION=3.6.3
-RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/apache-maven-${MAVEN_VERSION}-bin.tar.gz
+RUN wget --no-verbose https://dbnd-3rd-party-mirror.s3.amazonaws.com/apache-maven-${MAVEN_VERSION}-bin.tar.gz
 RUN tar -zxf apache-maven-${MAVEN_VERSION}-bin.tar.gz -C /opt/ && rm -f apache-maven-${MAVEN_VERSION}-bin.tar.gz
 ENV M2_HOME=/opt/apache-maven-${MAVEN_VERSION}
 ENV M2=$M2_HOME/bin
@@ -32,7 +32,7 @@ RUN pip install -U pytest sh pyspark tox pip==21.3.1 'setuptools<58'
 ARG AIRFLOW_VERSION=1.10.10
 RUN SHORT_PYTHON_VERSION=$(echo ${PYTHON_VERSION} | cut -f1,2 -d'.') && \
     pip install apache-airflow[postgres,mysql]==$AIRFLOW_VERSION \
-        --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${SHORT_PYTHON_VERSION}.txt"
+    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${SHORT_PYTHON_VERSION}.txt"
 
 # install dbnd packages:
 COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
