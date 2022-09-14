@@ -7,7 +7,7 @@ def test_histograms_and_columns_variations():
     exp_name = "histograms_and_columns_variations"
     exp_params = {
         "input_file": [
-            "s3://dbnd-dev-playground/data/benchmark_10_columns_1M_rows.csv"
+            "s3://dbnd-dev-cicd-build-artifacts/data/benchmark_10_columns_1M_rows.csv"
         ],
         "output_file": ["out"],
         "to_pandas": [False],
@@ -24,8 +24,8 @@ def test_histograms_default():
     exp_name = "histograms_default"
     exp_params = {
         "input_file": [
-            "s3://dbnd-dev-playground/data/benchmark_10_columns_1M_rows.csv",
-            "s3://dbnd-dev-playground/data/benchmark_10_columns_10M_rows.csv",
+            "s3://dbnd-dev-cicd-build-artifacts/data/benchmark_10_columns_1M_rows.csv",
+            "s3://dbnd-dev-cicd-build-artifacts/data/benchmark_10_columns_10M_rows.csv",
         ],
         "output_file": ["out"],
         "to_pandas": [False],
@@ -42,8 +42,8 @@ def test_histograms_and_sampling_variations():
     exp_name = "histograms_and_sampling_variations"
     exp_params = {
         "input_file": [
-            "s3://dbnd-dev-playground/data/benchmark_10_columns_1M_rows.csv",
-            "s3://dbnd-dev-playground/data/benchmark_10_columns_10M_rows.csv",
+            "s3://dbnd-dev-cicd-build-artifacts/data/benchmark_10_columns_1M_rows.csv",
+            "s3://dbnd-dev-cicd-build-artifacts/data/benchmark_10_columns_10M_rows.csv",
         ],
         "output_file": ["out"],
         "to_pandas": [False],
