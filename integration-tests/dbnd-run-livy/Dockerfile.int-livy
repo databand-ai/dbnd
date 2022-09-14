@@ -12,7 +12,7 @@ RUN apt-get update -y -qq && \
 # Spark installation:
 ENV SPARK_VERSION=2.4.5
 ENV HADOOP_VERSION=2.7
-RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+RUN wget --no-verbose https://dbnd-3rd-party-mirror.s3.amazonaws.com/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
     tar -xzf spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
     mv spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} /spark && \
     rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
@@ -27,7 +27,7 @@ RUN pip install pyspark==${SPARK_VERSION} && \
 
 # Livy installation:
 ENV LIVY_VERSION=0.6.0
-RUN wget --no-verbose https://dbnd-dev-playground.s3.amazonaws.com/packages/apache-livy-${LIVY_VERSION}-incubating-bin.zip && \
+RUN wget --no-verbose https://dbnd-3rd-party-mirror.s3.amazonaws.com/apache-livy-${LIVY_VERSION}-incubating-bin.zip && \
     unzip apache-livy-${LIVY_VERSION}-incubating-bin.zip && \
     mv apache-livy-${LIVY_VERSION}-incubating-bin /livy && \
     rm apache-livy-${LIVY_VERSION}-incubating-bin.zip && \

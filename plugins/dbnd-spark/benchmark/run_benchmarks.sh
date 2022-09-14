@@ -2,7 +2,7 @@
 
 export DBND__TRACKING=True
 alias spark_test="spark-submit --deploy-mode client --master yarn spark_performance_test.py"
-export S3_DATA="s3://dbnd-dev-playground/data"
+export S3_DATA="s3://dbnd-dev-cicd-build-artifacts/data"
 
 # default histograms (no stats)
 spark_test -i ${S3_DATA}/5_million_6bool_5int_5str.parquet -n default_histograms
