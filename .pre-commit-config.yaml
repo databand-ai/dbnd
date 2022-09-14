@@ -2,7 +2,7 @@ exclude: >
   (?x)^(
       .+/airflow_override/.+|
       .+/_vendor/.+|
-      .+/docs/sdk-docs/.+
+      .*/?docs/sdk-docs/.+
   )$
 repos:
   # Keep autoflake as a first hook
