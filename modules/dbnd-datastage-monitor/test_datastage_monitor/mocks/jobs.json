@@ -1,0 +1,90 @@
+[
+{
+    "metadata": {
+      "project_id": "0ca4775d-860c-44f2-92ba-c7c8cfc0dd45",
+      "sandbox_id": "0ca4775d-860c-44f2-92ba-c7c8cfc0dd45",
+      "usage": {
+        "last_updated_at": "2022-09-08T12:02:48Z",
+        "last_updater_id": "iam-ServiceId-5d1a0d07-d352-440c-8fb7-a6390459ecf5",
+        "last_update_time": 1662638568310,
+        "last_accessed_at": "2022-09-08T12:02:48Z",
+        "last_access_time": 1662638568310,
+        "last_accessor_id": "iam-ServiceId-5d1a0d07-d352-440c-8fb7-a6390459ecf5",
+        "access_count": 0
+      },
+      "rov": {
+        "mode": 0,
+        "collaborator_ids": {},
+        "member_roles": {
+          "IBMid-50E7Y1S62Y": {
+            "user_iam_id": "IBMid-50E7Y1S62Y",
+            "roles": [
+              "OWNER"
+            ]
+          }
+        }
+      },
+      "name": "Multicloud Data Integration MongoDB.DataStage job",
+      "asset_type": "job",
+      "origin_country": "us",
+      "rating": 0,
+      "total_ratings": 0,
+      "catalog_id": "dcab2e60-2dab-4492-8c03-bee0fd4b130b",
+      "created": 1653675882009,
+      "created_at": "2022-05-27T18:24:42Z",
+      "owner_id": "IBMid-50E7Y1S62Y",
+      "size": 0,
+      "version": 2,
+      "asset_state": "available",
+      "asset_attributes": [
+        "job"
+      ],
+      "asset_id": "e229bdc8-a414-492b-9545-f96b64c2b5a5",
+      "asset_category": "USER",
+      "creator_id": "IBMid-50E7Y1S62Y"
+    },
+    "entity": {
+      "job": {
+        "asset_ref_type": "data_intg_flow",
+        "configuration": {
+          "flow_limits": {
+            "warn_limit": 100
+          },
+          "job_parameters": [],
+          "env_id": "default_datastage_px-0ca4775d-860c-44f2-92ba-c7c8cfc0dd45"
+        },
+        "last_run_initiator": "None",
+        "last_run_time": "",
+        "last_run_status": "None",
+        "last_run_status_timestamp": 0,
+        "future_scheduled_runs": [
+          "2022-09-08T13:01:00.000Z",
+          "2022-09-08T14:01:00.000Z",
+          "2022-09-08T15:01:00.000Z",
+          "2022-09-08T16:01:00.000Z",
+          "2022-09-08T17:01:00.000Z",
+          "2022-09-08T18:01:00.000Z",
+          "2022-09-08T19:01:00.000Z",
+          "2022-09-08T20:01:00.000Z",
+          "2022-09-08T21:01:00.000Z",
+          "2022-09-08T22:01:00.000Z"
+        ],
+        "enable_notifications": true,
+        "project_name": "Multicloud Data Integration - CP4D SW",
+        "asset_ref": "5219abab-116d-4399-865f-4e072d76a5f1",
+        "schedule_id": "095449c5-f1bd-4ae5-94a3-d44f29d62aeb",
+        "schedule_creator_id": "IBMid-50E7Y1S62Y",
+        "data_assets_array": [
+          "DataStage/files/MORTGAGE_INTEREST_RATES.CSV=MORTGAGE_APPLICANTS_INTEREST_RATES.CSV=2b0e295b-19ad-4919-943c-4b71634d7bb6"
+        ],
+        "schedule": "1 * * * *",
+        "schedule_info": {
+          "startOn": 1659715200000,
+          "endOn": 1666886400000,
+          "repeat": true
+        }
+      }
+    },
+    "href": "https://api.dataplatform.cloud.ibm.com/v2/assets/e229bdc8-a414-492b-9545-f96b64c2b5a5?project_id=0ca4775d-860c-44f2-92ba-c7c8cfc0dd45"
+  }
+]

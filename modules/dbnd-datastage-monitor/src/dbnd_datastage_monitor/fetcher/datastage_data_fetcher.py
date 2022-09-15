@@ -4,8 +4,8 @@ import logging
 
 from typing import Dict
 
-from dbnd_datastage_monitor.datastage_client.datastage_runs_getter import (
-    DatastageRunsGetter,
+from dbnd_datastage_monitor.datastage_client.datastage_assets_client import (
+    DataStageAssetsClient,
 )
 
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class DataStageDataFetcher:
     def __init__(self, datastage_runs_getter, project_id):
-        self.datastage_runs_getter: DatastageRunsGetter = datastage_runs_getter
+        self.datastage_runs_getter: DataStageAssetsClient = datastage_runs_getter
         self._project_id = project_id
 
     def get_runs_to_sync(self, start_date: str, end_date: str) -> Dict[str, str]:

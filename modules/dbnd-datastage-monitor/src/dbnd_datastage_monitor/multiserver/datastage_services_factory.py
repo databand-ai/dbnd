@@ -3,12 +3,12 @@
 import logging
 
 from dbnd_datastage_monitor.data.datastage_config_data import DataStageServerConfig
-from dbnd_datastage_monitor.datastage_client.datastage_api_http_client import (
+from dbnd_datastage_monitor.datastage_client.datastage_api_client import (
     DataStageApiHttpClient,
 )
-from dbnd_datastage_monitor.datastage_client.datastage_runs_getter import (
+from dbnd_datastage_monitor.datastage_client.datastage_assets_client import (
     ConcurrentRunsGetter,
-    DatastageRunsGetter,
+    DataStageAssetsClient,
 )
 from dbnd_datastage_monitor.fetcher.datastage_data_fetcher import DataStageDataFetcher
 from dbnd_datastage_monitor.tracking_service.datastage_servers_configuration_service import (
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 class DataStageMonitorServicesFactory(MonitorServicesFactory):
     def get_data_fetcher(self, server_config: DataStageServerConfig):
         if server_config.number_of_fetching_threads <= 1:
-            runs_getter = DatastageRunsGetter(
+            runs_getter = DataStageAssetsClient(
                 client=DataStageApiHttpClient(
                     api_key=server_config.api_key,
                     project_id=server_config.project_id,
