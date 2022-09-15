@@ -26,8 +26,8 @@ def redshift_connection():
         [
             """
             COPY test_db
-            FROM 's3://dbnd-redshift/leap_year.csv'
-            iam_role 'arn:aws:iam::410311604149:role/myRedshiftRole' CSV
+            FROM 's3://dbnd-dev-redshift/leap_year.csv'
+            iam_role 'arn:aws:iam::760697004011:role/redshift-s3' CSV
             IGNOREHEADER 1
             """,
             "-c search_path='search_path_schema'",
@@ -38,8 +38,8 @@ def redshift_connection():
         [
             """
             COPY test_db (column_a, column_b)
-            FROM 's3://dbnd-redshift/leap_year.csv'
-            iam_role 'arn:aws:iam::410311604149:role/myRedshiftRole' CSV
+            FROM 's3://dbnd-dev-redshift/leap_year.csv'
+            iam_role 'arn:aws:iam::760697004011:role/redshift-s3' CSV
             """,
             "",
             "mock_db",
@@ -49,8 +49,8 @@ def redshift_connection():
         [
             """
             COPY test_schema.test_db (column_a, column_b)
-            FROM 's3://dbnd-redshift/leap_year.csv'
-            iam_role 'arn:aws:iam::410311604149:role/myRedshiftRole' CSV
+            FROM 's3://dbnd-dev-redshift/leap_year.csv'
+            iam_role 'arn:aws:iam::760697004011:role/redshift-s3' CSV
             """,
             "-c search_path='mock_options_schema'",
             "mock_db",
@@ -60,8 +60,8 @@ def redshift_connection():
         [
             """
             COPY test_schema.test_db
-            FROM 's3://dbnd-redshift/leap_year.csv'
-            iam_role 'arn:aws:iam::410311604149:role/myRedshiftRole' CSV
+            FROM 's3://dbnd-dev-redshift/leap_year.csv'
+            iam_role 'arn:aws:iam::760697004011:role/redshift-s3' CSV
             """,
             "",
             "mock_db",

@@ -10,42 +10,42 @@ from dbnd.utils.anonymization import secrets_anonymizer
     [
         (
             """
-        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-redshift/deniro.csv'
-        iam_role 'arn:aws:iam::111111111111:role/myRedshiftRole' csv;
+        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-dev-redshift/deniro.csv'
+        iam_role 'arn:aws:iam::111111111111:role/redshift-s3' csv;
         """,
             """
-        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-redshift/deniro.csv'
-        iam_role 'arn:aws:iam::***:role/myRedshiftRole' csv;
+        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-dev-redshift/deniro.csv'
+        iam_role 'arn:aws:iam::***:role/redshift-s3' csv;
         """,
         ),
         (
             """
-        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-redshift/deniro.csv'
+        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-dev-redshift/deniro.csv'
         CREDENTIALS
         'aws_access_key_id=AKIAIOSFODNN7EXAMPLE;aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
         """,
             """
-        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-redshift/deniro.csv'
+        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-dev-redshift/deniro.csv'
         CREDENTIALS
         'aws_access_key_id=***;aws_secret_access_key=***'
         """,
         ),
         (
             """
-        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-redshift/deniro.csv'
+        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-dev-redshift/deniro.csv'
         aws_access_key_id 'AKIAIOSFODNN7EXAMPLE' aws_secret_access_key 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
         """,
             """
-        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-redshift/deniro.csv'
+        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-dev-redshift/deniro.csv'
         aws_access_key_id '***' aws_secret_access_key '***'
         """,
         ),
         (
             """
-        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-redshift/deniro.csv'
+        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-dev-redshift/deniro.csv'
         """,
             """
-        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-redshift/deniro.csv'
+        COPY "DENIRO_MOVIES_RATINGS" (year, score, title) from 's3://dbnd-dev-redshift/deniro.csv'
         """,
         ),
         (
