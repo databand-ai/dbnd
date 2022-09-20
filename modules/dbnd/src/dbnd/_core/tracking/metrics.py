@@ -30,7 +30,7 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 TRACKER_MISSING_MESSAGE = (
-    "Can't report %s because no tracker was found (did you call dbnd_tracking_start?)"
+    "Can't report %s because no tracker was found (did you use dbnd_tracking?)"
 )
 
 

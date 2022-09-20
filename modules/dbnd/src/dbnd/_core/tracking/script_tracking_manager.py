@@ -468,6 +468,11 @@ def dbnd_tracking_stop(finalize_run=True):
         _dbnd_script_manager = None
 
 
+def is_dbnd_tracking_active() -> bool:
+    global _dbnd_script_manager
+    return bool(_dbnd_script_manager)
+
+
 @seven.contextlib.contextmanager
 def dbnd_tracking(job_name=None, run_name=None, project_name=None, conf=None):
     # type: (...) -> TaskRun

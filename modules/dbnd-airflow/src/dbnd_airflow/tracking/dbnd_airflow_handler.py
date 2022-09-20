@@ -3,17 +3,20 @@
 import logging
 import os
 
+from typing import ContextManager, Optional
+
 from airflow.operators.subdag_operator import SubDagOperator
 from airflow.utils.log.file_task_handler import FileTaskHandler
 from more_itertools import first_true
 
 import dbnd
 
-from dbnd import config, get_dbnd_project_config
+from dbnd import config, dbnd_tracking_stop, get_dbnd_project_config
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
-from dbnd._core.context.databand_context import new_dbnd_context
+from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.log.buffered_log_manager import BufferedLogManager
 from dbnd._core.tracking.airflow_dag_inplace_tracking import calc_task_key_from_af_ti
+from dbnd._core.tracking.script_tracking_manager import is_dbnd_tracking_active
 from dbnd._core.utils.basics import environ_utils
 from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_from_af_ti
 from dbnd_airflow.tracking.execute_tracking import is_dag_eligable_for_tracking
@@ -35,15 +38,15 @@ class DbndAirflowHandler(logging.Handler):
     def __init__(self, logger):
         logging.Handler.__init__(self)
 
-        self.dbnd_context = None
-        self.dbnd_context_manage = None
+        self.dbnd_context: Optional[DatabandContext] = None
+        self.dbnd_context_manage: Optional[ContextManager[DatabandContext]] = None
 
         self.task_run_attempt_uid = None
         self.task_env_key = None
 
         self.airflow_logger = logger
 
-        self.in_memory_log_manager = None
+        self.in_memory_log_manager: Optional[BufferedLogManager] = None
 
     def set_context(self, ti):
         """
@@ -105,7 +108,9 @@ class DbndAirflowHandler(logging.Handler):
         get_dbnd_project_config().quiet_mode = True
 
         # context with disabled logs
-        self.dbnd_context_manage = new_dbnd_context(conf={"log": {"disabled": True}})
+        self.dbnd_context_manage: ContextManager[DatabandContext] = new_dbnd_context(
+            conf={"log": {"disabled": True}}
+        )
         self.dbnd_context = self.dbnd_context_manage.__enter__()
 
         # tracking msg
@@ -120,6 +125,7 @@ class DbndAirflowHandler(logging.Handler):
                     task_run_attempt_uid=self.task_run_attempt_uid
                 )
                 in_memory_log_body = self.in_memory_log_manager.get_log_body()
+
                 self.dbnd_context.tracking_store.save_task_run_log(
                     task_run=fake_task_run, log_body=in_memory_log_body
                 )
@@ -131,6 +137,15 @@ class DbndAirflowHandler(logging.Handler):
 
         try:
             if self.dbnd_context_manage:
+                if is_dbnd_tracking_active():
+                    # Stops and clears the script tracking if exists and the user forgot to stop it.
+                    self.airflow_logger.warning(
+                        "A Databand Context from tracking is still active, did you forget to"
+                        " use 'dbnd_tracking_stop'?\nWe encourage you to use 'dbnd_tracking' "
+                        "context instead of 'dbnd_tracking_start' and 'dbnd_tracking_stop'"
+                    )
+                    dbnd_tracking_stop()
+
                 self.dbnd_context_manage.__exit__(None, None, None)
         except Exception:
             self.airflow_logger.exception(
