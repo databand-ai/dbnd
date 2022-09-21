@@ -19,7 +19,6 @@ from airflow_monitor.multiserver.monitor_component_manager import (
 )
 from airflow_monitor.shared.base_multiserver import BaseMultiServerMonitor
 from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
-from airflow_monitor.shared.base_tracking_service import WebServersConfigurationService
 from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
 from airflow_monitor.shared.runners import BaseRunner
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
@@ -32,7 +31,6 @@ logger = logging.getLogger(__name__)
 class AirflowMultiServerMonitor(BaseMultiServerMonitor):
     runner: Type[BaseRunner]
     monitor_component_manager: Type[AirflowMonitorComponentManager]
-    servers_configuration_service: WebServersConfigurationService
     monitor_config: AirflowMonitorConfig
     components_dict: Dict[str, Type[BaseMonitorSyncer]]
     monitor_services_factory: MonitorServicesFactory
@@ -54,7 +52,7 @@ class AirflowMultiServerMonitor(BaseMultiServerMonitor):
     @capture_monitor_exception
     def _send_metrics(self):
         metrics = generate_latest_metrics().decode("utf-8")
-        self.servers_configuration_service.send_prometheus_metrics(
+        self.monitor_services_factory.get_servers_configuration_service().send_prometheus_metrics(
             metrics, self.monitor_config.syncer_name
         )
 
