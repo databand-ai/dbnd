@@ -128,7 +128,8 @@ class DbtCloudApiClient:
         if job_id:
             data["job_definition_id"] = job_id
         res = self.send_request(endpoint=url, data=data)
-        return self._safe_get_response_data(res)
+        safe_response = self._safe_get_response_data(res)
+        return safe_response or []
 
     def query_meta_data_api(self, query):
         res = self.send_request(

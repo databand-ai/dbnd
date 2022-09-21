@@ -62,7 +62,8 @@ class DbtRunsSyncer(BaseMonitorSyncer):
         chunks = more_itertools.sliced(dbt_run_ids, bulk_size)
         for runs_chunk in chunks:
             dbt_runs_full_data = self.data_fetcher.get_full_dbt_runs(runs_chunk)
-            self.tracking_service.init_dbt_runs(dbt_runs_full_data)
+            if dbt_runs_full_data:
+                self.tracking_service.init_dbt_runs(dbt_runs_full_data)
 
     @capture_monitor_exception
     def _update_runs(self, dbt_run_ids):
@@ -75,7 +76,8 @@ class DbtRunsSyncer(BaseMonitorSyncer):
         chunks = more_itertools.sliced(dbt_run_ids, bulk_size)
         for runs_chunk in chunks:
             dbt_runs_full_data = self.data_fetcher.get_full_dbt_runs(runs_chunk)
-            self.tracking_service.update_dbt_runs(dbt_runs_full_data)
+            if dbt_runs_full_data:
+                self.tracking_service.update_dbt_runs(dbt_runs_full_data)
 
     def _update_last_seen_values(self, dbt_run_ids):
         if not dbt_run_ids:
