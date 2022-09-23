@@ -102,7 +102,7 @@ COPY ./dbnd-core/dist-python/databand-*.whl \
     ./dbnd-core/dist-python/dbnd_airflow-*.whl \
     ./dbnd-core/dist-python/dbnd_mlflow-*.whl \
     /dist-python/
-ENV DBND_VERSION=1.0.3.3
+ENV DBND_VERSION=1.0.3.4
 RUN pip install databand[aws,gcp,docker,airflow_bundle,mlflow]==$DBND_VERSION --find-links /dist-python/
 
 
