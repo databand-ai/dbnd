@@ -2,7 +2,7 @@
 import logging
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 from dbnd._core.log.external_exception_logging import log_exception_to_server
 
@@ -36,7 +36,7 @@ class DataStageAssetsClient:
             run_info = self.client.get_run_info(run_link)
             if not run_info:
                 return
-            ds_run = {}
+            ds_run = {"run_link": run_link}
             run_metadata = run_info.get("metadata")
             if not run_metadata:
                 logger.error("Unable to add run, no metadata attribute found")
@@ -77,8 +77,7 @@ class DataStageAssetsClient:
             )
             log_exception_to_server(e)
 
-    def get_full_runs(self, runs: Dict[str, any]) -> Dict:
-        runs_links = list(runs.values())
+    def get_full_runs(self, runs_links: List[str]) -> Dict:
         for run in runs_links:
             self.get_full_run(run)
         response = {
@@ -101,8 +100,7 @@ class ConcurrentRunsGetter(DataStageAssetsClient):
         self.jobs = {}
         self.flows = {}
 
-    def get_full_runs(self, runs: Dict[str, any]):
-        runs_links = list(runs.values())
+    def get_full_runs(self, runs_links: List[str]):
         with ThreadPoolExecutor(max_workers=self._number_of_threads) as executor:
             executor.map(self.get_full_run, runs_links)
         response = {
