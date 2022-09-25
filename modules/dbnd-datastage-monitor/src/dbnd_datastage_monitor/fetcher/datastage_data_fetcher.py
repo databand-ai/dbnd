@@ -26,11 +26,12 @@ class DataStageDataFetcher:
             )
             if new_runs:
                 all_runs.update(new_runs)
-            else:
+
+            if next_page is None:
                 break
 
         return all_runs
 
     def get_full_runs(self, runs):
-        datastage_full_runs = self.datastage_runs_getter.get_full_runs(runs=runs)
+        datastage_full_runs = self.datastage_runs_getter.get_full_runs(runs_links=runs)
         return datastage_full_runs

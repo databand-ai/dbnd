@@ -94,7 +94,7 @@ class DbndDataStageTrackingService(BaseDbndTrackingService):
 
     def init_datastage_runs(self, datastage_runs_full_data):
         self._api_client.api_request(
-            endpoint=f"tracking-monitor/{self.tracking_source_uid}/sync_datastage_runs",
+            endpoint=f"tracking-monitor/{self.tracking_source_uid}/init_datastage_runs",
             method="POST",
             data=datastage_runs_full_data,
         )

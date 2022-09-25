@@ -198,11 +198,15 @@ class TestDataStageAssetsClient:
             all_runs.update(runs)
             if not next_page:
                 break
-        response = datastage_runs_getter.get_full_runs(runs=all_runs)
+
+        response = datastage_runs_getter.get_full_runs(
+            runs_links=list(all_runs.values())
+        )
         expected_response = json.load(
             open(relative_path(__file__, "mocks/fetcher_response.json"))
         )
-        assert expected_response == response
+
+        assert set(expected_response) == set(response)
 
     @pytest.mark.parametrize(
         "datastage_runs_getter", [runs_getter(), concurent_runs_getter()]
@@ -221,5 +225,8 @@ class TestDataStageAssetsClient:
             all_runs.update(runs)
             if not next_page:
                 break
-        response = datastage_runs_getter.get_full_runs(runs=all_runs)
+
+        response = datastage_runs_getter.get_full_runs(
+            runs_links=list(all_runs.values())
+        )
         assert not response["runs"]
