@@ -337,6 +337,8 @@ class _DbndScriptTrackingManager(object):
                     databand_run.set_run_state(RunState.SUCCESS)
                 else:
                     databand_run.set_run_state(RunState.FAILED)
+                if root_tr.task_run_state == TaskRunState.DEFERRED:
+                    return
 
             self._close_all_context_managers()
 
