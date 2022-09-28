@@ -38,7 +38,7 @@ public class FlowStarted implements AzkabanEvent {
             null,
             null,
             new TrackingSource(azCtx),
-            azCtx.projectName()
+            azCtx.databandProjectName()
         );
     }
 }
