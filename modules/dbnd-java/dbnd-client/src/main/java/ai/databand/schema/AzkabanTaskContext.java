@@ -9,6 +9,8 @@ import ai.databand.id.Uuid5;
 
 import java.util.Optional;
 
+import static ai.databand.DbndPropertyNames.DBND__TRACKING__PROJECT;
+
 public class AzkabanTaskContext {
 
     private final String projectName;
@@ -57,6 +59,15 @@ public class AzkabanTaskContext {
 
     public String projectName() {
         return projectName;
+    }
+
+    /**
+     * Databand project name may be different from the Azkaban project name.
+     *
+     * @return
+     */
+    public String databandProjectName() {
+        return config.getValue(DBND__TRACKING__PROJECT).orElse(projectName);
     }
 
     public String flowId() {

@@ -69,7 +69,7 @@ public class AzkabanPipelinesTest {
 
         waitForFlowCompletion(client, sessionId, execId.get());
 
-        verifyJob(databandPipelineName, jobs, azkabanFlowName, execId.get(), projectName);
+        verifyJob(databandPipelineName, jobs, azkabanFlowName, execId.get(), projectName, "azkaban-project");
     }
 
     @Test
@@ -103,7 +103,7 @@ public class AzkabanPipelinesTest {
 
         waitForFlowCompletion(client, sessionId, execId.get());
 
-        verifyJob(databandPipelineName, jobs, azkabanFlowName, execId.get(), projectName);
+        verifyJob(databandPipelineName, jobs, azkabanFlowName, execId.get(), projectName, projectName);
 
         pipelinesVerify.verifyOutputs("spark-flow__generate-report", now, "scala_spark_pipeline", true);
     }
@@ -145,7 +145,10 @@ public class AzkabanPipelinesTest {
              Stream<Path> paths = Files.walk(source)) {
             paths.filter(path -> !Files.isDirectory(path))
                 .forEach(path -> {
-                    jobs.add(path.getFileName().toString().replace(".job", ""));
+                    // filter out properties files from a jobs list
+                    if (path.getFileName().toString().contains(".job")) {
+                        jobs.add(path.getFileName().toString().replace(".job", ""));
+                    }
                     ZipEntry zipEntry = new ZipEntry(source.relativize(path).toString());
                     try {
                         zs.putNextEntry(zipEntry);
@@ -199,7 +202,8 @@ public class AzkabanPipelinesTest {
                           List<String> jobs,
                           String azkabanFlowName,
                           Integer execId,
-                          String projectName) throws IOException {
+                          String projectName,
+                          String databandProjectName) throws IOException {
         Job job = pipelinesVerify.verifyJob(databandPipelineName);
 
         Pair<Tasks, TaskFullGraph> pair = pipelinesVerify.verifyTasks(databandPipelineName, job);
@@ -225,7 +229,7 @@ public class AzkabanPipelinesTest {
         pipelinesVerify.assertParamInTask(rootTaskRun, "azkaban.flow.submituser", "azkaban");
 
         pipelinesVerify.assertLogsInTask(rootTaskRun.getLatestTaskRunAttemptId(), String.format("Running flow '%s'", azkabanFlowName));
-        pipelinesVerify.assertProjectName(rootTaskRun.getRunUid(), projectName);
+        pipelinesVerify.assertProjectName(rootTaskRun.getRunUid(), databandProjectName);
     }
 
     private List<String> fetchTasksByState(Tasks tasks, String state) {

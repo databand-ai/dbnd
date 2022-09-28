@@ -7,11 +7,13 @@ package ai.databand.azkaban.events;
 import ai.databand.azkaban.AgentAzkabanFlow;
 import ai.databand.azkaban.AzkabanEvent;
 import ai.databand.azkaban.AzkabanFlow;
+import ai.databand.azkaban.AzkabanFlowSharedProps;
 import ai.databand.azkaban.AzkabanProps;
 import ai.databand.config.DbndConfig;
 import ai.databand.config.Env;
 import ai.databand.config.JavaOpts;
 import azkaban.event.Event;
+import azkaban.execapp.FlowRunner;
 
 public class FlowStartedEvent implements AzkabanEvent {
 
@@ -21,7 +23,9 @@ public class FlowStartedEvent implements AzkabanEvent {
         DbndConfig config = new DbndConfig(
             new Env(
                 new JavaOpts(
-                    new AzkabanProps()
+                    new AzkabanProps(
+                        new AzkabanFlowSharedProps((FlowRunner) event.getRunner())
+                    )
                 )
             )
         );

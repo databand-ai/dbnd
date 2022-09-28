@@ -60,6 +60,11 @@ public abstract class DbndPropertyNames {
     public static final String DBND__SPARK__IO_TRACKING_ENABLED = "dbnd.spark.io_tracking_enabled";
 
     /**
+     * Project name.
+     */
+    public static final String DBND__TRACKING__PROJECT = "dbnd.tracking.project";
+
+    /**
      * Override run name.
      */
     public static final String DBND__RUN__JOB_NAME = "dbnd.run.job_name";
