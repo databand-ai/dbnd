@@ -72,7 +72,7 @@ class DataStageApiHttpClient(DataStageApiClient):
             if self.access_token:
                 try:
                     jwt.decode(self.access_token, options={"verify_signature": False})
-                except jwt.exceptions.ExpiredSignatureError:
+                except jwt.ExpiredSignatureError:
                     logger.error("access token is expired, refreshing token")
                     self.refresh_access_token()
             if body:
