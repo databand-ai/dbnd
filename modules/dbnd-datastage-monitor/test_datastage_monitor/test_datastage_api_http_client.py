@@ -12,6 +12,7 @@ from dbnd_datastage_monitor.datastage_client.datastage_api_client import (
 def test_get_runs_ids(mock_session):
     session_mock = mock_session.return_value
     mock_cams_query_response = session_mock.post.return_value
+    mock_cams_query_response.status_code = HTTPStatus.OK
     mock_cams_query_response.json.return_value = {
         "results": [
             {"metadata": {"asset_id": "01234"}, "href": "https://myrun.com/01234"},
@@ -21,6 +22,7 @@ def test_get_runs_ids(mock_session):
 
     client = DataStageApiHttpClient("", "")
     client.get_session = MagicMock(return_value=session_mock)
+    client.refresh_access_token = MagicMock()
     response = client.get_runs_ids("", "")
 
     assert response == (
@@ -33,6 +35,7 @@ def test_get_runs_ids(mock_session):
 def test_get_run_info(mock_session):
     session_mock = mock_session.return_value
     mock_get_run_response = session_mock.get.return_value
+    mock_get_run_response.status_code = HTTPStatus.OK
     mock_get_run_response.json.return_value = {"run_mock": "data"}
     client = DataStageApiHttpClient("", "")
     client.get_session = MagicMock(return_value=session_mock)
@@ -42,11 +45,34 @@ def test_get_run_info(mock_session):
 
 
 @mock.patch("requests.session")
+def test_error_response_get(mock_session):
+    session_mock = mock_session.return_value
+    mock_get_response = session_mock.get.return_value
+    mock_get_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+    client = DataStageApiHttpClient("", "")
+    client.get_session = MagicMock(return_value=session_mock)
+    returned_value = client._make_get_request("")
+    assert returned_value == {}
+
+
+@mock.patch("requests.session")
+def test_error_response_post(mock_session):
+    session_mock = mock_session.return_value
+    mock_post_response = session_mock.get.return_value
+    mock_post_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+    client = DataStageApiHttpClient("", "")
+    client.get_session = MagicMock(return_value=session_mock)
+    returned_value = client._make_post_request(url="", body={"a": "b"})
+    assert returned_value == {}
+
+
+@mock.patch("requests.session")
 def test_token_refresh_get(mock_session):
     session_mock = mock_session.return_value
     mock_get_response = session_mock.get.return_value
     mock_get_response.status_code = HTTPStatus.UNAUTHORIZED
     mock_post_response = session_mock.post.return_value
+    mock_post_response.status_code = HTTPStatus.OK
     mock_post_response.json.return_value = {"access_token": "token"}
     client = DataStageApiHttpClient("", "")
     client.get_session = MagicMock(return_value=session_mock)
@@ -100,9 +126,12 @@ def test_get_job(mock_session):
     session_mock = mock_session.return_value
     mock_get_job_response = session_mock.get.return_value
     mock_get_job_response.json.return_value = {"job_info": "data", "href": "link"}
+    mock_get_job_response.status_code = HTTPStatus.OK
+
     project_id = "project"
     client = DataStageApiHttpClient("", project_id=project_id)
     client.get_session = MagicMock(return_value=session_mock)
+    client.refresh_access_token = MagicMock()
     job_id = "job"
     response = client.get_job(job_id)
     session_mock.get.assert_any_call(
@@ -121,9 +150,11 @@ def test_get_flow(mock_session):
     session_mock = mock_session.return_value
     mock_get_flow_response = session_mock.get.return_value
     mock_get_flow_response.json.return_value = {"flow": "data"}
+    mock_get_flow_response.status_code = HTTPStatus.OK
     project_id = "project"
     client = DataStageApiHttpClient("", project_id=project_id)
     client.get_session = MagicMock(return_value=session_mock)
+    client.refresh_access_token = MagicMock()
     flow_id = "flow"
     response = client.get_flow(flow_id)
     session_mock.get.assert_called_with(
@@ -138,9 +169,11 @@ def test_get_run_logs(mock_session):
     session_mock = mock_session.return_value
     mock_get_logs_response = session_mock.get.return_value
     mock_get_logs_response.json.return_value = {"results": ['{"logs":"logs"}']}
+    mock_get_logs_response.status_code = HTTPStatus.OK
     project_id = "project"
     client = DataStageApiHttpClient("", project_id=project_id)
     client.get_session = MagicMock(return_value=session_mock)
+    client.refresh_access_token = MagicMock()
     job_id = "job"
     run_id = "run"
     response = client.get_run_logs(job_id, run_id)
@@ -169,9 +202,11 @@ def test_get_connections_filter_senstive_data(mock_session):
             }
         ]
     }
+    mock_get_connections_response.status_code = HTTPStatus.OK
     project_id = "project"
     client = DataStageApiHttpClient("", project_id=project_id)
     client.get_session = MagicMock(return_value=session_mock)
+    client.refresh_access_token = MagicMock()
     response = client.get_connections()
     session_mock.get.assert_called_with(
         url=f"{client.DATASTAGE_CONNECTIONS_API_URL}?project_id={project_id}&userfs=false",
