@@ -69,7 +69,9 @@ class DataStageApiHttpClient(DataStageApiClient):
 
     def validate_token(func):
         def wrapper(self, url, body=None):
-            if self.access_token:
+            if not self.access_token:
+                self.refresh_access_token()
+            else:
                 try:
                     jwt.decode(self.access_token, options={"verify_signature": False})
                 except jwt.ExpiredSignatureError:
@@ -88,6 +90,7 @@ class DataStageApiHttpClient(DataStageApiClient):
             read=self.retries,
             connect=self.retries,
             backoff_factor=self.BACK_OFF_FACTOR,
+            status_forcelist=[500, 502, 503, 504],
             method_whitelist=frozenset(["GET", "POST"]),
         )
         adapter = HTTPAdapter(max_retries=retry)
@@ -125,21 +128,34 @@ class DataStageApiHttpClient(DataStageApiClient):
     @validate_token
     def _make_get_request(self, url):
         response = self.get_session().get(url=url, headers=self.headers)
-        if response.status_code == HTTPStatus.UNAUTHORIZED:
-            self.refresh_access_token()
-            response = self.get_session().get(url=url, headers=self.headers)
-
-        return response.json()
+        if response:
+            if response.status_code == HTTPStatus.UNAUTHORIZED:
+                self.refresh_access_token()
+                response = self.get_session().get(url=url, headers=self.headers)
+            if response.status_code == HTTPStatus.OK:
+                return response.json()
+            else:
+                logger.error(f"http response status code {response.status_code}")
+        # return empty object to prevent NONE errors
+        return {}
 
     @validate_token
     def _make_post_request(self, url, body):
         headers = self.headers
         response = self.get_session().post(url=url, json=body, headers=headers)
-        if response.status_code == HTTPStatus.UNAUTHORIZED:
-            self.refresh_access_token()
-            response = self.get_session().post(url=url, json=body, headers=self.headers)
+        if response:
+            if response.status_code == HTTPStatus.UNAUTHORIZED:
+                self.refresh_access_token()
+                response = self.get_session().post(
+                    url=url, json=body, headers=self.headers
+                )
 
-        return response.json()
+            if response.status_code == HTTPStatus.OK:
+                return response.json()
+            else:
+                logger.error(f"http response status code {response.status_code}")
+        # return empty object to prevent NONE errors
+        return {}
 
     def get_runs_ids(
         self, start_time: str, end_time: str, next_page: Dict[str, any] = None
