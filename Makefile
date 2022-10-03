@@ -7,8 +7,8 @@ SHELL := /bin/bash
 
 CURRENT_PY_VERSION = $(shell python -c "import sys; print('{0}.{1}'.format(*sys.version_info[:2]))")
 # use env value if exists
-AIRFLOW_VERSION ?= 1.10.12
-#AIRFLOW_VERSION = 2.2.4
+AIRFLOW_VERSION ?= 2.2.3
+#AIRFLOW_VERSION ?= 1.10.12
 
 
 help:  ## Display this help.
@@ -247,19 +247,15 @@ install-dev-without-airflow: ## Install all modules, except Airflow, in editable
 	@make __is_venv_activated
 	make __uninstall-dev
 
-
-	pip install \
-		pylint==2.13.5 mypy==0.942 \
-		pip==21.3.1  # python 3.6
-
 	set -e; \
-	for m in $(prj_dbnd_run) ; do \
-		all_reqs="$$all_reqs -e $$m"; \
-		export CURRENT_DEPS=$$all_reqs; \
-	done; \
-	echo "Running all deps installation at once:";  \
-	echo pip install $$all_reqs; \
-	pip install $$all_reqs; \
+	pip install -r databand-sdk.requirements.txt
+
+
+pip-compile:
+	@make __is_venv_activated
+
+	pip-compile --resolver backtracking requirements-dev.in
+
 
 __uninstall-dev:  ## (Hidden target) Remove all dbnd modules from the current virtual environment.
 	pip uninstall databand -y || true

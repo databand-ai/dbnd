@@ -22,7 +22,7 @@ setuptools.setup(
         "docker>=3.0",
         # k8s
         "kubernetes>=9.0.0",
-        "cryptography>=37.0.2",
+        "cryptography>=3.3.2",
     ],
     entry_points={"dbnd": ["dbnd-docker = dbnd_docker._plugin"]},
 )

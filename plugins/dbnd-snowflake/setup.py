@@ -18,7 +18,7 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=[
         "sqlparse",
-        "snowflake-connector-python<2.6.0",
+        "snowflake-connector-python",
         "numpy",
         "dbnd==" + version,
         "certifi<2021.0.0",  # fix conflict with snowflake-connector-python

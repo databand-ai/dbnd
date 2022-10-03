@@ -6,7 +6,7 @@
 # A (fails) -> B (skip) -> C (runs!!!)
 
 # default image to use
-image: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci-default:py36-latest
+image: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci-default:py39-latest-v2
 
 stages:
   - test

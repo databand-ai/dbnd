@@ -1,0 +1,70 @@
+# Add all the requirements for the dbnd and dbnd modules
+-r modules/dbnd/dbnd.requirements.txt
+-r dist-python/dbnd-airflow.requirements.txt
+-r dist-python/dbnd-airflow-monitor.requirements.txt
+-r dist-python/dbnd-dbt-monitor.requirements.txt
+-r dist-python/dbnd-snowflake.requirements.txt
+-r dist-python/dbnd-databricks.requirements.txt
+-r dist-python/dbnd-redshift.requirements.txt
+-r dist-python/dbnd-spark.requirements.txt
+-r dist-python/dbnd-airflow-auto-tracking.requirements.txt
+-r dist-python/dbnd-airflow-export.requirements.txt
+
+
+# Tracking (not in use)
+-r dist-python/dbnd-luigi.requirements.txt
+-r dist-python/dbnd-mlflow.requirements.txt
+-r dist-python/dbnd-postgres.requirements.txt
+
+
+# Orchestration
+-r dist-python/dbnd-docker.requirements.txt
+-r dist-python/dbnd-gcp.requirements.txt
+-r dist-python/dbnd-aws.requirements.txt
+-r dist-python/dbnd-azure.requirements.txt
+-r dist-python/dbnd-qubole.requirements.txt
+-r dist-python/dbnd-tensorflow.requirements.txt
+-r dist-python/dbnd-hdfs.requirements.txt
+
+
+# General
+-r dist-python/dbnd-test-scenarios.requirements.txt
+
+
+# Keep the requirements compatible with airflow 2.2.3 (default version for databand developers)
+-c dist-python/dbnd-airflow[airflow_2_2_3].requirements.txt
+
+
+# dev tools
+pip==22.0.4
+pip-tools
+
+## linters
+pylint
+mypy
+types-all
+import-linter[toml]
+black
+
+## build tools
+wheel
+six
+setuptools
+packaging
+python-stripzip
+pip-tools
+# TODO: it has linux only dependencies that fail pip-compile check in CI
+# twine
+
+## cloud tools
+# TODO: upgrade botocore
+# awscli
+# TODO: upgrade google-auth
+# gsutil
+
+## test tools
+tox
+pytest
+
+## other
+sh
