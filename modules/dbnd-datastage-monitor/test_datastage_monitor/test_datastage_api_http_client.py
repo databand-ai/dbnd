@@ -174,7 +174,7 @@ def test_get_connections_filter_senstive_data(mock_session):
     client.get_session = MagicMock(return_value=session_mock)
     response = client.get_connections()
     session_mock.get.assert_called_with(
-        url=f"{client.DATASTAGE_CONNECTIONS_API_URL}?project_id={project_id}&limit=200&userfs=false",
+        url=f"{client.DATASTAGE_CONNECTIONS_API_URL}?project_id={project_id}&userfs=false",
         headers={"accept": "application/json", "Content-Type": "application/json"},
     )
     assert response == {
