@@ -192,7 +192,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         return connection
 
     def get_connections(self):
-        url = f"{self.DATASTAGE_CONNECTIONS_API_URL}?project_id={self.project_id}&limit={self.page_size}&userfs=false"
+        url = f"{self.DATASTAGE_CONNECTIONS_API_URL}?project_id={self.project_id}&userfs=false"
         connections = self._make_get_request(url=url)
         connections_result = {}
         resources = connections.get("resources")
