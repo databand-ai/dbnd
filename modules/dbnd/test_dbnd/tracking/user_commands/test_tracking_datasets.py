@@ -35,14 +35,14 @@ class TestTrackingDatasets(object):
 
     def test_log_dataset(self, mock_channel_tracker):
         @task()
-        def task_with_log_datasets():
+        def taskWithLogDatasets():  # Deliberately use camelCase here
             log_dataset_op(
                 "location://path/to/value.csv",
                 DbndDatasetOperationType.read,
                 with_schema=False,
             )
 
-        task_with_log_datasets()
+        taskWithLogDatasets()
 
         log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
         assert log_dataset_arg.operation_path == "location://path/to/value.csv"
@@ -51,6 +51,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.value_preview == ""
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
+        assert log_dataset_arg.task_run_name == "taskWithLogDatasets"
 
         # no metrics reported
         log_metrics_args = list(get_log_metrics(mock_channel_tracker))
