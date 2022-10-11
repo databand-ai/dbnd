@@ -1,5 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
+import json
 import random
 import string
 
@@ -77,22 +78,33 @@ class TestSyncerWorks(WebAppTest):
             if server["tracking_source_uid"] == tracking_source_uid:
                 return server
 
+    def get_server_info_by_wildcard(self, name):
+        query_filter = {
+            "filter": json.dumps([{"name": "*", "op": "ilike", "val": name}])
+        }
+        servers = self.client.get(
+            self._url("AirflowServersApi.get_airflow_monitors"),
+            query_string=query_filter,
+        )
+        return servers.json["data"]
+
     @pytest.fixture
     def syncer(self, _web_app_ctrl_with_login):
         random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
+        random_host = "".join(random.choice(string.ascii_letters) for _ in range(10))
+        af_server_info = {
+            "base_url": f"https://{random_host}.local",
+            "name": random_name,
+            "fetcher": "db",
+            "external_url": "",
+            "composer_client_id": "",
+            "api_mode": "rbac",
+            "airflow_environment": "on_prem",
+            "dag_ids": "",
+            "monitor_config": {"include_sources": False, "is_sync_enabled": True},
+        }
         created_syncer = self.client.post(
-            self._url("AirflowServersApi.add"),
-            json={
-                "base_url": f"https://{random_name}.local",
-                "name": random_name,
-                "fetcher": "db",
-                "external_url": "",
-                "composer_client_id": "",
-                "api_mode": "rbac",
-                "airflow_environment": "on_prem",
-                "dag_ids": "",
-                "monitor_config": {"include_sources": False, "is_sync_enabled": True},
-            },
+            self._url("AirflowServersApi.add"), json=af_server_info
         )
 
         syncer_dict = created_syncer.json
@@ -100,6 +112,7 @@ class TestSyncerWorks(WebAppTest):
         return {
             "tracking_source_uid": syncer_dict["tracking_source_uid"],
             "name": random_name,
+            "af_server_info": af_server_info,
             **syncer_dict["server_info_dict"],
         }
 
@@ -232,3 +245,12 @@ class TestSyncerWorks(WebAppTest):
             server_info["airflow_export_version"],
             server_info["source_instance_uid"],
         ) == ("1.10.10", "0.40.1 v2", "34db92af-a525-522e-8f27-941cd4746d7b")
+
+    def test_get_syncer_search(self, syncer):
+        syncer_name = syncer["name"]
+
+        server_info = self.get_server_info_by_wildcard(syncer_name)
+
+        assert len(server_info) == 1
+        assert server_info[0]["name"] == syncer["af_server_info"]["name"]
+        assert server_info[0]["base_url"] == syncer["af_server_info"]["base_url"]
