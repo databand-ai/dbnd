@@ -15,10 +15,7 @@ from dbnd._core.constants import (
     MetricSource,
 )
 from dbnd._core.errors.errors_utils import log_exception
-from dbnd._core.log.external_exception_logging import (
-    capture_tracking_exception,
-    log_exception_to_server,
-)
+from dbnd._core.log.external_exception_logging import capture_tracking_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.settings.tracking_config import get_value_meta
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
@@ -259,8 +256,10 @@ class TaskRunTracker(TaskRunCtrl):
                 data_meta = get_value_meta(
                     data, meta_conf, tracking_config=self.settings.tracking
                 )
-            except Exception as e:
-                log_exception_to_server(e)
+            except Exception as ex:
+                log_exception(
+                    "Error occurred during _calc_meta_data", ex, non_critical=True
+                )
 
         if data_meta is None:
             data_meta = ValueMeta("")
