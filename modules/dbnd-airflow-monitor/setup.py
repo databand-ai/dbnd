@@ -20,7 +20,7 @@ setuptools.setup(
     extras_require={
         "tests": ["pytest", "mock", "sh"],
         "composer": [
-            "PyJWT==1.7.1",
+            "PyJWT==2.4.0",
             "cryptography==37.0.2",
             "google-auth==1.10.0",
             "requests==2.22.0",

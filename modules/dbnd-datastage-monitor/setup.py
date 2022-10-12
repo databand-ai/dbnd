@@ -20,7 +20,7 @@ setuptools.setup(
         "dbnd==" + version,
         "dbnd-airflow-monitor==" + version,
         "requests>=2.25.0",
-        "PyJWT==1.7.1",
+        "PyJWT==2.4.0",
     ],
     extras_require={"tests": ["pytest", "mock"]},
     entry_points={
