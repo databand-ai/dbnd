@@ -23,6 +23,8 @@ else:
 
 LINE_BRAKE = "\r\n"
 MERGE_MSG = "\r\n...\r\n\r\nThe log body is truncated by databand, fetched {head_size} bytes for the `head` and {tail_size} bytes for the `tail` from the whole {file_size} bytes of the file.\r\nFor full log access the log path {log_path} .\r\nControl the log preview length with LoggingConfig.preview_head_bytes and LoggingConfig.preview_tail_bytes \r\n\r\n...\r\n"
+
+# Frontend depends on this exact strings to show localized messages: don't change it!
 EMPTY_LOG_MSG = "Log truncated to empty"
 
 

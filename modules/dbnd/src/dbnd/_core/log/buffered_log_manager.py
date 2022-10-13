@@ -5,9 +5,11 @@ from dbnd._vendor.termcolor import colored
 
 LINE_BRAKE = "\r\n"
 MERGE_MSG = "\r\n...\r\n\r\nThe log body is truncated by databand, fetched {head_size} bytes for the `head` and {tail_size} bytes for the `tail` from the whole {total_log_size} bytes of the logs.\r\nControl the log preview length with LoggingConfig.preview_head_bytes and LoggingConfig.preview_tail_bytes \r\n\r\n...\r\n"
-EMPTY_LOG_MSG = "Log is empty"
-EMPTY_TRUNCATED_LOG_MSG = "Log truncated to empty"
 MERGE_MSG_COLOR = "yellow"
+
+# Frontend depends on those exact strings to show localized messages: don't change them!
+EMPTY_TRUNCATED_LOG_MSG = "Log truncated to empty"
+EMPTY_LOG_MSG = "Log is empty"
 
 
 class BufferedLogManager:
