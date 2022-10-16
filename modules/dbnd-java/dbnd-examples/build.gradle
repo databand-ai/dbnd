@@ -56,10 +56,6 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest:2.2'
 }
 
-compileScala {
-    options.compilerArgs << '-parameters'
-}
-
 /**
  * ****************************************************************************
  * We don't want all transitive dependencies to be included into fatjar.
