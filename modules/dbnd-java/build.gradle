@@ -12,9 +12,9 @@ allprojects {
     apply plugin: 'java'
 
     group = 'ai.databand'
-    version = '1.0.5.3'
+    version = '1.0.5.4'
     if (project.hasProperty('snapshot')) {
-        version = "1.0.5.3-${System.env.CI_COMMIT_SHORT_SHA}"
+        version = "1.0.5.4-${System.env.CI_COMMIT_SHORT_SHA}"
     }
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
