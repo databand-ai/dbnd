@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 
 from dataclasses import dataclass
 
@@ -46,8 +47,12 @@ class Document:
 
 
 def _request_url(verb, url, payload=None):
-    request = requests.request(method=verb, url=url, json=payload, headers=headers)
-    request.raise_for_status()
+    try:
+        request = requests.request(method=verb, url=url, json=payload, headers=headers)
+        request.raise_for_status()
+    except requests.exceptions.HTTPError:
+        logging.error(request.text)
+        sys.exit(1)
     response = request.json()
     return response
 

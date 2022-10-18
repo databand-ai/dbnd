@@ -19,29 +19,32 @@ class QuboleConfig(SparkEngineConfig):
 
     _conf__task_family = "qubole"
     cluster_type = SparkClusters.qubole
-    cloud = parameter(default="AWS", description="cloud")
+    cloud = parameter(
+        default="AWS",
+        description="What cloud to be used. The default value for this is `AWS`",
+    )
 
     api_url = parameter(default="https://us.qubole.com/api").help(
-        "API URL without version. like:'https://<ENV>.qubole.com/api'"
+        "Set the API URL without a version. e.g. `https://<ENV>.qubole.com/api`"
     )[str]
 
     ui_url = parameter(default="https://api.qubole.com").help(
-        "UI URL for accessing Qubole logs"
+        "Set the UI URL for accessing Qubole logs."
     )[str]
 
-    api_token = parameter.help("API key of qubole account")[str]
-    cluster_label = parameter().help("the label of the cluster to run the command on")[
-        str
-    ]
+    api_token = parameter.help("Set the API key of the qubole account.")[str]
+    cluster_label = parameter().help(
+        "Set the label of the cluster to run the command on."
+    )[str]
 
     status_polling_interval_seconds = parameter(default=10).help(
-        "seconds to sleep between polling databricks for job status."
+        "Determine the number of seconds to sleep between polling databricks for job status."
     )[int]
     show_spark_log = parameter(default=False).help(
-        "if True full spark log will be printed."
+        "If True, full spark log will be printed."
     )[bool]
     qds_sdk_logging_level = parameter(default=logging.WARNING).help(
-        "qubole sdk log level."
+        "Determine qubole's sdk log level."
     )
 
     def get_spark_ctrl(self, task_run):

@@ -17,11 +17,11 @@ class GitConfig(config.Config):
     _conf__task_family = "git"
 
     enforce_clean = parameter(
-        description="Enforce project's git to be clean. Can be overridden by allow_dirty or --git-allow-dirty"
+        description="Enforce the project's git to be clean. Can be overridden by `allow_dirty` or `--git-allow-dirty`"
     ).value(False)
 
     allow_dirty = parameter(
-        description="Permit git to be dirty when enforce_clean or --git-enforce-clean is on"
+        description="Permit git to be dirty when `enforce_clean` or `--git-enforce-clean` is on"
     ).value(False)
 
     def _raise_enforce_clean_error(self, msg):

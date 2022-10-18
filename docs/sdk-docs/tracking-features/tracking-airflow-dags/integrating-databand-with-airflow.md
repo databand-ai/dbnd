@@ -59,6 +59,17 @@ For example:
 }
 ```
 
+## `[airflow_monitor]` Configuration Section Parameter Reference
+- `prometheus_port` - Set which port will be used for prometheus.
+- `interval` - Set the sleep time, in seconds, between fetches, when the monitor is not busy.
+- `number_of_iterations` - Set a cap for the number of monitor iterations. This is optional.
+- `stop_after` - Set a cap for the number of seconds to run the monitor. This is optional.
+- `sql_alchemy_conn` - Set which database URL will be used.
+- `rbac_username` - Set which username credentials will be used when monitoring airflow with rbac enabled.
+- `rbac_password` - Set which password credentials will be used when monitoring airflow with rbac enabled.
+- `json_file_path` - Set the path to the JSON file from which ExportData information will be read.
+
+
 ## Edit `dbnd_config`
 The JSON object contains the minimum parameters required to establish communication between Airflow and Databand.
 
@@ -101,6 +112,16 @@ from dbnd_airflow import track_dag
 
 track_dag(dag)
 ```
+
+## `[airflow_tracking]` Configuration Section Parameter Reference
+- `spark_submit_dbnd_java_agent` - Set the DBND Java agent `jar` which will be used to track a Java application, located on the local machine
+- `databricks_dbnd_java_agent` - Set the DBND Java agent `jar` which will be used to track a Java application, located on remote machine.
+- `track_airflow_execute_result` - Enable saving the results of tracked Airflow operators.
+- `track_xcom_values` - Enable logging the values of xcom variables from airflow.
+- `max_xcom_length` - Set the number of xcom values to track, per operator.
+- `af_with_monitor` - Activate when airflow monitor is not in use.
+- `sql_reporting` - Enable targets reporting from SQL queries.
+
 
 ## Databand Monitor DAG Memory Guard
 When running the monitor DAG, it automatically limits the amount of memory it can consume. The default value is 8GB. If the monitor consumes more memory than the guard allows for any reason, it will automatically stop itself.

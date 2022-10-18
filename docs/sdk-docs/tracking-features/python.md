@@ -30,7 +30,7 @@ Make sure you DBND is connected to your Databand service (see [Connecting DBND t
 
 ## Tracking Functions with Decorators
 For a better visibility, you can also annotate your function with a decorator.
-Below is an example in a Python function, though decorators for [Java and Scala](doc:JVM) functions are supported as well.
+Below is an example in a Python function, though decorators for [Java and Scala](doc:jvm) functions are supported as well.
 
 ```python
 from dbnd import task

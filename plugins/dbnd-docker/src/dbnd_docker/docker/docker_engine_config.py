@@ -38,7 +38,7 @@ class DockerEngineConfig(ContainerEngineConfig):
 
     cpus = parameter(
         description="""Number of CPUs to assign to the container.
-                  This value gets multiplied with 1024. See
+                  This value gets multiplied by 1024. See
                   https://docs.docker.com/engine/reference/run/#cpu-share-constraint"""
     ).value(1.0)
 
@@ -101,7 +101,7 @@ class DockerEngineConfig(ContainerEngineConfig):
     shm_size = parameter(
         description="Size of ``/dev/shm`` in bytes. "
         "The size must be greater than 0. "
-        "If omitted uses system default."
+        "If omitted uses the system default."
     ).none[int]
 
     # xcom_all = parameter(description="Push all the stdout or just the last line. The default is False (last line).")

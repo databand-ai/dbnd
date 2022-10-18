@@ -11,11 +11,13 @@ class AirflowMonitorConfig(BaseMonitorConfig):
     # Used by db fetcher
     local_dag_folder = parameter(default=None)[str]
 
-    sql_alchemy_conn = parameter(default=None, description="db url", hidden=True)[str]
+    sql_alchemy_conn = parameter(
+        default=None, description="Set which database URL will be used.", hidden=True
+    )[str]
 
     rbac_username = parameter(
         default={},
-        description="Username credentials to use when monitoring airflow with rbac enabled",
+        description="Set which username credentials will be used when monitoring airflow with rbac enabled.",
     )[str]
 
     syncer_name = parameter(default=None)[str]
@@ -26,12 +28,13 @@ class AirflowMonitorConfig(BaseMonitorConfig):
 
     rbac_password = parameter(
         default={},
-        description="Password credentials to use when monitoring airflow with rbac enabled",
+        description="Set which password credentials will be used when monitoring airflow with rbac enabled.",
     )[str]
 
     # Used by file fetcher
     json_file_path = parameter(
-        default=None, description="A json file to be read ExportData information from"
+        default=None,
+        description="Set the path to the JSON file from which ExportData information will be read.",
     )[str]
 
     fetcher = parameter(default=None)[str]

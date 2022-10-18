@@ -16,13 +16,12 @@ pip install databand[mlflow]
 ```ini
 
 [mlflow_tracking]
-# Enable tracking to Databand store
+# Enable tracking of MLFlow metrics to Databand store.
 databand_tracking=True
 
 # Optionally, define a URI for mlflow store; mlflow.get_tracking_uri() is used by default
 duplicate_tracking_to=http://mlflow-store/
 ```
-
 
 
 ## Task Example

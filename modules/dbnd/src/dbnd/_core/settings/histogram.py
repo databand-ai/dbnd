@@ -9,14 +9,15 @@ class HistogramConfig(Config):
 
     spark_parquet_cache_dir = parameter(
         default=None,
-        description="Enables pre-cache DF using .parquet store at `spark_temp_dir`",
+        description="Enables pre-caching of DataFrames using .parquet store at `spark_temp_dir`",
     )[str]
 
     spark_cache_dataframe = parameter(
-        default=False, description="Enables caching of the whole frame"
+        default=False,
+        description="Determine whether to cache the whole DataFrame or not.",
     )[bool]
 
     spark_cache_dataframe_column = parameter(
         default=True,
-        description="Enables caching of the numerical df during histogram calculation",
+        description="Enable caching of the numerical DataFrame during histogram calculation.",
     )[str]

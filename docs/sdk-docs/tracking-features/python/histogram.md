@@ -38,6 +38,12 @@ The following options are available for both `with_histogram` and `with_stats` p
   * Add the following line to your task code:
 `log_dataframe (with_histograms=True)`
 
+
+## `[histogram]` Configuration Section Parameter Reference
+- `spark_parquet_cache_dir` - Enables pre-caching of DataFrames using .parquet store at `spark_temp_dir`
+- `spark_cache_dataframe` - Determine whether to cache the whole DataFrame or not.
+- `spark_cache_dataframe_column` - Enable caching of the numerical DataFrame during histogram calculation.
+
 [block:html]
 {
   "html": "<style>\n  pre {\n      border: 0.2px solid #ddd;\n      border-left: 3px solid #c796ff;\n      color: #0061a6;\n  }\n\n.CodeTabs_initial{\n  /* box shadows with with legacy browser support - just in case */\n    -webkit-box-shadow: 0 10px 6px -6px #777; /* for Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */\n     -moz-box-shadow: 0 10px 6px -6px #777; /* for Firefox 3.5 - 3.6 */\n          box-shadow: 0 10px 6px -6px #777;/* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */\n  }\n</style>"

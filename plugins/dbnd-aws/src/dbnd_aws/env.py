@@ -14,18 +14,18 @@ class AwsEnvConfig(EnvConfig):
     _conf__task_family = CloudType.aws
 
     conn_id = parameter(
-        description="connection id of AWS credentials / region name. "
-        "If None,credential boto3 strategy will be used "
+        description="Set the connection id of AWS credentials / region name. "
+        "If this is set to `None`,credential boto3 strategy will be used "
         "(http://boto3.readthedocs.io/en/latest/guide/configuration.html)."
     ).value("aws_default")
 
     region_name = parameter(
-        description="region name to use in AWS Hook. "
+        description="Set the region name to use in AWS Hook. "
         "Override the region_name in connection (if provided)"
     ).none[str]
 
     update_env_with_boto_creds = parameter(
-        description="Update environment of the current process with boto credentials, "
+        description="Update the environment of the current process with boto credentials, "
         "so third party libraries like pandas can access s3."
     ).value(False)
 

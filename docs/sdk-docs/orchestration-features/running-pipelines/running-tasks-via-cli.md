@@ -28,7 +28,7 @@ To display arguments for any DBND command, use the `--help` argument.
 | -r, --set-root | Sets a main task parameter value without specifying task name. Allows to override specific parameters. | `dbnd run calculate_alpha --set-root alpha=0.5`   In this example, **alpha** is overridden. |
 | -o, --override | Overrides a configuration value (key=value). Has higher priority than any config source. |  |
 | --conf | Defines a list of files to read from. |  |
-| -m, --module | [Loads modules dynamically](doc:unpublished-cli-commands-reference). Allows to add a path of a module where DBND can search for tasks/pipelines. | `dbnd run dbnd_sanity_check --module /path/to/module.py` |
+| -m, --module | Loads modules dynamically. Allows to add a path of a module where DBND can search for tasks/pipelines. | `dbnd run dbnd_sanity_check --module /path/to/module.py` |
 | -v, --verbose | Makes the logging output more verbose. |  |
 | --describe | Describes the current run. |  |
 | --env | Task environment: local/aws/aws_prod/gcp/prod  [default: local] |  |

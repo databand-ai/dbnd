@@ -15,7 +15,7 @@ The sections below describe different options available for tracking pipeline me
 
 ## Logging Metrics
 
-You can log any custom metrics that are important for pipeline and data observability. Examples include custom metrics for data quality information, like data counts or null counts, and custom KPIs particular to your data. 
+You can log any custom metrics that are important for pipeline and data observability. Examples include custom metrics for data quality information, like data counts or null counts, and custom KPIs particular to your data.
 
 To enable logging of strings and numeric values, use the `ai.databand.log.DbndLogger.logMetric()` method:
 `DbndLogger.logMetric("data", data);`
@@ -40,12 +40,12 @@ object ScalaSparkPipeline {
     // task 3
     val report = createReport(clean)
   }
-    
+
   @Task
   protected def unitImputation(rawData: DataFrame, columnsToImpute: Array[String], value: Int): DataFrame = {
     // ...
   }
-  
+
   @Task
   protected def dedupRecords(data: Dataset[Row], keyColumns: Array[String]): DataFrame = {
     // ...
@@ -91,7 +91,7 @@ public class ProcessDataSpark {
 }
 ```
 
-To use annotations and track the flow of tasks with annotations, the Databand Java agent instruments your application and should be included in the application startup script. See [Installing JVM SDK and Agent](doc:installing-jvm-dbnd)  and [Installing DBND on Spark Cluster](doc:installing-dbnd-on-spark-cluster) . 
+To use annotations and track the flow of tasks with annotations, the Databand Java agent instruments your application and should be included in the application startup script. See [Installing JVM SDK and Agent](doc:installing-jvm-dbnd)  and [Installing DBND on Spark Cluster](doc:installing-dbnd-on-spark-cluster) .
 
 Your job has been submitted with the following parameter:
 ``` bash
@@ -112,7 +112,7 @@ import ai.databand.log.DbndLogger;
         Dataset<Row> data = sql.read().json(path);
         // 1. Track simple:
         DbndLogger.logDatasetOperation(path, DatasetOperationType.READ, data);
-        
+
         //2. Track passed/failed operation with error details:
         try {
           ...
@@ -121,14 +121,14 @@ import ai.databand.log.DbndLogger;
           case e: Exception =>
             DbndLogger.logDatasetOperation(path, DatasetOperationType.READ, DatasetOperationStatus.NOK, data, e)
         }
-        
+
         //3. Track failed operation:
         DbndLogger.logDatasetOperation(path, DatasetOperationType.READ, DatasetOperationStatus.NOK, data)
-       
+
         // track without preview/schema:
         DbndLogger.logDatasetOperation(path, DatasetOperationType.READ, DatasetOperationStatus.OK, data, false, false);
     }
-         
+
 //...
 ```
 
@@ -136,7 +136,7 @@ For more details, see [Dataset Logging](doc:dataset-logging).
 
 ## Job Logging
 
-Databand support logs limit and head/tail logging. [Following properties](doc:jvm-sdk-configuration)  are responsible for controlling it:
+Databand support logs limit and head/tail logging. Following properties  are responsible for controlling it:
 
 * `DBND__LOG__PREVIEW_HEAD_BYTES` specifies how many bytes should be fetched from log head
 * `DBND__LOG__PREVIEW_TAIL_BYTES` specifies how many bytes should be fetched from log tail
@@ -144,9 +144,9 @@ Databand support logs limit and head/tail logging. [Following properties](doc:jv
 
 ##Enabling Tracking Spark metrics and I/O
 
-Databand can capture [Spark Executor metrics](https://spark.apache.org/docs/latest/monitoring.html#executor-task-metrics), and any I/O operation by your spark code. Please check [Tracking Spark/JVM Applications](doc:tracking-spark-applications#automatic-tracking-of-spark-metrics-and-io-via-dbnd-listeners) for more information. 
+Databand can capture [Spark Executor metrics](https://spark.apache.org/docs/latest/monitoring.html#executor-task-metrics), and any I/O operation by your spark code. Please check [Tracking Spark/JVM Applications](doc:tracking-spark-applications#automatic-tracking-of-spark-metrics-and-io-via-dbnd-listeners) for more information.
 
-These listeners can be enabled via [configuration](doc:installing-jvm-dbnd) . We suggest you use this method. 
+These listeners can be enabled via [configuration](doc:installing-jvm-dbnd) . We suggest you use this method.
 
 For trying out this feature you can add it programmatically to your spark application. Add the Databand Spark Listener to your Spark context:
 ```scala
@@ -226,7 +226,7 @@ dependencies {
 Databand utilizes a custom MetricsRepository and DbndResultKey. You need to explicitly add both to the code:
 ```scala
 import ai.databand.deequ.DbndMetricsRepository
-  
+
 @Task
 protected def dedupRecords(data: Dataset[Row], keyColumns: Array[String]): Dataset[Row] = {
     val dedupedData = data.dropDuplicates(keyColumns)
@@ -252,7 +252,7 @@ protected def dedupRecords(data: Dataset[Row], keyColumns: Array[String]): Datas
         .saveOrAppendResult(new DbndResultKey("dedupedData"))
         .run()
 }
-  
+
 ```
 
 If you already use a metrics repository, you can wrap it inside Databand's `new DbndMetricsRepository(new InMemoryMetricsRepository)`. Databand will first submit the metrics to the wrapped repository and to the Databand tracker afterward.
@@ -260,7 +260,7 @@ If you already use a metrics repository, you can wrap it inside Databand's `new 
 To distinguish metric keys, you should use a special `DbndResultKey`. We recommend giving your checks/profiles names that will allow you to clearly distinguish them in the Databand's monitoring UI.
 
 ### A Note on Scala/Spark Compatibility
-Databand library is Scala/Spark-agnostic and can be used with any combination of Scala/Spark. However, the Deequ version should be selected carefully to match your needs. Please refer to [Deequ docs](https://github.com/awslabs/deequ) and select the exact version from the list of [available versions](https://repo1.maven.org/maven2/com/amazon/deequ/deequ/). 
+Databand library is Scala/Spark-agnostic and can be used with any combination of Scala/Spark. However, the Deequ version should be selected carefully to match your needs. Please refer to [Deequ docs](https://github.com/awslabs/deequ) and select the exact version from the list of [available versions](https://repo1.maven.org/maven2/com/amazon/deequ/deequ/).
 
 [block:html]
 {

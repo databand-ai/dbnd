@@ -98,41 +98,63 @@ class PodRetryConfiguration(object):
 class KubernetesEngineConfig(ContainerEngineConfig):
     _conf__task_family = "kubernetes"
 
-    cluster_context = parameter.none().help("Kubernetes cluster context")[str]
-    config_file = parameter.none().help("Custom Kubernetes config file")[str]
+    cluster_context = parameter.none().help(
+        "The Kubernetes context; you can check which context you are on by using `kubectl config get-contexts`."
+    )[str]
+    config_file = parameter.none().help("Custom Kubernetes config file.")[str]
 
     in_cluster = parameter(default=None).help(
-        "If None, we set it dynamically, according to where we run."
+        "Defines what Kubernetes configuration is used for the Kube client."
+        "Use `false` to enforce using local credentials, or `true` to enforce the `in_cluster` mode."
+        "Default: `None` (Databand will automatically decide what mode to use)."
     )[bool]
 
     image_pull_policy = parameter.value(
         "IfNotPresent", description="Kubernetes image_pull_policy flag"
     )
 
-    image_pull_secrets = parameter.none().help("Secret to use for image pull")[str]
+    image_pull_secrets = parameter.none().help(
+        "The secret with the connection information for the `container_repository`."
+    )[str]
     keep_finished_pods = parameter(default=False).help(
         "Don't delete pods on completion"
     )[bool]
-    keep_failed_pods = parameter(default=False).help("Don't delete failed pods")[bool]
+    keep_failed_pods = parameter(default=False).help(
+        "Don't delete failed pods. You can use it if you need to debug the system."
+    )[bool]
 
-    namespace = parameter(default="default")[str]
+    namespace = parameter(default="default").help(
+        "The namespace in which Databand is installed inside the cluster (`databand` in this case)."
+    )[str]
     secrets = parameter(empty_default=True).help(
         "User secrets to be added to every created pod"
     )[List]
     system_secrets = parameter(empty_default=True).help(
         "System secrets (used by Databand Framework)"
     )[List]
-    env_vars = parameter(empty_default=True)[Dict]
+    env_vars = parameter(empty_default=True).help(
+        "Assign environment variables to the pod."
+    )[Dict]
 
-    node_selectors = parameter(empty_default=True)[Dict]
-    annotations = parameter(empty_default=True)[Dict]
+    node_selectors = parameter(empty_default=True).help(
+        "Assign `nodeSelector` to the pods (see [Assigning Pods to Nodes](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/))"
+    )[Dict]
+    annotations = parameter(empty_default=True).help(
+        "Assign annotations to the pod (see [Annotations](https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/))"
+    )[Dict]
     pods_creation_batch_size = parameter.value(10)[int]
-    service_account_name = parameter.none()[str]
+    service_account_name = parameter.none().help(
+        "You need permissions to create pods for tasks, namely -  you need to have a `service_account` with the correct permissions."
+    )[str]
     gcp_service_account_keys = parameter.none()[
         str
     ]  # it's actually dict, but KubeConf expects str
-    affinity = parameter(empty_default=True)[Dict]
-    tolerations = parameter(empty_default=True)[List]
+    affinity = parameter(empty_default=True).help(
+        "Assign `affinity` to the pods (see [Assigning Pods to Nodes](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/))"
+    )[Dict]
+    tolerations = parameter(empty_default=True).help(
+        "Assign tolerations to the pod (see [Taints and Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/))"
+    )[List]
 
     hostnetwork = parameter.value(False)
     configmaps = parameter(empty_default=True)[List[str]]
@@ -140,18 +162,24 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     volumes = parameter.none()[List[str]]
     volume_mounts = parameter.none()[List[str]]
     security_context = parameter.none()[List[str]]
-    labels = parameter.none()[Dict]
+    labels = parameter.none().help(
+        "Set a list of pods' labels (see [Labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/))"
+    )[Dict]
 
     request_memory = parameter.none()[str]
     request_cpu = parameter.none()[str]
     limit_memory = parameter.none()[str]
     limit_cpu = parameter.none()[str]
 
-    requests = parameter.none()[Dict]
-    limits = parameter.none()[Dict]
+    requests = parameter.none().help(
+        "Setting the requests for the pod can be achieved by setting this. You can provide a standard Kubernetes Dict, however, you can also use explicit keys like `request_memory` or `request_cpu`"
+    )[Dict]
+    limits = parameter.none().help(
+        "Setting the limits for the pod can be achieved by setting this. You can provide a standard Kubernetes Dict, however, you can also use explicit keys like `limit_memory` or `limit_cpu`"
+    )[Dict]
 
     pod_error_cfg_source_dict = parameter(
-        description="Values for pod error handling configuration"
+        description='Allows flexibility of sending retry on pods that have failed with specific exit codes.  You can provide "PROCESS EXIT CODE" as a key (for example, `137`) or Kubernetes error string.'
     )[Dict]
 
     pod_default_retry_delay = parameter(
@@ -168,13 +196,13 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         "When using this engine as the task_engine, run tasks sequentially and stream their logs"
     )[bool]
     debug = parameter(default=False).help(
-        "Equalent to show_pod_log=True + show all debug information"
+        "When true, displays all pod requests sent to Kubernetes and more useful debugging data."
     )[bool]
     debug_with_command = parameter(default="").help(
         "Use this command as a pod command instead of the original, can help debug complicated issues"
     )[str]
     debug_phase = parameter(default="").help(
-        "Debug mode for speicific phase of pod events. All these events will be printed with the full response from k8s"
+        "Debug mode for specific phase of pod events. All these events will be printed with the full response from k8s"
     )[str]
 
     prefix_remote_log = parameter(default=True).help(
@@ -190,11 +218,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         "Try to detect running pod issues like failed ContainersReady condition (pod is deleted)"
     )
     check_cluster_resource_capacity = parameter(default=True).help(
-        "When a pod can't be scheduled due to cpu or memory constraints, check if the constraints are possible to satisfy in the cluster"
+        "When a pod can't be scheduled due to CPU or memory constraints, check if the constraints are possible to satisfy in the cluster"
     )
 
     startup_timeout = parameter(default="10m").help(
-        "Time to wait for pod getting into Running state"
+        "Time to wait for the pod to get into the Running state"
     )[datetime.timedelta]
 
     max_retries_on_log_stream_failure = parameter(default=50).help(
@@ -210,16 +238,16 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     ]
 
     pod_yaml = parameter(default="${DBND_LIB}/conf/kubernetes-pod.yaml").help(
-        "Base yaml to use to run databand task/driver"
+        "Base YAML to use to run databand task/driver"
     )[str]
 
     trap_exit_file_flag = parameter(default=None).help("trap exit file")[str]
     auto_remove = parameter(
         default=False,
-        description="Auto-removal of the pod when container has finished.",
+        description="Auto-removal of the pod when the container has finished.",
     )[bool]
     detach_run = parameter(
-        default=False, description="Submit run only, do not wait for it completion."
+        default=False, description="Submit run only, do not wait for its completion."
     )[bool]
 
     watcher_request_timeout_seconds = parameter(
@@ -241,7 +269,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     log_pod_events_on_sigterm = parameter(
         default=False,
-        description="When receiving sigterm log current pod state to debug why the pod was terminated",
+        description="When receiving sigterm log the current pod state to debug why the pod was terminated",
     )
 
     pending_zombies_timeout = parameter(
@@ -270,13 +298,13 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     )[bool]
     airflow_log_image = parameter(
         default=None,
-        description="Overrider the image that will be used to add sidecar to the run which will expose the live "
-        "logs of the run. By default the main container image will be used",
+        description="Override the image that will be used to add sidecar to the run which will expose the live "
+        "logs of the run. By default, the main container image will be used",
     )[str]
     airflow_log_folder = parameter(
         default="/usr/local/airflow/logs",
         description="Specify the location on the airflow image (sidecar), where we mount the logs from the original"
-        " container and expose them to airflow ui.",
+        " container and expose them to airflow UI.",
     )[str]
     airflow_log_port = parameter(
         default="8793",
@@ -295,9 +323,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     )
     host_as_ip_for_live_logs = parameter(
         default=True,
-        description="Set the host of the pod to be the ip address of the pod."
-        "In kubernetes normally, only Services get DNS names, not Pods."
-        "We use the ip for airflow webserver to lookup the sidecar See more here: https://stackoverflow.com/a/59262628",
+        description="Set the host of the pod to be the IP address of the pod. "
+        "In Kubernetes normally, only Services get DNS names, not Pods. "
+        "We use the IP for airflow webserver to lookup the sidecar See more here: https://stackoverflow.com/a/59262628",
     )
 
     def _initialize(self):

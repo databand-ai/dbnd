@@ -11,6 +11,17 @@ You can use this mode when you don't want to manage your DAGs via DAG python fil
 [scheduler]
 config_file=YOUR_DAGS_FILE.yaml
 ```
+
+## `[scheduler]` Configuration Section Parameter Reference
+- `config_file` - Set a path to the file defining scheduled jobs to execute.
+- `never_file_sync` - Disable syncing the scheduler config_file to the database.
+- `always_file_sync` - Enable forcibly syncing the scheduler config_file to the database.
+- `no_ui_cli_edit` - Disable creating, editing, and deleting scheduled jobs from the CLI and UI. Scheduled job definitions will only be taken from the scheduler config file.
+- `refresh_interval` - Set the interval to refresh the scheduled job list from the db and/or a config file
+- `active_by_default` - Determine whether new scheduled jobs will be activated by default.
+- `default_retries` - Set the number of times to retry a failed run, unless set to a different value on the scheduled job
+- `shell_cmd` - If shell_cmd is True, the specified command will be executed through the shell. This can be useful if you are using Python primarily for the enhanced control flow it offers over most system shells and still want convenient access to other shell features such as shell pipes, filename wildcards, environment variable expansion, and expansion of ~ to a user's home directory.
+
 2. You need to add the following code to your DAGs. Folder
 
 <!-- noqa -->

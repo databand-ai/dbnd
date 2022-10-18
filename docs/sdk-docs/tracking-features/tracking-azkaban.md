@@ -7,14 +7,14 @@ Databand provides integration with [Azkaban Workflow Manager](https://azkaban.gi
 
 To enable integration, Databand Agent should be added to Azkaban:
 
-1. Obtain Databand Access Token as described in section [Databand Access Tokens](https://docs.databand.ai/docs/getting-started-with-databand-cloud#databand-access-tokens)
+1. Obtain Databand Access Token as described in section [Databand Access Tokens](doc:access-token)
 
 2. Download the Java agent library using the following [Installing JVM DBND Library and Agent](doc:installing-jvm-dbnd#dbnd-jvm-agent).
 
 3. Add the Java agent to the Azkaban startup params:
 `-javaagent:/<path-to-agent>/dbnd-azkaban-agent-0.xx.x-all.jar`.
 
-4. Setup Azkaban environment variables: 
+4. Setup Azkaban environment variables:
 ``` bash
 DBND__CORE__DATABAND_URL=URL_TO_DATABAND_SERVICE
 DBND__CORE__DATABAND_ACCESS_TOKEN=PERSONAL_ACCESS_TOKEN
@@ -31,7 +31,7 @@ DBND__LOG__PREVIEW_TAIL_BYTES=1048576
 
 2. Update the Java agent version at the Azkaban startup params:
 `-javaagent:/<path-to-agent>/dbnd-azkaban-agent-0.xx.x-all.jar`.
- 
+
 3. Restart the Azkaban instance so it will run with the Databand Agent enabled. You should see messages like `Starting Databand v0.xx.x for Azkaban!` in the server logs.
 
 [optional] You can remove the old `dbnd-azkaban-agent-0.xx.x-all.jar`
@@ -51,7 +51,7 @@ To enable integration, Databand Event reporter should be added to Azkaban
 4. Set up Databand url as mentioned in section "Step 4: Set Up the Databand Tracker URL and Configure Tracking"
 
 
-## Azkaban Tracking Configuration 
+## Azkaban Tracking Configuration
 Following configuration properties are supported as a part of Azkaban integration. These properties should be set on Azkaban instance and can not be passed as a part of Spark job.
 
 | Variable | Description |

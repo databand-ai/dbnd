@@ -26,72 +26,81 @@ class LoggingConfig(config.Config):
     """Databand's logger configuration"""
 
     _conf__task_family = "log"
-    disabled = parameter(description="Should logging be disabled").value(False)
+    disabled = parameter(
+        description="Determine whether logging should be disabled."
+    ).value(False)
     debug_log_config = parameter(
-        description="Debug our logging configuration system"
+        description="Enable debugging our logging configuration system."
     ).value(False)
 
     capture_stdout_stderr = parameter(
-        description="Should logger retransmit all output wrtten to stdout/stderr"
+        description="Set if logger should retransmit all output written to stdout or stderr"
     ).value(True)
-    capture_task_run_log = parameter.help("Capture task output into log").value(True)
+    capture_task_run_log = parameter.help(
+        "Enable capturing task output into log."
+    ).value(True)
 
     override_airflow_logging_on_task_run = parameter(
-        description="Replace airflow logger with databand logger"
+        description="Enable replacing airflow logger with databand logger."
     ).value(True)
     support_jupyter = parameter(
-        description="Support logging output to Jupiter UI"
+        description="Support logging output to Jupiter UI."
     ).value(False)
 
-    level = parameter(description="Logging level. DEBUG/INFO/WARN/ERROR").value("INFO")
+    level = parameter(
+        description="Set which logging level will be used. This could be DEBUG, INFO, WARN, or ERROR"
+    ).value("INFO")
     formatter = parameter(
-        description="Log formatting string (logging library convention)"
+        description="Set the log formatting string, using the logging library convention."
     )[str]
     formatter_colorlog = parameter(
-        description="Log formatting string (logging library convention)"
+        description="Set the log formatting string, using the logging library convention."
     )[str]
     formatter_simple = parameter(
-        description="Log formatting string (logging library convention)"
+        description="Set the log formatting string, using the logging library convention."
     )[str]
 
     console_formatter_name = parameter(
-        description="The name of the formatter logging to console output"
+        description="Set the name of the formatter logging to console output."
     )[str]
     file_formatter_name = parameter(
-        description="The name of the formatter logging to file output"
+        description="Set the name of the formatter logging to file output."
     )[str]
 
     # sentry config
     sentry_url = parameter(
         default=None,
-        description="URL for setting up sentry logger. Notice - make sure the url is exposed to dbnd run environment",
+        description="Set the URL for setting up sentry logger. Make sure the url is exposed to dbnd run environment",
     )[str]
-    sentry_env = parameter(default="dev", description="Environment for sentry logger")[
-        str
-    ]
+    sentry_env = parameter(
+        default="dev", description="Set the environment for sentry logger."
+    )[str]
     sentry_release = parameter(default="", description="Release for sentry logger")[str]
-    sentry_debug = parameter(default=False, description="Unable debug flag for sentry")[
+    sentry_debug = parameter(default=False, description="Enable debug flag for sentry")[
         bool
     ]
 
-    file_log = parameter(default=None, description="Log to file (off by default)")[str]
+    file_log = parameter(
+        default=None,
+        description="Determine whether logger should log to a file. This is off by default",
+    )[str]
 
     stream_stdout = parameter(
-        description="Should databand'a logger stream stdout instead of stderr"
+        description="Should Databand's logger stream stdout instead of stderr."
     ).value(False)
 
     custom_dict_config = parameter(
-        default=None, description="Advanced: Customized logging configuration"
+        default=None, description="Set customized logging configuration."
     )[Callable]
 
-    at_warn = parameter.help("name of loggers to put in WARNING mode").c[List[str]]
-    at_debug = parameter.help("name of loggers to put in DEBUG mode").c[List[str]]
+    at_warn = parameter.help("Set name of loggers to put in WARNING mode.").c[List[str]]
+    at_debug = parameter.help("Set name of loggers to put in DEBUG mode.").c[List[str]]
 
     exception_no_color = parameter(
-        default=False, description="Do not use colors in exception handling"
+        default=False, description="Disable using colors in exception handling."
     )[bool]
     exception_simple = parameter(
-        default=False, description="Simple mode of exception handling"
+        default=False, description="Use simple mode of exception handling"
     )[bool]
 
     send_body_to_server = parameter(
@@ -100,29 +109,31 @@ class LoggingConfig(config.Config):
 
     preview_head_bytes = parameter(
         default=0,  # Disabled
-        description="Max head size of the log file, bytes to be sent to server.\n"
-        "Default: 0KB.",
+        description="Determine the maximum head size of the log file, bytes to be sent to server.\n"
+        " The default value is 0 Kilobytes.",
     )[int]
 
     preview_tail_bytes = parameter(
         default=0,  # Disabled
-        description="Max tail size of the log file, bytes to be sent to server.\n"
-        "Default: 0KB.",
+        description="Determine the maximum tail size of the log file, bytes to be sent to server.\n"
+        " The default value is 0 Kilobytes",
     )[int]
 
     remote_logging_disabled = parameter.help(
-        "for tasks using a cloud environment, don't copy the task log to cloud storage"
+        "For tasks using a cloud environment, don't copy the task log to cloud storage."
     ).value(False)
 
     targets_log_level = parameter(
         default="DEBUG",
-        description="Should log the time it takes for marshalling and unmarshalling targets",
+        description="Should log the time it takes for marshalling and unmarshalling targets.",
     )[str]
 
-    disable_colors = parameter(default=False, description="Disabling any colored logs.")
+    disable_colors = parameter(default=False, description="Disable any colored logs.")
 
-    sqlalchemy_print = parameter(description="enable sqlalchemy logger").value(False)
-    sqlalchemy_trace = parameter(description="trace sqlalchemy queries").value(False)
+    sqlalchemy_print = parameter(description="Enable sqlalchemy logger.").value(False)
+    sqlalchemy_trace = parameter(
+        description="Enable tracing sqlalchemy queries."
+    ).value(False)
 
     def _initialize(self):
         super(LoggingConfig, self)._initialize()

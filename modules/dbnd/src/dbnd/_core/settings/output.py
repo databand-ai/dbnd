@@ -15,20 +15,20 @@ class OutputConfig(Config):
 
     _conf__task_family = "output"
 
-    path_task = parameter(description="default path for every Task")[str]
+    path_task = parameter(description="Set the default path for every Task.")[str]
     path_prod_immutable_task = parameter(
-        description="format of the path to be used by Production Immutable tasks"
+        description="Set the format of the path to be used by Production Immutable tasks."
     )[str]
 
     hdf_format = (
         parameter.choices(["table", "fixed"])
-        .help("Default format to save DataFrame to hdf")
+        .help("Determine default format to save DataFrame to hdf.")
         .value("fixed")
     )
 
     deploy_id = parameter(
         default=VersionAlias.context_uid,
-        description="deploy prefix to use for remote deployments",
+        description="Set deploy prefix to use for remote deployments.",
     )[VersionStr]
 
     def get_value_target_config(self, value_type):

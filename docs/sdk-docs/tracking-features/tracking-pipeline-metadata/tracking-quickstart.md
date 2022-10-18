@@ -198,7 +198,7 @@ if __name__ == '__main__':
 DBND’s `log_metric` function can handle a variety of data types and data structures. In this case, you are logging a `float` for the model's intercept and a `numpy array` for the model's coefficients. After testing our model, you also log pertinent performance metrics such as the mean squared error and R2 score in the same manner.
 
 > ℹ️**Tracking Functions**
-> DBND allows you to track functions from different file locations. Visit [Tracking Functions](https://docs.databand.ai/docs/functions#tracking-functions-with-decorators) for more information.
+> DBND allows you to track functions from different file locations. Visit [Tracking Functions](doc:python) for more information.
 # Step 3. Running the Script
 
 Before running the script, you need to enable tracking of Python scripts by exporting the `DBND__TRACKING` environment variable:
@@ -260,7 +260,7 @@ INFO  linear_regression.py__d98fd8fb0a -
 ```
 
 > ℹ️ **Enabling Tracking**
-> For more details on how to enable tracking, visit the [Tracking Python Scripts](https://docs.databand.ai/docs/python-scripts) page.
+> For more details on how to enable tracking, visit the [Tracking Python Scripts](doc:python) page.
 
 [block:html]
 {

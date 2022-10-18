@@ -12,6 +12,14 @@ enable_spark_context_inplace = True
 ```
 or set `DBND__SPARK_LOCAL__ENABLE_SPARK_CONTEXT_INPLACE` to `True`
 or use context `with config({SparkLocalEngineConfig.enable_spark_context_inplace: True})`
+
+## `[spark_local]` Configuration Section Parameter Reference
+- `root` - Data outputs location override
+- `disable_task_band` - Disable task_band file creation
+- `conn_id` - Set the local spark connection settings (SPARK_HOME)
+- `enable_spark_context_inplace` - Disable spawning a new spark, use in memory.
+- `conn_uri` - Set Airflow connection URI to be used.
+
 ** Running Spark Job with Debugger **
 
 ```python

@@ -3,7 +3,7 @@
 ---
 Live logs (or ‘active logs’) is a Kubernetes-specific feature in Databand that allows you to view the Airflow live logs before the Run is finished. Standard Airflow Kubernetes Executor doesn't support log access side-car. After enabling this feature, you’ll be able to see the logs for specific tasks of the Run in the Airflow webserver.
 
-To find the link to your Airflow task  live logs, use the button in the Databand web UI: Run > Detailed view of a Run > specific Task that is running. There you should be able to see logs from the container that is running. 
+To find the link to your Airflow task  live logs, use the button in the Databand web UI: Run > Detailed view of a Run > specific Task that is running. There you should be able to see logs from the container that is running.
 
 ![Live logs k8 document](https://files.readme.io/dc34c7c-Live-logs-k8-document.png)
 
@@ -12,22 +12,22 @@ To find the link to your Airflow task  live logs, use the button in the Databand
 
 ## Enabling Live Logs for Kubernetes
 
-To enable live logs, you will need to enable it in your [Kubernetes Engine Configuration](doc:kubernetes-engine-configuration)  via 
+To enable live logs, you will need to enable it in your [Kubernetes Engine Configuration](doc:kubernetes-engine-configuration)  via
 ```
 [kubernetes]
 airflow_log_enabled = True
 ```
 
 
-## Live Logs Parameter Description 
+## Live Logs Parameter Description
 These are the parameter descriptions that you can use for enabling and configuring live logs:
- 
+
  * `airflow_log_image` - specifies the Airflow image that will be used to add a sidecar to the Run which will expose the live logs of the Run. Airflow will reach the service running on this sidecar and take the logs from it. Put differently, this image contains a sort of API for the Airflow web server to receive and display the logs. This should be an image that has airflow installed and available via `airflow` command. Usually, the image that is used to run Databand task inside Kubernetes pod has those capabilities. So the default value is going to be aligned with your main pod image ( `container_repository`:`container_tag`). However, if for some reason, the image doesn't have that support, you take vanilla Apache Airflow image like `apache/airflow:1.10.10-python3.7`
 
 * **trap\_exit\_ file: `kubernetes.trap_exit_file_flag`**
 This file signals to Databand when the original container (the base container) finishes its Run. This is when the sidecar should finish running, too.  For example, you can use: `/tmp/pod/terminated`
 
-* `airflow_log_folder` - specifies the location in the Airflow image (sidecar), where the logs from the original container are mounted and expose them to the Airflow UI. 
+* `airflow_log_folder` - specifies the location in the Airflow image (sidecar), where the logs from the original container are mounted and expose them to the Airflow UI.
 Default parameter: `/usr/local/airflow/logs`.
 
 * `airflow_log_port`- the port Airflow live log sidecar will expose its service. This port should match the port Airflow webserver tries to access the live logs.
@@ -50,3 +50,21 @@ trap_exit_file_flag=/tmp/pod/terminated
 In case you have a problem with seeing Live Logs at Airflow, please run `dbnd` with extra switch `--set log.debug_log_config=True`. That will enable debug mode for our logging system, so the reason for the failure might be found.
 
 Make sure you have a correct value of `[airflow]webserver_url` in your databand configuration. This will be used as a base URL for the generated Log link
+
+### `[airflow]` Configuration Section Parameter Reference
+- `enable_dbnd_context_vars` - Enable extended airflow context variables, including dbnd information.
+- `enable_windows_support` - Enable patch of all windows non-compatible calls at airflow.
+- `webserver_url` - Set the URL of airflow webserver to be used by local runs.
+- `optimize_airflow_db_access` - Enable all Airflow database access optimizations.
+- `dbnd_pool` - Separate pool for Databand tasks.
+- `disable_db_ping_on_connect` - Optimize DB access performance by disabling standard airflow ping on every sqlalchmey connection initialization.
+- `disable_dag_concurrency_rules` - Enable optimizing database access performance by disabling DAG and task concurrency checks
+- `dbnd_dag_concurrency` - Set Concurrency for dbnd ad-hoc DAGs
+- `remove_airflow_std_redirect` - Remove airflow stdout/stderr redirection into logger on DBND operator run. (redirect can cause crash due to loopback between streams)
+- `clean_zombies_during_backfill` - Launch additional job during backfill to clean up stalled tasks (zombies).
+- `clean_zombie_task_instances` - Mark all zombie task_instances of the current run as FAILED (or UP_FOR_RETRY).
+- `auto_add_versioned_dags` - Enable automatically adding versioned dag support to dbnd-airflow command.
+- `auto_add_scheduled_dags` - Enable automatically adding dbnd scheduled dags to airflow dags on dbnd-airflow command.
+- `auto_disable_scheduled_dags_load` - Enable automatically disabling dbnd scheduled dags load in databand cli.
+- `use_connections` - Use the airflow connection to connect to a cloud environment in databand targets, e.g. `s3://..`, `gcp://..`
+

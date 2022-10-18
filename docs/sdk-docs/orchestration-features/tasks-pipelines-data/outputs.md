@@ -113,6 +113,13 @@ For example, running `prepare_data` task on the same data set from 4th of August
 -   The task output (i.e., the prepared data) would be stored within the `PrepareData_9574807509` directory
 -   An additional meta-directory under `PrepareData_9574807509`. DBND will use this directory to store run info metadata including metrics, git commit and other artifacts.
 
+## `[output]` Configuration Section Parameter Reference
+- `path_task` - Set the default path for every Task.
+- `path_prod_immutable_task` - Set the format of the path to be used by Production Immutable tasks.
+- `hdf_format` - Determine default format to save DataFrame to hdf.
+- `deploy_id` - Set deploy prefix to use for remote deployments.
+
+
 ## Controlling the Structure of the Output Path
 
 DBND will generate a unique output location for every output parameter based on task name, version, and environment configuration. You can affect that by changing:

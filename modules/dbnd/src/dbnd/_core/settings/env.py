@@ -19,64 +19,80 @@ class EnvConfig(Config):
     """Databand's environment configuration"""
 
     _conf__task_family = "env"
-    cloud_type = parameter(description="cloud type: gcp/aws/")[str]
+    cloud_type = parameter(
+        description="Set which cloud type is to be used. E.g. gcp, aws, etc."
+    )[str]
 
     env_label = parameter(
-        default=EnvLabel.dev, description="environment type: dev/int/prod"
+        default=EnvLabel.dev,
+        description="Set the environment type to be used. E.g. dev, int, prod.",
     )[
         str
     ]  # label
 
     production = parameter(
-        description="indicates that environment is production"
+        description="This indicates that the environment is production."
     ).value(False)
 
-    conn_id = parameter(default=None, description="cloud connection settings")[str]
+    conn_id = parameter(default=None, description="Set the cloud connection settings.")[
+        str
+    ]
 
     # MAIN OUTPUT FOLDER
-    root = parameter(description="Data outputs location").folder[DirTarget]
+    root = parameter(description="Determine the main data output location.").folder[
+        DirTarget
+    ]
 
     # DATABAND SYSTEM FOLDERS
-    dbnd_root = parameter(description="DBND system outputs location").output.folder(
-        default=None
-    )[DirTarget]
+    dbnd_root = parameter(
+        description="Determine DBND system output location."
+    ).output.folder(default=None)[DirTarget]
     dbnd_local_root = parameter(
-        description="DBND home for the local engine environment"
+        description="Set DBND home for the local engine environment."
     ).output.folder()[DirTarget]
     dbnd_data_sync_root = parameter(
-        description="Rooted directory for target syncing against remote engine"
+        description="Set rooted directory for target syncing against a remote engine."
     ).output.folder()[DirTarget]
 
     # execution
     local_engine = parameter(
-        default="local_machine_engine", description="Engine for local execution"
+        default="local_machine_engine",
+        description="Set which engine will be used for local execution",
     )[str]
     remote_engine = parameter(
-        description="Remote engine for driver/tasks execution"
+        description="Set the remote engine for the execution of driver/tasks"
     ).none[str]
 
-    submit_driver = parameter(description="Submit driver to remote_engine").none[bool]
+    submit_driver = parameter(
+        description="Enable submitting driver to `remote_engine`."
+    ).none[bool]
     submit_tasks = parameter(
-        description="Submit tasks to remote engine one by one"
+        description="Enable submitting tasks to remote engine one by one."
     ).none[bool]
 
     # properties that will affect "task-env" section
-    spark_config = task_env_param.help("Spark Configuration").value("spark")
+    spark_config = task_env_param.help(
+        "Determine the Spark Configuration settings"
+    ).value("spark")
 
     spark_engine = task_env_param.help(
-        "Cluster engine (local/emr(aws)/dataproc(gcp)/.."
+        "Set the cluster engine to be used. E.g. local, emr (aws), dataproc (gcp), etc."
     ).value("spark_local")
 
-    hdfs = task_env_param.help("Hdfs cluster config").value("hdfs_knox")
+    hdfs = task_env_param.help("Set the Hdfs cluster configuration settings").value(
+        "hdfs_knox"
+    )
 
-    beam_config = task_env_param.help("Apache Beam configuration").value("beam")
+    beam_config = task_env_param.help(
+        "Set the Apache Beam configuration settings"
+    ).value("beam")
     beam_engine = task_env_param.help(
-        "Apache Beam cluster engine (local/dataflow)"
+        "Set the Apache Beam cluster engine. E.g. local or dataflow."
     ).value(ApacheBeamClusterType.local)
 
-    docker_engine = task_env_param.help("Docker job engine (docker/aws_batch)").value(
-        "docker"
-    )
+    docker_engine = task_env_param.help(
+        "Set the Docker job engine, e.g. docker or aws_batch"
+    ).value("docker")
 
     def _initialize(self):
         super(EnvConfig, self)._initialize()

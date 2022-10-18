@@ -10,40 +10,42 @@ class LivySparkConfig(SparkEngineConfig):
     _conf__task_family = "livy"
     _conf__help_description = "livy configuration"
 
-    url = parameter(description="livy connection url (for example: http://livy:8998)")[
-        str
-    ]
+    url = parameter(
+        description="Determine livy's connection url, e.g. `http://livy:8998`"
+    )[str]
 
     auth = parameter(
-        description="livy auth , support list are None, Kerberos, Basic_Access",
+        description="Set livy auth, e.g. None, Kerberos, or Basic_Access",
         default=NO_AUTH,
     )[str]
 
-    user = parameter(description="livy auth , user", default="")[str]
+    user = parameter(description="Set livy auth user.", default="")[str]
 
-    password = parameter(description="livy auth , password", default="")[str]
+    password = parameter(description="Set livy auth password.", default="")[str]
 
-    ignore_ssl_errors = parameter(description="ignore ssl error", default=False)[bool]
+    ignore_ssl_errors = parameter(
+        description="Enable ignoring ssl errors.", default=False
+    )[bool]
 
     job_submitted_hook = parameter(
-        description="User code to run after livy batch submit (a reference to a function)"
-        "expected interface (LivySparkCtrl, Dict[str, Any]) -> None",
+        description="Set the user code to be run after livy batch submit. This is a reference to a function. "
+        "The expected interface is `(LivySparkCtrl, Dict[str, Any]) -> None`",
         default=None,
     )[str]
 
     job_status_hook = parameter(
-        description="User code to run at each livy batch status update (a reference to a function)"
-        "expected interface (LivySparkCtrl, Dict[str, Any]) -> None",
+        description="Set the user code to be run at each livy batch status update. This is a reference to a function. "
+        "The expected interface is `(LivySparkCtrl, Dict[str, Any]) -> None`",
         default=None,
     )[str]
 
     retry_on_status_error = parameter(
-        description="The number of retries for http requests if status code is not accepted",
+        description="Set the number of retries for http requests if the status code is not accepted.",
         default=20,
     )[int]
 
     retry_on_status_error_delay = parameter(
-        description="The amount of time in seconds between retries for http requests",
+        description="Determien the amount of time, in seconds, in between retries for http requests.",
         default=15,
     )[int]
 

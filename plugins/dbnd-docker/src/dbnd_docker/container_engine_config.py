@@ -13,9 +13,12 @@ class ContainerEngineConfig(EngineConfig):
     require_submit = True
     dbnd_executable = ["dbnd"]  # we should have 'dbnd' command installed in container
     container_repository = parameter(validator=NonEmptyString()).help(
-        "Docker container registry"
+        "Where is the Docker image repository to pull the pod images from? "
+        "If you are running user code, this is where you need to supply your repository and tag settings."
     )[str]
-    container_tag = parameter.none().help("Docker container tag")[VersionStr]
+    container_tag = parameter.none().help(
+        "If defined, Docker will not be built and the specified tag will be used."
+    )[VersionStr]
     container_tag_gpu = parameter.none().help("Docker container tag for GPU tasks")[
         VersionStr
     ]
@@ -27,11 +30,12 @@ class ContainerEngineConfig(EngineConfig):
         "Docker build tag for the docker image dbnd will build"
     ).default(None)[str]
     docker_build = parameter(default=True).help(
-        "Automatically build docker image. "
+        "Should the Kubernetes executor build the Docker image on the fly? "
+        "Useful if you want a different image every time. "
         "If container_repository is unset it will be taken (along with the tag) from the docker build settings"
     )[bool]
     docker_build_push = parameter(default=True).help(
-        "If docker_build is enabled, controls whether the image is automatically pushed or not"
+        "Should the built Docker image be pushed to the repository? Useful for specific cases."
     )
 
     def get_docker_ctrl(self, task_run):

@@ -69,7 +69,7 @@ You can use the dataset logging API to track Spark DataFrame as described in [Tr
 
 
 ## Integrating with Databand Listener.
-Your PySpark script can benefit from automatic tracking of DatasetOperations. Please see detailed information at [JVM SDK Configuration](doc:jvm-sdk-configuration).
+Your PySpark script can benefit from automatic tracking of DatasetOperations. Please see detailed information at JVM SDK Configuration.
 
 ``` bash
 # Please export all relevant environment variables here.

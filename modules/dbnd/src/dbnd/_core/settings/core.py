@@ -52,10 +52,10 @@ class CoreConfig(Config):
 
     databand_url = parameter(
         default=None,
-        description="Tracker URL to be used for creating links in console logs",
+        description="Set the tracker URL which will be used for creating links in console logs.",
     )[str]
     databand_access_token = parameter(
-        description="Personal access token to connect to the dbnd web server",
+        description="Set the personal access token used to connect to the Databand web server.",
         default=None,
         hidden=True,
     )[str]
@@ -71,92 +71,102 @@ class CoreConfig(Config):
     )[Dict[str, str]]
 
     tracker = parameter(
-        default=["file", "console", "api"], description="Tracking Stores to be used"
+        default=["file", "console", "api"],
+        description="Set the Tracking Stores to be used.",
     )[List[str]]
 
     tracker_api = parameter(
-        default="web", description="Tracker Channels to be used by 'api' store"
+        default="web", description="Set the Tracker Channels to be used by 'api' store."
     )[str]
 
     tracker_version = parameter[str]
 
     debug_webserver = parameter(
-        description="Allow collecting the webservers logs for each api-call on the local machine. "
-        "Requires that the web-server supports and allow this.",
+        description="Enable collecting the webserver's logs for each api-call on the local machine. "
+        "This requires that the web-server supports and allows this.",
         default=False,
     )[bool]
 
     silence_tracking_mode = parameter(
-        default=False, description="Silence console on tracking mode"
+        default=False,
+        description="Enables silencing the console when in tracking mode.",
     )[bool]
 
     tracker_raise_on_error = parameter(
-        default=True, description="Raise error when failed to track data"
+        default=True, description="Enable raising an error when failed to track data."
     )[bool]
     remove_failed_store = parameter(
-        default=False, description="Remove a tracking store if it fails"
+        default=False, description="Enable removal of a tracking store if it fails."
     )[bool]
 
     max_tracking_store_retries = parameter(
         default=2,
-        description="Maximal amounts of retries allowed for a single tracking store call if it failed.",
+        description="Set maximum amount of retries allowed for a single tracking store call if it fails.",
     )[int]
 
     client_session_timeout = parameter(
-        description="Minutes to recreate the api client's session", default=5
+        description="Set number of minutes to recreate the api client's session.",
+        default=5,
     )[int]
     client_max_retry = parameter(
-        description="Maximum amount of retries on failed connection for the api client",
+        description="Set the maximum amount of retries on failed connection for the api client.",
         default=2,
     )[int]
     client_retry_sleep = parameter(
-        description="Sleep between retries of the api client", default=0.1
+        description="Set the amount of sleep time in between retries of the API client.",
+        default=0.1,
     )[float]
 
     # USER CODE TO RUN ON START
     user_configs = parameter(
         empty_default=True,
-        description="Contains the config for creating tasks from user code",
+        description="Set the config used for creating tasks from user code.",
     )[List[str]]
 
     # user_pre_init = defined at Databand System config, dbnd_on_pre_init_context
     user_init = parameter(
         default=None,
-        description="Runs in every DBND process with System configuration in place (dbnd_post_enter_context)",
+        description="This runs in every DBND process with System configuration in place. This is called in "
+        "DatabandContex after entering initialization steps.",
     )[object]
     user_driver_init = parameter(
         default=None,
-        description="Runs in driver after config initialization (dbnd_on_new_context)",
+        description="This runs in driver after configuration initialization. This is called from DatabandContext when "
+        "entering a new context(dbnd_on_new_context)",
     )[object]
 
     user_code_on_fork = parameter(
-        default=None, description="Runs in sub process (parallel/kubernetes/external)"
+        default=None,
+        description="This runs in a sub process, on parallel, kubernetes, or external modes.",
     )[object]
 
     # PLUGINS
     plugins = parameter(
-        description="plugins to load on databand context creation", default=None
+        description="Specify which plugins should be loaded on Databand context creations.",
+        default=None,
     )[str]
     fix_env_on_osx = parameter(
-        description="add no_proxy=* to env vars, fixing issues with multiprocessing on osx"
+        description="Enable adding `no_proxy=*` to environment variables, fixing issues with multiprocessing on OSX."
     )[bool]
 
-    environments = parameter(description="List of enabled environments")[List[str]]
+    environments = parameter(description="Set a list of enabled environments.")[
+        List[str]
+    ]
 
     #### TO DEPRECATE ## (DONT USE)
     # deprecate in favor of databand_access_token
     dbnd_user = parameter(
-        description="DEPRECATED: user used to connect to the dbnd web server"
+        description="Set which user should be used to connect to the DBND web server. This is deprecated!"
     )[str]
     dbnd_password = parameter(
-        description="DEPRECATED: password used to connect to the dbnd web server",
+        description="Set what password should be used to connect to the DBND web server. This is deprecated!",
         hidden=True,
     )[str]
 
     # deprecated at 0.34 (Backward compatibility)
     tracker_url = parameter(
         default=None,
-        description="DEPRECATED: Tracker URL to be used for creating links in console logs",
+        description="Set the tracker URL to be used for creating links in console logs. This is deprecated!",
     )[str]
 
     def _validate(self):

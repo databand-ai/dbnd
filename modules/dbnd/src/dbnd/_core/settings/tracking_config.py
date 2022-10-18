@@ -37,72 +37,77 @@ class TrackingConfig(Config):
 
     project = parameter(
         default=None,
-        description="Project to which run should be assigned. "
-        "If not set default project is used. Tracking server will select project with is_default == True.",
+        description="Set the project to which the run should be assigned. "
+        "If this is not set, the default project is used. "
+        "The tracking server will select a project with `is_default == True`.",
     )[str]
 
     databand_external_url = parameter(
         default=None,
-        description="Tracker URL to be used for tracking from external systems",
+        description="Set tracker URL to be used for tracking from external systems.",
     )[str]
 
     log_value_size = parameter(
         default=True,
-        description="Calculate and log value size (can cause a full scan on not-indexable distributed memory objects) ",
+        description="Should this calculate and log the value's size? "
+        "This can cause a full scan on non-indexable distributed memory objects.",
     )[bool]
 
     log_value_schema = parameter(
-        default=True, description="Calculate and log value schema "
+        default=True, description="Should this calculate and log the value's schema?"
     )[bool]
 
     log_value_stats = parameter(
         default=True,
-        description="Calculate and log value stats(expensive to calculate, better use log_stats on parameter level)",
+        description="Should this calculate and log the value's stats? "
+        "This is expensive to calculate, so it might be better to use log_stats on the parameter level.",
     )[bool]
 
     log_value_preview = parameter(
         default=True,
-        description="Calculate and log value preview. Can be expensive on Spark.",
+        description="Should this calculate and log the value's preview? This can be expensive to calculate on Spark.",
     )[bool]
 
     log_value_preview_max_len = parameter(
-        description="Max size of value preview to be saved at DB, max value=50000"
+        description="Set the max size of the value's preview to be saved at the DB. The max value of this parameter "
+        "is 50000"
     ).value(_DEFAULT_VALUE_PREVIEW_MAX_LEN)
 
     log_value_meta = parameter(
-        default=True, description="Calculate and log value meta "
+        default=True, description="Should this calculate and log the value's meta?"
     )[bool]
 
     log_histograms = parameter(
         default=True,
-        description="Enable calculation and tracking of histograms. Can be expensive",
+        description="Enable calculation and tracking of histograms. This can be expensive.",
     )[bool]
 
     value_reporting_strategy = parameter(
         default=ValueTrackingLevel.SMART,
-        description="Multiple strategies with different limitations on potentially expensive calculation for value_meta."
-        "ALL => no limitations."
-        "SMART => restrictions on lazy evaluation types."
-        "NONE (default) => limit everything.",
+        description="Set the strategy used for the reporting of values. There are multiple strategies, "
+        "each with different limitations on potentially expensive calculations for value_meta.\n"
+        "`ALL` means there are no limitations.\n"
+        "`SMART` means there are restrictions on lazy evaluation types.\n"
+        "`NONE`, which is the default value, limits everything.",
     ).enum(ValueTrackingLevel)
 
     track_source_code = parameter(
         default=False,
-        description="Enable tracking of function, module and file source code",
+        description="Enable tracking of function, module and file source code.",
     )[bool]
 
     auto_disable_slow_size = parameter(
         default=True,
-        description="Auto disable slow preview for Spark DF with text formats",
+        description="Enable automatically disabling slow previews for Spark DataFrame with text formats.",
     )[bool]
 
     flatten_operator_fields = parameter(
         default={},
-        description="Control which of the operator's fields would be flatten when tracked",
+        description="Control which of the operator's fields would be flattened when tracked.",
     )[Dict[str, str]]
 
     capture_tracking_log = parameter(
-        default=False, description="Enable log capturing for tracking tasks"
+        default=False, description="Enable log capturing for tracking tasks."
     )[bool]
 
     def get_value_meta_conf(self, meta_conf, value_type, target=None):

@@ -121,3 +121,20 @@ These are the 3 options available:
 *  **"NONE => limit everything"** that doesn’t allow logging of anything expensive or potentially problematic. This can be useful if you have some or many values that constitute private and sensitive information, and you don’t want it to be logged.
 
 Most users will benefit from using the SMART option for logging.
+
+## `[tracking]` Configuration Section Parameter Reference
+- `project` - Set the project to which the run should be assigned. If this is not set, the default project is used. The tracking server will select a project with `is_default == True`.
+- `databand_external_url` - Set tracker URL to be used for tracking from external systems.
+- `log_value_size` - Should this calculate and log the value's size? This can cause a full scan on non-indexable distributed memory objects.
+- `log_value_schema` - Should this calculate and log the value's schema?
+- `log_value_stats` - Should this calculate and log the value's stats? This is expensive to calculate, so it might be better to use log_stats on the parameter level.
+- `log_value_preview` - Should this calculate and log the value's preview? This can be expensive to calculate on Spark.
+- `log_value_preview_max_len` - Set the max size of the value's preview to be saved at the DB. The max value of this parameter is 50000
+- `log_value_meta` - Should this calculate and log the value's meta?
+- `log_histograms` - Enable calculation and tracking of histograms. This can be expensive.
+- `value_reporting_strategy` - Set the strategy used for the reporting of values. There are multiple strategies, each with different limitations on potentially expensive calculations for value_meta. `ALL` means there are no limitations. `SMART` means there are restrictions on lazy evaluation types. `NONE`, which is the default value, limits everything.
+- `track_source_code` - Enable tracking of function, module and file source code.
+- `auto_disable_slow_size` - Enable automatically disabling slow previews for Spark DataFrame with text formats.
+- `flatten_operator_fields` - Control which of the operator's fields would be flattened when tracked.
+- `capture_tracking_log` - Enable log capturing for tracking tasks.
+

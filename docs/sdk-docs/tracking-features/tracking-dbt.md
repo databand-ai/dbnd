@@ -77,3 +77,10 @@ To fully integrate Databand with your dbt Cloud environment:
   "body": "If you are tracking dbt data from Airflow, using the `collect_data_from_dbt_cloud` function, as explained above, you should NOT configure a dbt syncer to sync dbt job runs from the same account. Tracking the same dbt job runs twice is currently not supported in Databand."
 }
 [/block]
+
+
+## `[dbt_monitor]` Configuration Section Parameter Reference
+- `prometheus_port` - Set which port will be used for prometheus.
+- `interval` - Set the sleep time, in seconds, between fetches, when the monitor is not busy.
+- `number_of_iterations` - Set a cap for the number of monitor iterations. This is optional.
+- `stop_after` - Set a cap for the number of seconds to run the monitor. This is optional.
