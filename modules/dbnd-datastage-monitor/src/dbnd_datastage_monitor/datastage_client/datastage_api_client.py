@@ -38,15 +38,17 @@ class DataStageApiClient(ABC):
 
 
 class DataStageApiHttpClient(DataStageApiClient):
-    IDENTITY_TOKEN_API_URL = "https://iam.cloud.ibm.com/identity/token"
-    DATASTAGE_JOBS_API_URL = "https://api.dataplatform.cloud.ibm.com/v2/jobs"
-    DATASTAGE_CAMS_API_URL = "https://api.dataplatform.cloud.ibm.com/v2/asset_types"
-    DATASTAGE_CAMS_API_ASSETS_URL = "https://api.dataplatform.cloud.ibm.com/v2/assets"
-    DATASTAGE_CONNECTIONS_API_URL = (
-        "https://api.dataplatform.cloud.ibm.com:443/v2/connections"
-    )
+    DEFAULT_HOST = "https://api.dataplatform.cloud.ibm.com"
+    DEFAULT_API_HOST = "https://dataplatform.cloud.ibm.com"
+    DEFAULT_AUTHENTICATION_URL = "https://iam.cloud.ibm.com"
 
-    FLOW_API_URL = "https://dataplatform.cloud.ibm.com:443/data_intg/v3/data_intg_flows"
+    IDENTITY_TOKEN_API_PATH = "identity/token"
+    DATASTAGE_JOBS_API_PATH = "v2/jobs"
+    DATASTAGE_CAMS_API_PATH = "v2/asset_types"
+    DATASTAGE_CAMS_API_ASSETS_PATH = "v2/assets"
+    DATASTAGE_CONNECTIONS_API_PATH = "v2/connections"
+    FLOW_API_PATH = "data_intg/v3/data_intg_flows"
+
     MAX_RETRIES = 3
     BACK_OFF_FACTOR = 0.3
 
@@ -56,6 +58,8 @@ class DataStageApiHttpClient(DataStageApiClient):
         project_id: str,
         max_retry: int = MAX_RETRIES,
         page_size: int = 200,
+        host_name=None,
+        authentication_provider_url=None,
     ):
         self.access_token = ""
         self.headers = {
@@ -66,9 +70,16 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.project_id = project_id
         self.retries = max_retry
         self.page_size = page_size
+        self.host_name = host_name if host_name else self.DEFAULT_HOST
+        self.api_host_name = host_name if host_name else self.DEFAULT_API_HOST
+        self.authentication_provider_url = (
+            authentication_provider_url
+            if authentication_provider_url
+            else self.DEFAULT_AUTHENTICATION_URL
+        )
 
     def validate_token(func):
-        def wrapper(self, url, body=None):
+        def wrapper(self, method, url, body=None):
             if not self.access_token:
                 self.refresh_access_token()
             else:
@@ -78,8 +89,8 @@ class DataStageApiHttpClient(DataStageApiClient):
                     logger.error("access token is expired, refreshing token")
                     self.refresh_access_token()
             if body:
-                return func(self, url, body)
-            return func(self, url)
+                return func(self, method, url, body)
+            return func(self, method, url)
 
         return wrapper
 
@@ -118,7 +129,9 @@ class DataStageApiHttpClient(DataStageApiClient):
         )
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         response = self.get_session().post(
-            self.IDENTITY_TOKEN_API_URL, data=data, headers=headers
+            f"{self.authentication_provider_url}/{self.IDENTITY_TOKEN_API_PATH}",
+            data=data,
+            headers=headers,
         )
         response_json = response.json()
         access_token = response_json.get("access_token")
@@ -126,30 +139,16 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.headers["Authorization"] = f"Bearer {self.access_token}"
 
     @validate_token
-    def _make_get_request(self, url):
-        response = self.get_session().get(url=url, headers=self.headers)
+    def _make_http_request(self, method, url, body=None):
+        response = self.get_session().request(
+            method=method, url=url, headers=self.headers, json=body
+        )
         if response:
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 self.refresh_access_token()
-                response = self.get_session().get(url=url, headers=self.headers)
-            if response.status_code == HTTPStatus.OK:
-                return response.json()
-            else:
-                logger.error(f"http response status code {response.status_code}")
-        # return empty object to prevent NONE errors
-        return {}
-
-    @validate_token
-    def _make_post_request(self, url, body):
-        headers = self.headers
-        response = self.get_session().post(url=url, json=body, headers=headers)
-        if response:
-            if response.status_code == HTTPStatus.UNAUTHORIZED:
-                self.refresh_access_token()
-                response = self.get_session().post(
-                    url=url, json=body, headers=self.headers
+                response = self.get_session().request(
+                    method=method, url=url, headers=self.headers, json=body
                 )
-
             if response.status_code == HTTPStatus.OK:
                 return response.json()
             else:
@@ -161,9 +160,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         self, start_time: str, end_time: str, next_page: Dict[str, any] = None
     ) -> Tuple[Dict[str, str], str]:
         next_link = None
-        url = (
-            f"{self.DATASTAGE_CAMS_API_URL}/job_run/search?project_id={self.project_id}"
-        )
+        url = f"{self.host_name}/{self.DATASTAGE_CAMS_API_PATH}/job_run/search?project_id={self.project_id}"
         if next_page:
             query = next_page
         else:
@@ -171,7 +168,7 @@ class DataStageApiHttpClient(DataStageApiClient):
                 "query": f"asset.created_at: [{start_time} TO {end_time}]",
                 "limit": self.page_size,
             }
-        res = self._make_post_request(url=url, body=query)
+        res = self._make_http_request(method="POST", url=url, body=query)
         runs = {}
         results = res.get("results")
         if results:
@@ -191,8 +188,8 @@ class DataStageApiHttpClient(DataStageApiClient):
         return runs, next_link
 
     def get_run_info_jobs_api(self, job_id: str, run_id: str):
-        url = f"{self.DATASTAGE_JOBS_API_URL}/{job_id}/runs/{run_id}?project_id={self.project_id}&limit={self.page_size}&userfs=false"
-        return self._make_get_request(url=url)
+        url = f"{self.host_name}/{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}?project_id={self.project_id}&limit={self.page_size}&userfs=false"
+        return self._make_http_request(method="GET", url=url)
 
     def filter_connection_credentials(self, connection):
         connection_entity = connection.get("entity")
@@ -208,8 +205,8 @@ class DataStageApiHttpClient(DataStageApiClient):
         return connection
 
     def get_connections(self):
-        url = f"{self.DATASTAGE_CONNECTIONS_API_URL}?project_id={self.project_id}&userfs=false"
-        connections = self._make_get_request(url=url)
+        url = f"{self.host_name}/{self.DATASTAGE_CONNECTIONS_API_PATH}?project_id={self.project_id}&userfs=false"
+        connections = self._make_http_request(method="GET", url=url)
         connections_result = {}
         resources = connections.get("resources")
         if not resources:
@@ -226,23 +223,23 @@ class DataStageApiHttpClient(DataStageApiClient):
         return connections_result
 
     def get_run_info(self, run_link: str):
-        run_info = self._make_get_request(run_link)
+        run_info = self._make_http_request(method="GET", url=run_link)
         return run_info
 
     def get_flow(self, flow_id):
-        get_flow_url = f"{self.FLOW_API_URL}/{flow_id}/?project_id={self.project_id}"
-        flow = self._make_get_request(url=get_flow_url)
+        get_flow_url = f"{self.api_host_name}/{self.FLOW_API_PATH}/{flow_id}/?project_id={self.project_id}"
+        flow = self._make_http_request(method="GET", url=get_flow_url)
         return flow
 
     def get_job(self, job_id):
-        url = f"{self.DATASTAGE_CAMS_API_ASSETS_URL}/{job_id}?project_id={self.project_id}"
-        job = self._make_get_request(url=url)
-        job_info = self._make_get_request(job.get("href"))
+        url = f"{self.host_name}/{self.DATASTAGE_CAMS_API_ASSETS_PATH}/{job_id}?project_id={self.project_id}"
+        job = self._make_http_request(method="GET", url=url)
+        job_info = self._make_http_request(method="GET", url=job.get("href"))
         return job_info
 
     def get_run_logs(self, job_id, run_id):
-        url = f"{self.DATASTAGE_JOBS_API_URL}/{job_id}/runs/{run_id}/logs?project_id={self.project_id}&limit={self.page_size}&userfs=false"
-        logs = self._make_get_request(url)
+        url = f"{self.host_name}/{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={self.project_id}&limit={self.page_size}&userfs=false"
+        logs = self._make_http_request(method="GET", url=url)
         logs_json = logs.get("results")
         if logs_json:
             logs = json.loads(logs_json[0])

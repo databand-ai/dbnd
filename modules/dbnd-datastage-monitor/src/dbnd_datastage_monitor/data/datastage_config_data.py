@@ -26,6 +26,8 @@ class DataStageServerConfig(BaseServerConfig):
     fetching_interval_in_minutes = attr.ib(default=30)  # type: int
     number_of_fetching_threads = attr.ib(default=1)  # type: int
     datastage_runs_syncer_enabled = attr.ib(default=True)  # type: bool
+    host_name = attr.ib(default=None)  # type: str
+    authentication_provider_url = attr.ib(default=None)  # type: str
 
     @classmethod
     def create(
@@ -48,6 +50,8 @@ class DataStageServerConfig(BaseServerConfig):
             ],
             project_id=server_config["project_id"],
             api_key=server_config["api_key"],
+            host_name=server_config["host_name"],
+            authentication_provider_url=server_config["authentication_provider_url"],
             sync_interval=monitor_instance_config["sync_interval"],
             datastage_runs_syncer_enabled=monitor_instance_config[
                 "datastage_runs_syncer_enabled"
