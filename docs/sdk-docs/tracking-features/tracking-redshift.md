@@ -54,6 +54,31 @@ By default, `RedshiftTracker` will capture the paths of your file and Redshift t
 * `with_stats=True`: Calculate column-level statistics for the data in motion. This includes but is not limited to metrics such as null counts and percentages, distinct counts, and statistical values such as the mean, standard deviation, and quartiles.
 * `with_partition=True`: If your file path includes partitioning such as `/date=20220415/`, you can use this parameter to ignore partitions in the parsing of your dataset names. This will help ensure that datasets across runs that have different partitioning will still be evaluated as the same dataset for the sake of trends and alerts.
 
+
+> Experimental: when with_stats=True in Redshift tracker we copy the data in the COPY FROM query to a temporal table and extract the following column level statistics on the query:
+> * Mean Value
+> * Standart Deviation
+> * Distinct Count
+> * Null Count
+> * Non-null Count
+> * Null Percentage
+> * Min Value
+> * Max Value
+> * 25% Percentile
+> * 50% Percentile
+> * 75% Percentile
+>
+> This computation loads the clients Redshift cluster with additional queries, while it depends on the specific query a good estimation for additional usage is the following:
+>
+> * CPU Usage is about 2.5X when with_stats is enabled
+> * Time is about 2.5X-3.5X when with_stats is enabled
+>
+> e.g. 75Mil records COPY FROM query took 565s (9:24 mins) when with_stats=True instead of 174s (2:54 mins) without
+>
+>Other limitations:
+> * with_stats=True blocks execution of following tasks until the column level stats extraction will end (serial/synchronous operation to the query)
+> * column level stats execution queries are currently prioritized as any other query (priority queue is not supported)
+
 # Viewing Redshift Operations in Databand
 Operations logged by `RedshiftTracker` will result in two datasets: the read from the file and the write to the Redshift table. Metrics related to these datasets such as the row counts, schemas, and column-level stats can be viewed on both the Affected Datasets tab of your pipeline run as well as the Datasets page in your Databand environment.
 
