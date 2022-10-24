@@ -6,4 +6,4 @@ from dbnd_airflow.tracking.execute_tracking import track_operator
 
 __all__ = ["track_dag", "track_task", "track_operator"]
 
-__version__ = "1.0.6.1"
+__version__ = "1.0.6.0"
