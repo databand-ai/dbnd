@@ -4,11 +4,14 @@ import logging
 
 from datetime import timedelta
 from typing import Dict, List
+from urllib.parse import parse_qsl, urlparse
 
 import more_itertools
 
 from dbnd_datastage_monitor.data.datastage_config_data import DataStageServerConfig
-from dbnd_datastage_monitor.fetcher.datastage_data_fetcher import DataStageDataFetcher
+from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
+    MultiProjectDataStageDataFetcher,
+)
 from dbnd_datastage_monitor.multiserver.datastage_services_factory import (
     get_datastage_services_factory,
 )
@@ -33,12 +36,19 @@ def format_datetime(datetime_obj):
     return datetime_obj.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _extract_project_id_from_url(url: str):
+    parsed_url = urlparse(url)
+    parsed_query_string = dict(parse_qsl(parsed_url.query))
+    project_id = parsed_query_string.get("project_id")
+    return project_id
+
+
 class DataStageRunsSyncer(BaseMonitorSyncer):
     SYNCER_TYPE = "datastage_runs_syncer"
 
     tracking_service: DbndDataStageTrackingService
     config: DataStageServerConfig
-    data_fetcher: DataStageDataFetcher
+    data_fetcher: MultiProjectDataStageDataFetcher
 
     @capture_monitor_exception("sync_once")
     def _sync_once(self):
@@ -62,37 +72,53 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                 else current_date
             )
 
-            new_datastage_runs: Dict[str, str] = self.data_fetcher.get_runs_to_sync(
+            new_datastage_runs: Dict[
+                str, Dict[str, str]
+            ] = self.data_fetcher.get_runs_to_sync(
                 format_datetime(start_date), format_datetime(end_date)
             )
-            if new_datastage_runs:
-                self._init_runs(list(new_datastage_runs.values()))
+            has_new_run = [v for v in new_datastage_runs.values() if v]
+            if has_new_run:
+                runs_to_submit: Dict[str, List] = {
+                    k: list(v.values()) for k, v in new_datastage_runs.items() if v
+                }
+                self._init_runs_for_project(runs_to_submit)
                 self.tracking_service.update_last_seen_values(format_datetime(end_date))
 
             start_date += interval
 
     @capture_monitor_exception
-    def _init_runs(self, datastage_runs: List):
+    def _init_runs_for_project(self, datastage_runs: Dict[str, List[str]]):
         if not datastage_runs:
             return
+        for project_id, runs in datastage_runs.items():
+            logger.info("Syncing new %d runs for project %s", len(runs), project_id)
 
-        logger.info("Syncing new %d runs", len(datastage_runs))
-
-        bulk_size = self.config.runs_bulk_size or len(datastage_runs)
-        chunks = more_itertools.sliced(datastage_runs, bulk_size)
-        for runs_chunk in chunks:
-            datastage_runs_full_data = self.data_fetcher.get_full_runs(runs_chunk)
-            self.tracking_service.init_datastage_runs(datastage_runs_full_data)
+            bulk_size = self.config.runs_bulk_size or len(runs)
+            chunks = more_itertools.sliced(runs, bulk_size)
+            for runs_chunk in chunks:
+                datastage_runs_full_data = self.data_fetcher.get_full_runs(
+                    runs_chunk, project_id
+                )
+                self.tracking_service.init_datastage_runs(datastage_runs_full_data)
 
     @capture_monitor_exception
     def _update_runs(self, datastage_runs: List):
         if not datastage_runs:
             return
+        run_partitioned_by_project_id = {}
+        for run_link in datastage_runs:
+            project_id = _extract_project_id_from_url(run_link)
+            project_runs = run_partitioned_by_project_id.setdefault(project_id, [])
+            project_runs.append(run_link)
 
-        logger.info("Updating %d runs", len(datastage_runs))
+        for project_id, runs in run_partitioned_by_project_id.items():
+            logger.info("Updating %d runs for project %s", len(runs), project_id)
 
-        bulk_size = self.config.runs_bulk_size or len(datastage_runs)
-        chunks = more_itertools.sliced(datastage_runs, bulk_size)
-        for runs_chunk in chunks:
-            datastage_runs_full_data = self.data_fetcher.get_full_runs(runs_chunk)
-            self.tracking_service.update_datastage_runs(datastage_runs_full_data)
+            bulk_size = self.config.runs_bulk_size or len(runs)
+            chunks = more_itertools.sliced(runs, bulk_size)
+            for runs_chunk in chunks:
+                datastage_runs_full_data = self.data_fetcher.get_full_runs(
+                    runs_chunk, project_id
+                )
+                self.tracking_service.update_datastage_runs(datastage_runs_full_data)

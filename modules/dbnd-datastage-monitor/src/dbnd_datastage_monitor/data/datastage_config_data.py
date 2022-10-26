@@ -20,6 +20,7 @@ class DataStageUpdateMonitorStateRequestSchema(ApiStrictSchema):
 @attr.s
 class DataStageServerConfig(BaseServerConfig):
     project_id = attr.ib(default=None)  # type: str
+    project_ids = attr.ib(factory=list)
     api_key = attr.ib(default=None)  # type: str
     runs_bulk_size = attr.ib(default=10)  # type: int
     page_size = attr.ib(default=200)  # type: int
@@ -34,7 +35,7 @@ class DataStageServerConfig(BaseServerConfig):
         cls, server_config: dict, monitor_config: Optional[BaseMonitorConfig] = None
     ):
         monitor_instance_config = server_config.get("monitor_config") or {}
-
+        project_id = server_config["project_id"]
         conf = cls(
             source_type="datastage",
             source_name=server_config["source_name"],
@@ -48,7 +49,8 @@ class DataStageServerConfig(BaseServerConfig):
             number_of_fetching_threads=monitor_instance_config[
                 "number_of_fetching_threads"
             ],
-            project_id=server_config["project_id"],
+            project_id=project_id,
+            project_ids=server_config.get("project_ids", [project_id]),
             api_key=server_config["api_key"],
             host_name=server_config["host_name"],
             authentication_provider_url=server_config["authentication_provider_url"],

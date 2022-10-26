@@ -10,7 +10,9 @@ from dbnd_datastage_monitor.datastage_client.datastage_assets_client import (
     ConcurrentRunsGetter,
     DataStageAssetsClient,
 )
-from dbnd_datastage_monitor.fetcher.datastage_data_fetcher import DataStageDataFetcher
+from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
+    MultiProjectDataStageDataFetcher,
+)
 from dbnd_datastage_monitor.tracking_service.datastage_servers_configuration_service import (
     DataStageSyncersConfigurationService,
 )
@@ -37,32 +39,38 @@ logger = logging.getLogger(__name__)
 class DataStageMonitorServicesFactory(MonitorServicesFactory):
     def get_data_fetcher(self, server_config: DataStageServerConfig):
         if server_config.number_of_fetching_threads <= 1:
-            runs_getter = DataStageAssetsClient(
-                client=DataStageApiHttpClient(
-                    host_name=server_config.host_name
-                    or DataStageAPiHttpClient.DEFAULT_API_HOST,
-                    authentication_provider_url=server_config.authentication_provider_url,
-                    api_key=server_config.api_key,
-                    project_id=server_config.project_id,
-                    page_size=server_config.page_size,
+            asset_clients = [
+                DataStageAssetsClient(
+                    client=DataStageApiHttpClient(
+                        host_name=server_config.host_name
+                        or DataStageAPiHttpClient.DEFAULT_API_HOST,
+                        authentication_provider_url=server_config.authentication_provider_url,
+                        api_key=server_config.api_key,
+                        project_id=project_id,
+                        page_size=server_config.page_size,
+                    )
                 )
-            )
+                for project_id in server_config.project_ids
+            ]
         else:
-            runs_getter = ConcurrentRunsGetter(
-                client=DataStageApiHttpClient(
-                    host_name=server_config.host_name,
-                    authentication_provider_url=server_config.authentication_provider_url,
-                    api_key=server_config.api_key,
-                    project_id=server_config.project_id,
-                    page_size=server_config.page_size,
-                ),
-                number_of_threads=server_config.number_of_fetching_threads,
-            )
-        fetcher = DataStageDataFetcher(
-            datastage_runs_getter=runs_getter, project_id=server_config.project_id
+            asset_clients = [
+                ConcurrentRunsGetter(
+                    client=DataStageApiHttpClient(
+                        host_name=server_config.host_name,
+                        authentication_provider_url=server_config.authentication_provider_url,
+                        api_key=server_config.api_key,
+                        project_id=project_id,
+                        page_size=server_config.page_size,
+                    ),
+                    number_of_threads=server_config.number_of_fetching_threads,
+                )
+                for project_id in server_config.project_ids
+            ]
+        fetcher = MultiProjectDataStageDataFetcher(
+            datastage_project_clients=asset_clients, project_id=server_config.project_id
         )
 
-        return decorate_fetcher(fetcher, server_config.project_id)
+        return decorate_fetcher(fetcher, server_config.source_name)
 
     @cached()
     def get_servers_configuration_service(self):

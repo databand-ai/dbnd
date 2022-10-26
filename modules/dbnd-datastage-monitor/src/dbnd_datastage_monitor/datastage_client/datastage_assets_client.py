@@ -2,7 +2,11 @@
 import logging
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
+
+from dbnd_datastage_monitor.datastage_client.datastage_api_client import (
+    DataStageApiHttpClient,
+)
 
 from dbnd._core.log.external_exception_logging import log_exception_to_server
 
@@ -11,15 +15,19 @@ logger = logging.getLogger(__name__)
 
 
 class DataStageAssetsClient:
-    def __init__(self, client):
+    def __init__(self, client: DataStageApiHttpClient):
         self.client = client
         self.runs = []
         self.jobs = {}
         self.flows = {}
 
+    @property
+    def project_id(self):
+        return self.client.project_id
+
     def get_new_runs(
         self, start_time: str, end_time: str, next_page: Dict[str, any]
-    ) -> Tuple[Dict[str, str], str]:
+    ) -> Tuple[Dict[str, str], Optional[str]]:
         return self.client.get_runs_ids(
             start_time=start_time, end_time=end_time, next_page=next_page
         )
