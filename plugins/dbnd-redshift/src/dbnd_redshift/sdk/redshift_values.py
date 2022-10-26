@@ -134,7 +134,7 @@ class RedshiftOperation(SqlOperation):
 
     @staticmethod
     def expect_tmp_table(conf):
-        return conf.with_stats or conf.with_preview or conf.with_schema
+        return conf.with_stats or conf.with_preview
 
     def extract_preview(self, connection: PostgresConnectionWrapper):
         """
