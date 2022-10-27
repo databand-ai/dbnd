@@ -40,7 +40,7 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
             runs_getter = DataStageAssetsClient(
                 client=DataStageApiHttpClient(
                     host_name=server_config.host_name
-                    or DataStageAPiHttpClient.DEFAULT_API_HOST,
+                    or DataStageApiHttpClient.DEFAULT_API_HOST,
                     authentication_provider_url=server_config.authentication_provider_url,
                     api_key=server_config.api_key,
                     project_id=server_config.project_id,
