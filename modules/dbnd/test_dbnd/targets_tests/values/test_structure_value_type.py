@@ -92,8 +92,8 @@ class TestDictParameter(object):
 
     def test_parse_and_dump_to_str(self):
         inputs = [
-            '{"username": "me", "password": "secret"}',
-            '{"password": "secret", "username": "me"}',
+            '{"username": "me", "password": "secret"}',  # pragma: allowlist secret
+            '{"password": "secret", "username": "me"}',  # pragma: allowlist secret
         ]
         for json_input in inputs:
             _dict = DictValueType().parse_from_str(json_input)

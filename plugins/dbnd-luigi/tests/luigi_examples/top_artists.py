@@ -207,7 +207,7 @@ class MyPostgresQuery(luigi.contrib.postgres.PostgresQuery):
     host = "localhost"
     database = "databand"
     user = "databand"
-    password = "databand"
+    password = "databand"  # pragma: allowlist secret
     table = "dbnd_task_run_v2"
     query = "select * from dbnd_task_run_v2 limit 10000"
 

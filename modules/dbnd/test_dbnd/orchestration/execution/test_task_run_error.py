@@ -13,7 +13,7 @@ from dbnd._core.task_run.task_run_error import TaskRunError
 def test_as_error_info():
     try:
         raise DatabandRuntimeError(
-            "DATABAND_ACCESS_TOKEN=eyJ0eXAiOiJKV1QGciOiJIUzI1NiJ9"
+            "DATABAND_ACCESS_TOKEN=eyJ0eXAiOiJKV1QGciOiJIUzI1NiJ9"  # pragma: allowlist secret
         )
     except DatabandError as ex:
         task_run = MagicMock(TaskRun)

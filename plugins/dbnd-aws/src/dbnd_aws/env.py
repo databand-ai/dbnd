@@ -41,7 +41,7 @@ class AwsEnvConfig(EnvConfig):
         creds = boto_session.get_credentials()
 
         access_key_env = "AWS_ACCESS_KEY_ID"
-        secret_key_env = "AWS_SECRET_ACCESS_KEY"
+        secret_key_env = "AWS_SECRET_ACCESS_KEY"  # pragma: allowlist secret
         token_key_env = "AWS_SESSION_TOKEN"
         if (
             creds.access_key

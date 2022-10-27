@@ -21,7 +21,7 @@ EXPECTED_SNOWFLAKE_TABLE_HASH = str(hash(EXPECTED_SNOWFLAKE_TABLE_SIGNATURE))
 def snowflake_conn_params():
     return {
         "user": "SNOWFLAKE_USER",
-        "password": "SNOWFLAKE_PASSWORD",
+        "password": "SNOWFLAKE_PASSWORD",  # pragma: allowlist secret
         "account": "SNOWFLAKE_ACCOUNT",
     }
 

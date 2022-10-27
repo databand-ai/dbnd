@@ -35,19 +35,19 @@ class FashionMNIST(object):
 
     train_data = (
         utils._get_repo_file_url(namespace, "train-images-idx3-ubyte.gz"),
-        "0cf37b0d40ed5169c6b3aba31069a9770ac9043d",
+        "0cf37b0d40ed5169c6b3aba31069a9770ac9043d",  # pragma: allowlist secret
     )
     train_label = (
         utils._get_repo_file_url(namespace, "train-labels-idx1-ubyte.gz"),
-        "236021d52f1e40852b06a4c3008d8de8aef1e40b",
+        "236021d52f1e40852b06a4c3008d8de8aef1e40b",  # pragma: allowlist secret
     )
     test_data = (
         utils._get_repo_file_url(namespace, "t10k-images-idx3-ubyte.gz"),
-        "626ed6a7c06dd17c0eec72fa3be1740f146a2863",
+        "626ed6a7c06dd17c0eec72fa3be1740f146a2863",  # pragma: allowlist secret
     )
     test_label = (
         utils._get_repo_file_url(namespace, "t10k-labels-idx1-ubyte.gz"),
-        "17f9ab60e7257a1620f4ad76bbbaf857c3920701",
+        "17f9ab60e7257a1620f4ad76bbbaf857c3920701",  # pragma: allowlist secret
     )
 
 
@@ -56,19 +56,19 @@ class MNIST(object):
 
     train_data = (
         utils._get_repo_file_url(namespace, "train-images-idx3-ubyte.gz"),
-        "6c95f4b05d2bf285e1bfb0e7960c31bd3b3f8a7d",
+        "6c95f4b05d2bf285e1bfb0e7960c31bd3b3f8a7d",  # pragma: allowlist secret
     )
     train_label = (
         utils._get_repo_file_url(namespace, "train-labels-idx1-ubyte.gz"),
-        "2a80914081dc54586dbdf242f9805a6b8d2a15fc",
+        "2a80914081dc54586dbdf242f9805a6b8d2a15fc",  # pragma: allowlist secret
     )
     test_data = (
         utils._get_repo_file_url(namespace, "t10k-images-idx3-ubyte.gz"),
-        "c3a25af1f52dad7f726cce8cacb138654b760d48",
+        "c3a25af1f52dad7f726cce8cacb138654b760d48",  # pragma: allowlist secret
     )
     test_label = (
         utils._get_repo_file_url(namespace, "t10k-labels-idx1-ubyte.gz"),
-        "763e7fa3757d93b0cdec073cef058b2004252c17",
+        "763e7fa3757d93b0cdec073cef058b2004252c17",  # pragma: allowlist secret
     )
 
 

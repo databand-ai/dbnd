@@ -34,8 +34,10 @@ NON_NUMERIC_TYPES = [
 NUMBER_OF_ROWS_INSERTED = 100
 
 # This is dummy data taken from AWS docs ( found here https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html)
-DUMMY_AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"
-DUMMY_AWS_ACCESS_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+DUMMY_AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
+DUMMY_AWS_ACCESS_SECRET = (
+    "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"  # pragma: allowlist secret
+)
 
 
 ERROR_MESSAGE = "Exception Mock"
@@ -45,7 +47,7 @@ COPY_INTO_TABLE_FROM_S3_FILE_QUERY_SCHEMA = """COPY "MY_SCHEMA.MY_TABLE" from 's
 COPY_INTO_TABLE_FROM_S3_FILE_QUERY_COLUMNS = """COPY "MY_TABLE" (column_a, column_b) from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv"""
 COPY_INTO_TABLE_FROM_S3_FILE_QUERY_SCHEMA_COLUMNS = """COPY "MY_SCHEMA.MY_TABLE" (column_a, column_b) from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv"""
 
-COPY_INTO_TABLE_FAIL_QUERY = """copy into FAIL from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""
+COPY_INTO_TABLE_FAIL_QUERY = """copy into FAIL from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');"""  # pragma: allowlist secret
 
 COPY_INTO_TABLE_FROM_S3_FILE_GRACEFUL_FAIL_QUERY = """COPY "schema_fail" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv"""
 
@@ -124,7 +126,11 @@ def mock_redshift():
 
 def _redshift_connect():
     return psycopg2.connect(
-        host="test", port=12345, database="db", user="user", password="password"
+        host="test",
+        port=12345,
+        database="db",
+        user="user",
+        password="password",  # pragma: allowlist secret
     )
 
 
@@ -542,7 +548,7 @@ def test_copy_into_operation_failure(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="copy into FAIL from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');",
+            query="copy into FAIL from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');",  # pragma: allowlist secret
             query_id=None,
             success=False,
             op_type=DbndTargetOperationType.write,
@@ -567,7 +573,7 @@ def test_copy_into_operation_failure(mock_redshift):
             },
             dtypes=None,
             records_count=NUMBER_OF_ROWS_INSERTED,
-            query="copy into FAIL from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');",
+            query="copy into FAIL from s3://test/test.json CREDENTIALS = (AWS_KEY_ID = 'test' AWS_SECRET_KEY = 'test');",  # pragma: allowlist secret
             query_id=None,
             success=False,
             op_type=DbndTargetOperationType.read,

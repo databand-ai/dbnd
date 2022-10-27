@@ -106,5 +106,5 @@ class TestTaskSignature(object):
         tasks = [TPipeline(task_target_date=task_target_date)]
 
         # !!!Change these signature only if you know what you are doing! (don't just fix the test)!!!
-        expected = {"TPipeline": "a14cf2517b"}
+        expected = {"TPipeline": "a14cf2517b"}  # pragma: allowlist secret
         assert_signatures(tasks, expected)

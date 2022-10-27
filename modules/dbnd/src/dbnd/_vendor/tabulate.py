@@ -52,7 +52,6 @@ if python_version_tuple()[0] < "3":
     def _is_file(f):
         return hasattr(f, "read")
 
-
 else:
     from itertools import zip_longest as izip_longest
     from functools import reduce, partial
@@ -566,7 +565,7 @@ def _isnumber(string):
     True
     >>> _isnumber("spam")
     False
-    >>> _isnumber("123e45678")
+    >>> _isnumber("123e45678")  # pragma: allowlist secret
     False
     >>> _isnumber("inf")
     True

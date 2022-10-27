@@ -13,7 +13,7 @@ from dbnd.utils.api_client import ApiClient
 
 class TestApiClient(TestCase):
     base_url = "http://does-not-exist.local"
-    creds = {"username": "dbnd_user", "password": "self.dbnd_password"}
+    creds = {"username": "dbnd_user", "password": "password"}
 
     def setUp(self):
         self.network_request_mock = MagicMock()

@@ -1,22 +1,28 @@
 ---
 "title": "Installing on Spark Cluster"
 ---
+
 ## General Installation
+
 Make sure that the Databand Server is accessible from your Spark Cluster.
 
 ## JVM Integration
+
 The following environment variables should be defined in your Spark context.
- * `DBND__CORE__DATABAND_URL` - a  Databand server URL
- * `DBND__CORE__DATABAND_ACCESS_TOKEN` - a  Databand server Access Token
- * `DBND__TRACKING=True`
-Please see [Installing JVM SDK and Agent](doc:installing-jvm-dbnd) for detailed information on all available parameters. Your cluster should have Databand .jars to be able to use Listener and other features. See below.
+
+-   `DBND__CORE__DATABAND_URL` - a Databand server URL
+-   `DBND__CORE__DATABAND_ACCESS_TOKEN` - a Databand server Access Token
+-   `DBND__TRACKING=True`
+    Please see [Installing JVM SDK and Agent](doc:installing-jvm-dbnd) for detailed information on all available parameters. Your cluster should have Databand .jars to be able to use Listener and other features. See below.
 
 ## Python Integration
+
 The following environment variables should be defined in your Spark context.
- * `DBND__CORE__DATABAND_URL` - a  Databand server URL
- * `DBND__CORE__DATABAND_ACCESS_TOKEN` - a  Databand server Access Token
- * `DBND__TRACKING=True`
- * `DBND__ENABLE__SPARK_CONTEXT_ENV=True`
+
+-   `DBND__CORE__DATABAND_URL` - a Databand server URL
+-   `DBND__CORE__DATABAND_ACCESS_TOKEN` - a Databand server Access Token
+-   `DBND__TRACKING=True`
+-   `DBND__ENABLE__SPARK_CONTEXT_ENV=True`
 
 You should install `dbnd-spark`. See [Installing Python SDK](doc:installing-dbnd) and bootstrap example below
 
@@ -31,6 +37,7 @@ Most clusters support setting up Spark environment variables via cluster metadat
 You need to define Environment Variables at the API call or `EmrCreateJobFlowOperator` Airflow Operator. An alternative way is to provide all these variables via AWS UI where you create a new cluster. EMR cluster doesn't have a way of defining Environment Variables in the bootstrap. Please consult with official [EMR documentation on Spark Configuration](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-spark-configure.html) if you use custom operator or creating cluster outside Ariflow.
 
 <!-- noqa -->
+
 ```python
 from airflow.hooks.base_hook import BaseHook
 
@@ -79,33 +86,34 @@ sudo wget https://repo1.maven.org/maven2/ai/databand/dbnd-agent/${DBND_VERSION/d
 
 Add this script to your cluster bootstrap actions list. For more details please, please follow [bootstrap actions documentation](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-plan-bootstrap.html).
 
-
 ## Databricks Cluster
+
 ### Setting Databand Configuration via Environment Variables
 
 In the cluster configuration screen, click 'Edit'>>'Advanced Options'>>'Spark'.
 Inside the Environment Variables section, declare the configuration variables listed below. Be sure to replace `<databand-url>` and `<databand-access-token>` with your environment specific information:
 
-* `DBND__TRACKING="True"`
-* `DBND__ENABLE__SPARK_CONTEXT_ENV="True"`
-* `DBND__CORE__DATABAND_URL="REPLACE_WITH_DATABAND_URL"`
-* `DBND__CORE__DATABAND_ACCESS_TOKEN="REPLACE_WITH_DATABAND_TOKEN"`
-
+-   `DBND__TRACKING="True"`
+-   `DBND__ENABLE__SPARK_CONTEXT_ENV="True"`
+-   `DBND__CORE__DATABAND_URL="REPLACE_WITH_DATABAND_URL"`
+-   `DBND__CORE__DATABAND_ACCESS_TOKEN="REPLACE_WITH_DATABAND_TOKEN"`
 
 ### Install Python DBND library in Databricks cluster
 
 Under the Libraries tab of your cluster's configuration:
-* Click 'Install New'
-* Choose the PyPI option
-* Enter `databand[spark]==REPLACE_WITH_DBND_VERSION` as the Package name
-* Click 'Install'
 
+-   Click 'Install New'
+-   Choose the PyPI option
+-   Enter `databand[spark]==REPLACE_WITH_DBND_VERSION` as the Package name
+-   Click 'Install'
 
 ### Install Python DBND library for specific Airflow Operator
+
 | Do not use this mode in production, use it only for trying out DBND in specific Task.
 Ensure that the `dbnd` library is installed on the Databricks cluster by adding `databand[spark]` to the `libraries` parameter of the `DatabricksSubmitRunOperator`, shown in the example below:
 
 <!-- noqa -->
+
 ```python
 DatabricksSubmitRunOperator(
      #...
@@ -116,13 +124,15 @@ DatabricksSubmitRunOperator(
 ```
 
 ### Tracking Scala/Java Spark Jobs
+
 Download [DBND Agent](doc:installing-jvm-dbnd#dbnd-jvm-agent) and place it into your DBFS working folder.
 
-To configure [Tracking Spark Applications](doc:tracking-spark-applications) with automatic dataset logging, add `ai.databand.spark.DbndSparkQueryExecutionListener` as a  `spark.sql.queryExecutionListeners` (this mode works only if DBND  agent has been enabled)
+To configure [Tracking Spark Applications](doc:tracking-spark-applications) with automatic dataset logging, add `ai.databand.spark.DbndSparkQueryExecutionListener` as a `spark.sql.queryExecutionListeners` (this mode works only if DBND agent has been enabled)
 
 Use the following configuration of the Databricks job to enable Databand Java Agent with automatic dataset tracking:
 
 <!-- noqa -->
+
 ```python
 spark_operator = DatabricksSubmitRunOperator(
     json={
@@ -137,17 +147,18 @@ spark_operator = DatabricksSubmitRunOperator(
         #...
     })
 ```
+
 Make sure that you have published the agent to `/dbfs/apps/` first
 For more configuration options, see the Databricks [Runs Submit API documentation](https://docs.databricks.com/dev-tools/api/latest/jobs.html#runs-submit).
 
-
 ## GoogleCloud DataProc Cluster
+
 ### Cluster Setup
 
 You can define environment variables during the cluster setup or add these variables to your bootstrap as described at [Installing on Spark Cluster](doc:installing-dbnd-on-spark-cluster) :
 
-
 <!-- noqa -->
+
 ```python
 from airflow.hooks.base_hook import BaseHook
 
@@ -166,14 +177,16 @@ cluster_create = DataprocClusterCreateOperator(
     # ...
 )
 ```
+
 You can install Databand PySpark support via the same operator:
 
 <!-- noqa -->
+
 ```python
 cluster_create = DataprocClusterCreateOperator(
      #...
      properties={
-             "dataproc:pip.packages": "dbnd-spark==REPLACE_WITH_DATABAND_VERSION",
+             "dataproc:pip.packages": "dbnd-spark==REPLACE_WITH_DATABAND_VERSION",  # pragma: allowlist secret
      }
      #...
 )
@@ -202,9 +215,11 @@ sh -c "echo DBND__ENABLE__SPARK_CONTEXT_ENV=True >> /usr/lib/spark/conf/spark-en
 Note that variables like access token and tracker url should be passed to the initialization action via cluster metadata properties. Please refer to [official Dataproc documentation](https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/init-actions#passing_arguments_to_initialization_actions) for details.
 
 ### Tracking Python Spark Jobs
+
 Use the following configuration of the PySpark DataProc job to enable Databand Spark Query Listener with automatic dataset tracking:
 
 <!-- noqa -->
+
 ```python
 pyspark_operator = DataProcPySparkOperator(
     #...
@@ -215,14 +230,17 @@ pyspark_operator = DataProcPySparkOperator(
     #...
 )
 ```
-* You should [publish](doc:installing-jvm-dbnd#manual) your jar to Google Storage first.
+
+-   You should [publish](doc:installing-jvm-dbnd#manual) your jar to Google Storage first.
 
 See the list of all supported operators and extra information at [Tracking Subprocess/Remote Tasks](doc:tracking-airflow-subprocess-remote) section.
 
 # Cluster Bootstrap
+
 If you are using custom cluster installation, you have to install Databand packages, agent and configure environment variables for tracking.
 
 Add the following commands to your cluster initialization script:
+
 ```bash
 #!/bin/bash -x
 
@@ -240,8 +258,8 @@ wget https://repo1.maven.org/maven2/ai/databand/dbnd-agent/${DBND_VERSION}/dbnd-
 python -m pip install databand[spark]==${DBND_VERSION}
 ```
 
-* Install the `dbnd` packages on the Spark master and Spark workers by running `pip install databand[spark]` at bootstrap or manually.
-* Make sure you don't install "dbnd-airflow" to the cluster.
+-   Install the `dbnd` packages on the Spark master and Spark workers by running `pip install databand[spark]` at bootstrap or manually.
+-   Make sure you don't install "dbnd-airflow" to the cluster.
 
 ## How to provide Databand credentials via cluster bootstrap
 
@@ -252,7 +270,7 @@ sh -c "echo DBND__CORE__DATABAND_URL=REPLACE_WITH_DATABAND_URL >> /usr/lib/spark
 sh -c "echo DBND__CORE__DATABAND_ACCESS_TOKEN=REPLACE_WITH_DATABAND_TOKEN >> /usr/lib/spark/conf/spark-env.sh"
 ```
 
-* Be sure to replace `<databand-url>` and `<databand-access-token>` with your environment-specific information.
+-   Be sure to replace `<databand-url>` and `<databand-access-token>` with your environment-specific information.
 
 ## Databand Agent Path and Query Listener configuration for Spark Operators
 
@@ -268,9 +286,9 @@ Databand can automatically alter `spark-submit` command for variety for Spark op
 }
 ```
 
-* `query_listener` — enables Databand Spark Query Listener for auto-capturing dataset operations from Spark jobs.
-* `agent_path` — path to the Databand Java Agent FatJar. If provided, Databand will include this agent into Spark Job via `spark.driver.extraJavaOptions` configuration option. Agent is required if you want to track Java/Scala jobs annotated with `@Task`. Agent has to be placed in a cluster local filesystem for proper functioning.
-* `jar_path` — path to the Databand Java Agent FatJar. If provided, Databand will include jar into Spark Job via `spark.jars` configuration option. Jar can be placed in a local filesystem as well as S3/GCS/DBFS path.
+-   `query_listener` — enables Databand Spark Query Listener for auto-capturing dataset operations from Spark jobs.
+-   `agent_path` — path to the Databand Java Agent FatJar. If provided, Databand will include this agent into Spark Job via `spark.driver.extraJavaOptions` configuration option. Agent is required if you want to track Java/Scala jobs annotated with `@Task`. Agent has to be placed in a cluster local filesystem for proper functioning.
+-   `jar_path` — path to the Databand Java Agent FatJar. If provided, Databand will include jar into Spark Job via `spark.jars` configuration option. Jar can be placed in a local filesystem as well as S3/GCS/DBFS path.
 
 Properties can be configured via environment variables or .cfg files. Please refer to the [SDK Configuration](doc:dbnd-sdk-configuration) for details.
 
@@ -279,6 +297,6 @@ Properties can be configured via environment variables or .cfg files. Please ref
 See the [Tracking Python](doc:python) section for implementing `dbnd` within your PySpark jobs. See the [Tracking Spark/JVM Applications](doc:tracking-spark-applications) for Spark/JVM jobs
 [block:html]
 {
-  "html": "<style>\n  pre {\n      border: 0.2px solid #ddd;\n      border-left: 3px solid #c796ff;\n      color: #0061a6;\n  }\n\n.CodeTabs_initial{\n  /* box shadows with with legacy browser support - just in case */\n    -webkit-box-shadow: 0 10px 6px -6px #777; /* for Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */\n     -moz-box-shadow: 0 10px 6px -6px #777; /* for Firefox 3.5 - 3.6 */\n          box-shadow: 0 10px 6px -6px #777;/* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */\n  }\n</style>\t\t"
+"html": "<style>\n pre {\n border: 0.2px solid #ddd;\n border-left: 3px solid #c796ff;\n color: #0061a6;\n }\n\n.CodeTabs_initial{\n /_ box shadows with with legacy browser support - just in case _/\n -webkit-box-shadow: 0 10px 6px -6px #777; /_ for Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ _/\n -moz-box-shadow: 0 10px 6px -6px #777; /_ for Firefox 3.5 - 3.6 _/\n box-shadow: 0 10px 6px -6px #777;/_ Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 _/\n }\n</style>\t\t"
 }
 [/block]

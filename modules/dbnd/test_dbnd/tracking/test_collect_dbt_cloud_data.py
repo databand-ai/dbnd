@@ -8,7 +8,7 @@ from dbnd._core.tracking.dbt import collect_data_from_dbt_cloud
 @patch("dbnd._core.tracking.dbt._report_dbt_metadata")
 @patch("dbnd._core.tracking.dbt.DbtCloudApiClient")
 class TestCollectDataFromDbtCloud:
-    DBT_CLOUD_API_KEY = "my_dbt_cloud_api_key"
+    DBT_CLOUD_API_KEY = "my_dbt_cloud_api_key"  # pragma: allowlist secret
     DBT_CLOUD_ACCOUNT_ID = 5445
     DBT_CLOUD_RUN_ID = 1234
 

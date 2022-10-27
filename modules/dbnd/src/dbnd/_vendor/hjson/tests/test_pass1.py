@@ -3,7 +3,7 @@ from unittest import TestCase
 import hjson as json
 
 # from http://json.org/JSON_checker/test/pass1.json
-JSON = r'''
+JSON = r"""
 [
     "JSON Test Pattern pass1",
     {"object with 1 member":["array with 1 element"]},
@@ -26,8 +26,8 @@ JSON = r'''
         "backslash": "\\",
         "controls": "\b\f\n\r\t",
         "slash": "/ & \/",
-        "alpha": "abcdefghijklmnopqrstuvwyz",
-        "ALPHA": "ABCDEFGHIJKLMNOPQRSTUVWYZ",
+        "alpha": "abcdefghijklmnopqrstuvwyz",  # pragma: allowlist secret
+        "ALPHA": "ABCDEFGHIJKLMNOPQRSTUVWYZ",  # pragma: allowlist secret
         "digit": "0123456789",
         "special": "`1~!@#$%^&*()_+-={':[,]}|;.</>?",
         "hex": "\u0123\u4567\u89AB\uCDEF\uabcd\uef4A",
@@ -61,7 +61,8 @@ JSON = r'''
 1e-1,
 1e00,2e+00,2e-00
 ,"rosebud"]
-'''
+"""
+
 
 class TestPass1(TestCase):
     def test_parse(self):

@@ -210,7 +210,10 @@ def test_raise_error_on_running_bad():
             "affinity": {},
             "volumes": [
                 {
-                    "secret": {"defaultMode": 420, "secretName": "default-token-p44mw"},
+                    "secret": {
+                        "defaultMode": 420,
+                        "secretName": "default-token-p44mw",  # pragma: allowlist secret
+                    },
                     "name": "default-token-p44mw",
                 }
             ],

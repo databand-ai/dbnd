@@ -11,7 +11,7 @@ from dbnd.utils.dbt_cloud_api_client import DbtCloudApiClient
 
 
 class TestDbtCloudApiClient:
-    DBT_CLOUD_API_KEY = "my_dbt_cloud_api_key"
+    DBT_CLOUD_API_KEY = "my_dbt_cloud_api_key"  # pragma: allowlist secret
     DBT_CLOUD_ACCOUNT_ID = 5445
 
     def setUp(self):
