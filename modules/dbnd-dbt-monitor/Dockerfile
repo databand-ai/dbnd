@@ -10,7 +10,10 @@ ARG DBND_GID=11000
 RUN groupadd -g ${DBND_GID} ${DBND_GROUP} && \
     useradd -u ${DBND_UID} -g ${DBND_GID} -d ${DBND_HOME} ${DBND_USER}
 WORKDIR ${DBND_HOME}
-RUN chown -R ${DBND_USER}:${DBND_GROUP} ${DBND_HOME}
+# https://docs.openshift.com/container-platform/4.11/openshift_images/create-images.html
+# see "Support arbitrary user ids"
+RUN chown -R ${DBND_USER}:${DBND_GROUP} ${DBND_HOME} && \
+    chgrp -R 0 ${DBND_HOME} && chmod -R g=u ${DBND_HOME}
 CMD dbnd tracker wait && dbnd-dbt-monitor
 
 # pre-install requirements:
