@@ -38,8 +38,8 @@ RUN rm /dist-databand/dbnd/LICENSE \
     /dist-databand/dbnd-datastage-monitor/LICENSE \
     /dist-databand/dbnd-datastage-monitor/setup.cfg
 COPY ./dbnd-core/LICENSE ./dbnd-core/setup.cfg /dist-databand/dbnd/
-COPY ./LICENSE ./setup.cfg /dist-databand/dbnd-airflow-monitor/
-COPY ./LICENSE ./setup.cfg /dist-databand/dbnd-datastage-monitor/
+COPY ./dbnd-core/LICENSE ./dbnd-core/setup.cfg /dist-databand/dbnd-airflow-monitor/
+COPY ./dbnd-core/LICENSE ./dbnd-core/setup.cfg /dist-databand/dbnd-datastage-monitor/
 RUN pip install /dist-databand/dbnd /dist-databand/dbnd-airflow-monitor /dist-databand/dbnd-datastage-monitor --no-index
 
 # remove pip for security reasons
