@@ -1,6 +1,7 @@
 ---
 "title": "Tracking Redshift"
 ---
+# Overview
 Databand allows you to log your dataset operations when using Python to call SQL commands on Redshift. Wrapping your Redshift cursor's execution with Databand's `RedshiftTracker` context manager will catch the cursor's result and extract [Dataset Logging](doc:dataset-logging)  operations from it. Currently, only [COPY queries](https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html) are supported.
 
 # Requirements
@@ -51,38 +52,28 @@ The above will capture the results of the executed query. Only one query executi
 # Optional Parameters
 By default, `RedshiftTracker` will capture the paths of your file and Redshift table, the column and row counts of the data being copied, and the schema of the data being copied. In addition to these metrics, additional metadata can be captured by passing the optional parameters below to `RedshiftTrackerConfig` as part of your `RedshiftTracker` integration:
 * `with_preview=True`: Display a sample of your data in Databand (approximately 10-20 records).
-* `with_stats=True`: Calculate column-level statistics for the data in motion. This includes but is not limited to metrics such as null counts and percentages, distinct counts, and statistical values such as the mean, standard deviation, and quartiles.
+* `with_stats=True`: Calculate the following column-level stats for the data being copied:
+  * Null count and percentage
+  * Non-null count
+  * Distinct count
+  * Mean
+  * Standard deviation
+  * Min and max
+  * 25%/50%/75% quartiles
 * `with_partition=True`: If your file path includes partitioning such as `/date=20220415/`, you can use this parameter to ignore partitions in the parsing of your dataset names. This will help ensure that datasets across runs that have different partitioning will still be evaluated as the same dataset for the sake of trends and alerts.
 
-
-> Experimental: when with_stats=True in Redshift tracker we copy the data in the COPY FROM query to a temporal table and extract the following column level statistics on the query:
-> * Mean Value
-> * Standart Deviation
-> * Distinct Count
-> * Null Count
-> * Non-null Count
-> * Null Percentage
-> * Min Value
-> * Max Value
-> * 25% Percentile
-> * 50% Percentile
-> * 75% Percentile
->
-> This computation loads the clients Redshift cluster with additional queries, while it depends on the specific query a good estimation for additional usage is the following:
->
-> * CPU Usage is about 2.5X when with_stats is enabled
-> * Time is about 2.5X-3.5X when with_stats is enabled
->
-> e.g. 75Mil records COPY FROM query took 565s (9:24 mins) when with_stats=True instead of 174s (2:54 mins) without
->
->Other limitations:
-> * with_stats=True blocks execution of following tasks until the column level stats extraction will end (serial/synchronous operation to the query)
-> * column level stats execution queries are currently prioritized as any other query (priority queue is not supported)
+[block:callout]
+{
+  "type": "warning",
+  "title": "Resource Usage in Redshift",
+  "body": "When using `with_stats=True` or `with_preview=True`, `RedshiftTracker` creates a temporal table in your database using the copied records, and this is used to extract stats and/or a preview of the data. This results in additional queries being sent to your Redshift cluster. \n\nOur benchmarks for the additional overhead from using these parameters are as follows:\n* CPU usage is increased by approximately 2.5x when using `with_stats=True`\n* Total processing time is increased by approximately 2.5-3.5X when using `with_stats=True`\n\nFor example, a query copying 75 million records took 2m54s as a baseline, and that same query took 9m24s when using `with_stats=True`.\n  \nAdditional considerations:\n* When using `with_stats=True`, execution of subsequent tasks will be blocked until the column-level stats have been calculated and extracted as `RedshiftTracker`'s queries are executed synchronously with the COPY query.\n* The queries initiated by `RedshiftTracker` do not support queue prioritization, so they will be given the same priority as any other queries that may be queued."
+}
+[/block]
 
 # Viewing Redshift Operations in Databand
-Operations logged by `RedshiftTracker` will result in two datasets: the read from the file and the write to the Redshift table. Metrics related to these datasets such as the row counts, schemas, and column-level stats can be viewed on both the Affected Datasets tab of your pipeline run as well as the Datasets page in your Databand environment.
+Operations logged by `RedshiftTracker` will result in two datasets: the read from the file and the write to the Redshift table. Metrics related to these datasets such as the row counts, schemas, and column-level stats can be viewed on both the Data Interactions tab of your pipeline run as well as the Datasets page in your Databand environment.
 
-### Affected Datasets Tab
+### Data Interactions Tab
 [block:image]
 {
   "images": [
@@ -118,4 +109,4 @@ Operations logged by `RedshiftTracker` will result in two datasets: the read fro
 [/block]
 # Limitations
 * Nested queries are not supported by `RedshiftTracker` (e.g. COPY (SELECT * FROM TABLE) table FROM...).
-* As part of column level stats we're calculating average value, this is precise with "double" data type limit.
+* As part of column-level stats collection, the mean value for a column is calculated using the DOUBLE PRECISION data type.
