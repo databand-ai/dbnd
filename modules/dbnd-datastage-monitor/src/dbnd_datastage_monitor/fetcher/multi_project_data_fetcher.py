@@ -43,5 +43,11 @@ class MultiProjectDataStageDataFetcher:
 
     def get_full_runs(self, runs, project_id: str):
         runs_getter = self._access_map.get(project_id)
+        if not runs_getter:
+            logger.warning(
+                "Received run of project id %s which is not in the projects configured for the syncer",
+                project_id,
+            )
+
         datastage_full_runs = runs_getter.get_full_runs(runs_links=runs)
         return datastage_full_runs

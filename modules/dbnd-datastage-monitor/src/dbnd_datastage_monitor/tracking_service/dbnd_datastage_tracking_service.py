@@ -13,6 +13,7 @@ from dbnd_datastage_monitor.data.datastage_config_data import (
 from airflow_monitor.shared.base_server_monitor_config import TrackingServiceConfig
 from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
 from dbnd._core.errors import DatabandConfigError
+from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.cachetools import TTLCache, cached
 
 
@@ -62,6 +63,9 @@ class DbndDataStageTrackingService(BaseDbndTrackingService):
             data=data,
         )
 
+    def update_last_sync_time(self):
+        self.update_monitor_state(DataStageMonitorState(last_sync_time=utcnow()))
+
     def set_running_monitor_state(self, is_monitored_server_alive: bool):
         if not is_monitored_server_alive:
             return
@@ -77,7 +81,7 @@ class DbndDataStageTrackingService(BaseDbndTrackingService):
             )
         )
 
-    def get_lat_seen_date(self):
+    def get_last_seen_date(self):
         result = self._api_client.api_request(
             endpoint=f"datastage_syncers/{self.tracking_source_uid}",
             method="GET",

@@ -52,7 +52,7 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
 
     @capture_monitor_exception("sync_once")
     def _sync_once(self):
-        last_seen_date_str = self.tracking_service.get_lat_seen_date()
+        last_seen_date_str = self.tracking_service.get_last_seen_date()
 
         if not last_seen_date_str:
             self.tracking_service.update_last_seen_values(format_datetime(utcnow()))
@@ -84,6 +84,10 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                 }
                 self._init_runs_for_project(runs_to_submit)
                 self.tracking_service.update_last_seen_values(format_datetime(end_date))
+                self.tracking_service.update_last_sync_time()
+            else:
+                logger.info("No new runs found")
+                self.tracking_service.update_last_sync_time()
 
             start_date += interval
 
@@ -106,6 +110,7 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
     def _update_runs(self, datastage_runs: List):
         if not datastage_runs:
             return
+
         run_partitioned_by_project_id = {}
         for run_link in datastage_runs:
             project_id = _extract_project_id_from_url(run_link)
@@ -122,3 +127,4 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     runs_chunk, project_id
                 )
                 self.tracking_service.update_datastage_runs(datastage_runs_full_data)
+                self.tracking_service.update_last_sync_time()
