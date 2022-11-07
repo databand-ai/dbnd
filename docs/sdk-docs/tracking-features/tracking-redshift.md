@@ -60,6 +60,7 @@ By default, `RedshiftTracker` will capture the paths of your file and Redshift t
   * Standard deviation
   * Min and max
   * 25%/50%/75% quartiles
+* `with_percentiles=False`: This will disable calculation of the 25%/50%/75% quartiles when `with_stats=True`. This can help speed up the calculation of column-level statistics on large datasets.
 * `with_partition=True`: If your file path includes partitioning such as `/date=20220415/`, you can use this parameter to ignore partitions in the parsing of your dataset names. This will help ensure that datasets across runs that have different partitioning will still be evaluated as the same dataset for the sake of trends and alerts.
 
 [block:callout]

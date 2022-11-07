@@ -246,6 +246,16 @@ def test_get_col_stats_queries_stats_other_types(col_type):
     assert "(SELECT Null) AS percentile_75" in queries
 
 
+@pytest.mark.parametrize("col_type", NUMERIC_TYPES)
+def test_get_col_stats_queries_stats_numeric_no_percentiles(col_type):
+    col_name = "column"
+    queries = get_col_stats_queries(col_name, col_type, with_percentiles=False)
+
+    assert "(SELECT Null) AS percentile_25" in queries
+    assert "(SELECT Null) AS percentile_50" in queries
+    assert "(SELECT Null) AS percentile_75" in queries
+
+
 def test_extract_stats_query():
     queries = [
         list(get_col_stats_queries(col, col_type)) for col, col_type in schema.items()

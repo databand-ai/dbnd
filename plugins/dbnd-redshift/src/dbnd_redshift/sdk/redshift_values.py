@@ -63,7 +63,7 @@ def _is_numeric_type(col_type: str):
     return any(num_type in col_type.upper() for num_type in NUMERIC_TYPES)
 
 
-def get_col_stats_queries(col_name: str, col_type: str):
+def get_col_stats_queries(col_name: str, col_type: str, with_percentiles: bool = True):
     most_freq_value_cast = "integer::text" if col_type == "boolean" else "text"
 
     query_list = [
@@ -82,11 +82,10 @@ def get_col_stats_queries(col_name: str, col_type: str):
                 f'(SELECT avg("{col_name}"::float8) FROM {TEMP_TABLE_NAME})::text AS average',  # avg calculates in mem, we're limiting the column datatype so it won't cause numeric overflow
                 f'(SELECT min("{col_name}") FROM {TEMP_TABLE_NAME})::text AS minimum',
                 f'(SELECT max("{col_name}") FROM {TEMP_TABLE_NAME})::text AS maximum',
-                f'(SELECT percentile_cont(0.25) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_25',
-                f'(SELECT percentile_cont(0.50) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_50',
-                f'(SELECT percentile_cont(0.75) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_75',
             ]
         )
+        query_list.extend(_percentile_queries(col_name, with_percentiles))
+
     else:
         query_list.extend(
             [
@@ -94,13 +93,30 @@ def get_col_stats_queries(col_name: str, col_type: str):
                 "(SELECT Null) AS average",
                 "(SELECT Null) AS minimum",
                 "(SELECT Null) AS maximum",
-                "(SELECT Null) AS percentile_25",
-                "(SELECT Null) AS percentile_50",
-                "(SELECT Null) AS percentile_75",
             ]
         )
+        query_list.extend(_null_queries_for_percentile())
 
     return query_list
+
+
+def _percentile_queries(col_name: str, with_percentiles: bool) -> List[str]:
+    if not with_percentiles:
+        return _null_queries_for_percentile()
+
+    return [
+        f'(SELECT percentile_cont(0.25) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_25',
+        f'(SELECT percentile_cont(0.50) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_50',
+        f'(SELECT percentile_cont(0.75) within group (order by "{col_name}" asc) from {TEMP_TABLE_NAME})::text AS percentile_75',
+    ]
+
+
+def _null_queries_for_percentile() -> List[str]:
+    return [
+        "(SELECT Null) AS percentile_25",
+        "(SELECT Null) AS percentile_50",
+        "(SELECT Null) AS percentile_75",
+    ]
 
 
 def query_list_to_text(cols_queries_lists: List[List[str]]):
@@ -209,7 +225,9 @@ class RedshiftOperation(SqlOperation):
                 if desc_results is not None:
                     self.schema_cache = res_schema
 
-    def extract_stats(self, connection: PostgresConnectionWrapper):
+    def extract_stats(
+        self, connection: PostgresConnectionWrapper, with_percentiles: bool
+    ):
         """
         Extracts column level stats of data in motion, data is copied to a temp table in redshift (in redshift_tracker)
         and here it is queried to extract column level statistics from it
@@ -229,7 +247,11 @@ class RedshiftOperation(SqlOperation):
 
         if self.schema:
             queries = [
-                list(get_col_stats_queries(col, col_type))
+                list(
+                    get_col_stats_queries(
+                        col, col_type, with_percentiles=with_percentiles
+                    )
+                )
                 for col, col_type in self.schema["dtypes"].items()
             ]
 

@@ -63,6 +63,7 @@ class RedshiftTrackerConfig:
     with_histograms: bool = attr.ib(default=None)
     send_metrics: bool = attr.ib(default=True)
     with_partition: bool = attr.ib(default=None)
+    with_percentiles: bool = attr.ib(default=True)
 
     def __attrs_post_init__(self):
         if self.with_stats and not self.with_schema:
@@ -171,7 +172,9 @@ class RedshiftTracker:
                 if self.conf.with_schema:
                     op.extract_schema(connection)
                     if self.conf.with_stats:
-                        op.extract_stats(connection)
+                        op.extract_stats(
+                            connection, with_percentiles=self.conf.with_percentiles
+                        )
                 if self.conf.with_preview:
                     op.extract_preview(connection)
 
