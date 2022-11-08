@@ -28,6 +28,9 @@ class MultiProjectDataStageDataFetcher:
         next_page = None
         all_runs = defaultdict(dict)
         for datastage_runs_getter in self.project_asset_clients:
+            logger.info(
+                "Checking for new runs for project %s", datastage_runs_getter.project_id
+            )
             while True:
                 new_runs, next_page = datastage_runs_getter.get_new_runs(
                     start_time=start_date, end_time=end_date, next_page=next_page
@@ -42,12 +45,14 @@ class MultiProjectDataStageDataFetcher:
         return all_runs
 
     def get_full_runs(self, runs, project_id: str):
+        logger.info("Retrieving full runs for project %s", project_id)
         runs_getter = self._access_map.get(project_id)
         if not runs_getter:
             logger.warning(
                 "Received run of project id %s which is not in the projects configured for the syncer",
                 project_id,
             )
+            return None
 
         datastage_full_runs = runs_getter.get_full_runs(runs_links=runs)
         return datastage_full_runs

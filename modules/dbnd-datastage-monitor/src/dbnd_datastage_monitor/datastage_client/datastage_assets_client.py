@@ -81,7 +81,9 @@ class DataStageAssetsClient:
             self.runs.append(ds_run)
         except Exception as e:
             logger.exception(
-                "Error occurred during fetching DataStage run: %s", run_link
+                "Error occurred during fetching DataStage run: %s, Exception: %s",
+                run_link,
+                str(e),
             )
             log_exception_to_server(e)
 

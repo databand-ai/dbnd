@@ -52,6 +52,9 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
 
     @capture_monitor_exception("sync_once")
     def _sync_once(self):
+        logger.info(
+            "Started running for tracking source %s", self.config.tracking_source_uid
+        )
         last_seen_date_str = self.tracking_service.get_last_seen_date()
 
         if not last_seen_date_str:
@@ -71,22 +74,40 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                 if start_date + interval < current_date
                 else current_date
             )
-
+            logger.info(
+                "Checking for new runs from %s to %s for tracking source %s",
+                format_datetime(start_date),
+                format_datetime(end_date),
+                self.config.tracking_source_uid,
+            )
             new_datastage_runs: Dict[
                 str, Dict[str, str]
             ] = self.data_fetcher.get_runs_to_sync(
                 format_datetime(start_date), format_datetime(end_date)
             )
+            for p in new_datastage_runs:
+                logger.info(
+                    "Found %d new runs for project %s for tracking source %s",
+                    len(new_datastage_runs[p]),
+                    p,
+                    self.config.tracking_source_uid,
+                )
             has_new_run = [v for v in new_datastage_runs.values() if v]
             if has_new_run:
                 runs_to_submit: Dict[str, List] = {
                     k: list(v.values()) for k, v in new_datastage_runs.items() if v
                 }
-                self._init_runs_for_project(runs_to_submit)
-                self.tracking_service.update_last_seen_values(format_datetime(end_date))
-                self.tracking_service.update_last_sync_time()
+                if runs_to_submit:
+                    self._init_runs_for_project(runs_to_submit)
+                    self.tracking_service.update_last_seen_values(
+                        format_datetime(end_date)
+                    )
+                    self.tracking_service.update_last_sync_time()
             else:
-                logger.info("No new runs found")
+                logger.info(
+                    "No new runs found for tracking source %s",
+                    self.config.tracking_source_uid,
+                )
                 self.tracking_service.update_last_sync_time()
 
             start_date += interval
@@ -96,7 +117,12 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
         if not datastage_runs:
             return
         for project_id, runs in datastage_runs.items():
-            logger.info("Syncing new %d runs for project %s", len(runs), project_id)
+            logger.info(
+                "Syncing new %d runs for project %s of tracking source %s",
+                len(runs),
+                project_id,
+                self.config.tracking_source_uid,
+            )
 
             bulk_size = self.config.runs_bulk_size or len(runs)
             chunks = more_itertools.sliced(runs, bulk_size)
@@ -104,7 +130,8 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                 datastage_runs_full_data = self.data_fetcher.get_full_runs(
                     runs_chunk, project_id
                 )
-                self.tracking_service.init_datastage_runs(datastage_runs_full_data)
+                if datastage_runs_full_data:
+                    self.tracking_service.init_datastage_runs(datastage_runs_full_data)
 
     @capture_monitor_exception
     def _update_runs(self, datastage_runs: List):
@@ -118,7 +145,12 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             project_runs.append(run_link)
 
         for project_id, runs in run_partitioned_by_project_id.items():
-            logger.info("Updating %d runs for project %s", len(runs), project_id)
+            logger.info(
+                "Updating %d runs for project %s for tracking source %s",
+                len(runs),
+                project_id,
+                self.config.tracking_source_uid,
+            )
 
             bulk_size = self.config.runs_bulk_size or len(runs)
             chunks = more_itertools.sliced(runs, bulk_size)
@@ -126,5 +158,6 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                 datastage_runs_full_data = self.data_fetcher.get_full_runs(
                     runs_chunk, project_id
                 )
+
                 self.tracking_service.update_datastage_runs(datastage_runs_full_data)
                 self.tracking_service.update_last_sync_time()
