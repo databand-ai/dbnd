@@ -29,6 +29,7 @@ class DataStageServerConfig(BaseServerConfig):
     datastage_runs_syncer_enabled = attr.ib(default=True)  # type: bool
     host_name = attr.ib(default=None)  # type: str
     authentication_provider_url = attr.ib(default=None)  # type: str
+    log_level = attr.ib(default=None)  # type: str
 
     @classmethod
     def create(
@@ -58,6 +59,7 @@ class DataStageServerConfig(BaseServerConfig):
             datastage_runs_syncer_enabled=monitor_instance_config[
                 "datastage_runs_syncer_enabled"
             ],
+            log_level=monitor_instance_config.get("log_level"),
         )
         return conf
 
