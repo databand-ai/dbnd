@@ -67,7 +67,7 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
                 for project_id in server_config.project_ids
             ]
         fetcher = MultiProjectDataStageDataFetcher(
-            datastage_project_clients=asset_clients, project_id=server_config.project_id
+            datastage_project_clients=asset_clients
         )
 
         return decorate_fetcher(fetcher, server_config.source_name)

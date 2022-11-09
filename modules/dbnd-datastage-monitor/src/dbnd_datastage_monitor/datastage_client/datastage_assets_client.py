@@ -27,10 +27,18 @@ class DataStageAssetsClient:
 
     def get_new_runs(
         self, start_time: str, end_time: str, next_page: Dict[str, any]
-    ) -> Tuple[Dict[str, str], Optional[str]]:
-        return self.client.get_runs_ids(
-            start_time=start_time, end_time=end_time, next_page=next_page
-        )
+    ) -> Tuple[Optional[Dict[str, str]], Optional[str]]:
+        try:
+            new_runs = self.client.get_runs_ids(
+                start_time=start_time, end_time=end_time, next_page=next_page
+            )
+            return new_runs
+        except Exception as e:
+            logger.exception(
+                "Error occurred during fetching new DataStage runs: %s", str(e)
+            )
+            log_exception_to_server(e)
+            return None, None
 
     def clear_response_cache(self):
         # clears response cache to re-use getter

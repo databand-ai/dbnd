@@ -78,22 +78,6 @@ class DataStageApiHttpClient(DataStageApiClient):
             else self.DEFAULT_AUTHENTICATION_URL
         )
 
-    def validate_token(func):
-        def wrapper(self, method, url, body=None):
-            if not self.access_token:
-                self.refresh_access_token()
-            else:
-                try:
-                    jwt.decode(self.access_token, options={"verify_signature": False})
-                except jwt.ExpiredSignatureError:
-                    logger.error("access token is expired, refreshing token")
-                    self.refresh_access_token()
-            if body:
-                return func(self, method, url, body)
-            return func(self, method, url)
-
-        return wrapper
-
     def get_session(self):
         session = requests.Session()
         retry = Retry(
@@ -124,6 +108,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         return session
 
     def refresh_access_token(self):
+        logger.info("Refreshing access token")
         data = (
             f"grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey={self.api_key}"
         )
@@ -138,23 +123,43 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.access_token = access_token
         self.headers["Authorization"] = f"Bearer {self.access_token}"
 
-    @validate_token
+    def validate_token(self):
+        if not self.access_token:
+            self.refresh_access_token()
+        else:
+            try:
+                jwt.decode(self.access_token, options={"verify_signature": False})
+            except jwt.ExpiredSignatureError:
+                logger.info("access token is expired, refreshing token")
+                self.refresh_access_token()
+
     def _make_http_request(self, method, url, body=None):
+        self.validate_token()
+
         response = self.get_session().request(
             method=method, url=url, headers=self.headers, json=body
         )
-        if response:
-            if response.status_code == HTTPStatus.UNAUTHORIZED:
-                self.refresh_access_token()
-                response = self.get_session().request(
-                    method=method, url=url, headers=self.headers, json=body
-                )
+        if response.status_code == HTTPStatus.OK:
+            return response.json()
+
+        if response.status_code == HTTPStatus.UNAUTHORIZED:
+            logger.info(
+                "Request {} is unauthorized, probably token is expired",
+                url,
+                response.status_code,
+            )
+            self.refresh_access_token()
+            response = self.get_session().request(
+                method=method, url=url, headers=self.headers, json=body
+            )
             if response.status_code == HTTPStatus.OK:
                 return response.json()
-            else:
-                logger.error(f"http response status code {response.status_code}")
-        # return empty object to prevent NONE errors
-        return {}
+
+        raise Exception(
+            "Got http response status code {} for url {}".format(
+                response.status_code, url
+            )
+        )
 
     def get_runs_ids(
         self, start_time: str, end_time: str, next_page: Dict[str, any] = None

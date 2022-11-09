@@ -53,8 +53,8 @@ def test_error_response_get(mock_session):
     mock_get_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     client = DataStageApiHttpClient("", "")
     client.get_session = MagicMock(return_value=session_mock)
-    returned_value = client._make_http_request(method="GET", url="")
-    assert returned_value == {}
+    with pytest.raises(Exception):
+        client._make_http_request(method="GET", url="")
 
 
 @mock.patch("requests.session")
@@ -64,8 +64,8 @@ def test_error_response_post(mock_session):
     mock_post_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     client = DataStageApiHttpClient("", "")
     client.get_session = MagicMock(return_value=session_mock)
-    returned_value = client._make_http_request(method="POST", url="", body={"a": "b"})
-    assert returned_value == {}
+    with pytest.raises(Exception):
+        client._make_http_request(method="POST", url="", body={"a": "b"})
 
 
 @mock.patch("requests.session")
@@ -76,7 +76,8 @@ def test_token_refresh_get(mock_session):
     session_mock.post.return_value.json.return_value = {"access_token": "token"}
     client = DataStageApiHttpClient("", "")
     client.get_session = MagicMock(return_value=session_mock)
-    client._make_http_request(method="GET", url="")
+    with pytest.raises(Exception):
+        client._make_http_request(method="GET", url="")
     data = f"grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey={client.api_key}"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     # call refresh token
@@ -104,7 +105,8 @@ def test_token_refresh_post(mock_session):
     session_mock.post.return_value.json.return_value = {"access_token": "token"}
     client = DataStageApiHttpClient("", "")
     client.get_session = MagicMock(return_value=session_mock)
-    client._make_http_request(method="POST", url="", body={"a": "b"})
+    with pytest.raises(Exception):
+        client._make_http_request(method="POST", url="", body={"a": "b"})
     data = f"grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey={client.api_key}"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     # call refresh token

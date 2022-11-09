@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class MultiProjectDataStageDataFetcher:
-    def __init__(
-        self, datastage_project_clients: List[DataStageAssetsClient], project_id: str
-    ):
+    def __init__(self, datastage_project_clients: List[DataStageAssetsClient]):
         self.project_asset_clients = datastage_project_clients
         self._access_map = {
             client.project_id: client for client in datastage_project_clients
