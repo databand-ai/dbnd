@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 from dbnd_datastage_monitor.datastage_client.datastage_api_client import (
     DataStageApiHttpClient,
 )
+from dbnd_datastage_monitor.metrics.prometheus_metrics import report_error
 
 from dbnd._core.log.external_exception_logging import log_exception_to_server
 
@@ -38,6 +39,7 @@ class DataStageAssetsClient:
                 "Error occurred during fetching new DataStage runs: %s", str(e)
             )
             log_exception_to_server(e)
+            report_error("get_new_runs", str(e))
             return None, None
 
     def clear_response_cache(self):
@@ -94,6 +96,7 @@ class DataStageAssetsClient:
                 str(e),
             )
             log_exception_to_server(e)
+            report_error("get_full_run", str(e))
 
     def get_full_runs(self, runs_links: List[str]) -> Dict:
         for run in runs_links:

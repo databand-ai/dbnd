@@ -1,9 +1,9 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import datetime
 import logging
 
 from datetime import timedelta
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlparse
 
 import more_itertools
@@ -11,6 +11,11 @@ import more_itertools
 from dbnd_datastage_monitor.data.datastage_config_data import DataStageServerConfig
 from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
     MultiProjectDataStageDataFetcher,
+)
+from dbnd_datastage_monitor.metrics.prometheus_metrics import (
+    report_list_duration,
+    report_runs_collection_delay,
+    report_runs_not_initiated,
 )
 from dbnd_datastage_monitor.multiserver.datastage_services_factory import (
     get_datastage_services_factory,
@@ -32,8 +37,42 @@ capture_monitor_exception = CaptureMonitorExceptionDecorator(
 )
 
 
+def get_from_nullable_chain(
+    source: Any, chain: List[str], default_val=None
+) -> Optional[Any]:
+    # This function is taken from dbnd_web.utils.operations
+    chain.reverse()
+    try:
+        while chain:
+            next_key = chain.pop()
+            if isinstance(source, dict):
+                source = source.get(next_key)
+            else:
+                source = getattr(source, next_key)
+        return source
+    except AttributeError:
+        return default_val
+
+
 def format_datetime(datetime_obj):
     return datetime_obj.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def get_min_run_start_time(raw_runs):
+    min_start_time = None
+    for raw_run in raw_runs:
+        try:
+            start_time = parse_datetime(
+                get_from_nullable_chain(
+                    raw_run.get("run_info"), ["metadata", "created_at"]
+                )
+            )
+            if min_start_time is None or start_time < min_start_time:
+                min_start_time = start_time
+        except Exception as e:
+            logger.exception("Failed to get start time from run, exception: %s", str(e))
+
+    return min_start_time
 
 
 def _extract_project_id_from_url(url: str):
@@ -68,6 +107,9 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
         interval = timedelta(self.config.fetching_interval_in_minutes)
         start_date = end_date = parse_datetime(last_seen_date_str)
 
+        duration = (current_date - start_date).total_seconds()
+        report_list_duration(self.config.tracking_source_uid, duration)
+
         while end_date < current_date:
             end_date = (
                 start_date + interval
@@ -92,13 +134,14 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     p,
                     self.config.tracking_source_uid,
                 )
+
             has_new_run = [v for v in new_datastage_runs.values() if v]
             if has_new_run:
                 runs_to_submit: Dict[str, List] = {
                     k: list(v.values()) for k, v in new_datastage_runs.items() if v
                 }
                 if runs_to_submit:
-                    self._init_runs_for_project(runs_to_submit)
+                    self._init_runs_for_projects(runs_to_submit, current_date)
                     self.tracking_service.update_last_seen_values(
                         format_datetime(end_date)
                     )
@@ -113,9 +156,12 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             start_date += interval
 
     @capture_monitor_exception
-    def _init_runs_for_project(self, datastage_runs: Dict[str, List[str]]):
+    def _init_runs_for_projects(
+        self, datastage_runs: Dict[str, List[str]], current_date: datetime.datetime
+    ):
         if not datastage_runs:
             return
+
         for project_id, runs in datastage_runs.items():
             logger.info(
                 "Syncing new %d runs for project %s of tracking source %s",
@@ -123,6 +169,8 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                 project_id,
                 self.config.tracking_source_uid,
             )
+            successful_run_inits = 0
+            all_runs = []
 
             bulk_size = self.config.runs_bulk_size or len(runs)
             chunks = more_itertools.sliced(runs, bulk_size)
@@ -130,8 +178,27 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                 datastage_runs_full_data = self.data_fetcher.get_full_runs(
                     runs_chunk, project_id
                 )
+
                 if datastage_runs_full_data:
+                    received_runs = datastage_runs_full_data.get("runs")
+                    if received_runs:
+                        all_runs.extend(received_runs)
+                        successful_run_inits += len(received_runs)
                     self.tracking_service.init_datastage_runs(datastage_runs_full_data)
+
+            if successful_run_inits < len(runs):
+                report_runs_not_initiated(
+                    self.config.tracking_source_uid,
+                    project_id,
+                    len(runs) - successful_run_inits,
+                )
+
+            min_start_time = get_min_run_start_time(all_runs)
+            if min_start_time:
+                collection_delay = (current_date - min_start_time).total_seconds()
+                report_runs_collection_delay(
+                    self.config.tracking_source_uid, project_id, collection_delay
+                )
 
     @capture_monitor_exception
     def _update_runs(self, datastage_runs: List):

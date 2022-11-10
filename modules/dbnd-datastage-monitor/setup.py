@@ -21,6 +21,7 @@ setuptools.setup(
         "dbnd-airflow-monitor==" + version,
         "requests>=2.25.0",
         "PyJWT==2.4.0",
+        "prometheus-client",
     ],
     extras_require={"tests": ["pytest", "mock"]},
     entry_points={

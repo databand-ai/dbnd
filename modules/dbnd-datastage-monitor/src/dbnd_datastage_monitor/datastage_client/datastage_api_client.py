@@ -9,6 +9,7 @@ from typing import Dict, Tuple
 import jwt
 import requests
 
+from dbnd_datastage_monitor.metrics.prometheus_metrics import report_api_error
 from requests.adapters import HTTPAdapter, Retry
 
 
@@ -155,11 +156,8 @@ class DataStageApiHttpClient(DataStageApiClient):
             if response.status_code == HTTPStatus.OK:
                 return response.json()
 
-        raise Exception(
-            "Got http response status code {} for url {}".format(
-                response.status_code, url
-            )
-        )
+        report_api_error(response.status_code, url)
+        response.raise_for_status()
 
     def get_runs_ids(
         self, start_time: str, end_time: str, next_page: Dict[str, any] = None
