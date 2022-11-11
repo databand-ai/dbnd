@@ -19,6 +19,7 @@ class DataStageUpdateMonitorStateRequestSchema(ApiStrictSchema):
 
 @attr.s
 class DataStageServerConfig(BaseServerConfig):
+    uid = attr.ib(default=None)  # type: str
     project_id = attr.ib(default=None)  # type: str
     project_ids = attr.ib(factory=list)
     api_key = attr.ib(default=None)  # type: str
@@ -38,6 +39,7 @@ class DataStageServerConfig(BaseServerConfig):
         monitor_instance_config = server_config.get("monitor_config") or {}
         project_id = server_config["project_id"]
         conf = cls(
+            uid=server_config.get("uid") or server_config["tracking_source_uid"],
             source_type="datastage",
             source_name=server_config["source_name"],
             tracking_source_uid=server_config["tracking_source_uid"],
@@ -62,6 +64,10 @@ class DataStageServerConfig(BaseServerConfig):
             log_level=monitor_instance_config.get("log_level"),
         )
         return conf
+
+    @property
+    def identifier(self):
+        return self.uid
 
 
 @attr.s

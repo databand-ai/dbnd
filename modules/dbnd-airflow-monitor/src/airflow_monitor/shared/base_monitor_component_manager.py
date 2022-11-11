@@ -26,7 +26,7 @@ class BaseMonitorComponentManager(object):
         self.server_config = server_config
         self.monitor_services_factory = monitor_services_factory
         self.tracking_service = monitor_services_factory.get_tracking_service(
-            server_config.tracking_source_uid
+            server_config.identifier
         )
 
         # Services to run

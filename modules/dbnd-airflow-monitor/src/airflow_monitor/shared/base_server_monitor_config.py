@@ -26,6 +26,10 @@ class BaseServerConfig(object):
     ):
         raise NotImplementedError()
 
+    @property
+    def identifier(self):
+        return self.tracking_source_uid
+
 
 @attr.s
 class TrackingServiceConfig:
