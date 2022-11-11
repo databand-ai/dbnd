@@ -79,6 +79,18 @@ class DataStageApiHttpClient(DataStageApiClient):
             else self.DEFAULT_AUTHENTICATION_URL
         )
 
+    def get_asset_id(self, data):
+        metadata = data.get("metadata")
+        if not metadata:
+            logger.warning(
+                f"Unable to add run for {self.project_id}, no metadata attribute found"
+            )
+            return None
+        return metadata.get("asset_id")
+
+    def build_asset_link(self, asset_id):
+        return f"{self.host_name}/{self.DATASTAGE_CAMS_API_ASSETS_PATH}/{asset_id}?project_id={self.project_id}"
+
     def get_session(self):
         session = requests.Session()
         retry = Retry(
@@ -176,14 +188,10 @@ class DataStageApiHttpClient(DataStageApiClient):
         results = res.get("results")
         if results:
             for re in results:
-                metadata = re.get("metadata")
-                if not metadata:
-                    logger.debug(
-                        f"Unable to add run for {self.project_id}, no metadata attribute found"
-                    )
+                run_id = self.get_asset_id(re)
+                if not run_id:
                     continue
-                run_id = re.get("metadata").get("asset_id")
-                link = re.get("href")
+                link = self.build_asset_link(run_id)
                 runs[run_id] = link
             next_link_result = res.get("next")
             if next_link_result:
@@ -235,9 +243,8 @@ class DataStageApiHttpClient(DataStageApiClient):
         return flow
 
     def get_job(self, job_id):
-        url = f"{self.host_name}/{self.DATASTAGE_CAMS_API_ASSETS_PATH}/{job_id}?project_id={self.project_id}"
-        job = self._make_http_request(method="GET", url=url)
-        job_info = self._make_http_request(method="GET", url=job.get("href"))
+        job_info_url = self.build_asset_link(job_id)
+        job_info = self._make_http_request(method="GET", url=job_info_url)
         return job_info
 
     def get_run_logs(self, job_id, run_id):

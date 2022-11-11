@@ -22,13 +22,16 @@ def test_get_runs_ids(mock_session):
         ]
     }
 
-    client = DataStageApiHttpClient("", "")
+    client = DataStageApiHttpClient("", "123")
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
     response = client.get_runs_ids("", "")
 
     assert response == (
-        {"01234": "https://myrun.com/01234", "56789": "https://myrun.com/56789"},
+        {
+            "01234": "https://api.dataplatform.cloud.ibm.com/v2/assets/01234?project_id=123",
+            "56789": "https://api.dataplatform.cloud.ibm.com/v2/assets/56789?project_id=123",
+        },
         None,
     )
 
@@ -156,7 +159,7 @@ def test_get_job(mock_session, host_name, called_host):
     )
     session_mock.request.assert_called_with(
         method="GET",
-        url="link",
+        url=f"{called_host}/v2/assets/job?project_id={project_id}",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
     )
