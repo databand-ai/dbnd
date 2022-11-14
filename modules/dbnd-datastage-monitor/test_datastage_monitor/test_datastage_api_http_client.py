@@ -6,34 +6,45 @@ from unittest.mock import MagicMock
 import pytest
 
 from dbnd_datastage_monitor.datastage_client.datastage_api_client import (
+    CLOUD_IAM_AUTH,
     DataStageApiHttpClient,
 )
 
 
+@pytest.mark.parametrize(
+    "api_run_links, res_run_links",
+    [
+        [
+            ["https://myrun.com/01234", "https://myrun.com/56789"],
+            ["https://myrun.com/01234", "https://myrun.com/56789"],
+        ],
+        [
+            [None, None],
+            [
+                "https://api.dataplatform.cloud.ibm.com/v2/assets/01234?project_id=123",
+                "https://api.dataplatform.cloud.ibm.com/v2/assets/56789?project_id=123",
+            ],
+        ],
+    ],
+)
 @mock.patch("requests.session")
-def test_get_runs_ids(mock_session):
+def test_get_runs_ids(mock_session, api_run_links, res_run_links):
     session_mock = mock_session.return_value
     mock_cams_query_response = session_mock.request.return_value
     mock_cams_query_response.status_code = HTTPStatus.OK
     mock_cams_query_response.json.return_value = {
         "results": [
-            {"metadata": {"asset_id": "01234"}, "href": "https://myrun.com/01234"},
-            {"metadata": {"asset_id": "56789"}, "href": "https://myrun.com/56789"},
+            {"metadata": {"asset_id": "01234"}, "href": api_run_links[0]},
+            {"metadata": {"asset_id": "56789"}, "href": api_run_links[1]},
         ]
     }
 
-    client = DataStageApiHttpClient("", "123")
+    client = DataStageApiHttpClient("", "123", authentication_type=CLOUD_IAM_AUTH)
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
     response = client.get_runs_ids("", "")
 
-    assert response == (
-        {
-            "01234": "https://api.dataplatform.cloud.ibm.com/v2/assets/01234?project_id=123",
-            "56789": "https://api.dataplatform.cloud.ibm.com/v2/assets/56789?project_id=123",
-        },
-        None,
-    )
+    assert response == ({"01234": res_run_links[0], "56789": res_run_links[1]}, None)
 
 
 @mock.patch("requests.session")
@@ -77,7 +88,7 @@ def test_token_refresh_get(mock_session):
     mock_get_response = session_mock.request.return_value
     mock_get_response.status_code = HTTPStatus.UNAUTHORIZED
     session_mock.post.return_value.json.return_value = {"access_token": "token"}
-    client = DataStageApiHttpClient("", "")
+    client = DataStageApiHttpClient("", "", authentication_type="cloud-iam-auth")
     client.get_session = MagicMock(return_value=session_mock)
     client._make_http_request(method="GET", url="")
     mock_get_response.raise_for_status.assert_called()
@@ -97,6 +108,7 @@ def test_token_refresh_get(mock_session):
             "Authorization": "Bearer token",
         },
         json=None,
+        verify=False,
     )
 
 
@@ -106,7 +118,7 @@ def test_token_refresh_post(mock_session):
     mock_post_response = session_mock.request.return_value
     mock_post_response.status_code = HTTPStatus.UNAUTHORIZED
     session_mock.post.return_value.json.return_value = {"access_token": "token"}
-    client = DataStageApiHttpClient("", "")
+    client = DataStageApiHttpClient("", "", authentication_type="cloud-iam-auth")
     client.get_session = MagicMock(return_value=session_mock)
     client._make_http_request(method="POST", url="", body={"a": "b"})
     mock_post_response.raise_for_status.assert_called()
@@ -128,59 +140,88 @@ def test_token_refresh_post(mock_session):
             "Content-Type": "application/json",
             "Authorization": "Bearer token",
         },
+        verify=False,
     )
 
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host",
+    "host_name, called_host, auth_type, api_job_link, res_job_link",
     [
-        [None, DataStageApiHttpClient.DEFAULT_HOST],
-        ["https://myhost.com", "https://myhost.com"],
+        [
+            None,
+            DataStageApiHttpClient.DEFAULT_HOST,
+            "cloud-iam-auth",
+            None,
+            f"{DataStageApiHttpClient.DEFAULT_HOST}/v2/assets/job?project_id=project",
+        ],
+        [
+            "https://myhost.com",
+            "https://myhost.com",
+            "on-prem-iam-auth",
+            None,
+            "https://myhost.com/v2/assets/job?project_id=project",
+        ],
+        [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth", "link", "link"],
+        [
+            "https://myhost.com",
+            "https://myhost.com",
+            "on-prem-iam-auth",
+            "link",
+            "link",
+        ],
     ],
 )
-def test_get_job(mock_session, host_name, called_host):
+def test_get_job(
+    mock_session, host_name, called_host, auth_type, api_job_link, res_job_link
+):
     session_mock = mock_session.return_value
     mock_get_job_response = session_mock.request.return_value
-    mock_get_job_response.json.return_value = {"job_info": "data", "href": "link"}
+    mock_get_job_response.json.return_value = {"job_info": "data", "href": api_job_link}
     mock_get_job_response.status_code = HTTPStatus.OK
 
     project_id = "project"
-    client = DataStageApiHttpClient("", project_id=project_id, host_name=host_name)
+    client = DataStageApiHttpClient(
+        "", project_id=project_id, host_name=host_name, authentication_type=auth_type
+    )
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
     job_id = "job"
     response = client.get_job(job_id)
     session_mock.request.assert_any_call(
         method="GET",
-        url=f"{called_host}/{client.DATASTAGE_CAMS_API_ASSETS_PATH}/{job_id}?project_id={project_id}",
+        url=res_job_link,
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
+        verify=False,
     )
     session_mock.request.assert_called_with(
         method="GET",
-        url=f"{called_host}/v2/assets/job?project_id={project_id}",
+        url=res_job_link,
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
+        verify=False,
     )
-    assert response == {"job_info": "data", "href": "link"}
+    assert response == {"job_info": "data", "href": api_job_link}
 
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host",
+    "host_name, called_host, auth_type",
     [
-        [None, DataStageApiHttpClient.DEFAULT_API_HOST],
-        ["https://myhost.com", "https://myhost.com"],
+        [None, DataStageApiHttpClient.DEFAULT_API_HOST, "cloud-iam-auth"],
+        ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth"],
     ],
 )
-def test_get_flow(mock_session, host_name, called_host):
+def test_get_flow(mock_session, host_name, called_host, auth_type):
     session_mock = mock_session.return_value
     mock_get_flow_response = session_mock.request.return_value
     mock_get_flow_response.json.return_value = {"flow": "data"}
     mock_get_flow_response.status_code = HTTPStatus.OK
     project_id = "project"
-    client = DataStageApiHttpClient("", project_id=project_id, host_name=host_name)
+    client = DataStageApiHttpClient(
+        "", project_id=project_id, host_name=host_name, authentication_type=auth_type
+    )
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
     flow_id = "flow"
@@ -190,25 +231,28 @@ def test_get_flow(mock_session, host_name, called_host):
         url=f"{called_host}/{client.FLOW_API_PATH}/{flow_id}/?project_id={project_id}",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
+        verify=False,
     )
     assert response == {"flow": "data"}
 
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host",
+    "host_name, called_host, auth_type",
     [
-        [None, DataStageApiHttpClient.DEFAULT_HOST],
-        ["https://myhost.com", "https://myhost.com"],
+        [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth"],
+        ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth"],
     ],
 )
-def test_get_run_logs(mock_session, host_name, called_host):
+def test_get_run_logs(mock_session, host_name, called_host, auth_type):
     session_mock = mock_session.return_value
     mock_get_logs_response = session_mock.request.return_value
     mock_get_logs_response.json.return_value = {"results": ['{"logs":"logs"}']}
     mock_get_logs_response.status_code = HTTPStatus.OK
     project_id = "project"
-    client = DataStageApiHttpClient("", project_id=project_id, host_name=host_name)
+    client = DataStageApiHttpClient(
+        "", project_id=project_id, host_name=host_name, authentication_type=auth_type
+    )
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
     job_id = "job"
@@ -219,19 +263,22 @@ def test_get_run_logs(mock_session, host_name, called_host):
         url=f"{called_host}/{client.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={project_id}&limit=200&userfs=false",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
+        verify=False,
     )
     assert response == {"logs": "logs"}
 
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host",
+    "host_name, called_host, auth_type",
     [
-        [None, DataStageApiHttpClient.DEFAULT_HOST],
-        ["https://myhost.com", "https://myhost.com"],
+        [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth"],
+        ["https://myhost.com", "https://myhost.com", "on-prem-basic-auth"],
     ],
 )
-def test_get_connections_filter_senstive_data(mock_session, host_name, called_host):
+def test_get_connections_filter_senstive_data(
+    mock_session, host_name, called_host, auth_type
+):
     session_mock = mock_session.return_value
     mock_get_connections_response = session_mock.request.return_value
     mock_get_connections_response.json.return_value = {
@@ -250,7 +297,9 @@ def test_get_connections_filter_senstive_data(mock_session, host_name, called_ho
     }
     mock_get_connections_response.status_code = HTTPStatus.OK
     project_id = "project"
-    client = DataStageApiHttpClient("", project_id=project_id, host_name=host_name)
+    client = DataStageApiHttpClient(
+        "", project_id=project_id, host_name=host_name, authentication_type=auth_type
+    )
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
     response = client.get_connections()
@@ -259,6 +308,7 @@ def test_get_connections_filter_senstive_data(mock_session, host_name, called_ho
         url=f"{called_host}/{client.DATASTAGE_CONNECTIONS_API_PATH}?project_id={project_id}&userfs=false",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
+        verify=False,
     )
     assert response == {
         123: {

@@ -45,6 +45,7 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
                         host_name=server_config.host_name
                         or DataStageApiHttpClient.DEFAULT_API_HOST,
                         authentication_provider_url=server_config.authentication_provider_url,
+                        authentication_type=server_config.authentication_type,
                         api_key=server_config.api_key,
                         project_id=project_id,
                         page_size=server_config.page_size,
@@ -58,6 +59,7 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
                     client=DataStageApiHttpClient(
                         host_name=server_config.host_name,
                         authentication_provider_url=server_config.authentication_provider_url,
+                        authentication_type=server_config.authentication_type,
                         api_key=server_config.api_key,
                         project_id=project_id,
                         page_size=server_config.page_size,

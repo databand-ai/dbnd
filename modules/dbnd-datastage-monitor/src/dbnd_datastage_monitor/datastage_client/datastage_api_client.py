@@ -16,6 +16,10 @@ from requests.adapters import HTTPAdapter, Retry
 logger = logging.getLogger(__name__)
 
 
+CLOUD_IAM_AUTH = "cloud-iam-auth"
+ON_PREM_BASIC_AUTH = "on-prem-basic-auth"
+
+
 class DataStageApiClient(ABC):
     def get_run_info(self, runs: Dict[str, str]):
         raise NotImplementedError
@@ -44,6 +48,7 @@ class DataStageApiHttpClient(DataStageApiClient):
     DEFAULT_AUTHENTICATION_URL = "https://iam.cloud.ibm.com"
 
     IDENTITY_TOKEN_API_PATH = "identity/token"
+    ON_PREM_TOKEN_API_PATH = "v1/preauth/validateAuth"
     DATASTAGE_JOBS_API_PATH = "v2/jobs"
     DATASTAGE_CAMS_API_PATH = "v2/asset_types"
     DATASTAGE_CAMS_API_ASSETS_PATH = "v2/assets"
@@ -61,6 +66,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         page_size: int = 200,
         host_name=None,
         authentication_provider_url=None,
+        authentication_type=None,
     ):
         self.access_token = ""
         self.headers = {
@@ -71,12 +77,20 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.project_id = project_id
         self.retries = max_retry
         self.page_size = page_size
-        self.host_name = host_name if host_name else self.DEFAULT_HOST
-        self.api_host_name = host_name if host_name else self.DEFAULT_API_HOST
-        self.authentication_provider_url = (
+        # hostname is provided only for datastage on-prem
+        self.authentication_type = authentication_type
+        self.host_name = (
+            self.DEFAULT_HOST
+            if self.authentication_type == CLOUD_IAM_AUTH
+            else host_name
+        )
+        self.api_host_name = (
+            self.DEFAULT_API_HOST
+            if self.authentication_type == CLOUD_IAM_AUTH
+            else host_name
+        )
+        self.authentication_provider_url = self.get_authentication_provider_url(
             authentication_provider_url
-            if authentication_provider_url
-            else self.DEFAULT_AUTHENTICATION_URL
         )
 
     def get_asset_id(self, data):
@@ -106,21 +120,29 @@ class DataStageApiHttpClient(DataStageApiClient):
         session.mount("https://", adapter)
         return session
 
-    def init_http_client_session(self, retries, back_off_factor=BACK_OFF_FACTOR):
-        session = requests.Session()
-        retry = Retry(
-            total=retries,
-            read=retries,
-            connect=retries,
-            backoff_factor=back_off_factor,
-            method_whitelist=frozenset(["GET", "POST"]),
-        )
-        adapter = HTTPAdapter(max_retries=retry)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        return session
+    def get_authentication_provider_url(self, authentication_url):
+        if authentication_url:
+            return authentication_url
+        # if authentication url is not provided and on-prem, use hostname as default authentication url
+        elif self.authentication_type == CLOUD_IAM_AUTH:
+            return self.DEFAULT_AUTHENTICATION_URL
+        else:
+            return self.host_name
 
-    def refresh_access_token(self):
+    def create_on_prem_token_basic_auth(self):
+        logger.info("Refreshing access token")
+        url = f"{self.host_name}/{self.ON_PREM_TOKEN_API_PATH}"
+        headers = {
+            "content-type": "application/json",
+            "Authorization": f"Basic " + self.api_key,
+        }
+        response = self.get_session().get(url, headers=headers, verify=False)
+        response_json = response.json()
+        access_token = response_json.get("accessToken")
+        self.access_token = access_token
+        self.headers["Authorization"] = f"Bearer {self.access_token}"
+
+    def create_iam_token_auth(self):
         logger.info("Refreshing access token")
         data = (
             f"grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey={self.api_key}"
@@ -136,6 +158,27 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.access_token = access_token
         self.headers["Authorization"] = f"Bearer {self.access_token}"
 
+    def get_session(self):
+        session = requests.Session()
+        retry = Retry(
+            total=self.retries,
+            read=self.retries,
+            connect=self.retries,
+            backoff_factor=self.BACK_OFF_FACTOR,
+            status_forcelist=[500, 502, 503, 504],
+            method_whitelist=frozenset(["GET", "POST"]),
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        return session
+
+    def refresh_access_token(self):
+        if self.authentication_type == ON_PREM_BASIC_AUTH:
+            self.create_on_prem_token_basic_auth()
+        else:
+            self.create_iam_token_auth()
+
     def validate_token(self):
         if not self.access_token:
             self.refresh_access_token()
@@ -150,7 +193,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.validate_token()
 
         response = self.get_session().request(
-            method=method, url=url, headers=self.headers, json=body
+            method=method, url=url, headers=self.headers, json=body, verify=False
         )
         if response.status_code == HTTPStatus.OK:
             return response.json()
@@ -163,8 +206,9 @@ class DataStageApiHttpClient(DataStageApiClient):
             )
             self.refresh_access_token()
             response = self.get_session().request(
-                method=method, url=url, headers=self.headers, json=body
+                method=method, url=url, headers=self.headers, json=body, verify=False
             )
+
             if response.status_code == HTTPStatus.OK:
                 return response.json()
 
@@ -191,8 +235,14 @@ class DataStageApiHttpClient(DataStageApiClient):
                 run_id = self.get_asset_id(re)
                 if not run_id:
                     continue
-                link = self.build_asset_link(run_id)
-                runs[run_id] = link
+                if self.authentication_type == ON_PREM_BASIC_AUTH:
+                    run_path = re.get("href")
+                    run_link = f"{self.host_name}{run_path}"
+                else:
+                    run_link = re.get("href")
+                if not run_link:
+                    run_link = self.build_asset_link(run_id)
+                runs[run_id] = run_link
             next_link_result = res.get("next")
             if next_link_result:
                 next_link = next_link_result
@@ -243,8 +293,16 @@ class DataStageApiHttpClient(DataStageApiClient):
         return flow
 
     def get_job(self, job_id):
-        job_info_url = self.build_asset_link(job_id)
-        job_info = self._make_http_request(method="GET", url=job_info_url)
+        url = f"{self.host_name}/{self.DATASTAGE_CAMS_API_ASSETS_PATH}/{job_id}?project_id={self.project_id}"
+        job = self._make_http_request(method="GET", url=url)
+        if self.authentication_type == ON_PREM_BASIC_AUTH:
+            job_path = job.get("href")
+            job_link = f"{self.host_name}{job_path}"
+        else:
+            job_link = job.get("href")
+        if not job_link:
+            job_link = self.build_asset_link(job_id)
+        job_info = self._make_http_request(method="GET", url=job_link)
         return job_info
 
     def get_run_logs(self, job_id, run_id):

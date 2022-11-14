@@ -30,6 +30,7 @@ class DataStageServerConfig(BaseServerConfig):
     datastage_runs_syncer_enabled = attr.ib(default=True)  # type: bool
     host_name = attr.ib(default=None)  # type: str
     authentication_provider_url = attr.ib(default=None)  # type: str
+    authentication_type = attr.ib(default=None)  # type: str
     log_level = attr.ib(default=None)  # type: str
 
     @classmethod
@@ -57,6 +58,7 @@ class DataStageServerConfig(BaseServerConfig):
             api_key=server_config["api_key"],
             host_name=server_config["host_name"],
             authentication_provider_url=server_config["authentication_provider_url"],
+            authentication_type=server_config["authentication_type"],
             sync_interval=monitor_instance_config["sync_interval"],
             datastage_runs_syncer_enabled=monitor_instance_config[
                 "datastage_runs_syncer_enabled"
