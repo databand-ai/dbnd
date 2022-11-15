@@ -130,7 +130,7 @@ class DataStageApiHttpClient(DataStageApiClient):
             return self.host_name
 
     def create_on_prem_token_basic_auth(self):
-        logger.info("Refreshing access token")
+        logger.info("Refreshing on prem access token for project %s", self.project_id)
         url = f"{self.host_name}/{self.ON_PREM_TOKEN_API_PATH}"
         headers = {
             "content-type": "application/json",
@@ -143,7 +143,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.headers["Authorization"] = f"Bearer {self.access_token}"
 
     def create_iam_token_auth(self):
-        logger.info("Refreshing access token")
+        logger.info("Refreshing iam access token for project %s", self.project_id)
         data = (
             f"grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey={self.api_key}"
         )
@@ -184,9 +184,15 @@ class DataStageApiHttpClient(DataStageApiClient):
             self.refresh_access_token()
         else:
             try:
-                jwt.decode(self.access_token, options={"verify_signature": False})
+                jwt.decode(
+                    self.access_token,
+                    options={"verify_signature": False, "verify_exp": True},
+                )
             except jwt.ExpiredSignatureError:
-                logger.info("access token is expired, refreshing token")
+                logger.info(
+                    "Access token for project %s expired, refreshing token",
+                    self.project_id,
+                )
                 self.refresh_access_token()
 
     def _make_http_request(self, method, url, body=None):
@@ -200,9 +206,9 @@ class DataStageApiHttpClient(DataStageApiClient):
 
         if response.status_code == HTTPStatus.UNAUTHORIZED:
             logger.info(
-                "Request {} is unauthorized, probably token is expired",
+                "Request %s for project %s is unauthorized, probably token is expired",
                 url,
-                response.status_code,
+                self.project_id,
             )
             self.refresh_access_token()
             response = self.get_session().request(
