@@ -99,6 +99,14 @@ def try_get_airflow_context_from_spark_conf():
             try_number = conf.get("spark.env.AIRFLOW_CTX_TRY_NUMBER")
             airflow_instance_uid = conf.get("spark.env.AIRFLOW_CTX_UID")
 
+            validate_spark_airflow_conf(
+                dag_id=dag_id,
+                execution_date=execution_date,
+                task_id=task_id,
+                try_number=try_number,
+                airflow_instance_uid=airflow_instance_uid,
+            )
+
             if dag_id and task_id and execution_date:
                 return AirflowTaskContext(
                     dag_id=dag_id,
@@ -107,12 +115,29 @@ def try_get_airflow_context_from_spark_conf():
                     try_number=try_number,
                     airflow_instance_uid=airflow_instance_uid,
                 )
-            else:
-                logger.warning("Airflow context could not be loaded from spark conf")
     except Exception as ex:
         logger.info("Failed to get airflow context info from spark job: %s", ex)
 
     return None
+
+
+def validate_spark_airflow_conf(**kwargs):
+    if None not in kwargs.values():
+        # all airflow context values are provided, nothing to do here
+        return True
+    if all(v is None for v in kwargs.values()):
+        # airflow context is empty, nothing to do here
+        return True
+    # some values are provided while others are not
+    for kw in kwargs:
+        if kwargs[kw] is None:
+            logger.warning(
+                f"Airflow context AIRFLOW_{kw.upper()} value is missing in the spark env. Please add it to the spark env to ensure proper tracking of the tasks."
+            )
+    logger.warning(
+        f"Some airflow context values are missing in the spark env. This can lead to the incorrect task tracking."
+    )
+    return False
 
 
 def get_value_from_spark_env(key):
