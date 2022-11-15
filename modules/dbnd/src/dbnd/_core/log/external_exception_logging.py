@@ -18,7 +18,7 @@ def _format_exception(e_type, e_value, e_traceback):
     return "".join(traceback.format_exception(e_type, value=e_value, tb=e_traceback))
 
 
-def log_exception_to_server(exception=None):
+def log_exception_to_server(exception=None, source="tracking-sdk"):
     try:
         from dbnd._core.current import get_databand_context
 
@@ -38,7 +38,7 @@ def log_exception_to_server(exception=None):
 
         data = {
             "dbnd_version": dbnd.__version__,
-            "source": "tracking-sdk",
+            "source": source,
             "stack_trace": trace,
             "timestamp": utcnow().isoformat(),
         }

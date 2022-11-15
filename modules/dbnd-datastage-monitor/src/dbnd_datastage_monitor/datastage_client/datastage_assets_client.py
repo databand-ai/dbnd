@@ -38,7 +38,7 @@ class DataStageAssetsClient:
             logger.exception(
                 "Error occurred during fetching new DataStage runs: %s", str(e)
             )
-            log_exception_to_server(e)
+            log_exception_to_server(e, "datastage-monitor")
             report_error("get_new_runs", str(e))
             return None, None
 
@@ -50,28 +50,31 @@ class DataStageAssetsClient:
 
     def get_full_run(self, run_link: str):
         try:
-            # TODO: pagination on runs api when run_id is not specified
             run_info = self.client.get_run_info(run_link)
             if not run_info:
                 return
+
             ds_run = {"run_link": run_link}
             run_metadata = run_info.get("metadata")
             if not run_metadata:
                 logger.error("Unable to add run, no metadata attribute found")
                 return
+
             run_id = run_metadata.get("asset_id")
             run_entity = run_info.get("entity")
             if not run_entity:
                 logger.error("Unable to add run, no entity attribute found")
                 return
+
             job_run = run_entity.get("job_run")
             if not job_run:
                 logger.error("Unable to add run, no job run attribute found")
                 return
+
             job_id = job_run.get("job_ref")
-            # TODO: pagination on logs
             run_logs = self.client.get_run_logs(job_id=job_id, run_id=run_id)
             job_info = self.jobs.get(job_id)
+
             # request job if not exists in cache
             if not job_info:
                 job_info = self.client.get_job(job_id)
@@ -81,11 +84,13 @@ class DataStageAssetsClient:
                     )
                     return
                 self.jobs[job_id] = job_info
+
             flow_id = job_info.get("entity").get("job").get("asset_ref")
             if not self.flows.get(flow_id):
                 # request flow if not exists in cache
                 flow = self.client.get_flow(flow_id)
                 self.flows[flow_id] = flow
+
             ds_run["run_info"] = run_info
             ds_run["run_logs"] = run_logs
             self.runs.append(ds_run)
@@ -95,7 +100,7 @@ class DataStageAssetsClient:
                 run_link,
                 str(e),
             )
-            log_exception_to_server(e)
+            log_exception_to_server(e, "datastage-monitor")
             report_error("get_full_run", str(e))
 
     def get_full_runs(self, runs_links: List[str]) -> Dict:

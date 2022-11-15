@@ -4,7 +4,7 @@ import logging
 
 from abc import ABC
 from http import HTTPStatus
-from typing import Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 import jwt
 import requests
@@ -218,6 +218,11 @@ class DataStageApiHttpClient(DataStageApiClient):
             if response.status_code == HTTPStatus.OK:
                 return response.json()
 
+        logger.warning(
+            "Received response with status %s when trying to access url %s",
+            response.status_code,
+            url,
+        )
         report_api_error(response.status_code, url)
         response.raise_for_status()
 
@@ -311,12 +316,23 @@ class DataStageApiHttpClient(DataStageApiClient):
         job_info = self._make_http_request(method="GET", url=job_link)
         return job_info
 
-    def get_run_logs(self, job_id, run_id):
-        url = f"{self.host_name}/{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={self.project_id}&limit={self.page_size}&userfs=false"
-        logs = self._make_http_request(method="GET", url=url)
-        logs_json = logs.get("results")
-        if logs_json:
-            logs = json.loads(logs_json[0])
-        else:
-            logger.debug(f"Logs for {run_id} not found")
+    def get_run_logs(self, job_id, run_id) -> List[Dict[str, Any]]:
+        logs = []
+
+        try:
+            url = f"{self.host_name}/{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={self.project_id}&limit={self.page_size}&userfs=false"
+            logs_response = self._make_http_request(method="GET", url=url)
+            logs_json = logs_response.get("results")
+            if logs_json:
+                logs = json.loads(logs_json[0])
+            else:
+                logger.debug("Logs for run %s not found", run_id)
+        except Exception as e:
+            # Sometimes fetching logs fails with 500, in that case it's ok to return empty list
+            logger.exception(
+                "Error occurred during fetching DataStage logs for run id: %s, Exception: %s",
+                run_id,
+                str(e),
+            )
+
         return logs

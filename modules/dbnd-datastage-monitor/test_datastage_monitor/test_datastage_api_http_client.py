@@ -273,7 +273,9 @@ def test_get_flow(mock_session, host_name, called_host, auth_type):
 def test_get_run_logs(mock_session, host_name, called_host, auth_type):
     session_mock = mock_session.return_value
     mock_get_logs_response = session_mock.request.return_value
-    mock_get_logs_response.json.return_value = {"results": ['{"logs":"logs"}']}
+    mock_get_logs_response.json.return_value = {
+        "results": ['[{"eventID": "0", "occurredAt": 1664719211000}]']
+    }
     mock_get_logs_response.status_code = HTTPStatus.OK
     project_id = "project"
     client = DataStageApiHttpClient(
@@ -291,7 +293,40 @@ def test_get_run_logs(mock_session, host_name, called_host, auth_type):
         json=None,
         verify=False,
     )
-    assert response == {"logs": "logs"}
+    assert response == [{"eventID": "0", "occurredAt": 1664719211000}]
+
+
+@mock.patch("requests.session")
+def test_get_run_logs_fails(mock_session, caplog):
+    host_name = "host"
+    session_mock = mock_session.return_value
+    mock_get_logs_response = session_mock.request.return_value
+    mock_get_logs_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+    mock_get_logs_response.raise_for_status.side_effect = Exception(
+        "Internal server error"
+    )
+    project_id = "project"
+    client = DataStageApiHttpClient(
+        "", project_id=project_id, host_name=host_name, authentication_type="auth_type"
+    )
+    client.get_session = MagicMock(return_value=session_mock)
+    client.refresh_access_token = MagicMock()
+    job_id = "job"
+    run_id = "run"
+
+    with caplog.at_level(logging.INFO):
+        response = client.get_run_logs(job_id, run_id)
+        session_mock.request.assert_called_with(
+            method="GET",
+            url=f"{host_name}/{client.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={project_id}&limit=200&userfs=false",
+            headers={"accept": "application/json", "Content-Type": "application/json"},
+            json=None,
+            verify=False,
+        )
+        mock_get_logs_response.raise_for_status.assert_called()
+        expected_log_message = "Error occurred during fetching DataStage logs for run id: run, Exception: Internal server error"
+        assert response == []
+        assert expected_log_message in caplog.messages
 
 
 @mock.patch("requests.session")
