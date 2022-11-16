@@ -20,6 +20,23 @@ CLOUD_IAM_AUTH = "cloud-iam-auth"
 ON_PREM_BASIC_AUTH = "on-prem-basic-auth"
 
 
+def parse_datastage_error(response):
+    try:
+        errors = response.json().get("errors")
+        if errors and isinstance(errors, list):
+            message = "\n".join(
+                [
+                    f"code={error.get('code')}, message={error.get('message')}"
+                    for error in errors
+                ]
+            )
+            return message
+    except Exception:
+        logger.debug("Failed to parse response from %s", response.text)
+
+    return response.text
+
+
 class DataStageApiClient(ABC):
     def get_run_info(self, runs: Dict[str, str]):
         raise NotImplementedError
@@ -218,10 +235,12 @@ class DataStageApiHttpClient(DataStageApiClient):
             if response.status_code == HTTPStatus.OK:
                 return response.json()
 
+        error_message = parse_datastage_error(response)
         logger.warning(
-            "Received response with status %s when trying to access url %s",
+            "Received response with status %s when trying to access url %s. Error details: %s",
             response.status_code,
             url,
+            error_message,
         )
         report_api_error(response.status_code, url)
         response.raise_for_status()
@@ -246,13 +265,7 @@ class DataStageApiHttpClient(DataStageApiClient):
                 run_id = self.get_asset_id(re)
                 if not run_id:
                     continue
-                if self.authentication_type == ON_PREM_BASIC_AUTH:
-                    run_path = re.get("href")
-                    run_link = f"{self.host_name}{run_path}"
-                else:
-                    run_link = re.get("href")
-                if not run_link:
-                    run_link = self.build_asset_link(run_id)
+                run_link = self.build_asset_link(run_id)
                 runs[run_id] = run_link
             next_link_result = res.get("next")
             if next_link_result:
@@ -304,15 +317,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         return flow
 
     def get_job(self, job_id):
-        url = f"{self.host_name}/{self.DATASTAGE_CAMS_API_ASSETS_PATH}/{job_id}?project_id={self.project_id}"
-        job = self._make_http_request(method="GET", url=url)
-        if self.authentication_type == ON_PREM_BASIC_AUTH:
-            job_path = job.get("href")
-            job_link = f"{self.host_name}{job_path}"
-        else:
-            job_link = job.get("href")
-        if not job_link:
-            job_link = self.build_asset_link(job_id)
+        job_link = self.build_asset_link(job_id)
         job_info = self._make_http_request(method="GET", url=job_link)
         return job_info
 

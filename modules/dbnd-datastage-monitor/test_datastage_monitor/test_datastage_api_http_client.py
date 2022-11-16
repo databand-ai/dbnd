@@ -9,44 +9,47 @@ import pytest
 
 from dbnd_datastage_monitor.datastage_client.datastage_api_client import (
     CLOUD_IAM_AUTH,
+    ON_PREM_BASIC_AUTH,
     DataStageApiHttpClient,
 )
 
 
 @pytest.mark.parametrize(
-    "api_run_links, res_run_links",
+    "host_name, called_host, auth_type",
     [
-        [
-            ["https://myrun.com/01234", "https://myrun.com/56789"],
-            ["https://myrun.com/01234", "https://myrun.com/56789"],
-        ],
-        [
-            [None, None],
-            [
-                "https://api.dataplatform.cloud.ibm.com/v2/assets/01234?project_id=123",
-                "https://api.dataplatform.cloud.ibm.com/v2/assets/56789?project_id=123",
-            ],
-        ],
+        [None, DataStageApiHttpClient.DEFAULT_HOST, CLOUD_IAM_AUTH],
+        ["https://myhost.com", "https://myhost.com", ON_PREM_BASIC_AUTH],
     ],
 )
 @mock.patch("requests.session")
-def test_get_runs_ids(mock_session, api_run_links, res_run_links):
+def test_get_runs_ids(mock_session, host_name, called_host, auth_type):
     session_mock = mock_session.return_value
     mock_cams_query_response = session_mock.request.return_value
     mock_cams_query_response.status_code = HTTPStatus.OK
     mock_cams_query_response.json.return_value = {
         "results": [
-            {"metadata": {"asset_id": "01234"}, "href": api_run_links[0]},
-            {"metadata": {"asset_id": "56789"}, "href": api_run_links[1]},
+            {"metadata": {"asset_id": "01234"}, "href": "https://myrun.com/01234"},
+            {"metadata": {"asset_id": "56789"}, "href": "https://myrun.com/56789"},
         ]
     }
 
-    client = DataStageApiHttpClient("", "123", authentication_type=CLOUD_IAM_AUTH)
+    client = DataStageApiHttpClient(
+        host_name=host_name,
+        project_id="123",
+        authentication_type=auth_type,
+        api_key="abc",
+    )
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
     response = client.get_runs_ids("", "")
 
-    assert response == ({"01234": res_run_links[0], "56789": res_run_links[1]}, None)
+    assert response == (
+        {
+            "01234": f"{called_host}/v2/assets/01234?project_id=123",
+            "56789": f"{called_host}/v2/assets/56789?project_id=123",
+        },
+        None,
+    )
 
 
 @mock.patch("requests.session")
@@ -172,43 +175,24 @@ def test_token_refresh_post(mock_session):
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host, auth_type, api_job_link, res_job_link",
+    "host_name, called_host, auth_type",
     [
-        [
-            None,
-            DataStageApiHttpClient.DEFAULT_HOST,
-            "cloud-iam-auth",
-            None,
-            f"{DataStageApiHttpClient.DEFAULT_HOST}/v2/assets/job?project_id=project",
-        ],
-        [
-            "https://myhost.com",
-            "https://myhost.com",
-            "on-prem-iam-auth",
-            None,
-            "https://myhost.com/v2/assets/job?project_id=project",
-        ],
-        [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth", "link", "link"],
-        [
-            "https://myhost.com",
-            "https://myhost.com",
-            "on-prem-iam-auth",
-            "link",
-            "link",
-        ],
+        [None, DataStageApiHttpClient.DEFAULT_HOST, CLOUD_IAM_AUTH],
+        ["https://myhost.com", "https://myhost.com", ON_PREM_BASIC_AUTH],
     ],
 )
-def test_get_job(
-    mock_session, host_name, called_host, auth_type, api_job_link, res_job_link
-):
+def test_get_job(mock_session, host_name, called_host, auth_type):
     session_mock = mock_session.return_value
     mock_get_job_response = session_mock.request.return_value
-    mock_get_job_response.json.return_value = {"job_info": "data", "href": api_job_link}
+    mock_get_job_response.json.return_value = {"job_info": "data", "href": "link"}
     mock_get_job_response.status_code = HTTPStatus.OK
 
     project_id = "project"
     client = DataStageApiHttpClient(
-        "", project_id=project_id, host_name=host_name, authentication_type=auth_type
+        host_name=host_name,
+        project_id=project_id,
+        authentication_type=auth_type,
+        api_key="abc",
     )
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
@@ -216,19 +200,19 @@ def test_get_job(
     response = client.get_job(job_id)
     session_mock.request.assert_any_call(
         method="GET",
-        url=res_job_link,
+        url=f"{called_host}/{client.DATASTAGE_CAMS_API_ASSETS_PATH}/{job_id}?project_id={project_id}",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
         verify=False,
     )
     session_mock.request.assert_called_with(
         method="GET",
-        url=res_job_link,
+        url=f"{called_host}/v2/assets/job?project_id={project_id}",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
         verify=False,
     )
-    assert response == {"job_info": "data", "href": api_job_link}
+    assert response == {"job_info": "data", "href": "link"}
 
 
 @mock.patch("requests.session")
