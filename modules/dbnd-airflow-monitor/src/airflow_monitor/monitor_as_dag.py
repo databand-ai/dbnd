@@ -3,6 +3,7 @@
 import contextlib
 import logging
 import os
+import sys
 import threading
 import time
 
@@ -54,6 +55,7 @@ ITERATION_PRINT_INTERVAL = (
     PRINT_MEMORY_CONSUMPTION_INTERVAL_IN_SECONDS / GUARD_SLEEP_INTERVAL_IN_SECONDS
 )
 
+PYTHON_EXECUTABLE = sys.executable or "python3"
 
 logger = logging.getLogger(__name__)
 args = {"owner": "Databand", "start_date": days_ago(2)}
@@ -267,7 +269,7 @@ def get_monitor_dag(
             log_level=log_level,
             task_id="monitor",
             retries=10,
-            bash_command="python3 -m dbnd airflow-monitor-v2 %s" % opts,
+            bash_command="%s -m dbnd airflow-monitor-v2 %s" % (PYTHON_EXECUTABLE, opts),
             retry_delay=timedelta(seconds=1),
             retry_exponential_backoff=False,
             max_retry_delay=timedelta(seconds=1),
