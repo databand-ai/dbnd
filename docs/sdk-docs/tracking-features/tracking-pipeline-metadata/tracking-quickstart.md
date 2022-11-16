@@ -73,7 +73,7 @@ def prepare_data() -> Tuple[DataFrame, DataFrame]:
 	training_data, testing_data = train_test_split(df, test_size=0.25)
 
 	# use DBND logging features to log DataFrames with histograms
-	log_dataframe("training data", training_data,with_histograms=True,
+	log_dataframe("training_data", training_data,with_histograms=True,
 	            with_schema=True, with_stats=True)
 	log_dataframe("testing_data", testing_data)
 
