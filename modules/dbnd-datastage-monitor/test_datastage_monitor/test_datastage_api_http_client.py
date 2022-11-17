@@ -1,6 +1,6 @@
+# © Copyright Databand.ai, an IBM Company 2022
 import logging
 
-# © Copyright Databand.ai, an IBM Company 2022
 from http import HTTPStatus
 from unittest import mock
 from unittest.mock import MagicMock
@@ -155,6 +155,8 @@ def test_token_refresh_post(mock_session):
     [
         [None, DataStageApiHttpClient.DEFAULT_HOST, CLOUD_IAM_AUTH],
         ["https://myhost.com", "https://myhost.com", ON_PREM_BASIC_AUTH],
+        ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth"],
+        ["https://myhost.com/", "https://myhost.com", "on-prem-iam-auth"],
     ],
 )
 def test_get_job(mock_session, host_name, called_host, auth_type):
@@ -173,7 +175,7 @@ def test_get_job(mock_session, host_name, called_host, auth_type):
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()
     job_id = "job"
-    response = client.get_job(job_id)
+    client.get_job(job_id)
     session_mock.request.assert_any_call(
         method="GET",
         url=f"{called_host}/{client.DATASTAGE_CAMS_API_ASSETS_PATH}/{job_id}?project_id={project_id}",
@@ -181,14 +183,6 @@ def test_get_job(mock_session, host_name, called_host, auth_type):
         json=None,
         verify=False,
     )
-    session_mock.request.assert_called_with(
-        method="GET",
-        url=f"{called_host}/v2/assets/job?project_id={project_id}",
-        headers={"accept": "application/json", "Content-Type": "application/json"},
-        json=None,
-        verify=False,
-    )
-    assert response == {"job_info": "data", "href": "link"}
 
 
 @mock.patch("requests.session")
@@ -197,6 +191,7 @@ def test_get_job(mock_session, host_name, called_host, auth_type):
     [
         [None, DataStageApiHttpClient.DEFAULT_API_HOST, "cloud-iam-auth"],
         ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth"],
+        ["https://myhost.com/", "https://myhost.com", "on-prem-iam-auth"],
     ],
 )
 def test_get_flow(mock_session, host_name, called_host, auth_type):
@@ -228,6 +223,7 @@ def test_get_flow(mock_session, host_name, called_host, auth_type):
     [
         [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth"],
         ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth"],
+        ["https://myhost.com/", "https://myhost.com", "on-prem-iam-auth"],
     ],
 )
 def test_get_run_logs(mock_session, host_name, called_host, auth_type):
@@ -258,7 +254,7 @@ def test_get_run_logs(mock_session, host_name, called_host, auth_type):
 
 @mock.patch("requests.session")
 def test_get_run_logs_fails(mock_session, caplog):
-    host_name = "host"
+    host_name = "http://www.host.com"
     session_mock = mock_session.return_value
     mock_get_logs_response = session_mock.request.return_value
     mock_get_logs_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
@@ -267,7 +263,10 @@ def test_get_run_logs_fails(mock_session, caplog):
     )
     project_id = "project"
     client = DataStageApiHttpClient(
-        "", project_id=project_id, host_name=host_name, authentication_type="auth_type"
+        "",
+        project_id=project_id,
+        host_name=host_name,
+        authentication_type="on-prem-iam-auth",
     )
     client.get_session = MagicMock(return_value=session_mock)
     client.refresh_access_token = MagicMock()

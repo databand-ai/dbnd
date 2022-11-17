@@ -5,6 +5,7 @@ import logging
 from abc import ABC
 from http import HTTPStatus
 from typing import Any, Dict, List, Tuple
+from urllib.parse import urljoin
 
 import requests
 
@@ -119,7 +120,10 @@ class DataStageApiHttpClient(DataStageApiClient):
         return metadata.get("asset_id")
 
     def build_asset_link(self, asset_id):
-        return f"{self.host_name}/{self.DATASTAGE_CAMS_API_ASSETS_PATH}/{asset_id}?project_id={self.project_id}"
+        return urljoin(
+            self.host_name,
+            f"{self.DATASTAGE_CAMS_API_ASSETS_PATH}/{asset_id}?project_id={self.project_id}",
+        )
 
     def get_session(self):
         session = requests.Session()
@@ -147,7 +151,7 @@ class DataStageApiHttpClient(DataStageApiClient):
 
     def create_on_prem_token_basic_auth(self):
         logger.info("Refreshing on prem access token for project %s", self.project_id)
-        url = f"{self.host_name}/{self.ON_PREM_TOKEN_API_PATH}"
+        url = urljoin(self.host_name, self.ON_PREM_TOKEN_API_PATH)
         headers = {
             "content-type": "application/json",
             "Authorization": f"Basic " + self.api_key,
@@ -165,7 +169,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         )
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         response = self.get_session().post(
-            f"{self.authentication_provider_url}/{self.IDENTITY_TOKEN_API_PATH}",
+            urljoin(self.authentication_provider_url, self.IDENTITY_TOKEN_API_PATH),
             data=data,
             headers=headers,
         )
@@ -230,7 +234,10 @@ class DataStageApiHttpClient(DataStageApiClient):
         self, start_time: str, end_time: str, next_page: Dict[str, any] = None
     ) -> Tuple[Dict[str, str], str]:
         next_link = None
-        url = f"{self.host_name}/{self.DATASTAGE_CAMS_API_PATH}/job_run/search?project_id={self.project_id}"
+        url = urljoin(
+            self.host_name,
+            f"{self.DATASTAGE_CAMS_API_PATH}/job_run/search?project_id={self.project_id}",
+        )
         if next_page:
             query = next_page
         else:
@@ -254,7 +261,10 @@ class DataStageApiHttpClient(DataStageApiClient):
         return runs, next_link
 
     def get_run_info_jobs_api(self, job_id: str, run_id: str):
-        url = f"{self.host_name}/{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}?project_id={self.project_id}&limit={self.page_size}&userfs=false"
+        url = urljoin(
+            self.host_name,
+            f"{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}?project_id={self.project_id}&limit={self.page_size}&userfs=false",
+        )
         return self._make_http_request(method="GET", url=url)
 
     def filter_connection_credentials(self, connection):
@@ -271,7 +281,10 @@ class DataStageApiHttpClient(DataStageApiClient):
         return connection
 
     def get_connections(self):
-        url = f"{self.host_name}/{self.DATASTAGE_CONNECTIONS_API_PATH}?project_id={self.project_id}&userfs=false"
+        url = urljoin(
+            self.host_name,
+            f"{self.DATASTAGE_CONNECTIONS_API_PATH}?project_id={self.project_id}&userfs=false",
+        )
         connections = self._make_http_request(method="GET", url=url)
         connections_result = {}
         resources = connections.get("resources")
@@ -293,7 +306,10 @@ class DataStageApiHttpClient(DataStageApiClient):
         return run_info
 
     def get_flow(self, flow_id):
-        get_flow_url = f"{self.api_host_name}/{self.FLOW_API_PATH}/{flow_id}/?project_id={self.project_id}"
+        get_flow_url = urljoin(
+            self.api_host_name,
+            f"{self.FLOW_API_PATH}/{flow_id}/?project_id={self.project_id}",
+        )
         flow = self._make_http_request(method="GET", url=get_flow_url)
         return flow
 
@@ -306,7 +322,10 @@ class DataStageApiHttpClient(DataStageApiClient):
         logs = []
 
         try:
-            url = f"{self.host_name}/{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={self.project_id}&limit={self.page_size}&userfs=false"
+            url = urljoin(
+                self.host_name,
+                f"{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={self.project_id}&limit={self.page_size}&userfs=false",
+            )
             logs_response = self._make_http_request(method="GET", url=url)
             logs_json = logs_response.get("results")
             if logs_json:
