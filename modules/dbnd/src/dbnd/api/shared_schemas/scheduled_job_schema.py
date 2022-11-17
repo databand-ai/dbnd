@@ -16,7 +16,7 @@ class ScheduledJobSchemaV2(ApiStrictSchema):
     name = fields.Str(attribute="DbndScheduledJob.name", required=True)
     cmd = fields.Str(attribute="DbndScheduledJob.cmd", required=True)
     schedule_interval = fields.Str(
-        attribute="DbndScheduledJob.schedule_interval", required=True
+        attribute="DbndScheduledJob.schedule_interval", allow_none=True
     )
     start_date = fields.DateTime(
         allow_none=True, attribute="DbndScheduledJob.start_date", format="iso"

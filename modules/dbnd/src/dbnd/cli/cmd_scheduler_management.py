@@ -46,6 +46,8 @@ datetime_formats = [
     "%Y-%m-%d %H:%M:%SZ%z",
 ]
 
+SPECIAL_INTERVALS = {"@never": None}
+
 
 @click.group()
 @click.pass_context
@@ -126,7 +128,7 @@ def delete(name, force):
     "--schedule-interval",
     "-si",
     help="Any valid cron expression or one of the presets: "
-    "@once, @hourly, @daily, @weekly, @monthly or @yearly. "
+    "@once, @hourly, @daily, @weekly, @monthly, @yearly or @never. "
     + "See documentation for precise definitions of the presets",
 )
 @click.option("--start-date", "-s", type=TZAwareDateTime(formats=datetime_formats))
@@ -187,7 +189,7 @@ def job(
         "cmd": cmd,
         "start_date": start_date,
         "end_date": end_date,
-        "schedule_interval": schedule_interval,
+        "schedule_interval": _replace_special_intervals(schedule_interval),
         "catchup": catchup,
         "depends_on_past": depends_on_past,
         "retries": retries,
@@ -212,3 +214,7 @@ def _click_echo_jobs(jobs):
     ]
 
     click.echo(tabulate_objects(job_objects, headers=headers))
+
+
+def _replace_special_intervals(schedule_interval: str):
+    return SPECIAL_INTERVALS.get(schedule_interval, schedule_interval)
