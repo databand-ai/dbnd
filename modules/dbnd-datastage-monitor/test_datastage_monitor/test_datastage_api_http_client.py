@@ -118,30 +118,6 @@ def test_token_refresh_get(mock_session):
 
 
 @mock.patch("requests.session")
-def test_expired_token(mock_session, caplog):
-    project_id = "123"
-    api_key = "test"
-    client = DataStageApiHttpClient(
-        api_key, project_id, authentication_type="cloud-iam-auth"
-    )
-    # pragma: allowlist nextline secret
-    client.access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzb21lIjoicGF5bG9hZCIsImV4cCI6MX0.2DvjQs_llPtAV_VidIxkBuEpYc9zk_hRMxF5iSbfQOE"
-    client.get_session = MagicMock(return_value=mock_session)
-    data = f"grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey={api_key}"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-
-    with caplog.at_level(logging.INFO):
-        client.validate_token()
-        mock_session.post.assert_called_with(
-            "https://iam.cloud.ibm.com/identity/token", data=data, headers=headers
-        )
-        expected_log = "Access token for project {} expired, refreshing token".format(
-            project_id
-        )
-        assert expected_log in caplog.messages
-
-
-@mock.patch("requests.session")
 def test_token_refresh_post(mock_session):
     session_mock = mock_session.return_value
     mock_post_response = session_mock.request.return_value

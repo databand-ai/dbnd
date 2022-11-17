@@ -3,6 +3,7 @@
 -r dist-python/dbnd-airflow.requirements.txt
 -r dist-python/dbnd-airflow-monitor.requirements.txt
 -r dist-python/dbnd-dbt-monitor.requirements.txt
+-r dist-python/dbnd-datastage-monitor.requirements.txt
 -r dist-python/dbnd-snowflake.requirements.txt
 -r dist-python/dbnd-databricks.requirements.txt
 -r dist-python/dbnd-redshift.requirements.txt

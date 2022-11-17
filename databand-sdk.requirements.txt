@@ -14,6 +14,7 @@
 -e modules/dbnd-airflow-monitor
 -e plugins/dbnd-airflow-versioned-dag
 -e modules/dbnd-dbt-monitor
+-e modules/dbnd-datastage-monitor
 -e plugins/dbnd-redshift
 -e plugins/dbnd-databricks
 

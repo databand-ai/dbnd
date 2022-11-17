@@ -6,7 +6,6 @@ from abc import ABC
 from http import HTTPStatus
 from typing import Any, Dict, List, Tuple
 
-import jwt
 import requests
 
 from dbnd_datastage_monitor.metrics.prometheus_metrics import report_api_error
@@ -196,25 +195,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         else:
             self.create_iam_token_auth()
 
-    def validate_token(self):
-        if not self.access_token:
-            self.refresh_access_token()
-        else:
-            try:
-                jwt.decode(
-                    self.access_token,
-                    options={"verify_signature": False, "verify_exp": True},
-                )
-            except jwt.ExpiredSignatureError:
-                logger.info(
-                    "Access token for project %s expired, refreshing token",
-                    self.project_id,
-                )
-                self.refresh_access_token()
-
     def _make_http_request(self, method, url, body=None):
-        self.validate_token()
-
         response = self.get_session().request(
             method=method, url=url, headers=self.headers, json=body, verify=False
         )
