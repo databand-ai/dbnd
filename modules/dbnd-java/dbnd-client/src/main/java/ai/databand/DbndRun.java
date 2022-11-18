@@ -17,6 +17,7 @@ import org.apache.spark.sql.Dataset;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * DBND run.
@@ -193,4 +194,11 @@ public interface DbndRun {
      * @param taskRun task run
      */
     void setDriverTask(TaskRun taskRun);
+
+    /**
+     * Retrieve driver task.
+     *
+     * @return
+     */
+    Optional<TaskRun> getDriverTask();
 }

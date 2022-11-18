@@ -60,12 +60,13 @@ public class SetJvmContextTest {
             return;
         }
         String jobName = "test_set_jvm_context";
+        String jobName2 = "test_set_jvm_context_again";
         ProcessBuilder pb = new ProcessBuilder()
             .command("spark-submit",
                 "--conf", "spark.sql.queryExecutionListeners=ai.databand.spark.DbndSparkQueryExecutionListener",
                 "--conf", "spark.driver.extraJavaOptions=-javaagent:" + agentJar,
                 "--conf", "spark.sql.shuffle.partitions=1",
-                pyscriptPath, dataPath, jobName
+                pyscriptPath, dataPath, jobName, jobName2
             );
 
         System.out.println("Spark CMD: " + String.join(" ", pb.command()));
@@ -83,6 +84,10 @@ public class SetJvmContextTest {
         // only one operation will be reported because they will be merged
         assertDatasetOps(job, jobName, dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
 //        assertDatasetOps(job, "child_task", dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
+        // here we are testing subsequent run of the same job in the same spark session
+        // jvm context should be set properly for the new run and all dataset ops should be submitted to the new run
+        Job job2 = pipelinesVerify.verifyJob(jobName2);
+        assertDatasetOps(job2, jobName2, dataPath.replace("/usa-education-budget.csv", ""), DatasetOperationType.READ, "SUCCESS", 41, 1);
     }
 
     /**
