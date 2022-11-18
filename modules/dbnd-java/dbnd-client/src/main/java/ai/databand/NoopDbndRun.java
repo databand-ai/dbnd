@@ -17,6 +17,7 @@ import org.apache.spark.sql.Dataset;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * No-op run used when no tracking is available to avoid unnecessary exceptions and log pollution.
@@ -132,5 +133,10 @@ public class NoopDbndRun implements DbndRun {
     @Override
     public void setDriverTask(TaskRun taskRun) {
         // do nothing
+    }
+
+    @Override
+    public Optional<TaskRun> getDriverTask() {
+        return Optional.empty();
     }
 }

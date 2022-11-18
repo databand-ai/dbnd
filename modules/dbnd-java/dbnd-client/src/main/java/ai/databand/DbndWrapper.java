@@ -450,10 +450,16 @@ public class DbndWrapper {
      * @param taskName
      */
     public void setExternalTaskContext(String runUid, String taskRunUid, String taskRunAttemptUid, String taskName) {
-        if (externalContextSet) {
+        LOG.info("Setting external task context. run_uid: {}, task_run_uid: {}, task_run_attempt_uid: {}, task_name: {}", runUid, taskRunUid, taskRunAttemptUid, taskName);
+        // we need to check run_uid before setting external context
+        // if it's the same, we'd skip setting
+        // if it's different it means that this run was executed against the already running spark
+        // and we need to set new context
+        if (externalContextSet && runUid.equals(run.getDriverTask().orElse(new TaskRun()).getRunUid())) {
             // external context was already set
             // listener will report all dataset ops to the root task
             // no need to set context again
+            LOG.info("Skipping external context setting because it was already set for this run");
             return;
         }
         if (!config.isTrackingEnabled()) {

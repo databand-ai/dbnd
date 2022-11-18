@@ -23,7 +23,12 @@ def child_task(df):
     log_metric("min_gdp", min_gdp)
 
 
+# context_set_test.py <data_path> <job_name> <job_name2>
 if __name__ == "__main__":
     with dbnd_tracking(sys.argv[2]):
         parent_task(sys.argv[1])
+    # used to set context in the subsequent runs in the same Spark Session
+    if len(sys.argv) == 4:
+        with dbnd_tracking(sys.argv[3]):
+            parent_task(sys.argv[1])
     print("\n\nScript finished\n\n")
