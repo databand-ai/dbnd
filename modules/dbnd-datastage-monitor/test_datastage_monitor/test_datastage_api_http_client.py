@@ -113,7 +113,7 @@ def test_token_refresh_get(mock_session):
             "Authorization": "Bearer token",
         },
         json=None,
-        verify=False,
+        verify=True,
     )
 
 
@@ -145,21 +145,19 @@ def test_token_refresh_post(mock_session):
             "Content-Type": "application/json",
             "Authorization": "Bearer token",
         },
-        verify=False,
+        verify=True,
     )
 
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host, auth_type",
+    "host_name, called_host, auth_type, ssl_verify",
     [
-        [None, DataStageApiHttpClient.DEFAULT_HOST, CLOUD_IAM_AUTH],
-        ["https://myhost.com", "https://myhost.com", ON_PREM_BASIC_AUTH],
-        ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth"],
-        ["https://myhost.com/", "https://myhost.com", "on-prem-iam-auth"],
+        [None, DataStageApiHttpClient.DEFAULT_HOST, CLOUD_IAM_AUTH, True],
+        ["https://myhost.com", "https://myhost.com", ON_PREM_BASIC_AUTH, False],
     ],
 )
-def test_get_job(mock_session, host_name, called_host, auth_type):
+def test_get_job(mock_session, host_name, called_host, auth_type, ssl_verify):
     session_mock = mock_session.return_value
     mock_get_job_response = session_mock.request.return_value
     mock_get_job_response.json.return_value = {"job_info": "data", "href": "link"}
@@ -181,20 +179,20 @@ def test_get_job(mock_session, host_name, called_host, auth_type):
         url=f"{called_host}/{client.DATASTAGE_CAMS_API_ASSETS_PATH}/{job_id}?project_id={project_id}",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
-        verify=False,
+        verify=ssl_verify,
     )
 
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host, auth_type",
+    "host_name, called_host, auth_type, ssl_verify",
     [
-        [None, DataStageApiHttpClient.DEFAULT_API_HOST, "cloud-iam-auth"],
-        ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth"],
-        ["https://myhost.com/", "https://myhost.com", "on-prem-iam-auth"],
+        [None, DataStageApiHttpClient.DEFAULT_API_HOST, "cloud-iam-auth", True],
+        ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth", False],
+        ["https://myhost.com/", "https://myhost.com", "on-prem-iam-auth", False],
     ],
 )
-def test_get_flow(mock_session, host_name, called_host, auth_type):
+def test_get_flow(mock_session, host_name, called_host, auth_type, ssl_verify):
     session_mock = mock_session.return_value
     mock_get_flow_response = session_mock.request.return_value
     mock_get_flow_response.json.return_value = {"flow": "data"}
@@ -212,21 +210,21 @@ def test_get_flow(mock_session, host_name, called_host, auth_type):
         url=f"{called_host}/{client.FLOW_API_PATH}/{flow_id}/?project_id={project_id}",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
-        verify=False,
+        verify=ssl_verify,
     )
     assert response == {"flow": "data"}
 
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host, auth_type",
+    "host_name, called_host, auth_type, ssl_verify",
     [
-        [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth"],
-        ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth"],
-        ["https://myhost.com/", "https://myhost.com", "on-prem-iam-auth"],
+        [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth", True],
+        ["https://myhost.com", "https://myhost.com", "on-prem-iam-auth", False],
+        ["https://myhost.com/", "https://myhost.com", "on-prem-iam-auth", False],
     ],
 )
-def test_get_run_logs(mock_session, host_name, called_host, auth_type):
+def test_get_run_logs(mock_session, host_name, called_host, auth_type, ssl_verify):
     session_mock = mock_session.return_value
     mock_get_logs_response = session_mock.request.return_value
     mock_get_logs_response.json.return_value = {
@@ -247,7 +245,7 @@ def test_get_run_logs(mock_session, host_name, called_host, auth_type):
         url=f"{called_host}/{client.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={project_id}&limit=200&userfs=false",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
-        verify=False,
+        verify=ssl_verify,
     )
     assert response == [{"eventID": "0", "occurredAt": 1664719211000}]
 
@@ -290,14 +288,14 @@ def test_get_run_logs_fails(mock_session, caplog):
 
 @mock.patch("requests.session")
 @pytest.mark.parametrize(
-    "host_name, called_host, auth_type",
+    "host_name, called_host, auth_type, ssl_verify",
     [
-        [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth"],
-        ["https://myhost.com", "https://myhost.com", "on-prem-basic-auth"],
+        [None, DataStageApiHttpClient.DEFAULT_HOST, "cloud-iam-auth", True],
+        ["https://myhost.com", "https://myhost.com", "on-prem-basic-auth", False],
     ],
 )
 def test_get_connections_filter_senstive_data(
-    mock_session, host_name, called_host, auth_type
+    mock_session, host_name, called_host, auth_type, ssl_verify
 ):
     session_mock = mock_session.return_value
     mock_get_connections_response = session_mock.request.return_value
@@ -328,7 +326,7 @@ def test_get_connections_filter_senstive_data(
         url=f"{called_host}/{client.DATASTAGE_CONNECTIONS_API_PATH}?project_id={project_id}&userfs=false",
         headers={"accept": "application/json", "Content-Type": "application/json"},
         json=None,
-        verify=False,
+        verify=ssl_verify,
     )
     assert response == {
         123: {
