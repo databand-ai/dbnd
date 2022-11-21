@@ -5,8 +5,9 @@ import logging
 import os.path
 
 from enum import Enum
-from typing import Dict, T
+from typing import Any, Dict
 
+import attr
 import yaml
 
 from dbnd._core.errors.errors_utils import log_exception
@@ -107,34 +108,86 @@ def collect_data_from_dbt_cloud(
 
 
 def collect_data_from_dbt_core(dbt_project_path: str):
+    assets = load_dbt_core_assets(dbt_project_path)
+    data = extract_metadata(assets)
+    _report_dbt_metadata(data)
+
+
+@attr.s(auto_attribs=True)
+class DbtCoreAssets:
+    runs_info: dict
+    manifest: dict
+    logs: str
+    profile: dict
+
+
+def load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
     # open runs_info.json file and read it as a dict
     with open(
         os.path.join(dbt_project_path, "target", "run_results.json"), "r"
     ) as runs_info_file:
         runs_info = json.loads(runs_info_file.read())
+
     # open manifest.json file and read it as a dict
     with open(
         os.path.join(dbt_project_path, "target", "manifest.json"), "r"
     ) as manifest_file:
         manifest = json.loads(manifest_file.read())
 
-    run_total_duration = runs_info["elapsed_time"]
-
-    status = "pass"
-    n = next((x for x in runs_info["results"] if x["status"] != "pass"), None)
-    if n is None:
-        status = "fail"
-
-    status_humanized = status
-
     with open(os.path.join(dbt_project_path, "logs", "dbt.log"), "r") as logs_file:
         logs = logs_file.read()
 
-    dbt_step_meta_data = {
+    project = load_yaml_with_jinja(os.path.join(dbt_project_path, "dbt_project.yml"))
+    profile_dir = runs_info["args"]["profiles_dir"]
+    profile_name = project["profile"]
+    profile = load_yaml_with_jinja(os.path.join(profile_dir, "profiles.yml"))[
+        profile_name
+    ]
+
+    assets = DbtCoreAssets(runs_info, manifest, logs, profile)
+    return assets
+
+
+def extract_metadata(assets: DbtCoreAssets):
+    status_humanized = _extract_status(assets.runs_info)
+
+    environment = _extract_environment(assets.runs_info, assets.profile)
+
+    dbt_step_meta_data = _extract_step_meta_data(
+        assets.runs_info, assets.manifest, assets.logs
+    )
+
+    data = {
         "status_humanized": status_humanized,
+        "environment": environment,
+        "run_steps": [dbt_step_meta_data],
+    }
+    return data
+
+
+def _extract_environment(runs_info, profile):
+    profile = _extract_profile(profile, runs_info)
+    adapter = extract_adapter_type(profile)
+    namespace = extract_dataset_namespace(adapter, profile)
+    environment = {"connection": {"type": adapter.value, "hostname": namespace}}
+    return environment
+
+
+def _extract_profile(profile, runs_info):
+    target = profile["target"]
+    if "target" in runs_info["args"]:
+        target = runs_info["args"]["target"]
+
+    profile = profile["outputs"][target]
+    return profile
+
+
+def _extract_step_meta_data(runs_info, manifest, logs):
+    dbt_step_meta_data = {
+        "status_humanized": _extract_status(runs_info),
         "run_results": runs_info,
         "manifest": manifest,
-        "duration": run_total_duration,
+        "duration": (runs_info["elapsed_time"]),
         "index": 1,
         "created_at": runs_info["metadata"]["generated_at"],
         "started_at": calculate_started_time(runs_info),
@@ -142,34 +195,15 @@ def collect_data_from_dbt_core(dbt_project_path: str):
         "finished_at": calculate_finished_time(runs_info),
         "name": f"dbt {runs_info['args']['which']}",
     }
+    return dbt_step_meta_data
 
-    project = load_yaml_with_jinja(os.path.join(dbt_project_path, "dbt_project.yml"))
-    profile_dir = runs_info["args"]["profiles_dir"]
 
-    profile_name = project["profile"]
-
-    profile = load_yaml_with_jinja(os.path.join(profile_dir, "profiles.yml"))[
-        profile_name
-    ]
-
-    target = profile["target"]
-    if "target" in runs_info["args"]:
-        target = runs_info["args"]["target"]
-
-    profile = profile["outputs"][target]
-
-    adapter = extract_adapter_type(profile)
-    namespace = extract_dataset_namespace(adapter, profile)
-
-    _report_dbt_metadata(
-        {
-            "status_humanized": status_humanized,
-            "environment": {
-                "connection": {"type": adapter.value, "hostname": namespace}
-            },
-            "run_steps": [dbt_step_meta_data],
-        }
-    )
+def _extract_status(runs_info):
+    status = "pass"
+    n = next((x for x in runs_info["results"] if x["status"] != "pass"), None)
+    if n is None:
+        status = "fail"
+    return status
 
 
 def calculate_started_time(runs_info):
@@ -198,23 +232,18 @@ def load_yaml_with_jinja(path: str) -> Dict:
     return render_values_jinja(value=loaded)
 
 
-def render_values_jinja(value: T) -> T:
+def render_values_jinja(value: Any) -> Any:
     """
     Traverses passed dictionary and render any string value using jinja.
     Returns copy of the dict with parsed values.
     """
     if isinstance(value, dict):
-        parsed_dict = {}
-        for key, val in value.items():
-            parsed_dict[key] = render_values_jinja(val)
-        return parsed_dict  # type: ignore
-    elif isinstance(value, list):
-        parsed_list = []
-        for elem in value:
-            parsed_list.append(render_values_jinja(elem))
-        return parsed_list  # type: ignore
-    else:
-        return value
+        return {key: render_values_jinja(val) for key, val in value.items()}
+
+    if isinstance(value, list):
+        return list(map(render_values_jinja, value))
+
+    return value
 
 
 class Adapter(Enum):
@@ -239,6 +268,16 @@ class SparkConnectionMethod(Enum):
     def methods():
         return [x.value for x in SparkConnectionMethod]
 
+    @property
+    def port(self):
+        if self in [SparkConnectionMethod.HTTP, SparkConnectionMethod.ODBC]:
+            return "443"
+
+        if self == SparkConnectionMethod.THRIFT:
+            return "10001"
+
+        return None
+
 
 def extract_adapter_type(profile: Dict):
     try:
@@ -250,40 +289,29 @@ def extract_adapter_type(profile: Dict):
         )
 
 
-def extract_dataset_namespace(adapter_type, profile: Dict):
-    return extract_namespace(adapter_type, profile)
-
-
-def extract_namespace(adapter_type, profile: Dict) -> str:
+def extract_dataset_namespace(adapter_type: Adapter, profile: Dict):
     """Extract namespace from profile's type"""
     if adapter_type == Adapter.SNOWFLAKE:
         return f"snowflake://{profile['account']}"
-    elif adapter_type == Adapter.BIGQUERY:
+
+    if adapter_type == Adapter.BIGQUERY:
         return "bigquery"
-    elif adapter_type == Adapter.REDSHIFT:
+
+    if adapter_type == Adapter.REDSHIFT:
         return f"redshift://{profile['host']}:{profile['port']}"
-    elif adapter_type == Adapter.SPARK:
-        port = ""
 
-        if "port" in profile:
-            port = f":{profile['port']}"
-        elif profile["method"] in [
-            SparkConnectionMethod.HTTP.value,
-            SparkConnectionMethod.ODBC.value,
-        ]:
-            port = "443"
-        elif profile["method"] == SparkConnectionMethod.THRIFT.value:
-            port = "10001"
-
-        if profile["method"] in SparkConnectionMethod.methods():
-            return f"spark://{profile['host']}{port}"
-        else:
+    if adapter_type == Adapter.SPARK:
+        method = profile["method"]
+        if method not in SparkConnectionMethod.methods():
             raise NotImplementedError(
-                f"Connection method `{profile['method']}` is not "
-                f"supported for spark adapter."
+                f"Connection method `{method}` is not " f"supported for spark adapter."
             )
-    else:
-        raise NotImplementedError(
-            f"Only {Adapter.adapters()} adapters are supported right now. "
-            f"Passed {profile['type']}"
-        )
+
+        connection_method = SparkConnectionMethod(method)
+        port = profile.get("port", connection_method.port)
+        return f"spark://{profile['host']}:{port}"
+
+    raise NotImplementedError(
+        f"Only {Adapter.adapters()} adapters are supported right now. "
+        f"Passed {profile['type']}"
+    )
