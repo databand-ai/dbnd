@@ -107,10 +107,31 @@ def collect_data_from_dbt_cloud(
         log_exception("Could not collect data from dbt cloud", e)
 
 
+################
+#              #
+#   DBT CORE   #
+#              #
+################
+
+
 def collect_data_from_dbt_core(dbt_project_path: str):
-    assets = load_dbt_core_assets(dbt_project_path)
-    data = extract_metadata(assets)
-    _report_dbt_metadata(data)
+    phase: str = ""
+    try:
+        phase = "load"
+        assets = _load_dbt_core_assets(dbt_project_path)
+
+        phase = "extract-metadata"
+        data = assets.extract_metadata()
+
+        phase = "report"
+        _report_dbt_metadata(data)
+    except Exception as e:
+        logger.warning(
+            "Failed to %s data from dbt core at path %s,continue execution",
+            phase,
+            dbt_project_path,
+        )
+        log_exception(f"Could not {phase} data from dbt cloud", e)
 
 
 @attr.s(auto_attribs=True)
@@ -120,8 +141,48 @@ class DbtCoreAssets:
     logs: str
     profile: dict
 
+    def extract_metadata(self):
+        status_humanized = _extract_status(self.runs_info)
 
-def load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
+        environment = _extract_environment(self.runs_info, self.profile)
+
+        dbt_step_meta_data = _extract_step_meta_data(
+            self.runs_info, self.manifest, self.logs
+        )
+
+        data = {
+            "status_humanized": status_humanized,
+            "environment": environment,
+            "run_steps": [dbt_step_meta_data],
+        }
+        return data
+
+
+def _load_yaml(path: str) -> Dict:
+    with open(path, "r") as f:
+        return yaml.load(f, Loader=yaml.FullLoader)
+
+
+def _load_yaml_with_jinja(path: str) -> Dict:
+    loaded = _load_yaml(path)
+    return _render_values_jinja(value=loaded)
+
+
+def _render_values_jinja(value: Any) -> Any:
+    """
+    Traverses passed dictionary and render any string value using jinja.
+    Returns copy of the dict with parsed values.
+    """
+    if isinstance(value, dict):
+        return {key: _render_values_jinja(val) for key, val in value.items()}
+
+    if isinstance(value, list):
+        return list(map(_render_values_jinja, value))
+
+    return value  # todo: actual render here
+
+
+def _load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
     # open runs_info.json file and read it as a dict
     with open(
         os.path.join(dbt_project_path, "target", "run_results.json"), "r"
@@ -137,10 +198,10 @@ def load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
     with open(os.path.join(dbt_project_path, "logs", "dbt.log"), "r") as logs_file:
         logs = logs_file.read()
 
-    project = load_yaml_with_jinja(os.path.join(dbt_project_path, "dbt_project.yml"))
+    project = _load_yaml_with_jinja(os.path.join(dbt_project_path, "dbt_project.yml"))
     profile_dir = runs_info["args"]["profiles_dir"]
     profile_name = project["profile"]
-    profile = load_yaml_with_jinja(os.path.join(profile_dir, "profiles.yml"))[
+    profile = _load_yaml_with_jinja(os.path.join(profile_dir, "profiles.yml"))[
         profile_name
     ]
 
@@ -148,27 +209,10 @@ def load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
     return assets
 
 
-def extract_metadata(assets: DbtCoreAssets):
-    status_humanized = _extract_status(assets.runs_info)
-
-    environment = _extract_environment(assets.runs_info, assets.profile)
-
-    dbt_step_meta_data = _extract_step_meta_data(
-        assets.runs_info, assets.manifest, assets.logs
-    )
-
-    data = {
-        "status_humanized": status_humanized,
-        "environment": environment,
-        "run_steps": [dbt_step_meta_data],
-    }
-    return data
-
-
 def _extract_environment(runs_info, profile):
     profile = _extract_profile(profile, runs_info)
-    adapter = extract_adapter_type(profile)
-    namespace = extract_dataset_namespace(adapter, profile)
+    adapter = Adapter.from_profile(profile)
+    namespace = adapter.extract_dataset_namespace(profile)
     environment = {"connection": {"type": adapter.value, "hostname": namespace}}
     return environment
 
@@ -187,12 +231,12 @@ def _extract_step_meta_data(runs_info, manifest, logs):
         "status_humanized": _extract_status(runs_info),
         "run_results": runs_info,
         "manifest": manifest,
-        "duration": (runs_info["elapsed_time"]),
+        "duration": runs_info["elapsed_time"],
         "index": 1,
-        "created_at": runs_info["metadata"]["generated_at"],
-        "started_at": calculate_started_time(runs_info),
+        "created_at": runs_info["metadata"]["generated_at"],  # todo: job creation
+        "started_at": _calculate_started_time(runs_info),
         "logs": logs,
-        "finished_at": calculate_finished_time(runs_info),
+        "finished_at": _calculate_finished_time(runs_info),
         "name": f"dbt {runs_info['args']['which']}",
     }
     return dbt_step_meta_data
@@ -206,44 +250,20 @@ def _extract_status(runs_info):
     return status
 
 
-def calculate_started_time(runs_info):
+def _calculate_started_time(runs_info):
     for run in runs_info["results"]:
-        if "timing" in run and "started_at" in run["timing"][0]:
-            return runs_info["results"][0]["timing"][0]["started_at"]
+        if run.get("timing") and "started_at" in run["timing"][0]:
+            return run["timing"][0]["started_at"]
 
     return None
 
 
-def calculate_finished_time(runs_info):
+def _calculate_finished_time(runs_info):
     for run in runs_info["results"][::-1]:
-        if "timing" in run and "completed_at" in run["timing"][-1]:
-            return runs_info["results"][-1]["timing"][-1]["completed_at"]
+        if run.get("timing") and "completed_at" in run["timing"][-1]:
+            return run["timing"][-1]["completed_at"]
 
     return None
-
-
-def load_yaml(path: str) -> Dict:
-    with open(path, "r") as f:
-        return yaml.load(f, Loader=yaml.FullLoader)
-
-
-def load_yaml_with_jinja(path: str) -> Dict:
-    loaded = load_yaml(path)
-    return render_values_jinja(value=loaded)
-
-
-def render_values_jinja(value: Any) -> Any:
-    """
-    Traverses passed dictionary and render any string value using jinja.
-    Returns copy of the dict with parsed values.
-    """
-    if isinstance(value, dict):
-        return {key: render_values_jinja(val) for key, val in value.items()}
-
-    if isinstance(value, list):
-        return list(map(render_values_jinja, value))
-
-    return value
 
 
 class Adapter(Enum):
@@ -257,6 +277,43 @@ class Adapter(Enum):
     def adapters() -> str:
         # String representation of all supported adapter names
         return ",".join([f"`{x.value}`" for x in list(Adapter)])
+
+    @classmethod
+    def from_profile(cls, profile):
+        try:
+            return Adapter[profile["type"].upper()]
+        except KeyError as e:
+            raise KeyError(
+                f"Only {Adapter.adapters()} adapters are supported right now. "
+                f"Passed {profile['type']}"
+            ) from e
+
+    def extract_dataset_namespace(self, profile):
+        if self == Adapter.SNOWFLAKE:
+            return f"snowflake://{profile['account']}"
+
+        if self == Adapter.BIGQUERY:
+            return f"bigquery://{profile['project']}"
+
+        if self == Adapter.REDSHIFT:
+            return f"redshift://{profile['host']}:{profile['port']}"
+
+        if self == Adapter.SPARK:
+            # support port for unsupported
+            if "port" in profile:
+                port = profile["port"]
+            else:
+                method = profile["method"]
+                if method not in SparkConnectionMethod.methods():
+                    raise KeyError(
+                        f"Connection method `{method}` is not supported for spark adapter."
+                    )
+
+                port = SparkConnectionMethod(method).port
+
+            return f"spark://{profile['host']}:{port}"
+
+        return profile["type"]
 
 
 class SparkConnectionMethod(Enum):
@@ -277,41 +334,3 @@ class SparkConnectionMethod(Enum):
             return "10001"
 
         return None
-
-
-def extract_adapter_type(profile: Dict):
-    try:
-        return Adapter[profile["type"].upper()]
-    except KeyError:
-        raise NotImplementedError(
-            f"Only {Adapter.adapters()} adapters are supported right now. "
-            f"Passed {profile['type']}"
-        )
-
-
-def extract_dataset_namespace(adapter_type: Adapter, profile: Dict):
-    """Extract namespace from profile's type"""
-    if adapter_type == Adapter.SNOWFLAKE:
-        return f"snowflake://{profile['account']}"
-
-    if adapter_type == Adapter.BIGQUERY:
-        return "bigquery"
-
-    if adapter_type == Adapter.REDSHIFT:
-        return f"redshift://{profile['host']}:{profile['port']}"
-
-    if adapter_type == Adapter.SPARK:
-        method = profile["method"]
-        if method not in SparkConnectionMethod.methods():
-            raise NotImplementedError(
-                f"Connection method `{method}` is not " f"supported for spark adapter."
-            )
-
-        connection_method = SparkConnectionMethod(method)
-        port = profile.get("port", connection_method.port)
-        return f"spark://{profile['host']}:{port}"
-
-    raise NotImplementedError(
-        f"Only {Adapter.adapters()} adapters are supported right now. "
-        f"Passed {profile['type']}"
-    )
