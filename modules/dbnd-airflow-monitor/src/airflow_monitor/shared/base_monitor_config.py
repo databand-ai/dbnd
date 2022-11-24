@@ -31,6 +31,14 @@ class BaseMonitorConfig(Config):
         description="Set a cap for the number of seconds to run the monitor. This is optional.",
     )[int]
 
+    log_format = parameter(default="text", description="Log format to use: text/json")[
+        str
+    ]
+
+    @property
+    def use_json_logging(self):
+        return self.log_format == "json"
+
 
 NOTHING = object()
 

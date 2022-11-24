@@ -17,6 +17,7 @@ from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
 from airflow_monitor.shared.base_tracking_service import WebServersConfigurationService
 from airflow_monitor.shared.liveness_probe import create_liveness_file
+from airflow_monitor.shared.logger_config import configure_logging
 from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
 from airflow_monitor.shared.runners import RUNNER_FACTORY, BaseRunner
 from dbnd._core.errors.base import DatabandConnectionException
@@ -129,6 +130,7 @@ class BaseMultiServerMonitor:
             monitor.heartbeat()
 
     def run(self):
+        configure_logging(use_json=self.monitor_config.use_json_logging)
         self._assert_valid_config()
 
         while True:

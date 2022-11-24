@@ -20,6 +20,7 @@ setuptools.setup(
         "dbnd==" + version,
         "dbnd-airflow-monitor==" + version,
         "requests>=2.25.0",
+        "python-json-logger",
         "sentry-sdk",
     ],
     extras_require={"tests": ["pytest", "mock"]},

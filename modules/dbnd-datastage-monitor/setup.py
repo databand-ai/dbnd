@@ -20,6 +20,7 @@ setuptools.setup(
         "dbnd==" + version,
         "dbnd-airflow-monitor==" + version,
         "requests>=2.25.0",
+        "python-json-logger",  # TODO: might need to remove when on-prem support needed
         "prometheus-client",
         "sentry-sdk",
     ],

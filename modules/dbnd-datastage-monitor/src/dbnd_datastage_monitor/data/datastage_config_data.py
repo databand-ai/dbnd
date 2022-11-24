@@ -1,5 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
+import datetime
+
 from typing import Optional
 
 import attr
@@ -67,11 +69,17 @@ class DataStageServerConfig(BaseServerConfig):
         return self.uid
 
 
-@attr.s
+@attr.s(auto_attribs=True)
 class DataStageMonitorState(BaseMonitorState):
-    monitor_status = attr.ib(default=NOTHING)
-    monitor_error_message = attr.ib(default=NOTHING)
-    last_sync_time = attr.ib(default=NOTHING)
+    monitor_status: str = NOTHING
+    monitor_error_message: Optional[str] = NOTHING
+    last_sync_time: Optional[datetime.datetime] = NOTHING
+
+    def as_dict(self) -> dict:
+        data = super().as_dict()
+        if data.get("last_sync_time"):
+            data["last_sync_time"] = self.last_sync_time.isoformat()
+        return data
 
 
 class DataStageMonitorConfig(BaseMonitorConfig):
