@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 CLOUD_IAM_AUTH = "cloud-iam-auth"
 ON_PREM_BASIC_AUTH = "on-prem-basic-auth"
+ON_PREM_IAM_AUTH = "on-prem-iam-auth"
 
 
 def parse_datastage_error(response):
@@ -66,6 +67,7 @@ class DataStageApiHttpClient(DataStageApiClient):
 
     IDENTITY_TOKEN_API_PATH = "identity/token"
     ON_PREM_TOKEN_API_PATH = "v1/preauth/validateAuth"
+    ON_PREM_TOKEN_IAM_PATH = "icp4d-api/v1/authorize"
     DATASTAGE_JOBS_API_PATH = "v2/jobs"
     DATASTAGE_CAMS_API_PATH = "v2/asset_types"
     DATASTAGE_CAMS_API_ASSETS_PATH = "v2/assets"
@@ -173,8 +175,18 @@ class DataStageApiHttpClient(DataStageApiClient):
             data=data,
             headers=headers,
         )
-        response_json = response.json()
-        access_token = response_json.get("access_token")
+        access_token = response.json().get("access_token")
+        self.access_token = access_token
+        self.headers["Authorization"] = f"Bearer {self.access_token}"
+
+    def create_on_prem_token_iam_auth(self):
+        auth_headers = {"Content-Type": "application/json"}
+        url = urljoin(self.authentication_provider_url, self.ON_PREM_TOKEN_IAM_PATH)
+        # FIXME: why here its authentication_provider_url / get_session() but in web its authentication_provider_host / _session
+        response = self.get_session().post(
+            url=url, data=self.api_key, headers=auth_headers, verify=False
+        )
+        access_token = response.json().get("token")
         self.access_token = access_token
         self.headers["Authorization"] = f"Bearer {self.access_token}"
 
@@ -193,9 +205,11 @@ class DataStageApiHttpClient(DataStageApiClient):
         session.mount("https://", adapter)
         return session
 
-    def refresh_access_token(self):
+    def refresh_access_token(self):  # TODO: FACTORY THIS
         if self.authentication_type == ON_PREM_BASIC_AUTH:
             self.create_on_prem_token_basic_auth()
+        elif self.authentication_type == ON_PREM_IAM_AUTH:
+            self.create_on_prem_token_iam_auth()
         else:
             self.create_iam_token_auth()
 

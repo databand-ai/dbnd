@@ -118,7 +118,7 @@ def test_token_refresh_get(mock_session):
 
 
 @mock.patch("requests.session")
-def test_token_refresh_post(mock_session):
+def test_token_refresh_post_cloud_iam_auth(mock_session):
     session_mock = mock_session.return_value
     mock_post_response = session_mock.request.return_value
     mock_post_response.status_code = HTTPStatus.UNAUTHORIZED
@@ -146,6 +146,48 @@ def test_token_refresh_post(mock_session):
             "Authorization": "Bearer token",
         },
         verify=True,
+    )
+
+
+@mock.patch("requests.session")
+def test_token_refresh_post_onprem_iam_auth(mock_session):
+    session_mock = mock_session.return_value
+    mock_post_response = session_mock.request.return_value
+    mock_post_response.status_code = HTTPStatus.UNAUTHORIZED
+    session_mock.post.return_value.json.return_value = {
+        "token": "token"
+    }  # pragma: allowlist secret
+    client = DataStageApiHttpClient(
+        api_key="{1: 1}",  # pragma: allowlist secret
+        project_id="project_id",
+        host_name="https://onprem.ibm.com/",
+        authentication_provider_url="https://onprem.ibm.com/",
+        authentication_type="on-prem-iam-auth",
+    )
+    client.get_session = MagicMock(return_value=session_mock)
+    client._make_http_request(
+        method="POST", url="https://onprem.ibm.com/", body={"a": "b"}
+    )
+    mock_post_response.raise_for_status.assert_called()
+    headers = {"Content-Type": "application/json"}
+    # call refresh token
+    session_mock.post.assert_called_with(
+        url=f"https://onprem.ibm.com/{client.ON_PREM_TOKEN_IAM_PATH}",
+        headers=headers,
+        verify=False,
+        data="{1: 1}",
+    )
+    # retry on post with new token
+    session_mock.request.assert_called_with(
+        method="POST",
+        url="https://onprem.ibm.com/",
+        json={"a": "b"},
+        headers={
+            "accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": "Bearer token",
+        },
+        verify=False,
     )
 
 
@@ -294,7 +336,7 @@ def test_get_run_logs_fails(mock_session, caplog):
         ["https://myhost.com", "https://myhost.com", "on-prem-basic-auth", False],
     ],
 )
-def test_get_connections_filter_senstive_data(
+def test_get_connections_filter_sensitive_data(
     mock_session, host_name, called_host, auth_type, ssl_verify
 ):
     session_mock = mock_session.return_value
