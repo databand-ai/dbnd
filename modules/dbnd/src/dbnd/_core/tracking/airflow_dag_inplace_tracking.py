@@ -29,7 +29,6 @@ from dbnd._core.tracking.dbnd_spark_init import try_get_airflow_context_from_spa
 from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd._core.utils.uid_utils import (
-    get_airflow_instance_uid,
     get_job_run_uid,
     get_task_def_uid,
     get_task_run_attempt_uid,
@@ -48,39 +47,6 @@ def override_airflow_log_system_for_tracking():
     return dbnd._core.utils.basics.environ_utils.environ_enabled(
         environ_config.ENV_DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING
     )
-
-
-def extract_airflow_context(airflow_context):
-    # type: (Dict[str, Any]) -> Optional[AirflowTaskContext]
-    """Create AirflowTaskContext for airflow_context dict"""
-
-    task_instance = airflow_context.get("task_instance")
-    if task_instance is None:
-        return None
-
-    dag_id = task_instance.dag_id
-    task_id = task_instance.task_id
-    execution_date = str(task_instance.execution_date)
-    try_number = task_instance.try_number
-
-    if dag_id and task_id and execution_date:
-        return AirflowTaskContext(
-            dag_id=dag_id,
-            execution_date=execution_date,
-            task_id=task_id,
-            try_number=try_number,
-            context=airflow_context,
-            airflow_instance_uid=get_airflow_instance_uid(),
-            is_subdag=airflow_context.get("dag").is_subdag,
-        )
-
-    logger.debug(
-        "airflow context from inspect, at least one of those params is missing"
-        "dag_id: {}, execution_date: {}, task_id: {}".format(
-            dag_id, execution_date, task_id
-        )
-    )
-    return None
 
 
 def try_get_airflow_context():

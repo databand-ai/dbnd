@@ -16,7 +16,6 @@ from airflow_monitor.common.airflow_data import (
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.errors import AirflowFetchingException
-from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 
 
 logger = logging.getLogger(__name__)
@@ -164,6 +163,7 @@ class DbFetcher(AirflowDataFetcher):
         import dbnd_airflow
 
         from dbnd_airflow.export_plugin.compat import get_api_mode
+        from dbnd_airflow.utils import get_airflow_instance_uid
 
         return PluginMetadata(
             airflow_version=airflow_version.version,

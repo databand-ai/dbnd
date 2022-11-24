@@ -13,7 +13,6 @@ from airflow.version import version as airflow_version
 
 import dbnd_airflow
 
-from dbnd._core.utils.uid_utils import get_airflow_instance_uid
 from dbnd_airflow.export_plugin.compat import get_api_mode
 from dbnd_airflow.export_plugin.dag_operations import (
     get_current_dag_model,
@@ -39,6 +38,7 @@ from dbnd_airflow.export_plugin.queries import (
 )
 from dbnd_airflow.export_plugin.smart_dagbag import DbndDagLoader
 from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
+from dbnd_airflow.utils import get_airflow_instance_uid
 
 
 logger = logging.getLogger(__name__)

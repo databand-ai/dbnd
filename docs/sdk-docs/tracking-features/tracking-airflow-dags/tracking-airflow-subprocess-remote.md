@@ -51,7 +51,8 @@ The best way to inject these variables is to use the already built-in mechanism 
 
 <!-- noqa -->
 ```python
-from dbnd._core.utils.uid_utils import get_airflow_instance_uid
+
+from dbnd_airflow.utils import get_airflow_instance_uid
 
 MyCustomDataProcPySparkOperator(
         #...
@@ -77,7 +78,8 @@ MyCustomDataProcPySparkOperator(
 
 <!-- noqa -->
 ```python
-from dbnd._core.utils.uid_utils import get_airflow_instance_uid
+
+from dbnd_airflow.utils import get_airflow_instance_uid
 
 airflow_ctx_uid = get_airflow_instance_uid()
 cmd =(f"spark-submit  ...  "

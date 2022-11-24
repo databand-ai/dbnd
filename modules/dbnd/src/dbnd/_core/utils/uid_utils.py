@@ -8,7 +8,6 @@ import pytz
 import six
 
 from dbnd._core.configuration.environ_config import get_dbnd_project_config
-from dbnd._core.utils.basics.memoized import cached
 from dbnd._vendor import pendulum
 
 
@@ -71,16 +70,6 @@ def get_task_run_attempt_uid_by_task_run(task_run):
     )
 
 
-def get_task_run_attempt_uid_from_af_ti(ti):
-    airflow_instance_uid = get_airflow_instance_uid()
-    run_uid = get_job_run_uid(
-        airflow_instance_uid=airflow_instance_uid,
-        dag_id=ti.dag_id,
-        execution_date=ti.execution_date,
-    )
-    return get_task_run_attempt_uid(run_uid, ti.dag_id, ti.task_id, ti.try_number)
-
-
 def get_job_run_uid(airflow_instance_uid, dag_id, execution_date):
     # TODO_CORE: change to source_instance_uid
     if isinstance(execution_date, six.string_types):
@@ -105,17 +94,6 @@ def get_job_uid(airflow_server_info_uid, dag_id):
         )
     else:
         return uuid.uuid5(NAMESPACE_DBND_JOB, dag_id)
-
-
-@cached()
-def get_airflow_instance_uid():
-    """used to distinguish between jobs of different airflow instances"""
-    import airflow
-
-    db_url = airflow.settings.Session.bind.engine.url
-    db_str = "{}:{}/{}".format(db_url.host, db_url.port, db_url.database)
-    airflow_instance_uid = uuid.uuid5(uuid.NAMESPACE_URL, db_str)
-    return str(airflow_instance_uid)
 
 
 def get_dataset_op_uid(dataset_uid, task_run_attempt_id, operation_type):

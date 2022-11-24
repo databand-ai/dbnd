@@ -18,9 +18,9 @@ from dbnd._core.log.buffered_log_manager import BufferedLogManager
 from dbnd._core.tracking.airflow_dag_inplace_tracking import calc_task_key_from_af_ti
 from dbnd._core.tracking.script_tracking_manager import is_dbnd_tracking_active
 from dbnd._core.utils.basics import environ_utils
-from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_from_af_ti
 from dbnd_airflow.tracking.execute_tracking import is_dag_eligable_for_tracking
 from dbnd_airflow.tracking.fakes import FakeTaskRun
+from dbnd_airflow.utils import get_task_run_attempt_uid_from_af_ti
 
 
 AIRFLOW_FILE_TASK_HANDLER = FileTaskHandler.__name__

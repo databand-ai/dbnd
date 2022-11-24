@@ -1,7 +1,7 @@
 import airflow.utils.operator_helpers
 
 from dbnd._core.current import try_get_current_task_run
-from dbnd._core.utils.uid_utils import get_airflow_instance_uid
+from dbnd_airflow.utils import get_airflow_instance_uid
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
     extend_airflow_ctx_with_dbnd_tracking_info
 )

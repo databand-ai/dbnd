@@ -12,7 +12,7 @@ from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.log.dbnd_log import dbnd_log_exception, dbnd_log_tracking
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd._core.tracking.airflow_dag_inplace_tracking import extract_airflow_context
+from dbnd._core.tracking.airflow_task_context import AirflowTaskContext
 from dbnd._core.tracking.managers.callable_tracking import _log_result
 from dbnd._core.tracking.script_tracking_manager import (
     dbnd_airflow_tracking_start,
@@ -24,6 +24,7 @@ from dbnd_airflow.raw_constants import MONITOR_DAG_NAME
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_tracking_information, get_xcoms
 from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_info
+from dbnd_airflow.utils import get_airflow_instance_uid
 
 
 logger = logging.getLogger(__name__)
@@ -285,3 +286,36 @@ def get_execute_function(copied_operator):
         return copied_operator.__class__.__execute__
 
     raise AttributeError("tracked failed to run original operator.execute")
+
+
+def extract_airflow_context(airflow_context):
+    # type: (dict[str, Any]) -> Optional[AirflowTaskContext]
+    """Create AirflowTaskContext for airflow_context dict"""
+
+    task_instance = airflow_context.get("task_instance")
+    if task_instance is None:
+        return None
+
+    dag_id = task_instance.dag_id
+    task_id = task_instance.task_id
+    execution_date = str(task_instance.execution_date)
+    try_number = task_instance.try_number
+
+    if dag_id and task_id and execution_date:
+        return AirflowTaskContext(
+            dag_id=dag_id,
+            execution_date=execution_date,
+            task_id=task_id,
+            try_number=try_number,
+            context=airflow_context,
+            airflow_instance_uid=get_airflow_instance_uid(),
+            is_subdag=airflow_context.get("dag").is_subdag,
+        )
+
+    logger.debug(
+        "airflow context from inspect, at least one of those params is missing"
+        "dag_id: {}, execution_date: {}, task_id: {}".format(
+            dag_id, execution_date, task_id
+        )
+    )
+    return None

@@ -13,7 +13,8 @@ from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_executor.run_executor import RunExecutor
 from dbnd._core.utils.json_utils import convert_to_safe_types
-from dbnd._core.utils.uid_utils import get_airflow_instance_uid, get_job_run_uid
+from dbnd._core.utils.uid_utils import get_job_run_uid
+from dbnd_airflow.utils import get_airflow_instance_uid
 from targets import target
 
 
