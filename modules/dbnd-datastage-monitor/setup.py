@@ -24,9 +24,8 @@ setuptools.setup(
     ],
     extras_require={"tests": ["pytest", "mock"]},
     entry_points={
-        "dbnd": ["datastage-monitor = dbnd_datastage_monitor._plugin"],
         "console_scripts": [
             "dbnd-datastage-monitor = dbnd_datastage_monitor.multiserver.datastage_multiserver:datastage_monitor"
-        ],
+        ]
     },
 )

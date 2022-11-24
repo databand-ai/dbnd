@@ -23,9 +23,8 @@ setuptools.setup(
     ],
     extras_require={"tests": ["pytest", "mock"]},
     entry_points={
-        "dbnd": ["dbt-monitor = dbnd_dbt_monitor._plugin"],
         "console_scripts": [
             "dbnd-dbt-monitor = dbnd_dbt_monitor.multiserver.dbt_multiserver:dbt_monitor"
-        ],
+        ]
     },
 )

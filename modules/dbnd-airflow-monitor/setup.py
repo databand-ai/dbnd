@@ -28,5 +28,12 @@ setuptools.setup(
             "tzlocal>=1.5.1",
         ],
     },
-    entry_points={"dbnd": ["airflow-monitor = airflow_monitor._plugin"]},
+    entry_points={
+        # TODO: deprecate this one, is used by monitor DAG
+        "dbnd": ["airflow-monitor = airflow_monitor._plugin"],
+        "console_scripts": [
+            "dbnd-airflow-monitor = airflow_monitor.multiserver.cmd_multiserver:airflow_monitor_v2",
+            "dbnd-airflow-monitor-alive = airflow_monitor.multiserver.cmd_liveness_probe:airflow_monitor_v2_alive",
+        ],
+    },
 )
