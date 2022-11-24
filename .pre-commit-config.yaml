@@ -12,6 +12,7 @@ repos:
     rev: v0.3.1
     hooks:
       - id: autoflake8
+        additional_dependencies: ["pyflakes<3"]
         args:
           [
             "--in-place",
