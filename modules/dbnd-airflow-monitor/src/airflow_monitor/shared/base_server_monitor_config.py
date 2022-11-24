@@ -9,7 +9,7 @@ from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 
 
 @attr.s
-class BaseServerConfig(object):
+class BaseServerConfig:
     source_name: str = attr.ib()
     source_type: str = attr.ib()
     tracking_source_uid: UUID = attr.ib()

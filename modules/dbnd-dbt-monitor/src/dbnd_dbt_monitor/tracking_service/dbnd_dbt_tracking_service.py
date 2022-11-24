@@ -4,11 +4,7 @@ import logging
 
 from typing import List, Type
 
-from dbnd_dbt_monitor.data.dbt_config_data import (
-    DbtMonitorState,
-    DbtServerConfig,
-    DbtUpdateMonitorStateRequestSchema,
-)
+from dbnd_dbt_monitor.data.dbt_config_data import DbtMonitorState, DbtServerConfig
 
 from airflow_monitor.shared.base_server_monitor_config import TrackingServiceConfig
 from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
@@ -33,7 +29,6 @@ class DbndDbtTrackingService(BaseDbndTrackingService):
             tracking_source_uid=tracking_source_uid,
             tracking_service_config=tracking_service_config,
             server_monitor_config=server_monitor_config,
-            monitor_state_schema=DbtUpdateMonitorStateRequestSchema,
         )
 
     def _fetch_source_monitor_config(self) -> List[dict]:
@@ -52,8 +47,8 @@ class DbndDbtTrackingService(BaseDbndTrackingService):
             )
         return self.server_monitor_config.create(configs[0])
 
-    def update_monitor_state(self, monitor_state):
-        data, _ = self.monitor_state_schema().dump(monitor_state.as_dict())
+    def update_monitor_state(self, monitor_state: DbtMonitorState):
+        data = monitor_state.as_dict()
         self._api_client.api_request(
             endpoint=f"dbt_syncers/{self.tracking_source_uid}/state",
             method="PATCH",

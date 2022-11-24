@@ -20,7 +20,6 @@ from airflow_monitor.shared.base_tracking_service import (
     BaseDbndTrackingService,
     WebServersConfigurationService,
 )
-from dbnd.api.serialization.tracking import UpdateAirflowMonitorStateRequestSchema
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 from test_dbnd_airflow_monitor.mock_airflow_data_fetcher import MockDagRun
 
@@ -81,7 +80,6 @@ class MockTrackingService(BaseDbndTrackingService):
             tracking_source_uid=tracking_source_uid,
             tracking_service_config=get_tracking_service_config_from_dbnd(),
             server_monitor_config=AirflowServerConfig,
-            monitor_state_schema=UpdateAirflowMonitorStateRequestSchema,
         )
 
         self.dag_runs = []  # type: List[MockDagRun]

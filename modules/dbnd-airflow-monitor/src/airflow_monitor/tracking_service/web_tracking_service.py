@@ -16,7 +16,6 @@ from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
 from airflow_monitor.shared.base_server_monitor_config import TrackingServiceConfig
 from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
 from dbnd._core.utils.timezone import utctoday
-from dbnd.api.serialization.tracking import UpdateAirflowMonitorStateRequestSchema
 
 
 LONG_REQUEST_TIMEOUT = 300
@@ -44,7 +43,6 @@ class AirflowDbndTrackingService(BaseDbndTrackingService):
             tracking_source_uid=tracking_source_uid,
             tracking_service_config=tracking_service_config,
             server_monitor_config=server_monitor_config,
-            monitor_state_schema=UpdateAirflowMonitorStateRequestSchema,
         )
 
     def update_last_seen_values(self, last_seen_values: LastSeenValues):

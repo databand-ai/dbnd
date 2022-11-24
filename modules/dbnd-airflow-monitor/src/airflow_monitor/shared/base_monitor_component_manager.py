@@ -14,7 +14,7 @@ from airflow_monitor.shared.runners import BaseRunner
 logger = logging.getLogger(__name__)
 
 
-class BaseMonitorComponentManager(object):
+class BaseMonitorComponentManager:
     def __init__(
         self,
         runner: Type[BaseRunner],

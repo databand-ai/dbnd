@@ -7,7 +7,7 @@ from airflow_monitor.shared.base_syncer import BaseMonitorSyncer
 from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
 
 
-class BaseRunner(object):
+class BaseRunner:
     def __init__(self, target, tracking_service, **kwargs):
         self.target: BaseMonitorSyncer = target
         self.tracking_service: BaseDbndTrackingService = tracking_service

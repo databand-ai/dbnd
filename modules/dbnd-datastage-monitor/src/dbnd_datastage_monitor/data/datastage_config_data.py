@@ -4,17 +4,12 @@ from typing import Optional
 
 import attr
 
-from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
+from airflow_monitor.shared.base_monitor_config import (
+    NOTHING,
+    BaseMonitorConfig,
+    BaseMonitorState,
+)
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
-from dbnd._core.tracking.schemas.base import ApiStrictSchema
-from dbnd._core.utils.basics.nothing import NOTHING
-from dbnd._vendor.marshmallow import fields
-
-
-class DataStageUpdateMonitorStateRequestSchema(ApiStrictSchema):
-    monitor_status = fields.String(required=False, allow_none=True)
-    monitor_error_message = fields.String(required=False, allow_none=True)
-    last_sync_time = fields.DateTime(required=False, allow_none=True)
 
 
 @attr.s
@@ -73,16 +68,10 @@ class DataStageServerConfig(BaseServerConfig):
 
 
 @attr.s
-class DataStageMonitorState:
+class DataStageMonitorState(BaseMonitorState):
     monitor_status = attr.ib(default=NOTHING)
     monitor_error_message = attr.ib(default=NOTHING)
     last_sync_time = attr.ib(default=NOTHING)
-
-    def as_dict(self):
-        # Return only non NOTHING values (that did not change), None values are OK
-        return attr.asdict(
-            self, filter=lambda attr_name, attr_value: attr_value != NOTHING
-        )
 
 
 class DataStageMonitorConfig(BaseMonitorConfig):

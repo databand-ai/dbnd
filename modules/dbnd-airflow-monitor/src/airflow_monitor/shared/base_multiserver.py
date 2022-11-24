@@ -33,7 +33,7 @@ from dbnd._vendor.tenacity import (
 logger = logging.getLogger(__name__)
 
 
-class BaseMultiServerMonitor(object):
+class BaseMultiServerMonitor:
     runner: Type[BaseRunner]
     monitor_component_manager: Type[BaseMonitorComponentManager]
     servers_configuration_service: WebServersConfigurationService

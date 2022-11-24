@@ -6,7 +6,10 @@ from typing import List, Optional, Type
 
 import dbnd
 
-from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
+from airflow_monitor.shared.base_monitor_config import (
+    BaseMonitorConfig,
+    BaseMonitorState,
+)
 from airflow_monitor.shared.base_server_monitor_config import (
     BaseServerConfig,
     TrackingServiceConfig,
@@ -15,10 +18,6 @@ from airflow_monitor.shared.error_aggregator import ErrorAggregator
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.cachetools import TTLCache, cached
-from dbnd.api.serialization.tracking import (
-    BaseSourceMonitorState,
-    BaseSourceMonitorStateSchema,
-)
 from dbnd.utils.api_client import ApiClient
 
 
@@ -43,19 +42,17 @@ def _get_api_client(tracking_service_config: TrackingServiceConfig) -> ApiClient
     )
 
 
-class BaseDbndTrackingService(object):
+class BaseDbndTrackingService:
     def __init__(
         self,
         monitor_type: str,
         tracking_source_uid: str,
         tracking_service_config: TrackingServiceConfig,
         server_monitor_config: Type[BaseServerConfig],
-        monitor_state_schema: Type[BaseSourceMonitorStateSchema],
     ):
         self.monitor_type = monitor_type
         self.tracking_source_uid = tracking_source_uid
         self.server_monitor_config = server_monitor_config
-        self.monitor_state_schema = monitor_state_schema
         self._api_client = _get_api_client(tracking_service_config)
 
         self._error_aggregator = ErrorAggregator()
@@ -98,8 +95,8 @@ class BaseDbndTrackingService(object):
             )
         return self.server_monitor_config.create(configs[0])
 
-    def update_monitor_state(self, monitor_state):
-        data, _ = self.monitor_state_schema().dump(monitor_state.as_dict())
+    def update_monitor_state(self, monitor_state: BaseMonitorState):
+        data = monitor_state.as_dict()
 
         self._api_client.api_request(
             endpoint=f"source_monitor/{self.monitor_type}/{self.tracking_source_uid}/state",
@@ -117,7 +114,7 @@ class BaseDbndTrackingService(object):
         res = self._error_aggregator.report(reporting_obj_ref, err_message)
         if res.should_update:
             self.update_monitor_state(
-                BaseSourceMonitorState(monitor_error_message=res.message)
+                BaseMonitorState(monitor_error_message=res.message)
             )
 
     def report_exception(self, exception: str):
@@ -132,7 +129,7 @@ class BaseDbndTrackingService(object):
         )
 
 
-class WebServersConfigurationService(object):
+class WebServersConfigurationService:
     def __init__(
         self,
         monitor_type: str,

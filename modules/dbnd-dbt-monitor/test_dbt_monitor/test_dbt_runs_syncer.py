@@ -5,10 +5,7 @@ from unittest.mock import MagicMock, patch
 import attr
 import pytest
 
-from dbnd_dbt_monitor.data.dbt_config_data import (
-    DbtServerConfig,
-    DbtUpdateMonitorStateRequestSchema,
-)
+from dbnd_dbt_monitor.data.dbt_config_data import DbtServerConfig
 from dbnd_dbt_monitor.fetcher.dbt_cloud_data_fetcher import DbtCloudDataFetcher
 from dbnd_dbt_monitor.syncer.dbt_runs_syncer import DbtRunsSyncer
 from more_itertools import one
@@ -53,7 +50,6 @@ class MockDbtTrackingService(BaseDbndTrackingService):
             tracking_source_uid=tracking_source_uid,
             tracking_service_config=get_tracking_service_config_from_dbnd(),
             server_monitor_config=DbtServerConfig,
-            monitor_state_schema=DbtUpdateMonitorStateRequestSchema,
         )
         self.dbt_runs = []
         self.last_seen_run_id = None

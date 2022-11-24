@@ -1,4 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
+from typing import Optional
+
+import attr
 
 from dbnd import parameter
 from dbnd._core.task import Config
@@ -27,3 +30,14 @@ class BaseMonitorConfig(Config):
         default=None,
         description="Set a cap for the number of seconds to run the monitor. This is optional.",
     )[int]
+
+
+NOTHING = object()
+
+
+@attr.s(auto_attribs=True)
+class BaseMonitorState:
+    monitor_error_message: Optional[str] = NOTHING
+
+    def as_dict(self) -> dict:
+        return {k: v for k, v in attr.asdict(self).items() if v is not NOTHING}
