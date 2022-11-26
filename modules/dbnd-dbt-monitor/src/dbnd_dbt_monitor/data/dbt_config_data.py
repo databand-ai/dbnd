@@ -56,4 +56,4 @@ class DbtMonitorState(BaseMonitorState):
 
 
 class DbtMonitorConfig(BaseMonitorConfig):
-    _conf__task_family = "dbt_monitor"
+    _env_prefix = "DBND__DBT_MONITOR__"

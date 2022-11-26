@@ -45,7 +45,7 @@ def datastage_monitor(**kwargs):
     # noqa: E0110 pylint: disable=abstract-class-instantiated
     sentry_sdk.init()
     monitor_config_kwargs = {k: v for k, v in kwargs.items() if v is not None}
-    monitor_config = DataStageMonitorConfig(**monitor_config_kwargs)
+    monitor_config = DataStageMonitorConfig.from_env(**monitor_config_kwargs)
     prometheus_client.start_http_server(monitor_config.prometheus_port)
     start_datastage_multi_server_monitor(monitor_config)
 

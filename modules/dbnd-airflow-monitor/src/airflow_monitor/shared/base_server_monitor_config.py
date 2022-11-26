@@ -37,4 +37,3 @@ class TrackingServiceConfig:
     access_token = attr.ib(default=None)
     user = attr.ib(default=None)
     password = attr.ib(default=None)
-    service_type = attr.ib(default=None)

@@ -1,16 +1,14 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import os
 
 from airflow_monitor.shared.base_server_monitor_config import TrackingServiceConfig
 
 
 def get_tracking_service_config_from_dbnd() -> TrackingServiceConfig:
-    from dbnd import get_databand_context
-
-    conf = get_databand_context().settings.core
     config = TrackingServiceConfig(
-        url=conf.databand_url,
-        access_token=conf.databand_access_token,
-        user=conf.dbnd_user,
-        password=conf.dbnd_password,
+        url=os.getenv("DBND__CORE__DATABAND_URL"),
+        access_token=os.getenv("DBND__CORE__DATABAND_ACCESS_TOKEN"),
+        user=os.getenv("DBND__CORE__DBND_USER"),
+        password=os.getenv("DBND__CORE__DBND_PASSWORD"),
     )
     return config

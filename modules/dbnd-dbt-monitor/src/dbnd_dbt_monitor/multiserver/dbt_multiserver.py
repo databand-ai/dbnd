@@ -42,7 +42,7 @@ def dbt_monitor(**kwargs):
     # noqa: E0110 pylint: disable=abstract-class-instantiated
     sentry_sdk.init()
     monitor_config_kwargs = {k: v for k, v in kwargs.items() if v is not None}
-    monitor_config = DbtMonitorConfig(**monitor_config_kwargs)
+    monitor_config = DbtMonitorConfig.from_env(**monitor_config_kwargs)
     start_dbt_multi_server_monitor(monitor_config)
 
 

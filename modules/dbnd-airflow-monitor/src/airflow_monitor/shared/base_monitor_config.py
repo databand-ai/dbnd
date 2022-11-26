@@ -1,43 +1,53 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import os
+
 from typing import Optional
 
 import attr
 
-from dbnd import parameter
-from dbnd._core.task import Config
+from attr.converters import optional
 
 
-class BaseMonitorConfig(Config):
-    _conf__task_family = "source_monitor"
+@attr.s(auto_attribs=True)
+class BaseMonitorConfig:
+    _env_prefix = "<override me>"
 
-    prometheus_port = parameter(
-        default=8000, description="Set which port will be used for prometheus."
-    )[int]
+    # Set which port will be used for prometheus.
+    prometheus_port: int = attr.ib(default=8000, converter=int)
 
-    interval = parameter(
-        default=5,
-        description="Set the sleep time, in seconds, between fetches, when the monitor is not busy.",
-    )[int]
+    # Set the sleep time, in seconds, between fetches, when the monitor is not busy.
+    interval: int = attr.ib(default=5, converter=int)
 
-    runner_type = parameter(default="seq")[str]  # seq/mp
+    # seq/mp
+    runner_type: str = "seq"
 
-    number_of_iterations = parameter(
-        default=None,
-        description="Set a cap for the number of monitor iterations. This is optional.",
-    )[int]
+    # Set a cap for the number of monitor iterations. This is optional.
+    number_of_iterations: Optional[int] = attr.ib(default=None, converter=optional(int))
 
-    stop_after = parameter(
-        default=None,
-        description="Set a cap for the number of seconds to run the monitor. This is optional.",
-    )[int]
+    # Set a cap for the number of seconds to run the monitor. This is optional.
+    stop_after: Optional[int] = attr.ib(default=None, converter=optional(int))
 
-    log_format = parameter(default="text", description="Log format to use: text/json")[
-        str
-    ]
+    # Log format to use: text/json
+    log_format: str = "text"
 
     @property
     def use_json_logging(self):
         return self.log_format == "json"
+
+    @classmethod
+    def from_env(cls, **overrides):
+        env_prefix = cls._env_prefix
+
+        for field in attr.fields(cls):
+            if field.name in overrides:
+                continue
+
+            env_var_name = f"{env_prefix}{field.name}".upper()
+            env_val = os.environ.get(env_var_name)
+            if env_val is not None:
+                overrides[field.name] = env_val
+
+        return cls(**overrides)
 
 
 NOTHING = object()

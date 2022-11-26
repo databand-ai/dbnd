@@ -59,7 +59,7 @@ class AirflowServerConfig(BaseServerConfig):
         cls, server_config: dict, monitor_config: Optional[BaseMonitorConfig] = None
     ):
         if monitor_config is None:
-            monitor_config = AirflowMonitorConfig()
+            monitor_config = AirflowMonitorConfig.from_env()
 
         monitor_instance_config = server_config.get("monitor_config") or {}
         kwargs = {
@@ -89,12 +89,3 @@ class AirflowServerConfig(BaseServerConfig):
             **kwargs,
         )
         return conf
-
-
-@attr.s
-class TrackingServiceConfig:
-    url = attr.ib()
-    access_token = attr.ib(default=None)
-    user = attr.ib(default=None)
-    password = attr.ib(default=None)
-    service_type = attr.ib(default=None)

@@ -31,10 +31,12 @@ def _get_api_client(tracking_service_config: TrackingServiceConfig) -> ApiClient
     if tracking_service_config.access_token:
         credentials = {"token": tracking_service_config.access_token}
     else:
+        # TODO: this is used by dbt/datastage monitors, should be deprecated!!
         credentials = {
             "username": tracking_service_config.user,
             "password": tracking_service_config.password,
         }
+
     return ApiClient(
         tracking_service_config.url,
         credentials=credentials,

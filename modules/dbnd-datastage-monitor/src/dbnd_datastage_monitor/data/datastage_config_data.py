@@ -83,4 +83,4 @@ class DataStageMonitorState(BaseMonitorState):
 
 
 class DataStageMonitorConfig(BaseMonitorConfig):
-    _conf__task_family = "datastage_monitor"
+    _env_prefix = "DBND__DATASTAGE_MONITOR__"
