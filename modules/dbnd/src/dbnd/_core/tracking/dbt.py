@@ -212,8 +212,7 @@ def _load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
 def _extract_environment(runs_info, profile):
     profile = _extract_profile(profile, runs_info)
     adapter = Adapter.from_profile(profile)
-    namespace = adapter.extract_dataset_namespace(profile)
-    environment = {"connection": {"type": adapter.value, "hostname": namespace}}
+    environment = {"connection": adapter.connection(profile)}
     return environment
 
 
@@ -272,6 +271,7 @@ class Adapter(Enum):
     SNOWFLAKE = "snowflake"
     REDSHIFT = "redshift"
     SPARK = "spark"
+    OTHER = "other"
 
     @staticmethod
     def adapters() -> str:
@@ -282,55 +282,38 @@ class Adapter(Enum):
     def from_profile(cls, profile):
         try:
             return Adapter[profile["type"].upper()]
-        except KeyError as e:
-            raise KeyError(
-                f"Only {Adapter.adapters()} adapters are supported right now. "
-                f"Passed {profile['type']}"
-            ) from e
+        except KeyError:
+            return Adapter.OTHER
 
-    def extract_dataset_namespace(self, profile):
+    def extract_host(self, profile):
         if self == Adapter.SNOWFLAKE:
-            return f"snowflake://{profile['account']}"
+            return {"account": profile.get("account")}
 
         if self == Adapter.BIGQUERY:
-            return f"bigquery://{profile['project']}"
+            return {
+                "project": profile.get("project"),
+                "location": profile.get("location"),
+            }
 
         if self == Adapter.REDSHIFT:
-            return f"redshift://{profile['host']}:{profile['port']}"
+            host = profile["host"]
+            return {
+                "hostname": host,
+                "host": host,
+            }  # BE expect `hostname` but original is `host`
 
         if self == Adapter.SPARK:
-            # support port for unsupported
-            if "port" in profile:
-                port = profile["port"]
-            else:
-                method = profile["method"]
-                if method not in SparkConnectionMethod.methods():
-                    raise KeyError(
-                        f"Connection method `{method}` is not supported for spark adapter."
-                    )
+            host = profile["host"]
+            return {
+                "hostname": host,
+                "host": host,
+            }  # BE expect `hostname` but original is `host`
 
-                port = SparkConnectionMethod(method).port
+        host = profile.get("host", "")
+        return {"hostname": host, "host": host}
 
-            return f"spark://{profile['host']}:{port}"
-
-        return profile["type"]
-
-
-class SparkConnectionMethod(Enum):
-    THRIFT = "thrift"
-    ODBC = "odbc"
-    HTTP = "http"
-
-    @staticmethod
-    def methods():
-        return [x.value for x in SparkConnectionMethod]
-
-    @property
-    def port(self):
-        if self in [SparkConnectionMethod.HTTP, SparkConnectionMethod.ODBC]:
-            return "443"
-
-        if self == SparkConnectionMethod.THRIFT:
-            return "10001"
-
-        return None
+    def connection(self, profile):
+        conn_type = profile["type"] if self == Adapter.OTHER else self.value
+        conn = {"type": conn_type}
+        conn.update(self.extract_host(profile))
+        return conn

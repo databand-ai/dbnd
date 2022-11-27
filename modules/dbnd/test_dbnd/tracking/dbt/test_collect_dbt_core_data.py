@@ -24,7 +24,11 @@ class TestDBTCoreExtractMetaData:
 
     def validate_result_metadata(self, result_metadata):
         assert result_metadata["environment"] == {
-            "connection": {"hostname": "bigquery://dbnd-dev-260010", "type": "bigquery"}
+            "connection": {
+                "location": "US",
+                "project": "dbnd-dev-260010",
+                "type": "bigquery",
+            }
         }
 
         [run_step] = result_metadata["run_steps"]
@@ -80,83 +84,43 @@ class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
         (
             # Adapter.SNOWFLAKE,
             {"type": "snowflake", "account": "snowflake-account"},
-            {
-                "connection": {
-                    "type": "snowflake",
-                    "hostname": "snowflake://snowflake-account",
-                }
-            },
+            {"connection": {"account": "snowflake-account", "type": "snowflake"}},
         ),
         (
             # Adapter.REDSHIFT,
             {"type": "redshift", "host": "redshift-host", "port": 8080},
             {
                 "connection": {
+                    "host": "redshift-host",
+                    "hostname": "redshift-host",
                     "type": "redshift",
-                    "hostname": "redshift://redshift-host:8080",
                 }
             },
         ),
         (
             # Adapter.BIGQUERY,
-            {"type": "bigquery", "project": "account-dev-5646"},
+            {"type": "bigquery", "project": "account-dev-5646", "location": "us"},
             {
                 "connection": {
+                    "location": "us",
+                    "project": "account-dev-5646",
                     "type": "bigquery",
-                    "hostname": "bigquery://account-dev-5646",
                 }
             },
         ),
         # spark
-        ## unknown method but with port
         (
             {"type": "spark", "host": "spark-host", "port": 10},
-            {"connection": {"type": "spark", "hostname": "spark://spark-host:10"}},
-        ),
-        (
-            {"type": "spark", "host": "spark-host", "method": "unknown", "port": 10},
-            {"connection": {"type": "spark", "hostname": "spark://spark-host:10"}},
-        ),
-        ## unknown methods w/wo ports
-        (
-            {"type": "spark", "host": "spark-host", "method": "odbc", "port": 10},
-            {"connection": {"type": "spark", "hostname": "spark://spark-host:10"}},
-        ),
-        (
-            {"type": "spark", "host": "spark-host", "method": "odbc"},
-            {"connection": {"type": "spark", "hostname": "spark://spark-host:443"}},
-        ),
-        (
-            {"type": "spark", "host": "spark-host", "method": "thrift", "port": "321"},
-            {"connection": {"type": "spark", "hostname": "spark://spark-host:321"}},
-        ),
-        (
-            {"type": "spark", "host": "spark-host", "method": "thrift"},
-            {"connection": {"type": "spark", "hostname": "spark://spark-host:10001"}},
-        ),
-        (
-            {"type": "spark", "host": "spark-host", "method": "http", "port": 12},
-            {"connection": {"type": "spark", "hostname": "spark://spark-host:12"}},
-        ),
-        (
-            {"type": "spark", "host": "spark-host", "method": "http"},
-            {"connection": {"type": "spark", "hostname": "spark://spark-host:443"}},
+            {
+                "connection": {
+                    "host": "spark-host",
+                    "hostname": "spark-host",
+                    "type": "spark",
+                }
+            },
         ),
     ],
 )
 def test_extract_environment(profile, expected):
     profile = {"target": "dev", "outputs": {"dev": profile}}
     assert _extract_environment({"args": {}}, profile) == expected
-
-
-@pytest.mark.parametrize(
-    "profile",
-    [
-        {"type": "spark", "host": "spark-host", "method": "unknown method"},
-        {"type": "no-type"},
-    ],
-)
-def test_failing_extract_environment(profile):
-    profile = {"target": "dev", "outputs": {"dev": profile}}
-    with pytest.raises(KeyError):
-        _extract_environment({"args": {}}, profile)
