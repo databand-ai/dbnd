@@ -35,5 +35,5 @@ class BaseServerConfig:
 class TrackingServiceConfig:
     url = attr.ib()
     access_token = attr.ib(default=None)
-    user = attr.ib(default=None)
-    password = attr.ib(default=None)
+    user = attr.ib(default="databand")
+    password = attr.ib(default="databand")
