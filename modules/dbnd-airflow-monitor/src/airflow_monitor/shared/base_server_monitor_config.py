@@ -29,11 +29,3 @@ class BaseServerConfig:
     @property
     def identifier(self):
         return self.tracking_source_uid
-
-
-@attr.s
-class TrackingServiceConfig:
-    url = attr.ib()
-    access_token = attr.ib(default=None)
-    user = attr.ib(default=None)
-    password = attr.ib(default=None)

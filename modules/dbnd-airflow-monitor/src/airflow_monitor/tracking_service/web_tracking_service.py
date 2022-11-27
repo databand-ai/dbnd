@@ -13,7 +13,6 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
-from airflow_monitor.shared.base_server_monitor_config import TrackingServiceConfig
 from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
 from dbnd._core.utils.timezone import utctoday
 
@@ -35,13 +34,11 @@ class AirflowDbndTrackingService(BaseDbndTrackingService):
         self,
         monitor_type: str,
         tracking_source_uid: str,
-        tracking_service_config: TrackingServiceConfig,
         server_monitor_config: Type[AirflowServerConfig],
     ):
         super(AirflowDbndTrackingService, self).__init__(
             monitor_type=monitor_type,
             tracking_source_uid=tracking_source_uid,
-            tracking_service_config=tracking_service_config,
             server_monitor_config=server_monitor_config,
         )
 

@@ -5,7 +5,7 @@ import logging
 from distutils.version import LooseVersion
 
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.shared import get_tracking_service_config_from_dbnd
+from airflow_monitor.shared.base_tracking_service import TrackingServiceConfig
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class ValidationStep:
 class CheckDbndConfig(ValidationStep):
     def run_validation(self):
         monitor_config = AirflowMonitorConfig.from_env()
-        tracking_config = get_tracking_service_config_from_dbnd()
+        tracking_config = TrackingServiceConfig.from_env()
 
         if not tracking_config.url:
             self.errors_list.append("No databand url found in the configuration")

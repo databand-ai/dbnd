@@ -9,7 +9,6 @@ from dbnd_datastage_monitor.data.datastage_config_data import (
     DataStageServerConfig,
 )
 
-from airflow_monitor.shared.base_server_monitor_config import TrackingServiceConfig
 from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.timezone import utcnow
@@ -25,13 +24,11 @@ class DbndDataStageTrackingService(BaseDbndTrackingService):
         self,
         monitor_type: str,
         tracking_source_uid: str,
-        tracking_service_config: TrackingServiceConfig,
         server_monitor_config: Type[DataStageServerConfig],
     ):
         super(DbndDataStageTrackingService, self).__init__(
             monitor_type=monitor_type,
             tracking_source_uid=tracking_source_uid,
-            tracking_service_config=tracking_service_config,
             server_monitor_config=server_monitor_config,
         )
 

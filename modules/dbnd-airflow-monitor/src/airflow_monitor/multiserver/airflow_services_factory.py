@@ -7,7 +7,6 @@ from airflow_monitor.data_fetcher.google_compose_data_fetcher import (
     GoogleComposerFetcher,
 )
 from airflow_monitor.data_fetcher.web_data_fetcher import WebFetcher
-from airflow_monitor.shared import get_tracking_service_config_from_dbnd
 from airflow_monitor.shared.base_tracking_service import WebServersConfigurationService
 from airflow_monitor.shared.decorators import (
     decorate_configuration_service,
@@ -46,23 +45,18 @@ class AirflowServicesFactory(MonitorServicesFactory):
 
     @cached()
     def get_servers_configuration_service(self):
-        tracking_service_config = get_tracking_service_config_from_dbnd()
         return decorate_configuration_service(
             WebServersConfigurationService(
-                monitor_type=MONITOR_TYPE,
-                tracking_service_config=tracking_service_config,
-                server_monitor_config=AirflowServerConfig,
+                monitor_type=MONITOR_TYPE, server_monitor_config=AirflowServerConfig
             )
         )
 
     @cached()
     def get_tracking_service(self, tracking_source_uid):
-        tracking_service_config = get_tracking_service_config_from_dbnd()
         return decorate_tracking_service(
             AirflowDbndTrackingService(
                 monitor_type=MONITOR_TYPE,
                 tracking_source_uid=tracking_source_uid,
-                tracking_service_config=tracking_service_config,
                 server_monitor_config=AirflowServerConfig,
             ),
             tracking_source_uid,

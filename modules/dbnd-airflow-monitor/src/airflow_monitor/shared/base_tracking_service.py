@@ -1,8 +1,11 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import logging
+import os
 
 from typing import List, Optional, Type
+
+import attr
 
 import dbnd
 
@@ -10,10 +13,7 @@ from airflow_monitor.shared.base_monitor_config import (
     BaseMonitorConfig,
     BaseMonitorState,
 )
-from airflow_monitor.shared.base_server_monitor_config import (
-    BaseServerConfig,
-    TrackingServiceConfig,
-)
+from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.error_aggregator import ErrorAggregator
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.utils.timezone import utcnow
@@ -27,7 +27,27 @@ logger = logging.getLogger(__name__)
 monitor_config_cache = TTLCache(maxsize=5, ttl=10)
 
 
-def _get_api_client(tracking_service_config: TrackingServiceConfig) -> ApiClient:
+@attr.s(auto_attribs=True)
+class TrackingServiceConfig:
+    url: str
+    access_token: str
+    user: str
+    password: str
+
+    @classmethod
+    def from_env(cls) -> "TrackingServiceConfig":
+        config = cls(
+            url=os.getenv("DBND__CORE__DATABAND_URL"),
+            access_token=os.getenv("DBND__CORE__DATABAND_ACCESS_TOKEN"),
+            user=os.getenv("DBND__CORE__DBND_USER", "databand"),
+            password=os.getenv("DBND__CORE__DBND_PASSWORD", "databand"),
+        )
+        return config
+
+
+def _get_api_client() -> ApiClient:
+    tracking_service_config = TrackingServiceConfig.from_env()
+
     if tracking_service_config.access_token:
         credentials = {"token": tracking_service_config.access_token}
     else:
@@ -49,13 +69,12 @@ class BaseDbndTrackingService:
         self,
         monitor_type: str,
         tracking_source_uid: str,
-        tracking_service_config: TrackingServiceConfig,
         server_monitor_config: Type[BaseServerConfig],
     ):
         self.monitor_type = monitor_type
         self.tracking_source_uid = tracking_source_uid
         self.server_monitor_config = server_monitor_config
-        self._api_client = _get_api_client(tracking_service_config)
+        self._api_client = _get_api_client()
 
         self._error_aggregator = ErrorAggregator()
 
@@ -133,13 +152,10 @@ class BaseDbndTrackingService:
 
 class WebServersConfigurationService:
     def __init__(
-        self,
-        monitor_type: str,
-        tracking_service_config: TrackingServiceConfig,
-        server_monitor_config: Type[BaseServerConfig],
+        self, monitor_type: str, server_monitor_config: Type[BaseServerConfig]
     ):
         self.monitor_type: str = monitor_type  # airflow_monitor / datasource_monitor
-        self._api_client: ApiClient = _get_api_client(tracking_service_config)
+        self._api_client: ApiClient = _get_api_client()
         self.server_monitor_config = server_monitor_config
 
     def _get_monitor_config_data(self):

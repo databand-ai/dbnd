@@ -15,7 +15,6 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
-from airflow_monitor.shared import get_tracking_service_config_from_dbnd
 from airflow_monitor.shared.base_tracking_service import (
     BaseDbndTrackingService,
     WebServersConfigurationService,
@@ -58,9 +57,7 @@ class MockServersConfigService(WebServersConfigurationService):
     def __init__(self):
 
         super(MockServersConfigService, self).__init__(
-            monitor_type="airflow",
-            tracking_service_config=get_tracking_service_config_from_dbnd(),
-            server_monitor_config=AirflowServerConfig,
+            monitor_type="airflow", server_monitor_config=AirflowServerConfig
         )
         self.alive = True
         self.mock_servers = []  # type: List[AirflowServerConfig]
@@ -78,7 +75,6 @@ class MockTrackingService(BaseDbndTrackingService):
         super(MockTrackingService, self).__init__(
             monitor_type="airflow",
             tracking_source_uid=tracking_source_uid,
-            tracking_service_config=get_tracking_service_config_from_dbnd(),
             server_monitor_config=AirflowServerConfig,
         )
 

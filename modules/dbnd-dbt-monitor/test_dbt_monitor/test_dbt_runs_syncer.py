@@ -10,7 +10,6 @@ from dbnd_dbt_monitor.fetcher.dbt_cloud_data_fetcher import DbtCloudDataFetcher
 from dbnd_dbt_monitor.syncer.dbt_runs_syncer import DbtRunsSyncer
 from more_itertools import one
 
-from airflow_monitor.shared import get_tracking_service_config_from_dbnd
 from airflow_monitor.shared.base_tracking_service import BaseDbndTrackingService
 
 
@@ -48,7 +47,6 @@ class MockDbtTrackingService(BaseDbndTrackingService):
         super(MockDbtTrackingService, self).__init__(
             monitor_type="airflow",
             tracking_source_uid=tracking_source_uid,
-            tracking_service_config=get_tracking_service_config_from_dbnd(),
             server_monitor_config=DbtServerConfig,
         )
         self.dbt_runs = []

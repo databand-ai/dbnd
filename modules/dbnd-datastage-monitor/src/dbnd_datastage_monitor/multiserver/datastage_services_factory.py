@@ -20,7 +20,6 @@ from dbnd_datastage_monitor.tracking_service.dbnd_datastage_tracking_service imp
     DbndDataStageTrackingService,
 )
 
-from airflow_monitor.shared import get_tracking_service_config_from_dbnd
 from airflow_monitor.shared.decorators import (
     decorate_configuration_service,
     decorate_fetcher,
@@ -76,23 +75,18 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
 
     @cached()
     def get_servers_configuration_service(self):
-        tracking_service_config = get_tracking_service_config_from_dbnd()
         return decorate_configuration_service(
             DataStageSyncersConfigurationService(
-                monitor_type=MONITOR_TYPE,
-                tracking_service_config=tracking_service_config,
-                server_monitor_config=DataStageServerConfig,
+                monitor_type=MONITOR_TYPE, server_monitor_config=DataStageServerConfig
             )
         )
 
     @cached()
     def get_tracking_service(self, tracking_source_uid) -> DbndDataStageTrackingService:
-        tracking_service_config = get_tracking_service_config_from_dbnd()
         return decorate_tracking_service(
             DbndDataStageTrackingService(
                 monitor_type=MONITOR_TYPE,
                 tracking_source_uid=tracking_source_uid,
-                tracking_service_config=tracking_service_config,
                 server_monitor_config=DataStageServerConfig,
             ),
             tracking_source_uid,
