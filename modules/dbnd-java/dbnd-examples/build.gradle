@@ -16,7 +16,7 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-jackson:2.9.0") {
         transitive = false
     }
-    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.14.0-rc2") {
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.14.1") {
         transitive = false
     }
 
@@ -48,7 +48,7 @@ dependencies {
         exclude group: "org.scala-lang"
         exclude group: "org.scalanlp"
     }
-    implementation("com.fasterxml.jackson.module:jackson-module-scala_2.11:2.14.0-rc2")
+    implementation("com.fasterxml.jackson.module:jackson-module-scala_2.11:2.14.1")
     implementation 'org.scala-lang:scala-library:2.11.12'
 
     testImplementation "ai.databand:dbnd-client:${project.version}"
