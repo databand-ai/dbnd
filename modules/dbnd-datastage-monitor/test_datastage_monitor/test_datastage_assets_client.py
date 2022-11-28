@@ -133,7 +133,7 @@ class DataStageApiInMemoryClient(DataStageApiClient):
             run_end_time = parse_datetime(metadata.get("usage").get("last_updated_at"))
 
             if run_start_time >= min_start_time and run_end_time <= max_end_time:
-                runs[run_id] = run_info
+                runs[run_id] = run_info.get("href")
         if not next_page:
             response = self.create_run_page(runs, page_size)
             return_next = page_size
@@ -153,12 +153,28 @@ class DataStageApiInMemoryClient(DataStageApiClient):
         return [{"log_1": "data"}, {"log_2": "data"}, {"log_3": "data"}]
 
 
+class DataStageApiErrorClient(DataStageApiInMemoryClient):
+    def __init__(self, project_id):
+        super().__init__(project_id=project_id)
+
+    def get_run_info(self, run: Dict[str, any]):
+        raise Exception("test error")
+
+
 def runs_getter():
     return DataStageAssetsClient(client=init_mock_client())
 
 
+def error_runs_getter():
+    return DataStageAssetsClient(client=init_error_client())
+
+
 def concurent_runs_getter():
     return ConcurrentRunsGetter(client=init_mock_client())
+
+
+def error_concurent_runs_getter():
+    return ConcurrentRunsGetter(client=init_error_client())
 
 
 def init_mock_client():
@@ -180,6 +196,16 @@ def init_mock_client():
     return mock_client
 
 
+def init_error_client():
+    mock_error_client = DataStageApiErrorClient(
+        project_id="0ca4775d-860c-44f2-92ba-c7c8cfc0dd45"
+    )
+    mock_error_client.add_runs_info_response(
+        json.load(open(relative_path(__file__, "mocks/runs_info.json")))
+    )
+    return mock_error_client
+
+
 class TestDataStageAssetsClient:
     @pytest.mark.parametrize(
         "datastage_runs_getter", [runs_getter(), concurent_runs_getter()]
@@ -199,7 +225,7 @@ class TestDataStageAssetsClient:
             if not next_page:
                 break
 
-        response = datastage_runs_getter.get_full_runs(
+        response, failed_runs = datastage_runs_getter.get_full_runs(
             runs_links=list(all_runs.values())
         )
         expected_response = json.load(
@@ -226,7 +252,32 @@ class TestDataStageAssetsClient:
             if not next_page:
                 break
 
-        response = datastage_runs_getter.get_full_runs(
+        response, failed_runs = datastage_runs_getter.get_full_runs(
             runs_links=list(all_runs.values())
         )
         assert not response["runs"]
+
+    @pytest.mark.parametrize(
+        "datastage_runs_getter", [error_runs_getter(), error_concurent_runs_getter()]
+    )
+    def test_failed_runs(self, datastage_runs_getter):
+        next_page = None
+        all_runs = {}
+        while True:
+            runs, next_page = datastage_runs_getter.get_new_runs(
+                start_time="2022-07-20T23:01:08Z",
+                end_time="2022-09-30T23:02:50Z",
+                next_page=next_page,
+            )
+            all_runs.update(runs)
+            if not next_page:
+                break
+
+        response, failed_runs = datastage_runs_getter.get_full_runs(
+            runs_links=list(all_runs.values())
+        )
+        assert not response["runs"]
+        assert failed_runs == [
+            "https://api.dataplatform.cloud.ibm.com/v2/assets/175a521f-6525-4d71-85e2-22544f8267a6?project_id=0ca4775d-860c-44f2-92ba-c7c8cfc0dd45",
+            "https://api.dataplatform.cloud.ibm.com/v2/assets/8b62bbd1-e14f-4d44-9eb9-276098f762c0?project_id=0ca4775d-860c-44f2-92ba-c7c8cfc0dd45",
+        ]

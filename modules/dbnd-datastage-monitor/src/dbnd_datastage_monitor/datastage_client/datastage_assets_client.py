@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple
 
 from dbnd_datastage_monitor.datastage_client.datastage_api_client import (
     DataStageApiHttpClient,
+    raise_if_not_found,
 )
 from dbnd_datastage_monitor.metrics.prometheus_metrics import report_error
 
@@ -21,6 +22,7 @@ class DataStageAssetsClient:
         self.runs = []
         self.jobs = {}
         self.flows = {}
+        self.failed_runs = []
 
     @property
     def project_id(self):
@@ -47,29 +49,31 @@ class DataStageAssetsClient:
         self.runs = []
         self.flows = {}
         self.jobs = {}
+        self.failed_runs = []
 
     def get_full_run(self, run_link: str):
         try:
-            run_info = self.client.get_run_info(run_link)
-            if not run_info:
-                return
+            run_info = raise_if_not_found(
+                value=self.client.get_run_info(run_link),
+                error_message="unable to add run, run info attribute is not found",
+            )
 
             ds_run = {"run_link": run_link}
-            run_metadata = run_info.get("metadata")
-            if not run_metadata:
-                logger.error("Unable to add run, no metadata attribute found")
-                return
+            run_metadata = raise_if_not_found(
+                value=run_info.get("metadata"),
+                error_message="Unable to add run, no metadata attribute found",
+            )
 
             run_id = run_metadata.get("asset_id")
-            run_entity = run_info.get("entity")
-            if not run_entity:
-                logger.error("Unable to add run, no entity attribute found")
-                return
+            run_entity = raise_if_not_found(
+                value=run_info.get("entity"),
+                error_message="Unable to add run, no entity attribute found",
+            )
 
-            job_run = run_entity.get("job_run")
-            if not job_run:
-                logger.error("Unable to add run, no job run attribute found")
-                return
+            job_run = raise_if_not_found(
+                value=run_entity.get("job_run"),
+                error_message="Unable to add run, no job run attribute found",
+            )
 
             job_id = job_run.get("job_ref")
             run_logs = self.client.get_run_logs(job_id=job_id, run_id=run_id)
@@ -77,12 +81,10 @@ class DataStageAssetsClient:
 
             # request job if not exists in cache
             if not job_info:
-                job_info = self.client.get_job(job_id)
-                if not job_info:
-                    logger.error(
-                        f"Unable to get flow id for {job_id}, job_info was not found"
-                    )
-                    return
+                job_info = raise_if_not_found(
+                    value=self.client.get_job(job_id),
+                    error_message=f"Unable to get flow id for {job_id}, job_info was not found",
+                )
                 self.jobs[job_id] = job_info
 
             flow_id = job_info.get("entity").get("job").get("asset_ref")
@@ -100,42 +102,36 @@ class DataStageAssetsClient:
                 run_link,
                 str(e),
             )
+            # submit failed run to runs error handler
+            self.failed_runs.append(run_link)
             log_exception_to_server(e, "datastage-monitor")
             report_error("get_full_run", str(e))
 
     def get_full_runs(self, runs_links: List[str]) -> Dict:
         for run in runs_links:
             self.get_full_run(run)
+        return self.build_runs_response()
+
+    def build_runs_response(self):
         response = {
-            "runs": self.runs.copy(),
+            "runs": self.runs,
             "assets": {
-                "jobs": self.jobs.copy(),
-                "flows": self.flows.copy(),
+                "jobs": self.jobs,
+                "flows": self.flows,
                 "connections": self.client.get_connections(),
             },
         }
+        failed_runs = self.failed_runs
         self.clear_response_cache()
-        return response
+        return response, failed_runs
 
 
 class ConcurrentRunsGetter(DataStageAssetsClient):
     def __init__(self, client, number_of_threads=10):
-        super(ConcurrentRunsGetter, self).__init__(client)
+        super(ConcurrentRunsGetter, self).__init__(client=client)
         self._number_of_threads = number_of_threads
-        self.runs = []
-        self.jobs = {}
-        self.flows = {}
 
     def get_full_runs(self, runs_links: List[str]):
         with ThreadPoolExecutor(max_workers=self._number_of_threads) as executor:
             executor.map(self.get_full_run, runs_links)
-        response = {
-            "runs": self.runs.copy(),
-            "assets": {
-                "jobs": self.jobs.copy(),
-                "flows": self.flows.copy(),
-                "connections": self.client.get_connections(),
-            },
-        }
-        self.clear_response_cache()
-        return response
+        return self.build_runs_response()

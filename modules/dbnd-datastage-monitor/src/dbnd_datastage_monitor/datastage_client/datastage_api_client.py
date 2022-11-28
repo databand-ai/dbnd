@@ -15,10 +15,16 @@ from requests.adapters import HTTPAdapter, Retry
 
 logger = logging.getLogger(__name__)
 
-
 CLOUD_IAM_AUTH = "cloud-iam-auth"
 ON_PREM_BASIC_AUTH = "on-prem-basic-auth"
 ON_PREM_IAM_AUTH = "on-prem-iam-auth"
+
+
+def raise_if_not_found(value, error_message):
+    if not value:
+        logger.error(error_message)
+        raise ValueError(error_message)
+    return value
 
 
 def parse_datastage_error(response):
@@ -113,12 +119,10 @@ class DataStageApiHttpClient(DataStageApiClient):
         )
 
     def get_asset_id(self, data):
-        metadata = data.get("metadata")
-        if not metadata:
-            logger.warning(
-                f"Unable to add run for {self.project_id}, no metadata attribute found"
-            )
-            return None
+        metadata = raise_if_not_found(
+            value=data.get("metadata"),
+            error_message=f"Unable to add run for {self.project_id}, no metadata attribute found",
+        )
         return metadata.get("asset_id")
 
     def build_asset_link(self, asset_id):

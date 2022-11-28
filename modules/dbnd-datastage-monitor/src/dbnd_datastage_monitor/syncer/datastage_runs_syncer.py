@@ -9,6 +9,9 @@ from urllib.parse import parse_qsl, urlparse
 import more_itertools
 
 from dbnd_datastage_monitor.data.datastage_config_data import DataStageServerConfig
+from dbnd_datastage_monitor.datastage_runs_error_handler.datastage_runs_error_handler import (
+    DatastageRunsErrorQueue,
+)
 from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
     MultiProjectDataStageDataFetcher,
 )
@@ -89,6 +92,10 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
     config: DataStageServerConfig
     data_fetcher: MultiProjectDataStageDataFetcher
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.error_handler = DatastageRunsErrorQueue()
+
     @capture_monitor_exception("sync_once")
     def _sync_once(self):
         logger.info(
@@ -127,6 +134,10 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             ] = self.data_fetcher.get_runs_to_sync(
                 format_datetime(start_date), format_datetime(end_date)
             )
+            # check for failed runs to submit for retry
+            new_datastage_runs: Dict[
+                str, Dict[str, str]
+            ] = self._append_failed_runs_for_retry(new_datastage_runs)
             for p in new_datastage_runs:
                 logger.info(
                     "Found %d new runs for project %s for tracking source %s",
@@ -156,6 +167,29 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             start_date += interval
 
     @capture_monitor_exception
+    def _append_failed_runs_for_retry(
+        self, datastage_runs: Dict[str, Dict[str, str]]
+    ) -> Dict[str, Dict[str, str]]:
+        failed_runs_to_retry = self.error_handler.pull_failed_runs(batch_size=10)
+        if failed_runs_to_retry:
+            new_datastage_runs = datastage_runs.copy()
+            logger.debug("submitting failed runs to retry")
+            for failed_run in failed_runs_to_retry:
+                project_id = failed_run.project_id
+                if project_id in new_datastage_runs:
+                    new_datastage_runs.get(project_id)[
+                        failed_run.run_id
+                    ] = failed_run.run_link
+                else:
+                    new_datastage_runs[project_id] = {
+                        failed_run.run_id: failed_run.run_link
+                    }
+            return new_datastage_runs
+        else:
+            logger.debug("no failed runs to retry")
+            return datastage_runs
+
+    @capture_monitor_exception
     def _init_runs_for_projects(
         self, datastage_runs: Dict[str, List[str]], current_date: datetime.datetime
     ):
@@ -175,9 +209,11 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             bulk_size = self.config.runs_bulk_size or len(runs)
             chunks = more_itertools.sliced(runs, bulk_size)
             for runs_chunk in chunks:
-                datastage_runs_full_data = self.data_fetcher.get_full_runs(
+                datastage_runs_full_data, failed_runs = self.data_fetcher.get_full_runs(
                     runs_chunk, project_id
                 )
+                if failed_runs:
+                    self.error_handler.submit_failed_runs(failed_runs)
 
                 if datastage_runs_full_data:
                     received_runs = datastage_runs_full_data.get("runs")
@@ -222,7 +258,8 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             bulk_size = self.config.runs_bulk_size or len(runs)
             chunks = more_itertools.sliced(runs, bulk_size)
             for runs_chunk in chunks:
-                datastage_runs_full_data = self.data_fetcher.get_full_runs(
+                # do not submit failed runs on update, already reported to server as in progress
+                datastage_runs_full_data, failed_runs = self.data_fetcher.get_full_runs(
                     runs_chunk, project_id
                 )
 
