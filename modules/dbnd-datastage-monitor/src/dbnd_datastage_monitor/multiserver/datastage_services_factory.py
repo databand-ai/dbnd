@@ -36,7 +36,8 @@ logger = logging.getLogger(__name__)
 
 
 class DataStageMonitorServicesFactory(MonitorServicesFactory):
-    def get_data_fetcher(self, server_config: DataStageServerConfig):
+    @staticmethod
+    def get_asset_clients(server_config: DataStageServerConfig):
         if server_config.number_of_fetching_threads <= 1:
             asset_clients = [
                 DataStageAssetsClient(
@@ -67,6 +68,11 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
                 )
                 for project_id in server_config.project_ids
             ]
+
+        return asset_clients
+
+    def get_data_fetcher(self, server_config: DataStageServerConfig):
+        asset_clients = self.get_asset_clients(server_config)
         fetcher = MultiProjectDataStageDataFetcher(
             datastage_project_clients=asset_clients
         )

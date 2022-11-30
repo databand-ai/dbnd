@@ -21,6 +21,7 @@ from dbnd_datastage_monitor.metrics.prometheus_metrics import (
     report_runs_not_initiated,
 )
 from dbnd_datastage_monitor.multiserver.datastage_services_factory import (
+    DataStageMonitorServicesFactory,
     get_datastage_services_factory,
 )
 from dbnd_datastage_monitor.tracking_service.dbnd_datastage_tracking_service import (
@@ -95,6 +96,13 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.error_handler = DatastageRunsErrorQueue()
+
+    def refresh_config(self):
+        super(DataStageRunsSyncer, self).refresh_config()
+        datastage_asset_clients = DataStageMonitorServicesFactory.get_asset_clients(
+            self.config
+        )
+        self.data_fetcher.update_projects(datastage_asset_clients)
 
     @capture_monitor_exception("sync_once")
     def _sync_once(self):
