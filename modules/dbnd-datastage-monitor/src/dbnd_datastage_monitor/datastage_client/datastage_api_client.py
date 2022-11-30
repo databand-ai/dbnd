@@ -4,7 +4,7 @@ import logging
 
 from abc import ABC
 from http import HTTPStatus
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import urljoin
 
 import requests
@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 CLOUD_IAM_AUTH = "cloud-iam-auth"
 ON_PREM_BASIC_AUTH = "on-prem-basic-auth"
 ON_PREM_IAM_AUTH = "on-prem-iam-auth"
+
+DEFAULT_REQUEST_TIMEOUT_IN_SECONDS = 300
 
 
 def raise_if_not_found(value, error_message):
@@ -88,6 +90,9 @@ class DataStageApiHttpClient(DataStageApiClient):
         api_key: str,
         project_id: str,
         max_retry: int = MAX_RETRIES,
+        request_timeout: Union[
+            float, Tuple[float, float]
+        ] = DEFAULT_REQUEST_TIMEOUT_IN_SECONDS,
         page_size: int = 200,
         host_name=None,
         authentication_provider_url=None,
@@ -101,6 +106,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.api_key = api_key
         self.project_id = project_id
         self.retries = max_retry
+        self.request_timeout = request_timeout
         self.page_size = page_size
         # hostname is provided only for datastage on-prem
         self.authentication_type = authentication_type
@@ -116,6 +122,19 @@ class DataStageApiHttpClient(DataStageApiClient):
         )
         self.authentication_provider_url = self.get_authentication_provider_url(
             authentication_provider_url
+        )
+
+    def send_request(
+        self, method, url, headers, verify, data=None, json=None, timeout=None
+    ):
+        return self.get_session().request(
+            method=method,
+            url=url,
+            data=data,
+            json=json,
+            headers=headers,
+            timeout=timeout or self.request_timeout,
+            verify=verify,
         )
 
     def get_asset_id(self, data):
@@ -162,7 +181,9 @@ class DataStageApiHttpClient(DataStageApiClient):
             "content-type": "application/json",
             "Authorization": f"Basic " + self.api_key,
         }
-        response = self.get_session().get(url, headers=headers, verify=False)
+        response = self.send_request(
+            method="GET", url=url, headers=headers, verify=False
+        )
         response_json = response.json()
         access_token = response_json.get("accessToken")
         self.access_token = access_token
@@ -174,10 +195,9 @@ class DataStageApiHttpClient(DataStageApiClient):
             f"grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey={self.api_key}"
         )
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
-        response = self.get_session().post(
-            urljoin(self.authentication_provider_url, self.IDENTITY_TOKEN_API_PATH),
-            data=data,
-            headers=headers,
+        url = urljoin(self.authentication_provider_url, self.IDENTITY_TOKEN_API_PATH)
+        response = self.send_request(
+            method="POST", url=url, data=data, headers=headers, verify=True
         )
         access_token = response.json().get("access_token")
         self.access_token = access_token
@@ -187,27 +207,16 @@ class DataStageApiHttpClient(DataStageApiClient):
         auth_headers = {"Content-Type": "application/json"}
         url = urljoin(self.authentication_provider_url, self.ON_PREM_TOKEN_IAM_PATH)
         # FIXME: why here its authentication_provider_url / get_session() but in web its authentication_provider_host / _session
-        response = self.get_session().post(
-            url=url, data=self.api_key, headers=auth_headers, verify=False
+        response = self.send_request(
+            method="POST",
+            url=url,
+            data=self.api_key,
+            headers=auth_headers,
+            verify=False,
         )
         access_token = response.json().get("token")
         self.access_token = access_token
         self.headers["Authorization"] = f"Bearer {self.access_token}"
-
-    def get_session(self):
-        session = requests.Session()
-        retry = Retry(
-            total=self.retries,
-            read=self.retries,
-            connect=self.retries,
-            backoff_factor=self.BACK_OFF_FACTOR,
-            status_forcelist=[500, 502, 503, 504],
-            method_whitelist=frozenset(["GET", "POST"]),
-        )
-        adapter = HTTPAdapter(max_retries=retry)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        return session
 
     def refresh_access_token(self):  # TODO: FACTORY THIS
         if self.authentication_type == ON_PREM_BASIC_AUTH:
@@ -219,8 +228,13 @@ class DataStageApiHttpClient(DataStageApiClient):
 
     def _make_http_request(self, method, url, body=None):
         ssl_verify = self.authentication_type == CLOUD_IAM_AUTH
-        response = self.get_session().request(
-            method=method, url=url, headers=self.headers, json=body, verify=ssl_verify
+        response = self.send_request(
+            method=method,
+            url=url,
+            headers=self.headers,
+            json=body,
+            timeout=self.request_timeout,
+            verify=ssl_verify,
         )
         if response.status_code == HTTPStatus.OK:
             return response.json()
@@ -232,14 +246,14 @@ class DataStageApiHttpClient(DataStageApiClient):
                 self.project_id,
             )
             self.refresh_access_token()
-            response = self.get_session().request(
+            response = self.send_request(
                 method=method,
                 url=url,
                 headers=self.headers,
                 json=body,
+                timeout=self.request_timeout,
                 verify=ssl_verify,
             )
-
             if response.status_code == HTTPStatus.OK:
                 return response.json()
 
