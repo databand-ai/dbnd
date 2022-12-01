@@ -38,38 +38,38 @@ datastage_run_request_retry_delay = Summary(
 )
 
 datastage_found_runs_not_inited = Counter(
-    "dbnd_datastage_monitor_run_init_failures_sum",
+    "dbnd_datastage_monitor_run_init_failures_counter",
     "The number of runs found in DataStage but not initialized (probably due to error)",
     labelnames=["tracking_source_uid", "project_uid"],
 )
 
 datastage_submitted_run_request_retries_to_error_queue = Counter(
-    "dbnd_datastage_monitor_run_request_retries_submitted_to_error_queue_sum",
+    "dbnd_datastage_monitor_run_request_retries_submitted_to_error_queue_counter",
     "The number of failed get run requests (probably due to error) that submitted to error queue for retry",
     labelnames=["tracking_source_uid", "project_uid"],
 )
 
 datastage_run_request_retries_fetched_from_error_queue_to_retry = Counter(
-    "dbnd_datastage_monitor_run_request_retries_fetched_from_error_queue_to_retry_sum",
+    "dbnd_datastage_monitor_run_request_retries_fetched_from_error_queue_to_retry_counter",
     "The number of failed get run requests (probably due to error) that fetched from error queue for retry",
     labelnames=["tracking_source_uid", "project_uid"],
 )
 
 
 datastage_run_request_retries_queue_size = Gauge(
-    "dbnd_datastage_monitor_run_request_retries_queue_size",
+    "dbnd_datastage_monitor_run_request_retries_queue_size_gauge",
     "The error queue size of get run requests to retry",
     labelnames=["tracking_source_uid"],
 )
 
 datastage_run_request_retries_cache_size = Gauge(
-    "dbnd_datastage_monitor_run_request_retries_cache_size",
+    "dbnd_datastage_monitor_run_request_retries_cache_size_gauge",
     "The cache size of failed get run requests to retry",
     labelnames=["tracking_source_uid"],
 )
 
 datastage_completely_failed_run_request_retry = Counter(
-    "dbnd_datastage_monitor_run_request_retries_fetched_that_exceeded_max_retries",
+    "dbnd_datastage_monitor_run_request_retries_fetched_that_exceeded_max_retries_counter",
     "The number of failed run retry requests (probably due to error) that exceeded max retries",
     labelnames=["tracking_source_uid", "project_uid"],
 )
