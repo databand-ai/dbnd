@@ -5,10 +5,12 @@ import logging
 import os.path
 
 from enum import Enum
-from typing import Any, Dict
+from typing import Dict, Optional, TypeVar
 
 import attr
 import yaml
+
+from jinja2 import Environment, TemplateError
 
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.metrics import TRACKER_MISSING_MESSAGE, _get_tracker
@@ -17,6 +19,8 @@ from dbnd.utils.dbt_cloud_api_client import DbtCloudApiClient
 
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 def _report_dbt_metadata(dbt_metadata, tracker=None):
@@ -158,6 +162,38 @@ class DbtCoreAssets:
         return data
 
 
+def _env_var(var: str, default: Optional[str] = None) -> str:
+    """The env_var() function. Return the environment variable named 'var'.
+    If there is no such environment variable set, return the default.
+    If the default is None, raise an exception for an undefined variable.
+    """
+    if var in os.environ:
+        return os.environ[var]
+
+    if default is not None:
+        return default
+
+    msg = f"Environment variable required but not provided:'{var}'"
+    raise EnvironmentError(msg)
+
+
+_jinja_env: Optional[Environment] = None
+
+
+def _setup_dbt_jinja_environment() -> Environment:
+    global _jinja_env
+    if _jinja_env is not None:
+        return _jinja_env
+
+    env = Environment(extensions=["jinja2.ext.do"])
+    # When using env vars for Redshift port, it must be "{{ env_var('REDSHIFT_PORT') | as_number }}"
+    # otherwise Redshift driver will complain, hence the need to add the "as_number" filter
+    env.filters.update({"as_number": lambda x: x})
+    env.globals["env_var"] = _env_var
+    _jinja_env = env
+    return _jinja_env
+
+
 def _load_yaml(path: str) -> Dict:
     with open(path, "r") as f:
         return yaml.load(f, Loader=yaml.FullLoader)
@@ -165,21 +201,42 @@ def _load_yaml(path: str) -> Dict:
 
 def _load_yaml_with_jinja(path: str) -> Dict:
     loaded = _load_yaml(path)
-    return _render_values_jinja(value=loaded)
+    return _extract_jinja_values(loaded)
 
 
-def _render_values_jinja(value: Any) -> Any:
+def _extract_jinja_values(data: T) -> T:
+    env = _setup_dbt_jinja_environment()
+    return _render_values_jinja(value=data, environment=env)
+
+
+def _render_values_jinja(value: T, environment: Environment) -> T:
     """
     Traverses passed dictionary and render any string value using jinja.
     Returns copy of the dict with parsed values.
     """
     if isinstance(value, dict):
-        return {key: _render_values_jinja(val) for key, val in value.items()}
+        parsed_dict = {}
+        for key, val in value.items():
+            parsed_dict[key] = _render_values_jinja(val, environment)
+
+        return parsed_dict
 
     if isinstance(value, list):
-        return list(map(_render_values_jinja, value))
+        parsed_list = []
+        for elem in value:
+            rendered_value = _render_values_jinja(elem, environment)
+            parsed_list.append(rendered_value)
 
-    return value  # todo: actual render here
+        return parsed_list
+
+    if isinstance(value, str):
+        try:
+            return environment.from_string(value).render()
+        except TemplateError as error:
+            log_exception("Jinja template error has occurred", ex=error)
+            return value
+
+    return value
 
 
 def _load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:

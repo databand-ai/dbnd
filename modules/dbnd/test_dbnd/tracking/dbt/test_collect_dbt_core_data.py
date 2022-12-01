@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from dbnd._core.tracking.dbt import DbtCoreAssets, _extract_environment
+from dbnd._core.tracking.dbt import (
+    DbtCoreAssets,
+    _extract_environment,
+    _extract_jinja_values,
+)
+from dbnd._core.utils.basics.environ_utils import env
 
 
 class TestDBTCoreExtractMetaData:
@@ -45,6 +50,15 @@ class TestDBTCoreExtractMetaData:
         assert expected_keys.issubset(run_step.keys())
 
         assert run_step["index"] == 1
+
+        assert any(
+            node_value.get("compiled")
+            for node_value in run_step["manifest"]["nodes"].values()
+        )
+
+        for node_value in run_step["manifest"]["nodes"].values():
+            if node_value.get("compiled"):
+                assert "compiled_code" in node_value
 
 
 class TestExtractFromRunCommand(TestDBTCoreExtractMetaData):
@@ -124,3 +138,36 @@ class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
 def test_extract_environment(profile, expected):
     profile = {"target": "dev", "outputs": {"dev": profile}}
     assert _extract_environment({"args": {}}, profile) == expected
+
+
+def test_extract_jinja_values():
+    values = {
+        "env_var_key": "{{ env_var('env_var_identifier') }}",
+        "list_value": [
+            1,
+            2,
+            "value",
+            {"env_var_key": "{{ env_var('env_var_identifier') }}"},
+        ],
+        "none_value": None,
+        "env_var_number_key": "{{ env_var('env_var_number_key') | as_number }}",
+        "jinja_error": "{{ undefined_for_jinja(whatever) }}",
+    }
+    expected = {
+        "env_var_key": "env_var_literal",
+        "list_value": [1, 2, "value", {"env_var_key": "env_var_literal"}],
+        "none_value": None,
+        "env_var_number_key": "2",
+        "jinja_error": "{{ undefined_for_jinja(whatever) }}",
+    }
+
+    with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
+        actual = _extract_jinja_values(values)
+
+    assert expected == actual
+
+
+def test_extract_jinja_values_with_undefined_env_var_raise_environment_error():
+    values = {"env_var_key": "{{ env_var('undefined_env_var_identifier') }}"}
+    with pytest.raises(expected_exception=EnvironmentError):
+        _extract_jinja_values(values)
