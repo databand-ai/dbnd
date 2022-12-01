@@ -2,11 +2,10 @@
 
 import logging
 
-from prometheus_client import Counter, Summary
+from prometheus_client import Counter, Gauge, Summary
 
 
 logger = logging.getLogger(__name__)
-
 
 datastage_fetch_error_counter = Counter(
     "dbnd_datastage_monitor_error_counter",
@@ -32,9 +31,46 @@ datastage_runs_collection_delay = Summary(
     labelnames=["tracking_source_uid", "project_uid"],
 )
 
+datastage_run_request_retry_delay = Summary(
+    "dbnd_datastage_monitor_run_request_retry_delay_in_seconds",
+    "The delay from the run start time to the time it was collected after retries by the monitor in seconds",
+    labelnames=["tracking_source_uid", "run_uid"],
+)
+
 datastage_found_runs_not_inited = Counter(
     "dbnd_datastage_monitor_run_init_failures_sum",
     "The number of runs found in DataStage but not initialized (probably due to error)",
+    labelnames=["tracking_source_uid", "project_uid"],
+)
+
+datastage_submitted_run_request_retries_to_error_queue = Counter(
+    "dbnd_datastage_monitor_run_request_retries_submitted_to_error_queue_sum",
+    "The number of failed get run requests (probably due to error) that submitted to error queue for retry",
+    labelnames=["tracking_source_uid", "project_uid"],
+)
+
+datastage_run_request_retries_fetched_from_error_queue_to_retry = Counter(
+    "dbnd_datastage_monitor_run_request_retries_fetched_from_error_queue_to_retry_sum",
+    "The number of failed get run requests (probably due to error) that fetched from error queue for retry",
+    labelnames=["tracking_source_uid", "project_uid"],
+)
+
+
+datastage_run_request_retries_queue_size = Gauge(
+    "dbnd_datastage_monitor_run_request_retries_queue_size",
+    "The error queue size of get run requests to retry",
+    labelnames=["tracking_source_uid"],
+)
+
+datastage_run_request_retries_cache_size = Gauge(
+    "dbnd_datastage_monitor_run_request_retries_cache_size",
+    "The cache size of failed get run requests to retry",
+    labelnames=["tracking_source_uid"],
+)
+
+datastage_completely_failed_run_request_retry = Counter(
+    "dbnd_datastage_monitor_run_request_retries_fetched_that_exceeded_max_retries",
+    "The number of failed run retry requests (probably due to error) that exceeded max retries",
     labelnames=["tracking_source_uid", "project_uid"],
 )
 
@@ -59,7 +95,45 @@ def report_runs_collection_delay(tracking_source_uid, project_uid, delay):
     ).observe(delay)
 
 
+def report_run_request_retry_delay(tracking_source_uid, run_uid, delay):
+    datastage_run_request_retry_delay.labels(
+        run_uid=run_uid, tracking_source_uid=tracking_source_uid
+    ).observe(delay)
+
+
 def report_runs_not_initiated(tracking_source_uid, project_uid, number_of_runs):
     datastage_found_runs_not_inited.labels(
         tracking_source_uid=tracking_source_uid, project_uid=project_uid
     ).inc(number_of_runs)
+
+
+def report_run_request_retry_submitted_to_error_queue(
+    tracking_source_uid, project_uid, number_of_runs
+):
+    datastage_submitted_run_request_retries_to_error_queue.labels(
+        tracking_source_uid=tracking_source_uid, project_uid=project_uid
+    ).inc(number_of_runs)
+
+
+def report_run_request_retry_fetched_from_error_queue(tracking_source_uid, project_uid):
+    datastage_run_request_retries_fetched_from_error_queue_to_retry.labels(
+        tracking_source_uid=tracking_source_uid, project_uid=project_uid
+    ).inc()
+
+
+def report_run_request_retry_queue_size(tracking_source_uid, queue_size):
+    datastage_run_request_retries_cache_size.labels(
+        tracking_source_uid=tracking_source_uid
+    ).set(queue_size)
+
+
+def report_run_request_retry_cache_size(tracking_source_uid, cache_size):
+    datastage_run_request_retries_queue_size.labels(
+        tracking_source_uid=tracking_source_uid
+    ).set(cache_size)
+
+
+def report_completely_run_request_retry_failed(tracking_source_uid, project_uid):
+    datastage_completely_failed_run_request_retry.labels(
+        tracking_source_uid=tracking_source_uid, project_uid=project_uid
+    ).inc()

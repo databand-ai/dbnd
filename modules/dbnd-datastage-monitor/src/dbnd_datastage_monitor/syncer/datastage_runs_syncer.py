@@ -10,13 +10,18 @@ import more_itertools
 
 from dbnd_datastage_monitor.data.datastage_config_data import DataStageServerConfig
 from dbnd_datastage_monitor.datastage_runs_error_handler.datastage_runs_error_handler import (
-    DatastageRunsErrorQueue,
+    DatastageRunRequestsRetryQueue,
 )
 from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
     MultiProjectDataStageDataFetcher,
 )
 from dbnd_datastage_monitor.metrics.prometheus_metrics import (
     report_list_duration,
+    report_run_request_retry_cache_size,
+    report_run_request_retry_delay,
+    report_run_request_retry_fetched_from_error_queue,
+    report_run_request_retry_queue_size,
+    report_run_request_retry_submitted_to_error_queue,
     report_runs_collection_delay,
     report_runs_not_initiated,
 )
@@ -62,23 +67,6 @@ def format_datetime(datetime_obj):
     return datetime_obj.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def get_min_run_start_time(raw_runs):
-    min_start_time = None
-    for raw_run in raw_runs:
-        try:
-            start_time = parse_datetime(
-                get_from_nullable_chain(
-                    raw_run.get("run_info"), ["metadata", "created_at"]
-                )
-            )
-            if min_start_time is None or start_time < min_start_time:
-                min_start_time = start_time
-        except Exception as e:
-            logger.exception("Failed to get start time from run, exception: %s", str(e))
-
-    return min_start_time
-
-
 def _extract_project_id_from_url(url: str):
     parsed_url = urlparse(url)
     parsed_query_string = dict(parse_qsl(parsed_url.query))
@@ -95,7 +83,9 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.error_handler = DatastageRunsErrorQueue()
+        self.error_handler = DatastageRunRequestsRetryQueue(
+            tracking_source_uid=self.config.tracking_source_uid
+        )
 
     def refresh_config(self):
         super(DataStageRunsSyncer, self).refresh_config()
@@ -108,6 +98,14 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
     def _sync_once(self):
         logger.info(
             "Started running for tracking source %s", self.config.tracking_source_uid
+        )
+        report_run_request_retry_queue_size(
+            self.config.tracking_source_uid,
+            self.error_handler.get_run_request_retries_queue_size(),
+        )
+        report_run_request_retry_cache_size(
+            self.config.tracking_source_uid,
+            self.error_handler.get_run_request_retries_cache_size(),
         )
         last_seen_date_str = self.tracking_service.get_last_seen_date()
 
@@ -145,7 +143,7 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             # check for failed runs to submit for retry
             new_datastage_runs: Dict[
                 str, Dict[str, str]
-            ] = self._append_failed_runs_for_retry(new_datastage_runs)
+            ] = self._append_failed_run_requests_for_retry(new_datastage_runs)
             for p in new_datastage_runs:
                 logger.info(
                     "Found %d new runs for project %s for tracking source %s",
@@ -175,22 +173,28 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             start_date += interval
 
     @capture_monitor_exception
-    def _append_failed_runs_for_retry(
+    def _append_failed_run_requests_for_retry(
         self, datastage_runs: Dict[str, Dict[str, str]]
     ) -> Dict[str, Dict[str, str]]:
-        failed_runs_to_retry = self.error_handler.pull_failed_runs(batch_size=10)
-        if failed_runs_to_retry:
+        failed_run_requests_to_retry = self.error_handler.pull_run_request_retries(
+            batch_size=10
+        )
+        if failed_run_requests_to_retry:
             new_datastage_runs = datastage_runs.copy()
             logger.debug("submitting failed runs to retry")
-            for failed_run in failed_runs_to_retry:
-                project_id = failed_run.project_id
+            for failed_run_request in failed_run_requests_to_retry:
+                project_id = failed_run_request.project_id
+                report_run_request_retry_fetched_from_error_queue(
+                    tracking_source_uid=self.config.tracking_source_uid,
+                    project_uid=project_id,
+                )
                 if project_id in new_datastage_runs:
                     new_datastage_runs.get(project_id)[
-                        failed_run.run_id
-                    ] = failed_run.run_link
+                        failed_run_request.run_id
+                    ] = failed_run_request.run_link
                 else:
                     new_datastage_runs[project_id] = {
-                        failed_run.run_id: failed_run.run_link
+                        failed_run_request.run_id: failed_run_request.run_link
                     }
             return new_datastage_runs
         else:
@@ -217,12 +221,17 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             bulk_size = self.config.runs_bulk_size or len(runs)
             chunks = more_itertools.sliced(runs, bulk_size)
             for runs_chunk in chunks:
-                datastage_runs_full_data, failed_runs = self.data_fetcher.get_full_runs(
-                    runs_chunk, project_id
-                )
-                if failed_runs:
-                    self.error_handler.submit_failed_runs(failed_runs)
-
+                (
+                    datastage_runs_full_data,
+                    failed_run_requests,
+                ) = self.data_fetcher.get_full_runs(runs_chunk, project_id)
+                if failed_run_requests:
+                    self.error_handler.submit_run_request_retries(failed_run_requests)
+                    report_run_request_retry_submitted_to_error_queue(
+                        tracking_source_uid=self.config.tracking_source_uid,
+                        project_uid=project_id,
+                        number_of_runs=len(failed_run_requests),
+                    )
                 if datastage_runs_full_data:
                     received_runs = datastage_runs_full_data.get("runs")
                     if received_runs:
@@ -237,7 +246,7 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     len(runs) - successful_run_inits,
                 )
 
-            min_start_time = get_min_run_start_time(all_runs)
+            min_start_time = self.get_min_run_start_time(all_runs, current_date)
             if min_start_time:
                 collection_delay = (current_date - min_start_time).total_seconds()
                 report_runs_collection_delay(
@@ -267,9 +276,43 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             chunks = more_itertools.sliced(runs, bulk_size)
             for runs_chunk in chunks:
                 # do not submit failed runs on update, already reported to server as in progress
-                datastage_runs_full_data, failed_runs = self.data_fetcher.get_full_runs(
-                    runs_chunk, project_id
-                )
+                (
+                    datastage_runs_full_data,
+                    failed_run_requests,
+                ) = self.data_fetcher.get_full_runs(runs_chunk, project_id)
 
                 self.tracking_service.update_datastage_runs(datastage_runs_full_data)
                 self.tracking_service.update_last_sync_time()
+
+    def get_min_run_start_time(self, raw_runs, current_date):
+        min_start_time = None
+        for raw_run in raw_runs:
+            try:
+                start_time = parse_datetime(
+                    get_from_nullable_chain(
+                        raw_run.get("run_info"), ["metadata", "created_at"]
+                    )
+                )
+                if self.error_handler.is_run_retry(raw_run.get("run_link")):
+                    self.report_run_request_retry_duration(
+                        current_date, raw_run, start_time
+                    )
+                # min start time for regular runs in collection
+                elif min_start_time is None or start_time < min_start_time:
+                    min_start_time = start_time
+            except Exception as e:
+                logger.exception(
+                    "Failed to get start time from run, exception: %s", str(e)
+                )
+
+        return min_start_time
+
+    def report_run_request_retry_duration(self, current_date, raw_run, start_time):
+        if start_time:
+            retry_run_delay = (current_date - start_time).total_seconds()
+            run_uid = get_from_nullable_chain(
+                raw_run.get("run_info"), ["metadata", "asset_id"]
+            )
+            report_run_request_retry_delay(
+                self.config.tracking_source_uid, run_uid, retry_run_delay
+            )

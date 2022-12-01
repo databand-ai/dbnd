@@ -22,7 +22,7 @@ class DataStageAssetsClient:
         self.runs = []
         self.jobs = {}
         self.flows = {}
-        self.failed_runs = []
+        self.failed_run_requests = []
 
     @property
     def project_id(self):
@@ -49,7 +49,7 @@ class DataStageAssetsClient:
         self.runs = []
         self.flows = {}
         self.jobs = {}
-        self.failed_runs = []
+        self.failed_run_requests = []
 
     def get_full_run(self, run_link: str):
         try:
@@ -103,7 +103,7 @@ class DataStageAssetsClient:
                 str(e),
             )
             # submit failed run to runs error handler
-            self.failed_runs.append(run_link)
+            self.failed_run_requests.append(run_link)
             log_exception_to_server(e, "datastage-monitor")
             report_error("get_full_run", str(e))
 
@@ -121,9 +121,9 @@ class DataStageAssetsClient:
                 "connections": self.client.get_connections(),
             },
         }
-        failed_runs = self.failed_runs
+        failed_run_requests = self.failed_run_requests
         self.clear_response_cache()
-        return response, failed_runs
+        return response, failed_run_requests
 
 
 class ConcurrentRunsGetter(DataStageAssetsClient):
