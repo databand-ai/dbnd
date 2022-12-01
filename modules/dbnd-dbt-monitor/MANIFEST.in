@@ -7,5 +7,7 @@ recursive-exclude * .ipynb_checkpoints
 
 exclude tox.ini
 exclude *.requirements.in
+include *.py
 
 prune test_dbt_monitor
+exclude Dockerfile

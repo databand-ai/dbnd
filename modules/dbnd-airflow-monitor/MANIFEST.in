@@ -7,3 +7,4 @@ recursive-exclude * .ipynb_checkpoints
 
 exclude tox.ini
 prune test_dbnd_airflow_monitor
+exclude Dockerfile

@@ -22,7 +22,7 @@ prune src/dbnd_examples/dbnd_spark/spark_deequ_sbt
 prune src/dbnd_examples/notebooks/.ipynb_checkpoints
 prune src/dbnd_examples/example_wine_quality/.ipynb_checkpoints
 prune src/dbnd_examples/example_salad/.ipynb_checkpoints
-prune src/dbnd_examples/orchestration/dbnd_spark/data_for_spark_examples/read_from_multiple_sources/
+prune src/dbnd_examples/orchestration/dbnd_spark/data_for_spark_examples/read_from_multiple_sources
 
 include LICENSE
 include tox.ini

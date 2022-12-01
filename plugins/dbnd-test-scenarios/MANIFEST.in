@@ -5,6 +5,7 @@ recursive-exclude * *.py[co]
 recursive-exclude * .ipynb_checkpoints
 
 include *.py
+recursive-include src *.py
 include tox.ini
 recursive-include scenarios *.java
 recursive-include scenarios *.py

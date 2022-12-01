@@ -8,6 +8,11 @@ graft src/dbnd/conf
 
 recursive-include src/dbnd/_vendor LICENSE LICENSE.txt
 
+recursive-include src/dbnd/_vendor *.c
+recursive-include src/dbnd/_vendor *.h
+recursive-include src/dbnd/_vendor *.rst
+recursive-include src/dbnd/_vendor *.txt
+
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 recursive-exclude * .ipynb_checkpoints

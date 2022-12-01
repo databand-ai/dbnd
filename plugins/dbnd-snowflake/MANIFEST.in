@@ -7,3 +7,4 @@ recursive-exclude * .ipynb_checkpoints
 
 exclude tox.ini
 prune tests
+prune deprecated

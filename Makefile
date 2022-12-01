@@ -92,6 +92,7 @@ test-all-py36: ## Run tests on every python package with tox.
 	done
 
 test-manifest: ## Run minifest tests on every python package with tox.
+	set -e;\
 	for m in $(prj_dist) ; do \
 		echo "Building '$$m'..." ;\
 		(cd $$m && tox -e manifest) ;\

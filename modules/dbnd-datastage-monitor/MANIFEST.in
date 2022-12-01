@@ -7,5 +7,8 @@ recursive-exclude * .ipynb_checkpoints
 
 exclude tox.ini
 exclude *.requirements.in
+include *.py
 
 prune test_datastage_monitor
+prune test_datastage_error_handler
+exclude Dockerfile
