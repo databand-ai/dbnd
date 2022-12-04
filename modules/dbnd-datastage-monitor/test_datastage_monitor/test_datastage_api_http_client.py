@@ -99,14 +99,19 @@ class TestDataStageApiClient:
         client._make_http_request(method="POST", url="", body={"a": "b"})
         mock_post_response.raise_for_status.assert_called()
 
-    def test_token_refresh_get(self, mock_session):
+    @pytest.mark.parametrize("existing_token", [True, False])
+    def test_token_refresh_get(self, existing_token, mock_session):
         response_1 = FakeResponse(status_code=HTTPStatus.UNAUTHORIZED, json_value={})
         response_2 = FakeResponse(
             status_code=HTTPStatus.OK, json_value={"access_token": "token"}
         )
         response_3 = FakeResponse(status_code=HTTPStatus.OK, json_value={})
-        mock_session.request.side_effect = [response_1, response_2, response_3]
         client = DataStageApiHttpClient("", "", authentication_type="cloud-iam-auth")
+        responses = [response_2, response_3]
+        if existing_token:
+            client.access_token = "something irrelevant"
+            responses = [response_1] + responses
+        mock_session.request.side_effect = responses
         client.get_session = MagicMock(return_value=mock_session)
         client._make_http_request(method="GET", url="")
         data = (
@@ -141,14 +146,19 @@ class TestDataStageApiClient:
             ]
         )
 
-    def test_token_refresh_post_cloud_iam_auth(self, mock_session):
+    @pytest.mark.parametrize("existing_token", [True, False])
+    def test_token_refresh_post_cloud_iam_auth(self, existing_token, mock_session):
         response_1 = FakeResponse(status_code=HTTPStatus.UNAUTHORIZED, json_value={})
         response_2 = FakeResponse(
             status_code=HTTPStatus.OK, json_value={"access_token": "token"}
         )
         response_3 = FakeResponse(status_code=HTTPStatus.OK, json_value={})
-        mock_session.request.side_effect = [response_1, response_2, response_3]
         client = DataStageApiHttpClient("", "", authentication_type="cloud-iam-auth")
+        responses = [response_2, response_3]
+        if existing_token:
+            client.access_token = "something irrelevant"
+            responses = [response_1] + responses
+        mock_session.request.side_effect = responses
         client.get_session = MagicMock(return_value=mock_session)
         client._make_http_request(method="POST", url="", body={"a": "b"})
 
@@ -184,13 +194,13 @@ class TestDataStageApiClient:
             ]
         )
 
-    def test_token_refresh_post_onprem_iam_auth(self, mock_session):
+    @pytest.mark.parametrize("existing_token", [True, False])
+    def test_token_refresh_post_onprem_iam_auth(self, existing_token, mock_session):
         response_1 = FakeResponse(status_code=HTTPStatus.UNAUTHORIZED, json_value={})
         response_2 = FakeResponse(
             status_code=HTTPStatus.OK, json_value={"token": "token"}
         )
         response_3 = FakeResponse(status_code=HTTPStatus.OK, json_value={})
-        mock_session.request.side_effect = [response_1, response_2, response_3]
         client = DataStageApiHttpClient(
             api_key="{1: 1}",  # pragma: allowlist secret
             project_id="project_id",
@@ -198,6 +208,11 @@ class TestDataStageApiClient:
             authentication_provider_url="https://onprem.ibm.com/",
             authentication_type="on-prem-iam-auth",
         )
+        responses = [response_2, response_3]
+        if existing_token:
+            client.access_token = "something irrelevant"
+            responses = [response_1] + responses
+        mock_session.request.side_effect = responses
         client.get_session = MagicMock(return_value=mock_session)
         client._make_http_request(
             method="POST", url="https://onprem.ibm.com/", body={"a": "b"}

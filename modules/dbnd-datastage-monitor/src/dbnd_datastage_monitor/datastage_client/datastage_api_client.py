@@ -227,6 +227,9 @@ class DataStageApiHttpClient(DataStageApiClient):
             self.create_iam_token_auth()
 
     def _make_http_request(self, method, url, body=None):
+        if not self.access_token:
+            self.refresh_access_token()
+
         ssl_verify = self.authentication_type == CLOUD_IAM_AUTH
         response = self.send_request(
             method=method,
