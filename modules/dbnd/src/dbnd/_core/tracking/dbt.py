@@ -158,6 +158,12 @@ class DbtCoreAssets:
             "status_humanized": status_humanized,
             "environment": environment,
             "run_steps": [dbt_step_meta_data],
+            "id": dbt_step_meta_data["run_results"]["metadata"]["invocation_id"],
+            "job": {"name": dbt_step_meta_data["run_results"]["args"]["which"]},
+            "job_id": dbt_step_meta_data["run_results"]["metadata"]["invocation_id"],
+            "started_at": dbt_step_meta_data["started_at"],
+            "created_at": dbt_step_meta_data["created_at"],
+            "is_complete": True,
         }
         return data
 

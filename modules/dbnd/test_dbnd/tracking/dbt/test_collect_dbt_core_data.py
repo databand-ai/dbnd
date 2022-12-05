@@ -36,9 +36,20 @@ class TestDBTCoreExtractMetaData:
             }
         }
 
+        expected_keys = {
+            "id",
+            "job",
+            "job_id",
+            "started_at",
+            "created_at",
+            "is_complete",
+        }
+
+        assert expected_keys.issubset(result_metadata.keys())
+
         [run_step] = result_metadata["run_steps"]
 
-        expected_keys = {
+        expected_run_step_keys = {
             "manifest",
             "logs",
             "run_results",
@@ -47,7 +58,7 @@ class TestDBTCoreExtractMetaData:
             "started_at",
             "finished_at",
         }
-        assert expected_keys.issubset(run_step.keys())
+        assert expected_run_step_keys.issubset(run_step.keys())
 
         assert run_step["index"] == 1
 
@@ -70,6 +81,7 @@ class TestExtractFromRunCommand(TestDBTCoreExtractMetaData):
         self.validate_result_metadata(result_metadata)
         assert result_metadata["status_humanized"] == "pass"
         assert result_metadata["run_steps"][0]["name"] == "dbt run"
+        assert result_metadata["job"]["name"] == "run"
 
 
 class TestExtractFromTestCommand(TestDBTCoreExtractMetaData):
@@ -80,6 +92,7 @@ class TestExtractFromTestCommand(TestDBTCoreExtractMetaData):
         self.validate_result_metadata(result_metadata)
         assert result_metadata["status_humanized"] == "pass"
         assert result_metadata["run_steps"][0]["name"] == "dbt test"
+        assert result_metadata["job"]["name"] == "test"
 
 
 class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
@@ -90,6 +103,7 @@ class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
         self.validate_result_metadata(result_metadata)
         assert result_metadata["status_humanized"] == "pass"
         assert result_metadata["run_steps"][0]["name"] == "dbt build"
+        assert result_metadata["job"]["name"] == "build"
 
 
 @pytest.mark.parametrize(
