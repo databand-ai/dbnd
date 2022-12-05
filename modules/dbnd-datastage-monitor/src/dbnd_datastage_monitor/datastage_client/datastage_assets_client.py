@@ -103,6 +103,7 @@ class DataStageAssetsClient:
                 str(e),
             )
             # submit failed run to runs error handler
+            logger.warning("append run link %s to failed run requests", run_link)
             self.failed_run_requests.append(run_link)
             log_exception_to_server(e, "datastage-monitor")
             report_error("get_full_run", str(e))

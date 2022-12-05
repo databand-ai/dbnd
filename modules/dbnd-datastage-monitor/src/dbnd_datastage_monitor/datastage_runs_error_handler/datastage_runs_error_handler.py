@@ -62,7 +62,7 @@ class DatastageRunRequestsRetryQueue(DatastageRunRequestsRetryHandler):
 
     def submit_run_request_retries(self, run_links: List[str]):
         for run_link in run_links:
-            logger.debug("submitting run request %s to retry handler", run_link)
+            logger.warning("submitting run request %s to retry handler", run_link)
             self.submit_run_request_retry(run_link)
 
     def submit_run_request_retry(self, run_link: str):
@@ -90,7 +90,7 @@ class DatastageRunRequestsRetryQueue(DatastageRunRequestsRetryHandler):
                     report_completely_run_request_retry_failed(
                         self.tracking_source_uid, run_to_retry.project_id
                     )
-                    logger.debug(
+                    logger.warning(
                         "run %s retry attempt reached max retry of %s run will not be retried",
                         run_link,
                         self.max_retries,
@@ -102,7 +102,7 @@ class DatastageRunRequestsRetryQueue(DatastageRunRequestsRetryHandler):
             except queue.Empty:
                 logger.debug("run request retries queue is empty")
                 return run_requests_to_retry
-            logger.debug(
+            logger.warning(
                 "pull a run request retry %s for project %s retry attempt %s from queue",
                 run_to_retry.run_link,
                 run_to_retry.project_id,

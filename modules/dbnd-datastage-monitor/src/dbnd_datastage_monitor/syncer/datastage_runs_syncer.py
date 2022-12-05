@@ -181,7 +181,9 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
         )
         if failed_run_requests_to_retry:
             new_datastage_runs = datastage_runs.copy()
-            logger.debug("submitting failed runs to retry")
+            logger.warning(
+                "submitting %s failed runs to retry", len(failed_run_requests_to_retry)
+            )
             for failed_run_request in failed_run_requests_to_retry:
                 project_id = failed_run_request.project_id
                 report_run_request_retry_fetched_from_error_queue(
@@ -226,6 +228,9 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     failed_run_requests,
                 ) = self.data_fetcher.get_full_runs(runs_chunk, project_id)
                 if failed_run_requests:
+                    logger.warning(
+                        "%s failed run requests found", len(failed_run_requests)
+                    )
                     self.error_handler.submit_run_request_retries(failed_run_requests)
                     report_run_request_retry_submitted_to_error_queue(
                         tracking_source_uid=self.config.tracking_source_uid,
