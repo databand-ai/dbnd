@@ -285,7 +285,16 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     datastage_runs_full_data,
                     failed_run_requests,
                 ) = self.data_fetcher.get_full_runs(runs_chunk, project_id)
-
+                if failed_run_requests:
+                    logger.warning(
+                        "%s failed run requests found while trying to update run",
+                        len(failed_run_requests),
+                    )
+                    for failed_run_request in failed_run_requests:
+                        logger.warning(
+                            "skipping failed run request %s for retry",
+                            failed_run_request,
+                        )
                 self.tracking_service.update_datastage_runs(datastage_runs_full_data)
                 self.tracking_service.update_last_sync_time()
 
