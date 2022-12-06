@@ -67,6 +67,10 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
     public void onSuccess(String funcName, QueryExecution qe, long durationNs) {
         // Instanceof chain used instead of pattern-matching for the sake of simplicity here.
         // When new implementations will be added, this part should be refactored to use pattern-matching (strategies)
+        if (dbnd.config().isVerbose()) {
+            LOG.info("Processing event from function \"{}\". Executed plan: {}", funcName, qe.executedPlan());
+        }
+        boolean isProcessed = false;
         SparkPlan executedPlan = qe.executedPlan();
         if (isAdaptivePlan(executedPlan)) {
             executedPlan = extractFinalFromAdaptive(executedPlan).orElse(executedPlan);
@@ -80,6 +84,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 long rows = cmd.metrics().get("numOutputRows").get().value();
 
                 log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows);
+                isProcessed = true;
             }
             if (isHiveEnabled) {
                 if (writePlan.cmd() instanceof InsertIntoHiveTable) {
@@ -90,6 +95,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                         long rows = cmd.metrics().get("numOutputRows").get().value();
 
                         log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows);
+                        isProcessed = true;
                     } catch (Exception e) {
                         LOG.error("Unable to extract dataset information from InsertIntoHiveTable", e);
                     }
@@ -107,7 +113,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                     FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
                     StructType schema = fileSourceScan.schema();
-                    // when performing operations like "count" schema is not reported in a FileSourceScanExec itself
+                    // when performing operations like "count" schema is not reported in a FileSourceScanExec itself,
                     // but we can try to figure it out from the HadoopRelation.
                     if (schema.isEmpty() && fileSourceScan.relation() != null) {
                         schema = fileSourceScan.relation().schema();
@@ -117,6 +123,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                     long rows = fileSourceScan.metrics().get("numOutputRows").get().value();
 
                     log(path, DatasetOperationType.READ, schema, rows);
+                    isProcessed = true;
                 }
                 if (isHiveEnabled) {
                     if (next instanceof HiveTableScanExec) {
@@ -131,12 +138,16 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                             long rows = hiveTableScan.metrics().get("numOutputRows").get().value();
 
                             log(path, DatasetOperationType.READ, hiveTableScan.schema(), rows);
+                            isProcessed = true;
                         } catch (Exception e) {
                             LOG.error("Unable to extract dataset information from HiveTableScanExec", e);
                         }
                     }
                 }
             }
+        }
+        if (dbnd.config().isVerbose() && !isProcessed) {
+            LOG.info("Spark event was not processed because query execution plan is not supported");
         }
     }
 

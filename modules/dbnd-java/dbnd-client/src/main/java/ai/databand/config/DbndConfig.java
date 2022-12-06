@@ -40,6 +40,7 @@ import static ai.databand.DbndPropertyNames.DBND__RUN__NAME;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING__DATA_PREVIEW;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING__LOG_VALUE_PREVIEW;
+import static ai.databand.DbndPropertyNames.DBND__TRACKING__VERBOSE;
 
 /**
  * Databand configuration.
@@ -223,6 +224,10 @@ public class DbndConfig implements PropertiesSource {
 
     public Optional<String> personalAccessToken() {
         return getValue(DBND__CORE__DATABAND_ACCESS_TOKEN);
+    }
+
+    public boolean isVerbose() {
+        return isTrue(DBND__TRACKING__VERBOSE);
     }
 
     public int previewTotalBytes() {
