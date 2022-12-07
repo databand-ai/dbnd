@@ -295,10 +295,14 @@ def _extract_step_meta_data(runs_info, manifest, logs):
         "manifest": manifest,
         "duration": runs_info["elapsed_time"],
         "index": 1,
-        "created_at": runs_info["metadata"]["generated_at"],  # todo: job creation
+        "created_at": manifest["metadata"][
+            "generated_at"
+        ],  # manifest's generated_at is generated before the execution of the job starts
         "started_at": _calculate_started_time(runs_info),
         "logs": logs,
-        "finished_at": _calculate_finished_time(runs_info),
+        "finished_at": runs_info["metadata"][
+            "generated_at"
+        ],  # generated_at is the time the runs_result.json artifact is generated, and that is when the run ends.
         "name": f"dbt {runs_info['args']['which']}",
     }
     return dbt_step_meta_data
@@ -316,14 +320,6 @@ def _calculate_started_time(runs_info):
     for run in runs_info["results"]:
         if run.get("timing") and "started_at" in run["timing"][0]:
             return run["timing"][0]["started_at"]
-
-    return None
-
-
-def _calculate_finished_time(runs_info):
-    for run in runs_info["results"][::-1]:
-        if run.get("timing") and "completed_at" in run["timing"][-1]:
-            return run["timing"][-1]["completed_at"]
 
     return None
 

@@ -4,6 +4,7 @@ import json
 
 from pathlib import Path
 
+import dateutil.parser
 import pytest
 
 from dbnd._core.tracking.dbt import (
@@ -61,6 +62,13 @@ class TestDBTCoreExtractMetaData:
         assert expected_run_step_keys.issubset(run_step.keys())
 
         assert run_step["index"] == 1
+
+        actual_elapsed_time = (
+            dateutil.parser.parse(run_step["finished_at"])
+            - dateutil.parser.parse(run_step["created_at"])
+        ).total_seconds()
+        expected_elapsed_time = run_step["duration"]
+        assert abs(expected_elapsed_time - actual_elapsed_time) < 1
 
         assert any(
             node_value.get("compiled")
