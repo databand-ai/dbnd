@@ -37,7 +37,7 @@ class AlertDefsSchema(ApiStrictSchema):
     custom_description = fields.Str(allow_none=True)
     ml_alert = fields.Nested(MLAlert, allow_none=True)
 
-    # Fields for DatasetSlaAlert/DatasetSlaAdvancedAlert alert
+    # Fields for DatasetSlaAlert alert
     # --------------------------------------
     seconds_delta = fields.Int(allow_none=True)  # Converts to datetime.timedelta
     dataset_partial_name = fields.Str(allow_none=True)
