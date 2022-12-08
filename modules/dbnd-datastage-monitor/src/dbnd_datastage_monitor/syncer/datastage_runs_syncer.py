@@ -16,6 +16,7 @@ from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
     MultiProjectDataStageDataFetcher,
 )
 from dbnd_datastage_monitor.metrics.prometheus_metrics import (
+    report_in_progress_failed_run_request_skipped,
     report_list_duration,
     report_run_request_retry_cache_size,
     report_run_request_retry_delay,
@@ -286,9 +287,15 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     failed_run_requests,
                 ) = self.data_fetcher.get_full_runs(runs_chunk, project_id)
                 if failed_run_requests:
+                    skipped_failed_run_requests_len = len(failed_run_requests)
                     logger.warning(
                         "%s failed run requests found while trying to update run",
-                        len(failed_run_requests),
+                        skipped_failed_run_requests_len,
+                    )
+                    report_in_progress_failed_run_request_skipped(
+                        self.config.tracking_source_uid,
+                        project_id,
+                        skipped_failed_run_requests_len,
                     )
                     for failed_run_request in failed_run_requests:
                         logger.warning(

@@ -75,6 +75,13 @@ datastage_completely_failed_run_request_retry = Counter(
 )
 
 
+datastage_in_progress_failed_run_request_retries_skipped = Counter(
+    "dbnd_datastage_monitor_update_run_requests_retries_skipped",
+    "The number of runs monitor tried to update but failed to fetch",
+    labelnames=["tracking_source_uid", "project_uid"],
+)
+
+
 def report_error(function_name, error_message):
     datastage_fetch_error_counter.labels(
         function_name=function_name, error_message=error_message
@@ -137,3 +144,11 @@ def report_completely_run_request_retry_failed(tracking_source_uid, project_uid)
     datastage_completely_failed_run_request_retry.labels(
         tracking_source_uid=tracking_source_uid, project_uid=project_uid
     ).inc()
+
+
+def report_in_progress_failed_run_request_skipped(
+    tracking_source_uid, project_uid, number_of_runs
+):
+    datastage_in_progress_failed_run_request_retries_skipped.labels(
+        tracking_source_uid=tracking_source_uid, project_uid=project_uid
+    ).inc(number_of_runs)
