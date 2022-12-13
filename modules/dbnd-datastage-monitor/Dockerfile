@@ -6,6 +6,9 @@ ARG DBND_USER=databand
 ARG DBND_GROUP=databand
 ARG DBND_UID=11000
 ARG DBND_GID=11000
+ARG BUILD_REF
+ARG JOB_STARTED_AT
+ARG DBND_BUILD_VERSION
 
 RUN groupadd -g ${DBND_GID} ${DBND_GROUP} && \
     useradd -u ${DBND_UID} -g ${DBND_GID} -d ${DBND_HOME} ${DBND_USER}
@@ -50,3 +53,17 @@ USER ${DBND_UID}
 # versioning:
 ARG SOURCE_VERSION
 ENV DBND__RUN_INFO__SOURCE_VERSION ${SOURCE_VERSION:-""}
+
+# Annotations/Labels
+LABEL "architecture"="x86_64"\
+      "build-date"="${JOB_STARTED_AT}" \
+      "distribution-scope"="private" \
+      "io.k8s.display-name"="IBM Databand datastage-monitor" \
+      "io.openshift.tags"="databand datastage monitor" \
+      "maintainer"="IBM, Inc." \
+      "name"="databand-datastage-monitor" \
+      "summary"="Provides the release of IBM Databand datastage-monitor." \
+      "vcs-ref"="${BUILD_REF}" \
+      "vcs-type"="git" \
+      "vendor"="IBM, Inc." \
+      "version"="${DBND_BUILD_VERSION}"
