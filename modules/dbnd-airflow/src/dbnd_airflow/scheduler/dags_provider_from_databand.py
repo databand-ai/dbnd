@@ -3,7 +3,7 @@
 import logging
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from airflow import DAG
 from airflow.settings import TIMEZONE as AIRFLOW_TIMEZONE
@@ -31,10 +31,10 @@ class DbndSchedulerDBDagsProvider(object):
         self.custom_operator_class = custom_operator_class
         self.default_retries = default_retries
 
-    def get_dags(self):  # type: () -> List[DAG]
+    def get_dags(self, partition: Tuple[int, int] = None):  # type: () -> List[DAG]
         logger.debug("about to get scheduler job dags from dbnd db")
         dags = []
-        jobs = get_scheduled_jobs()
+        jobs = get_scheduled_jobs(partition=partition)
         validated_jobs = [
             s["DbndScheduledJob"]
             for s in jobs
@@ -99,7 +99,9 @@ class DbndSchedulerDBDagsProvider(object):
         return converted
 
 
-def get_dags_from_databand(custom_operator_class: Optional[type] = None):
+def get_dags_from_databand(
+    custom_operator_class: Optional[type] = None, partition: Tuple[int, int] = None
+):
     if environ_enabled(ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD):
         return None
     from dbnd._core.errors.base import DatabandApiError, DatabandConnectionException
@@ -115,7 +117,7 @@ def get_dags_from_databand(custom_operator_class: Optional[type] = None):
 
         dags = DbndSchedulerDBDagsProvider(
             default_retries=default_retries, custom_operator_class=custom_operator_class
-        ).get_dags()
+        ).get_dags(partition=partition)
 
         if not in_quiet_mode():
             logger.info("providing %s dags from scheduled jobs" % len(dags))

@@ -3,13 +3,17 @@
 import json
 
 
-def build_query_api_params(filters=None, page_number=None, page_size=None, sort=None):
+def build_query_api_params(
+    filters=None, page_number=None, page_size=None, sort=None, **kwargs
+):
     params_map = [
         ("sort", sort),
         ("filter", json.dumps(filters) if filters else None),
         ("page[number]", page_number),
         ("page[size]", page_size),
     ]
+    params_map.extend(kwargs.items())
+
     params = [name + "=" + str(value) for name, value in params_map if value]
     return "&".join(params)
 

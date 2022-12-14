@@ -86,3 +86,15 @@ Commands:
  `delete`    Delete existing scheduled job
 
 You can find parameters for every job with the `--help` flag. For example `dbnd schedule job --help`
+
+If you have a lot of scheduled jobs, it is possible to split DAGs into multiple files, to speed up Airflow execution.
+
+Use the following command:
+```
+python -m dbnd_airflow.scheduler.utils.generate_partitioned_dags --partitions=3 --dag-folder=dags --base-name=dbnd_dags_from_databand
+```
+`--partitions` - number of files to split scheduled jobs into
+`--dag-folder` - $AIRFLOW_HOME/dags folder
+`--base-name` - file name prefix (dbnd_dags_0_3.py, dbnd_dags_1_3.py, dbnd_dags_2_3.py)
+`--template` (optional) - custom file template to use instead of default
+`--dag-folder` and `--template` can be a relative or absolute path

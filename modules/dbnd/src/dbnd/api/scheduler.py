@@ -1,6 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from collections import namedtuple
+from typing import Tuple
 
 from more_itertools import first
 
@@ -52,15 +53,31 @@ def delete_scheduled_job(scheduled_job_name, revert=False, ctx=None):
 
 
 def get_scheduled_jobs(
-    name_pattern=None, from_file_only=None, include_deleted=False, ctx=None
+    name_pattern=None,
+    from_file_only=None,
+    include_deleted=False,
+    ctx=None,
+    partition: Tuple[int, int] = None,
 ):
+    """
+    partition - optional, split scheduled jobs evenly by hash [0...99];
+                first argument - partition number, starting from 0
+                last argument - total pages to split into
+    """
+    partition_number = None
+    additional = {}
+    if partition is not None:
+        partition_number = partition[0]
+        additional["partitions_total"] = partition[1]
     ctx = ctx or get_databand_context()
     query_params = build_query_api_params(
         filters=build_scheduled_job_filter(
             name_pattern=name_pattern,
             from_file_flag=from_file_only,
             include_deleted_flag=include_deleted,
-        )
+            partition_number=partition_number,
+        ),
+        **additional,
     )
     return _get_scheduled_jobs(ctx.databand_api_client, query_params)
 
@@ -106,4 +123,5 @@ build_scheduled_job_filter = create_filters_builder(
     name_pattern=("name", "like"),
     from_file_flag=("from_file", "eq"),
     include_deleted_flag=("deleted_from_file", "eq"),
+    partition_number=("partition", "eq"),
 )
