@@ -21,7 +21,6 @@ setuptools.setup(
         "snowflake-connector-python",
         "numpy",
         "dbnd==" + version,
-        "certifi<2021.0.0",  # fix conflict with snowflake-connector-python
     ],
     entry_points={},
 )

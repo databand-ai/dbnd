@@ -46,7 +46,7 @@ build==0.8.0
     # via pip-tools
 cachetools==4.2.4
     # via google-auth
-certifi==2020.12.5
+certifi==2022.12.7
     # via
     #   -r dist-python/dbnd-snowflake.requirements.txt
     #   kubernetes
