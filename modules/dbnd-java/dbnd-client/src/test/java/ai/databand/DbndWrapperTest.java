@@ -4,6 +4,7 @@
 
 package ai.databand;
 
+import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
@@ -34,4 +35,14 @@ class DbndWrapperTest {
         assertThat("dbnd run is null", run, Matchers.notNullValue());
     }
 
+    @Test
+    public void runNameIsDifferentAfterCleanup() {
+        String runName = DbndWrapper.instance().config().runName();
+        DbndWrapper.instance().cleanup();
+        String newRunName = DbndWrapper.instance().config().runName();
+        MatcherAssert.assertThat(
+            "Run names should be different after calling afterPipeline() method",
+            runName,
+            Matchers.not(Matchers.equalTo(newRunName)));
+    }
 }

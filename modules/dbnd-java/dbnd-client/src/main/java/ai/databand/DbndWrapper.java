@@ -45,7 +45,7 @@ public class DbndWrapper {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(DbndWrapper.class);
 
     private DbndClient dbnd;
-    private final DbndConfig config;
+    private DbndConfig config;
 
     // state
     private final Set<String> loadedClasses;
@@ -67,14 +67,7 @@ public class DbndWrapper {
     }
 
     public DbndWrapper() {
-        config = new DbndConfig();
-        try {
-            dbnd = new DbndClient(config);
-        } catch (Exception e) {
-            dbnd = null;
-            LOG.error("Unable to initialize DbndClient, tracking will be disabled. Reason: {}", e.getMessage());
-            config.setTrackingEnabled(false);
-        }
+        initClient();
         methodsCache = new HashMap<>(1);
         stack = new ArrayDeque<>(1);
         loadedClasses = new HashSet<>(1);
@@ -89,6 +82,17 @@ public class DbndWrapper {
         Logger.getLogger("org.apache.spark").addAppender(dbndAppender);
         Logger.getLogger("org.spark_project").addAppender(dbndAppender);
         Logger.getLogger("ai.databand").addAppender(dbndAppender);
+    }
+
+    protected void initClient() {
+        config = new DbndConfig();
+        try {
+            dbnd = new DbndClient(config);
+        } catch (Exception e) {
+            dbnd = null;
+            LOG.error("Unable to initialize DbndClient, tracking will be disabled. Reason: {}", e.getMessage());
+            config.setTrackingEnabled(false);
+        }
     }
 
     public Optional<Class<?>> loadClass(String className) {
@@ -176,6 +180,7 @@ public class DbndWrapper {
         methodsCache.clear();
         pipelineInitialized = false;
         loadedClasses.clear();
+        initClient();
     }
 
     public void beforeTask(String className, String methodName, Object[] args) {
