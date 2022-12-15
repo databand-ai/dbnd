@@ -7,6 +7,8 @@ package ai.databand.spark;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.apache.spark.sql.execution.QueryExecution;
 import org.apache.spark.sql.execution.WholeStageCodegenExec;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -59,6 +61,25 @@ public class DbndSparkQueryExecutionListenerTest {
 
         dbndSparkQueryExecutionListenerSpy.onSuccess("mock", queryExecutionMock, 10000);
         verify(dbndSparkQueryExecutionListenerSpy, times(1)).getAllChildren(anyObject());
+    }
+
+    @Test
+    public void testExctactPath() {
+        MatcherAssert.assertThat(
+            "Dataset path should be properly extracted",
+            dbndSparkQueryExecutionListener.exctractPath("InMemoryFileIndex(1 paths)[dbfs:/data/daily_data.csv]"),
+            Matchers.equalTo("dbfs:/data/daily_data.csv")
+        );
+        MatcherAssert.assertThat(
+            "Dataset path should be properly extracted",
+            dbndSparkQueryExecutionListener.exctractPath("InMemoryFileIndex[dbfs:/data/daily_data.csv]"),
+            Matchers.equalTo("dbfs:/data/daily_data.csv")
+        );
+        MatcherAssert.assertThat(
+            "Dataset path should be properly extracted",
+            dbndSparkQueryExecutionListener.exctractPath("s3:/data/daily_data.csv"),
+            Matchers.equalTo("s3:/data/daily_data.csv")
+        );
     }
 
 }

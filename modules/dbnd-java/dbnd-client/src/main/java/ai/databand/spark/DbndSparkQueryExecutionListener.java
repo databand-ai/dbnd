@@ -34,6 +34,8 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
 
@@ -223,6 +225,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
         );
     }
 
+    private final Pattern DATASET = Pattern.compile(".*\\[(.*)\\].*");
+
     /**
      * Extract data path from spark query plan.
      *
@@ -230,9 +234,9 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
      * @return
      */
     protected String exctractPath(String path) {
-        if (path.contains("InMemoryFileIndex")) {
-            path = path.replace("InMemoryFileIndex[", "");
-            path = path.substring(0, path.length() - 1);
+        Matcher matcher = DATASET.matcher(path);
+        if (matcher.matches()) {
+            return matcher.group(1);
         }
         return path;
     }
