@@ -58,7 +58,7 @@ class DataStageAssetsClient:
                 error_message="unable to add run, run info attribute is not found",
             )
 
-            ds_run = {"run_link": run_link}
+            ds_run = {"run_link": run_link, "cp4d_host": self.client.host_name}
             run_metadata = raise_if_not_found(
                 value=run_info.get("metadata"),
                 error_message="Unable to add run, no metadata attribute found",
