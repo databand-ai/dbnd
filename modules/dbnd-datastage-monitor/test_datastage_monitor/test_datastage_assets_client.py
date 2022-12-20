@@ -277,6 +277,7 @@ class TestDataStageAssetsClient:
             runs_links=list(all_runs.values())
         )
         assert not response["runs"]
+        failed_runs.sort()
         assert failed_runs == [
             "https://api.dataplatform.cloud.ibm.com/v2/assets/175a521f-6525-4d71-85e2-22544f8267a6?project_id=0ca4775d-860c-44f2-92ba-c7c8cfc0dd45",
             "https://api.dataplatform.cloud.ibm.com/v2/assets/8b62bbd1-e14f-4d44-9eb9-276098f762c0?project_id=0ca4775d-860c-44f2-92ba-c7c8cfc0dd45",
