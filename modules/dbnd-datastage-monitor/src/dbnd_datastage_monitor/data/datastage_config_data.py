@@ -14,6 +14,12 @@ from airflow_monitor.shared.base_monitor_config import (
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 
 
+class DataStageMonitorConfig(BaseMonitorConfig):
+    _env_prefix = "DBND__DATASTAGE_MONITOR__"
+
+    log_exception_to_webserver: bool = attr.ib(default=False, converter=bool)
+
+
 @attr.s
 class DataStageServerConfig(BaseServerConfig):
     uid = attr.ib(default=None)  # type: str
@@ -33,7 +39,9 @@ class DataStageServerConfig(BaseServerConfig):
 
     @classmethod
     def create(
-        cls, server_config: dict, monitor_config: Optional[BaseMonitorConfig] = None
+        cls,
+        server_config: dict,
+        monitor_config: Optional[DataStageMonitorConfig] = None,
     ):
         monitor_instance_config = server_config.get("monitor_config") or {}
         project_id = server_config["project_id"]
@@ -62,7 +70,9 @@ class DataStageServerConfig(BaseServerConfig):
                 "datastage_runs_syncer_enabled"
             ],
             log_level=monitor_instance_config.get("log_level"),
-            log_exception_to_webserver=monitor_config.log_exception_to_webserver,
+            log_exception_to_webserver=monitor_config.log_exception_to_webserver
+            if monitor_config
+            else False,
         )
         return conf
 
@@ -82,9 +92,3 @@ class DataStageMonitorState(BaseMonitorState):
         if data.get("last_sync_time"):
             data["last_sync_time"] = self.last_sync_time.isoformat()
         return data
-
-
-class DataStageMonitorConfig(BaseMonitorConfig):
-    _env_prefix = "DBND__DATASTAGE_MONITOR__"
-
-    log_exception_to_webserver: bool = attr.ib(default=False, converter=bool)
