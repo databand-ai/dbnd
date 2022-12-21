@@ -11,6 +11,7 @@ import requests
 
 from dbnd_datastage_monitor.metrics.prometheus_metrics import report_api_error
 from requests.adapters import HTTPAdapter, Retry
+from requests.exceptions import HTTPError
 
 
 logger = logging.getLogger(__name__)
@@ -97,6 +98,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         host_name=None,
         authentication_provider_url=None,
         authentication_type=None,
+        log_exception_to_webserver=False,
     ):
         self.access_token = ""
         self.headers = {
@@ -123,6 +125,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         self.authentication_provider_url = self.get_authentication_provider_url(
             authentication_provider_url
         )
+        self.log_exception_to_webserver = log_exception_to_webserver
 
     def send_request(
         self, method, url, headers, verify, data=None, json=None, timeout=None
@@ -159,6 +162,7 @@ class DataStageApiHttpClient(DataStageApiClient):
             backoff_factor=self.BACK_OFF_FACTOR,
             status_forcelist=[500, 502, 503, 504],
             method_whitelist=frozenset(["GET", "POST"]),
+            raise_on_status=False,
         )
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)
@@ -273,6 +277,7 @@ class DataStageApiHttpClient(DataStageApiClient):
     def get_runs_ids(
         self, start_time: str, end_time: str, next_page: Dict[str, any] = None
     ) -> Tuple[Dict[str, str], str]:
+        runs = {}
         next_link = None
         url = urljoin(
             self.host_name,
@@ -285,9 +290,12 @@ class DataStageApiHttpClient(DataStageApiClient):
                 "query": f"asset.created_at: [{start_time} TO {end_time}]",
                 "limit": self.page_size,
             }
-        res = self._make_http_request(method="POST", url=url, body=query)
-        runs = {}
-        results = res.get("results")
+        try:
+            res = self._make_http_request(method="POST", url=url, body=query)
+            results = res.get("results")
+        except HTTPError:
+            results = None
+
         if results:
             for re in results:
                 run_id = self.get_asset_id(re)
@@ -299,13 +307,6 @@ class DataStageApiHttpClient(DataStageApiClient):
             if next_link_result:
                 next_link = next_link_result
         return runs, next_link
-
-    def get_run_info_jobs_api(self, job_id: str, run_id: str):
-        url = urljoin(
-            self.host_name,
-            f"{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}?project_id={self.project_id}&limit={self.page_size}&userfs=false",
-        )
-        return self._make_http_request(method="GET", url=url)
 
     def filter_connection_credentials(self, connection):
         connection_entity = connection.get("entity")
@@ -373,11 +374,10 @@ class DataStageApiHttpClient(DataStageApiClient):
             else:
                 logger.debug("Logs for run %s not found", run_id)
         except Exception as e:
-            # Sometimes fetching logs fails with 500, in that case it's ok to return empty list
             logger.exception(
                 "Error occurred during fetching DataStage logs for run id: %s, Exception: %s",
                 run_id,
                 str(e),
             )
-
-        return logs
+        finally:
+            return logs

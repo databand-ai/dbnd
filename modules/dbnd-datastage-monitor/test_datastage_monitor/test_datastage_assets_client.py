@@ -30,6 +30,7 @@ class DataStageApiInMemoryClient(DataStageApiClient):
         self.logs_response_map = {}
         self.connections_response_map = {}
         self.jobs_response_map = {}
+        self.log_exception_to_webserver = False
 
     def add_flows_response(self, flows: List[Dict[str, any]]):
         for flow in flows:

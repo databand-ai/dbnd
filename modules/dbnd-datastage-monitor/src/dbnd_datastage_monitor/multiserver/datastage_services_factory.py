@@ -49,6 +49,7 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
                         api_key=server_config.api_key,
                         project_id=project_id,
                         page_size=server_config.page_size,
+                        log_exception_to_webserver=server_config.log_exception_to_webserver,
                     )
                 )
                 for project_id in server_config.project_ids
@@ -63,6 +64,7 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
                         api_key=server_config.api_key,
                         project_id=project_id,
                         page_size=server_config.page_size,
+                        log_exception_to_webserver=server_config.log_exception_to_webserver,
                     ),
                     number_of_threads=server_config.number_of_fetching_threads,
                 )

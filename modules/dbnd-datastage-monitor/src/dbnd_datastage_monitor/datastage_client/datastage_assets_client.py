@@ -40,7 +40,8 @@ class DataStageAssetsClient:
             logger.exception(
                 "Error occurred during fetching new DataStage runs: %s", str(e)
             )
-            log_exception_to_server(e, "datastage-monitor")
+            if self.client.log_exception_to_webserver:
+                log_exception_to_server(e, "datastage-monitor")
             report_error("get_new_runs", str(e))
             return None, None
 
@@ -102,11 +103,15 @@ class DataStageAssetsClient:
                 run_link,
                 str(e),
             )
-            # submit failed run to runs error handler
-            logger.warning("append run link %s to failed run requests", run_link)
-            self.failed_run_requests.append(run_link)
+            self._submit_failed_runs(e, run_link)
+
+    def _submit_failed_runs(self, e, run_link):
+        # submit failed run to runs error handler
+        logger.warning("append run link %s to failed run requests", run_link)
+        self.failed_run_requests.append(run_link)
+        if self.client.log_exception_to_webserver:
             log_exception_to_server(e, "datastage-monitor")
-            report_error("get_full_run", str(e))
+        report_error("get_full_run", str(e))
 
     def get_full_runs(self, runs_links: List[str]) -> Dict:
         for run in runs_links:

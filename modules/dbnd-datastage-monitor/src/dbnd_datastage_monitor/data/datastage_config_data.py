@@ -29,6 +29,7 @@ class DataStageServerConfig(BaseServerConfig):
     authentication_provider_url = attr.ib(default=None)  # type: str
     authentication_type = attr.ib(default=None)  # type: str
     log_level = attr.ib(default=None)  # type: str
+    log_exception_to_webserver = attr.ib(default=False)  # type: bool
 
     @classmethod
     def create(
@@ -61,6 +62,7 @@ class DataStageServerConfig(BaseServerConfig):
                 "datastage_runs_syncer_enabled"
             ],
             log_level=monitor_instance_config.get("log_level"),
+            log_exception_to_webserver=monitor_config.log_exception_to_webserver,
         )
         return conf
 
@@ -84,3 +86,5 @@ class DataStageMonitorState(BaseMonitorState):
 
 class DataStageMonitorConfig(BaseMonitorConfig):
     _env_prefix = "DBND__DATASTAGE_MONITOR__"
+
+    log_exception_to_webserver: bool = attr.ib(default=False, converter=bool)
