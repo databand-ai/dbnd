@@ -361,7 +361,6 @@ class DataStageApiHttpClient(DataStageApiClient):
 
     def get_run_logs(self, job_id, run_id) -> List[Dict[str, Any]]:
         logs = []
-
         try:
             url = urljoin(
                 self.host_name,
@@ -370,6 +369,13 @@ class DataStageApiHttpClient(DataStageApiClient):
             logs_response = self._make_http_request(method="GET", url=url)
             logs_json = logs_response.get("results")
             if logs_json:
+                logs_result_len = len(logs_json)
+                if logs_result_len > 1:
+                    logger.exception(
+                        "run id %s logs contains %s results, will not be parsed",
+                        run_id,
+                        logs_result_len,
+                    )
                 logs = json.loads(logs_json[0])
             else:
                 logger.debug("Logs for run %s not found", run_id)
