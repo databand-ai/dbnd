@@ -27,7 +27,7 @@ dbnd_vendors_list = [
 setuptools.setup(
     name="dbnd",
     package_dir={"": "src"},
-    python_requires=">=3.6, <=3.10",
+    python_requires=">=3.6, <3.11",
     install_requires=[
         "tzlocal",
         "six",
