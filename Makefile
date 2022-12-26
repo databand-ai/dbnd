@@ -235,8 +235,8 @@ install-airflow: ## Installs Airflow with strictly pinned dependencies into curr
 	@make __is_venv_activated; \
 	echo Will install Airflow==${AIRFLOW_VERSION}; \
 
-	pip install apache-airflow==${AIRFLOW_VERSION} -c https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${CURRENT_PY_VERSION}.txt
-
+	## airflow and all packages required for tests
+	pip install apache-airflow[amazon,apache.spark,databricks,cncf.kubernetes]==${AIRFLOW_VERSION} -c https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${CURRENT_PY_VERSION}.txt
 
 install-dev: ## Installs Airflow + all dbnd-core modules in editable mode to the active Python's site-packages.
 	@make __is_venv_activated; \

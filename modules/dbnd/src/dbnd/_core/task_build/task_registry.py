@@ -12,7 +12,6 @@ import six
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.current import get_databand_context
 from dbnd._core.errors import DatabandError, friendly_error
-from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.seven import contextlib
 from dbnd._vendor.snippets.luigi_registry import get_best_candidate, module_parents
@@ -199,14 +198,6 @@ class DbndTaskRegistry(SingletonContext):
                     )
                     return decorated_task.task
 
-        if is_airflow_enabled():
-            from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
-                AirflowDagAsDbndTask,
-            )
-
-            dag = self._get_aiflow_dag(task_name)
-            if dag:
-                return AirflowDagAsDbndTask
         return None
 
     def get_task_cls(self, task_name):
@@ -248,17 +239,6 @@ class DbndTaskRegistry(SingletonContext):
         task_kwargs.setdefault("task_name", task_name)
 
         task_cls = self.get_task_cls(task_name)  # type: Type[Task]
-        if is_airflow_enabled():
-            from dbnd_airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
-                AirflowDagAsDbndTask,
-            )
-
-            if issubclass(task_cls, AirflowDagAsDbndTask):
-                # we are running old style dag
-                dag = self._get_aiflow_dag(task_name)
-                airflow_task = AirflowDagAsDbndTask.build_dbnd_task_from_dag(dag=dag)
-                return airflow_task
-
         try:
             logger.debug("Building %s task", task_cls.task_definition.full_task_family)
             obj = task_cls(**task_kwargs)
@@ -276,15 +256,6 @@ class DbndTaskRegistry(SingletonContext):
                 task_name, task_cls, expected_type
             )
         return obj
-
-    def _get_aiflow_dag(self, dag_id):
-        if not self._dag_bag:
-            from airflow.models import DagBag
-
-            self._dag_bag = DagBag()
-        if dag_id in self._dag_bag.dags:
-            return self._dag_bag.dags[dag_id]
-        return None
 
     ########
     ## NAMESPACE MANAGEMENT
