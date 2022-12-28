@@ -76,7 +76,7 @@ class NullableStrValueType(ValueType):
     """A ValueType that treats empty string as None"""
 
     type = NullableStr
-    discoverable = False
+    support_discover_from_obj = False
 
     def to_str(self, x):
         if x is None:
@@ -143,7 +143,7 @@ class BoolValueType(ValueType):
 class CallableValueType(ValueType):
     # should be used in configuration for now only
     type = Callable
-    discoverable = False  # we can't really check if we got function
+    support_discover_from_obj = False  # we can't really check if we got function
 
     def parse_from_str(self, s):
         return load_python_callable(callable_path=s)

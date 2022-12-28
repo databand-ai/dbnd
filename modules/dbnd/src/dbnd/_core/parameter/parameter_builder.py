@@ -9,7 +9,6 @@ from dbnd._core.constants import OutputMode, TaskEssence
 from dbnd._core.errors import friendly_error
 from dbnd._core.errors.friendly_error.task_parameters import (
     failed_to_build_parameter,
-    unknown_value_type_in_parameter,
     value_is_not_parameter_cls,
 )
 from dbnd._core.parameter.parameter_definition import (
@@ -270,16 +269,13 @@ class ParameterFactory(object):
         if TaskEssence.CONFIG.is_instance(type_):
             return self.nested_config(type_)
 
-        value_type = get_value_type_of_type(type_, inline_value_type=True)
-        if not value_type:
-            raise unknown_value_type_in_parameter(type_)
-        return self.modify(value_type=value_type)
+        return self.type(type_)
 
     def type(self, type_):
         value_type = get_value_type_of_type(type_)
         if not value_type:
             value_type = InlineValueType(type_=type_)
-        return self.modify(value_type=value_type)
+        return self.modify(value_type=value_type, type_=type_)
 
     def sub_type(self, sub_type):
         return self.modify(sub_type=sub_type)
@@ -468,6 +464,12 @@ class ParameterFactory(object):
         update_kwargs = {}
 
         value_type = self._build_value_type(context)
+        value_type = value_type.load_value_type()
+        if not value_type:
+            value_type = InlineValueType(type_=s.type_)
+
+        # we should not keep it, as py36 serialization can't handle generics
+        s.type_ = None
 
         validator = s.validator
         if s.choices:

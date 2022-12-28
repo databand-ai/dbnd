@@ -140,7 +140,9 @@ class _StructureValueType(ValueType):
         # new_self = copy.copy(self)
         # new_self.sub_value_type = type_handler
         # return new_self
-        return self.__class__(sub_value_type=type_handler)
+        new_value_type = self.__class__(sub_value_type=type_handler)
+        new_value_type.marshallers.update(self.marshallers)
+        return new_value_type
 
     def __iter__(self):
         raise Exception("Do not iterate, this one is for type hinting only")
@@ -160,6 +162,15 @@ class _StructureValueType(ValueType):
         return "{self.type_str}{sub_value_type_repr}".format(
             self=self, sub_value_type_repr=sub_value_type_repr
         )
+
+    def load_value_type(self):
+        """
+        simplifies ValueTypeLoader implementation,
+        we don't need to check if we need to "load every time we use it
+        """
+        if self.sub_value_type:
+            self.sub_value_type = self.sub_value_type.load_value_type()
+        return self
 
 
 class DictValueType(_StructureValueType):

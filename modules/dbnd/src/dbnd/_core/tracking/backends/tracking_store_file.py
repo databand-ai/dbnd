@@ -39,12 +39,6 @@ if typing.TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-try:
-    from matplotlib.figure import Figure
-
-    PYPLOT_INSTALLED = True
-except ImportError:
-    PYPLOT_INSTALLED = False
 
 
 def _parse_metric(value):
@@ -128,12 +122,17 @@ class FileTrackingStore(TrackingStore):
 
             return artifact_target
 
-        if PYPLOT_INSTALLED and isinstance(artifact, Figure):
-            temp = BytesIO()
-            artifact.savefig(temp)
-            temp.seek(0)
-            artifact_target.write(temp.read(), mode="wb")
-            return artifact_target
+        try:
+            from matplotlib.figure import Figure
+
+            if isinstance(artifact, Figure):
+                temp = BytesIO()
+                artifact.savefig(temp)
+                temp.seek(0)
+                artifact_target.write(temp.read(), mode="wb")
+                return artifact_target
+        except ImportError:
+            pass
 
         raise DatabandRuntimeError(
             "Could not recognize artifact of type %s, must be string or matplotlib Figure"

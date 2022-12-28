@@ -24,9 +24,9 @@ from pandas import DataFrame
 from dbnd import PipelineTask, PythonTask, output, parameter, task
 from dbnd._core.parameter import register_custom_parameter
 from dbnd._core.utils.structures import combine_mappings
-from targets.marshalling import register_marshaller
-from targets.marshalling.pandas import DataFrameToHdf5
+from targets.providers.pandas.pandas_marshaller import DataFrameToHdf5
 from targets.target_config import FileFormat
+from targets.values import InlineValueType, register_value_type
 
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,8 @@ class MyDataToHdf5(DataFrameToHdf5):
             store.put("targets", data.targets, data_columns=True, **kwargs)
 
 
-register_marshaller(MyData, FileFormat.hdf5, MyDataToHdf5())
+value_type = register_value_type(InlineValueType(MyData))
+value_type.register_marshaller(FileFormat.hdf5, MyDataToHdf5())
 MyDataParameter = register_custom_parameter(MyData, parameter.data.type(MyData))
 
 

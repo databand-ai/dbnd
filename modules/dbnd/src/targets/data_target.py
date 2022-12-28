@@ -124,7 +124,7 @@ class DataTarget(Target):
         else:
             value_type = get_value_type_of_obj(value, ObjectValueType())
         try:
-            m = get_marshaller_ctrl(self, value_type=value_type)
+            m = get_marshaller_ctrl(self, value_type_or_obj_type=value_type)
 
             with target_timeit_log(self, "marshalling"):
                 m.dump(value, **kwargs)

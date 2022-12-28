@@ -6,13 +6,16 @@ import logging
 import re
 import typing
 
-from typing import List, Optional
+from typing import Dict, List, Optional
+
+import six
 
 from dbnd._vendor.pytypes.type_utils import get_Union_params, is_Union
 from targets.types import EagerLoad, LazyLoad
 from targets.values.builtins_values import DefaultObjectValueType
 from targets.values.structure import _StructureValueType
 from targets.values.value_type import InlineValueType, ValueType
+from targets.values.value_type_loader import ValueTypeLoader
 
 
 def f_name(f):
@@ -23,39 +26,39 @@ logger = logging.getLogger(__name__)
 
 
 class ValueTypeRegistry(object):
-    def __init__(self, known_value_types):
-        self.value_types = []  # type: List[ValueType]
-        self.discoverable_value_types = []  # type: List[ValueType]
-        self.default = DefaultObjectValueType()
+    def __init__(self):
+        self.value_types: List[ValueType] = []
+        self._class_name_to_value_type: Dict[str, ValueType] = {}
 
-        # now for every parameter we also have text representation of the type
-        # will be used for annotations
-        self.type_str_to_parameter = {}
-        for value_type in known_value_types:
-            self.register_value_type(value_type)
+        self.value_types_from_obj: List[ValueType] = []
+        self.default = DefaultObjectValueType()
 
         self._type_handler_from_type = TypeHandlerFromType(self)
         self._type_handler_from_type_str = TypeHandlerFromDocAnnotation(self)
 
     def register_value_type(self, value_type):
+        value_type = self.get_value_type_of_type(value_type, inline_value_type=True)
+
         self.value_types.append(value_type)
-        if value_type.discoverable:
-            self.discoverable_value_types.append(value_type)
+        if value_type.support_discover_from_obj:
+            self.value_types_from_obj.append(value_type)
         try:
             # for t in [value_type.type]:
 
             type_str = value_type.type_str
             if type_str:
-                self.type_str_to_parameter[type_str] = value_type
+                self._class_name_to_value_type[type_str] = value_type
                 if type_str.startswith("typing"):
-                    self.type_str_to_parameter[
+                    self._class_name_to_value_type[
                         type_str.replace("typing.", "")
                     ] = value_type
                 if " " in type_str:
-                    self.type_str_to_parameter[type_str.replace(" ", "")] = value_type
+                    self._class_name_to_value_type[
+                        type_str.replace(" ", "")
+                    ] = value_type
             if value_type.type_str_extras:
                 for t in value_type.type_str_extras:
-                    self.type_str_to_parameter[t] = value_type
+                    self._class_name_to_value_type[t] = value_type
         except Exception as ex:
             raise Exception("Failed to process %s: %s" % (value_type, ex))
         return value_type
@@ -65,17 +68,29 @@ class ValueTypeRegistry(object):
         # do we want to automatically parse str_list?
         # right now we do that, but as for obj_list
         # we can keep deterministic conversion only
-
-        for item in self.discoverable_value_types:
-            if item.is_type_of(value):
-                return item
+        for value_type in self.value_types_from_obj:
+            if value_type.is_type_of(value):
+                # we are working with runtime objects, we should load value type definitions at this point
+                loaded_value_type = value_type.load_value_type()
+                if loaded_value_type is None:
+                    continue
+                return loaded_value_type
         return default
 
     def get_value_type_of_type(self, type_, inline_value_type=False):
         if isinstance(type_, ValueType):
             return type_
-        elif isinstance(type_, type) and issubclass(type_, ValueType):
+        if isinstance(type_, ValueTypeLoader):
+            return type_
+
+        if isinstance(type_, type) and issubclass(type_, ValueType):
             return type_()
+
+        # we should have real value type of None here
+        if isinstance(type_, six.string_types):
+            return self._type_handler_from_type_str.get_value_type_of_type_str(
+                type_str=type_
+            )
         return self._type_handler_from_type.get_value_type_of_type(
             type_=type_, inline_value_type=inline_value_type
         )
@@ -84,49 +99,46 @@ class ValueTypeRegistry(object):
         # type: (str) -> Optional[ValueType]
         return self._type_handler_from_type_str.get_value_type_of_type_str(type_str)
 
+    def find_value_type_of_class(self, class_):
+        # from py3.7 issubclass(typing.List[str], typing.List) raises an exception, so we extract the simple type first
+        class_without_generic = get_non_generic_type(class_)
+
+        for value_type in self.value_types:
+            # regular types can handle Generic by ==, however, ValueTypeLoader need to call is_handler_of_type
+            if value_type.type and value_type.type == class_:
+                return value_type
+
+            if class_without_generic != class_ and isinstance(
+                value_type, ValueTypeLoader
+            ):
+                if value_type.is_handler_of_type(class_):
+                    return value_type
+
+            # handle generic and non generic types
+            if class_without_generic is not None:
+                if value_type.is_handler_of_type(class_without_generic):
+                    return value_type
+        return None
+
     def list_known_types(self):
-        return list(self.type_str_to_parameter.keys())
+        return list(self._class_name_to_value_type.keys())
 
 
 def get_non_generic_type(type_):
     if isinstance(type_, type):
         return type_
-    else:
-        if hasattr(type_, "__extra__"):  # py 3.5/3.6
-            return type_.__extra__
-        elif hasattr(type_, "__origin__"):  # py 3.7
-            return type_.__origin__
-        else:
-            return None
+    elif hasattr(type_, "__extra__") and isinstance(
+        type_.__extra__, type
+    ):  # py 3.5/3.6
+        return type_.__extra__
+    elif hasattr(type_, "__origin__") and isinstance(type_.__origin__, type):  # py 3.7
+        return type_.__origin__
+    return None
 
 
 class TypeHandlerFromType(object):
     def __init__(self, registry):
         self.registry = registry  # type: ValueTypeRegistry
-
-    def _get_value_type_of_type(self, type_, inline_value_type=False):
-        if isinstance(
-            type_, typing.TypeVar
-        ):  # placeholder type for unparametrized generic type
-            return None
-
-        # from py3.7 issubclass(typing.List[str], typing.List) raises an exception, so we extract the simple type first
-        non_generic_type = get_non_generic_type(type_)
-
-        for value_type in self.registry.value_types:
-            if value_type.type == type_:
-                return value_type
-
-            if non_generic_type is None:
-                continue
-
-            if isinstance(non_generic_type, type) and value_type.is_handler_of_type(
-                non_generic_type
-            ):
-                return value_type
-        if inline_value_type:
-            return InlineValueType(type_)
-        return None
 
     def get_value_type_of_type(self, type_, inline_value_type=False):
         lazy_load = None
@@ -142,23 +154,33 @@ class TypeHandlerFromType(object):
         if inspect.isclass(type_) and issubclass(type_, LazyLoad):
             lazy_load = True
 
-        type_handler = self._get_value_type_of_type(
-            type_, inline_value_type=inline_value_type
-        )
-        if not type_handler:
-            return type_handler
+        if isinstance(
+            type_, typing.TypeVar
+        ):  # placeholder type for unparametrized generic type
+            return None
 
-        if isinstance(type_handler, _StructureValueType):
-            if type_handler.type == typing.Dict:
-                sub_type = self.get_dict_value_type(type_)
-            else:
-                sub_type = self.get_generic_item_type(type_)
+        type_handler = self.registry.find_value_type_of_class(class_=type_)
+        if type_handler is not None:
+            if isinstance(type_handler, _StructureValueType):
+                if type_handler.type == typing.Dict:
+                    sub_type = self.get_dict_value_type(type_)
+                else:
+                    sub_type = self.get_generic_item_type(type_)
 
-            if sub_type:
-                sub_type_handler = self.registry.get_value_type_of_type(
-                    sub_type, inline_value_type=inline_value_type
-                )
-                type_handler = type_handler.with_sub_type_handler(sub_type_handler)
+                if sub_type:
+                    # recursion for sub-type (only for structured)
+                    sub_type_handler = self.registry.get_value_type_of_type(
+                        sub_type, inline_value_type=inline_value_type
+                    )
+                    if sub_type_handler:
+                        type_handler = type_handler.with_sub_type_handler(
+                            sub_type_handler
+                        )
+        elif inline_value_type:
+            type_handler = InlineValueType(type_)
+        else:
+            return None
+
         if lazy_load is not None:
             type_handler = type_handler.with_lazy_load(lazy_load=lazy_load)
         return type_handler
@@ -213,7 +235,7 @@ class TypeHandlerFromDocAnnotation(object):
 
         # we are looking for the exact match
         for ts in options:
-            type_handler = r.type_str_to_parameter.get(ts)
+            type_handler = r._class_name_to_value_type.get(ts)
             if type_handler:
                 return type_handler
 
@@ -225,7 +247,7 @@ class TypeHandlerFromDocAnnotation(object):
             main_type = generic_match.group(1)
             generic_part = generic_match.group(2)
 
-            type_handler = r.type_str_to_parameter.get(main_type)
+            type_handler = r._class_name_to_value_type.get(main_type)
             if type_handler:
                 if type_handler.type == typing.Dict:
                     parts = self._SPLIT_ARGS_RE.split(generic_part)

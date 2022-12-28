@@ -4,18 +4,20 @@ from __future__ import absolute_import
 
 import os
 
-import pandas as pd
-
 from pytest import fixture
 
 
 @fixture
 def simple_df():
+    import pandas as pd
+
     return pd.DataFrame(data=[[1, 1], [2, 2]], columns=["c1", "c2"])
 
 
 @fixture
 def pandas_data_frame():
+    import pandas as pd
+
     names = ["Bob", "Jessica", "Mary", "John", "Mel"]
     births = [968, 155, 77, 578, 973]
     df = pd.DataFrame(data=list(zip(names, births)), columns=["Names", "Births"])

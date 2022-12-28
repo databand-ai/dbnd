@@ -66,25 +66,6 @@ YearParameter = parameter.type(YearValueType)
 # special parameters
 TaskParameter = parameter.type(TaskValueType)
 
-try:
-    import pandas  # noqa: F401
-
-    from targets.values.pandas_values import DataFramesDictValueType, DataFrameValueType
-
-    DataFrameParameter = parameter.type(DataFrameValueType)
-    DataFramesDictParameter = parameter.type(DataFramesDictValueType)
-except ImportError:
-    pass
-
-try:
-    import numpy  # noqa: F401
-
-    from targets.values.numpy_values import NumpyArrayValueType
-
-    NumpyArrayParameter = parameter.type(NumpyArrayValueType)
-except ImportError:
-    pass
-
 # backward compatibility
 # please don't use it,
 # use TargetParameter, TargetPathParameter or DataFrameParameter

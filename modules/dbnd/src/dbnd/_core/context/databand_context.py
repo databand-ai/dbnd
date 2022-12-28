@@ -26,7 +26,7 @@ from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.task_utils import get_project_name_safe, get_task_name_safe
 from dbnd._core.utils.timezone import utcnow
-from targets.target_config import FileFormat
+from targets.providers.pandas import register_pd_to_hdf5_as_table_marshaler
 
 
 if typing.TYPE_CHECKING:
@@ -159,12 +159,7 @@ class DatabandContext(SingletonContext):
     def configure_targets(self):
         output_config = self.settings.output  # type: OutputConfig
         if output_config.hdf_format == "table":
-            import pandas as pd
-
-            from targets.marshalling import MARSHALERS
-            from targets.marshalling.pandas import DataFrameToHdf5Table
-
-            MARSHALERS[pd.DataFrame][FileFormat.hdf5] = DataFrameToHdf5Table()
+            register_pd_to_hdf5_as_table_marshaler()
 
     def _on_exit(self):
         if self._tracking_store:

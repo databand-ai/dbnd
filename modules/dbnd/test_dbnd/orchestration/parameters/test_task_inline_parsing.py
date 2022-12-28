@@ -44,7 +44,7 @@ def inline_df_without_typing(df_a, df_b):
 @task
 def parent_ab_without_typing(iterations=1):
     a = pd.DataFrame(data=[[1, 1]] * 5, columns=["c1", "c2"])
-    b = pd.DataFrame(data=[[1, 1]] * 5, columns=["c1", "c2"])
+    b = pd.DataFrame(data=[[1, 2]] * 5, columns=["c1", "c2"])
     for i in range(iterations):
         # task will be reused the moment we reached dataframe size =2
         a, b = inline_df_without_typing(a, b)

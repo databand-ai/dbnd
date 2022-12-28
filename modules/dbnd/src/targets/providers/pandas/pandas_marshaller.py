@@ -210,6 +210,11 @@ class DataFrameToCsv(_PandasMarshaller):
         return value.to_csv(*args, **kwargs)
 
 
+class DataFrameAsSeriesToCsv(DataFrameToCsv):
+    def __init__(self):
+        super(DataFrameAsSeriesToCsv, self).__init__(series=True)
+
+
 class DataFrameToJson(_PandasMarshaller):
     file_format = FileFormat.json
 

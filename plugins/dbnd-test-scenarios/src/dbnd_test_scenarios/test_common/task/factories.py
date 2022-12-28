@@ -2,13 +2,17 @@
 
 from __future__ import absolute_import
 
-import pandas as pd
+import typing
 
 import dbnd
 
 from dbnd import Config, data, output, parameter, pipeline, task
 from dbnd._core.current import current_task_run
 from dbnd.tasks import PipelineTask, PythonTask
+
+
+if typing.TYPE_CHECKING:
+    pass
 
 
 class TTask(PythonTask):
@@ -109,6 +113,8 @@ def ttask_simple(tparam="1"):
 @task
 def ttask_dataframe(tparam=1):
     # type:(int)->pd.DataFrame
+    import pandas as pd
+
     return pd.DataFrame(data=[[tparam, tparam]], columns=["c1", "c2"])
 
 

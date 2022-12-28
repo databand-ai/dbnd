@@ -3,9 +3,9 @@
 import pytest
 
 from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs
-from dbnd_spark.spark_targets import SparkDataFrameValueType
+from dbnd_spark.spark_targets.spark_values import SparkDataFrameValueType
+from targets.providers.pandas.pandas_values import DataFrameValueType
 from targets.value_meta import ValueMeta, ValueMetaConf
-from targets.values.pandas_values import DataFrameValueType
 
 
 class TestSparkDataFrameValueType(object):

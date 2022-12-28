@@ -6,9 +6,6 @@ import logging
 import sys
 import traceback
 
-from dbnd._core.log import dbnd_log_init_msg
-from dbnd._core.utils.seven import import_errors
-
 
 logger = logging.getLogger(__name__)
 _DBND_REGISTER_SPARK_TYPES = None
@@ -22,21 +19,7 @@ def dbnd_spark_bootstrap():
     _DBND_REGISTER_SPARK_TYPES = True
 
     _workaround_spark_namedtuple_serialization()
-
-    try:
-        dbnd_log_init_msg("importing pyspark")
-
-        import pyspark  # noqa: F401
-    except import_errors:
-        # pyspark is not installed, user will not be able to use pyspark types
-        return
     # we register spark types only if we have spark installed
-    try:
-        from dbnd_spark.spark_targets import dbnd_register_spark_types
-
-        dbnd_register_spark_types()
-    except Exception:
-        pass
     return
 
 

@@ -15,6 +15,15 @@ def unknown_value_type_in_parameter(type_):
     )
 
 
+def value_type_is_not_loaded(value_type):
+    pass
+
+    return DatabandBuildError(
+        "The value type is not loaded '{}'".format(value_type),
+        help_msg="Please contact DBND team to get help for this issue",
+    )
+
+
 def no_value_type_defined_in_parameter(context):
     from targets.values import get_types_registry
 

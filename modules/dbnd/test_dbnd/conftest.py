@@ -4,8 +4,6 @@ from __future__ import print_function
 
 from datetime import datetime
 
-import numpy as np
-import pandas as pd
 import pytest
 
 from pytest import fixture
@@ -81,6 +79,7 @@ def pytest_configure(config):
 @pytest.fixture
 def matplot_figure():
     import matplotlib.pyplot as plt
+    import numpy as np
 
     fig = plt.figure()
     ax1 = fig.add_subplot(2, 2, 1)
@@ -93,6 +92,8 @@ def matplot_figure():
 
 @pytest.fixture
 def pandas_data_frame():
+    import pandas as pd
+
     df = pd.DataFrame(
         {
             "Names": pd.Series(["Bob", "Jessica", "Mary", "John", "Mel"], dtype="str"),
@@ -106,6 +107,8 @@ def pandas_data_frame():
 
 @pytest.fixture
 def df_categorical():
+    import pandas as pd
+
     return pd.DataFrame(
         {"A": [1, 2, 3], "B": pd.Series(list("xyz")).astype("category")}
     )
@@ -132,6 +135,8 @@ def pandas_data_frame_on_disk(tmpdir, pandas_data_frame):
 
 @pytest.fixture
 def numpy_array():
+    import numpy as np
+
     return np.array([968, 155, 77, 578, 973])
 
 

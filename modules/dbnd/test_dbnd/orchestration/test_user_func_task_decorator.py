@@ -21,9 +21,9 @@ from dbnd._core.task_build.task_context import current_task
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
 from targets import FileTarget, Target
+from targets.providers.pandas.pandas_values import DataFrameValueType
 from targets.types import DataList
 from targets.values import DictValueType, ListValueType
-from targets.values.pandas_values import DataFrameValueType
 
 
 logger = logging.getLogger(__name__)

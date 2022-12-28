@@ -18,5 +18,4 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=["dbnd==" + version],
     extras_require=dict(tests=[]),
-    entry_points={"dbnd": ["dbnd-tensorflow = dbnd_tensorflow._plugin"]},
 )

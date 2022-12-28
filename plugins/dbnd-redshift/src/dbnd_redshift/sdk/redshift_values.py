@@ -14,10 +14,10 @@ from dbnd._core.utils.sql_tracker_common.utils import get_redshift_uri
 from dbnd_redshift.sdk.redshift_utils import TEMP_TABLE_NAME, redshift_query
 from dbnd_redshift.sdk.wrappers import PostgresConnectionWrapper
 from targets.connections import build_conn_path
+from targets.providers.pandas.pandas_histograms import PandasHistograms
 from targets.value_meta import ColumnStatsArgs, ValueMeta, ValueMetaConf
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType
-from targets.values.pandas_histograms import PandasHistograms
 
 
 logger = logging.getLogger(__name__)

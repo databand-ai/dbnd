@@ -20,7 +20,6 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task.task import Task
     from dbnd._core.task_run.task_run import TaskRun
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -559,7 +558,6 @@ class _ParamRecordBuilder(object):
         import dbnd  # noqa: 401 import dbnd before DataFrameValueType to avoid cyclic imports
 
         from dbnd._core.settings import DescribeConfig
-        from targets.values import DataFrameValueType
 
         console_value_preview_size = (
             DescribeConfig.from_databand_context().console_value_preview_size
@@ -570,12 +568,13 @@ class _ParamRecordBuilder(object):
         else:
             # We want to always use self.definition.to_str for panda's Dataframe value.
             # otherwise, the value blows up the log, and is not readable.
-            value_str = (
-                TextBanner.f_io(self.value)
-                if self._param_kind() in ["input", "output"]
-                and not self.definition.value_type_str == DataFrameValueType.type_str
-                else self.definition.to_str(self.value)
-            )
+            if (
+                self._param_kind() in ["input", "output"]
+                and not self.definition.value_type_str == "DataFrame"
+            ):
+                value_str = TextBanner.f_io(self.value)
+            else:
+                value_str = self.definition.to_str(self.value)
 
         value_str = safe_string(value_str, console_value_preview_size)
 

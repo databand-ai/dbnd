@@ -29,3 +29,6 @@ class Marshaller(object):
 
     def support_direct_access(self, target):
         return target.fs.support_direct_access
+
+    def load_marshaller(self):
+        return self

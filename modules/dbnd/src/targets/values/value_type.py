@@ -11,6 +11,7 @@ import six
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils.basics.load_python_module import run_user_func
 from dbnd._vendor import fast_hasher
+from targets.marshalling.marshaller import Marshaller
 from targets.value_meta import ValueMeta
 
 
@@ -21,7 +22,6 @@ if typing.TYPE_CHECKING:
     from targets.value_meta import ValueMetaConf
 
     T = typing.TypeVar("T")
-
 
 logger = logging.getLogger(__name__)
 _IS_INSTANCE_SAMPLE = 1000
@@ -38,12 +38,15 @@ class ValueType(object):
     support_merge = False
     support_from_str = True
 
+    support_discover_from_obj = True  # we can discover it from the object
     type_str_extras = None
 
     load_on_build = True
-    discoverable = True  # we can discover it from the object
 
     is_lazy_evaluated = False
+
+    def __init__(self):
+        self.marshallers = {}
 
     @property
     @abc.abstractmethod
@@ -133,6 +136,13 @@ class ValueType(object):
 
     def to_preview(self, x, preview_size):  # type: (T, int) -> str
         return self.to_str(x)[:preview_size]
+
+    def load_value_type(self):
+        """
+        simplifies ValueTypeLoader implementation,
+        we don't need to check if we need to check type load every time we use it
+        """
+        return self
 
     ##################
     # Target I/O
@@ -344,6 +354,25 @@ class ValueType(object):
         # type: (Target) -> bool
         return True
 
+    def get_marshaller(self, file_format: str) -> Marshaller:
+        marshaller = self.marshallers.get(file_format)
+        if marshaller:
+            pass
+
+            marshaller = marshaller.load_marshaller()
+        return marshaller
+
+    def register_marshaller(self, file_format: str, marshaller: Marshaller):
+        if isinstance(marshaller, six.string_types):
+            from targets.marshalling import MarshallerLoader
+
+            marshaller = MarshallerLoader(marshaller)
+        self.marshallers[file_format] = marshaller
+
+    def register_marshallers(self, marshallers: typing.Dict[str, Marshaller]):
+        for file_format, marshaller in marshallers.items():
+            self.register_marshaller(file_format, marshaller)
+
 
 def _safe_hash(value):
     try:
@@ -357,6 +386,7 @@ class InlineValueType(ValueType):
     support_from_str = False
 
     def __init__(self, type_):
+        super(InlineValueType, self).__init__()
         self._type = type_
 
     @property

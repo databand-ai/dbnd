@@ -16,10 +16,10 @@ from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._core.errors import friendly_error
 from dbnd._vendor import fast_hasher
+from targets.providers.pandas.pandas_histograms import PandasHistograms
 from targets.target_config import FileFormat
 from targets.value_meta import ValueMeta
 from targets.values.builtins_values import DataValueType
-from targets.values.pandas_histograms import PandasHistograms
 from targets.values.structure import DictValueType
 from targets.values.value_type import _isinstances
 
@@ -124,7 +124,7 @@ class DataFrameValueType(DataValueType):
         meaningful_index = kwargs.get("set_index")
         # if we don't have index based on some data column
         if not meaningful_index:
-            from targets.marshalling.pandas import _is_default_index
+            from targets.providers.pandas.pandas_marshaller import _is_default_index
 
             meaningful_index = all(not _is_default_index(df) for df in values)
 
@@ -160,7 +160,7 @@ class DataFramesDictValueType(DictValueType):
 
     def load_from_target(self, target, **kwargs):
         if target.config.format == FileFormat.hdf5:
-            return target.load(value_type=Dict[str, pd.DataFrame])
+            return target.load(value_type=self)
 
         from targets import DirTarget
 

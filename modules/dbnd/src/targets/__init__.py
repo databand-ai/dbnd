@@ -14,6 +14,7 @@ from targets.file_target import FileSystemTarget, FileTarget
 from targets.fs.file_system import FileSystem
 from targets.fs.local import LocalFileSystem
 from targets.inmemory_target import InMemoryTarget
+from targets.providers import register_all_basic_types
 from targets.target_factory import target
 from targets.utils.atomic import AtomicLocalFile
 
@@ -34,4 +35,5 @@ __all__ = [
     "InMemoryTarget",
     "target",
     "AtomicLocalFile",
+    "register_all_basic_types",
 ]

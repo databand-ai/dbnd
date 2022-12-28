@@ -1,13 +1,16 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import logging
 import types
 
 import attr
 
 from dbnd._core.errors import friendly_error
-from targets.marshalling import StrLinesMarshaller, StrMarshaller
+from targets.marshalling.file import StrLinesMarshaller, StrMarshaller
 from targets.marshalling.marshaller import Marshaller
-from targets.values import ValueType
+from targets.target_config import FileFormat
+
+
+logger = logging.getLogger(__name__)
 
 
 @attr.s
@@ -26,6 +29,7 @@ class MarshallerCtrl(object):
         return value
 
     def _load(self, **kwargs):
+
         from targets.dir_target import DirTarget
         from targets.file_target import FileTarget
         from targets.multi_target import MultiTarget
@@ -58,7 +62,7 @@ class MarshallerCtrl(object):
 
     def dump(self, value, **kwargs):
         target = self.target
-        from targets.marshalling import StrLinesMarshaller, StrMarshaller
+        from targets.marshalling.file import StrLinesMarshaller, StrMarshaller
         from targets.multi_target import MultiTarget
 
         if isinstance(self.marshaller, StrMarshaller):
@@ -97,3 +101,57 @@ class MarshallerCtrl(object):
     def load_partitioned(self, **kwargs):
         for t in self.target.list_partitions():
             yield self.marshaller.target_to_value(t, **kwargs)
+
+
+def _marshaller_options_message(value_type, value_options, object_options):
+    value_options = set(value_options.keys())
+    object_options = set(object_options.keys())
+    object_options.difference_update(value_options)
+    msg = "For '{type}' you can use {value_options}.".format(
+        value_options=",".join(sorted(value_options)), type=value_type.type
+    )
+    if object_options:
+        msg += (
+            "Default marshallers (Type[object]) "
+            "will be used for formats {object_options}".format(
+                object_options=",".join(sorted(object_options))
+            )
+        )
+    return msg
+
+
+def get_marshaller_ctrl(target, value_type_or_obj_type, config=None):
+    config = config or target.config
+
+    from targets.values import get_value_type_of_type
+
+    value_type = get_value_type_of_type(
+        value_type_or_obj_type, inline_value_type=True
+    ).load_value_type()
+
+    target_file_format = config.format
+    if target_file_format is None:
+        target_file_format = FileFormat.txt
+        logger.warning("Can not find file type of '%s', assuming it's .txt", target)
+
+    marshaller = value_type.get_marshaller(target_file_format)
+    if not marshaller:
+        # let's try simplest value type
+        # may be we should print warning here?
+        value_type_for_object = get_value_type_of_type(object)
+
+        # let's try to check marshallers for object
+        marshaller = value_type_for_object.get_marshaller(target_file_format)
+        if not marshaller:
+            raise friendly_error.targets.no_marshaller(
+                target=target,
+                value_type=value_type,
+                config=config,
+                options_message=_marshaller_options_message(
+                    value_type=value_type,
+                    value_options=value_type.marshallers,
+                    object_options=value_type_for_object.marshallers,
+                ),
+            )
+        value_type = value_type_for_object
+    return MarshallerCtrl(target=target, marshaller=marshaller, value_type=value_type)

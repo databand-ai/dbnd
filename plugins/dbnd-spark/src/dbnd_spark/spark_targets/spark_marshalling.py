@@ -18,7 +18,6 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -51,6 +50,21 @@ class SparkMarshaller(Marshaller):
     def support_direct_access(self, target):
         # Spark supports direct access to all file systems
         return True
+
+
+class SparkMarshallerTxt(SparkMarshaller):
+    def __init__(self):
+        super(SparkMarshallerTxt, self).__init__(fmt=FileFormat.txt)
+
+
+class SparkMarshallerParquet(SparkMarshaller):
+    def __init__(self):
+        super(SparkMarshallerParquet, self).__init__(fmt=FileFormat.parquet)
+
+
+class SparkMarshallerJson(SparkMarshaller):
+    def __init__(self):
+        super(SparkMarshallerJson, self).__init__(fmt=FileFormat.json)
 
 
 class SparkDataFrameToCsv(SparkMarshaller):

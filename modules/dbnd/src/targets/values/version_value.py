@@ -7,7 +7,7 @@ from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 from dbnd._core.utils.git import get_git_commit
 from dbnd._core.utils.project.project_fs import project_path
 from dbnd._core.utils.timezone import utcnow
-from targets.values import StrValueType
+from targets.values.builtins_values import StrValueType
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class VersionValueType(StrValueType):
     """
 
     type = VersionStr
-    discoverable = False
+    support_discover_from_obj = False
 
     def parse_from_str(self, s):
         s = super(VersionValueType, self).parse_from_str(s)

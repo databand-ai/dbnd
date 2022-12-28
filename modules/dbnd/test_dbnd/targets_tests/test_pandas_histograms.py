@@ -6,8 +6,8 @@ from datetime import datetime
 import pandas as pd
 
 from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs
+from targets.providers.pandas.pandas_histograms import PandasHistograms
 from targets.value_meta import ValueMetaConf
-from targets.values.pandas_histograms import PandasHistograms
 
 
 # fmt: off

@@ -47,11 +47,12 @@ def _load_module(module, description):
             return m
     except import_errors as ex:
         logger.warning(
-            "Failed to load module '%s' %s: cwd='%s', sys.path=\n\t%s",
+            "Failed to load module '%s' %s: cwd='%s', sys.path=\n\t%s, ex=%s",
             module,
             friendly_error.dbnd_module_not_found_tip(module),
             os.getcwd(),
             "\n\t".join(sys.path),
+            ex,
         )
         raise friendly_error.failed_to_import_user_module(
             ex, module=module, description=description

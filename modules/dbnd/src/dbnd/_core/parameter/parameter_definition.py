@@ -123,6 +123,8 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     value_type_defined = attr.ib(default=None)  # type: ValueType
     sub_type = attr.ib(default=None)
 
+    type_ = attr.ib(default=None)  # type used to do define
+
     description = attr.ib(default=NOTHING)  # type: str
     config_path = attr.ib(default=None)  # type: Optional[ConfigPath]
     disable_jinja_templating = attr.ib(default=False)  # type: bool

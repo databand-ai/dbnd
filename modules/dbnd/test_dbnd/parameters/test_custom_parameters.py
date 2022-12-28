@@ -19,9 +19,10 @@ from dbnd_test_scenarios.test_common.custom_parameter_hdf5 import (
     MyDataReport,
 )
 from targets import target
+from targets.caching import TARGET_CACHE
 from targets.target_config import folder
+from targets.values import get_value_type_of_type
 from targets.values.builtins_values import DataValueType
-from targets.values.pandas_values import DataFramesDictValueType
 
 
 logger = logging.getLogger(__name__)
@@ -31,11 +32,15 @@ class MyFeatureStoreValueTypeUniversal(DataValueType):
     type = FeatureStore
 
     def load_from_target(self, target, **kwargs):
-        df_dict = DataFramesDictValueType().load_from_target(target, **kwargs)
+        value_type = get_value_type_of_type("Dict[str, pd.DataFrame]").load_value_type()
+        df_dict = value_type.load_from_target(target, **kwargs)
+        logger.info(df_dict)
+        # if from target cache  - no "/" in key
         return FeatureStore(features=df_dict["/features"], targets=df_dict["/targets"])
 
     def save_to_target(self, target, value, **kwargs):
-        DataFramesDictValueType().save_to_target(
+        value_type = get_value_type_of_type("Dict[str, pd.DataFrame]").load_value_type()
+        value_type.save_to_target(
             target=target, value={"features": value.features, "targets": value.targets}
         )
 
@@ -57,7 +62,7 @@ class TestCustomParameterAndMarshallerParameter(object):
         write_target = target(target_dir, config=folder.csv)
         universal = MyFeatureStoreValueTypeUniversal()
         universal.save_to_target(target=write_target, value=sample_feature_store)
-
+        TARGET_CACHE.clear()
         actual = universal.load_from_target(target=write_target)
         assert_frame_equal(actual.features, sample_feature_store.features)
 
@@ -66,6 +71,7 @@ class TestCustomParameterAndMarshallerParameter(object):
         universal = MyFeatureStoreValueTypeUniversal()
         universal.save_to_target(target=write_target, value=sample_feature_store)
 
+        TARGET_CACHE.clear()
         actual = universal.load_from_target(target=write_target)
         assert_frame_equal(actual.features, sample_feature_store.features)
 

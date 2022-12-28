@@ -14,10 +14,10 @@ from dbnd._core.utils.sql_tracker_common.sql_extract import Column, Schema
 from dbnd._core.utils.sql_tracker_common.utils import strip_quotes
 from dbnd.utils.anonymization import secrets_anonymizer
 from targets.connections import build_conn_path
+from targets.providers.pandas.pandas_histograms import PandasHistograms
 from targets.value_meta import ValueMeta
 from targets.values import register_value_type
 from targets.values.builtins_values import DataValueType
-from targets.values.pandas_histograms import PandasHistograms
 
 
 class Connection:

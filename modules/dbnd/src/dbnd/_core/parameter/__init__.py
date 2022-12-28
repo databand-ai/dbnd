@@ -9,11 +9,7 @@ from dbnd._core.parameter.parameter_definition import infer_parameter_value_type
 from dbnd._core.parameter.parameter_value import ParameterValue
 from dbnd._core.parameter.parameters_mapper import ParametersMapper
 from dbnd._core.utils.basics.nothing import NOTHING
-from targets.values import (
-    get_types_registry,
-    get_value_type_of_obj,
-    get_value_type_of_type,
-)
+from targets.values import get_value_type_of_obj, register_value_type
 from targets.values.builtins_values import DefaultObjectValueType
 
 
@@ -25,11 +21,8 @@ def get_params_mapper():
 
 
 def register_custom_parameter(value_type, parameter):
-    value_type = get_value_type_of_type(value_type, inline_value_type=True)
-
+    value_type = register_value_type(value_type)
     _PARAMS_MAPPER.register_custom_parameter(value_type, parameter)
-    get_types_registry().register_value_type(value_type)
-
     return parameter
 
 

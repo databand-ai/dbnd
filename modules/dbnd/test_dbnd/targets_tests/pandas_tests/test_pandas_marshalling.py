@@ -10,7 +10,7 @@ import pytest
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
-from targets.marshalling.pandas import (
+from targets.providers.pandas.pandas_marshaller import (
     DataFrameToCsv,
     DataFrameToHdf5,
     DataFrameToPickle,

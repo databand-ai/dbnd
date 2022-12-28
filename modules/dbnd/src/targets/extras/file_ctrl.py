@@ -10,13 +10,13 @@ from targets.target_config import file
 class ObjectMarshallingCtrl(DataTargetCtrl):
     def _load(self, value_type, config, **kwargs):
         marshaler_ctrl = get_marshaller_ctrl(
-            target=self.target, value_type=value_type, config=config
+            target=self.target, value_type_or_obj_type=value_type, config=config
         )
         return marshaler_ctrl.load(**kwargs)
 
     def _dump(self, value_type, config, value, **kwargs):
         marshaler_ctrl = get_marshaller_ctrl(
-            target=self.target, value_type=value_type, config=config
+            target=self.target, value_type_or_obj_type=value_type, config=config
         )
         return marshaler_ctrl.dump(value, **kwargs)
 

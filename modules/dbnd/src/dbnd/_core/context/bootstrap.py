@@ -105,10 +105,6 @@ def dbnd_bootstrap():
 
     dbnd_project_config = get_dbnd_project_config()
 
-    from targets.marshalling import register_basic_data_marshallers
-
-    register_basic_data_marshallers()
-
     _surpress_loggers()
     _suppress_warnings()
     enable_osx_forked_request_calls()

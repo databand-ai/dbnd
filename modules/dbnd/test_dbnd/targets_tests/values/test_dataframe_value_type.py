@@ -3,8 +3,8 @@
 from pandas.core.util.hashing import hash_pandas_object
 
 from dbnd._vendor import fast_hasher
+from targets.providers.pandas.pandas_values import DataFrameValueType
 from targets.value_meta import ValueMeta, ValueMetaConf
-from targets.values.pandas_values import DataFrameValueType
 
 
 class TestDataFrameValueType(object):

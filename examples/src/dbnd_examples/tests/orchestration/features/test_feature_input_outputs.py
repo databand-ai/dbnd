@@ -1,5 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
+import logging
+
 import pandas as pd
 import pytest
 
@@ -13,6 +15,9 @@ from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestB
 from targets.dir_target import DirTarget
 
 
+logger = logging.getLogger(__name__)
+
+
 @pytest.fixture
 def sample():
     return pd.DataFrame(data=[[1, 1], [2, 2]], columns=["c1", "c2"])
@@ -24,6 +29,7 @@ class TestFeatureOutputsExamples(TargetTestBase):
         task = assert_run_task(task)
         assert task
         assert isinstance(task.result, DirTarget)
+        logger.info("All partitions %s" % task.result.list_partitions())
         assert len(task.result.list_partitions()) == 3
 
     def test_tutorial_partners_report(self, sample):

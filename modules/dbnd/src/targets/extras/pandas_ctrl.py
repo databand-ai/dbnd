@@ -32,7 +32,9 @@ class PandasMarshallingCtrl(DataTargetCtrl):
 
     @target_timeit
     def to(self, df, config=None, **kwargs):
-        pd_m = get_marshaller_ctrl(self.target, value_type=DataFrame, config=config)
+        pd_m = get_marshaller_ctrl(
+            self.target, value_type_or_obj_type=DataFrame, config=config
+        )
         return pd_m.dump(df, **kwargs)
 
     def read_csv(self, **kwargs):
