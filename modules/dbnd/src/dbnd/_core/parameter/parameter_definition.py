@@ -481,9 +481,9 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
             return "unknown"
         type_handler = self.value_type.type_str
         if isinstance(self.value_type, InlineValueType):
-            type_handler = "!" + type_handler
+            type_handler = f"inline({self.value_type})"
         if self.value_type_defined != self.value_type:
-            type_handler = "*" + type_handler
+            type_handler = f"{type_handler}@runtime"
         return type_handler
 
     def _target_source(self, task):
