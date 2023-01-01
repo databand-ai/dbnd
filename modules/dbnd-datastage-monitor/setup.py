@@ -24,7 +24,7 @@ setuptools.setup(
         "prometheus-client",
         "sentry-sdk",
     ],
-    extras_require={"tests": ["pytest", "mock"]},
+    extras_require={"tests": ["pytest", "mock", "pytest-cov==3.0.0"]},
     entry_points={
         "console_scripts": [
             "dbnd-datastage-monitor = dbnd_datastage_monitor.multiserver.datastage_multiserver:datastage_monitor"
