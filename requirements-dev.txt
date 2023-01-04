@@ -637,7 +637,7 @@ websocket-client==1.4.1
     #   kubernetes
 werkzeug==1.0.1
     # via flask
-wheel==0.37.1
+wheel==0.38.1
     # via
     #   -r requirements-dev.in
     #   pip-tools
