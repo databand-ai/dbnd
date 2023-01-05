@@ -37,10 +37,8 @@ class BufferedLogManager:
 
         self.head_buffer = []
         self.current_head_bytes = 0
-        self.trimmed_tail_buffer = []
-        self.current_tail_bytes = 0
-
         self.tail_buffer = []
+        self.current_tail_bytes = 0
 
         self.total_log_size = 0
 
@@ -56,8 +54,21 @@ class BufferedLogManager:
             <= self.max_head_bytes + self.max_tail_bytes
         )
 
+    def _move_initial_buffer_to_the_truncated_buffers(self):
+        for message in self.initial_buffer:
+            self._add_message_to_truncated_buffers(message)
+
     def add_log_msg(self, msg: str):
         """Add the message msg to the log body.
+
+        If when we add the message to our buffers, we still don't overflow the max head bytes + the max tail bytes
+        then we add it to a temporary initial_buffer, to hold all the logs, so we won't truncate the log to 2 parts
+        with a newline in the middle redundantly.
+
+        After we got enough log size, that we start to split the data between head and tail, we fill the head buffer,
+        if it exists, and then we fill the tail buffer. every additional message that we add in the end, can cause
+        a rotation of messages in the tail buffer, so we will only hold the latest max_tail_bytes bytes of log.
+
 
         Args:
             msg: current log message we are adding to the log body.
@@ -74,12 +85,55 @@ class BufferedLogManager:
                 self.initial_buffer_size += message_size
             else:
                 self.initial_buffer_size = self.max_head_bytes + self.max_tail_bytes + 1
-                for message in self.initial_buffer:
-                    self._add_message_to_truncated_buffers(message)
+                self._move_initial_buffer_to_the_truncated_buffers()
 
                 self._add_message_to_truncated_buffers(msg)
         else:
             self._add_message_to_truncated_buffers(msg)
+
+    def _add_message_to_truncated_buffers(self, msg: str):
+        message_size = len(msg)
+        if self.current_head_bytes < self.max_head_bytes:
+            if self.current_head_bytes + message_size <= self.max_head_bytes:
+                self.current_head_bytes += message_size
+                self.head_buffer.append(msg)
+            elif self.max_head_bytes > 0:
+                # handle when there is some space in the head buffer, but we need to cut it off
+                head_buffer_size_left = self.max_head_bytes - self.current_head_bytes
+                self.head_buffer.append(msg[0:head_buffer_size_left])
+                self.current_head_bytes = self.max_head_bytes
+                if self.max_tail_bytes > 0:
+                    self.tail_buffer_starts_with_partial_message = True
+                    self._add_message_to_tail(msg[head_buffer_size_left:])
+
+        elif self.max_tail_bytes > 0:
+            self._add_message_to_tail(msg)
+
+    def _add_message_to_tail(self, msg: str):
+        message_size = len(msg)
+        if self.current_tail_bytes + message_size <= self.max_tail_bytes:
+            self.current_tail_bytes += message_size
+            self.tail_buffer.append(msg)
+        elif self.max_tail_bytes > 0:
+            # We have overflow in the tail
+            bytes_to_rotate = message_size
+            if self.current_tail_bytes < self.max_tail_bytes:
+                bytes_to_rotate = (
+                    self.current_tail_bytes + message_size - self.max_tail_bytes
+                )
+                self.current_tail_bytes = self.max_tail_bytes
+
+            self.tail_buffer.append(msg)
+            # Rotation of bytes is needed to keep the newest max_tail_bytes bytes in the trimmed buffer
+            while bytes_to_rotate > 0:
+                if len(self.tail_buffer[0]) <= bytes_to_rotate:
+                    bytes_to_rotate -= len(self.tail_buffer[0])
+                    self.tail_buffer = self.tail_buffer[1:]
+                    self.tail_buffer_starts_with_partial_message = False
+                else:
+                    self.tail_buffer[0] = self.tail_buffer[0][bytes_to_rotate:]
+                    self.tail_buffer_starts_with_partial_message = True
+                    bytes_to_rotate = 0
 
     @property
     def minimum_acceptable_initial_partial_message_size(self) -> float:
@@ -92,34 +146,6 @@ class BufferedLogManager:
         """
         return self.max_tail_bytes * 0.5
 
-    def _add_message_to_trimmed_tail(self, msg: str):
-        message_size = len(msg)
-        if self.current_tail_bytes + message_size <= self.max_tail_bytes:
-            self.current_tail_bytes += message_size
-            self.trimmed_tail_buffer.append(msg)
-        elif self.max_tail_bytes > 0:
-            # We have overflow in the tail
-            bytes_to_rotate = message_size
-            if self.current_tail_bytes < self.max_tail_bytes:
-                bytes_to_rotate = (
-                    self.current_tail_bytes + message_size - self.max_tail_bytes
-                )
-                self.current_tail_bytes = self.max_tail_bytes
-
-            self.trimmed_tail_buffer.append(msg)
-            # Rotation of bytes is needed to keep the newest max_tail_bytes bytes in the trimmed buffer
-            while bytes_to_rotate > 0:
-                if len(self.trimmed_tail_buffer[0]) <= bytes_to_rotate:
-                    bytes_to_rotate -= len(self.trimmed_tail_buffer[0])
-                    self.trimmed_tail_buffer = self.trimmed_tail_buffer[1:]
-                    self.tail_buffer_starts_with_partial_message = False
-                else:
-                    self.trimmed_tail_buffer[0] = self.trimmed_tail_buffer[0][
-                        bytes_to_rotate:
-                    ]
-                    self.tail_buffer_starts_with_partial_message = True
-                    bytes_to_rotate = 0
-
     def get_log_body(self) -> str:
         """Builds the final log body.
 
@@ -128,22 +154,20 @@ class BufferedLogManager:
         """
         if (
             self.current_head_bytes == 0
-            and len(self.tail_buffer) == 0
+            and self.current_tail_bytes == 0
             and self.initial_buffer_size > 0
         ):
             parts = [self.initial_buffer]
         else:
-            if self.max_tail_bytes > 0:
-                self._build_tail_for_preview()
-
             if (
                 self.tail_buffer_starts_with_partial_message
-                and len(self.trimmed_tail_buffer[0])
+                and len(self.tail_buffer[0])
                 < self.minimum_acceptable_initial_partial_message_size
             ):
-                self.trimmed_tail_buffer.pop(0)
+                self.tail_buffer.pop(0)
+                self.tail_buffer_starts_with_partial_message = False
 
-            parts = [self.head_buffer, self.trimmed_tail_buffer]
+            parts = [self.head_buffer, self.tail_buffer]
         # check if all the parts contains information
         if not any(parts):
             if self.max_head_bytes > 0 or self.max_tail_bytes > 0:
@@ -169,30 +193,3 @@ class BufferedLogManager:
         )
 
         return merge_msg.join(joined_parts)
-
-    def _build_tail_for_preview(self):
-        self.current_tail_bytes = 0
-        self.trimmed_tail_buffer = []
-        for message in self.tail_buffer:
-            self._add_message_to_trimmed_tail(message)
-
-    def _add_message_to_truncated_buffers(self, msg: str):
-        message_size = len(msg)
-        if self.current_head_bytes < self.max_head_bytes:
-            if self.current_head_bytes + message_size <= self.max_head_bytes:
-                self.current_head_bytes += message_size
-                self.head_buffer.append(msg)
-            elif self.max_head_bytes > 0:
-                # handle when there is some space in the head buffer, but we need to cut it off
-                head_buffer_size_left = self.max_head_bytes - self.current_head_bytes
-                self.head_buffer.append(msg[0:head_buffer_size_left])
-                self.current_head_bytes = self.max_head_bytes
-                if self.max_tail_bytes > 0:
-                    self.tail_buffer_starts_with_partial_message = True
-                    self._add_message_to_tail(msg[head_buffer_size_left:])
-
-        elif self.max_tail_bytes > 0:
-            self._add_message_to_tail(msg)
-
-    def _add_message_to_tail(self, msg: str):
-        self.tail_buffer.append(msg)
