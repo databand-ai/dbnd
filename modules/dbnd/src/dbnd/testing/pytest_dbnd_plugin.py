@@ -94,7 +94,9 @@ def databand_test_context(
         },
         "local": {"root": str(tmpdir.join("local_root"))},
     }
-    databand_context_kwargs.setdefault("name", "databand_test_context")
+    databand_context_kwargs.setdefault(
+        "name", f"databand_test_context: {os.environ.get('PYTEST_CURRENT_TEST')}"
+    )
     with config(test_config, source="databand_test_context"), new_dbnd_context(
         **databand_context_kwargs
     ) as t:
@@ -114,12 +116,27 @@ def databand_clean_register_for_every_test():
         yield r
 
 
+@pytest.fixture
+def databand_clean_airflow_vars_for_every_test():
+    yield
+    for v in [
+        "AIRFLOW_CTX_DAG_ID",
+        "AIRFLOW_CTX_EXECUTION_DATE",
+        "AIRFLOW_CTX_TASK_ID",
+        "AIRFLOW_CTX_TRY_NUMBER",
+        "AIRFLOW_CTX_UID",
+    ]:
+        if v in os.environ:
+            del os.environ[v]
+
+
 @pytest.fixture(autouse=True)
 def databand_pytest_env(
     databand_clean_project_config_for_every_test,
     databand_test_db,
     databand_test_context,
     databand_clean_register_for_every_test,
+    databand_clean_airflow_vars_for_every_test,
 ):
     """
     all required fixtures to run datband related tests

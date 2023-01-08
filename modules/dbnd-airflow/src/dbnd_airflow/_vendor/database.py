@@ -1,4 +1,3 @@
-
 """
 Vendorized from SQLAlchemy-Utils version 0.36.1
 License is BSD
@@ -32,13 +31,23 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-
 import os
 from copy import copy
 
 import sqlalchemy as sa
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import OperationalError, ProgrammingError
+
+
+def _sa_url_set(url, **kwargs):
+    try:
+        url = url.set(**kwargs)
+    except AttributeError:
+        # SQLAlchemy <= 1.3
+        for key, value in kwargs.items():
+            setattr(url, key, value)
+
+    return url
 
 
 def database_exists(url):
@@ -81,9 +90,9 @@ def database_exists(url):
     url = copy(make_url(url))
     database = url.database
     if url.drivername.startswith("postgres"):
-        url.database = "postgres"
+        url = _sa_url_set(url, database="postgres")
     else:
-        url.database = None
+        url = _sa_url_set(url, database=None)
 
     engine = sa.create_engine(url)
 

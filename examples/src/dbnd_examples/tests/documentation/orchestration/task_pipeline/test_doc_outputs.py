@@ -14,6 +14,8 @@ from targets.target_config import FileFormat
 
 DEFAULT_OUTPUT_HDFS_PATH = data_repo.wines
 
+Outputs1 = NamedTuple("Outputs1", training_set=DataFrame, real_data=DataFrame)
+
 
 class TestDocOutputs:
     def test_prepare_data_named_output(self):
@@ -95,11 +97,11 @@ class TestDocOutputs:
 
     def test_prepare_data_with_tuple(self):
         #### DOC START
-        Outputs = NamedTuple("outputs", training_set=DataFrame, real_data=DataFrame)
+        # Outputs = NamedTuple("outputs", training_set=DataFrame, real_data=DataFrame)
 
         @task
-        def prepare_data(p: int) -> Outputs:
-            return Outputs(
+        def prepare_data(p: int) -> Outputs1:
+            return Outputs1(
                 pd.DataFrame(data=[[p, 1]], columns=["c1", "c2"]),
                 pd.DataFrame(data=[[p, 1]], columns=["c1", "c2"]),
             )
@@ -112,9 +114,7 @@ class TestDocOutputs:
         @task
         def prepare_data(
             p: int,
-        ) -> NamedTuple(
-            "Outputs", fields=[("training_set", DataFrame), ("real_data", DataFrame)]
-        ):
+        ) -> NamedTuple("Outputs", training_set=DataFrame, real_data=DataFrame):
             return (
                 pd.DataFrame(data=[[p, 1]], columns=["c1", "c2"]),
                 pd.DataFrame(data=[[p, 1]], columns=["c1", "c2"]),

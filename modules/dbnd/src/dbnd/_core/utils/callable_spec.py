@@ -145,9 +145,15 @@ def guess_func_return_type(f_spec):
                 ("result_%s" % idx, ret_part_type)
                 for idx, ret_part_type in enumerate(return_func_spec, start=1)
             ]
-        # easy way to check that it's NamedTuple
+        # easy way to check that it's NamedTuple py36
         elif hasattr(return_func_spec, "_field_types"):
             return_func_spec = list(six.iteritems(return_func_spec._field_types))
+
+        # easy way to check that it's NamedTuple py39
+        elif hasattr(return_func_spec, "_fields") and hasattr(
+            return_func_spec, "__annotations__"
+        ):
+            return_func_spec = list(six.iteritems(return_func_spec.__annotations__))
         # case of named tuple
         elif is_Tuple(return_func_spec):
             # for -> Tuple[int,DataFrame]

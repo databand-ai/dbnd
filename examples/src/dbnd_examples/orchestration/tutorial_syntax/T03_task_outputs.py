@@ -47,9 +47,7 @@ def f_returns_two_dataframes_named_tuple_v1(p: int) -> FeatureStore:
 @task
 def f_returns_two_dataframes_named_tuple_v2(
     p: int,
-) -> NamedTuple(
-    "FeatureStore", fields=[("features", DataFrame), ("scores", DataFrame)]
-):
+) -> NamedTuple("FeatureStore", features=DataFrame, scores=DataFrame):
     return (
         pd.DataFrame(data=[[p, 1]], columns=["c1", "c2"]),
         pd.DataFrame(data=[[p, 1]], columns=["c1", "c2"]),

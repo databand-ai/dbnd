@@ -17,10 +17,14 @@ EXTRAS_REQUIRE = {"airflow": ["dbnd-airflow[airflow]==" + version]}
 INSTALL_REQUIRES = [
     # we are still installing 'databand' in dockers.. "dbnd==" + version,
     "dbnd-airflow==" + version,
-    "scikit-learn==0.23.2",
+    'scikit-learn==0.23.2;python_version<"3.8"',
+    'scikit-learn==1.2.0;python_version>="3.8"',
     'scipy==1.1.0;python_version<"3.8"',
-    'scipy==1.8.0;python_version>="3.8"',
-    "matplotlib==3.3.0",
+    'scipy==1.9.3;python_version>="3.8"',
+    'matplotlib==3.3.0;python_version<"3.8"',
+    'matplotlib==3.6.2;python_version>="3.8"',
+    'pyspark==2.4.4;python_version<"3.8"',
+    'pyspark==3.3.1;python_version>="3.8"',
     "pandas<2.0.0,>=0.17.1",
 ]
 

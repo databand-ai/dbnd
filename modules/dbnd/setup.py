@@ -60,13 +60,15 @@ setuptools.setup(
             "mock",
             "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
             "tox==3.12.1",
-            "matplotlib==3.3.0",
+            'scikit-learn==0.23.2;python_version<"3.8"',
+            'scikit-learn==1.2.0;python_version>="3.8"',
+            'matplotlib==3.3.0;python_version<"3.8"',
+            'matplotlib==3.6.2;python_version>="3.8"',
             "tables==3.7.0",
             "feather-format",
             "pyarrow",
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
             "openpyxl==2.6.4",
-            "scikit-learn",
             "wheel",  # for fat_wheel tests
         ],
         "jupyter": [
