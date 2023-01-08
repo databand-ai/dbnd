@@ -2,11 +2,15 @@
 
 
 from dbnd import parameter
-from targets.values import ValueTypeLoader, register_value_type
+from targets.values import InlineValueType, ValueTypeLoader, register_value_type
 
 
-class TestParameterValue(object):
-    def test_value_type_list(self):
+class TypeWithValueTypeLoaderError(object):
+    pass
+
+
+class TestParameterValueTypeLoader(object):
+    def test_value_type_loader(self):
         register_value_type(
             ValueTypeLoader(
                 "test_dbnd.parameters.lazy_types_examples.lazy_type_simple.LazyTypeForTest1",
@@ -26,3 +30,20 @@ class TestParameterValue(object):
         # parameter after build
         p = parameter[LazyTypeForTest1]._p
         assert isinstance(p.value_type, LazyTypeForTest1_ValueType)
+
+    def test_value_type_loader_failed(self):
+        c = TypeWithValueTypeLoaderError
+        register_value_type(
+            ValueTypeLoader(
+                f"{c.__module__}.{c.__qualname__}",
+                "test_dbnd.parameters.NotExists",
+                "dbnd-core",
+            )
+        )
+
+        p_def = parameter[TypeWithValueTypeLoaderError].parameter
+        assert isinstance(p_def.value_type, ValueTypeLoader)
+
+        # parameter after build
+        p = parameter[TypeWithValueTypeLoaderError]._p
+        assert isinstance(p.value_type, InlineValueType)
