@@ -1,10 +1,9 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from modules.dbnd.test_dbnd.tracking.callable_tracking.lazy_value_types_examples import (
+from targets.values import ValueType
+from test_dbnd.tracking.callable_tracking.lazy_value_types_examples import (
     LazyTypeForTrackingTest,
 )
-
-from targets.values import ValueType
 
 
 class LazyTypeForTrackingTest_ValueType(ValueType):
