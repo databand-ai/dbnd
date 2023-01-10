@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 class MonitorServicesFactory(ABC):
     """
     This class is a factory that returns all the required components for running a monitor
-    Inherit from this class, implement the methods and pass it to a BaseMultiServerMonitor instance.
+    Inherit from this class, implement the methods and pass it to a MultiServerMonitor instance.
     """
 
     @abstractmethod
@@ -17,5 +17,5 @@ class MonitorServicesFactory(ABC):
         pass
 
     @abstractmethod
-    def get_tracking_service(self, tracking_source_uid):
+    def get_tracking_service(self, server_config):
         pass

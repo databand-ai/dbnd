@@ -18,9 +18,6 @@ class BaseMonitorConfig:
     # Set the sleep time, in seconds, between fetches, when the monitor is not busy.
     interval: int = attr.ib(default=5, converter=int)
 
-    # seq/mp
-    runner_type: str = "seq"
-
     # Set a cap for the number of monitor iterations. This is optional.
     number_of_iterations: Optional[int] = attr.ib(default=None, converter=optional(int))
 

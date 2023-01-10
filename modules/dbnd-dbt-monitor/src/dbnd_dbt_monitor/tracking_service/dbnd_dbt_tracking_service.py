@@ -52,10 +52,7 @@ class DbndDbtTrackingService(BaseDbndTrackingService):
             data=data,
         )
 
-    def set_running_monitor_state(self, is_monitored_server_alive: bool):
-        if not is_monitored_server_alive:
-            return
-
+    def set_running_monitor_state(self):
         self.update_monitor_state(
             DbtMonitorState(monitor_status="Running", monitor_error_message=None)
         )

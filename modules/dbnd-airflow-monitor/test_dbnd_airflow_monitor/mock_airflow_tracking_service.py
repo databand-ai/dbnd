@@ -95,6 +95,7 @@ class MockTrackingService(BaseDbndTrackingService):
         self.alive = True
 
         self.monitor_state_updates = []
+        self.airflow_monitor_version = "2.0"
 
     @can_be_dead
     @ticking
@@ -200,6 +201,28 @@ class MockTrackingService(BaseDbndTrackingService):
     @ticking
     def update_monitor_state(self, monitor_state: MonitorState):
         self.monitor_state_updates.append(monitor_state.as_dict())
+
+    def set_running_monitor_state(self):
+        self.update_monitor_state(
+            MonitorState(
+                monitor_status="Running",
+                airflow_monitor_version=self.airflow_monitor_version,
+                airflow_version="",
+                airflow_export_version="",
+                airflow_instance_uid="",
+                monitor_error_message="",
+                api_mode="",
+            )
+        )
+
+    def set_starting_monitor_state(self):
+        self.update_monitor_state(
+            MonitorState(
+                monitor_status="Scheduled",
+                airflow_monitor_version=self.airflow_monitor_version,
+                monitor_error_message=None,
+            )
+        )
 
     @can_be_dead
     @ticking

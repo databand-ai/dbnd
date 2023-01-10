@@ -16,10 +16,7 @@ from airflow_monitor.config_updater.runtime_config_updater import (
 )
 from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
-from airflow_monitor.multiserver.monitor_component_manager import (
-    AirflowMonitorComponentManager,
-)
-from airflow_monitor.multiserver.multiserver import AirflowMultiServerMonitor
+from airflow_monitor.shared.base_multiserver import MultiServerMonitor
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from dbnd._core.errors import DatabandConfigError
 
@@ -124,8 +121,7 @@ class TestSyncerWorks(WebAppTest):
         ), self.patch_api_client():
             syncer_name = syncer["name"]
             monitor_config = AirflowMonitorConfig(syncer_name=syncer_name)
-            yield AirflowMultiServerMonitor(
-                monitor_component_manager=AirflowMonitorComponentManager,
+            yield MultiServerMonitor(
                 monitor_config=monitor_config,
                 components_dict={
                     "state_sync": AirflowRuntimeSyncer,

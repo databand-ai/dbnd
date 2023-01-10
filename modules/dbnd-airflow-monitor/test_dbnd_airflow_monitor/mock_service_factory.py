@@ -18,5 +18,5 @@ class MockAirflowServicesFactory(MonitorServicesFactory):
     def get_servers_configuration_service(self):
         return self.mock_servers_config_service
 
-    def get_tracking_service(self, tracking_source_uid):
+    def get_tracking_service(self, server_config):
         return self.mock_tracking_service

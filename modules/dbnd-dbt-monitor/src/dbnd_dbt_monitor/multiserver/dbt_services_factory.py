@@ -43,15 +43,14 @@ class DbtMonitorServicesFactory(MonitorServicesFactory):
             )
         )
 
-    @cached()
-    def get_tracking_service(self, tracking_source_uid) -> DbndDbtTrackingService:
+    def get_tracking_service(self, server_config) -> DbndDbtTrackingService:
         return decorate_tracking_service(
             DbndDbtTrackingService(
                 monitor_type=MONITOR_TYPE,
-                tracking_source_uid=tracking_source_uid,
+                tracking_source_uid=server_config.tracking_source_uid,
                 server_monitor_config=DbtServerConfig,
             ),
-            tracking_source_uid,
+            server_config.tracking_source_uid,
         )
 
 

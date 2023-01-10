@@ -125,7 +125,7 @@ class BaseDbndTrackingService:
             data=data,
         )
 
-    def set_running_monitor_state(self, is_monitored_server_alive: bool):
+    def set_running_monitor_state(self):
         pass
 
     def set_starting_monitor_state(self):
@@ -154,7 +154,7 @@ class WebServersConfigurationService:
     def __init__(
         self, monitor_type: str, server_monitor_config: Type[BaseServerConfig]
     ):
-        self.monitor_type: str = monitor_type  # airflow_monitor / datasource_monitor
+        self.monitor_type: str = monitor_type
         self._api_client: ApiClient = _get_api_client()
         self.server_monitor_config = server_monitor_config
 
@@ -186,6 +186,9 @@ class WebServersConfigurationService:
                 "metrics": full_metrics,
             },
         )
+
+    def send_metrics(self, monitor_config):
+        pass
 
     def report_exception(self, exception: str):
         data = {

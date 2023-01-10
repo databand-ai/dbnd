@@ -89,15 +89,14 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
             )
         )
 
-    @cached()
-    def get_tracking_service(self, tracking_source_uid) -> DbndDataStageTrackingService:
+    def get_tracking_service(self, server_config) -> DbndDataStageTrackingService:
         return decorate_tracking_service(
             DbndDataStageTrackingService(
                 monitor_type=MONITOR_TYPE,
-                tracking_source_uid=tracking_source_uid,
+                tracking_source_uid=server_config.tracking_source_uid,
                 server_monitor_config=DataStageServerConfig,
             ),
-            tracking_source_uid,
+            server_config.tracking_source_uid,
         )
 
 

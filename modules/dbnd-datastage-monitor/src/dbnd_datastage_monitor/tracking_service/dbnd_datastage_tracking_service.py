@@ -61,10 +61,7 @@ class DbndDataStageTrackingService(BaseDbndTrackingService):
     def update_last_sync_time(self):
         self.update_monitor_state(DataStageMonitorState(last_sync_time=utcnow()))
 
-    def set_running_monitor_state(self, is_monitored_server_alive: bool):
-        if not is_monitored_server_alive:
-            return
-
+    def set_running_monitor_state(self):
         self.update_monitor_state(
             DataStageMonitorState(monitor_status="Running", monitor_error_message=None)
         )
