@@ -32,10 +32,10 @@ class DataStageAssetsClient:
         self, start_time: str, end_time: str, next_page: Dict[str, any]
     ) -> Tuple[Optional[Dict[str, str]], Optional[str]]:
         try:
-            new_runs = self.client.get_runs_ids(
+            new_runs, next_page = self.client.get_runs_ids(
                 start_time=start_time, end_time=end_time, next_page=next_page
             )
-            return new_runs
+            return new_runs, next_page
         except Exception as e:
             logger.exception(
                 "Error occurred during fetching new DataStage runs: %s", str(e)
