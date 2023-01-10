@@ -117,7 +117,7 @@ class DataStageApiInMemoryClient(DataStageApiClient):
         start_time: str,
         end_time: str,
         next_page: Dict[str, any] = None,
-        page_size=200,
+        page_size=1,
     ):
         runs = {}
         min_start_time = parse_datetime(start_time)
@@ -216,12 +216,21 @@ class TestDataStageAssetsClient:
     ):
         next_page = None
         all_runs = {}
+        iterations = 0
         while True:
+            iterations += 1
             runs, next_page = datastage_runs_getter.get_new_runs(
                 start_time="2022-07-20T23:01:08Z",
                 end_time="2022-09-30T23:02:50Z",
                 next_page=next_page,
             )
+            # Testing pagination
+            if iterations == 1:
+                # first iteration should return next page
+                assert next_page == 1
+            if iterations == 2:
+                # second iteration no next page
+                assert next_page == None
             all_runs.update(runs)
             if not next_page:
                 break
