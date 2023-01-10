@@ -33,6 +33,11 @@ dependencies {
     compileOnly("com.fasterxml.jackson.module:jackson-module-scala_2.11:2.14.1") {
         transitive = false
     }
+    constraints {
+        implementation('org.codehaus.jettison:jettison:1.5.2') {
+            because 'Jettison before v1.5.2 was discovered to contain a stack overflow via the map parameter. This vulnerability allows attackers to cause a Denial of Service (DoS) via a crafted string.'
+        }
+    }
 
     testImplementation 'org.mockito:mockito-all:1.10.19'
 }

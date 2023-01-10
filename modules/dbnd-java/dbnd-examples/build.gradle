@@ -24,6 +24,11 @@ dependencies {
     implementation('org.apache.spark:spark-sql_2.11:2.4.8') {
         exclude group: 'org.slf4j', module: 'slf4j-log4j12'
     }
+        constraints {
+        implementation('org.codehaus.jettison:jettison:1.5.2') {
+            because 'Jettison before v1.5.2 was discovered to contain a stack overflow via the map parameter. This vulnerability allows attackers to cause a Denial of Service (DoS) via a crafted string.'
+        }
+    }
 
     // fix for "Illegal pattern component: XXX" on spark read
     implementation 'org.apache.commons:commons-lang3:3.5'
@@ -50,6 +55,7 @@ dependencies {
     }
     implementation("com.fasterxml.jackson.module:jackson-module-scala_2.11:2.14.1")
     implementation 'org.scala-lang:scala-library:2.11.12'
+
 
     testImplementation "ai.databand:dbnd-client:${project.version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
