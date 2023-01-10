@@ -125,7 +125,6 @@ class DbndAirflowHandler(logging.Handler):
                     task_run_attempt_uid=self.task_run_attempt_uid
                 )
                 in_memory_log_body = self.in_memory_log_manager.get_log_body()
-
                 self.dbnd_context.tracking_store.save_task_run_log(
                     task_run=fake_task_run, log_body=in_memory_log_body
                 )
@@ -182,14 +181,14 @@ def set_dbnd_handler():
     airflow_logger = logging.getLogger(AIRFLOW_TASK_LOGGER)
     dbnd_handler = DbndAirflowHandler(logger=airflow_logger)
 
-    base_file_handler = first_true(
+    inheriting_handler = first_true(
         airflow_logger.handlers,
         pred=lambda handler: handler.__class__.__name__ == AIRFLOW_FILE_TASK_HANDLER,
-        default=None,
+        default=airflow_logger.handlers[0] if airflow_logger.handlers else None,
     )
-    if base_file_handler:
-        handler_formatter = base_file_handler.formatter
+    if inheriting_handler:
+        handler_formatter = inheriting_handler.formatter
         dbnd_handler.setFormatter(handler_formatter)
-        for handler_filter in base_file_handler.filters:
+        for handler_filter in inheriting_handler.filters:
             dbnd_handler.addFilter(handler_filter)
     airflow_logger.addHandler(dbnd_handler)
