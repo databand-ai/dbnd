@@ -12,7 +12,6 @@ from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
-    PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
@@ -76,9 +75,6 @@ class MockDataFetcher(AirflowDataFetcher):
         self.dag_runs = []  # type: List[MockDagRun]
         self.logs = []  # type: List[MockLog]
         self.alive = True
-        self.airflow_version = None
-        self.plugin_version = None
-        self.airflow_instance_uid = None
 
     @can_be_dead
     def get_last_seen_values(self) -> LastSeenValues:
@@ -165,14 +161,4 @@ class MockDataFetcher(AirflowDataFetcher):
                 if dr.id in dag_run_ids
                 for _ in range(dr.n_task_instances)
             ],
-        )
-
-    def is_alive(self):
-        return self.alive
-
-    def get_plugin_metadata(self):
-        return PluginMetadata(
-            airflow_version=self.airflow_version,
-            plugin_version=self.plugin_version,
-            airflow_instance_uid=self.airflow_instance_uid,
         )

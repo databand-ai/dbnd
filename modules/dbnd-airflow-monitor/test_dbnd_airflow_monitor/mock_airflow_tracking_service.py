@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+from collections import defaultdict
 from copy import copy
 from functools import wraps
 from typing import List
@@ -15,9 +15,9 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
-from airflow_monitor.shared.base_tracking_service import (
-    BaseDbndTrackingService,
-    WebServersConfigurationService,
+from airflow_monitor.shared.base_tracking_service import BaseTrackingService
+from airflow_monitor.tracking_service.airflow_syncer_management_service import (
+    AirflowSyncerManagementService,
 )
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 from test_dbnd_airflow_monitor.mock_airflow_data_fetcher import MockDagRun
@@ -53,48 +53,18 @@ def ticking(f):
     return wrapped
 
 
-class MockServersConfigService(WebServersConfigurationService):
-    def __init__(self):
-
-        super(MockServersConfigService, self).__init__(
-            monitor_type="airflow", server_monitor_config=AirflowServerConfig
-        )
-        self.alive = True
-        self.mock_servers = []  # type: List[AirflowServerConfig]
-
-    @can_be_dead
-    @ticking
-    def get_all_servers_configuration(
-        self, monitor_config=None
-    ) -> List[AirflowServerConfig]:
-        return self.mock_servers
-
-
-class MockTrackingService(BaseDbndTrackingService):
-    def __init__(self, tracking_source_uid=None):
+class MockTrackingService(BaseTrackingService):
+    def __init__(self, server_id=None):
         super(MockTrackingService, self).__init__(
-            monitor_type="airflow",
-            tracking_source_uid=tracking_source_uid,
-            server_monitor_config=AirflowServerConfig,
+            monitor_type="airflow", server_id=server_id
         )
 
         self.dag_runs = []  # type: List[MockDagRun]
 
-        self.config = AirflowServerConfig(
-            source_name="test",
-            source_type="airflow",
-            tracking_source_uid=tracking_source_uid,
-            interval=0,
-            sync_interval=0,
-            fix_interval=0,
-            config_updater_enabled=False,
-            config_updater_interval=0,
-        )
         self.last_seen_dag_run_id = None
         self.last_seen_log_id = None
         self.alive = True
 
-        self.monitor_state_updates = []
         self.airflow_monitor_version = "2.0"
 
     @can_be_dead
@@ -194,16 +164,34 @@ class MockTrackingService(BaseDbndTrackingService):
 
     @can_be_dead
     @ticking
-    def get_monitor_configuration(self) -> AirflowServerConfig:
-        return self.config
+    def get_syncer_info(self):
+        return {}
+
+
+class MockSyncersManagementService(AirflowSyncerManagementService):
+    def __init__(self, monitor_type, server_monitor_config, plugin_metadata):
+        super(MockSyncersManagementService, self).__init__(
+            monitor_type, server_monitor_config, plugin_metadata
+        )
+        self.alive = True
+        self.mock_servers = []  # type: List[AirflowServerConfig]
+        self.monitor_state_updates = defaultdict(list)
 
     @can_be_dead
     @ticking
-    def update_monitor_state(self, monitor_state: MonitorState):
-        self.monitor_state_updates.append(monitor_state.as_dict())
+    def get_all_servers_configuration(
+        self, monitor_config=None
+    ) -> List[AirflowServerConfig]:
+        return self.mock_servers
 
-    def set_running_monitor_state(self):
+    @can_be_dead
+    @ticking
+    def update_monitor_state(self, server_id, monitor_state: MonitorState):
+        self.monitor_state_updates[server_id].append(monitor_state.as_dict())
+
+    def set_running_monitor_state(self, server_id):
         self.update_monitor_state(
+            server_id,
             MonitorState(
                 monitor_status="Running",
                 airflow_monitor_version=self.airflow_monitor_version,
@@ -212,26 +200,21 @@ class MockTrackingService(BaseDbndTrackingService):
                 airflow_instance_uid="",
                 monitor_error_message="",
                 api_mode="",
-            )
+            ),
         )
 
-    def set_starting_monitor_state(self):
+    def set_starting_monitor_state(self, server_id):
         self.update_monitor_state(
+            server_id,
             MonitorState(
                 monitor_status="Scheduled",
                 airflow_monitor_version=self.airflow_monitor_version,
                 monitor_error_message=None,
-            )
+            ),
         )
 
-    @can_be_dead
-    @ticking
-    def get_syncer_info(self):
-        return {}
-
-    @property
-    def current_monitor_state(self):
+    def get_current_monitor_state(self, server_id):
         monitor_state = {k: None for k in attr.fields_dict(MonitorState).keys()}
-        for s in self.monitor_state_updates:
+        for s in self.monitor_state_updates[server_id]:
             monitor_state.update(s)
         return MonitorState(**monitor_state)

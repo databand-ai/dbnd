@@ -13,11 +13,12 @@ from dbnd_datastage_monitor.datastage_client.datastage_assets_client import (
 from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
     MultiProjectDataStageDataFetcher,
 )
-from dbnd_datastage_monitor.tracking_service.datastage_servers_configuration_service import (
-    DataStageSyncersConfigurationService,
+from dbnd_datastage_monitor.syncer.datastage_runs_syncer import DataStageRunsSyncer
+from dbnd_datastage_monitor.tracking_service.datastage_syncer_management_service import (
+    DataStageSyncersManagementService,
 )
-from dbnd_datastage_monitor.tracking_service.dbnd_datastage_tracking_service import (
-    DbndDataStageTrackingService,
+from dbnd_datastage_monitor.tracking_service.datastage_tracking_service import (
+    DataStageTrackingService,
 )
 
 from airflow_monitor.shared.decorators import (
@@ -36,6 +37,9 @@ logger = logging.getLogger(__name__)
 
 
 class DataStageMonitorServicesFactory(MonitorServicesFactory):
+    def get_components_dict(self):
+        return {"datastage_runs_syncer": DataStageRunsSyncer}
+
     @staticmethod
     def get_asset_clients(server_config: DataStageServerConfig):
         if server_config.number_of_fetching_threads <= 1:
@@ -82,21 +86,19 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
         return decorate_fetcher(fetcher, server_config.source_name)
 
     @cached()
-    def get_servers_configuration_service(self):
+    def get_syncer_management_service(self):
         return decorate_configuration_service(
-            DataStageSyncersConfigurationService(
+            DataStageSyncersManagementService(
                 monitor_type=MONITOR_TYPE, server_monitor_config=DataStageServerConfig
             )
         )
 
-    def get_tracking_service(self, server_config) -> DbndDataStageTrackingService:
+    def get_tracking_service(self, server_config) -> DataStageTrackingService:
         return decorate_tracking_service(
-            DbndDataStageTrackingService(
-                monitor_type=MONITOR_TYPE,
-                tracking_source_uid=server_config.tracking_source_uid,
-                server_monitor_config=DataStageServerConfig,
+            DataStageTrackingService(
+                monitor_type=MONITOR_TYPE, server_id=server_config.identifier
             ),
-            server_config.tracking_source_uid,
+            server_config.identifier,
         )
 
 

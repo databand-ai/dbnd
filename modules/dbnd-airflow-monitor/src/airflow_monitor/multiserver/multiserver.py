@@ -3,15 +3,10 @@
 import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.config_updater.runtime_config_updater import (
-    AirflowRuntimeConfigUpdater,
-)
-from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.multiserver.airflow_services_factory import (
     get_airflow_monitor_services_factory,
 )
-from airflow_monitor.shared.base_multiserver import MultiServerMonitor
-from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
+from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._core.errors.base import DatabandConfigError
 
 
@@ -30,14 +25,7 @@ def assert_valid_config(monitor_config):
 def start_multi_server_monitor(monitor_config: AirflowMonitorConfig):
     assert_valid_config(monitor_config)
 
-    services_components = {
-        "state_sync": AirflowRuntimeSyncer,
-        "fixer": AirflowRuntimeFixer,
-        "config_updater": AirflowRuntimeConfigUpdater,
-    }
-
     MultiServerMonitor(
         monitor_config=monitor_config,
-        components_dict=services_components,
         monitor_services_factory=get_airflow_monitor_services_factory(),
     ).run()

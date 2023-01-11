@@ -2,28 +2,25 @@
 
 import logging
 
-from airflow_monitor.common.base_component import BaseMonitorSyncer, start_syncer
-from airflow_monitor.common.errors import capture_monitor_exception
-from airflow_monitor.tracking_service.web_tracking_service import (
-    AirflowDbndTrackingService,
+from airflow_monitor.shared.base_component import BaseComponent
+from airflow_monitor.tracking_service.airflow_tracking_service import (
+    AirflowTrackingService,
 )
 
 
 logger = logging.getLogger(__name__)
 
 
-class AirflowRuntimeConfigUpdater(BaseMonitorSyncer):
+class AirflowRuntimeConfigUpdater(BaseComponent):
     SYNCER_TYPE = "runtime_config_updater"
 
     def __init__(self, *args, **kwargs):
         super(AirflowRuntimeConfigUpdater, self).__init__(*args, **kwargs)
-        self.sync_last_heartbeat = True
 
     @property
     def sleep_interval(self):
         return self.config.config_updater_interval
 
-    @capture_monitor_exception("sync_once")
     def _sync_once(self):
         try:
             from dbnd_airflow.export_plugin.api_functions import (
@@ -32,13 +29,11 @@ class AirflowRuntimeConfigUpdater(BaseMonitorSyncer):
         except ModuleNotFoundError:
             return
 
-        self.tracking_service: AirflowDbndTrackingService
+        self.tracking_service: AirflowTrackingService
         dbnd_response = self.tracking_service.get_syncer_info()
         if dbnd_response:
             check_syncer_config_and_set(dbnd_response)
 
-
-def start_runtime_config_updater(tracking_source_uid, run=True):
-    return start_syncer(
-        AirflowRuntimeConfigUpdater, tracking_source_uid=tracking_source_uid, run=run
-    )
+    def stop(self):
+        logger.info("Running runtime_config_updater last time before stopping for")
+        self.sync_once()

@@ -11,7 +11,6 @@ from airflow_monitor.common.airflow_data import (
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
-    PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
@@ -156,18 +155,3 @@ class DbFetcher(AirflowDataFetcher):
 
     def is_alive(self):
         return True
-
-    def get_plugin_metadata(self) -> PluginMetadata:
-        from airflow import version as airflow_version
-
-        import dbnd_airflow
-
-        from dbnd_airflow.export_plugin.compat import get_api_mode
-        from dbnd_airflow.utils import get_airflow_instance_uid
-
-        return PluginMetadata(
-            airflow_version=airflow_version.version,
-            plugin_version=dbnd_airflow.__version__,
-            airflow_instance_uid=get_airflow_instance_uid(),
-            api_mode=get_api_mode(),
-        )

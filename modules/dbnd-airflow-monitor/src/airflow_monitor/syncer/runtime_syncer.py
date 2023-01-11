@@ -9,12 +9,12 @@ from airflow_monitor.common.airflow_data import (
     AirflowDagRunsResponse,
     DagRunsStateData,
 )
-from airflow_monitor.common.base_component import BaseMonitorSyncer, start_syncer
 from airflow_monitor.common.config_data import AirflowServerConfig
-from airflow_monitor.common.errors import capture_monitor_exception
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
-from airflow_monitor.tracking_service.web_tracking_service import (
-    AirflowDbndTrackingService,
+from airflow_monitor.data_fetcher.plugin_metadata import get_plugin_metadata
+from airflow_monitor.shared.base_component import BaseComponent
+from airflow_monitor.tracking_service.airflow_tracking_service import (
+    AirflowTrackingService,
 )
 
 
@@ -66,14 +66,13 @@ def categorize_dag_runs(
     return dagruns_to_init, dagruns_to_update
 
 
-class AirflowRuntimeSyncer(BaseMonitorSyncer):
+class AirflowRuntimeSyncer(BaseComponent):
     SYNCER_TYPE = "runtime_syncer"
 
-    tracking_service: AirflowDbndTrackingService
+    tracking_service: AirflowTrackingService
     config: AirflowServerConfig
     data_fetcher: AirflowDataFetcher
 
-    @capture_monitor_exception("sync_once")
     def _sync_once(self):
         dbnd_response = self.tracking_service.get_active_dag_runs(
             start_time_window=self.config.start_time_window, dag_ids=self.config.dag_ids
@@ -113,16 +112,15 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
             airflow_response.dag_runs, dbnd_response.dag_run_ids
         )
 
-        self.init_dagruns(dagruns_to_init)
-        self.update_dagruns(dagruns_to_update)
+        self.init_runs(dagruns_to_init)
+        self.update_runs(dagruns_to_update)
 
-    @capture_monitor_exception
-    def init_dagruns(self, dagruns: List[AirflowDagRun]):
-        if not dagruns:
+    def init_runs(self, run_ids_to_init: List[AirflowDagRun]):
+        if not run_ids_to_init:
             return
 
-        plugin_metadata = self.data_fetcher.get_plugin_metadata()
-        dagruns = sorted(dagruns, key=lambda dr: dr.id)  # type: List[AirflowDagRun]
+        plugin_metadata = get_plugin_metadata()
+        dagruns: List[AirflowDagRun] = sorted(run_ids_to_init, key=lambda dr: dr.id)
 
         bulk_size = self.config.dag_run_bulk_size or len(dagruns)
         for i in range(0, len(dagruns), bulk_size):
@@ -140,13 +138,12 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
                 dag_runs_full_data, max(dag_run_ids), self.SYNCER_TYPE, plugin_metadata
             )
 
-    @capture_monitor_exception
-    def update_dagruns(self, dagruns: List[AirflowDagRun]):
+    def update_runs(self, run_ids_to_update: List[AirflowDagRun]):
         # update_dagruns will fetch updated states for given dagruns and send them
         # to webserver (in chunks). As a side effect - webserver will also update
         # last_sync_time which is used as heartbeat. We do it as part of update_dagruns
         # to be sure that we update last_sync_time only if data is being updated.
-        if not dagruns:
+        if not run_ids_to_update:
             # if there is no dagruns to update - do empty update to set last_sync_time
             # otherwise we might get false alarms that monitor is not syncing
             self.tracking_service.update_dagruns(
@@ -155,7 +152,7 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
             return
 
         dagruns = sorted(
-            dagruns, key=lambda dr: (dr.max_log_id is None, dr.max_log_id)
+            run_ids_to_update, key=lambda dr: (dr.max_log_id is None, dr.max_log_id)
         )  # type: List[AirflowDagRun]
 
         bulk_size = self.config.dag_run_bulk_size or len(dagruns)
@@ -174,9 +171,3 @@ class AirflowRuntimeSyncer(BaseMonitorSyncer):
                 max(max_logs_ids) if max_logs_ids else None,
                 self.SYNCER_TYPE,
             )
-
-
-def start_runtime_syncer(tracking_source_uid, run=True):
-    return start_syncer(
-        AirflowRuntimeSyncer, tracking_source_uid=tracking_source_uid, run=run
-    )

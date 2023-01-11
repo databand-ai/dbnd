@@ -3,16 +3,14 @@
 import logging
 import traceback
 
+from contextlib import contextmanager
 from datetime import timedelta
-from functools import wraps
-from typing import Callable, Optional
+from uuid import UUID
 
-from airflow_monitor.shared.base_tracking_service import (
-    BaseDbndTrackingService,
-    WebServersConfigurationService,
+from airflow_monitor.shared.base_component import BaseComponent
+from airflow_monitor.shared.base_syncer_management_service import (
+    BaseSyncerManagementService,
 )
-from dbnd._core.errors import DatabandError
-from dbnd._core.errors.friendly_error.tools import logger_format_for_databand_error
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.cachetools import TTLCache, cached
 
@@ -20,59 +18,41 @@ from dbnd._vendor.cachetools import TTLCache, cached
 logger = logging.getLogger(__name__)
 
 
-class CaptureMonitorExceptionDecorator:
-    def __init__(
-        self,
-        configuration_service_provider: Optional[
-            Callable[[], WebServersConfigurationService]
-        ] = None,
-    ):
-        self.configuration_service_provider = configuration_service_provider
+@contextmanager
+def capture_component_exception(component: BaseComponent, function_name: str):
+    syncer_logger = getattr(component.__module__, "logger", None) or logging.getLogger(
+        component.__module__
+    )
+    class_name = component.__class__.__name__
+    full_function_name = f"{class_name}.{function_name}"
 
-    def __call__(self, message: Optional[str] = None):
-        def wrapper(f):
-            @wraps(f)
-            def wrapped(obj, *args, **kwargs):
-                obj_logger = getattr(
-                    obj.__module__, "logger", None
-                ) or logging.getLogger(obj.__module__)
-                try:
-                    obj_logger.debug("[%s] %s", obj, message or f.__name__)
-                    result = f(obj, *args, **kwargs)
+    syncer_logger.debug("Running function %s from %s", function_name, component)
 
-                    _report_error(obj, f, None)
+    try:
+        yield
+        # No errors, send error None to clean the existing error if any
+        _report_error(
+            component.syncer_management_service,
+            component.config.identifier,
+            full_function_name,
+            None,
+        )
+    except Exception:
+        syncer_logger.exception(
+            "Error when running function %s from %s", function_name, class_name
+        )
 
-                    return result
-                except Exception as e:
-                    obj_logger.exception(
-                        "[%s] Error during %s", obj, message or f.__name__
-                    )
+        err_message = traceback.format_exc()
+        _log_exception_to_server(err_message, component.syncer_management_service)
 
-                    err_message = traceback.format_exc()
-                    if self.configuration_service_provider:
-                        configuration_service = self.configuration_service_provider()
-                    else:
-                        configuration_service = _get_tracking_service(obj)
-                    _log_exception_to_server(err_message, configuration_service)
+        err_message += f"\nTimestamp: {utcnow()}"
 
-                    if isinstance(e, DatabandError):
-                        err_message = logger_format_for_databand_error(e)
-
-                    err_message += "\nTimestamp: {}".format(utcnow())
-
-                    _report_error(obj, f, err_message)
-
-            return wrapped
-
-        if callable(message):
-            # probably was used as @capture_monitor_exception
-            func, message = message, None
-            return wrapper(func)
-
-        return wrapper
-
-
-capture_monitor_exception = CaptureMonitorExceptionDecorator()
+        _report_error(
+            component.syncer_management_service,
+            component.config.identifier,
+            full_function_name,
+            err_message,
+        )
 
 
 log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds())
@@ -80,22 +60,24 @@ log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds()
 
 # cached in order to avoid logging same messages over and over again
 @cached(log_exception_cache)
-def _log_exception_to_server(exception_message: str, client):
+def _log_exception_to_server(
+    exception_message: str, syncer_management_service: BaseSyncerManagementService
+):
     try:
-        client.report_exception(exception_message)
+        syncer_management_service.report_exception_to_web_server(exception_message)
     except Exception:
         logger.warning("Error sending monitoring exception message")
 
 
-def _get_tracking_service(obj) -> BaseDbndTrackingService:
-    return getattr(obj, "tracking_service", None)
-
-
-def _report_error(obj, f, err_message):
-    tracking_service = _get_tracking_service(obj)
-    if tracking_service is None:
-        return
+def _report_error(
+    syncer_management_service: BaseSyncerManagementService,
+    syncer_id: UUID,
+    function_name: str,
+    err_message: str,
+):
     try:
-        tracking_service.report_error(f, err_message)
+        syncer_management_service.report_syncer_error(
+            syncer_id, function_name, err_message
+        )
     except Exception:
         logger.warning("Error sending error message", exc_info=True)

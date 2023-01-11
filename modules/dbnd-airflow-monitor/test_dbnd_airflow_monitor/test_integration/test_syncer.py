@@ -10,15 +10,14 @@ import pytest
 
 from mock import MagicMock, patch
 
+from airflow_monitor.common.airflow_data import PluginMetadata
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.config_updater.runtime_config_updater import (
     AirflowRuntimeConfigUpdater,
 )
-from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
-from airflow_monitor.shared.base_multiserver import MultiServerMonitor
+from airflow_monitor.shared.multiserver import MultiServerMonitor
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
-from dbnd._core.errors import DatabandConfigError
 
 from .conftest import WebAppTest
 
@@ -123,11 +122,6 @@ class TestSyncerWorks(WebAppTest):
             monitor_config = AirflowMonitorConfig(syncer_name=syncer_name)
             yield MultiServerMonitor(
                 monitor_config=monitor_config,
-                components_dict={
-                    "state_sync": AirflowRuntimeSyncer,
-                    "fixer": AirflowRuntimeFixer,
-                    "config_updater": AirflowRuntimeConfigUpdater,
-                },
                 monitor_services_factory=AirflowServicesFactory(),
             )
 
@@ -194,7 +188,7 @@ class TestSyncerWorks(WebAppTest):
         assert mock_config_updater_sync_once.call_count == 4
 
     def test_03_server_archive_unarchive(
-        self, multi_server, syncer, mock_runtime_syncer_sync_once
+        self, multi_server, syncer, mock_runtime_syncer_sync_once, caplog
     ):
         tracking_source_uid = syncer["tracking_source_uid"]
         multi_server.run_once()
@@ -202,18 +196,12 @@ class TestSyncerWorks(WebAppTest):
 
         self.set_monitor_archived(tracking_source_uid)
 
-        with pytest.raises(DatabandConfigError):
-            multi_server.run_once()
+        multi_server.run_once()
+        assert "No syncer configuration found matching name" in caplog.text
 
         assert mock_runtime_syncer_sync_once.call_count == 1
 
         self.set_monitor_unarchived(tracking_source_uid)
-
-        # We need to clean all inactive components so that in the next sync_once() we will create them from scratch.
-        # This is crucial as otherwise we will have a last_heartbeat value in SequentialRunner, which will result in
-        # a quick return from the heartbeat function without executing sync_once.
-        # This is because the sync_once above raises exception instead of cleaning and then we reuse the same object.
-        multi_server._ensure_monitored_servers([])
 
         multi_server.run_once()
         assert mock_runtime_syncer_sync_once.call_count == 2
@@ -222,9 +210,6 @@ class TestSyncerWorks(WebAppTest):
         self, multi_server, syncer, mock_runtime_syncer_sync_once, mock_data_fetcher
     ):
         tracking_source_uid = syncer["tracking_source_uid"]
-        mock_data_fetcher.airflow_version = "1.10.10"
-        mock_data_fetcher.plugin_version = "0.40.1 v2"
-        mock_data_fetcher.airflow_instance_uid = "34db92af-a525-522e-8f27-941cd4746d7b"
 
         server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
         assert (
@@ -233,8 +218,15 @@ class TestSyncerWorks(WebAppTest):
             server_info["source_instance_uid"],
         ) == (None, None, None)
 
-        multi_server.run_once()
+        plugin_metadata = PluginMetadata(
+            airflow_version="1.10.10",
+            plugin_version="0.40.1 v2",
+            airflow_instance_uid="34db92af-a525-522e-8f27-941cd4746d7b",
+        )
+        multi_server.syncer_management_service.plugin_metadata = plugin_metadata
 
+        # Refresh so that we will get plugin data
+        multi_server.run_once()
         server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
         assert (
             server_info["airflow_version"],

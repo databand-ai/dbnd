@@ -17,7 +17,10 @@ from dbnd._core.utils.basics.environ_utils import set_on
 from dbnd.testing.test_config_setter import add_test_configuration
 
 from .mock_airflow_data_fetcher import MockDataFetcher
-from .mock_airflow_tracking_service import MockServersConfigService, MockTrackingService
+from .mock_airflow_tracking_service import (
+    MockSyncersManagementService,
+    MockTrackingService,
+)
 from .mock_service_factory import MockAirflowServicesFactory
 
 
@@ -58,13 +61,6 @@ def mock_airflow_services_factory() -> MockAirflowServicesFactory:
 
 
 @pytest.fixture
-def mock_server_config_service(
-    mock_airflow_services_factory,
-) -> MockServersConfigService:
-    yield mock_airflow_services_factory.get_servers_configuration_service()
-
-
-@pytest.fixture
 def mock_tracking_service(mock_airflow_services_factory) -> MockTrackingService:
     yield mock_airflow_services_factory.get_tracking_service(MagicMock())
 
@@ -72,3 +68,10 @@ def mock_tracking_service(mock_airflow_services_factory) -> MockTrackingService:
 @pytest.fixture
 def mock_data_fetcher(mock_airflow_services_factory) -> MockDataFetcher:
     yield mock_airflow_services_factory.get_data_fetcher(MagicMock())
+
+
+@pytest.fixture
+def mock_syncer_management_service(
+    mock_airflow_services_factory,
+) -> MockSyncersManagementService:
+    yield mock_airflow_services_factory.get_syncer_management_service()

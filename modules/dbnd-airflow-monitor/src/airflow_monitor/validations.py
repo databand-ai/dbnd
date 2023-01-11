@@ -5,7 +5,7 @@ import logging
 from distutils.version import LooseVersion
 
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.shared.base_tracking_service import TrackingServiceConfig
+from airflow_monitor.shared.utils import TrackingServiceConfig
 
 
 logger = logging.getLogger(__name__)

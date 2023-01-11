@@ -4,12 +4,11 @@ import logging
 
 from dbnd_dbt_monitor.data.dbt_config_data import DbtServerConfig
 from dbnd_dbt_monitor.fetcher.dbt_cloud_data_fetcher import DbtCloudDataFetcher
-from dbnd_dbt_monitor.tracking_service.dbnd_dbt_tracking_service import (
-    DbndDbtTrackingService,
+from dbnd_dbt_monitor.syncer.dbt_runs_syncer import DbtRunsSyncer
+from dbnd_dbt_monitor.tracking_service.dbt_syncer_management_service import (
+    DbtSyncersManagementService,
 )
-from dbnd_dbt_monitor.tracking_service.dbt_servers_configuration_service import (
-    DbtSyncersConfigurationService,
-)
+from dbnd_dbt_monitor.tracking_service.dbt_tracking_service import DbtTrackingService
 
 from airflow_monitor.shared.decorators import (
     decorate_configuration_service,
@@ -26,6 +25,9 @@ logger = logging.getLogger(__name__)
 
 
 class DbtMonitorServicesFactory(MonitorServicesFactory):
+    def get_components_dict(self):
+        return {"dbt_runs_syncer": DbtRunsSyncer}
+
     def get_data_fetcher(self, server_config: DbtServerConfig):
         fetcher = DbtCloudDataFetcher.create_from_dbt_credentials(
             dbt_cloud_api_token=server_config.api_token,
@@ -36,21 +38,21 @@ class DbtMonitorServicesFactory(MonitorServicesFactory):
         return decorate_fetcher(fetcher, server_config.account_id)
 
     @cached()
-    def get_servers_configuration_service(self):
+    def get_syncer_management_service(self):
         return decorate_configuration_service(
-            DbtSyncersConfigurationService(
+            DbtSyncersManagementService(
                 monitor_type=MONITOR_TYPE, server_monitor_config=DbtServerConfig
             )
         )
 
-    def get_tracking_service(self, server_config) -> DbndDbtTrackingService:
+    def get_tracking_service(self, server_config) -> DbtTrackingService:
         return decorate_tracking_service(
-            DbndDbtTrackingService(
+            DbtTrackingService(
                 monitor_type=MONITOR_TYPE,
-                tracking_source_uid=server_config.tracking_source_uid,
+                server_id=server_config.identifier,
                 server_monitor_config=DbtServerConfig,
             ),
-            server_config.tracking_source_uid,
+            server_config.identifier,
         )
 
 

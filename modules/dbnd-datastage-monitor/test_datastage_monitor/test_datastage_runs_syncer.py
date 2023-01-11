@@ -1,7 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 import json
 
-from typing import Type
 from unittest.mock import MagicMock, patch
 
 import attr
@@ -18,8 +17,11 @@ from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
     MultiProjectDataStageDataFetcher,
 )
 from dbnd_datastage_monitor.syncer.datastage_runs_syncer import DataStageRunsSyncer
-from dbnd_datastage_monitor.tracking_service.dbnd_datastage_tracking_service import (
-    DbndDataStageTrackingService,
+from dbnd_datastage_monitor.tracking_service.datastage_syncer_management_service import (
+    DataStageSyncersManagementService,
+)
+from dbnd_datastage_monitor.tracking_service.datastage_tracking_service import (
+    DataStageTrackingService,
 )
 
 from dbnd import relative_path
@@ -84,19 +86,9 @@ class MockDatastageFetcher(MultiProjectDataStageDataFetcher):
         return datastage_runs_full_data, failed_runs
 
 
-class MockDatastageTrackingService(DbndDataStageTrackingService):
-    def __init__(
-        self,
-        monitor_type: str,
-        tracking_source_uid: str,
-        server_monitor_config: Type[DataStageServerConfig],
-    ):
-        DbndDataStageTrackingService.__init__(
-            self,
-            monitor_type,
-            tracking_source_uid,
-            server_monitor_config=server_monitor_config,
-        )
+class MockDatastageTrackingService(DataStageTrackingService):
+    def __init__(self, monitor_type: str, tracking_source_uid: str):
+        DataStageTrackingService.__init__(self, monitor_type, tracking_source_uid)
         self.datastage_runs = []
         self.last_seen_run_id = None
         self.last_seen_date = None
@@ -105,9 +97,6 @@ class MockDatastageTrackingService(DbndDataStageTrackingService):
         pass
 
     def update_datastage_runs(self, datastage_runs_full_data):
-        pass
-
-    def update_last_sync_time(self):
         pass
 
     def update_last_seen_values(self, date):
@@ -124,15 +113,32 @@ class MockDatastageTrackingService(DbndDataStageTrackingService):
         ]
 
 
+class MockDataStageSyncersManagementService(DataStageSyncersManagementService):
+    def update_monitor_state(self, server_id, monitor_state):
+        pass
+
+    def update_last_sync_time(self, server_id):
+        pass
+
+    def set_running_monitor_state(self, server_id):
+        pass
+
+    def set_starting_monitor_state(self, server_id):
+        pass
+
+
 def extract_project_id_from_url(url: str):
     return PROJECT_ID
 
 
 @pytest.fixture
 def mock_datastage_tracking_service() -> MockDatastageTrackingService:
-    yield MockDatastageTrackingService(
-        "datastage", "12345", server_monitor_config=DataStageServerConfig
-    )
+    yield MockDatastageTrackingService("datastage", "12345")
+
+
+@pytest.fixture
+def mock_datastage_syncer_management_service() -> MockDataStageSyncersManagementService:
+    yield MockDataStageSyncersManagementService("datastage", DataStageServerConfig)
 
 
 @pytest.fixture
@@ -152,7 +158,11 @@ def mock_datastage_fetcher() -> MockDatastageFetcher:
 
 
 @pytest.fixture
-def datastage_runtime_syncer(mock_datastage_fetcher, mock_datastage_tracking_service):
+def datastage_runtime_syncer(
+    mock_datastage_fetcher,
+    mock_datastage_tracking_service,
+    mock_datastage_syncer_management_service,
+):
     syncer = DataStageRunsSyncer(
         config=DataStageServerConfig(
             source_name="test_syncer",
@@ -163,10 +173,13 @@ def datastage_runtime_syncer(mock_datastage_fetcher, mock_datastage_tracking_ser
         ),
         tracking_service=mock_datastage_tracking_service,
         data_fetcher=mock_datastage_fetcher,
+        syncer_management_service=mock_datastage_syncer_management_service,
     )
     with patch.object(syncer, "refresh_config", new=lambda *args: None), patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
-    ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher):
+    ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher), patch.object(
+        syncer, "syncer_management_service", wraps=syncer.syncer_management_service
+    ):
         yield syncer
 
 
@@ -352,7 +365,7 @@ class TestDatastageRunsSyncer:
         fetcher_mock = MultiProjectDataStageDataFetcher(datastage_project_clients=[])
         fetcher_mock.get_full_runs = MagicMock(return_value=({}, runs_to_fail))
         datastage_runtime_syncer.data_fetcher = fetcher_mock
-        datastage_runtime_syncer._init_runs_for_projects(project_runs, utcnow())
+        datastage_runtime_syncer.init_runs(project_runs)
         expected_submitted_runs = (
             datastage_runtime_syncer.error_handler.pull_run_request_retries(10)
         )
@@ -475,14 +488,17 @@ class TestDatastageRunsSyncer:
         update_runs_expected_call_count,
         update_last_sync_time_expected_call_count,
     ):
-        datastage_runtime_syncer._update_runs(runs)
+        datastage_runtime_syncer.update_runs(runs)
         patched_tracking_service = datastage_runtime_syncer.tracking_service
+        patched_syncer_management_service = (
+            datastage_runtime_syncer.syncer_management_service
+        )
         assert (
             patched_tracking_service.update_datastage_runs.call_count
             == update_runs_expected_call_count
         )
         assert (
-            patched_tracking_service.update_last_sync_time.call_count
+            patched_syncer_management_service.update_last_sync_time.call_count
             == update_last_sync_time_expected_call_count
         )
         if update_runs_expected_call_count:

@@ -8,16 +8,11 @@ import pytest
 from click.testing import CliRunner
 from mock import patch
 
-from airflow_monitor.common.base_component import BaseMonitorSyncer
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.config_updater.runtime_config_updater import (
-    AirflowRuntimeConfigUpdater,
-)
-from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.multiserver.cmd_liveness_probe import airflow_monitor_v2_alive
-from airflow_monitor.shared.base_multiserver import MultiServerMonitor
-from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
+from airflow_monitor.shared.base_component import BaseComponent
+from airflow_monitor.shared.multiserver import MultiServerMonitor
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 
 
@@ -26,6 +21,7 @@ MOCK_SERVER_1_CONFIG = {
     "source_type": "airflow",
     "source_name": "mock_server_1",
     "tracking_source_uid": uuid.uuid4(),
+    "sync_interval": 0,  # Important so that the same syncer can run for another iteration
 }
 MOCK_SERVER_2_CONFIG = {
     "config_updater_enabled": False,
@@ -46,6 +42,7 @@ MOCK_SERVER_4_CONFIG = {
     "source_name": "mock_server_4",
     "tracking_source_uid": uuid.uuid4(),
     "state_sync_enabled": True,
+    "sync_interval": 0,  # Important so that the same syncer can run for another iteration
 }
 
 
@@ -58,23 +55,18 @@ def airflow_monitor_config():
 
 @pytest.fixture
 def multi_server(
-    mock_server_config_service,
+    mock_syncer_management_service,
     mock_data_fetcher,
     mock_tracking_service,
     airflow_monitor_config,
     mock_airflow_services_factory,
 ):
     with patch(
-        "airflow_monitor.tracking_service.web_tracking_service.AirflowDbndTrackingService._get_tracking_errors",
+        "airflow_monitor.tracking_service.airflow_syncer_management_service._get_tracking_errors",
         return_value=None,
     ):
         yield MultiServerMonitor(
             monitor_config=airflow_monitor_config,
-            components_dict={
-                "state_sync": AirflowRuntimeSyncer,
-                "fixer": AirflowRuntimeFixer,
-                "config_updater": AirflowRuntimeConfigUpdater,
-            },
             monitor_services_factory=mock_airflow_services_factory,
         )
 
@@ -84,24 +76,9 @@ def count_logged_exceptions(caplog):
     return len(logged_exceptions)
 
 
-class MockSyncer(BaseMonitorSyncer):
+class MockSyncer(BaseComponent):
     def __init__(self, *args, **kwargs):
         super(MockSyncer, self).__init__(*args, **kwargs)
-        self.sync_count = 0
-        self.should_fail = False
-
-    def _sync_once(self):
-        if self.should_fail:
-            raise Exception("Mock - should fail")
-        self.sync_count += 1
-
-    def emulate_start_syncer(self, *args, **kwargs):
-        return self
-
-
-class MockSyncer2(BaseMonitorSyncer):
-    def __init__(self, *args, **kwargs):
-        super(MockSyncer2, self).__init__(*args, **kwargs)
         self.sync_count = 0
         self.should_fail = False
 
@@ -122,15 +99,17 @@ class TestMultiServer(object):
         assert not multi_server.active_instances
 
     def test_02_config_service_not_available(
-        self, multi_server, mock_server_config_service
+        self, multi_server, mock_syncer_management_service
     ):
-        mock_server_config_service.alive = False
+        mock_syncer_management_service.alive = False
         with pytest.raises(TestConnectionError):
             multi_server.run_once()
 
-    def test_03_empty_config(self, multi_server, mock_server_config_service, caplog):
+    def test_03_empty_config(
+        self, multi_server, mock_syncer_management_service, caplog
+    ):
         # server config is empty (all components disabled) - nothing should run
-        mock_server_config_service.mock_servers = [
+        mock_syncer_management_service.mock_servers = [
             AirflowServerConfig(**MOCK_SERVER_1_CONFIG),
             AirflowServerConfig(**MOCK_SERVER_2_CONFIG),
         ]
@@ -143,11 +122,15 @@ class TestMultiServer(object):
         assert not count_logged_exceptions(caplog)
 
     def test_04_single_server_single_component(
-        self, multi_server, mock_server_config_service, caplog
+        self,
+        multi_server,
+        mock_syncer_management_service,
+        mock_airflow_services_factory,
+        caplog,
     ):
         components = {"state_sync": MockSyncer}
-        multi_server.components_dict = components
-        mock_server_config_service.mock_servers = [
+        mock_airflow_services_factory.mock_components_dict = components
+        mock_syncer_management_service.mock_servers = [
             AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
         ]
         multi_server.run_once()
@@ -155,7 +138,7 @@ class TestMultiServer(object):
         assert len(multi_server.active_instances) == 1
         syncer_instance = multi_server.active_instances[
             MOCK_SERVER_1_CONFIG["tracking_source_uid"]
-        ]["state_sync"].target
+        ][0]
         assert syncer_instance.sync_count == 1
 
         multi_server.run_once()
@@ -163,120 +146,83 @@ class TestMultiServer(object):
         assert len(multi_server.active_instances) == 1
         assert syncer_instance.sync_count == 2
 
-        mock_server_config_service.mock_servers = []
+        mock_syncer_management_service.mock_servers = []
         multi_server.run_once()
         # should remove the server, don't do the additional iteration
         assert len(multi_server.active_instances) == 0
         assert syncer_instance.sync_count == 2
         assert not count_logged_exceptions(caplog)
 
-    def test_05_failing_syncer(
-        self, multi_server, mock_server_config_service, mock_tracking_service, caplog
-    ):
-        mock_syncer1 = MockSyncer
-        mock_syncer2 = MockSyncer2
-
-        mock_server_config_service.mock_servers = [
-            AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
-        ]
-        components = {"state_sync": mock_syncer1}
-        multi_server.components_dict = components
-        multi_server.run_once()
-        # should start mock_server, should do 1 iteration
-        assert len(multi_server.active_instances) == 1
-        syncer_instance1 = multi_server.active_instances[
-            MOCK_SERVER_1_CONFIG["tracking_source_uid"]
-        ]["state_sync"].target
-        assert type(syncer_instance1) == mock_syncer1
-        assert syncer_instance1.sync_count == 1
-        assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
-
-        components = {"state_sync": mock_syncer2}
-        multi_server.components_dict = components
-        # ensure it's not restarted (just because we've change component definition)
-        multi_server.run_once()
-        assert len(multi_server.active_instances) == 1
-        assert syncer_instance1.sync_count == 2
-        assert not count_logged_exceptions(caplog)
-        assert not mock_tracking_service.current_monitor_state.monitor_error_message
-
-        syncer_instance1.should_fail = True
-        multi_server.run_once()
-        # should not start additional servers, no new iteration
-        assert len(multi_server.active_instances) == 1
-        assert syncer_instance1.sync_count == 2
-        # we should expect here log message that syncer failed
-        assert count_logged_exceptions(caplog)
-        # we should expect error reported to webserver
-        assert (
-            "Traceback"
-            in mock_tracking_service.current_monitor_state.monitor_error_message
-        )
-
-        multi_server.active_instances[MOCK_SERVER_1_CONFIG["tracking_source_uid"]].pop(
-            "state_sync"
-        )
-        multi_server.run_once()
-        syncer_instance2 = multi_server.active_instances[
-            MOCK_SERVER_1_CONFIG["tracking_source_uid"]
-        ]["state_sync"].target
-        assert type(syncer_instance2) == MockSyncer2
-        assert len(multi_server.active_instances) == 1
-        assert syncer_instance1.sync_count == 2
-        assert syncer_instance2.sync_count == 1
-        # should clean the error
-        assert not mock_tracking_service.current_monitor_state.monitor_error_message
-
-        assert count_logged_exceptions(caplog) < 2
-
-    def test_06_test_error_cleanup(
+    def test_05_test_error_cleanup(
         self,
         multi_server,
-        mock_server_config_service,
+        mock_syncer_management_service,
         mock_data_fetcher,
         mock_tracking_service,
         caplog,
     ):
-        mock_server_config_service.mock_servers = [
+        mock_syncer_management_service.mock_servers = [
             AirflowServerConfig(**MOCK_SERVER_4_CONFIG)
         ]
+        server_id = MOCK_SERVER_4_CONFIG["tracking_source_uid"]
 
         multi_server.run_once()
         # should start mock_server, should do 1 iteration
         assert len(multi_server.active_instances) == 1
-        assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
-        assert not mock_tracking_service.current_monitor_state.monitor_error_message
+        assert (
+            mock_syncer_management_service.get_current_monitor_state(
+                server_id
+            ).monitor_status
+            == "Running"
+        )
+        assert not mock_syncer_management_service.get_current_monitor_state(
+            server_id
+        ).monitor_error_message
 
         mock_data_fetcher.alive = False
         multi_server.run_once()
         # still alive
         assert len(multi_server.active_instances) == 1
-        assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
-        assert mock_tracking_service.current_monitor_state.monitor_error_message
-
-        first_error_lines = (
-            mock_tracking_service.current_monitor_state.monitor_error_message.split(
-                "\n"
-            )
+        assert (
+            mock_syncer_management_service.get_current_monitor_state(
+                server_id
+            ).monitor_status
+            == "Running"
         )
+        assert mock_syncer_management_service.get_current_monitor_state(
+            server_id
+        ).monitor_error_message
+
+        first_error_lines = mock_syncer_management_service.get_current_monitor_state(
+            server_id
+        ).monitor_error_message.split("\n")
 
         multi_server.run_once()
-        assert mock_tracking_service.current_monitor_state.monitor_error_message
-        new_error_lines = (
-            mock_tracking_service.current_monitor_state.monitor_error_message.split(
-                "\n"
-            )
-        )
+        assert mock_syncer_management_service.get_current_monitor_state(
+            server_id
+        ).monitor_error_message
+        new_error_lines = mock_syncer_management_service.get_current_monitor_state(
+            server_id
+        ).monitor_error_message.split("\n")
         # should be same message except for last (Timestamp) line
         assert first_error_lines[:-1] == new_error_lines[:-1]
 
         mock_data_fetcher.alive = True
         multi_server.run_once()
         assert len(multi_server.active_instances) == 1
-        assert mock_tracking_service.current_monitor_state.monitor_status == "Running"
-        assert not mock_tracking_service.current_monitor_state.monitor_error_message
+        assert (
+            mock_syncer_management_service.get_current_monitor_state(
+                server_id
+            ).monitor_status
+            == "Running"
+        )
+        assert not mock_syncer_management_service.get_current_monitor_state(
+            server_id
+        ).monitor_error_message
 
-    def test_07_liveness_prove(self, multi_server, mock_server_config_service, caplog):
+    def test_06_liveness_prove(
+        self, multi_server, mock_syncer_management_service, caplog
+    ):
         runner = CliRunner()
         multi_server.run_once()
 

@@ -1,5 +1,4 @@
 # © Copyright Databand.ai, an IBM Company 2022
-import datetime
 import logging
 
 from datetime import timedelta
@@ -26,25 +25,19 @@ from dbnd_datastage_monitor.metrics.prometheus_metrics import (
     report_runs_collection_delay,
     report_runs_not_initiated,
 )
-from dbnd_datastage_monitor.multiserver.datastage_services_factory import (
-    DataStageMonitorServicesFactory,
-    get_datastage_services_factory,
+from dbnd_datastage_monitor.tracking_service.datastage_syncer_management_service import (
+    DataStageSyncersManagementService,
 )
-from dbnd_datastage_monitor.tracking_service.dbnd_datastage_tracking_service import (
-    DbndDataStageTrackingService,
+from dbnd_datastage_monitor.tracking_service.datastage_tracking_service import (
+    DataStageTrackingService,
 )
 
-from airflow_monitor.common.base_component import BaseMonitorSyncer
-from airflow_monitor.shared.error_handler import CaptureMonitorExceptionDecorator
+from airflow_monitor.shared.base_component import BaseComponent
 from dbnd._core.utils.date_utils import parse_datetime
 from dbnd._core.utils.timezone import utcnow
 
 
 logger = logging.getLogger(__name__)
-
-capture_monitor_exception = CaptureMonitorExceptionDecorator(
-    configuration_service_provider=get_datastage_services_factory().get_servers_configuration_service
-)
 
 
 def get_from_nullable_chain(
@@ -75,27 +68,38 @@ def _extract_project_id_from_url(url: str):
     return project_id
 
 
-class DataStageRunsSyncer(BaseMonitorSyncer):
+class DataStageRunsSyncer(BaseComponent):
     SYNCER_TYPE = "datastage_runs_syncer"
 
-    tracking_service: DbndDataStageTrackingService
+    tracking_service: DataStageTrackingService
     config: DataStageServerConfig
     data_fetcher: MultiProjectDataStageDataFetcher
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        config: DataStageServerConfig,
+        tracking_service: DataStageTrackingService,
+        syncer_management_service: DataStageSyncersManagementService,
+        data_fetcher: object,
+    ):
+        super(DataStageRunsSyncer, self).__init__(
+            config, tracking_service, syncer_management_service, data_fetcher
+        )
         self.error_handler = DatastageRunRequestsRetryQueue(
             tracking_source_uid=self.config.tracking_source_uid
         )
 
-    def refresh_config(self):
-        super(DataStageRunsSyncer, self).refresh_config()
+    def refresh_config(self, config):
+        super(DataStageRunsSyncer, self).refresh_config(config)
+        from dbnd_datastage_monitor.multiserver.datastage_services_factory import (
+            DataStageMonitorServicesFactory,
+        )
+
         datastage_asset_clients = DataStageMonitorServicesFactory.get_asset_clients(
             self.config
         )
         self.data_fetcher.update_projects(datastage_asset_clients)
 
-    @capture_monitor_exception("sync_once")
     def _sync_once(self):
         logger.info(
             "Started running for tracking source %s", self.config.tracking_source_uid
@@ -115,7 +119,7 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             return
 
         running_datastage_runs = self.tracking_service.get_running_datastage_runs()
-        self._update_runs(running_datastage_runs)
+        self.update_runs(running_datastage_runs)
 
         current_date = utcnow()
         interval = timedelta(self.config.fetching_interval_in_minutes)
@@ -159,21 +163,24 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     k: list(v.values()) for k, v in new_datastage_runs.items() if v
                 }
                 if runs_to_submit:
-                    self._init_runs_for_projects(runs_to_submit, current_date)
+                    self.init_runs(runs_to_submit)
                     self.tracking_service.update_last_seen_values(
                         format_datetime(end_date)
                     )
-                    self.tracking_service.update_last_sync_time()
+                    self.syncer_management_service.update_last_sync_time(
+                        self.config.identifier
+                    )
             else:
                 logger.info(
                     "No new runs found for tracking source %s",
                     self.config.tracking_source_uid,
                 )
-                self.tracking_service.update_last_sync_time()
+                self.syncer_management_service.update_last_sync_time(
+                    self.config.identifier
+                )
 
             start_date += interval
 
-    @capture_monitor_exception
     def _append_failed_run_requests_for_retry(
         self, datastage_runs: Dict[str, Dict[str, str]]
     ) -> Dict[str, Dict[str, str]]:
@@ -204,10 +211,7 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
             logger.debug("no failed runs to retry")
             return datastage_runs
 
-    @capture_monitor_exception
-    def _init_runs_for_projects(
-        self, datastage_runs: Dict[str, List[str]], current_date: datetime.datetime
-    ):
+    def init_runs(self, datastage_runs: Dict[str, List[str]]):
         if not datastage_runs:
             return
 
@@ -252,6 +256,7 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     len(runs) - successful_run_inits,
                 )
 
+            current_date = utcnow()
             min_start_time = self.get_min_run_start_time(all_runs, current_date)
             if min_start_time:
                 collection_delay = (current_date - min_start_time).total_seconds()
@@ -259,13 +264,12 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                     self.config.tracking_source_uid, project_id, collection_delay
                 )
 
-    @capture_monitor_exception
-    def _update_runs(self, datastage_runs: List):
-        if not datastage_runs:
+    def update_runs(self, run_ids_to_update: List):
+        if not run_ids_to_update:
             return
 
         run_partitioned_by_project_id = {}
-        for run_link in datastage_runs:
+        for run_link in run_ids_to_update:
             project_id = _extract_project_id_from_url(run_link)
             project_runs = run_partitioned_by_project_id.setdefault(project_id, [])
             project_runs.append(run_link)
@@ -303,7 +307,9 @@ class DataStageRunsSyncer(BaseMonitorSyncer):
                             failed_run_request,
                         )
                 self.tracking_service.update_datastage_runs(datastage_runs_full_data)
-                self.tracking_service.update_last_sync_time()
+                self.syncer_management_service.update_last_sync_time(
+                    self.config.identifier
+                )
 
     def get_min_run_start_time(self, raw_runs, current_date):
         min_start_time = None

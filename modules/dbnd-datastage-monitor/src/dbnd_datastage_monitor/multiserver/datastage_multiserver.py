@@ -6,18 +6,14 @@ from dbnd_datastage_monitor.data.datastage_config_data import DataStageMonitorCo
 from dbnd_datastage_monitor.multiserver.datastage_services_factory import (
     DataStageMonitorServicesFactory,
 )
-from dbnd_datastage_monitor.syncer.datastage_runs_syncer import DataStageRunsSyncer
 
-from airflow_monitor.shared.base_multiserver import MultiServerMonitor
+from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._vendor import click
 
 
 def start_datastage_multi_server_monitor(monitor_config: DataStageMonitorConfig):
-    components_dict = {"datastage_runs_syncer": DataStageRunsSyncer}
-
     MultiServerMonitor(
         monitor_config=monitor_config,
-        components_dict=components_dict,
         monitor_services_factory=DataStageMonitorServicesFactory(),
     ).run()
 
