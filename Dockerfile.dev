@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.9
 
 USER root
 RUN apt-get update
@@ -17,9 +17,14 @@ COPY ./project.cfg /dbnd/
 
 RUN pip install pip==21.3.1  # python 3.6
 
-ARG AIRFLOW_EXTRA=airflow
+# Pre-install Airflow with correct deps
+ARG AIRFLOW_VERSION=1.10.15
+RUN SHORT_PYTHON_VERSION=$(echo ${PYTHON_VERSION} | cut -f1,2 -d'.') && \
+    pip install apache-airflow[postgres]==$AIRFLOW_VERSION \
+    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${SHORT_PYTHON_VERSION}.txt"
+
 RUN pip install -e /dbnd/modules/dbnd
-RUN pip install -e /dbnd/modules/dbnd-airflow[$AIRFLOW_EXTRA]
+RUN pip install -e /dbnd/modules/dbnd-airflow
 RUN pip install -e /dbnd/examples
 RUN pip install -e /dbnd/plugins/dbnd-aws
 RUN pip install -e /dbnd/plugins/dbnd-docker

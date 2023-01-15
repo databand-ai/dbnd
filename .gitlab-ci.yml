@@ -21,7 +21,8 @@ variables:
   # only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
   # Specific images according to a python version
-  DOCKER_IMAGE_CI_PYTEST_PY36: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py36-latest
+  DOCKER_IMAGE_CI_PYTEST_PY37: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py37-v2
+  DOCKER_IMAGE_CI_PYTEST_PY39: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py39-v2
 
 ### TESTS BASIC
 .template__except_defaults:
@@ -96,7 +97,7 @@ pre_commit:
     KUBERNETES_CPU_LIMIT: 2000m
     KUBERNETES_MEMORY_REQUEST: 230Mi
     KUBERNETES_MEMORY_LIMIT: 1Gi
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
   script:
     #    - tox -e pre-commit,docs,readme
     - tox -e pre-commit,bumpversion-check
@@ -108,7 +109,7 @@ lint:
     KUBERNETES_CPU_LIMIT: 2000m
     KUBERNETES_MEMORY_REQUEST: 1Gi
     KUBERNETES_MEMORY_LIMIT: 3Gi
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
   script:
     - tox -e lint
 
@@ -119,135 +120,85 @@ manifest:
     KUBERNETES_CPU_LIMIT: 1
     KUBERNETES_MEMORY_REQUEST: 260Mi
     KUBERNETES_MEMORY_LIMIT: 1Gi
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
   script:
     - make test-manifest
 
-dbnd_py36:
+test dbnd py37:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
   script:
     - cd modules/dbnd
-    - tox -e py36
+    - tox -e py37
   artifacts:
     reports:
-      junit: build/junit-py36.xml
+      junit: build/junit-py37.xml
 
-dbnd_py36_windows:
-  <<: *template__windows_tests_job
-  script:
-    - xcopy /y "modules\setup.cfg" "modules\dbnd\"
-    - tox -c modules/dbnd/tox.ini -r -e win-py36
-
-dbnd_examples_py36:
+test dbnd py39:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
+  script:
+    - cd modules/dbnd
+    - tox -e py39
+  artifacts:
+    reports:
+      junit: build/junit-py39.xml
+
+
+test dbnd_examples py39:
+  <<: *template__python_test_job
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
   script:
     - cd examples
-    - tox -e py36
+    - tox -e py39
   artifacts:
     reports:
-      junit: .tox/dbnd-examples/junit/junit-py36.xml
+      junit: .tox/dbnd-examples/junit/junit-py39.xml
 
-#dbnd_databricks_py36:
+#dbnd_databricks_py37:
 #  <<: *template__python_test_job
 #  variables:
 #    KUBERNETES_CPU_REQUEST: 900m
 #    KUBERNETES_CPU_LIMIT: 2
 #    KUBERNETES_MEMORY_REQUEST: 2.5Gi
 #    KUBERNETES_MEMORY_LIMIT: 4Gi
-#  image: python:3.6
+#  image: python:3.7
 #  script:
 #    - cd plugins/dbnd-databricks
-#    - tox -e py36
+#    - tox -e py37
 #  artifacts:
 #    reports:
-#      junit: plugins/dbnd-databricks/build/junit-py36.xml
+#      junit: plugins/dbnd-databricks/build/junit-py37.xml
 
-dbnd_airflow 0 1_10_7_py36:
+
+dbnd_airflow 1_10_15_py37:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
   script:
     - cd modules/dbnd-airflow
-    - tox -e py36-airflow_1_10_7
+    - tox -e py37-airflow_1_10_15
   artifacts:
     reports:
-      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_7.xml
+      junit: modules/dbnd-airflow/build/junit-py37-airflow_1_10_15.xml
   only: *on_significant_branch
 
-dbnd_airflow 0 1_10_9_py36:
+dbnd_airflow_monitor 1_10_10_py37:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py36-airflow_1_10_9
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_9.xml
-  only: *on_significant_branch
-
-dbnd_airflow 0 1_10_10_py36:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py36-airflow_1_10_10
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_10.xml
-  only: *on_significant_branch
-
-dbnd_airflow 0 1_10_12_py36:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
-  script:
-    - cd modules/dbnd-airflow
-    - tox -e py36-airflow_1_10_12
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow/build/junit-py36-airflow_1_10_12.xml
-  only: *on_significant_branch
-
-dbnd_airflow_monitor 0 1_10_9_py36:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
+  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
   script:
     - cd modules/dbnd-airflow-monitor
-    - tox -e py36-airflow_1_10_9
+    - tox -e py37-airflow_1_10_10
   artifacts:
     reports:
-      junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_9.xml
-  when: manual
-
-dbnd_airflow_monitor 0 1_10_10_py36:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
-  script:
-    - cd modules/dbnd-airflow-monitor
-    - tox -e py36-airflow_1_10_10
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_10.xml
+      junit: modules/dbnd-airflow-monitor/build/junit-py37-airflow_1_10_10.xml
   only: *on_significant_branch
   when: manual
 
-dbnd_airflow_monitor 0 1_10_11_py36:
-  <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY36}
-  script:
-    - cd modules/dbnd-airflow-monitor
-    - tox -e py36-airflow_1_10_11
-  artifacts:
-    reports:
-      junit: modules/dbnd-airflow-monitor/build/junit-py36-airflow_1_10_11.xml
-  only: *on_significant_branch
-  when: manual
-
-dbnd_tensorflow 2 py36:
+dbnd_tensorflow 2 py37:
   <<: *template__test_tensorflow
   variables:
-    IMAGE: ${DOCKER_IMAGE_CI_PYTEST_PY36}
-    TEST_NAME: py36-tensorflow26
+    IMAGE: ${DOCKER_IMAGE_CI_PYTEST_PY37}
+    TEST_NAME: py37-tensorflow26
 
 build_pypi_org_whl:
   stage: build-base
@@ -262,21 +213,4 @@ build_pypi_org_whl:
     - tags
   when: manual
 
-#downstream:
-#  stage: staging
-#  trigger:
-#    project: databand/databand
-#    branch: develop
-#  only: *on_significant_branch
 
-publish_pypi_org_dbnd_package:
-  stage: publish
-  variables:
-    GIT_STRATEGY: none
-  needs:
-    - build_pypi_org_whl
-  script:
-    - twine upload dist-python/*
-  only:
-    - tags
-  when: manual

@@ -1,4 +1,4 @@
-ARG DOCKER_IMAGE_BASE=python:3.6-slim
+ARG DOCKER_IMAGE_BASE=python:3.7-slim
 FROM ${DOCKER_IMAGE_BASE}
 
 # Never prompts the user for choices on installation/configuration of packages
@@ -78,7 +78,7 @@ COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
     ./dbnd-core/dist-python/dbnd-test-scenarios.requirements.txt \
     /dist-python/
 
-ARG AIRFLOW_VERSION=1.10.10
+ARG AIRFLOW_VERSION=1.10.15
 
 # cut after second `.` -> 3.6.15 -> 3.6
 RUN SHORT_PYTHON_VERSION=$(echo ${PYTHON_VERSION} | cut -f1,2 -d'.') && \
@@ -103,7 +103,7 @@ COPY ./dbnd-core/dist-python/databand-*.whl \
     ./dbnd-core/dist-python/dbnd_mlflow-*.whl \
     /dist-python/
 ENV DBND_VERSION=1.0.11.0
-RUN pip install databand[aws,gcp,docker,airflow_bundle,mlflow]==$DBND_VERSION --find-links /dist-python/
+RUN pip install databand[aws,gcp,docker,mlflow]==$DBND_VERSION --find-links /dist-python/
 
 
 COPY ./dbnd-core/setup.cfg \

@@ -8,7 +8,7 @@ SHELL := /bin/bash
 CURRENT_PY_VERSION = $(shell python -c "import sys; print('{0}.{1}'.format(*sys.version_info[:2]))")
 # use env value if exists
 AIRFLOW_VERSION ?= 2.2.3
-#AIRFLOW_VERSION ?= 1.10.12
+#AIRFLOW_VERSION ?= 1.10.15
 
 
 help:  ## Display this help.
@@ -75,7 +75,7 @@ SOURCE_DATE_EPOCH=1577836800  # 2020-01-01T00:00:00Z
 
 
 ##@ Test
-.PHONY: lint test test-all-py36 test-manifest coverage coverage-open pre-commit
+.PHONY: lint test test-all-py39 test-manifest coverage coverage-open pre-commit
 
 lint: ## Check style with flake8.
 	tox -e pre-commit,lint
@@ -85,10 +85,10 @@ test: ## Run tests quickly with the default Python.
 	py.test modules/dbnd/test_dbnd
 	tox -e pre-commit,lint
 
-test-all-py36: ## Run tests on every python package with tox.
+test-all-py39: ## Run tests on every python package with tox.
 	for m in $(prj_dev) ; do \
 		echo "Testing '$$m'..." ;\
-		(cd $$m && tox -e py36) ;\
+		(cd $$m && tox -e py39) ;\
 	done
 
 test-manifest: ## Run minifest tests on every python package with tox.

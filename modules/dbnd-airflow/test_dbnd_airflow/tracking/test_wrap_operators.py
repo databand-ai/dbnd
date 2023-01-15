@@ -29,7 +29,7 @@ if AIRFLOW_VERSION_BEFORE_2_2:
     from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 else:
     from airflow.providers.amazon.aws.operators.ecs import ECSOperator
-    from airflow.providers.amazon.aws.operators.emr import EmrAddStepsOperator
+    from airflow.providers.amazon.aws.operators.emr_add_steps import EmrAddStepsOperator
 
 dbnd_spark_env_vars = (
     "spark.env.AIRFLOW_CTX_DAG_ID",

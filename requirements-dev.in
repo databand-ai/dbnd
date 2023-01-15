@@ -33,7 +33,7 @@
 
 
 # Keep the requirements compatible with airflow 2.2.3 (default version for databand developers)
--c dist-python/dbnd-airflow[airflow_2_2_3].requirements.txt
+-c dist-python/dbnd-airflow.requirements.txt
 
 
 # dev tools

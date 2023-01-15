@@ -2,14 +2,14 @@
 "title": "Kubernetes Integration"
 ---
 ## Before You Begin
-  
-First, you need to configure DBND [configure DBND](doc:kubernetes-engine-configuration). 
-Setup your [K8S cluster](doc:setup-k8s-cluster) 
+
+First, you need to configure DBND [configure DBND](doc:kubernetes-engine-configuration).
+Setup your [K8S cluster](doc:setup-k8s-cluster)
 
 When you have the Kubernetes cluster and DBND installed, you can make it run.
 
-  
-### Verify the Integration with the Kubernetes Cluster 
+
+### Verify the Integration with the Kubernetes Cluster
 1. Run the sanity check task on the Kubernetes cluster:
 ```bash
 dbnd run dbnd_sanity_check --task-version now --env kubernetes_cluster_env --interactive
@@ -17,7 +17,7 @@ dbnd run dbnd_sanity_check --task-version now --env kubernetes_cluster_env --int
 
 In this command, we used the following parameters:
 
-`-- env kubernetes_cluster_env` is the environment configuration section. 
+`-- env kubernetes_cluster_env` is the environment configuration section.
 `--interactive` flag ensures that we will receive all logs from the pods, as well as wait until the run is complete.
 
 2. To ensure that the task succeeds, run the `kubectl get\describe pods` command.
@@ -28,7 +28,7 @@ In this command, we used the following parameters:
 ## Kubernetes Lifecycle Overview
 When you execute a task by using the Kubernetes engine, you initiate a lifecycle for each task.
 The lifecycle depends on your configuration. In the sections above, we describe the main lifecycles.
- 
+
 The following CLI switches are useful when you run commands on a Kubernetes cluster:
 
 | Command | Description |
@@ -40,8 +40,8 @@ The following CLI switches are useful when you run commands on a Kubernetes clus
 | --no-submit-tasks | Disables tasks submission so that tasks run in the driver process. |
 | --docker-build-tag | Defines a custom Docker image tag for the Docker image to be be built |
 
- 
- 
+
+
 ### Submitted Driver
 Take a look at the following example:
 
@@ -50,12 +50,12 @@ dbnd run dbnd_sanity_check --submit-driver --task-version now --env kubernetes_c
 ```
 
 The `--submit-driver` flag affects where our driver runs, and hence affects the lifecycle.
-We run through the following algorithm: 
+We run through the following algorithm:
 
 1.  Build a driver task.
-2. Gather all the needed resources and settings to create a pod with a driver task inside. 
+2. Gather all the needed resources and settings to create a pod with a driver task inside.
 -> The pod creation request is sent to the cluster.
-3. Submit the driver task. 
+3. Submit the driver task.
  -> The driver task is sent to the Kubernetes and is ran inside the pod. The driver task creates a new pod to run user code.
 4 .Run user tasks within a pod.
 -> The user tasks are executed inside the cluster.
@@ -79,10 +79,10 @@ Now, the lifecycle is the following:
 4. When the user code starts running, the driver gathers the logs, outputs, etc. It is in charge of running the next pod when the current pod finishes.
 5. The driver executes the next task until the DAG is completed.
 
- 
+
 ### Advance Example
 ```bash
-dbnd run dbnd_sanity_check  --task-version now --env=kubernetes_cluster_env --interactive --set-config kubernetes.namespace=my_namespace  --set-config kubernetes.container_tag=dbnd-dbnd_examples-py36-branch-release --set kubernetes.debug=true 
+dbnd run dbnd_sanity_check  --task-version now --env=kubernetes_cluster_env --interactive --set-config kubernetes.namespace=my_namespace  --set-config kubernetes.container_tag=dbnd-dbnd_examples-py39-branch-release --set kubernetes.debug=true
 ```
 
 Let's break it down:
@@ -91,7 +91,7 @@ Let's break it down:
 - `-env=kubernetes_cluster_env` - The environment we want to run with, which is configured to use the k8s engine
 - `-interactive` - Tells the submitter (local machine) to wait for the run to end.
 - `-set-config kubernetes.namespace=my_namespace` - The namespace we are using.
-- `-set-config kubernetes.container_tag=dbnd-dbnd_examples-py36-branch-release` - The image we want to use, built in the same pipelines as the env.
+- `-set-config kubernetes.container_tag=dbnd-dbnd_examples-py39-branch-release` - The image we want to use, built in the same pipelines as the env.
 - `-set kubernetes.debug=true` - debug flag for kubernetes Executor
 
 ## Troubleshooting Kubernetes Cluster

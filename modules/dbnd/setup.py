@@ -50,16 +50,19 @@ setuptools.setup(
     extras_require={
         ':sys_platform=="win32"': ["colorama"],
         "tests": [
-            "qtconsole==4.7.7",
-            "numpy<1.23",
             "coverage",
+            "tox==3.12.1",
             "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
             "pytest-cov==2.9.0",
-            "pluggy==0.11.0",  # 0.12 has import_metadata, fails on py2
-            "zope.interface",
             "mock",
+            "wheel",  # for fat_wheel tests
+        ],
+        # removed
+        # "zope.interface",
+        "test-pandas": [
+            "openpyxl==2.6.4",
+            "numpy<1.23",
             "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
-            "tox==3.12.1",
             'scikit-learn==0.23.2;python_version<"3.8"',
             'scikit-learn==1.2.0;python_version>="3.8"',
             'matplotlib==3.3.0;python_version<"3.8"',
@@ -68,10 +71,9 @@ setuptools.setup(
             "feather-format",
             "pyarrow",
             # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
-            "openpyxl==2.6.4",
-            "wheel",  # for fat_wheel tests
         ],
         "jupyter": [
+            "qtconsole==4.7.7",
             "nbconvert",
             "nbformat",
             "jupyter",

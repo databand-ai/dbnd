@@ -1,9 +1,0 @@
-version: "3.7"
-
-services:
-  databand_database:
-    image: postgres:12.8-alpine
-    environment:
-      - POSTGRES_USER=databand
-      - POSTGRES_PASSWORD=databand
-      - POSTGRES_DB=databand

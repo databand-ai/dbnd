@@ -37,16 +37,6 @@ def dbnd_package(name, extras=None):
 
 EXTRAS_REQUIRE = {
     "airflow": [dbnd_package("dbnd-airflow")],
-    "airflow_bundle": [dbnd_package("dbnd-airflow", ["airflow"])],
-    "airflow_1_10_7": [dbnd_package("dbnd-airflow", ["airflow_1_10_7"])],
-    "airflow_1_10_8": [dbnd_package("dbnd-airflow", ["airflow_1_10_8"])],
-    "airflow_1_10_9": [dbnd_package("dbnd-airflow", ["airflow_1_10_9"])],
-    "airflow_1_10_10": [dbnd_package("dbnd-airflow", ["airflow_1_10_10"])],
-    "airflow_1_10_11": [dbnd_package("dbnd-airflow", ["airflow_1_10_11"])],
-    "airflow_1_10_12": [dbnd_package("dbnd-airflow", ["airflow_1_10_12"])],
-    "airflow_1_10_13": [dbnd_package("dbnd-airflow", ["airflow_1_10_13"])],
-    "airflow_1_10_14": [dbnd_package("dbnd-airflow", ["airflow_1_10_14"])],
-    "airflow_1_10_15": [dbnd_package("dbnd-airflow", ["airflow_1_10_15"])],
     "airflow-auto-tracking": [dbnd_package("dbnd-airflow-auto-tracking")],
     "airflow-versioned-dag": [dbnd_package("dbnd-airflow-versioned-dag")],
     "airflow-export": [dbnd_package("dbnd-airflow-export")],
