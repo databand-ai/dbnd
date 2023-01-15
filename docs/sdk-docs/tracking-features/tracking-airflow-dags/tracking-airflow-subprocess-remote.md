@@ -50,43 +50,45 @@ The Databand team is constantly integrating new operators for subprocess metadat
 The best way to inject these variables is to use the already built-in mechanism of your Remote Operator if it has any. For example, you can pass these variables to your Spark Operator via:
 
 <!-- noqa -->
+
 ```python
 
 from dbnd_airflow.utils import get_airflow_instance_uid
 
 MyCustomDataProcPySparkOperator(
-        #...
-        dataproc_pyspark_properties= {
-            "spark.env.AIRFLOW_CTX_DAG_ID": "{{dag.dag_id}}",
-            "spark.env.AIRFLOW_CTX_EXECUTION_DATE": "{{ds}}",
-            "spark.env.AIRFLOW_CTX_TASK_ID": "{{task.task_id}}",
-            "spark.env.AIRFLOW_CTX_TRY_NUMBER": "{{ti.try_attempt}}",
+    # ...
+    dataproc_pyspark_properties={
+        "spark.env.AIRFLOW_CTX_DAG_ID": "{{dag.dag_id}}",
+        "spark.env.AIRFLOW_CTX_EXECUTION_DATE": "{{ds}}",
+        "spark.env.AIRFLOW_CTX_TASK_ID": "{{task.task_id}}",
+        "spark.env.AIRFLOW_CTX_TRY_NUMBER": "{{ti.try_attempt}}",
 
-            "spark.env.AIRFLOW_CTX_UID": get_airflow_instance_uid(),
+        "spark.env.AIRFLOW_CTX_UID": get_airflow_instance_uid(),
 
-             # static variables, can be set on the cluster itself
-            "spark.env.DBND__TRACKING": True,
-            "spark.env.DBND__CORE__DATABAND_URL": "https://tracker.databand.ai",
-            "spark.env.DBND__CORE__DATABAND_ACCESS_TOKEN=TOKEN"
-        }
-        # ...
-    )
+        # static variables, can be set on the cluster itself
+        "spark.env.DBND__TRACKING": True,
+        "spark.env.DBND__CORE__DATABAND_URL": "https://tracker.databand.ai",
+        "spark.env.DBND__CORE__DATABAND_ACCESS_TOKEN=TOKEN"
+    }
+    # ...
+)
 ```
 
  If your operator doesn't have a way to provide environment variables in one of the supported formats, you can directly change the command line that you are generating.
 
 
 <!-- noqa -->
+
 ```python
 
-from dbnd_airflow.utils import get_airflow_instance_uid
+from dbnd_run.airflow.utils import get_airflow_instance_uid
 
 airflow_ctx_uid = get_airflow_instance_uid()
-cmd =(f"spark-submit  ...  "
-           f"--conf spark.env.AIRFLOW_CTX_DAG_ID={context.dag.dag_id}"
-           f"--conf spark.env.AIRFLOW_CTX_EXECUTION_DATE={context.execution_date} "
-           f"--conf spark.env.AIRFLOW_CTX_TASK_ID={context.task.task_id} "
-           f"--conf spark.env.AIRFLOW_CTX_TRY_NUMBER={context.task_instance.try_attempt} "
-           f"--conf spark.env.AIRFLOW_CTX_UID={airflow_ctx_uid}"
-)
+cmd = (f"spark-submit  ...  "
+       f"--conf spark.env.AIRFLOW_CTX_DAG_ID={context.dag.dag_id}"
+       f"--conf spark.env.AIRFLOW_CTX_EXECUTION_DATE={context.execution_date} "
+       f"--conf spark.env.AIRFLOW_CTX_TASK_ID={context.task.task_id} "
+       f"--conf spark.env.AIRFLOW_CTX_TRY_NUMBER={context.task_instance.try_attempt} "
+       f"--conf spark.env.AIRFLOW_CTX_UID={airflow_ctx_uid}"
+       )
 ```

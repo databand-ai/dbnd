@@ -9,7 +9,7 @@ from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 
 
-# Do not change this name unless you change the same constant in constants.py in dbnd-airflow
+# Do not change this name unless you change the same constant in compat.py in dbnd-airflow
 MONITOR_DAG_NAME = "databand_airflow_monitor"
 
 

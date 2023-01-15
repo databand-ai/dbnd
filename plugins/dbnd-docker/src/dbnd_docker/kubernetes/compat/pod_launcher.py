@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from dbnd_airflow.constants import AIRFLOW_ABOVE_10
+from dbnd_run.airflow.compat import AIRFLOW_ABOVE_10
 
 
 if AIRFLOW_ABOVE_10:

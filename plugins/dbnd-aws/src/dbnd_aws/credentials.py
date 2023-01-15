@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 @per_thread_cached()
 def get_boto_session():
     if use_airflow_connections():
-        from dbnd_airflow_contrib.credentials_helper_aws import AwsCredentials
+        from dbnd_run.airflow.dbnd_airflow_contrib.credentials_helper_aws import (
+            AwsCredentials,
+        )
 
         aws_credentials = AwsCredentials()
         logger.debug(

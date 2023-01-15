@@ -24,7 +24,7 @@ from dbnd._core.errors.base import (
     DatabandSigTermError,
     DbndCanceledRunError,
 )
-from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
+from dbnd._core.plugin.dbnd_plugins import is_dbnd_run_airflow_enabled
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.run.run_banner import print_tasks_tree
 from dbnd._core.settings import RunConfig
@@ -372,8 +372,8 @@ class RunExecutor(object):
         if self.task_executor_type == TaskExecutorType.local:
             return False
 
-        if is_airflow_enabled():
-            from dbnd_airflow.executors import AirflowTaskExecutorType
+        if is_dbnd_run_airflow_enabled():
+            from dbnd_run.airflow.executors import AirflowTaskExecutorType
 
             return self.task_executor_type not in [
                 AirflowTaskExecutorType.airflow_inprocess,

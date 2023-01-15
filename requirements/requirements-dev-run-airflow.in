@@ -4,9 +4,7 @@
 -e file:modules/dbnd
 
 # databand tracking and orchestration plugins:
--e file:modules/dbnd-airflow
--e file:plugins/dbnd-airflow-versioned-dag
-
+-e file:plugins/dbnd-run
 # databand orchestration plugins:
 
 -e file:plugins/dbnd-docker

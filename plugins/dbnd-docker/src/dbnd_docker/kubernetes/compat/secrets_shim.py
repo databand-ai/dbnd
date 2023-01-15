@@ -10,7 +10,7 @@ import uuid
 
 from kubernetes.client import models as k8s
 
-from dbnd_airflow.constants import AIRFLOW_VERSION_2
+from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 
 
 if AIRFLOW_VERSION_2:

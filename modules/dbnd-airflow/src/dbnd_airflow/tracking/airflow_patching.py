@@ -63,7 +63,7 @@ def patch_airflow_context_vars():
     """Used for tracking bash operators"""
 
     from dbnd._core.utils.object_utils import patch_models
-    from dbnd_airflow.airflow_override.operator_helpers import context_to_airflow_vars
+    from dbnd_airflow.tracking.operator_helpers import context_to_airflow_vars
 
     import airflow.models.taskinstance  # isort:skip
 

@@ -9,7 +9,7 @@ from typing import Any, Optional, Union
 import six
 
 from dbnd._core.errors import DatabandSystemError, friendly_error
-from dbnd._core.plugin.dbnd_plugins import is_airflow_enabled
+from dbnd._core.plugin.dbnd_plugins import is_dbnd_run_airflow_enabled
 from dbnd._core.task.task import Task
 from dbnd._core.utils.traversing import traverse
 from targets.base_target import Target
@@ -22,8 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 def _try_get_task_from_airflow_op(value):
-    if is_airflow_enabled():
-        from dbnd_airflow.dbnd_task_executor.converters import try_operator_to_dbnd_task
+    if is_dbnd_run_airflow_enabled():
+        from dbnd_run.airflow.dbnd_task_executor.converters import (
+            try_operator_to_dbnd_task,
+        )
 
         return try_operator_to_dbnd_task(value)
 

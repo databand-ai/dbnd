@@ -169,7 +169,7 @@ def handle_sigterm_at_dbnd_task_run():
             if ENV_DBND_POD_NAME in os.environ:
                 # We are running inside cluster
                 # We should log all events on sigterm for debugging when running inside cluster
-                from dbnd_airflow_contrib.kubernetes_metrics_logger import (
+                from dbnd_run.airflow.dbnd_airflow_contrib.kubernetes_metrics_logger import (
                     log_pod_events_on_sigterm,
                 )
 

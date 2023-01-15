@@ -36,6 +36,7 @@ def dbnd_package(name, extras=None):
 
 
 EXTRAS_REQUIRE = {
+    "run": [dbnd_package("dbnd-run")],
     "airflow": [dbnd_package("dbnd-airflow")],
     "airflow-auto-tracking": [dbnd_package("dbnd-airflow-auto-tracking")],
     "airflow-versioned-dag": [dbnd_package("dbnd-airflow-versioned-dag")],

@@ -9,7 +9,9 @@ from typing import Dict
 from dbnd._core.configuration.environ_config import ENV_DBND_SCRIPT_NAME
 from dbnd_airflow.tracking.conf_operations import fix_keys, flat_conf
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_airflow_conf
-from dbnd_airflow.utils import logger
+
+
+logger = logging.getLogger(__name__)
 
 
 def spark_env(key):

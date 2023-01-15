@@ -40,6 +40,7 @@ class TestTrackOperator(object):
         # }
         #
         # with mock.patch.dict(os.environ, env):
+
         run_this.run(
             start_date=DEFAULT_DATE, end_date=DEFAULT_DATE, ignore_ti_state=True
         )

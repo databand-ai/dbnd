@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 
 from airflow import DAG
 
-from dbnd_airflow.functional.dbnd_cmd_operators import dbnd_task_as_bash_operator
 from dbnd_examples.orchestration.dbnd_aws import partner_data_ingest_new_files
 from dbnd_examples.orchestration.dbnd_aws.sync_operators import S3StatefulSensor
+from dbnd_run.airflow.functional import dbnd_task_as_bash_operator
 
 
 """

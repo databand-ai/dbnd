@@ -8,7 +8,7 @@ from datetime import datetime
 from airflow.models import Variable
 
 from dbnd._core.utils.basics.helpers import parse_bool
-from dbnd_airflow.constants import AIRFLOW_VERSION_2
+from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 
 
 if AIRFLOW_VERSION_2:

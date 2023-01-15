@@ -34,7 +34,7 @@ else:
     from airflow.hooks.base import BaseHook
     from airflow.operators.bash import BashOperator
 
-# Do not change this name unless you change the same constant in constants.py in dbnd-airflow
+# Do not change this name unless you change the same constant in compat.py in dbnd-airflow
 MONITOR_DAG_NAME = "databand_airflow_monitor"
 
 CHECK_INTERVAL = 10

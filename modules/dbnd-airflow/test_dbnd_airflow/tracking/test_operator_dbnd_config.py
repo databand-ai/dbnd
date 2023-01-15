@@ -45,6 +45,5 @@ def test_dbnd_config_on_operator_is_effective(dag):
 
     # This line will replace operator.execute method with our custom new_execute
     track_task(operator)
-
     operator.run()
     operator.run(start_date=DEFAULT_DATE, end_date=DEFAULT_DATE, ignore_ti_state=True)

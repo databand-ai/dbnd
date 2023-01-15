@@ -33,5 +33,4 @@ setuptools.setup(
             "sh",
         ]
     ),
-    entry_points={"dbnd": ["dbnd-airflow = dbnd_airflow._plugin"]},
 )

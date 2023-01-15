@@ -43,7 +43,7 @@ def subprocess_airflow(args):
 
 def subprocess_airflow_initdb():
     logging.info("Initializing Airflow DB")
-    from dbnd_airflow.constants import AIRFLOW_VERSION_2
+    from dbnd_airflow.compat import AIRFLOW_VERSION_2
 
     if AIRFLOW_VERSION_2:
         return subprocess_airflow(args=["db", "init"])
@@ -65,6 +65,6 @@ def setup_unittest_airflow():
     subprocess_airflow_initdb()
 
     # now reconnnect
-    from dbnd_airflow.airflow_extensions.airflow_config import reinit_airflow_sql_conn
+    from dbnd_airflow.testing.airflow_config import reinit_airflow_sql_conn
 
     reinit_airflow_sql_conn()

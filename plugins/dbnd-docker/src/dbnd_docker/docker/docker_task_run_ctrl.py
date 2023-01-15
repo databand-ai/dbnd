@@ -14,7 +14,7 @@ class LocalDockerRunCtrl(DockerRunCtrl):
         return self.task.docker_engine
 
     def docker_run(self):
-        from dbnd_airflow_contrib.docker_operator import DockerOperator
+        from dbnd_run.airflow.dbnd_airflow_contrib import DockerOperator
 
         t = self.task
         dc = self.docker_config

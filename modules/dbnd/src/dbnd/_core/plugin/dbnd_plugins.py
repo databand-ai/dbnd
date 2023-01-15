@@ -12,20 +12,18 @@ from dbnd._vendor import pluggy
 
 logger = logging.getLogger(__name__)
 
-
 hookimpl = pluggy.HookimplMarker("dbnd")
 pm = pluggy.PluginManager("dbnd")
 pm.add_hookspecs(dbnd_plugin_spec)
 
 _AIRFLOW_PACKAGE_INSTALLED = None  # apache airflow is installed
 _AIRFLOW_ENABLED = None  # dbnd-airflow is installed and enabled
+_DBND_RUN_AIRFLOW_AIRFLOW_ENABLED = None  # dbnd-airflow is installed and enabled
 
 
 def _is_airflow_enabled():
     if get_dbnd_project_config().is_no_modules:
         return False
-    if pm.has_plugin("dbnd-airflow"):
-        return True
 
     # TODO: make decision based on plugin only
     try:
@@ -47,6 +45,38 @@ def disable_airflow_plugin():
     global _AIRFLOW_ENABLED
     _AIRFLOW_ENABLED = False
     pm.set_blocked("dbnd-airflow")
+
+
+def _is_dbnd_run_airflow_enabled():
+    if get_dbnd_project_config().is_no_modules:
+        return False
+    if not pm.has_plugin("dbnd-run"):
+        return False
+
+    # TODO: make decision based on plugin only
+    try:
+        import dbnd_run  # noqa: F401
+    except ImportError:
+        return False
+
+    try:
+        import airflow  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def is_dbnd_run_airflow_enabled():
+    global _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED
+    if _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED is None:
+        _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED = _is_dbnd_run_airflow_enabled()
+    return _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED
+
+
+def disable_dbnd_run_airflow_plugin():
+    global _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED
+    _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED = False
+    pm.set_blocked("dbnd-run")
 
 
 def use_airflow_connections():

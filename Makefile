@@ -61,6 +61,8 @@ prj_dbnd_run = \
 			plugins/dbnd-spark \
 			plugins/dbnd-qubole \
 			\
+            etc/deprecated_packages/dbnd-airflow-versioned-dag \
+			\
 			plugins/dbnd-test-scenarios
 
 # LIST of packages to be distributed

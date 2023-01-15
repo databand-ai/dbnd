@@ -1,0 +1,14 @@
+include LICENSE *.md *.toml
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .ipynb_checkpoints
+
+include src/dbnd_run/airflow/dbnd_airflow_contrib/README.md
+include src/dbnd_run/airflow/airflow_overrride/dbnd_airflow_windows/README.md
+
+recursive-include src/dbnd_run/airflow_dbnd_packages *.py
+recursive-include src/dbnd_run/airflow_dbnd_packages *.md
+
+prune tests
+exclude tox.ini
