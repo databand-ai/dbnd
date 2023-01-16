@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * AspectJ wrapper for @Pipeline and @Task annonations.
@@ -166,8 +167,27 @@ public class DbndWrapper {
     }
 
     public void afterPipeline() {
-        currentRun().stop();
+        stop();
         cleanup();
+    }
+
+    /**
+     * This method is useful when stopping pipelines running from the Databricks Notebooks.
+     * Delay is required because in some cases Listener processing will happen after script completion.
+     * To handle this, delay has to be added so Listener will process all events and then run will be completed.
+     *
+     * @param delayInSeconds
+     */
+    public void afterPipeline(int delayInSeconds) {
+        LOG.info("Stopping run with delay");
+        try {
+            TimeUnit.SECONDS.sleep(delayInSeconds);
+        } catch (InterruptedException e) {
+            /// do nothing
+        }
+        stop();
+        cleanup();
+        LOG.info("Run stopped");
     }
 
     public void errorPipeline(Throwable error) {
@@ -401,7 +421,7 @@ public class DbndWrapper {
     }
 
     protected void stop() {
-        if (run != null) {
+        if (run != null) { // if run is null it means it's already stopped and cleanup() was called
             run.stop();
         }
     }
