@@ -48,9 +48,7 @@ class DbtMonitorServicesFactory(MonitorServicesFactory):
     def get_tracking_service(self, server_config) -> DbtTrackingService:
         return decorate_tracking_service(
             DbtTrackingService(
-                monitor_type=MONITOR_TYPE,
-                server_id=server_config.identifier,
-                server_monitor_config=DbtServerConfig,
+                monitor_type=MONITOR_TYPE, server_id=server_config.identifier
             ),
             server_config.identifier,
         )
