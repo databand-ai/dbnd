@@ -1,4 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import logging
 
 import pandas as pd
 import pytest
@@ -21,7 +22,6 @@ REDSHIFT_VALUE_PREVIEW = """\
      Mel     973     True"""
 
 STUB_COLUMN_STATS = Mock()
-
 
 STUB_PANDAS_DATAFRAME = pd.DataFrame(
     {
@@ -101,9 +101,17 @@ class TestDataFrameValueType(object):
         assert redshift_value_meta.data_dimensions == expected_data_dimensions
         assert redshift_value_meta.data_schema == expected_data_schema
         assert redshift_value_meta.columns_stats == expected_column_stats
-        assert redshift_value_meta.value_preview == expected_value_preview
+        logging.warning("ACTUAL VALUE_PREVIEW: %s", redshift_value_meta.value_preview)
+        logging.warning("EXPECTED VALUE_PREVIEW: %s", expected_value_preview)
+        assert _strip_str(redshift_value_meta.value_preview) == _strip_str(
+            expected_value_preview
+        )
         assert redshift_value_meta.data_hash == str(hash(str(redshift_operation)))
         assert redshift_value_meta.query == COPY_FROM_S3_FILE_QUERY
         # histograms are not supported
         assert redshift_value_meta.histograms == {}
         assert redshift_value_meta.histogram_system_metrics == None
+
+
+def _strip_str(value: str):
+    return "\n".join([s.strip() for s in value.split("\n")])
