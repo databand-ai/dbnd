@@ -57,8 +57,6 @@ setuptools.setup(
             "mock",
             "wheel",  # for fat_wheel tests
         ],
-        # removed
-        # "zope.interface",
         "test-pandas": [
             "openpyxl==2.6.4",
             "numpy<1.23",
@@ -70,7 +68,6 @@ setuptools.setup(
             "tables==3.7.0",
             "feather-format",
             "pyarrow",
-            # conflict with pandas version on new openpyxl: got invalid input value of type <class 'xml.etree.ElementTree.Element'>, expected string or Element
         ],
         "jupyter": [
             "qtconsole==4.7.7",

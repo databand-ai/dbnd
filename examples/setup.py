@@ -25,6 +25,7 @@ INSTALL_REQUIRES = [
     'matplotlib==3.6.2;python_version>="3.8"',
     'pyspark==2.4.4;python_version<"3.8"',
     'pyspark==3.3.1;python_version>="3.8"',
+    "tables==3.7.0",
     "pandas<2.0.0,>=0.17.1",
 ]
 

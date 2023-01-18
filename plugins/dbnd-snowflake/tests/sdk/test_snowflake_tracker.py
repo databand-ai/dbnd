@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import logging
 import random
 
 from collections import defaultdict
@@ -1092,6 +1092,8 @@ def run_tracker_custom_query(mock_snowflake, query, expected):
                 expected_result_set = None
                 raise e
             finally:
+                logging.warning("ACTUAL OPERATIONS: %s", snowflake_tracker.operations)
+                logging.warning("EXPECTED OPERATIONS: %s", expected)
                 assert snowflake_tracker._connection == snowflake_connection
                 assert snowflake_tracker.operations == expected
                 assert snowflake_tracker.result_set == expected_result_set
