@@ -1,4 +1,4 @@
-FROM us.gcr.io/dbnd-dev-260010/databand/dbnd-python.base:py39-slim-v5
+FROM us.gcr.io/dbnd-dev-260010/databand/dbnd-python.base:py39-slim-v6
 
 # constants:
 ENV DBND_HOME=/app
@@ -56,14 +56,14 @@ ENV DBND__RUN_INFO__SOURCE_VERSION ${SOURCE_VERSION:-""}
 
 # Annotations/Labels
 LABEL "architecture"="x86_64"\
-      "build-date"="${JOB_STARTED_AT}" \
-      "distribution-scope"="private" \
-      "io.k8s.display-name"="IBM Databand datastage-monitor" \
-      "io.openshift.tags"="databand datastage monitor" \
-      "maintainer"="IBM, Inc." \
-      "name"="databand-datastage-monitor" \
-      "summary"="Provides the release of IBM Databand datastage-monitor." \
-      "vcs-ref"="${BUILD_REF}" \
-      "vcs-type"="git" \
-      "vendor"="IBM, Inc." \
-      "version"="${DBND_BUILD_VERSION}"
+    "build-date"="${JOB_STARTED_AT}" \
+    "distribution-scope"="private" \
+    "io.k8s.display-name"="IBM Databand datastage-monitor" \
+    "io.openshift.tags"="databand datastage monitor" \
+    "maintainer"="IBM, Inc." \
+    "name"="databand-datastage-monitor" \
+    "summary"="Provides the release of IBM Databand datastage-monitor." \
+    "vcs-ref"="${BUILD_REF}" \
+    "vcs-type"="git" \
+    "vendor"="IBM, Inc." \
+    "version"="${DBND_BUILD_VERSION}"
