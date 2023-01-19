@@ -29,15 +29,27 @@ def airflow_dag_folder(airflow_home):
 def airflow_init_db(airflow_sqlalchemy_conn):
     try:
         from airflow.bin.cli import initdb
+
+        class ArgsList(list):
+            """
+            workaround for args and "deprecated" issues
+            """
+
+            @property
+            def subcommand(self):
+                return "initdb"
+
+        initdb(ArgsList())
     except ImportError:
         from airflow.cli.commands.db_command import initdb
 
-    initdb([])
+        initdb([])
 
 
 @attr.s
-class YesObject(object):
+class ResetArgsObject(object):
     yes = attr.ib()  # type: bool
+    subcommand = "resetdb"
 
 
 @fixture(autouse=True, scope="function")
@@ -49,6 +61,6 @@ def airflow_reset_db(airflow_sqlalchemy_conn):
 
     from test_dbnd_airflow.export_plugin.db_data_generator import set_dag_is_paused
 
-    resetdb(YesObject(yes=True))
+    resetdb(ResetArgsObject(yes=True))
 
     set_dag_is_paused(is_paused=False)

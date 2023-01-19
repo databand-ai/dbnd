@@ -5,11 +5,11 @@ import datetime
 import pytest
 
 from airflow import DAG
-from airflow.models import TaskInstance
 from airflow.operators.python_operator import PythonOperator
+from airflow.utils import timezone
 
 from dbnd import config
-from dbnd._vendor.pendulum import tz, utcnow
+from dbnd._vendor.pendulum import tz
 from dbnd_airflow import track_task
 
 
@@ -17,6 +17,8 @@ DATA_INTERVAL_START = datetime.datetime(2021, 9, 13).replace(tzinfo=tz.UTC)
 
 TEST_DAG_ID = "my_custom_operator_dag"
 TEST_TASK_ID = "my_custom_operator_task"
+
+DEFAULT_DATE = timezone.datetime(2015, 1, 1)
 
 
 def python_operator_function():
@@ -44,5 +46,5 @@ def test_dbnd_config_on_operator_is_effective(dag):
     # This line will replace operator.execute method with our custom new_execute
     track_task(operator)
 
-    ti = TaskInstance(operator, utcnow())
-    ti.run(ignore_depends_on_past=True, ignore_ti_state=True)
+    operator.run()
+    operator.run(start_date=DEFAULT_DATE, end_date=DEFAULT_DATE, ignore_ti_state=True)

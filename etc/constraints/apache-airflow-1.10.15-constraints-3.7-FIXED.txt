@@ -93,7 +93,10 @@ cloudant==0.5.10
 colorama==0.4.4
 colorlog==4.0.2
 configparser==3.5.3
-coverage==5.3
+
+# removing build/test deps
+# coverage==5.3
+
 croniter==0.3.36
 
 # M1 support cryptography==3.2.1

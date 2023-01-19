@@ -36,7 +36,9 @@ setuptools.setup(
         tests=[
             # # airflow support
             "dbnd_test_scenarios==" + version,
-            "pytest==4.5.0",
+            # airflow 2.3 has a problem with pluggy <1.0, that makes pytest 4 incompatible
+            "pytest==6.2.4",
+            "coverage==7.0.1",
             "boto3",
             "mock",
             "sh",

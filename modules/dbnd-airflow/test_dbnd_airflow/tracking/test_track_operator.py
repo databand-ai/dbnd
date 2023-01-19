@@ -3,12 +3,14 @@
 from datetime import timedelta
 
 from airflow import DAG
-from airflow.models import TaskInstance
 from airflow.operators.python_operator import PythonOperator
+from airflow.utils import timezone
 from airflow.utils.dates import days_ago
 
-from dbnd._vendor.pendulum import utcnow
 from dbnd_airflow import track_task
+
+
+DEFAULT_DATE = timezone.datetime(2015, 1, 1)
 
 
 def _test_func(**kwargs):
@@ -38,5 +40,6 @@ class TestTrackOperator(object):
         # }
         #
         # with mock.patch.dict(os.environ, env):
-        ti = TaskInstance(run_this, utcnow())
-        ti.run(ignore_depends_on_past=True, ignore_ti_state=True)
+        run_this.run(
+            start_date=DEFAULT_DATE, end_date=DEFAULT_DATE, ignore_ti_state=True
+        )
