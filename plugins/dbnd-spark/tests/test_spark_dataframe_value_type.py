@@ -1,4 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import logging
 
 import pytest
 
@@ -47,6 +48,9 @@ class TestSparkDataFrameValueType(object):
         assert df_value_meta.data_hash == expected_value_meta.data_hash
         assert df_value_meta.data_dimensions == expected_value_meta.data_dimensions
         assert df_value_meta.data_schema == expected_value_meta.data_schema
+
+        logging.warning("actual %s", df_value_meta.columns_stats)
+        logging.warning("actual %s", expected_value_meta.columns_stats)
         assert df_value_meta.columns_stats == expected_value_meta.columns_stats
         # it changes all the time, it has different formats, and it's already tested in histogram tests
 
@@ -68,7 +72,7 @@ def spark_data_frame_stats():
     return [
         ColumnStatsArgs(
             column_name="Names",
-            column_type="StringType",
+            column_type="StringType()",
             records_count=5,
             distinct_count=None,
             null_count=0,
@@ -85,7 +89,7 @@ def spark_data_frame_stats():
         ),
         ColumnStatsArgs(
             column_name="Births",
-            column_type="LongType",
+            column_type="LongType()",
             records_count=5,
             distinct_count=None,
             null_count=0,
@@ -102,7 +106,7 @@ def spark_data_frame_stats():
         ),
         ColumnStatsArgs(
             column_name="Weights",
-            column_type="DoubleType",
+            column_type="DoubleType()",
             records_count=5,
             distinct_count=None,
             null_count=0,

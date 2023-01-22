@@ -48,12 +48,12 @@ def logging_status():
 
         airflow_task_logger = Logger.manager.loggerDict.get("airflow.task")
         if airflow_task_logger:
-            report.log("Airlfow task logger", airflow_task_logger)
-            report.log("Airlfow task logger handlers", airflow_task_logger.handlers)
+            report.log("Airflow task logger", airflow_task_logger)
+            report.log("Airflow task logger handlers", airflow_task_logger.handlers)
         else:
-            report.log("Airlfow task logger", "not found")
+            report.log("Airflow task logger", "not found")
     except Exception as ex:
-        ex_msg = "Failed to get airlfow.task logger status: %s" % ex
+        ex_msg = "Failed to get airflow.task logger status: %s" % ex
         report.log("Airflow task logger", ex_msg)
         logger.exception(ex_msg)
 

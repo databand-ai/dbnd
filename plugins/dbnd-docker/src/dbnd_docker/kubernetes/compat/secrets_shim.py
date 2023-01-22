@@ -10,9 +10,13 @@ import uuid
 
 from kubernetes.client import models as k8s
 
+from dbnd_airflow.constants import AIRFLOW_VERSION_2
 
-if typing.TYPE_CHECKING:
-    from dbnd_airflow.compat.airflow_multi_version_shim import Secret
+
+if AIRFLOW_VERSION_2:
+    from airflow.kubernetes.secret import Secret  # noqa: F401
+else:
+    from airflow.contrib.kubernetes.secret import Secret  # noqa: F401
 
 
 def to_env_secret(secret: "Secret") -> k8s.V1EnvVar:

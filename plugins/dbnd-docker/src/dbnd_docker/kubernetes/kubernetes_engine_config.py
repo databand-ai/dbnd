@@ -5,7 +5,6 @@ import logging
 import shlex
 import subprocess
 import textwrap
-import typing
 
 from os import environ
 from typing import Any, Dict, List, Optional
@@ -40,7 +39,7 @@ from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_task import DockerRunTask
 from dbnd_docker.kubernetes.compat import volume_shims
 from dbnd_docker.kubernetes.compat.pod_reconciler import reconcile_pods
-from dbnd_docker.kubernetes.compat.secrets_shim import attach_to_pod
+from dbnd_docker.kubernetes.compat.secrets_shim import Secret, attach_to_pod
 from dbnd_docker.kubernetes.compat.volume_shims import attach_volume_mount
 from dbnd_docker.kubernetes.dns1123_clean_names import (
     clean_label_name_dns1123,
@@ -49,9 +48,6 @@ from dbnd_docker.kubernetes.dns1123_clean_names import (
 from targets import target
 from targets.values import TimeDeltaValueType
 
-
-if typing.TYPE_CHECKING:
-    from dbnd_airflow.compat.airflow_multi_version_shim import Secret
 
 logger = logging.getLogger(__name__)
 
@@ -710,9 +706,6 @@ class KubernetesEngineConfig(ContainerEngineConfig):
 
     def get_secrets(self, include_system_secrets=True) -> List["Secret"]:
         """Defines any necessary secrets for the pod executor"""
-
-        from dbnd_airflow.compat.airflow_multi_version_shim import Secret
-
         result = []
         if include_system_secrets:
             secrets = self.system_secrets + self.secrets

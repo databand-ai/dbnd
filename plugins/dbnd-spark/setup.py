@@ -19,6 +19,7 @@ setuptools.setup(
     install_requires=["dbnd==" + version],
     extras_require={
         "tests": [
+            "pandas<2.0.0,>=0.17.1",
             'pyspark==2.4.4;python_version<"3.8"',
             'pyspark==3.3.1;python_version>="3.8"',
             "pytest-spark==0.6.0",
