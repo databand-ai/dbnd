@@ -250,7 +250,9 @@ install-dev-without-airflow: ## Install all modules, except Airflow, in editable
 	make __uninstall-dev
 
 	set -e; \
-	pip install -r databand-sdk.requirements.txt
+
+	# We use --no-deps flag since we manage our dependencies via pip tools
+	pip install --no-deps -r databand-sdk.requirements.txt
 
 
 pip-compile:

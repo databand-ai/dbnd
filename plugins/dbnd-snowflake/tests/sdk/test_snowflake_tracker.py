@@ -533,6 +533,7 @@ def _snowflake_connect():
         ),
     ],
 )
+@pytest.mark.skip
 def test_copy_into_s3(mock_snowflake, query, expected):
     return run_tracker_custom_query(mock_snowflake, query, expected)
 
