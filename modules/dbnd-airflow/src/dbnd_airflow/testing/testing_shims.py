@@ -53,3 +53,10 @@ def run_dag_backfill(dag_id, backfill_date):
     logging.info("running: airflow {}".format(airflow_command))
     airflow_process = sh.airflow(airflow_command.split(), _truncate_exc=False)
     return airflow_process
+
+
+def dags_unpause(dag_id):
+    if AIRFLOW_VERSION_2:
+        sh.airflow(["dags", "unpause", dag_id], _truncate_exc=False)
+    else:
+        sh.airflow(["unpause", dag_id], _truncate_exc=False)
