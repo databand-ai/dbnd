@@ -197,6 +197,7 @@ public class DbndWrapper {
 
     protected void cleanup() {
         run = null;
+        externalContextSet = false;
         methodsCache.clear();
         pipelineInitialized = false;
         loadedClasses.clear();
