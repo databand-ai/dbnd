@@ -4,43 +4,38 @@ import logging
 
 import sh
 
-from dbnd_airflow.constants import AIRFLOW_VERSION_2
+from dbnd_airflow.constants import AIRFLOW_VERSION_1, AIRFLOW_VERSION_2
 
 
-def build_airflow_conn_command(name, conn_type, extra=None, host=None):
+def set_airflow_connection(
+    conn_id, conn_type=None, conn_uri=None, extra=None, host=None
+):
     airflow_command = ["connections"]
+
+    def _support_v1(arg):
+        if AIRFLOW_VERSION_1:
+            return arg[0:2] + arg[2:].replace("-", "_")
+        return arg
 
     # name
     airflow_command.extend(
-        ["add", name] if AIRFLOW_VERSION_2 else ["--add", "--conn_id", name]
+        ["add", conn_id] if AIRFLOW_VERSION_2 else ["--add", "--conn_id", conn_id]
     )
     # conn type
-    airflow_command.extend(
-        ["--conn-type", conn_type] if AIRFLOW_VERSION_2 else ["--conn_type", conn_type]
-    )
-    # conn extra
+    if conn_type:
+        airflow_command.extend([_support_v1("--conn-type"), conn_type])
     if extra:
-        airflow_command.extend(
-            ["--conn-extra", extra] if AIRFLOW_VERSION_2 else ["--conn_extra", extra]
-        )
-    # conn host
+        airflow_command.extend([_support_v1("--conn-extra"), extra])
+    if conn_uri:
+        airflow_command.extend([_support_v1("--conn-uri"), conn_uri])
     if host:
-        airflow_command.extend(
-            ["--conn-host", host] if AIRFLOW_VERSION_2 else ["--conn_host", host]
-        )
+        airflow_command.extend([_support_v1("--conn-host"), host])
 
-    return airflow_command
-
-
-def set_airflow_connection(dbnd_conn_name, conn_type, extra=None, host=None):
-    airflow_command = build_airflow_conn_command(
-        name=dbnd_conn_name, conn_type=conn_type, extra=extra, host=host
-    )
     try:
         if AIRFLOW_VERSION_2:
-            sh.airflow(["connections", "delete", dbnd_conn_name])
+            sh.airflow(["connections", "delete", conn_id])
         else:
-            sh.airflow(["connections", "--delete", "--conn_id", dbnd_conn_name])
+            sh.airflow(["connections", "--delete", "--conn_id", conn_id])
 
     except sh.ErrorReturnCode:
         pass
@@ -56,5 +51,5 @@ def run_dag_backfill(dag_id, backfill_date):
         airflow_command = f"backfill -s {backfill_date} -e {backfill_date} {dag_id} --reset_dagruns --yes"
 
     logging.info("running: airflow {}".format(airflow_command))
-    airflow_process = sh.airflow(airflow_command.split(), _bg=True, _truncate_exc=False)
-    airflow_process.wait()
+    airflow_process = sh.airflow(airflow_command.split(), _truncate_exc=False)
+    return airflow_process
