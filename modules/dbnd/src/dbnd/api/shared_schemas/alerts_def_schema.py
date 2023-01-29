@@ -32,8 +32,6 @@ class AlertDefsSchema(ApiStrictSchema):
     custom_name = fields.Str(allow_none=True)
     original_uid = fields.Str(allow_none=True)
     advanced_json = fields.Str(allow_none=True)
-    scheduled_job_uid = fields.Str(allow_none=True)
-    scheduled_job_name = fields.Str(attribute="scheduled_job.name", allow_none=True)
     custom_description = fields.Str(allow_none=True)
     ml_alert = fields.Nested(MLAlert, allow_none=True)
 

@@ -52,11 +52,6 @@ class ScheduledJobSchemaV2(ApiStrictSchema):
     next_job_date = fields.DateTime(
         attribute="DbndScheduledJob.next_job_date", allow_none=True
     )
-    alerts = fields.List(
-        fields.Nested(AlertEventSchema),
-        attribute="DbndScheduledJob.alerts",
-        allow_none=True,
-    )
 
     job_name = fields.Str(dump_only=True, attribute="DbndScheduledJob.job_name")
     job_id = fields.Str()
