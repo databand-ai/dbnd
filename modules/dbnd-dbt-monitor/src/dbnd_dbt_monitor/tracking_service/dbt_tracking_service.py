@@ -31,7 +31,7 @@ class DbtTrackingService(BaseTrackingService):
 
     def init_dbt_runs(self, dbt_runs_full_data):
         self._api_client.api_request(
-            endpoint=f"tracking-monitor/{self.server_id}/sync_dbt_runs",
+            endpoint=f"tracking-monitor/{self.server_id}/save_tracking_data",
             method="POST",
             data=dbt_runs_full_data,
         )

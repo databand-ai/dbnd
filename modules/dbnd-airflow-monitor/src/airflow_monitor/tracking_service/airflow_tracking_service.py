@@ -85,7 +85,7 @@ class AirflowTrackingService(BaseTrackingService):
         data["syncer_type"] = syncer_type
         data["airflow_export_meta"] = plugin_meta_data.as_dict()
         response = self._make_request(
-            "init_dagruns",
+            "save_tracking_data",
             method="POST",
             data=data,
             request_timeout=LONG_REQUEST_TIMEOUT,
