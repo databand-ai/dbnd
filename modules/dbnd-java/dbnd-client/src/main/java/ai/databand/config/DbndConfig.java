@@ -299,14 +299,31 @@ public class DbndConfig implements PropertiesSource {
         return Optional.of(value);
     }
 
+    /**
+     * Mask sensitive config values.
+     *
+     * @param key
+     * @param value
+     * @return
+     */
+    protected String maskValue(String key, String value) {
+        if (value == null) {
+            return null;
+        }
+        if (key.toLowerCase().contains("token")) {
+            return "***";
+        }
+        return value;
+    }
+
     @Override
     public String toString() {
-        if (props == null) {
+        if (props == null || props.isEmpty()) {
             return "{}";
         }
         return "\n" + props.keySet().stream()
             .filter(key -> key.toLowerCase().startsWith("dbnd") || key.toLowerCase().startsWith("airflow"))
-            .map(key -> key + "=" + props.get(key))
+            .map(key -> key + "=" + maskValue(key, props.get(key)))
             .collect(Collectors.joining("\n"));
     }
 }

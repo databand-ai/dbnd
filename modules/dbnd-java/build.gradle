@@ -118,6 +118,9 @@ configure(subprojects.findAll { sparkProjects.contains(it.name) }) {
         compileOnly('org.apache.spark:spark-core_2.11:2.4.8') {
             transitive = false
         }
+        compileOnly('org.apache.spark:spark-tags_2.11:2.4.8') {
+            transitive = false
+        }
         compileOnly('org.apache.spark:spark-sql_2.11:2.4.8') {
             transitive = false
         }

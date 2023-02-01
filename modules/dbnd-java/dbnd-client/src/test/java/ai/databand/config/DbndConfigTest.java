@@ -2,16 +2,14 @@
  * © Copyright Databand.ai, an IBM Company 2022
  */
 
-package ai.databand;
+package ai.databand.config;
 
-import ai.databand.config.DbndConfig;
-import ai.databand.config.DbndSparkConf;
-import ai.databand.config.SimpleProps;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -19,6 +17,7 @@ import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_DAG_ID;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_EXECUTION_DATE;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_TASK_ID;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_TRY_NUMBER;
+import static ai.databand.DbndPropertyNames.DBND__CORE__DATABAND_ACCESS_TOKEN;
 import static ai.databand.DbndPropertyNames.DBND__CORE__DATABAND_URL;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING;
 import static ai.databand.DbndPropertyNames.DBND__TRACKING__LOG_VALUE_PREVIEW;
@@ -28,6 +27,28 @@ class DbndConfigTest {
 
     private final Properties sparkProperties = System.getProperties();
 
+    @Test
+    public void testMaskValue() {
+        DbndConfig conf = new DbndConfig();
+        assertThat("Sensitive value should be masked", conf.maskValue("dbnd.core.databand_access_token", "token"), Matchers.equalTo("***"));
+        assertThat("Null value should not be changed", conf.maskValue("dbnd.core.databand_access_token", null), Matchers.nullValue());
+        assertThat("Non-sensitive value should not be changed", conf.maskValue("dbnd.core.databand_url", "https://databand.ai/tracker/"), Matchers.equalTo("https://databand.ai/tracker/"));
+    }
+
+    @Test
+    public void testToString() {
+        DbndConfig conf = new DbndConfig(new SimpleProps(Collections.emptyMap()));
+        assertThat("Empty config should return nothing", conf.toString(), Matchers.equalTo("{}"));
+
+        Map<String, String> props = new LinkedHashMap<>(1);
+        props.put(DBND__TRACKING, "True");
+        props.put("SOME_VAR", "False");
+        props.put(DBND__CORE__DATABAND_URL, "https://databand.ai/tracker");
+        props.put(DBND__CORE__DATABAND_ACCESS_TOKEN, "123");
+        conf = new DbndConfig(new SimpleProps(props));
+        String excepted = "\ndbnd.tracking=True\ndbnd.core.databand_url=https://databand.ai/tracker\ndbnd.core.databand_access_token=***";
+        assertThat("Wrong toString", conf.toString(), Matchers.equalTo(excepted));
+    }
 
     @Test
     public void testTrackingEnabledNonAf() {
