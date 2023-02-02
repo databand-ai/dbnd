@@ -1,6 +1,11 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from abc import ABC, abstractmethod
 
+from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
+from airflow_monitor.shared.base_syncer_management_service import (
+    BaseSyncerManagementService,
+)
+
 
 class MonitorServicesFactory(ABC):
     """
@@ -24,7 +29,11 @@ class MonitorServicesFactory(ABC):
     def get_tracking_service(self, server_config):
         pass
 
-    def get_components(self, server_config, syncer_management_service):
+    def get_components(
+        self,
+        server_config: BaseServerConfig,
+        syncer_management_service: BaseSyncerManagementService,
+    ):
         tracking_service = self.get_tracking_service(server_config)
         data_fetcher = self.get_data_fetcher(server_config)
         components_dict = self.get_components_dict()
