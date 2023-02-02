@@ -31,7 +31,7 @@ class DataStageTrackingService(BaseTrackingService):
 
     def init_datastage_runs(self, datastage_runs_full_data):
         self._api_client.api_request(
-            endpoint=f"tracking-monitor/{self.server_id}/save_tracking_data",
+            endpoint=f"tracking-monitor/{self.server_id}/init_datastage_runs",
             method="POST",
             data=datastage_runs_full_data,
         )
