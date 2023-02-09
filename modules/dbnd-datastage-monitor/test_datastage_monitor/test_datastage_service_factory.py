@@ -14,14 +14,16 @@ from dbnd_datastage_monitor.multiserver.datastage_services_factory import (
 from dbnd_datastage_monitor.syncer.datastage_runs_syncer import DataStageRunsSyncer
 
 from airflow_monitor.shared.generic_syncer import GenericSyncer
+from dbnd._core.utils.uid_utils import get_uuid
 
 
 @pytest.fixture
 def mock_server_config_generic_syncer_disabled() -> DataStageServerConfig:
     yield DataStageServerConfig(
+        uid=get_uuid(),
         source_name="test_syncer",
         source_type="integration",
-        tracking_source_uid="12345",
+        tracking_source_uid=get_uuid(),
         sync_interval=10,
         number_of_fetching_threads=2,
         project_ids=["1", "2"],
@@ -32,9 +34,10 @@ def mock_server_config_generic_syncer_disabled() -> DataStageServerConfig:
 @pytest.fixture
 def mock_server_config_generic_syncer_enabled() -> DataStageServerConfig:
     yield DataStageServerConfig(
+        uid=get_uuid(),
         source_name="test_syncer",
         source_type="integration",
-        tracking_source_uid="12345",
+        tracking_source_uid=get_uuid(),
         sync_interval=10,
         number_of_fetching_threads=2,
         project_ids=["1", "2"],
@@ -48,7 +51,7 @@ def monitor_services_factory() -> DataStageMonitorServicesFactory:
 
 
 @pytest.fixture
-def mock_syncer_management_service() -> MagicMock:
+def mock_integration_management_service() -> MagicMock:
     return MagicMock()
 
 
@@ -57,11 +60,11 @@ class TestDataStageMonitorServicesFactory:
         self,
         mock_server_config_generic_syncer_disabled,
         monitor_services_factory,
-        mock_syncer_management_service,
+        mock_integration_management_service,
     ):
         all_components = monitor_services_factory.get_components(
-            server_config=mock_server_config_generic_syncer_disabled,
-            syncer_management_service=mock_syncer_management_service,
+            integration_config=mock_server_config_generic_syncer_disabled,
+            integration_management_service=mock_integration_management_service,
         )
         assert len(all_components) == 1
         result_syncer = all_components[0]
@@ -80,11 +83,11 @@ class TestDataStageMonitorServicesFactory:
         self,
         mock_server_config_generic_syncer_enabled,
         monitor_services_factory,
-        mock_syncer_management_service,
+        mock_integration_management_service,
     ):
         all_components = monitor_services_factory.get_components(
-            server_config=mock_server_config_generic_syncer_enabled,
-            syncer_management_service=mock_syncer_management_service,
+            integration_config=mock_server_config_generic_syncer_enabled,
+            integration_management_service=mock_integration_management_service,
         )
         assert len(all_components) == 2
         expected_project_id = 1

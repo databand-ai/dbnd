@@ -38,8 +38,16 @@ class PluginMetadata:
             airflow_version=self.airflow_version,
             plugin_version=self.plugin_version,
             airflow_instance_uid=self.airflow_instance_uid,
-            is_rbac_enabled=self.api_mode,
+            api_mode=self.api_mode,
         )
+
+    def as_safe_dict(self):
+        values_dict = self.as_dict()
+        for key in values_dict:
+            if values_dict[key] == NOTHING:
+                values_dict[key] = ""
+
+        return values_dict
 
     @classmethod
     def from_dict(cls, data):

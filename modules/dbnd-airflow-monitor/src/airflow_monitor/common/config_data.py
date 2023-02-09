@@ -73,6 +73,7 @@ class AirflowServerConfig(BaseServerConfig):
             dag_ids = dag_ids + "," + MONITOR_DAG_NAME
 
         conf = cls(
+            uid=server_config["uid"],
             source_type="airflow",
             source_name=server_config["name"],
             tracking_source_uid=server_config["tracking_source_uid"],

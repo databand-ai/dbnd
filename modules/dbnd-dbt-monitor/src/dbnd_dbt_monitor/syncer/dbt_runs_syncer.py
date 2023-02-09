@@ -40,6 +40,16 @@ class DbtRunsSyncer(BaseComponent):
         if new_dbt_run_ids:
             self.init_runs(new_dbt_run_ids)
             self._update_last_seen_values(new_dbt_run_ids)
+        else:
+            logger.info(
+                "No new runs found for tracking source %s",
+                self.config.tracking_source_uid,
+            )
+
+        synced_new_data = len(running_dbt_run_ids) > 0 or len(new_dbt_run_ids) > 0
+        self.integration_management_service.report_monitor_time_data(
+            self.config.uid, synced_new_data=synced_new_data
+        )
 
     def init_runs(self, run_ids_to_init):
         if not run_ids_to_init:

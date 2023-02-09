@@ -5,15 +5,15 @@ import logging
 from dbnd_dbt_monitor.data.dbt_config_data import DbtServerConfig
 from dbnd_dbt_monitor.fetcher.dbt_cloud_data_fetcher import DbtCloudDataFetcher
 from dbnd_dbt_monitor.syncer.dbt_runs_syncer import DbtRunsSyncer
-from dbnd_dbt_monitor.tracking_service.dbt_syncer_management_service import (
-    DbtSyncersManagementService,
-)
 from dbnd_dbt_monitor.tracking_service.dbt_tracking_service import DbtTrackingService
 
 from airflow_monitor.shared.decorators import (
     decorate_configuration_service,
     decorate_fetcher,
     decorate_tracking_service,
+)
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
 )
 from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
 from dbnd._core.utils.basics.memoized import cached
@@ -38,9 +38,9 @@ class DbtMonitorServicesFactory(MonitorServicesFactory):
         return decorate_fetcher(fetcher, server_config.account_id)
 
     @cached()
-    def get_syncer_management_service(self):
+    def get_integration_management_service(self):
         return decorate_configuration_service(
-            DbtSyncersManagementService(
+            IntegrationManagementService(
                 monitor_type=MONITOR_TYPE, server_monitor_config=DbtServerConfig
             )
         )
@@ -52,10 +52,3 @@ class DbtMonitorServicesFactory(MonitorServicesFactory):
             ),
             server_config.identifier,
         )
-
-
-_dbt_services_factory = DbtMonitorServicesFactory()
-
-
-def get_dbt_services_factory():
-    return _dbt_services_factory

@@ -22,7 +22,6 @@ class DataStageMonitorConfig(BaseMonitorConfig):
 
 @attr.s
 class DataStageServerConfig(BaseServerConfig):
-    uid = attr.ib(default=None)  # type: str
     project_id = attr.ib(default=None)  # type: str
     project_ids = attr.ib(factory=list)
     api_key = attr.ib(default=None)  # type: str

@@ -14,9 +14,6 @@ from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
     MultiProjectDataStageDataFetcher,
 )
 from dbnd_datastage_monitor.syncer.datastage_runs_syncer import DataStageRunsSyncer
-from dbnd_datastage_monitor.tracking_service.datastage_syncer_management_service import (
-    DataStageSyncersManagementService,
-)
 from dbnd_datastage_monitor.tracking_service.datastage_tracking_service import (
     DataStageTrackingService,
 )
@@ -27,6 +24,9 @@ from airflow_monitor.shared.decorators import (
     decorate_tracking_service,
 )
 from airflow_monitor.shared.generic_syncer import GenericSyncer
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
 from dbnd._core.utils.basics.memoized import cached
 
@@ -41,8 +41,7 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
         if is_generic_syncer_enabled:
             return {"generic_syncer": GenericSyncer}
         # turn off generic syncer by default
-        else:
-            return {"datastage_runs_syncer": DataStageRunsSyncer}
+        return {"datastage_runs_syncer": DataStageRunsSyncer}
 
     @staticmethod
     def get_asset_clients(server_config: DataStageServerConfig):
@@ -90,9 +89,9 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
         return decorate_fetcher(fetcher, server_config.source_name)
 
     @cached()
-    def get_syncer_management_service(self):
+    def get_integration_management_service(self):
         return decorate_configuration_service(
-            DataStageSyncersManagementService(
+            IntegrationManagementService(
                 monitor_type=MONITOR_TYPE, server_monitor_config=DataStageServerConfig
             )
         )
@@ -105,43 +104,46 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
             server_config.identifier,
         )
 
+    def get_adapter(self, server_config):
+        from dbnd_datastage_monitor.adapter.datastage_adapter import DataStageAdapter
+
+        datastage_asset_clients = self.get_asset_clients(server_config)
+        return DataStageAdapter(
+            config=server_config, datastage_assets_client=datastage_asset_clients[0]
+        )
+
     def get_components(
         self,
-        server_config: DataStageServerConfig,
-        syncer_management_service: DataStageSyncersManagementService,
+        integration_config: DataStageServerConfig,
+        integration_management_service: IntegrationManagementService,
     ) -> list:
-        if server_config.is_generic_syncer_enabled:
-            tracking_service = self.get_tracking_service(server_config)
-            self.get_data_fetcher(server_config)
-            components_dict = self.get_components_dict(is_generic_syncer_enabled=True)
+        # turn off generic syncer by default
+        if not integration_config.is_generic_syncer_enabled:
+            return super().get_components(
+                integration_config, integration_management_service
+            )
 
-            all_components = []
-            for _, syncer_class in components_dict.items():
-                datastage_asset_clients = self.get_asset_clients(server_config)
-                for datastage_asset_client in datastage_asset_clients:
-                    from dbnd_datastage_monitor.adapter.datastage_adapter import (
-                        DataStageAdapter,
-                    )
+        tracking_service = self.get_tracking_service(integration_config)
+        self.get_data_fetcher(integration_config)
+        components_dict = self.get_components_dict(is_generic_syncer_enabled=True)
 
-                    syncer_instance = syncer_class(
-                        config=server_config,
-                        tracking_service=tracking_service,
-                        syncer_management_service=syncer_management_service,
-                        adapter=DataStageAdapter(
-                            config=server_config,
-                            datastage_assets_client=datastage_asset_client,
-                        ),
-                    )
-                    all_components.append(syncer_instance)
+        all_components = []
+        for _, syncer_class in components_dict.items():
+            datastage_asset_clients = self.get_asset_clients(integration_config)
+            for datastage_asset_client in datastage_asset_clients:
+                from dbnd_datastage_monitor.adapter.datastage_adapter import (
+                    DataStageAdapter,
+                )
+
+                syncer_instance = syncer_class(
+                    config=integration_config,
+                    tracking_service=tracking_service,
+                    integration_management_service=integration_management_service,
+                    adapter=DataStageAdapter(
+                        config=integration_config,
+                        datastage_assets_client=datastage_asset_client,
+                    ),
+                )
+                all_components.append(syncer_instance)
 
             return all_components
-        # turn off generic syncer by default
-        else:
-            return super().get_components(server_config, syncer_management_service)
-
-
-_datastage_services_factory = DataStageMonitorServicesFactory()
-
-
-def get_datastage_services_factory():
-    return _datastage_services_factory

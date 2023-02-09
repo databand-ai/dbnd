@@ -3,10 +3,10 @@
 import logging
 
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
-from airflow_monitor.shared.base_syncer_management_service import (
-    BaseSyncerManagementService,
-)
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 from dbnd.utils.trace import new_tracing_id
 
 
@@ -17,7 +17,7 @@ class BaseComponent:
 
     config: BaseServerConfig
     tracking_service: BaseTrackingService
-    syncer_management_service: BaseSyncerManagementService
+    integration_management_service: IntegrationManagementService
     data_fetcher: object
     sleep_interval: int
 
@@ -25,12 +25,12 @@ class BaseComponent:
         self,
         config: BaseServerConfig,
         tracking_service: BaseTrackingService,
-        syncer_management_service,
+        integration_management_service,
         data_fetcher: object,
     ):
         self.config = config
         self.tracking_service = tracking_service
-        self.syncer_management_service = syncer_management_service
+        self.integration_management_service = integration_management_service
         self.data_fetcher: object = data_fetcher
         self.last_heartbeat = None
 
@@ -59,4 +59,4 @@ class BaseComponent:
         pass
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.config.source_name}|{self.config.identifier})"
+        return f"{self.__class__.__name__}({self.config.source_name}|{self.config.uid})"

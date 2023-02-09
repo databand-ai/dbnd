@@ -1,8 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
+from airflow_monitor.adapter.validations import run_validations
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.multiserver import start_multi_server_monitor
-from airflow_monitor.validations import run_validations
 from dbnd._vendor import click
 
 

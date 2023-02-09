@@ -2,13 +2,15 @@
 
 import logging
 
+from typing import Iterable
+
 from airflow_monitor.shared.adapter.adapter import Adapter
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
-from airflow_monitor.shared.base_syncer_management_service import (
-    BaseSyncerManagementService,
-)
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -25,11 +27,11 @@ class GenericSyncer(BaseComponent):
         self,
         config: BaseServerConfig,
         tracking_service: BaseTrackingService,
-        syncer_management_service: BaseSyncerManagementService,
+        integration_management_service: IntegrationManagementService,
         adapter: Adapter,
     ):
         super(GenericSyncer, self).__init__(
-            config, tracking_service, syncer_management_service, None
+            config, tracking_service, integration_management_service, None
         )
         self.adapter = adapter
 
@@ -50,8 +52,8 @@ class GenericSyncer(BaseComponent):
             )
             return
 
-        self.sync_active_data()
-        self.sync_new_data(cursor)
+        synced_updated_data = self.sync_active_data()
+        synced_new_data = self.sync_new_data(cursor)
 
         # report last cursor only when all pages saved
         self.tracking_service.update_last_cursor(
@@ -59,28 +61,35 @@ class GenericSyncer(BaseComponent):
             state="update",
             data=self.adapter.get_last_cursor(),
         )
-        self.syncer_management_service.update_last_sync_time(self.config.identifier)
+        self.integration_management_service.report_monitor_time_data(
+            self.config.identifier,
+            synced_new_data=(synced_updated_data or synced_new_data),
+        )
 
-    def sync_active_data(self):
+    def sync_active_data(self) -> bool:
         update_data = self.update_active_adapter_data()
         if update_data:
             self.tracking_service.save_tracking_data(update_data)
-        else:
-            logger.info(
-                "No updated data found for tracking source %s",
-                self.config.tracking_source_uid,
-            )
+            return True
 
-    def update_active_adapter_data(self) -> object:
+        logger.info(
+            "No updated data found for tracking source %s",
+            self.config.tracking_source_uid,
+        )
+        return False
+
+    def update_active_adapter_data(self) -> dict:
         logger.info(
             "Checking for in progress data for tracking source %s",
             self.config.tracking_source_uid,
         )
         active_runs = self.tracking_service.get_active_runs()
         if active_runs:
-            return self.adapter.update_data(active_runs)
+            return self.adapter.get_update_data(active_runs)
+        return {}
 
-    def sync_new_data(self, cursor: object):
+    def sync_new_data(self, cursor: object) -> bool:
+        synced_new_runs = False
         logger.info(
             "Checking for new data for tracking source %s",
             self.config.tracking_source_uid,
@@ -88,22 +97,26 @@ class GenericSyncer(BaseComponent):
         for data in self.get_adapter_data(cursor):
             if data:
                 self.tracking_service.save_tracking_data(data)
-            else:
-                logger.info(
-                    "No new data found for tracking source %s",
-                    self.config.tracking_source_uid,
-                )
+                synced_new_runs = True
 
-    def get_adapter_data(self, cursor: object) -> object:
+        if not synced_new_runs:
+            logger.info(
+                "No new data found for tracking source %s",
+                self.config.tracking_source_uid,
+            )
+
+        return synced_new_runs
+
+    def get_adapter_data(self, cursor: object) -> Iterable[object]:
         next_page = None
         while True:
-            adapter_data = self.adapter.get_data(
+            adapter_data = self.adapter.get_new_data(
                 cursor=cursor, batch_size=200, next_page=next_page
             )
             data = adapter_data.data
             next_page = adapter_data.next_page
             # TODO: put failed in queue here
-            if next_page == None:
+            if next_page is None:
                 break
             yield data
         yield data

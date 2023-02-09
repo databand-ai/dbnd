@@ -17,15 +17,16 @@ from dbnd_datastage_monitor.fetcher.multi_project_data_fetcher import (
     MultiProjectDataStageDataFetcher,
 )
 from dbnd_datastage_monitor.syncer.datastage_runs_syncer import DataStageRunsSyncer
-from dbnd_datastage_monitor.tracking_service.datastage_syncer_management_service import (
-    DataStageSyncersManagementService,
-)
 from dbnd_datastage_monitor.tracking_service.datastage_tracking_service import (
     DataStageTrackingService,
 )
 
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 from dbnd import relative_path
 from dbnd._core.utils.timezone import utcnow
+from dbnd._core.utils.uid_utils import get_uuid
 
 
 RUNNING_STATE = "running"
@@ -113,17 +114,14 @@ class MockDatastageTrackingService(DataStageTrackingService):
         ]
 
 
-class MockDataStageSyncersManagementService(DataStageSyncersManagementService):
-    def update_monitor_state(self, server_id, monitor_state):
+class MockDataStageIntegrationManagementService(IntegrationManagementService):
+    def report_monitor_time_data(self, integration_uid, synced_new_data=False):
         pass
 
-    def update_last_sync_time(self, server_id):
+    def report_metadata(self, integration_uid, metadata):
         pass
 
-    def set_running_monitor_state(self, server_id):
-        pass
-
-    def set_starting_monitor_state(self, server_id):
+    def report_error(self, integration_uid, full_function_name, err_message):
         pass
 
 
@@ -137,8 +135,8 @@ def mock_datastage_tracking_service() -> MockDatastageTrackingService:
 
 
 @pytest.fixture
-def mock_datastage_syncer_management_service() -> MockDataStageSyncersManagementService:
-    yield MockDataStageSyncersManagementService("datastage", DataStageServerConfig)
+def mock_datastage_integration_management_service() -> MockDataStageIntegrationManagementService:
+    yield MockDataStageIntegrationManagementService("datastage", DataStageServerConfig)
 
 
 @pytest.fixture
@@ -161,24 +159,27 @@ def mock_datastage_fetcher() -> MockDatastageFetcher:
 def datastage_runtime_syncer(
     mock_datastage_fetcher,
     mock_datastage_tracking_service,
-    mock_datastage_syncer_management_service,
+    mock_datastage_integration_management_service,
 ):
     syncer = DataStageRunsSyncer(
         config=DataStageServerConfig(
+            uid=get_uuid(),
             source_name="test_syncer",
             source_type="datastage",
-            tracking_source_uid="12345",
+            tracking_source_uid=get_uuid(),
             sync_interval=10,
             fetching_interval_in_minutes=10,
         ),
         tracking_service=mock_datastage_tracking_service,
         data_fetcher=mock_datastage_fetcher,
-        syncer_management_service=mock_datastage_syncer_management_service,
+        integration_management_service=mock_datastage_integration_management_service,
     )
     with patch.object(syncer, "refresh_config", new=lambda *args: None), patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
     ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher), patch.object(
-        syncer, "syncer_management_service", wraps=syncer.syncer_management_service
+        syncer,
+        "integration_management_service",
+        wraps=syncer.integration_management_service,
     ):
         yield syncer
 
@@ -448,7 +449,7 @@ class TestDatastageRunsSyncer:
         assert str(min_start_time) == expected_min_start_time
 
     @pytest.mark.parametrize(
-        "runs, update_runs_expected_call_count, update_last_sync_time_expected_call_count",
+        "runs, update_runs_expected_call_count",
         [
             [
                 [
@@ -457,7 +458,6 @@ class TestDatastageRunsSyncer:
                     "https://cpd-ds.apps.datastageaws4.4qj6.p1.openshiftapps.com/v2/assets/cdc82817-4027-45b4-ad3b-ecd0bb50d460?project_id=e9b6d8e2-5681-416f-9506-94b0849cfe8d",
                 ],
                 3,
-                3,
             ],
             [
                 [
@@ -465,7 +465,6 @@ class TestDatastageRunsSyncer:
                     "https://cpd-ds.apps.datastageaws4.4qj6.p1.openshiftapps.com/v2/assets/cdc82817-4027-45b4-ad3b-ecd0bb50d460?project_id=e9b6d8e2-5681-416f-9506-94b0849cfe8c",
                     "https://cpd-ds.apps.datastageaws4.4qj6.p1.openshiftapps.com/v2/assets/cdc82817-4027-45b4-ad3b-ecd0bb50d460?project_id=e9b6d8e2-5681-416f-9506-94b0849cfe8c",
                 ],
-                2,
                 2,
             ],
             [
@@ -475,31 +474,19 @@ class TestDatastageRunsSyncer:
                     "https://cpd-ds.apps.datastageaws4.4qj6.p1.openshiftapps.com/v2/assets/cdc82817-4027-45b4-ad3b-ecd0bb50d460?project_id=e9b6d8e2-5681-416f-9506-94b0849cfe8b",
                 ],
                 1,
-                1,
             ],
-            [[], 0, 0],
-            [None, 0, 0],
+            [[], 0],
+            [None, 0],
         ],
     )
     def test_update_runs(
-        self,
-        datastage_runtime_syncer,
-        runs,
-        update_runs_expected_call_count,
-        update_last_sync_time_expected_call_count,
+        self, datastage_runtime_syncer, runs, update_runs_expected_call_count
     ):
         datastage_runtime_syncer.update_runs(runs)
         patched_tracking_service = datastage_runtime_syncer.tracking_service
-        patched_syncer_management_service = (
-            datastage_runtime_syncer.syncer_management_service
-        )
         assert (
             patched_tracking_service.update_datastage_runs.call_count
             == update_runs_expected_call_count
-        )
-        assert (
-            patched_syncer_management_service.update_last_sync_time.call_count
-            == update_last_sync_time_expected_call_count
         )
         if update_runs_expected_call_count:
             patched_tracking_service.update_datastage_runs.assert_called_with(

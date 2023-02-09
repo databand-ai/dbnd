@@ -15,6 +15,7 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
+from dbnd._core.utils.uid_utils import get_uuid
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 
 
@@ -67,6 +68,7 @@ class MockDataFetcher(AirflowDataFetcher):
     def __init__(self):
         super(MockDataFetcher, self).__init__(
             AirflowServerConfig(
+                uid=get_uuid(),
                 source_name="test",
                 source_type="airflow",
                 tracking_source_uid=uuid.uuid4(),

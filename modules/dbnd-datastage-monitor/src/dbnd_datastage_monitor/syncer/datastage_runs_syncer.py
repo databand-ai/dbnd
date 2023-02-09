@@ -25,14 +25,14 @@ from dbnd_datastage_monitor.metrics.prometheus_metrics import (
     report_runs_collection_delay,
     report_runs_not_initiated,
 )
-from dbnd_datastage_monitor.tracking_service.datastage_syncer_management_service import (
-    DataStageSyncersManagementService,
-)
 from dbnd_datastage_monitor.tracking_service.datastage_tracking_service import (
     DataStageTrackingService,
 )
 
 from airflow_monitor.shared.base_component import BaseComponent
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 from dbnd._core.utils.date_utils import parse_datetime
 from dbnd._core.utils.timezone import utcnow
 
@@ -79,11 +79,11 @@ class DataStageRunsSyncer(BaseComponent):
         self,
         config: DataStageServerConfig,
         tracking_service: DataStageTrackingService,
-        syncer_management_service: DataStageSyncersManagementService,
+        integration_management_service: IntegrationManagementService,
         data_fetcher: object,
     ):
         super(DataStageRunsSyncer, self).__init__(
-            config, tracking_service, syncer_management_service, data_fetcher
+            config, tracking_service, integration_management_service, data_fetcher
         )
         self.error_handler = DatastageRunRequestsRetryQueue(
             tracking_source_uid=self.config.tracking_source_uid
@@ -120,6 +120,7 @@ class DataStageRunsSyncer(BaseComponent):
 
         running_datastage_runs = self.tracking_service.get_running_datastage_runs()
         self.update_runs(running_datastage_runs)
+        synced_new_data = len(running_datastage_runs) > 0
 
         current_date = utcnow()
         interval = timedelta(self.config.fetching_interval_in_minutes)
@@ -159,6 +160,7 @@ class DataStageRunsSyncer(BaseComponent):
 
             has_new_run = [v for v in new_datastage_runs.values() if v]
             if has_new_run:
+                synced_new_data = True
                 runs_to_submit: Dict[str, List] = {
                     k: list(v.values()) for k, v in new_datastage_runs.items() if v
                 }
@@ -167,19 +169,17 @@ class DataStageRunsSyncer(BaseComponent):
                     self.tracking_service.update_last_seen_values(
                         format_datetime(end_date)
                     )
-                    self.syncer_management_service.update_last_sync_time(
-                        self.config.identifier
-                    )
             else:
                 logger.info(
                     "No new runs found for tracking source %s",
                     self.config.tracking_source_uid,
                 )
-                self.syncer_management_service.update_last_sync_time(
-                    self.config.identifier
-                )
 
             start_date += interval
+
+        self.integration_management_service.report_monitor_time_data(
+            self.config.uid, synced_new_data=synced_new_data
+        )
 
     def _append_failed_run_requests_for_retry(
         self, datastage_runs: Dict[str, Dict[str, str]]
@@ -307,9 +307,6 @@ class DataStageRunsSyncer(BaseComponent):
                             failed_run_request,
                         )
                 self.tracking_service.update_datastage_runs(datastage_runs_full_data)
-                self.syncer_management_service.update_last_sync_time(
-                    self.config.identifier
-                )
 
     def get_min_run_start_time(self, raw_runs, current_date):
         min_start_time = None

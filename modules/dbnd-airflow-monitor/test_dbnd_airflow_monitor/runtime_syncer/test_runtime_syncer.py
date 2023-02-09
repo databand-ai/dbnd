@@ -9,50 +9,57 @@ from mock import Mock, patch
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
+from dbnd._core.utils.uid_utils import get_uuid
 
 from ..mock_airflow_data_fetcher import MockDagRun, MockLog
 
 
 @pytest.fixture
 def runtime_syncer(
-    mock_data_fetcher, mock_tracking_service, mock_syncer_management_service
+    mock_data_fetcher, mock_tracking_service, mock_integration_management_service
 ):
     syncer = AirflowRuntimeSyncer(
         config=AirflowServerConfig(
+            uid=get_uuid(),
             source_name="test",
             source_type="airflow",
             tracking_source_uid=mock_tracking_service.server_id,
         ),
         tracking_service=mock_tracking_service,
         data_fetcher=mock_data_fetcher,
-        syncer_management_service=mock_syncer_management_service,
+        integration_management_service=mock_integration_management_service,
     )
     with patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
     ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher), patch.object(
-        syncer, "syncer_management_service", wraps=syncer.syncer_management_service
+        syncer,
+        "integration_management_service",
+        wraps=syncer.integration_management_service,
     ):
         yield syncer
 
 
 @pytest.fixture
 def runtime_fixer(
-    mock_data_fetcher, mock_tracking_service, mock_syncer_management_service
+    mock_data_fetcher, mock_tracking_service, mock_integration_management_service
 ):
     syncer = AirflowRuntimeFixer(
         config=AirflowServerConfig(
+            uid=get_uuid(),
             source_name="test",
             source_type="airflow",
             tracking_source_uid=mock_tracking_service.server_id,
         ),
         tracking_service=mock_tracking_service,
         data_fetcher=mock_data_fetcher,
-        syncer_management_service=mock_syncer_management_service,
+        integration_management_service=mock_integration_management_service,
     )
     with patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
     ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher), patch.object(
-        syncer, "syncer_management_service", wraps=syncer.syncer_management_service
+        syncer,
+        "integration_management_service",
+        wraps=syncer.integration_management_service,
     ):
         yield syncer
 

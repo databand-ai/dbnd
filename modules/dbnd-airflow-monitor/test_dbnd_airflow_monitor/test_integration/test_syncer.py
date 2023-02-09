@@ -10,7 +10,6 @@ import pytest
 
 from mock import MagicMock, patch
 
-from airflow_monitor.common.airflow_data import PluginMetadata
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.config_updater.runtime_config_updater import (
     AirflowRuntimeConfigUpdater,
@@ -122,7 +121,7 @@ class TestSyncerWorks(WebAppTest):
             monitor_config = AirflowMonitorConfig(syncer_name=syncer_name)
             yield MultiServerMonitor(
                 monitor_config=monitor_config,
-                monitor_services_factory=AirflowServicesFactory(),
+                monitor_services_factory=AirflowServicesFactory(monitor_config),
             )
 
     def test_01_server_sync_enable_disable(
@@ -197,7 +196,7 @@ class TestSyncerWorks(WebAppTest):
         self.set_monitor_archived(tracking_source_uid)
 
         multi_server.run_once()
-        assert "No syncer configuration found matching name" in caplog.text
+        assert "No integrations found" in caplog.text
 
         assert mock_runtime_syncer_sync_once.call_count == 1
 
@@ -205,34 +204,6 @@ class TestSyncerWorks(WebAppTest):
 
         multi_server.run_once()
         assert mock_runtime_syncer_sync_once.call_count == 2
-
-    def test_04_source_instance_uid(
-        self, multi_server, syncer, mock_runtime_syncer_sync_once, mock_data_fetcher
-    ):
-        tracking_source_uid = syncer["tracking_source_uid"]
-
-        server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
-        assert (
-            server_info["airflow_version"],
-            server_info["airflow_export_version"],
-            server_info["source_instance_uid"],
-        ) == (None, None, None)
-
-        plugin_metadata = PluginMetadata(
-            airflow_version="1.10.10",
-            plugin_version="0.40.1 v2",
-            airflow_instance_uid="34db92af-a525-522e-8f27-941cd4746d7b",
-        )
-        multi_server.syncer_management_service.plugin_metadata = plugin_metadata
-
-        # Refresh so that we will get plugin data
-        multi_server.run_once()
-        server_info = self.get_server_info_by_tracking_source_uid(tracking_source_uid)
-        assert (
-            server_info["airflow_version"],
-            server_info["airflow_export_version"],
-            server_info["source_instance_uid"],
-        ) == ("1.10.10", "0.40.1 v2", "34db92af-a525-522e-8f27-941cd4746d7b")
 
     def test_get_syncer_search(self, syncer):
         syncer_name = syncer["name"]

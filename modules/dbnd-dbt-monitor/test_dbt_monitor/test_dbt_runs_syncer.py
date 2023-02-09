@@ -8,12 +8,13 @@ import pytest
 from dbnd_dbt_monitor.data.dbt_config_data import DbtServerConfig
 from dbnd_dbt_monitor.fetcher.dbt_cloud_data_fetcher import DbtCloudDataFetcher
 from dbnd_dbt_monitor.syncer.dbt_runs_syncer import DbtRunsSyncer
-from dbnd_dbt_monitor.tracking_service.dbt_syncer_management_service import (
-    DbtSyncersManagementService,
-)
 from more_itertools import one
 
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
+from dbnd._core.utils.uid_utils import get_uuid
 
 
 RUNNING_STATE = "running"
@@ -81,17 +82,14 @@ class MockDbtTrackingService(BaseTrackingService):
         return self.last_seen_run_id
 
 
-class MockDbtSyncersManagementService(DbtSyncersManagementService):
-    def update_monitor_state(self, server_id, monitor_state):
+class MockDbtIntegrationManagementService(IntegrationManagementService):
+    def report_monitor_time_data(self, integration_uid, synced_new_data=False):
         pass
 
-    def update_last_sync_time(self, server_id):
+    def report_metadata(self, integration_uid, metadata):
         pass
 
-    def set_running_monitor_state(self, server_id):
-        pass
-
-    def set_starting_monitor_state(self, server_id):
+    def report_error(self, integration_uid, full_function_name, err_message):
         pass
 
 
@@ -106,28 +104,31 @@ def mock_dbt_fetcher() -> MockDbtFetcher:
 
 
 @pytest.fixture
-def mock_dbt_syncer_management_service() -> MockDbtSyncersManagementService:
-    yield MockDbtSyncersManagementService("dbt", DbtServerConfig)
+def mock_dbt_integration_management_service() -> MockDbtIntegrationManagementService:
+    yield MockDbtIntegrationManagementService("dbt", DbtServerConfig)
 
 
 @pytest.fixture
 def dbt_runtime_syncer(
-    mock_dbt_fetcher, mock_dbt_tracking_service, mock_dbt_syncer_management_service
+    mock_dbt_fetcher, mock_dbt_tracking_service, mock_dbt_integration_management_service
 ):
     syncer = DbtRunsSyncer(
         config=DbtServerConfig(
+            uid=get_uuid(),
             source_name="test",
             source_type="airflow",
             tracking_source_uid=mock_dbt_tracking_service.server_id,
         ),
         tracking_service=mock_dbt_tracking_service,
         data_fetcher=mock_dbt_fetcher,
-        syncer_management_service=mock_dbt_syncer_management_service,
+        integration_management_service=mock_dbt_integration_management_service,
     )
     with patch.object(syncer, "refresh_config", lambda *args: None), patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
     ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher), patch.object(
-        syncer, "syncer_management_service", wraps=syncer.syncer_management_service
+        syncer,
+        "integration_management_service",
+        wraps=syncer.integration_management_service,
     ):
         yield syncer
 

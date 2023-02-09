@@ -28,6 +28,7 @@ class DbtServerConfig(BaseServerConfig):
         monitor_instance_config = server_config.get("monitor_config") or {}
 
         conf = cls(
+            uid=server_config["uid"],
             source_type="dbt",
             source_name=server_config["source_name"],
             tracking_source_uid=server_config["tracking_source_uid"],

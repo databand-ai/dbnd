@@ -2,7 +2,7 @@
 import sentry_sdk
 
 from dbnd_dbt_monitor.data.dbt_config_data import DbtMonitorConfig
-from dbnd_dbt_monitor.multiserver.dbt_services_factory import get_dbt_services_factory
+from dbnd_dbt_monitor.multiserver.dbt_services_factory import DbtMonitorServicesFactory
 
 from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._vendor import click
@@ -11,7 +11,7 @@ from dbnd._vendor import click
 def start_dbt_multi_server_monitor(monitor_config: DbtMonitorConfig):
     MultiServerMonitor(
         monitor_config=monitor_config,
-        monitor_services_factory=get_dbt_services_factory(),
+        monitor_services_factory=DbtMonitorServicesFactory(),
     ).run()
 
 

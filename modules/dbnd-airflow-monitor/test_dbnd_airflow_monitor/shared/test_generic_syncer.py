@@ -1,23 +1,25 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from typing import Dict, List
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from airflow_monitor.shared.adapter.adapter import Adapter, AdapterData
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
-from airflow_monitor.shared.base_syncer_management_service import (
-    BaseSyncerManagementService,
-)
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.generic_syncer import GenericSyncer
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
+from dbnd._core.utils.uid_utils import get_uuid
 
 
 class MockAdapter(Adapter):
-    def __init__(self):
+    def __init__(self, config):
+        super(MockAdapter, self).__init__(config)
         self.cursor = 0
 
-    def get_data(
+    def get_new_data(
         self, cursor: int, batch_size: int, next_page: int
     ) -> (Dict[str, object], List[str], str):
         if next_page is not None:
@@ -30,11 +32,11 @@ class MockAdapter(Adapter):
     def get_last_cursor(self) -> int:
         return self.cursor
 
-    def update_data(self, to_update: List[str]) -> Dict[str, object]:
+    def get_update_data(self, to_update: List[str]) -> Dict[str, object]:
         if to_update:
             return {"data": to_update}
         else:
-            return None
+            return {}
 
 
 class MockTrackingService(BaseTrackingService):
@@ -64,7 +66,7 @@ class MockTrackingService(BaseTrackingService):
     def get_last_cursor(self, integration_id) -> int:
         return self.last_cursor
 
-    def get_active_runs(self) -> list[dict]:
+    def get_active_runs(self) -> List[dict]:
         return self.active_runs
 
     def set_error(self, error):
@@ -74,17 +76,14 @@ class MockTrackingService(BaseTrackingService):
         self.active_runs = active_runs
 
 
-class MockSyncersManagementService(BaseSyncerManagementService):
-    def update_monitor_state(self, server_id, monitor_state):
+class MockIntegrationManagementService(IntegrationManagementService):
+    def report_monitor_time_data(self, integration_uid, synced_new_data=False):
         pass
 
-    def update_last_sync_time(self, server_id):
+    def report_metadata(self, integration_uid, metadata):
         pass
 
-    def set_running_monitor_state(self, server_id):
-        pass
-
-    def set_starting_monitor_state(self, server_id):
+    def report_error(self, integration_uid, full_function_name, err_message):
         pass
 
 
@@ -96,6 +95,7 @@ def mock_tracking_service() -> MockTrackingService:
 @pytest.fixture
 def mock_server_config() -> BaseServerConfig:
     yield BaseServerConfig(
+        uid=get_uuid(),
         source_name="test_syncer",
         source_type="integration",
         tracking_source_uid="12345",
@@ -105,31 +105,33 @@ def mock_server_config() -> BaseServerConfig:
 
 @pytest.fixture
 def mock_adapter() -> MockAdapter:
-    yield MockAdapter()
+    yield MockAdapter(MagicMock())
 
 
 @pytest.fixture
-def mock_syncer_management_service() -> MockSyncersManagementService:
-    yield MockSyncersManagementService("integration", BaseServerConfig)
+def mock_integration_management_service() -> MockIntegrationManagementService:
+    yield MockIntegrationManagementService("integration", BaseServerConfig)
 
 
 @pytest.fixture
 def generic_runtime_syncer(
     mock_tracking_service,
     mock_server_config,
-    mock_syncer_management_service,
+    mock_integration_management_service,
     mock_adapter,
 ):
     syncer = GenericSyncer(
         config=mock_server_config,
         tracking_service=mock_tracking_service,
-        syncer_management_service=mock_syncer_management_service,
+        integration_management_service=mock_integration_management_service,
         adapter=mock_adapter,
     )
     with patch.object(syncer, "refresh_config", new=lambda *args: None), patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
     ), patch.object(
-        syncer, "syncer_management_service", wraps=syncer.syncer_management_service
+        syncer,
+        "integration_management_service",
+        wraps=syncer.integration_management_service,
     ):
         yield syncer
 

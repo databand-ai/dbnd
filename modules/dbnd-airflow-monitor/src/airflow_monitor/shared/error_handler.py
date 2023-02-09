@@ -8,8 +8,8 @@ from datetime import timedelta
 from uuid import UUID
 
 from airflow_monitor.shared.base_component import BaseComponent
-from airflow_monitor.shared.base_syncer_management_service import (
-    BaseSyncerManagementService,
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
 )
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.cachetools import TTLCache, cached
@@ -32,8 +32,8 @@ def capture_component_exception(component: BaseComponent, function_name: str):
         yield
         # No errors, send error None to clean the existing error if any
         _report_error(
-            component.syncer_management_service,
-            component.config.identifier,
+            component.integration_management_service,
+            component.config.uid,
             full_function_name,
             None,
         )
@@ -43,13 +43,13 @@ def capture_component_exception(component: BaseComponent, function_name: str):
         )
 
         err_message = traceback.format_exc()
-        _log_exception_to_server(err_message, component.syncer_management_service)
+        _log_exception_to_server(err_message, component.integration_management_service)
 
         err_message += f"\nTimestamp: {utcnow()}"
 
         _report_error(
-            component.syncer_management_service,
-            component.config.identifier,
+            component.integration_management_service,
+            component.config.uid,
             full_function_name,
             err_message,
         )
@@ -61,22 +61,22 @@ log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds()
 # cached in order to avoid logging same messages over and over again
 @cached(log_exception_cache)
 def _log_exception_to_server(
-    exception_message: str, syncer_management_service: BaseSyncerManagementService
+    exception_message: str, integration_management_service: IntegrationManagementService
 ):
     try:
-        syncer_management_service.report_exception_to_web_server(exception_message)
+        integration_management_service.report_exception_to_web_server(exception_message)
     except Exception:
         logger.warning("Error sending monitoring exception message")
 
 
 def _report_error(
-    syncer_management_service: BaseSyncerManagementService,
+    integration_management_service: IntegrationManagementService,
     syncer_id: UUID,
     function_name: str,
     err_message: str,
 ):
     try:
-        syncer_management_service.report_syncer_error(
+        integration_management_service.report_error(
             syncer_id, function_name, err_message
         )
     except Exception:

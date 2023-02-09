@@ -121,7 +121,7 @@ class DatabandClient(object):
 
     def get_airflow_syncers(self):
         af_syncers = self.api_client.api_request(
-            "/api/v1/airflow_monitor", None, method="GET"
+            "/api/v1/integrations/config?type=airflow", None, method="GET"
         )
         return af_syncers
 

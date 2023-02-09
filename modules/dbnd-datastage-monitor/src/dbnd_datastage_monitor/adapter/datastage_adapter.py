@@ -19,7 +19,7 @@ class DataStageAdapter(Adapter):
         config: DataStageServerConfig,
         datastage_assets_client: DataStageAssetsClient,
     ):
-        self.config = config
+        super(DataStageAdapter, self).__init__(config)
         self.datastage_asset_client = datastage_assets_client
         self.last_cursor = None
 
@@ -28,7 +28,7 @@ class DataStageAdapter(Adapter):
             return format_datetime(utcnow())
         return self.last_cursor
 
-    def get_data(self, cursor: str, batch_size: int, next_page: str) -> AdapterData:
+    def get_new_data(self, cursor: str, batch_size: int, next_page: str) -> AdapterData:
         full_runs = None
         failed_runs = None
         start_date = parse_datetime(cursor)
@@ -47,7 +47,7 @@ class DataStageAdapter(Adapter):
             self.last_cursor = end_date
         return AdapterData(data=full_runs, failed=failed_runs, next_page=next_page)
 
-    def update_data(self, to_update: List[str]) -> Dict[str, object]:
+    def get_update_data(self, to_update: List[str]) -> Dict[str, object]:
         project_runs_to_update = []
         for run_link in to_update:
             project_id = self._extract_project_id_from_url(run_link)

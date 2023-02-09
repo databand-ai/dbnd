@@ -7,9 +7,14 @@ from time import sleep
 from typing import Dict, List
 from uuid import UUID
 
+import airflow_monitor
+
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 from airflow_monitor.shared.liveness_probe import create_liveness_file
 from airflow_monitor.shared.logger_config import configure_logging
 from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
@@ -39,8 +44,8 @@ class MultiServerMonitor:
             else None
         )
 
-        self.syncer_management_service = (
-            self.monitor_services_factory.get_syncer_management_service()
+        self.integration_management_service: IntegrationManagementService = (
+            self.monitor_services_factory.get_integration_management_service()
         )
 
     def _should_stop(self):
@@ -55,29 +60,53 @@ class MultiServerMonitor:
 
         return False
 
-    def _stop_disabled_servers(self, servers_configs: List[BaseServerConfig]):
-        server_ids = {s.identifier for s in servers_configs}
-        for server_id in list(self.active_instances.keys()):
-            if server_id not in server_ids:
-                for component in self.active_instances[server_id]:
+    def _stop_disabled_servers(self, integration_configs: List[BaseServerConfig]):
+        integration_uids = {s.uid for s in integration_configs}
+        for integration_uid in list(self.active_instances.keys()):
+            if integration_uid not in integration_uids:
+                for component in self.active_instances[integration_uid]:
                     component.stop()
-                self.active_instances.pop(server_id)
+                self.active_instances.pop(integration_uid)
 
-    def _start_new_enabled_servers(self, servers_configs: List[BaseServerConfig]):
-        for server_config in servers_configs:
-            server_id = server_config.identifier
-            instance = self.active_instances.get(server_id)
+    def _start_new_enabled_servers(self, integration_configs: List[BaseServerConfig]):
+        for integration_config in integration_configs:
+            integration_uid = integration_config.uid
+            instance = self.active_instances.get(integration_uid)
             if not instance:
-                server_id = server_config.identifier
-                logger.info("Starting components for %s", server_id)
-                self.syncer_management_service.set_starting_monitor_state(server_id)
+                logger.info("Starting components for %s", integration_uid)
 
-                self.active_instances[server_id] = []
                 components = self.monitor_services_factory.get_components(
-                    server_config, self.syncer_management_service
+                    integration_config, self.integration_management_service
                 )
-                self.active_instances[server_id] = components
-                self.syncer_management_service.set_running_monitor_state(server_id)
+                self.active_instances[integration_uid] = components
+
+                self._report_third_party_data(integration_config)
+
+    def _report_third_party_data(self, integration_config):
+        adapter = self.monitor_services_factory.get_adapter(integration_config)
+        if not adapter:
+            return
+
+        third_party_info = adapter.get_third_party_info()
+        if not third_party_info:
+            return
+
+        if third_party_info.error_list:
+            formatted_error_list = ", ".join(third_party_info.error_list)
+            self.integration_management_service.report_error(
+                integration_config.uid,
+                f"verify_environment_{integration_config.uid}",
+                formatted_error_list,
+            )
+
+        # This is the version of the monitor, since currently the shared logic exists
+        # in airflow_monitor package we import this package and get the version
+        metadata = {"monitor_version": airflow_monitor.__version__}
+        if third_party_info.metadata:
+            metadata.update(third_party_info.metadata)
+        self.integration_management_service.report_metadata(
+            integration_config.uid, metadata
+        )
 
     def _component_interval_is_met(self, component):
         """
@@ -89,24 +118,24 @@ class MultiServerMonitor:
         time_from_last_heartbeat = (utcnow() - component.last_heartbeat).total_seconds()
         return time_from_last_heartbeat >= component.sleep_interval
 
-    def _heartbeat(self, config_list):
-        for config in config_list:
-            server_id = config.identifier
+    def _heartbeat(self, integration_configs):
+        for integration_config in integration_configs:
+            integration_uid = integration_config.uid
             logger.debug(
-                "Starting new sync iteration for server_id=%s, iteration %d",
-                server_id,
+                "Starting new sync iteration for integration_uid=%s, iteration %d",
+                integration_uid,
                 self.iteration,
             )
-            # create new syncers with new config every hearbeat
+            # create new syncers with new config every heartbeat
             self.active_instances[
-                server_id
+                integration_uid
             ] = self.monitor_services_factory.get_components(
-                server_config=config,
-                syncer_management_service=self.syncer_management_service,
+                integration_config=integration_config,
+                integration_management_service=self.integration_management_service,
             )
-            for component in self.active_instances[server_id]:
+            for component in self.active_instances[integration_uid]:
                 if self._component_interval_is_met(component):
-                    component.refresh_config(config)
+                    component.refresh_config(integration_config)
                     component.sync_once()
                     component.last_heartbeat = utcnow()
 
@@ -118,7 +147,8 @@ class MultiServerMonitor:
             try:
                 logger.debug("Starting %s iteration", self.iteration)
                 self.run_once()
-                self.syncer_management_service.send_metrics(self.monitor_config)
+                name = getattr(self.monitor_config, "syncer_name", None)
+                self.integration_management_service.send_metrics(name)
                 logger.debug("Iteration %s done", self.iteration)
             except Exception:
                 logger.exception("Unknown exception during iteration", exc_info=True)
@@ -130,12 +160,12 @@ class MultiServerMonitor:
             sleep(self.monitor_config.interval)
 
     def run_once(self):
-        server_configs: List[
+        integration_configs: List[
             BaseServerConfig
-        ] = self.syncer_management_service.get_all_servers_configuration(
+        ] = self.integration_management_service.get_all_servers_configuration(
             self.monitor_config
         )
-        self._stop_disabled_servers(server_configs)
-        self._start_new_enabled_servers(server_configs)
-        self._heartbeat(server_configs)
+        self._stop_disabled_servers(integration_configs)
+        self._start_new_enabled_servers(integration_configs)
+        self._heartbeat(integration_configs)
         create_liveness_file()

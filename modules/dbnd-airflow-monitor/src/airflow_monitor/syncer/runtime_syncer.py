@@ -115,6 +115,11 @@ class AirflowRuntimeSyncer(BaseComponent):
         self.init_runs(dagruns_to_init)
         self.update_runs(dagruns_to_update)
 
+        synced_new_data = len(dagruns_to_init) > 0 or len(dagruns_to_update) > 0
+        self.integration_management_service.report_monitor_time_data(
+            self.config.uid, synced_new_data=synced_new_data
+        )
+
     def init_runs(self, run_ids_to_init: List[AirflowDagRun]):
         if not run_ids_to_init:
             return

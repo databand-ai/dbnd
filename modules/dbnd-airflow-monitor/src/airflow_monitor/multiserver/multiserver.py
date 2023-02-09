@@ -3,9 +3,7 @@
 import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.multiserver.airflow_services_factory import (
-    get_airflow_monitor_services_factory,
-)
+from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
 from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._core.errors.base import DatabandConfigError
 
@@ -27,5 +25,5 @@ def start_multi_server_monitor(monitor_config: AirflowMonitorConfig):
 
     MultiServerMonitor(
         monitor_config=monitor_config,
-        monitor_services_factory=get_airflow_monitor_services_factory(),
+        monitor_services_factory=AirflowServicesFactory(monitor_config),
     ).run()
