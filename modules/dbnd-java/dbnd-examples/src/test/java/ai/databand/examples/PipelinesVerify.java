@@ -597,7 +597,7 @@ public class PipelinesVerify {
         Optional<ColumnStats> columnOpt = columnsStats.stream().filter(f -> f.getColumnName().equalsIgnoreCase(columnName)).findFirst();
         assertThat(String.format("Column stats are missing for column [%s]", columnName), columnOpt.isPresent(), Matchers.equalTo(true));
         ColumnStats col = columnOpt.get();
-        assertThat("Wrong column type", col.getColumnType(), Matchers.equalTo(columnType));
+        assertThat(String.format("Wrong column type for a column [%s]", columnName), col.getColumnType(), Matchers.equalTo(columnType));
         assertThat("Wrong records count", col.getRecordsCount(), Matchers.equalTo(recordsCount));
     }
 

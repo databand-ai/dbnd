@@ -78,6 +78,8 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             executedPlan = extractFinalFromAdaptive(executedPlan).orElse(executedPlan);
         }
         if (executedPlan instanceof DataWritingCommandExec) {
+            // when write is combined with reads, we should submit reads too
+            isProcessed = submitReadOps(executedPlan);
             DataWritingCommandExec writePlan = (DataWritingCommandExec) executedPlan;
             if (writePlan.cmd() instanceof InsertIntoHadoopFsRelationCommand) {
                 InsertIntoHadoopFsRelationCommand cmd = (InsertIntoHadoopFsRelationCommand) writePlan.cmd();
@@ -109,48 +111,54 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 LOG.warn("dbnd sdk Execution plan will not be reported");
                 return;
             }
-            List<SparkPlan> allChildren = getAllChildren(executedPlan);
-            for (SparkPlan next : allChildren) {
-                if (next instanceof FileSourceScanExec) {
-                    FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
+            isProcessed = submitReadOps(executedPlan);
+        }
+        if (dbnd.config().isVerbose() && !isProcessed) {
+            LOG.info("Spark event was not processed because query execution plan {} is not supported", executedPlan.getClass().getName());
+        }
+    }
 
-                    StructType schema = fileSourceScan.schema();
-                    // when performing operations like "count" schema is not reported in a FileSourceScanExec itself,
-                    // but we can try to figure it out from the HadoopRelation.
-                    if (schema.isEmpty() && fileSourceScan.relation() != null) {
-                        schema = fileSourceScan.relation().schema();
-                    }
+    protected boolean submitReadOps(SparkPlan executedPlan) {
+        boolean isProcessed = false;
+        List<SparkPlan> allChildren = getAllChildren(executedPlan);
+        for (SparkPlan next : allChildren) {
+            if (next instanceof FileSourceScanExec) {
+                FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
-                    String path = exctractPath(fileSourceScan.metadata().get("Location").get());
-                    long rows = fileSourceScan.metrics().get("numOutputRows").get().value();
-
-                    log(path, DatasetOperationType.READ, schema, rows);
-                    isProcessed = true;
+                StructType schema = fileSourceScan.schema();
+                // when performing operations like "count" schema is not reported in a FileSourceScanExec itself,
+                // but we can try to figure it out from the HadoopRelation.
+                if (schema.isEmpty() && fileSourceScan.relation() != null) {
+                    schema = fileSourceScan.relation().schema();
                 }
-                if (isHiveEnabled) {
-                    if (next instanceof HiveTableScanExec) {
-                        try {
-                            HiveTableScanExec hiveTableScan = (HiveTableScanExec) next;
 
-                            // Hive Table name, may be reused in future
-                            // String tableName = hiveTableScan.relation().tableMeta().identifier().table();
+                String path = exctractPath(fileSourceScan.metadata().get("Location").get());
+                long rows = fileSourceScan.metrics().get("numOutputRows").get().value();
 
-                            // Path resolved by Hive Metastore
-                            String path = hiveTableScan.relation().tableMeta().storage().locationUri().get().toString();
-                            long rows = hiveTableScan.metrics().get("numOutputRows").get().value();
+                log(path, DatasetOperationType.READ, schema, rows);
+                isProcessed = true;
+            }
+            if (isHiveEnabled) {
+                if (next instanceof HiveTableScanExec) {
+                    try {
+                        HiveTableScanExec hiveTableScan = (HiveTableScanExec) next;
 
-                            log(path, DatasetOperationType.READ, hiveTableScan.schema(), rows);
-                            isProcessed = true;
-                        } catch (Exception e) {
-                            LOG.error("Unable to extract dataset information from HiveTableScanExec", e);
-                        }
+                        // Hive Table name, may be reused in future
+                        // String tableName = hiveTableScan.relation().tableMeta().identifier().table();
+
+                        // Path resolved by Hive Metastore
+                        String path = hiveTableScan.relation().tableMeta().storage().locationUri().get().toString();
+                        long rows = hiveTableScan.metrics().get("numOutputRows").get().value();
+
+                        log(path, DatasetOperationType.READ, hiveTableScan.schema(), rows);
+                        isProcessed = true;
+                    } catch (Exception e) {
+                        LOG.error("Unable to extract dataset information from HiveTableScanExec", e);
                     }
                 }
             }
         }
-        if (dbnd.config().isVerbose() && !isProcessed) {
-            LOG.info("Spark event was not processed because query execution plan is not supported");
-        }
+        return isProcessed;
     }
 
     private boolean isDbndPlan(QueryExecution qe) {
@@ -258,6 +266,9 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 // Spark 3 feature
                 Optional<SparkPlan> shuffleChild = extractChildFromShuffle(next);
                 shuffleChild.ifPresent(deque::add);
+            } else if (next.getClass().getName().contains("AdaptiveSparkPlanExec")) {
+                Optional<SparkPlan> finalPlanFromAdaptive = extractFinalFromAdaptive(next);
+                finalPlanFromAdaptive.ifPresent(deque::add);
             } else {
                 List<SparkPlan> children = scala.collection.JavaConverters.seqAsJavaListConverter(next.children()).asJava();
                 deque.addAll(children);

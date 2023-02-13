@@ -19,8 +19,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Collectors;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_DAG_ID;
 import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_EXECUTION_DATE;

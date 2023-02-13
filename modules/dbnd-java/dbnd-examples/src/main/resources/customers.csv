@@ -1,0 +1,5 @@
+customer_id,name,address,phone,market_segment
+1,John Doe,123 Main St,555-555-1212,Retail
+2,Jane Smith,456 Market St,555-555-1213,Wholesale
+3,Bob Johnson,789 Market Ave,555-555-1214,Corporate
+4,Alice Davis,246 Market Blvd,555-555-1215,Retail

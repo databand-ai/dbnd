@@ -27,7 +27,7 @@ class JavaPipelinesTest {
 
         JavaSparkPipeline javaSparkPipeline = new JavaSparkPipeline(spark);
         String input = getClass().getClassLoader().getResource("p_a_master_data.csv").getFile();
-        String output = System.getenv("PROCESS_DATA_OUTPUT");
+        String output = System.getenv("PROCESS_DATA_OUTPUT") + "/java_pipeline";
         javaSparkPipeline.main(new String[]{input, output});
 
         new PipelinesVerify().verifyOutputs("java_spark_pipeline", now, "java_spark_pipeline");

@@ -190,6 +190,13 @@ public class DbndWrapper {
         LOG.info("Run stopped");
     }
 
+    /**
+     * Convenient wrapper with the proper naming for using in the Databricks Notebooks instead of cryptic afterPipeline().
+     */
+    public void forceStop() {
+        afterPipeline(5);
+    }
+
     public void errorPipeline(Throwable error) {
         currentRun().error(error);
         cleanup();

@@ -79,7 +79,7 @@ public class Uuid5Raw {
 
     /**
      * Convert UUID to byte array.
-     *
+     * <p>
      * UUID is 128 bits.
      * Array is composed via 64 most significant bits and 64 least significant bits in a big-endian order.
      * This is unrolled loop.
@@ -90,7 +90,7 @@ public class Uuid5Raw {
     protected static byte[] uuidToBytes(UUID uuid) {
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
-        return new byte[] {
+        return new byte[]{
             (byte) (msb >> 56),
             (byte) (msb >> 48),
             (byte) (msb >> 40),
