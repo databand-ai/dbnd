@@ -21,7 +21,7 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
 
     @Override
     public String full(Dataset<Row> input) {
-        Dataset<?> previewAlias = input.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"PREVIEW"));
+        Dataset<?> previewAlias = input.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "PREVIEW"));
         try {
             return previewAlias.showString(20, 2048, false);
         } catch (Exception e) {
@@ -36,7 +36,7 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
 
     @Override
     public Object schema(Dataset<Row> input) {
-        Dataset<?> previewSchemaAlias = input.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"PREVIEW_SCHEMA"));
+        Dataset<?> previewSchemaAlias = input.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "PREVIEW_SCHEMA"));
         try {
             return previewSchemaAlias.schema().prettyJson();
         } catch (Exception e) {
@@ -54,7 +54,7 @@ public class DatasetPreview implements TaskParameterPreview<Dataset<Row>> {
      */
     @Override
     public List<Long> dimensions(Dataset<Row> input) {
-        Dataset<?> dimsAlias = input.alias(String.format("%s_%s",DBND_INTERNAL_ALIAS,"DIMS"));
+        Dataset<?> dimsAlias = input.alias(String.format("%s_%s", DBND_INTERNAL_ALIAS, "DIMS"));
         try {
             long rows = dimsAlias.count();
             long columns = dimsAlias.columns().length;
