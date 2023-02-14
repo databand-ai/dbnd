@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+from typing import Dict, List
 from unittest.mock import patch
 
 import pytest
@@ -19,7 +19,7 @@ class MockAdapter(Adapter):
 
     def get_data(
         self, cursor: int, batch_size: int, next_page: int
-    ) -> (dict[str, object], list[str], str):
+    ) -> (Dict[str, object], List[str], str):
         if next_page is not None:
             return {"data": self.cursor + next_page}, [], None
         self.cursor += 1

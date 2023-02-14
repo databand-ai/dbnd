@@ -1,5 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from datetime import timedelta
+from typing import Dict, List
 
 from dbnd_datastage_monitor.data.datastage_config_data import DataStageServerConfig
 from dbnd_datastage_monitor.datastage_client.datastage_assets_client import (
@@ -29,7 +30,7 @@ class DataStageAdapter(Adapter):
 
     def get_data(
         self, cursor: str, batch_size: int, next_page: str
-    ) -> (dict[str, object], list[str], str):
+    ) -> (Dict[str, object], List[str], str):
         full_runs = None
         failed_runs = None
         interval = timedelta(self.config.fetching_interval_in_minutes)

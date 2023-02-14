@@ -1,6 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from abc import ABC
+from typing import Dict, List
 
 
 class Adapter(ABC):
@@ -9,8 +10,8 @@ class Adapter(ABC):
 
     def get_data(
         self, cursor: object, batch_size: int, next_page: object
-    ) -> (dict[str, object], list[str], str):
+    ) -> (Dict[str, object], List[str], str):
         raise NotImplementedError
 
-    def update_data(self, to_update: list[object]) -> dict[str, object]:
+    def update_data(self, to_update: List[object]) -> Dict[str, object]:
         raise NotImplementedError
