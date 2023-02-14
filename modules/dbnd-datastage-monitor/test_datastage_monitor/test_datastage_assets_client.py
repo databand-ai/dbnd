@@ -31,6 +31,7 @@ class DataStageApiInMemoryClient(DataStageApiClient):
         self.connections_response_map = {}
         self.jobs_response_map = {}
         self.log_exception_to_webserver = False
+        self.host_name = "http://www.databand.com"
 
     def add_flows_response(self, flows: List[Dict[str, any]]):
         for flow in flows:
@@ -63,11 +64,11 @@ class DataStageApiInMemoryClient(DataStageApiClient):
         project_id = metadata.get("project_id")
         project_runs = self.run_info_response_map.get(project_id)
         if project_runs is None:
-            project_runs = []
-            project_runs.append(run_info)
+            project_runs = {}
+            project_runs[run_info.get("href")] = run_info
             self.run_info_response_map[project_id] = project_runs
         else:
-            project_runs.append(run_info)
+            project_runs[run_info.get("href")] = run_info
 
     def add_runs_info_response(self, runs_info: List[Dict[str, any]]):
         for run_info in runs_info:
@@ -124,7 +125,7 @@ class DataStageApiInMemoryClient(DataStageApiClient):
         max_end_time = parse_datetime(end_time)
         project_runs = self.run_info_response_map.get(self.project_id)
 
-        for run_info in project_runs:
+        for run_info in project_runs.values():
             metadata = run_info.get("metadata")
             if not metadata:
                 logger.info("Unable to add run, no metadata attribute found")
@@ -144,8 +145,11 @@ class DataStageApiInMemoryClient(DataStageApiClient):
             return_next = None
         return response, return_next
 
-    def get_run_info(self, run: Dict[str, any]):
-        return run
+    def get_run_info(self, run_link: str) -> Dict[str, any]:
+        for project_runs_map in self.run_info_response_map.values():
+            run_info = project_runs_map.get(run_link)
+            if run_info:
+                return run_info
 
     def get_flow(self, flow_id):
         return self.flow_response_map.get((flow_id, self.project_id))

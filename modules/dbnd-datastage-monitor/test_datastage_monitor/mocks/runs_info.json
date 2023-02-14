@@ -26,7 +26,7 @@
       },
       "name": "Databand_job",
       "description": "databand poc job",
-      "asset_type": "job",
+      "asset_type": "job_run",
       "origin_country": "us",
       "rating": 0,
       "total_ratings": 0,
@@ -45,7 +45,7 @@
       "creator_id": "IBMid-663003SNUB"
     },
     "entity": {
-      "job": {
+      "job_run": {
         "asset_ref_type": "data_intg_flow",
         "configuration": {
           "env_variables": [],
@@ -62,7 +62,7 @@
         "future_scheduled_runs": [],
         "enable_notifications": true,
         "project_name": "Multicloud Data Integration - CP4D",
-        "asset_ref": "7dbf04f8-03c0-4d20-957d-bcb63bb0d274",
+        "job_ref": "e229bdc8-a414-492b-9545-f96b64c2b5a5",
         "schedule_id": "",
         "schedule_creator_id": ""
       }

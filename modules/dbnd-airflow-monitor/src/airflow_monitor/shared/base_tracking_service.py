@@ -34,3 +34,10 @@ class BaseTrackingService:
             query=query,
             request_timeout=request_timeout,
         )
+
+    def save_tracking_data(self, full_data):
+        self._api_client.api_request(
+            endpoint=f"tracking-monitor/{self.server_id}/save_tracking_data",
+            method="POST",
+            data=full_data,
+        )

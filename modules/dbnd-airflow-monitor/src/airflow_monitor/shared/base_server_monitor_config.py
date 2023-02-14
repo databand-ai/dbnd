@@ -19,6 +19,7 @@ class BaseServerConfig:
     fetcher_type = attr.ib(default=None)  # type: str
 
     log_level = attr.ib(default=None)  # type: str
+    is_generic_syncer_enabled: bool = attr.ib(default=False)
 
     @classmethod
     def create(
