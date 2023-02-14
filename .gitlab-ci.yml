@@ -6,7 +6,7 @@
 # A (fails) -> B (skip) -> C (runs!!!)
 
 # default image to use
-image: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci-default:py39-latest-v2
+image: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci-default:py310-latest-v1
 
 stages:
   - test
@@ -144,7 +144,6 @@ test dbnd py39:
     reports:
       junit: build/junit-py39.xml
 
-
 test dbnd_examples py39:
   <<: *template__python_test_job
   image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
@@ -169,7 +168,6 @@ test dbnd_examples py39:
 #  artifacts:
 #    reports:
 #      junit: plugins/dbnd-databricks/build/junit-py37.xml
-
 
 dbnd_airflow 1_10_15_py37:
   <<: *template__python_test_job
@@ -212,5 +210,3 @@ build_pypi_org_whl:
   only:
     - tags
   when: manual
-
-
