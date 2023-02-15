@@ -134,7 +134,7 @@ class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
             },
         ),
         (
-            # Adapter.BIGQUERY,
+            # Adapter.bigquery,
             {"type": "bigquery", "project": "account-dev-5646", "location": "us"},
             {
                 "connection": {
