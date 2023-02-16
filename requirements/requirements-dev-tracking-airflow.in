@@ -1,0 +1,33 @@
+-r ./requirements-dev-tools.in
+
+# Add all the requirements for the dbnd and dbnd modules
+
+# databand:
+-e modules/dbnd
+
+# databand dev:
+-e plugins/dbnd-test-scenarios
+
+
+# databand tracking airflow plugins:
+-e modules/dbnd-airflow
+-e modules/dbnd-airflow-monitor
+-e plugins/dbnd-airflow-versioned-dag
+
+# databand tracking
+-e plugins/dbnd-postgres
+-e plugins/dbnd-snowflake
+-e plugins/dbnd-redshift
+-e plugins/dbnd-databricks
+-e plugins/dbnd-spark
+
+
+apache-airflow[amazon,apache.spark,databricks]==${AIRFLOW_VERSION}
+-c ../requirements/constraints/apache-airflow-${AIRFLOW_VERSION}-constraints-${PYTHON_VERSION}-FIXED-DBND-TRACKING.txt
+
+# we can't use it because of some old versions incompatible with ARM64
+# -c https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt
+# we can't use this one because of aws/gcp and other conflicts, we need more strict
+# -c https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-no-providers-${PYTHON_VERSION}.txt
+
+

@@ -1,0 +1,46 @@
+-r ./requirements-dev-tools.in
+
+# databand:
+-e modules/dbnd
+
+# databand tracking and orchestration plugins:
+-e modules/dbnd-airflow
+-e plugins/dbnd-airflow-versioned-dag
+
+# databand orchestration plugins:
+
+-e plugins/dbnd-docker
+
+-e plugins/dbnd-spark
+-e plugins/dbnd-databricks
+-e plugins/dbnd-hdfs
+
+-e plugins/dbnd-tensorflow
+-e plugins/dbnd-aws
+-e plugins/dbnd-gcp
+-e plugins/dbnd-azure
+
+-e plugins/dbnd-qubole
+
+-e plugins/dbnd-test-scenarios
+
+# Keep the requirements compatible with airflow 2.2.3 (default version for databand developers)
+apache-airflow[amazon,apache.spark,databricks,cncf.kubernetes]==${AIRFLOW_VERSION}
+# -c https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-no-providers-${PYTHON_VERSION}.txt
+-c ../requirements/constraints/apache-airflow-${AIRFLOW_VERSION}-constraints-no-providers-${PYTHON_VERSION}-FIXED-DBND-RUN.txt
+
+# specific tools
+pandas-gbq==0.17.9
+
+# aiobotocore fails with too old boto (no attribute)
+# we need to find the right combination here, common denominator (botocore)
+#   'botocore>=1.27.59,<1.27.60',
+aiobotocore==2.4.2
+
+# use this file to find the right match https://github.com/boto/boto3/blob/main/setup.py
+boto3==1.24.59
+
+# pandas s3fs support
+# use this file to find the right match https://github.com/fsspec/s3fs/blob/main/requirements.txt
+s3fs==2023.1.0
+

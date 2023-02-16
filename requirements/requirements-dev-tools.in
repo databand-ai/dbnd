@@ -1,0 +1,28 @@
+# dev tools
+pip==22.0.4
+pip-tools
+
+## linters
+pylint
+mypy
+types-all
+import-linter[toml]
+black
+
+## build tools
+wheel
+six
+setuptools
+packaging
+python-stripzip
+
+## test tools
+tox
+pytest
+
+## other
+sh
+
+# cloud tools
+# awscli
+# gsutil
