@@ -19,8 +19,8 @@ setuptools.setup(
     install_requires=[
         "dbnd==" + version,
         "httplib2>=0.9.2",
-        "google-api-python-client>=1.6.0, <2.0.0dev",
-        "google-auth>=1.0.0, <2.0.0dev",
+        "google-api-python-client>=1.6.0, <2.16.0",
+        "google-auth>=1.0.0, <2.16.0",
         "google-auth-httplib2>=0.0.1",
         "google-cloud-container>=0.1.1",
         "PyOpenSSL",

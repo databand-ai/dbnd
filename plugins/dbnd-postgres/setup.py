@@ -16,9 +16,10 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=[
         "psycopg2-binary",
-        "pyyaml",
-        "pyrsistent<0.15.6",
         "dbnd==" + version,
+        # review deps
+        "pyyaml",
+        "pyrsistent<0.20",
     ],
     entry_points={},
 )
