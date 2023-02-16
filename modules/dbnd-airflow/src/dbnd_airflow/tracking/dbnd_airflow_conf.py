@@ -12,6 +12,7 @@ from dbnd._core.configuration.environ_config import (
     DBND_ROOT_RUN_UID,
     DBND_TRACE_ID,
 )
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.settings import CoreConfig, TrackingConfig
 from dbnd.utils.trace import get_tracing_id
 from dbnd_airflow.tracking.config import TrackingSparkConfig
@@ -140,6 +141,16 @@ def get_dbnd_json_config_from_airflow_connections():
         dbnd_conn_config = BaseHook.get_connection(DATABAND_AIRFLOW_CONN_ID)
         json_config = dbnd_conn_config.extra_dejson
         if json_config:
+            if dbnd_conn_config.password:
+                json_config.setdefault("core", {})
+                if "databand_access_token" in json_config["core"]:
+                    dbnd_log_debug(
+                        "Found access token both in extra (`core.databand_access_token`)"
+                        " and in `password` field of the connection. Using the token from the password field."
+                    )
+
+                json_config["core"]["databand_access_token"] = dbnd_conn_config.password
+
             return json_config
 
         if dbnd_conn_config.extra:

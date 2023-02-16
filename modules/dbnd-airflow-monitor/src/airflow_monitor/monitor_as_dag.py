@@ -87,8 +87,7 @@ class MonitorOperator(BashOperator):
 
         try:
             dbnd_conn_config = BaseHook.get_connection(self.databand_airflow_conn_id)
-            json_config = dbnd_conn_config.extra_dejson
-            dbnd_config = self.to_env(self._flatten_dict(json_config, d_key="DBND"))
+            dbnd_config = self.build_dbnd_config_from_connection(dbnd_conn_config)
             self.env.update(dbnd_config)
         except AirflowNotFoundException:
             missing_env_variables = self._get_missing_env_variables()
@@ -110,6 +109,14 @@ class MonitorOperator(BashOperator):
                 "DBND__LOG__FORMATTER_SIMPLE": "%(task)-5s - %(message)s",
             }
         )
+
+    def build_dbnd_config_from_connection(self, dbnd_conn_config: "Connection"):
+        json_config = dbnd_conn_config.extra_dejson
+        if dbnd_conn_config.password:
+            json_config.setdefault("core", {})
+            json_config["core"]["databand_access_token"] = dbnd_conn_config.password
+        dbnd_config = self.to_env(self._flatten_dict(json_config, d_key="DBND"))
+        return dbnd_config
 
     def _flatten_dict(self, d, d_key=""):
         """

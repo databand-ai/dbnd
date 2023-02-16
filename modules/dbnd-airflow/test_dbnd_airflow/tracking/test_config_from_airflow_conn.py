@@ -30,7 +30,9 @@ CONN_FAILED_ERROR_MSG = (
 # JSONS for Extra section in DBND Airflow connection
 VALID_EXTRA_JSON_FOR_CONNECTION = {
     "name": "valid_dbnd_config_conn",
-    "value": json.dumps({"core": {"databand_url": DATABAND_URL}}),
+    "value": json.dumps(
+        {"core": {"databand_url": DATABAND_URL, "databand_access_token": "some-token"}}
+    ),
 }
 
 BAD_JSONS_FOR_AIRFLOW_CONNECTION = [
@@ -50,7 +52,9 @@ logger = logging.getLogger(__name__)
 class TestConfigFromConnection(object):
     """Check that setting dbnd_connection in airflow configures dbnd global config correctly."""
 
-    def set_dbnd_airflow_connection(self, af_session, json_for_connection):
+    def set_dbnd_airflow_connection(
+        self, af_session, json_for_connection: dict, password: str = None
+    ):
         from airflow.models.connection import Connection
 
         dbnd_config_connection = (
@@ -62,6 +66,7 @@ class TestConfigFromConnection(object):
             dbnd_config_connection = Connection(
                 conn_id=DATABAND_AIRFLOW_CONN_ID,
                 conn_type="HTTP",
+                password=password,
                 extra=json_for_connection["value"],
             )
             af_session.add(dbnd_config_connection)
@@ -84,6 +89,24 @@ class TestConfigFromConnection(object):
 
         assert is_config_configured
         assert config.get("core", "databand_url") == DATABAND_URL
+
+    @pytest.mark.parametrize(
+        "token, expected_token",
+        [(None, "some-token"), ("override-token", "override-token")],
+    )
+    def test_setting_dbnd_config_with_custom_password(
+        self, af_session, token, expected_token
+    ):
+        self.set_dbnd_airflow_connection(
+            af_session,
+            json_for_connection=VALID_EXTRA_JSON_FOR_CONNECTION,
+            password=token,
+        )
+
+        is_config_configured = set_dbnd_config_from_airflow_connections()
+
+        assert is_config_configured
+        assert config.get("core", "databand_access_token") == expected_token
 
     @pytest.mark.parametrize("json_for_connection", BAD_JSONS_FOR_AIRFLOW_CONNECTION)
     def test_exceptions_when_setting_config_from_airflow_connection(
