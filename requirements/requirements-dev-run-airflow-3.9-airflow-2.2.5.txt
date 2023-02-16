@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements/requirements-dev-run-airflow-3.9-airflow-2.2.5.txt --resolver=backtracking requirements/requirements-dev-run-airflow.in
 #
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd
+-e file:modules/dbnd
     # via
     #   -r requirements/requirements-dev-run-airflow.in
     #   dbnd-airflow
@@ -18,35 +18,35 @@
     #   dbnd-qubole
     #   dbnd-spark
     #   dbnd-tensorflow
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd-airflow
+-e file:modules/dbnd-airflow
     # via
     #   -r requirements/requirements-dev-run-airflow.in
     #   dbnd-airflow-versioned-dag
     #   dbnd-docker
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-airflow-versioned-dag
+-e file:plugins/dbnd-airflow-versioned-dag
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-aws
+-e file:plugins/dbnd-aws
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-azure
+-e file:plugins/dbnd-azure
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-databricks
+-e file:plugins/dbnd-databricks
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-docker
+-e file:plugins/dbnd-docker
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-gcp
+-e file:plugins/dbnd-gcp
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-hdfs
+-e file:plugins/dbnd-hdfs
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-qubole
+-e file:plugins/dbnd-qubole
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-spark
+-e file:plugins/dbnd-spark
     # via
     #   -r requirements/requirements-dev-run-airflow.in
     #   dbnd-databricks
     #   dbnd-qubole
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-tensorflow
+-e file:plugins/dbnd-tensorflow
     # via -r requirements/requirements-dev-run-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-test-scenarios
+-e file:plugins/dbnd-test-scenarios
     # via -r requirements/requirements-dev-run-airflow.in
 aiobotocore==2.4.2
     # via

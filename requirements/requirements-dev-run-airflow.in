@@ -1,28 +1,28 @@
 -r ./requirements-dev-tools.in
 
 # databand:
--e modules/dbnd
+-e file:modules/dbnd
 
 # databand tracking and orchestration plugins:
--e modules/dbnd-airflow
--e plugins/dbnd-airflow-versioned-dag
+-e file:modules/dbnd-airflow
+-e file:plugins/dbnd-airflow-versioned-dag
 
 # databand orchestration plugins:
 
--e plugins/dbnd-docker
+-e file:plugins/dbnd-docker
 
--e plugins/dbnd-spark
--e plugins/dbnd-databricks
--e plugins/dbnd-hdfs
+-e file:plugins/dbnd-spark
+-e file:plugins/dbnd-databricks
+-e file:plugins/dbnd-hdfs
 
--e plugins/dbnd-tensorflow
--e plugins/dbnd-aws
--e plugins/dbnd-gcp
--e plugins/dbnd-azure
+-e file:plugins/dbnd-tensorflow
+-e file:plugins/dbnd-aws
+-e file:plugins/dbnd-gcp
+-e file:plugins/dbnd-azure
 
--e plugins/dbnd-qubole
+-e file:plugins/dbnd-qubole
 
--e plugins/dbnd-test-scenarios
+-e file:plugins/dbnd-test-scenarios
 
 # Keep the requirements compatible with airflow 2.2.3 (default version for databand developers)
 apache-airflow[amazon,apache.spark,databricks,cncf.kubernetes]==${AIRFLOW_VERSION}

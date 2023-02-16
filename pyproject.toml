@@ -77,6 +77,8 @@ disable = [
     "unspecified-encoding",                   # 38
     # annoying: we decided not to fix it
     "arguments-renamed",                      # 4
+    # different versions of linter in different environments
+    "bad-option-value",
     # TODO: review following rules:
     "import-error",                        # 3148
     "no-name-in-module",                   # 2089
@@ -147,6 +149,7 @@ disable = [
     "expression-not-assigned",             # 4
     "unnecessary-lambda",                  # 3
     "missing-format-attribute",            # 3
+    "missing-timeout",                     # 6
     "empty-docstring",                     # 3
     "deprecated-method",                   # 3
     "bad-classmethod-argument",            # 3

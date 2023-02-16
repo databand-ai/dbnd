@@ -8,10 +8,9 @@ def clean_links(path_to_file):
     if path_to_file[-5:] == ".html":
         with open(f"_build/html/reference/{path_to_file}", "r") as file:
             html = file.read()
-            group_lower = lambda x: f'href="{x.group(1).lower()}"{x.group(2)}'
             html = re.sub(
                 r"href=\"(?:api\/)?(?:dbnd\.)?(\w+)\.html(?:#dbnd\.\w+)?\"(>)?",
-                group_lower,
+                lambda x: f'href="{x.group(1).lower()}"{x.group(2)}',
                 html,
                 0,
                 re.MULTILINE,

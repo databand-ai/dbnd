@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements/requirements-dev-tracking-airflow-3.9-airflow-2.2.5.txt --resolver=backtracking requirements/requirements-dev-tracking-airflow.in
 #
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd
+-e file:modules/dbnd
     # via
     #   -r requirements/requirements-dev-tracking-airflow.in
     #   dbnd-airflow
@@ -15,36 +15,32 @@
     #   dbnd-redshift
     #   dbnd-snowflake
     #   dbnd-spark
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd-airflow
+-e file:modules/dbnd-airflow
     # via
     #   -r requirements/requirements-dev-tracking-airflow.in
     #   dbnd-airflow-versioned-dag
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd-airflow-monitor
+-e file:modules/dbnd-airflow-monitor
     # via -r requirements/requirements-dev-tracking-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-airflow-versioned-dag
+-e file:plugins/dbnd-airflow-versioned-dag
     # via -r requirements/requirements-dev-tracking-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-databricks
+-e file:plugins/dbnd-databricks
     # via -r requirements/requirements-dev-tracking-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-postgres
+-e file:plugins/dbnd-postgres
     # via -r requirements/requirements-dev-tracking-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-redshift
+-e file:plugins/dbnd-redshift
     # via -r requirements/requirements-dev-tracking-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-snowflake
+-e file:plugins/dbnd-snowflake
     # via -r requirements/requirements-dev-tracking-airflow.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-spark
+-e file:plugins/dbnd-spark
     # via
     #   -r requirements/requirements-dev-tracking-airflow.in
     #   dbnd-databricks
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-test-scenarios
+-e file:plugins/dbnd-test-scenarios
     # via -r requirements/requirements-dev-tracking-airflow.in
 alembic==1.7.7
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 anyio==3.5.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   httpcore
+    # via httpcore
 apache-airflow[amazon,apache.spark,databricks]==2.2.5
     # via
     #   -r requirements/requirements-dev-tracking-airflow.in
@@ -52,118 +48,78 @@ apache-airflow[amazon,apache.spark,databricks]==2.2.5
     #   apache-airflow-providers-apache-spark
     #   apache-airflow-providers-databricks
 apache-airflow-providers-amazon==3.2.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 apache-airflow-providers-apache-spark==2.1.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 apache-airflow-providers-databricks==2.5.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 apache-airflow-providers-ftp==2.1.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 apache-airflow-providers-http==2.1.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 apache-airflow-providers-imap==2.2.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 apache-airflow-providers-sqlite==2.1.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 apispec[yaml]==3.3.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 argcomplete==1.12.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 asn1crypto==1.5.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   oscrypto
     #   scramp
     #   snowflake-connector-python
 astroid==2.11.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   pylint
+    # via pylint
 attrs==20.3.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   cattrs
     #   dbnd
     #   jsonschema
     #   pytest
 babel==2.9.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-babel
+    # via flask-babel
 beautifulsoup4==4.10.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   redshift-connector
+    # via redshift-connector
 black==22.3.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   -r requirements/./requirements-dev-tools.in
+    # via -r requirements/./requirements-dev-tools.in
 blinker==1.4
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 boto3==1.21.29
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow-providers-amazon
     #   redshift-connector
     #   watchtower
 botocore==1.24.29
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   boto3
     #   redshift-connector
     #   s3transfer
 build==0.10.0
     # via pip-tools
 cachelib==0.6.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-session
+    # via flask-session
 cattrs==1.10.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 certifi==2020.12.5
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   httpcore
     #   httpx
     #   requests
     #   snowflake-connector-python
 cffi==1.15.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   cryptography
     #   snowflake-connector-python
 charset-normalizer==2.0.12
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   httpx
     #   requests
     #   snowflake-connector-python
 click==8.1.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   black
     #   clickclick
     #   flask
@@ -172,85 +128,55 @@ click==8.1.0
     #   pip-tools
 clickclick==20.10.2
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   connexion
 colorama==0.4.4
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 colorlog==4.8.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 commonmark==0.9.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   rich
+    # via rich
 configparser==3.5.3
     # via dbnd
 connexion[flask,swagger-ui]==2.13.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 croniter==1.3.4
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 cryptography==36.0.2
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   pyopenssl
     #   snowflake-connector-python
     #   types-pyopenssl
     #   types-redis
 databricks-sql-connector==1.0.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow-providers-databricks
+    # via apache-airflow-providers-databricks
 decorator==5.1.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   jsonpath-ng
+    # via jsonpath-ng
 defusedxml==0.7.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   python3-openid
+    # via python3-openid
 deprecated==1.2.13
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 dill==0.3.1.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   pylint
 distlib==0.3.4
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   virtualenv
+    # via virtualenv
 dnspython==2.2.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   email-validator
+    # via email-validator
 docutils==0.16
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   python-daemon
 email-validator==1.1.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 filelock==3.6.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   tox
     #   virtualenv
 flask==1.1.2
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   connexion
     #   flask-appbuilder
@@ -263,72 +189,43 @@ flask==1.1.2
     #   flask-sqlalchemy
     #   flask-wtf
 flask-appbuilder==3.4.5
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 flask-babel==2.0.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 flask-caching==1.10.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 flask-jwt-extended==3.25.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 flask-login==0.4.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   flask-appbuilder
 flask-openid==1.3.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 flask-session==0.4.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 flask-sqlalchemy==2.5.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 flask-wtf==0.14.3
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   flask-appbuilder
 future==0.18.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   databricks-sql-connector
+    # via databricks-sql-connector
 graphviz==0.19.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 grimp==2.2
     # via import-linter
 gunicorn==20.1.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 h11==0.12.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   httpcore
+    # via httpcore
 httpcore==0.14.7
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   httpx
+    # via httpx
 httpx==0.22.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 idna==3.3
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   anyio
     #   email-validator
     #   requests
@@ -337,33 +234,23 @@ idna==3.3
 import-linter[toml]==1.7.0
     # via -r requirements/./requirements-dev-tools.in
 importlib-metadata==4.11.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   markdown
+    # via markdown
 inflection==0.5.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   connexion
+    # via connexion
 iniconfig==1.1.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   pytest
+    # via pytest
 iso8601==1.0.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 isort==5.12.0
     # via pylint
 itsdangerous==1.1.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   connexion
     #   flask
     #   flask-wtf
 jinja2==3.0.3
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   dbnd
     #   flask
@@ -372,71 +259,49 @@ jinja2==3.0.3
     #   swagger-ui-bundle
 jmespath==0.10.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   boto3
     #   botocore
 jsonpath-ng==1.5.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow-providers-amazon
+    # via apache-airflow-providers-amazon
 jsonschema==3.2.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   connexion
     #   flask-appbuilder
 lazy-object-proxy==1.4.3
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   astroid
 lockfile==0.12.2
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   python-daemon
 lxml==4.8.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   redshift-connector
+    # via redshift-connector
 mako==1.2.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   alembic
+    # via alembic
 markdown==3.3.6
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 markupsafe==2.0.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   jinja2
     #   mako
     #   wtforms
 marshmallow==3.15.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   flask-appbuilder
     #   marshmallow-enum
     #   marshmallow-oneofschema
     #   marshmallow-sqlalchemy
 marshmallow-enum==1.5.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 marshmallow-oneofschema==3.0.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 marshmallow-sqlalchemy==0.26.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 mccabe==0.6.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   pylint
+    # via pylint
 mock==5.0.1
     # via dbnd-test-scenarios
 more-itertools==9.0.0
@@ -453,17 +318,13 @@ mypy-extensions==0.4.3
     #   mypy
 numpy==1.21.5
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   dbnd-snowflake
     #   pandas
     #   types-jack-client
 oscrypto==1.3.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   snowflake-connector-python
+    # via snowflake-connector-python
 packaging==21.3
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   -r requirements/./requirements-dev-tools.in
     #   apache-airflow
     #   build
@@ -476,77 +337,52 @@ packaging==21.3
     #   tox
 pandas==1.3.5
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow-providers-amazon
     #   dbnd-snowflake
 pathspec==0.9.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   black
+    # via black
 pendulum==2.1.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 pip-tools==6.10.0
     # via -r requirements/./requirements-dev-tools.in
 platformdirs==2.5.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   black
     #   pylint
     #   virtualenv
 pluggy==1.0.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   pytest
     #   tox
 ply==3.11
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   jsonpath-ng
+    # via jsonpath-ng
 prison==0.2.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 prometheus-client==0.13.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   dbnd-airflow-monitor
+    # via dbnd-airflow-monitor
 psutil==5.9.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 psycopg2-binary==2.9.3
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   dbnd-postgres
     #   dbnd-redshift
 py==1.11.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   pytest
     #   tox
 py4j==0.10.9.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   pyspark
+    # via pyspark
 pycparser==2.21
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   cffi
+    # via cffi
 pycryptodomex==3.14.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   snowflake-connector-python
+    # via snowflake-connector-python
 pygments==2.11.2
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   dbnd
     #   rich
 pyjwt==1.7.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   flask-appbuilder
     #   flask-jwt-extended
@@ -554,35 +390,23 @@ pyjwt==1.7.1
 pylint==2.13.5
     # via -r requirements/./requirements-dev-tools.in
 pyopenssl==21.0.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   snowflake-connector-python
+    # via snowflake-connector-python
 pyparsing==2.4.7
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   packaging
+    # via packaging
 pyproject-hooks==1.0.0
     # via build
 pyrsistent==0.18.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   dbnd-postgres
     #   jsonschema
 pyspark==3.2.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow-providers-apache-spark
+    # via apache-airflow-providers-apache-spark
 pytest==6.2.5
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   -r requirements/./requirements-dev-tools.in
+    # via -r requirements/./requirements-dev-tools.in
 python-daemon==2.3.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 python-dateutil==2.8.2
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   botocore
     #   croniter
@@ -591,24 +415,19 @@ python-dateutil==2.8.2
     #   pandas
     #   pendulum
 python-nvd3==0.15.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 python-slugify==4.0.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   python-nvd3
 python-stripzip==1.0.0
     # via -r requirements/./requirements-dev-tools.in
 python3-openid==3.2.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   flask-openid
 pytz==2021.3
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   babel
     #   dbnd
     #   flask-babel
@@ -616,17 +435,13 @@ pytz==2021.3
     #   redshift-connector
     #   snowflake-connector-python
 pytz-deprecation-shim==0.1.0.post0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   tzlocal
+    # via tzlocal
 pytzdata==2020.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   dbnd
     #   pendulum
 pyyaml==5.4.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apispec
     #   clickclick
     #   connexion
@@ -634,12 +449,10 @@ pyyaml==5.4.1
     #   dbnd-postgres
 redshift-connector==2.0.905
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow-providers-amazon
     #   dbnd-redshift
 requests==2.27.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow-providers-databricks
     #   apache-airflow-providers-http
     #   connexion
@@ -647,30 +460,19 @@ requests==2.27.1
     #   redshift-connector
     #   snowflake-connector-python
 rfc3986[idna2008]==1.5.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   httpx
+    # via httpx
 rich==12.0.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 s3transfer==0.5.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   boto3
+    # via boto3
 scramp==1.4.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   redshift-connector
+    # via redshift-connector
 setproctitle==1.2.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 sh==2.0.2
     # via -r requirements/./requirements-dev-tools.in
 six==1.16.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   -r requirements/./requirements-dev-tools.in
     #   dbnd
     #   flask-jwt-extended
@@ -685,21 +487,15 @@ six==1.16.0
     #   virtualenv
 sniffio==1.2.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   anyio
     #   httpcore
     #   httpx
 snowflake-connector-python==2.7.6
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   dbnd-snowflake
+    # via dbnd-snowflake
 soupsieve==2.3.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   beautifulsoup4
+    # via beautifulsoup4
 sqlalchemy==1.3.24
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   alembic
     #   apache-airflow
     #   flask-appbuilder
@@ -709,53 +505,31 @@ sqlalchemy==1.3.24
     #   sqlalchemy-redshift
     #   sqlalchemy-utils
 sqlalchemy-jsonfield==1.0.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 sqlalchemy-redshift==0.8.9
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow-providers-amazon
+    # via apache-airflow-providers-amazon
 sqlalchemy-utils==0.38.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   flask-appbuilder
+    # via flask-appbuilder
 sqlparse==0.4.2
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   dbnd
     #   dbnd-snowflake
 swagger-ui-bundle==0.0.9
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   connexion
+    # via connexion
 tabulate==0.8.9
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 tenacity==8.0.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 termcolor==1.1.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 text-unidecode==1.3
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   python-slugify
+    # via python-slugify
 thrift==0.15.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   databricks-sql-connector
+    # via databricks-sql-connector
 toml==0.10.2
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   pytest
+    # via pytest
 tomli==2.0.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   black
     #   build
     #   import-linter
@@ -969,7 +743,6 @@ types-xxhash==3.0.5.1
     # via types-all
 typing-extensions==4.1.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   astroid
     #   black
@@ -980,33 +753,21 @@ typing-extensions==4.1.1
     #   mypy-boto3-redshift-data
     #   pylint
 tzdata==2022.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   pytz-deprecation-shim
+    # via pytz-deprecation-shim
 tzlocal==4.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   dbnd
+    # via dbnd
 unicodecsv==0.14.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow
+    # via apache-airflow
 urllib3==1.26.9
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   botocore
     #   requests
 virtualenv==20.14.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   tox
+    # via tox
 watchtower==2.0.1
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   apache-airflow-providers-amazon
+    # via apache-airflow-providers-amazon
 werkzeug==1.0.1
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   connexion
     #   flask
@@ -1017,19 +778,15 @@ wheel==0.38.4
     #   pip-tools
 wrapt==1.14.0
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   astroid
     #   deprecated
 wtforms==2.3.3
     # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow
     #   flask-appbuilder
     #   flask-wtf
 zipp==3.7.0
-    # via
-    #   -c requirements/../etc/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
-    #   importlib-metadata
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

@@ -20,13 +20,13 @@ _validate_python_venv_name() {
     local venv_target_name=$1
     local current_venv_name
     current_venv_name=$(basename ${VIRTUAL_ENV})
-    if [[ "$current_venv_name" != *"${venv_target_name}"* ]];
+    if [[ "$current_venv_name" != *"${venv_target_name}" ]];
     then
         if [[ -z "${VIRTUAL_ENV}" ]];
         then
             echo "Virtual env is not activated, activate ${venv_target_name}";
         else
-            echo "Looks like wrong virtual env is activated, ${venv_target_name} is expected";
+            echo "Looks like wrong virtual env '$current_venv_name' is activated, '${venv_target_name}' is expected";
         fi
         exit 1
 # there is no good way for backward compatibility for read command /bash and /zsh

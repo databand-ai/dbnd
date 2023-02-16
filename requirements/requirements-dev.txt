@@ -4,7 +4,7 @@
 #
 #    pip-compile --resolver=backtracking requirements/requirements-dev.in
 #
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd
+-e file:modules/dbnd
     # via
     #   -r requirements/requirements-dev.in
     #   dbnd-airflow-monitor
@@ -14,24 +14,24 @@
     #   dbnd-postgres
     #   dbnd-redshift
     #   dbnd-snowflake
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd-airflow-monitor
+-e file:modules/dbnd-airflow-monitor
     # via
     #   -r requirements/requirements-dev.in
     #   dbnd-datastage-monitor
     #   dbnd-dbt-monitor
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd-datastage-monitor
+-e file:modules/dbnd-datastage-monitor
     # via -r requirements/requirements-dev.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/modules/dbnd-dbt-monitor
+-e file:modules/dbnd-dbt-monitor
     # via -r requirements/requirements-dev.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-mlflow
+-e file:plugins/dbnd-mlflow
     # via -r requirements/requirements-dev.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-postgres
+-e file:plugins/dbnd-postgres
     # via -r requirements/requirements-dev.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-redshift
+-e file:plugins/dbnd-redshift
     # via -r requirements/requirements-dev.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-snowflake
+-e file:plugins/dbnd-snowflake
     # via -r requirements/requirements-dev.in
--e file:///Users/shulman/development/databand-delta/dbnd-core/plugins/dbnd-test-scenarios
+-e file:plugins/dbnd-test-scenarios
     # via -r requirements/requirements-dev.in
 asn1crypto==1.5.1
     # via

@@ -163,6 +163,7 @@ class DataStageApiErrorClient(DataStageApiInMemoryClient):
         super().__init__(project_id=project_id)
 
     def get_run_info(self, run: Dict[str, any]):
+        # pylint: disable=broad-exception-raised
         raise Exception("test error")
 
 

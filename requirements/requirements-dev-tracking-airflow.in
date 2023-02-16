@@ -3,23 +3,23 @@
 # Add all the requirements for the dbnd and dbnd modules
 
 # databand:
--e modules/dbnd
+-e file:modules/dbnd
 
 # databand dev:
--e plugins/dbnd-test-scenarios
+-e file:plugins/dbnd-test-scenarios
 
 
 # databand tracking airflow plugins:
--e modules/dbnd-airflow
--e modules/dbnd-airflow-monitor
--e plugins/dbnd-airflow-versioned-dag
+-e file:modules/dbnd-airflow
+-e file:modules/dbnd-airflow-monitor
+-e file:plugins/dbnd-airflow-versioned-dag
 
 # databand tracking
--e plugins/dbnd-postgres
--e plugins/dbnd-snowflake
--e plugins/dbnd-redshift
--e plugins/dbnd-databricks
--e plugins/dbnd-spark
+-e file:plugins/dbnd-postgres
+-e file:plugins/dbnd-snowflake
+-e file:plugins/dbnd-redshift
+-e file:plugins/dbnd-databricks
+-e file:plugins/dbnd-spark
 
 
 apache-airflow[amazon,apache.spark,databricks]==${AIRFLOW_VERSION}
