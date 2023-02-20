@@ -295,7 +295,7 @@ run-airflow--create-venv:  ## Create virtual env
 	@echo "Current Airflow Version: ${AIRFLOW_VERSION}"
 	. ./etc/scripts/devenv-utils.sh; _create_virtualenv "${VENV_RUN_AIRFLOW_TARGET_NAME}"
 
-run-airflow--install-dev: __run_airflow__is_venv_activated  run-airflow--install-apache-airflow## Installs Airflow + all dbnd-core modules in editable mode to the active Python's site-packages.
+run-airflow--install-dev: __run_airflow__is_venv_activated ## Installs Airflow + all dbnd-core modules in editable mode to the active Python's site-packages.
 	pip-sync ${REQUIREMENTS_FILE_RUN_AIRFLOW}
 
 run-airflow--dist-python:  ## Build only essential dbnd-run modules.
