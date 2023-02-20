@@ -102,7 +102,7 @@ class AirflowTrackingService(BaseTrackingService):
         data["last_seen_log_id"] = last_seen_log_id
         data["syncer_type"] = syncer_type
         response = self._make_request(
-            "update_dagruns",
+            "save_tracking_data",
             method="POST",
             data=data,
             request_timeout=LONG_REQUEST_TIMEOUT,
