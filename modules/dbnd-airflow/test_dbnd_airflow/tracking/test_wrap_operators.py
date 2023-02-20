@@ -16,7 +16,7 @@ from dbnd._core.configuration.environ_config import (
     DBND_ROOT_RUN_UID,
     ENV_DBND_SCRIPT_NAME,
 )
-from dbnd_airflow.constants import AIRFLOW_VERSION_BEFORE_2_2
+from dbnd_airflow.compat import AIRFLOW_VERSION_BEFORE_2_2
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.config import TrackingSparkConfig
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag

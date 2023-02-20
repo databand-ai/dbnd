@@ -29,7 +29,7 @@ prj_tracking = \
 			plugins/dbnd-postgres \
 			plugins/dbnd-redshift \
 			plugins/dbnd-tensorflow \
-			plugins/dbnd-spark \
+			orchestration/dbnd-spark \
 			plugins/dbnd-snowflake
 
 prj_tracking_monitors = \
@@ -49,28 +49,24 @@ prj_tracking_airflow = \
 
 prj_dbnd_run = \
             modules/dbnd \
-            modules/dbnd-airflow \
-            plugins/dbnd-airflow-versioned-dag \
-            plugins/dbnd-aws  \
-            plugins/dbnd-azure \
-			plugins/dbnd-databricks \
-			plugins/dbnd-docker \
-			plugins/dbnd-hdfs \
-			plugins/dbnd-gcp \
-			plugins/dbnd-tensorflow \
-			plugins/dbnd-spark \
-			plugins/dbnd-qubole \
+            orchestration/dbnd-run \
+            orchestration/dbnd-aws  \
+            orchestration/dbnd-azure \
+			orchestration/dbnd-databricks \
+			orchestration/dbnd-docker \
+			orchestration/dbnd-hdfs \
+			orchestration/dbnd-gcp \
+			orchestration/dbnd-tensorflow \
+			orchestration/dbnd-spark \
+			orchestration/dbnd-qubole \
 			\
-            etc/deprecated_packages/dbnd-airflow-versioned-dag \
-			\
-			plugins/dbnd-test-scenarios
+			orchestration/dbnd-test-scenarios
 
 # LIST of packages to be distributed
 prj_dist := \
 		modules/dbnd \
-		modules/dbnd-airflow \
-		plugins/dbnd-spark \
 		\
+		modules/dbnd-airflow \
 		modules/dbnd-airflow-monitor \
 		plugins/dbnd-airflow-auto-tracking \
 		plugins/dbnd-airflow-export \
@@ -82,19 +78,22 @@ prj_dist := \
 		plugins/dbnd-luigi \
 		plugins/dbnd-postgres \
 		plugins/dbnd-redshift \
-		\
-		plugins/dbnd-airflow-versioned-dag \
-		plugins/dbnd-aws  \
-		plugins/dbnd-azure \
-		plugins/dbnd-databricks \
-		plugins/dbnd-docker \
-		plugins/dbnd-hdfs \
-		plugins/dbnd-gcp \
 		plugins/dbnd-tensorflow \
 		plugins/dbnd-snowflake \
-		plugins/dbnd-qubole\
 		\
-		plugins/dbnd-test-scenarios\
+		etc/deprecated_packages/dbnd-airflow-versioned-dag \
+		\
+		orchestration/dbnd-run  \
+		orchestration/dbnd-aws  \
+		orchestration/dbnd-azure \
+		orchestration/dbnd-spark \
+		orchestration/dbnd-databricks \
+		orchestration/dbnd-docker \
+		orchestration/dbnd-hdfs \
+		orchestration/dbnd-gcp \
+		orchestration/dbnd-qubole\
+		\
+		orchestration/dbnd-test-scenarios\
 		\
 		examples
 

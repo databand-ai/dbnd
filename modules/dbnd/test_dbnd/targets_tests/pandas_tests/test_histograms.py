@@ -6,7 +6,7 @@ import logging
 
 import pandas as pd
 
-from dbnd_test_scenarios.test_common.histogram_tests import BaseHistogramTests
+from test_dbnd.targets_tests.histogram_tests import BaseHistogramTests
 
 
 logger = logging.getLogger(__name__)

@@ -50,10 +50,7 @@ def disable_airflow_plugin():
 def _is_dbnd_run_airflow_enabled():
     if get_dbnd_project_config().is_no_modules:
         return False
-    if not pm.has_plugin("dbnd-run"):
-        return False
 
-    # TODO: make decision based on plugin only
     try:
         import dbnd_run  # noqa: F401
     except ImportError:

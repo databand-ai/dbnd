@@ -31,7 +31,7 @@
     # via -r requirements/requirements-dev.in
 -e file:plugins/dbnd-snowflake
     # via -r requirements/requirements-dev.in
--e file:plugins/dbnd-test-scenarios
+-e file:orchestration/dbnd-test-scenarios
     # via -r requirements/requirements-dev.in
 asn1crypto==1.5.1
     # via

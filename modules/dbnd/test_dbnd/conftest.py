@@ -12,7 +12,6 @@ from pytest import fixture
 import dbnd
 import dbnd._core.utils.basics.environ_utils
 
-from dbnd import register_config_cls, register_task
 from dbnd._core.configuration.environ_config import (
     ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING,
     ENV_DBND__NO_MODULES,
@@ -22,7 +21,6 @@ from dbnd._core.configuration.environ_config import (
 from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
 from dbnd._core.utils.basics.environ_utils import set_on
 from dbnd.testing.test_config_setter import add_test_configuration
-from dbnd_test_scenarios.test_common.task.factories import FooConfig, TConfig
 from targets import target
 
 
@@ -72,22 +70,6 @@ def pytest_configure(config):
             marks.append("not %s" % mark)
     new_markexpr = " and ".join(marks)
     setattr(config.option, "markexpr", new_markexpr)
-    register_task(TConfig)
-    register_config_cls(FooConfig)
-
-
-@pytest.fixture
-def matplot_figure():
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    fig = plt.figure()
-    ax1 = fig.add_subplot(2, 2, 1)
-    ax1.hist(np.random.randn(100), bins=20, alpha=0.3)
-    ax2 = fig.add_subplot(2, 2, 2)
-    ax2.scatter(np.arange(30), np.arange(30) + 3 * np.random.randn(30))
-    fig.add_subplot(2, 2, 3)
-    return fig
 
 
 @pytest.fixture
@@ -114,13 +96,6 @@ def df_categorical():
     )
 
 
-@fixture
-def file_on_disk(tmpdir):
-    t = target(tmpdir / "file_on_disk.txt")
-    t.write("file data")
-    return t
-
-
 @pytest.fixture
 def pandas_data_frame_index(pandas_data_frame):
     return pandas_data_frame.set_index("Names")
@@ -131,13 +106,6 @@ def pandas_data_frame_on_disk(tmpdir, pandas_data_frame):
     t = target(tmpdir / "df.parquet")
     t.write_df(pandas_data_frame)
     return pandas_data_frame, t
-
-
-@pytest.fixture
-def numpy_array():
-    import numpy as np
-
-    return np.array([968, 155, 77, 578, 973])
 
 
 @fixture

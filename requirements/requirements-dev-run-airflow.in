@@ -4,23 +4,24 @@
 -e file:modules/dbnd
 
 # databand tracking and orchestration plugins:
--e file:plugins/dbnd-run
+-e file:orchestration/dbnd-run
 # databand orchestration plugins:
 
--e file:plugins/dbnd-docker
+-e file:orchestration/dbnd-docker
 
--e file:plugins/dbnd-spark
--e file:plugins/dbnd-databricks
--e file:plugins/dbnd-hdfs
+-e file:orchestration/dbnd-spark
+-e file:orchestration/dbnd-hdfs
+
+-e file:orchestration/dbnd-azure
+-e file:orchestration/dbnd-aws
+-e file:orchestration/dbnd-databricks
+-e file:orchestration/dbnd-gcp
+-e file:orchestration/dbnd-qubole
+
+-e file:orchestration/dbnd-test-scenarios
+
 
 -e file:plugins/dbnd-tensorflow
--e file:plugins/dbnd-aws
--e file:plugins/dbnd-gcp
--e file:plugins/dbnd-azure
-
--e file:plugins/dbnd-qubole
-
--e file:plugins/dbnd-test-scenarios
 
 # Keep the requirements compatible with airflow 2.2.3 (default version for databand developers)
 apache-airflow[amazon,apache.spark,databricks,cncf.kubernetes]==${AIRFLOW_VERSION}

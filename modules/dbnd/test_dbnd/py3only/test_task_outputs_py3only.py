@@ -10,7 +10,7 @@ from pandas import DataFrame
 
 from dbnd import task
 from dbnd.testing.helpers_pytest import assert_run_task
-from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
+from dbnd.testing.orchestration_utils import TargetTestBase
 
 
 logger = logging.getLogger(__name__)

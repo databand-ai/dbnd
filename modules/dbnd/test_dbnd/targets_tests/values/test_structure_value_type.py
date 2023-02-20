@@ -26,7 +26,7 @@ from typing import List
 
 import pytest
 
-from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
+from dbnd.testing.orchestration_utils import TargetTestBase
 from targets.values import (
     DictValueType,
     IntValueType,

@@ -6,7 +6,7 @@ import logging
 
 from pandas.util.testing import assert_frame_equal
 
-from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
+from dbnd.testing.orchestration_utils import TargetTestBase
 from targets import target
 from targets.target_config import file
 

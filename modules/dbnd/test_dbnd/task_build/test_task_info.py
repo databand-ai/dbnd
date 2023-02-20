@@ -10,7 +10,7 @@ from typing import List
 
 from dbnd import dbnd_run_cmd, new_dbnd_context, parameter, task
 from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser
-from dbnd_test_scenarios.test_common.task.factories import TTask
+from dbnd.testing.orchestration_utils import TTask
 from targets import target
 from targets.values import DateValueType
 

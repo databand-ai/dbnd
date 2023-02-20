@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import logging
 
-from dbnd_test_scenarios.test_common.task.factories import TTask
+from dbnd.testing.orchestration_utils import TTask
 
 
 logger = logging.getLogger(__name__)

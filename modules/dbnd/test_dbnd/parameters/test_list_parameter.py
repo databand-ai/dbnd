@@ -24,7 +24,7 @@ import pytest
 
 from dbnd import parameter
 from dbnd.testing.helpers import build_task
-from dbnd_test_scenarios.test_common.task.factories import TTask
+from dbnd.testing.orchestration_utils import TTask
 from targets.values import ValueType
 
 

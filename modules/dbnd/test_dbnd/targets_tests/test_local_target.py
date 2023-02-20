@@ -34,10 +34,8 @@ import pytest
 import targets
 import targets.pipes
 
+from dbnd.testing.base_target_test_mixin import FileTargetTestMixin
 from dbnd.testing.helpers_pytest import skip_on_windows
-from dbnd_test_scenarios.test_common.targets.base_target_test_mixin import (
-    FileTargetTestMixin,
-)
 from targets import target
 
 

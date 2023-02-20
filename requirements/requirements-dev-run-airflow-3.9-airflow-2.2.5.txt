@@ -7,8 +7,6 @@
 -e file:modules/dbnd
     # via
     #   -r requirements/requirements-dev-run-airflow.in
-    #   dbnd-airflow
-    #   dbnd-airflow-versioned-dag
     #   dbnd-aws
     #   dbnd-azure
     #   dbnd-databricks
@@ -16,37 +14,35 @@
     #   dbnd-gcp
     #   dbnd-hdfs
     #   dbnd-qubole
+    #   dbnd-run
     #   dbnd-spark
     #   dbnd-tensorflow
--e file:modules/dbnd-airflow
+-e file:orchestration/dbnd-aws
+    # via -r requirements/requirements-dev-run-airflow.in
+-e file:orchestration/dbnd-azure
+    # via -r requirements/requirements-dev-run-airflow.in
+-e file:orchestration/dbnd-databricks
+    # via -r requirements/requirements-dev-run-airflow.in
+-e file:orchestration/dbnd-docker
+    # via -r requirements/requirements-dev-run-airflow.in
+-e file:orchestration/dbnd-gcp
+    # via -r requirements/requirements-dev-run-airflow.in
+-e file:orchestration/dbnd-hdfs
+    # via -r requirements/requirements-dev-run-airflow.in
+-e file:orchestration/dbnd-qubole
+    # via -r requirements/requirements-dev-run-airflow.in
+-e file:orchestration/dbnd-run
     # via
     #   -r requirements/requirements-dev-run-airflow.in
-    #   dbnd-airflow-versioned-dag
     #   dbnd-docker
--e file:plugins/dbnd-airflow-versioned-dag
-    # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-aws
-    # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-azure
-    # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-databricks
-    # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-docker
-    # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-gcp
-    # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-hdfs
-    # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-qubole
-    # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-spark
+-e file:orchestration/dbnd-spark
     # via
     #   -r requirements/requirements-dev-run-airflow.in
     #   dbnd-databricks
     #   dbnd-qubole
 -e file:plugins/dbnd-tensorflow
     # via -r requirements/requirements-dev-run-airflow.in
--e file:plugins/dbnd-test-scenarios
+-e file:orchestration/dbnd-test-scenarios
     # via -r requirements/requirements-dev-run-airflow.in
 aiobotocore==2.4.2
     # via
@@ -590,7 +586,7 @@ packaging==21.3
     #   build
     #   connexion
     #   db-dtypes
-    #   dbnd-airflow
+    #   dbnd-run
     #   docker
     #   google-api-core
     #   google-cloud-bigquery

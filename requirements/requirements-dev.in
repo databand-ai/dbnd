@@ -5,9 +5,6 @@
 # databand:
 -e file:modules/dbnd
 
-# databand dev:
--e file:plugins/dbnd-test-scenarios
-
 # databand tracking monitors:
 -e file:modules/dbnd-airflow-monitor
 -e file:modules/dbnd-dbt-monitor

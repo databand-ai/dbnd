@@ -26,7 +26,7 @@ from databand.parameters import MonthParameter, TimeDeltaParameter, YearParamete
 from dbnd import parameter
 from dbnd._core.utils.timezone import utc
 from dbnd.testing.helpers import build_task
-from dbnd_test_scenarios.test_common.task.factories import TTask
+from dbnd.testing.orchestration_utils import TTask
 
 
 class DateTask(TTask):

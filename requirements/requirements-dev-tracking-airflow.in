@@ -6,20 +6,15 @@
 -e file:modules/dbnd
 
 # databand dev:
--e file:plugins/dbnd-test-scenarios
-
 
 # databand tracking airflow plugins:
 -e file:modules/dbnd-airflow
 -e file:modules/dbnd-airflow-monitor
--e file:plugins/dbnd-airflow-versioned-dag
 
 # databand tracking
 -e file:plugins/dbnd-postgres
 -e file:plugins/dbnd-snowflake
 -e file:plugins/dbnd-redshift
--e file:plugins/dbnd-databricks
--e file:plugins/dbnd-spark
 
 
 apache-airflow[amazon,apache.spark,databricks]==${AIRFLOW_VERSION}

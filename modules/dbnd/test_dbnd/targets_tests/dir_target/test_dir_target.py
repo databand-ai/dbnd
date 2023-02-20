@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
+from dbnd.testing.orchestration_utils import TargetTestBase
 from targets import target
 from targets.dir_target import DEFAULT_FLAG_FILE_NAME
 from targets.target_config import file, folder

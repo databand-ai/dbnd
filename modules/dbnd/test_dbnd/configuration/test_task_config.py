@@ -2,7 +2,7 @@
 
 import logging
 
-from dbnd import Config, new_dbnd_context, override, parameter, task
+from dbnd import Config, dbnd_config, new_dbnd_context, override, parameter, task
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_build.task_registry import build_task_from_config
@@ -22,6 +22,12 @@ class DummyConfig(Config):
     bar = parameter(default="barbar")[str]
 
 
+class TConfig(Config):
+    _conf__task_family = "tconfig"
+    config_value_s1 = parameter[str]
+    config_value_s2 = parameter[str]
+
+
 @task(
     task_config=dict(
         tconfig=dict(
@@ -38,6 +44,7 @@ def dummy_nested_config_task(config_name):
 
 class TestTaskConfig(object):
     def test_task_config_override(self):
+        dbnd_config.log_layers()
         actual = dummy_nested_config_task.dbnd_run(config_name="tconfig")
         assert actual.task.result.load(object) == (
             "override_config_s1",

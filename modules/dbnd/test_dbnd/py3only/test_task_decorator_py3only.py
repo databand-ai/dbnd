@@ -14,7 +14,7 @@ from pandas.util.testing import assert_frame_equal
 
 from dbnd import dbnd_run_cmd, task
 from dbnd.testing.helpers_pytest import assert_run_task
-from dbnd_test_scenarios.test_common.targets.target_test_base import TargetTestBase
+from dbnd.testing.orchestration_utils import TargetTestBase
 from targets.types import LazyLoad
 
 

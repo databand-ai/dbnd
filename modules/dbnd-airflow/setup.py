@@ -23,8 +23,6 @@ setuptools.setup(
     # pip install apache-airflow  --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-{PYTHON_VERSION}.txt
     extras_require=dict(
         tests=[
-            # # airflow support
-            "dbnd_test_scenarios==" + version,
             # airflow 2.3 has a problem with pluggy <1.0, that makes pytest 4 incompatible
             "pytest==6.2.4",
             "coverage==7.0.1",

@@ -107,15 +107,15 @@ RUN pip install databand[aws,gcp,docker,mlflow]==$DBND_VERSION --find-links /dis
 
 
 COPY ./dbnd-core/setup.cfg \
-    dbnd-core/plugins/dbnd-test-scenarios/scripts/trigger_ui_functionality.sh \
+    dbnd-core/orchestration/dbnd-test-scenarios/scripts/trigger_ui_functionality.sh \
     /app/
 
 COPY .dbnd  /app/.dbnd
 
 COPY ./dbnd-core/examples /app/examples
-COPY ./dbnd-core/plugins/dbnd-test-scenarios /app/plugins/dbnd-test-scenarios
+COPY ./dbnd-core/orchestration/dbnd-test-scenarios /app/orchestration/dbnd-test-scenarios
 RUN pip install -e /app/examples && \
-    pip install -e /app/plugins/dbnd-test-scenarios
+    pip install -e /app/orchestration/dbnd-test-scenarios
 
 ENV DBND_HOME=/app
 WORKDIR  /app
