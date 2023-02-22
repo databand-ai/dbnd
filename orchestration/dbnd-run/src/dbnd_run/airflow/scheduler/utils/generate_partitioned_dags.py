@@ -3,7 +3,7 @@
 """
  Usage sample:
 
- python -m dbnd_airflow.scheduler.utils.generate_partitioned_dags --partitions=3 --dag-folder=dags --base-name=dbnd_dags_from_databand --template=template.py
+ python -m dbnd_run.airflow.scheduler.utils.generate_partitioned_dags --partitions=3 --dag-folder=dags --base-name=dbnd_dags_from_databand --template=template.py
 
  --dag-folder and --template can be relative or absolute path
 """
@@ -19,8 +19,8 @@ import click
 dag_file_template = dedent(
     """# airflow will only scan files containing the text DAG or airflow. This comment performs this function
 
-from dbnd_airflow.scheduler.dags_provider_from_databand import get_dags_from_databand
-from dbnd_airflow.scheduler.utils.partitioning import partition_from_module_name
+from dbnd_run.airflow.scheduler.dags_provider_from_databand import get_dags_from_databand
+from dbnd_run.airflow.scheduler.utils.partitioning import partition_from_module_name
 
 dags = get_dags_from_databand(partition=partition_from_module_name(__name__, base_filename="%base_filename%_"))
 if dags:

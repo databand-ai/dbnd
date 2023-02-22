@@ -8,13 +8,6 @@ import os
 import pytest
 
 
-airflow_home = os.path.abspath(
-    os.path.normpath(os.path.join(os.path.dirname(__file__), "airflow_home"))
-)  # isort:skip
-os.environ["AIRFLOW_HOME"] = airflow_home  # isort:skip
-os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"  # isort:skip
-
-# import dbnd should be first!
 from dbnd_run.airflow.testing.unittest_env import setup_unittest_airflow  # isort:skip
 
 

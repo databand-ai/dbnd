@@ -33,7 +33,7 @@ class LocalSparkTestConfig(Config):
 def spark_config(databand_test_context):
     config = LocalSparkTestConfig()
 
-    from dbnd_airflow_contrib.mng_connections import set_connection
+    from dbnd_run.airflow.dbnd_airflow_contrib.mng_connections import set_connection
 
     set_connection(
         conn_id="spark_default",

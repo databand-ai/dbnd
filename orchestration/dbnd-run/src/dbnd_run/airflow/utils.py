@@ -5,7 +5,6 @@ import uuid
 
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.project.project_fs import abs_join, relative_path
-from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_attempt_uid
 
 
 logger = logging.getLogger(__name__)
@@ -29,16 +28,6 @@ def create_airflow_pool(pool_name):
         dbnd_pool = Pool(pool=pool_name, slots=-1)
         session.merge(dbnd_pool)
         session.commit()
-
-
-def get_task_run_attempt_uid_from_af_ti(ti):
-    airflow_instance_uid = get_airflow_instance_uid()
-    run_uid = get_job_run_uid(
-        airflow_instance_uid=airflow_instance_uid,
-        dag_id=ti.dag_id,
-        execution_date=ti.execution_date,
-    )
-    return get_task_run_attempt_uid(run_uid, ti.dag_id, ti.task_id, ti.try_number)
 
 
 @cached()

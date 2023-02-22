@@ -31,7 +31,7 @@ from pytest import fixture, mark
 
 from dbnd._core.utils.date_utils import airflow_datetime_str
 from dbnd_test_scenarios.test_common.task.factories import TTask
-from tests.airflow.web.utils import WebAppTest
+from tests.airflow_tests.web.utils import WebAppTest
 
 
 @fixture

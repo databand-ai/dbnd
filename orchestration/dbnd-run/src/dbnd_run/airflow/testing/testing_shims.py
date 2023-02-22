@@ -4,7 +4,7 @@ import logging
 
 import sh
 
-from dbnd_airflow.compat import AIRFLOW_VERSION_1, AIRFLOW_VERSION_2
+from dbnd_run.airflow.compat import AIRFLOW_VERSION_1, AIRFLOW_VERSION_2
 
 
 def set_airflow_connection(
@@ -42,21 +42,3 @@ def set_airflow_connection(
 
     logging.info("running: airflow {}".format(" ".join(airflow_command)))
     sh.airflow(airflow_command, _truncate_exc=False)
-
-
-def run_dag_backfill(dag_id, backfill_date):
-    if AIRFLOW_VERSION_2:
-        airflow_command = f"dags backfill -s {backfill_date} -e {backfill_date} {dag_id} --reset-dagruns --yes"
-    else:
-        airflow_command = f"backfill -s {backfill_date} -e {backfill_date} {dag_id} --reset_dagruns --yes"
-
-    logging.info("running: airflow {}".format(airflow_command))
-    airflow_process = sh.airflow(airflow_command.split(), _truncate_exc=False)
-    return airflow_process
-
-
-def dags_unpause(dag_id):
-    if AIRFLOW_VERSION_2:
-        sh.airflow(["dags", "unpause", dag_id], _truncate_exc=False)
-    else:
-        sh.airflow(["unpause", dag_id], _truncate_exc=False)

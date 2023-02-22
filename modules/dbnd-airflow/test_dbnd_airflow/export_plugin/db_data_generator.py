@@ -6,7 +6,6 @@ import attr
 
 from airflow.models import DagModel, DagRun, Log, TaskInstance
 from airflow.utils.db import provide_session
-from airflow.utils.types import DagRunType
 
 from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
@@ -49,11 +48,16 @@ def insert_dag_runs(
 
         dag_run = DagRun()
         dag_run.dag_id = dag_id
-        dag_run.run_id = DagRun.generate_run_id(DagRunType.MANUAL, execution_date)
         dag_run.execution_date = execution_date
         dag_run._state = state
         if AIRFLOW_VERSION_2:
+            from airflow.utils.types import DagRunType
+
+            dag_run.run_id = DagRun.generate_run_id(DagRunType.MANUAL, execution_date)
             dag_run.run_type = ""
+        else:
+            dag_run.run_id = f"manual__{execution_date.isoformat()}"
+
         session.add(dag_run)
         session.commit()
         if with_log:

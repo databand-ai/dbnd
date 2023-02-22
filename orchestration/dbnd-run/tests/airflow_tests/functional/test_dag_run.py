@@ -9,13 +9,13 @@ from airflow import DAG
 import dbnd
 
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
-from tests.airflow.airflow_home.dags.dag_test_examples import (
+from tests.airflow_home.dags.dag_test_examples import (
     default_args_test,
     t_A,
     t_B,
     t_pipeline,
 )
-from tests.airflow.functional.utils import read_xcom_result_value, run_and_get
+from tests.airflow_tests.functional.utils import read_xcom_result_value, run_and_get
 
 
 str(dbnd)

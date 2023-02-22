@@ -7,14 +7,7 @@ import dbnd
 from dbnd import Config, data, output, parameter, pipeline, task
 from dbnd._core.current import current_task_run
 from dbnd.tasks import PipelineTask, PythonTask
-
-
-class TTask(PythonTask):
-    t_param = parameter.value("1")
-    t_output = output.data
-
-    def run(self):
-        self.t_output.write("%s" % self.t_param)
+from dbnd.testing.orchestration_utils import TTask
 
 
 class TTaskWithInput(TTask):

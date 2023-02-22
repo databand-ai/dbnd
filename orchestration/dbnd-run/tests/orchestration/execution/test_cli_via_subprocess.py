@@ -34,6 +34,9 @@ def run_dbnd_subprocess_test(*args, **kwargs):
             relative_path(relative_path(relative_path(__file__))),
         ]  # we add current project so we can import test_dbnd
     )
+    logger.info(
+        "DBND_HOME=%s AIRFLOW_HOME=%s", env.get("DBND_HOME"), env.get("AIRFLOW_HOME")
+    )
     return run_dbnd_subprocess__dbnd_run(*args, module=factories, env=env, **kwargs)
 
 

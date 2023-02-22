@@ -2,13 +2,13 @@
 
 # from airflow import DAG
 #
-# from tests.airflow.airflow_home.dags.dag_test_examples import default_args_test
-# from tests.airflow.airflow_home.dags.dag_with_xcom_pipeline import (
+# from tests.airflow_home.dags.dag_test_examples import default_args_test
+# from tests.airflow_home.dags.dag_with_xcom_pipeline import (
 #     bool_to_string,
 #     my_second_pipeline,
 #     my_xcom_pipeline,
 # )
-# from tests.airflow.functional.utils import read_xcom_result_value, run_and_get
+# from tests.airflow_tests.functional.utils import read_xcom_result_value, run_and_get
 #
 #
 # with DAG(dag_id="simple_jinja_dag", default_args=default_args_test) as simple_jinja_dag:

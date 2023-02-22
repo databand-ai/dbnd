@@ -36,7 +36,11 @@ from dbnd_run.airflow.web.airflow_app_with_versioned_dagbag import (
     patch_airflow_create_app,
 )
 from dbnd_test_scenarios.test_common.task.factories import TTask
-from tests.airflow.web.utils import WebAppTest, assert_content_in_response, assert_ok
+from tests.airflow_tests.web.utils import (
+    WebAppTest,
+    assert_content_in_response,
+    assert_ok,
+)
 
 
 logger = logging.getLogger(__name__)

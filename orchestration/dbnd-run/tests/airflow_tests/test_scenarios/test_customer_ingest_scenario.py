@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.airflow.functional.utils import run_and_get
+from tests.airflow_tests.functional.utils import run_and_get
 
 
 class TestCustomerIngestScenario(object):

@@ -13,15 +13,29 @@ import pytest
 from dbnd.testing.test_config_setter import add_test_configuration
 
 
+#### DBND HOME
 dbnd_system_home = os.path.abspath(
-    os.path.normpath(os.path.join(os.path.dirname(__file__), ".dbnd"))
+    os.path.normpath(os.path.join(os.path.dirname(__file__), "airflow_home", ".dbnd"))
 )  # isort:skip
-# airflow_home = os.path.abspath(
-#     os.path.normpath(os.path.join(os.path.dirname(__file__), "airflow", "airflow_home"))
-# )  # isort:skip
+
 os.environ["DBND_SYSTEM"] = dbnd_system_home  # isort:skip
-# os.environ["AIRFLOW_HOME"] = airflow_home  # isort:skip
-# os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"  # isort:skip
+
+############
+#  AIRFLOW
+# we need it to run before `airflow` import
+airflow_home = os.path.abspath(
+    os.path.normpath(os.path.join(os.path.dirname(__file__), "airflow_home"))
+)  # isort:skip
+os.environ["AIRFLOW_HOME"] = airflow_home  # isort:skip
+os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"  # isort:skip
+# we can't access `airlfow` package for version, import will load config
+# in tox we will have AIRFLOW_VERSION, so there are fewer chances for config conflicts
+os.environ["AIRFLOW_CONFIG"] = os.path.join(
+    airflow_home, "airflow%s.cfg" % os.environ.get("AIRFLOW_VERSION", "")
+)  # isort:skip
+
+# import dbnd should be first!
+
 
 # make test_dbnd available
 from dbnd.testing.helpers import dbnd_module_path  # isort:skip

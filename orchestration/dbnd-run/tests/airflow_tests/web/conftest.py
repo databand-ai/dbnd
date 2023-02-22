@@ -5,7 +5,7 @@ import logging
 import pytest
 
 from dbnd_run.airflow.web.airflow_app_with_versioned_dagbag import create_app
-from tests.airflow.web.utils import WebAppCtrl
+from tests.airflow_tests.web.utils import WebAppCtrl
 
 
 logger = logging.getLogger(__name__)

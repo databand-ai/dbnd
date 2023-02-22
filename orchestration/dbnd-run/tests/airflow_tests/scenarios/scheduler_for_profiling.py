@@ -18,7 +18,7 @@ print(os.environ["DBND__LOG__SQLALCHEMY_TRACE"])
 # reinit_airflow_sql_conn()
 #
 # from dbnd._core.log.logging_utils import create_file_handler
-# from tests.airflow.scenarios.scheduler_perf_experiment import log_processor_file
+# from tests.airflow_tests.scenarios.scheduler_perf_experiment import log_processor_file
 #
 # logging.getLogger("airflow.processor").addHandler(create_file_handler(log_file=log_processor_file))
 # # ========
@@ -36,7 +36,7 @@ def main():
     from dbnd import dbnd_bootstrap
     from dbnd._core.log.logging_utils import create_file_handler
     from dbnd_run.airflow.executors.simple_executor import InProcessExecutor
-    from tests.airflow.scenarios.scheduler_perf_experiment import (
+    from tests.airflow_tests.scenarios.scheduler_perf_experiment import (
         dag_folder,
         dag_id,
         log_scheduler,

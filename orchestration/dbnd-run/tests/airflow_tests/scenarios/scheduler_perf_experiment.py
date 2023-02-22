@@ -4,7 +4,7 @@ import os
 
 from dbnd import databand_system_path
 from dbnd._core.utils.timezone import utcnow
-from tests.airflow.scenarios import dbnd_airflow_test_scenarios_path
+from tests.airflow_tests.scenarios import dbnd_airflow_test_scenarios_path
 
 
 LOG_DIR = databand_system_path("airflow/logs/scheduler_perf")

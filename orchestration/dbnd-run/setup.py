@@ -48,8 +48,6 @@ setuptools.setup(
             "openpyxl==2.6.4",
             "numpy<1.23",
             "pandas<2.0.0,>=0.17.1",
-            'scikit-learn==0.23.2;python_version<"3.8"',
-            'scikit-learn==1.2.0;python_version>="3.8"',
             'matplotlib==3.3.0;python_version<"3.8"',
             'matplotlib==3.6.2;python_version>="3.8"',
             "tables==3.7.0",

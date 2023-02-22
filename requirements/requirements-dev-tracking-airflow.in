@@ -18,7 +18,7 @@
 
 
 apache-airflow[amazon,apache.spark,databricks]==${AIRFLOW_VERSION}
--c ../requirements/constraints/apache-airflow-${AIRFLOW_VERSION}-constraints-${PYTHON_VERSION}-FIXED-DBND-TRACKING.txt
+-c ../requirements/constraints/apache-airflow-${AIRFLOW_VERSION}-constraints-${PYTHON_VERSION}-FIXED.txt
 
 # we can't use it because of some old versions incompatible with ARM64
 # -c https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt
