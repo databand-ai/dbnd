@@ -6,17 +6,20 @@ import logging
 
 import pytest
 
-from pyspark.sql.types import IntegerType, StringType, StructField, StructType
-
-from dbnd_spark import get_spark_session
-from dbnd_spark.spark_targets.spark_values import SparkDataFrameValueType
-from dbnd_test_scenarios.test_common.histogram_tests import (
+from targets.providers.spark.spark_values import SparkDataFrameValueType
+from test_dbnd.targets_tests.histogram_tests import (
     BaseHistogramTests,
     get_value_meta_from_value,
 )
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_spark_session():
+    from pyspark.sql import SparkSession
+
+    return SparkSession.builder.getOrCreate()
 
 
 @pytest.mark.skip("Spark Historgrams are not supported at the moment")
@@ -45,6 +48,8 @@ class TestSparkHistograms(BaseHistogramTests):
         self.validate_numeric_histogram_and_stats(value_meta, "test_column_0")
 
     def test_null_int_column(self, spark_session, meta_conf):
+        from pyspark.sql.types import IntegerType, StructField, StructType
+
         nulls = [(None,) for _ in range(20)]
         schema = StructType([StructField("null_column", IntegerType(), True)])
         null_df = spark_session.createDataFrame(nulls, schema=schema)
@@ -55,6 +60,8 @@ class TestSparkHistograms(BaseHistogramTests):
         assert col_stats.column_type == "integer"
 
     def test_null_str_column(self, spark_session, meta_conf):
+        from pyspark.sql.types import StringType, StructField, StructType
+
         nulls = [(None,) for _ in range(20)]
         schema = StructType([StructField("null_column", StringType(), True)])
         null_df = spark_session.createDataFrame(nulls, schema=schema)

@@ -163,19 +163,3 @@ class SparkEngineConfig(Config):
     disable_task_band = parameter(
         default=False, description="Disable task_band file creation"
     )[bool]
-
-
-class SparkMarshallingConfig(Config):
-    _conf__task_family = "spark_marshalling"
-    default_infer_schema_value = parameter(
-        default=False,
-        description="Should the DataFrame to CSV "
-        "marshaller infer schema by default. Can be overridden via `parameter.save_options` or "
-        "`parameter.load_options` on the relevant parameter",
-    )[bool]
-    default_header_value = parameter(
-        default=False,
-        description="Should the DataFrame to CSV "
-        "marshaller set header by default. Can be overridden via `parameter.save_options` or "
-        "`parameter.load_options` on the relevant parameter",
-    )[bool]

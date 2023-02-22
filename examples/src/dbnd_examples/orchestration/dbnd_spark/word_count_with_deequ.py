@@ -29,7 +29,7 @@ from pydeequ.repository import *
 from pydeequ.verification import VerificationSuite
 
 from dbnd import log_dataframe, task
-from dbnd_spark.deequ_metrics_repository import DbndMetricsRepository
+from targets.providers.spark.deequ_metrics_repository import DbndMetricsRepository
 
 
 @task

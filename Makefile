@@ -29,7 +29,6 @@ prj_tracking = \
 			plugins/dbnd-postgres \
 			plugins/dbnd-redshift \
 			plugins/dbnd-tensorflow \
-			orchestration/dbnd-spark \
 			plugins/dbnd-snowflake
 
 prj_tracking_monitors = \
@@ -56,11 +55,12 @@ prj_dbnd_run = \
 			orchestration/dbnd-docker \
 			orchestration/dbnd-hdfs \
 			orchestration/dbnd-gcp \
-			orchestration/dbnd-tensorflow \
 			orchestration/dbnd-spark \
 			orchestration/dbnd-qubole \
 			\
 			orchestration/dbnd-test-scenarios
+
+# plugins/dbnd-tensorflow
 
 # LIST of packages to be distributed
 prj_dist := \

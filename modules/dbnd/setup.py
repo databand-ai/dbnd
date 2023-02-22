@@ -69,6 +69,8 @@ setuptools.setup(
             "feather-format",
             "pyarrow",
         ],
+        "test-spark2": ["pytest-spark==0.6.0", 'pyspark==2.4.4;python_version<"3.8"'],
+        "test-spark3": ["pytest-spark==0.6.0", 'pyspark==3.3.1;python_version>="3.8"'],
         "jupyter": [
             "qtconsole==4.7.7",
             "nbconvert",

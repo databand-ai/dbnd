@@ -14,6 +14,6 @@ config = read_configuration(CFG_PATH)
 setuptools.setup(
     name="dbnd-test-scenarios",
     package_dir={"": "src"},
-    install_requires=["mock"],
+    install_requires=[],
     extras_require=dict(tests=[]),
 )

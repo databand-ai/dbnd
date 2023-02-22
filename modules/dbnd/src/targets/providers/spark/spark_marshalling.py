@@ -6,8 +6,8 @@ import logging
 
 import pyspark.sql as spark
 
-from dbnd_spark.spark_config import SparkMarshallingConfig
-from dbnd_spark.spark_session import get_spark_session
+from dbnd import parameter
+from dbnd._core.task.config import Config
 from targets.marshalling.marshaller import Marshaller
 from targets.target_config import FileFormat
 from targets.utils.performance import target_timeit
@@ -19,6 +19,28 @@ except ImportError:
     from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+
+
+def get_spark_session():
+    from pyspark.sql import SparkSession
+
+    return SparkSession.builder.getOrCreate()
+
+
+class SparkMarshallingConfig(Config):
+    _conf__task_family = "spark_marshalling"
+    default_infer_schema_value = parameter(
+        default=False,
+        description="Should the DataFrame to CSV "
+        "marshaller infer schema by default. Can be overridden via `parameter.save_options` or "
+        "`parameter.load_options` on the relevant parameter",
+    )[bool]
+    default_header_value = parameter(
+        default=False,
+        description="Should the DataFrame to CSV "
+        "marshaller set header by default. Can be overridden via `parameter.save_options` or "
+        "`parameter.load_options` on the relevant parameter",
+    )[bool]
 
 
 class SparkMarshaller(Marshaller):

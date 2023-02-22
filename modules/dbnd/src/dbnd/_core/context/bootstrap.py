@@ -109,6 +109,10 @@ def dbnd_bootstrap():
     _suppress_warnings()
     enable_osx_forked_request_calls()
 
+    from dbnd.providers.spark.dbnd_spark_init import try_load_spark_env
+
+    try_load_spark_env()
+
     register_dbnd_plugins()
 
     from dbnd._core.configuration import environ_config

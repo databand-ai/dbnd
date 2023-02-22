@@ -1,9 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import logging
-import sys
 
-from dbnd._core.utils.seven import import_errors
 from dbnd_spark.spark_listener import DbndSparkListener
 
 
@@ -48,27 +46,3 @@ def find_dbnd_listener(sc):
         if next_listener.toString() == DbndSparkListener.__name__:
             return next_listener
     return None
-
-
-def has_spark_session():
-    if not has_pyspark_imported():
-        logger.debug("Spark not found in modules")
-        return False
-
-    try:
-        from pyspark.sql import SparkSession
-
-        logger.debug(
-            "Spark session SparkSession._instantiatedSession %s",
-            SparkSession._instantiatedSession,
-        )
-        return SparkSession._instantiatedSession is not None
-    except import_errors:
-        return False
-
-
-def has_pyspark_imported():
-    if "pyspark" not in sys.modules:
-        logger.debug("Spark not found in modules")
-        return False
-    return True

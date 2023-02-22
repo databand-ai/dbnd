@@ -43,10 +43,11 @@ setuptools.setup(
             "mock",
             "sh",
         ],
-        "test-pandas": [
+        "test-pandas": ["numpy<1.23", "pandas<2.0.0,>=0.17.1"],
+        "test-providers": [
             "openpyxl==2.6.4",
             "numpy<1.23",
-            "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
+            "pandas<2.0.0,>=0.17.1",
             'scikit-learn==0.23.2;python_version<"3.8"',
             'scikit-learn==1.2.0;python_version>="3.8"',
             'matplotlib==3.3.0;python_version<"3.8"',

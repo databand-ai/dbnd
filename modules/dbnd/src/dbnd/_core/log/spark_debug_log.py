@@ -4,10 +4,12 @@ import os
 import pprint
 import sys
 
-from dbnd._core.tracking.dbnd_spark_init import (
+from dbnd.providers.spark.dbnd_spark_init import (
     _is_dbnd_spark_installed,
-    try_get_airflow_context_from_spark_conf,
     verify_spark_pre_conditions,
+)
+from dbnd.providers.spark.spark_airflow_context import (
+    try_get_airflow_context_from_spark_conf,
 )
 
 

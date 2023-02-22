@@ -166,13 +166,16 @@ class PySparkInlineTask(_BaseSparkTask):
         return self._application_args
 
     def _use_spark_context_inplace(self):
-        from dbnd_spark.spark_session import has_spark_session
+        from dbnd.providers.spark.dbnd_spark_init import has_active_spark_session
 
         if isinstance(self.spark_engine, SparkLocalEngineConfig):
-            if self.spark_engine.enable_spark_context_inplace and has_spark_session():
+            if (
+                self.spark_engine.enable_spark_context_inplace
+                and has_active_spark_session()
+            ):
                 return True
 
-        if self.spark_config.use_current_spark_session and has_spark_session():
+        if self.spark_config.use_current_spark_session and has_active_spark_session():
             return True
 
         return False

@@ -14,12 +14,12 @@ from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled, pm
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd._core.tracking.dbnd_spark_init import jvm_context_manager
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
+from dbnd.providers.spark.spark_jvm_context import jvm_context_manager
 
 
 if typing.TYPE_CHECKING:

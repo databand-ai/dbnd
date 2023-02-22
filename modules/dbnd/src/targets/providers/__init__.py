@@ -14,6 +14,7 @@ from targets.providers.matplotlib import register_value_types_matplotlib
 from targets.providers.numpy import register_value_types_numpy
 from targets.providers.pandas import register_value_type_pandas
 from targets.providers.plugins import register_value_types_from_plugins
+from targets.providers.spark import register_value_types_spark
 from targets.target_config import FileFormat
 from targets.types import DataList
 from targets.values import register_value_type
@@ -50,6 +51,7 @@ def register_all_basic_types():
     register_value_type_pandas()
     register_value_types_matplotlib()
     register_value_types_numpy()
+    register_value_types_spark()
 
     register_value_types_from_plugins()
     # register basic types as a fallback

@@ -2,15 +2,15 @@
 
 from unittest.mock import patch
 
-from dbnd._core.tracking.dbnd_spark_init import (
+from dbnd.providers.spark.dbnd_spark_init import (
     _safe_get_active_spark_context,
     _safe_get_spark_conf,
-    validate_spark_airflow_conf,
 )
+from dbnd.providers.spark.spark_airflow_context import validate_spark_airflow_conf
 
 
 @patch(
-    "dbnd._core.tracking.dbnd_spark_init.verify_spark_pre_conditions",
+    "dbnd.providers.spark.dbnd_spark_init.verify_spark_pre_conditions",
     return_value=False,
 )
 def test_safe_get_spark_context_no_jvm_no_pre_conditions(verify_spark_pre_conditions):
@@ -19,7 +19,8 @@ def test_safe_get_spark_context_no_jvm_no_pre_conditions(verify_spark_pre_condit
 
 
 @patch(
-    "dbnd._core.tracking.dbnd_spark_init.verify_spark_pre_conditions", return_value=True
+    "dbnd.providers.spark.dbnd_spark_init.verify_spark_pre_conditions",
+    return_value=True,
 )
 def test_safe_get_spark_context_no_jvm_with_pre_conditions(verify_spark_pre_conditions):
     spark = _safe_get_active_spark_context()
@@ -27,7 +28,8 @@ def test_safe_get_spark_context_no_jvm_with_pre_conditions(verify_spark_pre_cond
 
 
 @patch(
-    "dbnd._core.tracking.dbnd_spark_init.verify_spark_pre_conditions", return_value=True
+    "dbnd.providers.spark.dbnd_spark_init.verify_spark_pre_conditions",
+    return_value=True,
 )
 def test_safe_get_spark_conf_no_jvm_with_pre_conditions(verify_spark_pre_conditions):
     spark_conf = _safe_get_spark_conf()
@@ -35,7 +37,7 @@ def test_safe_get_spark_conf_no_jvm_with_pre_conditions(verify_spark_pre_conditi
 
 
 @patch(
-    "dbnd._core.tracking.dbnd_spark_init.verify_spark_pre_conditions",
+    "dbnd.providers.spark.dbnd_spark_init.verify_spark_pre_conditions",
     return_value=False,
 )
 def test_safe_get_spark_conf_no_jvm_no_pre_conditions(verify_spark_pre_conditions):
