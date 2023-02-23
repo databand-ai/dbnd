@@ -63,7 +63,7 @@ Make sure you have a correct value of `[airflow]webserver_url` in your databand 
 - `remove_airflow_std_redirect` - Remove airflow stdout/stderr redirection into logger on DBND operator run. (redirect can cause crash due to loopback between streams)
 - `clean_zombies_during_backfill` - Launch additional job during backfill to clean up stalled tasks (zombies).
 - `clean_zombie_task_instances` - Mark all zombie task_instances of the current run as FAILED (or UP_FOR_RETRY).
-- `auto_add_versioned_dags` - Enable automatically adding versioned dag support to dbnd-airflow command.
+- `auto_add_versioned_dags` - Enable automatically adding versioned dag support to dbnd-run command.
 - `auto_add_scheduled_dags` - Enable automatically adding dbnd scheduled dags to airflow dags on dbnd-airflow command.
 - `auto_disable_scheduled_dags_load` - Enable automatically disabling dbnd scheduled dags load in databand cli.
 - `use_connections` - Use the airflow connection to connect to a cloud environment in databand targets, e.g. `s3://..`, `gcp://..`

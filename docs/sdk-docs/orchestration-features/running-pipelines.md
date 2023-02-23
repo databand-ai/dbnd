@@ -29,7 +29,7 @@ See [Task Discovery](doc:task-discovery)  for the proper way of referencing task
 
 
 ## Running tasks in parallel
-It is possible to run tasks in a pipeline in parallel with the help of `local_parallel` executor. You can use `--parallel`, e.g. `dbnd run <task_name> --parallel`.  Keep it in mind that `--parallel` is only supported with dbnd-airflow installed. If you still get errors when trying to run tasks in parallel, make sure that Airflow is specified in the cfg file. Make sure to use a non-SQLite database for your Airflow or you won't be able to run tasks in parallel.
+It is possible to run tasks in a pipeline in parallel with the help of `local_parallel` executor. You can use `--parallel`, e.g. `dbnd run <task_name> --parallel`.  Keep it in mind that `--parallel` is only supported with Apache Airflow installed. If you still get errors when trying to run tasks in parallel, make sure that Airflow is specified in the cfg file. Make sure to use a non-SQLite database for your Airflow or you won't be able to run tasks in parallel.
 
 
 Example:

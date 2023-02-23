@@ -82,7 +82,7 @@ with dataset_op_logger("s3://path/to/file.csv", "read") as logger:
 ### Native Support
 By default, `dataset_op_logger` supports the logging of pandas dataframes.
 
-To enable PySpark dataframe logging, install the `dbnd-spark` PyPI library on your client. No additional import statements are required in your PySpark script beyond `from dbnd import dataset_op_logger`.
+To enable PySpark dataframe logging, install the `dbnd` PyPI library on your client. No additional import statements are required in your PySpark script beyond `from dbnd import dataset_op_logger`.
 
 ### Lists of Dictionaries
 When fetching data from an external API, you will often get data in the following form:

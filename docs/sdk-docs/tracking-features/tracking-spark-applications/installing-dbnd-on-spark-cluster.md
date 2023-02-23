@@ -24,7 +24,7 @@ The following environment variables should be defined in your Spark context.
 -   `DBND__TRACKING=True`
 -   `DBND__ENABLE__SPARK_CONTEXT_ENV=True`
 
-You should install `dbnd-spark`. See [Installing Python SDK](doc:installing-dbnd) and bootstrap example below
+You should install `dbnd`. See [Installing Python SDK](doc:installing-dbnd) and bootstrap example below
 
 # Spark Clusters
 
@@ -186,7 +186,7 @@ You can install Databand PySpark support via the same operator:
 cluster_create = DataprocClusterCreateOperator(
      #...
      properties={
-             "dataproc:pip.packages": "dbnd-spark==REPLACE_WITH_DATABAND_VERSION",  # pragma: allowlist secret
+             "dataproc:pip.packages": "dbnd==REPLACE_WITH_DATABAND_VERSION",  # pragma: allowlist secret
      }
      #...
 )

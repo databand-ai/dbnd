@@ -4,7 +4,7 @@
 You can use this mode when you don't want to manage your DAGs via DAG python files, but via configuration or external service like Databand.
 
 # DAGs provider from YAML file
-`dbnd-airflow` can load DAGs for you from YAML file.  DBND function `get_dags_from_file` will generate DAGs based on your YAML definition.
+`dbnd-run` can load DAGs for you from YAML file.  DBND function `get_dags_from_file` will generate DAGs based on your YAML definition.
 
 1. You need to define the location of the file
 ```

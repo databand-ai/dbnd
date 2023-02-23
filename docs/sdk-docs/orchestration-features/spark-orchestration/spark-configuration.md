@@ -11,8 +11,8 @@ You can override the default `spark_engine` as a configuration setting or for an
 
 ## Configure DBND Spark Engine
 >ℹ️ Note
-> To use remote Spark engines, you must have `dbnd-airflow` installed.
-To install `dbnd-airflow`, run `pip install dbnd-airflow`.
+> To use remote Spark engines, you must have `dbnd-run` installed.
+To install `dbnd-run`, run `pip install dbnd-run`.
 
 DBND supports the following Spark Engines:
 * Local Spark via spark_submit

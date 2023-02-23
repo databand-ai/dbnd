@@ -19,12 +19,12 @@ Whether you are looking to track your pipeline metadata, or if you want to orche
 
 Run the following command to install any of the plugins listed in the tables below. For example:
 ```shell
-pip install dbnd-spark dbnd-airflow
+pip install dbnd dbnd-airflow
 ```
 
 You can use bundled installation via `databand[plugin-slug]`
 ```shell
-pip install databand[spark,airflow]
+pip install databand[airflow]
 ```
 
 ## Plugins for tracking
@@ -35,14 +35,13 @@ pip install databand[spark,airflow]
 | dbnd-airflow-auto-tracking | Enables automatic tracking for Airflow DAGs.                                                           |
 | dbnd-airflow-export        | Enables exporting of Airflow DAGs metadata from Airflow Web UI (used by dbnd-airflow-monitor service). |
 | dbnd-luigi                 | Enables integration with Luigi. Monitors Luigi pipelines execution.                                    |
-| dbnd-spark                 | Required for Spark DataFrame observability features.                                                   |
 | dbnd-mlflow                | Enables integration with MLflow (submitting all metrics via MLFlow bindings).                          |
 | dbnd-postgres              | Enables integration with the Postgres database.                                                        |
 | dbnd-redshift              | Enables integration with the Redshift database.                                                        |
 | dbnd-snowflake             | Enables integration with the Snowflake database.                                                       |
 
 
-### SDK version in different parts of the system. 
+### SDK version in different parts of the system.
 It's strongly advised that you use the same SDK version across all components in communication - for example, an Airflow DAG Python environment and a Spark cluster environment.
 
 

@@ -21,31 +21,30 @@ See [Connecting DBND to Databand](doc:access-token) to learn how to connect SDK 
 
 Run the following command to install any of the plugins listed in the tables below. For example:
 ```shell
-pip install dbnd-spark dbnd-airflow
+pip install dbnd-spark
 ```
 
 You can use bundled installation via `databand[plugin-slug]`
 ```shell
-pip install databand[spark,airflow]
+pip install databand[spark]
 ```
 
 
 ## Plugins for Orchestration
 
 
-| Plugin name | Observability Mode |
-|---|---|
-| dbnd-airflow | Runs DBND pipeline with Airflow as a backend for orchestration (parallel/kubernetes modes). Functional operators by DBND in your Airflow DAGs definitions. This plugin is also required for installing cloud environments. |
-| dbnd-airflow-versioned-dag | Allows execution of DAGs in Airflow that are versioned, so you can change your DAGs dynamically. This plugin also installs the Airflow plugin. |
-| dbnd-aws | Enables integration with Amazon Web Services, S3, Amazon Batch, etc. |
-| dbnd-azure | Enables integration with Microsoft Azure (DBFS, Azure, BLOB). |
-| dbnd-databricks | Enables integration with Databricks via SparkTask. |
-| dbnd-docker | Enables docker engine for task execution (DockerTask, Kubernetes, and Docker engines). |
-| dbnd-gcp | Enables integration with Google Cloud Platform (GS, Dataproc, Dataflow, Apache_beam) |
-| dbnd-hdfs | Enables integration with Hadoop File System. |
-| dbnd-spark | Enables integration with Apache Spark distributed general-purpose cluster-computing framework. |
-| dbnd-qubole | Enables integration with Qubole data lake platform. |
-| dbnd-tensorflow | Enables integration with TensorFlow machine learning software. |
+| Plugin name                | Observability Mode                                                                                                                                                                                                                                                                                                                                                                                    |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| dbnd-run                   | Runs DBND pipeline with Airflow(if installed) as a backend for orchestration (parallel/kubernetes modes). Functional operators by DBND in your Airflow DAGs definitions. This plugin is also required for installing cloud environments. In addition it allows execution of DAGs in Airflow that are versioned, so you can change your DAGs dynamically.|                                                                                      |
+| dbnd-aws                   | Enables integration with Amazon Web Services, S3, Amazon Batch, etc.                                                                                                                                                                                                                                                                                                                                  |
+| dbnd-azure                 | Enables integration with Microsoft Azure (DBFS, Azure, BLOB).                                                                                                                                                                                                                                                                                                                                         |
+| dbnd-databricks            | Enables integration with Databricks via SparkTask.                                                                                                                                                                                                                                                                                                                                                    |
+| dbnd-docker                | Enables docker engine for task execution (DockerTask, Kubernetes, and Docker engines).                                                                                                                                                                                                                                                                                                                |
+| dbnd-gcp                   | Enables integration with Google Cloud Platform (GS, Dataproc, Dataflow, Apache_beam)                                                                                                                                                                                                                                                                                                                  |
+| dbnd-hdfs                  | Enables integration with Hadoop File System.                                                                                                                                                                                                                                                                                                                                                          |
+| dbnd-spark                 | Enables integration with Apache Spark distributed general-purpose cluster-computing framework.                                                                                                                                                                                                                                                                                                        |
+| dbnd-qubole                | Enables integration with Qubole data lake platform.                                                                                                                                                                                                                                                                                                                                                   |
+| dbnd-tensorflow            | Enables integration with TensorFlow machine learning software.                                                                                                                                                                                                                                                                                                                                        |
 
 
 
