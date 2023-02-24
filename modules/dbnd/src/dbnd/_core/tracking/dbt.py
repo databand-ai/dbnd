@@ -3,7 +3,9 @@
 import json
 import logging
 import os.path
+import shutil
 
+from datetime import datetime
 from enum import Enum
 from typing import Dict, Optional, TypeVar
 
@@ -258,8 +260,7 @@ def _load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
     ) as manifest_file:
         manifest = json.loads(manifest_file.read())
 
-    with open(os.path.join(dbt_project_path, "logs", "dbt.log"), "r") as logs_file:
-        logs = logs_file.read()
+    logs = _read_and_truncate_logs(dbt_project_path)
 
     project = _load_yaml_with_jinja(os.path.join(dbt_project_path, "dbt_project.yml"))
     profile_dir = runs_info["args"]["profiles_dir"]
@@ -270,6 +271,25 @@ def _load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
 
     assets = DbtCoreAssets(runs_info, manifest, logs, profile)
     return assets
+
+
+def _read_and_truncate_logs(dbt_project_path: str) -> str:
+    dbt_log_path = os.path.join(dbt_project_path, "logs", "dbt.log")
+    with open(dbt_log_path, "r") as logs_file:
+        logs = logs_file.read()
+
+    # Copy original log file to new location, only for backup purposes.
+    current_date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
+    new_file_name = f"dbt.log.{current_date}"
+    new_file_path = os.path.join(dbt_project_path, "logs", new_file_name)
+    shutil.copy(dbt_log_path, new_file_path)
+
+    # Truncate the original file.
+    #  If there are open handles to it, they will continue writing, but to empty file
+    with open(dbt_log_path, "w") as _:
+        pass
+
+    return logs
 
 
 def _extract_environment(runs_info, profile):
