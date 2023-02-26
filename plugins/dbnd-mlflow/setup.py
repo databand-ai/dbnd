@@ -19,12 +19,11 @@ setuptools.setup(
     install_requires=["dbnd==" + version, "six"],
     extras_require=dict(tests=[]),
     entry_points={
-        "dbnd": ["dbnd-mlflow = dbnd_mlflow._plugin"],
         "mlflow.tracking_store": [
             "dbnd = dbnd_mlflow.tracking_store:get_dbnd_store",
             "dbnd+s = dbnd_mlflow.tracking_store:get_dbnd_store",
             "databand = dbnd_mlflow.tracking_store:get_dbnd_store",
             "databand+s = dbnd_mlflow.tracking_store:get_dbnd_store",
-        ],
+        ]
     },
 )

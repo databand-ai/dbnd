@@ -18,15 +18,16 @@ from mlflow import (
 from mlflow.tracking import MlflowClient
 
 from dbnd import task
+from dbnd_mlflow.mlflow_with_dbnd_tracking import enable_dbnd_for_mlflow_tracking
 
 
 logger = logging.getLogger(__name__)
 
 
 @task
-def task_with_mflow(check_time=datetime.datetime.now()):
-    # type: ( datetime.datetime)-> str
-    logger.info("Running MLFlow tracking integration check!")
+def task_with_mflow(check_time: datetime.datetime = datetime.datetime.now()) -> str:
+    enable_dbnd_for_mlflow_tracking()
+    logger.info("Running MLFlow tracking integration check with mlflow enabled!")
     logger.info("MLFlow tracking URI: {}".format(get_tracking_uri()))
 
     start_run()
@@ -58,3 +59,4 @@ def task_with_mflow(check_time=datetime.datetime.now()):
     end_run()
 
     logger.info("MLFlow tracking integration check completed!")
+    return ""

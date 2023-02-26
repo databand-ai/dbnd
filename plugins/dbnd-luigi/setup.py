@@ -18,7 +18,4 @@ setuptools.setup(
     package_dir={"": "src"},
     install_requires=["dbnd==" + version, "luigi<=3.0.2"],
     extras_require={"test": ["docutils"]},  # Indirect luigi dependency
-    entry_points={
-        "console_scripts": ["dbnd-luigi = dbnd_luigi.luigi_tracking:dbnd_luigi_run"]
-    },
 )

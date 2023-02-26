@@ -140,6 +140,20 @@ def dbnd_run_cmd_main(task, env=None, args=None):
             sys.exit(code)
 
 
+def _register_legacy_airflow_monitor_commands(cli):
+    try:
+        from airflow_monitor.multiserver.cmd_liveness_probe import (
+            airflow_monitor_v2_alive,
+        )
+        from airflow_monitor.multiserver.cmd_multiserver import airflow_monitor_v2
+    except ImportError:
+        return
+
+    cli.add_command(airflow_monitor_v2_alive)
+    cli.add_command(airflow_monitor_v2)
+    return cli
+
+
 def main():
     """Script's main function and start point."""
     _dbnd_exception_handling()
@@ -147,11 +161,13 @@ def main():
     if should_fix_pyspark_imports():
         fix_pyspark_imports()
     register_dbnd_plugins()
+    _register_legacy_airflow_monitor_commands(cli)
 
     # adding all plugins cli commands
     for commands in pm.hook.dbnd_get_commands():
         for command in commands:
             cli.add_command(command)
+
     try:
         return cli(prog_name="dbnd")
 
