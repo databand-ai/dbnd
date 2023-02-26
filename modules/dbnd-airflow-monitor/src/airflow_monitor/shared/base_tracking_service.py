@@ -11,7 +11,7 @@ monitor_config_cache = TTLCache(maxsize=5, ttl=10)
 
 
 class BaseTrackingService:
-    def __init__(self, monitor_type: str, server_id: str):
+    def __init__(self, monitor_type: str, server_id: str, integration_id: str = None):
         self.monitor_type = monitor_type
         self.server_id = server_id
         self._api_client = _get_api_client()
@@ -41,3 +41,27 @@ class BaseTrackingService:
             method="POST",
             data=full_data,
         )
+
+    def get_active_runs(self):
+        # TODO: change to get_active_runs endpoint when updated
+        response = self._api_client.api_request(
+            endpoint=f"tracking-monitor/{self.server_id}/active_datastage_runs",
+            method="GET",
+            data=None,
+        )
+        return response.get("datastage_runs", [])
+
+    def update_last_cursor(self, integration_id, state, data):
+        self._api_client.api_request(
+            endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor",
+            method="PUT",
+            data={"state": state, "data": {"last_cursor_value": data}},
+        )
+
+    def get_last_cursor(self, integration_id):
+        result = self._api_client.api_request(
+            endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor",
+            method="GET",
+            data=None,
+        )
+        return result.get("data", {}).get("last_cursor_value")

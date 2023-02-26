@@ -25,6 +25,7 @@ def mock_server_config_generic_syncer_disabled() -> DataStageServerConfig:
         sync_interval=10,
         number_of_fetching_threads=2,
         project_ids=["1", "2"],
+        is_generic_syncer_enabled=False,
     )
 
 

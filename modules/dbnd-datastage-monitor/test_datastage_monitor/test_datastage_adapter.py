@@ -43,23 +43,33 @@ class TestDataStageAdapter:
     ):
         assert datastage_adapter.get_last_cursor() == "2022-11-16T15:30:11Z"
 
-    @freeze_time("2022-07-20T23:01:08Z")
+    @freeze_time("2022-07-28T13:25:19Z")
     def test_datastage_adapter_get_data(self, datastage_adapter: DataStageAdapter):
-        data, failed, next_page = datastage_adapter.get_data(
+        adapter_data_result = datastage_adapter.get_data(
             cursor=datastage_adapter.get_last_cursor(), batch_size=100, next_page=None
         )
         expected_data = json.load(
             open(relative_path(__file__, "mocks/fetcher_response.json"))
         )
-        assert expected_data == data
-        assert datastage_adapter.get_last_cursor() == "2022-07-20T23:01:08Z"
+        assert adapter_data_result.data == expected_data
+        assert datastage_adapter.get_last_cursor() == "2022-07-28T13:25:19Z"
 
     @freeze_time("2023-02-13T13:53:20Z")
     def test_datastage_adapter_get_data_out_of_range(
         self, datastage_adapter: DataStageAdapter
     ):
-        data, failed, next_page = datastage_adapter.get_data(
+        adapter_data_result = datastage_adapter.get_data(
             cursor=datastage_adapter.get_last_cursor(), batch_size=100, next_page=None
         )
-        assert data is None
+        assert adapter_data_result.data is None
         assert datastage_adapter.get_last_cursor() == "2023-02-13T13:53:20Z"
+
+    def test_datastage_adapter_update_data(self, datastage_adapter: DataStageAdapter):
+        data_to_update = [
+            "https://api.dataplatform.cloud.ibm.com/v2/assets/175a521f-6525-4d71-85e2-22544f8267a6?project_id=0ca4775d-860c-44f2-92ba-c7c8cfc0dd45"
+        ]
+        update_data = datastage_adapter.update_data(data_to_update)
+        expected_data = json.load(
+            open(relative_path(__file__, "mocks/fetcher_response.json"))
+        )
+        assert expected_data == update_data

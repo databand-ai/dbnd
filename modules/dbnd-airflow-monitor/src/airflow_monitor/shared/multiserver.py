@@ -97,6 +97,13 @@ class MultiServerMonitor:
                 server_id,
                 self.iteration,
             )
+            # create new syncers with new config every hearbeat
+            self.active_instances[
+                server_id
+            ] = self.monitor_services_factory.get_components(
+                server_config=config,
+                syncer_management_service=self.syncer_management_service,
+            )
             for component in self.active_instances[server_id]:
                 if self._component_interval_is_met(component):
                     component.refresh_config(config)
