@@ -82,7 +82,7 @@ def get_databand_error_message(ex, args=None, sys_exit=True):
     if (
         show_exc_info(ex)
         or config.getboolean("databand", "verbose")
-        or not bootstrap._dbnd_bootstrap
+        or not bootstrap._dbnd_system_bootstrap
     ):
         error_info = sys.exc_info()
         extra_msg_lines.append(format_exception_as_str(error_info))

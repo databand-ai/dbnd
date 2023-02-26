@@ -25,13 +25,13 @@ from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
-from dbnd._core.settings.env import EnvConfig
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task.task_with_params import _TaskWithParams
 from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
-from dbnd._core.task_ctrl.task_output_builder import calculate_path
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.traversing import flatten
+from dbnd.orchestration.run_settings.env import EnvConfig
+from dbnd.orchestration.task_run_executor.task_output_builder import calculate_path
 from targets import InMemoryTarget, target
 from targets.target_config import TargetConfig, folder
 from targets.values import get_value_type_of_obj
@@ -258,7 +258,8 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
     def _task_run(self):
         # bring all relevant files
-        self.current_task_run.sync_local.sync_pre_execute()
+        task_run_executor = self.current_task_run.executor
+        task_run_executor.sync_local.sync_pre_execute()
         param_values = self.task_params.get_param_values()
 
         with auto_load_save_params(
@@ -266,7 +267,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         ):
             result = self.run()
 
-        self.current_task_run.sync_local.sync_post_execute()
+        task_run_executor.sync_local.sync_post_execute()
         # publish all relevant files
         return result
 

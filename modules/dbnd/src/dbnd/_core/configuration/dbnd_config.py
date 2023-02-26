@@ -26,7 +26,7 @@ from dbnd._core.configuration.pprint_config import (
     pformat_all_layers,
     pformat_current_config,
 )
-from dbnd._core.context.bootstrap import dbnd_system_bootstrap
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.utils.basics.helpers import parse_bool
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 from targets import target
@@ -99,7 +99,7 @@ class DbndConfig(object):
         # let validate that we are initialized
         # user can call this function out of no-where, so we will create a layer, and will override it
         # the moment we create more layers on config.system_load
-        dbnd_system_bootstrap()
+        dbnd_bootstrap()
 
         if not config_values:
             return self.config_layer

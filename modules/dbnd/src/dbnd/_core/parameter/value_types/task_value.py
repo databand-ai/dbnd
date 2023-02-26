@@ -61,7 +61,7 @@ class ConfigValueType(ValueType):
         Parse a task_famly using the :class:`~dbnd._core.register.Register`
         """
 
-        from dbnd._core.settings.env import EnvConfig
+        from dbnd.orchestration.run_settings.env import EnvConfig
 
         if isinstance(self.config_cls, EnvConfig):
             return get_settings().get_env_config(input)

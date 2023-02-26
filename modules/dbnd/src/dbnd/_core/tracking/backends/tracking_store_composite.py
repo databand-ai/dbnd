@@ -12,6 +12,7 @@ from dbnd._core.errors.base import (
     DatabandWebserverNotReachableError,
 )
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
 from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
 
@@ -100,6 +101,7 @@ class CompositeTrackingStore(TrackingStore):
             try:
                 res = try_run_handler(tries, store, name, kwargs)
             except Exception as e:
+                dbnd_log_debug("Failure while tracking to %s: %s", store_name, e)
                 if self._remove_failed_store or (
                     in_tracking_run() and is_state_call(name)
                 ):

@@ -3,7 +3,7 @@
 from typing import Dict
 
 from dbnd import parameter
-from dbnd._core.settings.engine import EngineConfig
+from dbnd.orchestration.run_settings.engine import EngineConfig
 from targets import Target
 
 

@@ -233,9 +233,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         str
     ]
 
-    pod_yaml = parameter(default="${DBND_LIB}/conf/kubernetes-pod.yaml").help(
-        "Base YAML to use to run databand task/driver"
-    )[str]
+    pod_yaml = parameter(
+        default="${DBND_LIB}/orchestration/conf/kubernetes-pod.yaml"
+    ).help("Base YAML to use to run databand task/driver")[str]
 
     trap_exit_file_flag = parameter(default=None).help("trap exit file")[str]
     auto_remove = parameter(
@@ -507,11 +507,11 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         labels["dbnd_task_name"] = task_run.task.task_name
         labels["dbnd_task_af_id"] = task_run.task_af_id
 
-        # for easier pod deletion (kubectl delete pod -l dbnd=task_run -n <my_namespace>)
+        # for easier pod deletion (kubectl delete pod -l dbnd=task_run_executor -n <my_namespace>)
         if task_run.task.task_is_system:
             labels["dbnd"] = "dbnd_system_task_run"
         else:
-            labels["dbnd"] = "task_run"
+            labels["dbnd"] = "task_run_executor"
 
         # we need to be sure that the values meet the dns label names RFC
         # https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names

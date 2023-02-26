@@ -3,8 +3,8 @@
 import tensorflow as tf
 
 from dbnd import dbnd_config, pipeline, task
-from dbnd._core.settings import RunConfig
 from dbnd._core.utils.seven import cloudpickle
+from dbnd.orchestration.run_settings import RunConfig
 
 
 @pipeline

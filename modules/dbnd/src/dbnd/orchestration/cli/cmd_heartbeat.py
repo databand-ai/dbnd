@@ -17,7 +17,9 @@ def send_heartbeat(
     run_uid, databand_url, heartbeat_interval, driver_pid, tracker, tracker_api
 ):
     from dbnd import config
-    from dbnd._core.task_executor.heartbeat_sender import send_heartbeat_continuously
+    from dbnd.orchestration.run_executor.heartbeat_sender import (
+        send_heartbeat_continuously,
+    )
 
     with config(
         {

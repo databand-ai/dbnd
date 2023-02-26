@@ -151,7 +151,7 @@ def pipe_bad_band(failure="missing_params"):
     elif failure == "read_error":
         return target("not_exists").read()
 
-    elif failure == "task_run":
+    elif failure == "task_run_executor":
         return TErrorRunTask()
     else:
         raise Exception("just an error")

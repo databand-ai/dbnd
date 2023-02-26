@@ -8,19 +8,19 @@ import uuid
 
 import six
 
-from dbnd._core.cli.click_utils import ConfigValueType, _help
-from dbnd._core.cli.service_auto_completer import completer
+from dbnd._core.cli.click_utils import _help
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.environ_config import tracking_mode_context
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
-from dbnd._core.context.databand_context import load_user_modules
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.click_tzdatetime import TZAwareDateTime
 from dbnd._vendor import click
+from dbnd.orchestration.cli.service_auto_completer import completer
+from dbnd.orchestration.utils.user_code import load_user_modules
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,23 @@ logger = logging.getLogger(__name__)
 
 def _to_conf(kwargs):
     return {k: str(v) for k, v in kwargs.items() if v is not None}
+
+
+class ConfigValueType(click.ParamType):
+    def __init__(self):
+        self.name = "config"
+
+    def convert(self, value, param, ctx):
+        from dbnd._core.utils import json_utils
+        from targets.values.structure import _PARSABLE_PARAM_PREFIX
+
+        value = value.strip()
+        # support for --set '{ "a":2, "b":33}'
+        if value[0] in _PARSABLE_PARAM_PREFIX:
+            return json_utils.loads(value)
+
+        name, sep, var = value.partition("=")
+        return {name: var}
 
 
 @click.command(name="run", context_settings=dict(help_option_names=[]))
@@ -215,12 +232,10 @@ def cmd_run(
             conf_file=conf_file,
             project=project,
         ),
+        run_info=dict(name=name, description=description, is_archived=describe),
         run=dict(
-            name=name,
             parallel=parallel,
             interactive=interactive,
-            description=description,
-            is_archived=describe,
             open_web_tracker_in_browser=open_web_tab,
             submit_driver=_nullable_flag(submit_driver),
             submit_tasks=_nullable_flag(submit_tasks),

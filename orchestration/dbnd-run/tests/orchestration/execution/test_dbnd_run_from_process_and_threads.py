@@ -7,8 +7,8 @@ import threading
 from threading import Thread
 
 from dbnd import PythonTask, new_dbnd_context, output
-from dbnd._core.context.bootstrap import _dbnd_exception_handling
-from dbnd._core.settings import RunConfig
+from dbnd._core.utils.basics.signal_utils import register_graceful_sigterm
+from dbnd.orchestration.run_settings import RunConfig
 from dbnd.tasks.basics import SimplestTask
 from dbnd.testing.helpers import run_dbnd_subprocess
 from dbnd_test_scenarios.test_common.task.factories import TTask, ttask_simple
@@ -47,7 +47,7 @@ class TestRunFromThread(object):
             assert t._complete()
 
     def test_thread_safe_signal_handling(self, capsys):
-        _run_in_thread(_dbnd_exception_handling)
+        _run_in_thread(register_graceful_sigterm)
 
     def test_thread_task_run(self):
         t = TTask()

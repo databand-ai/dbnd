@@ -5,16 +5,16 @@ import logging
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors.base import DatabandRunError, DatabandSigTermError
 from dbnd._core.task_ctrl.task_dag import topological_sort
-from dbnd._core.task_executor.task_executor import TaskExecutor
+from dbnd.orchestration.run_executor_engine.task_executor import RunExecutorEngine
 
 
 logger = logging.getLogger(__name__)
 
 
-class LocalTaskExecutor(TaskExecutor):
+class LocalTaskExecutor(RunExecutorEngine):
     def do_run(self):
         topological_tasks = topological_sort([tr.task for tr in self.task_runs])
-        fail_fast = self.settings.run.fail_fast
+        fail_fast = self.run_executor.run_config.fail_fast
         task_failed = False
 
         task_runs_to_update_state = []
@@ -24,7 +24,7 @@ class LocalTaskExecutor(TaskExecutor):
                 continue
 
             if fail_fast and task_failed:
-                state = self.run.get_upstream_failed_task_run_state(tr)
+                state = self.run_executor.get_upstream_failed_task_run_state(tr)
 
                 logger.info("Setting %s to %s", task.task_id, state)
                 tr.set_task_run_state(state, track=False)
@@ -48,7 +48,7 @@ class LocalTaskExecutor(TaskExecutor):
                 task_runs_to_update_state.append(tr)
                 continue
 
-            if self.run.is_killed():
+            if self.run_executor.is_killed():
                 logger.info(
                     "Databand Context is killed! Stopping %s to %s",
                     task.task_id,
@@ -61,7 +61,7 @@ class LocalTaskExecutor(TaskExecutor):
             logger.debug("Executing task: %s", task.task_id)
 
             try:
-                tr.runner.execute()
+                tr.executor.execute()
             except DatabandSigTermError as e:
                 raise e
             except Exception:

@@ -26,7 +26,7 @@ def project_init(ctx, overwrite, dbnd_home, dbnd_system):
 
     os.environ["SKIP_DAGS_PARSING"] = "True"  # Exclude airflow dag examples
 
-    conf_folder = databand_lib_path("conf/project_init")
+    conf_folder = databand_lib_path("orchestration/conf/project_init")
 
     if os.path.exists(os.path.join(dbnd_home, "project.cfg")):
         if not overwrite:

@@ -7,18 +7,20 @@ import pytest
 from pandas import DataFrame
 
 import dbnd
-import dbnd._core.task_ctrl.task_validator
 import dbnd._core.task_run.task_run
+import dbnd.orchestration.task_run_executor.task_validator
 
 from dbnd import (
     ParameterScope,
     PipelineTask,
     PythonTask,
+    current_task_run,
     data,
     dbnd_run_cmd,
     new_dbnd_context,
     output,
     parameter,
+    task,
 )
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandRunError
@@ -180,18 +182,18 @@ class TestTaskRun(TargetTestBase):
         )
 
     def test_inconsistent_output(self, monkeypatch):
-        task = TTask()
-        validator = task.ctrl.validator
-
-        with monkeypatch.context() as m:
-            m.setattr(FileTarget, "exist_after_write_consistent", lambda a: False)
-            m.setattr(FileTarget, "exists", lambda a: False)
-            m.setattr(
-                dbnd._core.task_ctrl.task_validator,
-                "EVENTUAL_CONSISTENCY_MAX_SLEEPS",
-                1,
-            )
-            assert not validator.wait_for_consistency()
+        @task
+        def task_with_validator_tests(self):
+            with monkeypatch.context() as m:
+                m.setattr(FileTarget, "exist_after_write_consistent", lambda a: False)
+                m.setattr(FileTarget, "exists", lambda a: False)
+                m.setattr(
+                    dbnd.orchestration.task_run_executor.task_validator,
+                    "EVENTUAL_CONSISTENCY_MAX_SLEEPS",
+                    1,
+                )
+                validator = current_task_run().executor.validator
+                assert not validator.wait_for_consistency()
 
     def test_no_outputs(self, capsys):
         class TMissingOutputs(PythonTask):

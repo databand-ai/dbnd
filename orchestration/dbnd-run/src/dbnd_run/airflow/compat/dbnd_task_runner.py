@@ -8,7 +8,7 @@ from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 class DbndStandardTaskRunner(StandardTaskRunner):
     def __init__(self, local_task_job):
         """
-        This is to get rid of exception inside airflow.cli.commands.task_command.task_run
+        This is to get rid of exception inside airflow.cli.commands.task_command.task_run_executor
         Since 2.0 it will throw exception "You cannot use the --pickle option when using DAG.cli() method."
 
         Aiflow logs are also not helpful when this happens, the only thing in log is:

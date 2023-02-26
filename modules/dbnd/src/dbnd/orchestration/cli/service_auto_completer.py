@@ -3,11 +3,12 @@
 import logging
 import os
 
-from dbnd._core.cli.click_utils import _help, _help_short
+from dbnd._core.cli.click_utils import _help
 from dbnd._core.cli.utils import FastSingletonContext, PrefixStore, no_errors
 from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.utils.project.project_fs import databand_system_path
 from dbnd._vendor.click._bashcomplete import ZSH_COMPLETION_SUFFIX
+from dbnd._vendor.click.utils import make_default_short_help
 
 
 logger = logging.getLogger(__name__)
@@ -183,6 +184,10 @@ def _get_indices(is_config):
     if is_config:
         return [CONFIG_FAMILY, CONFIG_FULL]
     return [TASK_FAMILY, TASK_FULL]
+
+
+def _help_short(string):
+    return make_default_short_help(string or "-")
 
 
 completer = AutoCompleter.try_instance()

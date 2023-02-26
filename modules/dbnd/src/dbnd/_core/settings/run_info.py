@@ -4,7 +4,9 @@ import logging
 import subprocess
 import sys
 
+from datetime import datetime
 from os import environ
+from typing import Optional
 
 from dbnd._core.configuration.environ_config import (
     ENV_DBND__ENV_IMAGE,
@@ -32,6 +34,23 @@ class RunInfoConfig(config.Config):
     """(Advanced) Databand's run information gatherer"""
 
     _conf__task_family = "run_info"
+
+    ######
+    # on none generated at DatabandRun
+    name = parameter.value(default=None, description="Specify the run's name.")[str]
+
+    description = parameter.value(
+        default=None, description="Specify the run's description"
+    )[Optional[str]]
+
+    execution_date = parameter(
+        default=None, description="Override the run's execution date."
+    )[datetime]
+
+    is_archived = parameter(
+        description="Determine whether to save this run in the archive."
+    ).value(False)
+
     source_version = parameter(
         default="git", description="gather version control via git/None"
     )[VersionStr]

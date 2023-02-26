@@ -3,13 +3,17 @@
 import logging
 
 from dbnd._core.constants import ClusterPolicy
-from dbnd._core.task_run.task_run_ctrl import TaskJobCtrl
+from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 
 
 logger = logging.getLogger(__name__)
 
 
-class TaskEnginePolicyCtrl(TaskJobCtrl):
+class TaskSubEnginePolicyCtrl(TaskRunCtrl):
+    def __init__(self, task, job):
+        super(TaskSubEnginePolicyCtrl, self).__init__(task_run=job)
+        self.job = job
+
     @classmethod
     def create_engine(cls):
         return None

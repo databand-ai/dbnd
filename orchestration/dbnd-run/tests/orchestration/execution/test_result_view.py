@@ -6,8 +6,8 @@ import tempfile
 from typing import Tuple
 
 from dbnd import pipeline, task
-from dbnd._core.task_executor.results_view import RunResultBand
 from dbnd._core.utils.basics.path_utils import relative_path
+from dbnd.orchestration.run_executor.run_executor import RunResultBand
 from dbnd.testing.helpers_pytest import assert_run, skip_on_windows
 from targets import target
 from tests.orchestration.utils import DbndCmdTest

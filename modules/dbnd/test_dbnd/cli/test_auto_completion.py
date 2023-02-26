@@ -7,8 +7,8 @@ import subprocess
 from timeit import default_timer as timer
 
 from dbnd import task
-from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.task_build.task_registry import get_task_registry
+from dbnd.orchestration.cli.service_auto_completer import completer
 from dbnd.testing.helpers import run_dbnd_subprocess__dbnd
 
 

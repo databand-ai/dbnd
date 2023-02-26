@@ -2,9 +2,11 @@
 
 import pytest
 
+from dbnd import new_dbnd_context
 from dbnd._core.errors import UnknownParameterError
 from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.failures import dbnd_handle_errors
+from dbnd._core.settings import LoggingConfig
 from dbnd._core.task_build.dbnd_decorator import task
 
 
@@ -52,8 +54,12 @@ class TestErrorHandling(object):
     def test_no_double_handling(self, caplog):
         # Good parameter, error in runtime while dividing by zero
 
-        with pytest.raises(DatabandRunError):
-            with dbnd_handle_errors(exit_on_error=False):
-                # Error won't cause exit
-                func_with_error.dbnd_run(denominator=0)
-        assert caplog.text.count("Your run has failed! See more info above.") == 1
+        # if we use dbnd logging, caplog will not work as it was initialized before our setup
+        with new_dbnd_context(conf={LoggingConfig.disabled: True}):
+            with pytest.raises(DatabandRunError):
+                with dbnd_handle_errors(exit_on_error=False):
+                    # Error won't cause exit
+                    func_with_error.dbnd_run(denominator=0)
+        assert (
+            caplog.text.count("Your run has failed! See more info above.") == 1
+        ), f"LOG: --------\n\n\n\n {caplog.text}\n----LOG END--"

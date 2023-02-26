@@ -4,17 +4,23 @@ import logging
 import typing
 
 from dbnd._core.constants import TaskRunState
+from dbnd._core.current import try_get_current_task_run
 from dbnd._core.errors import DatabandRuntimeError
+from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
-from dbnd._core.task_run.task_run_runner import TaskRunRunner
-from dbnd._core.task_run.task_run_sync_local import TaskRunLocalSyncer
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
-from dbnd._core.task_run.task_sync_ctrl import TaskSyncCtrl
 from dbnd._core.tracking.registry import get_tracking_store
+from dbnd._core.utils.basics.nested_context import nested
+from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_by_task_run, get_uuid
+from dbnd.orchestration.task_run_executor.task_run_executor import (
+    TaskRunExecutor,
+    handle_sigterm_at_dbnd_task_run,
+)
+from dbnd.providers.spark.spark_jvm_context import jvm_context_manager
 from targets import target
 
 
@@ -23,8 +29,8 @@ if typing.TYPE_CHECKING:
     from typing import Any
 
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd._core.settings import EngineConfig
     from dbnd._core.task.task import Task
+    from dbnd.orchestration.run_settings import EngineConfig
 
 
 class TaskRun(object):
@@ -94,9 +100,8 @@ class TaskRun(object):
 
         self.tracking_store = tracking_store
         self.tracker = TaskRunTracker(task_run=self, tracking_store=tracking_store)
-        self.runner = TaskRunRunner(task_run=self)
-        self.deploy = TaskSyncCtrl(task_run=self)
-        self.sync_local = TaskRunLocalSyncer(task_run=self)
+        self.executor = TaskRunExecutor(task_run=self)
+
         self.task_tracker_url = self.tracker.task_run_url()
         self.external_resource_urls = dict()
         self.errors = []
@@ -216,6 +221,23 @@ class TaskRun(object):
         self.attemp_folder_local_cache = self.attempt_folder_local.folder("cache")
         self.meta_files = TaskRunMetaFiles(self.attempt_folder)
         self.log = TaskRunLogManager(task_run=self)
+
+    @contextlib.contextmanager
+    def task_run_track_execute(self, handle_sigterm=False, capture_log=True):
+        parent_task = try_get_current_task_run()
+        current_task = self
+        ctx_managers = [self.task.ctrl.task_context(phase=TaskContextPhase.RUN)]
+
+        if capture_log:
+            ctx_managers.append(self.log.capture_task_log())
+
+        if handle_sigterm:
+            ctx_managers.append(handle_sigterm_at_dbnd_task_run())
+
+        ctx_managers.append(jvm_context_manager(parent_task, current_task))
+
+        with nested(*ctx_managers):
+            yield
 
     def __repr__(self):
         return "TaskRun(id=%s, af_id=%s)" % (self.task.task_id, self.task_af_id)

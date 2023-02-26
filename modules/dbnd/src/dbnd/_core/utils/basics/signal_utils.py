@@ -4,6 +4,7 @@ import logging
 import os
 import signal
 
+from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -80,3 +81,17 @@ def register_sigquit_stack_dump_handler():
         os.getpid(),
     )
     signal.signal(signal.SIGQUIT, sigquit_handler__dump_stack)
+
+
+def register_graceful_sigterm():
+    if windows_compatible_mode:
+        return
+
+    # Enables graceful shutdown when running inside docker/kubernetes and subprocess shutdown
+    # By default the kill signal is SIGTERM while our code mostly expects SIGINT (KeyboardInterrupt)
+    def sigterm_handler(sig, frame):
+        pid = os.getpid()
+        logger.info("Received signal in default signal handler. PID: %s", pid)
+        os.kill(pid, signal.SIGINT)
+
+    safe_signal(signal.SIGTERM, sigterm_handler)

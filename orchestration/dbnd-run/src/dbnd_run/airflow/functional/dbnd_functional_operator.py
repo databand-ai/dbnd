@@ -11,9 +11,9 @@ from dbnd import Task, dbnd_handle_errors
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.task_build.task_context import TaskContextPhase
-from dbnd._core.task_executor.run_executor import RunExecutor
 from dbnd._core.utils.json_utils import convert_to_safe_types
 from dbnd._core.utils.uid_utils import get_job_run_uid
+from dbnd.orchestration.run_executor.run_executor import RunExecutor
 from dbnd_run.airflow.utils import get_airflow_instance_uid
 from targets import target
 
@@ -136,7 +136,7 @@ class DbndFunctionalOperator(BaseOperator):
                     )
                 )
                 # should be replaced with  tr._execute call
-                dbnd_task_run.runner.execute(
+                dbnd_task_run.executor.execute(
                     airflow_context=context, handle_sigterm=False
                 )
 

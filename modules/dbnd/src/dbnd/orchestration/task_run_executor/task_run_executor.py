@@ -7,11 +7,9 @@ import typing
 import webbrowser
 
 from dbnd._core.constants import SystemTaskName, TaskRunState
-from dbnd._core.current import try_get_current_task_run
 from dbnd._core.errors import friendly_error, show_error_once
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled, pm
-from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils import seven
@@ -19,7 +17,9 @@ from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
-from dbnd.providers.spark.spark_jvm_context import jvm_context_manager
+from dbnd.orchestration.task_run_executor.task_run_sync_local import TaskRunLocalSyncer
+from dbnd.orchestration.task_run_executor.task_sync_ctrl import TaskSyncCtrl
+from dbnd.orchestration.task_run_executor.task_validator import TaskValidator
 
 
 if typing.TYPE_CHECKING:
@@ -28,30 +28,20 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class TaskRunRunner(TaskRunCtrl):
-    @contextlib.contextmanager
-    def task_run_execution_context(self, handle_sigterm=True, capture_log=True):
-        parent_task = try_get_current_task_run()
-        current_task = self.task_run
-        ctx_managers = [self.task.ctrl.task_context(phase=TaskContextPhase.RUN)]
+class TaskRunExecutor(TaskRunCtrl):
+    def __init__(self, task_run):
+        super(TaskRunExecutor, self).__init__(task_run=task_run)
 
-        if capture_log:
-            ctx_managers.append(self.task_run.log.capture_task_log())
+        self.deploy = TaskSyncCtrl(task_run=task_run)
+        self.sync_local = TaskRunLocalSyncer(task_run=task_run)
 
-        if handle_sigterm:
-            ctx_managers.append(handle_sigterm_at_dbnd_task_run())
-
-        ctx_managers.extend(pm.hook.dbnd_task_run_context(task_run=self.task_run))
-        ctx_managers.append(jvm_context_manager(parent_task, current_task))
-
-        with nested(*ctx_managers):
-            yield
+        self.task_validator = TaskValidator(task_run=task_run)
 
     def execute(self, airflow_context=None, allow_resubmit=True, handle_sigterm=True):
         self.task_run.airflow_context = airflow_context
         if airflow_context:
-            # In the case the airflow_context has a different try_number than our task_run's attempt_number,
-            # we need to update our task_run attempt accordingly.
+            # In the case the airflow_context has a different try_number than our task_run_executor's attempt_number,
+            # we need to update our task_run_executor attempt accordingly.
             self.task_run.update_task_run_attempt(airflow_context["ti"].try_number)
 
         task_run = self.task_run
@@ -78,8 +68,10 @@ class TaskRunRunner(TaskRunCtrl):
             run_executor.run_task_at_execution_time(submit_task)
             return
 
-        with self.task_run_execution_context(handle_sigterm=handle_sigterm):
-            if run.is_killed():
+        with self.task_run.task_run_track_execute() as tracking_context, self.task_run_execute_context(
+            handle_sigterm=handle_sigterm
+        ) as execute_context:
+            if run_executor.is_killed():
                 raise friendly_error.task_execution.databand_context_killed(
                     "task.execute_start of %s" % task
                 )
@@ -94,18 +86,18 @@ class TaskRunRunner(TaskRunCtrl):
                     self.task.ctrl.validator.find_and_raise_missing_inputs()
 
                 if run_config.validate_task_inputs:
-                    self.ctrl.validator.validate_task_inputs()
+                    self.task_validator.validate_task_inputs()
 
                 try:
                     result = self.task._task_submit()
                     self.ctrl.save_task_band()
                     if run_config.validate_task_outputs:
-                        self.ctrl.validator.validate_task_is_complete()
+                        self.task_validator.validate_task_is_complete()
                 finally:
                     self.task_run.finished_time = utcnow()
 
                 task_run.set_task_run_state(TaskRunState.SUCCESS)
-                run.cleanup_after_task_run(task)
+                run_executor.cleanup_after_task_run(task)
 
                 return result
             except DatabandSigTermError as ex:
@@ -155,6 +147,18 @@ class TaskRunRunner(TaskRunCtrl):
                 raise
             finally:
                 task_run.airflow_context = None
+
+    @contextlib.contextmanager
+    def task_run_execute_context(self, handle_sigterm=True):
+        ctx_managers = []
+
+        if handle_sigterm:
+            ctx_managers.append(handle_sigterm_at_dbnd_task_run())
+
+        ctx_managers.extend(pm.hook.dbnd_task_run_context(task_run=self.task_run))
+
+        with nested(*ctx_managers):
+            yield
 
 
 @seven.contextlib.contextmanager

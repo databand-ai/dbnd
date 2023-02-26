@@ -7,9 +7,12 @@ from warnings import warn
 from dbnd._core.configuration.environ_config import ENV_DBND__TRACKING
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.task_build.task_context import TaskContextPhase
-from dbnd._core.task_executor.run_executor import RunExecutor, set_active_run_context
 from dbnd._core.utils.basics.environ_utils import env as env_context
 from dbnd._vendor import click
+from dbnd.orchestration.run_executor.run_executor import (
+    RunExecutor,
+    set_active_run_context,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -112,4 +115,4 @@ def run_task_execute(ctx, task_id):
     run = ctx.obj["run"]  # type: DatabandRun
     with set_active_run_context(run):
         task_run = run.get_task_run_by_id(task_id)
-        task_run.runner.execute(allow_resubmit=False)
+        task_run.executor.execute(allow_resubmit=False)

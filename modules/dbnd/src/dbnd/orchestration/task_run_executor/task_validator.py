@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 
 from dbnd._core.errors import DatabandConfigError, friendly_error
-from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
+from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils import json_utils
 from dbnd._core.utils.traversing import flatten
 
@@ -18,10 +18,7 @@ EVENTUAL_CONSISTENCY_SLEEP_INTERVAL = 1
 EVENTUAL_CONSISTENCY_MAX_SLEEPS = 30
 
 
-class TaskValidator(TaskCtrl):
-    def __init__(self, task):
-        super(TaskCtrl, self).__init__(task)
-
+class TaskValidator(TaskRunCtrl):
     def find_and_raise_missing_inputs(self):
         missing = find_non_completed(self.relations.task_outputs_user)
         missing_str = non_completed_outputs_to_str(missing)

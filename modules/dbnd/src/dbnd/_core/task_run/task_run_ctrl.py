@@ -29,14 +29,3 @@ class TaskRunCtrl(TaskSubCtrl):
     @property
     def task_run_attempt_uid(self):
         return self.task_run.task_run_attempt_uid
-
-
-class TaskJobCtrl(TaskRunCtrl):
-    """
-    Exists for backward compatabiltiy
-    Please, do not use! It will be removed!
-    """
-
-    def __init__(self, task, job):
-        super(TaskJobCtrl, self).__init__(task_run=job)
-        self.job = job  # type: TaskRun

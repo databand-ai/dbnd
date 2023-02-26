@@ -203,7 +203,7 @@ class DagFuncOperatorCtrl(object):
         if task.task_retries is not None:
             op.retries = task.task_retries
             op.retry_delay = task.task_retry_delay
-        # set_af_operator_doc_md(task_run, op)
+        # set_af_operator_doc_md(task_run_executor, op)
 
         for upstream_task in task.task_dag.upstream:
             upstream_operator = dag.task_dict.get(upstream_task.task_name)

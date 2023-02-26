@@ -3,7 +3,7 @@
 from dbnd import parameter
 from dbnd._core.constants import ClusterPolicy, EmrClient, SparkClusters
 from dbnd._core.errors import DatabandConfigError
-from dbnd._core.plugin.dbnd_plugins import assert_airflow_package_installed
+from dbnd._core.plugin.use_dbnd_airflow_tracking import assert_airflow_package_installed
 from dbnd_spark.spark_config import SparkEngineConfig
 
 

@@ -5,14 +5,18 @@ import inspect
 import logging
 import typing
 
-from typing import Any, Optional, Type
+from typing import Optional, Type
 
 from dbnd._core.configuration.environ_config import get_dbnd_project_config
-from dbnd._core.current import current_task_run, get_databand_run, try_get_current_task
+from dbnd._core.current import (
+    current_task_run,
+    try_get_current_task,
+    try_get_run_executor,
+)
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import user_side_code
 from dbnd._core.failures import dbnd_handle_errors
-from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
+from dbnd._core.plugin.use_dbnd_run_airflow_as_native_operator import (
     build_task_at_airflow_dag_context,
     is_in_airflow_dag_build_context,
 )
@@ -216,14 +220,20 @@ class TaskDecorator(object):
             # we are "running" inside some other task execution (orchestration!)
             #  (inside user_defined_function() or UserDefinedTask.run()
 
+            run_executor = try_get_run_executor()
+            if not run_executor:
+                raise Exception("Run Executor is not activated")
             # if possible we will run it as "orchestration" task
             # with parameters parsing
             if (
-                current.settings.run.task_run_at_execution_time_enabled
+                run_executor.run_config.task_run_at_execution_time_enabled
                 and current.task_supports_dynamic_tasks
             ):
                 return self._run_task_from_another_task_execution(
-                    parent_task=current, call_args=call_args, call_kwargs=call_kwargs
+                    run_executor=run_executor,
+                    parent_task=current,
+                    call_args=call_args,
+                    call_kwargs=call_kwargs,
                 )
             # we can not call it in "dbnd" way, fallback to normal call
             if self.is_class:
@@ -233,15 +243,12 @@ class TaskDecorator(object):
             raise Exception()
 
     def _run_task_from_another_task_execution(
-        self, parent_task, call_args, call_kwargs
-    ):
-        # type: (TaskDecorator, Task, *Any, **Any) -> TaskRun
+        self, run_executor, parent_task: "Task", call_args, call_kwargs
+    ) -> "TaskRun":
         # task is running from another task
         task_cls = self.get_task_cls()
         from dbnd import PipelineTask, pipeline
         from dbnd._core.task_build.dbnd_decorator import _default_output
-
-        dbnd_run = get_databand_run()
 
         # orig_call_args, orig_call_kwargs = call_args, call_kwargs
         call_args, call_kwargs = args_to_kwargs(
@@ -251,7 +258,7 @@ class TaskDecorator(object):
         # Map all kwargs to the "original" target of that objects
         # for example: for DataFrame we'll try to find a relevant target that were used to read it
         # get all possible value's targets
-        call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(call_kwargs)
+        call_kwargs_as_targets = run_executor.run.target_origin.get_for_map(call_kwargs)
         for p_name, value_origin in call_kwargs_as_targets.items():
             root_target = value_origin.origin_target
             path = root_target.path if hasattr(root_target, "path") else None
@@ -267,7 +274,7 @@ class TaskDecorator(object):
         call_kwargs.setdefault("task_is_dynamic", True)
         call_kwargs.setdefault(
             "task_in_memory_outputs",
-            parent_task.settings.run.task_run_at_execution_time_in_memory_outputs,
+            run_executor.run_config.task_run_at_execution_time_in_memory_outputs,
         )
 
         if issubclass(task_cls, PipelineTask):
@@ -277,10 +284,10 @@ class TaskDecorator(object):
                 self.class_or_func, _task_default_result=_default_output
             ).task_cls
 
-            # instantiate inline pipeline
+            # instantiate new inline execution
             task = task_cls(*call_args, **call_kwargs)
             # if it's pipeline - create new databand run
-            run = dbnd_run.context.dbnd_run_task(task)
+            run = run_executor.databand_context.dbnd_run_task(task)
             task_run = run.get_task_run(task.task_id)
         else:
             # instantiate inline task (dbnd object)
@@ -295,7 +302,7 @@ class TaskDecorator(object):
 
             task._dbnd_call_state = TaskCallState(should_store_result=True)
             try:
-                task_run = dbnd_run.run_executor.run_task_at_execution_time(
+                task_run = run_executor.run_task_at_execution_time(
                     task, task_engine=current_task_run().task_engine
                 )
 

@@ -37,7 +37,7 @@ from sqlalchemy.orm.session import make_transient
 
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState, UpdateSource
-from dbnd._core.current import get_databand_run
+from dbnd._core.current import get_databand_run, get_run_executor
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
@@ -710,7 +710,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         # this is the only state we want to propogate into Databand
         # all other state changes are managed by databand itself by it's own state machine
-        databand_run = get_databand_run()
+        run_executor = get_run_executor()
+        databand_run = run_executor.run
 
         task_runs = []
 
@@ -749,7 +750,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         for ti in upstream_failed_tasks:
             task_run: TaskRun = databand_run.get_task_run_by_af_id(ti.task_id)
 
-            state = databand_run.get_upstream_failed_task_run_state(task_run)
+            state = run_executor.get_upstream_failed_task_run_state(task_run)
             logger.info("Setting %s to %s", task_run.task.task_id, state)
             task_run.set_task_run_state(state, track=False)
             task_runs.append(task_run)

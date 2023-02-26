@@ -199,7 +199,7 @@ def af_tracking_context(task_run, airflow_context, operator):
     Wrap the execution with handling the environment management
     """
     if not task_run:
-        # aborting -  can't enter the context without task_run
+        # aborting -  can't enter the context without task_run_executor
         yield
         return
 

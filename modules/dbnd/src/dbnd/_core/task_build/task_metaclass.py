@@ -8,7 +8,7 @@ import six
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import TaskEssence
-from dbnd._core.plugin.dbnd_airflow_operator_plugin import (
+from dbnd._core.plugin.use_dbnd_run_airflow_as_native_operator import (
     build_task_at_airflow_dag_context,
     is_in_airflow_dag_build_context,
 )

@@ -62,7 +62,7 @@ clean_subdomain_name_dns1123 = functools.partial(
 def create_pod_id(task_run):
     # type:(TaskRun) -> str
     """
-    DNS-1123 subdomain name from task_run
+    DNS-1123 subdomain name from task_run_executor
     """
 
     return clean_subdomain_name_dns1123(

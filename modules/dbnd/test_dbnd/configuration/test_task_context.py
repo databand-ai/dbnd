@@ -6,6 +6,7 @@ import pytest
 
 from dbnd import Config, config, parameter, task
 from dbnd._core.context.databand_context import new_dbnd_context
+from dbnd.testing.orchestration_utils import TTask
 
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ class TestDatabandContext(object):
                 }
             }
         ):
-            pass
+            TTask().dbnd_run()
         assert _user_code_run, "user code wasn't executed"
         logger.info("done")
 
@@ -77,4 +78,4 @@ class TestDatabandContext(object):
                     }
                 }
             ):
-                pass
+                TTask().dbnd_run()

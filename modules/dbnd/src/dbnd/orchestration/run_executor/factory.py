@@ -5,26 +5,23 @@ import typing
 
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.errors import DatabandConfigError, friendly_error
-from dbnd._core.plugin.dbnd_plugins import (
-    is_dbnd_run_airflow_enabled,
-    is_plugin_enabled,
-)
-from dbnd._core.task_executor.local_task_executor import LocalTaskExecutor
+from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
+from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
+from dbnd.orchestration.run_executor_engine.local_task_executor import LocalTaskExecutor
 
 
 if typing.TYPE_CHECKING:
     from typing import List
 
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd._core.settings import EngineConfig
-    from dbnd._core.task_executor.task_executor import TaskExecutor
     from dbnd._core.task_run.task_run import TaskRun
+    from dbnd.orchestration.run_executor_engine.task_executor import RunExecutorEngine
+    from dbnd.orchestration.run_settings import EngineConfig
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_task_executor_type(submit_tasks, remote_engine, settings):
-    run_config = settings.run
+def calculate_task_executor_type(submit_tasks, remote_engine, run_config):
     parallel = run_config.parallel
     task_executor_type = run_config.task_executor_type
 
@@ -66,7 +63,7 @@ def calculate_task_executor_type(submit_tasks, remote_engine, settings):
             )
 
             if "sqlite" in airlow_sql_alchemy_conn():
-                if settings.run.enable_concurent_sqlite:
+                if run_config.enable_concurent_sqlite:
                     logger.warning(
                         "You are running parallel execution on top of sqlite database at %s! (see run.enable_concurent_sqlite)",
                         airflow_sql_conn_url(),
@@ -109,12 +106,14 @@ def calculate_task_executor_type(submit_tasks, remote_engine, settings):
     return task_executor_type, parallel
 
 
-def get_task_executor(run, task_executor_type, host_engine, target_engine, task_runs):
-    # type: (DatabandRun, str, EngineConfig, EngineConfig, List[TaskRun]) -> TaskExecutor
+def get_task_executor(
+    run_executor, task_executor_type, host_engine, target_engine, task_runs
+):
+    # type: (DatabandRun, str, EngineConfig, EngineConfig, List[TaskRun]) -> RunExecutorEngine
 
     if task_executor_type == TaskExecutorType.local:
         return LocalTaskExecutor(
-            run,
+            run_executor,
             task_executor_type=task_executor_type,
             host_engine=host_engine,
             target_engine=target_engine,
@@ -127,7 +126,7 @@ def get_task_executor(run, task_executor_type, host_engine, target_engine, task_
         )
 
         return AirflowTaskExecutor(
-            run,
+            run_executor,
             task_executor_type=task_executor_type,
             host_engine=host_engine,
             target_engine=target_engine,

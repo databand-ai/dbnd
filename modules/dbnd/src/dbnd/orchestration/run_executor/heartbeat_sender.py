@@ -18,7 +18,7 @@ from dbnd._vendor.psutil.vendorized_psutil import pid_exists
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task_executor.run_executor import RunExecutor
+    from dbnd.orchestration.run_executor.run_executor import RunExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def start_heartbeat_sender(run_executor):
     run = run_executor.run
     settings = run.context.settings
     core = settings.core
-    run_config = settings.run
+    run_config = run_executor.run_config
     heartbeat_interval_s = run_config.heartbeat_interval_s
 
     if not heartbeat_interval_s > 0:

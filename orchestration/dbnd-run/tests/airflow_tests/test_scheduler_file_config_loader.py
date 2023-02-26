@@ -1,6 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import logging
+import os
 
 import pytest
 import six
@@ -8,6 +9,7 @@ import six
 from airflow import DAG
 
 from dbnd import dbnd_config
+from dbnd._core.configuration.environ_config import ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD
 from dbnd_run.airflow.scheduler.dags_provider_from_file import (
     DbndAirflowDagsProviderFromFile,
     InvalidConfigException,
@@ -19,6 +21,16 @@ logger = logging.getLogger(__name__)
 
 
 class TestSchedulerFileConfigLoader(object):
+    @pytest.fixture(autouse=True)
+    def enable_dags_load(self, tmpdir):
+        original = os.environ.get(ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD)
+        os.environ[ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD] = "False"
+        yield
+        if original:
+            os.environ[ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD] = original
+        else:
+            os.environ.pop(ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD)
+
     @pytest.fixture
     def tmp_config_file(self, tmpdir):
         tmp_config_file = str(tmpdir.join("test_config_file.yaml"))

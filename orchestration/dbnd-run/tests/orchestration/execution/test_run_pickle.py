@@ -13,9 +13,10 @@ import six
 
 from dbnd import new_dbnd_context, output, override, parameter, pipeline, task
 from dbnd._core.constants import TaskExecutorType
-from dbnd._core.settings import CoreConfig, RunConfig
-from dbnd._core.task_executor.run_executor import RunExecutor
+from dbnd._core.settings import CoreConfig
 from dbnd._core.utils.seven import cloudpickle
+from dbnd.orchestration.run_executor.run_executor import RunExecutor
+from dbnd.orchestration.run_settings import RunConfig
 from dbnd.tasks import PythonTask
 from dbnd_test_scenarios.test_common.task.factories import TTask
 

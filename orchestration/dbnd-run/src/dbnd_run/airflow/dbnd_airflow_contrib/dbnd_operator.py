@@ -41,7 +41,7 @@ class DbndOperator(BaseOperator):
         """
         This property is called upon when airflow tries to calculate the retry delay for a task.
         If we are executing kubernetes pods we need to update the retry delay to our configuration settings.
-        Otherwise we are returning the same value that DbndOperator would return normally - task_run.task.retry_delay
+        Otherwise we are returning the same value that DbndOperator would return normally - task_run_executor.task.retry_delay
         """
         from dbnd_run.airflow.dbnd_task_executor.dbnd_execute import (
             dbnd_operator__get_task_retry_delay,

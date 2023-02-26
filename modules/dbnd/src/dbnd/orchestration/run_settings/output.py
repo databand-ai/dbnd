@@ -31,6 +31,12 @@ class OutputConfig(Config):
         description="Set deploy prefix to use for remote deployments.",
     )[VersionStr]
 
+    # temporal location
+    recheck_circle_dependencies = parameter(
+        description="Recheck circle dependencies on every task creation, "
+        "use it if you need to find a circle in your graph."
+    ).value(False)
+
     def get_value_target_config(self, value_type):
         # type: (Type) -> TargetConfig
 

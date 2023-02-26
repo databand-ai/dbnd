@@ -150,7 +150,7 @@ class CallableTrackingManager(object):
                 up_task = value_origin.origin_target.task
                 task.set_upstream(up_task)
 
-            # creating task_run as a task we found mid-run
+            # creating task_run_executor as a task we found mid-run
             task_run = dbnd_run.create_task_run_at_execution_time(
                 task, task_engine=current_task_run().task_engine
             )
@@ -158,7 +158,7 @@ class CallableTrackingManager(object):
             should_capture_log = (
                 TrackingConfig.from_databand_context().capture_tracking_log
             )
-            with task_run.runner.task_run_execution_context(
+            with task_run.task_run_track_execute(
                 handle_sigterm=True, capture_log=should_capture_log
             ):
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)

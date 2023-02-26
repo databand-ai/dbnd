@@ -14,6 +14,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.settings import DatabandSettings
     from dbnd._core.task import Task
     from dbnd._core.task_run.task_run import TaskRun
+    from dbnd.orchestration.run_executor.run_executor import RunExecutor
 
 
 def get_databand_context():
@@ -161,9 +162,28 @@ def get_target_logging_level():
     return default_level
 
 
+### ORCHESTRATION
+def get_run_executor():
+    # type: () -> RunExecutor
+    """Returns current Task/Pipeline/Flow instance."""
+    from dbnd.orchestration.run_executor.run_executor import RunExecutor as _RunExecutor
+
+    v = _RunExecutor.get_instance()
+    return v
+
+
+def try_get_run_executor():
+    # type: () -> Optional[RunExecutor]
+    from dbnd.orchestration.run_executor.run_executor import RunExecutor as _RunExecutor
+
+    if _RunExecutor.has_instance():
+        return get_run_executor()
+    return None
+
+
 def is_killed():
-    run = try_get_databand_run()
-    return run and run.is_killed()
+    run_executor = try_get_run_executor()
+    return run_executor and run_executor.is_killed()
 
 
 def cancel_current_run(message=None):

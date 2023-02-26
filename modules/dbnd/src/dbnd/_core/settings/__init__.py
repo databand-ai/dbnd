@@ -7,19 +7,15 @@ from typing import Union
 from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.base import ConfigLookupError
 from dbnd._core.settings.core import CoreConfig, DatabandSystemConfig
-from dbnd._core.settings.describe import DescribeConfig
-from dbnd._core.settings.engine import EngineConfig  # noqa: F401
-from dbnd._core.settings.env import EnvConfig, LocalEnvConfig  # noqa: F401
-from dbnd._core.settings.git import GitConfig
 from dbnd._core.settings.histogram import HistogramConfig  # noqa: F401
 from dbnd._core.settings.log import LoggingConfig
-from dbnd._core.settings.output import OutputConfig
-from dbnd._core.settings.run import RunConfig
 from dbnd._core.settings.run_info import RunInfoConfig  # noqa: F401
-from dbnd._core.settings.scheduler import SchedulerConfig
 from dbnd._core.settings.tracking_config import TrackingConfig
 from dbnd._core.task import Config
 from dbnd._core.task_build.task_registry import build_task_from_config
+from dbnd.orchestration.run_settings.describe import DescribeConfig
+from dbnd.orchestration.run_settings.env import EnvConfig  # noqa: F401
+from dbnd.orchestration.run_settings.output import OutputConfig
 
 
 if typing.TYPE_CHECKING:
@@ -34,15 +30,10 @@ class DatabandSettings(object):
         self.core = CoreConfig()
         self.tracking = TrackingConfig()  # type: TrackingConfig
 
-        self.run = RunConfig()
-        self.git = GitConfig()
-
-        self.describe = DescribeConfig()
-
         self.log = LoggingConfig()
-        self.output = OutputConfig()
 
-        self.scheduler = SchedulerConfig()
+        self.output = OutputConfig()
+        self.describe = DescribeConfig()
 
         self.singleton_configs = {}
 

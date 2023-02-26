@@ -7,7 +7,7 @@ import os
 # import dbnd should be first!
 import dbnd
 
-from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
+from dbnd._core.plugin.use_dbnd_airflow_tracking import disable_airflow_plugin
 
 
 # disable DB tracking

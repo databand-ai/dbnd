@@ -2,8 +2,7 @@
 
 import logging
 
-from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
@@ -16,14 +15,6 @@ class RunConfig(config.Config):
     """Databand's per run settings (e.g. execution date)"""
 
     _conf__task_family = "run"
-
-    ######
-    # on none generated at DatabandRun
-    name = parameter.value(default=None, description="Specify the run's name.")[str]
-
-    description = parameter.value(
-        default=None, description="Specify the run's description"
-    )[Optional[str]]
 
     # Executor configuration
     parallel = parameter(default=None).help("Run specific tasks in parallel.")[bool]
@@ -57,10 +48,6 @@ class RunConfig(config.Config):
         description="If True, opens web tracker in browser during the task's run."
     ).value(False)
 
-    is_archived = parameter(
-        description="Determine whether to save this run in the archive."
-    ).value(False)
-
     dry = parameter(default=False).help(
         "Do not execute tasks, stop before sending them to the execution, and print their status."
     )[bool]
@@ -72,14 +59,11 @@ class RunConfig(config.Config):
     debug_pydevd_pycharm_port = parameter(default=None).help(
         "Enable debugging with `pydevd_pycharm` by setting this to the port value expecting the debugger to connect. \n"
         "This will start a new `settrace` connecting to `localhost` on the requested port, "
-        "right before starting the driver task_run."
+        "right before starting the driver task_run_executor."
     )[int]
 
     ######
     # AIRFLOW EXECUTOR CONFIG
-    execution_date = parameter(
-        default=None, description="Override the run's execution date."
-    )[datetime]
     mark_success = parameter(
         description="Mark jobs as succeeded without running them."
     ).value(False)
@@ -132,11 +116,6 @@ class RunConfig(config.Config):
         "When checking if the pipeline is completed, check only if the band file exists, and skip the tasks."
     )[bool]
 
-    recheck_circle_dependencies = parameter(
-        description="Recheck circle dependencies on every task creation, "
-        "use it if you need to find a circle in your graph."
-    ).value(False)
-
     task_complete_parallelism_level = parameter(default=1).help(
         "Set the number of threads to use when checking if tasks are already complete."
     )[int]
@@ -184,6 +163,7 @@ class RunConfig(config.Config):
     hearbeat_disable_plugins = parameter(
         default=False, description="Disable dbnd plugins at heartbeat sub-process."
     )[bool]
+
     ######
     # Task/Pipeline in task Execution
     task_run_at_execution_time_enabled = parameter(

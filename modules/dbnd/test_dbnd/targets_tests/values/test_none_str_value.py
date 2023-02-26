@@ -1,7 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from dbnd import PipelineTask, Task, parameter
+from dbnd import PipelineTask, Task, dbnd_config, parameter
 from dbnd._core.current import try_get_databand_context
+from dbnd.orchestration.run_settings import RunConfig
 
 
 class NoneStringPipeline(PipelineTask):
@@ -26,8 +27,8 @@ class CheckNoneString(Task):
 
 class TestNoneStringType:
     def test_none_string_marshalling(self):
-        dc = try_get_databand_context()
+        try_get_databand_context()
         # Prevent target caching, force reload from disk
-        dc.settings.run.target_cache_on_access = False
-        p = NoneStringPipeline()
-        p.dbnd_run()
+        with dbnd_config({RunConfig.target_cache_on_access: False}):
+            p = NoneStringPipeline()
+            p.dbnd_run()

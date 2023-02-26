@@ -5,6 +5,7 @@ include LICENSE NOTICE *.md *.toml
 recursive-include src/dbnd *.pyi
 # All default configurations
 graft src/dbnd/conf
+graft src/dbnd/orchestration/conf
 
 recursive-include src/dbnd/_vendor LICENSE LICENSE.txt
 
@@ -15,7 +16,7 @@ recursive-include src/dbnd/_vendor *.txt
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
-recursive-exclude * .ipynb_checkpoints
+recursive`-exclude * .ipynb_checkpoints
 
 prune test_dbnd
 exclude tox.ini

@@ -9,7 +9,7 @@ import pytest
 
 from mock import patch
 
-from dbnd._core.task_run.log_preview import merge_read_log_files, read_head_and_tail
+from dbnd._core.log.log_preview import merge_read_log_files, read_head_and_tail
 
 
 TARGET_OPEN = "io.open"

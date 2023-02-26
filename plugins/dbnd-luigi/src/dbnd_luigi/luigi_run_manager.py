@@ -4,8 +4,7 @@ import logging
 
 from more_itertools import first
 
-from dbnd import Task
-from dbnd._core.constants import RunState, SystemTaskName, TaskRunState
+from dbnd._core.constants import RunState, TaskRunState
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.run.databand_run import DatabandRun, new_databand_run
 from dbnd._core.run.run_banner import print_tasks_tree
@@ -46,9 +45,11 @@ class LuigiRunManager:
             )
         )  # type: DatabandRun
 
-        self._driver_task_run = run.build_and_set_driver_task_run(
-            driver_task=Task(task_name=SystemTaskName.driver, task_is_system=True)
-        )
+        # TODO: do we need that?
+        raise Exception()
+        # self._driver_task_run = run.build_and_set_driver_task_run(
+        #     driver_task=Task(task_name=SystemTaskName.driver, task_is_system=True)
+        # )
 
         self._driver_task_run.task.descendants.add_child(self.root_dbnd_task.task_id)
 
@@ -68,7 +69,7 @@ class LuigiRunManager:
             )
         run.tracker.init_run()
 
-        self._enter_cm(self._driver_task_run.runner.task_run_execution_context())
+        self._enter_cm(self._driver_task_run.executor.task_run_track_execute())
         print_tasks_tree(run.root_task_run.task, run.task_runs)
         if not self.get_non_finished_sub_tasks():
             # we have no more tasks to run.. probably it's a failure
@@ -135,7 +136,7 @@ class LuigiRunManager:
         self.encounter_task(dbnd_task)
 
         self.current_execution_context = (
-            dbnd_task.current_task_run.runner.task_run_execution_context()
+            dbnd_task.current_task_run.executor.task_run_track_execute()
         )
 
         self.current_execution_context.__enter__()

@@ -21,10 +21,7 @@ from dbnd._core.configuration.environ_config import (
     is_unit_test_mode,
 )
 from dbnd._core.errors import DatabandConfigError
-from dbnd._core.utils.project.project_fs import (
-    databand_config_path,
-    databand_system_path,
-)
+from dbnd._core.utils.project.project_fs import databand_system_path
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 from targets import LocalFileSystem, target
 from targets.pipes import Text
@@ -37,7 +34,10 @@ _SECTION_NAME_RE = re.compile(r"(.*)\.([^.]*)")
 
 def _default_configuration_paths():
     # we always have "library config"
-    yield databand_config_path("databand-core.cfg")
+    project_config = get_dbnd_project_config()
+
+    yield project_config.dbnd_config_path("databand-core.cfg")
+    yield project_config.dbnd_lib_path("orchestration", "conf", "dbnd-run.cfg")
 
     system_config = os.path.expanduser("/etc/databand.cfg")
     if os.path.isfile(system_config):

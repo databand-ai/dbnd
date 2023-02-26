@@ -3,7 +3,7 @@
 from typing import Dict
 
 from dbnd import parameter
-from dbnd._core.settings import EngineConfig
+from dbnd.orchestration.run_settings import EngineConfig
 from dbnd_docker.docker_ctrl import DockerRunCtrl
 
 

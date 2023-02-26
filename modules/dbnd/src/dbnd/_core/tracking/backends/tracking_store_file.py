@@ -59,7 +59,9 @@ class FileTrackingStore(TrackingStore):
     def dump_task_run_info(self, task_run):
 
         info = {
-            "task_run": TaskRunInfoSchema().dump(build_task_run_info(task_run)).data,
+            "task_run_executor": TaskRunInfoSchema()
+            .dump(build_task_run_info(task_run))
+            .data,
             "task_def": (
                 TaskDefinitionInfoSchema()
                 .dump(task_to_task_def(task_run.run.context, task_run.task))

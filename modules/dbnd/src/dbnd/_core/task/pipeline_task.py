@@ -3,6 +3,7 @@
 import abc
 
 from dbnd._core.constants import TaskType
+from dbnd._core.current import try_get_run_executor
 from dbnd._core.task.task import Task
 
 
@@ -44,7 +45,8 @@ class PipelineTask(Task):
                 return False
             # With very large pipelines, checking all tasks might take a very long time
             # so we might want to assume that if the band exist, probably all outputs also exist
-            if self.settings.run.pipeline_band_only_check:
+            re = try_get_run_executor()
+            if re and re.run_config.pipeline_band_only_check:
                 return True
         return super(PipelineTask, self)._complete()
 

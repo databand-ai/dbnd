@@ -19,15 +19,13 @@ from dbnd._core.constants import (
     AD_HOC_DAG_PREFIX,
     RESULT_PARAM,
     SystemTaskName,
-    TaskRunState,
     UpdateSource,
 )
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.run.run_banner import RunBanner
 from dbnd._core.run.run_tracker import RunTracker
 from dbnd._core.run.target_identity_source_map import TargetIdentitySourceMap
-from dbnd._core.settings import DatabandSettings
-from dbnd._core.settings.engine import build_engine_config
+from dbnd._core.settings import DatabandSettings, RunInfoConfig
 from dbnd._core.task import Task
 from dbnd._core.task_build.task_context import current_task, has_current_task
 from dbnd._core.task_run.task_run import TaskRun
@@ -35,15 +33,14 @@ from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
 from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo, ScheduledRunInfo
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.date_utils import unique_execution_date
-from dbnd._core.utils.traversing import flatten
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
-from targets.caching import TARGET_CACHE
+from dbnd.orchestration.run_settings.engine import build_engine_config
 
 
 if typing.TYPE_CHECKING:
     from dbnd._core.context.databand_context import DatabandContext
-    from dbnd._core.task_executor.run_executor import RunExecutor
+    from dbnd.orchestration.run_executor.run_executor import RunExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +76,16 @@ class DatabandRun(SingletonContext):
         self.job_name = job_name
         self.project_name = project_name or s.tracking.project
 
-        self.description = s.run.description
-        self.is_archived = s.run.is_archived
+        run_info = RunInfoConfig()
+
+        self.description = run_info.description
         self.source = source
         self.is_orchestration = is_orchestration
+        self.is_archived = run_info.is_archived
+        self.is_tracked = True
+
+        self.af_context = af_context
+        self.tracking_source = tracking_source
 
         self.existing_run = existing_run or False
         # this was added to allow the scheduler to create the run which will be continued by the actually run command instead of having 2 separate runs
@@ -93,23 +96,17 @@ class DatabandRun(SingletonContext):
             self.existing_run = True
 
         self.run_uid = run_uid or get_uuid()
+
         # if user provided name - use it
         # otherwise - generate a name for the run
-        self.name = s.run.name or self._generate_run_name(af_context)
-        self.execution_date = (
-            self.context.settings.run.execution_date or unique_execution_date()
-        )
-
-        self.is_tracked = True
+        self.name = run_info.name or self._generate_run_name(af_context)
+        self.execution_date = run_info.execution_date or unique_execution_date()
 
         # tracking/orchestration main task
         self.root_task = None  # type: Optional[Task]
 
         # task run that wraps execution (tracking or orchestration)
         self._driver_task_run = None
-
-        # ORCHESTRATION: execution of the run
-        self.run_executor = None  # type: Optional[RunExecutor]
 
         # dag_id , execution_date are used by Airflow,
         # should be deprecated (still used by DB tracking)
@@ -122,6 +119,7 @@ class DatabandRun(SingletonContext):
         self.task_runs = []  # type: List[TaskRun]
         self.task_runs_by_id = {}
         self.task_runs_by_af_id = {}
+        self.dynamic_af_tasks_count = dict()
 
         self.target_origin = TargetIdentitySourceMap()
         self.describe = RunBanner(self)
@@ -146,16 +144,15 @@ class DatabandRun(SingletonContext):
         self.run_root = self.env.dbnd_root.folder(self.run_folder_prefix)
         self.run_local_root = self.env.dbnd_local_root.folder(self.run_folder_prefix)
 
+        # ORCHESTRATION: execution of the run
+        self.run_executor = None  # type: Optional[RunExecutor]
+
         self.local_engine = build_engine_config(self.env.local_engine).clone(
             require_submit=False
         )
 
-        self.dynamic_af_tasks_count = dict()
-        self.af_context = af_context
-        self.tracking_source = tracking_source
         self.start_time = None
         self.finished_time = None
-        self._result_location = None
 
     def _generate_run_name(self, af_context: Optional[AirflowTaskContext]) -> str:
         """
@@ -205,20 +202,6 @@ class DatabandRun(SingletonContext):
     @driver_task_run.setter
     def driver_task_run(self, value):
         self._driver_task_run = value
-
-    def build_and_set_driver_task_run(self, driver_task, driver_engine=None):
-        """
-        set driver task run which is used to "track" main execution flow
-        Tracking: will track pipeline progress
-        Orchestration: will track and "execute" pipeline
-
-        you need to run DatabandRun.init_run otherwise it will be not tracked
-        """
-        self._driver_task_run = TaskRun(
-            task=driver_task, run=self, task_engine=driver_engine or self.local_engine
-        )
-        self._add_task_run(self._driver_task_run)
-        return self._driver_task_run
 
     @property
     def run_url(self):
@@ -337,23 +320,6 @@ class DatabandRun(SingletonContext):
 
         task_run.task.ctrl.last_task_run = task_run
 
-    def cleanup_after_task_run(self, task):
-        # type: (Task) -> None
-        rels = task.ctrl.relations
-        # potentially, all inputs/outputs targets for current task could be removed
-        targets_to_clean = set(flatten([rels.task_inputs, rels.task_outputs]))
-
-        targets_in_use = set()
-        # any target which appears in inputs of all not finished tasks shouldn't be removed
-        for tr in self.task_runs:
-            if tr.task_run_state in TaskRunState.final_states():
-                continue
-            # remove all still needed inputs from targets_to_clean list
-            for target in flatten(tr.task.ctrl.relations.task_inputs):
-                targets_in_use.add(target)
-
-        TARGET_CACHE.clear_for_targets(targets_to_clean - targets_in_use)
-
     def get_context_spawn_env(self):
         env = {}
         if has_current_task():
@@ -374,23 +340,6 @@ class DatabandRun(SingletonContext):
             env[ENV_DBND__USER_PRE_INIT] = self.context.settings.core.user_code_on_fork
         return env
 
-    def is_killed(self):
-        if self.run_executor:
-            return self.run_executor.is_killed()
-        return False
-
-    def kill(self):
-        """
-        called from user space, kills the current task only
-        :return:
-        """
-        if self.run_executor:
-            self.run_executor.kill()
-
-    def kill_run(self, message=None):
-        if self.run_executor:
-            self.run_executor.kill_run(message)
-
     def get_current_dbnd_local_root(self):
         # we should return here the proper engine config, based in which context we run right now
         # it could be submit, driver or task engine
@@ -402,26 +351,6 @@ class DatabandRun(SingletonContext):
         Loads the result of the run by name, default is the default result name.
         """
         return self.run_executor.result.load(name, value_type)
-
-    def get_upstream_failed_task_run_state(self, task_run):
-        # type: (TaskRun)-> TaskRunState
-        """
-        This function is a helper function to decide task final state only for orchestration runs.
-        param: task_run - the task  which we want to get it's state
-        return: TaskRunState
-        """
-        state = TaskRunState.UPSTREAM_FAILED
-        child_task_runs = task_run.task.descendants
-        # Since task run has children, IT'S a pipeline task, so we need to calculate it's state based on children states
-        if child_task_runs:
-            for task_run_id in child_task_runs.children:
-                child_tr_instance = self.get_task_run_by_id(task_run_id)
-                if child_tr_instance.task_run_state == TaskRunState.FAILED:
-                    # In case one of its children fail,task run state is force updated from upstream failed to failed
-                    #   because upstream_failed means task dependency is not met, while actually inner task has errors
-                    state = TaskRunState.FAILED
-
-        return state
 
 
 def new_databand_run(context, job_name, run_uid=None, **kwargs):

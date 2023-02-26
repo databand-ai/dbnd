@@ -4,7 +4,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import logging
-import os
 import shlex
 import subprocess
 import sys
@@ -14,29 +13,24 @@ from functools import partial
 import six
 
 from dbnd._core.cli.cmd_deprecated import add_deprecated_commands
-from dbnd._core.cli.cmd_execute import execute
-from dbnd._core.cli.cmd_heartbeat import send_heartbeat
-from dbnd._core.cli.cmd_project import project_init
-from dbnd._core.cli.cmd_run import cmd_run
-from dbnd._core.cli.cmd_show import show_configs, show_tasks
+from dbnd._core.cli.cmd_show import show_configs
 from dbnd._core.cli.cmd_tracker import tracker
-from dbnd._core.cli.cmd_utils import collect_logs, ipython
-from dbnd._core.configuration.environ_config import should_fix_pyspark_imports
-from dbnd._core.context.bootstrap import (
-    _dbnd_exception_handling,
-    dbnd_bootstrap,
-    fix_pyspark_imports,
-)
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
-from dbnd._core.plugin.dbnd_plugins import pm
-from dbnd._core.plugin.dbnd_plugins_mng import register_dbnd_plugins
+from dbnd._core.plugin.dbnd_plugins import register_dbnd_cli_commands
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
 from dbnd.cli.cmd_airflow_sync import airflow_sync
 from dbnd.cli.cmd_alerts import alerts
 from dbnd.cli.cmd_scheduler_management import schedule
+from dbnd.orchestration.cli.cmd_execute import execute
+from dbnd.orchestration.cli.cmd_heartbeat import send_heartbeat
+from dbnd.orchestration.cli.cmd_project import project_init
+from dbnd.orchestration.cli.cmd_run import cmd_run
+from dbnd.orchestration.cli.cmd_show import show_tasks
+from dbnd.orchestration.cli.cmd_utils import collect_logs, ipython
 
 
 logger = logging.getLogger(__name__)
@@ -44,14 +38,7 @@ logger = logging.getLogger(__name__)
 
 @click.group(cls=DYMGroup)
 def cli():
-    dbnd_bootstrap()
-
-    from dbnd import config
-
-    # if we are running from "dbnd" entrypoint, we probably do not need to load Scheduled DAG
-    # this will prevent from every airflow command to access dbnd web api
-    if config.getboolean("airflow", "auto_disable_scheduled_dags_load"):
-        os.environ["DBND_DISABLE_SCHEDULED_DAGS_LOAD"] = "True"
+    dbnd_bootstrap(dbnd_entrypoint=True)
 
 
 # project
@@ -95,21 +82,21 @@ def dbnd_cmd(command, args):
     Returns:
         str: result of command execution
     """
+    dbnd_bootstrap()
+
     assert command in cli.commands
     if isinstance(args, six.string_types) or isinstance(args, six.text_type):
         args = shlex.split(args, posix=not windows_compatible_mode)
     current_argv = sys.argv
     logger.info("Running dbnd run: %s", subprocess.list2cmdline(args))
     try:
-        sys.argv = [sys.executable, "-m", "databand", "run"] + args
-        dbnd_bootstrap()
+        sys.argv = [sys.executable, "-m", "databand", command] + args
         return cli.commands[command](args=args, standalone_mode=False)
     finally:
         sys.argv = current_argv
 
 
 dbnd_run_cmd = partial(dbnd_cmd, "run")
-dbnd_schedule_cmd = partial(dbnd_cmd, "schedule")
 
 
 def dbnd_run_cmd_main(task, env=None, args=None):
@@ -127,7 +114,7 @@ def dbnd_run_cmd_main(task, env=None, args=None):
             cmd_args = cmd_args + ["--env", env]
         if args is not None:
             cmd_args = cmd_args + args
-        return dbnd_run_cmd(cmd_args)
+        return dbnd_cmd("run", cmd_args)
     except KeyboardInterrupt:
         logger.error("Keyboard interrupt, exiting...")
         sys.exit(1)
@@ -156,18 +143,13 @@ def _register_legacy_airflow_monitor_commands(cli):
 
 def main():
     """Script's main function and start point."""
-    _dbnd_exception_handling()
     configure_basic_logging(None)
-    if should_fix_pyspark_imports():
-        fix_pyspark_imports()
-    register_dbnd_plugins()
+
+    dbnd_bootstrap()
+
+    register_dbnd_cli_commands(cli)
+
     _register_legacy_airflow_monitor_commands(cli)
-
-    # adding all plugins cli commands
-    for commands in pm.hook.dbnd_get_commands():
-        for command in commands:
-            cli.add_command(command)
-
     try:
         return cli(prog_name="dbnd")
 

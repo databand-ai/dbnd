@@ -18,8 +18,8 @@ def main():
 
     from dbnd import config
     from dbnd._core.constants import TaskExecutorType
-    from dbnd._core.settings import RunConfig
     from dbnd._core.task_run.task_run import TaskRun
+    from dbnd.orchestration.run_settings import RunConfig
     from dbnd.tasks.basics import dbnd_sanity_check
     from dbnd_examples.dbnd_airflow import bash_dag
 

@@ -17,8 +17,8 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.plugin.dbnd_plugins import pm
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
-from dbnd._core.task_run.task_sync_ctrl import DisabledTaskSyncCtrl
 from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
+from dbnd.orchestration.task_run_executor.task_sync_ctrl import DisabledTaskSyncCtrl
 from dbnd_spark import SparkConfig
 
 
@@ -34,7 +34,7 @@ class SparkCtrl(TaskRunCtrl):
             self.deploy = self._get_deploy_ctrl()
 
     def _get_deploy_ctrl(self):
-        return self.task_run.deploy
+        return self.task_run.executor.deploy
 
     @property
     def config(self):

@@ -7,7 +7,7 @@ import warnings
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.friendly_error import _band_call_str
 from dbnd._core.parameter.parameter_value import ParameterFilters
-from dbnd._core.plugin.dbnd_plugins import is_dbnd_run_airflow_enabled
+from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
 from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_build.task_signature import (
     build_signature,

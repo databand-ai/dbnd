@@ -2,7 +2,7 @@
 
 import logging
 
-from dbnd._core.plugin.dbnd_plugins import use_airflow_connections
+from dbnd._core.plugin.use_dbnd_run import use_airflow_connections
 from dbnd._core.utils.basics.memoized import per_thread_cached
 from dbnd_azure.env import AzureCredentialsConfig
 

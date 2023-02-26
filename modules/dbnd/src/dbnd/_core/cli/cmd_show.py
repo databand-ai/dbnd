@@ -1,29 +1,19 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from dbnd._core.cli.click_utils import _help
-from dbnd._core.cli.service_auto_completer import completer
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.context.databand_context import load_user_modules
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._vendor import click
+from dbnd.orchestration.utils.user_code import load_user_modules
 
 
 @click.command()
-@click.argument("search", default="", autocompletion=completer.config())
+@click.argument("search", default="")
 @click.option("--module", "-m", help="Used for dynamic loading of modules")
 @click.pass_context
 def show_configs(ctx, module, search):
     """Show and search configurations"""
     _list_tasks(ctx, module, search, is_config=True)
-
-
-@click.command()
-@click.argument("search", default="", autocompletion=completer.task())
-@click.option("--module", "-m", help="Used for dynamic loading of modules")
-@click.pass_context
-def show_tasks(ctx, module, search):
-    """Show and search tasks"""
-    _list_tasks(ctx, module, search, is_config=False)
 
 
 COMMON_PARAMS = {"task_version", "task_env", "task_target_date"}

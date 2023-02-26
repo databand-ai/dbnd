@@ -32,13 +32,13 @@ from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_build.task_signature import Signature, user_friendly_signature
 from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.task_ctrl.task_ctrl import TrackingTaskCtrl
-from dbnd._core.task_ctrl.task_output_builder import windows_drive_re
 from dbnd._core.task_ctrl.task_relations import traverse_and_set_target
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.nothing import NOTHING, is_not_defined
 from dbnd._core.utils.callable_spec import CallableSpec, args_to_kwargs
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
+from dbnd.orchestration.task_run_executor.task_output_builder import windows_drive_re
 from targets import InMemoryTarget, target
 from targets.base_target import TargetSource
 from targets.target_config import folder
@@ -176,7 +176,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
         self.ctrl = TrackingTaskCtrl(self)
 
         self.task_call_source = [
-            self.dbnd_context.user_code_detector.find_user_side_frame(1)
+            self.dbnd_context.user_code_detector.find_user_side_frame(4)
         ]
         parent_task = try_get_current_task()
         if parent_task:

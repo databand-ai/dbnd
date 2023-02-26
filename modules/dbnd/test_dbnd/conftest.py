@@ -18,7 +18,7 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND__NO_PLUGINS,
     reset_dbnd_project_config,
 )
-from dbnd._core.plugin.dbnd_plugins import disable_airflow_plugin
+from dbnd._core.plugin.use_dbnd_airflow_tracking import disable_airflow_plugin
 from dbnd._core.utils.basics.environ_utils import set_on
 from dbnd.testing.test_config_setter import add_test_configuration
 from targets import target

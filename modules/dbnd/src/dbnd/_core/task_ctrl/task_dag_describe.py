@@ -6,10 +6,10 @@ import logging
 
 from dbnd._core.constants import DescribeFormat
 from dbnd._core.errors import DatabandSystemError
-from dbnd._core.settings import DescribeConfig
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.utils.basics.helpers import indent
 from dbnd._vendor.termcolor import colored
+from dbnd.orchestration.run_settings import DescribeConfig
 from dbnd.tasks import DataSourceTask
 
 

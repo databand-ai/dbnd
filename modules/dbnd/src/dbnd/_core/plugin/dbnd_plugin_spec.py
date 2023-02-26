@@ -55,7 +55,7 @@ def dbnd_setup_unittest():
 @hookspec
 def dbnd_task_run_context(task_run):
     # type: (TaskRun)-> Context
-    """Using this context when running task_run"""
+    """Using this context when running task_run_executor"""
 
 
 @hookspec

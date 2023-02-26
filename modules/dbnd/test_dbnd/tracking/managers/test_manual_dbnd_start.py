@@ -31,8 +31,9 @@ class MyClass:
 def run_dbnd_subprocess__current_file(args, **kwargs):
     args = args or []
     env = os.environ.copy()
-    env["DBND__CORE__TRACKER"] = "['file', 'console', 'api']"
+    env["DBND__CORE__TRACKER"] = "[  'console']"
     env["DBND__CORE__TRACKER_API"] = "web"
+    env["DBND__VERBOSE"] = "True"
     return run_dbnd_subprocess(
         [sys.executable, CURRENT_PY_FILE] + args, env=env, **kwargs
     )
@@ -47,14 +48,18 @@ class TestManualDbndStart(object):
     auto_task_name = os.path.basename(__file__)
     expected_task_names = (("f1", 1), ("f2", 3))
 
-    def test_manual_dbnd_start(self):
+    def test_manual_dbnd_start(self, set_verbose_mode):
         result = run_dbnd_subprocess__current_file([USE_DBND_START])
 
         for task_name, count in self.expected_task_names + ((self.auto_task_name, 1),):
-            assert count == len(re.findall(RE_TASK_COMPLETED.format(task_name), result))
+            assert count == len(
+                re.findall(RE_TASK_COMPLETED.format(task_name), result)
+            ), task_name
 
         for task_name, count in self.expected_task_names:
-            assert count == len(re.findall(RE_F_RUNNING.format(task_name), result))
+            assert count == len(
+                re.findall(RE_F_RUNNING.format(task_name), result)
+            ), task_name
 
     def test_no_dbnd_start(self):
         result = run_dbnd_subprocess__current_file([])

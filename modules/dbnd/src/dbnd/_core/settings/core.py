@@ -4,6 +4,7 @@ import logging
 
 from typing import Dict, List
 
+from dbnd._core.configuration.config_readers import read_from_config_files
 from dbnd._core.configuration.environ_config import in_tracking_mode
 from dbnd._core.constants import CloudType
 from dbnd._core.log import dbnd_log_debug
@@ -43,6 +44,13 @@ class DatabandSystemConfig(Config):
         default=None,
         description="JSON string/key=value that gets into the Task attribute",
     )[Dict[str, str]]
+
+    def update_config_from_user_inputs(self, config):
+        if self.conf:
+            config.set_values(self.conf, source="[databand]conf")
+        if self.conf_file:
+            conf_file = read_from_config_files(self.conf_file)
+            config.set_values(conf_file, source="[databand]conf")
 
 
 class CoreConfig(Config):
@@ -141,6 +149,10 @@ class CoreConfig(Config):
     )[object]
 
     # PLUGINS
+    dbnd_plugins_enabled = parameter(
+        description="Enable dbnd plugins system.", default=False
+    )[bool]
+
     plugins = parameter(
         description="Specify which plugins should be loaded on Databand context creations.",
         default=None,

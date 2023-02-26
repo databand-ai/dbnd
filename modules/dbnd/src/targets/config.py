@@ -6,7 +6,7 @@ import os.path
 import random
 import tempfile
 
-from dbnd._core.current import try_get_databand_context, try_get_databand_run
+from dbnd._core.current import try_get_databand_run, try_get_run_executor
 
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ def get_local_tempfile(*path):
 
 
 def is_in_memory_cache_target_value():
-    dc = try_get_databand_context()
-    if dc:
-        return dc.settings.run.target_cache_on_access
+    re = try_get_run_executor()
+    if re:
+        return re.run_config.target_cache_on_access
     return False

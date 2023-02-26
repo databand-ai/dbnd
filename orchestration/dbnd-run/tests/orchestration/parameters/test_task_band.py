@@ -23,7 +23,7 @@ from dbnd import (
 )
 from dbnd._core.errors import DatabandBuildError
 from dbnd._core.errors.base import DatabandRunError
-from dbnd._core.settings import RunConfig
+from dbnd.orchestration.run_settings import OutputConfig
 from dbnd.tasks.basics.publish import publish_results
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_test_scenarios.test_common.task.factories import TTask
@@ -242,7 +242,7 @@ class TestTaskBand(object):
             b.task.set_downstream(a)
             return b
 
-        with new_dbnd_context(conf={RunConfig.recheck_circle_dependencies: True}):
+        with new_dbnd_context(conf={OutputConfig.recheck_circle_dependencies: True}):
             with pytest.raises(
                 DatabandBuildError, match="A cyclic dependency occurred"
             ):

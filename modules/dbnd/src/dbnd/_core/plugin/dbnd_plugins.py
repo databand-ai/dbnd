@@ -6,7 +6,8 @@ import logging
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.errors import friendly_error
 from dbnd._core.plugin import dbnd_plugin_spec
-from dbnd._core.utils.seven import import_errors
+from dbnd._core.utils.basics.load_python_module import _load_module
+from dbnd._core.utils.seven import fix_sys_path_str, import_errors
 from dbnd._vendor import pluggy
 
 
@@ -15,99 +16,6 @@ logger = logging.getLogger(__name__)
 hookimpl = pluggy.HookimplMarker("dbnd")
 pm = pluggy.PluginManager("dbnd")
 pm.add_hookspecs(dbnd_plugin_spec)
-
-_AIRFLOW_PACKAGE_INSTALLED = None  # apache airflow is installed
-_AIRFLOW_ENABLED = None  # dbnd-airflow is installed and enabled
-_DBND_RUN_AIRFLOW_AIRFLOW_ENABLED = None  # dbnd-airflow is installed and enabled
-
-
-def _is_airflow_enabled():
-    if get_dbnd_project_config().is_no_modules:
-        return False
-
-    # TODO: make decision based on plugin only
-    try:
-        import dbnd_airflow  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
-
-
-def is_airflow_enabled():
-    global _AIRFLOW_ENABLED
-    if _AIRFLOW_ENABLED is None:
-        _AIRFLOW_ENABLED = _is_airflow_enabled()
-    return _AIRFLOW_ENABLED
-
-
-def disable_airflow_plugin():
-    global _AIRFLOW_ENABLED
-    _AIRFLOW_ENABLED = False
-    pm.set_blocked("dbnd-airflow")
-
-
-def _is_dbnd_run_airflow_enabled():
-    if get_dbnd_project_config().is_no_modules:
-        return False
-
-    try:
-        import dbnd_run  # noqa: F401
-    except ImportError:
-        return False
-
-    try:
-        import airflow  # noqa: F401
-    except ImportError:
-        return False
-    return True
-
-
-def is_dbnd_run_airflow_enabled():
-    global _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED
-    if _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED is None:
-        _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED = _is_dbnd_run_airflow_enabled()
-    return _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED
-
-
-def disable_dbnd_run_airflow_plugin():
-    global _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED
-    _DBND_RUN_AIRFLOW_AIRFLOW_ENABLED = False
-    pm.set_blocked("dbnd-run")
-
-
-def use_airflow_connections():
-    from dbnd._core.configuration.dbnd_config import config
-
-    return is_airflow_enabled() and config.getboolean("airflow", "use_connections")
-
-
-def should_use_airflow_monitor():
-    if is_airflow_enabled():
-        from dbnd_airflow.tracking.config import AirflowTrackingConfig
-
-        tracking_config = AirflowTrackingConfig.from_databand_context()
-        return tracking_config.af_with_monitor
-
-    return True
-
-
-def assert_airflow_enabled():
-    if not is_airflow_enabled():
-        raise friendly_error.config.missing_module("dbnd-airflow")
-    return True
-
-
-def assert_airflow_package_installed():
-    global _AIRFLOW_PACKAGE_INSTALLED
-    if _AIRFLOW_PACKAGE_INSTALLED is None:
-        try:
-            import airflow  # noqa: F401
-
-            _AIRFLOW_PACKAGE_INSTALLED = True
-        except Exception:
-            _AIRFLOW_PACKAGE_INSTALLED = False
-    return _AIRFLOW_PACKAGE_INSTALLED
 
 
 # all other modules
@@ -133,3 +41,40 @@ def assert_plugin_enabled(module, reason=None, module_import=None):
     if not is_plugin_enabled(module, module_import=module_import):
         raise friendly_error.config.missing_module(module, reason)
     return True
+
+
+_dbnd_plugins_registered = False
+
+
+def register_dbnd_plugins():
+    if get_dbnd_project_config().is_no_plugins:
+        return
+
+    global _dbnd_plugins_registered
+    if _dbnd_plugins_registered:
+        return
+    _dbnd_plugins_registered = True
+
+    fix_sys_path_str()
+    if not get_dbnd_project_config().disable_pluggy_entrypoint_loading:
+        pm.load_setuptools_entrypoints("dbnd")
+        pm.check_pending()
+
+
+def register_dbnd_user_plugins(user_plugin_modules):
+    for plugin_module in user_plugin_modules:
+        module = _load_module(plugin_module, "plugin:%s" % plugin_module)
+        pm.register(module)
+
+        base_msg = "Plugin %s" % plugin_module
+        if getattr(module, "__version__", None):
+            base_msg += " v%s" % module.__version__
+
+        logger.info(base_msg + " loaded...")
+
+
+def register_dbnd_cli_commands(cli):
+    # adding all plugins cli commands
+    for commands in pm.hook.dbnd_get_commands():
+        for command in commands:
+            cli.add_command(command)

@@ -18,7 +18,7 @@ def task_auto_config(
 
 
 class TestBuildErrorsDecorators(object):
-    def test_auto_load(self):
+    def test_auto_load_config(self):
         with dbnd_config(
             {
                 "autotestconfig": {"param_datetime": "2018-01-01", "param_int": "42"},
@@ -29,4 +29,5 @@ class TestBuildErrorsDecorators(object):
                 "databand": {"module": "tests.orchestration.config.autoloaded_config"},
             }
         ):
+            # param_int should come from  "autotestconfig"
             dbnd_run_cmd("task_auto_config")

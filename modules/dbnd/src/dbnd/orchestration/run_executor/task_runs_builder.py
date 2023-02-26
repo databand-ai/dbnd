@@ -7,7 +7,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd._core.settings import EngineConfig, RunConfig
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_build.task_registry import build_task_from_config
 from dbnd._core.task_ctrl.task_dag import _TaskDagNode, all_subdags
@@ -17,11 +16,12 @@ from dbnd._core.utils.task_utils import (
     tasks_summary,
     tasks_to_ids_set,
 )
+from dbnd.orchestration.run_settings import EngineConfig, RunConfig
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.task.task import Task
+    from dbnd.orchestration.run_executor.run_executor import RunExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +120,9 @@ class TaskRunsBuilder(object):
 
         return runnable_tasks, tasks_disabled
 
-    def build_task_runs(self, run, root_task, task_run_engine):
-        # type: (DatabandRun, Task, EngineConfig) -> List[TaskRun]
-        run_config = run.context.settings.run  # type: RunConfig
+    def build_task_runs(self, run_executor, root_task, task_run_engine):
+        # type: (RunExecutor, Task, EngineConfig) -> List[TaskRun]
+        run_config = run_executor.run_config  # type: RunConfig
 
         # first, let remove all tasks explicitly marked as disabled by user
         tasks_to_run, tasks_disabled = self.get_tasks_without_disabled(root_task)
@@ -181,7 +181,10 @@ class TaskRunsBuilder(object):
 
                 task_af_id = friendly_ids[task.task_id]
                 task_run = TaskRun(
-                    task=task, run=run, task_af_id=task_af_id, task_engine=task_engine
+                    task=task,
+                    run=run_executor.run,
+                    task_af_id=task_af_id,
+                    task_engine=task_engine,
                 )
             if task.task_id in completed_ids:
                 task_run.is_reused = True

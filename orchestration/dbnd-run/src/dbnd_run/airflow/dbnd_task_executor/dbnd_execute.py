@@ -7,7 +7,10 @@ import sys
 import typing
 
 from dbnd import dbnd_bootstrap
-from dbnd._core.task_executor.run_executor import RunExecutor, set_active_run_context
+from dbnd.orchestration.run_executor.run_executor import (
+    RunExecutor,
+    set_active_run_context,
+)
 from dbnd_run.airflow.bootstrap import dbnd_run_airflow_bootstrap
 from dbnd_run.airflow.dbnd_airflow_contrib.dbnd_operator import DbndOperator
 from dbnd_run.airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
@@ -42,7 +45,7 @@ def dbnd_execute_airflow_operator(airflow_operator, context):
     if isinstance(dbnd_task_run.task, AirflowOperatorAsDbndTask):
         # we need to update it with latest, as we have "templated" and copy airflow operator object
         dbnd_task_run.task.airflow_op = airflow_operator
-        return dbnd_task_run.runner.execute(context)
+        return dbnd_task_run.executor.execute(context)
     else:
         logging.info(
             "Found airflow operator with dbnd_task_id that can not be run by dbnd: %s",
@@ -104,10 +107,10 @@ def dbnd_operator__execute(dbnd_operator, context):
 
         with set_active_run_context(run):
             task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
-            ret_value = task_run.runner.execute(airflow_context=context)
+            ret_value = task_run.executor.execute(airflow_context=context)
     else:
         task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
-        ret_value = task_run.runner.execute(airflow_context=context)
+        ret_value = task_run.executor.execute(airflow_context=context)
 
     return ret_value
 

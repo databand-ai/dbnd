@@ -18,9 +18,9 @@ from sqlalchemy.orm import Session
 from dbnd import dbnd_config
 from dbnd._core.errors import DatabandError, friendly_error
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
-from dbnd._core.settings import DatabandSettings, RunConfig
-from dbnd._core.task_executor.task_executor import TaskExecutor
+from dbnd._core.settings import DatabandSettings
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
+from dbnd.orchestration.run_executor_engine.task_executor import RunExecutorEngine
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2, AIRFLOW_VERSION_AFTER_2_2
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     LocalExecutor,
@@ -153,14 +153,16 @@ def create_dagrun_from_dbnd_run(
     return dagrun
 
 
-class AirflowTaskExecutor(TaskExecutor):
+class AirflowTaskExecutor(RunExecutorEngine):
     """
     Bridge to Airflow Execution
     """
 
-    def __init__(self, run, task_executor_type, host_engine, target_engine, task_runs):
+    def __init__(
+        self, run_executor, task_executor_type, host_engine, target_engine, task_runs
+    ):
         super(AirflowTaskExecutor, self).__init__(
-            run=run,
+            run_executor=run_executor,
             task_executor_type=task_executor_type,
             host_engine=host_engine,
             target_engine=target_engine,
@@ -200,8 +202,9 @@ class AirflowTaskExecutor(TaskExecutor):
         not_initialised_help_mdg = "Make sure that you run the command: airflow initdb"
 
         err_msg = (
-            "You are running in Airflow mode (task_executor={}) with DB at {}".format(
-                RunConfig().task_executor_type, conn_string_url.__repr__()
+            "You are running in Airflow mode (run_executor={}) with DB at {}".format(
+                self.run_executor.run_config.task_executor_type,
+                conn_string_url.__repr__(),
             )
         )
 
@@ -353,7 +356,7 @@ class AirflowTaskExecutor(TaskExecutor):
         databand_context = databand_run.context
         execution_date = databand_run.execution_date
         s = databand_context.settings  # type: DatabandSettings
-        s_run = s.run  # type: RunConfig
+        s_run = self.run_executor.run_config  # type: RunConfig
 
         run_id = s_run.id
         if not run_id:
@@ -444,7 +447,7 @@ class AirflowTaskExecutor(TaskExecutor):
             self.task_executor_type
             == AirflowTaskExecutorType.airflow_multiprocess_local
         ):
-            if self.run.context.settings.run.parallel:
+            if self.run_executor.run_config.parallel:
                 return LocalExecutor()
             else:
                 return SequentialExecutor()

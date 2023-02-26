@@ -74,7 +74,7 @@ class ConsoleStore(TrackingStore):
             )
 
             if run.context.name == "interactive":
-                from dbnd._core.tools import ipython
+                from dbnd.orchestration.tools import ipython
 
                 ipython.show_run_url(run.run_url)
 

@@ -398,7 +398,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
                     if task_run.task_run_state not in TaskRunState.final_states():
                         self.log.info(
                             "%s with pod %s is not finished: airflow state - %s and databand state - %s."
-                            "Setting the task_run state to match airflow state",
+                            "Setting the task_run_executor state to match airflow state",
                             task_run,
                             submitted_pod.pod_name,
                             ti_state,

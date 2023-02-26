@@ -25,7 +25,6 @@ if typing.TYPE_CHECKING:
     from dbnd._core.settings import DatabandSettings, EnvConfig
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_ctrl.task_relations import TaskRelations
-    from dbnd._core.task_ctrl.task_validator import TaskValidator
     from dbnd._core.task_run.task_run import TaskRun
 
 logger = logging.getLogger(__name__)
@@ -78,10 +77,6 @@ class TaskSubCtrl(object):
     @property
     def relations(self):  # type: () -> TaskRelations
         return self.ctrl._relations
-
-    @property
-    def validator(self):  # type: () -> TaskValidator
-        return self.ctrl.task_validator
 
     @property
     def task_env(self):
@@ -171,10 +166,8 @@ class TaskCtrl(_BaseTaskCtrl):
         super(TaskCtrl, self).__init__(task)
 
         from dbnd._core.task_ctrl.task_relations import TaskRelations  # noqa: F811
-        from dbnd._core.task_ctrl.task_validator import TaskValidator
 
         self._relations = TaskRelations(task)
-        self.task_validator = TaskValidator(task)
 
         self._should_run = self.task._should_run()
 
@@ -189,7 +182,7 @@ class TaskCtrl(_BaseTaskCtrl):
         # may be we should move it to global level because of performance issues
         # however, by running it at every task we'll be able to find the code that causes the issue
         # and show it to user
-        if self.dbnd_context.settings.run.recheck_circle_dependencies:
+        if self.dbnd_context.settings.output.recheck_circle_dependencies:
             self.task_dag.topological_sort()
 
     def should_run(self):

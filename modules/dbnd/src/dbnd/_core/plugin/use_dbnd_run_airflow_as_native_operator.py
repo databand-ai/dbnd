@@ -2,7 +2,7 @@
 
 import sys
 
-from dbnd._core.plugin.dbnd_plugins import is_dbnd_run_airflow_enabled
+from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
 
 
 ######

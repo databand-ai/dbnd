@@ -132,6 +132,8 @@ def load_spark_env():
 
 def try_load_spark_env():
     try:
+        if not verify_spark_pre_conditions():
+            return None
         load_spark_env()
     except Exception:
         dbnd_log_init_msg("Failed to load spark env")

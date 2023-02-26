@@ -37,8 +37,8 @@ TRACKER_MISSING_MESSAGE = (
 def _get_tracker():
     # type: ()-> Optional[TaskRunTracker]
     """
-    Look for a tracker of running task_run or initiate a task_run if nothing is running.
-    Will return a None if there is no exist task_run nor couldn't start one.
+    Look for a tracker of running task_run_executor or initiate a task_run_executor if nothing is running.
+    Will return a None if there is no exist task_run_executor nor couldn't start one.
     """
     from dbnd._core.task_run.current_task_run import try_get_or_create_task_run
 
