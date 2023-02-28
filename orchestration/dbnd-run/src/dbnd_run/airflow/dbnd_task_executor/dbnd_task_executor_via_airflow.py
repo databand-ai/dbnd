@@ -452,7 +452,7 @@ class AirflowTaskExecutor(TaskExecutor):
             from dbnd_docker.kubernetes.kubernetes_engine_config import (
                 KubernetesEngineConfig,
             )
-            from dbnd_run.airflow.executors.kubernetes_executor import (
+            from dbnd_run.airflow.executors.kubernetes_executor.kubernetes_executor import (
                 DbndKubernetesExecutor,
             )
 

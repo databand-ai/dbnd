@@ -24,7 +24,7 @@
 -e file:plugins/dbnd-tensorflow
 
 # Keep the requirements compatible with airflow 2.2.3 (default version for databand developers)
-apache-airflow[amazon,apache.spark,databricks,cncf.kubernetes]==${AIRFLOW_VERSION}
+apache-airflow[amazon,postgres,apache.spark,databricks,cncf.kubernetes]==${AIRFLOW_VERSION}
 # -c https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-no-providers-${PYTHON_VERSION}.txt
 -c ../requirements/constraints/apache-airflow-${AIRFLOW_VERSION}-constraints-no-providers-${PYTHON_VERSION}-FIXED-DBND-RUN.txt
 

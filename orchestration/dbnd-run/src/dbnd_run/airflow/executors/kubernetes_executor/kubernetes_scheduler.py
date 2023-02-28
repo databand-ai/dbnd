@@ -48,7 +48,7 @@ from dbnd_run.airflow.airflow_extensions.dal import (
     get_airflow_task_instance,
     get_airflow_task_instance_state,
 )
-from dbnd_run.airflow.compat import AIRFLOW_ABOVE_9, AIRFLOW_VERSION_2
+from dbnd_run.airflow.compat import AIRFLOW_ABOVE_9, AIRFLOW_VERSION_2, AIRFLOW_VERSION_AFTER_2_2
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     SimpleTaskInstance,
     is_task_instance_finished,
@@ -270,7 +270,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         self.run_next_kube_job(key, command)
 
     def run_next_kube_job(self, key, command):
-        dag_id, task_id, execution_date, try_number = key
+        if AIRFLOW_VERSION_AFTER_2_2:
+            dag_id, task_id, execution_date, try_number, map_index = key
+        else:
+            dag_id, task_id, execution_date, try_number = key
+
         self.log.debug(
             "Kube POD to submit: image=%s with %s [%s]",
             self.kube_config.kube_image,

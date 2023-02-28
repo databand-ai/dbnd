@@ -553,7 +553,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         if AIRFLOW_VERSION_2:
             env_vars[
                 "AIRFLOW__CORE__TASK_RUNNER"
-            ] = "dbnd_airflow.compat.dbnd_task_runner.DbndStandardTaskRunner"
+            ] = "dbnd_run.airflow.compat.dbnd_task_runner.DbndStandardTaskRunner"
 
         if self.auto_remove:
             env_vars[ENV_DBND_AUTO_REMOVE_POD] = "True"
