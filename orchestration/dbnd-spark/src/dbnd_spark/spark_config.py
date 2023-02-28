@@ -129,12 +129,6 @@ class SparkConfig(Config):
         description="If Spark Session exists, do not send to remote cluster/spark-submit, but use existing.",
     )
 
-    listener_inject_enabled = parameter.value(
-        False,
-        description="Enable Auto-injecting Databand Spark Listener. "
-        "This listener will record and report spark metrics to the databand server.",
-    )
-
     include_user_project = parameter.c(
         default=False,
         description="Enable building fat_wheel from configured package and third-party requirements"
