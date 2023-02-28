@@ -19,9 +19,10 @@ if __name__ == "__main__":
         pass
 ```
 
-Any Python code executed inside the `dbnd_tracking()` context will be tracked by Databand.
-
-`dbnd_tracking(name="<pipeline_name>")` accepts a name parameter that will be used to identify the pipeline in the Pipelines screen of your Databand application.
+Any Python code executed inside the `dbnd_tracking()` context will be tracked by Databand. You can control certain attributes of your tracked run using the following parameters inside `dbnd_tracking()`:
+- `job_name`: The name of your pipeline in the Databand UI. 
+- `run_name`: The run ID for the current execution of your Python script in the Databand UI. 
+- `project_name`: The project name of your pipeline in the Databand UI. Projects provide an extra level of filtering.
 
 If you are using [Tracking Airflow DAGs](doc:tracking-airflow-dags) you don't need to enable tracking for python code executed as part of Airflow Operator. This is done automatically.
 
