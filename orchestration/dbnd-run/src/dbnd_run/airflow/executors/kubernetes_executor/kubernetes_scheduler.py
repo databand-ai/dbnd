@@ -48,7 +48,11 @@ from dbnd_run.airflow.airflow_extensions.dal import (
     get_airflow_task_instance,
     get_airflow_task_instance_state,
 )
-from dbnd_run.airflow.compat import AIRFLOW_ABOVE_9, AIRFLOW_VERSION_2, AIRFLOW_VERSION_AFTER_2_2
+from dbnd_run.airflow.compat import (
+    AIRFLOW_ABOVE_9,
+    AIRFLOW_VERSION_2,
+    AIRFLOW_VERSION_AFTER_2_2,
+)
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     SimpleTaskInstance,
     is_task_instance_finished,
