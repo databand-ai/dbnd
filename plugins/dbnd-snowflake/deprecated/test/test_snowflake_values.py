@@ -28,7 +28,7 @@ def snowflake_conn_params():
 
 @fixture
 def snowflake_conn_str(snowflake_conn_params):
-    return "snowflake://{0[user]}:{0[password]}@{0[account]}".format(
+    return "snowflake://{0[user]}:{0[password]}@{0[account]}".format(  # gitleaks:allow
         snowflake_conn_params
     )
 

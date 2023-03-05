@@ -13,9 +13,7 @@ from dbnd_snowflake.snowflake_tracker import snowflake_query_tracker
 from dbnd_snowflake.sql_utils import try_extract_tables
 
 
-TEST_SNOWFLAKE_CONN_STRING = (
-    "snowflake://test_account:test_password@test_account/test_database"
-)
+TEST_SNOWFLAKE_CONN_STRING = "snowflake://test_account:test_password@test_account/test_database"  # gitleaks:allow
 
 TEST_TABLE_NAME = "some_table"
 
