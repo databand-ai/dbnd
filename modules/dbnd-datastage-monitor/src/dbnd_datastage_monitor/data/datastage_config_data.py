@@ -72,6 +72,7 @@ class DataStageServerConfig(BaseServerConfig):
             log_exception_to_webserver=monitor_config.log_exception_to_webserver
             if monitor_config
             else False,
+            is_generic_syncer_enabled=server_config["is_generic_syncer_enabled"],
         )
         return conf
 
