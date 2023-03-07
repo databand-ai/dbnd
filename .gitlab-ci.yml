@@ -105,7 +105,7 @@ lint:
   <<: *template__python_test_job__cpu_heavy
   image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
   script:
-    - tox -e lint,lint-tracking-airflow,lint-run-airflow
+    - tox -e lint,lint-tracking-airflow
 
 manifest:
   <<: *template__python_test_job

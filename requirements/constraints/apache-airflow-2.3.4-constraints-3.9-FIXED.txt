@@ -109,7 +109,10 @@ marshmallow==3.17.0
 mdit-py-plugins==0.3.0
 mdurl==0.1.2
 msgpack==1.0.4
-numpy==1.23.2
+
+### Before fix:  numpy==1.23.2
+numpy==1.21.5
+
 oauthlib==3.2.0
 packaging==21.3
 pandas==1.4.3
