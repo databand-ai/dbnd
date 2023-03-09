@@ -75,10 +75,19 @@ class DbFetcher(AirflowDataFetcher):
         except Exception:
             session.rollback()
             raise
+        finally:
+            session.close()
 
     def _raise_on_plugin_error_message(self, data, function_name):
         error_message = getattr(data, "error_message", None)
         if error_message:
+            if "QueuePool limit" in error_message:
+                # sometimes we get this error:
+                # sqlalchemy.exc.TimeoutError: QueuePool limit of size 5 overflow 10 reached, connection timed out, timeout 30
+                # let's try to force close all open sessions, and hope it will fix the issue
+                from sqlalchemy.orm import close_all_sessions
+
+                close_all_sessions()
             raise AirflowFetchingException(
                 "Exception occurred in function %s in Airflow: %s"
                 % (function_name, error_message)
@@ -90,9 +99,8 @@ class DbFetcher(AirflowDataFetcher):
         with self._get_session() as session:
             data = get_last_seen_values(session=session)
 
-        self._raise_on_plugin_error_message(data, "get_last_seen_values")
-
-        json_data = json_conv(data)
+            self._raise_on_plugin_error_message(data, "get_last_seen_values")
+            json_data = json_conv(data)
         self._on_data_received(json_data, "get_last_seen_values")
         return LastSeenValues.from_dict(json_data)
 
@@ -116,8 +124,9 @@ class DbFetcher(AirflowDataFetcher):
                 include_subdags=True,
                 session=session,
             )
-        self._raise_on_plugin_error_message(data, "get_airflow_dagruns_to_sync")
-        json_data = json_conv(data)
+
+            self._raise_on_plugin_error_message(data, "get_airflow_dagruns_to_sync")
+            json_data = json_conv(data)
         self._on_data_received(json_data, "get_airflow_dagruns_to_sync")
         return AirflowDagRunsResponse.from_dict(json_data)
 
@@ -137,8 +146,8 @@ class DbFetcher(AirflowDataFetcher):
                 session=session,
             )
 
-        self._raise_on_plugin_error_message(data, "get_full_dag_runs")
-        json_data = json_conv(data)
+            self._raise_on_plugin_error_message(data, "get_full_dag_runs")
+            json_data = json_conv(data)
         self._on_data_received(json_data, "get_full_dag_runs")
         return DagRunsFullData.from_dict(json_data)
 
@@ -148,8 +157,8 @@ class DbFetcher(AirflowDataFetcher):
         with self._get_session() as session:
             data = get_dag_runs_states_data(dag_run_ids=dag_run_ids, session=session)
 
-        self._raise_on_plugin_error_message(data, "get_dag_runs_state_data")
-        json_data = json_conv(data)
+            self._raise_on_plugin_error_message(data, "get_dag_runs_state_data")
+            json_data = json_conv(data)
         self._on_data_received(json_data, "get_dag_runs_state_data")
         return DagRunsStateData.from_dict(json_data)
 
