@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
 import random
+import time
 
 import pytest
 
@@ -394,6 +394,40 @@ class TestRuntimeSyncer:
             update=0,
             case="finished both in dbnd and airflow => nothing",
         )
+
+    def test_09_syncer_auto_restarted(self, runtime_syncer, mock_data_fetcher):
+        assert runtime_syncer.last_success_sync is None
+        assert runtime_syncer.last_sync_heartbeat is None
+        for _ in range(3):
+            runtime_syncer.sync_once()
+        assert runtime_syncer.last_success_sync
+        assert runtime_syncer.last_sync_heartbeat
+        runtime_syncer.config.restart_after_not_synced_minutes = 2 / 60  # 2 seconds
+        time.sleep(3)
+        # make sure that even after 3 seconds sleep sync_once() will work and won't
+        # restart (since it's sleep between iterations)
+        for _ in range(3):
+            runtime_syncer.sync_once()
+
+        last_success_sync = runtime_syncer.last_success_sync
+        last_sync_heartbeat = runtime_syncer.last_sync_heartbeat
+        # now simulate that data_fetcher fails
+        mock_data_fetcher.alive = False
+
+        runtime_syncer.sync_once()
+        assert last_sync_heartbeat != runtime_syncer.last_sync_heartbeat
+        last_sync_heartbeat = runtime_syncer.last_sync_heartbeat
+        # last_success_sync shouldn't change
+        assert last_success_sync == runtime_syncer.last_success_sync
+        time.sleep(3)
+        # first iteration after sleep should still work
+        runtime_syncer.sync_once()
+        assert last_sync_heartbeat != runtime_syncer.last_sync_heartbeat
+        assert last_success_sync == runtime_syncer.last_success_sync
+
+        # next iteration should cause auto-restart
+        with pytest.raises(SystemExit):
+            runtime_syncer.sync_once()
 
 
 class TestRuntimeFixer:
