@@ -54,6 +54,9 @@ class AirflowServerConfig(BaseServerConfig):
     # runtime config updater config
     config_updater_interval = attr.ib(default=60)  # type: int
 
+    # force restart after failed to sync for X minutes
+    restart_after_not_synced_minutes = attr.ib(default=5)  # type: int
+
     @classmethod
     def create(
         cls, server_config: dict, monitor_config: Optional[BaseMonitorConfig] = None

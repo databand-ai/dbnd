@@ -1,6 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import datetime
 import logging
+import sys
 
 from typing import List
 
@@ -16,6 +17,7 @@ from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
 )
+from dbnd._core.utils.timezone import utcnow
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +75,36 @@ class AirflowRuntimeSyncer(BaseComponent):
     config: AirflowServerConfig
     data_fetcher: AirflowDataFetcher
 
+    last_success_sync: datetime.datetime = None
+    last_sync_heartbeat: datetime.datetime = None
+
     def _sync_once(self):
+        if (
+            self.last_success_sync
+            and self.config.restart_after_not_synced_minutes
+            and self.last_sync_heartbeat - self.last_success_sync
+            > datetime.timedelta(minutes=self.config.restart_after_not_synced_minutes)
+        ):
+            # this mechanism works only after first successful attempt, hoping that
+            # restart will help. If we didn't had even one successful attempt - the
+            # probability that restart will help is small
+            logger.fatal(
+                "Didn't sync data for last %s minutes, restarting",
+                self.config.restart_after_not_synced_minutes,
+            )
+            # unfortunately, currently no easy way to restart monitor from _sync_once
+            sys.exit(42)
+
+        self.last_sync_heartbeat = utcnow()
+
+        self._actual_sync_once()
+
+        self.last_success_sync = utcnow()
+        # update last_sync_heartbeat as well to prevent false positives for cases
+        # when iteration takes too much time
+        self.last_sync_heartbeat = self.last_success_sync
+
+    def _actual_sync_once(self):
         dbnd_response = self.tracking_service.get_active_dag_runs(
             start_time_window=self.config.start_time_window, dag_ids=self.config.dag_ids
         )
