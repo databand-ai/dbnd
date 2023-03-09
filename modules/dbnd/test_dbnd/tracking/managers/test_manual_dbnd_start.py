@@ -1,5 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+"""
+If you want to debug these tests, you can easily run this file as a Run
+"""
 import logging
 import os
 import re
@@ -120,12 +122,15 @@ def f1():
 
 
 if __name__ == "__main__":
+    logging.basicConfig()
     if USE_DBND_START in sys.argv:
-        dbnd_tracking_start(conf={"log": {"disabled": False}})
-        dbnd_tracking_start(conf={"log": {"disabled": False}})
+        dbnd_tracking_start(conf={"tracking": {"logger_dbnd_level": "INFO"}})
+        dbnd_tracking_start()
 
     f1()
-
+    logging.info(
+        "Done, you should see this message, otherwise, tests will fail, as console writer will not work"
+    )
     print("Done")
 
     if FAIL_MAIN in sys.argv:

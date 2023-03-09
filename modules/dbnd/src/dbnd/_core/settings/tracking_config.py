@@ -115,6 +115,10 @@ class TrackingConfig(Config):
         default=False, description="Enable log capturing for tracking tasks."
     )[bool]
 
+    logger_dbnd_level = parameter(
+        default="WARNING", description="the Logging level of DBND logger"
+    )[str]
+
     def get_value_meta_conf(self, meta_conf, value_type, target=None):
         # type: (ValueMetaConf, ValueType, Optional[Target]) -> ValueMetaConf
         meta_conf_by_type = calc_meta_conf_for_value_type(

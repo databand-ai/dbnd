@@ -88,7 +88,7 @@ def configure_logging_dictConfig(dict_config):
         raise
 
 
-def configure_basic_logging(log_file):
+def configure_basic_logging(log_file=None):
     """
     Simple databand logging, called from main and other commands
     """
