@@ -13,6 +13,7 @@ from flask import url_for
 from pytest import fixture
 from six.moves.urllib.parse import quote_plus
 
+from dbnd_run.airflow.compat import AIRFLOW_VERSION_AFTER_2_2
 from targets import target
 
 
@@ -71,7 +72,10 @@ class WebAppCtrl(object):
         self.session = Session()
 
     def login(self):
-        from flask_appbuilder.security.sqla.models import User as ab_user
+        if AIRFLOW_VERSION_AFTER_2_2:
+            from airflow.www.fab_security.sqla.models import User as ab_user
+        else:
+            from flask_appbuilder.security.sqla.models import User as ab_user
 
         sm_session = self.appbuilder.sm.get_session()
         self.user = sm_session.query(ab_user).filter(ab_user.username == "test").first()

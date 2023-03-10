@@ -21,7 +21,7 @@ from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings, RunConfig
 from dbnd._core.task_executor.task_executor import TaskExecutor
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
-from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
+from dbnd_run.airflow.compat import AIRFLOW_VERSION_2, AIRFLOW_VERSION_AFTER_2_2
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     LocalExecutor,
     SequentialExecutor,
@@ -279,6 +279,9 @@ class AirflowTaskExecutor(TaskExecutor):
                     # databandOperator that can wrap real Operator
                     op._dag = dag
                     op.upstream_task_ids.clear()
+                    if AIRFLOW_VERSION_AFTER_2_2:
+                        op.task_group = dag.task_group
+                        dag.task_group.add(op)
                     dag.add_task(op)
                     set_af_operator_doc_md(task_run, op)
                 else:

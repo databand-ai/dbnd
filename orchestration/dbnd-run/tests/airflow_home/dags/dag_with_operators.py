@@ -12,7 +12,7 @@ from airflow.models import TaskInstance
 from airflow.utils.dates import days_ago
 
 from dbnd import task
-from dbnd_airflow.compat import AIRFLOW_VERSION_2
+from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 
 
 if AIRFLOW_VERSION_2:
