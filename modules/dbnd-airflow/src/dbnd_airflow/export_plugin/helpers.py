@@ -19,6 +19,7 @@ from dbnd_airflow.export_plugin.compat import get_task_log_reader
 logger = logging.getLogger(__name__)
 
 MAX_LOGS_SIZE_IN_BYTES = 10000
+MAX_RECURSIVE_CALL_NUM = 5
 TASK_ARG_TYPES = (str, float, bool, int, datetime.datetime)
 
 
@@ -132,7 +133,7 @@ def _get_command_from_operator(t):
         )
 
 
-def _extract_args_from_dict(t_dict):
+def _extract_args_from_dict(t_dict, call_num=1):
     # type: (Dict) -> Dict[str]
     if not t_dict:
         return {}
@@ -158,7 +159,10 @@ def _extract_args_from_dict(t_dict):
                     val for val in v if val is None or isinstance(val, TASK_ARG_TYPES)
                 ]
             elif isinstance(v, dict):
-                res[k] = _extract_args_from_dict(v)
+                if call_num <= MAX_RECURSIVE_CALL_NUM:
+                    res[k] = _extract_args_from_dict(v, call_num + 1)
+                else:
+                    continue
         return res
     except Exception as ex:
         task_id = t_dict.get("task_id") or t_dict.get("_dag_id")
