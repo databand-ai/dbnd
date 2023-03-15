@@ -83,27 +83,26 @@ class MultiServerMonitor:
                 self._report_third_party_data(integration_config)
 
     def _report_third_party_data(self, integration_config):
-        adapter = self.monitor_services_factory.get_adapter(integration_config)
-        if not adapter:
-            return
-
-        third_party_info = adapter.get_third_party_info()
-        if not third_party_info:
-            return
-
-        if third_party_info.error_list:
-            formatted_error_list = ", ".join(third_party_info.error_list)
-            self.integration_management_service.report_error(
-                integration_config.uid,
-                f"verify_environment_{integration_config.uid}",
-                formatted_error_list,
-            )
 
         # This is the version of the monitor, since currently the shared logic exists
         # in airflow_monitor package we import this package and get the version
         metadata = {"monitor_version": airflow_monitor.__version__}
-        if third_party_info.metadata:
-            metadata.update(third_party_info.metadata)
+
+        adapter = self.monitor_services_factory.get_adapter(integration_config)
+        if adapter:
+            third_party_info = adapter.get_third_party_info()
+
+            if third_party_info and third_party_info.error_list:
+                formatted_error_list = ", ".join(third_party_info.error_list)
+                self.integration_management_service.report_error(
+                    integration_config.uid,
+                    f"verify_environment_{integration_config.uid}",
+                    formatted_error_list,
+                )
+
+            if third_party_info and third_party_info.metadata:
+                metadata.update(third_party_info.metadata)
+
         self.integration_management_service.report_metadata(
             integration_config.uid, metadata
         )

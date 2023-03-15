@@ -79,7 +79,6 @@ class IntegrationManagementService:
 
         if not servers_configs:
             logger.warning("No integrations found")
-            return servers_configs
 
         return servers_configs
 
@@ -90,6 +89,7 @@ class IntegrationManagementService:
         data = {"last_sync_time": current_time}
         if synced_new_data:
             data["last_update_time"] = current_time
+
         self._api_client.api_request(
             endpoint=f"integrations/{integration_uid}/monitor_time_data?type={self.monitor_type}",
             method="PATCH",
