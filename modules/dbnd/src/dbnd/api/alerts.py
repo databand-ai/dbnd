@@ -66,7 +66,9 @@ def create_alert(
             {"baseline": optional_fields["baseline"], "range": optional_fields["range"]}
         )
     alert = {key: value for key, value in alert.items() if value is not None}
-    alert_def_uid = _post_alert(get_databand_context().databand_api_client, alert)
+    alert_def_uid = _post_alert(
+        get_databand_context().databand_api_client, {"alert_def_payload": alert}
+    )
     return alert_def_uid
 
 
