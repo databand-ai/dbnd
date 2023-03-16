@@ -52,11 +52,7 @@ class JsonFormatter(jsonlogger.JsonFormatter):
 
     def __init__(self, *args, **kwargs):
         kwargs = dict(
-            rename_fields={
-                "levelname": "severity",  # rename for GCP
-                "name": "logger",
-                "request_id": "requestId",
-            },
+            rename_fields={"levelname": "severity", "name": "logger"},  # rename for GCP
             timestamp="ts",
             **kwargs,
         )
