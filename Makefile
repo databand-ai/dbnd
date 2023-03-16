@@ -240,6 +240,8 @@ pip-compile: __is_venv_activated ## Regenerate deps and constrains
 	pip-compile --resolver backtracking requirements/requirements-dev.in
 
 install-dev: __is_venv_activated  ## Install all modules, except Airflow, in editable mode to the active Python's site-packages.
+	@pyenv which pip-sync || pip install pip-tools==6.10.0
+
 	pip-sync requirements/requirements-dev.txt
 
 
