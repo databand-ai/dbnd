@@ -143,3 +143,13 @@ class TestDbtCloudApiClient:
 
         assert not res
         assert log_exception_mock.call_count == log_exception_call_count
+
+    def test_dbt_partner_in_header(self):
+        self.setUp()
+        dbt_cloud_client = DbtCloudApiClient(
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY
+        )
+
+        assert "Authorization" in dbt_cloud_client.session.headers
+        assert "X-dbt-partner-source" in dbt_cloud_client.session.headers
+        assert "Databand" == dbt_cloud_client.session.headers["X-dbt-partner-source"]

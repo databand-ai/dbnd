@@ -23,7 +23,10 @@ class DbtCloudApiClient:
         self.account_id = account_id
         self.api_token = dbt_cloud_api_token
         self.session = Session()
-        self.session.headers = {"Authorization": f"Token {self.api_token}"}
+        self.session.headers = {
+            "Authorization": f"Token {self.api_token}",
+            "X-dbt-partner-source": "Databand",
+        }
         retry_strategy = Retry(
             total=max_retries,
             status_forcelist=[429, 500, 502, 503, 504],
