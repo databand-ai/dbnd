@@ -41,7 +41,7 @@ Werkzeug==2.2.2
 alembic==1.8.1
 amqp==5.1.1
 anyio==3.6.1
-apache-airflow==2.3.4
+apache-airflow==2.5.2
 apispec==3.3.2
 argcomplete==2.0.0
 attrs==22.1.0
