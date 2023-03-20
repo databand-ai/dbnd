@@ -1,16 +1,26 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import json
+import os
 
 from pathlib import Path
+from unittest import mock
+from unittest.mock import mock_open
 
 import dateutil.parser
 import pytest
 
-from dbnd._core.tracking.dbt import (
+from mock import MagicMock, patch
+
+import dbnd
+
+from dbnd._core.tracking.dbt.dbt_core import (
     DbtCoreAssets,
     _extract_environment,
     _extract_jinja_values,
+    _load_dbt_core_assets,
+    _read_and_truncate_logs,
+    collect_data_from_dbt_core,
 )
 from dbnd._core.utils.basics.environ_utils import env
 
@@ -162,6 +172,45 @@ def test_extract_environment(profile, expected):
     assert _extract_environment({"args": {}}, profile) == expected
 
 
+@patch("dbnd._core.tracking.dbt.dbt_core._load_json_file")
+@patch("dbnd._core.tracking.dbt.dbt_core._read_and_truncate_logs")
+@patch("dbnd._core.tracking.dbt.dbt_core._load_yaml_with_jinja")
+def test_load_dbt_core_assets(
+    mock_load_yaml_with_jinja, mock_read_and_truncate_logs, mock_load_json_file
+):
+    mock_load_json_file.side_effect = [MagicMock(), MagicMock()]
+    mock_load_yaml_with_jinja.side_effect = [
+        {"profile": "sample_profile"},
+        {"sample_profile": MagicMock()},
+    ]
+    mock_read_and_truncate_logs.return_value = MagicMock()
+
+    assets = _load_dbt_core_assets("fake/path")
+
+    assert isinstance(assets, DbtCoreAssets)
+
+
+def test_read_and_truncate_logs():
+    dbt_project_path = "/dummy/dbt_project_path"
+    dbt_log_path = os.path.join(dbt_project_path, "logs", "dbt.log")
+    original_log_content = "Some log content"
+
+    m = mock_open(read_data=original_log_content)
+    with patch("dbnd._core.tracking.dbt.dbt_core.open", m):
+        with patch("dbnd._core.tracking.dbt.dbt_core.shutil.copy") as copy_mock:
+            result = _read_and_truncate_logs(dbt_project_path)
+
+    assert (
+        result == original_log_content
+    ), "The function did not read the log content correctly"
+
+    assert copy_mock.call_count == 1, "A backup of the log file was not created"
+
+    assert m.call_args_list[-1] == mock.call(
+        dbt_log_path, "w"
+    ), "The original log file was not truncated"
+
+
 def test_extract_jinja_values():
     values = {
         "env_var_key": "{{ env_var('env_var_identifier') }}",
@@ -193,3 +242,25 @@ def test_extract_jinja_values_with_undefined_env_var_raise_environment_error():
     values = {"env_var_key": "{{ env_var('undefined_env_var_identifier') }}"}
     with pytest.raises(expected_exception=EnvironmentError):
         _extract_jinja_values(values)
+
+
+def test_dbt_sdk_functions_are_importable_from_top_level():
+    assert hasattr(dbnd, "collect_data_from_dbt_core")
+    assert hasattr(dbnd, "collect_data_from_dbt_cloud")
+
+    assert callable(dbnd.collect_data_from_dbt_core)
+    assert callable(dbnd.collect_data_from_dbt_cloud)
+
+
+@patch("dbnd._core.tracking.dbt.dbt_core._get_tracker")
+@patch("dbnd._core.tracking.dbt.dbt_core._load_dbt_core_assets")
+def test_dbt_core_processing_not_happening_if_no_tracker_is_available(
+    load_dbt_core_assets_mock, get_tracker_mock
+):
+    get_tracker_mock.return_value = None
+
+    dbt_project_path = "dummy_dbt_project_path"
+    collect_data_from_dbt_core(dbt_project_path)
+
+    get_tracker_mock.assert_called_once()
+    load_dbt_core_assets_mock.assert_not_called()

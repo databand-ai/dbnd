@@ -6,7 +6,6 @@ import os.path
 import shutil
 
 from datetime import datetime
-from enum import Enum
 from typing import Dict, Optional, TypeVar
 
 import attr
@@ -15,103 +14,14 @@ import yaml
 from jinja2 import Environment, TemplateError
 
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.tracking.dbt.dbt_adapters import Adapter
 from dbnd._core.tracking.metrics import TRACKER_MISSING_MESSAGE, _get_tracker
 from dbnd._core.utils.one_time_logger import get_one_time_logger
-from dbnd.utils.dbt_cloud_api_client import DbtCloudApiClient
 
-
-logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-
-def _report_dbt_metadata(dbt_metadata, tracker=None):
-    if tracker is None:
-        tracker = _get_tracker()
-
-    if not tracker:
-        message = TRACKER_MISSING_MESSAGE % ("report_dbt_metadata",)
-        get_one_time_logger().log_once(message, "report_dbt_metadata", logging.WARNING)
-        return
-
-    tracker.log_dbt_metadata(dbt_metadata=dbt_metadata)
-
-
-def get_run_data_from_dbt(dbt_cloud_client, dbt_job_run_id):
-    dbt_run_meta_data = dbt_cloud_client.get_run(run_id=dbt_job_run_id)
-
-    if not dbt_run_meta_data:
-        logger.warning("Fail getting run data from dbt cloud ")
-        return None
-
-    env_id = dbt_run_meta_data.get("environment_id")
-    env = dbt_cloud_client.get_environment(env_id=env_id)
-
-    if env:
-        dbt_run_meta_data["environment"] = env
-
-    for step in dbt_run_meta_data.get("run_steps", []):
-        step_run_results_artifact = dbt_cloud_client.get_run_results_artifact(
-            run_id=dbt_job_run_id, step=step["index"]
-        )
-        if step_run_results_artifact:
-            step["run_results"] = step_run_results_artifact
-
-        step_run_manifest_artifact = dbt_cloud_client.get_manifest_artifact(
-            run_id=dbt_job_run_id, step=step["index"]
-        )
-
-        if step_run_manifest_artifact:
-            step["manifest"] = step_run_manifest_artifact
-
-    return dbt_run_meta_data
-
-
-def collect_data_from_dbt_cloud(
-    dbt_cloud_account_id, dbt_cloud_api_token, dbt_job_run_id
-):
-    """
-    Collect metadata for a single run from dbt cloud.
-
-    Args:
-        dbt_cloud_account_id: dbt cloud account id in order to  identify with dbt cloud API
-        dbt_cloud_api_token: Api token in order to authenticate dbt cloud API
-        dbt_job_run_id: run id of the dbt run that we want to report it's metadata.
-
-        @task
-        def prepare_data():
-            collect_data_from_dbt_cloud(
-            dbt_cloud_account_id=my_dbt_cloud_account_id,
-            dbt_cloud_api_token="my_dbt_cloud_api_token",
-            dbt_job_run_id=12345
-            )
-    """
-    if not dbt_job_run_id:
-        logger.warning("Can't collect run  Data from dbt cloud,missing run id")
-        return
-
-    if not dbt_cloud_api_token or not dbt_cloud_account_id:
-        logger.warning(
-            "Can't collect Data from dbt cloud, account id nor api key were supplied"
-        )
-        return
-
-    try:
-        dbt_cloud_client = DbtCloudApiClient(
-            account_id=dbt_cloud_account_id, dbt_cloud_api_token=dbt_cloud_api_token
-        )
-
-        dbt_run_meta_data = get_run_data_from_dbt(dbt_cloud_client, dbt_job_run_id)
-        if not dbt_run_meta_data:
-            return
-
-        _report_dbt_metadata(dbt_run_meta_data)
-    except Exception as e:
-        logger.warning(
-            "Failed collect and report data from dbt cloud api,continue execution"
-        )
-        log_exception("Could not collect data from dbt cloud", e)
-
+logger = logging.getLogger(__name__)
 
 ################
 #              #
@@ -121,6 +31,21 @@ def collect_data_from_dbt_cloud(
 
 
 def collect_data_from_dbt_core(dbt_project_path: str):
+    """
+    Collect metadata for a single run of dbt core command.
+
+    Args:
+        dbt_project_path: Path (on local fs) where dbt project is located.
+    """
+    tracker = _get_tracker()
+
+    if not tracker:
+        message = TRACKER_MISSING_MESSAGE % ("collect_data_from_dbt_core",)
+        get_one_time_logger().log_once(
+            message, "collect_data_from_dbt_core", logging.WARNING
+        )
+        return
+
     phase: str = ""
     try:
         phase = "load"
@@ -130,14 +55,29 @@ def collect_data_from_dbt_core(dbt_project_path: str):
         data = assets.extract_metadata()
 
         phase = "report"
-        _report_dbt_metadata(data)
+        tracker.log_dbt_metadata(dbt_metadata=data)
     except Exception as e:
         logger.warning(
             "Failed to %s data from dbt core at path %s,continue execution",
             phase,
             dbt_project_path,
         )
-        log_exception(f"Could not {phase} data from dbt cloud", e)
+        log_exception(f"Could not {phase} data from dbt core", e)
+
+
+def _load_dbt_core_assets(dbt_project_path: str) -> "DbtCoreAssets":
+    runs_info = _load_json_file(
+        os.path.join(dbt_project_path, "target", "run_results.json")
+    )
+    manifest = _load_json_file(
+        os.path.join(dbt_project_path, "target", "manifest.json")
+    )
+    logs = _read_and_truncate_logs(dbt_project_path)
+    project = _load_yaml_with_jinja(os.path.join(dbt_project_path, "dbt_project.yml"))
+    profile = _read_profile(runs_info, project)
+
+    assets = DbtCoreAssets(runs_info, manifest, logs, profile)
+    return assets
 
 
 @attr.s(auto_attribs=True)
@@ -247,30 +187,23 @@ def _render_values_jinja(value: T, environment: Environment) -> T:
     return value
 
 
-def _load_dbt_core_assets(dbt_project_path: str) -> DbtCoreAssets:
-    # open runs_info.json file and read it as a dict
-    with open(
-        os.path.join(dbt_project_path, "target", "run_results.json"), "r"
-    ) as runs_info_file:
-        runs_info = json.loads(runs_info_file.read())
+def _load_json_file(file_path: str) -> Dict:
+    with open(file_path, "r") as file:
+        return json.loads(file.read())
 
-    # open manifest.json file and read it as a dict
-    with open(
-        os.path.join(dbt_project_path, "target", "manifest.json"), "r"
-    ) as manifest_file:
-        manifest = json.loads(manifest_file.read())
 
-    logs = _read_and_truncate_logs(dbt_project_path)
-
-    project = _load_yaml_with_jinja(os.path.join(dbt_project_path, "dbt_project.yml"))
-    profile_dir = runs_info["args"]["profiles_dir"]
-    profile_name = project["profile"]
-    profile = _load_yaml_with_jinja(os.path.join(profile_dir, "profiles.yml"))[
-        profile_name
-    ]
-
-    assets = DbtCoreAssets(runs_info, manifest, logs, profile)
-    return assets
+def _read_profile(runs_info: Dict, project: Dict) -> Dict:
+    try:
+        profile_dir = runs_info["args"]["profiles_dir"]
+        profile_name = project["profile"]
+        profiles_file_path = os.path.join(profile_dir, "profiles.yml")
+        profiles = _load_yaml_with_jinja(profiles_file_path)
+        return profiles[profile_name]
+    except KeyError as e:
+        log_exception(
+            "dbt profile information not found in runs_info or project.", ex=e
+        )
+        raise
 
 
 def _read_and_truncate_logs(dbt_project_path: str) -> str:
@@ -328,7 +261,7 @@ def _extract_step_meta_data(runs_info, manifest, logs):
     return dbt_step_meta_data
 
 
-def _extract_status(runs_info):
+def _extract_status(runs_info) -> str:
     status = "pass"
     n = next((x for x in runs_info["results"] if x["status"] != "pass"), None)
     if n is None:
@@ -342,57 +275,3 @@ def _calculate_started_time(runs_info):
             return run["timing"][0]["started_at"]
 
     return None
-
-
-class Adapter(Enum):
-    # This class represents supported adapters.
-    BIGQUERY = "bigquery"
-    SNOWFLAKE = "snowflake"
-    REDSHIFT = "redshift"
-    SPARK = "spark"
-    OTHER = "other"
-
-    @staticmethod
-    def adapters() -> str:
-        # String representation of all supported adapter names
-        return ",".join([f"`{x.value}`" for x in list(Adapter)])
-
-    @classmethod
-    def from_profile(cls, profile):
-        try:
-            return Adapter[profile["type"].upper()]
-        except KeyError:
-            return Adapter.OTHER
-
-    def extract_host(self, profile):
-        if self == Adapter.SNOWFLAKE:
-            return {"account": profile.get("account")}
-
-        if self == Adapter.BIGQUERY:
-            return {
-                "project": profile.get("project"),
-                "location": profile.get("location"),
-            }
-
-        if self == Adapter.REDSHIFT:
-            host = profile["host"]
-            return {
-                "hostname": host,
-                "host": host,
-            }  # BE expect `hostname` but original is `host`
-
-        if self == Adapter.SPARK:
-            host = profile["host"]
-            return {
-                "hostname": host,
-                "host": host,
-            }  # BE expect `hostname` but original is `host`
-
-        host = profile.get("host", "")
-        return {"hostname": host, "host": host}
-
-    def connection(self, profile):
-        conn_type = profile["type"] if self == Adapter.OTHER else self.value
-        conn = {"type": conn_type}
-        conn.update(self.extract_host(profile))
-        return conn
