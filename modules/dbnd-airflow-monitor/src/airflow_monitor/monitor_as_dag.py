@@ -39,6 +39,8 @@ MONITOR_DAG_NAME = "databand_airflow_monitor"
 
 CHECK_INTERVAL = 10
 AUTO_RESTART_TIMEOUT = 3 * 60 * 60
+DEFAULT_SCHEDULE_INTERVAL = "* * * * *"
+
 MEMORY_LIMIT = 8 * 1024 * 1024 * 1024
 
 MEMORY_DIFF_BETWEEN_LOG_PRINTS_IN_MB = 5
@@ -242,6 +244,8 @@ def get_monitor_dag(
     monitor_env=None,
     guard_memory=MEMORY_LIMIT,
     log_level=LOG_LEVEL,
+    schedule_interval=DEFAULT_SCHEDULE_INTERVAL,
+    max_number_of_iterations=None,
 ):
     """
     @param dag_id: Name of Databand sync dag - default is "databand_airflow_monitor"
@@ -253,11 +257,15 @@ def get_monitor_dag(
     @param monitor_env: Custom Monitor Operator environment (use it to override DBND settings)
     @param guard_memory: Limit of memory used by monitor process (bytes, disabled if None)
     @param log_level: Dbnd log level
+    @param schedule_interval: Schedule Interval for monitor DAG. Highly suggested to
+    keep the default value of trying to trigger each minute to allow continuous
+    monitoring and reporting.
+    @param max_number_of_iterations: Limit the number of periodic monitor runs and exit.
     """
     dag = DAG(
         dag_id=dag_id,
         default_args=args,
-        schedule_interval="* * * * *",
+        schedule_interval=schedule_interval,
         dagrun_timeout=None,
         max_active_runs=1,
         catchup=False,
@@ -270,6 +278,8 @@ def get_monitor_dag(
         opts = " --interval %d " % check_interval
         if auto_restart_timeout:
             opts += " --stop-after %d " % auto_restart_timeout
+        if max_number_of_iterations:
+            opts += " --number-of-iterations %d " % max_number_of_iterations
         operator_kwargs = {TASK_CONCURRENCY_KEY: 1}
         run_monitor = MonitorOperator(
             databand_airflow_conn_id=databand_airflow_conn_id,
