@@ -73,6 +73,7 @@ class DataStageServerConfig(BaseServerConfig):
             if monitor_config
             else False,
             is_generic_syncer_enabled=server_config["is_generic_syncer_enabled"],
+            syncer_max_retries=server_config["syncer_max_retries"],
         )
         return conf
 

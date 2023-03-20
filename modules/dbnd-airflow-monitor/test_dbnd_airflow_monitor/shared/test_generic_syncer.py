@@ -1,10 +1,17 @@
 # © Copyright Databand.ai, an IBM Company 2022
-from typing import Dict, List
+from typing import Generator, List, Tuple
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from airflow_monitor.shared.adapter.adapter import Adapter, AdapterData
+from attr import evolve
+
+from airflow_monitor.shared.adapter.adapter import (
+    Adapter,
+    Assets,
+    AssetState,
+    AssetToState,
+)
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.generic_syncer import GenericSyncer
@@ -18,31 +25,56 @@ class MockAdapter(Adapter):
     def __init__(self, config):
         super(MockAdapter, self).__init__(config)
         self.cursor = 0
+        self.next_page = 0
 
-    def get_new_data(
-        self, cursor: int, batch_size: int, next_page: int
-    ) -> (Dict[str, object], List[str], str):
-        if next_page is not None:
-            return AdapterData(
-                data={"data": self.cursor + next_page}, failed=[], next_page=None
+    def init_assets_for_cursor(
+        self, cursor: int, batch_size: int
+    ) -> Generator[Tuple[Assets, int], None, None]:
+        while True:
+            yield (
+                Assets(
+                    data=None,
+                    assets_to_state=[
+                        AssetToState(
+                            asset_id=self.cursor + self.next_page, state=AssetState.INIT
+                        )
+                    ],
+                ),
+                self.cursor,
             )
-        self.cursor += 1
-        return AdapterData(data={"data": self.cursor}, failed=[], next_page=1)
+            self.cursor += 1
+            if self.next_page == 1:
+                break
+            self.next_page = 1
 
-    def get_last_cursor(self) -> int:
+    def init_cursor(self) -> int:
         return self.cursor
 
-    def get_update_data(self, to_update: List[str]) -> Dict[str, object]:
-        if to_update:
-            return {"data": to_update}
+    def get_assets_data(self, assets: Assets) -> Assets:
+        if assets.assets_to_state:
+            return Assets(
+                data={
+                    "data": [
+                        asset_to_state.asset_id
+                        for asset_to_state in assets.assets_to_state
+                    ]
+                },
+                assets_to_state=[
+                    evolve(asset_to_state, state=AssetState.FAILED_REQUEST)
+                    if asset_to_state.state == AssetState.FAILED_REQUEST
+                    else evolve(asset_to_state, state=AssetState.FINISHED)
+                    for asset_to_state in assets.assets_to_state
+                ],
+            )
         else:
-            return {}
+            return Assets(data={}, assets_to_state=[])
 
 
 class MockTrackingService(BaseTrackingService):
     def __init__(self, monitor_type: str, tracking_source_uid: str):
         BaseTrackingService.__init__(self, monitor_type, tracking_source_uid)
         self.sent_data = []
+        self.assets_state = []
         self.last_seen_run_id = None
         self.last_cursor = None
         self.last_state = None
@@ -50,24 +82,37 @@ class MockTrackingService(BaseTrackingService):
         self.error = None
         self.active_runs = None
 
-    def save_tracking_data(self, full_data):
-        self.sent_data.append(full_data)
+    def save_tracking_data(self, assets_data):
+        self.sent_data.append(assets_data)
         if self.error and self.counter == 1:
             raise self.error
         self.counter += 1
 
-    def update_last_cursor(self, integration_id, state, data):
+    def save_assets_state(
+        self, integration_id, syncer_instance_id, assets_to_state: list[AssetToState]
+    ):
+        self.assets_state.append(assets_to_state)
+        return
+
+    def update_last_cursor(self, integration_id, syncer_instance_id, state, data):
         self.last_cursor = data
         self.last_state = state
 
     def get_last_cursor_and_state(self) -> (int, str):
         return self.last_cursor, self.last_state
 
-    def get_last_cursor(self, integration_id) -> int:
+    def get_last_cursor(self, integration_id, syncer_instance_id) -> int:
         return self.last_cursor
 
-    def get_active_runs(self) -> List[dict]:
-        return self.active_runs
+    def get_active_assets(self, integration_id, syncer_instance_id) -> List[dict]:
+        assets_to_state = []
+        if self.active_runs:
+            for asset_to_state_dict in self.active_runs:
+                try:
+                    assets_to_state.append(AssetToState.from_dict(asset_to_state_dict))
+                except:
+                    continue
+            return assets_to_state
 
     def set_error(self, error):
         self.error = error
@@ -125,6 +170,7 @@ def generic_runtime_syncer(
         tracking_service=mock_tracking_service,
         integration_management_service=mock_integration_management_service,
         adapter=mock_adapter,
+        syncer_instance_id="123",
     )
     with patch.object(syncer, "refresh_config", new=lambda *args: None), patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
@@ -149,10 +195,9 @@ class TestGenericSyncer:
         generic_runtime_syncer.sync_once()
         assert mock_tracking_service.get_last_cursor_and_state() == (2, "update")
         assert mock_tracking_service.sent_data == [
-            {"data": 1},
-            {"data": 2},
-            {"data": 2},
-            {"data": 3},
+            {"data": [0]},
+            {"data": [2]},
+            {"data": [3]},
         ]
 
     def test_sync_get_data_exception_on_save_data(
@@ -170,9 +215,9 @@ class TestGenericSyncer:
         # call get data with same cursor before failure
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
         assert mock_tracking_service.sent_data == [
-            {"data": 1},
-            {"data": 2},
-            {"data": 2},
+            {"data": [0]},
+            {"data": [2]},
+            {"data": [2]},
         ]
 
     def test_sync_get_and_update_data_with_pagination(
@@ -180,12 +225,101 @@ class TestGenericSyncer:
         generic_runtime_syncer: GenericSyncer,
         mock_tracking_service: MockTrackingService,
     ):
-        mock_tracking_service.set_active_runs([5, 6, 7, 8, 9, 10])
+        mock_tracking_service.set_active_runs(
+            [
+                {"asset_uri": 3, "state": "active"},
+                {"asset_uri": 4, "state": "active"},
+                {"asset_uri": 5, "state": "active"},
+                {"asset_uri": 6, "state": "active"},
+                {"asset_uri": 7, "state": "active"},
+                {"asset_uri": 8, "state": "active"},
+            ]
+        )
         generic_runtime_syncer.sync_once()
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
         generic_runtime_syncer.sync_once()
+        assert mock_tracking_service.assets_state == [
+            [
+                AssetToState(asset_id=3, state=AssetState.FINISHED),
+                AssetToState(asset_id=4, state=AssetState.FINISHED),
+                AssetToState(asset_id=5, state=AssetState.FINISHED),
+                AssetToState(asset_id=6, state=AssetState.FINISHED),
+                AssetToState(asset_id=7, state=AssetState.FINISHED),
+                AssetToState(asset_id=8, state=AssetState.FINISHED),
+            ],
+            [AssetToState(asset_id=0, state=AssetState.FINISHED)],
+            [AssetToState(asset_id=2, state=AssetState.FINISHED)],
+        ]
         assert mock_tracking_service.sent_data == [
-            {"data": [5, 6, 7, 8, 9, 10]},
-            {"data": 1},
-            {"data": 2},
+            {"data": [3, 4, 5, 6, 7, 8]},
+            {"data": [0]},
+            {"data": [2]},
+        ]
+
+    def test_sync_get_and_update_data_with_pagination_and_uknown_state(
+        self,
+        generic_runtime_syncer: GenericSyncer,
+        mock_tracking_service: MockTrackingService,
+    ):
+        mock_tracking_service.set_active_runs(
+            [
+                {"asset_uri": 3, "state": "wow", "data": {"retry_count": 2}},
+                {"asset_uri": 4, "state": "active"},
+                {"asset_uri": 5, "state": "active"},
+                {"asset_uri": 6, "state": "active"},
+                {"asset_uri": 7, "state": "active"},
+                {"asset_uri": 8, "state": "active"},
+            ]
+        )
+        generic_runtime_syncer.sync_once()
+        assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
+        generic_runtime_syncer.sync_once()
+        assert mock_tracking_service.assets_state == [
+            [
+                AssetToState(asset_id=4, state=AssetState.FINISHED),
+                AssetToState(asset_id=5, state=AssetState.FINISHED),
+                AssetToState(asset_id=6, state=AssetState.FINISHED),
+                AssetToState(asset_id=7, state=AssetState.FINISHED),
+                AssetToState(asset_id=8, state=AssetState.FINISHED),
+            ],
+            [AssetToState(asset_id=0, state=AssetState.FINISHED)],
+            [AssetToState(asset_id=2, state=AssetState.FINISHED)],
+        ]
+        assert mock_tracking_service.sent_data == [
+            {"data": [4, 5, 6, 7, 8]},
+            {"data": [0]},
+            {"data": [2]},
+        ]
+
+    def test_sync_get_and_update_data_with_pagination_and_failed_request(
+        self,
+        generic_runtime_syncer: GenericSyncer,
+        mock_tracking_service: MockTrackingService,
+    ):
+        mock_tracking_service.set_active_runs(
+            [
+                {"asset_uri": 3, "state": "failed_request", "data": {"retry_count": 1}},
+                {"asset_uri": 4, "state": "active"},
+                {"asset_uri": 5, "state": "active"},
+                {"asset_uri": 6, "state": "active"},
+                {"asset_uri": 7, "state": "active"},
+                {"asset_uri": 8, "state": "active"},
+            ]
+        )
+        generic_runtime_syncer.sync_once()
+        assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
+        generic_runtime_syncer.sync_once()
+        assert mock_tracking_service.assets_state == [
+            [
+                AssetToState(
+                    asset_id=3, state=AssetState.FAILED_REQUEST, retry_count=2
+                ),
+                AssetToState(asset_id=4, state=AssetState.FINISHED),
+                AssetToState(asset_id=5, state=AssetState.FINISHED),
+                AssetToState(asset_id=6, state=AssetState.FINISHED),
+                AssetToState(asset_id=7, state=AssetState.FINISHED),
+                AssetToState(asset_id=8, state=AssetState.FINISHED),
+            ],
+            [AssetToState(asset_id=0, state=AssetState.FINISHED)],
+            [AssetToState(asset_id=2, state=AssetState.FINISHED)],
         ]

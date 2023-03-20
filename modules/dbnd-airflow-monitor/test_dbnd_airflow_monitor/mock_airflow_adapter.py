@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Optional
 
-from airflow_monitor.shared.adapter.adapter import Adapter, AdapterData, ThirdPartyInfo
+from airflow_monitor.shared.adapter.adapter import Adapter, Assets, ThirdPartyInfo
 
 
 class MockAirflowAdapter(Adapter):
@@ -11,15 +11,15 @@ class MockAirflowAdapter(Adapter):
         self.metadata = None
         self.error_list = []
 
-    def get_last_cursor(self) -> object:
+    def init_cursor(self) -> object:
         raise NotImplementedError()
 
-    def get_new_data(
+    def init_assets_for_cursor(
         self, cursor: object, batch_size: int, next_page: object
-    ) -> AdapterData:
+    ) -> Assets:
         raise NotImplementedError()
 
-    def get_update_data(self, to_update: List[object]) -> Dict[str, object]:
+    def get_assets_data(self, to_update: List[object]) -> Dict[str, object]:
         raise NotImplementedError()
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:

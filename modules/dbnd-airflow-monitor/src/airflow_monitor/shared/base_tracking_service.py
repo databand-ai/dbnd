@@ -1,7 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
 import logging
 
+from airflow_monitor.shared.adapter.adapter import AssetState, AssetToState
 from airflow_monitor.shared.utils import _get_api_client
 from dbnd._vendor.cachetools import TTLCache
 
@@ -35,32 +35,55 @@ class BaseTrackingService:
             request_timeout=request_timeout,
         )
 
-    def save_tracking_data(self, full_data):
+    def save_tracking_data(self, assets_data: dict):
         self._api_client.api_request(
             endpoint=f"tracking-monitor/{self.server_id}/save_tracking_data",
             method="POST",
-            data=full_data,
+            data=assets_data,
         )
 
-    def get_active_runs(self):
-        # TODO: change to get_active_runs endpoint when updated
-        response = self._api_client.api_request(
-            endpoint=f"tracking-monitor/{self.server_id}/active_datastage_runs",
+    def save_assets_state(
+        self,
+        integration_id: str,
+        syncer_instance_id: str,
+        assets_to_state: list[AssetToState],
+    ):
+        data_to_send = [asset_to_state.asdict() for asset_to_state in assets_to_state]
+        self._api_client.api_request(
+            endpoint=f"tracking-monitor/{integration_id}/assets/run?syncer_instance_id={syncer_instance_id}",
+            method="PUT",
+            data=data_to_send,
+        )
+
+    def get_active_assets(
+        self, integration_id: str, syncer_instance_id: str
+    ) -> list[AssetToState]:
+        result = self._api_client.api_request(
+            endpoint=f"tracking-monitor/{integration_id}/assets/run?states={','.join(AssetState.get_active_states())}&syncer_instance_id={syncer_instance_id}",
             method="GET",
             data=None,
         )
-        return response.get("datastage_runs", [])
+        assets_to_state = []
+        for asset_to_state_dict in result:
+            try:
+                assets_to_state.append(AssetToState.from_dict(asset_to_state_dict))
+            except:
+                logger.exception("failed to parse asset data, asset will be skipped")
+                continue
+        return assets_to_state
 
-    def update_last_cursor(self, integration_id, state, data):
+    def update_last_cursor(
+        self, integration_id: str, syncer_instance_id: str, state: str, data: str
+    ):
         self._api_client.api_request(
-            endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor",
+            endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor?syncer_instance_id={syncer_instance_id}",
             method="PUT",
             data={"state": state, "data": {"last_cursor_value": data}},
         )
 
-    def get_last_cursor(self, integration_id):
+    def get_last_cursor(self, integration_id: str, syncer_instance_id: str):
         result = self._api_client.api_request(
-            endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor",
+            endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor?syncer_instance_id={syncer_instance_id}",
             method="GET",
             data=None,
         )

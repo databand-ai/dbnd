@@ -2,9 +2,11 @@
 
 import logging
 
-from typing import Iterable
-
-from airflow_monitor.shared.adapter.adapter import Adapter
+from airflow_monitor.shared.adapter.adapter import (
+    Adapter,
+    Assets,
+    AssetsToStatesMachine,
+)
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
@@ -22,6 +24,8 @@ class GenericSyncer(BaseComponent):
     tracking_service: BaseTrackingService
     config: BaseServerConfig
     adapter: Adapter
+    assets_to_states_machine: AssetsToStatesMachine
+    syncer_instance_id: str
 
     def __init__(
         self,
@@ -29,94 +33,98 @@ class GenericSyncer(BaseComponent):
         tracking_service: BaseTrackingService,
         integration_management_service: IntegrationManagementService,
         adapter: Adapter,
+        syncer_instance_id: str,
     ):
         super(GenericSyncer, self).__init__(
             config, tracking_service, integration_management_service, None
         )
         self.adapter = adapter
+        self.assets_to_states_machine = AssetsToStatesMachine(config.syncer_max_retries)
+        self.syncer_instance_id = syncer_instance_id
 
     def _sync_once(self):
         logger.info(
             "Started running for tracking source %s", self.config.tracking_source_uid
         )
-
+        synced_active_data = False
+        synced_new_data = False
         cursor = self.tracking_service.get_last_cursor(
-            integration_id=self.config.identifier
+            integration_id=self.config.identifier,
+            syncer_instance_id=self.syncer_instance_id,
         )
 
         if cursor is None:
             self.tracking_service.update_last_cursor(
                 integration_id=self.config.identifier,
+                syncer_instance_id=self.syncer_instance_id,
                 state="init",
-                data=self.adapter.get_last_cursor(),
+                data=self.adapter.init_cursor(),
             )
             return
-
-        synced_updated_data = self.sync_active_data()
-        synced_new_data = self.sync_new_data(cursor)
-
-        # report last cursor only when all pages saved
-        self.tracking_service.update_last_cursor(
-            integration_id=self.config.identifier,
-            state="update",
-            data=self.adapter.get_last_cursor(),
-        )
-        self.integration_management_service.report_monitor_time_data(
-            self.config.identifier,
-            synced_new_data=(synced_updated_data or synced_new_data),
-        )
-
-    def sync_active_data(self) -> bool:
-        update_data = self.update_active_adapter_data()
-        if update_data:
-            self.tracking_service.save_tracking_data(update_data)
-            return True
-
-        logger.info(
-            "No updated data found for tracking source %s",
-            self.config.tracking_source_uid,
-        )
-        return False
-
-    def update_active_adapter_data(self) -> dict:
-        logger.info(
-            "Checking for in progress data for tracking source %s",
-            self.config.tracking_source_uid,
-        )
-        active_runs = self.tracking_service.get_active_runs()
-        if active_runs:
-            return self.adapter.get_update_data(active_runs)
-        return {}
-
-    def sync_new_data(self, cursor: object) -> bool:
-        synced_new_runs = False
         logger.info(
             "Checking for new data for tracking source %s",
             self.config.tracking_source_uid,
         )
-        for data in self.get_adapter_data(cursor):
-            if data:
-                self.tracking_service.save_tracking_data(data)
-                synced_new_runs = True
+        active_assets_to_states = self.tracking_service.get_active_assets(
+            integration_id=self.config.identifier,
+            syncer_instance_id=self.syncer_instance_id,
+        )
+        if active_assets_to_states:
+            synced_active_data = self._process_assets_batch(
+                Assets(assets_to_state=active_assets_to_states)
+            )
 
-        if not synced_new_runs:
+        for init_assets, last_cursor in self.adapter.init_assets_for_cursor(
+            cursor, batch_size=200
+        ):
+            synced_new_data = self._process_assets_batch(init_assets)
+
+        if last_cursor != None:
+            # report last cursor only when all pages saved
+            self.tracking_service.update_last_cursor(
+                integration_id=self.config.identifier,
+                syncer_instance_id=self.syncer_instance_id,
+                state="update",
+                data=last_cursor,
+            )
+        self.integration_management_service.report_monitor_time_data(
+            self.config.identifier,
+            synced_new_data=(synced_active_data or synced_new_data),
+        )
+
+    def _process_assets_batch(self, assets):
+        synced_data = False
+        assets_data = self.adapter.get_assets_data(assets)
+        assets_data_to_report = assets_data.data
+        assets_states_to_report = assets_data.assets_to_state
+        if not assets_data_to_report:
             logger.info(
-                "No new data found for tracking source %s",
+                "No new assets data found for tracking source %s",
                 self.config.tracking_source_uid,
             )
-
-        return synced_new_runs
-
-    def get_adapter_data(self, cursor: object) -> Iterable[object]:
-        next_page = None
-        while True:
-            adapter_data = self.adapter.get_new_data(
-                cursor=cursor, batch_size=200, next_page=next_page
+        else:
+            logger.info(
+                "Found new assets data for tracking source %s",
+                self.config.tracking_source_uid,
             )
-            data = adapter_data.data
-            next_page = adapter_data.next_page
-            # TODO: put failed in queue here
-            if next_page is None:
-                break
-            yield data
-        yield data
+            synced_data = True
+
+            self.tracking_service.save_tracking_data(assets_data_to_report)
+        if not assets_states_to_report:
+            logger.info(
+                "No new assets states for tracking source %s",
+                self.config.tracking_source_uid,
+            )
+        else:
+            logger.info(
+                "Found new assets states for tracking source %s",
+                self.config.tracking_source_uid,
+            )
+            self.tracking_service.save_assets_state(
+                integration_id=self.config.identifier,
+                syncer_instance_id=self.syncer_instance_id,
+                assets_to_state=self.assets_to_states_machine.process(
+                    assets_states_to_report
+                ),
+            )
+        return synced_data

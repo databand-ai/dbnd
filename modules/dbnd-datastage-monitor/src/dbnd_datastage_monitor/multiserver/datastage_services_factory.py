@@ -143,6 +143,7 @@ class DataStageMonitorServicesFactory(MonitorServicesFactory):
                         config=integration_config,
                         datastage_assets_client=datastage_asset_client,
                     ),
+                    syncer_instance_id=datastage_asset_client.project_id,
                 )
                 all_components.append(syncer_instance)
 
