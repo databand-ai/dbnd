@@ -4,7 +4,7 @@ import logging
 
 from functools import partial
 
-from dbnd._core.tracking.dbt import get_run_data_from_dbt
+from dbnd._core.tracking.dbt.dbt_cloud import get_run_data_from_dbt
 from dbnd.utils.dbt_cloud_api_client import DbtCloudApiClient
 
 
