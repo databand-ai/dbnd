@@ -2,24 +2,43 @@
 
 import logging
 
-from prometheus_client import Summary
+from enum import Enum
+
+from prometheus_client import Counter, Summary
 
 
-LABEL_NAME_MONITOR = "monitor"
+LABEL_NAME_INTEGRATION = "integration"
 LABEL_NAME_SYNCER = "syncer"
 LABEL_NAME_FETCHER = "fetcher"
-LABEL_NAMES = [LABEL_NAME_MONITOR, LABEL_NAME_SYNCER, LABEL_NAME_FETCHER]
+LABEL_NAME_STATUS = "status"
+
+
+class MonitorSyncStatus(Enum):
+    STATUS_SUCCESS = "success"
+    STATUS_FAILED = "failed"
+
 
 logger = logging.getLogger(__name__)
 
 query_execution_time = Summary(
-    name="dbnd_datasourec_monitor_query_execution_time",
+    name="dbnd_datasource_monitor_query_execution_time",
     documentation="Query execution time on a single run for a single component (syncer+fetcher)",
-    labelnames=LABEL_NAMES,
+    labelnames=[LABEL_NAME_INTEGRATION, LABEL_NAME_SYNCER, LABEL_NAME_FETCHER],
 )
 
 tracking_report_time = Summary(
-    name="dbnd_datasourec_monitor_tracking_report_time",
+    name="dbnd_datasource_monitor_tracking_report_time",
     documentation="Tracking report time on a single run for a single component (syncer+fetcher)",
-    labelnames=LABEL_NAMES,
+    labelnames=[LABEL_NAME_INTEGRATION, LABEL_NAME_SYNCER, LABEL_NAME_FETCHER],
+)
+
+monitor_sync_iteration = Counter(
+    name="dbnd_monitor_sync_iteration",
+    documentation="Reports a sync completion with relevant status",
+    labelnames=[
+        LABEL_NAME_INTEGRATION,
+        LABEL_NAME_SYNCER,
+        LABEL_NAME_FETCHER,
+        LABEL_NAME_STATUS,
+    ],
 )

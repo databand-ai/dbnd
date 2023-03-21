@@ -60,3 +60,9 @@ class BaseComponent:
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.config.source_name}|{self.config.uid})"
+
+    def report_sync_metrics(self, is_success: bool) -> None:
+        """
+        reports sync metrics when required.
+        called from capture_component_exception()
+        """

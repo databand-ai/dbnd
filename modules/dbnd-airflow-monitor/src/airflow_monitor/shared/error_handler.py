@@ -37,6 +37,8 @@ def capture_component_exception(component: BaseComponent, function_name: str):
             full_function_name,
             None,
         )
+
+        component.report_sync_metrics(is_success=True)
     except Exception:
         syncer_logger.exception(
             "Error when running function %s from %s", function_name, class_name
@@ -53,6 +55,8 @@ def capture_component_exception(component: BaseComponent, function_name: str):
             full_function_name,
             err_message,
         )
+
+        component.report_sync_metrics(is_success=False)
 
 
 log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds())
