@@ -20,7 +20,10 @@ from dbnd_airflow.constants import AIRFLOW_VERSION_BEFORE_2_2
 from dbnd_airflow.tracking.airflow_patching import patch_airflow_context_vars
 from dbnd_airflow.tracking.config import TrackingSparkConfig
 from dbnd_airflow.tracking.dbnd_dag_tracking import track_dag
-from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_info
+from dbnd_airflow.tracking.wrap_operators import (
+    get_airflow_operator_handlers_config,
+    wrap_operator_with_tracking_info,
+)
 from dbnd_airflow.utils import get_airflow_instance_uid
 
 
@@ -43,38 +46,6 @@ dbnd_spark_env_vars = (
     "spark.yarn.appMasterEnv.DBND__ENABLE__SPARK_CONTEXT_ENV",
     "spark.yarn.appMasterEnv.DBND_HOME",
 )
-
-
-class TestTrackDagFunction(object):
-    @pytest.fixture
-    def dag(self):
-        args = dict(start_date=days_ago(2))
-        dag_object = DAG(
-            dag_id="test_dag", default_args=args, schedule_interval=timedelta(minutes=1)
-        )
-        return dag_object
-
-    @pytest.fixture
-    def dataproc_operator(self, dag):
-        from airflow.contrib.operators.dataproc_operator import DataProcPySparkOperator
-
-        operator = DataProcPySparkOperator(
-            job_name="{{dag.dag_id}}__{{task.task_id}}_{{ts_nodash}}",
-            cluster_name="{{var.dataproc_cluster_name}}",
-            task_id="dataproc_task",
-            main="script.py",
-            arguments=["input.csv", "output.csv"],
-            dag=dag,
-        )
-        track_dag(dag)
-        return operator
-
-    @pytest.mark.skip(
-        reason="can't import google.cloud.storage in ci (used by DataProcPySparkOperator)"
-    )
-    def test_dataproc_pyspark_operator(self, dataproc_operator):
-        for env_var in dbnd_spark_env_vars:
-            assert env_var in dataproc_operator.dataproc_properties
 
 
 class TestTrackOperator(object):
@@ -107,7 +78,17 @@ class TestTrackOperator(object):
         return dag_object
 
     @pytest.fixture
-    def emr_operator(self, dag, spark_config_with_agent):
+    def tracking_info(self):
+        return {
+            "AIRFLOW_CTX_DAG_ID": "test_dag",
+            "AIRFLOW_CTX_EXECUTION_DATE": "emr_task",
+            "AIRFLOW_CTX_TASK_ID": "1970-01-01T0000.000",
+            "AIRFLOW_CTX_TRY_NUMBER": "1",
+            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
+            DBND_ROOT_RUN_UID: str(uuid.uuid4()),
+        }
+
+    def test_emr_add_steps_operator(self, tracking_info, dag, spark_config_with_agent):
         spark_submit_command = [
             "spark-submit",
             "--master",
@@ -125,21 +106,17 @@ class TestTrackOperator(object):
             HadoopJarStep=dict(Jar="command-runner.jar", Args=spark_submit_command),
         )
 
-        operator = EmrAddStepsOperator(
+        emr_operator = EmrAddStepsOperator(
             task_id="emr_task", job_flow_id=1, steps=[step_command], dag=dag
         )
-        env = {
-            "AIRFLOW_CTX_DAG_ID": "test_dag",
-            "AIRFLOW_CTX_EXECUTION_DATE": "emr_task",
-            "AIRFLOW_CTX_TASK_ID": "1970-01-01T0000.000",
-            "AIRFLOW_CTX_TRY_NUMBER": "1",
-            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
-        }
 
-        with wrap_operator_with_tracking_info(env, operator):
-            return operator
+        airflow_operator_handlers = get_airflow_operator_handlers_config()
 
-    def test_emr_add_steps_operator(self, emr_operator):
+        with wrap_operator_with_tracking_info(
+            tracking_info, emr_operator, airflow_operator_handlers
+        ):
+            pass
+
         emr_args = emr_operator.steps[0]["HadoopJarStep"]["Args"]
         emr_args_names = {arg.split("=")[0] for arg in emr_args}
 
@@ -155,27 +132,19 @@ class TestTrackOperator(object):
             in spark_submit_string
         )
 
-    @pytest.fixture
-    def pyspark_submit_operator(self, dag, spark_config_with_agent):
-        operator = SparkSubmitOperator(
+    def test_pyspark_submit_operator(self, tracking_info, dag, spark_config_with_agent):
+        pyspark_submit_operator = SparkSubmitOperator(
             task_id="spark_submit_task",
             application="script.py",
             application_args=["input.csv", "output.csv"],
             dag=dag,
         )
 
-        env = {
-            "AIRFLOW_CTX_DAG_ID": "test_dag",
-            "AIRFLOW_CTX_EXECUTION_DATE": "spark_submit_task",
-            "AIRFLOW_CTX_TASK_ID": "1970-01-01T0000.000",
-            "AIRFLOW_CTX_TRY_NUMBER": "1",
-            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
-        }
-
-        with wrap_operator_with_tracking_info(env, operator):
-            return operator
-
-    def test_pyspark_submit_operator(self, pyspark_submit_operator):
+        airflow_operator_handlers = get_airflow_operator_handlers_config()
+        with wrap_operator_with_tracking_info(
+            tracking_info, pyspark_submit_operator, airflow_operator_handlers
+        ):
+            pass
         conf = pyspark_submit_operator._conf
         for env_var in dbnd_spark_env_vars:
             assert env_var in conf
@@ -190,19 +159,19 @@ class TestTrackOperator(object):
             == "ai.databand.spark.DbndSparkQueryExecutionListener"
         )
 
-    @pytest.fixture
-    def spark_submit_operator(self, dag, spark_config_with_jar):
-        operator = SparkSubmitOperator(
+    def test_spark_submit_operator(self, dag, spark_config_with_jar):
+        spark_submit_operator = SparkSubmitOperator(
             task_id="spark_submit_task",
             conf={"spark.jars": "dbnd-examples-all.jar"},
             application_args=["input.csv", "output.csv"],
             dag=dag,
         )
 
-        with wrap_operator_with_tracking_info({}, operator):
-            return operator
-
-    def test_spark_submit_operator(self, spark_submit_operator):
+        airflow_operator_handlers = get_airflow_operator_handlers_config()
+        with wrap_operator_with_tracking_info(
+            {}, spark_submit_operator, airflow_operator_handlers
+        ):
+            pass
         conf = spark_submit_operator._conf
 
         assert conf["spark.jars"] == "dbnd-examples-all.jar,/home/hadoop/dbnd-agent.jar"
@@ -211,9 +180,8 @@ class TestTrackOperator(object):
             == "ai.databand.spark.DbndSparkQueryExecutionListener"
         )
 
-    @pytest.fixture
-    def ecs_operator(self, dag):
-        return ECSOperator(
+    def test_ecs_operator(self, tracking_info, dag):
+        ecs_operator = ECSOperator(
             task_id="ecs_task",
             dag=dag,
             cluster="cluster",
@@ -223,18 +191,18 @@ class TestTrackOperator(object):
             },
         )
 
-    def test_ecs_operator(self, ecs_operator):
+        airflow_operator_handlers = get_airflow_operator_handlers_config()
         with wrap_operator_with_tracking_info(
-            {"TRACKING_ENV": "TRACKING_VALUE"}, ecs_operator
+            tracking_info, ecs_operator, airflow_operator_handlers
         ):
-            for override in ecs_operator.overrides["containerOverrides"]:
-                assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
-                    "environment"
-                ]
+            pass
+        for override in ecs_operator.overrides["containerOverrides"]:
+            assert {"name": "AIRFLOW_CTX_TRY_NUMBER", "value": "1"} in override[
+                "environment"
+            ]
 
-    @pytest.fixture
-    def ecs_operator_with_env(self, dag):
-        return ECSOperator(
+    def test_ecs_operator_with_env(self, tracking_info, dag):
+        ecs_operator_with_env = ECSOperator(
             task_id="ecs_task",
             dag=dag,
             cluster="cluster",
@@ -250,20 +218,21 @@ class TestTrackOperator(object):
             },
         )
 
-    def test_ecs_operator_with_env(self, ecs_operator_with_env):
+        airflow_operator_handlers = get_airflow_operator_handlers_config()
         with wrap_operator_with_tracking_info(
-            {"TRACKING_ENV": "TRACKING_VALUE"}, ecs_operator_with_env
+            tracking_info, ecs_operator_with_env, airflow_operator_handlers
         ):
             for override in ecs_operator_with_env.overrides["containerOverrides"]:
-                assert {"name": "TRACKING_ENV", "value": "TRACKING_VALUE"} in override[
+                assert {"name": "AIRFLOW_CTX_TRY_NUMBER", "value": "1"} in override[
                     "environment"
                 ]
                 assert {"name": "USER_KEY", "value": "USER_VALUE"} in override[
                     "environment"
                 ]
 
-    @pytest.fixture
-    def databricks_operator_with_env(self, dag):
+    def test_databricks_operator_with_env(
+        self, tracking_info, dag, spark_config_with_agent
+    ):
         databricks_cluster_params = {
             "spark_version": "6.5.x-scala2.11",
             "node_type_id": "m5a.large",
@@ -287,26 +256,17 @@ class TestTrackOperator(object):
             },
         }
 
-        return DatabricksSubmitRunOperator(
+        databricks_operator_with_env = DatabricksSubmitRunOperator(
             task_id="databricks_task", json=databricks_task_params
         )
 
-    def test_databricks_operator_with_env(
-        self, databricks_operator_with_env, spark_config_with_agent
-    ):
+        airflow_operator_handlers = get_airflow_operator_handlers_config()
         with wrap_operator_with_tracking_info(
-            {
-                "TRACKING_ENV": "TRACKING_VALUE",
-                "AIRFLOW_CTX_TASK_ID": "test_task",
-                "AIRFLOW_CTX_DAG_ID": "test_dag",
-                "AIRFLOW_CTX_TRY_NUMBER": "1",
-                DBND_ROOT_RUN_UID: str(uuid.uuid4()),
-            },
-            databricks_operator_with_env,
+            tracking_info, databricks_operator_with_env, airflow_operator_handlers
         ):
             config = databricks_operator_with_env.json
             env = config["new_cluster"]["spark_env_vars"]
-            assert env["TRACKING_ENV"] == "TRACKING_VALUE"
+            assert env["AIRFLOW_CTX_TRY_NUMBER"] == "1"
             assert env[ENV_DBND_SCRIPT_NAME] == "databricks_report.py"
             spark_conf = config["new_cluster"]["spark_conf"]
             assert (
@@ -326,3 +286,22 @@ class TestTrackOperator(object):
         context = dict(task_instance=mock_task_instance)
         airflow_vars = context_to_airflow_vars(context)
         assert airflow_vars["AIRFLOW_CTX_TRY_NUMBER"] == "1"
+
+    @pytest.mark.skip(
+        reason="can't import google.cloud.storage in ci (used by DataProcPySparkOperator)"
+    )
+    def test_dataproc_pyspark_operator(self, dag):
+        from airflow.contrib.operators.dataproc_operator import DataProcPySparkOperator
+
+        dataproc_operator = DataProcPySparkOperator(
+            job_name="{{dag.dag_id}}__{{task.task_id}}_{{ts_nodash}}",
+            cluster_name="{{var.dataproc_cluster_name}}",
+            task_id="dataproc_task",
+            main="script.py",
+            arguments=["input.csv", "output.csv"],
+            dag=dag,
+        )
+        track_dag(dag)
+
+        for env_var in dbnd_spark_env_vars:
+            assert env_var in dataproc_operator.dataproc_properties

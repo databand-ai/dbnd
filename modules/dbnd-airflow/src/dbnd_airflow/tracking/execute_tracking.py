@@ -23,7 +23,10 @@ from dbnd._core.utils.basics.nested_context import nested
 from dbnd_airflow.raw_constants import MONITOR_DAG_NAME
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_tracking_information, get_xcoms
-from dbnd_airflow.tracking.wrap_operators import wrap_operator_with_tracking_info
+from dbnd_airflow.tracking.wrap_operators import (
+    get_airflow_operator_handlers_config,
+    wrap_operator_with_tracking_info,
+)
 from dbnd_airflow.utils import get_airflow_instance_uid
 
 
@@ -202,7 +205,12 @@ def af_tracking_context(task_run, airflow_context, operator):
 
     try:
         tracking_info = get_tracking_information(airflow_context, task_run)
-        operator_wrapper = wrap_operator_with_tracking_info(tracking_info, operator)
+        airflow_operator_handlers = get_airflow_operator_handlers_config(
+            task_run.run.context.settings.tracking.get_airflow_operator_handlers()
+        )
+        operator_wrapper = wrap_operator_with_tracking_info(
+            tracking_info, operator, airflow_operator_handlers
+        )
 
     except Exception as e:
         logger.error(

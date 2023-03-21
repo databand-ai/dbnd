@@ -91,19 +91,24 @@ class TrackingConfig(Config):
         "`NONE`, which is the default value, limits everything.",
     ).enum(ValueTrackingLevel)
 
-    track_source_code = parameter(
-        default=False,
-        description="Enable tracking of function, module and file source code.",
-    )[bool]
-
     auto_disable_slow_size = parameter(
         default=True,
         description="Enable automatically disabling slow previews for Spark DataFrame with text formats.",
     )[bool]
 
+    track_source_code = parameter(
+        default=False,
+        description="Enable tracking of function, module and file source code.",
+    )[bool]
+
+    airflow_operator_handlers = parameter(
+        default={},
+        description="Control which of the Airflow Operator's fields would be flattened when tracked.",
+    )[Dict[str, str]]
+
     flatten_operator_fields = parameter(
         default={},
-        description="Control which of the operator's fields would be flattened when tracked.",
+        description="Control which of the Airflow Operator's fields would be flattened when tracked.",
     )[Dict[str, str]]
 
     capture_tracking_log = parameter(
