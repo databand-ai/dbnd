@@ -49,7 +49,7 @@ def get_from_nullable_chain(
         while chain:
             next_key = chain.pop()
             if isinstance(source, dict):
-                source = source.get(next_key)
+                source = source.get(next_key, default_val)
             else:
                 source = getattr(source, next_key)
         return source
