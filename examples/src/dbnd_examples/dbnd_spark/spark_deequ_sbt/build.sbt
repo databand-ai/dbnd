@@ -1,4 +1,4 @@
-val databandVersion = "1.0.12.5"
+val databandVersion = "1.0.12.6"
 
 ThisBuild / scalaVersion := "2.12.8"
 ThisBuild / version := databandVersion
