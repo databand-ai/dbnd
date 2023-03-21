@@ -55,7 +55,7 @@ class AssetToState(ABC):
 class AssetsToStatesMachine:
     max_retries: int = 5
 
-    def process(self, assets_to_state: list[AssetToState]) -> list[AssetToState]:
+    def process(self, assets_to_state: List[AssetToState]) -> List[AssetToState]:
         new_assets_to_state = []
         for asset_to_state in assets_to_state:
             if asset_to_state.state == AssetState.FAILED_REQUEST:
@@ -72,7 +72,7 @@ class AssetsToStatesMachine:
 @attr.s(auto_attribs=True)
 class Assets:
     data: Optional[object] = None
-    assets_to_state: Optional[list[AssetToState]] = None
+    assets_to_state: Optional[List[AssetToState]] = None
 
 
 @attr.s(auto_attribs=True)

@@ -1,6 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 import logging
 
+from typing import List
+
 from airflow_monitor.shared.adapter.adapter import AssetState, AssetToState
 from airflow_monitor.shared.utils import _get_api_client
 from dbnd._vendor.cachetools import TTLCache
@@ -46,7 +48,7 @@ class BaseTrackingService:
         self,
         integration_id: str,
         syncer_instance_id: str,
-        assets_to_state: list[AssetToState],
+        assets_to_state: List[AssetToState],
     ):
         data_to_send = [asset_to_state.asdict() for asset_to_state in assets_to_state]
         self._api_client.api_request(
@@ -57,7 +59,7 @@ class BaseTrackingService:
 
     def get_active_assets(
         self, integration_id: str, syncer_instance_id: str
-    ) -> list[AssetToState]:
+    ) -> List[AssetToState]:
         result = self._api_client.api_request(
             endpoint=f"tracking-monitor/{integration_id}/assets/run?states={','.join(AssetState.get_active_states())}&syncer_instance_id={syncer_instance_id}",
             method="GET",
