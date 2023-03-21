@@ -489,7 +489,7 @@ scrapbook==0.5.0
 semver==2.13.0
 sendgrid==6.9.7
 sentinels==1.0.0
-sentry-sdk==1.5.8
+sentry-sdk==1.14.0
 setproctitle==1.2.2
 simple-salesforce==1.11.6
 six==1.16.0
