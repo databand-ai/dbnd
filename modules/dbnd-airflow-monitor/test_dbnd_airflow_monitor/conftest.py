@@ -31,6 +31,9 @@ home = os.path.abspath(
 os.environ["DBND_HOME"] = home
 os.environ["AIRFLOW_HOME"] = home
 os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"
+os.environ[
+    "DBND__WEBSERVER__FERNET_KEY"
+] = "-m4wWvVz9cGJPjFSRW1sI9zhTYUwnobQoJZjzXgBsWA="  # pragma: allowlist secret
 reset_dbnd_project_config()
 
 # we don't need to load dbnd plugins/modules
