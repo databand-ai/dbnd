@@ -89,7 +89,7 @@ class MockTrackingService(BaseTrackingService):
         self.counter += 1
 
     def save_assets_state(
-        self, integration_id, syncer_instance_id, assets_to_state: list[AssetToState]
+        self, integration_id, syncer_instance_id, assets_to_state: List[AssetToState]
     ):
         self.assets_state.append(assets_to_state)
         return
