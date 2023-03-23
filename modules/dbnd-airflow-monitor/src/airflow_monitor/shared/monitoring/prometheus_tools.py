@@ -20,8 +20,8 @@ class MonitorSyncStatus(Enum):
 
 logger = logging.getLogger(__name__)
 
-query_execution_time = Summary(
-    name="dbnd_datasource_monitor_query_execution_time",
+fetching_execution_time = Summary(
+    name="dbnd_datasource_monitor_fetching_execution_time",
     documentation="Query execution time on a single run for a single component (syncer+fetcher)",
     labelnames=[LABEL_NAME_INTEGRATION, LABEL_NAME_SYNCER, LABEL_NAME_FETCHER],
 )
