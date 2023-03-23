@@ -2,11 +2,16 @@
 
 import logging
 
+from typing import ClassVar
+
+from prometheus_client import Summary
+
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
+from airflow_monitor.shared.monitoring.prometheus_tools import sync_once_time
 from dbnd.utils.trace import new_tracing_id
 
 
@@ -15,6 +20,7 @@ class BaseComponent:
     BaseComponent is a component responsible for syncing data from given server to tracking service
     """
 
+    SYNCER_TYPE: ClassVar[str]
     config: BaseServerConfig
     tracking_service: BaseTrackingService
     integration_management_service: IntegrationManagementService
@@ -49,8 +55,17 @@ class BaseComponent:
     def sync_once(self):
         from airflow_monitor.shared.error_handler import capture_component_exception
 
-        with new_tracing_id(), capture_component_exception(self, "sync_once"):
+        with new_tracing_id(), self._time_sync_once(), capture_component_exception(
+            self, "sync_once"
+        ):
             return self._sync_once()
+
+    def _time_sync_once(self) -> Summary:
+        return sync_once_time.labels(
+            integration=self.config.uid,
+            syncer=self.SYNCER_TYPE,
+            fetcher=self.config.fetcher_type,
+        ).time()
 
     def _sync_once(self):
         raise NotImplementedError()

@@ -42,3 +42,9 @@ monitor_sync_iteration = Counter(
         LABEL_NAME_STATUS,
     ],
 )
+
+sync_once_time = Summary(
+    name="dbnd_monitor_sync_once_time",
+    documentation="Complete sync time on a single run for a single component (syncer+fetcher)",
+    labelnames=[LABEL_NAME_INTEGRATION, LABEL_NAME_SYNCER, LABEL_NAME_FETCHER],
+)

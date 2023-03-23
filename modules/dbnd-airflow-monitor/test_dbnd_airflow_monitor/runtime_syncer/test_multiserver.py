@@ -80,6 +80,8 @@ def count_logged_exceptions(caplog):
 
 
 class MockSyncer(BaseComponent):
+    SYNCER_TYPE = "mock_syncer"
+
     def __init__(self, *args, **kwargs):
         super(MockSyncer, self).__init__(*args, **kwargs)
         self.sync_count = 0
