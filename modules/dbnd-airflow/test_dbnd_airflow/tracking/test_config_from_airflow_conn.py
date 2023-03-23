@@ -148,7 +148,9 @@ class TestConfigFromConnection(object):
                 "databand_access_token": "some-token",
             },
             "tracking": {
-                "airflow_operator_handlers": {"CustomHandlerOperator": "my_func"}
+                "airflow_operator_handlers": {
+                    "autodesk.package.YourAutodeskOperator": "dbnd_airflow.tracking.dbnd_conf.track_spark_operator_with_steps_and_jars_attrs"
+                }
             },
         }
 

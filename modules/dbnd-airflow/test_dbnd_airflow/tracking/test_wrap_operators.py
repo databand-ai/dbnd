@@ -1,4 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import subprocess
 import uuid
 
 from datetime import timedelta
@@ -34,7 +35,7 @@ else:
     from airflow.providers.amazon.aws.operators.ecs import ECSOperator
     from airflow.providers.amazon.aws.operators.emr_add_steps import EmrAddStepsOperator
 
-dbnd_spark_env_vars = (
+expected_spark_env_vars_from_dbnd = (
     "spark.env.AIRFLOW_CTX_DAG_ID",
     "spark.env.AIRFLOW_CTX_EXECUTION_DATE",
     "spark.env.AIRFLOW_CTX_TASK_ID",
@@ -120,9 +121,9 @@ class TestTrackOperator(object):
         emr_args = emr_operator.steps[0]["HadoopJarStep"]["Args"]
         emr_args_names = {arg.split("=")[0] for arg in emr_args}
 
-        for env_var in dbnd_spark_env_vars:
-            assert env_var in emr_args_names
-        spark_submit_string = " ".join(emr_args)
+        for env_var in expected_spark_env_vars_from_dbnd:
+            assert env_var in emr_args_names, f"{env_var} not found"
+        spark_submit_string = subprocess.list2cmdline(emr_args)
         assert (
             "--conf spark.driver.extraJavaOptions=-javaagent:/home/hadoop/dbnd-agent.jar"
             in spark_submit_string
@@ -146,7 +147,7 @@ class TestTrackOperator(object):
         ):
             pass
         conf = pyspark_submit_operator._conf
-        for env_var in dbnd_spark_env_vars:
+        for env_var in expected_spark_env_vars_from_dbnd:
             assert env_var in conf
 
         assert "DBND__ENABLE__SPARK_CONTEXT_ENV" in pyspark_submit_operator._env_vars
@@ -303,5 +304,5 @@ class TestTrackOperator(object):
         )
         track_dag(dag)
 
-        for env_var in dbnd_spark_env_vars:
+        for env_var in expected_spark_env_vars_from_dbnd:
             assert env_var in dataproc_operator.dataproc_properties
