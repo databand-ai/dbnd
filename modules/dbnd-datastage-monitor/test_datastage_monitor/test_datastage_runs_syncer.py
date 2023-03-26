@@ -103,7 +103,13 @@ class MockDatastageTrackingService(DataStageTrackingService):
     def update_last_seen_values(self, date):
         self.last_seen_date = date
 
+    def update_last_cursor(self, integration_id, syncer_instance_id, state, data):
+        self.last_seen_date = data
+
     def get_last_seen_date(self):
+        return self.last_seen_date
+
+    def get_last_cursor(self, integration_id, syncer_instance_id) -> int:
         return self.last_seen_date
 
     def get_running_datastage_runs(self):
@@ -169,6 +175,7 @@ def datastage_runtime_syncer(
             tracking_source_uid=get_uuid(),
             sync_interval=10,
             fetching_interval_in_minutes=10,
+            project_ids=[PROJECT_ID],
         ),
         tracking_service=mock_datastage_tracking_service,
         data_fetcher=mock_datastage_fetcher,
@@ -197,14 +204,14 @@ def expect_changes(
 
     if is_dbnd_empty:
         if is_datastage_empty:
-            assert patched_tracking_service.update_last_seen_values.call_count == 0
+            assert patched_tracking_service.update_last_cursor.call_count == 0
         else:
-            assert patched_tracking_service.update_last_seen_values.call_count == 1
+            assert patched_tracking_service.update_last_cursor.call_count == 1
     else:
         if init == 0:
-            assert patched_tracking_service.update_last_seen_values.call_count == 0
+            assert patched_tracking_service.update_last_cursor.call_count == 0
         else:
-            assert patched_tracking_service.update_last_seen_values.call_count == 1
+            assert patched_tracking_service.update_last_cursor.call_count == 1
 
     assert patched_data_fetcher.get_full_runs.call_count == init + update
     assert patched_tracking_service.init_datastage_runs.call_count == init

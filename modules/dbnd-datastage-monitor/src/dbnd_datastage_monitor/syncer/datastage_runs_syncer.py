@@ -112,10 +112,23 @@ class DataStageRunsSyncer(BaseComponent):
             self.config.tracking_source_uid,
             self.error_handler.get_run_request_retries_cache_size(),
         )
-        last_seen_date_str = self.tracking_service.get_last_seen_date()
-
-        if not last_seen_date_str:
-            self.tracking_service.update_last_seen_values(format_datetime(utcnow()))
+        init_cursor = format_datetime(utcnow())
+        last_seen_dates = []
+        for project_id in self.config.project_ids:
+            last_seen_date_str = self.tracking_service.get_last_cursor(
+                integration_id=self.config.identifier, syncer_instance_id=project_id
+            )
+            if not last_seen_date_str:
+                self.tracking_service.update_last_cursor(
+                    integration_id=self.config.identifier,
+                    syncer_instance_id=project_id,
+                    state="init",
+                    data=init_cursor,
+                )
+            else:
+                last_seen_dates.append(parse_datetime(last_seen_date_str))
+        if not last_seen_dates:
+            # return after init all project cursors
             return
 
         running_datastage_runs = self.tracking_service.get_running_datastage_runs()
@@ -124,7 +137,7 @@ class DataStageRunsSyncer(BaseComponent):
 
         current_date = utcnow()
         interval = timedelta(self.config.fetching_interval_in_minutes)
-        start_date = end_date = parse_datetime(last_seen_date_str)
+        start_date = end_date = min(last_seen_dates)
 
         duration = (current_date - start_date).total_seconds()
         report_list_duration(self.config.tracking_source_uid, duration)
@@ -166,9 +179,14 @@ class DataStageRunsSyncer(BaseComponent):
                 }
                 if runs_to_submit:
                     self.init_runs(runs_to_submit)
-                    self.tracking_service.update_last_seen_values(
-                        format_datetime(end_date)
-                    )
+                    update_cursor = format_datetime(end_date)
+                    for project_id in self.config.project_ids:
+                        self.tracking_service.update_last_cursor(
+                            integration_id=self.config.identifier,
+                            syncer_instance_id=project_id,
+                            state="update",
+                            data=update_cursor,
+                        )
             else:
                 logger.info(
                     "No new runs found for tracking source %s",
