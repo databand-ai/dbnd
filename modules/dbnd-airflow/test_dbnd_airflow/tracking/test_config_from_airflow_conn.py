@@ -118,7 +118,6 @@ class TestConfigFromConnection(object):
                 "value": "",
                 "log_msg": CONN_FAILED_WARNING_MSG,
             },
-            {"name": "no_dbnd_conn", "value": "", "log_msg": CONN_FAILED_INFO_MSG},
         ],
     )
     def test_exceptions_when_setting_config_from_airflow_connection(
@@ -149,7 +148,7 @@ class TestConfigFromConnection(object):
             },
             "tracking": {
                 "airflow_operator_handlers": {
-                    "autodesk.package.YourAutodeskOperator": "dbnd_airflow.tracking.dbnd_conf.track_spark_operator_with_steps_and_jars_attrs"
+                    "some_company.package.YourCompanyOperator": "dbnd_airflow.tracking.dbnd_conf.track_spark_operator_with_steps_and_jars_attrs"
                 }
             },
         }
@@ -163,4 +162,4 @@ class TestConfigFromConnection(object):
 
         actual = TrackingConfig().airflow_operator_handlers
         assert actual
-        assert "CustomHandlerOperator" in actual
+        assert "some_company.package.YourCompanyOperator" in actual

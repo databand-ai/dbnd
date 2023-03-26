@@ -206,7 +206,7 @@ def af_tracking_context(task_run, airflow_context, operator):
     try:
         tracking_info = get_tracking_information(airflow_context, task_run)
         airflow_operator_handlers = get_airflow_operator_handlers_config(
-            task_run.run.context.settings.tracking.get_airflow_operator_handlers()
+            task_run.run.context.settings.tracking.airflow_operator_handlers
         )
         operator_wrapper = wrap_operator_with_tracking_info(
             tracking_info, operator, airflow_operator_handlers

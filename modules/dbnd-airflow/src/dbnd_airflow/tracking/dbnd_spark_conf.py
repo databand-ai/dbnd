@@ -124,7 +124,7 @@ def get_dbnd_context_spark_conf(
                 spark_conf[property_name] + "," + dbnd_spark_conf[property_name]
             )
 
-    return dbnd_spark_conf
+    return merged_conf
 
 
 def get_dbnd_context_env_vars(tracking_info=None, env_vars=None, script_name=None):
