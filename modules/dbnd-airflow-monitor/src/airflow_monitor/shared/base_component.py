@@ -15,6 +15,9 @@ from airflow_monitor.shared.monitoring.prometheus_tools import sync_once_time
 from dbnd.utils.trace import new_tracing_id
 
 
+logger = logging.getLogger(__name__)
+
+
 class BaseComponent:
     """
     BaseComponent is a component responsible for syncing data from given server to tracking service
@@ -55,10 +58,23 @@ class BaseComponent:
     def sync_once(self):
         from airflow_monitor.shared.error_handler import capture_component_exception
 
+        logger.info(
+            "Starting sync_once on tracking source uid: %s, syncer: %s",
+            self.config.tracking_source_uid,
+            self.SYNCER_TYPE,
+        )
+
         with new_tracing_id(), self._time_sync_once(), capture_component_exception(
             self, "sync_once"
         ):
-            return self._sync_once()
+            result = self._sync_once()
+
+            logger.info(
+                "Finished sync_once on tracking source uid: %s, syncer: %s",
+                self.config.tracking_source_uid,
+                self.SYNCER_TYPE,
+            )
+            return result
 
     def _time_sync_once(self) -> Summary:
         return sync_once_time.labels(
