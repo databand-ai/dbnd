@@ -15,6 +15,7 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND_SCRIPT_NAME,
 )
 from dbnd._core.constants import TaskRunState, UpdateSource
+from dbnd._core.log import dbnd_log_info_error
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     get_task_run_uid_for_inline_script,
 )
@@ -401,4 +402,31 @@ def track_ecs_operator(operator, tracking_info):
             new.append(override)
 
         operator.overrides["containerOverrides"] = new
+    yield
+
+
+@contextmanager
+def track_custom_spark_submit_operator(operator, tracking_info):
+    # CHECK that your operator doesn't have any other spark.jars
+    # enables DbndSparkQueryExecutionListener. - it can be omitted as a first step
+
+    try:
+        # UPDATE CUSTOM OPERATOR
+        custom_cli = convert_spark_conf_to_cli_args(
+            get_dbnd_context_spark_conf(tracking_info)
+        )
+
+        if not hasattr(operator, "spark_args"):
+            dbnd_log_info_error(
+                "User Spark Operator doesn't have attribute 'spark_args', "
+                "skipping the context injection"
+            )
+        else:
+            if operator.spark_args is None:
+                operator.spark_args = []
+            operator.spark_args.extend(custom_cli)
+
+    except Exception as ex:
+        dbnd_log_info_error("Failed to wrap '%s'. Got an error '%s'", operator, ex)
+
     yield
