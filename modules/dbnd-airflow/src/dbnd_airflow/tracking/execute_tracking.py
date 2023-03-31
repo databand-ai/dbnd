@@ -19,7 +19,7 @@ from dbnd._core.tracking.script_tracking_manager import (
     dbnd_tracking_stop,
 )
 from dbnd._core.utils.basics.environ_utils import env
-from dbnd._core.utils.basics.nested_context import nested
+from dbnd._core.utils.basics.nested_context import safe_nested
 from dbnd_airflow.raw_constants import MONITOR_DAG_NAME
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import get_tracking_information, get_xcoms
@@ -230,7 +230,7 @@ def af_tracking_context(task_run, airflow_context, operator):
         return
 
     # wrap the execution with tracking info in the environment
-    with nested(env(**tracking_info), operator_wrapper):
+    with safe_nested(env(**tracking_info), operator_wrapper):
         yield
 
 
