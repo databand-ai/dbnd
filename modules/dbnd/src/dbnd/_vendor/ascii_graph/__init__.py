@@ -4,9 +4,11 @@
 from __future__ import unicode_literals
 import sys
 import re
-import collections
 import copy
-
+try:
+    import _collections_abc as collections
+except ModuleNotFoundError:
+    import collections
 
 __version__ = '1.5.1'
 
