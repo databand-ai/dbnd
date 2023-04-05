@@ -7,6 +7,8 @@ from pathlib import Path
 import dateutil.parser
 import pytest
 
+from mock import patch
+
 from dbnd._core.tracking.dbt import (
     DbtCoreAssets,
     _extract_environment,
@@ -193,3 +195,22 @@ def test_extract_jinja_values_with_undefined_env_var_raise_environment_error():
     values = {"env_var_key": "{{ env_var('undefined_env_var_identifier') }}"}
     with pytest.raises(expected_exception=EnvironmentError):
         _extract_jinja_values(values)
+
+
+def test_undefined_error_not_called():
+    values = {"env_var_key": "{{ env_var('env_var_identifier') }}"}
+    with patch("logging.Logger.debug") as mock:
+        with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
+            _extract_jinja_values(values)
+        assert mock.call_count == 0
+
+
+def test_undefined_error_called():
+    values = {"test_jinja_error": "{{ test_undefined_for_jinja(whatever) }}"}
+    with patch("logging.Logger.debug") as mock:
+        with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
+            _extract_jinja_values(values)
+        mock.assert_called_with(
+            "Jinja template error has occurred: 'test_undefined_for_jinja' is undefined"
+        )
+        assert mock.called

@@ -10,7 +10,7 @@ from typing import Dict, Optional, TypeVar
 import attr
 import yaml
 
-from jinja2 import Environment, TemplateError
+from jinja2 import Environment, TemplateError, UndefinedError
 
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.tracking.metrics import TRACKER_MISSING_MESSAGE, _get_tracker
@@ -238,6 +238,11 @@ def _render_values_jinja(value: T, environment: Environment) -> T:
     if isinstance(value, str):
         try:
             return environment.from_string(value).render()
+        except UndefinedError as error:
+            log_exception(
+                "Jinja template error has occurred", ex=error, non_critical=True
+            )
+            return value
         except TemplateError as error:
             log_exception("Jinja template error has occurred", ex=error)
             return value
