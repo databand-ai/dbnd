@@ -252,6 +252,25 @@ def test_dbt_sdk_functions_are_importable_from_top_level():
     assert callable(dbnd.collect_data_from_dbt_cloud)
 
 
+def test_undefined_error_not_called():
+    values = {"env_var_key": "{{ env_var('env_var_identifier') }}"}
+    with patch("logging.Logger.debug") as mock:
+        with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
+            _extract_jinja_values(values)
+        assert mock.call_count == 0
+
+
+def test_undefined_error_called():
+    values = {"test_jinja_error": "{{ test_undefined_for_jinja(whatever) }}"}
+    with patch("logging.Logger.debug") as mock:
+        with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
+            _extract_jinja_values(values)
+        mock.assert_called_with(
+            "Jinja template error has occurred: 'test_undefined_for_jinja' is undefined"
+        )
+        assert mock.called
+
+
 @patch("dbnd._core.tracking.dbt.dbt_core._get_tracker")
 @patch("dbnd._core.tracking.dbt.dbt_core._load_dbt_core_assets")
 def test_dbt_core_processing_not_happening_if_no_tracker_is_available(
