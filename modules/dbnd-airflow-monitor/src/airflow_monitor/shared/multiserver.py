@@ -117,6 +117,29 @@ class MultiServerMonitor:
         time_from_last_heartbeat = (utcnow() - component.last_heartbeat).total_seconds()
         return time_from_last_heartbeat >= component.sleep_interval
 
+    def _create_new_components(self, integration_config):
+        integration_uid = integration_config.uid
+        existing_components = self.active_instances[integration_uid]
+        new_components = self.monitor_services_factory.get_components(
+            integration_config=integration_config,
+            integration_management_service=self.integration_management_service,
+        )
+        existing_components_dict = {
+            component.identifier: component for component in existing_components
+        }
+        new_components_dict = {
+            component.identifier: component for component in new_components
+        }
+
+        # Keep heartbeats from existing components
+        for component_id, component in new_components_dict.items():
+            if component_id in existing_components_dict:
+                component.last_heartbeat = existing_components_dict[
+                    component_id
+                ].last_heartbeat
+
+        self.active_instances[integration_uid] = new_components
+
     def _heartbeat(self, integration_configs):
         for integration_config in integration_configs:
             integration_uid = integration_config.uid
@@ -126,12 +149,7 @@ class MultiServerMonitor:
                 self.iteration,
             )
             # create new syncers with new config every heartbeat
-            self.active_instances[
-                integration_uid
-            ] = self.monitor_services_factory.get_components(
-                integration_config=integration_config,
-                integration_management_service=self.integration_management_service,
-            )
+            self._create_new_components(integration_config)
             for component in self.active_instances[integration_uid]:
                 if self._component_interval_is_met(component):
                     component.refresh_config(integration_config)

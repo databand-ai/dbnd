@@ -147,7 +147,11 @@ class TestMultiServer(object):
         multi_server.run_once()
         # Since components are created every single time, should create a new one and do 1 iteration
         assert len(multi_server.active_instances) == 1
+        new_syncer_instance = multi_server.active_instances[
+            MOCK_SERVER_1_CONFIG["uid"]
+        ][0]
         assert syncer_instance.sync_count == 1
+        assert new_syncer_instance.sync_count == 1
 
         mock_integration_management_service.mock_servers = []
         multi_server.run_once()
@@ -231,3 +235,26 @@ class TestMultiServer(object):
         expected_metadata = plugin_metadata_dict.copy()
         expected_metadata["monitor_version"] = airflow_monitor.__version__
         assert mock_integration_management_service.metadata == expected_metadata
+
+    def test_08_syncer_last_heartbeat(
+        self,
+        multi_server,
+        mock_integration_management_service,
+        mock_airflow_services_factory,
+    ):
+        components = {"state_sync": MockSyncer}
+        mock_airflow_services_factory.mock_components_dict = components
+        config = AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
+        mock_integration_management_service.mock_servers = [config]
+        multi_server.run_once()
+        # Should start mock_server, should do 1 iteration
+        assert len(multi_server.active_instances) == 1
+        syncer_instance = multi_server.active_instances[MOCK_SERVER_1_CONFIG["uid"]][0]
+        assert syncer_instance.sync_count == 1
+
+        multi_server._create_new_components(config)
+        assert len(multi_server.active_instances) == 1
+
+        new_component = multi_server.active_instances[MOCK_SERVER_1_CONFIG["uid"]][0]
+        assert isinstance(new_component, MockSyncer)
+        assert new_component.last_heartbeat == syncer_instance.last_heartbeat

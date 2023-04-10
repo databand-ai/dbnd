@@ -97,3 +97,7 @@ class BaseComponent:
         reports sync metrics when required.
         called from capture_component_exception()
         """
+
+    @property
+    def identifier(self) -> str:
+        return self.SYNCER_TYPE

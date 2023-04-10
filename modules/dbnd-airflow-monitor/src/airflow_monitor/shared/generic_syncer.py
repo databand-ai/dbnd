@@ -128,3 +128,7 @@ class GenericSyncer(BaseComponent):
                 ),
             )
         return synced_data
+
+    @property
+    def identifier(self) -> str:
+        return self.SYNCER_TYPE + "_" + self.syncer_instance_id
