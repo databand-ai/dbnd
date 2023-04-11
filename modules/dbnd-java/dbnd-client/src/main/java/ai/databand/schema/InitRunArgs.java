@@ -53,7 +53,7 @@ public class InitRunArgs {
             taskRunEnv,
             taskRunsInfo,
             null,
-            null,
+            "generic_tracking",
             null
         );
     }

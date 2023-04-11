@@ -110,7 +110,7 @@ public class DefaultDbndRun implements DbndRun {
         String annotationValue = getTaskName(method);
         this.runId = UUID.randomUUID().toString();
         String user = System.getProperty("user.name");
-        String source = null;
+        String source = "generic_tracking";
         TrackingSource trackingSource = null;
         if (airflowContext != null) {
             this.jobName = airflowContext.jobName();
