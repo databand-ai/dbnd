@@ -127,8 +127,10 @@ def _get_command_from_operator(t):
     if isinstance(t, BashOperator):
         return "bash_command='{bash_command}'".format(bash_command=t.bash_command)
     elif isinstance(t, PythonOperator):
+        # functools.partial does not has attribute __name__, so we need use repr
+        func_name = getattr(t.python_callable, "__name__", repr(t.python_callable))
         return "python_callable={func}, op_kwargs={kwrags}".format(
-            func=t.python_callable.__name__, kwrags=t.op_kwargs
+            func=func_name, kwrags=t.op_kwargs
         )
 
 
