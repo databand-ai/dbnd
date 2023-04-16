@@ -1,9 +1,9 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-import collections
 import json
 import logging
 
+from collections.abc import Mapping
 from functools import wraps
 
 from airflow.hooks.base_hook import BaseHook
@@ -214,7 +214,7 @@ def deep_update(source, overrides):
     Modify ``source`` in place.
     """
     for key, value in overrides.items():
-        if isinstance(value, collections.Mapping) and value:
+        if isinstance(value, Mapping) and value:
             returned = deep_update(source.get(key, {}), value)
             source[key] = returned
         else:
