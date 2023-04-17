@@ -86,7 +86,7 @@ class DataStageRunsSyncer(BaseComponent):
             config, tracking_service, integration_management_service, data_fetcher
         )
         self.error_handler = DatastageRunRequestsRetryQueue(
-            tracking_source_uid=self.config.tracking_source_uid
+            identifier=self.config.identifier
         )
 
     def refresh_config(self, config):
@@ -101,15 +101,13 @@ class DataStageRunsSyncer(BaseComponent):
         self.data_fetcher.update_projects(datastage_asset_clients)
 
     def _sync_once(self):
-        logger.info(
-            "Started running for tracking source %s", self.config.tracking_source_uid
-        )
+        logger.info("Started running for integration %s", self.config.identifier)
         report_run_request_retry_queue_size(
-            self.config.tracking_source_uid,
+            self.config.identifier,
             self.error_handler.get_run_request_retries_queue_size(),
         )
         report_run_request_retry_cache_size(
-            self.config.tracking_source_uid,
+            self.config.identifier,
             self.error_handler.get_run_request_retries_cache_size(),
         )
         init_cursor = format_datetime(utcnow())
@@ -140,7 +138,7 @@ class DataStageRunsSyncer(BaseComponent):
         start_date = end_date = min(last_seen_dates)
 
         duration = (current_date - start_date).total_seconds()
-        report_list_duration(self.config.tracking_source_uid, duration)
+        report_list_duration(self.config.identifier, duration)
 
         while end_date < current_date:
             end_date = (
@@ -149,10 +147,10 @@ class DataStageRunsSyncer(BaseComponent):
                 else current_date
             )
             logger.info(
-                "Checking for new runs from %s to %s for tracking source %s",
+                "Checking for new runs from %s to %s for integration %s",
                 format_datetime(start_date),
                 format_datetime(end_date),
-                self.config.tracking_source_uid,
+                self.config.identifier,
             )
             new_datastage_runs: Dict[
                 str, Dict[str, str]
@@ -165,10 +163,10 @@ class DataStageRunsSyncer(BaseComponent):
             ] = self._append_failed_run_requests_for_retry(new_datastage_runs)
             for p in new_datastage_runs:
                 logger.info(
-                    "Found %d new runs for project %s for tracking source %s",
+                    "Found %d new runs for project %s for integration %s",
                     len(new_datastage_runs[p]),
                     p,
-                    self.config.tracking_source_uid,
+                    self.config.identifier,
                 )
 
             has_new_run = [v for v in new_datastage_runs.values() if v]
@@ -189,8 +187,7 @@ class DataStageRunsSyncer(BaseComponent):
                         )
             else:
                 logger.info(
-                    "No new runs found for tracking source %s",
-                    self.config.tracking_source_uid,
+                    "No new runs found for integration %s", self.config.identifier
                 )
 
             start_date += interval
@@ -213,8 +210,7 @@ class DataStageRunsSyncer(BaseComponent):
             for failed_run_request in failed_run_requests_to_retry:
                 project_id = failed_run_request.project_id
                 report_run_request_retry_fetched_from_error_queue(
-                    tracking_source_uid=self.config.tracking_source_uid,
-                    project_uid=project_id,
+                    tracking_source_uid=self.config.identifier, project_uid=project_id
                 )
                 if project_id in new_datastage_runs:
                     new_datastage_runs.get(project_id)[
@@ -235,10 +231,10 @@ class DataStageRunsSyncer(BaseComponent):
 
         for project_id, runs in datastage_runs.items():
             logger.info(
-                "Syncing new %d runs for project %s of tracking source %s",
+                "Syncing new %d runs for project %s of integration %s",
                 len(runs),
                 project_id,
-                self.config.tracking_source_uid,
+                self.config.identifier,
             )
             successful_run_inits = 0
             all_runs = []
@@ -256,7 +252,7 @@ class DataStageRunsSyncer(BaseComponent):
                     )
                     self.error_handler.submit_run_request_retries(failed_run_requests)
                     report_run_request_retry_submitted_to_error_queue(
-                        tracking_source_uid=self.config.tracking_source_uid,
+                        tracking_source_uid=self.config.identifier,
                         project_uid=project_id,
                         number_of_runs=len(failed_run_requests),
                     )
@@ -269,9 +265,7 @@ class DataStageRunsSyncer(BaseComponent):
 
             if successful_run_inits < len(runs):
                 report_runs_not_initiated(
-                    self.config.tracking_source_uid,
-                    project_id,
-                    len(runs) - successful_run_inits,
+                    self.config.identifier, project_id, len(runs) - successful_run_inits
                 )
 
             current_date = utcnow()
@@ -279,7 +273,7 @@ class DataStageRunsSyncer(BaseComponent):
             if min_start_time:
                 collection_delay = (current_date - min_start_time).total_seconds()
                 report_runs_collection_delay(
-                    self.config.tracking_source_uid, project_id, collection_delay
+                    self.config.identifier, project_id, collection_delay
                 )
 
     def update_runs(self, run_ids_to_update: List):
@@ -294,10 +288,10 @@ class DataStageRunsSyncer(BaseComponent):
 
         for project_id, runs in run_partitioned_by_project_id.items():
             logger.info(
-                "Updating %d runs for project %s for tracking source %s",
+                "Updating %d runs for project %s for integration %s",
                 len(runs),
                 project_id,
-                self.config.tracking_source_uid,
+                self.config.identifier,
             )
 
             bulk_size = self.config.runs_bulk_size or len(runs)
@@ -315,7 +309,7 @@ class DataStageRunsSyncer(BaseComponent):
                         skipped_failed_run_requests_len,
                     )
                     report_in_progress_failed_run_request_skipped(
-                        self.config.tracking_source_uid,
+                        self.config.identifier,
                         project_id,
                         skipped_failed_run_requests_len,
                     )
@@ -356,5 +350,5 @@ class DataStageRunsSyncer(BaseComponent):
                 raw_run.get("run_info"), ["metadata", "asset_id"]
             )
             report_run_request_retry_delay(
-                self.config.tracking_source_uid, run_uid, retry_run_delay
+                self.config.identifier, run_uid, retry_run_delay
             )

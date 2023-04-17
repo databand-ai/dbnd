@@ -49,7 +49,7 @@ class DatastageRunRequestsRetryQueue(DatastageRunRequestsRetryHandler):
     CACHE_TTL_HOURS = 12
     MAX_QUEUE_SIZE = 1000
 
-    def __init__(self, tracking_source_uid, max_retries=MAX_RETRIES):
+    def __init__(self, identifier, max_retries=MAX_RETRIES):
         # thread safe queue
         self.run_requests_retry_queue = queue.Queue(maxsize=self.MAX_QUEUE_SIZE)
         self.run_requests_retries_cache = TTLCache(
@@ -58,7 +58,7 @@ class DatastageRunRequestsRetryQueue(DatastageRunRequestsRetryHandler):
             timer=datetime.now,
         )
         self.max_retries = max_retries
-        self.tracking_source_uid = tracking_source_uid
+        self.identifier = identifier
 
     def submit_run_request_retries(self, run_links: List[str]):
         for run_link in run_links:
@@ -88,7 +88,7 @@ class DatastageRunRequestsRetryQueue(DatastageRunRequestsRetryHandler):
                     # run can be deleted from cache since it will not be retried
                     self.run_requests_retries_cache.pop(key=run_link)
                     report_completely_run_request_retry_failed(
-                        self.tracking_source_uid, run_to_retry.project_id
+                        self.identifier, run_to_retry.project_id
                     )
                     logger.warning(
                         "run %s retry attempt reached max retry of %s run will not be retried",

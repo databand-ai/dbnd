@@ -10,7 +10,7 @@ from dbnd_datastage_monitor.datastage_runs_error_handler.datastage_runs_error_ha
 class TestDatastageRunsErrorQueue:
     def test_submit_and_pull_run(self):
         run_link = "https://cpd-ds.apps.datastageaws4.4qj6.p1.openshiftapps.com/v2/assets/cdc82817-4027-45b4-ad3b-ecd0bb50d476?project_id=e9b6d8e2-5681-416f-9506-94b0849cfe8b"
-        error_handler = DatastageRunRequestsRetryQueue(tracking_source_uid="1234")
+        error_handler = DatastageRunRequestsRetryQueue(identifier="1234")
         error_handler.submit_run_request_retry(run_link)
         assert error_handler.get_run_request_retries_queue_size() == 1
         failed_runs = error_handler.pull_run_request_retries(batch_size=10)
@@ -33,7 +33,7 @@ class TestDatastageRunsErrorQueue:
         expected_number_of_runs_pulled,
     ):
         run_link = "https://cpd-ds.apps.datastageaws4.4qj6.p1.openshiftapps.com/v2/assets/cdc82817-4027-45b4-ad3b-ecd0bb50d476?project_id=e9b6d8e2-5681-416f-9506-94b0849cfe8b"
-        error_handler = DatastageRunRequestsRetryQueue("1234")
+        error_handler = DatastageRunRequestsRetryQueue(identifier="1234")
         for i in range(number_of_runs_to_submit):
             error_handler.submit_run_request_retry(run_link)
         assert (

@@ -22,14 +22,12 @@ class DataStageMonitorConfig(BaseMonitorConfig):
 
 @attr.s
 class DataStageServerConfig(BaseServerConfig):
-    project_id = attr.ib(default=None)  # type: str
     project_ids = attr.ib(factory=list)
     api_key = attr.ib(default=None)  # type: str
     runs_bulk_size = attr.ib(default=10)  # type: int
     page_size = attr.ib(default=200)  # type: int
     fetching_interval_in_minutes = attr.ib(default=30)  # type: int
     number_of_fetching_threads = attr.ib(default=1)  # type: int
-    datastage_runs_syncer_enabled = attr.ib(default=True)  # type: bool
     host_name = attr.ib(default=None)  # type: str
     authentication_provider_url = attr.ib(default=None)  # type: str
     authentication_type = attr.ib(default=None)  # type: str
@@ -42,8 +40,46 @@ class DataStageServerConfig(BaseServerConfig):
         server_config: dict,
         monitor_config: Optional[DataStageMonitorConfig] = None,
     ):
+        if "integration_config" not in server_config:
+            return cls.old_create(server_config, monitor_config)
+
+        integration_config = server_config.get("integration_config")
+        conf = cls(
+            uid=server_config["uid"],
+            source_type=server_config["integration_type"],
+            source_name=server_config["name"],
+            tracking_source_uid=server_config["uid"],
+            is_sync_enabled=True,
+            runs_bulk_size=integration_config["runs_bulk_size"],
+            page_size=integration_config["page_size"],
+            fetching_interval_in_minutes=integration_config[
+                "fetching_interval_in_minutes"
+            ],
+            number_of_fetching_threads=integration_config["number_of_fetching_threads"],
+            project_ids=integration_config.get("project_ids", []),
+            api_key=server_config["credentials"],
+            host_name=integration_config.get("host_name"),
+            authentication_provider_url=integration_config.get(
+                "authentication_provider_url"
+            ),
+            authentication_type=integration_config.get("authentication_type"),
+            sync_interval=integration_config.get("sync_interval"),
+            log_level=integration_config.get("log_level"),
+            log_exception_to_webserver=monitor_config.log_exception_to_webserver
+            if monitor_config
+            else False,
+            is_generic_syncer_enabled=integration_config["is_generic_syncer_enabled"],
+            syncer_max_retries=integration_config["syncer_max_retries"],
+        )
+        return conf
+
+    @classmethod
+    def old_create(
+        cls,
+        server_config: dict,
+        monitor_config: Optional[DataStageMonitorConfig] = None,
+    ):
         monitor_instance_config = server_config.get("monitor_config") or {}
-        project_id = server_config["project_id"]
         conf = cls(
             uid=server_config.get("uid") or server_config["tracking_source_uid"],
             source_type="datastage",
@@ -58,16 +94,12 @@ class DataStageServerConfig(BaseServerConfig):
             number_of_fetching_threads=monitor_instance_config[
                 "number_of_fetching_threads"
             ],
-            project_id=project_id,
-            project_ids=server_config.get("project_ids", [project_id]),
+            project_ids=server_config.get("project_ids", []),
             api_key=server_config["api_key"],
             host_name=server_config["host_name"],
             authentication_provider_url=server_config["authentication_provider_url"],
             authentication_type=server_config["authentication_type"],
             sync_interval=monitor_instance_config["sync_interval"],
-            datastage_runs_syncer_enabled=monitor_instance_config[
-                "datastage_runs_syncer_enabled"
-            ],
             log_level=monitor_instance_config.get("log_level"),
             log_exception_to_webserver=monitor_config.log_exception_to_webserver
             if monitor_config
