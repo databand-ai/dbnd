@@ -107,18 +107,11 @@ class MultiServerMonitor:
             integration_config.uid, metadata
         )
 
-    def _component_interval_is_met(self, component: BaseComponent):
+    def _component_interval_is_met(self, component):
         """
         Every component has an interval, make sure it doesn't run more often than the interval
         """
         if component.last_heartbeat is None:
-            return True
-
-        if component.sleep_interval < self.monitor_config.interval:
-            logger.warning(
-                "component %s sleep_interval is ignored since it is smaller than monitor interval",
-                component.source_name_and_type,
-            )
             return True
 
         time_from_last_heartbeat = (utcnow() - component.last_heartbeat).total_seconds()
@@ -148,16 +141,13 @@ class MultiServerMonitor:
         self.active_instances[integration_uid] = new_components
 
     def _heartbeat(self, integration_configs):
-        num_of_iteration_synced = 0
         for integration_config in integration_configs:
-            is_iteration_synced = False
             integration_uid = integration_config.uid
             logger.debug(
                 "Starting new sync iteration for integration_uid=%s, iteration %d",
                 integration_uid,
                 self.iteration,
             )
-
             # create new syncers with new config every heartbeat
             self._create_new_components(integration_config)
             for component in self.active_instances[integration_uid]:
@@ -165,14 +155,6 @@ class MultiServerMonitor:
                     component.refresh_config(integration_config)
                     component.sync_once()
                     component.last_heartbeat = utcnow()
-                    is_iteration_synced = True
-            if is_iteration_synced:
-                num_of_iteration_synced += 1
-
-        logger.info(
-            "Finish syncing, %s integrations synced during monitor execution",
-            num_of_iteration_synced,
-        )
 
     def run(self):
         configure_logging(use_json=self.monitor_config.use_json_logging)

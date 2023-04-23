@@ -44,10 +44,6 @@ class BaseComponent:
         self.last_heartbeat = None
 
     @property
-    def source_name_and_type(self):
-        return f"{self.config.source_name}.{self.SYNCER_TYPE}"
-
-    @property
     def sleep_interval(self):
         return self.config.sync_interval
 
