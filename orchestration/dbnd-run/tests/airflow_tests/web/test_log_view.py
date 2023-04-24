@@ -31,7 +31,7 @@ from pytest import fixture, mark
 
 from dbnd._core.utils.date_utils import airflow_datetime_str
 from dbnd_test_scenarios.test_common.task.factories import TTask
-from tests.airflow_tests.web.utils import WebAppTest
+from tests.airflow_tests.web.utils import AirflowWebAppTest
 
 
 @fixture
@@ -61,7 +61,7 @@ def logging_config_for_log_view(tmpdir):
     conf.set("core", "logging_config_class", "")
 
 
-class TestLogView(WebAppTest):
+class TestLogView(AirflowWebAppTest):
     @fixture(autouse=True)
     def _test_run(self, databand_test_context, logging_config_for_log_view):
         task = TTask()

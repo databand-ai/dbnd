@@ -37,7 +37,7 @@ from dbnd_run.airflow.web.airflow_app_with_versioned_dagbag import (
 )
 from dbnd_test_scenarios.test_common.task.factories import TTask
 from tests.airflow_tests.web.utils import (
-    WebAppTest,
+    AirflowWebAppTest,
     assert_content_in_response,
     assert_ok,
 )
@@ -46,7 +46,7 @@ from tests.airflow_tests.web.utils import (
 logger = logging.getLogger(__name__)
 
 
-class TestAirflowBaseViews(WebAppTest):
+class TestAirflowBaseViews(AirflowWebAppTest):
     task_execution_date_str = timezone.datetime(2018, 3, 1)
 
     @fixture(autouse=True)

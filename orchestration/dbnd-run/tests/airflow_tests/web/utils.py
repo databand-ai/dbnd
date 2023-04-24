@@ -63,7 +63,7 @@ def percent_encode(obj):
     return quote_plus(str(obj))
 
 
-class WebAppCtrl(object):
+class AirflowWebAppCtrl(object):
     def __init__(self, app, appbuilder, client):
         self.app = app
         self.appbuilder = appbuilder
@@ -107,10 +107,10 @@ class WebAppCtrl(object):
         self.session.close()
 
 
-class WebAppTest(object):
+class AirflowWebAppTest(object):
     @fixture(autouse=True)
-    def _set_values(self, web_app_ctrl):
-        self.web = web_app_ctrl  # type: WebAppCtrl
+    def _set_values(self, airflow_web_app_ctrl):
+        self.web = airflow_web_app_ctrl  # type: WebAppCtrl
 
     @property
     def app(self):
@@ -155,6 +155,6 @@ class WebAppTest(object):
         return assert_api_response(resp, endpoint=endpoint)
 
     @fixture(autouse=True)
-    def _with_login(self, web_app_ctrl):  # type: (WebAppCtrl) -> Any
-        yield web_app_ctrl.login()
-        web_app_ctrl.logout()
+    def _with_login(self, airflow_web_app_ctrl):  # type: (AirflowWebAppCtrl) -> Any
+        yield airflow_web_app_ctrl.login()
+        airflow_web_app_ctrl.logout()
