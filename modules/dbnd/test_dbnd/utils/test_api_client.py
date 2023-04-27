@@ -5,6 +5,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock, call, patch
 
 import mock
+import pytest
 import requests
 
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
@@ -68,6 +69,31 @@ class TestApiClient(TestCase):
         _call = self.login_call()
         assert self.network_request_mock.call_count == 3
         self.network_request_mock.assert_has_calls([_call, _call, _call])
+
+    @mock.patch("requests.session")
+    def test_api_client_with_key_error_should_retry_3_times(self, mock_session):
+        sut = self.create_sut()
+        session_instance = mock_session.return_value
+        session_instance.request.side_effect = KeyError()
+        with pytest.raises(KeyError):
+            sut._send_request(session_instance, "POST", {})
+        _call = call("POST", {})
+        session_instance.request.assert_has_calls([_call, _call, _call])
+
+    @mock.patch("requests.session")
+    def test_api_client_no_key_error_should_not_retry(self, mock_session):
+        sut = self.create_sut()
+        session_instance = mock_session.return_value
+        sut._send_request(session_instance, "POST", {})
+        session_instance.request.assert_has_calls([call("POST", {})])
+
+    @mock.patch("requests.session")
+    def test_api_client_no_key_error_should_run_at_least_once(self, mock_session):
+        sut = self.create_sut()
+        sut.default_session_key_error_max_retry = 0
+        session_instance = mock_session.return_value
+        sut._send_request(session_instance, "POST", {})
+        session_instance.request.assert_has_calls([call("POST", {})])
 
     def login_call(self):
         return call(

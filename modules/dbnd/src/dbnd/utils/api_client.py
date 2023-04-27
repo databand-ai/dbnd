@@ -29,7 +29,7 @@ from dbnd.utils.trace import get_tracing_id
 
 # we'd like to have all requests with default timeout, just in case it's stuck
 DEFAULT_REQUEST_TIMEOUT = 300
-
+DEFAULT_SESSION_KEY_ERROR_MAX_RETRY = 3
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +57,7 @@ class ApiClient(object):
         ] = DEFAULT_REQUEST_TIMEOUT,
         extra_default_headers: Optional[Dict[str, str]] = None,
         ignore_ssl_errors: bool = False,
+        default_session_key_error_max_retry=DEFAULT_SESSION_KEY_ERROR_MAX_RETRY,
     ):
         """
         @param api_base_url: databand webserver url to build the request with
@@ -69,6 +70,7 @@ class ApiClient(object):
         @param default_request_timeout: (optional) How long to wait for the server to send
             data before giving up, as a float, or a :ref:`(connect timeout,
             read timeout) <timeouts>` tuple
+        @param default_session_key_error_max_retry: (Optional): session retry for key_error
         """
 
         self._api_base_url = api_base_url
@@ -92,6 +94,7 @@ class ApiClient(object):
         self.ignore_ssl_errors = ignore_ssl_errors
 
         self.debug_mode = debug_server
+        self.default_session_key_error_max_retry = default_session_key_error_max_retry
         if debug_server:
             # the header require so the webserver will record logs and sql queries
             self.default_headers["X-Databand-Debug"] = "True"
@@ -165,7 +168,18 @@ class ApiClient(object):
         return
 
     def _send_request(self, session, method, url, **kwargs):
-        return session.request(method, url, **kwargs)
+        retry_count = self.default_session_key_error_max_retry
+        if retry_count <= 0:
+            return session.request(method, url, **kwargs)
+        while retry_count > 0:
+            try:
+                return session.request(method, url, **kwargs)
+            except KeyError as ex:
+                # workaround to https://app.asana.com/0/1201045293211331/1204415755607921
+                retry_count -= 1
+                logger.exception("retrying request retry count %s", retry_count)
+                if retry_count == 0:
+                    raise ex
 
     def _authenticate(self):
         if not self.has_credentials():
