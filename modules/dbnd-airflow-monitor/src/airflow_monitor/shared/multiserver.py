@@ -107,7 +107,7 @@ class MultiServerMonitor:
             integration_config.uid, metadata
         )
 
-    def _component_interval_is_met(self, component):
+    def _component_interval_is_met(self, component: BaseComponent) -> bool:
         """
         Every component has an interval, make sure it doesn't run more often than the interval
         """
@@ -117,7 +117,7 @@ class MultiServerMonitor:
         time_from_last_heartbeat = (utcnow() - component.last_heartbeat).total_seconds()
         return time_from_last_heartbeat >= component.sleep_interval
 
-    def _create_new_components(self, integration_config):
+    def _create_new_components(self, integration_config: BaseServerConfig):
         integration_uid = integration_config.uid
         existing_components = self.active_instances[integration_uid]
         new_components = self.monitor_services_factory.get_components(
@@ -140,7 +140,7 @@ class MultiServerMonitor:
 
         self.active_instances[integration_uid] = new_components
 
-    def _heartbeat(self, integration_configs):
+    def _heartbeat(self, integration_configs: list[BaseServerConfig]):
         for integration_config in integration_configs:
             integration_uid = integration_config.uid
             logger.debug(

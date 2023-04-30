@@ -47,7 +47,7 @@ class BaseComponent:
     def sleep_interval(self):
         return self.config.sync_interval
 
-    def refresh_config(self, config):
+    def refresh_config(self, config: BaseServerConfig):
         self.config = config
         if (
             self.config.log_level
