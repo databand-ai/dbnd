@@ -177,7 +177,9 @@ class ApiClient(object):
             except KeyError as ex:
                 # workaround to https://app.asana.com/0/1201045293211331/1204415755607921
                 retry_count -= 1
-                logger.exception("retrying request retry count %s", retry_count)
+                logger.warning(
+                    "retrying request retry count %s", retry_count, exc_info=True
+                )
                 if retry_count == 0:
                     raise ex
 
