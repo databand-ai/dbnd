@@ -1,4 +1,4 @@
-FROM us.gcr.io/dbnd-dev-260010/databand/dbnd-python.base:py310-ubuntu-22-04-v2
+FROM us.gcr.io/dbnd-dev-260010/databand/dbnd-python.base:py310-ubuntu-22-04-v3
 
 # constants:
 ENV DBND_HOME=/app
