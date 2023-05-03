@@ -34,7 +34,7 @@ class DataStageAdapter(Adapter):
         config: DataStageServerConfig,
         datastage_assets_client: DataStageAssetsClient,
     ):
-        super(DataStageAdapter, self).__init__(config)
+        self.config = config
         self.datastage_asset_client = datastage_assets_client
 
     def init_cursor(self) -> str:

@@ -82,9 +82,6 @@ class ThirdPartyInfo:
 
 
 class Adapter(ABC):
-    def __init__(self, config):
-        self.config = config
-
     @abstractmethod
     def init_cursor(self) -> object:
         raise NotImplementedError()
