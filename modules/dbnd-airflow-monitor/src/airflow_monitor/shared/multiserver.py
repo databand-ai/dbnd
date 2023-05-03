@@ -140,7 +140,7 @@ class MultiServerMonitor:
 
         self.active_instances[integration_uid] = new_components
 
-    def _heartbeat(self, integration_configs: list[BaseServerConfig]):
+    def _heartbeat(self, integration_configs: List[BaseServerConfig]):
         for integration_config in integration_configs:
             integration_uid = integration_config.uid
             logger.debug(
