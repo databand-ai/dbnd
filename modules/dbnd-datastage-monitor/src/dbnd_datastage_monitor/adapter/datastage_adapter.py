@@ -6,7 +6,10 @@ from dbnd_datastage_monitor.data.datastage_config_data import DataStageServerCon
 from dbnd_datastage_monitor.datastage_client.datastage_assets_client import (
     DataStageAssetsClient,
 )
-from dbnd_datastage_monitor.syncer.datastage_runs_syncer import format_datetime
+from dbnd_datastage_monitor.syncer.datastage_runs_syncer import (
+    format_datetime,
+    get_from_nullable_chain,
+)
 
 from airflow_monitor.shared.adapter.adapter import (
     Adapter,
@@ -66,7 +69,7 @@ class DataStageAdapter(Adapter):
 
     def get_assets_data(self, assets: Assets) -> Assets:
         assets_to_state = assets.assets_to_state
-        full_runs = None
+        full_runs = []
         failed_runs = None
         failed_to_retries = {}
         runs_to_update = []
@@ -76,14 +79,18 @@ class DataStageAdapter(Adapter):
                 failed_to_retries[asset_to_state.asset_id] = asset_to_state.retry_count
             run_link = asset_to_state.asset_id
             runs_to_update.append(run_link)
-        full_runs, failed_runs = self.datastage_asset_client.get_full_runs(
-            runs_to_update
-        )
+        if runs_to_update:
+            full_runs, failed_runs = self.datastage_asset_client.get_full_runs(
+                runs_to_update
+            )
         if full_runs and full_runs.get("runs"):
             for run in full_runs.get("runs"):
                 if (
                     run
-                    and run.get("run_info", {}).get("state") not in FINISHED_RUN_STATES
+                    and get_from_nullable_chain(
+                        run, ["run_info", "entity", "job_run", "state"], default_val=""
+                    ).lower()
+                    not in FINISHED_RUN_STATES
                 ):
                     new_assets_to_state.append(
                         AssetToState(

@@ -41,7 +41,7 @@ class MonitorServicesFactory(ABC):
     ):
         tracking_service = self.get_tracking_service(integration_config)
         data_fetcher = self.get_data_fetcher(integration_config)
-        components_dict = self.get_components_dict()
+        components_dict = self.get_components_dict(is_generic_syncer_enabled=False)
 
         all_components = []
         for _, syncer_class in components_dict.items():
