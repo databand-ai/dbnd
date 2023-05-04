@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class DataStageMonitorServicesFactory(MonitorServicesFactory):
-    def get_components_dict(self, is_generic_syncer_enabled=True):
+    def get_components_dict(self, is_generic_syncer_enabled=False):
         if is_generic_syncer_enabled:
             return {"generic_syncer": GenericSyncer}
         # turn off generic syncer by default
