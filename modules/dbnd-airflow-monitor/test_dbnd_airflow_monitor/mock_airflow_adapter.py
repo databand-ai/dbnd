@@ -6,8 +6,8 @@ from airflow_monitor.shared.adapter.adapter import Adapter, Assets, ThirdPartyIn
 
 
 class MockAirflowAdapter(Adapter):
-    def __init__(self, config):
-        super(MockAirflowAdapter, self).__init__(config)
+    def __init__(self):
+        super(MockAirflowAdapter, self).__init__()
         self.metadata = None
         self.error_list = []
 

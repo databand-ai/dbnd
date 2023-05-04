@@ -119,28 +119,6 @@ class DatabandClient(object):
         )
         return runs_info
 
-    def get_airflow_syncers(self):
-        af_syncers = self.api_client.api_request(
-            "/api/v1/integrations/config?type=airflow", None, method="GET"
-        )
-        return af_syncers
-
-    def archive_syncer(self, tracking_source_uid):
-        af_syncers = self.api_client.api_request(
-            f"/api/v1/integrations{tracking_source_uid}/delete?type=airflow",
-            tracking_source_uid,
-            method="POST",
-        )
-        return af_syncers
-
-    def get_airflow_validation(self, syncer_uid):
-        validate_response = self.api_client.api_request(
-            f"/api/v1/source_monitor/airflow/{syncer_uid}/validation_status",
-            None,
-            method="GET",
-        )
-        return validate_response
-
     def _get_task_start_time(self, task_run):
         if not task_run.get("latest_task_run_attempt"):
             return None

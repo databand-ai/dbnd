@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from typing import Generator, List, Tuple
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -22,8 +22,8 @@ from dbnd._core.utils.uid_utils import get_uuid
 
 
 class MockAdapter(Adapter):
-    def __init__(self, config):
-        super(MockAdapter, self).__init__(config)
+    def __init__(self):
+        super(MockAdapter, self).__init__()
         self.cursor = 0
         self.next_page = 0
 
@@ -150,7 +150,7 @@ def mock_server_config() -> BaseServerConfig:
 
 @pytest.fixture
 def mock_adapter() -> MockAdapter:
-    yield MockAdapter(MagicMock())
+    yield MockAdapter()
 
 
 @pytest.fixture

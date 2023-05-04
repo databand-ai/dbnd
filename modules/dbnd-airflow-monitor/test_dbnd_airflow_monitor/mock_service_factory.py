@@ -1,5 +1,4 @@
 # © Copyright Databand.ai, an IBM Company 2022
-from unittest.mock import MagicMock
 
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
@@ -19,7 +18,7 @@ class MockAirflowServicesFactory(AirflowServicesFactory):
         self.mock_integration_management_service = MockIntegrationManagementService(
             "airflow", AirflowServerConfig
         )
-        self.mock_adapter = MockAirflowAdapter(MagicMock)
+        self.mock_adapter = MockAirflowAdapter()
         self.mock_components_dict = {}
 
     def get_data_fetcher(self, server_config):
