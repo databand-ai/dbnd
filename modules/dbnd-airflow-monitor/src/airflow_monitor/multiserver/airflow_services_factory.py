@@ -74,4 +74,4 @@ class AirflowServicesFactory(MonitorServicesFactory):
         )
 
     def get_adapter(self, server_config: BaseServerConfig) -> Adapter:
-        return AirflowAdapter(server_config)
+        return AirflowAdapter()
