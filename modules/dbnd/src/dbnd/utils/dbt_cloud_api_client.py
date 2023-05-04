@@ -7,6 +7,7 @@ from http import HTTPStatus
 
 from requests import HTTPError, Session
 from requests.adapters import HTTPAdapter
+from requests.packages.urllib3 import __version__ as urllib_version
 from requests.packages.urllib3.util.retry import Retry
 
 from dbnd._core.errors.errors_utils import log_exception
@@ -23,20 +24,28 @@ class DbtCloudApiClient:
         self.account_id = account_id
         self.api_token = dbt_cloud_api_token
         self.session = Session()
-        self.session.headers = {"Authorization": f"Token {self.api_token}"}
+        self.session.headers = {
+            "Authorization": f"Token {self.api_token}",
+            "X-dbt-partner-source": "Databand",
+        }
+        allowed_methods_kw = (
+            "method_whitelist" if urllib_version.startswith("1.") else "allowed_methods"
+        )
         retry_strategy = Retry(
             total=max_retries,
             status_forcelist=[429, 500, 502, 503, 504],
             backoff_factor=1,
-            method_whitelist=[
-                "HEAD",
-                "GET",
-                "PUT",
-                "DELETE",
-                "OPTIONS",
-                "TRACE",
-                "POST",
-            ],
+            **{
+                allowed_methods_kw: [
+                    "HEAD",
+                    "GET",
+                    "PUT",
+                    "DELETE",
+                    "OPTIONS",
+                    "TRACE",
+                    "POST",
+                ]
+            },
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("https://", adapter)
