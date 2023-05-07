@@ -35,7 +35,7 @@ def capture_component_exception(component: BaseComponent, function_name: str):
             component.integration_management_service,
             component.config.uid,
             full_function_name,
-            "",
+            None,
         )
 
         component.report_sync_metrics(is_success=True)
