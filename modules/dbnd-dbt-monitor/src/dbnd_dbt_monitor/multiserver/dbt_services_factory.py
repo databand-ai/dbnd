@@ -62,7 +62,6 @@ class DbtMonitorServicesFactory(MonitorServicesFactory):
         integration_management_service: IntegrationManagementService,
     ) -> list:
         # TODO: migrate is_generic_syncer_enabled_flag
-        integration_config.is_generic_syncer_enabled = True
         if not integration_config.is_generic_syncer_enabled:
             return super().get_components(
                 integration_config, integration_management_service
