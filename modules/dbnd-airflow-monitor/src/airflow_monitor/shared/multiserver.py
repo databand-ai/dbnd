@@ -80,6 +80,7 @@ class MultiServerMonitor:
                 )
                 self.active_instances[integration_uid] = components
 
+                self.integration_management_service.clean_error_message(integration_uid)
                 self._report_third_party_data(integration_config)
 
     def _report_third_party_data(self, integration_config):

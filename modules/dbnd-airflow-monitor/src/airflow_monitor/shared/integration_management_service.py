@@ -114,6 +114,9 @@ class IntegrationManagementService:
                 data={"monitor_error_message": res.message},
             )
 
+    def clean_error_message(self, integration_uid: UUID):
+        self.report_error(integration_uid, "clean", "")
+
     def send_metrics(self, name: str):
         metrics = generate_latest().decode("utf-8")
         if name:

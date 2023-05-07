@@ -171,10 +171,12 @@ class TestMultiServer(object):
         mock_integration_management_service.mock_servers = [
             AirflowServerConfig(**MOCK_SERVER_4_CONFIG)
         ]
-
+        mock_integration_management_service.error = "some_error"
         multi_server.run_once()
         # should start mock_server, should do 1 iteration
         assert len(multi_server.active_instances) == 1
+
+        # On first run should clean existing error
         assert not mock_integration_management_service.error
 
         mock_data_fetcher.alive = False
