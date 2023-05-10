@@ -33,11 +33,16 @@ dependencies {
     // fix for "Illegal pattern component: XXX" on spark read
     implementation 'org.apache.commons:commons-lang3:3.5'
 
-    // deps for Hive Metastore PoC
+    // Hive libs for local testing
 //    implementation 'org.apache.spark:spark-hive_2.11:2.4.8'
 //    implementation 'org.apache.hive.hcatalog:hive-hcatalog-core:2.3.7'
-//    implementation 'org.apache.hadoop:hadoop-aws:2.10.1'
-//    implementation 'org.apache.hadoop:hadoop-common:2.10.1'
+//    implementation 'org.apache.hadoop:hadoop-common:2.7.7'
+//
+//    configurations.all {
+//        exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
+//    }
+    // End Hive libs for local testing
+    // Hive libs for AWS HCatalog PoC
     /**
      * Download libraries from
      * https://databand-playground.s3.amazonaws.com/emr-hive/emrfs-hadoop-assembly-2.46.0.jar
@@ -46,6 +51,7 @@ dependencies {
      */
 //    implementation files('lib/emrfs-hadoop-assembly-2.46.0.jar')
 //    implementation files('lib/hadoop-common-2.10.1-amzn-1.jar')
+//    implementation 'org.apache.hadoop:hadoop-aws:2.10.1'
     // end Hive Metastore PoC deps
 
     implementation("com.amazon.deequ:deequ:1.2.2-spark-2.2") {
@@ -76,10 +82,12 @@ shadowJar {
          && !it.moduleGroup.contains('squareup') \
          && !it.moduleGroup.contains('ch.qos') \
          && !it.moduleGroup.contains('deequ')
+         && !it.moduleGroup.contains("org.jetbrains.kotlin")
         })
     }
     relocate 'okio', 'ai.databand.shadow.okio'
     relocate 'okhttp3', 'ai.databand.shadow.okhttp3'
+    relocate "kotlin", "ai.databand.shadow.kotlin"
 }
 
 test {

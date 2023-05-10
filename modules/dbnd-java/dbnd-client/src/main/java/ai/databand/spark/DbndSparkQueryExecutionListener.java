@@ -150,7 +150,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                         String path = hiveTableScan.relation().tableMeta().storage().locationUri().get().toString();
                         long rows = hiveTableScan.metrics().get("numOutputRows").get().value();
 
-                        log(path, DatasetOperationType.READ, hiveTableScan.schema(), rows);
+                        log(path, DatasetOperationType.READ, hiveTableScan.relation().schema(), rows);
                         isProcessed = true;
                     } catch (Exception e) {
                         LOG.error("Unable to extract dataset information from HiveTableScanExec", e);
