@@ -44,4 +44,6 @@ def _get_api_client() -> ApiClient:
         tracking_service_config.url,
         credentials=credentials,
         default_request_timeout=DEFAULT_REQUEST_TIMEOUT,
+        default_retry_sleep=1,
+        default_max_retry=3,
     )
