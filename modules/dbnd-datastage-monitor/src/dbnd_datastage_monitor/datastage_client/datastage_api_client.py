@@ -161,7 +161,7 @@ class DataStageApiHttpClient(DataStageApiClient):
             connect=self.retries,
             backoff_factor=self.BACK_OFF_FACTOR,
             status_forcelist=[500, 502, 503, 504],
-            method_whitelist=frozenset(["GET", "POST"]),
+            allowed_methods=frozenset(["GET", "POST"]),
             raise_on_status=False,
         )
         adapter = HTTPAdapter(max_retries=retry)

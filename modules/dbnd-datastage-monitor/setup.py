@@ -23,6 +23,7 @@ setuptools.setup(
         "python-json-logger",  # TODO: might need to remove when on-prem support needed
         "prometheus-client",
         "sentry-sdk",
+        "urllib3>=1.26.12",
     ],
     extras_require={
         "tests": ["pytest", "mock", "pytest-cov==3.0.0", "freezegun==1.1.0"]
