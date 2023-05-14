@@ -7,8 +7,8 @@ from typing import Optional, Type
 
 from dbnd import dbnd_config, log_metric, override
 from dbnd._core.constants import CURRENT_TIME_STR
-from dbnd._core.errors.friendly_error.executor_k8s import no_tag_on_no_build
 from dbnd._core.plugin.dbnd_plugins import pm
+from dbnd.orchestration.errors.executor_k8s import no_tag_on_no_build
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_build import DockerBuild
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig

@@ -4,9 +4,10 @@ import logging
 import typing
 
 from dbnd._core.constants import TaskExecutorType
-from dbnd._core.errors import DatabandConfigError, friendly_error
-from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
+from dbnd._core.errors import DatabandConfigError
 from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
+from dbnd.orchestration import errors
+from dbnd.orchestration.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd.orchestration.run_executor_engine.local_task_executor import LocalTaskExecutor
 
 
@@ -72,7 +73,7 @@ def calculate_task_executor_type(submit_tasks, remote_engine, run_config):
                     # in theory sqlite can support a decent amount of parallelism, but in practice
                     # the way airflow works each process holds the db exlusively locked which leads
                     # to sqlite DB is locked exceptions
-                    raise friendly_error.execute_engine.parallel_or_remote_sqlite(
+                    raise errors.execute_engine.parallel_or_remote_sqlite(
                         task_executor_type
                     )
 

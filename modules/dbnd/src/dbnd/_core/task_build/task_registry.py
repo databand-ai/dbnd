@@ -20,8 +20,8 @@ from dbnd._vendor.snippets.luigi_registry import get_best_candidate, module_pare
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task.task import Task
     from dbnd._core.task_build.task_definition import TaskDefinition
+    from dbnd.orchestration.task.task import Task
 
 
 def _validate_no_recursion_in_config(task_name, config_task_type, param):

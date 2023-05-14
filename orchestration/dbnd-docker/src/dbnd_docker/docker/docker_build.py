@@ -2,9 +2,8 @@
 
 import logging
 
-from dbnd import parameter
+from dbnd import Task, parameter
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd._core.task.task import Task
 from dbnd._core.utils.better_subprocess import run_cmd
 from dbnd._core.utils.project.project_fs import project_path
 

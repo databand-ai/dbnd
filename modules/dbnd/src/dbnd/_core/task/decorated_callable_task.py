@@ -3,14 +3,14 @@
 import logging
 
 from dbnd._core.constants import TaskType
-from dbnd._core.errors.friendly_error.task_execution import (
+from dbnd._core.task_build.task_results import FuncResultParameter
+from dbnd.orchestration.errors.task_execution import (
     failed_to_assign_result,
     failed_to_process_non_empty_result,
 )
-from dbnd._core.task.pipeline_task import PipelineTask
-from dbnd._core.task.python_task import PythonTask
-from dbnd._core.task.task import Task
-from dbnd._core.task_build.task_results import FuncResultParameter
+from dbnd.orchestration.task.pipeline_task import PipelineTask
+from dbnd.orchestration.task.python_task import PythonTask
+from dbnd.orchestration.task.task import Task
 
 
 logger = logging.getLogger(__name__)

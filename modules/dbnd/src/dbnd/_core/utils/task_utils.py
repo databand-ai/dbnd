@@ -10,8 +10,8 @@ import six
 
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
-from dbnd._core.task.task import Task
 from dbnd._core.utils.traversing import traverse
+from dbnd.orchestration.task.task import Task
 from targets.base_target import Target
 from targets.multi_target import MultiTarget
 from targets.target_factory import target

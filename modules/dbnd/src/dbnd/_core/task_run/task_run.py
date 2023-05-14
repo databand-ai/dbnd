@@ -29,8 +29,8 @@ if typing.TYPE_CHECKING:
     from typing import Any
 
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd._core.task.task import Task
     from dbnd.orchestration.run_settings import EngineConfig
+    from dbnd.orchestration.task.task import Task
 
 
 class TaskRun(object):

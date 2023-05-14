@@ -18,19 +18,19 @@ from dbnd._core.cli.cmd_tracker import tracker
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
-from dbnd._core.plugin.dbnd_plugins import register_dbnd_cli_commands
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
 from dbnd.cli.cmd_airflow_sync import airflow_sync
 from dbnd.cli.cmd_alerts import alerts
-from dbnd.cli.cmd_scheduler_management import schedule
 from dbnd.orchestration.cli.cmd_execute import execute
 from dbnd.orchestration.cli.cmd_heartbeat import send_heartbeat
 from dbnd.orchestration.cli.cmd_project import project_init
 from dbnd.orchestration.cli.cmd_run import cmd_run
+from dbnd.orchestration.cli.cmd_scheduler_management import schedule
 from dbnd.orchestration.cli.cmd_show import show_tasks
 from dbnd.orchestration.cli.cmd_utils import collect_logs, ipython
+from dbnd.orchestration.plugin.dbnd_plugins import register_dbnd_cli_commands
 
 
 logger = logging.getLogger(__name__)
@@ -97,34 +97,6 @@ def dbnd_cmd(command, args):
 
 
 dbnd_run_cmd = partial(dbnd_cmd, "run")
-
-
-def dbnd_run_cmd_main(task, env=None, args=None):
-    """A wrapper for dbnd_cmd_run with error handling."""
-    from dbnd import Task
-
-    if isinstance(task, Task):
-        task_str = task.get_full_task_family()
-    else:
-        task_str = task
-
-    try:
-        cmd_args = [task_str]
-        if env is not None:
-            cmd_args = cmd_args + ["--env", env]
-        if args is not None:
-            cmd_args = cmd_args + args
-        return dbnd_cmd("run", cmd_args)
-    except KeyboardInterrupt:
-        logger.error("Keyboard interrupt, exiting...")
-        sys.exit(1)
-    except Exception as ex:
-        from dbnd._core.failures import get_databand_error_message
-
-        msg, code = get_databand_error_message(ex=ex, args=sys.argv[1:])
-        logger.error("dbnd cmd run failed with error: {}".format(msg))
-        if code is not None:
-            sys.exit(code)
 
 
 def _register_legacy_airflow_monitor_commands(cli):

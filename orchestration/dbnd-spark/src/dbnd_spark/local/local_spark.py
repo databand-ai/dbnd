@@ -6,12 +6,12 @@ import re
 from io import StringIO
 from logging import StreamHandler
 
-from dbnd._core.errors.friendly_error.task_execution import (
+from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
+from dbnd._core.utils.structures import list_of_strings
+from dbnd.orchestration.errors.task_execution import (
     failed_spark_status,
     failed_to_run_spark_script,
 )
-from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
-from dbnd._core.utils.structures import list_of_strings
 from dbnd_spark._core.spark_error_parser import parse_spark_log_safe
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_spark.spark_ctrl import SparkCtrl

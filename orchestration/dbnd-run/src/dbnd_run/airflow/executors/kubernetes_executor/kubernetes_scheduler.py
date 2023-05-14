@@ -32,12 +32,12 @@ from airflow.utils.timezone import utcnow
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.errors.friendly_error.executor_k8s import (
+from dbnd._core.log.logging_utils import PrefixLoggerAdapter
+from dbnd._core.task_run.task_run_error import TaskRunError
+from dbnd.orchestration.errors.executor_k8s import (
     KubernetesImageNotFoundError,
     KubernetesPodConfigFailure,
 )
-from dbnd._core.log.logging_utils import PrefixLoggerAdapter
-from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd_docker.kubernetes.dns1123_clean_names import create_pod_id
 from dbnd_docker.kubernetes.kube_dbnd_client import (
     PodFailureReason,

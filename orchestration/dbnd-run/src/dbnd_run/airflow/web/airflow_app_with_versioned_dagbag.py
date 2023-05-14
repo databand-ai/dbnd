@@ -5,10 +5,10 @@ import logging
 import os
 
 from dbnd._core.configuration.environ_config import in_quiet_mode
-from dbnd._core.errors.friendly_error.versioned_dagbag import (
+from dbnd._core.utils.object_utils import patch_module_attr
+from dbnd.orchestration.errors.versioned_dagbag import (
     failed_to_load_versioned_dagbag_plugin,
 )
-from dbnd._core.utils.object_utils import patch_module_attr
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 
 

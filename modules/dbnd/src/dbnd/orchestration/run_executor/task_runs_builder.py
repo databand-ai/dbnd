@@ -20,8 +20,8 @@ from dbnd.orchestration.run_settings import EngineConfig, RunConfig
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task.task import Task
     from dbnd.orchestration.run_executor.run_executor import RunExecutor
+    from dbnd.orchestration.task.task import Task
 
 logger = logging.getLogger(__name__)
 

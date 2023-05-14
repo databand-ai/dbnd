@@ -28,12 +28,14 @@ from dbnd._core.configuration.environ_config import (
     get_dbnd_project_config,
 )
 from dbnd._core.current import is_verbose
-from dbnd._core.errors import DatabandConfigError, friendly_error
+from dbnd._core.errors import DatabandConfigError
 from dbnd._core.log.logging_utils import set_module_logging_to_debug
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.json_utils import dumps_safe
 from dbnd._core.utils.structures import combine_mappings
+from dbnd.orchestration import errors
+from dbnd.orchestration.errors import executor_k8s
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker.docker_task import DockerRunTask
 from dbnd_docker.kubernetes.compat import volume_shims
@@ -440,7 +442,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                         config_file=self.config_file, context=self.cluster_context
                     )
                 except ConfigException as e:
-                    raise friendly_error.executor_k8s.failed_to_load_config_file(e)
+                    raise executor_k8s.failed_to_load_config_file(e)
                 self.in_cluster = False
         else:
             try:
@@ -451,7 +453,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
                         config_file=self.config_file, context=self.cluster_context
                     )
             except ConfigException as e:
-                raise friendly_error.executor_k8s.failed_to_connect_to_cluster(
+                raise errors.executor_k8s.failed_to_connect_to_cluster(
                     self.in_cluster, e
                 )
 

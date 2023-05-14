@@ -8,8 +8,8 @@ import subprocess
 
 import six
 
-from dbnd._core.errors.friendly_error.task_execution import failed_to_run_cmd
 from dbnd._core.log.logging_utils import raw_log_formatting
+from dbnd.orchestration.errors.task_execution import failed_to_run_cmd
 
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ import logging
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors.base import DatabandRunError, DatabandSigTermError
-from dbnd._core.task_ctrl.task_dag import topological_sort
+from dbnd.orchestration import errors
 from dbnd.orchestration.run_executor_engine.task_executor import RunExecutorEngine
 
 
@@ -96,3 +96,44 @@ def _collect_errors(task_runs):
     if failed:
         err += "Failed tasks are:\n\t{}".format("\n\t".join(failed))
     return err
+
+
+def topological_sort(tasks, root_task=None):
+    # special case
+    if len(tasks) == 0:
+        return tuple()
+
+    graph_unsorted = set(tasks)
+
+    graph_sorted = []
+
+    # Run until the unsorted graph is empty.
+    while graph_unsorted:
+        # Go through each of the node/edges pairs in the unsorted
+        # graph. If a set of edges doesn't contain any nodes that
+        # haven't been resolved, that is, that are still in the
+        # unsorted graph, remove the pair from the unsorted graph,
+        # and append it to the sorted graph. Note here that by using
+        # using the items() method for iterating, a copy of the
+        # unsorted graph is used, allowing us to modify the unsorted
+        # graph as we move through it. We also keep a flag for
+        # checking that that graph is acyclic, which is true if any
+        # nodes are resolved during each pass through the graph. If
+        # not, we need to bail out as the graph therefore can't be
+        # sorted.
+        acyclic = False
+        for node in list(graph_unsorted):
+            for edge in node.ctrl.task_dag.upstream:
+                if edge in graph_unsorted:
+                    break
+            # no edges in upstream tasks
+            else:
+                # we found at least one node in graph
+                acyclic = True
+                graph_unsorted.remove(node)
+                graph_sorted.append(node)
+
+        if not acyclic:
+            raise errors.graph.cyclic_graph_detected(root_task, graph_unsorted)
+
+    return tuple(graph_sorted)

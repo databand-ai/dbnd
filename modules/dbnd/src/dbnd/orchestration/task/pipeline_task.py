@@ -4,7 +4,7 @@ import abc
 
 from dbnd._core.constants import TaskType
 from dbnd._core.current import try_get_run_executor
-from dbnd._core.task.task import Task
+from dbnd.orchestration.task.task import Task
 
 
 class PipelineTask(Task):

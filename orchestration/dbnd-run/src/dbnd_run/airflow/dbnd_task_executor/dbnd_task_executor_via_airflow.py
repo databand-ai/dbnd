@@ -16,10 +16,11 @@ from airflow.utils.state import State
 from sqlalchemy.orm import Session
 
 from dbnd import dbnd_config
-from dbnd._core.errors import DatabandError, friendly_error
+from dbnd._core.errors import DatabandError
 from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
+from dbnd.orchestration import errors
 from dbnd.orchestration.run_executor_engine.task_executor import RunExecutorEngine
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2, AIRFLOW_VERSION_AFTER_2_2
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
@@ -463,7 +464,7 @@ class AirflowTaskExecutor(RunExecutorEngine):
             )
 
             if not isinstance(self.target_engine, KubernetesEngineConfig):
-                raise friendly_error.executor_k8s.kubernetes_with_non_compatible_engine(
+                raise errors.executor_k8s.kubernetes_with_non_compatible_engine(
                     self.target_engine
                 )
             kube_dbnd = self.target_engine.build_kube_dbnd()

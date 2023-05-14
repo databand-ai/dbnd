@@ -18,7 +18,6 @@ from dbnd._core.constants import (
     _TaskParamContainer,
 )
 from dbnd._core.current import get_databand_run, try_get_current_task_run
-from dbnd._core.errors import friendly_error
 from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.parameter.constants import ParameterScope
@@ -30,6 +29,7 @@ from dbnd._core.task.task_with_params import _TaskWithParams
 from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.traversing import flatten
+from dbnd.orchestration import errors
 from dbnd.orchestration.run_settings.env import EnvConfig
 from dbnd.orchestration.task_run_executor.task_output_builder import calculate_path
 from targets import InMemoryTarget, target
@@ -372,7 +372,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
         except Exception as ex:
             access_status = DbndTargetOperationStatus.NOK
-            raise friendly_error.task_execution.failed_to_save_value_to_target(
+            raise errors.task_execution.failed_to_save_value_to_target(
                 ex, self, parameter, original_value, current_value
             )
         finally:

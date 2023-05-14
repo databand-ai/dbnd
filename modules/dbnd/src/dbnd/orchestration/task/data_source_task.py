@@ -6,9 +6,9 @@ import os
 
 from dbnd._core.errors import friendly_error
 from dbnd._core.parameter.parameter_builder import output
-from dbnd._core.task.task import Task
 from dbnd._core.utils.task_utils import to_targets
 from dbnd._core.utils.traversing import flatten
+from dbnd.orchestration.task.task import Task
 from targets.multi_target import MultiTarget
 
 

@@ -7,7 +7,7 @@ import pytest
 
 from requests.models import Response
 
-from dbnd.utils.dbt_cloud_api_client import DbtCloudApiClient
+from dbnd.providers.dbt.dbt_cloud_api_client import DbtCloudApiClient
 
 
 class TestDbtCloudApiClient:

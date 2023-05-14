@@ -5,10 +5,10 @@ import logging
 
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.errors import friendly_error
-from dbnd._core.plugin import dbnd_plugin_spec
 from dbnd._core.utils.basics.load_python_module import _load_module
 from dbnd._core.utils.seven import fix_sys_path_str, import_errors
 from dbnd._vendor import pluggy
+from dbnd.orchestration.plugin import dbnd_plugin_spec
 
 
 logger = logging.getLogger(__name__)

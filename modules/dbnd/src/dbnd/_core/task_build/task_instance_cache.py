@@ -6,7 +6,7 @@ from dbnd._core.task_build.task_signature import Signature
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task.task import Task
+    from dbnd.orchestration.task.task import Task
 
 
 class TaskInstanceCache(object):

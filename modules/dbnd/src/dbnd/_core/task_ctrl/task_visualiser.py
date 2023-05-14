@@ -17,8 +17,8 @@ from targets import DataTarget, InMemoryTarget, Target
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task.task import Task
     from dbnd._core.task_run.task_run import TaskRun
+    from dbnd.orchestration.task.task import Task
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +237,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
         )
 
     def add_task_info(self):
-        from dbnd._core.task.task import DEFAULT_CLASS_VERSION
+        from dbnd.orchestration.task.task import DEFAULT_CLASS_VERSION
 
         task_params = [
             ("task_id", self.task.task_id),

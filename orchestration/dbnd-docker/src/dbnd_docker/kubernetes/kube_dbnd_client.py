@@ -14,10 +14,12 @@ from urllib3.exceptions import HTTPError
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.errors import DatabandError, DatabandRuntimeError, friendly_error
+from dbnd._core.errors import DatabandError, DatabandRuntimeError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter, override_log_formatting
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils.timezone import utcnow
+from dbnd.orchestration import errors
+from dbnd.orchestration.errors import executor_k8s
 from dbnd_docker.kubernetes.compat.pod_launcher import PodStatus
 from dbnd_docker.kubernetes.kube_resources_checker import DbndKubeResourcesChecker
 from dbnd_docker.kubernetes.kubernetes_engine_config import (
@@ -236,9 +238,7 @@ class DbndPodCtrl(object):
 
                     self.log.warning("pod is pending because %s" % condition.message)
                 else:
-                    raise friendly_error.executor_k8s.kubernetes_pod_unschedulable(
-                        condition.message
-                    )
+                    raise executor_k8s.kubernetes_pod_unschedulable(condition.message)
 
         if pod_status.container_statuses:
             container_waiting_state = pod_status.container_statuses[0].state.waiting
@@ -248,14 +248,14 @@ class DbndPodCtrl(object):
                 and container_waiting_state
             ):
                 if container_waiting_state.reason == "ErrImagePull":
-                    raise friendly_error.executor_k8s.kubernetes_image_not_found(
+                    raise executor_k8s.kubernetes_image_not_found(
                         pod_status.container_statuses[0].image,
                         container_waiting_state.message,
                         long_msg=container_waiting_state.reason,
                     )
 
                 if container_waiting_state.reason == "CreateContainerConfigError":
-                    raise friendly_error.executor_k8s.kubernetes_pod_config_error(
+                    raise executor_k8s.kubernetes_pod_config_error(
                         container_waiting_state.message
                     )
 
@@ -278,7 +278,7 @@ class DbndPodCtrl(object):
                 #   u"lastTransitionTime": u"2021-01-22T04:54:13Z",
                 #  },
                 if not condition.status or condition.status == "False":
-                    raise friendly_error.executor_k8s.kubernetes_running_pod_fails_on_condition(
+                    raise errors.executor_k8s.kubernetes_running_pod_fails_on_condition(
                         condition, pod_name=pod_v1_resp.metadata.name
                     )
                 return True

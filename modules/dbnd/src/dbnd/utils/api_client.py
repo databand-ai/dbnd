@@ -24,8 +24,8 @@ from dbnd._core.errors.base import (
 from dbnd._core.errors.friendly_error.api import api_connection_refused
 from dbnd._core.log.logging_utils import create_file_handler
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
+from dbnd._core.utils.trace import get_tracing_id
 from dbnd._vendor import curlify
-from dbnd.utils.trace import get_tracing_id
 
 
 # we'd like to have all requests with default timeout, just in case it's stuck

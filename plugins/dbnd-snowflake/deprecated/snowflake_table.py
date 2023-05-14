@@ -5,7 +5,7 @@ from typing import Optional, Union
 from snowflake.connector import SnowflakeConnection
 
 from dbnd import log_duration
-from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
+from dbnd._core.utils.dbnd_modules import is_module_enabled
 from dbnd._core.tracking.metrics import log_data, log_dataset_op
 from dbnd_snowflake.extract_sql_query import TableTargetOperation
 from dbnd_snowflake.snowflake_config import SnowflakeConfig
@@ -34,7 +34,7 @@ def log_snowflake_table(
     :param raise_on_error:
     :return:
     """
-    if not is_plugin_enabled("dbnd-snowflake", module_import="dbnd_snowflake"):
+    if not is_module_enabled("dbnd-snowflake", module_import="dbnd_snowflake"):
         return
     from dbnd_snowflake import snowflake_values
 
@@ -62,7 +62,7 @@ def log_snowflake_table_targets(
     with_preview: Optional[bool] = None,
     with_schema: Optional[bool] = None,
 ):
-    if not is_plugin_enabled("dbnd-snowflake", module_import="dbnd_snowflake"):
+    if not is_module_enabled("dbnd_snowflake"):
         return
 
     from dbnd_snowflake.snowflake_values import SnowflakeTable

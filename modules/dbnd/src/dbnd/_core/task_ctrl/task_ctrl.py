@@ -34,7 +34,7 @@ class TaskSubCtrl(object):
     def __init__(self, task):
         super(TaskSubCtrl, self).__init__()
 
-        from dbnd._core.task.task import Task
+        from dbnd.orchestration.task.task import Task
 
         self.task = task  # type: Task
 
@@ -159,7 +159,7 @@ class _BaseTaskCtrl(TaskSubCtrl):
 
 class TaskCtrl(_BaseTaskCtrl):
     def __init__(self, task):
-        from dbnd._core.task.task import Task
+        from dbnd.orchestration.task.task import Task
 
         assert isinstance(task, Task)
 

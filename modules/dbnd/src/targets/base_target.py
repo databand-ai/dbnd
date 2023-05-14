@@ -35,7 +35,7 @@ from dbnd._core.utils.basics.nothing import NOTHING
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task.task import Task
+    from dbnd.orchestration.task.task import Task
     from targets.value_meta import ValueMeta
 
 logger = logging.getLogger(__name__)

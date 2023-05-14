@@ -12,7 +12,6 @@ from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.log import dbnd_log
 from dbnd._core.settings import DatabandSystemConfig, RunInfoConfig
-from dbnd._core.task.task import Task
 from dbnd._core.task_build.task_instance_cache import TaskInstanceCache
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils import seven
@@ -20,6 +19,7 @@ from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.timezone import utcnow
 from dbnd.orchestration.run_executor.run_executor import dbnd_run_task
+from dbnd.orchestration.task.task import Task
 
 
 if typing.TYPE_CHECKING:

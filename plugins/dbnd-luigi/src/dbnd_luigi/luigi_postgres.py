@@ -2,7 +2,7 @@
 
 import luigi
 
-from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
+from dbnd._core.utils.dbnd_modules import is_module_enabled
 
 
 def handle_postgres_histogram_logging(luigi_task):
@@ -30,7 +30,7 @@ def handle_postgres_histogram_logging(luigi_task):
 
 def should_log_pg_histogram(luigi_task):
     # type: (luigi.Task) -> bool
-    if not is_plugin_enabled("dbnd-postgres", module_import="dbnd_postgres"):
+    if not is_module_enabled("dbnd_postgres"):
         return False
     try:
         from luigi.contrib.postgres import PostgresQuery

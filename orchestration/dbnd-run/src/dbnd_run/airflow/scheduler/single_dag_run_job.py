@@ -38,11 +38,12 @@ from sqlalchemy.orm.session import make_transient
 from dbnd._core import current
 from dbnd._core.constants import TaskRunState, UpdateSource
 from dbnd._core.current import get_databand_run, get_run_executor
-from dbnd._core.errors import DatabandSystemError, friendly_error
+from dbnd._core.errors import DatabandSystemError
 from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
+from dbnd.orchestration import errors
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     is_task_instance_finished,
@@ -434,7 +435,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             ti_status.deadlocked
         ) == 0:
             if current.is_killed():
-                raise friendly_error.task_execution.databand_context_killed(
+                raise errors.task_execution.databand_context_killed(
                     "SingleDagRunJob scheduling main loop"
                 )
             self.log.debug("*** Clearing out not_ready list ***")

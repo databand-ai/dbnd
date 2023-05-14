@@ -59,33 +59,6 @@ def no_credentials():
     )
 
 
-def scheduled_job_missing_param(field):
-    return DatabandConfigError("Scheduled job %s must be defined" % field)
-
-
-def scheduled_job_exists(name):
-    return DatabandConfigError(
-        "Scheduled job named '%s' already exists" % name,
-        help_msg="If you wish to update it add --update to the cli command",
-    )
-
-
-def scheduled_job_not_exists(name):
-    return DatabandConfigError(
-        "Scheduled job named '%s' does not exists and as such cannot be updated" % name
-    )
-
-
-def scheduled_job_invalid_interval(schedule_interval):
-    from dbnd.api.shared_schemas.scheduled_job_schema import SCHEDULE_INTERVAL_PRESETS
-
-    return DatabandConfigError(
-        "The schedule_interval '%s' is not valid" % schedule_interval,
-        help_msg="Valid values are any valid cron expression or one of the presets: %s"
-        % ", ".join(SCHEDULE_INTERVAL_PRESETS),
-    )
-
-
 def wrong_store_name(name):
     return DatabandConfigError(
         "Unsupported tracking store: '{}', use one of file/console/api".format(name),

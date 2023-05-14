@@ -14,7 +14,7 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.log import dbnd_log_debug
 from dbnd._core.settings import CoreConfig, TrackingConfig
-from dbnd.utils.trace import get_tracing_id
+from dbnd._core.utils.trace import get_tracing_id
 from dbnd_airflow.tracking.config import TrackingSparkConfig
 from dbnd_airflow.utils import get_airflow_instance_uid
 

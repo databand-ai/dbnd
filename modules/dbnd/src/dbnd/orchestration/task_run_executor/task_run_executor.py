@@ -7,9 +7,8 @@ import typing
 import webbrowser
 
 from dbnd._core.constants import SystemTaskName, TaskRunState
-from dbnd._core.errors import friendly_error, show_error_once
+from dbnd._core.errors import show_error_once
 from dbnd._core.errors.base import DatabandSigTermError
-from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled, pm
 from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.utils import seven
@@ -17,6 +16,8 @@ from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.signal_utils import safe_signal
 from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
+from dbnd.orchestration import errors
+from dbnd.orchestration.plugin.dbnd_plugins import is_plugin_enabled, pm
 from dbnd.orchestration.task_run_executor.task_run_sync_local import TaskRunLocalSyncer
 from dbnd.orchestration.task_run_executor.task_sync_ctrl import TaskSyncCtrl
 from dbnd.orchestration.task_run_executor.task_validator import TaskValidator
@@ -72,7 +73,7 @@ class TaskRunExecutor(TaskRunCtrl):
             handle_sigterm=handle_sigterm
         ) as execute_context:
             if run_executor.is_killed():
-                raise friendly_error.task_execution.databand_context_killed(
+                raise errors.task_execution.databand_context_killed(
                     "task.execute_start of %s" % task
                 )
             try:
@@ -139,7 +140,7 @@ class TaskRunExecutor(TaskRunCtrl):
             except SystemExit as ex:
                 error = TaskRunError.build_from_ex(ex, task_run)
                 task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
-                raise friendly_error.task_execution.system_exit_at_task_run(task, ex)
+                raise errors.task_execution.system_exit_at_task_run(task, ex)
             except Exception as ex:
                 error = TaskRunError.build_from_ex(ex, task_run)
                 task_run.set_task_run_state(TaskRunState.FAILED, error=error)

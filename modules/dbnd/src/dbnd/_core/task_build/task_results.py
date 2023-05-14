@@ -4,11 +4,8 @@ from typing import Any
 
 import attr
 
-from dbnd._core.errors import friendly_error
-from dbnd._core.errors.friendly_error.task_execution import (
-    failed_to_read_value_from_target,
-)
 from dbnd._core.parameter.parameter_definition import ParameterDefinition, T
+from dbnd.orchestration import errors
 from targets.errors import NotSupportedValue
 from targets.multi_target import MultiTarget
 
@@ -76,11 +73,11 @@ class FuncResultParameter(ParameterDefinition):
 
     def _validate_result(self, result):
         if not isinstance(result, (tuple, list, dict)):
-            raise friendly_error.task_execution.wrong_return_value_type(
+            raise errors.task_execution.wrong_return_value_type(
                 self.task_definition, self.names, result
             )
         elif len(result) != len(self.schema):
-            raise friendly_error.task_execution.wrong_return_value_len(
+            raise errors.task_execution.wrong_return_value_len(
                 self.task_definition, self.names, result
             )
         if isinstance(result, dict):
@@ -107,7 +104,7 @@ class FuncResultParameter(ParameterDefinition):
 
                 results.append(p.load_from_target(p_target, **kwargs))
             except Exception as ex:
-                raise failed_to_read_value_from_target(
+                raise errors.task_execution.failed_to_read_value_from_target(
                     ex, p_target.source.task, p, target
                 )
 

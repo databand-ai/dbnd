@@ -10,11 +10,6 @@ from dbnd._core.configuration.environ_config import (
     get_dbnd_project_config,
     is_unit_test_mode,
 )
-from dbnd._core.plugin.dbnd_plugins import (
-    register_dbnd_plugins,
-    register_dbnd_user_plugins,
-)
-from dbnd.orchestration.orchestration_bootstrap import dbnd_bootstrap_orchestration
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +52,10 @@ def dbnd_bootstrap(dbnd_entrypoint=False):
         _dbnd_bootstrap_plugins_and_entrypoints()
 
         # MOVE
+        from dbnd.orchestration.orchestration_bootstrap import (
+            dbnd_bootstrap_orchestration,
+        )
+
         dbnd_bootstrap_orchestration(dbnd_entrypoint=dbnd_entrypoint)
 
         _dbnd_system_bootstrap = "loaded"
@@ -68,8 +67,12 @@ def dbnd_bootstrap(dbnd_entrypoint=False):
 def _dbnd_bootstrap_plugins_and_entrypoints():
     from dbnd._core.configuration import environ_config
     from dbnd._core.configuration.dbnd_config import config
-    from dbnd._core.plugin.dbnd_plugins import pm
     from dbnd._core.utils.basics.load_python_module import run_user_func
+    from dbnd.orchestration.plugin.dbnd_plugins import (
+        pm,
+        register_dbnd_plugins,
+        register_dbnd_user_plugins,
+    )
 
     if config.getboolean("core", "dbnd_plugins_enabled"):
         register_dbnd_plugins()

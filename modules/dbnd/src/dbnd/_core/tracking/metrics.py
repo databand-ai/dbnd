@@ -7,7 +7,7 @@ import typing
 from typing import Any, Dict, List, Optional, Union
 
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
-from dbnd._core.plugin.dbnd_plugins import is_plugin_enabled
+from dbnd._core.utils.dbnd_modules import is_module_enabled
 from dbnd._core.task_run.task_run_tracker import DatasetOperationReport, TaskRunTracker
 from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.utils import seven
@@ -140,7 +140,7 @@ def log_pg_table(
     @param with_histograms: True if should calculate and log histogram of the table data.
     """
     try:
-        if not is_plugin_enabled("dbnd-postgres", module_import="dbnd_postgres"):
+        if not is_module_enabled("dbnd_postgres"):
             logger.warning(
                 "Can't log postgres table: dbnd-postgres package is not installed\n"
                 "Help: pip install dbnd-postgres"

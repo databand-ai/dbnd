@@ -3,7 +3,8 @@
 import logging
 import math
 
-from dbnd._core.errors import DatabandConfigError, friendly_error
+from dbnd._core.errors import DatabandConfigError
+from dbnd.orchestration.errors import executor_k8s
 
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,7 @@ class DbndKubeResourcesChecker(object):
                         )
 
                 if message_components:
-                    raise friendly_error.executor_k8s.kubernetes_pod_unschedulable(
+                    raise executor_k8s.kubernetes_pod_unschedulable(
                         condition_message, extra_help="\n".join(message_components)
                     )
 

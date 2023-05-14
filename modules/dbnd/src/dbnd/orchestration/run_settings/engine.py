@@ -6,12 +6,10 @@ import typing
 
 from typing import Union
 
-from dbnd._core.errors.friendly_error.executor_k8s import (
-    local_engine_not_accept_remote_jobs,
-)
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
 from dbnd._core.task_build.task_registry import build_task_from_config
+from dbnd.orchestration.errors.executor_k8s import local_engine_not_accept_remote_jobs
 from targets import DirTarget
 
 

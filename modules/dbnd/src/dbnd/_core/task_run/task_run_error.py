@@ -12,8 +12,8 @@ from dbnd._core.errors.errors_utils import (
     show_exc_info,
 )
 from dbnd._core.tracking.schemas.tracking_info_objects import ErrorInfo
+from dbnd._core.utils.anonymization import secrets_anonymizer
 from dbnd._core.utils.timezone import utcnow
-from dbnd.utils.anonymization import secrets_anonymizer
 
 
 def task_call_source_to_str(task_call_source):

@@ -2,7 +2,7 @@
 
 import pytest
 
-from dbnd.utils.anonymization import secrets_anonymizer
+from dbnd._core.utils.anonymization import secrets_anonymizer
 
 
 @pytest.mark.parametrize(

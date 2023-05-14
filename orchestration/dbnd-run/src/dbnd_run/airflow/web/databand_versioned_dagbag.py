@@ -9,10 +9,10 @@ import airflow
 from airflow.models import DagBag, DagModel, DagPickle, DagRun, TaskInstance
 from airflow.utils.db import provide_session
 
-from dbnd._core.errors.friendly_error.versioned_dagbag import (
+from dbnd._vendor import pendulum
+from dbnd.orchestration.errors.versioned_dagbag import (
     failed_to_retrieve_dag_via_dbnd_versioned_dagbag,
 )
-from dbnd._vendor import pendulum
 from dbnd_run.airflow.compat import AIRFLOW_ABOVE_6, AIRFLOW_BELOW_10, AIRFLOW_VERSION_2
 
 

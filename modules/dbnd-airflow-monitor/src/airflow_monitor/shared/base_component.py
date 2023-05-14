@@ -12,7 +12,7 @@ from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
 from airflow_monitor.shared.monitoring.prometheus_tools import sync_once_time
-from dbnd.utils.trace import new_tracing_id
+from dbnd._core.utils.trace import new_tracing_id
 
 
 logger = logging.getLogger(__name__)

@@ -10,9 +10,9 @@ import attr
 from more_itertools import first, padded
 
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
+from dbnd._core.utils.anonymization import secrets_anonymizer
 from dbnd._core.utils.sql_tracker_common.sql_extract import Column, Schema
 from dbnd._core.utils.sql_tracker_common.utils import strip_quotes
-from dbnd.utils.anonymization import secrets_anonymizer
 from targets.connections import build_conn_path
 from targets.providers.pandas.pandas_histograms import PandasHistograms
 from targets.value_meta import ValueMeta
