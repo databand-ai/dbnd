@@ -360,6 +360,7 @@ class DataStageApiHttpClient(DataStageApiClient):
         return job_info
 
     def get_run_logs(self, job_id, run_id) -> List[Dict[str, Any]]:
+        """get logs of datastage runs using api: https://api.dataplatform.cloud.ibm.com/v2/jobs/docs/swagger/#/Job%20Runs/job_runs_logs"""
         logs = []
         try:
             url = urljoin(
@@ -367,16 +368,14 @@ class DataStageApiHttpClient(DataStageApiClient):
                 f"{self.DATASTAGE_JOBS_API_PATH}/{job_id}/runs/{run_id}/logs?project_id={self.project_id}&limit={self.page_size}&userfs=false",
             )
             logs_response = self._make_http_request(method="GET", url=url)
-            logs_json = logs_response.get("results")
-            if logs_json:
-                logs_result_len = len(logs_json)
+            logs_list = logs_response.get("results")
+            if logs_list:
+                logs_result_len = len(logs_list)
                 if logs_result_len > 1:
-                    logger.exception(
-                        "run id %s logs contains %s results, will not be parsed",
-                        run_id,
-                        logs_result_len,
-                    )
-                logs = json.loads(logs_json[0])
+                    logs = logs_list
+                else:
+                    # support old api
+                    logs = json.loads(logs_list[0])
             else:
                 logger.debug("Logs for run %s not found", run_id)
         except Exception as e:
