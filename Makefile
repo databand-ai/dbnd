@@ -31,11 +31,6 @@ prj_tracking = \
 			plugins/dbnd-tensorflow \
 			plugins/dbnd-snowflake
 
-prj_tracking_monitors = \
-           modules/dbnd \
-           modules/dbnd-dbt-monitor \
-           modules/dbnd-datastage-monitor
-
 
 prj_tracking_airflow = \
            modules/dbnd \
@@ -70,9 +65,6 @@ prj_dist := \
 		modules/dbnd-airflow-monitor \
 		plugins/dbnd-airflow-auto-tracking \
 		plugins/dbnd-airflow-export \
-		\
-		modules/dbnd-dbt-monitor \
-		modules/dbnd-datastage-monitor\
 		\
 		plugins/dbnd-mlflow \
 		plugins/dbnd-luigi \

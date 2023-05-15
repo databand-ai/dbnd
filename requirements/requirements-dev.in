@@ -7,8 +7,6 @@
 
 # databand tracking monitors:
 -e file:modules/dbnd-airflow-monitor
--e file:modules/dbnd-dbt-monitor
--e file:modules/dbnd-datastage-monitor
 
 # databand tracking
 -e file:plugins/dbnd-mlflow

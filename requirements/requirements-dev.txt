@@ -8,8 +8,6 @@
     # via
     #   -r requirements/requirements-dev.in
     #   dbnd-airflow-monitor
-    #   dbnd-datastage-monitor
-    #   dbnd-dbt-monitor
     #   dbnd-mlflow
     #   dbnd-postgres
     #   dbnd-redshift
@@ -17,12 +15,6 @@
 -e file:modules/dbnd-airflow-monitor
     # via
     #   -r requirements/requirements-dev.in
-    #   dbnd-datastage-monitor
-    #   dbnd-dbt-monitor
--e file:modules/dbnd-datastage-monitor
-    # via -r requirements/requirements-dev.in
--e file:modules/dbnd-dbt-monitor
-    # via -r requirements/requirements-dev.in
 -e file:plugins/dbnd-mlflow
     # via -r requirements/requirements-dev.in
 -e file:plugins/dbnd-postgres
@@ -161,7 +153,6 @@ pluggy==1.0.0
 prometheus-client==0.14.1
     # via
     #   dbnd-airflow-monitor
-    #   dbnd-datastage-monitor
 psycopg2-binary==2.9.3
     # via
     #   dbnd-postgres
@@ -193,10 +184,6 @@ python-dateutil==2.8.2
     #   botocore
     #   dbnd
     #   pandas
-python-json-logger==2.0.6
-    # via
-    #   dbnd-datastage-monitor
-    #   dbnd-dbt-monitor
 python-stripzip==1.0.0
     # via -r requirements/./requirements-dev-tools.in
 pytz==2022.2.1
@@ -218,18 +205,12 @@ redshift-connector==2.0.909
 requests==2.28.1
     # via
     #   dbnd
-    #   dbnd-datastage-monitor
-    #   dbnd-dbt-monitor
     #   redshift-connector
     #   snowflake-connector-python
 s3transfer==0.6.0
     # via boto3
 scramp==1.4.1
     # via redshift-connector
-sentry-sdk==1.15.0
-    # via
-    #   dbnd-datastage-monitor
-    #   dbnd-dbt-monitor
 sh==1.14.3
     # via -r requirements/./requirements-dev-tools.in
 six==1.16.0
