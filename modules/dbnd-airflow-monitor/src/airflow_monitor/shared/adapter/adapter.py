@@ -93,7 +93,7 @@ class Adapter(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_assets_data(self, assets: Assets, next_page: object) -> Assets:
+    def get_assets_data(self, assets: Assets) -> Assets:
         raise NotImplementedError()
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:
